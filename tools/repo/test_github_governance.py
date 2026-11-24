@@ -364,15 +364,27 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         import yaml
 
         workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
-        script = next(
-            step["run"] for step in effective_ci_steps(workflow["jobs"]["repo-mechanics"])
-            if step["name"] == "Install root verification tools"
-        )
-        for fail_until, expected_rc, expected_calls in ((1, 0, 2), (9, 1, 3)):
+        scripts = []
+        for job in ("root-preflight", "repo-mechanics", "owner-verification"):
+            matches = [
+                step["run"] for step in effective_ci_steps(workflow["jobs"][job])
+                if step["name"] == "Install root verification tools"
+            ]
+            self.assertEqual(len(matches), 1, job)
+            scripts.extend(matches)
+        self.assertEqual(len(set(scripts)), 1, "all three lanes must share the retry contract")
+        script = scripts[0]
+        for fail_until, expected_rc, expected_calls in (
+            (0, 0, 1), (1, 0, 2), (2, 0, 3), (9, 1, 3)
+        ):
             with self.subTest(fail_until=fail_until), tempfile.TemporaryDirectory() as tmp:
                 folder = Path(tmp)
                 tool = folder / "mise"
                 record = folder / "calls"
+                delays = folder / "delays"
+                fake_sleep = folder / "sleep"
+                fake_sleep.write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$*" >> "$DELAYS"\n')
+                fake_sleep.chmod(0o755)
                 tool.write_text(r"""#!/usr/bin/env bash
 if [[ "$#" != 1 || "$1" != install ]]; then exit 91; fi
 printf "%s,%s,%s\n" "$MISE_JOBS" "$MISE_HTTP_TIMEOUT" "$*" >> "$RECORD"
@@ -385,6 +397,7 @@ exit 0
                 env.update({
                     "PATH": str(folder) + os.pathsep + env.get("PATH", ""),
                     "RECORD": str(record),
+                    "DELAYS": str(delays),
                     "FAIL_UNTIL": str(fail_until),
                 })
                 observed = subprocess.run(
@@ -395,6 +408,14 @@ exit 0
                 self.assertEqual(
                     record.read_text().splitlines(),
                     ["2,30,install"] * expected_calls,
+                )
+                self.assertEqual(
+                    delays.read_text().splitlines() if delays.exists() else [],
+                    ["3", "6"][:expected_calls - 1],
+                )
+                self.assertEqual(
+                    "NETWORK_UPSTREAM_TOOL_DOWNLOAD_UNAVAILABLE" in observed.stderr,
+                    expected_rc != 0,
                 )
 
     def test_selected_owner_preinstall_is_native_scoped_and_bounded(self) -> None:
