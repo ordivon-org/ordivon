@@ -1,6 +1,6 @@
 use super::types::PgJobSnapshot;
 use crate::pg_admission::{
-    pg_artifact_manifest_digest, valid_pg_artifacts, PgAdmissionError, PgArtifactRegistration,
+    PgAdmissionError, PgArtifactRegistration, pg_artifact_manifest_digest, valid_pg_artifacts,
 };
 use postgres::Transaction;
 use sha2::{Digest, Sha256};
@@ -25,12 +25,24 @@ pub(super) fn terminal_events_coherent(
         &[&snapshot.job_id],
     )?;
     let event_query = if release.is_some() {
-        "SELECT event_type,origin,new_state,detail_json,detail_digest FROM job_events WHERE job_id=$1 AND attempt_id=$2 AND event_type IN ('RELEASE_EFFECT_RECEIPTED','JOB_TERMINAL')"
+        "SELECT event_type,origin,new_state,detail_json,detail_digest,event_sequence FROM job_events WHERE job_id=$1 AND attempt_id=$2 AND event_type IN ('RELEASE_EFFECT_RECEIPTED','JOB_TERMINAL') ORDER BY event_sequence"
     } else {
-        "SELECT event_type,origin,new_state,detail_json,detail_digest FROM job_events WHERE job_id=$1 AND attempt_id=$2 AND event_type IN ('PROCESS_EXITED','NATIVE_HANDOFF_PREVENTED','JOB_TERMINAL')"
+        "SELECT event_type,origin,new_state,detail_json,detail_digest,event_sequence FROM job_events WHERE job_id=$1 AND attempt_id=$2 AND event_type IN ('PROCESS_EXITED','NATIVE_HANDOFF_PREVENTED','JOB_TERMINAL') ORDER BY event_sequence"
     };
     let rows = tx.query(event_query, &[&snapshot.job_id, &snapshot.attempt_id])?;
     if rows.len() != 2 {
+        return Ok(false);
+    }
+    // All terminal writers append the original source witness followed by
+    // JOB_TERMINAL as consecutive events in the same transaction. Digest
+    // validity alone cannot qualify a reversed or separated causal pair.
+    let source_sequence: i64 = rows[0].get(5);
+    let derived_sequence: i64 = rows[1].get(5);
+    if source_sequence <= 0
+        || source_sequence.checked_add(1) != Some(derived_sequence)
+        || rows[0].get::<_, String>(0) == "JOB_TERMINAL"
+        || rows[1].get::<_, String>(0) != "JOB_TERMINAL"
+    {
         return Ok(false);
     }
     let artifact_rows = tx.query(
