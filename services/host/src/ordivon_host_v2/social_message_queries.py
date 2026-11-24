@@ -7,7 +7,11 @@ row validation; it does not introduce separate persistence or route policy.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from typing import Any
+
+import psycopg
 
 from .collaboration_inputs import MessageRelationKind
 from .collection_pagination import (
@@ -19,6 +23,7 @@ from .collection_pagination import (
 )
 from .errors import ConflictError
 from .postgres_bounds import HOST_WIRE_INT_MAX
+from .references.record_refs import RecordReferenceLookup
 from .social_errors import MessageNotFound
 from .social_message_records import require_message, verify_message_content_digest
 
@@ -26,7 +31,10 @@ from .social_message_records import require_message, verify_message_content_dige
 class SocialMessageReadQueries:
     """Read-only PostgreSQL projections; SocialStore remains the sole write authority."""
 
-    dsn: str
+    def __init__(
+        self, connect: Callable[[], AbstractContextManager[psycopg.Connection[dict[str, Any]]]]
+    ) -> None:
+        self._connect = connect
 
     def list_message_relations(
         self,
@@ -195,9 +203,9 @@ class SocialMessageReadQueries:
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             if space_ref is not None:
-                self._require_space(conn, space_ref)
+                RecordReferenceLookup._require_space(conn, space_ref)
             if topic_ref is not None:
-                topic = self._require_topic(conn, topic_ref)
+                topic = RecordReferenceLookup._require_topic(conn, topic_ref)
                 if space_ref is not None and topic["space_ref"] != space_ref:
                     raise ConflictError("topic does not belong to supplied space")
             rows = conn.execute(

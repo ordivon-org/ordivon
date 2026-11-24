@@ -252,7 +252,7 @@ and information hidden, using shallow packages.
 | \`kernel/\` | \`canonical_json.py\`, \`collection_pagination.py\`, \`errors.py\` | Pure JSON, byte bounds, typed core errors; no Owner state |
 | \`storage/\` | \`postgres_connections.py\`, \`postgres_bounds.py\`, \`command_receipts.py\` | Psycopg connection/pool checkout, PG bounds and transactional receipts; one authority |
 | \`work/\` | \`work_inputs.py\`, \`work_queries.py\`, \`work_store.py\`, \`work_relation_commands.py\` | Current Work CAS, bounded discovery, optional relation DAG |
-| \`social/\` | \`collaboration_inputs.py\`, \`social_errors.py\`, \`social_store.py\`, \`social_read_queries.py\`; \`social_space_commands.py\`, \`social_space_queries.py\`, \`social_topic_commands.py\`, \`social_topic_queries.py\`, \`social_message_commands.py\`, \`social_message_queries.py\`; \`coordination_inputs.py\`, \`coordination_intent_commands.py\` | Space, Topic, Message, Participation/relations and optional internal Coordination Intent; no IAM/Work scheduler |
+| \`social/\` | \`collaboration_inputs.py\`, \`social_errors.py\`, \`social_store.py\`; \`social_space_commands.py\`, \`social_space_queries.py\`, \`social_topic_commands.py\`, \`social_topic_queries.py\`, \`social_message_commands.py\`, \`social_message_queries.py\`; \`coordination_inputs.py\`, \`coordination_intent_commands.py\` | Space, Topic, Message, Participation/relations and optional internal Coordination Intent; no IAM/Work scheduler |
 | \`attention/\` | \`attention_store.py\`, \`attention_projections.py\`, \`attention_sql.py\` | Subscription, Attention cursor, delta/reentry and single-snapshot read view; read canonical Work/Social rows only |
 | \`transport/\` | \`mcp_tool_registration.py\`, \`mcp_work_tools.py\`, \`mcp_social_tools.py\`, \`mcp_attention_tools.py\`, \`mcp_domain_errors.py\`, \`http_identity.py\` | Official MCP tool adapters, stable schema and HTTP workload authentication |
 | \`operations/\` | \`service.py\`, \`contracts.py\`, \`native_pool_observability.py\` | Host readiness, cross-domain integrity diagnostics and pool observability; read-only cross-domain integration |
@@ -449,3 +449,14 @@ readback inside create/commit still uses read_work_in_tx on the caller transacti
 The pure bounded revision successor lives in work_revision_logic.py and the existing
 CrossHair source target follows it. Public WorkStore/MCP and PG schema are unchanged.
 The older inherited read facet descriptions above are historical.
+
+### R6 Social explicit read composition
+
+The existing SocialStore API explicitly delegates Space, Topic and Message
+queries to concrete capabilities using the same native checkout. Canonical
+Actor/Space/Topic reference lookups receive the caller-owned PG connection
+directly. The inheritance-only SocialReadQueries facade has no independent
+state or semantics and is removed. Every public read still owns exactly one
+REPEATABLE READ, READ ONLY transaction; command mixins and same-transaction
+command readbacks are unchanged. This is independent of Social MCP port
+registration (#2589); no public Tool, schema, credential or new read database.
