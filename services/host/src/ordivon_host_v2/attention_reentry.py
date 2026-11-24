@@ -30,10 +30,24 @@ def project_reentry(
     cursors: Mapping[str, int],
     max_bytes: int,
 ) -> dict[str, Any]:
-    """Fold an exact ordered event prefix into navigation groups and byte-bound it.
+    """Select the longest complete event prefix whose grouped wire bytes fit.
 
-    delta is the actual owner projection, not a second event store. This
-    pure function does not authorize or infer that any message was processed.
+    Requires the caller's exact, strictly ordered Attention delta and its
+    same-snapshot Topic cursor readback. For a nonempty delta, returning an
+    empty prefix is forbidden; if no positive prefix fits, reject. For an
+    empty delta, return its bounded empty representation or reject.
+
+    For each (navigationKind, navigationRef) in first-occurrence order, the
+    group is the prefix count, maximum Attention change sequence and sorted
+    union of event kinds/reasons. Only Topic groups carry their own Topic
+    message cursor (default 0), never the Attention change coordinate.
+
+    A trimmed page resumes at the last included change sequence and sets
+    hasMore. A complete page preserves the owner's continuation and hasMore.
+    Neither result acknowledges, assigns, ranks, authorizes or proves effects.
+    The exhaustive-prefix property in test_attention_reentry_pure_r2.py is
+    independent of this implementation's binary search; MVCC is tested at
+    the native PostgreSQL seam, not asserted by this pure function.
     """
     events = delta["events"]
 
