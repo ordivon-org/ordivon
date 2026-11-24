@@ -14,17 +14,14 @@ import type {
 
 import type { WebConfig } from "./config.ts";
 import { WebProblem } from "./errors.ts";
-import { stableDigest } from "./identity-digests.ts";
+import { registerAgentCanaryRoutes } from "./agent-canary-routes.ts";
 import {
   SecurityContractAdmissionEvaluator,
-  admissionInput,
   type AgentAdmissionEvaluator,
   type AgentRequestVerifier,
 } from "./agent-authority.ts";
 import type {
-  AgentEffectRequest,
   AuthenticatedSession,
-  VerifiedAgent,
 } from "./model.ts";
 import {
   CSRF_COOKIE,
@@ -127,62 +124,6 @@ export async function createWebApp(
       );
     }
     return store.authenticateSession(token, now(), config.sessionIdleSeconds);
-  }
-
-  async function verifiedAgent(request: FastifyRequest): Promise<VerifiedAgent> {
-    if (dependencies.agentVerifier === undefined) {
-      throw new WebProblem(
-        503,
-        "agent-verifier-unavailable",
-        "Agent verification unavailable",
-        "The Security-owned Agent request verifier is not configured.",
-      );
-    }
-    return await dependencies.agentVerifier.verify({
-      method: request.method,
-      url: request.url,
-      headers: request.headers,
-    });
-  }
-
-  function effectId(request: FastifyRequest): string {
-    const value = textHeader(request.headers["x-ordivon-effect-id"]);
-    if (value === null || !/^sha256:[0-9a-f]{64}$/.test(value)) {
-      throw new WebProblem(
-        422,
-        "effect-id-invalid",
-        "Invalid Effect identity",
-        "Agent mutations require X-Ordivon-Effect-Id as sha256:<64 lowercase hex>.",
-      );
-    }
-    return value;
-  }
-
-  async function admitAgentEffect(
-    agent: VerifiedAgent,
-    effect: AgentEffectRequest,
-  ) {
-    const timestamp = now();
-    const replay = store.resolveAgentEffectReplay(agent.agentId, effect);
-    if (replay !== null) {
-      return { replay, grant: null, decision: null };
-    }
-    const grant = store.resolveAgentGrant(
-      agent.agentId,
-      config.origin,
-      effect.action,
-      effect.resource,
-      timestamp,
-    );
-    const approval = store.effectApproval(
-      grant.principalId,
-      effect,
-      timestamp,
-    );
-    const decision = await agentAdmission.evaluate(
-      admissionInput(timestamp, grant, agent, effect, approval),
-    );
-    return { replay: null, grant, decision };
   }
 
   app.setErrorHandler((error, request, reply) => {
@@ -569,147 +510,9 @@ export async function createWebApp(
     },
   );
 
-  app.post("/api/agent/canary/notes", async (request, reply) => {
-    const agent = await verifiedAgent(request);
-    const body = asBody(request);
-    const content = requireString(body, "content", 2000);
-    const resource = "/canary/notes";
-    const effect: AgentEffectRequest = {
-      effectId: effectId(request),
-      effectDigest: stableDigest({
-        action: "canary.note.create",
-        resource,
-        content,
-      }),
-      action: "canary.note.create",
-      resource,
-      audience: config.origin,
-      riskClass: "R2",
-      effectType: "website.canary.note.create",
-    };
-    const admitted = await admitAgentEffect(agent, effect);
-    if (admitted.replay !== null) {
-      return reply.code(200).send({ receipt: admitted.replay, replayed: true });
-    }
-    if (admitted.grant === null || admitted.decision === null) {
-      throw new WebProblem(500, "admission-state-invalid", "Admission state invalid", "Agent admission did not return current authority.");
-    }
-    if (
-      admitted.decision.agent.outcome !== "ALLOW" ||
-      admitted.decision.effect?.admitted !== true
-    ) {
-      if (admitted.decision.agent.outcome === "STEP_UP") {
-        store.registerPendingEffectApproval(
-          admitted.grant.principalId,
-          effect,
-          now(),
-        );
-        return reply
-          .code(428)
-          .type("application/problem+json")
-          .send({
-            type: config.origin + "/problems/principal-step-up-required",
-            title: "Principal approval required",
-            status: 428,
-            detail: "This Agent Effect requires effect-bound Principal approval.",
-            effectId: effect.effectId,
-            effectDigest: effect.effectDigest,
-            requestId: request.id,
-          });
-      }
-      throw new WebProblem(
-        403,
-        "agent-effect-denied",
-        "Agent Effect denied",
-        admitted.decision.agent.reason,
-      );
-    }
-    const committed = store.commitAgentCanaryCreate(
-      admitted.grant,
-      agent.agentId,
-      effect,
-      content,
-      now(),
-    );
-    return reply
-      .code(committed.replayed ? 200 : 201)
-      .send(committed);
+  registerAgentCanaryRoutes(app, {
+    config, store, now, agentAdmission, agentVerifier: dependencies.agentVerifier,
   });
-
-  app.post(
-    "/api/agent/canary/notes/:noteId/publish",
-    async (request, reply) => {
-      const agent = await verifiedAgent(request);
-      const params = request.params as { noteId?: unknown };
-      if (typeof params.noteId !== "string" || params.noteId.length < 1) {
-        throw new WebProblem(
-          422,
-          "invalid-note-id",
-          "Invalid canary note",
-          "noteId is required.",
-        );
-      }
-      const resource = "/canary/notes/" + params.noteId;
-      const effect: AgentEffectRequest = {
-        effectId: effectId(request),
-        effectDigest: stableDigest({
-          action: "canary.note.publish",
-          resource,
-          noteId: params.noteId,
-        }),
-        action: "canary.note.publish",
-        resource,
-        audience: config.origin,
-        riskClass: "R4",
-        effectType: "website.canary.note.publish",
-      };
-      const admitted = await admitAgentEffect(agent, effect);
-      if (admitted.replay !== null) {
-        return reply.code(200).send({ receipt: admitted.replay, replayed: true });
-      }
-      if (admitted.grant === null || admitted.decision === null) {
-        throw new WebProblem(500, "admission-state-invalid", "Admission state invalid", "Agent admission did not return current authority.");
-      }
-      if (admitted.decision.agent.outcome === "STEP_UP") {
-        store.registerPendingEffectApproval(
-          admitted.grant.principalId,
-          effect,
-          now(),
-        );
-        return reply
-          .code(428)
-          .type("application/problem+json")
-          .send({
-            type: config.origin + "/problems/principal-step-up-required",
-            title: "Principal approval required",
-            status: 428,
-            detail: "Publishing this canary note requires effect-bound Principal approval.",
-            effectId: effect.effectId,
-            effectDigest: effect.effectDigest,
-            requestId: request.id,
-          });
-      }
-      if (
-        admitted.decision.agent.outcome !== "ALLOW" ||
-        admitted.decision.effect?.admitted !== true
-      ) {
-        throw new WebProblem(
-          403,
-          "agent-effect-denied",
-          "Agent Effect denied",
-          admitted.decision.agent.reason,
-        );
-      }
-      const committed = store.commitAgentCanaryPublish(
-        admitted.grant,
-        agent.agentId,
-        effect,
-        params.noteId,
-        now(),
-      );
-      return reply.code(200).send(committed);
-    },
-  );
 
   app.addHook("onClose", async () => {
     if (dependencies.store === undefined) {
