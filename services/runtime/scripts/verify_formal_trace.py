@@ -505,6 +505,35 @@ _ROOT_BUILD_INPUTS = frozenset(
 )
 
 
+# Cargo/rustup/mise may resolve inputs in ancestors between the owner root
+# and repository root, even when those paths did not exist at the base cut.
+# Keep one scope for both change projection and physical checkout checks.
+_ANCESTOR_BUILD_INPUTS = frozenset(
+    prefix + name for prefix in ("", "services/") for name in _ROOT_BUILD_INPUTS
+)
+_ANCESTOR_CARGO_DIRS = (".cargo", "services/.cargo")
+
+
+def _ancestor_build_input(path: str) -> bool:
+    return path in _ANCESTOR_BUILD_INPUTS or any(
+        path == directory or path.startswith(directory + "/")
+        for directory in _ANCESTOR_CARGO_DIRS
+    )
+
+
+def _exact_source_git_environment() -> dict[str, str]:
+    """Bind Git to the explicit checkout and literal ancestry, not parent overrides."""
+    import os
+
+    # Same native Git semantics as tools/repo/source_history_legos.py:
+    # inherited GIT_WORK_TREE/GIT_DIR/GIT_INDEX_FILE/config may redirect source.
+    # Disable local graft ancestry and replacement semantics in child processes.
+    env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+    env["GIT_GRAFT_FILE"] = os.devnull
+    env["GIT_NO_REPLACE_OBJECTS"] = "1"
+    return env
+
+
 def _native_libtest_depfile_receipt(executable: Path, source_head: str) -> dict[str, Any]:
     """Join one Cargo-selected libtest executable's rustc depfile to exact Git blobs.
 
@@ -557,6 +586,7 @@ def _native_libtest_depfile_receipt(executable: Path, source_head: str) -> dict[
             text=True,
             check=True,
             timeout=20,
+            env=_exact_source_git_environment(),
         ).stdout.rstrip("\n")
         parts = found.split("\t", 1)
         if len(parts) != 2 or parts[1] != git_path:
@@ -567,6 +597,7 @@ def _native_libtest_depfile_receipt(executable: Path, source_head: str) -> dict[
         committed = subprocess.check_output(
             ["git", "--no-replace-objects", "-C", str(repo), "show", f"{source_head}:{git_path}"],
             timeout=20,
+            env=_exact_source_git_environment(),
         )
         if hashlib.sha256(absolute.read_bytes()).digest() != hashlib.sha256(committed).digest():
             raise ValueError("compiler dependency physical/Git blob mismatch")
@@ -616,7 +647,7 @@ def _qualify_current_compiler_readset(source_head: str) -> dict[str, Any]:
         text=True,
         timeout=180,
         check=False,
-        env={**os.environ, "CARGO_TERM_COLOR": "never"},
+        env={**_exact_source_git_environment(), "CARGO_TERM_COLOR": "never"},
         pass_fds=fds,
     )
     if result.returncode:
@@ -670,6 +701,16 @@ def project_proving_test_source_readsets(
         owned("planning/invariants-r1.json"),
         owned("scripts/verify_formal_trace.py"),
         owned("scripts/tests/test_formal_trace.py"),
+        # The actual Cargo --locked workspace invocation consumes these
+        # positive build inputs even though rustc dep-info only names the
+        # selected libtest source files. This is deliberately conservative:
+        # the workspace lock/manifest may affect resolution without changing
+        # a particular compiled witness's behavior.
+        owned("Cargo.lock"),
+        owned("Cargo.toml"),
+        owned("rust-toolchain.toml"),
+        owned("crates/ordivon-runtime-core/Cargo.toml"),
+        owned("crates/ordivon-runtime-mcp/Cargo.toml"),
         # The formal model evidence is consumed through the pinned TLC runner.
         # These shared checker inputs are distinct from individual Rust witnesses.
         owned("formal/toolchain.lock.json"),
@@ -777,7 +818,7 @@ def project_proving_test_source_impact(
     crosscutting_assumption_changes = {
         path
         for path in changed_paths
-        if path in _ROOT_BUILD_INPUTS or path.startswith(".cargo/")
+        if _ancestor_build_input(path)
     }
     rows = []
     for witness_id, readset in sorted(readsets.items()):
@@ -810,7 +851,7 @@ def project_proving_test_source_impact(
         ),
         "crosscuttingAssumptionChanges": sorted(crosscutting_assumption_changes),
         "changedPaths": sorted(changed_paths),
-        "scope": "Runtime tracked Git source plus declared root build/toolchain assumption guards ONLY; no installed/configured/physical/runtime consumer claims",
+        "scope": "Runtime tracked Git source plus declared ancestor build/toolchain assumption guards ONLY; no installed/configured/physical/runtime consumer claims",
         "proofReuseAdmissible": False,
         "nonClaims": [
             "REUSE_CANDIDATE is not proof PASS, implementation refinement, or installed acceptance.",
@@ -830,21 +871,32 @@ def _git_source_changes(base: str, head: str) -> set[str]:
         raise ValueError("impact base/head must be exact 40-hex Git commits")
     repo = ROOT.parents[1]
 
+    env = _exact_source_git_environment()
+
     def git(*args: str) -> bytes:
         return subprocess.run(
-            ["git", "-C", str(repo), *args],
+            ["git", "--no-replace-objects", "-C", str(repo), *args],
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            env=env,
         ).stdout
 
+    # A replacement ref can make a nominal commit identify different bytes
+    # and even hide a real source delta. Reject it rather than mix identities
+    # with Cargo or other subprocesses that may use ordinary Git semantics.
+    if git("for-each-ref", "--format=%(refname)", "refs/replace"):
+        raise ValueError("impact Git replace refs invalidate exact SourceCut")
+    top = Path(git("rev-parse", "--show-toplevel").decode().removesuffix("\n"))
+    if top.resolve(strict=True) != repo.resolve(strict=True):
+        raise ValueError("impact Git worktree is not the actual source checkout")
     actual_head = git("rev-parse", "HEAD").decode().strip()
     if head != actual_head:
         raise ValueError(f"impact HEAD is not checkout HEAD: {head} != {actual_head}")
     # Git status can hide edited tracked files when the index carries
     # assume-unchanged or skip-worktree bits. Such flags defeat a source
     # currentness claim even when --porcelain reports an empty worktree.
-    source_scope = ("services/runtime", *sorted(_ROOT_BUILD_INPUTS), ".cargo")
+    source_scope = ("services/runtime", *sorted(_ANCESTOR_BUILD_INPUTS), *_ANCESTOR_CARGO_DIRS)
     index_rows = git("ls-files", "-v", "-z", "--", *source_scope)
     if any(not row.startswith(b"H ") for row in index_rows.split(b"\x00") if row):
         raise ValueError("impact Runtime/formal build tracked source has unsafe Git index flags")
@@ -882,8 +934,9 @@ def _qualified_native_source_head() -> str:
     try:
         head = (
             subprocess.check_output(
-                ["git", "-C", str(repo), "rev-parse", "HEAD"],
+                ["git", "--no-replace-objects", "-C", str(repo), "rev-parse", "HEAD"],
                 stderr=subprocess.PIPE,
+                env=_exact_source_git_environment(),
             )
             .decode("ascii")
             .strip()
@@ -1014,7 +1067,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
         "--message-format=json",
     ]
     pre_execution_head = _qualified_native_source_head()
-    env = dict(os.environ)
+    env = _exact_source_git_environment()
     env["CARGO_TERM_COLOR"] = "never"
     target_dir = env.get("CARGO_TARGET_DIR", str(ROOT / "target"))
     # A Runtime-issued target directory may be an fd-bound path. Preserve it
@@ -1043,7 +1096,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
     def provenance(command: list[str]) -> str:
         return run(command, timeout=20).strip()
 
-    source_head = provenance(["git", "rev-parse", "HEAD"])
+    source_head = pre_execution_head
     # Reuse the existing Runtime Git readset guard: this includes indexed root
     # toolchains/.cargo and detects hidden assume-unchanged/skip-worktree flags.
     _git_source_changes(source_head, source_head)
