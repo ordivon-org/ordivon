@@ -272,7 +272,7 @@
       "modelRelations": [
         "RuntimeDispatch.NoCompetingLiveAttempts"
       ],
-      "scope": "two concurrent duplicate submissions produce one initial Job and Attempt; no general retry safety",
+      "scope": "four concurrent duplicate submissions produce one initial Job, Attempt, idempotency key and reservation; no general retry safety",
       "condition": "qualified disposable PG18 or explicit ORDIVON_PG_TEST_DSN; database evidence, not OS execution"
     },
     {
