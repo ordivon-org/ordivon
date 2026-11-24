@@ -1,9 +1,9 @@
 //! Original bounded UTF-8 text Artifact paging by stable byte cursor.
 use super::PathBuf;
 use super::{
+    artifact_utf8_window, io, require_pg_artifact_identity, require_pg_artifact_origin, universal,
     ArtifactReadRequest, ArtifactReadResult, PgRuntime, RuntimeError, RuntimeErrorCode,
-    RuntimeResult, artifact_utf8_window, io, require_pg_artifact_identity,
-    require_pg_artifact_origin, universal,
+    RuntimeResult,
 };
 use std::path::Path;
 
