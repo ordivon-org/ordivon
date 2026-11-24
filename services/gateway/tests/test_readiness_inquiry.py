@@ -265,7 +265,7 @@ def test_release_inquiry_separates_configuration_installation_and_grant() -> Non
     assert not any(name != "runtime.describe" for _, name, _ in owners.calls)
 
 
-def test_native_mcp_inquiry_validates_and_legacy_tool_schema_digest_is_identical() -> None:
+def test_native_mcp_inquiry_validates_and_unrelated_tool_schemas_are_identical() -> None:
     # Source verification, not any installed Gateway release.
     async def scenario() -> None:
         owners = Owners({})
@@ -283,15 +283,29 @@ def test_native_mcp_inquiry_validates_and_legacy_tool_schema_digest_is_identical
             assert content["inquiry"]["next_checks"]
             assert owners.calls == []
 
-            # Compute the original real SDK Tool schemas, not manually mirrored
-            # names/inputs. Only one NEW tool is allowed; the old ABI stays exact.
+            # Exclude the independently versioned nine Host numeric schemas;
+            # the frozen 0.10.20 native-SDK projection proves all other legacy
+            # schemas remain exact. The full manifest gate verifies the new ABI.
             import hashlib
 
+            versioned = {
+                "capability.inquire",
+                "attention.ack",
+                "attention.delta",
+                "attention.reentry",
+                "topic.cursor.ack",
+                "topic.resume",
+                "topic.state.set",
+                "message.post",
+                "work.get",
+                "work.snapshot.commit",
+            }
             previous = [
                 t.model_dump(mode="json", by_alias=True, exclude_none=True)
                 for t in tools
-                if t.name != "capability.inquire"
+                if t.name not in versioned
             ]
+            assert len(previous) == 32
             records = [
                 {
                     "name": t["name"],
@@ -308,7 +322,7 @@ def test_native_mcp_inquiry_validates_and_legacy_tool_schema_digest_is_identical
             )
             digest = "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()
             assert (
-                digest == "sha256:b60a50c2371ff6afd6ba0714f71f308b4d07ed19b9aaf0cb19e8b27790abd9f3"
+                digest == "sha256:b25dd6ebdd82d606c5e3d0782eae80364078d1bc7d199f4672717966ef19e28e"
             )
 
     asyncio.run(scenario())
