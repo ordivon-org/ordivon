@@ -6,6 +6,7 @@ that neither physical lane can run without its explicit isolated-test DSN.
 """
 
 import os
+import json
 from pathlib import Path
 import subprocess
 import tomllib
@@ -74,8 +75,16 @@ class PgPhysicalVerificationContractTests(unittest.TestCase):
         ):
             task = f"test:postgres-registry:{lane}"
             qualified = f"module::{name}"
-            inventory = f"{qualified}: test\n1 test, 0 benchmarks"
-            output = f"test {qualified} ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored;"
+            required = []
+            if lane == "physical":
+                trace = json.loads((ROOT / "formal/RuntimeDispatchR1.trace-r1.json").read_text())
+                required = [
+                    row["path"].split("/src/")[1][:-3].replace("/", "::") + "::" + row["symbol"]
+                    for row in trace["pgNativeWitnesses"] if row["evidenceMode"] == "physical-opt-in"
+                ]
+            names = [*required, qualified]
+            inventory = "\n".join(f"{case}: test" for case in names) + f"\n{len(names)} tests, 0 benchmarks"
+            output = "\n".join(f"test {case} ... ok" for case in names) + f"\ntest result: ok. {len(names)} passed; 0 failed; 0 ignored;"
             for label, listed, observed, code in (
                 ("positive", inventory, output, 0),
                 ("empty", "0 tests, 0 benchmarks", output, 0),
@@ -89,12 +98,20 @@ class PgPhysicalVerificationContractTests(unittest.TestCase):
                     combined = result.stdout + result.stderr
                     if label == "positive":
                         self.assertEqual(result.returncode, 0, combined)
-                        self.assertIn(f"{lane.upper()}_PG18_PASS=1/1", combined)
+                        self.assertIn(f"{lane.upper()}_PG18_PASS={len(names)}/{len(names)}", combined)
                     else:
                         self.assertNotEqual(result.returncode, 0, combined)
                         self.assertNotIn("_PG18_PASS=", combined)
                         if label == "empty":
                             self.assertIn("inventory", result.stderr.lower())
+            if required:
+                with self.subTest(lane=lane, case="missing-required-but-green"):
+                    remaining = names[1:]
+                    listed = "\n".join(f"{case}: test" for case in remaining)
+                    observed = "\n".join(f"test {case} ... ok" for case in remaining) + f"\ntest result: ok. {len(remaining)} passed; 0 failed; 0 ignored;"
+                    result = self._run_stub_lane(task, variable, listed, observed)
+                    self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertNotIn("PHYSICAL_PG18_PASS=", result.stdout)
             with self.subTest(lane=lane, case="blank-dsn"):
                 result = self._run_stub_lane(task, variable, inventory, output, dsn="  ")
                 self.assertEqual(result.returncode, 2, result.stderr)

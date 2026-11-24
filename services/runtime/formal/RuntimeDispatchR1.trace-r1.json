@@ -154,7 +154,8 @@
     "held-orphan reservation is a separate BOOLEAN owner abstraction; a qualifying orphan may arise before or after confirmed dispatch",
     "production Rust local refinement witness: Kani verifies ReservationContract::terminal_target_with_evidence composed with AttemptLifecycleContract over every Attempt terminal class; Orphaned maps exactly to HeldOrphaned and retains capacity while other qualified terminal states release it",
     "production Rust fail-closed witness: Kani verifies terminal reservation targeting is admitted exactly when terminal Attempt, result evidence, finishedAt, matching Job resolution and absence of currentAttempt all hold, and separately rejects every mismatched terminal Job resolution",
-    "the Kani witnesses are opt-in mechanized implementation evidence executed by services/runtime formal:kani:verify; current source contains the harnesses proof_actual_terminal_reservation_target_preserves_held_orphan_fence, proof_actual_terminal_reservation_target_fails_closed_on_incomplete_evidence and proof_actual_terminal_reservation_target_rejects_mismatched_job_resolution"
+    "the Kani witnesses are opt-in mechanized implementation evidence executed by services/runtime formal:kani:verify; current source contains the harnesses proof_actual_terminal_reservation_target_preserves_held_orphan_fence, proof_actual_terminal_reservation_target_fails_closed_on_incomplete_evidence and proof_actual_terminal_reservation_target_rejects_mismatched_job_resolution",
+    "The original contractSeams/provingTests are transactional-runtime legacy profile evidence. pgNativeWitnesses names narrower postgres-registry-admission code and database witnesses; modelRelations are correspondence obligations, not claims of complete refinement."
   ],
   "nonClaims": [
     "This is not a mechanized refinement proof from Rust semantics to TLA+ semantics.",
@@ -170,7 +171,8 @@
     "The heldReservation Boolean abstracts one Job only; it does not prove global capacity accounting or physical launch occurrence for an Orphaned attempt.",
     "The Kani reservation/Attempt proofs are local pure-contract implementation proofs, not a mechanized refinement of Registry SQL/CAS, reconciliation transactions, global capacity accounting, provider launch evidence, or the complete Rust Runtime to RuntimeDispatchR1.",
     "formal:kani:verify is opt-in and is not executed by the normal Runtime verify task; source presence/currentness of a Kani harness is not a substitute for a Runtime execution receipt showing that the verifier actually ran.",
-    "The held-orphan Kani proof establishes ReservationContract target/capacity fencing under its explicit evidence inputs; it does not prove that persistent database rows, cross-Job reservations, or physical providers supplied those inputs correctly."
+    "The held-orphan Kani proof establishes ReservationContract target/capacity fencing under its explicit evidence inputs; it does not prove that persistent database rows, cross-Job reservations, or physical providers supplied those inputs correctly.",
+    "PG physical-opt-in witness registration does not establish database execution; the existing disposable or explicit physical PostgreSQL lane provides separate runtime evidence. Neither profile establishes the all-issued native OS or independent recipient acceptance relation."
   ],
   "supportingContracts": [
     {
@@ -197,6 +199,105 @@
       "symbol": "runtime_ambiguous_dispatch_is_lost_without_automatic_redispatch",
       "evidenceMode": "physical-opt-in",
       "condition": "root + systemd + cgroup v2 + built Runner + ORDIVON_RUN_INTEGRATION=1"
+    }
+  ],
+  "pgNativeWitnesses": [
+    {
+      "id": "PG.providerContract",
+      "path": "crates/ordivon-runtime-core/src/runtime/execution_provider.rs",
+      "symbol": "provider_replacement_cannot_weaken_r1_guarantees",
+      "evidenceMode": "always-on",
+      "modelRelations": [
+        "ExecutionProvider.assumeGuarantee"
+      ],
+      "scope": "shared pure provider replacement contract"
+    },
+    {
+      "id": "PG.terminalContract",
+      "path": "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
+      "symbol": "terminal_evidence_requires_result_finish_matching_resolution_and_no_current_attempt",
+      "evidenceMode": "always-on",
+      "modelRelations": [
+        "RuntimeDispatch.TerminalEvidenceIsCommitted"
+      ],
+      "scope": "shared pure terminal contract; not database or OS proof"
+    },
+    {
+      "id": "PG.terminalProjection",
+      "path": "crates/ordivon-runtime-core/src/pg_readback/tests.rs",
+      "symbol": "terminal_requires_corresponding_attempt_evidence_and_released_capacity",
+      "evidenceMode": "always-on",
+      "modelRelations": [
+        "RuntimeDispatch.TerminalEvidenceIsCommitted"
+      ],
+      "scope": "PG readback lifecycle coherence rejects missing result, active reservation, running Attempt"
+    },
+    {
+      "id": "PG.orphanProjection",
+      "path": "crates/ordivon-runtime-core/src/pg_readback/tests.rs",
+      "symbol": "orphan_never_projects_as_released_capacity",
+      "evidenceMode": "always-on",
+      "modelRelations": [
+        "RuntimeDispatch.HeldOrphanIsFenced"
+      ],
+      "scope": "PG readback rejects released orphan; no recovery or native process claim"
+    },
+    {
+      "id": "PG.dispatchCAS",
+      "path": "crates/ordivon-runtime-core/src/pg_admission/live_pg_tests/dispatch_cases.rs",
+      "symbol": "pg18_bundle_and_dispatch_commit_before_external_effect",
+      "evidenceMode": "physical-opt-in",
+      "modelRelations": [
+        "RuntimeDispatch.AtMostOnceDispatchPerAttempt"
+      ],
+      "scope": "database versioned dispatch CAS and bundle ordering; no actual provider spawn",
+      "condition": "qualified disposable PG18 or explicit ORDIVON_PG_TEST_DSN; database evidence, not OS execution"
+    },
+    {
+      "id": "PG.admissionUnique",
+      "path": "crates/ordivon-runtime-core/src/pg_admission/live_pg_tests/admission_cases.rs",
+      "symbol": "pg18_concurrent_duplicate_never_creates_second_job",
+      "evidenceMode": "physical-opt-in",
+      "modelRelations": [
+        "RuntimeDispatch.NoCompetingLiveAttempts"
+      ],
+      "scope": "two concurrent duplicate submissions produce one initial Job and Attempt; no general retry safety",
+      "condition": "qualified disposable PG18 or explicit ORDIVON_PG_TEST_DSN; database evidence, not OS execution"
+    },
+    {
+      "id": "PG.terminalOrphanCAS",
+      "path": "crates/ordivon-runtime-core/src/pg_admission/live_pg_tests/terminal_cases.rs",
+      "symbol": "pg18_terminal_cas_replay_orphan_hold_and_atomic_rollback",
+      "evidenceMode": "physical-opt-in",
+      "modelRelations": [
+        "RuntimeDispatch.HeldOrphanIsFenced",
+        "RuntimeDispatch.TerminalEvidenceIsCommitted"
+      ],
+      "scope": "database terminal CAS/replay and orphan capacity held; no native absence or redispatch guarantee",
+      "condition": "qualified disposable PG18 or explicit ORDIVON_PG_TEST_DSN; database evidence, not OS execution"
+    },
+    {
+      "id": "PG.staleTerminal",
+      "path": "crates/ordivon-runtime-core/src/pg_admission/live_pg_tests/terminal_cases.rs",
+      "symbol": "pg18_stale_attempt_cannot_terminalize_current_job",
+      "evidenceMode": "physical-opt-in",
+      "modelRelations": [
+        "RuntimeDispatch.TerminalEvidenceIsCommitted"
+      ],
+      "scope": "stale Attempt rejected by current identity; no proof of complete live Attempt set",
+      "condition": "qualified disposable PG18 or explicit ORDIVON_PG_TEST_DSN; database evidence, not OS execution"
+    },
+    {
+      "id": "PG.composedTerminal",
+      "path": "crates/ordivon-runtime-core/src/pg_admission/live_pg_tests/terminal_cases.rs",
+      "symbol": "pg18_composed_admit_dispatch_artifact_terminal_is_one_consumer_chain",
+      "evidenceMode": "physical-opt-in",
+      "modelRelations": [
+        "RuntimeDispatch.TerminalEvidenceIsCommitted",
+        "RuntimeDispatch.AtMostOnceDispatchPerAttempt"
+      ],
+      "scope": "PG admission/dispatch/artifact/terminal chain; not independent recipient or native drain",
+      "condition": "qualified disposable PG18 or explicit ORDIVON_PG_TEST_DSN; database evidence, not OS execution"
     }
   ]
 }
