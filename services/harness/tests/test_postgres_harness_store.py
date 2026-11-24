@@ -2873,3 +2873,119 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             self.store.validate_run_history(run.harness_run_id)
             with self.assertRaisesRegex(HarnessRevisionConflict, "stable caller snapshot"):
                 self.store.doctor()
+
+    def test_original_typed_effect_reference_edges_are_required_even_if_cas_bytes_exist(self) -> None:
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+
+        run = tool_fixture.private_tool_contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        continuity.bind_state(state())
+        b = continuity.binding
+        intent = HarnessToolStepIntent(
+            intent_id="harness-tool-step-intent:typed-edge-required",
+            harness_run_id=run.harness_run_id,
+            assignment_id=b.assignment_id,
+            assignment_generation=b.assignment_generation,
+            assignment_digest=b.assignment_digest,
+            turn_id="turn:typed-edge-required",
+            tool_call_id="tool-call:typed-edge-required",
+            tool_name="workspace.read",
+            tool_call_digest=canonical_digest({"tool": "typed-edge"}),
+            runtime_operation="workspace.read",
+            runtime_arguments_digest=canonical_digest({"path": "README.md"}),
+            client_request_id="request:typed-edge-required",
+            recovery_consequence=HarnessRecoveryConsequence.OBSERVATION_ONLY,
+            created_at_ms=clock(),
+        )
+        continuity.prepare_tool_step(intent)
+        prepared = self.store.list_run_events(run.harness_run_id)[-1]
+        digest = prepared.data["toolStepIntentObjectDigest"]
+        original_bytes = self.store.get_object(digest, expected_kind="harness-tool-step-intent")
+        self.assertEqual(continuity.inspect_issued_tool_sources()["originalRunIssuedCount"], 1)
+        self.assertTrue(self.store.doctor()["healthy"])
+        before = self.store.load_run(run.harness_run_id)
+        now = before.updated_at_ms + 1
+        lease = self.store.acquire_run_lease(
+            run.harness_run_id, owner_id="worker:typed-edge-admission", ttl_ms=10000, now_ms=now
+        )
+        incomplete = tuple(
+            self.store.inspect_object(row["digest"])
+            for row in self.store.connection.execute(
+                "SELECT digest FROM run_object_refs WHERE event_id=%s AND role='reference' AND digest<>%s",
+                (prepared.event_id, digest),
+            )
+        )
+        with self.assertRaisesRegex(HarnessEventConflict, "toolStepIntentObjectDigest"):
+            self.store.append_events(
+                harness_run_id=run.harness_run_id,
+                events=(HarnessEventWrite(
+                    event_id="event:typed-edge-admission-missing",
+                    event_kind=prepared.event_kind, data=prepared.data,
+                    recorded_at_ms=now + 1, referenced_objects=incomplete,
+                ),),
+                expected_revision=lease.run_revision, lease=lease, lease_checked_at_ms=now,
+            )
+        self.assertEqual(self.store.load_run(run.harness_run_id), before)
+        self.assertEqual(self.store.doctor()["leases"], 1)
+        self.assertTrue(self.store.release_run_lease(lease))
+        deleted = self.store.connection.execute(
+            "DELETE FROM run_object_refs WHERE event_id=%s AND digest=%s AND role='reference'",
+            (prepared.event_id, digest),
+        ).rowcount
+        self.assertEqual(deleted, 1)
+        self.assertEqual(self.store.get_object(digest, expected_kind="harness-tool-step-intent"), original_bytes)
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.validate_run_history(run.harness_run_id)
+        with self.assertRaises(HarnessJournalCorruption):
+            continuity.inspect_issued_tool_sources()
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.doctor()
+
+    def test_original_provider_record_reference_requires_its_own_edge(self) -> None:
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+
+        run = contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        continuity.bind_state(state())
+        continuity.claim_provider_call(
+            source=continuity.assignment_provider_source(),
+            turn_id="turn:typed-provider-edge", turn_sequence=1,
+            request_digest=canonical_digest({"request": "typed-edge"}),
+            provider_request_digest=canonical_digest({"wire": "typed-edge"}),
+            adapter_id=run.adapter_id, requested_model_id=run.requested_model_id,
+            holder_id="holder:typed-provider-edge", ttl_ms=10000,
+        )
+        event = self.store.list_run_events(run.harness_run_id)[-1]
+        digest = event.data["providerCallRecordObjectDigest"]
+        self.assertTrue(self.store.doctor()["healthy"])
+        self.assertEqual(self.store.connection.execute(
+            "DELETE FROM run_object_refs WHERE event_id=%s AND digest=%s AND role='reference'",
+            (event.event_id, digest),
+        ).rowcount, 1)
+        self.assertIsNotNone(self.store.get_object(digest, expected_kind="harness-provider-call-record"))
+        with self.assertRaisesRegex(HarnessJournalCorruption, "providerCallRecordObjectDigest"):
+            self.store.validate_run_history(run.harness_run_id)
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.doctor()
+
+    def test_opaque_trace_object_like_field_does_not_invent_reference(self) -> None:
+        run = contract()
+        self.store.create_run(run)
+        now = self.store.load_run(run.harness_run_id).updated_at_ms + 1
+        lease = self.store.acquire_run_lease(
+            run.harness_run_id, owner_id="worker:opaque-trace-edge", ttl_ms=10000, now_ms=now
+        )
+        self.store.append_events(
+            harness_run_id=run.harness_run_id,
+            events=(HarnessEventWrite(
+                event_id="event:opaque-trace-edge", event_kind="harness.trace-recorded",
+                data={"trace": "opaque", "toolStepIntentObjectDigest": "opaque-domain-label"},
+                recorded_at_ms=now + 1,
+            ),),
+            expected_revision=lease.run_revision, lease=lease, lease_checked_at_ms=now,
+        )
+        self.assertTrue(self.store.doctor()["healthy"])

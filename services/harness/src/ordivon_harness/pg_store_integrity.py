@@ -25,6 +25,41 @@ from .store import (
 
 from .pg_store_codec import _CONTRACT_OBJECT_KIND
 
+def missing_typed_effect_reference_fields(
+    event_kind: str, data: dict[str, JsonValue], reference_digests: set[str],
+) -> tuple[str, ...]:
+    """Known original Provider/Tool object fields must have durable edges.
+
+    This is the existing Event/reference relation, not a registry. Unknown
+    fields on opaque Trace events are not interpreted as object references.
+    Null privacy-redacted and historical optional object fields are allowed.
+    """
+    if event_kind in {
+        "harness.provider-call-claimed", "harness.provider-call-superseded",
+        "harness.provider-call-dispatching", "harness.provider-call-completed",
+        "harness.provider-call-failed", "harness.provider-call-unknown",
+    }:
+        required = ("providerCallRecordObjectDigest", "stateObjectDigest")
+        optional = ("requestObjectDigest", "resultObjectDigest", "failureObjectDigest")
+    elif event_kind == "harness.tool-step-prepared":
+        required = ("toolStepIntentObjectDigest", "snapshotObjectDigest", "stateObjectDigest")
+        optional = ("dispatchFenceObjectDigest",)
+    elif event_kind in {
+        "harness.tool-step-recorded", "harness.tool-step-unknown", "harness.tool-step-reconciled",
+    }:
+        required = ("toolStepIntentObjectDigest", "receiptObjectDigest")
+        optional = (
+            "dispatchFenceObjectDigest", "previousReceiptObjectDigest", "observationObjectDigest",
+        )
+    else:
+        return ()
+    return tuple(
+        field
+        for field in (*required, *(field for field in optional if data.get(field) is not None))
+        if not isinstance(data.get(field), str) or data[field] not in reference_digests
+    )
+
+
 class PostgresIntegrity:
     """Original Journal history, snapshot and UNKNOWN receipt integrity."""
 
@@ -125,9 +160,9 @@ class PostgresIntegrity:
         """Verify mandatory original Event edges without inventing optional refs.
 
         The durable Event row is authoritative for its payload digest, and the
-        Run projection is authoritative for the creation Contract digest. Other
-        optional reference edges may not be reconstructed from an opaque event
-        payload; this check does NOT certify their completeness.
+        Run projection is authoritative for the creation Contract digest.
+        Known typed Provider/Tool object references are checked from their
+        actual writer schema. Arbitrary opaque event fields are not inferred.
         """
         rows = self.connection.execute(
             "SELECT e.event_id, e.payload_digest, e.event_kind, "
@@ -157,6 +192,13 @@ class PostgresIntegrity:
             if payload_edges != {event.payload_digest}:
                 raise HarnessJournalCorruption(
                     "Original Run Event payload reference differs from Journal"
+                )
+            missing = missing_typed_effect_reference_fields(
+                event.event_kind, event.data, {digest for role, digest in edges if role == "reference"}
+            )
+            if missing:
+                raise HarnessJournalCorruption(
+                    "Original typed effect Event has missing object references: " + ", ".join(missing)
                 )
             if event.event_kind == "harness.run-created":
                 expected = {
