@@ -2,6 +2,7 @@
 
 No new return/portfolio/accounting algorithm. ETF ex-dates are *caller-observed
 issuer facts*, not authenticated provider bytes or timestamped historical PIT.
+This ordinary-cash ex-date model excludes special due-bill events.
 A count of observed dividend-exposed labels does not imply complete events,
 a corrected total-return label, a usable forecast or real-money authority.
 """
@@ -55,7 +56,8 @@ def audit_native_price_label_dividend_overlap(
 ) -> dict:
     """Count affected *hypothetical* T+1 OPEN -> T+H+1 OPEN price labels.
 
-    Ownership on the ex-date requires buying before ex-date, and selling at
+    For ordinary cash distributions without special due-bill rules,
+    ownership on the ex-date requires buying before ex-date, and selling at
     the ex-date open does not forfeit the already accrued entitlement.
     Thus an observed event at X overlaps iff entry_session < X <= exit_session.
     No returns, broker fills, tax assumptions or dividends are posted here.
@@ -205,6 +207,7 @@ def audit_native_price_label_dividend_overlap(
         "symbols": results,
         "standing": "OBSERVED_ISSUER_EVENT_EXPOSURE_NOT_TOTAL_RETURN",
         "priceLabelBasis": "OPEN_TO_OPEN_PRICE_ONLY_ADJUSTMENT_UNKNOWN",
+        "entitlementConvention": "ORDINARY_CASH_DISTRIBUTION_NO_SPECIAL_DUE_BILL_ASSUMED",
         "issuerEventCoverageVerified": False,
         "issuerHistoricalPointInTimeVerified": False,
         "marketPriceAdjustmentAndDividendsVerified": False,

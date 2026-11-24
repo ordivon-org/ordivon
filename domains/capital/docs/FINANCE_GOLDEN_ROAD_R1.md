@@ -460,3 +460,34 @@ particular directory or that a private helper has a particular name does
 not protect these outcomes and cannot veto a correct module move.
 Use the core-domain dependency DAG test for actual architectural coupling,
 not a file-inventory hard gate.
+
+### R5 actual issuer observation and distinct research study identity (2026-11-24)
+
+The official BlackRock IWM distribution table was directly retrieved in
+the Linux Runtime (HTTP 200, 1,852,814 bytes, SHA-256
+`152a238b80597a3307213f8e3fb97e10a289519e72e7341eee8b812758d1aee8`;
+job-01a20c03-1b94-7139-9863-55b5dd686f9b). The source was
+https://www.blackrock.com/us/individual/products/239710/ishares-russell-2000-etf-iwm-us-class .
+The observed table records IWM 2026-06-15 ex/record date, 2026-06-18
+payment, USD 0.695129 income/share; 2026-09-15 ex/record date,
+2026-09-18 payment, USD 0.750436 income/share. This is a present-day
+source observation, not historical first-publication evidence. The
+bounded probe retained digest and table-row evidence in Runtime stdout,
+not the entire HTML, which may change. Do not claim complete distributions,
+raw source redistribution rights, historical PIT, execution or return.
+
+The SEC's ordinary distribution entitlement explanation is at
+https://www.investor.gov/introduction-investing/investing-basics/glossary/ex-dividend-dates-when-are-you-entitled-stock-and .
+The Research audit assumes ordinary cash distributions without special
+due-bill rules. It counts hypothetical next-open windows for which entry
+session < ex-date <= exit session; this is not cash availability on
+ex-date. Payment day, withholding and reinvestment are separate economic
+conditions. Paper pending-sale receivables are not fund distribution
+receivables. No automatic accounting or return correction is permitted.
+
+The current native consumer emits `native_study_identity` only after
+exact forecast, label, source receipts, economic exit and date/shape gates.
+It also rejects duplicate prediction/dataset keys, incorrect per-decision
+ETF universe, missing labels, or extra/missing source receipts. Current
+model tests cover the actual existing consumer, not retired helper names.
+Historic R4/R6/R7 figures remain archived, not independently requalified.
