@@ -79,11 +79,64 @@ class WebInteractionRouteTests(unittest.TestCase):
             )
         self.assertEqual(d["selectedRoute"], "browser_use")
 
-    def test_unknown_interactive_browser_uses_browser_use(self):
+    def test_adaptive_browser_prefers_agent_driven_playwright(self):
         d = self.resolve(
             R.TaskNeeds(requires_interaction=True, adaptive_browser_reasoning=True)
         )
+        self.assertEqual(d["selectedRoute"], "playwright")
+
+    def test_adaptive_browser_falls_back_only_when_playwright_unavailable(self):
+        a = dict(AVAILABLE)
+        a["playwright"] = {"state": "unavailable", "reason": "x"}
+        with mock.patch.object(R, "census", return_value=a):
+            d = R.resolve(
+                R.TaskNeeds(requires_interaction=True, adaptive_browser_reasoning=True)
+            )
         self.assertEqual(d["selectedRoute"], "browser_use")
+
+    def test_adaptive_browser_without_executor_has_no_route(self):
+        a = dict(AVAILABLE)
+        for key in ("playwright", "browser_use"):
+            a[key] = {"state": "unavailable", "reason": "x"}
+        with mock.patch.object(R, "census", return_value=a):
+            d = R.resolve(
+                R.TaskNeeds(requires_interaction=True, adaptive_browser_reasoning=True)
+            )
+        self.assertEqual(d["standing"], "NO_ADMITTED_PROVIDER")
+        self.assertIsNone(d["selectedRoute"])
+
+    def test_browser_use_census_rejects_missing_or_optional_identity_contract(self):
+        import json
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as td:
+            cfg = Path(td) / "config.json"
+            cfg.write_text(json.dumps({"browserSubstrate": {"endpoints": [
+                {"id": "browser-agent-test"}
+            ]}}))
+            adapter = Path(td) / "adapter.py"
+            for click, input_ in ((None, None), (True, None), (True, False), (True, True)):
+                with self.subTest(click=click, input=input_):
+                    adapter.write_text(
+                        "import argparse,json\n"
+                        "p=argparse.ArgumentParser()\n"
+                        "p.add_argument('--session-id')\n"
+                        "sub=p.add_subparsers(dest='cmd', required=True)\n"
+                        "sub.add_parser('doctor')\n"
+                        "for name, required in " + repr((("click", click), ("input", input_))) + ":\n"
+                        "    action=sub.add_parser(name)\n"
+                        "    if required is not None:\n"
+                        "        action.add_argument('--expect-backend-dom-node-id', type=int, required=required)\n"
+                        "p.parse_args()\n"
+                        "print(json.dumps({'browserlessHealth': {'healthy': True}}))\n"
+                    )
+                    with mock.patch.object(CENSUS, "BROWSER_USE_CONFIG", cfg), mock.patch.object(
+                        CENSUS, "BROWSER_USE_ACTION", adapter
+                    ):
+                        result = CENSUS._browser_use_health()
+                    self.assertEqual(
+                        result["state"], "available" if click is True and input_ is True else "unavailable"
+                    )
 
     def test_desktop_requires_explicit_caller_capability(self):
         needs = R.TaskNeeds(requires_interaction=True, requires_desktop_gui=True)
