@@ -1,8 +1,9 @@
 //! Original bounded UTF-8 text Artifact paging by stable byte cursor.
 use super::PathBuf;
 use super::{
-    artifact_utf8_window, io, require_pg_artifact_identity, universal, ArtifactReadRequest,
-    ArtifactReadResult, PgRuntime, RuntimeError, RuntimeErrorCode, RuntimeResult,
+    ArtifactReadRequest, ArtifactReadResult, PgRuntime, RuntimeError, RuntimeErrorCode,
+    RuntimeResult, artifact_utf8_window, io, require_pg_artifact_identity,
+    require_pg_artifact_origin, universal,
 };
 use std::path::Path;
 
@@ -23,12 +24,13 @@ impl PgRuntime {
         }
         let mut db = self.store()?;
         self.authorize(&mut db, &request.job_id, principal)?;
-        let r=db.client.query_opt("SELECT a.bundle_path,r.relative_path,r.digest,r.byte_length FROM artifacts r JOIN attempts a ON a.attempt_id=r.attempt_id WHERE r.job_id=$1 AND r.artifact_id=$2", &[&request.job_id,&request.artifact_id]).map_err(io)?.ok_or_else(|| RuntimeError::new(
+        let r=db.client.query_opt("SELECT a.bundle_path,r.relative_path,r.digest,r.byte_length,a.job_id FROM artifacts r JOIN attempts a ON a.attempt_id=r.attempt_id WHERE r.job_id=$1 AND r.artifact_id=$2", &[&request.job_id,&request.artifact_id]).map_err(io)?.ok_or_else(|| RuntimeError::new(
             RuntimeErrorCode::ArtifactNotFound,
             "Artifact not found for this Job",
             Some("artifactId"),
             false,
         ))?;
+        require_pg_artifact_origin(&request.job_id, &r.get::<_, String>(4))?;
         let bundle: PathBuf = r.get::<_, String>(0).into();
         let relative: String = r.get(1);
         universal::validate_relative_path(&relative, "artifactPath").map_err(io)?;
