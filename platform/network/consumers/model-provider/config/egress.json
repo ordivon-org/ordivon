@@ -21,25 +21,7 @@
     }
   ],
   "route": {
-    "rules": [
-      {
-        "inbound": ["model-provider-api"],
-        "domain": [
-          "api.deepseek.com",
-          "generativelanguage.googleapis.com",
-          "openrouter.ai",
-          "api.cerebras.ai",
-          "integrate.api.nvidia.com",
-          "open.bigmodel.cn"
-        ],
-        "port": 443,
-        "network": ["tcp"],
-        "action": "route",
-        "outbound": "provider-carrier"
-      },
-      {
-        "action": "reject"
-      }
-    ]
+    "rules": [],
+    "final": "provider-carrier"
   }
 }

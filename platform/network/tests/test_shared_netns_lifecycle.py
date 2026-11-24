@@ -40,6 +40,15 @@ def test_installed_systemd_unit_cannot_delete_live_namespace():
     assert "EnvironmentFile=/etc/network-v2/browserless/provider.env" in contents
 
 
+def test_local_namespace_creation_never_depends_on_external_network_online():
+    unit = UNIT.read_text()
+    assert "network-online.target" not in "\n".join(
+        line for line in unit.splitlines() if not line.lstrip().startswith("#")
+    )
+    assert "PartOf=network-v2-shared-egress.target" in unit
+    assert "ExecStart=/usr/bin/python3 /usr/local/libexec/network-v2/shared-egress-netns ensure" in unit
+
+
 def test_existing_topology_is_reused_without_any_ip_mutation(monkeypatch, capsys):
     netns = load()
     FakePath.present = {"/run/netns/nv2-browserless-prod", "/sys/class/net/vethHost"}

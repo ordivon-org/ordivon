@@ -81,4 +81,8 @@ func show_line(key: String) -> void:
             "next_id": response.next_id
         }
         button.pressed.connect(func(): choose_response(target_id))
+        # The real upstream semantic Unlock response is the primary
+        # accessible keyboard focus when a passage choice appears.
+        if target_id == "unlock" and response.is_allowed:
+            button.grab_focus.call_deferred()
     response_settled.emit(key)

@@ -77,6 +77,30 @@ class AgentSurfaceTests(unittest.TestCase):
             [item["name"] for item in surface_projection()["tools"]],
         )
 
+    def test_dependency_proposal_bootstraps_without_jsonschema(self) -> None:
+        """The missing-dependency recovery action must not require that dependency."""
+        root = Path(__file__).resolve().parents[1]
+        source = root / "src"
+        code = (
+            "import sys; "
+            "from pathlib import Path; "
+            f"sys.path.insert(0, {str(source)!r}); "
+            "from ordivon_studio.agent_surface import execute_surface_action; "
+            "assert 'jsonschema' not in sys.modules; "
+            "python = execute_surface_action('studio_dependencies_propose', {'target': 'python'}, root=Path(sys.argv[1])); "
+            "assert python['kind'] == 'ordivon.studio-dependency-acquisition-proposal'; "
+            "assert python['effectRequired'] and python['plan']['args'] == ['scripts/materialize-python.py']; "
+            "js = execute_surface_action('studio_dependencies_propose', {'target': 'js'}, root=Path(sys.argv[1])); "
+            "assert js['effectRequired'] and js['plan']['args'] == ['install', '--frozen-lockfile']; "
+            "assert 'jsonschema' not in sys.modules"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            result = subprocess.run(
+                [sys.executable, "-S", "-c", code, directory],
+                capture_output=True, text=True, check=False,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_surface_is_small_domain_owned_and_transport_neutral(self) -> None:
         value = surface_projection()
         self.assertEqual(value["domainId"], "domain:ordivon-studio")
@@ -290,6 +314,47 @@ class AgentSurfaceTests(unittest.TestCase):
         self.assertEqual(production["production"]["id"], "p1")
         self.assertEqual(learning["currentProductionId"], "p1")
         self.assertIn("Retain exact evidence", learning["retainedLearning"][0]["learning"] )
+
+    def test_production_context_agent_explicit_output_bytes_use_advertised_schema(self) -> None:
+        real_root = Path(__file__).resolve().parents[1]
+        production = real_root / "productions/browser-perception-note"
+        source_file = production / "story.mdx"
+        result = execute_surface_action(
+            "studio_production_context",
+            {
+                "productionId": "browser-perception-note",
+                "outputFiles": {"browser-perception-article-en": str(source_file)},
+            },
+            root=real_root,
+        )
+        observed = result["outputByteIdentity"]["observations"][0]
+        self.assertEqual(observed["relation"], "MATCHES_DECLARED_DIGEST")
+        self.assertEqual(observed["sourceSelection"], "explicit-consumer-file")
+        self.assertEqual(result["outputByteIdentity"]["publicationAuthorization"], "not-evaluated")
+        for invalid_files in ({"browser-perception-article-en": 2}, {"browser-perception-article-en": ""}):
+            with self.subTest(invalid=invalid_files):
+                with self.assertRaisesRegex(ValueError, "invalid arguments"):
+                    execute_surface_action(
+                        "studio_production_context",
+                        {"productionId": "browser-perception-note", "outputFiles": invalid_files},
+                        root=real_root,
+                    )
+
+    def test_agent_context_consumes_bounded_real_sonic_impact_without_cache_claim(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        selected = execute_surface_action(
+            "studio_production_context",
+            {"productionId": "convergence-sonic-ident"},
+            root=root,
+        )
+        self.assertEqual(selected["production"]["id"], "convergence-sonic-ident")
+        lineage = selected["operationLineage"]
+        self.assertEqual(lineage["productionId"], "convergence-sonic-ident")
+        self.assertEqual(len(lineage["steps"]), 5)
+        self.assertFalse(lineage["cacheReuseAuthorized"])
+        self.assertFalse(lineage["executionOrPublicationAuthorized"])
+        self.assertEqual(lineage["revalidateStepIds"], [])
+        self.assertTrue(all(step["actionKey"] is None for step in lineage["steps"]))
 
     def test_creative_index_query_defaults_to_media_hosted_creative_library(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

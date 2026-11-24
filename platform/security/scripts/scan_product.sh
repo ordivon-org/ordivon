@@ -7,11 +7,8 @@ GITLEAKS_CONFIG="${3:-$ROOT/profiles/product/gitleaks.toml}"
 mkdir -p "$OUT"
 rm -f "$OUT"/{gitleaks.sarif,semgrep.sarif,trivy.sarif,sbom.cdx.json,osv.json,provider-status.json}
 
-observed_subject_revision="$(git -C "$TARGET" rev-parse HEAD 2>/dev/null || printf 'UNKNOWN')"
-# A Git commit identifies only committed bytes. Dirty/untracked source must never
-# inherit HEAD's trusted revision just because rev-parse returned a SHA.
-if [[ "$observed_subject_revision" != "UNKNOWN" ]] && \
-   [[ -n "$(git -C "$TARGET" status --porcelain --untracked-files=all 2>/dev/null)" ]]; then
+# Failed Git observation is UNKNOWN, not an empty (clean) status.
+if ! observed_subject_revision="$(bash "$ROOT/scripts/observe_subject_revision.sh" "$TARGET")"; then
   observed_subject_revision="UNKNOWN"
 fi
 gitleaks_config_sha256="$(sha256sum "$GITLEAKS_CONFIG" | awk '{print $1}')"
@@ -58,11 +55,11 @@ read -r osv_mech osv_block <<<"$(classify_detection "$osv_rc")"
 if [ "$syft_rc" -eq 0 ]; then syft_mech=true; else syft_mech=false; fi
 
 # A source checkout can also change while native providers are running.
-if [[ "$observed_subject_revision" != "UNKNOWN" ]] && { \
-   [[ "$(git -C "$TARGET" rev-parse HEAD 2>/dev/null || printf 'UNKNOWN')" != "$observed_subject_revision" ]] || \
-   [[ -n "$(git -C "$TARGET" status --porcelain --untracked-files=all 2>/dev/null)" ]]; \
-}; then
-  observed_subject_revision="UNKNOWN"
+if [[ "$observed_subject_revision" != "UNKNOWN" ]]; then
+  if ! final_subject_revision="$(bash "$ROOT/scripts/observe_subject_revision.sh" "$TARGET")" ||
+     [[ "$final_subject_revision" != "$observed_subject_revision" ]]; then
+    observed_subject_revision="UNKNOWN"
+  fi
 fi
 
 cat > "$OUT/provider-status.json" <<EOF

@@ -11,6 +11,7 @@ dev = [
 ]
 test = [
   "pytest==9.1.1",
+  "pyyaml==6.0.3",
 ]
 ops = [
   "jsonschema>=4.26,<5",

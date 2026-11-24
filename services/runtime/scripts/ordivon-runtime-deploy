@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
 import fcntl
 import hashlib
 import json
@@ -17,6 +18,7 @@ import sys
 import tempfile
 import time
 from contextlib import contextmanager
+from collections.abc import Callable
 from pathlib import Path
 
 from mcp_probe import load_bearer_token, load_environment_file, probe_catalog
@@ -34,6 +36,7 @@ DEFAULT_OPERATOR_ARTIFACTS = (
     ("ordivon-runtime-deploy", "scripts/ordivon-runtime-deploy", 0o755, "operator"),
     ("ordivon-runtime-lifecycle", "scripts/ordivon-runtime-lifecycle", 0o755, "operator"),
     ("ordivon-runtime-reclaim", "scripts/ordivon-runtime-reclaim", 0o755, "operator"),
+    ("ordivon-runtime-pg-reclaim", "scripts/ordivon-runtime-pg-reclaim", 0o755, "operator"),
     ("ordivon-runtime-cache", "scripts/ordivon-runtime-cache", 0o755, "operator"),
     ("ordivon-runtime-status", "scripts/ordivon-runtime-status", 0o755, "operator"),
     (
@@ -50,6 +53,16 @@ DEFAULT_OPERATOR_ARTIFACTS = (
     ),
     ("mcp_probe.py", "scripts/mcp_probe.py", 0o644, "support"),
 )
+# The independent Root control plane is a different installation authority
+# from the Server/Runner/Reclaimer payloads. Plan only: never self-promote.
+ROOT_OPERATOR_BUNDLE = (
+    ("ordivon-runtime-deploy", 0o755),
+    ("ordivon-runtime-pg-operator", 0o755),
+    ("ordivon-runtime-pg-release-dispatch", 0o755),
+    ("ordivon_runtime_pg_operator.py", 0o644),
+    ("mcp_probe.py", 0o644),
+)
+
 DEFAULT_REQUIRED_TOOLS = (
     "release.apply",
     "release.get",
@@ -88,6 +101,31 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="ordivon-runtime-deploy")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    root_plan = subparsers.add_parser(
+        "root-bundle-plan",
+        help="read-only SourceCut and installed Root operator bundle comparison",
+    )
+    root_plan.add_argument("--source-repo", type=absolute_path, required=True)
+    root_plan.add_argument("--commit", type=exact_commit, required=True)
+    root_plan.add_argument("--require-ref", default="origin/main")
+    root_plan.add_argument("--expected-owner-tree", required=True)
+    root_plan.add_argument("--install-dir", type=absolute_path, required=True)
+    root_plan.add_argument("--git", type=absolute_path, default=Path("/usr/bin/git"))
+    root_plan.add_argument("--pretty", action="store_true")
+
+    root_stage = subparsers.add_parser(
+        "root-bundle-stage",
+        help="stage exact Git Root controller bytes into a new isolated candidate; never install",
+    )
+    root_stage.add_argument("--source-repo", type=absolute_path, required=True)
+    root_stage.add_argument("--commit", type=exact_commit, required=True)
+    root_stage.add_argument("--require-ref", default="origin/main")
+    root_stage.add_argument("--expected-owner-tree", required=True)
+    root_stage.add_argument("--install-dir", type=absolute_path, required=True)
+    root_stage.add_argument("--candidate-dir", type=absolute_path, required=True)
+    root_stage.add_argument("--git", type=absolute_path, default=Path("/usr/bin/git"))
+    root_stage.add_argument("--pretty", action="store_true")
+
     prepare = subparsers.add_parser(
         "prepare", help="build one exact clean commit and write a digest-bound candidate manifest"
     )
@@ -97,6 +135,7 @@ def parse_args() -> argparse.Namespace:
     prepare.add_argument("--candidate-manifest", type=absolute_path, required=True)
     prepare.add_argument("--cargo", type=absolute_path, required=True)
     prepare.add_argument("--binary", action="append", dest="binaries")
+    prepare.add_argument("--include-pg-reclaimer", action="store_true")
     prepare.add_argument("--pretty", action="store_true")
 
     plan = subparsers.add_parser("plan", help="validate a candidate deployment without mutation")
@@ -142,6 +181,7 @@ def add_deployment_arguments(parser: argparse.ArgumentParser, *, require_confirm
     parser.add_argument("--git", type=absolute_path, default=Path("/usr/bin/git"))
     parser.add_argument("--lock-file", type=absolute_path, default=Path("/run/ordivon-runtime-deploy.lock"))
     parser.add_argument("--binary", action="append", dest="binaries")
+    parser.add_argument("--include-pg-reclaimer", action="store_true")
     parser.add_argument("--required-tool", action="append", dest="required_tools")
     parser.add_argument("--expected-tool-count", type=nonnegative_int)
     parser.add_argument("--require-ref", default="origin/main")
@@ -209,18 +249,37 @@ def binaries(args: argparse.Namespace) -> tuple[str, ...]:
     return values
 
 
+def release_operator_artifacts(
+    args: argparse.Namespace,
+) -> tuple[tuple[str, str, int, str], ...]:
+    """Select only explicitly qualified support files for a native PG release.
+
+    The two-binary PG build must not use the legacy --all-features build path,
+    while its lifecycle consumer should not be an unreceipted sidecar.
+    """
+    if args.binaries is None:
+        return DEFAULT_OPERATOR_ARTIFACTS
+    if not getattr(args, "include_pg_reclaimer", False):
+        return ()
+    names = binaries(args)
+    if len(names) != 2 or set(names) != {
+        "ordivon-runtime-pg", "ordivon-runtime-runner",
+    }:
+        raise RuntimeError("PG Reclaimer release requires the full native PG binary pair")
+    return tuple(
+        item for item in DEFAULT_OPERATOR_ARTIFACTS
+        if item[0] == "ordivon-runtime-pg-reclaim"
+    )
+
+
 def release_artifact_specs(args: argparse.Namespace) -> tuple[dict[str, object], ...]:
     specs: list[dict[str, object]] = [
         {"name": name, "kind": "binary", "mode": 0o755} for name in binaries(args)
     ]
-    # An explicit --binary list is an intentional subset mode used by tests and
-    # exceptional maintenance. The default production release is the complete
-    # Runtime executable/support artifact set.
-    if args.binaries is None:
-        specs.extend(
-            {"name": name, "source": source, "mode": mode, "kind": kind}
-            for name, source, mode, kind in DEFAULT_OPERATOR_ARTIFACTS
-        )
+    specs.extend(
+        {"name": name, "source": source, "mode": mode, "kind": kind}
+        for name, source, mode, kind in release_operator_artifacts(args)
+    )
     names = [str(spec["name"]) for spec in specs]
     if len(names) != len(set(names)):
         raise RuntimeError("release artifact names must be unique")
@@ -228,9 +287,7 @@ def release_artifact_specs(args: argparse.Namespace) -> tuple[dict[str, object],
 
 
 def stage_operator_artifacts(args: argparse.Namespace, source_root: Path) -> None:
-    if args.binaries is not None:
-        return
-    for name, relative_source, mode, _kind in DEFAULT_OPERATOR_ARTIFACTS:
+    for name, relative_source, mode, _kind in release_operator_artifacts(args):
         source = source_root / relative_source
         if source.is_symlink() or not source.is_file():
             raise RuntimeError(f"release operator artifact is missing or unsafe: {source}")
@@ -354,6 +411,365 @@ def required_ref_authority(
         "requiredRefOwnerTree": required_ref_owner_tree,
         "authorized": candidate_is_ancestor and candidate_owner_tree == required_ref_owner_tree,
     }
+
+
+def root_operator_bundle_plan(args: argparse.Namespace) -> dict[str, object]:
+    """Read-only Root controller qualification; not an installer or approval."""
+    git = args.git
+    repo = args.source_repo
+    commit = args.commit
+    root = args.install_dir
+    expected_tree = args.expected_owner_tree
+    if not COMMIT_PATTERN.fullmatch(expected_tree):
+        raise RuntimeError("expected Root owner tree must be one exact Git tree OID")
+    if not root.is_absolute() or ".." in root.parts or root.is_symlink():
+        raise RuntimeError("Root bundle install path must be absolute without aliases")
+    if not root.is_dir() or not root.resolve(strict=True) == root:
+        raise RuntimeError("Root bundle install path is absent or resolves through a symlink")
+    directory_metadata = root.stat()
+    if directory_metadata.st_uid != 0 or directory_metadata.st_mode & 0o022:
+        raise RuntimeError("Root bundle directory is not root-owned and nonwritable by others")
+    resolved = git_text(git, repo, ["rev-parse", "--verify", f"{commit}^{{commit}}"])
+    if resolved != commit:
+        raise RuntimeError("Root bundle Commit is not an exact Git commit")
+    authority = required_ref_authority(git, repo, commit, args.require_ref)
+    git_root, owner_prefix = release_source_layout(git, repo)
+    owner_tree = git_text(git, git_root, ["rev-parse", f"{commit}:{owner_prefix.as_posix()}"])
+    if not COMMIT_PATTERN.fullmatch(owner_tree):
+        raise RuntimeError("Root bundle owner tree is not a Git object ID")
+    bundle: list[dict[str, object]] = []
+    for name, mode in ROOT_OPERATOR_BUNDLE:
+        relative = committed_source_path(git, repo, Path("scripts") / name)
+        ls_tree = git_text(git, git_root, ["ls-tree", commit, "--", relative])
+        record = ls_tree.split("\t", 1)
+        if len(record) != 2 or record[1] != relative:
+            raise RuntimeError(f"Root bundle Git source missing: {name}")
+        git_mode, kind, blob_oid = record[0].split()
+        if kind != "blob" or git_mode != ("100755" if mode == 0o755 else "100644") or not COMMIT_PATTERN.fullmatch(blob_oid):
+            raise RuntimeError(f"Root bundle Git file is not a regular expected-mode blob: {name}")
+        contents = subprocess.run(
+            [str(git), "-C", str(git_root), "cat-file", "blob", blob_oid],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ).stdout
+        source_hash = "sha256:" + hashlib.sha256(contents).hexdigest()
+        target = root / name
+        installed_hash: str | None = None
+        installed_mode: int | None = None
+        installed_uid: int | None = None
+        status = "missing"
+        if target.exists() or target.is_symlink():
+            if target.is_symlink() or not target.is_file():
+                status = "unsafe"
+            else:
+                metadata = target.stat()
+                installed_mode = stat.S_IMODE(metadata.st_mode)
+                installed_uid = metadata.st_uid
+                if installed_uid != 0 or installed_mode != mode or metadata.st_nlink != 1:
+                    status = "unsafe"
+                else:
+                    installed_hash = sha256(target)
+                    status = "current" if source_hash == installed_hash else "drift"
+        bundle.append({
+            "name": name,
+            "sourcePath": relative,
+            "sourceBlobOid": blob_oid,
+            "sourceSha256": source_hash,
+            "installedSha256": installed_hash,
+            "installedMode": installed_mode,
+            "installedUid": installed_uid,
+            "expectedMode": mode,
+            "currentness": status,
+        })
+    authorized = bool(authority["authorized"]) and owner_tree == expected_tree
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.runtime-root-bundle-readonly-plan",
+        "truthBoundary": "source Git objects and local root files; no bootstrap, root authority, or release executed",
+        "commit": commit,
+        "sourceOwnerTree": owner_tree,
+        "expectedOwnerTree": expected_tree,
+        "requiredRefAuthority": authority,
+        "installDir": str(root),
+        "bundle": bundle,
+        "currentCount": sum(x["currentness"] == "current" for x in bundle),
+        "drifted": [x["name"] for x in bundle if x["currentness"] == "drift"],
+        "missing": [x["name"] for x in bundle if x["currentness"] == "missing"],
+        "unsafe": [x["name"] for x in bundle if x["currentness"] == "unsafe"],
+        "sourceAuthorized": authorized,
+        "eligibleForRootOwnerReview": authorized and all(x["currentness"] != "unsafe" for x in bundle),
+        "productionInstallExecuted": False,
+    }
+
+
+def stage_root_operator_bundle(args: argparse.Namespace) -> dict[str, object]:
+    """Materialize only a disposable Git-qualified candidate; NEVER install Root.
+
+    The staging directory is controlled by the calling Agent, not the Root
+    operator. It is not an installation authority and not a trusted rollback
+    preimage. The eventual Root owner must requalify each Git blob and actual
+    Root bytes under its own credential before any physical systemd/PG effect.
+    """
+    candidate_dir = args.candidate_dir
+    root = args.install_dir
+    if (
+        not candidate_dir.is_absolute()
+        or ".." in candidate_dir.parts
+        or candidate_dir == root
+        or root in candidate_dir.parents
+        or candidate_dir in root.parents
+    ):
+        raise RuntimeError("Root bundle candidate must be separate from its live installation")
+    if candidate_dir.exists() or candidate_dir.is_symlink():
+        raise RuntimeError("Root bundle candidate directory already exists")
+    parent = candidate_dir.parent
+    if not parent.is_dir() or parent.is_symlink() or parent.resolve(strict=True) != parent:
+        raise RuntimeError("Root bundle candidate parent is missing or aliases a symlink")
+    plan = root_operator_bundle_plan(args)
+    if not plan["eligibleForRootOwnerReview"]:
+        raise RuntimeError("Root bundle candidate source is not Git-qualified for operator review")
+    git_root, _ = release_source_layout(args.git, args.source_repo)
+    staged: list[dict[str, object]] = []
+    candidate_dir.mkdir(mode=0o700, parents=False, exist_ok=False)
+    try:
+        for record in plan["bundle"]:
+            name = str(record["name"])
+            expected_mode = int(record["expectedMode"])
+            payload = subprocess.run(
+                [str(args.git), "-C", str(git_root), "cat-file", "blob", record["sourceBlobOid"]],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            ).stdout
+            digest = "sha256:" + hashlib.sha256(payload).hexdigest()
+            if digest != record["sourceSha256"]:
+                raise RuntimeError("Git Root candidate blob drifted after qualification")
+            target = candidate_dir / name
+            with target.open("xb") as handle:
+                handle.write(payload)
+                handle.flush()
+                os.fsync(handle.fileno())
+            target.chmod(expected_mode)
+            if sha256(target) != digest:
+                raise RuntimeError("Root candidate stage bytes changed after write")
+            staged.append({
+                "name": name,
+                "kind": "root_control",
+                "mode": expected_mode,
+                "digest": digest,
+                "sourceBlobOid": record["sourceBlobOid"],
+                "preimageDigestAtPlan": record["installedSha256"],
+                "preimageStatusAtPlan": record["currentness"],
+            })
+        # A move of origin/main that changes the Runtime owner tree invalidates
+        # a stage; no immutable candidate may silently inherit new authority.
+        latest = required_ref_authority(
+            args.git, args.source_repo, args.commit, args.require_ref,
+        )
+        if not latest["authorized"] or latest["requiredRefOwnerTree"] != plan["sourceOwnerTree"]:
+            raise RuntimeError("required Git ref or Runtime owner tree changed during staging")
+        manifest = {
+            "schemaVersion": 1,
+            "kind": "ordivon.runtime-root-bundle-staged-candidate",
+            "commit": args.commit,
+            "sourceOwnerTree": plan["sourceOwnerTree"],
+            "requiredRef": args.require_ref,
+            "installDir": str(root),
+            "artifacts": staged,
+            "productionInstallExecuted": False,
+            "rootOwnerApprovalRequired": True,
+            "trustedRollbackPreimageCaptured": False,
+            "physicalServiceQuiesced": False,
+            "releaseAdmissionFenced": False,
+        }
+        manifest_path = candidate_dir / "ordivon-root-bundle-candidate.json"
+        write_json_atomic(manifest_path, manifest)
+        if any(
+            sha256(candidate_dir / item["name"]) != item["digest"]
+            for item in staged
+        ):
+            raise RuntimeError("Root staged candidate cannot verify all artifact bytes")
+        return {
+            "schemaVersion": 1,
+            "kind": manifest["kind"],
+            "commit": args.commit,
+            "sourceOwnerTree": plan["sourceOwnerTree"],
+            "candidateDir": str(candidate_dir),
+            "candidateManifest": str(manifest_path),
+            "candidateManifestDigest": sha256(manifest_path),
+            "artifactCount": len(staged),
+            "rootOwnerApprovalRequired": True,
+            "productionInstallExecuted": False,
+        }
+    except BaseException:
+        # The caller created this directory exclusively in this invocation;
+        # failed candidates must never remain next to a live Root installation.
+        shutil.rmtree(candidate_dir)
+        raise
+
+
+@contextmanager
+def _directory_descriptor(path: Path):
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        yield descriptor
+    finally:
+        os.close(descriptor)
+
+
+def linux_exchange_sibling_root_bundle_directories(
+    live: Path, staged: Path,
+) -> None:
+    """One Linux same-filesystem atomic directory exchange, NOT Root approval.
+
+    The Root operator must first provide *its own* evidence of: a trusted
+    exact Git candidate; existing live preimage; PG Release admission fully
+    fenced; zero unresolved effects; dispatcher timer persistently disabled;
+    dispatcher service inactive; a durable recovery journal and ownership
+    lock. This internal physical primitive does none of those operations.
+    It must never be published directly as a caller-invokable MCP effect.
+
+    Linux renameat2(RENAME_EXCHANGE) is one namespace linearization point for
+    TWO NONEMPTY sibling directories. Ordinary os.rename has no equivalent
+    semantics, so unsupported platforms/filesystems fail closed.
+    """
+    if (
+        not live.is_absolute()
+        or not staged.is_absolute()
+        or live == staged
+        or live.parent != staged.parent
+        or live.name in (".", "..")
+        or staged.name in (".", "..")
+        or "/" in live.name
+        or "/" in staged.name
+        or live.parent.is_symlink()
+        or live.parent.resolve(strict=True) != live.parent
+    ):
+        raise RuntimeError("Root exchange requires two distinct direct sibling directories")
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    with _directory_descriptor(live.parent) as parent_fd:
+        names = [live.name.encode(), staged.name.encode()]
+        snapshots: list[os.stat_result] = []
+        for name in names:
+            descriptor = os.open(name, flags, dir_fd=parent_fd)
+            try:
+                item = os.fstat(descriptor)
+                if not stat.S_ISDIR(item.st_mode):
+                    raise RuntimeError("Root exchange target is not an actual directory")
+                snapshots.append(item)
+                os.fsync(descriptor)
+            finally:
+                os.close(descriptor)
+        if (
+            snapshots[0].st_dev != snapshots[1].st_dev
+            or snapshots[0].st_ino == snapshots[1].st_ino
+        ):
+            raise RuntimeError("Root exchange requires two different directories on one device")
+        linux_libc = ctypes.CDLL("libc.so.6", use_errno=True)
+        syscall = getattr(linux_libc, "renameat2", None)
+        if syscall is None:
+            raise RuntimeError("Linux renameat2(RENAME_EXCHANGE) unavailable")
+        syscall.argtypes = [
+            ctypes.c_int, ctypes.c_char_p, ctypes.c_int,
+            ctypes.c_char_p, ctypes.c_uint,
+        ]
+        syscall.restype = ctypes.c_int
+        if syscall(parent_fd, names[0], parent_fd, names[1], 2) != 0:
+            error_number = ctypes.get_errno()
+            raise OSError(
+                error_number, f"atomic Root directory exchange failed: {os.strerror(error_number)}",
+            )
+        # After renameat2 succeeds, ANY error is a post-effect ambiguity.
+        # Even an fsync failure does not justify retrying blindly: a future
+        # Root owner must classify both byte sets against its durable journal.
+        try:
+            os.fsync(parent_fd)
+            new_live = os.stat(names[0], dir_fd=parent_fd, follow_symlinks=False)
+            new_staged = os.stat(names[1], dir_fd=parent_fd, follow_symlinks=False)
+            if (
+                (new_live.st_dev, new_live.st_ino) !=
+                (snapshots[1].st_dev, snapshots[1].st_ino)
+                or (new_staged.st_dev, new_staged.st_ino) !=
+                (snapshots[0].st_dev, snapshots[0].st_ino)
+            ):
+                raise RuntimeError("directory identities drifted during Root exchange")
+        except (OSError, RuntimeError) as error:
+            raise RuntimeError(
+                "RECONCILIATION_REQUIRED: atomic Root exchange may already have "
+                "committed; classify the journal and both directories"
+            ) from error
+
+
+def root_bundle_candidate_namespace_closed(path: Path) -> bool:
+    """Allow only the five committed scripts and optional stage manifest.
+
+    Extra Python modules, symlinks, backup executables or bytecode caches in
+    the staged candidate are not independently Git-qualified and may affect
+    the future import namespace. This is source-shape evidence only, not an
+    authorization decision. Existing OLD Root contents are separately
+    preserved as an unmodified preimage, not certified as clean.
+    """
+    names = {name for name, _ in ROOT_OPERATOR_BUNDLE}
+    try:
+        entries = {entry.name: entry for entry in path.iterdir()}
+    except OSError:
+        return False
+    allowed = names | {"ordivon-root-bundle-candidate.json"}
+    if set(entries) - allowed or not names.issubset(entries):
+        return False
+    optional = entries.get("ordivon-root-bundle-candidate.json")
+    return optional is None or (not optional.is_symlink() and optional.is_file())
+
+
+def root_bundle_exchange_readback(
+    live: Path,
+    staged: Path,
+    *,
+    old_artifacts: dict[str, str],
+    candidate_artifacts: dict[str, str],
+) -> str:
+    """Classify a durable Root journal against two real directory byte sets.
+
+    This is only physical namespace/byte evidence, never an installed service
+    or PG release qualification. Unknown or partially damaged state stays
+    UNKNOWN; the owner cannot automatically retry or resume the timer.
+    """
+    names = {name for name, _ in ROOT_OPERATOR_BUNDLE}
+    if set(old_artifacts) != names or set(candidate_artifacts) != names:
+        raise RuntimeError("Root journal lacks exactly the five qualified artifact names")
+    if any(
+        not SHA256_PATTERN.fullmatch(value)
+        for value in [*old_artifacts.values(), *candidate_artifacts.values()]
+    ):
+        raise RuntimeError("Root journal contains an invalid artifact digest")
+    # Identical version byte sets cannot establish whether an exchange
+    # happened. The natural Root owner should treat this as a no-op rather
+    # than granting an unobserved installation or rollback receipt.
+    if old_artifacts == candidate_artifacts:
+        return "UNKNOWN"
+    actual: list[dict[str, str]] = []
+    for path in (live, staged):
+        if path.is_symlink() or not path.is_dir():
+            return "UNKNOWN"
+        records: dict[str, str] = {}
+        for name, mode in ROOT_OPERATOR_BUNDLE:
+            item = path / name
+            if item.is_symlink() or not item.is_file():
+                return "UNKNOWN"
+            metadata = item.stat()
+            if (
+                stat.S_IMODE(metadata.st_mode) != mode
+                or metadata.st_nlink != 1
+            ):
+                return "UNKNOWN"
+            records[name] = sha256(item)
+        actual.append(records)
+    if actual == [old_artifacts, candidate_artifacts]:
+        return "PREPARED" if root_bundle_candidate_namespace_closed(staged) else "UNKNOWN"
+    if actual == [candidate_artifacts, old_artifacts]:
+        return "EXCHANGED" if root_bundle_candidate_namespace_closed(live) else "UNKNOWN"
+    return "UNKNOWN"
 
 
 @contextmanager
@@ -987,6 +1403,32 @@ def candidate_artifacts(args: argparse.Namespace) -> list[dict[str, object]]:
         for spec in release_artifact_specs(args)
     ]
 
+def candidate_build_commands(
+    cargo: Path, candidate_dir: Path, binary_names: list[str], *,
+    explicit_binary_selection: bool,
+) -> list[list[str]]:
+    """Build native PG and Runner separately so Cargo cannot unify SQLite features.
+
+    Cargo Feature unification is scoped to an invocation. The two production
+    native consumers share the target cache, not the legacy Runtime feature.
+    Other/legacy release profiles keep their previous full-Workspace build.
+    """
+    target = ["--target-dir", str(candidate_dir.parent)]
+    if explicit_binary_selection and set(binary_names) == {
+        "ordivon-runtime-pg", "ordivon-runtime-runner",
+    }:
+        return [
+            [str(cargo), "build", "--release", "-p", "ordivon-runtime-mcp",
+             "--bin", "ordivon-runtime-pg", "--no-default-features",
+             "--features", "postgres-runtime", *target],
+            [str(cargo), "build", "--release", "-p", "ordivon-runtime-core",
+             "--bin", "ordivon-runtime-runner", "--no-default-features",
+             "--features", "runtime-contract", *target],
+        ]
+    return [[str(cargo), "build", "--release", "--workspace",
+             "--all-features", *target]]
+
+
 def prepare_candidate(args: argparse.Namespace) -> dict[str, object]:
     binary_names = binaries(args)
     if args.candidate_dir.name != "release":
@@ -1007,19 +1449,11 @@ def prepare_candidate(args: argparse.Namespace) -> dict[str, object]:
         stage_operator_artifacts(args, build_source)
         if args.binaries is None:
             runtime_policy = candidate_runtime_policy(build_source)
-        run(
-            [
-                str(args.cargo),
-                "build",
-                "--release",
-                "--workspace",
-                "--all-features",
-                "--target-dir",
-                str(args.candidate_dir.parent),
-            ],
-            cwd=build_source,
-            env=build_env,
-        )
+        for command in candidate_build_commands(
+            args.cargo, args.candidate_dir, binary_names,
+            explicit_binary_selection=args.binaries is not None,
+        ):
+            run(command, cwd=build_source, env=build_env)
         post_build_status = git_text(
             Path("/usr/bin/git"),
             build_source,
@@ -1313,6 +1747,7 @@ def wait_for_service_mcp_ready(
     wait_seconds: float,
     require_modern: bool,
     allow_legacy_fallback: bool,
+    readiness_probe: Callable[[float], dict[str, object]] | None = None,
 ) -> dict[str, object]:
     deadline = time.monotonic() + wait_seconds
     wait_service_active(systemctl, service, max(0.001, deadline - time.monotonic()))
@@ -1326,11 +1761,17 @@ def wait_for_service_mcp_ready(
                 raise RuntimeError(str(last_error)) from last_error
             raise RuntimeError(f"MCP readiness deadline expired: {service}")
         try:
+            slice_seconds = min(MCP_READINESS_PROBE_SLICE_SECONDS, remaining)
+            if readiness_probe is not None:
+                observed = readiness_probe(slice_seconds)
+                if not isinstance(observed, dict) or not observed:
+                    raise RuntimeError("rollback readiness probe returned no qualified evidence")
+                return observed
             return probe_mcp(
                 env_file,
                 expected_tool_count=expected_tool_count,
                 required=required,
-                wait_seconds=min(MCP_READINESS_PROBE_SLICE_SECONDS, remaining),
+                wait_seconds=slice_seconds,
                 require_modern=require_modern,
                 allow_legacy_fallback=allow_legacy_fallback,
             )
@@ -1563,7 +2004,11 @@ def restore_previous(
     expected_current_runtime_policy: object | None = None,
     release_authority: object | None = None,
     expected_current_release_authority: object | None = None,
+    readiness_probe: Callable[[float], dict[str, object]] | None = None,
 ) -> dict[str, object]:
+    # The shared physical rollback is backend-neutral. Its default readiness
+    # path is the legacy SQLite MCP probe; PG callers supply the existing
+    # PG-native authenticated catalog + Runner witness instead.
     run([str(systemctl), "stop", service], check=False)
     restored_environment = None
     if runtime_policy is not None or release_authority is not None:
@@ -1592,16 +2037,29 @@ def restore_previous(
             raise RuntimeError(f"rollback artifact digest does not match receipt: {name}")
         atomic_copy(source, target, mode=receipt_record_mode(record))
     run([str(systemctl), "start", service])
-    probe = wait_for_service_mcp_ready(
-        systemctl,
-        service,
-        env_file,
-        expected_tool_count=None,
-        required=(),
-        wait_seconds=wait_seconds,
-        require_modern=False,
-        allow_legacy_fallback=True,
-    )
+    if readiness_probe is None:
+        probe = wait_for_service_mcp_ready(
+            systemctl,
+            service,
+            env_file,
+            expected_tool_count=None,
+            required=(),
+            wait_seconds=wait_seconds,
+            require_modern=False,
+            allow_legacy_fallback=True,
+        )
+    else:
+        probe = wait_for_service_mcp_ready(
+            systemctl,
+            service,
+            env_file,
+            expected_tool_count=None,
+            required=(),
+            wait_seconds=wait_seconds,
+            require_modern=True,
+            allow_legacy_fallback=False,
+            readiness_probe=readiness_probe,
+        )
     result: dict[str, object] = {
         "serviceActive": True,
         "probe": probe,
@@ -2249,6 +2707,14 @@ def rollback_deployment(args: argparse.Namespace) -> dict[str, object]:
 def main() -> int:
     try:
         args = parse_args()
+        if args.command == "root-bundle-plan":
+            value = root_operator_bundle_plan(args)
+            print(json.dumps(value, indent=2 if args.pretty else None, sort_keys=args.pretty))
+            return 0 if value["eligibleForRootOwnerReview"] else 2
+        if args.command == "root-bundle-stage":
+            value = stage_root_operator_bundle(args)
+            print(json.dumps(value, indent=2 if args.pretty else None, sort_keys=args.pretty))
+            return 0
         if args.command == "prepare":
             value = prepare_candidate(args)
             print(json.dumps(value, indent=2 if args.pretty else None, sort_keys=args.pretty))

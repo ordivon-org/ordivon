@@ -284,6 +284,67 @@ class SQLiteHarnessRunContinuityToolTests(unittest.TestCase):
             self.assertEqual(continuity.doctor()["toolRecords"], 3)
             store.close()
 
+    def test_unknown_receipt_may_gain_one_reconciled_owner_result_not_redelivery(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            clock = MutableClock()
+            store, continuity, intent = self.prepare(
+                Path(directory) / "state", clock, private_tool_contract()
+            )
+            continuity.prepare_tool_step(intent)
+            unknown_observation = self.observation("unknown")
+            clock.advance()
+            unknown = HarnessToolStepReceipt(
+                receipt_id="harness-tool-step-receipt:unknown-before-owner-confirm",
+                intent_digest=intent.digest,
+                harness_run_id=continuity.harness_run_id,
+                tool_call_id=intent.tool_call_id,
+                status=HarnessToolStepStatus.UNKNOWN,
+                runtime_job_ref="runtime-job:source-reconciler-001",
+                observation_digest=canonical_digest(unknown_observation),
+                reconciled=True,
+                created_at_ms=clock(),
+            )
+            continuity.record_tool_step_receipt(unknown, unknown_observation)
+            observed_observation = self.observation("observed")
+            clock.advance()
+            observed = HarnessToolStepReceipt(
+                receipt_id="harness-tool-step-receipt:observed-after-owner-confirm",
+                intent_digest=intent.digest,
+                harness_run_id=continuity.harness_run_id,
+                tool_call_id=intent.tool_call_id,
+                status=HarnessToolStepStatus.OBSERVED,
+                runtime_job_ref=unknown.runtime_job_ref,
+                observation_digest=canonical_digest(observed_observation),
+                reconciled=True,
+                created_at_ms=clock(),
+                previous_receipt_digest=unknown.digest,
+            )
+            # Only Owner-conclusive, same-identity reconciliation may
+            # terminate the epistemic UNKNOWN. Invalid supersessions must not
+            # append any Run Event or trigger another effect.
+            for bad in (
+                replace(observed, reconciled=False),
+                replace(observed, runtime_job_ref="runtime-job:unrelated"),
+                replace(observed, status=HarnessToolStepStatus.UNKNOWN),
+                replace(observed, status=HarnessToolStepStatus.CANCEL_REQUESTED),
+                replace(observed, created_at_ms=unknown.created_at_ms - 1),
+            ):
+                with self.subTest(bad=bad):
+                    with self.assertRaises(ValueError):
+                        continuity.record_tool_step_receipt(bad, observed_observation)
+            continuity.record_tool_step_receipt(observed, observed_observation)
+            recovered = continuity.load_current_tool_step()
+            self.assertEqual(recovered.previous_receipt, unknown)
+            self.assertEqual(recovered.receipt, observed)
+            continuity.record_tool_step_receipt(observed, observed_observation)
+            with self.assertRaises(ValueError):
+                continuity.record_tool_step_receipt(
+                    replace(observed, receipt_id="harness-tool-step-receipt:duplicate-result"),
+                    observed_observation,
+                )
+            self.assertTrue(continuity.doctor()["healthy"])
+            store.close()
+
     def test_metadata_only_receipt_retains_observation_digest_not_content(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "state"

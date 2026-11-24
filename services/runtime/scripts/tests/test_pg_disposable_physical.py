@@ -56,19 +56,77 @@ class DisposablePg18Contract(unittest.TestCase):
             self.assertIn(token, owner_run)
         self.assertIn("printenv ORDIVON_PG_TEST_DSN", owner_run)
 
+    def test_pg18_extended_owner_inventory_is_not_a_stale_literal_count(self) -> None:
+        names = [
+            *[f"pg_admission::live_pg_tests::pg18_case_{i}" for i in range(22)],
+            "pg_windows_evidence::qualified_pg18_preflight_tests::native_check",
+        ]
+        listing = "\n".join(f"{name}: test" for name in names) + "\n23 tests, 0 benchmarks\n"
+        expected = module.listed_pg18_tests(listing)
+        self.assertEqual(expected, frozenset(names))
+        completed = (
+            "\n".join(f"test {name} ... ok" for name in names) + "\ntest result: ok. 23 passed; 0 failed; 0 ignored;"
+        )
+        self.assertEqual(module.exact_test_count(completed, expected), 23)
+
     def test_positive_execution_receipts_reject_vacuous_green(self) -> None:
-        lines = [f"test pg_admission::live_pg_tests::pg18_case_{i} ... ok" for i in range(module.EXPECTED_PG18)]
-        good = "\n".join(lines) + "\ntest result: ok. 18 passed; 0 failed; 0 ignored;"
-        self.assertEqual(module.exact_test_count(good), 18)
-        for false_green in [
-            "test result: ok. 0 passed; 0 failed; 18 ignored;",
-            "test result: ok. 18 passed; 0 failed; 0 ignored;",
-            good.replace("pg18_case_0 ... ok", "pg18_case_0 ... FAILED"),
-            good.replace("18 passed; 0 failed", "17 passed; 1 failed"),
-        ]:
+        expected = frozenset(
+            (
+                "pg_admission::live_pg_tests::pg18_transaction",
+                "pg_windows_evidence::qualified_pg18_preflight_tests::preflight",
+            )
+        )
+        good = (
+            "\n".join(f"test {name} ... ok" for name in sorted(expected))
+            + "\ntest result: ok. 2 passed; 0 failed; 0 ignored;"
+        )
+        self.assertEqual(module.exact_test_count(good, expected), 2)
+        for false_green in (
+            "test result: ok. 0 passed; 0 failed; 2 ignored;",
+            "test result: ok. 2 passed; 0 failed; 0 ignored;",
+            good.replace("pg18_transaction ... ok", "pg18_transaction ... FAILED"),
+            good.replace("2 passed; 0 failed", "1 passed; 1 failed"),
+            good.replace("pg18_transaction ... ok", "pg18_mismatched ... ok"),
+            good + "\ntest pg_admission::live_pg_tests::pg18_transaction ... ok",
+        ):
             with self.subTest(false_green=false_green[-48:]):
                 with self.assertRaises(ValueError):
-                    module.exact_test_count(false_green)
+                    module.exact_test_count(false_green, expected)
+
+    def test_physical_windows_witness_is_bound_to_behavior_not_module_path(self) -> None:
+        name = module.WINDOWS_PG_WITNESS_CASE
+        self.assertNotIn("::", name)
+        for namespace in (
+            "pg_admission::live_pg_tests",
+            "pg_admission::live_pg_tests::admission_cases",
+            "new_pg_core::physical",
+        ):
+            evidence = (
+                f"test {namespace}::{name} ... ok\\n"
+                "test result: ok. 1 passed; 0 failed; 0 ignored;"
+            ).replace("\\n", "\n")
+            self.assertTrue(module.qualified_single_physical_witness(evidence, name))
+
+        for bad in (
+            "test result: ok. 0 passed; 0 failed; 0 ignored;",
+            f"test new_scope::{name} ... FAILED\ntest result: FAILED. 0 passed; 1 failed;",
+            f"test new_scope::{name} ... ok\ntest result: ok. 0 passed; 0 failed;",
+            "test new_scope::wrong ... ok\ntest result: ok. 1 passed; 0 failed;",
+            f"test new_scope::{name} ... ok\ntest extra::{name} ... ok\ntest result: ok. 2 passed; 0 failed;",
+        ):
+            with self.subTest(output=bad):
+                self.assertFalse(module.qualified_single_physical_witness(bad, name))
+
+    def test_inventory_rejects_empty_duplicate_and_unscoped_test(self) -> None:
+        fixture = "pg_admission::live_pg_tests::pg18_existing"
+        for source in (
+            "0 tests, 0 benchmarks\n",
+            f"{fixture}: test\n{fixture}: test\n",
+            f"{fixture}: test\nother_unscoped_test: test\n",
+        ):
+            with self.subTest(source=source):
+                with self.assertRaises(ValueError):
+                    module.listed_pg18_tests(source)
 
 
 if __name__ == "__main__":

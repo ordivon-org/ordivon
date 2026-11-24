@@ -9,6 +9,7 @@ from ordivon_host_v2.mcp_server import build_server
 
 EXPECTED = {
     "host.status",
+    "host.pool.stats",
     "actor.declare",
     "work.create",
     "work.get",
@@ -56,6 +57,12 @@ def test_host_server_identity_and_exact_social_work_surface() -> None:
             assert set(by_name) == EXPECTED
             assert not any(name.startswith("task.") for name in by_name)
             assert not any(name.startswith("board.") for name in by_name)
+            topic_list = by_name["topic.list"].input_schema
+            assert "includeArchived" in topic_list["properties"]
+            assert "includeArchived" not in topic_list.get("required", [])
+            topic_state = by_name["topic.state.set"].input_schema
+            assert set(topic_state["properties"]["state"]["enum"]) == {"open", "closed", "archived"}
+            assert set(topic_state["properties"]["expectedState"]["enum"]) == {"open", "closed", "archived"}
             attention = by_name["attention.delta"].input_schema
             assert set(attention["required"]) == {"actorRef", "afterSequence"}
             assert "actorRef" in attention["properties"]

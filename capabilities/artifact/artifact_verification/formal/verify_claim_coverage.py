@@ -1,8 +1,9 @@
 """Bounded, executable refinement check for Artifact required-evidence promotion.
 
-SPEC: successful profile evidence iff every *declared* claim has an explicit
-PASS and matching independent native status witness. The claim record itself
-is never a native witness.
+SPEC: successful profile evidence iff every mandatory (required=True) claim
+has an explicit PASS and matching native status witness. Optional claims do not
+strengthen the mandatory gate; malformed/all-optional declarations fail closed.
+The claim record itself is never a native witness.
 
 MODEL: full Cartesian product of six abstract claim states over the real
 FLAC/WAVE/PNG required-evidence key sets (7/5/4 claims respectively).
@@ -23,7 +24,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from artifact_verification.claim_coverage import assess_required_evidence  # noqa: E402
+from artifact_verification.claim_coverage import (  # noqa: E402
+    assess_required_evidence,
+    assess_required_statuses,
+)
 
 PROFILES = (
     "audio-flac-pcm16-r1",
@@ -115,6 +119,31 @@ def check_profile(profile_id: str) -> dict:
     assert not assess_required_evidence(profile, {"status": "PASS"})["complete"]
     assert not assess_required_evidence({"requiredEvidence": {}}, good)["complete"]
 
+    # Optional declarations must not strengthen required gates. Missing and
+    # failing optional observations are still visible in native raw evidence.
+    mixed = {"requiredEvidence": {
+        "mandatory": {"required": True}, "optional": {"required": False}
+    }}
+    mixed_native = {
+        "status": "PASS",
+        "observed": {"mandatory": {"status": "PASS"}},
+        "claimResults": {"mandatory": {
+            "status": "PASS", "nativePointers": ["/observed/mandatory"]
+        }},
+    }
+    assessed = assess_required_evidence(mixed, mixed_native)
+    assert assessed["complete"] and assessed["expectedClaims"] == ["mandatory"]
+    mixed_native["claimResults"]["optional"] = {"status": "FAIL"}
+    assert assess_required_evidence(mixed, mixed_native)["complete"]
+    mixed_native["claimResults"]["undeclared"] = {"status": "PASS"}
+    assert not assess_required_evidence(mixed, mixed_native)["complete"]
+    assert not assess_required_evidence(
+        {"requiredEvidence": {"mandatory": {"required": "yes"}}}, mixed_native
+    )["complete"]
+    assert not assess_required_evidence(
+        {"requiredEvidence": {"optional": {"required": False}}}, mixed_native
+    )["complete"]
+
     return {
         "profileId": profile_id,
         "abstractStates": list(STATES),
@@ -124,6 +153,109 @@ def check_profile(profile_id: str) -> dict:
         "profileSha256": hashlib.sha256(profile_path.read_bytes()).hexdigest(),
     }
 
+
+
+def check_shared_standing() -> dict:
+    """Bounded refinement for the v1/v2 shared decision, independent of native I/O.
+
+    Exhausts all 5² combinations of required status representatives and both
+    independent-evidence dispositions. This is a finite abstraction, not a
+    theorem about arbitrary provider results or consumer readback.
+    """
+    required = {"decoded", "readback"}
+    states = ("MISSING", "PASS", "FAIL", "NOT_EVALUATED", "INVALID")
+    checked = 0
+    for pair in itertools.product(states, repeat=2):
+        for invalid_witness in (False, True):
+            observed = {
+                key: value
+                for key, value in zip(sorted(required), pair, strict=True)
+                if value != "MISSING"
+            }
+            issues = ("native witness mismatch",) if invalid_witness else ()
+            result = assess_required_statuses(required, observed, issues=issues)
+            # Independent oracle: contradictory observations cannot count
+            # as verified failures; only valid, explicit FAIL is falsification.
+            if invalid_witness:
+                expected = "UNKNOWN"
+            elif "FAIL" in pair:
+                expected = "FAIL"
+            elif pair == ("PASS", "PASS"):
+                expected = "PASS"
+            else:
+                expected = "UNKNOWN"
+            if result["verificationStatus"] != expected:
+                raise AssertionError(
+                    f"shared-standing status refinement failed: {pair} {issues}: {result}"
+                )
+            if result["complete"] != (expected == "PASS"):
+                raise AssertionError(
+                    f"shared-standing completion refinement failed: {pair}: {result}"
+                )
+            if result["consumerAcceptance"] != "EXTERNAL_NOT_EVALUATED":
+                raise AssertionError("shared Standing illegally promotes consumer acceptance")
+            checked += 1
+
+    if assess_required_statuses(set(), {})["complete"]:
+        raise AssertionError("empty requirements yielded vacuous completeness")
+    assert checked == 50
+
+    # Source-bound two-claim abstraction: a native result may reuse one
+    # specifically declared multi-claim witness, but neither generic status
+    # nor another claim's matching PASS certifies this claim.
+    binding_profile = {
+        "requiredEvidence": {"alpha": {"required": True}, "beta": {"required": True}}
+    }
+    binding_modes = ("named", "generic", "multi", "other")
+    binding_checked = 0
+    for alpha_mode, beta_mode in itertools.product(binding_modes, repeat=2):
+        observation = {
+            "alpha": {"status": "PASS"},
+            "beta": {"status": "PASS"},
+            "aggregate": {"status": "PASS"},
+            "multi": {"status": "PASS", "supportsClaims": ["alpha", "beta"]},
+        }
+        claim_results = {}
+        for name, mode in (("alpha", alpha_mode), ("beta", beta_mode)):
+            if mode == "named":
+                pointer = f"/observations/{name}"
+            elif mode == "generic":
+                pointer = "/observations/aggregate"
+            elif mode == "multi":
+                pointer = "/observations/multi"
+            else:
+                pointer = f"/observations/{'beta' if name == 'alpha' else 'alpha'}"
+            claim_results[name] = {
+                "status": "PASS",
+                "nativePointers": [pointer],
+            }
+        candidate = {
+            "status": "PASS",
+            "observations": observation,
+            "claimResults": claim_results,
+        }
+        actual = assess_required_evidence(binding_profile, candidate)
+        oracle = all(
+            mode in {"named", "multi"} for mode in (alpha_mode, beta_mode)
+        )
+        if actual["complete"] != oracle:
+            raise AssertionError(
+                f"claim-specific witness refinement violated: "
+                f"{alpha_mode}/{beta_mode} actual={actual} expected={oracle}"
+            )
+        binding_checked += 1
+    assert binding_checked == 16
+    return {
+        "method": "finite Cartesian abstraction + production-source refinement",
+        "abstractStates": list(states),
+        "abstractCasesChecked": checked,
+        "claimBindingCasesChecked": binding_checked,
+        "counterexamples": 0,
+        "nonClaims": [
+            "not proof of native result honesty or pointer identity",
+            "not proof of target application or domain acceptance",
+        ],
+    }
 
 def main() -> None:
     path = ROOT / "artifact_verification/claim_coverage.py"
@@ -138,6 +270,7 @@ def main() -> None:
         ),
         "totalStates": sum(row["modelStatesExhaustivelyChecked"] for row in rows),
         "counterexamples": 0,
+        "sharedStandingModel": check_shared_standing(),
         "models": rows,
     }
     print(json.dumps(summary, ensure_ascii=False, sort_keys=True))

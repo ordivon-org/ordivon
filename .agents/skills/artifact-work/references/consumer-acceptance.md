@@ -4,6 +4,12 @@
 
 Artifact verification and consumer acceptance are **different statements**. This guidance applies to common native artifacts such as a game audio clip, still-image asset, FLAC interchange file, and a Parquet dataset. It is not a new verifier or registry and does not transfer a consumer's authority to Artifact.
 
+**Profile authority prerequisite:** the Profile registry fails closed
+on malformed, duplicate, schema-invalid or changed indexed source bytes.
+Canonical v2 interpretation is only refined from production v1 on explicitly
+shared facts, **not** all policy gates. Details and Human/Agent instructions:
+`capabilities/artifact/docs/ARTIFACT_PROFILE_AUTHORITY_REFINEMENT_R1.md`.
+
 ## Human guide
 
 1. **Name an actual consumer and a usable outcome.** For example: WAVE in a game/audio reader, FLAC in a media decoder, PNG in an image-display application, or Parquet in a research/analytics query.

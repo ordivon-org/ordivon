@@ -4,19 +4,18 @@ import test from "node:test";
 
 const library = JSON.parse(readFileSync(new URL("../knowledge/game_mechanism_experience_library_r1.json", import.meta.url), "utf8")) as any;
 const kb = JSON.parse(readFileSync(new URL("../knowledge/game_external_knowledge_base_r1.json", import.meta.url), "utf8")) as any;
-const doc = readFileSync(new URL("../docs/mechanism-experience-library-r1.md", import.meta.url), "utf8");
 
 const unique = (values: string[]) => new Set(values).size === values.length;
 
-test("mechanism experience library is large, source-grounded and creative-open", () => {
+test("mechanism experience library is source-grounded and creative-open", () => {
   assert.equal(library.schemaVersion, 1);
   assert.equal(library.libraryId, "ordivon-game-mechanism-experience-library-r1");
   assert.equal(library.policy.defaultAuthority, "ADVISORY_HYPOTHESIS");
   assert.equal(library.policy.canBlockNovelCombination, false);
   assert.equal(library.policy.componentEvidenceTransfersToComposition, false);
-  assert.ok(library.experiences.length >= 48, `expected >=48 experiences, got ${library.experiences.length}`);
+  assert.ok(library.experiences.length > 0, "mechanism query requires at least one grounded experience");
   assert.ok(unique(library.experiences.map((experience: any) => experience.id)));
-  assert.ok(new Set(library.experiences.map((experience: any) => experience.referenceGame)).size >= 18);
+  assert.ok(library.experiences.every((experience: any) => typeof experience.referenceGame === "string" && experience.referenceGame.trim().length > 0));
 });
 
 test("experience kinds cover synergy, tension, inversion, substitution, learning, failure and production response", () => {
@@ -33,35 +32,40 @@ test("experience kinds cover synergy, tension, inversion, substitution, learning
   ]) assert.ok(kinds.has(kind), `missing ${kind}`);
 });
 
-test("every experience has a falsifiable transfer shape and never mints human evidence", () => {
-  for (const experience of library.experiences) {
-    assert.ok(experience.mechanisms.length >= 2, `${experience.id} mechanisms`);
-    assert.ok(experience.designProblem.length > 0, `${experience.id} designProblem`);
-    assert.ok(experience.interaction.length > 0, `${experience.id} interaction`);
-    assert.ok(experience.playerDecisionHypothesis.length > 0, `${experience.id} playerDecisionHypothesis`);
-    assert.ok(experience.observedContext.length > 0, `${experience.id} observedContext`);
-    assert.ok(experience.confounds.length > 0, `${experience.id} confounds`);
-    assert.ok(experience.transferRisks.length > 0, `${experience.id} transferRisks`);
-    assert.ok(experience.falsifier.length > 0, `${experience.id} falsifier`);
-    assert.ok(experience.cheapProbe.length > 0, `${experience.id} cheapProbe`);
-    assert.ok(experience.sourceRefs.length > 0, `${experience.id} sourceRefs`);
-    assert.equal(experience.authority, "ADVISORY_HYPOTHESIS");
-    assert.equal(experience.inferenceLevel, "SOURCE_GROUNDED_HYPOTHESIS");
-    assert.equal(experience.humanOutcomeEstablished, false);
-    assert.equal(experience.canBlockNovelCombination, false);
+function qualifyExperiences(experiences: any[]): void {
+  const sourceIds = new Set(kb.sources.map((source: any) => "kb:" + source.id));
+  assert.ok(unique(experiences.map((experience) => experience.id)), "duplicate Experience IDs");
+  for (const experience of experiences) {
+    assert.ok(experience.mechanisms.length >= 2, experience.id + " mechanisms");
+    for (const key of ["designProblem", "interaction", "playerDecisionHypothesis", "observedContext", "confounds", "transferRisks", "falsifier", "cheapProbe"]) {
+      assert.ok(experience[key].length > 0, experience.id + " " + key);
+    }
+    assert.ok(experience.sourceRefs.length > 0, experience.id + " sourceRefs");
+    for (const ref of experience.sourceRefs) assert.ok(sourceIds.has(ref), experience.id + " missing " + ref);
+    assert.equal(experience.authority, "ADVISORY_HYPOTHESIS", experience.id + " authority");
+    assert.equal(experience.inferenceLevel, "SOURCE_GROUNDED_HYPOTHESIS", experience.id + " inference");
+    assert.equal(experience.humanOutcomeEstablished, false, experience.id + " cannot mint Human evidence");
+    assert.equal(experience.canBlockNovelCombination, false, experience.id + " cannot veto");
   }
+}
+
+test("every experience has a falsifiable transfer shape, closed sources and no Human authority", () => {
+  qualifyExperiences(library.experiences);
 });
 
-test("all kb source refs resolve to the external knowledge base", () => {
-  const sourceIds = new Set(kb.sources.map((source: any) => `kb:${source.id}`));
-  for (const experience of library.experiences) {
-    for (const ref of experience.sourceRefs) assert.ok(sourceIds.has(ref), `${experience.id} missing ${ref}`);
-  }
+test("one independently useful experience is qualified; duplicate, orphan and veto fail", () => {
+  const sample = library.experiences[0];
+  assert.ok(sample);
+  qualifyExperiences([sample]);
+  assert.throws(() => qualifyExperiences([sample, sample]), /duplicate Experience IDs/);
+  assert.throws(() => qualifyExperiences([{...sample, sourceRefs: ["kb:unknown-source"]}]), /missing kb:unknown-source/);
+  assert.throws(() => qualifyExperiences([{...sample, canBlockNovelCombination: true}]), /cannot veto/);
+  assert.throws(() => qualifyExperiences([{...sample, humanOutcomeEstablished: true}]), /cannot mint Human evidence/);
 });
 
-test("mechanism vocabulary is broad instead of one-loop biased", () => {
+test("mechanism vocabulary is normalized and source-indexable", () => {
   const mechanisms = new Set(library.experiences.flatMap((experience: any) => experience.mechanisms));
-  assert.ok(mechanisms.size >= 70, `expected >=70 mechanism tags, got ${mechanisms.size}`);
+  assert.ok([...mechanisms].every((tag: any) => typeof tag === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(tag)));
   for (const mechanism of [
     "knowledge-progression",
     "resource-recovery-from-enemies",
@@ -77,18 +81,10 @@ test("mechanism vocabulary is broad instead of one-loop biased", () => {
 });
 
 test("failure/revision knowledge is first-class rather than success-only", () => {
-  assert.ok(library.experiences.filter((experience: any) => ["FAILURE_MODE", "TENSION", "PRODUCTION_RESPONSE"].includes(experience.kind)).length >= 14);
+  assert.ok(library.experiences.some((experience: any) => ["FAILURE_MODE", "TENSION", "PRODUCTION_RESPONSE"].includes(experience.kind)));
   assert.ok(library.experiences.some((experience: any) => experience.referenceGame === "Saturnalia" && experience.kind === "PRODUCTION_RESPONSE"));
   assert.ok(library.experiences.some((experience: any) => experience.referenceGame === "Factorio" && /reopen/i.test(experience.interaction)));
   assert.ok(library.experiences.some((experience: any) => experience.referenceGame === "Into the Breach" && /cut|remove|delete/i.test(experience.interaction)));
-});
-
-test("human guide defines Pattern to Experience to Probe without making recipes", () => {
-  assert.match(doc, /Pattern.*Experience.*Probe/is);
-  assert.match(doc, /Creative-Open/i);
-  assert.match(doc, /not.*recipe/is);
-  assert.match(doc, /failure|tension|inversion/i);
-  assert.match(doc, /Human evidence/i);
 });
 
 

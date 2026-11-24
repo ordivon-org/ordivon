@@ -8,6 +8,7 @@ run = """
 set -euo pipefail
 mise run verify:formal:risk-exposure
 mise run verify:formal:passive-general
+mise run verify:formal:liability-reserve
 mise run verify:formal:unit-r-margin
 mise run verify:formal:unit-r-rebalance
 mise run verify:formal:algebraic-capital
@@ -19,6 +20,7 @@ uv run --group test ruff check .
 uv run --group test python -m pytest -m "not provider_qualification"
 mise run formal:paper
 mise run formal:accounting-reservation
+mise run formal:pit-capture
 mise run formal:paper:source
 """
 
@@ -109,13 +111,29 @@ fi
 printf '%s\\n' "$observed"
 """
 
+[tasks."verify:nonlive:nautilus"]
+description = "Run pinned upstream NautilusTrader rc9 through existing Finance nonlive reconciliation"
+run = """
+set -euo pipefail
+uv lock --check
+uv run --locked --group nonlive python -c 'import nautilus_trader; assert nautilus_trader.__version__ == "2.0.0rc9"'
+PYTHONPATH=src uv run --locked --group nonlive python tools/nautilus_rc4/nonlive_effect_matrix.py
+PYTHONPATH=src uv run --locked --group nonlive python tools/nautilus_rc4/equity_paper_qualification.py
+# This physical/non-live subset is source-qualified independently from other
+# provider tests requiring secrets or node-local external binaries.
+uv run --isolated --locked --group test --group nonlive python -m pytest --strict-markers -m native_nonlive \
+    tests/test_nautilus_candidate.py tests/test_native_dbn.py
+"""
+
 [tasks."verify:provider"]
 description = "Run node-local external-provider and credential-bound qualification tests"
 run = """
 set -euo pipefail
 uv lock --check
-uv sync --locked --group test
-uv run --group test python -m pytest -m provider_qualification
+# Provider tests call the legacy run-capability-python, which syncs the project
+# .venv with only research/test and removes optional nonlive. Preserve a
+# separate isolated Python environment for this test runner.
+uv run --isolated --locked --group test --group nonlive python -m pytest -m provider_qualification
 """
 
 [tasks."verify:formal:risk-exposure"]
@@ -204,6 +222,40 @@ uv sync --locked --group test
 uv run --locked --group test pytest -q -m provider_qualification tests/test_okx_official_cli.py
 """
 
+[tasks."formal:pit-capture"]
+description = "Check Markets->Research capture-time non-backdating and price-basis guards with pinned upstream Z3"
+run = """
+set -euo pipefail
+uvx --python 3.15 --from z3-solver==5.3.3.0 python - <<'PYZ3'
+from pathlib import Path
+import z3
+raw = Path("formal/MarketsCapturePITR1.smt2").read_bytes()
+observed = z3.z3core.Z3_eval_smtlib2_string(z3.main_ctx().ref(), raw).splitlines()
+expected = ["unsat", "sat", "unsat", "unsat", "unsat", "sat"]
+if observed != expected:
+    raise SystemExit(f"Markets capture PIT model results mismatch: {observed!r}")
+print("MarketsCapturePITR1: 4 invariant checks UNSAT; 2 bad-model witnesses SAT")
+calendar_raw = Path("formal/MarketsCalendarHorizonR1.smt2").read_bytes()
+calendar_ctx = z3.Context()
+calendar_results = z3.z3core.Z3_eval_smtlib2_string(
+    calendar_ctx.ref(), calendar_raw
+).splitlines()
+calendar_expected = ["unsat", "unsat", "unsat", "unsat", "sat", "unsat", "unsat", "sat"]
+if calendar_results != calendar_expected:
+    raise SystemExit(
+        f"Markets calendar/Horizon model mismatch: {calendar_results!r}"
+    )
+print("MarketsCalendarHorizonR1: 6 scoped invariant checks UNSAT; 2 wrong-model witnesses SAT")
+eod_raw = Path("formal/MarketsEodPaperCalendarR1.smt2").read_bytes()
+eod_ctx = z3.Context()
+eod_results = z3.z3core.Z3_eval_smtlib2_string(eod_ctx.ref(), eod_raw).splitlines()
+eod_expected = ["unsat", "unsat", "unsat", "sat", "sat"]
+if eod_results != eod_expected:
+    raise SystemExit(f"Markets EOD -> Paper gate model mismatch: {eod_results!r}")
+print("MarketsEodPaperCalendarR1: 3 abstract consumer invariants UNSAT; 2 counterexamples SAT")
+PYZ3
+"""
+
 [tasks."formal:accounting-reservation"]
 description = "Prove Accounting reservation and two-phase settlement state invariants with pinned upstream Z3"
 run = """
@@ -213,9 +265,17 @@ from pathlib import Path
 import z3
 raw = Path("formal/AccountingReservationR1.smt2").read_bytes()
 observed = z3.z3core.Z3_eval_smtlib2_string(z3.main_ctx().ref(), raw).splitlines()
-expected = ["unsat"] * 7 + ["sat", "sat"]
+expected = ["unsat"] * 7 + ["sat", "sat"] + ["unsat", "unsat", "sat", "sat"]
 if observed != expected:
     raise SystemExit(f"Accounting reservation formal obligations mismatch: {observed!r} != {expected!r}")
-print("AccountingReservationR1: 7 universal QF_LIA checks UNSAT; 2 invalid-state counterexamples SAT")
+print("AccountingReservationR1: 9 universal QF_LIA checks UNSAT; 4 invalid-state counterexamples SAT")
 PYZ3
+"""
+
+[tasks."verify:formal:liability-reserve"]
+description = "Lean proof of dated-liability cash reserve contribution bounds"
+run = """
+set -euo pipefail
+cd ../../tools/formal
+mise exec -- lean ../../domains/capital/formal/PortfolioLiabilityReserve.lean
 """

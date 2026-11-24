@@ -5,6 +5,30 @@ interoperability without taking custody of Research, Finance, Runtime, Artifact,
 Preservation or external-provider truth. This is a source package, **not** a
 second warehouse, scheduler, data registry, or universal data-product ontology.
 
+## Outcome-first business acceptance: one live consumer, no new platform
+
+Data supplies verified information requested by an Outcome Owner, not
+standalone success indicators. A human specifies the business goal; Research
+decides the science and Data selects/verifies the source without asking humans
+to run its CLIs. The current task-local Research implementation is
+studies/experimental-episodes/experiments/evidence-consumer-pilot-r1/deliver_research.py.
+It consumes the existing source-owned Episode manifest through the Data
+projector, binding and file inspector, then independently checks the Research
+analysis receipt before issuing a concrete HOLD promotion decision. A missing,
+tampered or contradictory required source returns DATA_NOT_DELIVERED.
+Research requires the `episode-corpus-manifest-json` output port at contract
+version `1.0.0` separately from the product version; adding another
+same-name port at `2.0.0` does not veto the selected input. This is qualified
+by current producer metadata, exact source bytes and Research's own receipt,
+not by the separate inspection CLI.
+
+This is only one demonstrably closed consumer information handoff; it does
+not verify the unmaterialized Parquet port, create a universal autonomous Data
+service, or establish Agent learning success. Research owns the decision;
+Runtime, Artifact, Preservation and source Owners retain their natural
+authorities. Consumer acceptance and counterexamples are exercised by
+the normal data:verify CI task, which invokes the task-local Research tests.
+
 ## Existing production and evidence
 
 - Research owns scientific dataset definitions, estimands and study outputs.
@@ -54,15 +78,13 @@ allowed roots can become VERIFIED. A digest mismatch becomes FALSIFIED.
 Missing data, malformed file URI authority, missing accessURL, and files
 outside the explicit scope remain UNKNOWN rather than FALSE.
 
-Both producer evidence binding and consumer verification open each path
-component relative to an already-opened directory descriptor with no symlink following, and computes SHA-256 from the
-same regular-file descriptor. An out-of-scope or symlinked path never becomes
-VERIFIED. On systems lacking the needed POSIX descriptor operations, the
-result is UNKNOWN (`scoped_descriptor_unavailable`), not an unsafe fallback.
-An in-place file change noticed during hashing yields UNKNOWN. These checks
-bind one observation, **not** later consumer access or a durable atomic snapshot;
-producers should publish immutable content, and consumers must recheck their
-own read. No alternative storage, registry or reader has been introduced.
+Producer binding and consumer inspection share one descriptor-relative
+regular-file reader on supported POSIX hosts. It refuses symlink traversal,
+hashes the opened descriptor, and distinguishes missing, unreadable, and failed
+I/O from an observed digest mismatch. Malformed access URIs remain scoped
+UNKNOWN; strict producer admission retains typed I/O errors. Unsupported
+descriptor operations or observed in-place changes do not establish evidence.
+The observation does not freeze a mutable file or guarantee later retention.
 
 Historical federated catalog uses `file://studies/...`, whose authority
 component is `studies`. The CLI deliberately treats that as an unsupported
@@ -143,8 +165,10 @@ python3 packages/data/scripts/inspect_federation.py \
 version and distribution passed the current scoped digest check; it is
 **not** full product publication or proof about other output ports, rights,
 freshness or scientific quality. Unknown/wrong-version port selections
-exit 3; evidence mismatch exits 2. Unrelated observed falsification also
-blocks the CLI rather than silently admitting a partially corrupted catalog.
+exit 3; a mismatch on the *selected* port exits 2. An unrelated
+FALSIFIED port remains visible in the full inspection report but does not
+veto a consumer's exact selected-port gate. Whole-catalog admission and
+ungated inspection still exit 2 when any distribution is FALSIFIED.
 
 The optional binding is a current observation: consumers must read back the file against
 its declared digest before using it, since mutable pathnames can change.
@@ -155,7 +179,6 @@ Never persist this ephemeral local URI as the canonical cross-host identity.
 - Native: `mise run data:verify` (Owner's CLI and exact existing study contracts).
 - [Human workflow](docs/HUMAN.md)
 - [Agent workflow](docs/AGENT.md)
-- [Directory audit and decisions](docs/AUDIT_2026-11-07.md)
 - [Capability and thought LEGO inventory](docs/LEGO_CENSUS.md)
 - [Property-first formal verification / test disposition](docs/FORMAL_VERIFICATION.md)
 - Opt-in kernel/symbolic check: `mise run data:formal:verify` (Lean DataProduct/DataPublication + CrossHair/Z3). The publication state model proves abstract safety; it does **not** implement atomic PostgreSQL commits or automatic data deletion.

@@ -90,6 +90,12 @@ def scoped_sha256(
         except OSError as exc:
             if exc.errno in (errno.ELOOP, errno.ENOTDIR):
                 reason = "unsupported_scoped_path"
+            elif isinstance(exc, FileNotFoundError):
+                reason = "local_file_unavailable"
+            elif isinstance(exc, PermissionError):
+                reason = "local_file_unreadable"
+            else:
+                reason = "local_file_read_error"
         finally:
             if directory_fd is not None:
                 os.close(directory_fd)

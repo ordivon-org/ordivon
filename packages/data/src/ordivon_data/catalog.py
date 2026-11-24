@@ -71,7 +71,11 @@ def inspect_distribution(
     if not isinstance(uri, str):
         result["reason"] = "no_access_url"
         return result
-    parts = urlsplit(uri)
+    try:
+        parts = urlsplit(uri)
+    except ValueError:
+        result["reason"] = "unsupported_uri_or_authority"
+        return result
     if (
         parts.scheme != "file"
         or parts.netloc not in ("", "localhost")
@@ -84,7 +88,11 @@ def inspect_distribution(
     if not parts.path.startswith("/"):
         result["reason"] = "nonabsolute_file_uri"
         return result
-    path = Path(unquote(parts.path))
+    try:
+        path = Path(unquote(parts.path, errors="strict"))
+    except ValueError:
+        result["reason"] = "invalid_local_file_path"
+        return result
     declared = result["declaredDigest"]
     digest_bound = (
         isinstance(declared, str)

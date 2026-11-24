@@ -16,11 +16,44 @@ This Skill is a **procedure and capability router**, not another portfolio engin
 
 Directory/LEGO consumer audit: domains/capital/docs/FINANCE_DIRECTORY_OWNER_AUDIT_R1.md. Resolve the seven current natural Owners before changing code or deleting historical files. Human and Agent routes are distinct. Use the active Skill source digest, not merely a GitHub Skill file, for deployed discoverability.
 
+## First actual source-bound economic research case (2026-11-08)
+
+For an end-to-end **business** example, use the pinned real-data study at
+domains/capital/evidence/finance-research/spy-shy-forward-20261108/README.md.
+It retrieves upstream GitHub ETF history by exact source commit and Git Blob
+identity, checks raw SHA-256, calls the *existing* Markets/Portfolio Paper
+replay, and independently reproduces the economics. It records a 60/40
+SPY/SHY versus 100% SPY result including terminal wealth and max drawdown.
+The mixed policy had lower historical wealth *and* lower historical
+drawdown, so investor utility is required to rank the two outcomes.
+
+For experimental research qualification, compose the already installed
+Finance Research freeze-experiment and assess-holdout operations: the
+case includes the actual frozen forward study for sessions 2026-11-09
+through 2027-03-31. Its current standing is UNKNOWN /
+NO_HOLDOUT_EVIDENCE, not profitable alpha. Research snapshot origin
+and numerical replay do not authenticate original price providers or
+historic PIT observations. Do not invent a new backtest, second research
+orchestration system or order adapter just for this study.
+
+Human: read the comparison and declare whether a lower drawdown is worth
+the observed lower wealth under the actual investment objective.
+Agent: use the exact reproduction recipe in the evidence README and
+test the historical source consumer when it is available:
+
+- Set ORDIVON_FINANCE_RESEARCH_SOURCE_CSV to the downloaded, digest-matched
+  private CSV. Run the provider-qualified real-source test
+  tests/test_finance_real_etf_research_case.py.
+- If the original bytes are unavailable, only the frozen research-contract
+  tests are admissible; no market-source qualification claim.
+- Never submit a real trade on the basis of retrospective research output.
+
 ## Select the actual goal before invoking any tool
 
 | Intention | Natural Owner | Native entrypoint | Actual standing |
 |---|---|---|---|
 | Allocate caller-defined new virtual contribution while protecting cash | Portfolio | `scripts/run-strategic-contribution-brief` | Stateless, no orders |
+| Derive cash reserve from dated outstanding needs before allocating a contribution | Portfolio / Applications | same CLI with goal-funded request kind; see `examples/goal_funded_contribution_r1.json` | Read-only; no future-income assumption |
 | Compare equal-cashflow strategy and passive benchmark | Portfolio | `python -m ordivon_capital.portfolio.passive_benchmark --input replay.json` under Capital toolchain | Read-only economic description |
 | Replay a qualified historical source from a pinned snapshot | Portfolio | `scripts/run-paper-etf-replay-r1 --request request.json --source source.csv [--output private-receipt.json]` | Historical simulation only |
 | Compare the economic effect of two source vintages | Portfolio | `scripts/run-paper-etf-vintage-compare-r1 --reference-request ... --reference-source ... --candidate-request ... --candidate-source ...` | Descriptive revision sensitivity |
@@ -32,6 +65,19 @@ Directory/LEGO consumer audit: domains/capital/docs/FINANCE_DIRECTORY_OWNER_AUDI
 
 All command paths above are relative to `domains/capital` except the direct reference to the other canonical Skill. Before using one, check its exact option interface (`--help`) and latest source/contract version.
 
+
+## Protect dated obligations before contributing
+
+Use the existing strategic contribution CLI with
+`examples/goal_funded_contribution_r1.json` as the request shape. Supply
+caller-confirmed outstanding obligations, as-of date, reserve-through date,
+distinct emergency cash and desired contribution in USD cents.
+Do not assume future earnings, market gains or asset sales. A
+`RESERVE_SHORTFALL` result contains no allocation plan; a
+`CONTRIBUTION_CAPPED` result shows the unallocated requested amount.
+Obligations outside the horizon are disclosed, not funded. No result
+authenticates account balances or grants execution. Read
+`domains/capital/docs/FINANCE_GOAL_RESERVE_R1.md` for the exact scope.
 
 ## Algebraic investment research is not Paper settlement
 
@@ -127,6 +173,39 @@ The output carries only `SECONDARY_VENDOR_NOT_ATTESTED` and is research
 only, not valid as a Markets/Paper settlement mark. Preserve source byte
 digests and the raw downloaded bytes through the existing Artifact Owner;
 do not build a new market database or source registry.
+
+## Markets admitted ETF EOD -> Research: no retroactive publication
+
+After the existing Markets etf_eod_snapshot.admit_etf_eod_snapshot
+has bound raw source bytes, SHA256, reported source/rights/actions and
+exchange close times, use the thin Research adapter
+pit_joint_forecast.etf_eod_capture_to_pit_vintages. Do not create another
+data service, registry or financial scheduler.
+
+Every projected Research vintage uses the snapshot captured_at as its
+effective published_at even when a historic mark claims an earlier
+availableAt. A modern download cannot become a historical investor's
+pre-download data. The result is SECONDARY_VENDOR_NOT_ATTESTED with
+RAW_UNADJUSTED_ACTION_FREE_DECLARED price basis (operator-declared
+action-free window). This is not the same as provider adjusted prices
+or total-return cashflows; cross-basis ratios are rejected. A caller
+cannot self-promote source verification through a string enum. The Research
+JSON ingress also rejects boolean or numeric-string historical prices,
+rather than converting them silently to floats.
+
+Human: confirm when the source bytes were first actually observed and
+the calendar, rights and corporate action declarations; separate these
+from independently attested provider facts. The date printed in an
+old market row is not itself a historical-time witness.
+
+Agent: check forecast_evidence price_bases, source_standings, source_digests
+and as_of_utc before sending a read-only scenario tree to Portfolio.
+No investment forecast is certified by this adapter. No live or Demo
+trading and no PG Accounting authority is granted.
+
+Tests: test_pit_etf_eod_composition.py; full canonical verification:
+mise run //domains/capital:verify. Keep the existing Finance experiment
+review Skill for frozen holdout falsification.
 
 ## Direct PIT research-to-Portfolio consumer
 
@@ -366,7 +445,7 @@ Use `ordivon_capital.portfolio.information_tree` for the **pure, solver-free** r
 
 Only after validation should an Agent call the **existing** `ordivon_capital.portfolio.multistage_policy.solve_multistage`; no duplicate optimizer, ledger or execution authority is created. The existing Research/PIT `multistage_policy.InformationNode` and `MultistageProblem` remain the **same Python types** as the canonical information-tree module, not shadow DTOs. Prefer the canonical `information_tree` import in new direct validators. To validate behavior, use `tests/test_multistage_policy.py`, `tests/test_pit_joint_forecast.py`, and `tests/test_capital_domain_taxonomy.py`.
 
-Human workflow and economic assumptions: `domains/capital/docs/FINANCE_HUMAN_GUIDE_R1.md` and `docs/MULTISTAGE_FINANCE_R1.md`. Always record source revision, original upstream market/broker evidence and resulting validation standing, separately from optimizer residuals and economic claims.
+Human workflow and economic assumptions: `domains/capital/docs/FINANCE_HUMAN_GUIDE_R1.md` and `domains/capital/docs/MULTISTAGE_FINANCE_R1.md`. Always record source revision, original upstream market/broker evidence and resulting validation standing, separately from optimizer residuals and economic claims.
 
 ## PostgreSQL-only Accounting retirement (no legacy oracle)
 
@@ -407,3 +486,33 @@ absent, record \`NATIVE_CONSUMER_UNKNOWN\`, never promote a skip to PASS.
 Account-state snapshots and original pending transfer status can be
 updated by the current PG implementation; do not falsely assume
 TigerBeetle's immutable-original-transfer storage model.
+
+
+## Monthly Paper account → native contribution plan (read-only, 2026-11-13)
+
+When a user asks "Given my **current committed Paper account**, where
+could this month's already-deposited virtual cash go without selling anything?",
+use the existing `portfolio.paper_contribution_plan` consumer. This is
+not a new allocator: it delegates to Accounting
+`read_latest_committed_paper_close`, Markets
+`admit_etf_eod_snapshot`, Risk `review_paper_close_risk`, and Portfolio
+`plan_strategic_contribution`.
+
+For exact CLI usage see `domains/capital/docs/FINANCE_HUMAN_GUIDE_R1.md`.
+Provide account, matching private EOD snapshot and binding,
+caller-chosen target-weight bps map, and `--invest-minor` amount
+already posted to Paper; choose `--format markdown` for users.
+Do **not** interpret the amount as a fresh bank deposit.
+The original Portfolio operator keeps protected cash untouched;
+Risk excludes uncommitted purchase payables and unsettled sale receivables.
+Plans for assets lacking quotes explicitly report unpriced targets.
+No share count, broker order, or investment advice is inferred.
+
+The published module's direct projection is offline and reports
+accountingPersistenceReverified=false; only its actual Paper PG CLI
+sets it true after reading the native account head.
+Market-license/PIT/corporate action evidence is still operator-bound,
+not independently attested. UNSET risk is not approval. This is
+`SIMULATION_ONLY` and `executionAuthorized=false`.
+Run `tests/test_paper_contribution_plan.py` with the disposable
+`ordivon_paper` database for real consumer acceptance.

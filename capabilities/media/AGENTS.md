@@ -11,6 +11,55 @@ Scope: `capabilities/media/`. Inherit the monorepo `AGENTS.md`; follow this Owne
 5. Select existing LEGO by required postcondition, exact inputs, tool read-back and source/version. The current `planning/lego-plan-r1.json` and `processing/profiles/*.json` supply the native Media planning/profile evidence; **do not** duplicate them into a new registry or invent an extra broker.
 6. Only after selection, materialize relevant dependencies or submit the compiled physical effect through Runtime. Parameterized Python-only context queries may use `mise exec -- python3 scripts/materialize-python.py` and `.venv/bin/python scripts/studio-agent-surface.py`; do not install renderer dependencies for discovery. Bind resulting receipt/bytes to the **real consuming Production/Output/Claim** before declaring a result.
 
+## Mature media engines first: build production capability, not filler output
+
+When changing Studio architecture, the deliverable is a **more capable real
+consumer workflow**, not a larger number of demo videos, experiments, assets,
+or custom abstractions. Read the existing
+[external-capability-evaluation Skill](../../.agents/skills/external-capability-evaluation/SKILL.md)
+and the [compositional-contracts Skill](../../.agents/skills/compositional-contracts/SKILL.md)
+when a proposed replacement crosses an actual implementation boundary.
+
+1. Select a real existing Production/Agent workflow, its editable source,
+   intended Output, and the smallest missing capability. If the existing
+   source Owner or native tool can solve it directly, do not open a new Media
+   Production or build a wrapper.
+2. Before writing new effects, timeline models, renderers or provider APIs,
+   inspect the official mature implementation at an exact upstream commit,
+   including source files, advertised interface, license, limitations, and
+   the relevant native consumer. Use a **bounded/sparse checkout** when
+   source inspection helps; avoid vendoring complete engines by default.
+3. Reuse the appropriate native operator: FFmpeg/FFprobe for AV mechanics and
+   technical observations; OpenTimelineIO for **editorial interchange**, not
+   media rendering; Remotion for TypeScript/React programmatic motion; MLT
+   only when an actual multitrack nonlinear-editing consumer needs its engine;
+   OBS/libobs only for a real capture/live pipeline; Resolve through its
+   supported native API for editable professional finishing. These are
+   capability candidates, **not** mandatory dependencies or a new unified
+   Studio engine. Remotion is source-available with license-specific terms,
+   not an unrestricted OSI-open-source component.
+4. Compare KEEP / DELETE-CUSTOM / DIRECT-REUSE / COMPOSE / MINIMAL-ADAPTER
+   against exact local files and consumers. State what existing code or
+   operational steps the adoption **removes**; reject a new abstraction
+   that merely wraps a working mature tool without discharging a consumer
+   obligation. Do not turn Creative Index, Asset, Runtime or Provider state
+   into a second registry.
+5. Check substitution at both boundaries: editable source and exact native
+   result. Preserve timebase/ranges, media-reference identity, selected
+   profile/adapter versions, tool effects, receipts, technical QC and the
+   final consumer's ability to open, edit and use the Output. A native tool
+   PASS is not a Production acceptance or publication claim.
+6. Use an existing real Production for positive/read-back verification and
+   only the minimal negative fixture necessary to falsify a changed
+   contract. Do **not** create placeholder Productions, toy artworks, or
+   repetitive media experiments to inflate capability or coverage counts.
+   Keep source/licensing qualification, Git adoption, native execution and
+   real downstream consumption as distinct evidence stages.
+
+Prioritize changes that remove custom maintenance, increase editability,
+shorten Agent workflows or prevent real delivery failures. Keep unqualified
+external engines at REFERENCE_ONLY rather than installing speculative stacks.
+
 ## Route to existing capability
 
 | Consumer needs | Existing Media entry / Owner boundary |
@@ -33,7 +82,7 @@ The `agent_surface_contracts.tool_definitions()` schema is the wire contract; di
 
 ## Composition and evidence
 
-Use the existing R2.1 definition `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)` when a LEGO is formally admitted. For formal-first change selection, inspect `formal/README.md` and `tools/formal/verify.py` first. Use existing Lean and Z3 sources; name source-bound SPECIFICATION, MODEL, PROOF, implementation-refinement witness and actual consumer separately. A formal model result alone does not authorize deletion of an external-effect or unrefined Python regression. For an actual selected composition, check at least:
+Use the existing R2.1 definition `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)` when a LEGO is formally admitted. For formal-first change selection, inspect `formal/README.md` and `tools/formal/verify.py` first. Use existing Lean and Z3 sources; name source-bound SPECIFICATION, MODEL, PROOF, implementation-refinement witness and actual consumer separately. A formal model result alone does not authorize deletion of an external-effect or unrefined Python regression. For an actual selected composition, check at least: For selected caption delivery, source ticks remain canonical while SRT/WebVTT has only millisecond precision. Call `timed_text.validate_timed_text_delivery`, reject collapsed output intervals, preserve source cues, and keep Lean model proof distinct from native FFprobe/ttconv and semantic caption evidence.
 
 - `pre`: source identity/currentness, chosen input bytes, compatible profile and installed tool or explicitly UNKNOWN readiness.
 - `post`: exact output/receipt observed by the selected consumer; do not upgrade process exit to consumer acceptance.
@@ -43,6 +92,99 @@ Use the existing R2.1 definition `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unf
 - `c,epsilon,unfold`: real resource/uncertainty cost and decomposition obligations; use typed UNKNOWN where not measured.
 
 Use existing `.agents/skills/design-structure-matrix` for observed coupling and `.agents/skills/compositional-contracts` for actual substitution seams. Prefer deleting unconsumed code over renaming public wire identifiers. A module split is useful only if it gives a replaceable contract without breaking actual consumers.
+
+## Output byte identity: exact consumer readback
+
+Use the existing `production-context` operation, not a second asset registry.
+The projection exposes `outputByteIdentity.observations` next to owner-declared
+Output metadata. The source-owned `sourceCarrier` names a declared source
+that is byte-identical to the Output. A different opt-in field,
+`outputCarrier`, names a Production-relative materialized output (e.g.
+`render/master.wav`), never its original source or Artifact storage owner.
+The consumer checks actual bytes in both cases at read time.
+
+For rendered outputs without a declared local carrier (notably external
+Resolve/R2 carriers), select the *actual final file* explicitly:
+
+```bash
+cd capabilities/media
+uv run --frozen ordivon-studio production-context \
+  productions/runtime-introduction \
+  --output-file runtime-film-en-landscape=/absolute/path/to/selected-film.mp4
+```
+
+`MATCHES_DECLARED_DIGEST` means the observed file bytes matched the
+Production's declared Output digest at inspection. `DIFFERS_FROM_DECLARED_DIGEST`
+is a falsifying byte observation. `UNKNOWN_*` means missing file/binding or
+unavailable evidence; it is not a failed Production or evidence of currentness.
+`INVALID_*` describes a malformed or unsafe carrier binding.
+
+**Human:** compare the selected Output ID, source binding/Claim, inspected file
+and digest. Confirm any technical QC independently; assess quality, rights and
+audience fit; then make a separate decision about publication with the owning
+destination. Never infer publication authorization from `approved`.
+
+**Agent:** first select the Production by caller intent. Read
+`studio_production_context` with optional typed `outputFiles` (Output ID
+to selected absolute file path), or use the CLI with `--output-file`.
+Both check declared source and local output carriers by default and compare
+explicitly selected transformed outputs when requested. An inaccessible
+`outputCarrier` returns `UNKNOWN_SELECTED_FILE_UNAVAILABLE`, rather than
+revoking historical Output status. Require exact `MATCHES_DECLARED_DIGEST`
+on the selected output before
+asserting local byte identity; preserve `UNKNOWN` and `DIFFERS` and name
+the actual bound path and SourceCut in the decision. Do not infer physical
+availability from Creative Index, or trust a historical Runtime receipt as
+proof of a file's current bytes. A digest match is **not** technical quality,
+legal permission, semantic acceptance, editorial approval, persistent
+immutability, or external publication evidence. This comparison is a
+non-atomic filesystem observation, not a continuous watch.
+
+**Formal boundary:** `formal/ProductionOutputByteIdentity.lean` proves only
+the abstract Option-digest equality model and non-promotion of Output status.
+`tests/test_production_context.py` covers the Python integration and real
+selected Production source carrier. Neither proves SHA-256, atomic file
+readback, provider authority or end-to-end publication. Preserve native
+consumer tests. The formal proof is registered in the existing Formal CI gate.
+
+## Operation dependency impact: source-only, no cache or executor
+
+The selected Sonic Ident Production now declares one bounded native
+`sources.sourceDocuments` entry: `operation-lineage.json`, with five
+source-owned steps. `studio_production_context` exposes the
+`operationLineage` read-only projection automatically when this exact
+document is explicitly declared. No generic repo scan, provider state,
+implicit agent execution, or new scheduler is involved.
+
+The projection verifies selected source/intermediate/final-file digests.
+Every declared predecessor edge must name a downstream `inputFiles` carrier
+whose **path and SHA-256** match an explicitly retained file or declared
+Output carrier of that predecessor. `dependencyByteLinks` reports these
+exact local declarations; `historicalExecutionUseProven=false` deliberately
+does not claim those bytes were read by a historical provider. This is
+stricter than merely trusting `dependsOn`. Distinguish
+`REVALIDATE_REQUIRED` (a byte changed in a dependency closure),
+`UNKNOWN_UPSTREAM` (insufficient evidence), and
+`NO_BYTE_DRIFT_OBSERVED` (only the explicitly declared byte cut matched).
+Do **not** treat the last state as reproducible execution, cache authorization,
+semantic quality, or a licence to skip work. Every row has `actionKey=null`,
+`cacheReuseAuthorized=false`, unknown full tool/environment/recipe identity.
+
+**Agent:** read the selected production, inspect the 5-step `operationLineage`
+and `revalidateStepIds`/`unresolvedStepIds`. On a changed source, propose
+only the downstream checks to the human or Runtime planner; do not invoke
+SoX/FFmpeg or accept cache results without separately qualified invocation,
+tool and environment evidence. On missing bytes, preserve UNKNOWN. On local
+file-match observations, do not infer historical Runtime Job recovery or
+publication. Use `tests/test_operation_impact.py` for independent falsifiers.
+
+**Human:** use `uv run --frozen ordivon-studio production-context
+productions/convergence-sonic-ident` and inspect `operationLineage`. Change
+one source in an isolated test workspace to see the scoped effects. The
+current `generate.py` can reproduce `render/convergence-source.wav` in a
+temporary directory under the selected Python 3.15.1 environment, but
+historical SoX/FLAC/Vorbis/FFmpeg invocation parameter closure is not yet
+qualified. See `productions/convergence-sonic-ident/README.md`.
 
 ## Selected processing example
 
@@ -60,6 +202,21 @@ actual Artifact/Production consumer. Do not add a Media-private CAS
 registry; see `docs/storage-layout.md`.
 
 Choose the returned `id` plus **both** exact `profileDigest` and `adapterDigest`. Call `studio_processing_probe_plan` with those digests, a real `inputPath` and `evidenceDirectory`; execute the returned plan using Runtime, then read the emitted native evidence. The profile `id` may differ from its filename. FFprobe/FFmpeg, OTIO and ttconv are replaceable native providers; never copy their parsers, or treat QC PASS as rights/aesthetic/publication acceptance. See `../../.agents/skills/media-native-processing/SKILL.md` from the repository root.
+
+## Video perception timing and actual evidence
+
+Source video frame identity is a decoded-frame index. Do not recover it
+by multiplying presentation time by average FPS: VFR media may have
+arbitrary PTS gaps. The existing
+`perception_video_io.analyze_temporal_change` uses the selected FFmpeg
+filter index and native PTS, while `perception_timing.video_timing`
+interprets rate as a rational from FFprobe; if the container omits
+`nb_frames`, native `ffprobe -count_frames` is the current observed
+frame count. The result distinguishes `native-ffmpeg-filter-pts`
+from `average-rate-estimate-not-source-pts`. Do not use estimated
+selected-frame times for exact edit-point, subtitle or sync claims. See
+`docs/artifact-perception.md` and keep native VFR counterexample
+testing when this filter graph or its parsing changes.
 
 ## Test, publishing and retirement
 

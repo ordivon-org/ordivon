@@ -42,14 +42,15 @@ Do not create another broker, Finance Agent service, ledger or risk engine.
 
        export ORDIVON_CAPITAL_PAPER_PG_DSN='...paper-only DSN...'
        cd domains/capital
-       scripts/run-capability-python -m ordivon_capital.risk.paper_close_risk --account ACCOUNT --session YYYY-MM-DD --snapshot snapshot.json --binding binding.json
+       scripts/run-capability-python -m ordivon_capital.applications.paper_risk_cli --account ACCOUNT --session YYYY-MM-DD --snapshot snapshot.json --binding binding.json
 
    The alternative --receipt FILE reads a caller-provided JSON file
    and leaves accountingPersistenceReverified=false. Never claim
    database proof from an offline receipt.
 6. Risk checks NAV conservation with pending purchase payables, sale
    receivables, protected cash and marked positions, then delegates
-   exposure and budget decisions to the existing Risk/Governance.
+   numeric exposure and budget decisions to the Risk owner only.
+   Governance admission is separate and only matters for actual effects.
    Unsettled sale receivables cannot fund new buys.
    UNSET principal budget means RISK_BUDGET_INCOMPLETE, not approval.
 
@@ -84,5 +85,15 @@ model-only theorem. No new CA03 implementation, risk service, or Skill is needed
 Qualification: mise run //domains/capital:verify plus actual isolated
 PostgreSQL paper receipt readback under disposable
 ORDIVON_CAPITAL_PAPER_PG_TEST_DSN against database ordivon_paper.
+
+Agent-facing test quality: assertions must protect economic outputs, timestamps,
+idempotency, rejected unsafe effects and exact committed receipt readback,
+not a file's location or a private helper name. The finance domain DAG test
+rejects cyclic owner imports and Risk/Portfolio importing Accounting or
+PostgreSQL directly; it also includes a deliberate in-memory illegal import
+to confirm that the architecture check detects its own violation.
+A clean build and a mathematical proof are not substitutes for a current
+isolated PostgreSQL readback. Missing disposable DB credentials are SKIP,
+not PASS; do not relabel missing observations as authorization.
 The source does not independently attest provider licence, historical
 point-in-time source, model profit, or real-money broker authority.

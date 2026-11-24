@@ -300,9 +300,28 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             text=True,
         ).stdout.strip()
         filename = "harness-campaign3-rich-effect-owner-v1-capture.json"
-        errors = validator(filename, current_head, historical=True)
-        self.assertTrue(any("ancestor" in error for error in errors))
         from unittest.mock import patch
+
+        # A shallow Workspace can treat HEAD as the creation commit. Test the
+        # negative merge-base *decision* deterministically instead of assuming
+        # the checkout contains the full upstream Git DAG. Historical positive
+        # origin/byte binding above remains a real Git consumer.
+        original_run = subprocess.run
+        rejected_ancestry: list[list[str]] = []
+
+        def nonancestor_git_witness(argv, **kwargs):
+            if argv[:3] == ["git", "merge-base", "--is-ancestor"]:
+                rejected_ancestry.append(argv)
+                return subprocess.CompletedProcess(argv, returncode=1)
+            return original_run(argv, **kwargs)
+
+        with (
+            patch.object(check_evidence, "_git_creation_revisions", return_value=[current_head]),
+            patch.object(check_evidence.subprocess, "run", side_effect=nonancestor_git_witness),
+        ):
+            errors = validator(filename, current_head, historical=True)
+        self.assertEqual(len(rejected_ancestry), 1)
+        self.assertTrue(any("ancestor" in error for error in errors))
 
         # Only this one exact monorepo importer allows HISTORICAL retention.
         with patch.object(check_evidence, "_HARNESS_HISTORICAL_IMPORT", "0" * 40):

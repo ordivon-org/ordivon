@@ -97,8 +97,14 @@ class CreativeIndexTests(unittest.TestCase):
         # Real consumers need to navigate a digest to its declaring Work even
         # when the bytes live in external CAS/R2 rather than this Git tree.
         index = build_creative_index(ROOT)
+        current_runtime = json.loads(
+            (ROOT / "productions/runtime-introduction/production.json").read_text(encoding="utf-8")
+        )
+        runtime_output = next(
+            item for item in current_runtime["outputs"] if item["id"] == "runtime-film-en-landscape"
+        )
         examples = {
-            "7d994f80627968f4e64a3a53c08d5241bb8f398e17d52c24080f935e7c716430": "runtime-introduction",
+            runtime_output["blobDigest"].removeprefix("sha256:"): "runtime-introduction",
             "22ba47ac9c66514dcd0c20520db9fa6b4d377d912dd1cc5aa3c90306ad70f3a9": "ordivon-book-v0",
             "174654d531bf75459d9627f73ac6daab1a13a212f09d36e1a17a328dda84a5f7": "ordivon-book-v0",
         }

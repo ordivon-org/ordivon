@@ -84,6 +84,41 @@ class CatalogProjectionTests(TestCase):
                 "outside_explicit_scope",
             )
 
+    def test_unobservable_distribution_is_unknown_not_catalog_failure(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "data.json"
+            source.write_bytes(b"known")
+            dist = {
+                "dcat:accessURL": {"@id": source.as_uri()},
+                "dct:identifier": "sha256:" + hashlib.sha256(b"known").hexdigest(),
+            }
+            for uri, reason in (
+                ("file://[broken/path", "unsupported_uri_or_authority"),
+                (root.as_uri() + "/%00", "unsupported_scoped_path"),
+                (root.as_uri() + "/%FF", "invalid_local_file_path"),
+            ):
+                with self.subTest(uri=uri):
+                    invalid = {**dist, "dcat:accessURL": {"@id": uri}}
+                    result = inspect_distribution(invalid, (root,), True)
+                    self.assertEqual(result["verification"], "UNKNOWN")
+                    self.assertEqual(result["reason"], reason)
+                    self.assertNotIn("observedDigest", result)
+            for failure, reason in (
+                (FileNotFoundError("vanished"), "local_file_unavailable"),
+                (PermissionError("denied"), "local_file_unreadable"),
+                (OSError("read failed"), "local_file_read_error"),
+            ):
+                with self.subTest(failure=type(failure).__name__):
+                    with patch("ordivon_data.local_files.hashlib.file_digest", side_effect=failure):
+                        result = inspect_distribution(dist, (root,), True)
+                    self.assertEqual(result["verification"], "UNKNOWN")
+                    self.assertEqual(result["reason"], reason)
+                    self.assertNotIn("observedDigest", result)
+            self.assertEqual(
+                inspect_distribution(dist, (root,), True)["verification"], "VERIFIED"
+            )
+
     def test_scoped_reader_rejects_symlink_directory_and_dotdot(self):
         with TemporaryDirectory() as tmp:
             outer = Path(tmp)
@@ -295,6 +330,34 @@ class CatalogProjectionTests(TestCase):
             summary = json.loads(accepted.stdout)["inspection"]
             self.assertEqual(summary["integrityGate"], "PASS")
             self.assertEqual(summary["verifiedCount"], 1)
+
+            # A malformed sibling is observable as UNKNOWN without destroying
+            # the exact selected port's independent admission.
+            document = json.loads(catalog.read_text(encoding="utf-8"))
+            distributions = document["dcat:dataset"][0]["dcat:distribution"]
+            distributions[0]["@id"] = "urn:fixture:known"
+            distributions.append(
+                {
+                    "@id": "urn:fixture:unobservable",
+                    "dcat:accessURL": {"@id": "file://[broken/path"},
+                    "dct:identifier": "sha256:" + digest,
+                }
+            )
+            catalog.write_text(json.dumps(document), encoding="utf-8")
+            whole = invoke(*gate)
+            self.assertEqual(whole.returncode, 3, whole.stderr)
+            report = json.loads(whole.stdout)["inspection"]
+            self.assertEqual(report["unknownCount"], 1)
+            selected = invoke(
+                "--verify-local", "--allow-root", str(root), "--require-port",
+                "urn:example:verified", "v1", "urn:fixture:known",
+            )
+            self.assertEqual(selected.returncode, 0, selected.stderr)
+            report = json.loads(selected.stdout)["inspection"]
+            self.assertEqual(report["selectedPortIntegrityGate"], "PASS")
+            self.assertEqual(report["integrityGate"], "NOT_ESTABLISHED")
+            distributions.pop()
+            catalog.write_text(json.dumps(document), encoding="utf-8")
 
             data.write_bytes(b'{"observed":false}')
             corrupted = invoke(*gate)

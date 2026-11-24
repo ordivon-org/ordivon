@@ -2,7 +2,7 @@
 set -euo pipefail
 NS=nv2-browserless-prod
 PROXY=http://10.252.246.2:19680
-TARGET=network-v2-browserless.target
+TARGET=network-v2-shared-egress.target
 LEGACY_WG=network-v2-browserless-wireguard.service
 LEGACY_CARRIER=network-v2-browserless-provider-carrier.service
 OWNED=network-v2-gluetun-owned.service

@@ -1,0 +1,13 @@
+Beacon Relay is built from the official Godot demo Dodge the Creeps:
+https://github.com/godotengine/godot-demo-projects/tree/b761b4cd5718a7118f2c95eb55f181d0a5f004f1/2d/dodge_the_creeps
+
+Source code: MIT License, Copyright (c) 2017 KidsCanCode; see LICENSE.
+Character and enemy images: Kenney Abstract Platformer, CC0 1.0:
+https://kenney.nl/assets/abstract-platformer
+Xolonium font: Severin Meyer, SIL Open Font License 1.1; see fonts/LICENSE.txt.
+Music "House In a Forest Loop.ogg": HorrorPen, copyright 2012, CC BY 3.0:
+https://opengameart.org/content/loop-house-in-a-forest
+https://creativecommons.org/licenses/by/3.0/
+Engine: Godot Engine, MIT: https://godotengine.org/license/
+
+Game-specific design and composition: Ordivon contributors (2026).

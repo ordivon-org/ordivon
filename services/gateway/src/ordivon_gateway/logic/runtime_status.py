@@ -1,0 +1,44 @@
+"""One pure strict Runtime target-inventory validity law for all consumers.
+
+This validates Owner response consistency, never authorizes execution.
+"""
+
+from __future__ import annotations
+
+
+def valid_runtime_target_inventory(targets: object) -> bool:
+    """A positive aggregate must reject duplicate or contradictory targets."""
+    if not isinstance(targets, list):
+        return False
+    names: list[str] = []
+    for item in targets:
+        if not isinstance(item, dict):
+            return False
+        name, configured, available = (
+            item.get("target"),
+            item.get("configured"),
+            item.get("available"),
+        )
+        if (
+            not isinstance(name, str)
+            or not name.strip()
+            or type(configured) is not bool
+            or type(available) is not bool
+            or (available and not configured)
+        ):
+            return False
+        names.append(name)
+    return len(names) == len(set(names))
+
+
+def valid_runtime_status_envelope(response: object) -> bool:
+    """A Runtime v1 status response is an explicit wire contract.
+
+    A target list in an arbitrary JSON object is NOT authenticated evidence
+    of the versioned Runtime describe API.
+    """
+    return (
+        isinstance(response, dict)
+        and type(response.get("schemaVersion")) is int
+        and response["schemaVersion"] == 1
+    )

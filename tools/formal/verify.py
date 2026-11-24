@@ -29,10 +29,37 @@ SOURCE_FILES = (
     "mise.toml",
     "tools/formal/mise.toml",
     "tools/formal/verify.py",
+    "tools/repo/affected_owners.py",
+    "tools/repo/test_affected_owners.py",
+    "tools/repo/test_formal_source_contract.py",
     "tools/formal/RecursiveLegoRefinement.lean",
     "tools/formal/RecursiveLegoVariationFrame.lean",
     "capabilities/media/formal/MediaNativeProcessingAdmission.lean",
     "capabilities/media/formal/CreativeLibraryAcceptance.lean",
+    "capabilities/media/formal/TimedTextDeliveryPrecision.lean",
+    "capabilities/media/src/ordivon_studio/timed_text.py",
+    "capabilities/media/tests/test_timed_text.py",
+    "capabilities/media/formal/ProductionOutputByteIdentity.lean",
+    "capabilities/media/formal/ProductionDependencyImpact.lean",
+    "capabilities/media/formal/ArchiveVisualSourcePreservation.lean",
+    "capabilities/media/productions/archive-archipelago-001/archive_source.py",
+    "capabilities/media/productions/archive-archipelago-001/generate.py",
+    "capabilities/media/productions/archive-archipelago-001/generate_owner_summary_vegalite.py",
+    "capabilities/media/tests/test_archive_graphics_source_truth.py",
+    "capabilities/media/tests/test_archive_vegalite_spec.py",
+    "capabilities/media/schemas/operation-lineage.schema.json",
+    "capabilities/media/src/ordivon_studio/operation_impact.py",
+    "capabilities/media/tests/test_operation_impact.py",
+    "capabilities/media/productions/convergence-sonic-ident/operation-lineage.json",
+    "capabilities/media/productions/convergence-sonic-ident/production.json",
+    "capabilities/media/src/ordivon_studio/production_context.py",
+    "capabilities/media/tests/test_production_context.py",
+    "capabilities/media/src/ordivon_studio/production_validation.py",
+    "capabilities/media/schemas/production.schema.json",
+    "capabilities/media/tests/test_models.py",
+    "capabilities/media/src/ordivon_studio/agent_surface.py",
+    "capabilities/media/src/ordivon_studio/agent_surface_contracts.py",
+    "capabilities/media/tests/test_agent_surface.py",
     "capabilities/media/src/ordivon_studio/creative_index_library.py",
     "capabilities/media/tests/test_creative_index.py",
     "capabilities/media/formal/LoudnessProfileSafety.smt2",
@@ -362,16 +389,51 @@ def qualified_timeout_adapter_fragment() -> dict[str, object]:
         'receipt = self._call("execution.submit", gateway_args)'
     ).body[0]
     after_projection = submit.body[projections[0][0] + 1:]
-    if (not after_projection
-            or canonical(after_projection[0]) != canonical(expected_dispatch)):
-        raise ValueError("timeout Gateway effect frame changed before dispatch")
+    if (after_projection
+            and canonical(after_projection[0]) == canonical(expected_dispatch)):
+        frame = "exact_post_projection_return_and_immediate_gateway_dispatch"
+    else:
+        # Observe only this exact currently implemented native-Claim barrier.
+        # This is an AST syntactic witness, NOT a proof that an arbitrary Port
+        # will uphold its authn/issuer/Workspace contract at runtime.
+        guarded = ast.parse("""
+if self._workspace_admission_required and self._workspace_admission is None:
+    raise HarnessWorkspaceAdmissionUnavailable(
+        "Gateway execution requires a certified Runtime Workspace Claim"
+    )
+if self._workspace_admission is not None:
+    try:
+        admitted = self._workspace_admission.require_effect_ready(
+            run_ref=_required_text(self._run_ref, "bound Harness Run"),
+            workspace_id=self.grant.workspace_id,
+            tool_grant_digest=_required_text(self._grant_digest, "bound Tool Grant"),
+            runtime_operation="workspace.exec",
+            client_request_id=request_id,
+        )
+    except HarnessWorkspaceAdmissionUnavailable:
+        raise
+    except Exception as error:
+        raise HarnessWorkspaceAdmissionUnavailable(
+            f"Gateway Workspace qualification unavailable: {type(error).__name__}"
+        ) from error
+    if admitted is not None:
+        raise HarnessWorkspaceAdmissionUnavailable(
+            "Gateway Workspace Port returned an unauthenticated caller token"
+        )
+""").body
+        if (len(after_projection) < 3
+                or canonical(after_projection[0]) != canonical(guarded[0])
+                or canonical(after_projection[1]) != canonical(guarded[1])
+                or canonical(after_projection[2]) != canonical(expected_dispatch)):
+            raise ValueError("timeout Gateway effect frame changed before dispatch")
+        frame = "exact_post_projection_native_claim_guard_then_gateway_dispatch"
 
     return {
         "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
         "producerPath": path,
         "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
         "sourceAstAnchorsObserved": True,
-        "effectFrameObserved": "exact_post_projection_return_and_immediate_gateway_dispatch",
+        "effectFrameObserved": frame,
         # Even this stronger exact frame is only a bounded source observation.
         # It does not prove Python control-flow/data-flow semantics, alias
         # behavior before the frame, or source-to-Lean implementation refinement.
@@ -416,6 +478,29 @@ def run(label: str, args: list[str], *, input_text: str | None = None,
     return {"probe": label, "result": "PASS", "rc": p.returncode}
 
 
+def qualify_alloy_sat_witness(output: str) -> int:
+    """Only a real finite Alloy instance can satisfy the positive SAT probe.
+
+    An empty result or a printable JSON field name is not a model witness.
+    This checks the native Alloy CLI output shape, not model-to-code refinement.
+    """
+    try:
+        payload = json.loads(output)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Alloy SAT witness must be structured JSON") from exc
+    if not isinstance(payload, dict):
+        raise ValueError("Alloy SAT witness must be a JSON object")
+    instances = payload.get("instances")
+    if not isinstance(instances, list) or not instances:
+        raise ValueError("Alloy positive SAT probe has no model instance")
+    for instance in instances:
+        if (not isinstance(instance, dict)
+                or type(instance.get("state")) is not int
+                or not isinstance(instance.get("values"), dict)):
+            raise ValueError("Alloy SAT witness contains an invalid instance")
+    return len(instances)
+
+
 def main() -> None:
     require_unmodified_elf_loader_environment()
     source_before = qualified_source_cut()
@@ -434,7 +519,13 @@ def main() -> None:
     variation = ROOT / "RecursiveLegoVariationFrame.lean"
     media_proof = REPO / "capabilities/media/formal/MediaNativeProcessingAdmission.lean"
     media_library_proof = REPO / "capabilities/media/formal/CreativeLibraryAcceptance.lean"
-    for proof_file in (source, variation, media_proof, media_library_proof):
+    media_timed_text_proof = REPO / "capabilities/media/formal/TimedTextDeliveryPrecision.lean"
+    media_output_proof = REPO / "capabilities/media/formal/ProductionOutputByteIdentity.lean"
+    media_dependency_proof = REPO / "capabilities/media/formal/ProductionDependencyImpact.lean"
+    media_archive_visual_proof = REPO / "capabilities/media/formal/ArchiveVisualSourcePreservation.lean"
+    for proof_file in (source, variation, media_proof, media_library_proof,
+                       media_output_proof, media_dependency_proof, media_archive_visual_proof,
+                       media_timed_text_proof):
         if re.search(r"\b(sorry|admit|axiom)\b", proof_file.read_text()):
             raise AssertionError("Unproved Lean shortcut in source")
     with tempfile.TemporaryDirectory(prefix="ordivon-formal-falsifiers-") as d:
@@ -451,6 +542,14 @@ def main() -> None:
                           [executable("lean"), str(media_proof)]))
         probes.append(run("Lean kernel Media Creative Library Catalog acceptance",
                           [executable("lean"), str(media_library_proof)]))
+        probes.append(run("Lean kernel Media TimedText delivery precision",
+                          [executable("lean"), str(media_timed_text_proof)]))
+        probes.append(run("Lean kernel Media Output byte identity",
+                          [executable("lean"), str(media_output_proof)]))
+        probes.append(run("Lean kernel Media dependency impact model",
+                          [executable("lean"), str(media_dependency_proof)]))
+        probes.append(run("Lean kernel Media archive visual relation conservation",
+                          [executable("lean"), str(media_archive_visual_proof)]))
         # Check all three FP queries, including the historical NaN
         # counterexample. Z3 process success by itself is not a proof.
         media_fp = REPO / "capabilities/media/formal/LoudnessProfileSafety.smt2"
@@ -536,9 +635,12 @@ def main() -> None:
         alloy = subprocess.run([executable("alloy"), "exec", "-o", "-", "-t", "json",
                                 str(ROOT / "Proof.als")], check=False,
                                capture_output=True, text=True, timeout=95)
-        if alloy.returncode or '"instances"' not in alloy.stdout:
-            raise AssertionError("Alloy failed actual SAT witness: " +
+        if alloy.returncode:
+            raise AssertionError("Alloy positive SAT execution failed: " +
                                  (alloy.stdout + alloy.stderr)[-1200:])
+        # Keep the existing three-field proof receipt consumed by protected CI.
+        # SAT instance non-vacuity is an admission condition, not a new schema.
+        qualify_alloy_sat_witness(alloy.stdout)
         probes.append({"probe": "Alloy finite SAT model", "result": "PASS",
                        "rc": alloy.returncode})
     source_after = qualified_source_cut()

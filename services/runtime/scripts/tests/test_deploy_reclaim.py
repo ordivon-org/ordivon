@@ -336,6 +336,7 @@ def add_release_operator_sources(path: Path, *, push: bool) -> str:
         "ordivon-runtime-deploy",
         "ordivon-runtime-lifecycle",
         "ordivon-runtime-reclaim",
+        "ordivon-runtime-pg-reclaim",
         "ordivon-runtime-cache",
         "ordivon-runtime-status",
         "ordivon-runtime-capacity-acceptance",
@@ -730,7 +731,10 @@ class DeployReclaimTests(unittest.TestCase):
                 },
             )
             artifacts = {item["name"]: item for item in report["artifacts"]}
-            self.assertEqual(len(artifacts), 13)
+            self.assertEqual(len(artifacts), 14)
+            self.assertEqual(artifacts["ordivon-runtime-pg-reclaim"]["kind"], "operator")
+            self.assertEqual(artifacts["ordivon-runtime-pg-reclaim"]["mode"], 0o755)
+            self.assertEqual((candidate / "ordivon-runtime-pg-reclaim").read_bytes(), (repo / "scripts/ordivon-runtime-pg-reclaim").read_bytes())
             self.assertEqual(artifacts["mcp_probe.py"]["kind"], "support")
             self.assertEqual(artifacts["mcp_probe.py"]["mode"], 0o644)
             self.assertEqual(artifacts["ordivon-runtime-status"]["kind"], "operator")
@@ -1147,13 +1151,15 @@ class DeployReclaimTests(unittest.TestCase):
                 "ordivon-runtime-deploy",
                 "ordivon-runtime-lifecycle",
                 "ordivon-runtime-reclaim",
+                "ordivon-runtime-pg-reclaim",
                 "ordivon-runtime-cache",
                 "ordivon-runtime-status",
                 "ordivon-runtime-capacity-acceptance",
                 "ordivon-runtime-pressure-control",
             ]
             previous_release_names = [
-                name for name in release_names if name != "ordivon-runtime-pressure-control"
+                name for name in release_names
+                if name not in {"ordivon-runtime-pressure-control", "ordivon-runtime-pg-reclaim"}
             ]
             for name in previous_release_names:
                 write_executable(install / name, f"old-{name}\n")
@@ -1254,7 +1260,7 @@ class DeployReclaimTests(unittest.TestCase):
                 self.assertEqual(deployed.returncode, 0, deployed.stderr or deployed.stdout)
                 result = json.loads(deployed.stdout)
                 installed = {item["name"]: item for item in result["installed"]}
-                self.assertEqual(len(installed), 13)
+                self.assertEqual(len(installed), 14)
                 self.assertEqual(installed["mcp_probe.py"]["mode"], 0o644)
                 self.assertEqual((install / "mcp_probe.py").stat().st_mode & 0o777, 0o644)
                 self.assertEqual(
@@ -1264,11 +1270,12 @@ class DeployReclaimTests(unittest.TestCase):
                 receipt = Path(result["receipt"])
                 receipt_manifest = json.loads((receipt / "manifest.json").read_text())
                 self.assertEqual(receipt_manifest["schemaVersion"], 2)
-                self.assertEqual(len(receipt_manifest["artifacts"]), 13)
+                self.assertEqual(len(receipt_manifest["artifacts"]), 14)
                 previous_by_name = {
                     item["name"]: item for item in receipt_manifest["previous"]
                 }
                 self.assertFalse(previous_by_name["ordivon-runtime-pressure-control"]["present"])
+                self.assertFalse(previous_by_name["ordivon-runtime-pg-reclaim"]["present"])
                 self.assertIsNone(previous_by_name["ordivon-runtime-pressure-control"]["digest"])
                 self.assertEqual(
                     receipt_manifest["runtimePolicy"]["previous"]["defaultRuntimeMs"],
@@ -2108,6 +2115,7 @@ class DeployReclaimTests(unittest.TestCase):
                 "ordivon-runtime-deploy",
                 "ordivon-runtime-lifecycle",
                 "ordivon-runtime-reclaim",
+                "ordivon-runtime-pg-reclaim",
                 "ordivon-runtime-cache",
                 "ordivon-runtime-status",
                 "ordivon-runtime-capacity-acceptance",
@@ -2195,6 +2203,7 @@ class DeployReclaimTests(unittest.TestCase):
                 "ordivon-runtime-deploy",
                 "ordivon-runtime-lifecycle",
                 "ordivon-runtime-reclaim",
+                "ordivon-runtime-pg-reclaim",
                 "ordivon-runtime-cache",
                 "ordivon-runtime-status",
                 "ordivon-runtime-capacity-acceptance",

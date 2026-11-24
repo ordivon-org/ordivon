@@ -205,6 +205,12 @@ def execute_oci_package_stage(
     verify_report = json.loads(verify_report_path.read_text(encoding="utf-8"))
     if verify_report.get("kind") != "artifact-delivery-verify-stage":
         failures.append("verify report kind is not artifact-delivery-verify-stage")
+    # OCI packing must not upgrade a failed or incomplete upstream validation
+    # into a qualifying release by aggregating otherwise valid individual VSAs.
+    if verify_report.get("status") != "PASS":
+        failures.append("verify report did not PASS")
+    if verify_report.get("profileVerificationComplete") is not True:
+        failures.append("verify report required evidence is incomplete")
     report_artifact = (
         verify_report.get("artifact", {}) if isinstance(verify_report.get("artifact"), dict) else {}
     )
