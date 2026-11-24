@@ -12,8 +12,10 @@ import json
 import os
 import re
 import subprocess
+from collections.abc import Mapping
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+from types import MappingProxyType
 from typing import Any
 
 from relations import Reference, all_references
@@ -105,9 +107,7 @@ def markdown_sections(content: str) -> tuple[Section, ...]:
                 fenced = None
             continue
         if fenced is None and (heading := HEADING.match(line.strip())):
-            headings.append(
-                (i, len(heading.group(1)), heading.group(2).rstrip("# ").strip())
-            )
+            headings.append((i, len(heading.group(1)), heading.group(2).rstrip("# ").strip()))
     if not headings:
         return (Section(0, 0, (), "Document", content, 1, len(lines)),)
     sections: list[Section] = []
@@ -154,9 +154,7 @@ def json_sections(content: str) -> tuple[Section, ...]:
                 label = f"observations[{i}]"
                 if isinstance(observation, dict):
                     upstream = observation.get("upstream")
-                    if isinstance(upstream, dict) and isinstance(
-                        upstream.get("repository"), str
-                    ):
+                    if isinstance(upstream, dict) and isinstance(upstream.get("repository"), str):
                         label += f": {upstream['repository']}"
                 sections.append(
                     Section(
@@ -184,12 +182,51 @@ def json_sections(content: str) -> tuple[Section, ...]:
     return tuple(sections)
 
 
-def gather(root: Path = ROOT) -> list[Study]:
+@dataclass(frozen=True)
+class SourceCorpus:
+    revision: str
+    studies: tuple[Study, ...]
+    references: Mapping[str, tuple[Reference, ...]]
+
+
+def git_bytes(root: Path, *args: str) -> bytes:
+    """Read original Git objects, ignoring local replace refs."""
+    return subprocess.check_output(["git", "--no-replace-objects", *args], cwd=root)
+
+
+def source_cut(root: Path = ROOT) -> str:
+    revision = git_bytes(root, "rev-parse", "--verify", "HEAD^{commit}").decode("ascii").strip()
+    if not re.fullmatch(r"[0-9a-f]{40}", revision):
+        raise ValueError("exact Git source revision required")
+    return revision
+
+
+def capture_source(root: Path = ROOT) -> SourceCorpus:
+    """Read corpus and reference membership from one committed tree.
+
+    Worktree/index edits, ignored files and subsequent HEAD changes cannot
+    change this capture. A missing object or invalid source fails the import.
+    """
+    revision = source_cut(root)
+    tree: dict[str, tuple[str, str, str]] = {}
+    for entry in git_bytes(root, "ls-tree", "-r", "-z", "--full-tree", revision).split(b"\0"):
+        if not entry:
+            continue
+        header, path = entry.split(b"\t", 1)
+        mode, object_type, oid = header.decode("ascii").split()
+        tree[path.decode("utf-8")] = (mode, object_type, oid)
     studies: list[Study] = []
     seen: set[str] = set()
     for kind, pattern in SOURCES:
-        for file in sorted(root.glob(pattern)):
-            if not file.is_file() or file.is_symlink():
+        pattern_depth = len(PurePosixPath(pattern).parts)
+        for path, (mode, object_type, oid) in sorted(tree.items()):
+            file = PurePosixPath(path)
+            if (
+                mode not in {"100644", "100755"}
+                or object_type != "blob"
+                or len(file.parts) != pattern_depth
+                or not file.match(pattern)
+            ):
                 continue
             study_id = (
                 f"{kind}:{file.parent.name}/{file.stem}"
@@ -199,82 +236,23 @@ def gather(root: Path = ROOT) -> list[Study]:
             if study_id in seen:
                 raise ValueError(f"ELE study ID collision: {study_id}")
             seen.add(study_id)
-            raw = file.read_bytes()
+            raw = git_bytes(root, "cat-file", "blob", oid)
             content = raw.decode("utf-8")
-            parts = (
-                json_sections(content)
-                if file.suffix == ".json"
-                else markdown_sections(content)
-            )
+            parts = json_sections(content) if file.suffix == ".json" else markdown_sections(content)
             title = next((part.heading for part in parts if part.level == 1), file.stem)
             studies.append(
                 Study(
                     study_id,
                     hashlib.sha256(raw).hexdigest(),
                     kind,
-                    file.relative_to(root).as_posix(),
+                    path,
                     title,
                     content,
                     parts,
                 )
             )
-    return sorted(studies, key=lambda study: study.study_id)
-
-
-def source_cut(root: Path = ROOT) -> str:
-    return subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], cwd=root, text=True
-    ).strip()
-
-
-def verify_source_cut(studies: list[Study], root: Path = ROOT) -> None:
-    """Require imported bytes to be the exact committed Git SourceCut.
-
-    The two batched native Git reads prevent dirty or untracked analysis files
-    from being attributed to a commit that never contained those bytes.
-    """
-    paths = [study.source_path for study in studies]
-    objects = subprocess.run(
-        ["git", "cat-file", "--batch-check=%(objectname) %(objecttype) %(objectsize)"],
-        cwd=root,
-        input="".join(f"HEAD:{path}\n" for path in paths),
-        text=True,
-        capture_output=True,
-        check=True,
-    ).stdout.splitlines()
-    working = subprocess.run(
-        ["git", "hash-object", "--stdin-paths"],
-        cwd=root,
-        input="".join(f"{path}\n" for path in paths),
-        text=True,
-        capture_output=True,
-        check=True,
-    ).stdout.splitlines()
-    if len(objects) != len(paths) or len(working) != len(paths):
-        raise ValueError("incomplete Git source identity readback")
-    mismatched = [
-        path
-        for path, obj, hashed in zip(paths, objects, working, strict=True)
-        if len(obj.split()) != 3 or obj.split()[1] != "blob" or obj.split()[0] != hashed
-    ]
-    if mismatched:
-        raise ValueError(f"ELE source differs from Git HEAD: {mismatched[:8]}")
-    status = subprocess.run(
-        [
-            "git",
-            "status",
-            "--porcelain",
-            "--untracked-files=all",
-            "--",
-            *(pattern for _, pattern in SOURCES),
-        ],
-        cwd=root,
-        text=True,
-        capture_output=True,
-        check=True,
-    )
-    if status.stdout.strip():
-        raise ValueError("ELE source paths contain uncommitted additions or deletions")
+    ordered = tuple(sorted(studies, key=lambda study: study.study_id))
+    return SourceCorpus(revision, ordered, MappingProxyType(all_references(ordered, set(tree))))
 
 
 def connect() -> Any:
@@ -286,34 +264,32 @@ def connect() -> Any:
     return psycopg.connect(dsn, connect_timeout=8)
 
 
-def verify_cursor(
-    cur: Any, studies: list[Study], references: dict[str, tuple[Reference, ...]]
-) -> dict[str, int]:
+def verify_cursor(cur: Any, corpus: SourceCorpus) -> dict[str, int]:
+    studies, references = corpus.studies, corpus.references
     expected = {
-        s.study_id: (s.sha256, s.source_path, s.title, len(s.sections)) for s in studies
+        s.study_id: (s.sha256, s.source_path, s.kind, s.title, len(s.sections), corpus.revision)
+        for s in studies
     }
     cur.execute(
-        """SELECT h.study_id,h.sha256,v.source_path,v.title,v.content,count(s.ordinal)
+        """SELECT h.study_id,h.sha256,v.source_path,v.kind,v.title,v.content,count(s.ordinal),h.source_cut
            FROM ele.study_heads AS h
            JOIN ele.study_versions AS v
              ON v.study_id=h.study_id AND v.sha256=h.sha256
            LEFT JOIN ele.study_sections AS s
              ON s.study_id=h.study_id AND s.sha256=h.sha256
            WHERE h.present
-           GROUP BY h.study_id,h.sha256,v.source_path,v.title,v.content"""
+           GROUP BY h.study_id,h.sha256,v.source_path,v.kind,v.title,v.content,h.source_cut"""
     )
     actual = {}
     corrupt: list[str] = []
-    for study_id, digest, path, title, body, sections in cur.fetchall():
-        actual[study_id] = (digest.strip(), path, title, sections)
+    for study_id, digest, path, kind, title, body, sections, revision in cur.fetchall():
+        actual[study_id] = (digest.strip(), path, kind, title, sections, revision.strip())
         if hashlib.sha256(body.encode("utf-8")).hexdigest() != digest.strip():
             corrupt.append(study_id)
     if expected != actual or corrupt:
         missing = sorted(expected.keys() - actual.keys())[:8]
         extra = sorted(actual.keys() - expected.keys())[:8]
-        wrong = sorted(
-            k for k in actual.keys() & expected.keys() if actual[k] != expected[k]
-        )[:8]
+        wrong = sorted(k for k in actual.keys() & expected.keys() if actual[k] != expected[k])[:8]
         raise ValueError(
             f"ELE PG readback failed missing={missing} extra={extra} wrong={wrong} corrupt={corrupt[:8]}"
         )
@@ -348,9 +324,7 @@ def verify_cursor(
             for key in expected_sections.keys() & actual_sections.keys()
             if expected_sections[key] != actual_sections[key]
         )[:5]
-        raise ValueError(
-            f"ELE PG section readback failed missing={missing}, changed={wrong}"
-        )
+        raise ValueError(f"ELE PG section readback failed missing={missing}, changed={wrong}")
     expected_refs = {
         (study.study_id, ref.ordinal): (
             ref.section_ordinal,
@@ -387,17 +361,14 @@ def verify_cursor(
     cur.execute("SELECT count(*) FROM ele.study_versions")
     return {
         "current_studies": len(actual),
-        "current_sections": sum(value[1] for value in actual.values()),
+        "current_sections": len(actual_sections),
         "current_references": len(actual_refs),
         "retained_versions": cur.fetchone()[0],
     }
 
 
-def migrate(
-    studies: list[Study],
-    revision: str,
-    references: dict[str, tuple[Reference, ...]],
-) -> dict[str, Any]:
+def migrate(corpus: SourceCorpus) -> dict[str, Any]:
+    studies, revision, references = corpus.studies, corpus.revision, corpus.references
     if not re.fullmatch(r"[0-9a-f]{40}", revision):
         raise ValueError("exact Git source revision required")
     if not studies:
@@ -497,7 +468,7 @@ def migrate(
             "UPDATE ele.study_heads SET present=false WHERE present AND source_cut <> %s",
             (revision,),
         )
-        report = verify_cursor(cur, studies, references)
+        report = verify_cursor(cur, corpus)
         report.update(
             new_versions=added,
             new_sections=sections_added,
@@ -508,29 +479,27 @@ def migrate(
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
-    studies = gather()
-    references = all_references(studies, ROOT)
+    if args.action in {"plan", "migrate", "verify"}:
+        corpus = capture_source()
     if args.action == "plan":
+        studies, references = corpus.studies, corpus.references
         counts: dict[str, int] = {}
         for study in studies:
             counts[study.kind] = counts.get(study.kind, 0) + 1
         return {
-            "source_cut": source_cut(),
+            "source_cut": corpus.revision,
             "studies": len(studies),
             "sections": sum(len(study.sections) for study in studies),
             "references": sum(len(group) for group in references.values()),
             "kinds": counts,
         }
     if args.action == "migrate":
-        verify_source_cut(studies)
-        return migrate(studies, source_cut(), references)
+        return migrate(corpus)
     with connect() as conn, conn.cursor() as cur:
         if args.action == "verify":
-            return verify_cursor(cur, studies, references)
+            return verify_cursor(cur, corpus)
         if args.action == "stats":
-            cur.execute(
-                "SELECT kind,count(*) FROM ele.current_studies GROUP BY kind ORDER BY kind"
-            )
+            cur.execute("SELECT kind,count(*) FROM ele.current_studies GROUP BY kind ORDER BY kind")
             by_kind = dict(cur.fetchall())
             cur.execute(
                 """SELECT count(*) FROM ele.study_references AS r
@@ -639,7 +608,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                      ON s.study_id=h.study_id AND s.sha256=h.sha256
                    JOIN ele.study_versions AS v
                      ON v.study_id=h.study_id AND v.sha256=h.sha256
-                   WHERE h.present AND (%s IS NULL OR v.kind=%s) AND
+                   WHERE h.present AND (%s::text IS NULL OR v.kind=%s) AND
                      (to_tsvector('simple',s.body) @@ plainto_tsquery('simple',%s)
                       OR s.body ILIKE ('%%' || %s || '%%'))
                    ORDER BY s.study_id,s.ordinal LIMIT %s""",
@@ -663,9 +632,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Ordivon ELE project study PG projection"
-    )
+    parser = argparse.ArgumentParser(description="Ordivon ELE project study PG projection")
     parser.add_argument(
         "action",
         choices=("plan", "migrate", "verify", "stats", "show", "search", "links"),
