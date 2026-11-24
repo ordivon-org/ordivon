@@ -36,10 +36,10 @@ import z3
 
 raw = Path("formal/paper_cash_settlement_r1.smt2").read_bytes()
 observed = z3.z3core.Z3_eval_smtlib2_string(z3.main_ctx().ref(), raw).splitlines()
-expected = ["unsat", "unsat", "unsat", "sat", "sat"]
+expected = ["unsat", "unsat", "unsat", "sat", "sat", "unsat", "sat"]
 if observed != expected:
     raise SystemExit(f"Paper formal proof mismatch: {observed!r} != {expected!r}")
-print("paper_cash_settlement_r1: 3 universal QF_LIA checks UNSAT; 2 wrong-model witnesses SAT")
+print("paper_cash_settlement_r1: 4 universal QF_LIA checks UNSAT; 3 wrong-model witnesses SAT")
 PYZ3
 """
 

@@ -97,3 +97,20 @@
 (assert (< (- cash1 payable1 due-r) protected1))
 (check-sat)
 (pop 1)
+
+; PROOF 4: the fenced guard exactly equals prior free cash plus deposits
+; minus new buys, with no spending of newly settled sale receivables.
+(push 1)
+(assert (not (= (>= (- cash1 payable1 due-r) protected1)
+                (>= (- (+ (- c0 p0) deposit) buy-cost) protected1))))
+(check-sat)
+(pop 1)
+
+; WITNESS 3: retaining matured receivables in pending sales double-counts
+; wealth, even though the actual cash settlement was correctly applied.
+(push 1)
+(assert (> due-r 0))
+(assert (not (= (+ cash1 (- payable1) (+ r0 sale-proceeds) position-value1)
+                nav1)))
+(check-sat)
+(pop 1)
