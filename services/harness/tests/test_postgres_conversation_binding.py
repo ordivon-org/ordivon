@@ -371,3 +371,69 @@ def test_browserless_real_pg_owner_adopts_only_after_exact_source_retirement(
         legacy.adopt_binding(**payload(role="A02", request="legacy-after-cutover"))
     pg_new = selected.adopt_binding(**payload(role="A02", request="pg-after-cutover"))
     assert selected.get_binding(first["campaignRef"], "A02") == pg_new
+
+
+def test_existing_binding_and_affinity_reader_need_no_writer_authority(
+    owner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from types import SimpleNamespace
+    from agent_automation_browserless import BrowserlessAutomationService
+    from psycopg import sql
+    from psycopg.conninfo import conninfo_to_dict
+
+    read_dsn = os.environ.get("ORDIVON_PG_BINDING_READ_TEST_DSN")
+    if not read_dsn:
+        pytest.skip("disposable PG binding read-only role required")
+    # Other native tests deliberately recreate the disposable schema.
+    role = conninfo_to_dict(read_dsn)["user"]
+    with psycopg.connect(owner.dsn) as db:
+        db.execute(sql.SQL("GRANT USAGE ON SCHEMA ordivon_harness TO {}").format(
+            sql.Identifier(role)
+        ))
+        db.execute(sql.SQL(
+            "GRANT SELECT ON ordivon_harness.conversation_bindings TO {}"
+        ).format(sql.Identifier(role)))
+    with psycopg.connect(read_dsn) as db:
+        assert db.execute(
+            "SELECT rolsuper FROM pg_roles WHERE rolname=current_user"
+        ).fetchone() == (False,)
+
+    campaign = payload()["campaign_ref"]
+    source = owner.legacy_source
+    with pytest.raises(ConversationBindingConflict, match="absent"):
+        PostgresConversationBindingStore.read_existing(
+            read_dsn, campaign, "A01", legacy_source=source,
+        )
+    assert PostgresConversationBindingStore.read_existing(
+        read_dsn, campaign, "A01", legacy_source=source, fresh_bootstrap=True,
+    ) is None
+    assert not source.exists()
+
+    legacy = SQLiteConversationBindingStore(source)
+    existing = legacy.adopt_binding(**payload())
+    with pytest.raises(ConversationBindingConflict, match="not retired"):
+        PostgresConversationBindingStore.read_existing(
+            read_dsn, campaign, "A01", legacy_source=source,
+        )
+    owner.retire_legacy_and_import(source)
+    assert PostgresConversationBindingStore.read_existing(
+        read_dsn, campaign, "A01", legacy_source=source,
+    ) == existing
+
+    monkeypatch.setenv("ORDIVON_CONVERSATION_BINDING_POSTGRES_DSN", read_dsn)
+    monkeypatch.delenv("ORDIVON_CONVERSATION_BINDING_FRESH_BOOTSTRAP", raising=False)
+    service = object.__new__(BrowserlessAutomationService)
+    service.config = SimpleNamespace(ledger=source)
+    assert service._read_conversation_binding(campaign, "A01") == existing
+    assert service._read_conversation_binding(campaign, "A02") is None
+    with psycopg.connect(read_dsn) as db:
+        with pytest.raises(psycopg.Error):
+            db.execute("DELETE FROM ordivon_harness.conversation_bindings")
+    # Existing source identity must still match in the read snapshot.
+    with psycopg.connect(owner.dsn) as db:
+        db.execute(
+            "UPDATE ordivon_harness.conversation_bindings SET evidence_digest=%s",
+            ("sha256:" + "a" * 64,),
+        )
+    with pytest.raises(ConversationBindingConflict, match="digest|altered"):
+        service._read_conversation_binding(campaign, "A01")

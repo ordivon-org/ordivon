@@ -1238,14 +1238,18 @@ class BrowserlessAutomationService:
             )
         return dsn
 
-    def _pg_conversation_binding_owner(self):
-        """One authoritative PG binding port for both reads and writes."""
+    def _pg_conversation_binding_dsn(self) -> str | None:
         dsn = self._postgres_seam_dsn("ORDIVON_CONVERSATION_BINDING_POSTGRES_DSN")
+        if not dsn and os.environ.get("ORDIVON_CONVERSATION_BINDING_FRESH_BOOTSTRAP") == "1":
+            raise BrowserlessAutomationConflict(
+                "fresh PostgreSQL conversation binding needs PG DSN; SQLite fallback prohibited"
+            )
+        return dsn
+
+    def _pg_conversation_binding_owner(self):
+        """Construct the existing PG binding writer only for adoption."""
+        dsn = self._pg_conversation_binding_dsn()
         if not dsn:
-            if os.environ.get("ORDIVON_CONVERSATION_BINDING_FRESH_BOOTSTRAP") == "1":
-                raise BrowserlessAutomationConflict(
-                    "fresh PostgreSQL conversation binding needs PG DSN; SQLite fallback prohibited"
-                )
             return None
         try:
             from postgres_conversation_binding import PostgresConversationBindingStore
@@ -1263,17 +1267,26 @@ class BrowserlessAutomationService:
         )
         return owner
 
+    def _read_conversation_binding(self, campaign_ref: str, agent_id: str) -> dict | None:
+        dsn = self._pg_conversation_binding_dsn()
+        if not dsn:
+            return read_conversation_binding(self.config.ledger, campaign_ref, agent_id)
+        try:
+            from postgres_conversation_binding import PostgresConversationBindingStore
+        except ModuleNotFoundError:
+            from scripts.postgres_conversation_binding import PostgresConversationBindingStore
+        return PostgresConversationBindingStore.read_existing(
+            dsn, campaign_ref, agent_id,
+            legacy_source=self.config.ledger,
+            fresh_bootstrap=os.environ.get("ORDIVON_CONVERSATION_BINDING_FRESH_BOOTSTRAP") == "1",
+        )
+
     def conversation_affinity(self, spec_path: Path, campaign_ref: str, agent_id: str) -> dict:
         """Project the preferred existing conversation without provider effects."""
         spec = self.load_spec(spec_path)
         materialization = self._materialization(spec, agent_id)
         try:
-            pg_owner = self._pg_conversation_binding_owner()
-            adopted = (
-                pg_owner.get_binding(campaign_ref, agent_id)
-                if pg_owner is not None
-                else read_conversation_binding(self.config.ledger, campaign_ref, agent_id)
-            )
+            adopted = self._read_conversation_binding(campaign_ref, agent_id)
         except ConversationBindingConflict as error:
             raise BrowserlessAutomationConflict(str(error)) from error
         if adopted is not None:

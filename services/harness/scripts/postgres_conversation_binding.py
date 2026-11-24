@@ -89,52 +89,56 @@ class PostgresConversationBindingStore:
                 )
                 """
             )
-            # CREATE TABLE IF NOT EXISTS is not a source/proof certificate.
-            # A conflicting table with matching columns but absent native
-            # keys/checks can falsely admit non-atomic identities.
-            physical = pg.execute(
-                "SELECT column_name,data_type,is_nullable FROM information_schema.columns "
-                "WHERE table_schema='ordivon_harness' AND table_name='conversation_bindings' "
-                "ORDER BY ordinal_position"
-            ).fetchall()
-            expected = [
-                (name, "bigint" if name == "created_at_ms" else "text", "NO") for name in _COLUMNS
-            ]
-            if physical != expected:
-                raise ConversationBindingConflict("PostgreSQL binding schema shape differs")
-            # Compare PostgreSQL's *actual native constraint definitions*,
-            # not mere substrings of an arbitrary check expression. An
-            # unrelated LIKE '%sha256:%' can include the expected keyword
-            # while admitting invalid digests. These are PG18 source contracts:
-            # a changed PG deparser/DDL must be explicitly requalified.
-            catalog_rows = pg.execute(
-                "SELECT conname,contype,pg_get_constraintdef(oid) "
-                "FROM pg_constraint "
-                "WHERE conrelid='ordivon_harness.conversation_bindings'::regclass"
-            ).fetchall()
-            contracts = {name: (kind, definition) for name, kind, definition in catalog_rows}
-            expected_contracts = {
-                "conversation_bindings_pkey": ("p", "PRIMARY KEY (campaign_ref, agent_id)"),
-                "conversation_bindings_request_id_key": ("u", "UNIQUE (request_id)"),
-                "conversation_bindings_created_at_ms_check": ("c", "CHECK ((created_at_ms >= 0))"),
-                "cft_binding_digests": (
-                    "c",
-                    "CHECK (((evidence_digest ~ '^sha256:[0-9a-f]{64}$'::text) "
-                    "AND (binding_digest ~ '^sha256:[0-9a-f]{64}$'::text)))",
-                ),
-                "cft_binding_uuid7": (
-                    "c",
-                    "CHECK ((session_id ~ "
-                    "'^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-"
-                    "[89ab][0-9a-f]{3}-[0-9a-f]{12}$'::text))",
-                ),
-            }
-            if any(
-                contracts.get(name) != required for name, required in expected_contracts.items()
-            ):
-                raise ConversationBindingConflict(
-                    "PostgreSQL binding native uniqueness/check law differs"
-                )
+            self._require_pg_schema(pg)
+
+    @staticmethod
+    def _require_pg_schema(pg: psycopg.Connection) -> None:
+        # CREATE TABLE IF NOT EXISTS is not a source/proof certificate.
+        # A conflicting table with matching columns but absent native
+        # keys/checks can falsely admit non-atomic identities.
+        physical = pg.execute(
+            "SELECT column_name,data_type,is_nullable FROM information_schema.columns "
+            "WHERE table_schema='ordivon_harness' AND table_name='conversation_bindings' "
+            "ORDER BY ordinal_position"
+        ).fetchall()
+        expected = [
+            (name, "bigint" if name == "created_at_ms" else "text", "NO") for name in _COLUMNS
+        ]
+        if physical != expected:
+            raise ConversationBindingConflict("PostgreSQL binding schema shape differs")
+        # Compare PostgreSQL's *actual native constraint definitions*,
+        # not mere substrings of an arbitrary check expression. An
+        # unrelated LIKE '%sha256:%' can include the expected keyword
+        # while admitting invalid digests. These are PG18 source contracts:
+        # a changed PG deparser/DDL must be explicitly requalified.
+        catalog_rows = pg.execute(
+            "SELECT conname,contype,pg_get_constraintdef(oid) "
+            "FROM pg_constraint "
+            "WHERE conrelid='ordivon_harness.conversation_bindings'::regclass"
+        ).fetchall()
+        contracts = {name: (kind, definition) for name, kind, definition in catalog_rows}
+        expected_contracts = {
+            "conversation_bindings_pkey": ("p", "PRIMARY KEY (campaign_ref, agent_id)"),
+            "conversation_bindings_request_id_key": ("u", "UNIQUE (request_id)"),
+            "conversation_bindings_created_at_ms_check": ("c", "CHECK ((created_at_ms >= 0))"),
+            "cft_binding_digests": (
+                "c",
+                "CHECK (((evidence_digest ~ '^sha256:[0-9a-f]{64}$'::text) "
+                "AND (binding_digest ~ '^sha256:[0-9a-f]{64}$'::text)))",
+            ),
+            "cft_binding_uuid7": (
+                "c",
+                "CHECK ((session_id ~ "
+                "'^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-"
+                "[89ab][0-9a-f]{3}-[0-9a-f]{12}$'::text))",
+            ),
+        }
+        if any(
+            contracts.get(name) != required for name, required in expected_contracts.items()
+        ):
+            raise ConversationBindingConflict(
+                "PostgreSQL binding native uniqueness/check law differs"
+            )
 
     @staticmethod
     def _canonical_rows(rows: list[dict[str, Any]]) -> list[tuple[Any, ...]]:
@@ -280,15 +284,18 @@ class PostgresConversationBindingStore:
                 legacy.execute("ROLLBACK")
                 raise
 
-    def assert_legacy_sealed(self, source: Path, *, fresh_bootstrap: bool = False) -> None:
+    @classmethod
+    def _sealed_legacy_rows(
+        cls, source: Path, *, fresh_bootstrap: bool = False
+    ) -> list[tuple[Any, ...]]:
         source = Path(source)
         if not source.exists():
             if fresh_bootstrap:
-                return
+                return []
             raise ConversationBindingConflict(
                 "legacy role binding source absent; no qualified fresh PG bootstrap"
             )
-        old, rows = self._legacy(source)
+        old, rows = cls._legacy(source)
         with closing(old):
             names = {
                 name: sql
@@ -298,35 +305,76 @@ class PostgresConversationBindingStore:
             }
             for operation in ("INSERT", "UPDATE", "DELETE"):
                 name = f"binding_pg_retired_{operation.lower()}"
-                if names.get(name) != self._fence_sql(operation):
+                if names.get(name) != cls._fence_sql(operation):
                     raise ConversationBindingConflict(
                         "legacy conversation binding writer is not retired"
                     )
-        expected = self._canonical_rows(rows)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as pg:
-            actual = {(row["campaign_ref"], row["agent_id"]): row for row in self._rows(pg)}
+        return cls._canonical_rows(rows)
+
+    @classmethod
+    def _assert_source_identity(
+        cls, pg: psycopg.Connection, expected: list[tuple[Any, ...]]
+    ) -> None:
+        if not expected:
+            return
+        with pg.cursor(row_factory=dict_row) as cursor:
+            actual = {
+                (row["campaign_ref"], row["agent_id"]): row
+                for row in cursor.execute(
+                    "SELECT * FROM ordivon_harness.conversation_bindings"
+                ).fetchall()
+            }
         # Only source rows are immutable; PG may admit more rows after cutover.
         for original in expected:
             row = actual.get((original[0], original[1]))
-            if row is None or self._canonical_rows([row]) != [original]:
+            if row is None or cls._canonical_rows([row]) != [original]:
                 raise ConversationBindingConflict(
                     "sealed legacy identity absent or altered in PostgreSQL"
                 )
 
-    def get_binding(self, campaign_ref: str, agent_id: str) -> dict[str, Any] | None:
-        self.assert_legacy_sealed(self.legacy_source, fresh_bootstrap=self.fresh_bootstrap)
+    def assert_legacy_sealed(self, source: Path, *, fresh_bootstrap: bool = False) -> None:
+        expected = self._sealed_legacy_rows(source, fresh_bootstrap=fresh_bootstrap)
+        if expected:
+            with psycopg.connect(self.dsn) as pg:
+                pg.execute("SET TRANSACTION READ ONLY")
+                self._assert_source_identity(pg, expected)
+
+    @classmethod
+    def read_existing(
+        cls, dsn: str, campaign_ref: str, agent_id: str, *,
+        legacy_source: Path, fresh_bootstrap: bool = False,
+    ) -> dict[str, Any] | None:
+        """Project a qualified existing binding without constructing a writer."""
+        if not isinstance(dsn, str) or not dsn.strip():
+            raise ValueError("conversation binding PostgreSQL requires an explicit DSN")
         campaign_ref = _text(campaign_ref, "campaignRef")
         agent_id = _text(agent_id, "agentId", max_bytes=128)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as pg:
-            row = pg.execute(
-                "SELECT * FROM ordivon_harness.conversation_bindings "
-                "WHERE campaign_ref=%s AND agent_id=%s",
-                (campaign_ref, agent_id),
-            ).fetchone()
-        if row is None:
-            return None
-        self._canonical_rows([row])
-        return self._receipt(row)
+        expected = cls._sealed_legacy_rows(legacy_source, fresh_bootstrap=fresh_bootstrap)
+        with psycopg.connect(dsn) as pg:
+            pg.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            pg.execute("SELECT pg_advisory_xact_lock_shared(%s)", (_SCHEMA_LOCK,))
+            cls._require_pg_schema(pg)
+            cls._assert_source_identity(pg, expected)
+            with pg.cursor(row_factory=dict_row) as cursor:
+                rows = cursor.execute(
+                    "SELECT * FROM ordivon_harness.conversation_bindings "
+                    "WHERE campaign_ref=%s AND agent_id=%s",
+                    (campaign_ref, agent_id),
+                ).fetchmany(2)
+            if not rows:
+                return None
+            if len(rows) != 1 or (rows[0]["campaign_ref"], rows[0]["agent_id"]) != (
+                campaign_ref, agent_id,
+            ):
+                raise ConversationBindingConflict("PostgreSQL binding observation ambiguous")
+            cls._canonical_rows(rows)
+            return cls._receipt(rows[0])
+
+    def get_binding(self, campaign_ref: str, agent_id: str) -> dict[str, Any] | None:
+        return self.read_existing(
+            self.dsn, campaign_ref, agent_id,
+            legacy_source=self.legacy_source, fresh_bootstrap=self.fresh_bootstrap,
+        )
 
     def adopt_binding(
         self,

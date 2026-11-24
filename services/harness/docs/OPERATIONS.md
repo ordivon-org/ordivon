@@ -218,6 +218,9 @@ Run/CAS and Browserless materialization remain separate owners.
 
 The existing-owner methods `PostgresWakeTurnMap.read_existing(dsn, wake_intent_id)`
 and `PostgresTurnEffects.read_existing(dsn, turn_id)` run read-only transactions.
+`PostgresConversationBindingStore.read_existing(...)` likewise qualifies the
+existing schema and sealed-source identity in a single read snapshot. The
+Browserless affinity consumer uses it without constructing an adoption writer.
 They reuse the existing cutover admission and exact owner tables; an inactive
 or unavailable authority is an error, not an absent identity. They neither
 execute schema initialization nor authorize SEND. The Browserless turn-effect
