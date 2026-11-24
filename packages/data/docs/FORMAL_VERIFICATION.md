@@ -57,6 +57,21 @@ a total, exact digest-equality relation. Real SHA-256 digest values are modeled
 abstractly: digest equality proves only hash equality, not metaphysical byte
 identity, origin authenticity, producer authorization, or permission to publish.
 
+### Shared local byte observation refinement
+
+Producer binding and catalog inspection share one descriptor-relative,
+no-symlink local file observation. Catalog discovery maps a failed observation
+or malformed file URI to reason-bearing UNKNOWN without manufacturing an
+observed digest. Producer binding remains strict admission and preserves
+typed I/O failure behavior for existing Research consumers. Exact selected
+port admission is independent of unrelated malformed access URIs; global
+admission still requires every relevant distribution to be verified.
+Structural and conflicting checksum binding errors remain validation errors.
+
+The native directory-replacement and in-place modification counterexamples
+exercise the descriptor boundary. This is not a full refinement proof of
+filesystem immutability, later reads, mount changes, or durable retention.
+
 ## Bounded publication and retirement state model
 
 `formal/DataPublication.lean` now specifies a finite control-state protocol:
