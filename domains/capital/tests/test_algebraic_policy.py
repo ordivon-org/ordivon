@@ -420,3 +420,34 @@ def test_zero_residual_dominated_result_has_no_small_tangent_excess() -> None:
     # below that witness would be unsound.
     improvement = .4 * math.log(1.8) + .6 * math.log(2.0)
     assert float(upper) >= improvement > .5
+
+@pytest.mark.parametrize("field", ("expected_return", "cash_rate", "borrowing_rate", "variance", "gamma"))
+def test_merton_rejects_boolean_economic_scalar(field: str) -> None:
+    inputs = dict(expected_return=.1, cash_rate=.02, borrowing_rate=.04, variance=.04, gamma=2)
+    inputs[field] = True
+    with pytest.raises(AlgebraicPolicyError):
+        merton_single_risky_crra(**inputs)
+
+
+@pytest.mark.parametrize("field", ("unit_nav_before", "outstanding_units", "contribution_r"))
+def test_unitization_rejects_boolean_economic_scalar(field: str) -> None:
+    inputs = dict(unit_nav_before=1.0, outstanding_units=2.0, contribution_r=3.0)
+    inputs[field] = True
+    with pytest.raises(AlgebraicPolicyError):
+        unitize_external_contribution(**inputs)
+
+
+def test_merton_finite_inputs_do_not_silently_overflow_intermediate_product() -> None:
+    assert merton_single_risky_crra(
+        expected_return=1e308, cash_rate=0, borrowing_rate=0, variance=1e308, gamma=2,
+    ) == pytest.approx(.5)
+    assert merton_single_risky_crra(
+        expected_return=1e-300, cash_rate=0, borrowing_rate=0, variance=1e-200, gamma=1e-200,
+    ) == pytest.approx(1e100)
+
+
+def test_unitization_rejects_unrepresentable_output() -> None:
+    with pytest.raises(AlgebraicPolicyError):
+        unitize_external_contribution(
+            unit_nav_before=1e-308, outstanding_units=1, contribution_r=1e308,
+        )

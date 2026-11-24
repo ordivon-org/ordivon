@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from fractions import Fraction
 from typing import Any
 
 
@@ -81,19 +82,32 @@ def merton_single_risky_crra(
     rates, and *no constraint* are caller/model-owned. No invented leverage
     constant or backtest-derived empirical floor is inserted.
     """
-    if not all(math.isfinite(x) for x in (
+    if not all(_finite_economic_number(x) for x in (
         expected_return, cash_rate, borrowing_rate, variance, gamma,
     )):
         raise AlgebraicPolicyError("finite diffusion coefficients required")
     if not (gamma > 0 and variance > 0 and borrowing_rate >= cash_rate):
         raise AlgebraicPolicyError("gamma/variance positive and borrow >= lend required")
-    lending_opt = (expected_return - cash_rate) / (gamma * variance)
-    borrowing_opt = (expected_return - borrowing_rate) / (gamma * variance)
+    # Scalar closed form: use exact ratios of the represented inputs so an
+    # intermediate gamma*variance overflow/underflow cannot change the kink.
+    drift, lend, borrow, var, aversion = map(
+        Fraction, (expected_return, cash_rate, borrowing_rate, variance, gamma)
+    )
+    lending_opt = (drift - lend) / (aversion * var)
+    borrowing_opt = (drift - borrow) / (aversion * var)
     if lending_opt <= 1:
-        return max(0.0, lending_opt)
-    if borrowing_opt >= 1:
-        return borrowing_opt
-    return 1.0
+        optimum = max(Fraction(0), lending_opt)
+    elif borrowing_opt >= 1:
+        optimum = borrowing_opt
+    else:
+        optimum = Fraction(1)
+    try:
+        represented = float(optimum)
+    except OverflowError as exc:
+        raise AlgebraicPolicyError("unrepresentable diffusion optimum") from exc
+    if optimum > 0 and represented == 0:
+        raise AlgebraicPolicyError("unrepresentable diffusion optimum")
+    return represented
 
 
 def _finite_economic_number(value: object) -> bool:
@@ -156,13 +170,15 @@ def unitize_external_contribution(
     New investment unit count = contribution_r / unit_nav_before.
     The identical unit NAV after contribution is mathematically invariant.
     """
-    if not all(math.isfinite(x) for x in (
+    if not all(_finite_economic_number(x) for x in (
         unit_nav_before, outstanding_units, contribution_r,
     )):
         raise AlgebraicPolicyError("finite equity and capital flow required")
     if unit_nav_before <= 0 or outstanding_units < 0 or contribution_r < 0:
         raise AlgebraicPolicyError("invalid unit NAV or negative contribution")
     new_units = outstanding_units + contribution_r / unit_nav_before
+    if not _finite_economic_number(new_units):
+        raise AlgebraicPolicyError("unrepresentable outstanding units")
     return unit_nav_before, new_units
 
 
