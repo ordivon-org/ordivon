@@ -100,6 +100,7 @@ def test_gateway_topic_archive_forwarding_uses_existing_owner_tool() -> None:
                     "state": "archived",
                     "expectedState": "closed",
                     "expectedHighSequence": 5,
+                    "expectedChangeSequence": 22,
                 },
             )
             assert calls[-1] == (
@@ -110,6 +111,7 @@ def test_gateway_topic_archive_forwarding_uses_existing_owner_tool() -> None:
                     "state": "archived",
                     "expectedState": "closed",
                     "expectedHighSequence": 5,
+                    "expectedChangeSequence": 22,
                 },
             )
             await client.call_tool(

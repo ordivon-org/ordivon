@@ -913,3 +913,17 @@ structuredReleaseConfigured=false means NOT_READY, while malformed fields
 remain UNKNOWN. It is forbidden to satisfy a requested release by sending
 a generic execution.linux shell installer. R13 only changes SourceCut,
 package version and routeDigest, NOT the MCP tool schema or Surface Epoch 12.
+
+### Topic lifecycle occurrence contract (Gateway epoch 19 / Host epoch 9)
+
+Before changing a Topic state, consume `topic.resume` and pass its
+`topic.state`, `topic.changeSequence` and `topic.topicHighSequence` as
+`expectedState`, `expectedChangeSequence` and `expectedHighSequence`.
+Gateway requires and forwards the exact positive occurrence coordinate;
+it does not infer, refresh or substitute an occurrence on the caller's behalf.
+The Host owns the transaction and replay semantics. An exact historical replay
+is not a current-state observation. Clients using the old unversioned mutation
+must refresh the native tool contract. This is an intentionally incompatible
+ABI change paired with Host #2672; the existing release admission gates remain
+in force and must not be bypassed. No authority, route, or credential change
+is implied by source contract verification.

@@ -41,6 +41,18 @@ class WitnessOwner:
                 "topicRef": "topic:fixture",
                 "state": "closed",
                 "expectedState": "open",
+                "expectedChangeSequence": 1,
+            },
+        ),
+        (
+            "topic.state.set",
+            "expectedChangeSequence",
+            {
+                "actorRef": "actor:fixture",
+                "topicRef": "topic:fixture",
+                "state": "closed",
+                "expectedState": "open",
+                "expectedHighSequence": 0,
             },
         ),
         (
@@ -77,7 +89,7 @@ def test_native_sdk_host_numeric_boundary(name, field, base):
             if "anyOf" in spec:
                 spec = next(x for x in spec["anyOf"] if x.get("type") == "integer")
             maximum = SAFE - 1 if name == "work.snapshot.commit" else SAFE
-            minimum = 1 if name.startswith("work.") or name == "message.search" else 0
+            minimum = 1 if name.startswith("work.") or name == "message.search" or field == "expectedChangeSequence" else 0
             for value in (True, 1.0, "1", minimum - 1, maximum + 1):
                 result = await client.call_tool(name, {**base, field: value})
                 assert result.is_error, (name, value, result)
@@ -91,5 +103,37 @@ def test_native_sdk_host_numeric_boundary(name, field, base):
                 assert owner_id == "host" and forwarded_name == name
                 assert type(args[field]) is int and args[field] == value
             assert not owner.calls
+
+    asyncio.run(scenario())
+
+
+def test_topic_lifecycle_requires_observed_occurrence_and_forwards_metadata():
+    class TopicOwner(WitnessOwner):
+        async def call_tool(self, owner_id, tool_name, arguments):
+            self.calls.append((owner_id, tool_name, arguments))
+            if tool_name == "topic.resume":
+                return {"topic": {"topicRef": "topic:fixture", "state": "open",
+                                  "changeSequence": 12, "topicHighSequence": 5}}
+            return {"forwarded": tool_name}
+
+    async def scenario():
+        owner = TopicOwner()
+        async with Client(build_server(GatewayService(owner)), raise_exceptions=False) as client:
+            read = await client.call_tool("topic.resume", {"topicRef": "topic:fixture"})
+            assert not read.is_error
+            observed = read.structured_content["topic"]
+            assert observed == {"topicRef": "topic:fixture", "state": "open",
+                                "changeSequence": 12, "topicHighSequence": 5}
+            owner.calls.clear()
+            args = {"topicRef": observed["topicRef"], "actorRef": "actor:fixture",
+                    "state": "closed", "expectedState": observed["state"],
+                    "expectedHighSequence": observed["topicHighSequence"]}
+            missing = await client.call_tool("topic.state.set", args)
+            assert missing.is_error
+            assert not owner.calls
+            args["expectedChangeSequence"] = observed["changeSequence"]
+            result = await client.call_tool("topic.state.set", args)
+            assert not result.is_error
+            assert owner.calls == [("host", "topic.state.set", args)]
 
     asyncio.run(scenario())

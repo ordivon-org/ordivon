@@ -136,6 +136,7 @@ def register_host_social_tools(
         state: Literal["open", "closed", "archived"],
         expectedState: Literal["open", "closed", "archived"],
         expectedHighSequence: HostNonnegativeInteger,
+        expectedChangeSequence: HostPositiveInteger,
     ) -> dict[str, Any]:
         return await _host(
             "topic.state.set",
@@ -145,6 +146,7 @@ def register_host_social_tools(
                 "state": state,
                 "expectedState": expectedState,
                 "expectedHighSequence": expectedHighSequence,
+                "expectedChangeSequence": expectedChangeSequence,
             },
         )
 
