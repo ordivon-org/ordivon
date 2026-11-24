@@ -103,3 +103,40 @@ def test_original_pg_reopen_reconciles_historical_undercharge_before_provider_ca
         assert resumed.loop_result.stop_code.value == "budget_exhausted"
         assert resume_adapter.requests == []
         assert new_run.doctor()["healthy"] is True
+
+
+@pytest.mark.parametrize("reset_progress", [False, True])
+def test_budget_restoration_preserves_spent_resources(reset_progress: bool) -> None:
+    from ordivon_harness.ordivon.run_contract import RunBudget, restore_run_budget
+
+    budget = RunBudget(8, 9, 1000, 500, max_total_tokens=50)
+    remaining = budget.remaining(
+        model_calls=2, tool_calls=3, observation_bytes=80, elapsed_ms=40,
+        total_tokens=5, model_retries=1, observation_only_turns=2, no_progress_turns=1,
+    )
+    original = dict(remaining)
+    restored = restore_run_budget(
+        budget, remaining, active_elapsed_ms=40,
+        provider_usage=({"total_tokens": 1, "input_tokens": 30, "output_tokens": 25},),
+        reset_progress=reset_progress,
+    )
+    assert remaining == original
+    assert (restored.model_calls, restored.tool_calls, restored.observation_bytes) == (2, 3, 80)
+    assert (restored.prior_elapsed_ms, restored.remaining_wall_time_ms) == (40, 460)
+    assert restored.total_tokens == 55
+    assert restored.provider_attempts == 3
+    assert restored.observation_only_turns == (0 if reset_progress else 2)
+    assert restored.no_progress_turns == (0 if reset_progress else 1)
+
+
+@pytest.mark.parametrize("field", ["noProgressTurns", "observationOnlyTurns"])
+def test_caller_input_reset_cannot_hide_invalid_retained_budget(field: str) -> None:
+    from ordivon_harness.ordivon.run_contract import RunBudget, restore_run_budget
+
+    budget = RunBudget(8, 9, 1000, 500)
+    remaining = budget.remaining(model_calls=0, tool_calls=0, observation_bytes=0, elapsed_ms=0)
+    remaining[field] = 999
+    with pytest.raises(ValueError, match="exceeds configured limits"):
+        restore_run_budget(
+            budget, remaining, active_elapsed_ms=0, provider_usage=(), reset_progress=True,
+        )

@@ -2054,10 +2054,50 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             runtime_arguments_digest=canonical_digest({"path": "second"}),
             created_at_ms=clock(),
         )
-        continuity.prepare_tool_step(second)
+        before = self.store.load_run(run.harness_run_id).revision
+        with self.assertRaisesRegex(HarnessSuperseded, "reuse a clientRequestId"):
+            continuity.prepare_tool_step(second)
+        self.assertEqual(self.store.load_run(run.harness_run_id).revision, before)
+        self.assertEqual(continuity.inspect_issued_tool_sources()["originalRunIssuedCount"], 1)
+        self.assertEqual(continuity.inspect_unsettled_tool_sources()["unsettledIntents"], [])
+        # A distinct legitimate request still proceeds; denial is not a
+        # blanket prohibition on subsequent Tool calls.
+        distinct = replace(second, client_request_id="request:distinct-runtime-epoch")
+        continuity.prepare_tool_step(distinct)
+        self.assertEqual(continuity.inspect_issued_tool_sources()["originalRunIssuedCount"], 2)
+        self.assertEqual(continuity.load_current_tool_step().intent, distinct)
+
+        # Retain the original legacy-corruption read test with a real PG
+        # Journal. Emulate only the old writer's missing identity guard.
+        from inspect import getmodule
+        from unittest.mock import patch
+
+        clock.advance()
+        continuity.record_tool_step_receipt(
+            replace(
+                receipt, receipt_id="harness-tool-step-receipt:distinct-observed",
+                intent_digest=distinct.digest, tool_call_id=distinct.tool_call_id,
+                runtime_job_ref="runtime-job:distinct", created_at_ms=clock(),
+            ),
+            observed,
+        )
+        legacy = replace(
+            second, intent_id="harness-tool-step-intent:legacy-reused-key",
+            tool_call_id="tool-call:legacy-reused-key",
+            turn_id="turn:legacy-reused-key", created_at_ms=clock(),
+        )
+        admission_module = getmodule(continuity.prepare_tool_step)
+        current_scan = admission_module.inspect_all_unsettled_effect_sources
+
+        def legacy_scan(*args, **kwargs):
+            kwargs.pop("new_tool_client_request_id", None)
+            return current_scan(*args, **kwargs)
+
+        with patch.object(admission_module, "inspect_all_unsettled_effect_sources", legacy_scan):
+            continuity.prepare_tool_step(legacy)
         self.assertEqual(
             continuity.inspect_unsettled_tool_sources()["unsettledIntents"][0]["clientRequestId"],
-            second.client_request_id,
+            first.client_request_id,
         )
         with self.assertRaisesRegex(ValueError, "reuse a clientRequestId"):
             continuity.inspect_issued_tool_sources()
@@ -2279,8 +2319,11 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         )
         # Simulate only an old admission policy. The real original PostgreSQL
         # Writer persists the original B claim and A is still unreceipted.
-        with patch(
-            "ordivon_harness.ordivon.run_continuity.inspect_all_unsettled_effect_sources",
+        from inspect import getmodule
+
+        with patch.object(
+            getmodule(legacy.claim_provider_call),
+            "inspect_all_unsettled_effect_sources",
             return_value=((), ()),
         ):
             claimed = legacy.claim_provider_call(**claim_args)
@@ -2338,10 +2381,13 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         legacy.prepare_tool_step(first)
         # Legacy admission allowed B despite unresolved A. The real original
         # PostgreSQL Journal persists both effects, including B's receipt.
+        from inspect import getmodule
+
         with (
             patch.object(legacy, "load_current_tool_step", side_effect=KeyError),
-            patch(
-                "ordivon_harness.ordivon.run_continuity.inspect_all_unsettled_effect_sources",
+            patch.object(
+                getmodule(legacy.prepare_tool_step),
+                "inspect_all_unsettled_effect_sources",
                 return_value=((), ()),
             ),
         ):

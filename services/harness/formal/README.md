@@ -128,3 +128,16 @@ CAS or native Runtime drain. Concrete tests in
 `tests/test_postgres_harness_store.py` retain the partial projection and actual
 detached PG payload-edge counterexamples. No claim release follows from this
 model alone.
+
+### R39 second Tool admission refinement
+
+The existing `ToolUnknownRecoveryR1` model now reaches a second prepared
+Intent after the first is observed. It distinguishes a fresh key from reuse
+of the first key. The unsafe old admission probe reaches key reuse, and the
+fresh-key probe reaches legitimate second admission. This is a two-Intent
+bounded source rule, not proof of arbitrary SQL execution, cross-Run
+principal-level keys, physical second execution, or native drain.
+The real PG consumer is
+`test_issued_epoch_rejects_reused_runtime_client_request_id`; the test retains
+an old-writer fault to demonstrate that historical duplicates still block
+complete source enumeration. All older Tool UNKNOWN probes remain.

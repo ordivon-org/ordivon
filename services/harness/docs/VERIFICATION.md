@@ -247,3 +247,16 @@ owner-environment tests; the original locked offline environment was
 materialized and the unmodified tests reran green. Formal gate, dependency
 boundary tests, Ruff, documentation and evidence-contract checks passed.
 Production install and real Domain/OS finalization remain distinct.
+
+### R39 request identity and pure budget recovery
+
+The original Run prepare path must reject a new Intent with an already used
+Runtime clientRequestId without advancing the original PG revision. A new
+distinct key is accepted; deliberately persisted legacy conflicts still fail
+the full issued-source inspection. Fault injection follows the actual
+public continuity method, not a retired source filename.
+The original TLC ToolUnknownRecoveryR1 model includes key-reuse and
+fresh-next-admission probes. Runtime cross-principal and physical effect
+qualification remain separate. Budget reconstruction tests check retained
+usage, conservative provider accounting and caller-progress reset without
+resetting resource debits or hiding invalid retained limits.

@@ -208,7 +208,7 @@ fi
   java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config ToolUnknownRecoveryR1.cfg ToolUnknownRecoveryR1.tla
   recovery_probe="$(mktemp)"
   trap 'rm -f "$recovery_probe"' EXIT
-  for spec in "retry:AtMostOneOriginalOwnerSubmit" "resume:RecoveredOriginalOwnerIsUnreachable" "pre-admission:LostBeforeAdmissionIsUnreachable" "physical:PhysicalCallIsUnreachable";do
+  for spec in "retry:AtMostOneOriginalOwnerSubmit" "resume:RecoveredOriginalOwnerIsUnreachable" "pre-admission:LostBeforeAdmissionIsUnreachable" "physical:PhysicalCallIsUnreachable" "request-key:NoReusedRequestIdentity" "fresh-key:FreshNextIsUnreachable";do
     IFS=: read -r label predicate <<< "$spec"
     if java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config "ToolUnknownRecoveryR1.$label-probe.cfg" ToolUnknownRecoveryR1.tla >"$recovery_probe" 2>&1;then
       echo "R45 $label counterexample unexpectedly absent" >&2

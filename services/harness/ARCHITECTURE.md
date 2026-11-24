@@ -267,6 +267,28 @@ actual consumer behavior remain the acceptance surface; no fixed filename
 requirement is added. Source inspection remains deliberately distinct from
 trusted native all-attempts/NoFutureSpawn and original recipient delivery.
 
+**R39 source refinement (2026-11-24, candidate):**
+New Tool admission rejects reuse of an original Run's Runtime request key
+before a new Intent is persisted. The existing complete effect scanner
+returns the already validated Tool Intent identity and the original Run
+revision CAS fences concurrent writers. Historical conflicting identities
+remain readable for recovery but cannot establish a complete issued set.
+This is scoped to normal Run admission, not a cross-principal Runtime proof.
+
+| Existing facade | Delegated responsibility |
+| --- | --- |
+| Run continuity | `provider_continuity.py`: claim, dispatch, outcome, retry |
+| Run continuity | `provider_record_io.py`: source/record/replay-state binding |
+| Run continuity | `tool_continuity.py`: Intent, dispatch fence, Receipt |
+| Agent Loop | existing `run_contract.py`: pure retained budget restoration |
+
+All continuity facets still compose one Run instance, original Store and
+lease discipline. They are source seams, not independent Writers or new
+services. The budget restoration returns process-local immutable counters;
+caller input resets only progress counters, after validating persisted
+bounds. Provider usage is conservatively reconciled before another effect.
+No new persisted schema or interface is introduced.
+
 **Original Run birth and legacy adoption are distinct operations.**
 For NEW Workspace-bearing Runs, the supported `HarnessAgentRun.create`
 first obtains the native HELD Workspace Claim, then commits the original Run
