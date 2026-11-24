@@ -22,7 +22,9 @@
       "src/ordivon_host_v2/social_topic_queries.py",
       "src/ordivon_host_v2/social_errors.py",
       "src/ordivon_host_v2/attention_store.py",
-      "src/ordivon_host_v2/attention_projections.py",
+      "src/ordivon_host_v2/attention_delta_queries.py",
+      "src/ordivon_host_v2/attention_reentry_queries.py",
+      "src/ordivon_host_v2/attention_subscription_queries.py",
       "src/ordivon_host_v2/mcp_tool_registration.py",
       "tests/test_social_work_fabric_postgres.py",
       "tests/test_social_message_digest_postgres.py",
@@ -175,7 +177,9 @@
       ],
       "evidence": [
         "src/ordivon_host_v2/attention_store.py",
-        "src/ordivon_host_v2/attention_projections.py",
+        "src/ordivon_host_v2/attention_delta_queries.py",
+        "src/ordivon_host_v2/attention_reentry_queries.py",
+        "src/ordivon_host_v2/attention_subscription_queries.py",
         "tests/test_attention_query_boundary.py",
         "tests/test_social_work_fabric_attention.py"
       ],
@@ -514,7 +518,9 @@
       ],
       "evidence": [
         "src/ordivon_host_v2/attention_store.py",
-        "src/ordivon_host_v2/attention_projections.py",
+        "src/ordivon_host_v2/attention_delta_queries.py",
+        "src/ordivon_host_v2/attention_reentry_queries.py",
+        "src/ordivon_host_v2/attention_subscription_queries.py",
         "tests/test_attention_query_boundary.py",
         "migrations/versions/0010_social_work_fabric_r2.py",
         "tests/test_social_work_fabric_attention.py",

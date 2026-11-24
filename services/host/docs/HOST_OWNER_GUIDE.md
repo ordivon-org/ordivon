@@ -19,7 +19,7 @@ Runtime 拥有 Workspace、Job/Attempt 与机械执行真相；Harness 拥有 Ag
 | src/ordivon_host_v2/social_space_*、social_topic_*、social_message_*、social_message_records.py | 社会化协作对象读写；MCP tools | 保留：按对象拆分、写与读分开 |
 | src/ordivon_host_v2/social_store.py、social_read_queries.py | 复用协作能力的轻聚合，不持有第二份数据 | 保留；重命名含混查询聚合文件 |
 | src/ordivon_host_v2/coordination_inputs.py、coordination_intent_commands.py | Coordination Intent 及其数据库写入；Attention SQL 消费；PG 测试 | 保留实际消费者，统一命名；不误称已发布 MCP 工具 |
-| src/ordivon_host_v2/attention_store.py、attention_projections.py、attention_sql.py | 订阅/游标、变更派生投影、SQL | 保留；将只有 SQL 的文件改为明确名称 |
+| src/ordivon_host_v2/attention_store.py、attention_delta_queries.py、attention_reentry_queries.py、attention_subscription_queries.py、attention_sql.py | 订阅/游标、变更派生投影、SQL | 保留；将只有 SQL 的文件改为明确名称 |
 | src/ordivon_host_v2/mcp_server.py、mcp_tool_registration.py、mcp_*_tools.py | 官方 MCP SDK 服务和工具适配 | 保留；规范注册文件命名，外部工具名未变 |
 | src/ordivon_host_v2/*contracts.py、canonical_json.py、command_receipts.py、collection_pagination.py、postgres_bounds.py | 类型契约、RFC 8785、幂等、界限 | 保留小型共用能力，不重复造库 |
 | migrations/、alembic.ini | schema 0001–0014 迁移链；当前源 Schema14 归档能力、现役生产独立核验 | 保留迁移链；旧编号不等于垃圾 |

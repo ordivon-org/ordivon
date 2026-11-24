@@ -447,3 +447,20 @@ readback inside create/commit still uses read_work_in_tx on the caller transacti
 The pure bounded revision successor lives in work_revision_logic.py and the existing
 CrossHair source target follows it. Public WorkStore/MCP and PG schema are unchanged.
 The older inherited read facet descriptions above are historical.
+
+
+### R5 Attention explicit read composition
+
+The public AttentionStore surface stays unchanged. It composes three concrete read
+capabilities using the existing native connection checkout. Actor and target
+existence use the canonical conn-scoped reference lookup; Reentry owns one
+REPEATABLE READ, READ ONLY transaction and invokes Delta's transaction-local
+query before reading Topic consumption coordinates on that same connection.
+No secondary transaction, event authority, routing permission or assignment is
+introduced. The obsolete inheritance-only read facade is removed.
+
+R44/R47 synthetic benchmark scripts now inject SQL at the actual executing
+Delta module instead of the retired facade. The native PG test intentionally
+injects an undefined relation through the benchmark path, checks that both
+Delta and Reentry fail, then restores the real query. Prior benchmark measurements
+are historical evidence for their source cuts, not fresh measurements for R5.

@@ -99,7 +99,7 @@ def test_cursor_sql_is_owned_by_one_module_not_copied_across_consumers() -> None
     truth = (root / "topic_cursor_records.py").read_text(encoding="utf-8")
     assert "INSERT INTO topic_consumption_cursors" in truth
     for filename in (
-        "social_topic_commands.py", "social_topic_queries.py", "attention_projections.py"
+        "social_topic_commands.py", "social_topic_queries.py", "attention_reentry_queries.py"
     ):
         source = (root / filename).read_text(encoding="utf-8")
         assert "FROM topic_consumption_cursors" not in source
