@@ -16,7 +16,7 @@ def test_runtime_claim_and_close_are_separate_from_harness_state():
                  "NativeRelease(r) ==", "NativeClose ==",
                  "ClosedHasNoOutstandingPins ==",
                  "UnreleasedGrantsHeld ==", "StableEligibleEventuallyClosed ==",
-                 "IndependentRecipientObserve(r, subject) ==",
+                 "IndependentRecipientObserve(r, output, subject) ==",
                  "ReleaseRequiresIndependentRecipientAck ==",
                  "ClosedHasIndependentRecipientAcceptance =="):
         assert name in text
@@ -45,7 +45,7 @@ def test_tlc_counterexamples_are_wired_into_native_runner():
                    "Workspace cross-DB $label counterexample PASS"):
         assert phrase in runner
 
-def test_recipient_identity_gate_is_nonvacuous_and_falsifiable():
+def test_recipient_identity_and_complete_census_gate_is_nonvacuous_and_falsifiable():
     """A same-Run receipt for the wrong Attempt cannot release the Claim."""
     lock = json.loads((ROOT / "formal/toolchain.lock.json").read_text())
     jar = Path(os.environ.get("ORDIVON_TLA_TOOLS_JAR", ROOT / lock["cacheRelativePath"]))
@@ -86,7 +86,7 @@ def test_recipient_identity_gate_is_nonvacuous_and_falsifiable():
     guard = "    /\\ r \\in RecipientAccepted\n"
     assert block.count(guard) == 1
     mutated = source[:start] + block.replace(
-        guard, '    /\\ (r \\in RecipientAccepted \\/ <<r,"wrongAttempt">> \\in recipientWitnesses)\n'
+        guard, '    /\\ (r \\in RecipientAccepted \\/ <<r,"first","wrongAttempt">> \\in recipientWitnesses)\n'
     ) + source[end:]
     bad = run(mutated, "ReleaseRequiresExactRecipientSubject")
     assert bad.returncode == 12, bad.stdout
@@ -94,3 +94,37 @@ def test_recipient_identity_gate_is_nonvacuous_and_falsifiable():
     final = bad.stdout.rsplit("State ", 1)[-1]
     assert "wrongAttempt" in final, bad.stdout
     assert "released" in final, bad.stdout
+
+    # A complete empty Run and a complete two-output Run both release.
+    for invariant in ("CompleteEmptyReleaseUnreachable",
+                      "CompleteTwoOutputReleaseUnreachable",
+                      "PartialReceiptUnreachable",
+                      "UnknownEmptyCensusUnreachable"):
+        witness = run(source, invariant)
+        assert witness.returncode == 12, witness.stdout
+        assert f"Invariant {invariant} is violated." in witness.stdout
+
+    # Mutant: one exact receipt is treated as accepting all required outputs.
+    # Hold original finalization, delivery and native quiescence fixed.
+    partial = source[:start] + block.replace(
+        guard, '    /\\ (r \\in RecipientAccepted \\/ (r \\in censusComplete /\\ Cardinality(AcceptedOutputs(r)) = 1))\n'
+    ) + source[end:]
+    bad_partial = run(partial, "ReleaseRequiresExactRecipientSubject")
+    assert bad_partial.returncode == 12, bad_partial.stdout
+    assert "Invariant ReleaseRequiresExactRecipientSubject is violated." in bad_partial.stdout
+    final = bad_partial.stdout.rsplit("State ", 1)[-1]
+    assert '<<"runA",' in final and '"exact"' in final, bad_partial.stdout
+    assert '"released"' in final, bad_partial.stdout
+
+    # Mutant: an absent census is treated as the empty required-output set.
+    # The negative is scoped to the actually empty Run so the old identity
+    # invariant cannot hide the independent census-completeness failure.
+    vacuous = source[:start] + block.replace(
+        guard, '    /\\ (r \\in RecipientAccepted \\/ RequiredOutputs(r) = {})\n'
+    ) + source[end:]
+    bad_empty = run(vacuous, "ReleaseRequiresCompleteOriginalCensus")
+    assert bad_empty.returncode == 12, bad_empty.stdout
+    assert "Invariant ReleaseRequiresCompleteOriginalCensus is violated." in bad_empty.stdout
+    final = bad_empty.stdout.rsplit("State ", 1)[-1]
+    assert "censusComplete = {}" in final, bad_empty.stdout
+    assert '"released"' in final, bad_empty.stdout
