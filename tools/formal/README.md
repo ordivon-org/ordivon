@@ -57,7 +57,8 @@ validation using its existing pinned official Artifact Action. Artifact name:
 ordivon-core-formal-<GitHub SHA>, retained 30 days. There is no new proof run.
 
 The read-only existing repository evidence consumer can use the original
-GitHub Check Run and official gh run download when explicitly requested:
+GitHub Check Run/Workflow Attempt and native Artifact-ID archive download
+with SHA-256/size qualification when explicitly requested:
 tools/repo/evidence_validity.py --prior-sha FULL_PROOF_ANCESTOR_SHA
 --current-sha FULL_CURRENT_SHA --formal-source-delta
 --fetch-historical-formal-report.
@@ -77,3 +78,10 @@ its GitHub Run and validates the two-parent Git commit relation. Its
 executionInputsVsCandidate compares immutable declared source input
 snapshots; it does not assert that the synthetic merge is an ancestor
 of the PR Head or that a mathematical proof may be reused.
+
+After a workflow rerun, native Artifact metadata alone does not establish
+which attempt produced it. The current original-archive consumer requires
+Attempt 1; later attempts remain UNKNOWN until an attempt-specific witness
+is qualified. If GitHub has dropped the original PR Base association after
+merge, preserve exact archive bytes, report SourceCut and observed Git
+parents, but do not grant an original PR execution-binding Claim.
