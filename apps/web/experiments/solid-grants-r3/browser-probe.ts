@@ -13,6 +13,7 @@ const store=new WebStore(":memory:");
 const app=await createWebApp(config,{store});
 const dist=new URL("./dist/",import.meta.url);
 app.get("/__solid_probe/",async(_request,reply)=>reply.type("text/html").send(await readFile(new URL("index.html",dist))));
+app.get("/__solid_probe/blank",async(_request,reply)=>reply.type("text/html").send("<!doctype html><html><title>Navigation fixture</title><p>Navigation fixture</p></html>"));
 for(const file of await readdir(new URL("assets/",dist))){
   const data=await readFile(new URL("assets/"+file,dist));
   app.get("/__solid_probe/assets/"+file,async(_request,reply)=>reply.type(file.endsWith(".css")?"text/css":"text/javascript").send(data));
@@ -21,7 +22,7 @@ await app.listen({host:config.host,port:0});
 const address=app.server.address();
 assert.ok(address&&typeof address!=="string");
 const origin="http://localhost:"+address.port;
-const browser=await chromium.launch({headless:true,executablePath:executable,args:["--host-resolver-rules=MAP localhost 127.0.0.1"]});
+const browser=await chromium.launch({headless:true,executablePath:executable,ignoreDefaultArgs:["--disable-back-forward-cache"],args:["--host-resolver-rules=MAP localhost 127.0.0.1"]});
 try{
  store.ensurePrincipal("principal:probe","probe","Probe",now());
  store.ensurePrincipal("principal:other","other","Other",now());
@@ -31,6 +32,10 @@ try{
  make("grant:two","principal:probe");make("grant:foreign","principal:other");
  const context=await browser.newContext();
  await context.addCookies([{name:"__Host-session",value:session.token,url:"https://localhost/",secure:true,httpOnly:true,sameSite:"Lax"}]);
+ await context.addInitScript(()=>{
+   (window as any).nativePageShow=[];
+   window.addEventListener("pageshow",e=>(window as any).nativePageShow.push({persisted:e.persisted,trusted:e.isTrusted}));
+ });
  const page=await context.newPage();
  const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
  await page.goto(origin+"/__solid_probe/");
@@ -76,7 +81,47 @@ try{
  // Explicitly wait for old response processing (refresh promise recorded separately).
  await page.evaluate(()=> (window as any).lateRefresh);
  assert.equal(await page.locator("tbody tr").count(),0);
+
+ // Explicit lifecycle negative control: the first response is a real Owner
+ // GET, then the document leaves the active lifecycle while that GET is held.
+ await page.unroute("**/api/security/agents/grants");
+ const secondSession=store.createSession("principal:probe",now(),300,3600,null);
+ await context.addCookies([{name:"__Host-session",value:secondSession.token,url:"https://localhost/",secure:true,httpOnly:true,sameSite:"Lax"}]);
+ await page.evaluate(()=> (window as any).probe.refresh());
+ await page.locator('[data-status="observed"]').waitFor();
+ assert.equal(await page.locator("tbody tr").count(),2);
+ let holdLifecycle!:()=>void;const capturedLifecycle=new Promise<void>(r=>{holdLifecycle=r});
+ let releaseLifecycle!:()=>void;const gateLifecycle=new Promise<void>(r=>{releaseLifecycle=r});
+ await page.route("**/api/security/agents/grants",async route=>{
+   const old=await route.fetch();assert.equal(old.status(),200);
+   holdLifecycle();await gateLifecycle;await route.fulfill({response:old});
+ });
+ await page.evaluate(()=>{(window as any).lifecycleRefresh=(window as any).probe.refresh()});
+ await capturedLifecycle;
+ await page.evaluate(()=>window.dispatchEvent(new PageTransitionEvent("pagehide",{persisted:true})));
+ releaseLifecycle();
+ await page.evaluate(()=> (window as any).lifecycleRefresh);
+ assert.equal(await page.locator('[data-status="suspended"]').count(),1);
+ assert.equal(await page.locator("tbody tr").count(),0);
+ await page.unroute("**/api/security/agents/grants");
+ const otherSession=store.createSession("principal:other",now(),300,3600,null);
+ await context.addCookies([{name:"__Host-session",value:otherSession.token,url:"https://localhost/",secure:true,httpOnly:true,sameSite:"Lax"}]);
+ await page.evaluate(()=>window.dispatchEvent(new PageTransitionEvent("pageshow",{persisted:true})));
+ await page.locator('[data-status="observed"]').waitFor({timeout:5000});
+ assert.equal(await page.locator("tbody tr").count(),1);
+ assert.equal(await page.getByText("grant:foreign",{exact:true}).count(),1);
+ assert.equal(await page.getByText("grant:one",{exact:true}).count(),0);
+
+ // Browser-native navigation, rather than dispatching a synthetic event.
+ // Revoke the current session while the document is away, without changing
+ // its cookie. BFCache eligibility is independently observed, not assumed.
+ await page.goto(origin+"/__solid_probe/blank");
+ store.revokeSession("principal:other",otherSession.session.sessionId,now());
+ await page.goBack({waitUntil:"commit"});
+ await page.locator('[data-status="denied"]').waitFor({timeout:10000});
+ assert.equal(await page.locator("tbody tr").count(),0);
+ const restoredFromBFCache=await page.evaluate(()=> (window as any).nativePageShow.some((e:any)=>e.trusted&&e.persisted));
  assert.deepEqual(errors,[]);
- console.log(JSON.stringify({ownerRows:2,foreignRows:0,semanticChoices:5,filterApplied:true,unknownActionDenied:true,humanFilterApplied:true,quotaUnchanged:true,staleSuccessAfterDenialRejected:true,scope:"isolated test-only route; real WebStore/session, not physical WebAuthn"}));
+ console.log(JSON.stringify({ownerRows:2,foreignRows:0,semanticChoices:5,filterApplied:true,unknownActionDenied:true,humanFilterApplied:true,quotaUnchanged:true,staleSuccessAfterDenialRejected:true,lifecycleLateResponseRejected:true,identityChangedOnResume:true,nativeBackNavigationDenial:true,restoredFromBFCache,scope:"isolated test-only route; real WebStore/session, not physical WebAuthn"}));
  await context.close();
 }finally{await browser.close();await app.close();store.close()}

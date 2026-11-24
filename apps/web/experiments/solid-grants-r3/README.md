@@ -32,13 +32,21 @@ built assets only within the disposable test Fastify process. It checks
 actual owner data, foreign-row isolation, human and Agent filters, invalid
 action denial, unchanged effect quota, and delayed old successful GET
 after a newer denial. Browser tests use the actual route and a deliberately
-held response, not a fake client-only response.
+held response, not a fake client-only response. R4 adds synthetic pagehide /
+pageshow event interleavings and a browser-native back navigation after
+server-side session revocation while the document is away. BFCache restoration
+is reported independently through the trusted pageshow event.
 
 ## Reconciliation
 
 Every refresh clears visible data and increments a request generation.
 Only one settlement of the current loading generation is accepted.
-Denied/unavailable observations retain no rows. This does not mean that a
+Denied/unavailable observations retain no rows. On pagehide or hidden
+visibility, the generation is invalidated and visible rows/filter cleared.
+On restoration/visibility return, fetch a new owner observation; a late
+response from the earlier page lifecycle cannot settle. Identity can change
+between observations, and a new page observation does not rely on a
+browser-provided identity claim. This does not mean that a
 browser can guarantee continuous revocation visibility without a new owner
 observation, nor is generation a server revision or authority token.
 The read projection retains only fields used by this consumer.
@@ -46,25 +54,24 @@ No durable client cache; no effect admission logic.
 
 ## Bounded model
 
-ObservationGenerationR1 models at most two outstanding requests and three
-outcomes. TLC safe configuration checks three semantic invariants;
-legacy config demonstrates denial resurrection, two reach configs check
-that observed/denied remain reachable. Duplicate-completion and wire
+ObservationGenerationR1 models at most three generation advances (including
+suspend/resume) and three response outcomes. TLC safe configuration checks
+four semantic invariants; two legacy configs demonstrate denial resurrection
+and hidden-page restoration, three reach configs check observed/denied/
+suspended remain reachable. Duplicate-completion and wire
 validation are covered by native TypeScript tests. Model proof is not a
 source-refinement or distributed authentication proof.
 
-Use the already verified TLC 1.7.4 JAR from the existing root toolchain
-composition, with its locked digest confirmed before use:
+Use the existing pinned TLC 1.7.4 JAR and its expected SHA256 supplied by
+the root toolchain composition. Run all five expected negative/reachability
+controls as well as the safe model; temporary state is removed automatically:
 
-    cd formal
-    java -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config ObservationGenerationR1.safe.cfg ObservationGenerationR1.tla
-
-Run the other three configs as negative controls; each must violate its
-named invariant. Prefer a temporary TLC metadir and clean generated files.
+    ORDIVON_TLA_TOOLS_JAR=/absolute/path/to/tla2tools.jar \
+      ORDIVON_TLA_TOOLS_SHA256=<locked-sha256> bash formal/check.sh
 
 ## Remaining qualification
 
-Independent review, same-origin lifecycle on navigation/session changes,
+Independent review, identity changes while continuously visible (without a new observation),
 production supply-chain admission, explicit operator authentication flow,
 native installed owner/API access, usability/accessibility and end-to-end
 performance remain unqualified. No production install or release.

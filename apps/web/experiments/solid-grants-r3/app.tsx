@@ -4,16 +4,20 @@ import {createAgent} from "@ui-sdk/solid/agent";
 import {Select,SelectContent,SelectItem,SelectLabel,SelectTrigger,SelectValue} from "@ui-sdk/solid/select";
 import "@ui-sdk/core/web.css";
 import {grantAvailability,type GrantAvailability} from "../../src/grant-observation.ts";
-import {initial,begin,settle,readObservation,type Outcome} from "./observation.ts";
+import {initial,begin,suspend,settle,readObservation,type Outcome} from "./observation.ts";
 
 type Filter="all"|GrantAvailability;
 const items=[{value:"all",label:"All grants"},{value:"candidate",label:"Candidate"},{value:"revoked",label:"Revoked"},{value:"expired",label:"Expired"},{value:"exhausted",label:"Quota exhausted"}];
 const bridge=createAgent({allow:step=>step.action==="setValue"&&items.some(item=>item.value===step.args[0])});
-const changes:unknown[]=[];
-bridge.subscribe(change=>changes.push(change));
 const [state,setState]=createSignal(initial);
 const [filter,setFilter]=createSignal<Filter>("all");
+let pageActive=true;
+const visible=()=>pageActive&&document.visibilityState==="visible";
+function invalidate(){
+  setState(old=>suspend(old));setFilter("all");flush();
+}
 async function refresh(){
+  if(!visible()){invalidate();return;}
   const next=begin(state());setState(next);flush();
   let outcome:Outcome;
   try {
@@ -24,6 +28,7 @@ async function refresh(){
   } catch {
     outcome={status:"unavailable",observation:null};
   }
+  if(!visible()){invalidate();return;}
   setState(old=>settle(old,next.generation,outcome));flush();
 }
 function App(){
@@ -48,5 +53,20 @@ function App(){
 }
 render(()=> <App/>,document.getElementById("root")!);
 // Test harness only. No WebMCP registration, network agent or mutation capability.
-Object.assign(window,{probe:{bridge,changes,refresh}});
+Object.assign(window,{probe:{bridge,refresh}});
+window.addEventListener("pagehide",()=>{
+  pageActive=false;invalidate();
+});
+window.addEventListener("pageshow",event=>{
+  pageActive=true;
+  // The initial pageshow must not start a duplicate GET. A restored page
+  // cannot trust the browser's retained DOM or the old request generation.
+  if(event.persisted||state().status==="suspended"){
+    if(visible())void refresh();
+  }
+});
+document.addEventListener("visibilitychange",()=>{
+  if(!visible())invalidate();
+  else if(state().status==="suspended")void refresh();
+});
 void refresh();

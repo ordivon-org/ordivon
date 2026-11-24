@@ -3,12 +3,18 @@ type Row = Pick<GrantObservation["grants"][number], "principalId" | "grantId" | 
 export type Observation = Omit<GrantObservation,"grants"> & {readonly grants:readonly Row[]};
 
 export type State =
-  | {generation:number;status:"loading"|"denied"|"unavailable";observation:null}
+  | {generation:number;status:"loading"|"denied"|"unavailable"|"suspended";observation:null}
   | {generation:number;status:"observed";observation:Observation};
 
 export const initial:State={generation:0,status:"loading",observation:null};
 export function begin(previous:State):State {
   return {generation:previous.generation+1,status:"loading",observation:null};
+}
+// A page lifecycle boundary invalidates both retained data and all pending
+// generations, even if the next network response was previously authorized.
+export function suspend(previous:State):State {
+  if(previous.status==="suspended") return previous;
+  return {generation:previous.generation+1,status:"suspended",observation:null};
 }
 export type Outcome =
   | {status:"denied"|"unavailable";observation:null}

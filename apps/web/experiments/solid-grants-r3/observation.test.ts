@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {test} from "node:test";
-import {initial,begin,settle,readObservation} from "./observation.ts";
+import {initial,begin,suspend,settle,readObservation} from "./observation.ts";
 const observed={status:"observed",observation:{principalId:"p",observedAt:1,grants:[]}} as const;
 const denied={status:"denied",observation:null} as const;
 test("newest refresh invalidates preceding snapshot and late success cannot resurrect it",()=>{
@@ -28,4 +28,18 @@ test("consumer retains only the row fields it renders",()=>{
    principalId:"p",grantId:"g",agentId:"a",active:true,revision:1,remainingEffects:3,expiresAtEpochSeconds:9,grantDigest:"owner-only-extra"
  }]});
  assert.equal("grantDigest" in result.grants[0]!,false);
+});
+
+test("page suspension invalidates visible and in-flight data and is idempotent",()=>{
+ const first=begin(initial), prior=settle(first,first.generation,observed);
+ const hidden=suspend(prior);
+ assert.equal(hidden.status,"suspended");
+ assert.equal(hidden.observation,null);
+ assert.equal(suspend(hidden),hidden);
+ const second=begin(hidden);
+ const suspendedPending=suspend(second);
+ assert.equal(settle(suspendedPending,second.generation,observed),suspendedPending);
+ const resumed=begin(suspendedPending);
+ assert.equal(settle(resumed,second.generation,observed),resumed);
+ assert.equal(settle(resumed,resumed.generation,observed).status,"observed");
 });
