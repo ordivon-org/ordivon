@@ -53,16 +53,59 @@ REQUIRED_RUNTIME_INVARIANT_BINDINGS = {"I05", "I11"}
 # The PG-native slice observes bounded contracts, not full model refinement.
 # Keep one verifier; the original trace remains the explicit legacy slice.
 NATIVE_PROFILE_FEATURES = {"legacy": "transactional-runtime", "pg": "postgres-registry-admission"}
-PG_WITNESS_ROLES = {
-    "PG.providerContract": "always-on",
-    "PG.terminalContract": "always-on",
-    "PG.terminalProjection": "always-on",
-    "PG.orphanProjection": "always-on",
-    "PG.dispatchCAS": "physical-opt-in",
-    "PG.admissionUnique": "physical-opt-in",
-    "PG.terminalOrphanCAS": "physical-opt-in",
-    "PG.staleTerminal": "physical-opt-in",
-    "PG.composedTerminal": "physical-opt-in",
+# Stable semantic test symbols, not file layout; changing the obligation
+# mapping requires explicit review of the independent verification contract.
+PG_WITNESS_CONTRACTS = {
+    'PG.providerContract': (
+        'always-on',
+        'provider_replacement_cannot_weaken_r1_guarantees',
+        frozenset({'ExecutionProvider.assumeGuarantee'}),
+    ),
+    'PG.terminalContract': (
+        'always-on',
+        'terminal_evidence_requires_result_finish_matching_resolution_and_no_current_attempt',
+        frozenset({'RuntimeDispatch.TerminalEvidenceIsCommitted'}),
+    ),
+    'PG.terminalProjection': (
+        'always-on',
+        'terminal_requires_corresponding_attempt_evidence_and_released_capacity',
+        frozenset({'RuntimeDispatch.TerminalEvidenceIsCommitted'}),
+    ),
+    'PG.orphanProjection': (
+        'always-on',
+        'orphan_never_projects_as_released_capacity',
+        frozenset({'RuntimeDispatch.HeldOrphanIsFenced'}),
+    ),
+    'PG.dispatchCAS': (
+        'physical-opt-in',
+        'pg18_bundle_and_dispatch_commit_before_external_effect',
+        frozenset({'RuntimeDispatch.AtMostOnceDispatchPerAttempt'}),
+    ),
+    'PG.concurrentDispatchCAS': (
+        'physical-opt-in',
+        'pg18_concurrent_dispatch_has_one_committed_issuer',
+        frozenset({'RuntimeDispatch.AtMostOnceDispatchPerAttempt'}),
+    ),
+    'PG.admissionUnique': (
+        'physical-opt-in',
+        'pg18_concurrent_duplicate_never_creates_second_job',
+        frozenset({'RuntimeDispatch.NoCompetingLiveAttempts'}),
+    ),
+    'PG.terminalOrphanCAS': (
+        'physical-opt-in',
+        'pg18_terminal_cas_replay_orphan_hold_and_atomic_rollback',
+        frozenset({'RuntimeDispatch.HeldOrphanIsFenced', 'RuntimeDispatch.TerminalEvidenceIsCommitted'}),
+    ),
+    'PG.staleTerminal': (
+        'physical-opt-in',
+        'pg18_stale_attempt_cannot_terminalize_current_job',
+        frozenset({'RuntimeDispatch.TerminalEvidenceIsCommitted'}),
+    ),
+    'PG.composedTerminal': (
+        'physical-opt-in',
+        'pg18_composed_admit_dispatch_artifact_terminal_is_one_consumer_chain',
+        frozenset({'RuntimeDispatch.TerminalEvidenceIsCommitted', 'RuntimeDispatch.AtMostOnceDispatchPerAttempt'}),
+    ),
 }
 
 
@@ -82,7 +125,7 @@ def native_profile_trace(trace: dict[str, Any], profile: str) -> dict[str, Any]:
 
 def validate_pg_witnesses(trace: dict[str, Any]) -> list[str]:
     rows = trace.get("pgNativeWitnesses")
-    if not isinstance(rows, list) or len(rows) != len(PG_WITNESS_ROLES) or set(_ids(rows)) != set(PG_WITNESS_ROLES):
+    if not isinstance(rows, list) or len(rows) != len(PG_WITNESS_CONTRACTS) or set(_ids(rows)) != set(PG_WITNESS_CONTRACTS):
         return ["PG native witness identities missing or duplicated"]
     errors = []
     identities = set()
@@ -91,20 +134,25 @@ def validate_pg_witnesses(trace: dict[str, Any]) -> list[str]:
             return ["PG native witness is not an object"]
         identity = row["id"]
         mode = row.get("evidenceMode")
-        if mode != PG_WITNESS_ROLES[identity]:
+        expected_mode, expected_symbol, expected_relations = PG_WITNESS_CONTRACTS[identity]
+        if mode != expected_mode:
             errors.append(f"PG native witness {identity} has invalid evidence role")
         path, symbol = row.get("path"), row.get("symbol")
         if not isinstance(path, str) or not isinstance(symbol, str):
             errors.append(f"PG native witness {identity} has incomplete source identity")
             continue
+        if symbol != expected_symbol:
+            errors.append(f"PG native witness {identity} has invalid semantic test identity")
         if (path, symbol) in identities:
             errors.append(f"PG native witness {identity} duplicates another native case")
         identities.add((path, symbol))
         errors.extend(require_test_source(ROOT / path, symbol))
         relations = row.get("modelRelations")
-        if not isinstance(relations, list) or not relations or any(
-            not isinstance(x, str) or x not in REQUIRED_MODEL_BINDINGS | REQUIRED_SUPPORTING_CONTRACTS
-            for x in relations
+        if (
+            not isinstance(relations, list)
+            or any(not isinstance(x, str) for x in relations)
+            or len(relations) != len(expected_relations)
+            or frozenset(relations) != expected_relations
         ):
             errors.append(f"PG native witness {identity} has invalid model relations")
         if not isinstance(row.get("scope"), str) or not row["scope"].strip():
@@ -832,6 +880,7 @@ def project_proving_test_source_readsets(
         owned("planning/invariants-r1.json"),
         owned("scripts/verify_formal_trace.py"),
         owned("scripts/tests/test_formal_trace.py"),
+        owned("mise.toml"),
         # The actual Cargo --locked workspace invocation consumes these
         # positive build inputs even though rustc dep-info only names the
         # selected libtest source files. This is deliberately conservative:
@@ -873,7 +922,11 @@ def project_proving_test_source_readsets(
         targets = witness["modelRelations"] if profile == "pg" else witness["proves"]
         files.update(carriers[target] for target in targets if target in carriers)
         if profile == "pg" and witness["evidenceMode"] == "physical-opt-in":
-            files.add(owned("scripts/pg_disposable_physical.py"))
+            files.update(owned(path) for path in (
+                "scripts/pg_disposable_physical.py",
+                "scripts/tests/test_pg_physical_verification_contract.py",
+                "scripts/tests/test_pg_disposable_physical.py",
+            ))
         readsets[witness["id"]] = files
 
     if compiler_inputs is not None:
