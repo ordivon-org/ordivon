@@ -659,9 +659,25 @@ def _native_libtest_depfile_receipt(executable: Path, source_head: str) -> dict[
     repo = ROOT.parents[1]
     rows = []
     for name in first_sources:
-        if not name.startswith("crates/") or os.path.isabs(name) or "\\" in name:
+        if "\\" in name:
             raise ValueError("compiler dependency outside accepted Runtime source")
-        relative = os.path.normpath(name)
+        if os.path.isabs(name):
+            # rustc records absolute include_str! input when Cargo's
+            # package manifest directory was embedded in the expression.
+            # Only the exactly bound current package, with no lexical
+            # alias/parent traversal, is an admissible absolute input.
+            package = ROOT.resolve(strict=True) / "crates/ordivon-runtime-core"
+            if (
+                "CARGO_MANIFEST_DIR" not in compiler_environment
+                or not name.startswith(str(package) + "/")
+                or name != os.path.normpath(name)
+            ):
+                raise ValueError("compiler absolute dependency outside qualified package")
+            relative = str(Path(name).relative_to(ROOT.resolve(strict=True)))
+        elif name.startswith("crates/"):
+            relative = os.path.normpath(name)
+        else:
+            raise ValueError("compiler dependency outside accepted Runtime source")
         absolute = ROOT / relative
         if not relative.startswith("crates/") or not absolute.is_file() or absolute.is_symlink():
             raise ValueError("compiler dependency absent or outside Runtime source")

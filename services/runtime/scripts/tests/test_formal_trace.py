@@ -853,6 +853,23 @@ class FormalTraceContractTests(unittest.TestCase):
                 with_env = self.module._native_libtest_depfile_receipt(bin_path, sha)
                 self.assertEqual(with_env["sourcePaths"], receipt["sourcePaths"])
                 self.assertNotEqual(with_env["compilerEnvironmentDigest"], receipt["compilerEnvironmentDigest"])
+                # Actual PG rustc dep-info includes SQL via absolute
+                # include_str!(concat!(env!("CARGO_MANIFEST_DIR"), ...)).
+                absolute_sql = str(sql)
+                abs_depfile = unextended.replace(native_inputs[1], absolute_sql) + env_row
+                depfile.write_text(abs_depfile, encoding="utf-8")
+                absolute_receipt = self.module._native_libtest_depfile_receipt(bin_path, sha)
+                self.assertEqual(absolute_receipt["sourcePaths"], receipt["sourcePaths"])
+                self.assertEqual(absolute_receipt["sourceGitBlobsDigest"], receipt["sourceGitBlobsDigest"])
+                for malformed in (
+                    abs_depfile.replace(absolute_sql, str(base / "outside.sql")),
+                    abs_depfile.replace(absolute_sql, str(sql.parent / ".." / "migrations/schema.sql")),
+                    abs_depfile + absolute_sql + ":\n",
+                    abs_depfile.removesuffix(env_row),
+                ):
+                    depfile.write_text(malformed, encoding="utf-8")
+                    with self.assertRaises(ValueError):
+                        self.module._native_libtest_depfile_receipt(bin_path, sha)
                 for bad in (
                     env_row + env_row,
                     "# env-dep:CARGO_MANIFEST_DIR=/elsewhere\n",
