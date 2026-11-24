@@ -73,25 +73,25 @@ pub(crate) fn valid_pg_artifacts(artifacts: &[PgArtifactRegistration]) -> bool {
     })
 }
 pub(super) fn terminal_transition(from: &str, to: &str) -> bool {
-    match from {
-        "accepted" => matches!(to, "cancelled" | "failed" | "lost" | "orphaned"),
-        "starting" | "running" | "stopping" | "recovering" => matches!(
-            to,
-            "succeeded" | "failed" | "timed_out" | "cancelled" | "lost" | "orphaned"
-        ),
-        _ => false,
-    }
+    use crate::runtime::AttemptState;
+
+    let (Some(from), Some(to)) = (
+        AttemptState::known_db_state(from),
+        AttemptState::known_db_state(to),
+    ) else {
+        return false;
+    };
+    to.is_terminal() && from.can_transition_to(to)
 }
-#[cfg(kani)]
+
+// Independent finite state alphabet/specification used by both the regular
+// Rust test and the optional Kani harness. Production does not call this oracle.
+#[cfg(any(test, kani))]
 mod kani_transition_proofs {
     use super::terminal_transition;
 
-    #[kani::proof]
-    fn proof_pg_terminal_transition_matches_contract() {
-        let from_id: u8 = kani::any();
-        let to_id: u8 = kani::any();
-        kani::assume(from_id < 12 && to_id < 12);
-        let state = |id: u8| match id {
+    fn state(id: u8) -> &'static str {
+        match id {
             0 => "accepted",
             1 => "starting",
             2 => "running",
@@ -104,13 +104,54 @@ mod kani_transition_proofs {
             9 => "lost",
             10 => "orphaned",
             _ => "unqualified",
-        };
-        // Independent, finite contract for the declared runtime state alphabet.
-        let expected = match from_id {
+        }
+    }
+
+    fn expected_transition(from_id: u8, to_id: u8) -> bool {
+        match from_id {
             0 => matches!(to_id, 6 | 8 | 9 | 10),
             1..=4 => matches!(to_id, 5..=10),
             _ => false,
-        };
-        assert_eq!(terminal_transition(state(from_id), state(to_id)), expected);
+        }
+    }
+
+    #[test]
+    fn terminal_transition_covers_declared_state_alphabet() {
+        for from in 0..12 {
+            for to in 0..12 {
+                assert_eq!(
+                    terminal_transition(state(from), state(to)),
+                    expected_transition(from, to),
+                    "unexpected terminal transition {} -> {}",
+                    state(from),
+                    state(to),
+                );
+            }
+        }
+        use crate::runtime::AttemptState;
+        for id in 0..11 {
+            let value = state(id);
+            let parsed = AttemptState::parse(value).unwrap();
+            assert_eq!(AttemptState::known_db_state(value), Some(parsed));
+            assert_eq!(parsed.as_db(), value);
+        }
+        for unknown in ["", "RUNNING", " running", "succeeded ", "completed"] {
+            assert!(AttemptState::known_db_state(unknown).is_none());
+            assert!(AttemptState::parse(unknown).is_err());
+            assert!(!terminal_transition(unknown, "succeeded"));
+            assert!(!terminal_transition("running", unknown));
+        }
+    }
+
+    #[cfg(kani)]
+    #[kani::proof]
+    fn proof_pg_terminal_transition_matches_contract() {
+        let from_id: u8 = kani::any();
+        let to_id: u8 = kani::any();
+        kani::assume(from_id < 12 && to_id < 12);
+        assert_eq!(
+            terminal_transition(state(from_id), state(to_id)),
+            expected_transition(from_id, to_id)
+        );
     }
 }
