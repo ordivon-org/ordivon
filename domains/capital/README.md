@@ -1,5 +1,7 @@
 # Ordivon Capital — Finance investment and research owner
 
+**Cross-Owner Finance outcome work:** when a task must deliver a Finance economic result or retire a historical implementation chain, use [Finance Contractual Execution R1](../../packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md) for the task-local consumer, evidence and verification obligations. This SPEC is not a financial authority or second execution platform.
+
 
 **Directory/Owner audit:** [Finance directory and LEGO boundary audit](docs/FINANCE_DIRECTORY_OWNER_AUDIT_R1.md) records consumer-backed retirement decisions and separate Human/Agent operating paths. It is source evidence, not a current market or broker authority.
 
@@ -30,6 +32,32 @@ Expect exactly `allocationsMinor.BOND_CORE=10000` cents,
 `allocationsMinor.INDEX_CORE=0` and `executionAuthorized=false`.
 Inputs are caller-supplied and neither risk suitability nor provider
 pricing is thereby verified.
+
+**Fund NAV total-return comparison R2:** the existing passive benchmark
+accepts schemaVersion 2 for matched USD fund NAV total returns already
+including distributions and net of fund expenses. Only external investor
+costs may be declared separately; see
+[Fund NAV benchmark R2](docs/FINANCE_FUND_NAV_BENCHMARK_R2.md).
+The September 2026 SHY/SPY example transcribes issuer-reported rounded
+monthly data and remains retrospective, not authenticated PIT or fills.
+
+For dated outstanding cash needs, use the same read-only entry:
+```sh
+domains/capital/scripts/run-strategic-contribution-brief \
+  < domains/capital/examples/goal_funded_contribution_r1.json
+```
+The synthetic example reserves $400 ($100 emergency + $300 tuition),
+caps a requested $200 contribution at $100, and separately reports
+$800 outside the explicit reserve horizon. It never assumes future income,
+investment returns or asset sales. A reserve shortfall produces no allocation
+plan; an outside-horizon obligation is **not** certified as funded. This is
+not an account observation, suitability assessment or execution grant.
+See [dated liability reserve](docs/FINANCE_GOAL_RESERVE_R1.md).
+
+
+**Finance multi-frequency as-of state (2026-11-20):** [Liquidity As-of R2](docs/FINANCE_LIQUIDITY_ASOF_R2.md) composes official dated Fed H.4.1, Treasury DTS and NY Fed SOFR at an explicit research time, with cross-source TGA accounting reconciliation, not a fabricated daily global-liquidity index.
+
+**Finance liquidity science (2026-11-20):** The direct, negative-results SOFR-to-SPX price-index ablation in [Finance Liquidity Research R1](docs/FINANCE_LIQUIDITY_RESEARCH_R1.md) is a Research-only experiment, not a market-wide liquidity proxy, qualified historical PIT test, investable SPY benchmark or broker policy. No new Owner, native executor, ledger or trading authority was added.
 
 **Canonical sources remain `domains/capital` / `ordivon_capital`.**
 Finance is the investment-management program rather than a second
@@ -420,7 +448,9 @@ checks that via pg_attribute.attnotnull and compares other constraints
 independently. The strict PG deparser comparison deliberately fails closed
 after a server upgrade until the actual installed version is requalified.
 These checks do not amount to a proof of arbitrary SQL equivalence or a
-production deployment certificate.\r\n\r\n## Agent tool selection and local execution
+production deployment certificate.
+
+## Agent tool selection and local execution
 
 Select the financial consumer first: `markets/` for market observations,
 `research/` for hypotheses/experiments, `portfolio/` for decisions,

@@ -34,7 +34,8 @@
       "kind": "image",
       "status": "approved",
       "profile": "social-card-1200x630",
-      "blobDigest": "sha256:fc19d4cf27982fd177c9411245fb994a970551e105866348ee03e9deed6bcce4"
+      "blobDigest": "sha256:fc19d4cf27982fd177c9411245fb994a970551e105866348ee03e9deed6bcce4",
+      "outputCarrier": "output/card.png"
     }
   ]
 }

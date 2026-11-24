@@ -13,7 +13,7 @@ audience:
   - builder
   - researcher
   - agent
-updated: 2026-08-04
+updated: 2026-11-17
 summary: Canonical concept and admission boundary for turning one Agent proposal into an identifiable, evidenced, recoverable physical commitment.
 evidence_status: verified
 readiness: READY
@@ -44,10 +44,10 @@ Ordivon delegates established facts to their strongest owners:
 
 | Problem | Existing owner |
 | --- | --- |
-| Process creation, exit, signals, files, permissions | Linux |
-| Process-tree ownership and resource budgets | systemd and cgroups |
+| Process creation, exit, signals, files, permissions | Linux and Windows native OS authorities, respectively |
+| Process-tree ownership and resource budgets | Linux: systemd/cgroup v2; Windows: SCM and Job Objects |
 | Repository history, revisions, diff, rollback | Git |
-| Transactional durable records | SQLite |
+| Transactional durable records | PostgreSQL (installed Linux PG Runtime); SQLite (installed Windows R6 legacy Runtime until cutover) |
 | Result bytes | Digest-bound files |
 | Tool transport and schema exposure | MCP adapter |
 
@@ -73,10 +73,10 @@ Current implementation mapping:
 | Kernel object | Current Runtime object |
 | --- | --- |
 | Operation | Job plus committed Execution Plan and immutable bundle |
-| Dispatch generation | Attempt plus launch token and systemd unit |
-| Physical ownership | cgroup-owned process tree |
+| Dispatch generation | Attempt plus launch token and an OS-native execution identity (Linux systemd unit; Windows launcher/Job Object) |
+| Physical ownership | Linux cgroup-owned process tree or Windows Job Object-owned process collection, within each installed node's verified provider contract |
 | Execution evidence | Runner Result and Artifacts |
-| Recovery | Registry, Runner evidence, and systemd/cgroup reconciliation |
+| Recovery | Installed Registry backend, native Runner/launcher evidence, and platform-owned process reconciliation |
 | Structured effects | Runtime self-release uses a release-bound Job plus deterministic deployment receipt. The former dedicated Workspace Patch effect was retired because it duplicated durable effect lifecycle already provided by Jobs |
 
 The model must not grow merely to resemble a workflow engine, scheduler, policy platform, or Agent framework.
@@ -101,7 +101,7 @@ Existing-Job lookup precedes current new-admission policy. A later operator-poli
 
 ### 4. At-most-once physical dispatch per Attempt
 
-One Attempt may cross the physical dispatch boundary at most once. Ambiguous systemd dispatch is never speculatively repeated.
+One Attempt may cross the physical dispatch boundary at most once. Ambiguous native OS dispatch is never speculatively repeated.
 
 This is not a claim of exactly-once external effect. A process started once may itself perform zero, one, or many external effects.
 
@@ -167,7 +167,7 @@ Current Ordivon Runtime already proves:
 - idempotent admission by principal and client request identity;
 - a digest-bound Operation and immutable Attempt bundle;
 - at-most-once physical dispatch per Attempt;
-- cgroup ownership of the complete command process tree;
+- platform-native ownership of the process collection (Linux cgroup; Windows Job Object) under the installed provider's verified scope;
 - identity-bound Runner start and terminal Result evidence;
 - cancellation intent and termination of the owned process tree;
 - fail-closed `lost` and `orphaned` outcomes;
@@ -221,7 +221,7 @@ Ordivon chooses explicit ambiguity over fabricated completion. Lower apparent li
 A persistent addition to the Effect Kernel must answer all of the following:
 
 1. Which concrete failure or ambiguity does it solve?
-2. Why can Linux, systemd, Git, SQLite, the target provider, or an upper Agent layer not own it better?
+2. Why can Linux/Windows native process facilities, Git, the installed PostgreSQL/legacy SQLite backend, the target provider, or an upper Agent layer not own it better?
 3. What invariant becomes enforceable?
 4. What evidence proves that invariant?
 5. What new failure mode and operating cost are introduced?

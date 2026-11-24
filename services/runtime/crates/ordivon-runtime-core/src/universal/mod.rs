@@ -15,6 +15,7 @@ pub use fsutil::{
     ENVIRONMENT_VARIABLE_NAME_PATTERN, WORKSPACE_ID_MAX_LENGTH, WORKSPACE_ID_MIN_LENGTH,
     WORKSPACE_ID_PATTERN,
 };
+pub(crate) use mutation::ensure_workspace_mutation_quiescent;
 pub use mutation::mutate_workspace;
 pub(crate) use mutation::read_workspace_slice;
 pub(crate) use projection::create_git_workspace;
@@ -38,7 +39,7 @@ pub(crate) use types::{
     WorkspaceDiffResult, WorkspaceReadResult, WorkspaceReadSliceResult, WorkspaceRecord,
     WorkspaceWriteRequest, WorkspaceWriteResult,
 };
-#[cfg(any(feature = "transactional-runtime", test))]
+#[cfg(any(feature = "runtime-contract", test))]
 pub use workspace::workspace_source_state_digest;
 pub(crate) use workspace::{
     create_git_workspace_record, load_workspace_record, read_workspace_text, workspace_diff,
@@ -74,10 +75,8 @@ pub(crate) use types::{
     RunnerPayloadConfig, RunnerProgress, RunnerRequest, RunnerResult, RunnerStartEvidence,
     RunnerTerminalStatus,
 };
-#[cfg(feature = "transactional-runtime")]
+#[cfg(feature = "runtime-contract")]
 pub(crate) use workspace::resolve_workspace_cwd;
-#[cfg(unix)]
-pub(crate) use workspace::workspace_source_state_digest_at;
 pub(crate) use workspace::{
     list_open_workspace_record_inventory, preflight_workspace_write_path, remove_workspace_file,
     resolve_existing_workspace_path, workspace_cleanup_dependents, workspace_git_common_dir_at,
@@ -85,6 +84,11 @@ pub(crate) use workspace::{
 };
 #[cfg(feature = "operator-tools")]
 pub(crate) use workspace::{workspace_change_projection_at, workspace_head_revision_at};
+// Scoped read-set hashing uses portable Git/filesystem logic. The Windows
+// consumer must not silently lose the original source-continuity commitment.
+pub(crate) use workspace::workspace_source_readset_digest_at;
+#[cfg(unix)]
+pub(crate) use workspace::workspace_source_state_digest_at;
 
 #[cfg(test)]
 mod tests;

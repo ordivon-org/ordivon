@@ -65,7 +65,7 @@ impl Sandbox {
                 },
                 input_authorities: Vec::new(),
                 credential_authorities: Vec::new(),
-                workspace_headroom: None,
+                workspace_headroom: Vec::new(),
                 execution: ExecutionContext {
                     principal: "principal:mcp-test".to_string(),
                     global_limit: 4,
@@ -108,7 +108,7 @@ impl Sandbox {
             },
             input_authorities: Vec::new(),
             credential_authorities: Vec::new(),
-            workspace_headroom: None,
+            workspace_headroom: Vec::new(),
             execution: ExecutionContext {
                 principal: "principal:mcp-test-ingress".to_string(),
                 global_limit: 4,
@@ -990,7 +990,7 @@ print(json.dumps({{
             },
             input_authorities: Vec::new(),
             credential_authorities: Vec::new(),
-            workspace_headroom: None,
+            workspace_headroom: Vec::new(),
             execution: ExecutionContext {
                 principal: "principal:mcp-test-reconcile".to_string(),
                 global_limit: 4,
@@ -1208,7 +1208,7 @@ fn private_ip_download_host_is_rejected_at_configuration_boundary() {
         },
         input_authorities: Vec::new(),
         credential_authorities: Vec::new(),
-        workspace_headroom: None,
+        workspace_headroom: Vec::new(),
         execution: ExecutionContext {
             principal: "principal:mcp-test-private-host".to_string(),
             global_limit: 4,
@@ -2169,6 +2169,7 @@ fn workspace_open_output_schema_exposes_success_and_error_contract() {
     );
     for expected in [
         "sourceRevision",
+        "retentionNotice",
         "error",
         "runtime_core",
         "mcp_adapter",
@@ -2263,7 +2264,10 @@ fn workspace_changes_schema_exposes_bounded_continuation_contract() {
 }
 
 #[test]
-fn workspace_open_schema_prefers_server_generated_handles() {
+fn workspace_open_requires_caller_stable_id_before_physical_effect() {
+    // Response loss must have a durable readback coordinate independent of
+    // the MCP reply. Source identity cannot serve as an idempotency key:
+    // two deliberate independent Workspaces may share the same Git commit.
     let sandbox = Sandbox::new("workspace-open-schema");
     let server = sandbox.server();
     let open = server
@@ -2278,18 +2282,27 @@ fn workspace_open_schema_prefers_server_generated_handles() {
         .and_then(Value::as_array)
         .cloned()
         .unwrap_or_default();
-    assert!(!required
+    assert!(required
         .iter()
         .any(|value| value.as_str() == Some("workspaceId")));
-    let bound = WorkspaceOpenRequest {
-        schema_version: 1,
-        workspace_id: None,
-        source_repo: "/tmp/repository".to_string(),
-        source_revision: "HEAD".to_string(),
+
+    for bad in [
+        r#"{"sourceRepo":"/tmp/repository","sourceRevision":"HEAD"}"#,
+        r#"{"workspaceId":null,"sourceRepo":"/tmp/repository","sourceRevision":"HEAD"}"#,
+    ] {
+        assert!(
+            serde_json::from_str::<WorkspaceOpenRequest>(bad).is_err(),
+            "missing/null identity must reject before Git: {bad}"
+        );
     }
-    .bind();
-    assert!(bound.workspace_id.starts_with("ws-"));
-    assert_eq!(bound.workspace_id.len(), 39);
+    let request: WorkspaceOpenRequest = serde_json::from_str(
+        r#"{"workspaceId":"ws-caller-stable-42","sourceRepo":"/tmp/repository","sourceRevision":"HEAD"}"#,
+    )
+    .unwrap();
+    let bound = request.bind();
+    assert_eq!(bound.workspace_id, "ws-caller-stable-42");
+    assert_eq!(bound.source_repo, "/tmp/repository");
+    assert_eq!(bound.source_revision, "HEAD");
 }
 
 #[test]

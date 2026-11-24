@@ -13,7 +13,7 @@ audience:
   - user
   - builder
   - operator
-updated: 2026-08-04
+updated: 2026-11-18
 summary: Minimal path from a clean checkout to portable checks, real system acceptance, and receipted installation.
 evidence_status: verified
 readiness: READY
@@ -28,6 +28,10 @@ related:
 <!-- cspell:words rustc clippy toplevel -->
 # Runtime Quick Start
 
+## Select the installed Runtime backend before operating it
+
+**Observed 2026-11-18 (Linux node `linux-pg`):** the connected systemd service runs the PG-native `ordivon-runtime-pg` binary with a resource-aware queue (`runtime.describe.globalExecutionLimit=null`). The native Windows `windows-main-r6-candidate` is a **separate** node whose PostgreSQL Writer cutover has not been accepted. This page's `transactional-runtime`, `registry.sqlite3`, legacy `ordivon-runtime-mcp` and fixed-count deployment examples are **source/legacy installation examples**, **not instructions to replace or reconfigure the installed Linux PG service**. Inspect the exact node's `runtime.describe`, systemd/SCM `ExecStart`, active Registry backend, deployed executable digest and release receipt first; use the existing [operator guide](guides/operator-runtime.md) for backend-qualified actions. A documented or packaged lifecycle timer does not prove the installed timer is enabled; the observed Linux timer was disabled/inactive. Do not enable reclaim without original Harness/Workspace consumer release evidence.
+
 ## Goal
 
 Use the portable path to inspect or contribute from any supported Linux development environment. Use the real-system path only on an owner-trusted machine with systemd, cgroup v2, and root authority. Use the production path when installing the long-running service.
@@ -35,14 +39,14 @@ Use the portable path to inspect or contribute from any supported Linux developm
 ## Prerequisites
 
 ```bash
-git clone https://github.com/zycxfyh/ordivon-runtime.git
-cd ordivon-runtime
+git clone https://github.com/ordivon-org/ordivon.git
+cd ordivon/services/runtime
 git status --short --branch
 rustc --version
 python3 --version
 ```
 
-The repository fixes Rust 1.95.0 through `rust-toolchain.toml`. Python operational scripts support Python 3.11 or newer.
+The repository fixes Rust 1.99.1 through `rust-toolchain.toml`. Python operational scripts support Python 3.11 or newer.
 
 ## Steps
 
@@ -107,7 +111,8 @@ At minimum:
 - keep `ORDIVON_BEARER_TOKEN_FILE` pointed at a private regular file containing at least 32 non-whitespace characters; the legacy inline `ORDIVON_BEARER_TOKEN` remains migration-only, and configuring both fails closed;
 - keep `ORDIVON_BIND` on loopback;
 - confirm `ORDIVON_EXEC_PATH` and `ORDIVON_EXEC_HOME` expose only intended trusted toolchains;
-- set host policy explicitly, including `ORDIVON_GLOBAL_MAX_CONCURRENCY`, `ORDIVON_DEFAULT_RUNTIME_MS`, `ORDIVON_MAX_RUNTIME_MS`, `ORDIVON_MAX_OUTPUT_BYTES`, reconciliation cadence/batch size, and cache limits;
+- configure `ORDIVON_DEFAULT_RUNTIME_MS`, `ORDIVON_MAX_RUNTIME_MS`, `ORDIVON_MAX_OUTPUT_BYTES`, reconciliation cadence/batch size, and cache limits for the exact Runtime binary being installed;
+- for the legacy `ordivon-runtime-mcp` binary built by this guide, `ORDIVON_GLOBAL_MAX_CONCURRENCY` is a fixed Job-count limit: the example sets it to `16`, and omitting it defaults to `8` in `crates/ordivon-runtime-mcp/src/main.rs`. This is **not** the scheduling policy of every Runtime node. In particular, a separately installed PostgreSQL resource-aware node may report `globalExecutionLimit: null` through its own `runtime.describe`. Inspect the actual connected node and its installed release before applying a legacy example configuration; do not silently replace a dynamic-capacity installation with the legacy fixed-count profile.
 - enable Cloudflare Access trust only when the loopback origin is reachable exclusively through the operator-owned authenticated tunnel.
 
 ## 5. Deploy with a receipt
@@ -163,6 +168,8 @@ artifact.read
 workspace.diff
 workspace.close
 ```
+
+Before calling `workspace.open`, choose and persist a unique stable `workspaceId` in the real Agent/Run; **it is required**. If the creation response is lost, call `workspace.get` with the same ID rather than creating a new Workspace. Existing Native OPENING-intent reconciliation accepts only an exact same-ID/source replay; a closed, missing, or mismatched physical carrier cannot be presumed safe from a lost Tool response.
 
 The exact Tool names and descriptions are generated in [`reference/tools.md`](reference/tools.md). A complete executable client implementation is available in `scripts/mcp_e2e.py`.
 

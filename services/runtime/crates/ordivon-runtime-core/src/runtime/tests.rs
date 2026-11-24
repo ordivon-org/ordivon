@@ -953,6 +953,76 @@ fn run_git_command(directory: &Path, args: &[&str]) {
 }
 
 #[test]
+fn workspace_headroom_checks_both_independent_carriers() {
+    let sandbox = Sandbox::new("workspace-dual-headroom-guard", 5_000);
+    let host_path = sandbox.root.join("host-carrier");
+    let guest_path = sandbox.root.join("guest-carrier");
+    fs::create_dir_all(&host_path).unwrap();
+    fs::create_dir_all(&guest_path).unwrap();
+
+    let guarded = Runtime::new_with_authorities_default_runtime_and_workspace_headrooms(
+        runtime_config(&sandbox),
+        Vec::new(),
+        Vec::new(),
+        60_000,
+        vec![
+            WorkspaceHeadroomConfig {
+                path: host_path.clone(),
+                minimum_free_bytes: 1,
+            },
+            WorkspaceHeadroomConfig {
+                path: guest_path.clone(),
+                minimum_free_bytes: u64::MAX,
+            },
+        ],
+    )
+    .unwrap();
+
+    let error = guarded
+        .open_workspace(&crate::GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: "workspace-dual-carrier-rejected".to_string(),
+            source_repo: sandbox.root.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        })
+        .unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::WorkspaceCapacityExceeded);
+    assert_eq!(error.field.as_deref(), Some("workspaceHeadroom"));
+    assert!(error
+        .message
+        .contains(&guest_path.to_string_lossy().to_string()));
+    assert!(!error
+        .message
+        .contains(&host_path.to_string_lossy().to_string()));
+}
+
+#[test]
+fn workspace_headroom_rejects_invalid_secondary_path_on_construction() {
+    let sandbox = Sandbox::new("workspace-dual-headroom-invalid", 5_000);
+    let result = Runtime::new_with_authorities_default_runtime_and_workspace_headrooms(
+        runtime_config(&sandbox),
+        Vec::new(),
+        Vec::new(),
+        60_000,
+        vec![
+            WorkspaceHeadroomConfig {
+                path: sandbox.root.clone(),
+                minimum_free_bytes: 1,
+            },
+            WorkspaceHeadroomConfig {
+                path: PathBuf::from("relative-guest-carrier"),
+                minimum_free_bytes: 1,
+            },
+        ],
+    );
+    let error = match result {
+        Ok(_) => panic!("relative additional headroom path must be rejected"),
+        Err(error) => error,
+    };
+    assert_eq!(error.field.as_deref(), Some("workspaceHeadroom.path"));
+}
+
+#[test]
 fn workspace_headroom_guard_blocks_new_open_but_not_close() {
     let sandbox = Sandbox::new("workspace-headroom-guard", 5_000);
     let source = sandbox.root.join("workspace-source");
@@ -4494,7 +4564,7 @@ fn workspace_list_surfaces_invalid_current_physical_candidate() {
 }
 
 #[test]
-fn workspace_list_ignores_corrupt_history_without_a_physical_open_workspace() {
+fn workspace_list_surfaces_corrupt_record_only_history_without_inventing_open_workspace() {
     let (_sandbox, runtime, executor) =
         workspace_fixture("workspace-list-history-poison", "workspace-list-current");
     fs::write(
@@ -4516,7 +4586,16 @@ fn workspace_list_ignores_corrupt_history_without_a_physical_open_workspace() {
 
     assert_eq!(result.workspaces.len(), 1);
     assert_eq!(result.workspaces[0].workspace_id, "workspace-list-current");
-    assert!(result.issues.is_empty());
+    // The bytes cannot tell us whether this was irrelevant history or an
+    // interrupted CLOSING intent. UNKNOWN is diagnostic, never absent or
+    // eligible for automatic close; it must not invent an OPEN Workspace.
+    assert_eq!(result.issues.len(), 1);
+    assert_eq!(result.issues[0].workspace_id, "historical-poison");
+    assert_eq!(
+        result.issues[0].stage,
+        RuntimeWorkspaceIssueStage::Inventory
+    );
+    assert_eq!(result.issues[0].code, "METADATA_CORRUPT");
 }
 
 #[test]
@@ -4950,6 +5029,38 @@ fn partial_runner_stdout_without_result_stays_lost_not_success() {
     assert_eq!(observed.execution_disposition, Some(JobResolution::Lost));
     assert!(bundle.join("stdout.log").exists());
     assert!(!bundle.join("result.json").exists());
+    // A LOST control receipt cannot turn mutable, unsealed Runner logs
+    // into committed immutable stdout/stderr Artifacts. The writer may
+    // arrive after this control-only resolution.
+    assert!(!runtime
+        .registry()
+        .list_artifacts(&created.job.job_id)
+        .unwrap()
+        .iter()
+        .any(|artifact| matches!(artifact.kind.as_str(), "stdout" | "stderr")));
+    fs::write(
+        bundle.join("stdout.log"),
+        b"partial output, no terminal result\nlate producer append\n",
+    )
+    .unwrap();
+    let reread = runtime
+        .observe_job(&JobObserveRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            job_id: created.job.job_id.clone(),
+            wait_ms: 0,
+            wait_until: JobObserveWaitUntil::Terminal,
+            stdout_tail_bytes: 128,
+            stderr_tail_bytes: 128,
+            stdout_offset: None,
+            stderr_offset: None,
+        })
+        .unwrap();
+    assert_eq!(reread.execution_disposition, Some(JobResolution::Lost));
+    assert!(reread.stdout_tail.contains("late producer append"));
+    assert!(!reread
+        .artifacts
+        .iter()
+        .any(|artifact| matches!(artifact.kind.as_str(), "stdout" | "stderr")));
 }
 
 #[test]
@@ -7503,6 +7614,27 @@ fn runtime_startup_reclaims_absent_orphan_and_reopens_workspace_slot() {
             &format!("{}.orphan-remediation", created.attempt.attempt_id),
         )
         .unwrap();
+    assert!(
+        !runtime
+            .registry()
+            .list_artifacts(&created.job.job_id)
+            .unwrap()
+            .iter()
+            .any(|artifact| matches!(artifact.kind.as_str(), "stdout" | "stderr")),
+        "absent orphan -> LOST must retain the control receipt, not publish a mutable log"
+    );
+    // Only the original log changes; persisted Artifact identities must not.
+    fs::write(
+        Path::new(&attempt.bundle_path).join("stdout.log"),
+        b"partial\nlate append\n",
+    )
+    .unwrap();
+    assert!(!runtime
+        .registry()
+        .list_artifacts(&created.job.job_id)
+        .unwrap()
+        .iter()
+        .any(|artifact| artifact.kind == "stdout"));
 
     let admitted = runtime
         .registry()
@@ -7554,6 +7686,15 @@ fn job_cancel_reclaims_absent_orphan_as_cancelled() {
         })
         .unwrap();
     assert_eq!(observation.status, "cancelled");
+    assert!(
+        runtime
+            .registry()
+            .list_artifacts(&created.job.job_id)
+            .unwrap()
+            .iter()
+            .any(|artifact| artifact.kind == "stdout"),
+        "absent orphan -> CANCELLED preserves its existing stopped-process stdout registration"
+    );
     assert_eq!(runtime.registry().active_reservation_count().unwrap(), 0);
     assert_eq!(
         runtime

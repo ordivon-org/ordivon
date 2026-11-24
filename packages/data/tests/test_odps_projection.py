@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+from unittest.mock import patch
 import subprocess
+import tomllib
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-
-import tomllib
 
 ROOT = Path(__file__).resolve().parents[3]
 import sys
@@ -84,131 +85,6 @@ class OwnerProductProjectionTests(unittest.TestCase):
                     for dist in product["distributions"]
                 )
             )
-
-    def test_git_commit_view_ignores_worktree_and_index_mutations(self) -> None:
-        """A published metadata SourceCut must be one Git tree, not mutable files."""
-        with TemporaryDirectory() as tmp:
-            repo = Path(tmp)
-
-            def git(*args: str) -> bytes:
-                return subprocess.run(
-                    ["/usr/bin/git", "-C", str(repo), *args],
-                    check=True,
-                    capture_output=True,
-                ).stdout
-
-            git("init", "-q")
-            entry = repo / "domains/capital/data-products/candidate/odps.json"
-            entry.parent.mkdir(parents=True)
-            initial = self.sources[0].read_bytes()
-            entry.write_bytes(initial)
-            git("add", ".")
-            git(
-                "-c",
-                "user.name=Data Test",
-                "-c",
-                "user.email=data@example.invalid",
-                "commit",
-                "-qm",
-                "admit source version one",
-            )
-            original_commit, original_blobs = committed_owner_products(repo, "HEAD")
-            self.assertEqual(original_blobs, [initial])
-            frozen_view = project_catalog(original_blobs)
-            self.assertEqual(frozen_view, project_catalog([entry]))
-
-            mutated = json.loads(initial)
-            mutated["version"] = "deliberately-uncommitted-v2"
-            entry.write_text(json.dumps(mutated), encoding="utf-8")
-            git("add", ".")
-            # Index now points to an uncommitted v2, but commit-scoped readers
-            # still see the old v1, unlike default live working tree projection.
-            unchanged_commit, unchanged_blobs = committed_owner_products(repo, "HEAD")
-            self.assertEqual(unchanged_commit, original_commit)
-            self.assertEqual(project_catalog(unchanged_blobs), frozen_view)
-            self.assertNotEqual(project_catalog([entry]), frozen_view)
-
-            git(
-                "-c",
-                "user.name=Data Test",
-                "-c",
-                "user.email=data@example.invalid",
-                "commit",
-                "-qm",
-                "publish source version two",
-            )
-            next_commit, new_blobs = committed_owner_products(repo, "HEAD")
-            self.assertNotEqual(next_commit, original_commit)
-            self.assertNotEqual(project_catalog(new_blobs), frozen_view)
-            prior_commit, prior_blobs = committed_owner_products(repo, original_commit)
-            self.assertEqual(prior_commit, original_commit)
-            self.assertEqual(project_catalog(prior_blobs), frozen_view)
-
-    def test_git_view_rejects_symlinks_and_invalid_revision(self) -> None:
-        with TemporaryDirectory() as tmp:
-            repo = Path(tmp)
-
-            def git(*args: str) -> None:
-                subprocess.run(
-                    ["/usr/bin/git", "-C", str(repo), *args],
-                    check=True,
-                    capture_output=True,
-                )
-
-            git("init", "-q")
-            entry = repo / "catalogs/data-products/test/odps.json"
-            entry.parent.mkdir(parents=True)
-            entry.symlink_to("/tmp/outside-file.json")
-            git("add", ".")
-            git(
-                "-c",
-                "user.name=Data Test",
-                "-c",
-                "user.email=data@example.invalid",
-                "commit",
-                "-qm",
-                "symlink is not ODPS bytes",
-            )
-            with self.assertRaisesRegex(ValueError, "not a regular Git blob"):
-                committed_owner_products(repo, "HEAD")
-            with self.assertRaisesRegex(ValueError, "cannot be resolved"):
-                committed_owner_products(repo, "not-a-commit")
-            with self.assertRaisesRegex(ValueError, "nonempty revision"):
-                committed_owner_products(repo, "--help")
-
-    def test_exact_current_repo_git_view_matches_committed_owner_metadata(self) -> None:
-        script = ROOT / "packages/data/scripts/project_owned_products.py"
-        source = subprocess.run(
-            [sys.executable, str(script), "--at-commit", "HEAD"],
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=20,
-        )
-        commit = subprocess.run(
-            ["/usr/bin/git", "-C", str(ROOT), "rev-parse", "HEAD"],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-        self.assertIn(f"sourceCommit={commit}", source.stderr)
-        self.assertEqual(json.loads(source.stdout), project_catalog(self.sources))
-        invalid = subprocess.run(
-            [
-                sys.executable,
-                str(script),
-                "--at-commit",
-                "HEAD",
-                "--product",
-                str(self.sources[0]),
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=20,
-        )
-        self.assertEqual(invalid.returncode, 2)
-        self.assertIn("mutually exclusive", invalid.stderr)
 
     def test_duplicate_product_version_cannot_be_silently_overridden(self) -> None:
         with self.assertRaisesRegex(ValueError, "duplicate owner product"):
@@ -358,6 +234,296 @@ class OwnerProductProjectionTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "must not escape"):
                 project_catalog([candidate], bindings=(binding,))
 
+    def test_git_commit_view_ignores_worktree_and_index_mutations(self) -> None:
+        """A published metadata SourceCut must be one Git tree, not mutable files."""
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+
+            def git(*args: str) -> bytes:
+                return subprocess.run(
+                    ["/usr/bin/git", "-C", str(repo), *args],
+                    check=True,
+                    capture_output=True,
+                ).stdout
+
+            git("init", "-q")
+            entry = repo / "domains/capital/data-products/candidate/odps.json"
+            entry.parent.mkdir(parents=True)
+            initial = self.sources[0].read_bytes()
+            entry.write_bytes(initial)
+            git("add", ".")
+            git(
+                "-c",
+                "user.name=Data Test",
+                "-c",
+                "user.email=data@example.invalid",
+                "commit",
+                "-qm",
+                "admit source version one",
+            )
+            original_commit, original_blobs = committed_owner_products(repo, "HEAD")
+            self.assertEqual(original_blobs, [initial])
+            frozen_view = project_catalog(original_blobs)
+            self.assertEqual(frozen_view, project_catalog([entry]))
+
+            mutated = json.loads(initial)
+            mutated["version"] = "deliberately-uncommitted-v2"
+            entry.write_text(json.dumps(mutated), encoding="utf-8")
+            git("add", ".")
+            # Index now points to an uncommitted v2, but commit-scoped readers
+            # still see the old v1, unlike default live working tree projection.
+            unchanged_commit, unchanged_blobs = committed_owner_products(repo, "HEAD")
+            self.assertEqual(unchanged_commit, original_commit)
+            self.assertEqual(project_catalog(unchanged_blobs), frozen_view)
+            self.assertNotEqual(project_catalog([entry]), frozen_view)
+
+            git(
+                "-c",
+                "user.name=Data Test",
+                "-c",
+                "user.email=data@example.invalid",
+                "commit",
+                "-qm",
+                "publish source version two",
+            )
+            next_commit, new_blobs = committed_owner_products(repo, "HEAD")
+            self.assertNotEqual(next_commit, original_commit)
+            self.assertNotEqual(project_catalog(new_blobs), frozen_view)
+            prior_commit, prior_blobs = committed_owner_products(repo, original_commit)
+            self.assertEqual(prior_commit, original_commit)
+            self.assertEqual(project_catalog(prior_blobs), frozen_view)
+
+    def test_git_view_rejects_symlinks_and_invalid_revision(self) -> None:
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+
+            def git(*args: str) -> None:
+                subprocess.run(
+                    ["/usr/bin/git", "-C", str(repo), *args],
+                    check=True,
+                    capture_output=True,
+                )
+
+            git("init", "-q")
+            entry = repo / "catalogs/data-products/test/odps.json"
+            entry.parent.mkdir(parents=True)
+            entry.symlink_to("/tmp/outside-file.json")
+            git("add", ".")
+            git(
+                "-c",
+                "user.name=Data Test",
+                "-c",
+                "user.email=data@example.invalid",
+                "commit",
+                "-qm",
+                "symlink is not ODPS bytes",
+            )
+            with self.assertRaisesRegex(ValueError, "not a regular Git blob"):
+                committed_owner_products(repo, "HEAD")
+            with self.assertRaisesRegex(ValueError, "cannot be resolved"):
+                committed_owner_products(repo, "not-a-commit")
+            with self.assertRaisesRegex(ValueError, "nonempty revision"):
+                committed_owner_products(repo, "--help")
+
+    def test_exact_current_repo_git_view_matches_committed_owner_metadata(self) -> None:
+        script = ROOT / "packages/data/scripts/project_owned_products.py"
+        source = subprocess.run(
+            [sys.executable, str(script), "--at-commit", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        commit = subprocess.run(
+            ["/usr/bin/git", "-C", str(ROOT), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        self.assertIn(f"sourceCommit={commit}", source.stderr)
+        self.assertEqual(json.loads(source.stdout), project_catalog(self.sources))
+        invalid = subprocess.run(
+            [
+                sys.executable,
+                str(script),
+                "--at-commit",
+                "HEAD",
+                "--product",
+                str(self.sources[0]),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=20,
+        )
+        self.assertEqual(invalid.returncode, 2)
+        self.assertIn("mutually exclusive", invalid.stderr)
+
+    def test_producer_parent_swap_does_not_admit_attacker_digest(self) -> None:
+        """A substituted pathname cannot redirect the hash out of its owner root."""
+        product = json.loads(self.sources[0].read_text(encoding="utf-8"))
+        with TemporaryDirectory() as tmp:
+            outer = Path(tmp)
+            owner_root = outer / "owner"
+            owner_root.mkdir()
+            owner_dir = owner_root / "safe"
+            owner_dir.mkdir()
+            (owner_dir / "capture.json").write_bytes(b"owner source")
+            attacker_dir = outer / "attacker"
+            attacker_dir.mkdir()
+            attacker_bytes = b"attacker-controlled"
+            (attacker_dir / "capture.json").write_bytes(attacker_bytes)
+            for item in product["customProperties"]:
+                if item.get("property") == "sourceRelativePath":
+                    item["value"] = "safe/capture.json"
+                if item.get("property") == "sourceSha256":
+                    # A malicious substitution would match this digest, but
+                    # the directory-anchored original owner bytes must not.
+                    item["value"] = hashlib.sha256(attacker_bytes).hexdigest()
+            candidate = outer / "odps.json"
+            candidate.write_text(json.dumps(product), encoding="utf-8")
+            binding = LocalEvidenceBinding(
+                product["id"],
+                "public-shadow-json",
+                "sourceRelativePath",
+                "sourceSha256",
+                owner_root,
+            )
+            real_open = os.open
+            swapped = [False]
+
+            def replace_parent_before_file_open(
+                name, flags, mode=0o777, *, dir_fd=None
+            ):
+                if name == "capture.json" and dir_fd is not None and not swapped[0]:
+                    owner_dir.rename(owner_root / "previous-safe")
+                    owner_dir.symlink_to(attacker_dir, target_is_directory=True)
+                    swapped[0] = True
+                return real_open(name, flags, mode, dir_fd=dir_fd)
+
+            with (
+                patch(
+                    "ordivon_data.local_files.os.open",
+                    side_effect=replace_parent_before_file_open,
+                ),
+                self.assertRaisesRegex(ValueError, "digest differs"),
+            ):
+                project_catalog([candidate], bindings=(binding,))
+            self.assertTrue(swapped[0])
+
+            # The attacker file exactly matches the declaration, but the
+            # static symlinked path also fails scoped producer admission.
+            with self.assertRaisesRegex(ValueError, "not verifiable"):
+                project_catalog([candidate], bindings=(binding,))
+
+    def test_port_version_qualified_binding_resists_unrelated_same_name(self) -> None:
+        product = json.loads(self.sources[1].read_text(encoding="utf-8"))
+        manifest = next(
+            p
+            for p in product["outputPorts"]
+            if p["name"] == "episode-corpus-manifest-json"
+        )
+        self.assertEqual(manifest["version"], "1.0.0")
+        v2 = dict(manifest)
+        v2.pop("id", None)
+        v2["version"] = "2.0.0"
+        product["outputPorts"].append(v2)
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "multi-version-odps.json"
+            path.write_text(json.dumps(product), encoding="utf-8")
+            selected = LocalEvidenceBinding(
+                product["id"],
+                "episode-corpus-manifest-json",
+                "corpusManifestRelativePath",
+                "corpusManifestSha256",
+                ROOT,
+                port_version="1.0.0",
+            )
+            catalog = project_catalog([path], bindings=(selected,))
+            distributions = catalog["dcat:dataset"][0]["dcat:distribution"]
+            required = next(
+                p
+                for p in distributions
+                if p.get("dcat:version") == "1.0.0"
+                and p["dct:title"] == "episode-corpus-manifest-json"
+            )
+            unrelated = next(
+                p
+                for p in distributions
+                if p.get("dcat:version") == "2.0.0"
+                and p["dct:title"] == "episode-corpus-manifest-json"
+            )
+            self.assertIn("spdx:checksum", required)
+            self.assertNotIn("spdx:checksum", unrelated)
+            with self.assertRaisesRegex(ValueError, "ambiguous|named output port"):
+                project_catalog(
+                    [path],
+                    bindings=(
+                        LocalEvidenceBinding(
+                            product["id"],
+                            "episode-corpus-manifest-json",
+                            "corpusManifestRelativePath",
+                            "corpusManifestSha256",
+                            ROOT,
+                        ),
+                    ),
+                )
+            with self.assertRaisesRegex(ValueError, "version|named output port"):
+                project_catalog(
+                    [path],
+                    bindings=(
+                        LocalEvidenceBinding(
+                            product["id"],
+                            "episode-corpus-manifest-json",
+                            "corpusManifestRelativePath",
+                            "corpusManifestSha256",
+                            ROOT,
+                            port_version="3.0.0",
+                        ),
+                    ),
+                )
+
+    def test_distinct_versioned_ports_can_each_bind_valid_local_evidence(self) -> None:
+        # One product may legitimately expose v1 and v2 simultaneously.
+        # Neither independently qualified consumer should disable the other.
+        product = json.loads(self.sources[1].read_text(encoding="utf-8"))
+        manifest = next(
+            port
+            for port in product["outputPorts"]
+            if port["name"] == "episode-corpus-manifest-json"
+        )
+        v2 = dict(manifest)
+        v2.pop("id", None)
+        v2["version"] = "2.0.0"
+        product["outputPorts"].append(v2)
+        with TemporaryDirectory() as temp:
+            candidate = Path(temp) / "parallel-version-odps.json"
+            candidate.write_text(json.dumps(product), encoding="utf-8")
+            bindings = tuple(
+                LocalEvidenceBinding(
+                    product["id"],
+                    "episode-corpus-manifest-json",
+                    "corpusManifestRelativePath",
+                    "corpusManifestSha256",
+                    ROOT,
+                    port_version=version,
+                )
+                for version in ("1.0.0", "2.0.0")
+            )
+            catalog = project_catalog([candidate], bindings=bindings)
+            ports = [
+                port
+                for port in catalog["dcat:dataset"][0]["dcat:distribution"]
+                if port["dct:title"] == "episode-corpus-manifest-json"
+            ]
+            self.assertEqual(
+                {port["dcat:version"] for port in ports},
+                {"1.0.0", "2.0.0"},
+            )
+            self.assertTrue(all("spdx:checksum" in port for port in ports))
+            with self.assertRaisesRegex(ValueError, "duplicate local evidence"):
+                project_catalog([candidate], bindings=(bindings[0], bindings[0]))
+
     def test_cli_verified_binding_is_read_only_and_missing_is_unknown(self) -> None:
         import subprocess
 
@@ -493,6 +659,89 @@ class OwnerProductProjectionTests(unittest.TestCase):
             self.assertEqual(inspection["verifiedCount"], 1)
             self.assertEqual(inspection["unknownCount"], 1)
             self.assertEqual(inspection["selectedPorts"][0]["verification"], "VERIFIED")
+
+            # A separately corrupted, unselected port is reported but must
+            # not veto this exactly selected verified consumer input.
+            contaminated = json.loads(catalog.read_text(encoding="utf-8"))
+            ports = contaminated["dcat:dataset"][0]["dcat:distribution"]
+            chosen = next(
+                p for p in ports if p["dct:title"] == "episode-corpus-manifest-json"
+            )
+            unrelated = next(
+                p for p in ports if p["dct:title"] == "episode-index-parquet"
+            )
+            unrelated["dcat:accessURL"] = chosen["dcat:accessURL"]
+            unrelated["spdx:checksum"] = {
+                "@type": "spdx:Checksum",
+                "spdx:algorithm": {
+                    "@id": "http://spdx.org/rdf/terms#checksumAlgorithm_sha256"
+                },
+                "spdx:checksumValue": {
+                    "@type": "xsd:hexBinary",
+                    "@value": "0" * 64,
+                },
+            }
+            contaminated_path = Path(temp) / "unrelated-falsified.jsonld"
+            contaminated_path.write_text(json.dumps(contaminated), encoding="utf-8")
+
+            def invoke_contaminated(*args: str) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    [
+                        sys.executable,
+                        str(script),
+                        "--catalog",
+                        str(contaminated_path),
+                        "--verify-local",
+                        *args,
+                    ],
+                    check=False,
+                    text=True,
+                    capture_output=True,
+                    timeout=20,
+                )
+
+            local_only = invoke_contaminated("--require-port", *target)
+            self.assertEqual(local_only.returncode, 0, local_only.stderr)
+            scoped = json.loads(local_only.stdout)["inspection"]
+            self.assertEqual(scoped["falsifiedCount"], 1)
+            self.assertEqual(scoped["selectedPortIntegrityGate"], "PASS")
+            self.assertEqual(scoped["integrityGate"], "NOT_ESTABLISHED")
+            self.assertEqual(invoke_contaminated("--require-verified").returncode, 2)
+            self.assertEqual(invoke_contaminated().returncode, 2)
+
+            # The same corruption on the selected port itself must still veto
+            # selected admission, even if the other port is intact.
+            selected_bad = json.loads(catalog.read_text(encoding="utf-8"))
+            selected_port = next(
+                p
+                for p in selected_bad["dcat:dataset"][0]["dcat:distribution"]
+                if p["dct:title"] == "episode-corpus-manifest-json"
+            )
+            selected_port["spdx:checksum"]["spdx:checksumValue"]["@value"] = "0" * 64
+            selected_bad_path = Path(temp) / "selected-falsified.jsonld"
+            selected_bad_path.write_text(json.dumps(selected_bad), encoding="utf-8")
+            selected_bad_result = subprocess.run(
+                [
+                    sys.executable,
+                    str(script),
+                    "--catalog",
+                    str(selected_bad_path),
+                    "--verify-local",
+                    "--require-port",
+                    *target,
+                ],
+                check=False,
+                text=True,
+                capture_output=True,
+                timeout=20,
+            )
+            self.assertEqual(selected_bad_result.returncode, 2)
+            self.assertEqual(
+                json.loads(selected_bad_result.stdout)["inspection"]["selectedPorts"][
+                    0
+                ]["verification"],
+                "FALSIFIED",
+            )
 
             all_port_gate = invoke("--require-verified")
             self.assertEqual(all_port_gate.returncode, 3)

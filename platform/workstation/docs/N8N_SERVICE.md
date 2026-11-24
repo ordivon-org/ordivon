@@ -26,7 +26,7 @@ systemd --user (n8n, linger)
 
 The Pod uses rootless `pasta` with a deterministic private network. Only `127.0.0.1:5678` is published to the host. The task broker (5679) and runner launcher (5680) remain private in the shared Pod network namespace.
 
-The container gateway `10.89.10.1` is mapped by pasta to host loopback, allowing the n8n container to reach PostgreSQL at `127.0.0.1:55434` without exposing PostgreSQL beyond host loopback.
+The container gateway `10.89.10.1` is mapped by pasta to host loopback, allowing the n8n container to reach PostgreSQL at `127.0.0.1:14550` without exposing PostgreSQL beyond host loopback.
 
 ## Pinned images
 
@@ -53,7 +53,7 @@ The n8n database and `N8N_ENCRYPTION_KEY` form one recovery domain: restoring th
 - role: `n8n`
 - role is non-superuser, cannot create roles/databases, and cannot bypass RLS;
 - authentication is SCRAM-SHA-256;
-- PostgreSQL remains bound to `127.0.0.1:55434` plus its pre-existing Unix socket.
+- PostgreSQL remains bound to `127.0.0.1:14550` plus its pre-existing Unix socket.
 
 ## Apply
 

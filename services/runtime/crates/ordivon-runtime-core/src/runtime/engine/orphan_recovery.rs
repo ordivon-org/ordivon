@@ -118,25 +118,27 @@ impl Runtime {
                 .len(),
             truncated: false,
         }];
-        for (file_name, kind) in [(STDOUT_FILE, "stdout"), (STDERR_FILE, "stderr")] {
-            let artifact_id = format!("{}.{}", attempt.attempt_id, kind);
-            let path = Path::new(&attempt.bundle_path).join(file_name);
-            if path.is_file()
-                && !existing_artifacts
-                    .iter()
-                    .any(|artifact| artifact.artifact_id == artifact_id)
-            {
-                artifacts.push(ArtifactRegistration {
-                    artifact_id,
-                    kind: kind.to_string(),
-                    relative_path: file_name.to_string(),
-                    digest: sha256_file(&path).map_err(map_universal_error)?,
-                    media_type: "text/plain; charset=utf-8".to_string(),
-                    byte_length: fs::metadata(&path)
-                        .map_err(|error| io_error("inspect orphan output", error))?
-                        .len(),
-                    truncated: false,
-                });
+        if control_terminal_stream_artifacts_admissible(state) {
+            for (file_name, kind) in [(STDOUT_FILE, "stdout"), (STDERR_FILE, "stderr")] {
+                let artifact_id = format!("{}.{}", attempt.attempt_id, kind);
+                let path = Path::new(&attempt.bundle_path).join(file_name);
+                if path.is_file()
+                    && !existing_artifacts
+                        .iter()
+                        .any(|artifact| artifact.artifact_id == artifact_id)
+                {
+                    artifacts.push(ArtifactRegistration {
+                        artifact_id,
+                        kind: kind.to_string(),
+                        relative_path: file_name.to_string(),
+                        digest: sha256_file(&path).map_err(map_universal_error)?,
+                        media_type: "text/plain; charset=utf-8".to_string(),
+                        byte_length: fs::metadata(&path)
+                            .map_err(|error| io_error("inspect orphan output", error))?
+                            .len(),
+                        truncated: false,
+                    });
+                }
             }
         }
         let mut terminal = TerminalCommit {

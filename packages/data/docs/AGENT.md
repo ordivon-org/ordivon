@@ -1,6 +1,35 @@
 # Data — Agent operating instructions
 
+## Outcome-first autonomous information supply (default)
+
+1. Accept the Outcome Owner's information need, use constraints and acceptance
+   predicate. Do not delegate internal port selection or ordinary tooling to a human.
+2. Select only needed producer-owned ODPS/ODCS outputs. Reuse original Data
+   projection and source binding logic; never invent product access URLs.
+3. Verify source bytes at the consumer's read, bind exact versions and verify
+   the natural business Owner's independent acceptance.
+4. Delegate acquisition to the actual source Owner, file verification to
+   Artifact, execution to Runtime and specialty results to their Owner.
+   Data is accountable for information supply; Research/Finance/Game/Media
+   retain domain outcome authority.
+5. Contradictory, missing and unavailable sources fail closed without a
+   fictitious success or a human checklist. Unrelated unknown ports must
+   not block a verified selected output.
+6. Incorporate actual consumer feedback into future data selection or
+   collection; a nontrivial improvement claim requires a concrete change
+   observed through a later consumer.
+7. A product checksum, tool exit code or correct fact answer is not proof
+   that an autonomous Agent's task-solving ability improved.
+
+**Current executable consumer:** Research's deliver_research.py in
+studies/experimental-episodes/experiments/evidence-consumer-pilot-r1,
+with positive/negative acceptance tests included in data:verify.
+
 ## SourceCut before execution
+
+For reproducible metadata discovery, pass `--at-commit REVISION` to
+`scripts/project_owned_products.py`. Capture the resolved commit from stderr.
+The committed metadata tree does not freeze independently bound local bytes.
 
 Select one final consumer. Capture the exact source revision, data-product
 ID/version, declared source digests, data rights and accepted quality/semantics.
@@ -21,13 +50,6 @@ Discovery metadata is only a candidate until its producing owner confirms it.
   two-source Git projection with the three-product frozen 2026-09 snapshot.
   Do not mint port UUIDs, URLs, digest or reuse rights; ODPS v1.1 outputPort
   IDs and versions are optional and their versions need not match the product.
-- Immutable metadata SourceCut -> `scripts/project_owned_products.py
-  --at-commit REVISION`. Record its exact `sourceCommit` from stderr,
-  hash-bound DCAT output and chosen consumer. Git commit blobs, not the
-  working-tree/index, are the authority for this discovery. `--bind-local`
-  still measures physical bytes **now**, not at historical commit time.
-  Neither result is a PG publish receipt, file lease, authorization or
-  temporal as-of truth.
 
 - Product contract -> producing owner's ODCS/ODPS document and native tests.
 - Job/Attempt/process/Artifact effect -> Runtime; not this package.
@@ -41,13 +63,22 @@ Discovery metadata is only a candidate until its producing owner confirms it.
    zero exit in discovery mode as a product-integrity admission. Use
    `--verify-local --require-verified` when requiring real byte evidence;
    exit 3 means UNKNOWN/not established, while exit 2 means a conflicting
-   digest or invalid catalog. For a consumer bound to one stable output-port
+   digest or invalid catalog. In a selected-port gate, only a selected
+   FALSIFIED distribution vetoes that consumer; unrelated mismatches remain
+   reported and still fail a whole-catalog gate. Structural catalog errors
+   are never scoped away. For a consumer bound to one stable output-port
    identity, use `--verify-local --require-port PRODUCT_ID PRODUCT_VERSION
-   DISTRIBUTION_URN`. A selected-port PASS must not be promoted to a
-   global product PASS. The unmaterialized Episode Parquet stays UNKNOWN.
-   Do not interpret metadata paths or catalog versions as proof of deployed
-   data or a right to publish.
-2. Verify the exact physical bytes under explicit scope. Unknown remains
+   DISTRIBUTION_URN`. A selected-port PASS does not establish a global
+   product PASS or permission to publish. The unmaterialized Episode Parquet
+   remains UNKNOWN. A directory path or catalog version does not prove
+   that data is deployed.
+2. Verify the exact physical bytes under explicit scope. Reuse the shared
+   descriptor-bound local reader for producer binding and consumer observation;
+   do not add pathname-based hash fallbacks. Treat unsupported descriptor
+   operations, malformed access URIs, and unavailable reads as scoped UNKNOWN
+   in discovery; strict producer admission still rejects missing evidence with
+   typed I/O errors. This observes one opened descriptor, not future
+   immutability or retention. Unknown remains
    typed UNKNOWN rather than FALSE or PASS. A file digest match does not
    prove statistics, correctness, licenses, or scientific causal claims.
 3. Use the original domain-native contract to verify semantics and release
@@ -71,6 +102,15 @@ output-port name. The tool checks the actual regular file SHA-256 and emits DCAT
 port/file matching, claim a portable URL, or promote a missing
 Episode Parquet materialization to VERIFIED. Native consumers must recheck
 byte identity at their read boundary.
+
+For a two-generation reader/version switch, additionally use Lean
+`formal/DataMultiVersion.lean`. Its proof covers abstract validated V2
+publication, existing V1 reader preservation and reclaim-after-no-reader
+plus retention release. Real PostgreSQL Paper 18.6 source witnesses are
+in `domains/capital/tests/test_paper_head_readback.py` and need a
+*disposable* test DSN to run (missing DSN means SKIP, never success).
+Do not identify a PostgreSQL MVCC reader with a durable Artifact lease,
+or apply model reclamation to real bytes without domain/retention authority.
 
 For publication/retirement changes, reuse the Lean `formal/DataPublication.lean`
 safety model. It proves *abstract* publish-after-validate/commit and

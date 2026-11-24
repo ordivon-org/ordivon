@@ -1,96 +1,116 @@
-"""Source contract for non-vacuous PostgreSQL Registry physical tests."""
+"""Test PostgreSQL physical-test admission through behavior, not source-file positions.
 
+Rust unit tests and the disposable PG18 task own the actual Job, Attempt,
+cancel, terminal, and replay correctness claims.  This Python suite verifies
+that neither physical lane can run without its explicit isolated-test DSN.
+"""
+
+import os
 from pathlib import Path
-import json
-import re
+import subprocess
 import tomllib
+import tempfile
+import shlex
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / "crates/ordivon-runtime-core/src/pg_admission.rs"
 MISE = ROOT / "mise.toml"
-PLAN = ROOT / "planning/lego-plan-r1.json"
-ENGINE = ROOT / "crates/ordivon-runtime-core/src/runtime"
 
 
 class PgPhysicalVerificationContractTests(unittest.TestCase):
-    def test_pg18_tests_are_explicitly_ignored_until_physical_task(self) -> None:
-        text = SOURCE.read_text(encoding="utf-8")
-        names = re.findall(r"(?m)^    fn (pg18_[A-Za-z0-9_]+)\(\)", text)
-        self.assertGreaterEqual(len(names), 18)
-        # All native database-dependent tests must remain opt-in, not silently skip.
-        for name in names:
-            pattern = (
-                r'#\[test\]\s*'
-                r'#\[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"\]\s*'
-                + r"fn " + re.escape(name) + r"\(\)"
+    def _assert_dsn_required(self, *, task: str, variable: str) -> None:
+        with MISE.open("rb") as stream:
+            command = tomllib.load(stream)["tasks"][task]["run"]
+
+        env = dict(os.environ)
+        env.pop(variable, None)
+        # This is the real task's bash command, not an AST or a positional
+        # source-file regex.  The missing DSN must stop BEFORE any Cargo/PG
+        # process is started, regardless of future Rust file organization.
+        result = subprocess.run(
+            ["bash", "-c", command],
+            cwd=ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=15,
+        )
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn(variable, result.stderr)
+        self.assertIn("required", result.stderr)
+        self.assertNotIn("Compiling", result.stderr)
+        self.assertNotIn("test result:", result.stdout)
+
+    def _run_stub_lane(self, task: str, variable: str, inventory: str,
+                       output: str, *, dsn: str = "fixture-only-no-database-contact",
+                       exit_code: int = 0) -> subprocess.CompletedProcess[str]:
+        """Exercise the real Owner task; Cargo stub cannot reach a database."""
+        with MISE.open("rb") as stream:
+            command = tomllib.load(stream)["tasks"][task]["run"]
+        opposite = ("ORDIVON_PG_STAGE_TEST_DSN" if variable == "ORDIVON_PG_TEST_DSN"
+                    else "ORDIVON_PG_TEST_DSN")
+        with tempfile.TemporaryDirectory() as temp:
+            cargo = Path(temp) / "cargo"
+            cargo.write_text(
+                '#!/bin/sh\n'
+                f'[ -n "${variable}" ] && [ -z "${opposite}" ] || exit 97\n'
+                'case " $* " in *" --list "*) '
+                f'printf "%s\\n" {shlex.quote(inventory)};; '
+                f'*) printf "%s\\n" {shlex.quote(output)}; exit {exit_code};; esac\n',
+                encoding="utf-8",
             )
-            self.assertRegex(text, pattern)
-        self.assertNotIn('let Ok(dsn) = std::env::var("ORDIVON_PG_TEST_DSN")', text)
+            cargo.chmod(0o700)
+            env = {**os.environ, "PATH": temp + os.pathsep + os.environ["PATH"],
+                   variable: dsn, opposite: "must-not-reach-child"}
+            return subprocess.run(["bash", "-c", command], cwd=ROOT, env=env,
+                                  capture_output=True, text=True, timeout=15)
 
-    def test_historical_stage_test_is_a_distinct_physical_obligation(self) -> None:
-        text = SOURCE.read_text(encoding="utf-8")
-        self.assertRegex(
-            text,
-            r'#\[ignore = "requires explicit ORDIVON_PG_STAGE_TEST_DSN historical-stage qualification"\]\s*'
-            r'fn historical_pg_stage_is_not_an_admission_authority\(\)',
+    def test_both_direct_lanes_require_nonempty_exact_executed_inventory(self) -> None:
+        for lane, variable, name in (
+            ("physical", "ORDIVON_PG_TEST_DSN", "pg18_fixture"),
+            ("stage", "ORDIVON_PG_STAGE_TEST_DSN", "historical_pg_stage_is_not_an_admission_authority"),
+        ):
+            task = f"test:postgres-registry:{lane}"
+            qualified = f"module::{name}"
+            inventory = f"{qualified}: test\n1 test, 0 benchmarks"
+            output = f"test {qualified} ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored;"
+            for label, listed, observed, code in (
+                ("positive", inventory, output, 0),
+                ("empty", "0 tests, 0 benchmarks", output, 0),
+                ("zero-executed", inventory, "test result: ok. 0 passed; 0 failed; 0 ignored;", 0),
+                ("wrong-identity", inventory, output.replace("module::", "other::"), 0),
+                ("duplicate", inventory, output + f"\ntest {qualified} ... ok", 0),
+                ("native-failed", inventory, output, 101),
+            ):
+                with self.subTest(lane=lane, case=label):
+                    result = self._run_stub_lane(task, variable, listed, observed, exit_code=code)
+                    combined = result.stdout + result.stderr
+                    if label == "positive":
+                        self.assertEqual(result.returncode, 0, combined)
+                        self.assertIn(f"{lane.upper()}_PG18_PASS=1/1", combined)
+                    else:
+                        self.assertNotEqual(result.returncode, 0, combined)
+                        self.assertNotIn("_PG18_PASS=", combined)
+                        if label == "empty":
+                            self.assertIn("inventory", result.stderr.lower())
+            with self.subTest(lane=lane, case="blank-dsn"):
+                result = self._run_stub_lane(task, variable, inventory, output, dsn="  ")
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertIn(variable, result.stderr)
+
+    def test_fresh_physical_lane_cannot_run_without_test_dsn(self) -> None:
+        self._assert_dsn_required(
+            task="test:postgres-registry:physical",
+            variable="ORDIVON_PG_TEST_DSN",
         )
-        self.assertNotIn(
-            'let Ok(dsn) = std::env::var("ORDIVON_PG_STAGE_TEST_DSN")', text
+
+    def test_historical_stage_lane_cannot_run_without_stage_dsn(self) -> None:
+        self._assert_dsn_required(
+            task="test:postgres-registry:stage",
+            variable="ORDIVON_PG_STAGE_TEST_DSN",
         )
-
-
-    def test_r19_is_partial_challenger_not_installed_backend(self) -> None:
-        plan = json.loads(PLAN.read_text(encoding="utf-8"))
-        r19 = next(row for row in plan["nodes"] if row["id"] == "R19")
-        self.assertEqual(
-            r19["authority"], "SOURCE_CHALLENGER_ONLY_NO_INSTALLED_RUNTIME_AUTHORITY"
-        )
-        self.assertEqual(r19["state"], "IMPLEMENTED")
-        standings = {row["standing"] for row in r19["replacementCoverage"]}
-        self.assertIn(
-            "SOURCE_IMPLEMENTED_PHYSICAL_PG18_QUALIFICATION_REQUIRED", standings
-        )
-        self.assertIn("EXPLICITLY_BLOCKED", standings)
-        self.assertIn("UNKNOWN_NOT_IMPLEMENTED", standings)
-        self.assertIn("UNKNOWN_NOT_AUTHORIZED", standings)
-        rw12 = next(row for row in plan["slices"] if row["id"] == "RW12")
-        self.assertIn("R19", rw12["nodeIds"])
-
-        # The new feature-gated PG vertical may consume PgAdmissionStore.
-        # The installed legacy Registry and default MCP binary must not
-        # silently switch durability ownership as a side effect of this PR.
-        legacy_registry = (ENGINE / "registry.rs").read_text(encoding="utf-8")
-        legacy_mcp = (
-            ROOT / "crates/ordivon-runtime-mcp/src/main.rs"
-        ).read_text(encoding="utf-8")
-        self.assertNotIn("PgAdmissionStore", legacy_registry)
-        self.assertNotIn("pg_admission::", legacy_registry)
-        self.assertNotIn("PgRuntime", legacy_mcp)
-        cargo = tomllib.loads(
-            (ROOT / "crates/ordivon-runtime-mcp/Cargo.toml").read_text(encoding="utf-8")
-        )
-        pg_bin = next(row for row in cargo["bin"] if row["name"] == "ordivon-runtime-pg")
-        self.assertEqual(pg_bin["required-features"], ["postgres-runtime"])
-        self.assertIn("postgres-runtime", cargo["features"])
-
-    def test_disposable_pg_launcher_is_explicit_and_does_not_replace_required_dsn_gate(self) -> None:
-        data = tomllib.loads(MISE.read_text(encoding="utf-8"))
-        launcher = data["tasks"]["test:postgres-registry:disposable"]["run"]
-        self.assertEqual(launcher, "python scripts/pg_disposable_physical.py")
-        self.assertIn("test:postgres-registry:physical", data["tasks"])
-
-    def test_mise_has_fail_closed_physical_and_stage_tasks(self) -> None:
-        data = tomllib.loads(MISE.read_text(encoding="utf-8"))
-        physical = data["tasks"]["test:postgres-registry:physical"]["run"]
-        stage = data["tasks"]["test:postgres-registry:stage"]["run"]
-        self.assertIn("printenv ORDIVON_PG_TEST_DSN", physical)
-        self.assertIn("pg18_", physical)
-        self.assertIn("--ignored", physical)
-        self.assertIn("printenv ORDIVON_PG_STAGE_TEST_DSN", stage)
-        self.assertIn("historical_pg_stage_is_not_an_admission_authority", stage)
-        self.assertIn("--ignored", stage)
 
 
 if __name__ == "__main__":

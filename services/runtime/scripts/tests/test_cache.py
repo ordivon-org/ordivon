@@ -1072,15 +1072,16 @@ class CacheRetentionTests(unittest.TestCase):
                 module["prune"](args)
             self.assertFalse((root / "receipts").exists())
 
-    def test_packaged_lifecycle_uses_operator_cache_policy(self) -> None:
+    def test_packaged_pg_lifecycle_retires_sqlite_cache_prune(self) -> None:
         unit = (REPO / "packaging/systemd/ordivon-runtime-lifecycle.service").read_text(
             encoding="utf-8"
         )
-        cache_line = next(line for line in unit.splitlines() if "ordivon-runtime-cache prune" in line)
-        self.assertIn("--env-file /etc/ordivon/ordivon-runtime.env", cache_line)
-        self.assertIn("--registry-root /var/lib/ordivon/registry", cache_line)
-        self.assertNotIn("--high-watermark-bytes", cache_line)
-        self.assertNotIn("--low-watermark-bytes", cache_line)
+        self.assertIn("/ordivon-runtime-pg-reclaim --apply ", unit)
+        self.assertIn("--env-file /etc/ordivon/ordivon-runtime-pg-only.env", unit)
+        self.assertNotIn("ordivon-runtime-cache prune", unit)
+        self.assertNotIn("--registry-root /var/lib/ordivon/registry", unit)
+        self.assertNotIn("--high-watermark-bytes", unit)
+        self.assertNotIn("--low-watermark-bytes", unit)
 
 
 if __name__ == "__main__":

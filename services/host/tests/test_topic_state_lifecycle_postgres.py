@@ -9,9 +9,9 @@ import pytest
 
 from ordivon_host_v2.collaboration_inputs import MessageInput, SpaceInput, TopicInput
 from ordivon_host_v2.errors import ConflictError
+from ordivon_host_v2.references.actor_store import ActorReferenceStore
 from ordivon_host_v2.social_store import SocialStore
 from ordivon_host_v2.work_inputs import ActorKind, ActorRefInput
-from ordivon_host_v2.work_store import WorkStore
 
 DSN = os.environ.get("ORDIVON_HOST_V2_TEST_DSN")
 pytestmark = [
@@ -26,7 +26,7 @@ def setup_topic() -> tuple[SocialStore, str, str, str]:
     actor = f"actor:agent:topic-state:{token}"
     space = f"space:topic-state:{token}"
     topic = f"topic:state:{token}"
-    WorkStore(DSN).declare_actor(
+    ActorReferenceStore(DSN).declare_actor(
         ActorRefInput(actor_ref=actor, actor_kind=ActorKind.AGENT),
         client_request_id=f"actor:topic-state:{token}",
     )
@@ -118,6 +118,93 @@ def test_close_reopen_preserves_messages_and_idempotency() -> None:
             expected_high_sequence=seq,
             client_request_id=f"stale-close:{uuid4().hex}",
         )
+
+
+def test_closed_topic_archive_hides_inventory_preserves_messages_and_restores() -> None:
+    social, actor, space, topic = setup_topic()
+    message = MessageInput(
+        message_ref=f"message:archive:{uuid4().hex}",
+        client_request_id=f"post:archive:{uuid4().hex}",
+        space_ref=space,
+        topic_ref=topic,
+        author_actor_ref=actor,
+        body="retained original message and durable topic",
+        recorded_at_ms=1,
+    )
+    posted = social.post_message(message)
+    seq = posted["sequence"]
+
+    with pytest.raises(ConflictError, match="must be closed"):
+        social.set_topic_state(
+            topic_ref=topic,
+            actor_ref=actor,
+            state="archived",
+            expected_state="open",
+            expected_high_sequence=seq,
+            client_request_id=f"bad-archive:{uuid4().hex}",
+        )
+
+    social.set_topic_state(
+        topic_ref=topic,
+        actor_ref=actor,
+        state="closed",
+        expected_state="open",
+        expected_high_sequence=seq,
+        client_request_id=f"close:archive:{uuid4().hex}",
+    )
+    archived = social.set_topic_state(
+        topic_ref=topic,
+        actor_ref=actor,
+        state="archived",
+        expected_state="closed",
+        expected_high_sequence=seq,
+        client_request_id=f"archive:{uuid4().hex}",
+    )
+    assert archived["state"] == "archived"
+    assert all(item["topicRef"] != topic for item in social.list_topics(space)["topics"])
+    active_space_view = social.get_space(space)
+    assert active_space_view["topics"] == []
+    assert active_space_view["topicCount"] == 0
+    archived_page = social.list_topics(space, include_archived=True)
+    assert any(
+        item["topicRef"] == topic and item["state"] == "archived"
+        for item in archived_page["topics"]
+    )
+    retained = social.resume_topic(topic, after_sequence=0)
+    assert any(item["messageRef"] == message.message_ref for item in retained["messages"])
+    exact_message = social.get_message(message.message_ref, expected_digest=posted["messageDigest"])
+    assert exact_message["body"] == message.body
+    with pytest.raises(ConflictError, match="archived topic"):
+        social.post_message(
+            MessageInput(
+                message_ref=f"message:archive:{uuid4().hex}",
+                client_request_id=f"post:archive:{uuid4().hex}",
+                space_ref=space,
+                topic_ref=topic,
+                author_actor_ref=actor,
+                body="must never be appended to cold archive",
+                recorded_at_ms=2,
+            )
+        )
+    with pytest.raises(ConflictError, match="restore archived topic to closed"):
+        social.set_topic_state(
+            topic_ref=topic,
+            actor_ref=actor,
+            state="open",
+            expected_state="archived",
+            expected_high_sequence=seq,
+            client_request_id=f"bad-restore:{uuid4().hex}",
+        )
+    restored = social.set_topic_state(
+        topic_ref=topic,
+        actor_ref=actor,
+        state="closed",
+        expected_state="archived",
+        expected_high_sequence=seq,
+        client_request_id=f"restore:archive:{uuid4().hex}",
+    )
+    assert restored["state"] == "closed"
+    assert any(item["topicRef"] == topic for item in social.list_topics(space)["topics"])
 
 
 def test_topic_state_compare_and_set_is_strict_and_reversible() -> None:

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -13,6 +14,7 @@ using System.Threading;
 
 internal static class OrdivonWindowsJobLauncher
 {
+    private const uint JobObjectBasicAccountingInformationClass = 1;
     private const uint JobObjectExtendedLimitInformationClass = 9;
     private const uint JobObjectCpuRateControlInformationClass = 15;
     private const uint JobObjectLimitActiveProcess = 0x00000008;
@@ -22,6 +24,9 @@ internal static class OrdivonWindowsJobLauncher
     private const uint JobObjectCpuRateControlHardCap = 0x4;
     private const uint CreateSuspended = 0x00000004;
     private const uint CreateUnicodeEnvironment = 0x00000400;
+    private const uint ExtendedStartupInfoPresent = 0x00080000;
+    private const int ProcThreadAttributeHandleList = 0x00020002;
+    private const int ProcThreadAttributeJobList = 0x0002000d;
     private const uint StartfUseStdHandles = 0x00000100;
     private const uint Infinite = 0xffffffff;
     private const uint WaitTimeout = 258;
@@ -64,6 +69,7 @@ internal static class OrdivonWindowsJobLauncher
     private const uint Synchronize = 0x00100000;
     private const uint StillActive = 259;
     private const int ErrorInvalidParameter = 87;
+    private const int ErrorAlreadyExists = 183;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct JobObjectBasicLimitInformation
@@ -88,6 +94,21 @@ internal static class OrdivonWindowsJobLauncher
         public ulong ReadTransferCount;
         public ulong WriteTransferCount;
         public ulong OtherTransferCount;
+    }
+
+    // JobObjectBasicAccountingInformation: kernel count of ALL processes
+    // currently associated with this exact retained Job Object handle.
+    [StructLayout(LayoutKind.Sequential)]
+    private struct JobObjectBasicAccountingInformation
+    {
+        public long TotalUserTime;
+        public long TotalKernelTime;
+        public long ThisPeriodTotalUserTime;
+        public long ThisPeriodTotalKernelTime;
+        public uint TotalPageFaultCount;
+        public uint TotalProcesses;
+        public uint ActiveProcesses;
+        public uint TotalTerminatedProcesses;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -129,6 +150,94 @@ internal static class OrdivonWindowsJobLauncher
         public IntPtr hStdInput;
         public IntPtr hStdOutput;
         public IntPtr hStdError;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct StartupInfoEx
+    {
+        public StartupInfo StartupInfo;
+        public IntPtr AttributeList;
+    }
+
+    // Both attribute buffers must remain allocated until DeleteProcThreadAttributeList.
+    // A JOB_LIST attaches a target to the owned Job *during* process creation,
+    // rather than after a suspended child has already been created.
+    private sealed class OwnedProcessCreationAttributes : IDisposable
+    {
+        private IntPtr list;
+        private IntPtr jobValue;
+        private IntPtr inheritedHandles;
+        private bool initialized;
+
+        public IntPtr List { get { return list; } }
+
+        public OwnedProcessCreationAttributes(IntPtr job, IntPtr stdoutWrite, IntPtr stderrWrite)
+        {
+            try
+            {
+                IntPtr size = IntPtr.Zero;
+                InitializeProcThreadAttributeList(IntPtr.Zero, 2, 0, ref size);
+                if (size == IntPtr.Zero)
+                {
+                    throw new InvalidOperationException("native process attribute list sizing failed");
+                }
+                list = Marshal.AllocHGlobal(size);
+                if (!InitializeProcThreadAttributeList(list, 2, 0, ref size))
+                {
+                    ThrowWin32("InitializeProcThreadAttributeList");
+                }
+                initialized = true;
+                jobValue = Marshal.AllocHGlobal(IntPtr.Size);
+                Marshal.WriteIntPtr(jobValue, job);
+                if (!UpdateProcThreadAttribute(
+                    list, 0, new IntPtr(ProcThreadAttributeJobList),
+                    jobValue, new IntPtr(IntPtr.Size), IntPtr.Zero, IntPtr.Zero))
+                {
+                    ThrowWin32("UpdateProcThreadAttribute(JOB_LIST)");
+                }
+                // The only payload-inheritable handles are its two capture pipes.
+                // Stdin is deliberately null for the noninteractive Runtime API.
+                inheritedHandles = Marshal.AllocHGlobal(IntPtr.Size * 2);
+                Marshal.WriteIntPtr(inheritedHandles, 0, stdoutWrite);
+                Marshal.WriteIntPtr(inheritedHandles, IntPtr.Size, stderrWrite);
+                if (!UpdateProcThreadAttribute(
+                    list, 0, new IntPtr(ProcThreadAttributeHandleList),
+                    inheritedHandles, new IntPtr(IntPtr.Size * 2),
+                    IntPtr.Zero, IntPtr.Zero))
+                {
+                    ThrowWin32("UpdateProcThreadAttribute(HANDLE_LIST)");
+                }
+            }
+            catch
+            {
+                Dispose();
+                throw;
+            }
+        }
+
+        public void Dispose()
+        {
+            if (initialized)
+            {
+                DeleteProcThreadAttributeList(list);
+                initialized = false;
+            }
+            if (inheritedHandles != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(inheritedHandles);
+                inheritedHandles = IntPtr.Zero;
+            }
+            if (jobValue != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(jobValue);
+                jobValue = IntPtr.Zero;
+            }
+            if (list != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(list);
+                list = IntPtr.Zero;
+            }
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -367,6 +476,18 @@ internal static class OrdivonWindowsJobLauncher
         out ProcessInformation processInformation);
 
     [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool InitializeProcThreadAttributeList(
+        IntPtr list, int attributeCount, uint flags, ref IntPtr size);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool UpdateProcThreadAttribute(
+        IntPtr list, uint flags, IntPtr attribute, IntPtr value, IntPtr valueSize,
+        IntPtr previousValue, IntPtr returnSize);
+
+    [DllImport("kernel32.dll")]
+    private static extern void DeleteProcThreadAttributeList(IntPtr list);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
     private static extern uint ResumeThread(IntPtr thread);
 
     [DllImport("kernel32.dll", SetLastError = true)]
@@ -500,6 +621,20 @@ internal static class OrdivonWindowsJobLauncher
         IntPtr environment,
         string currentDirectory,
         ref StartupInfo startupInfo,
+        out ProcessInformation processInformation);
+
+    [DllImport("advapi32.dll", EntryPoint = "CreateProcessAsUserW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool CreateProcessAsUserWithAttributes(
+        IntPtr token,
+        string applicationName,
+        StringBuilder commandLine,
+        IntPtr processAttributes,
+        IntPtr threadAttributes,
+        bool inheritHandles,
+        uint creationFlags,
+        IntPtr environment,
+        string currentDirectory,
+        ref StartupInfoEx startupInfo,
         out ProcessInformation processInformation);
 
     [DllImport("userenv.dll", SetLastError = true)]
@@ -1022,10 +1157,21 @@ internal static class OrdivonWindowsJobLauncher
         return args[index++];
     }
 
+    // Exit code 259 (STILL_ACTIVE) is also a legal process exit status.
+    // Query the signaled process handle instead of guessing liveness from its exit code.
+    private static bool ProcessHandleIsRunning(IntPtr process, string operation)
+    {
+        uint wait = WaitForSingleObject(process, 0);
+        if (wait == 0) return false;
+        if (wait == WaitTimeout) return true;
+        if (wait == 0xffffffff) ThrowWin32(operation);
+        throw new InvalidOperationException(operation + " returned an unexpected wait status");
+    }
+
     private static int DescribeProcessOwner(Options options)
     {
         uint processId = options.DescribeProcessId.Value;
-        IntPtr process = OpenProcess(ProcessQueryLimitedInformation, false, processId);
+        IntPtr process = OpenProcess(ProcessQueryLimitedInformation | Synchronize, false, processId);
         if (process == IntPtr.Zero)
         {
             int error = Marshal.GetLastWin32Error();
@@ -1041,12 +1187,7 @@ internal static class OrdivonWindowsJobLauncher
         }
         try
         {
-            uint exitCode;
-            if (!GetExitCodeProcess(process, out exitCode))
-            {
-                ThrowWin32("GetExitCodeProcess(process owner)");
-            }
-            if (exitCode != StillActive)
+            if (!ProcessHandleIsRunning(process, "WaitForSingleObject(process owner)"))
             {
                 Console.Out.WriteLine(
                     "{\"schemaVersion\":1,\"processId\":"
@@ -1103,12 +1244,7 @@ internal static class OrdivonWindowsJobLauncher
         }
         try
         {
-            uint exitCode;
-            if (!GetExitCodeProcess(process, out exitCode))
-            {
-                ThrowWin32("GetExitCodeProcess(deadline owner termination)");
-            }
-            if (exitCode != StillActive)
+            if (!ProcessHandleIsRunning(process, "WaitForSingleObject(deadline owner termination)"))
             {
                 Console.Out.WriteLine(
                     "{\"schemaVersion\":1,\"processId\":"
@@ -1815,6 +1951,7 @@ internal static class OrdivonWindowsJobLauncher
         Thread stdoutThread = null;
         Thread stderrThread = null;
         ProcessInformation pi = new ProcessInformation();
+        OwnedProcessCreationAttributes creationAttributes = null;
         bool processCreated = false;
         bool resumed = false;
         long startedUnixMs = UnixTimeMilliseconds();
@@ -1824,9 +1961,18 @@ internal static class OrdivonWindowsJobLauncher
         {
             VerifyRuntimeRequestDigest(options);
             job = CreateJobObject(IntPtr.Zero, options.JobName);
+            int jobCreationError = Marshal.GetLastWin32Error();
             if (job == IntPtr.Zero)
             {
                 ThrowWin32("CreateJobObject");
+            }
+            // A committed Attempt must own a freshly created Job Object, not join
+            // a preexisting named object with foreign processes or mutable limits.
+            // Check ERROR_ALREADY_EXISTS *before* changing limits or starting a child.
+            if (jobCreationError == ErrorAlreadyExists)
+            {
+                throw new InvalidOperationException(
+                    "native Runtime Job Object name already exists; refusing non-exclusive Attempt ownership");
             }
             ConfigureExtendedLimits(job, options);
             uint cpuRate = ConfigureCpuRate(job, options.CpuQuotaPercent);
@@ -1854,17 +2000,23 @@ internal static class OrdivonWindowsJobLauncher
                 options.StderrLimitBytes.Value,
                 out stderrWrite);
 
-            StartupInfo si = new StartupInfo();
-            si.cb = (uint)Marshal.SizeOf(typeof(StartupInfo));
-            if (options.Identity == ExecutionIdentity.ActiveUser) si.lpDesktop = "winsta0\\default";
-            si.dwFlags = StartfUseStdHandles;
-            si.hStdInput = GetStdHandle(StdInputHandle);
-            si.hStdOutput = stdoutWrite;
-            si.hStdError = stderrWrite;
+            // CreateProcessAsUserW receives both native attributes atomically.
+            // Creating a suspended target then AssignProcessToJobObject left a
+            // launcher-crash window in which an unowned process already existed.
+            creationAttributes = new OwnedProcessCreationAttributes(job, stdoutWrite, stderrWrite);
+            StartupInfoEx si = new StartupInfoEx();
+            si.StartupInfo.cb = (uint)Marshal.SizeOf(typeof(StartupInfoEx));
+            if (options.Identity == ExecutionIdentity.ActiveUser)
+                si.StartupInfo.lpDesktop = "winsta0\\default";
+            si.StartupInfo.dwFlags = StartfUseStdHandles;
+            si.StartupInfo.hStdInput = IntPtr.Zero;
+            si.StartupInfo.hStdOutput = stdoutWrite;
+            si.StartupInfo.hStdError = stderrWrite;
+            si.AttributeList = creationAttributes.List;
 
             StringBuilder commandLine = new StringBuilder(BuildCommandLine(options.Executable, options.TargetArguments));
-            uint creationFlags = CreateSuspended | CreateUnicodeEnvironment;
-            if (!CreateProcessAsUserW(
+            uint creationFlags = CreateSuspended | CreateUnicodeEnvironment | ExtendedStartupInfoPresent;
+            if (!CreateProcessAsUserWithAttributes(
                     executionToken,
                     options.Executable,
                     commandLine,
@@ -1877,18 +2029,17 @@ internal static class OrdivonWindowsJobLauncher
                     ref si,
                     out pi))
             {
-                ThrowWin32("CreateProcessAsUserW");
+                ThrowWin32("CreateProcessAsUserW(STARTUPINFOEX)");
             }
             processCreated = true;
+            creationAttributes.Dispose();
+            creationAttributes = null;
             CloseHandle(stdoutWrite);
             stdoutWrite = IntPtr.Zero;
             CloseHandle(stderrWrite);
             stderrWrite = IntPtr.Zero;
 
-            if (!AssignProcessToJobObject(job, pi.hProcess))
-            {
-                ThrowWin32("AssignProcessToJobObject");
-            }
+            // Positive readback protects against an OS/provider mismatch.
             bool inJob;
             if (!IsProcessInJob(pi.hProcess, job, out inJob))
             {
@@ -1973,8 +2124,23 @@ internal static class OrdivonWindowsJobLauncher
                 ThrowWin32("GetExitCodeProcess");
             }
 
-            // Closing the final Job handle kills any descendants that outlived the direct child.
-            // Only after that boundary can captured output be finalized without later mutation.
+            // A diagnostic or foreign reader may still retain a named Job Object handle.
+            // KILL_ON_JOB_CLOSE only fires on the last handle, so explicitly terminate
+            // any remaining descendants before publishing the Attempt result.
+            if (!timedOut && !cancelled)
+            {
+                TerminateWholeJob(job, CancelledExit);
+            }
+            // An original PG Attempt needs a positive kernel observation while
+            // this launcher still OWNS its Job Object handle.  A name lookup
+            // after CloseHandle is not evidence of an empty object: Windows
+            // destroys the named object when its last handle disappears.
+            // Ordinary legacy execution keeps its existing result contract.
+            if (options.EmitLauncherStartEvidence)
+            {
+                JobObjectBasicAccountingInformation drained = WaitForNativeJobDrain(job);
+                WriteWindowsJobDrainEvidence(options, pi, drained);
+            }
             CloseHandle(job);
             job = IntPtr.Zero;
             stdoutThread.Join();
@@ -2021,6 +2187,7 @@ internal static class OrdivonWindowsJobLauncher
         }
         finally
         {
+            if (creationAttributes != null) creationAttributes.Dispose();
             if (stdoutWrite != IntPtr.Zero) CloseHandle(stdoutWrite);
             if (stderrWrite != IntPtr.Zero) CloseHandle(stderrWrite);
             if (environment != IntPtr.Zero) Marshal.FreeHGlobal(environment);
@@ -2053,6 +2220,95 @@ internal static class OrdivonWindowsJobLauncher
                 code.ToString(CultureInfo.InvariantCulture));
         }
         return new CaptureWorker { ReadHandle = readHandle, Path = path, Limit = limit };
+    }
+
+    // Query while the exact Job handle is still owned; never infer an
+    // absent JobObject name means all prior processes stopped.
+    private static JobObjectBasicAccountingInformation QueryNativeJobAccounting(IntPtr job)
+    {
+        int size = Marshal.SizeOf(typeof(JobObjectBasicAccountingInformation));
+        IntPtr memory = Marshal.AllocHGlobal(size);
+        try
+        {
+            uint returned;
+            if (!QueryInformationJobObject(
+                    job, JobObjectBasicAccountingInformationClass, memory, (uint)size, out returned))
+            {
+                ThrowWin32("QueryInformationJobObject(native drain)");
+            }
+            if (returned != 0 && returned < (uint)size)
+            {
+                throw new InvalidOperationException("incomplete native Job Object accounting receipt");
+            }
+            return (JobObjectBasicAccountingInformation)Marshal.PtrToStructure(
+                memory, typeof(JobObjectBasicAccountingInformation));
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(memory);
+        }
+    }
+
+    private static JobObjectBasicAccountingInformation WaitForNativeJobDrain(IntPtr job)
+    {
+        Stopwatch deadline = Stopwatch.StartNew();
+        while (true)
+        {
+            JobObjectBasicAccountingInformation accounting = QueryNativeJobAccounting(job);
+            if (accounting.ActiveProcesses == 0)
+            {
+                if (accounting.TotalProcesses == 0)
+                {
+                    throw new InvalidOperationException(
+                        "native Job Object reports no assigned target at drain");
+                }
+                return accounting;
+            }
+            if (deadline.ElapsedMilliseconds >= 5000)
+            {
+                throw new InvalidOperationException(
+                    "native Job Object remains populated after target termination");
+            }
+            Thread.Sleep(20);
+        }
+    }
+
+    private static ulong ProcessCreationFileTime(IntPtr process, string label)
+    {
+        FileTime created, exited, kernel, user;
+        if (!GetProcessTimes(process, out created, out exited, out kernel, out user))
+        {
+            ThrowWin32("GetProcessTimes(" + label + ")");
+        }
+        return ((ulong)created.dwHighDateTime << 32) | created.dwLowDateTime;
+    }
+
+    private static void WriteWindowsJobDrainEvidence(
+        Options options, ProcessInformation target, JobObjectBasicAccountingInformation accounting)
+    {
+        // Point-in-time native witness, not a FutureSpawn/Issuer revocation ACK.
+        // Its carrier requires independent identity and provenance verification
+        // before any PostgreSQL terminal CAS; callers must not trust it alone.
+        if (accounting.ActiveProcesses != 0 || accounting.TotalProcesses == 0)
+            throw new InvalidOperationException("native Job Object is not positively drained");
+        string json = "{" +
+            "\"schemaVersion\":1," +
+            "\"jobId\":" + JsonString(options.RuntimeJobId) + "," +
+            "\"attemptId\":" + JsonString(options.RuntimeAttemptId) + "," +
+            "\"launchTokenDigest\":" + JsonString(options.RuntimeLaunchTokenDigest) + "," +
+            "\"requestDigest\":" + JsonString(options.RuntimeRequestDigest) + "," +
+            "\"jobName\":" + JsonString(options.JobName) + "," +
+            "\"launcherProcessId\":" + GetCurrentProcessId().ToString(CultureInfo.InvariantCulture) + "," +
+            "\"launcherProcessCreationTimeFileTime\":" +
+                ProcessCreationFileTime(GetCurrentProcess(), "native-drain launcher").ToString(CultureInfo.InvariantCulture) + "," +
+            "\"targetProcessId\":" + target.dwProcessId.ToString(CultureInfo.InvariantCulture) + "," +
+            "\"targetProcessCreationTimeFileTime\":" +
+                ProcessCreationFileTime(target.hProcess, "native-drain target").ToString(CultureInfo.InvariantCulture) + "," +
+            "\"totalProcesses\":" + accounting.TotalProcesses.ToString(CultureInfo.InvariantCulture) + "," +
+            "\"activeProcesses\":0," +
+            "\"observedUnixMs\":" + UnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture) +
+            "}";
+        WriteTextAtomic(Path.Combine(options.RuntimeBundle, "windows-job-drain.json"), json);
     }
 
     private static void TerminateWholeJob(IntPtr job, uint exitCode)

@@ -1,5 +1,9 @@
 # Ordivon Finance — Human 操作指南（R1）
 
+**当前 Golden Road：** [Finance Golden Road R1](FINANCE_GOLDEN_ROAD_R1.md)。
+入口覆盖 Portfolio 原资金计划、Governance NON_LIVE、Qlib/Nautilus
+原生模拟、PostgreSQL 账务与独立读回；PIT、真实券商和账户权限需要另行准入。
+
 **Directory audit and Human/Agent roles:** [Finance Owner / LEGO audited guide](FINANCE_DIRECTORY_OWNER_AUDIT_R1.md). Use the existing natural Owners instead of recreating the retired Wave-A pipeline.
 
 > 多阶段情景树优化与严格非预见性说明：
@@ -22,6 +26,7 @@
 | 需求 | 对应自然 Owner / 现有模块 | 当前实际能力 | 不等于什么 |
 |---|---|---|---|
 | 查询、整理 ETF 收盘行情和历史版本 | Markets · `etf_eod_snapshot.py`, `historical_close_snapshot.py` | 有来源与时间边界的行情快照准入 | 自动获取全市场真实、实时的价格 |
+| 对照 QQQ/SMH/Mag7/VIX 的跨市场日线、排除假交易日 | Markets 数据 + Finance R3 只读研究消费（见 ../adoption/r3_native/MARKET_DAILY_CLOSE_RESEARCH_R1.md） | 43 序列统一收盘价格、EMA200、跨资产日变动及来源资格反证 | 已认证复权/PIT、真实资金信号、Paper 授权 |
 | 将新存款分配给长期目标资产 | Portfolio · `strategic_contribution.py` | 给定持仓、市值与目标比例，计算**只买不卖**的计划 | 投资建议、实际订单或可信行情 |
 | 比较主动策略与相同现金流的被动指数 | Portfolio · `passive_benchmark.py` | 纯函数、现金流与费用口径匹配的描述性对照 | 真实预测、税务计算或交易执行 |
 | 用已冻结的历史行情重放模拟策略 | Portfolio · `paper_investment.py` | 生成逐日模拟净值、回撤和基准差异 | 真实订单成交、可复现的未来 Alpha |
@@ -32,6 +37,16 @@
 
 这些模块分别归属 Markets、Portfolio、Research、Risk、Governance、Accounting、Trading 七个已有源码 Owner。**Human 先选择目的，Agent 再选择经过验证的最小 LEGO；不能反过来因为存在某个模块就自动授予它资金权限。**
 
+
+### 历史行情的两个不同时间（Human 指南）
+
+Markets ETF EOD 原始快照中的 availableAt 可能只是数据源声称的发布时间；
+capturedAt 则是本次快照声明的采集时刻。在没有独立认证的历史归档时，
+Research 一律按本次采集时刻判定整份快照可用，绝不把今天下载的旧行情
+回填到过去投资者的决策。新增 etf_eod_capture_to_pit_vintages 复用原有
+Markets 准入，保留 SECONDARY_VENDOR_NOT_ATTESTED 来源状态及价格基准，
+并通过已有 Portfolio 条件优化消费者使用，不自动证明分红、拆股、实际
+发布时间或未来投资收益。详细合同见 PIT_JOINT_FORECAST_R1.md。
 
 ### 源码 LEGO 索引：CA01—CA10 的实际消费者是什么？
 
@@ -62,6 +77,13 @@
 两者不可混为一谈：Python `Decimal`、因子加载、外部账户真实性与
 真实投资结果尚无相应实现精化证明，详见
 `domains/capital/formal/RiskExposureBound.md`。
+
+### 金额级预留与终止部分成交：Human / Agent 分工
+
+- **Human**：首先确认订单是否真正终止、成交记录是否完整、扣费币种和实际扣款金额是否有提供方原始凭据。只看到“部分成交”或者“取消成功”并不足以认定结算完成。
+- **Agent**：Trading 的 PARTIAL_EXECUTION_UNSETTLED 一律保持 NO_MUTATION，不自动结算。Accounting 的 resolution_instruction(..., posted_amount=...) 可以对已获独立认证的终止订单进行**一次**精确整数金额的 PG POST，并原子释放原预留的剩余部分；DurableReservationHistory(CONSUMED, posted_amount=...) 必须与 PG 的实际读回相符。
+- **举例**：保留 700 美分的预留，最终确认消费 240 美分，PG 把 240 美分转入已入账，释放 460 美分；重复的交易所回执不得产生第二笔消费。
+- **边界**：形式化模型与独立 PG 测试可证明给定金额下的账务状态性质，但**不能**证实券商真实成交、费用或时间。本能力尚未自动接入正式订单执行和真实资金结算。
 
 ## 2. 立即可复现：给长期投资账户规划一笔虚拟新增资金
 
@@ -192,7 +214,7 @@ Markets 独立准入的原始未复权收盘价，而不从复权历史柱子猜
 
 ```sh
 cd domains/capital
-scripts/run-capability-python -m ordivon_capital.risk.paper_close_risk \
+scripts/run-capability-python -m ordivon_capital.applications.paper_risk_cli \
   --account PAPER_ACCOUNT --session YYYY-MM-DD \
   --snapshot /private/etf-raw-marks.json \
   --binding /private/operator-market-binding.json
@@ -217,7 +239,7 @@ Accounting/Markets/Risk 原生消费者给出。
 
 ```sh
 cd domains/capital
-scripts/run-capability-python -m ordivon_capital.portfolio.paper_close_performance \
+scripts/run-capability-python -m ordivon_capital.applications.paper_performance_cli \
   --account PAPER_ACCOUNT --session YYYY-MM-DD --previous-session YYYY-MM-DD \
   --snapshot /private/etf-raw-marks.json \
   --binding /private/operator-market-binding.json
@@ -301,6 +323,45 @@ Finance 的持久化账本由 Accounting 的 PostgresAccountingLedger 负责。�
 
 旧 SQLite 引擎、R0-R5 脚本和差分测试已退役。36 条两操作情景直接对真实 PostgreSQL 和独立账务预期进行比较，无需迁移旧 SQLite 数据。Human 可从 scripts/run-nonlive-capital-effect-matrix 了解模拟资金效果；这仍需要显式 PG DSN，且不构成外部交易授权。Agent 的操作顺序见现有 finance-paper-investment Skill。
 
+## 真实 ETF 历史研究与未来验证：第一个经济闭环（2026-11-08）
+
+**Human：** 已有 Finance 示例 60% SPY / 40% SHY 对比 100% SPY，
+用 GitHub 提供的 1,511,995 字节来源数据进行了 SHA-256 + Git Blob
+双哈希校验与独立 Decimal 经济重算。2025-01-02 至 2026-08-10
+期间，100,000 USD 模拟本金在给定费用下分别成为
+122,561.63 与 134,273.58 USD；前者最大回撤 11.15%，后者 18.77%。
+这是一项明确的收益—回撤取舍，不是后者对所有投资者绝对更优。
+
+**Agent：** 从现有
+evidence/finance-research/spy-shy-forward-20261108/README.md
+读取可重放研究流程，调用既有 Markets/Portfolio Paper Replay、
+独立算术核对与 Finance Research freeze-experiment，不要新增引擎。
+已在 2026-11-08 冻结 2026-11-09 至 2027-03-31 的未来实验。
+其当前证据为 UNKNOWN / NO_HOLDOUT_EVIDENCE，不能自称已取得未来收益、
+真实价格来源认证、独立 Alpha 或实盘授权。原始行情供应商、公司行动、
+交易成本和真正的历史 PIT 可用性仍需额外认证。
+
+## Agent 研究角色与权限：Human / Agent 指引（2026-11-08）
+
+**Human：** 决定真实经济研究问题、期限、现金/被动基准和研究资源预算。
+可以将普通研究和非实盘实验委托给 Agent，无需逐次审批每次代码运行；
+研究结束或另一 Agent 同意都不代表获得真实资金授权。
+真实账户效果始终由经独立资格验证的 Trading/Governance 消费者控制。
+
+**Agent：** 按任务组合 Research Director、Discovery、Quant Researcher
+和 Independent Reviewer 等角色，不创建七个常驻 Owner Agent。
+使用现有 finance-experiment-review Skill 的冻结实验、Holdout
+评价与候选经济重放，避免新建研究引擎。Reviewer 独立性来自
+分离的输入、评价合同及可追溯结果，不来自 role 文字标签。
+不得自己创建 Security 委派 Grant，也不得把研究自报结果提升
+为真实行情来源、已证实的 Alpha 或真实金融交易权限。
+
+**验证：** tests/test_finance_agent_role_composition.py 用真实 Research
+CLI 和 Security Owner OPA 合同测试了研究角色委派、越权动作、
+资源越界、Grant 过期、预算耗尽和高风险升级。测试身份和授权
+输入均为合成的已认证投影，未证明生产入口的身份认证、预算扣减
+或实际金融效果。
+
 ## Prospective Validation：日期对齐与真实数据证据
 
 `research/prospective_validation.py` 只负责一项纯计算：在冻结的决策时点与交易所时区下，找出所有必需资产**共同拥有、严格晚于决策日**的候选交易日期。它不接触行情原始响应，也无法核实首次观测时间、数据发布时间、使用许可和企业行动。
@@ -308,3 +369,124 @@ Finance 的持久化账本由 Accounting 的 PostgresAccountingLedger 负责。�
 **Human：** `postDecisionSessionDatesAligned=true` 只说明日历条件满足；`POST_DECISION_DATES_ALIGNED_SOURCE_UNVERIFIED` 不是“样本外数据已经可用”。当前返回的 `postDecisionHoldoutAvailable=false` 是刻意保留的证据边界。不可把回填日期或尚未发生的日期当成真实的未来收益观察。
 
 **Agent：** 先固定 `decision_boundary` 与 `session_timezone`，调用已有 Research 日历算子得到 `alignedCommonSessionDates`；再到现有 Markets 与 Research Owner 核验原始来源摘要、首次观测/发布时间、企业行动和真实评价时点。上述证据缺失时保持 UNKNOWN，不得宣称 PIT 验证、OOS 评价完成、经济优越性或实盘交易权限。禁止再建时间数据目录、专用证明服务或第二套研究执行器。
+
+
+### Paper 日结中文报告：普通用户日常使用
+
+原有 Portfolio 的 paper_close_performance 消费已提交的 PostgreSQL
+Paper 日结、独立 Markets 估值绑定和 Risk 结果；原有机器 JSON
+输出仍为默认。新增可选 --format markdown，不开发第二账本、
+新资产估值或新收益算法。
+
+从 domains/capital 目录调用现有脚本：
+
+    export ORDIVON_CAPITAL_PAPER_PG_DSN='...经核实的专用Paper测试或模拟数据库...'
+    scripts/run-capability-python -m ordivon_capital.applications.paper_performance_cli \
+      --account PAPER_ACCOUNT --session YYYY-MM-DD \
+      --previous-session YYYY-MM-DD \
+      --snapshot /path/to/private-market-snapshot.json \
+      --binding /path/to/source-binding.json --format markdown
+
+先以 Accounting 原有 --read-latest 查询该账户，再传递真实的前次
+日结日期。首次日结不传 --previous-session，必须显示无法计算
+投资收益。中文报告清楚区分本期外部入金、净值与扣除入金后的投资
+损益；文件来源则明确“未验证 PostgreSQL”，已提交数据库收据
+才显示“持久读回”。简单期间收益假设外部入金在期初，不是 GIPS
+认证的时间加权收益或 IRR。风险预算 UNSET、市场提供者与权利
+UNKNOWN、历史 PIT 不明时不可报告风险通过或授予真实交易效果。
+
+## Paper 月度新增资金配置：从已提交账户到只买不卖计划（2026-11-13）
+
+**普通用户目标：** 不再每月手工重新录入模拟账户持仓与现金，
+而是在账户已完成日结后，按照用户事先确定的目标比例，把
+**已经存入 Paper 的可用资金**配置到偏离目标的资产上；
+保留原有仓位，且不能提前动用尚未结算的卖出应收款和买单应付款。
+
+本次用既有成熟模块组合，不创建新回测器、经纪商、价格服务或账本：
+
+1. Accounting 的
+   `read_latest_committed_paper_close` 读取真正已提交的 Paper 账户头；
+   空账户、缺数据库或缺权限会拒绝，不自动充值或新建账户。
+2. Markets 用 `admit_etf_eod_snapshot` 对相同账户最近估值日
+   的原始 ETF 收盘价做绑定；若资产快照与账户日结不一致则拒绝。
+   接受调用方的证据字段不等于独立证明许可证、PIT 或公司行动。
+3. Risk 的 `review_paper_close_risk` 验证账务 NAV、持仓价值、
+   买入应付款、卖出应收款和已保护现金；只有已经入账的
+   未占用现金才可作为新增配置预算。
+4. Portfolio 直接调用既有 `plan_strategic_contribution`
+   计算只买不卖的目标缺口分配，全部以整数美分计算。
+   输出中未提供收盘价的新买入标的标记为 unpricedAllocationTargets，
+   不推导份额、订单、税费或实时风险批准。
+
+**使用前：** 首先在独立 Paper 数据库确实提交了入金及当日日结，
+已有 `--read-latest` 可确认最新收据。用户显式选择
+`targetWeightsBps`，例如在私有文件 `/path/to/targets.json`
+填入 `{"SPY":6000,"SHY":4000}`。示例不代表模型建议 60/40。
+
+在 `domains/capital` 执行：
+
+~~~sh
+export ORDIVON_CAPITAL_PAPER_PG_DSN='...已验证的专用Paper数据库DSN...'
+scripts/run-capability-python -m ordivon_capital.applications.paper_contribution_cli \
+  --account PAPER_ACCOUNT \
+  --market-snapshot /path/to/private-raw-eod.json \
+  --market-binding /path/to/validated-binding.json \
+  --target-weights /path/to/targets.json \
+  --invest-minor 20000 --format markdown
+~~~
+
+`--invest-minor 20000` 指已入账、未占用的 **200 美元**，不是
+向账户再转入 200 美元，也不是实际买卖授权。输出包含每只资产
+分配的美分金额、投入后剩余可用现金、受保护现金、未结算应收款、
+当前 Risk 评价以及需要额外价格的资产。只有 CLI 真正读取专用
+PostgreSQL 后才标记 `accountingPersistenceReverified=true`；
+纯函数使用者得到 false。机器端默认仍为 JSON。
+
+每次仅生成 **READ_ONLY_PAPER_ACCOUNT_PLAN**；
+`RISK_BUDGET_INCOMPLETE`、`marketRightsIndependentlyVerified=false`
+和 `executionAuthorized=false` 均不能被覆盖。若本月尚未有经
+认可的市场快照，则保留未知与阻断，而不是用历史回填价格伪装当日
+可交易行情。普通用户仍需提供自己的投资期限、现金储备和目标比例。
+
+## 2026-11-14：Finance R3 交易所会话资格（研究数据入口）
+
+Human：使用历史 SPY、QQQ、IWM 行情训练 Qlib 或运行 Riskfolio
+风险优化前，必须声明当次请求数据的起止日；Markets 的
+XNYS 日期资格组件独立验证真实交易会话是否完整，禁止以提供者
+自身返回的首末日期为完整性定义。已证实的反例包括 2025-05-26
+假交易日，以及遗漏真实请求末日 2026-10-30 的人为截断样本。
+
+Agent：现有 Finance R3 Qlib 与 Riskfolio 实际消费同一个 Markets
+只读日期资格接口，不开发新的交易所日历、策略模型或记录系统。
+所有示例仍为历史研究：日期资格只保证交易会话与请求日历
+形状一致，不保证市场价格准确、公司行动复权、历史首次可知
+时间、使用许可、模拟成交真实性或资金授权。新增反证测试位于
+Capital 标准 tests 下，抽象 Z3 证明与实际消费者测试各有边界。
+具体研究结果与证据见 adoption/r3_native/RESEARCH_HOLDING_HORIZON_OOS.md。
+
+### Markets 日终交易日与实际收盘时刻的边界（2026-11-14）
+
+对 SPY、QQQ、IWM 等 US ETF 的研究或 Paper 日结，历史价格
+不只需要 SHA、日期连续性，还需要交易所真实开市日期和
+真实收盘时间。现有 Markets ETF 日终快照准入会利用
+exchange-calendars XNYS 检验休市日、夏令时和提前收盘；
+PostgreSQL Paper 对被传入的已构造快照也会复查日历。
+Human 无须另装日历系统，Agent 重用自然 Markets 的公开规则。
+这不能证明经纪商成交、数据供应商或股息总回报；
+不要把历史普通收盘价自动当作可投资的总回报数据。
+
+### Paper 价格来源修订后的绩效失效（2026-11-15）
+
+如果新 Markets EOD 快照的 `supersedesSha256` **明确指向前一期
+Paper Accounting 收据中 `market_evidence.sha256`**，现有
+`portfolio.paper_close_performance` 拒绝输出跨这两期的投资
+盈亏和简单收益率（`REJECTED`，提示先重新核验旧市场估值）。
+一个有效的原始新来源摘要不等于已重新结算旧账本。
+必须保留原始 PG 提交与来源历史，待 Accounting 自然 Owner
+依据可信修订/账本调整合同处理，而不是改写旧收据、默默更新
+历史收益、或者让 Agent 在研究策略中使用已失效结果。
+
+本保护是**显式修订指针命中旧来源**时的局部消费者负控；
+并不意味着未见指针就证明来源未修订，不会自动发现供应商的
+所有历史修正，也不认证公司行动、交易、PIT 或真实投资价值。
+没有独立资格时风险及资本行动仍保持未授权。
