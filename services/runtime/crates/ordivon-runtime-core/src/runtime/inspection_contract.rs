@@ -9,6 +9,7 @@ use std::collections::BTreeMap;
 
 pub const DEFAULT_INSPECTION_EVENT_LIMIT: u32 = 200;
 pub const MAX_INSPECTION_EVENT_LIMIT: u32 = 1_000;
+pub(crate) const MAX_INSPECTION_ATTEMPTS: u32 = 32;
 
 #[derive(Clone, Debug, JsonSchema, Serialize)]
 #[serde(rename_all = "camelCase")]

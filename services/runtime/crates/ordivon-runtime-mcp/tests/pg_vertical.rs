@@ -7205,3 +7205,160 @@ fn pg_direct_implicit_profile_exact_replay_and_explicit_trusted_denial() {
     );
     eprintln!("R61_DIRECT_MCP_IMPLICIT_NATIVE_EXEC_AND_PLAN_EXACT_REPLAY_GREEN");
 }
+
+/// A successful real native attempt plus one older, explicitly synthetic
+/// historical attempt in the disposable PG fixture. Old stdout must not
+/// replace current stdout, and artifact descriptors must retain their owner.
+#[test]
+#[ignore = "disposable PG18 and native Runner"]
+fn pg_job_get_reports_bounded_attempt_history_and_actual_dispatches() {
+    use sha2::Digest as _;
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({
+            "workspaceId":"ws-r5-projection-history","sourceRepo":repo,"sourceRevision":"HEAD"
+        }),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let run = call(
+        &endpoint,
+        "workspace.exec",
+        json!({
+            "clientRequestId":"r5-projection-history","execution":{
+            "workspaceId":"ws-r5-projection-history","executable":"/usr/bin/printf",
+            "args":["R5_CURRENT_STDOUT"],"cwdRelative":".","timeoutMs":15000},
+            "waitMs":15000,"stdoutTailBytes":256
+        }),
+    );
+    assert_ne!(run["isError"], true, "{run}");
+    let job = run["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let deadline = Instant::now() + Duration::from_secs(25);
+    let current = loop {
+        let observed = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":job,"waitMs":1000,"stdoutTailBytes":256}),
+        );
+        assert_ne!(observed["isError"], true, "{observed}");
+        if observed["structuredContent"]["executionTerminal"] == true {
+            assert_eq!(
+                observed["structuredContent"]["executionDisposition"],
+                "succeeded"
+            );
+            assert_eq!(
+                observed["structuredContent"]["stdoutTail"],
+                "R5_CURRENT_STDOUT"
+            );
+            break observed["structuredContent"]["attemptId"]
+                .as_str()
+                .unwrap()
+                .to_owned();
+        }
+        assert!(Instant::now() < deadline, "{observed}");
+    };
+    let row=fixture.db.query_one("SELECT relative_path FROM artifacts WHERE job_id=$1 AND attempt_id=$2 AND kind='stdout'",&[&job,&current]).unwrap();
+    let relative: String = row.get(0);
+    let previous = format!("r5-history-{}", Uuid::now_v7());
+    let previous_bundle = fixture.root.join("store/pg-attempts").join(&previous);
+    let old_path = previous_bundle.join(&relative);
+    assert!(old_path.starts_with(&previous_bundle));
+    fs::create_dir_all(old_path.parent().unwrap()).unwrap();
+    let old = b"R5_HISTORICAL_STDOUT";
+    fs::write(&old_path, old).unwrap();
+    let digest = format!("sha256:{}", hex::encode(sha2::Sha256::digest(old)));
+    let len = old.len() as i64;
+    let historical_id = format!("000-r5-historical-{}", Uuid::now_v7());
+    let mut tx = fixture.db.transaction().unwrap();
+    assert_eq!(
+        tx.execute(
+            "UPDATE attempts SET attempt_number=2 WHERE attempt_id=$1 AND attempt_number=1",
+            &[&current]
+        )
+        .unwrap(),
+        1
+    );
+    assert_eq!(tx.execute("INSERT INTO attempts(attempt_id,job_id,attempt_number,state,termination_intent,launch_token_digest,bundle_path,unit_name,created_at_ms,row_version) SELECT $1,job_id,1,'failed','natural',launch_token_digest,$2,$3,created_at_ms,0 FROM attempts WHERE attempt_id=$4",
+        &[&previous,&previous_bundle.to_string_lossy().to_string(),&format!("ordivon-pg-{previous}.service"),&current]).unwrap(),1);
+    tx.execute("INSERT INTO concurrency_reservations(reservation_id,attempt_id,global_limit,state,acquired_at_ms,state_observed_at_ms,released_at_ms) SELECT $1,$2,0,'released',created_at_ms,created_at_ms,created_at_ms FROM attempts WHERE attempt_id=$2",
+        &[&format!("r5-reservation-{previous}"),&previous]).unwrap();
+    tx.execute("INSERT INTO artifacts(artifact_id,job_id,attempt_id,kind,relative_path,digest,media_type,byte_length) VALUES($1,$2,$3,'stdout',$4,$5,'text/plain',$6)",
+        &[&historical_id,&job,&previous,&relative,&digest,&len]).unwrap();
+    tx.commit().unwrap();
+
+    // The native latest Attempt has a real DISPATCH_ISSUED. The older
+    // synthetic Attempt is intentionally not dispatched; no OS retry claim.
+    let get = call(&endpoint, "job.get", json!({"jobId":job}));
+    assert_ne!(get["isError"], true, "{get}");
+    let content = &get["structuredContent"];
+    let attempts = content["attempts"].as_array().unwrap();
+    eprintln!(
+        "HISTORY_CENSUS attempts={} truncated={} dispatches={}",
+        attempts.len(),
+        content["attemptsTruncated"],
+        content["episodes"]["dispatches"]
+    );
+    assert_eq!(
+        attempts.len(),
+        2,
+        "must not silently hide historical attempts"
+    );
+    assert_eq!(content["attemptsTruncated"], false);
+    assert_eq!(attempts[0]["attemptId"], previous);
+    assert_eq!(attempts[0]["artifactCount"], 1);
+    assert_eq!(attempts[0]["artifactBytes"], len);
+    assert_eq!(attempts[0]["resultAvailable"], false);
+    assert_eq!(attempts[1]["attemptId"], current);
+    assert!(attempts[1]["artifactCount"].as_u64().unwrap() > 1);
+    assert_eq!(attempts[1]["resultAvailable"], true);
+    assert_eq!(content["episodes"]["dispatches"], 1);
+    assert_eq!(content["episodes"]["duplicateDispatches"], 0);
+    assert_eq!(content["job"]["mechanicallyConverged"], true);
+    // A real terminal Job does not prove every historical Attempt released.
+    fixture.db.execute("UPDATE concurrency_reservations SET state='held_orphaned',released_at_ms=NULL WHERE attempt_id=$1",&[&previous]).unwrap();
+    let held = call(&endpoint, "job.get", json!({"jobId":job}));
+    assert_ne!(held["isError"], true, "{held}");
+    assert_eq!(
+        held["structuredContent"]["job"]["mechanicallyConverged"],
+        false
+    );
+    fixture
+        .db
+        .execute(
+            "UPDATE concurrency_reservations SET state='released' WHERE attempt_id=$1",
+            &[&previous],
+        )
+        .unwrap();
+    let mut tx = fixture.db.transaction().unwrap();
+    tx.execute(
+        "UPDATE attempts SET attempt_number=33 WHERE attempt_id=$1",
+        &[&current],
+    )
+    .unwrap();
+    for number in 2_i64..=32 {
+        let id = format!("r5-history-{number}-{}", Uuid::now_v7());
+        let bundle = fixture
+            .root
+            .join("store/pg-attempts")
+            .join(&id)
+            .to_string_lossy()
+            .to_string();
+        tx.execute("INSERT INTO attempts(attempt_id,job_id,attempt_number,state,termination_intent,launch_token_digest,bundle_path,unit_name,created_at_ms,row_version) SELECT $1,job_id,$2,'failed','natural',launch_token_digest,$3,$4,created_at_ms,0 FROM attempts WHERE attempt_id=$5",&[&id,&number,&bundle,&format!("ordivon-pg-{id}.service"),&current]).unwrap();
+        tx.execute("INSERT INTO concurrency_reservations(reservation_id,attempt_id,global_limit,state,acquired_at_ms,state_observed_at_ms,released_at_ms) SELECT $1,$2,0,'released',created_at_ms,created_at_ms,created_at_ms FROM attempts WHERE attempt_id=$2",&[&format!("r5-reservation-{id}"),&id]).unwrap();
+    }
+    tx.commit().unwrap();
+    let bounded = call(&endpoint, "job.get", json!({"jobId":job}));
+    assert_ne!(bounded["isError"], true, "{bounded}");
+    let content = &bounded["structuredContent"];
+    assert_eq!(content["attempts"].as_array().unwrap().len(), 32);
+    assert_eq!(content["attemptsTruncated"], true);
+    assert_eq!(content["job"]["mechanicallyConverged"], false);
+    assert_eq!(content["episodes"]["dispatches"], 1);
+}

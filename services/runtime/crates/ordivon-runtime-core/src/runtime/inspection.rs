@@ -15,7 +15,6 @@ use super::{
 use serde::Serialize;
 
 pub(crate) const RUNTIME_INSPECTION_SCHEMA_VERSION: u32 = 2;
-const MAX_INSPECTION_ATTEMPTS: u32 = 32;
 
 #[derive(Clone, Debug)]
 pub struct RuntimeInspectionConfig {
