@@ -75,7 +75,10 @@ pub(crate) fn valid_pg_artifacts(artifacts: &[PgArtifactRegistration]) -> bool {
 pub(super) fn terminal_transition(from: &str, to: &str) -> bool {
     use crate::runtime::AttemptState;
 
-    let (Ok(from), Ok(to)) = (AttemptState::parse(from), AttemptState::parse(to)) else {
+    let (Some(from), Some(to)) = (
+        AttemptState::known_db_state(from),
+        AttemptState::known_db_state(to),
+    ) else {
         return false;
     };
     to.is_terminal() && from.can_transition_to(to)
@@ -125,7 +128,16 @@ mod kani_transition_proofs {
                 );
             }
         }
+        use crate::runtime::AttemptState;
+        for id in 0..11 {
+            let value = state(id);
+            let parsed = AttemptState::parse(value).unwrap();
+            assert_eq!(AttemptState::known_db_state(value), Some(parsed));
+            assert_eq!(parsed.as_db(), value);
+        }
         for unknown in ["", "RUNNING", " running", "succeeded ", "completed"] {
+            assert!(AttemptState::known_db_state(unknown).is_none());
+            assert!(AttemptState::parse(unknown).is_err());
             assert!(!terminal_transition(unknown, "succeeded"));
             assert!(!terminal_transition("running", unknown));
         }

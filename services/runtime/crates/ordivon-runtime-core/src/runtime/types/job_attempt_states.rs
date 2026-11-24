@@ -103,21 +103,26 @@ impl AttemptState {
         }
     }
 
-    pub(crate) fn parse(value: &str) -> RuntimeResult<Self> {
+    pub(crate) fn known_db_state(value: &str) -> Option<Self> {
         match value {
-            "accepted" => Ok(Self::Accepted),
-            "starting" => Ok(Self::Starting),
-            "running" => Ok(Self::Running),
-            "stopping" => Ok(Self::Stopping),
-            "recovering" => Ok(Self::Recovering),
-            "succeeded" => Ok(Self::Succeeded),
-            "failed" => Ok(Self::Failed),
-            "timed_out" => Ok(Self::TimedOut),
-            "cancelled" => Ok(Self::Cancelled),
-            "lost" => Ok(Self::Lost),
-            "orphaned" => Ok(Self::Orphaned),
-            _ => Err(RuntimeError::invalid("unknown attempt state", "state")),
+            "accepted" => Some(Self::Accepted),
+            "starting" => Some(Self::Starting),
+            "running" => Some(Self::Running),
+            "stopping" => Some(Self::Stopping),
+            "recovering" => Some(Self::Recovering),
+            "succeeded" => Some(Self::Succeeded),
+            "failed" => Some(Self::Failed),
+            "timed_out" => Some(Self::TimedOut),
+            "cancelled" => Some(Self::Cancelled),
+            "lost" => Some(Self::Lost),
+            "orphaned" => Some(Self::Orphaned),
+            _ => None,
         }
+    }
+
+    pub(crate) fn parse(value: &str) -> RuntimeResult<Self> {
+        Self::known_db_state(value)
+            .ok_or_else(|| RuntimeError::invalid("unknown attempt state", "state"))
     }
 
     pub fn is_terminal(self) -> bool {
