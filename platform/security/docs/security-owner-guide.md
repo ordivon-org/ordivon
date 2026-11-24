@@ -81,6 +81,8 @@ Human: verify an artifact's signed attestation from the release workflow before 
 
 Agent: use the real provider-issued attestation and cryptographic verification; never invent build history from logs or promote parsed unsigned JSON into trusted builder identity.
 
+For a closed-input build claim, the independent obligations live in [BuildEvidenceBinding.lean](../formal/BuildEvidenceBinding.lean). Run the existing `mise run verify-formal`; this model does not qualify any deployed build provider or infer business acceptance from a digest.
+
 ## Product evidence admission — native OPA contract and observed counterexample (2026-11-07)
 
 The earlier product Rego gate counted only explicit `mechanicalSuccess == false` records. A real OPA evaluation with all five `mechanicalSuccess` fields missing still returned `allow=true` and `standing=CURRENT`: an observed representation-to-policy fail-open, not a hypothetical unit-test label. The consumer profile is `scripts/scan_product.sh` -> `scripts/assemble_gate_input.py` -> OPA `policies/admission.rego`.
