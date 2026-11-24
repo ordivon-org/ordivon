@@ -5,6 +5,7 @@ from typing import Protocol, runtime_checkable
 
 from anc_canonical import JsonValue, canonical_digest
 
+from ..core_contracts import HarnessRunContract
 from ..protocol import (
     HarnessProviderCallFailureReceipt,
     HarnessProviderCallSource,
@@ -89,6 +90,16 @@ class HarnessRunStoreBinding:
     assignment_id: str
     assignment_generation: int
     assignment_digest: str
+
+    @classmethod
+    def for_contract(cls, contract: HarnessRunContract) -> HarnessRunStoreBinding:
+        """Original independent Run assignment identity (no new authority)."""
+        return cls(
+            harness_run_id=contract.harness_run_id,
+            assignment_id=f"assignment:external:{contract.digest[7:31]}",
+            assignment_generation=1,
+            assignment_digest=contract.digest,
+        )
 
     @property
     def digest(self) -> str:

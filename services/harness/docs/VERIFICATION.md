@@ -270,3 +270,20 @@ validator is reused on the exact cut inside the original locked transaction.
 The SourceCut bounded model adds a terminal safety check and unsafe omission
 and legitimate acceptance probes; actual SQL and OS/Domain release remain
 separate evidence obligations.
+
+### R41 PostgreSQL Store source responsibilities and snapshot
+
+The PG Store facade retains the single original connection and atomic
+Writer. Source-level facets isolate schema, pure codecs, immutable objects,
+queries, leases and integrity; public behavior remains on the original
+Store, with the intentional global Doctor snapshot correction. Verify the
+real concurrent new-Run counterexample, the stable caller snapshot
+positive, the standalone Doctor and nested single-Run validation. The
+`DoctorSnapshotR1` bounded model uses the existing TLC gate with weak
+snapshot and nonvacuous concurrent stable-snapshot probes.
+
+The actual normal terminal consumer with settled original Provider and Tool
+effects and its Doctor must succeed without opening a Run command facade.
+The shared original immutable Provider reader preserves the same identity,
+state, request, result and failure checks; the negative pending-effect
+regressions remain in the same real PostgreSQL suite.

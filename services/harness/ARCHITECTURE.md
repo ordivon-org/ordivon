@@ -302,6 +302,27 @@ Store, an explicit dedicated test DSN, a fresh owned disposable schema and
 distinct trace CAS payloads; existing historical SQLite receipts are
 unchanged. A clean revision is required for persistent benchmark evidence.
 
+**R41 source refinement (2026-11-24, candidate):**
+The PG Store still owns one connection and the original atomic
+Run/Event/Lease admission transaction. Its existing responsibility seams
+are now separate source facets: schema/issuer definition, pure row codecs,
+CAS objects, Run/Journal queries, leases and history integrity. The public
+`PostgresHarnessStore` remains the composition and sole Journal Writer.
+Object reads and inspection share the same immutable CAS decoder.
+Normal terminal admission and Doctor now consume the same verified original
+Contract/history and a read-only Provider evidence reader directly. They
+no longer instantiate the Run command facade or allocate an execution
+identity merely to inspect effects. The binding factory is shared by the
+original command facade and reader, and no extra state owner is introduced.
+
+Global Doctor requires a stable native PG snapshot; locking existing Run
+rows cannot fence new Run creation or global CAS phantoms. Standalone
+Doctor uses its original read-only REPEATABLE READ transaction. Caller
+owned REPEATABLE READ/SERIALIZABLE works; nested READ COMMITTED or READ
+UNCOMMITTED must run global Doctor separately. Single-Run validation
+retains the existing writable transaction row-lock path. An unqualified
+global snapshot raises a revision conflict, not a corruption finding.
+
 **Original Run birth and legacy adoption are distinct operations.**
 For NEW Workspace-bearing Runs, the supported `HarnessAgentRun.create`
 first obtains the native HELD Workspace Claim, then commits the original Run

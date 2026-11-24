@@ -152,3 +152,14 @@ positive probe reaches a clean terminal. UNKNOWN quarantine remains separate.
 The real PG writer now validates the exact original events it uses under its
 existing Run row lock before normal terminal admission. This reuses the
 original Doctor history/edge validator and does not prove OS or Domain release.
+
+### R41 global Doctor snapshot qualification
+
+`DoctorSnapshotR1` models two Runs with one creation Event each and a
+concurrent new Run insertion after the initial count. Its weak snapshot
+probe reaches a mixed healthy report; its positive probe reaches a
+coherent older snapshot despite concurrent creation. The positive model
+requires a stable snapshot for a healthy global report. It intentionally
+does not model arbitrary SQL histories, CAS contents, or physical effects.
+The real PG test drives the original Doctor and a second live Store
+connection and retains the valid per-Run nested row-lock path.

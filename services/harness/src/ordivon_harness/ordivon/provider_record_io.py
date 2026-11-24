@@ -10,13 +10,10 @@ from ..protocol import (
     HarnessProviderCallSource,
     HarnessProviderCallStatus,
 )
-from ..run_state import HarnessRunState, state_from_dict
+from ..run_state import HarnessRunState
 from ..store import (
     HarnessRunEventRecord,
     StoredHarnessObject,
-)
-from .continuity_guards import (
-    required_event_digest,
 )
 from .continuity_records import (
     HarnessProviderCallRecordV3,
@@ -27,11 +24,11 @@ from .model import (
     AgentTurnRequest,
     AgentTurnResult,
 )
+from .provider_record_reader import read_provider_record
 from .provider_state_guards import (
     require_provider_continuation_state,
 )
 from .run_store_port import (
-    HarnessProviderCallRecordView,
     HarnessProviderCallRequestMismatch,
     HarnessSuperseded,
     HarnessProviderCallSourceRef,
@@ -127,123 +124,7 @@ class ProviderRecordIO:
         return None if event is None else self._load_provider_from_event(event)
 
     def _load_provider_from_event(self, event: HarnessRunEventRecord) -> StoredHarnessProviderCall:
-        data = event.data
-        record_object_digest = required_event_digest(data, "providerCallRecordObjectDigest")
-        raw_record = self.store.get_object(
-            record_object_digest,
-            expected_kind="harness-provider-call-record",
-        )
-        if not isinstance(raw_record, dict):
-            raise ValueError("Harness Provider Call record object is invalid")
-        record_version = raw_record.get("schemaVersion")
-        if record_version == 3:
-            record = HarnessProviderCallRecordV3.from_dict(raw_record)
-        elif record_version == 4:
-            record = HarnessProviderCallRecordV4.from_dict(raw_record)
-        else:
-            raise ValueError("independent Harness Store requires Provider Call v3 or v4")
-        self._require_provider_record(record)
-        if data.get("providerCallRecordDigest") != record.digest:
-            raise ValueError("Harness Provider Call record digest differs")
-        state_object_digest = required_event_digest(data, "stateObjectDigest")
-        if state_object_digest != record.state_object_digest:
-            raise ValueError("Harness Provider Call state reference differs")
-        raw_state = self.store.get_object(
-            state_object_digest,
-            expected_kind="harness-run-state",
-        )
-        if not isinstance(raw_state, dict):
-            raise TypeError("Harness Provider Call state object is invalid")
-        state = state_from_dict(raw_state, harness_run_id=self.harness_run_id)
-        state_object = self.store.inspect_object(state_object_digest)
-
-        request = None
-        request_object = None
-        request_object_digest = data.get("requestObjectDigest")
-        retained_request_digest = getattr(record, "request_object_digest", None)
-        if retained_request_digest is None:
-            if request_object_digest is not None:
-                raise ValueError(
-                    "Provider Call record without request-object binding unexpectedly references one"
-                )
-        else:
-            if request_object_digest != retained_request_digest:
-                raise ValueError("Provider Call exact request event reference differs")
-            raw_request = self.store.get_object(
-                retained_request_digest,
-                expected_kind="agent-turn-request",
-            )
-            if not isinstance(raw_request, dict):
-                raise TypeError("Provider Call exact request object is invalid")
-            request = AgentTurnRequest.from_dict(raw_request)
-            request_object = self.store.inspect_object(retained_request_digest)
-            if (
-                request.dispatch_digest != record.request_digest
-                or request.harness_run_id != self.harness_run_id
-                or request.turn_id != record.turn_id
-                or request.sequence != record.turn_sequence
-            ):
-                raise ValueError("Provider Call exact request differs from its record")
-
-        result = None
-        result_object = None
-        result_object_digest = data.get("resultObjectDigest")
-        if result_object_digest is not None:
-            if not isinstance(result_object_digest, str):
-                raise ValueError("Provider result object reference is invalid")
-            raw_result = self.store.get_object(
-                result_object_digest,
-                expected_kind="agent-turn-result",
-            )
-            if not isinstance(raw_result, dict):
-                raise TypeError("Provider result object is invalid")
-            result = AgentTurnResult.from_dict(raw_result)
-            result_object = self.store.inspect_object(result_object_digest)
-            if (
-                record.result_digest != result.digest
-                or record.result_object_digest != result_object_digest
-            ):
-                raise ValueError("Provider result differs from its record")
-        elif record.result_object_digest is not None:
-            raise ValueError("Provider result object reference is incomplete")
-        elif record.result_digest is not None and not isinstance(
-            record, HarnessProviderCallRecordV4
-        ):
-            raise ValueError("Provider result content is missing from a non-redacted record")
-
-        failure = None
-        failure_object = None
-        failure_object_digest = data.get("failureObjectDigest")
-        if failure_object_digest is not None:
-            if not isinstance(failure_object_digest, str):
-                raise ValueError("Provider failure object reference is invalid")
-            raw_failure = self.store.get_object(
-                failure_object_digest,
-                expected_kind="harness-provider-call-failure",
-            )
-            if not isinstance(raw_failure, dict):
-                raise TypeError("Provider failure object is invalid")
-            failure = HarnessProviderCallFailureReceipt.from_dict(raw_failure)
-            failure_object = self.store.inspect_object(failure_object_digest)
-            if (
-                record.failure_digest != failure.digest
-                or record.failure_object_digest != failure_object_digest
-            ):
-                raise ValueError("Provider failure differs from its record")
-        elif record.failure_digest is not None or record.failure_object_digest is not None:
-            raise ValueError("Provider failure references are incomplete")
-        return StoredHarnessProviderCall(
-            record,
-            self.store.inspect_object(record_object_digest),
-            state,
-            state_object,
-            result,
-            result_object,
-            failure,
-            failure_object,
-            request=request,
-            request_object=request_object,
-        )
+        return read_provider_record(self.store, self.binding, event)
 
     def _transition_provider_call(
         self,
@@ -364,13 +245,6 @@ class ProviderRecordIO:
             or snapshot_event.data.get("snapshotObjectDigest") != source.object_digest
         ):
             raise HarnessSuperseded("Provider Call Snapshot source is no longer current")
-
-    def _require_provider_record(self, record: HarnessProviderCallRecordView) -> None:
-        if (
-            record.harness_run_id != self.harness_run_id
-            or record.binding_digest != self.binding.digest
-        ):
-            raise ValueError("Harness Provider Call differs from the current Run binding")
 
     def _require_current_provider_call(self, expected) -> StoredHarnessProviderCall:
         current = self.load_current_provider_call()

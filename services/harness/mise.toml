@@ -244,4 +244,26 @@ fi
   done
 )
 
+
+# R41: global Doctor snapshot qualification uses the same native TLC gate.
+(
+  cd formal
+  java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tla2sany.SANY DoctorSnapshotR1.tla
+  java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config DoctorSnapshotR1.cfg DoctorSnapshotR1.tla
+  snapshot_probe="$(mktemp)"
+  trap 'rm -f "$snapshot_probe"' EXIT
+  for spec in "weak:CoherentReport" "concurrent:ConcurrentHealthyIsUnreachable"; do
+    IFS=: read -r label predicate <<< "$spec"
+    if java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config "DoctorSnapshotR1.$label-probe.cfg" DoctorSnapshotR1.tla > "$snapshot_probe" 2>&1; then
+      echo "R41 $label counterexample unexpectedly absent" >&2
+      exit 1
+    fi
+    if ! grep -Fq "Error: Invariant $predicate is violated." "$snapshot_probe"; then
+      cat "$snapshot_probe" >&2
+      exit 1
+    fi
+    echo "R41 $label counterexample: PASS"
+  done
+)
+
 """

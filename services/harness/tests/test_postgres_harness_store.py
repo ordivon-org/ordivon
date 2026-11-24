@@ -2270,6 +2270,48 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         )
         continuity.prepare_tool_step(intent)
         self.assertEqual(continuity.load_current_tool_step().intent.digest, intent.digest)
+        # Both real original effects settle. Terminal and Doctor must use
+        # immutable evidence, not construct an executing Run command facade.
+        from unittest.mock import patch
+
+        observation = {"schemaVersion": 1, "kind": "pg.observed", "status": "observed"}
+        clock.advance()
+        continuity.record_tool_step_receipt(
+            HarnessToolStepReceipt(
+                receipt_id="harness-tool-step-receipt:pg-read-only-terminal",
+                intent_digest=intent.digest, harness_run_id=run.harness_run_id,
+                tool_call_id=intent.tool_call_id, status=HarnessToolStepStatus.OBSERVED,
+                runtime_job_ref="runtime-job:pg-read-only-terminal",
+                observation_digest=canonical_digest(observation), reconciled=False,
+                created_at_ms=clock(),
+            ), observation,
+        )
+        before = self.store.load_run(run.harness_run_id)
+        now = before.updated_at_ms + 1
+        lease = self.store.acquire_run_lease(
+            run.harness_run_id, owner_id="worker:read-only-terminal",
+            ttl_ms=10_000, now_ms=now,
+        )
+        with patch.object(
+            EventSourcedRunContinuity, "open",
+            side_effect=AssertionError("read-only integrity must not open command facade"),
+        ):
+            self.assertEqual(
+                self.store.append_events(
+                    harness_run_id=run.harness_run_id,
+                    events=(HarnessEventWrite(
+                        event_id="event:pg-read-only-terminal",
+                        event_kind="harness.run-completed",
+                        data={"stopReason": "completed"}, recorded_at_ms=now + 1,
+                    ),),
+                    expected_revision=lease.run_revision, lease=lease,
+                    lease_checked_at_ms=now,
+                ), HarnessEventAdmission.CREATED,
+            )
+            doctor = self.store.doctor()
+        self.assertTrue(doctor["healthy"])
+        self.assertEqual(doctor["leases"], 0)
+        self.assertTrue(self.store.load_run(run.harness_run_id).status.terminal)
 
     def test_pending_tool_cannot_admit_new_provider_claim(self) -> None:
         """Provider may not dispatch while an older Tool effect is pending."""
@@ -2724,12 +2766,61 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         self.assertEqual(self.store.doctor()["events"], 2)
 
     def test_nested_writable_caller_transaction_doctor_remains_consistent(self) -> None:
-        """Existing caller-owned PG transactions still work without SET TRANSACTION."""
+        """A per-Run lock remains usable; global Doctor needs stable isolation."""
         run = contract()
         self.store.create_run(run)
         with self.store.connection.transaction():
+            self.store.validate_run_history(run.harness_run_id)
+            with self.assertRaisesRegex(HarnessRevisionConflict, "stable caller snapshot"):
+                self.store.doctor()
+            self.assertEqual(self.store.load_run(run.harness_run_id).revision, 1)
+        with self.store.connection.transaction():
+            self.store.connection.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
             self.store.validate_run_history(run.harness_run_id)
             doctor = self.store.doctor()
             self.assertTrue(doctor["healthy"])
             self.assertEqual(doctor["runs"], 1)
             self.assertEqual(doctor["events"], 1)
+
+    def test_nested_read_committed_global_doctor_never_certifies_mixed_run_counts(self) -> None:
+        """Existing-row locks cannot fence new original Runs in READ COMMITTED."""
+        from unittest.mock import patch
+
+        first = contract()
+        second = replace(first, harness_run_id="harness-run:global-doctor-phantom",
+                         caller_run_ref="caller-run:global-doctor-phantom")
+        self.store.create_run(first)
+        list_original = self.store.list_runs
+        created = False
+
+        def list_before_new_run():
+            nonlocal created
+            runs = list_original()
+            if not created:
+                created = True
+                with PostgresHarnessStore(self.dsn, schema=self.schema) as rival:
+                    rival.create_run(second)
+            return runs
+
+        with self.store.connection.transaction():
+            with patch.object(self.store, "list_runs", side_effect=list_before_new_run):
+                with self.assertRaises(HarnessRevisionConflict):
+                    self.store.doctor()
+        self.assertFalse(created)
+        with self.store.connection.transaction():
+            self.store.connection.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+            with patch.object(self.store, "list_runs", side_effect=list_before_new_run):
+                doctor = self.store.doctor()
+            self.assertTrue(doctor["healthy"])
+            self.assertEqual((doctor["runs"], doctor["events"], doctor["objects"]), (1, 1, 2))
+        self.assertTrue(created)
+        self.assertEqual(self.store.doctor()["runs"], 2)
+
+    def test_nested_read_uncommitted_is_not_a_stable_global_snapshot(self) -> None:
+        run = contract()
+        self.store.create_run(run)
+        with self.store.connection.transaction():
+            self.store.connection.execute("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED")
+            self.store.validate_run_history(run.harness_run_id)
+            with self.assertRaisesRegex(HarnessRevisionConflict, "stable caller snapshot"):
+                self.store.doctor()

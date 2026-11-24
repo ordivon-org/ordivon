@@ -124,13 +124,7 @@ class EventSourcedRunContinuity(
         self.store = store
         self.contract = contract
         self.harness_run_id = contract.harness_run_id
-        token = contract.digest[7:31]
-        self._binding = HarnessRunStoreBinding(
-            harness_run_id=contract.harness_run_id,
-            assignment_id=f"assignment:external:{token}",
-            assignment_generation=1,
-            assignment_digest=contract.digest,
-        )
+        self._binding = HarnessRunStoreBinding.for_contract(contract)
         self._clock_ms = clock_ms or (lambda: time.time_ns() // 1_000_000)
         self._execution_owner_id = new_execution_owner_id("continuity")
         self._bound_state: HarnessRunState | None = None
