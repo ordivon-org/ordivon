@@ -42,3 +42,15 @@ causality, a new SEND, recipient acceptance, or carrier release eligibility.
 Old receipts cannot be retroactively upgraded. The unanchored result remains
 OBSERVED_ROLE_PAIR_ONLY. The authorization boundary is the existing natural
 consumer, not arbitrary values supplied to a command line.
+
+
+## Existing Playwright carrier read
+
+The existing Browserless output script now observes one already-present
+canonical target page. It does not create a tab or navigate a mismatched page.
+A missing or ambiguous target is a scoped noncapture. The digest-only CLI mode
+requires an observed DOM user-message ID and a new observation ID; the
+historical prompt-file mode remains a scoped operator observation, not a
+durable wake-result certificate. The caller must bind the existing endpoint
+to the original SEND carrier and preserve the authenticated recipient boundary.
+Disconnecting this reader is not releasing a carrier or accepting a result.

@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 """Read one completed assistant response from an exact provider-bound ChatGPT conversation.
 
-This is a read-only evidence primitive. It never fills a composer, clicks SEND, retries a turn, or
-changes the continuation ledger. The caller supplies the exact user prompt that must already be
-present in the target conversation; only the assistant message immediately following that user
-turn may be captured.
+This read-only primitive never navigates, creates pages, fills a composer, clicks SEND, retries a turn,\nor changes the continuation ledger. The caller supplies exact prompt bytes or a durable digest and\nobserved DOM user message identity; only the existing unambiguous target may be observed.
 """
 
 from __future__ import annotations
@@ -13,25 +10,25 @@ import argparse
 import json
 import rfc8785
 import os
-import time
+import re
+import uuid
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
 from browserless_substrate import BrowserlessEndpoint
-from chatgpt_provider_gate import challenge_gated
 from chatgpt_provider_resource import canonical_chatgpt_resource, chatgpt_resource_from_page_url
 from conversation_output_evidence import (
-    DOM_SNAPSHOT_ARGS, DOM_SNAPSHOT_EXPRESSION, qualify_snapshot, sha256_bytes,
+    DOM_SNAPSHOT_ARGS,
+    DOM_SNAPSHOT_EXPRESSION,
+    qualify_snapshot,
+    qualify_snapshot_by_digest,
+    sha256_bytes,
     validate_dom_message_id,
+    validate_prompt_digest,
     select_exact_turn_output as select_exact_turn_output,
     recommendation as recommendation,
 )
-
-STOP_SELECTOR = 'button[data-testid="stop-button"]'
-CHALLENGE_SELECTOR = 'iframe[src*="challenges.cloudflare.com"], [id*="challenge"]'
-FETCH_ERROR_SELECTOR = '[data-testid="conversation-fetch-error-toaster"]'
-MAIN_SELECTOR = "main"
 
 
 def digest_obj(value: object) -> str:
@@ -55,15 +52,102 @@ def endpoint_from_config(path: Path, endpoint_id: str) -> BrowserlessEndpoint:
 
 
 def observe_output(
-    page, target_resource: str, expected_prompt: str, fetch_error_text: str | None,
-    *, expected_dom_user_message_id: str | None = None,
+    page,
+    target_resource: str,
+    expected_prompt: str,
+    fetch_error_text: str | None,
+    *,
+    expected_dom_user_message_id: str | None = None,
 ) -> dict:
     """Observe through Playwright; reuse the transport-independent qualifier."""
     snapshot = page.evaluate(DOM_SNAPSHOT_EXPRESSION, DOM_SNAPSHOT_ARGS)
     return qualify_snapshot(
-        snapshot, target_resource, expected_prompt, page.url, fetch_error_text,
+        snapshot,
+        target_resource,
+        expected_prompt,
+        page.url,
+        fetch_error_text,
         expected_dom_user_message_id=expected_dom_user_message_id,
     )
+
+
+def read_existing_playwright_output(
+    browser,
+    *,
+    target_resource: str,
+    expected_prompt_digest: str,
+    expected_dom_user_message_id: str | None = None,
+) -> dict:
+    """One existing-browser observation; never navigate, create or close a page."""
+    if canonical_chatgpt_resource(target_resource) != target_resource:
+        raise ValueError("target must be one canonical conversation resource")
+    validate_prompt_digest(expected_prompt_digest)
+    if expected_dom_user_message_id is not None:
+        validate_dom_message_id(expected_dom_user_message_id)
+
+    def withheld(standing: str) -> dict:
+        return {
+            "standing": standing,
+            "observedDomUserMessageId": None,
+            "evidenceScope": "OBSERVED_ROLE_PAIR_ONLY"
+            if expected_dom_user_message_id is None
+            else "DOM_MESSAGE_ID_REQUIRED",
+            "pageUrlObserved": None,
+            "observedResourceAfterWait": None,
+            "targetStillBoundAfterWait": False,
+            "expectedUserTurnVisible": False,
+            "promptMarkersUsed": [],
+            "captureMethod": None,
+            "conversationFetchError": None,
+            "generationActive": None,
+            "assistantOutputRead": False,
+            "assistantOutput": None,
+            "assistantOutputDigest": None,
+            "recommendation": None,
+            "releaseAttempted": False,
+            "mainTextChars": None,
+        }
+
+    def matching_pages(context) -> list:
+        return [
+            page
+            for page in context.pages
+            if chatgpt_resource_from_page_url(page.url) == target_resource
+        ]
+
+    try:
+        contexts = browser.contexts
+        if len(contexts) != 1:
+            return withheld("CONTEXT_AMBIGUOUS")
+        context = contexts[0]
+        pages = matching_pages(context)
+        if not pages:
+            return withheld("TARGET_NOT_VISIBLE")
+        if len(pages) != 1:
+            return withheld("TARGET_AMBIGUOUS")
+        page = pages[0]
+        snapshot = page.evaluate(DOM_SNAPSHOT_EXPRESSION, DOM_SNAPSHOT_ARGS)
+        contexts_after = browser.contexts
+        if len(contexts_after) != 1 or contexts_after[0] is not context:
+            return withheld("TARGET_RESOURCE_DRIFTED")
+        after = matching_pages(context)
+        if len(after) != 1 or after[0] is not page:
+            return withheld("TARGET_RESOURCE_DRIFTED")
+        observation = qualify_snapshot_by_digest(
+            snapshot,
+            target_resource,
+            expected_prompt_digest,
+            page.url,
+            expected_dom_user_message_id=expected_dom_user_message_id,
+        )
+        # Error text and unrelated URLs are not part of the recipient's result.
+        if observation["conversationFetchError"] is not None:
+            observation["conversationFetchError"] = "OBSERVED"
+        if observation["standing"] == "TARGET_RESOURCE_DRIFTED":
+            return withheld("TARGET_RESOURCE_DRIFTED")
+        return {**observation, "releaseAttempted": False, "mainTextChars": None}
+    except Exception:
+        return withheld("TRANSPORT_ERROR")
 
 
 def main() -> int:
@@ -71,25 +155,39 @@ def main() -> int:
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--endpoint-id", required=True)
     parser.add_argument("--target-resource", required=True)
-    parser.add_argument("--expected-user-prompt-file", type=Path, required=True)
+    prompt_input = parser.add_mutually_exclusive_group(required=True)
+    prompt_input.add_argument("--expected-user-prompt-file", type=Path)
+    prompt_input.add_argument("--expected-prompt-digest")
+    parser.add_argument("--observation-id")
     parser.add_argument("--receipt-out", type=Path, required=True)
     parser.add_argument("--expected-dom-user-message-id")
     args = parser.parse_args()
     if args.expected_dom_user_message_id is not None:
         validate_dom_message_id(args.expected_dom_user_message_id)
 
-    expected_file_raw = args.expected_user_prompt_file.read_bytes()
-    expected_prompt = expected_file_raw.decode("utf-8")
-    if expected_prompt.endswith("\r\n"):
-        expected_prompt = expected_prompt[:-2]
-    elif expected_prompt.endswith("\n"):
-        expected_prompt = expected_prompt[:-1]
-    if not expected_prompt.strip() or expected_prompt != expected_prompt.strip():
-        raise SystemExit(
-            "expected user prompt must be non-empty and trimmed after one transport newline is removed"
-        )
-    expected_prompt_digest = sha256_bytes(expected_prompt.encode("utf-8"))
-    expected_prompt_file_digest = sha256_bytes(expected_file_raw)
+    if args.expected_prompt_digest is not None:
+        if args.expected_dom_user_message_id is None or args.observation_id is None:
+            parser.error(
+                "digest-only reads require the observed DOM user identity and observation ID"
+            )
+        expected_prompt_digest = validate_prompt_digest(args.expected_prompt_digest)
+        expected_prompt_file_digest = None
+    else:
+        expected_file_raw = args.expected_user_prompt_file.read_bytes()
+        expected_prompt = expected_file_raw.decode("utf-8")
+        if expected_prompt.endswith("\\r\\n"):
+            expected_prompt = expected_prompt[:-2]
+        elif expected_prompt.endswith("\\n"):
+            expected_prompt = expected_prompt[:-1]
+        if not expected_prompt.strip() or expected_prompt != expected_prompt.strip():
+            raise SystemExit(
+                "expected user prompt must be non-empty and trimmed after one transport newline is removed"
+            )
+        expected_prompt_digest = sha256_bytes(expected_prompt.encode("utf-8"))
+        expected_prompt_file_digest = sha256_bytes(expected_file_raw)
+    observation_id = args.observation_id if args.observation_id is not None else str(uuid.uuid4())
+    if re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", observation_id) is None:
+        parser.error("invalid observation identity")
     target_resource = canonical_chatgpt_resource(args.target_resource)
     endpoint = endpoint_from_config(args.config, args.endpoint_id)
     connection_url = endpoint.authenticated_operator_connection_endpoint(timeout_ms=90_000)
@@ -97,49 +195,10 @@ def main() -> int:
     with sync_playwright() as pw:
         browser = pw.chromium.connect_over_cdp(connection_url, timeout=20_000)
         try:
-            if len(browser.contexts) != 1:
-                raise SystemExit("Browserless output capture context cardinality changed")
-            context = browser.contexts[0]
-            pages = [
-                page
-                for page in context.pages
-                if page.url.startswith("https://chatgpt.com") or page.url == "about:blank"
-            ]
-            page = pages[0] if len(pages) == 1 else (context.new_page() if not pages else None)
-            if page is None:
-                raise SystemExit("Browserless output capture page cardinality changed")
-            if chatgpt_resource_from_page_url(page.url) != target_resource:
-                page.goto(target_resource, wait_until="domcontentloaded", timeout=30_000)
-            hydration_deadline = time.monotonic() + 20.0
-            main_text = ""
-            fetch_error_text = None
-            while True:
-                if challenge_gated(page, CHALLENGE_SELECTOR):
-                    raise SystemExit("Browserless output capture is challenge-gated")
-                fetch_error = page.locator(FETCH_ERROR_SELECTOR)
-                if fetch_error.count() and fetch_error.first.is_visible():
-                    fetch_error_text = fetch_error.first.inner_text().strip()[:240]
-                    break
-                observed_resource_after_wait = chatgpt_resource_from_page_url(page.url)
-                if observed_resource_after_wait != target_resource:
-                    break
-                main = page.locator(MAIN_SELECTOR)
-                main_text = main.inner_text().strip() if main.count() == 1 else ""
-                if len(main_text) >= 32:
-                    page.wait_for_timeout(500)
-                    main = page.locator(MAIN_SELECTOR)
-                    stable_text = main.inner_text().strip() if main.count() == 1 else ""
-                    if (
-                        len(stable_text) >= 32
-                        and chatgpt_resource_from_page_url(page.url) == target_resource
-                    ):
-                        main_text = stable_text
-                        break
-                if time.monotonic() >= hydration_deadline:
-                    break
-                page.wait_for_timeout(500)
-            observation = observe_output(
-                page, target_resource, expected_prompt, fetch_error_text,
+            observation = read_existing_playwright_output(
+                browser,
+                target_resource=target_resource,
+                expected_prompt_digest=expected_prompt_digest,
                 expected_dom_user_message_id=args.expected_dom_user_message_id,
             )
             receipt = {
@@ -149,7 +208,7 @@ def main() -> int:
                 "browserlessEndpointId": endpoint.endpoint_id,
                 "expectedUserPromptDigest": expected_prompt_digest,
                 "expectedUserPromptFileDigest": expected_prompt_file_digest,
-                "mainTextChars": len(main_text),
+                "observationId": observation_id,
                 **observation,
                 "providerEffectAttempted": False,
                 "composerFilled": False,
