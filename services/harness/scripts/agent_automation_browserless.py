@@ -1464,24 +1464,39 @@ class BrowserlessAutomationService:
             "sendAttempted": False,
         }
 
+    @staticmethod
+    def _read_pg_turn_effect_row(pg_dsn: str, turn_request_id: str, *, strict_receipt: bool = False) -> dict | None:
+        try:
+            from postgres_turn_effects import PostgresTurnEffects
+        except ModuleNotFoundError:
+            from scripts.postgres_turn_effects import PostgresTurnEffects
+
+        record = PostgresTurnEffects.read_existing(pg_dsn, turn_request_id)
+        if record is None:
+            return None
+        raw = record["receipt_json"]
+        if strict_receipt and raw is not None:
+            from anc_canonical import loads_strict
+            try:
+                receipt = loads_strict(raw)
+            except ValueError:
+                # A stored receipt with duplicate keys or invalid control JSON
+                # cannot establish result identity. Do not expose its contents.
+                receipt = None
+        else:
+            receipt = json.loads(raw) if raw else None
+        return {
+            "promptDigest": record["prompt_digest"],
+            "targetCoordinate": record["target_coordinate"],
+            "state": record["state"],
+            "receipt": receipt,
+            "updatedAtMs": record["updated_at_ms"],
+        }
+
     def _turn_effect_row(self, turn_request_id: str) -> dict | None:
         pg_dsn = self._postgres_seam_dsn("ORDIVON_TURN_EFFECT_POSTGRES_DSN")
         if pg_dsn:
-            try:
-                from postgres_turn_effects import PostgresTurnEffects
-            except ModuleNotFoundError:
-                from scripts.postgres_turn_effects import PostgresTurnEffects
-
-            record = PostgresTurnEffects.read_existing(pg_dsn, turn_request_id)
-            if record is None:
-                return None
-            return {
-                "promptDigest": record["prompt_digest"],
-                "targetCoordinate": record["target_coordinate"],
-                "state": record["state"],
-                "receipt": (json.loads(record["receipt_json"]) if record["receipt_json"] else None),
-                "updatedAtMs": record["updated_at_ms"],
-            }
+            return self._read_pg_turn_effect_row(pg_dsn, turn_request_id)
         path = self.config.turn_ledger
         if not path.exists():
             return None
@@ -1504,6 +1519,30 @@ class BrowserlessAutomationService:
             "receipt": json.loads(row[3]) if row[3] else None,
             "updatedAtMs": row[4],
         }
+
+    def wake_result_identity(self, campaign_ref: str, agent_id: str, *, wake_intent_id: str) -> dict:
+        """Read exact PG wake/effect evidence; no browser access, writer or legacy fallback.
+
+        This internal port is not an authenticated public result endpoint. The
+        caller must already be authorized for the requested campaign and role.
+        """
+        try:
+            from postgres_wake_turn_map import PostgresWakeTurnMap
+            from wake_result_identity import require_wake_mapping, resolve_wake_result_identity
+        except ModuleNotFoundError:
+            from scripts.postgres_wake_turn_map import PostgresWakeTurnMap
+            from scripts.wake_result_identity import require_wake_mapping, resolve_wake_result_identity
+
+        wake_dsn = self._postgres_seam_dsn("ORDIVON_WAKE_TURN_POSTGRES_DSN")
+        effect_dsn = self._postgres_seam_dsn("ORDIVON_TURN_EFFECT_POSTGRES_DSN")
+        if not wake_dsn or not effect_dsn:
+            raise BrowserlessAutomationConflict("PG wake and effect readers are required")
+        mapping = PostgresWakeTurnMap.read_existing(wake_dsn, wake_intent_id)
+        effect = None
+        if mapping is not None:
+            turn_id = require_wake_mapping(campaign_ref, agent_id, wake_intent_id, mapping)
+            effect = self._read_pg_turn_effect_row(effect_dsn, turn_id, strict_receipt=True)
+        return resolve_wake_result_identity(campaign_ref, agent_id, wake_intent_id, mapping, effect)
 
     def launch_continue(
         self,

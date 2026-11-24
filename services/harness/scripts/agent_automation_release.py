@@ -102,6 +102,7 @@ RELEASE_PATHS = (
     "scripts/conversation_binding_contract.py",
     "scripts/sqlite_wake_turn_map.py",
     "scripts/wake_turn_contract.py",
+    "scripts/wake_result_identity.py",
     "scripts/postgres_wake_turn_map.py",
     "scripts/postgres_conversation_binding.py",
     "scripts/postgres_turn_effects.py",

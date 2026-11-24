@@ -188,6 +188,19 @@ This Wake cutover does not by itself switch Harness Run/CAS, conversation
 materialization, conversation role-binding, or Turn Effect send receipts.
 Do not mark those separate Owners as cut over.
 
+### Wake result identity (internal read port)
+
+Use the existing PG wake map and effect receipt to recover a result-observation
+identity without allocating a new wake, constructing writers, or querying a
+browser. The requested campaign, role, and wake must match the durable map;
+the effect must match its turn and prompt, canonical resource, original carrier
+and canonical receipt digest. Only an observed DOM append witness qualifies the
+specific DOM user identity. An older SEND receipt without the witness remains
+observable but does not identify a new result. This is not provider-issued turn
+identity, domain acceptance, SEND authority, release authorization, or an
+authenticated public output endpoint. A subsequent consumer must qualify the
+same carrier and target before reading, and separately acknowledge the result.
+
 ### PG-only Browserless identity/effect consumer selection
 
 The deployed Browserless owner has **three independent identity/effect seams**:
