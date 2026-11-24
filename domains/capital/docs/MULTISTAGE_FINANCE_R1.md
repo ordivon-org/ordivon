@@ -163,7 +163,10 @@ https://doi.org/10.1007/s13385-021-00292-z 。
     cd domains/capital
     PYTHONPATH=src uv run --no-sync python -m ordivon_capital.portfolio.multistage_policy --input /path/to/authoritatively_supplied_tree.json
 
-输入 JSON 顶层必须严格只有 `gamma` 与 `nodes`。每个 nodes 项是
+输入 JSON 顶层必须包含 `gamma` 与 `nodes`，并可选
+`terminal_liabilities_r` 与 `node_outflow_after_contribution_r`（见第 2.1、2.2 节）。
+所有 JSON 对象拒绝重复键；数值字段不接受布尔值，月序必须是真正整数，
+终端标志必须是布尔值。每个 nodes 项是
 `InformationNode` 的公开字段：`id`、`parent`、`t`、
 `conditional_probability`、`risky_gross`、`cash_gross`、
 `debt_gross`、`maintenance`、`initial_margin`、

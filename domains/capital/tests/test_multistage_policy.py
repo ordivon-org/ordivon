@@ -323,3 +323,56 @@ def test_native_module_consumer_accepts_exact_json_and_no_execution_authority() 
     )
     assert missing.returncode != 0
     assert "expected only gamma and nodes" in missing.stderr
+
+
+@pytest.mark.parametrize("bad_case", [
+    "duplicate_terminal_liability",
+    "duplicate_intermediate_obligation",
+    "duplicate_gamma",
+    "boolean_gamma",
+    "boolean_month",
+    "boolean_probability",
+    "boolean_gross",
+    "integer_terminal",
+])
+def test_native_multistage_rejects_ambiguous_economic_input(bad_case: str) -> None:
+    import dataclasses
+    import json
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    payload = {
+        "gamma": 1,
+        "nodes": [
+            dataclasses.asdict(root()),
+            dataclasses.asdict(terminal("end", "root", 1, 1, .8)),
+        ],
+        "terminal_liabilities_r": {"end": .4},
+        "node_outflow_after_contribution_r": {"root": .2},
+    }
+    if bad_case == "boolean_gamma":
+        payload["gamma"] = True
+    elif bad_case == "boolean_month":
+        payload["nodes"][1]["t"] = True
+    elif bad_case == "boolean_probability":
+        payload["nodes"][1]["conditional_probability"] = True
+    elif bad_case == "boolean_gross":
+        payload["nodes"][1]["risky_gross"] = [True]
+    elif bad_case == "integer_terminal":
+        payload["nodes"][1]["terminal"] = 1
+    raw = json.dumps(payload)
+    if bad_case == "duplicate_terminal_liability":
+        raw = raw.replace('"end": 0.4', '"end": 100, "end": 0.4')
+    elif bad_case == "duplicate_intermediate_obligation":
+        raw = raw.replace('"root": 0.2', '"root": 100, "root": 0.2')
+    elif bad_case == "duplicate_gamma":
+        raw = raw.replace('"gamma": 1', '"gamma": -1, "gamma": 1')
+    result = subprocess.run(
+        [sys.executable, "-m", "ordivon_capital.portfolio.multistage_policy", "--input", "-"],
+        input=raw, text=True, capture_output=True, check=False,
+        env={**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1] / "src")},
+    )
+    assert result.returncode != 0, result.stdout
+    assert not result.stdout
