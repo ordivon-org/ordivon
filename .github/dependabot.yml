@@ -11,6 +11,7 @@ updates:
   - package-ecosystem: npm
     directories:
       - "/apps/web"
+      - "/apps/web/experiments/solid-grants-r3"
       - "/capabilities/artifact/artifact-delivery/node"
       - "/capabilities/media"
       - "/domains/capital/tools/okx_official_cli"
