@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Retry bounded Artifact cleanup tasks stored in private R2."""
+"""Audit legacy cleanup records; native R2 lifecycle owns deferred deletion."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import datetime as dt
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import urllib.parse
@@ -183,55 +184,35 @@ def get_task(environment: dict[str, str], key: str) -> dict[str, Any]:
 
 
 def validate_task(key: str, task: dict[str, Any]) -> list[str]:
-    if not key.startswith(CLEANUP_PREFIX) or not key.endswith(".json"):
-        raise GarbageCollectionError(f"Cleanup key is outside the allowed prefix: {key}")
-    if task.get("schema_version") != 1:
-        raise GarbageCollectionError(f"Unsupported cleanup schema: {key}")
     request_id = task.get("request_id")
     generation = task.get("lease_generation")
+    operation = task.get("operation")
+    reason = task.get("reason")
     artifact_keys = task.get("artifact_keys")
-    if not isinstance(request_id, str) or not request_id:
-        raise GarbageCollectionError(f"Cleanup task has no Request ID: {key}")
-    if not isinstance(generation, int) or generation < 1:
+    if type(task.get("schema_version")) is not int or task["schema_version"] != 1:
+        raise GarbageCollectionError(f"Unsupported cleanup schema: {key}")
+    if not isinstance(request_id, str) or not re.fullmatch(r"[a-z0-9][a-z0-9_-]{7,63}", request_id):
+        raise GarbageCollectionError(f"Cleanup task has invalid Request ID: {key}")
+    if type(generation) is not int or not 1 <= generation <= 2**53 - 1:
         raise GarbageCollectionError(f"Cleanup task has invalid generation: {key}")
+    if key != f"{CLEANUP_PREFIX}{request_id}/g{generation}.json":
+        raise GarbageCollectionError(f"Cleanup key does not bind Request ID and generation: {key}")
+    if operation == "fetch":
+        allowed = {f"fetch/v2/{request_id}/g{generation}/body"}
+    elif operation == "browser.run":
+        prefix = f"browser/v2/{request_id}/g{generation}/"
+        allowed = {prefix + name for name in ("screenshot.png", "content.html", "manifest.json")}
+    else:
+        raise GarbageCollectionError(f"Cleanup task has invalid operation: {key}")
+    if not isinstance(reason, str) or not reason or len(reason) > 128:
+        raise GarbageCollectionError(f"Cleanup task has invalid reason: {key}")
     if (
         not isinstance(artifact_keys, list)
-        or not artifact_keys
-        or len(artifact_keys) > 16
-        or not all(isinstance(item, str) for item in artifact_keys)
+        or not 1 <= len(artifact_keys) <= 16
+        or not all(isinstance(item, str) and item in allowed for item in artifact_keys)
     ):
         raise GarbageCollectionError(f"Cleanup task has invalid Artifact keys: {key}")
-
-    generation_segment = f"/g{generation}/"
-    allowed_prefixes = (
-        f"fetch/v2/{request_id}/",
-        f"browser/v2/{request_id}/",
-    )
-    for artifact_key in artifact_keys:
-        if (
-            not artifact_key.startswith(allowed_prefixes)
-            or generation_segment not in artifact_key
-            or ".." in artifact_key
-            or "\\" in artifact_key
-        ):
-            raise GarbageCollectionError(
-                f"Cleanup task attempts an out-of-scope deletion: {artifact_key}"
-            )
     return list(dict.fromkeys(artifact_keys))
-
-
-def delete_object(environment: dict[str, str], key: str) -> None:
-    wrangler(
-        environment,
-        [
-            "r2",
-            "object",
-            "delete",
-            f"{BUCKET}/{key}",
-            "--remote",
-            "--force",
-        ],
-    )
 
 
 def write_receipt(report: dict[str, Any]) -> pathlib.Path:
@@ -248,7 +229,7 @@ def write_receipt(report: dict[str, Any]) -> pathlib.Path:
 
 def main() -> int:
     parser = argparse.ArgumentParser(prog="ordivon-edge-gc")
-    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--dry-run", action="store_true", help="compatibility flag; both modes only audit remote objects")
     parser.add_argument("--limit", type=int, default=100)
     args = parser.parse_args()
     if args.limit < 1 or args.limit > 1000:
@@ -257,20 +238,21 @@ def main() -> int:
     try:
         token, account_id, environment = load_cloudflare()
         task_keys = list_cleanup_keys(token, account_id, args.limit)
-        completed: list[dict[str, Any]] = []
+        deferred: list[dict[str, Any]] = []
         failed: list[dict[str, str]] = []
         for task_key in task_keys:
             try:
                 task = get_task(environment, task_key)
                 artifact_keys = validate_task(task_key, task)
-                if not args.dry_run:
-                    for artifact_key in artifact_keys:
-                        delete_object(environment, artifact_key)
-                    delete_object(environment, task_key)
-                completed.append(
+                # A v1 record is not a fenced delete authorization. Even a
+                # current read cannot atomically bind another object's deletion.
+                # Existing R2 expiration rules bound deferred storage instead.
+                deferred.append(
                     {
                         "task_key": task_key,
                         "artifact_keys": artifact_keys,
+                        "reason": task["reason"],
+                        "disposition": "native_retention",
                         "dry_run": args.dry_run,
                     }
                 )
@@ -278,11 +260,13 @@ def main() -> int:
                 failed.append({"task_key": task_key, "error": str(exc)})
 
         report = {
-            "status": "completed" if not failed else "completed_with_failures",
+            "status": "completed_with_failures" if failed else ("completed_with_deferred" if deferred else "completed"),
             "completed_at": dt.datetime.now(dt.UTC).isoformat(),
             "dry_run": args.dry_run,
             "scanned": len(task_keys),
-            "completed": completed,
+            "completed": [],
+            "deferred": deferred,
+            "mode": "audit_only",
             "failed": failed,
         }
         receipt = write_receipt(report)
