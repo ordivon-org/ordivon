@@ -308,7 +308,7 @@ External mature references:
 
 Finance Research 的 `market_capture_to_pit_vintages` 不新增行情数据库或第二套解析器；它直接调用 Markets 已有的 `historical_close_snapshot.admit_adjusted_close_csv`，验证输入 CSV 原始字节的 SHA-256、列身份、交易日期与价格结构。
 
-**关键时间合同：** 调用者分别提供最后交易日 `last_session`、该交易日真实收盘瞬间 `last_session_close_at`，以及本次文件实际取得瞬间 `captured_at`。两个时间必须有时区；最后收盘瞬间的美东日期应等于 `last_session`，且 `captured_at >= last_session_close_at`。最后交易日及收盘瞬间复用 Markets 已有 XNYS 日历校验（含节假日、夏令时及提前收盘）；调用者仍必须独立证明实际捕获时间和来源真实性。此入口允许稀疏历史观测，不承诺完整日频交易网格；函数不能从今日下载的历史价格推断过去何时发布。
+**关键时间合同：** 调用者分别提供最后交易日 `last_session`、该交易日真实收盘瞬间 `last_session_close_at`，以及本次文件实际取得瞬间 `captured_at`。两个时间必须有时区；最后收盘瞬间的美东日期应等于 `last_session`，且 `captured_at >= last_session_close_at`。最后交易日及收盘瞬间复用 Markets 已有 XNYS 日历校验（含节假日、夏令时及提前收盘）；调用者仍必须独立证明实际捕获时间和来源真实性。此入口复用 Markets 的稀疏交易日子集校验，每个有报价日必须为真实交易日，但不承诺完整日频交易网格；现有 MarketsCalendarHorizonR1 模型区分真实稀疏子集与完整网格：完整网格蕴含稀疏准入，稀疏准入不蕴含完整网格。日历库正确性与 Python 完整精化仍由独立实际消费者测试负责。函数不能从今日下载的历史价格推断过去何时发布。
 
 研究对象 `PriceVintage.published_at` 使用本次 `captured_at` 作为**保守的已知时间界限**，不声称它等于供应商最初发布时间。即使 CSV 包含五年前的收盘价，本次下载的整个版本也不能用于 `t < captured_at` 的历史决策。需要严格历史 PIT 回测时，必须取得当时确实归档的不同版本以及对应时间来源证据。
 

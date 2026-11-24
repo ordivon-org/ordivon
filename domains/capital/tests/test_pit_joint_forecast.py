@@ -951,6 +951,13 @@ class MarketCapturedVintageAdmission(unittest.TestCase):
                     self.admitted(raw, last_session=session,
                                   last_session_close_at=close, captured_at=capture)
 
+    def test_market_capture_rejects_priced_non_session_inside_sparse_history(self):
+        for invalid in (b"2026-09-05", b"2026-09-07"):
+            with self.subTest(invalid=invalid):
+                raw = self.csv().replace(b"2026-09-30", invalid)
+                with self.assertRaisesRegex(PointInTimeError, "XNYS"):
+                    self.admitted(raw)
+
     def test_market_capture_accepts_real_early_close_without_dense_history(self):
         raw = self.csv().replace(b"2026-10-30", b"2026-11-27")
         rows = self.admitted(

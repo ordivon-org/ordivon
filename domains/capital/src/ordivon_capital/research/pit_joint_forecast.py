@@ -171,6 +171,7 @@ def market_capture_to_pit_vintages(
     from ordivon_capital.markets.equity_session_calendar import (
         MarketSessionQualificationError,
         require_xnys_eod_session_closes,
+        require_xnys_session_subset,
     )
 
     try:
@@ -190,6 +191,14 @@ def market_capture_to_pit_vintages(
         )
     except HistoricalCloseError as exc:
         raise PointInTimeError("Markets source admission failed") from exc
+    try:
+        require_xnys_session_subset(
+            (observation.session for observation in admitted.observations),
+            symbol="PIT_CAPTURE", requested_start=first_session.isoformat(),
+            requested_end=last_session.isoformat(),
+        )
+    except MarketSessionQualificationError as exc:
+        raise PointInTimeError(str(exc)) from exc
     return tuple(
         PriceVintage(
             asset=asset,

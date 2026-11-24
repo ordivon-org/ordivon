@@ -241,12 +241,12 @@ calendar_ctx = z3.Context()
 calendar_results = z3.z3core.Z3_eval_smtlib2_string(
     calendar_ctx.ref(), calendar_raw
 ).splitlines()
-calendar_expected = ["unsat", "unsat", "unsat", "unsat", "sat", "unsat", "unsat", "sat"]
+calendar_expected = ["unsat", "unsat", "unsat", "unsat", "sat", "unsat", "unsat", "sat", "unsat", "unsat", "sat"]
 if calendar_results != calendar_expected:
     raise SystemExit(
         f"Markets calendar/Horizon model mismatch: {calendar_results!r}"
     )
-print("MarketsCalendarHorizonR1: 6 scoped invariant checks UNSAT; 2 wrong-model witnesses SAT")
+print("MarketsCalendarHorizonR1: 8 scoped invariant checks UNSAT; 3 distinction/wrong-model witnesses SAT")
 eod_raw = Path("formal/MarketsEodPaperCalendarR1.smt2").read_bytes()
 eod_ctx = z3.Context()
 eod_results = z3.z3core.Z3_eval_smtlib2_string(eod_ctx.ref(), eod_raw).splitlines()
