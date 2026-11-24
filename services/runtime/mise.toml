@@ -131,16 +131,9 @@ scripts/tla-formal falsify
 
 
 [tasks."test:postgres-registry:physical"]
-description = "Run explicitly ignored native PostgreSQL 18 Registry challenger tests; missing DSN is a failure, never PASS"
-run = """
-set -euo pipefail
-if ! printenv ORDIVON_PG_TEST_DSN >/dev/null; then
-  echo "ORDIVON_PG_TEST_DSN is required for physical PostgreSQL qualification" >&2
-  exit 2
-fi
-cargo test --locked -p ordivon-runtime-core --no-default-features \
-  --features postgres-registry-admission pg18_ -- --ignored --nocapture --test-threads=1
-"""
+description = "Run ignored native PG18 challengers; require explicit test DSN and exact nonempty test evidence"
+run = "python3 scripts/pg_disposable_physical.py --physical"
+
 
 [tasks."test:postgres-registry:disposable"]
 description = "Run native PG18 challenger tests in an isolated PostgreSQL instance; never inherit production DSN"
@@ -148,14 +141,5 @@ run = "python scripts/pg_disposable_physical.py"
 
 
 [tasks."test:postgres-registry:stage"]
-description = "Verify the historical PostgreSQL stage remains non-authoritative; separate from fresh scratch PG tests"
-run = """
-set -euo pipefail
-if ! printenv ORDIVON_PG_STAGE_TEST_DSN >/dev/null; then
-  echo "ORDIVON_PG_STAGE_TEST_DSN is required for historical-stage qualification" >&2
-  exit 2
-fi
-cargo test --locked -p ordivon-runtime-core --no-default-features \
-  --features postgres-registry-admission historical_pg_stage_is_not_an_admission_authority \
-  -- --ignored --nocapture --test-threads=1
-"""
+description = "Verify historical stage remains non-authoritative; require explicit stage DSN and exact witness"
+run = "python3 scripts/pg_disposable_physical.py --stage"
