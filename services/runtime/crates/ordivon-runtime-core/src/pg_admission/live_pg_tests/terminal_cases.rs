@@ -773,6 +773,28 @@ fn pg18_readback_rejects_detached_unsettled_historical_attempt() {
         matches!(read(&mut store), PgJobReadback::Observed(_)),
         "settled historical predecessor must not invalidate the latest result"
     );
+    // Scheduler allocations are separate from admission reservations.
+    // A genuine terminal writer releases both. Absence of an allocation is
+    // legal (never-dispatched); a present active allocation is not settled.
+    for attempt in [earlier, input.attempt_id.as_str()] {
+        scratch.admin.execute(
+            "INSERT INTO job_allocations(attempt_id,resources_json,workspace_access_json,owner,state,acquired_at_ms) VALUES($1,'{}','{}',$2,'active',$3) ON CONFLICT(attempt_id) DO UPDATE SET state='active',released_at_ms=NULL",
+            &[&attempt, &input.principal, &input.created_at_ms],
+        ).unwrap();
+        assert_eq!(
+            read(&mut store),
+            PgJobReadback::Inconclusive,
+            "terminal projection cannot hide active allocation for {attempt}"
+        );
+        scratch
+            .admin
+            .execute(
+                "UPDATE job_allocations SET state='released',released_at_ms=$2 WHERE attempt_id=$1",
+                &[&attempt, &input.created_at_ms],
+            )
+            .unwrap();
+        assert!(matches!(read(&mut store), PgJobReadback::Observed(_)));
+    }
     scratch
         .admin
         .execute(
