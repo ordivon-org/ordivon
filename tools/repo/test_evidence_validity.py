@@ -285,6 +285,8 @@ class NativeProviderFixture:
             }
         if f"/attempts/{self.attempt}/jobs?" in endpoint:
             return {"total_count": len(self.jobs), "jobs": self.jobs}
+        if "/artifacts?" in endpoint:
+            return {"total_count": 0, "artifacts": []}
         raise AssertionError(endpoint)
 
 
@@ -405,7 +407,7 @@ def test_native_provider_rerun_artifact_attempt_is_unqualified(native_provider_p
             repo=fixture.repo, source_sha=fixture.sha, github=fixture,
         )
     assert exc.value.reason == "UNKNOWN_FORMAL_ARTIFACT_ATTEMPT"
-    assert not any("/artifacts" in endpoint for endpoint in fixture.calls)
+    assert any("/artifacts?" in endpoint for endpoint in fixture.calls)
 
 
 def test_cross_sha_prior_pass_uses_native_owner_impact_not_false_reuse(monkeypatch):
@@ -949,7 +951,9 @@ def test_ci_formal_receipt_published_only_after_existing_scoped_validator():
     assert (
         "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9" in selected
     )
-    assert "name: ordivon-core-formal-" + chr(36) + "{{ github.sha }}" in selected
+    assert "name: ordivon-core-formal-" + chr(36) + "{{ github.sha }}-attempt-" + chr(36) + "{{ github.run_attempt }}" in selected
+    origin = 'git --no-replace-objects show "$cut:tools/repo/formal_github_origin.py"'
+    assert workflow.index(validation) < workflow.index(origin) < workflow.index(publishing)
     assert "ordivon-core-formal-report.json" in selected
     assert "if-no-files-found: error" in selected
 
@@ -966,6 +970,238 @@ def _formal_zip(report):
     raw = stream.getvalue()
     return raw, "sha256:" + hashlib.sha256(raw).hexdigest()
 
+
+
+@pytest.fixture
+def original_event_git(tmp_path):
+    """Real immutable Git merge DAG; provider and proof results remain fixtures."""
+    import json
+    import subprocess
+
+    from formal_github_origin import PRODUCER, WORKFLOW
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def git(*args):
+        return subprocess.check_output(
+            ["git", "-C", str(repo), *args], text=True, stderr=subprocess.PIPE,
+        ).strip()
+
+    git("init", "-b", "main")
+    git("config", "user.name", "Origin fixture")
+    git("config", "user.email", "origin-fixture@example.invalid")
+    for relative in (PRODUCER, WORKFLOW):
+        target = repo / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((SOURCE.parents[2] / relative).read_bytes())
+    names, report = _synthetic_formal_report()
+    for relative in names:
+        target = repo / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            "SOURCE_FILES = " + repr(tuple(names)) + "\n"
+            if relative == "tools/formal/verify.py" else "fixture source\n",
+            encoding="utf-8",
+        )
+    git("add", ".")
+    git("commit", "-m", "origin source")
+    initial = git("rev-parse", "HEAD")
+    git("checkout", "-b", "pr")
+    (repo / "pr").write_text("pr")
+    git("add", "pr")
+    git("commit", "-m", "PR head")
+    head = git("rev-parse", "HEAD")
+    git("checkout", "main")
+    (repo / "base").write_text("base")
+    git("add", "base")
+    git("commit", "-m", "PR base")
+    base = git("rev-parse", "HEAD")
+    git("merge", "--no-ff", "-m", "synthetic merge fixture", head)
+    cut = git("rev-parse", "HEAD")
+    report["sourceCut"] = cut
+    report["sourceBlobs"] = {relative: git("rev-parse", cut + ":" + relative) for relative in names}
+    event = {
+        "repository": {"full_name": module.DEFAULT_REPOSITORY},
+        "number": 2182,
+        "pull_request": {"number": 2182, "head": {"sha": head}, "base": {"sha": base}},
+    }
+    env = {
+        "GITHUB_SHA": cut, "GITHUB_WORKFLOW_SHA": cut,
+        "GITHUB_REPOSITORY": module.DEFAULT_REPOSITORY,
+        "GITHUB_WORKFLOW_REF": module.DEFAULT_REPOSITORY + "/.github/workflows/ci.yml@refs/pull/2182/merge",
+        "GITHUB_EVENT_NAME": "pull_request", "GITHUB_RUN_ID": "731",
+        "GITHUB_RUN_ATTEMPT": "2", "GITHUB_JOB": "root-preflight",
+        "GITHUB_REF": "refs/pull/2182/merge",
+    }
+    event_path = tmp_path / "event.json"
+    event_path.write_text(json.dumps(event))
+    env["GITHUB_EVENT_PATH"] = str(event_path)
+    return repo, git, initial, base, head, cut, report, env, event
+
+
+def test_formal_origin_executes_committed_producer_preserves_report(original_event_git, tmp_path):
+    import json
+    import os
+    import subprocess
+    import sys
+
+    from formal_github_origin import PRODUCER, git_witness, qualify_origin
+
+    repo, git, _initial, base, head, cut, report, env, _event = original_event_git
+    path = tmp_path / "report.json"
+    path.write_text(json.dumps(report))
+    code = git("show", cut + ":" + PRODUCER)
+    completed = subprocess.run(
+        [sys.executable, "-", str(path)], input=code, cwd=repo,
+        env={**os.environ, **env}, text=True, capture_output=True, check=True,
+    )
+    assert completed.returncode == 0
+    updated = json.loads(path.read_text())
+    origin = updated.pop("githubExecutionOrigin")
+    assert updated == report
+    assert origin["sourceParents"] == [base, head]
+    assert origin["eventBase"] == base and origin["eventHead"] == head
+    assert origin["runAttempt"] == 2
+    assert qualify_origin(
+        origin, source_cut=cut, provider_head=head, run_id=731, attempt=2,
+        event_name="pull_request", git_inputs=git_witness(repo, cut, cut),
+    ) == origin
+    # A second invocation may never overwrite an already bound original receipt.
+    duplicate = subprocess.run(
+        [sys.executable, "-", str(path)], input=code, cwd=repo,
+        env={**os.environ, **env}, text=True, capture_output=True, check=False,
+    )
+    assert duplicate.returncode != 0
+
+
+@pytest.mark.parametrize("mutation", ["base", "head", "run", "attempt", "source", "producer",
+                                      "workflow", "job", "ref", "event", "number", "parents"])
+def test_formal_origin_identity_and_real_git_relationship_red(original_event_git, mutation):
+    from formal_github_origin import capture_origin, git_witness, qualify_origin
+
+    repo, _git, initial, base, head, cut, _report, env, event = original_event_git
+    origin = capture_origin(repo, env, event)
+    changes = {
+        "base": ("eventBase", initial), "head": ("eventHead", initial),
+        "run": ("runId", 732), "attempt": ("runAttempt", 1),
+        "source": ("sourceCut", initial), "producer": ("producerBlob", "f" * 40),
+        "workflow": ("workflowBlob", "f" * 40), "job": ("job", "root-verification"),
+        "ref": ("ref", "refs/heads/main"), "event": ("event", "push"),
+        "number": ("pullRequestNumber", 2183), "parents": ("sourceParents", [head, base]),
+    }
+    field, value = changes[mutation]
+    with pytest.raises(ValueError):
+        qualify_origin(
+            dict(origin, **{field: value}), source_cut=cut, provider_head=head,
+            run_id=731, attempt=2, event_name="pull_request",
+            git_inputs=git_witness(repo, cut, cut),
+        )
+
+
+@pytest.mark.parametrize("event_name", ["push", "merge_group", "workflow_dispatch", "schedule"])
+def test_formal_origin_direct_native_events(original_event_git, event_name):
+    from formal_github_origin import capture_origin
+
+    repo, _git, _initial, base, _head, cut, _report, env, _event = original_event_git
+    env = dict(env, GITHUB_EVENT_NAME=event_name, GITHUB_REF="refs/heads/main")
+    payload = {
+        "push": {"before": base, "after": cut},
+        "merge_group": {"action": "checks_requested", "merge_group": {"base_sha": base, "head_sha": cut}},
+        "workflow_dispatch": {}, "schedule": {},
+    }[event_name]
+    origin = capture_origin(repo, env, payload)
+    assert origin["eventHead"] == cut and origin["pullRequestNumber"] is None
+    assert origin["eventBase"] == (base if event_name in ("push", "merge_group") else None)
+
+
+@pytest.mark.parametrize("mutation", ["none", "missing-origin", "wrong-attempt", "wrong-base",
+                                      "wrong-producer-job", "skipped-publication", "old-only"])
+def test_attempt_specific_artifact_qualifies_real_git_not_old_attempt(
+    original_event_git, mutation, monkeypatch, native_provider_protocol,
+):
+    from formal_github_origin import capture_origin
+
+    repo, _git, initial, base, head, cut, report, env, event = original_event_git
+    monkeypatch.chdir(repo)
+    fixture = NativeProviderFixture()
+    fixture.sha = head
+    fixture.checks = [fixture.check(999, "completed", "success"), fixture.check(101, "completed", "success")]
+    fixture.jobs = [fixture.job(fixture.checks[1])]
+    producer = {
+        **fixture.job(fixture.check(102, "completed", "success")),
+        "name": "repo-preflight",
+        "steps": [{"name": "Publish scoped native Formal evidence receipt", "status": "completed", "conclusion": "success"}],
+    }
+    if mutation == "wrong-producer-job":
+        producer["run_attempt"] = 1
+    elif mutation == "skipped-publication":
+        producer["steps"][0]["conclusion"] = "skipped"
+    fixture.jobs.append(producer)
+    origin = capture_origin(repo, env, event)
+    if mutation != "missing-origin":
+        report["githubExecutionOrigin"] = origin
+    if mutation == "wrong-attempt":
+        origin["runAttempt"] = 1
+    elif mutation == "wrong-base":
+        origin["eventBase"] = initial
+    raw, digest = _formal_zip(report)
+    artifact = {
+        "id": 72, "name": "ordivon-core-formal-" + cut + "-attempt-2",
+        "size_in_bytes": len(raw), "digest": digest, "expired": False,
+        "workflow_run": {"id": fixture.run_id, "head_sha": head},
+    }
+    old = dict(artifact, id=71, name="ordivon-core-formal-" + cut + "-attempt-1")
+    native_api = fixture.api
+
+    def api(endpoint):
+        if "/artifacts?" in endpoint:
+            rows = [old] if mutation == "old-only" else [old, artifact]
+            return {"total_count": len(rows), "artifacts": rows}
+        value = native_api(endpoint)
+        if endpoint.endswith("/actions/runs/731"):
+            value["pull_requests"] = []
+        return value
+
+    fixture.api = api
+    # Mock only archive transfer. All Git commit/tree/blob queries are native.
+    from evidence_formal_archive import read_formal_archive
+    download = Mock(side_effect=lambda repo, row: read_formal_archive(
+        raw, expected_size=row["size_in_bytes"], expected_digest=row["digest"],
+    ))
+    monkeypatch.setattr(module, "download_formal_archive", download)
+    if mutation != "none":
+        with pytest.raises(github_checks.CheckObservationError) as exc:
+            module.fetch_original_formal_report(
+                repo=fixture.repo, source_sha=head, github=fixture, candidate_sha=cut,
+            )
+        assert exc.value.reason == "UNKNOWN_FORMAL_ARTIFACT_ATTEMPT"
+        if mutation == "old-only":
+            download.assert_not_called()
+        return
+    result = module.fetch_original_formal_report(
+        repo=fixture.repo, source_sha=head, github=fixture, candidate_sha=cut,
+    )
+    assert result["sourceRelationship"] == "PR_SYNTHETIC_MERGE_CAPTURED_EVENT_BASE_AND_HEAD"
+    assert result["sourceRelationshipWitness"] == {
+        "observedBase": base, "observedHead": head, "providerBaseAttested": False,
+        "producerEventCaptured": True,
+    }
+    assert result["originalArtifactProducerJobId"] == 102
+    assert result["originalWorkflowRunAttempt"] == 2
+    assert result["githubArtifactId"] == 72
+    assert result["originQualification"] == module.ORIGIN_QUALIFICATION
+    claim = module.assess_formal_evidence_claim(
+        claim_kind=module.FORMAL_SOURCE_INPUT_CLAIM, consumer_ref=module.FORMAL_SOURCE_INPUT_CONSUMER,
+        target_source_cut=cut, historical_receipt=result,
+    )
+    assert claim["decision"] == "SUPPORTED_SCOPED_SOURCE_INPUT_FACT"
+    assert claim["proofReuseAdmissible"] is False
+    proof = module.assess_formal_evidence_claim(
+        claim_kind=module.FORMAL_PROOF_APPLICABILITY_CLAIM, consumer_ref=module.FORMAL_SOURCE_INPUT_CONSUMER,
+        target_source_cut=cut, historical_receipt=result,
+    )
+    assert not proof["claimSupported"] and not proof["proofReuseAdmissible"]
 
 
 @pytest.mark.parametrize("mutation", [

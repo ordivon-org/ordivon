@@ -700,7 +700,18 @@ exit 0
             import shutil
             env["MISE_NATIVE_FOR_CONFIG"] = shutil.which("mise") or "/usr/bin/mise"
             env["MISE_TRUSTED_CONFIG_PATHS"] = str(ROOT)
+            source_cut = subprocess.check_output(
+                ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+            ).strip()
+            event_path = folder / "original-event.json"
+            event_path.write_text("{}", encoding="utf-8")
             env.update({
+                "GITHUB_SHA": source_cut, "GITHUB_WORKFLOW_SHA": source_cut,
+                "GITHUB_REPOSITORY": "ordivon-org/ordivon",
+                "GITHUB_WORKFLOW_REF": "ordivon-org/ordivon/.github/workflows/ci.yml@refs/heads/main",
+                "GITHUB_EVENT_NAME": "workflow_dispatch", "GITHUB_EVENT_PATH": str(event_path),
+                "GITHUB_RUN_ID": "731", "GITHUB_RUN_ATTEMPT": "2",
+                "GITHUB_JOB": "root-preflight", "GITHUB_REF": "refs/heads/main",
                 "RUNNER_TEMP": str(folder),
                 "MISE_RECORD": str(log),
                 "FORMAL_MOCK_RECEIPT": str(report_path),
@@ -735,6 +746,13 @@ exit 0
                 timeout=14, check=False,
             )
             self.assertEqual(dedicated.returncode, 0, dedicated.stderr)
+            published = json.loads((folder / "ordivon-core-formal-report.json").read_text())
+            origin = published["githubExecutionOrigin"]
+            self.assertEqual(origin["sourceCut"], source_cut)
+            self.assertEqual(origin["runAttempt"], 2)
+            self.assertEqual(origin["event"], "workflow_dispatch")
+            self.assertEqual(origin["runId"], 731)
+            self.assertIs(published["proofReuseAdmissible"], False)
             self.assertEqual(
                 log.read_text().splitlines(),
                 ["run runtime:verify", "run host:queue",

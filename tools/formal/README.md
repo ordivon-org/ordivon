@@ -54,7 +54,9 @@ The existing Formal verifier already emits a source-qualified PASS JSON report
 with Git blobs, toolchain binary/resource hashes and model probe results.
 GitHub CI validates this exact report and now publishes it AFTER successful
 validation using its existing pinned official Artifact Action. Artifact name:
-ordivon-core-formal-<GitHub SHA>, retained 30 days. There is no new proof run.
+ordivon-core-formal-<GitHub SHA>-attempt-<native Run Attempt>, retained 30 days.
+There is no new proof run. Legacy unversioned names remain readable only
+under their narrower Attempt 1 contract.
 
 The read-only existing repository evidence consumer can use the original
 GitHub Check Run/Workflow Attempt and native Artifact-ID archive download
@@ -79,9 +81,16 @@ executionInputsVsCandidate compares immutable declared source input
 snapshots; it does not assert that the synthetic merge is an ancestor
 of the PR Head or that a mathematical proof may be reused.
 
-After a workflow rerun, native Artifact metadata alone does not establish
-which attempt produced it. The current original-archive consumer requires
-Attempt 1; later attempts remain UNKNOWN until an attempt-specific witness
-is qualified. If GitHub has dropped the original PR Base association after
-merge, preserve exact archive bytes, report SourceCut and observed Git
-parents, but do not grant an original PR execution-binding Claim.
+Native Artifact metadata alone does not establish which attempt produced
+it. After the existing scoped verifier validates the report, the same
+root-preflight job now captures the original GitHub event coordinates in
+githubExecutionOrigin before upload. The attempt-specific artifact name,
+exact Run/Suite/Attempt/Job, successful original publication step, immutable
+Git parent/blob witnesses and archive bytes must agree. No full webhook or
+secrets are retained. Reruns that did not publish a new artifact remain
+UNKNOWN; do not use an older attempt's report as the current attempt.
+If GitHub later drops the original PR Base association, the new captured
+event is a bounded producer witness, distinct from a live provider Base
+attestation. Old artifacts without this witness retain the partial binding.
+Neither origin nor archive identity proves solver/toolchain equivalence,
+mathematical applicability or installed consumer success.
