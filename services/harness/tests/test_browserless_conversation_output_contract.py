@@ -7,6 +7,7 @@ import unittest
 from scripts.playwright_browserless_conversation_output import (
     observe_output,
     select_exact_turn_output,
+    recommendation,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -123,6 +124,7 @@ class BrowserlessConversationOutputContractTests(unittest.TestCase):
                     ],
                     "generating": generating,
                     "fetchError": fetch_error,
+                    "challenge": False,
                 }
                 result = observe_output(page, resource, "request", None)
                 self.assertEqual(result["standing"], expected)
@@ -139,11 +141,8 @@ class BrowserlessConversationOutputContractTests(unittest.TestCase):
                 self.assertEqual(len(page.method_calls), 1)
 
     def test_output_capture_only_classifies_terminal_recommendation(self):
-        text = (ROOT / "scripts" / "playwright_browserless_conversation_output.py").read_text(
-            encoding="utf-8"
-        )
-        self.assertIn("stripped.endswith(label)", text)
-        self.assertIn("return matches[0] if len(matches) == 1 else None", text)
+        self.assertEqual(recommendation("review\nACCEPTABLE_TO_SUBMIT"), "ACCEPTABLE_TO_SUBMIT")
+        self.assertIsNone(recommendation("ACCEPTABLE_TO_SUBMIT\nadditional discussion"))
 
 
 if __name__ == "__main__":

@@ -10,7 +10,6 @@ turn may be captured.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import rfc8785
 import os
@@ -22,16 +21,16 @@ from playwright.sync_api import sync_playwright
 from browserless_substrate import BrowserlessEndpoint
 from chatgpt_provider_gate import challenge_gated
 from chatgpt_provider_resource import canonical_chatgpt_resource, chatgpt_resource_from_page_url
+from conversation_output_evidence import (
+    DOM_SNAPSHOT_ARGS, DOM_SNAPSHOT_EXPRESSION, qualify_snapshot, sha256_bytes,
+    select_exact_turn_output as select_exact_turn_output,
+    recommendation as recommendation,
+)
 
 STOP_SELECTOR = 'button[data-testid="stop-button"]'
 CHALLENGE_SELECTOR = 'iframe[src*="challenges.cloudflare.com"], [id*="challenge"]'
 FETCH_ERROR_SELECTOR = '[data-testid="conversation-fetch-error-toaster"]'
 MAIN_SELECTOR = "main"
-MESSAGE_SELECTOR = "[data-message-author-role]"
-
-
-def sha256_bytes(raw: bytes) -> str:
-    return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
 def digest_obj(value: object) -> str:
@@ -54,115 +53,12 @@ def endpoint_from_config(path: Path, endpoint_id: str) -> BrowserlessEndpoint:
     return endpoint
 
 
-def select_exact_turn_output(
-    messages: list[tuple[str, str]], expected_prompt: str
-) -> tuple[str, bool, str | None]:
-    """Resolve only an unambiguous observed user/assistant pair.
-
-    The caller's prompt is not a provider-issued turn identifier. Repeated
-    exact prompts, multiple candidate assistant messages and unstructured
-    page text cannot prove which result belongs to the requested turn.
-    """
-    matches = [
-        index
-        for index, (role, text) in enumerate(messages)
-        if role == "user" and text == expected_prompt
-    ]
-    if not matches:
-        return "EXPECTED_USER_TURN_NOT_VISIBLE", False, None
-    if len(matches) != 1:
-        return "EXPECTED_USER_TURN_AMBIGUOUS", True, None
-    following = messages[matches[0] + 1 :]
-    candidates: list[str] = []
-    for role, text in following:
-        if role == "user":
-            break
-        if role == "assistant":
-            candidates.append(text)
-    if len(candidates) > 1:
-        return "ASSISTANT_OUTPUT_AMBIGUOUS", True, None
-    if not following or following[0][0] != "assistant" or not candidates or not candidates[0]:
-        return "ASSISTANT_OUTPUT_NOT_VISIBLE", True, None
-    return "CAPTURED", True, candidates[0]
-
-
 def observe_output(
     page, target_resource: str, expected_prompt: str, fetch_error_text: str | None
 ) -> dict:
-    """Observe the DOM and its URL in one browser evaluation, without effects."""
-    snapshot = page.evaluate(
-        """({mainSelector, messageSelector, stopSelector, fetchErrorSelector}) => {
-            const visible = node => !!node.getClientRects().length
-                && getComputedStyle(node).visibility === "visible";
-            const mains = [...document.querySelectorAll(mainSelector)];
-            const messages = mains.length === 1
-                ? [...mains[0].querySelectorAll(messageSelector)].map(node => ({
-                    role: node.getAttribute("data-message-author-role") || "",
-                    text: node.innerText.trim(), visible: visible(node)
-                })) : [];
-            const error = [...document.querySelectorAll(fetchErrorSelector)].find(visible);
-            return {
-                url: location.href,
-                messages,
-                generating: [...document.querySelectorAll(stopSelector)].some(visible),
-                fetchError: error ? error.innerText.trim().slice(0, 240) : null
-            };
-        }""",
-        {
-            "mainSelector": MAIN_SELECTOR,
-            "messageSelector": MESSAGE_SELECTOR,
-            "stopSelector": STOP_SELECTOR,
-            "fetchErrorSelector": FETCH_ERROR_SELECTOR,
-        },
-    )
-    observed = chatgpt_resource_from_page_url(snapshot["url"])
-    target_still_bound = (
-        observed == target_resource and chatgpt_resource_from_page_url(page.url) == target_resource
-    )
-    messages = [
-        (node["role"], node["text"] if node["visible"] else "") for node in snapshot["messages"]
-    ]
-    standing, expected_visible, assistant_text = select_exact_turn_output(messages, expected_prompt)
-    # A hidden matching prompt may make an otherwise visible match ambiguous.
-    if any(
-        node["role"] == "user" and node["text"] == expected_prompt and not node["visible"]
-        for node in snapshot["messages"]
-    ):
-        standing = "EXPECTED_USER_TURN_AMBIGUOUS"
-        assistant_text = None
-    error = fetch_error_text if fetch_error_text is not None else snapshot["fetchError"]
-    if error is not None:
-        standing = "CONVERSATION_FETCH_FAILED"
-    elif not target_still_bound:
-        standing = "TARGET_RESOURCE_DRIFTED"
-    elif snapshot["generating"]:
-        standing = "ASSISTANT_GENERATING"
-    if standing != "CAPTURED":
-        assistant_text = None
-    return {
-        "standing": standing,
-        "pageUrlObserved": snapshot["url"],
-        "observedResourceAfterWait": observed,
-        "targetStillBoundAfterWait": target_still_bound,
-        "expectedUserTurnVisible": expected_visible,
-        "promptMarkersUsed": [],
-        "captureMethod": "role-scoped" if assistant_text is not None else None,
-        "conversationFetchError": error,
-        "generationActive": snapshot["generating"],
-        "assistantOutputRead": assistant_text is not None,
-        "assistantOutput": assistant_text,
-        "assistantOutputDigest": sha256_bytes(assistant_text.encode("utf-8"))
-        if assistant_text is not None
-        else None,
-        "recommendation": recommendation(assistant_text) if assistant_text is not None else None,
-    }
-
-
-def recommendation(text: str) -> str | None:
-    labels = ("DO_NOT_SUBMIT", "REPAIR_THEN_REREVIEW", "ACCEPTABLE_TO_SUBMIT")
-    stripped = text.rstrip()
-    matches = [label for label in labels if stripped.endswith(label)]
-    return matches[0] if len(matches) == 1 else None
+    """Observe through Playwright; reuse the transport-independent qualifier."""
+    snapshot = page.evaluate(DOM_SNAPSHOT_EXPRESSION, DOM_SNAPSHOT_ARGS)
+    return qualify_snapshot(snapshot, target_resource, expected_prompt, page.url, fetch_error_text)
 
 
 def main() -> int:
