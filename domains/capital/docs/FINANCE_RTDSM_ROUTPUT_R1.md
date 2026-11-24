@@ -102,3 +102,19 @@ ORDIVON_FINANCE_ROUTPUT_XLSX=/path/to/routput.xlsx \
 Actual source probe job: job-01a20bdd-a07b-726b-8c68-33b75e5d7c83.
 Calamine independent readback: job-01a20bdf-0d86-759e-89d3-bf9cd1c52bc8.
 Actual adapter verification: job-01a20be2-459b-722d-8185-75de85507ad9.
+
+
+### R7 publisher scope and permission boundary
+
+The official [ROUTPUT source page](https://www.philadelphiafed.org/surveys-and-data/real-time-data-research/routput)
+describes the history in each column as publicly available at the vintage
+date in its header. A monthly column identity is not a precise timestamp or
+a cryptographically authenticated historical release receipt. The existing
+following-month New York admission boundary is intentionally conservative.
+
+The [Philadelphia Fed online terms](https://www.philadelphiafed.org/about-us/privacy-notice)
+allow informational, educational and research use and separately require
+permission for copyrighted material. Do not infer unrestricted redistribution,
+commercial use, or a license for unrelated third-party datasets. This
+implementation consumes operator-supplied bytes for read-only research; no
+automatic provider capture or raw workbook redistribution is introduced.
