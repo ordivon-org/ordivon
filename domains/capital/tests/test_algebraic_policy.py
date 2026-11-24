@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import replace
+from fractions import Fraction
 
 import pytest
 
@@ -312,3 +313,110 @@ def test_feasible_economic_replay_is_not_an_optimality_certificate() -> None:
     assert_one_period_economic_replay(problem, invest)
     assert all(a > b for a, b in zip(invest.scenario_equities, cash_only.scenario_equities, strict=True))
     assert invest.expected_utility > cash_only.expected_utility
+
+def _integer_crra_tangent_upper_excess(
+    problem: OnePeriodProblem, result: OnePeriodSolution, *, discard_dual: bool = False
+) -> Fraction:
+    """Independent exact-rational check of a proposed LP dual witness.
+
+    Only positive integer gamma and finite binary-rational input fixtures.
+    This bounds optimum utility minus utility at the positive tangent point;
+    exact feasibility of the floating point result is a separate obligation.
+    HiGHS supplies multipliers, not the trusted upper bound.
+    """
+    from scipy.optimize import linprog
+
+    assert_one_period_economic_replay(problem, result)
+    q = Fraction
+    gamma = int(problem.gamma)
+    assert gamma == problem.gamma and gamma > 0
+    m, k, old = (tuple(map(q, v)) for v in (
+        problem.initial_margin, problem.turnover_cost, problem.old_weights,
+    ))
+    n = len(m)
+    zero = q(0)
+    # Canonical portfolio: cancel simultaneous cash/debt (borrow >= lend).
+    # Actual turnover is |w-old|. Margin and budget imply finite boxes
+    # w<=1/m, cash<=1, debt<=sum(1/m), turnover<=1/m+old.
+    # Relaxing positive wealth to the closed maintenance half-space can
+    # only enlarge the set in the linear tangent maximization.
+    wmax = tuple(1 / v for v in m)
+    box = (*wmax, q(1), sum(wmax), *(a + b for a, b in zip(wmax, old, strict=True)))
+    budget = (q(1),) * n + (q(1), q(-1)) + k
+    rows = [(*m, zero, zero, *k)]
+    rhs = [q(1)]
+    for i, prev in enumerate(old):
+        for sign in (1, -1):
+            row = [zero] * len(box)
+            row[i], row[n + 2 + i] = q(sign), q(-1)
+            rows.append(tuple(row))
+            rhs.append(sign * prev)
+    point = (*map(q, result.risky_weights), q(result.cash_weight), q(result.debt_weight))
+    gradient = [zero] * len(box)
+    tangent_at_point = zero
+    for scenario in problem.scenarios:
+        gross = tuple(map(q, scenario.risky_gross_returns))
+        lend, borrow = q(scenario.cash_gross_return), q(scenario.debt_gross_return)
+        assert borrow >= lend > 0
+        wealth_row = (*gross, lend, -borrow)
+        wealth = sum(a * b for a, b in zip(wealth_row, point, strict=True))
+        assert wealth > 0
+        maintenance = tuple(map(q, scenario.maintenance))
+        rows.append((
+            *(g * (v - 1) for g, v in zip(gross, maintenance, strict=True)),
+            -lend, borrow, *((zero,) * n),
+        ))
+        rhs.append(zero)
+        factor = q(scenario.probability) / wealth**gamma
+        for j, coefficient in enumerate(wealth_row):
+            gradient[j] += factor * coefficient
+        tangent_at_point += factor * wealth
+
+    # LP proposes a certificate. Reconstruct using independent exact
+    # arithmetic; even an inexact dual is safe with finite-box correction.
+    proposed = linprog(
+        [-float(v) for v in gradient],
+        A_ub=[[float(v) for v in row] for row in rows],
+        b_ub=list(map(float, rhs)), A_eq=[list(map(float, budget))], b_eq=[1.0],
+        bounds=[(0, float(v)) for v in box], method="highs",
+    )
+    assert proposed.success
+    y = tuple(max(zero, -q(float(v))) for v in proposed.ineqlin.marginals)
+    lam = -q(float(proposed.eqlin.marginals[0]))
+    if discard_dual:
+        y, lam = (zero,) * len(rows), zero
+    residual = tuple(
+        g - lam * a - sum(multiplier * row[j] for multiplier, row in zip(y, rows, strict=True))
+        for j, (g, a) in enumerate(zip(gradient, budget, strict=True))
+    )
+    upper = lam + sum(a * b for a, b in zip(y, rhs, strict=True))
+    upper += sum(max(zero, r) * cap for r, cap in zip(residual, box, strict=True))
+    return upper - tangent_at_point
+
+
+@pytest.mark.parametrize("case", (0, 1, 2, 4))
+def test_integer_crra_result_has_small_independently_checked_tangent_excess(case: int) -> None:
+    problem = _solver_contract_cases()[case]
+    result = solve_one_period(problem)
+    upper = _integer_crra_tangent_upper_excess(problem, result)
+    # Not a portfolio risk budget; solver result still only numerically feasible.
+    assert -1e-6 <= float(upper) <= 1e-5
+    # Throwing away multipliers must not give an apparently tight certificate.
+    assert _integer_crra_tangent_upper_excess(problem, result, discard_dual=True) >= upper
+
+
+def test_zero_residual_dominated_result_has_no_small_tangent_excess() -> None:
+    problem = _solver_contract_cases()[1]
+    cash_only = OnePeriodSolution(
+        risky_weights=(0.0,), cash_weight=1.0, debt_weight=0.0,
+        transaction_cost=0.0, post_trade_equity=1.0,
+        scenario_equities=(1.0, 1.0), expected_equity=1.0,
+        expected_utility=0.0, certainty_equivalent=1.0, numerical_residual=0.0,
+    )
+    assert_one_period_economic_replay(problem, cash_only)
+    upper = _integer_crra_tangent_upper_excess(problem, cash_only)
+    # A known strictly better feasible unit exposure is an independent
+    # lower witness for the utility improvement. A claimed upper bound
+    # below that witness would be unsound.
+    improvement = .4 * math.log(1.8) + .6 * math.log(2.0)
+    assert float(upper) >= improvement > .5
