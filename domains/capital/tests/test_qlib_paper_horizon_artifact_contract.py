@@ -281,3 +281,81 @@ def test_native_portfolio_refuses_digest_bound_unqualified_market_bars(
     with pytest.raises(ValueError, match=message):
         module._native_pinned_bars("SPY", report)
     assert not (tmp_path / "qlib_disjoint_holding_economic_result.json").exists()
+
+
+def test_successful_consumer_emits_exact_study_identity(tmp_path, monkeypatch):
+    module, report = _source_bundle(tmp_path, monkeypatch)
+    result = module.run_multisession(report, 5)
+    identity = result["native_study_identity"]
+    assert identity["exitPriceKind"] == "next_open"
+    assert identity["holdingSessions"] == 5
+    assert identity["forecastTargetHorizon"] == report["forecast"]["target_horizon"]
+    assert identity["qlibPredictionSha256"] == report["qlib_prediction_sha256"]
+    assert identity["qlibDatasetSha256"] == report["qlib_dataset_sha256"]
+    assert identity["sourceReceipts"] == {
+        row["symbol"]: row["normalized_sha256"] for row in report["provider_receipts"]
+    }
+    assert identity["sourceStanding"] == "LOCAL_STUDY_BYTES_BOUND_NOT_PROVIDER_OR_PIT_ATTESTED"
+
+
+@pytest.mark.parametrize("mutation", ["extra", "missing", "duplicate", "wrong_provider"])
+def test_native_economics_requires_exact_source_universe(tmp_path, monkeypatch, mutation):
+    module, report = _source_bundle(tmp_path, monkeypatch)
+    rows = report["provider_receipts"]
+    if mutation == "extra":
+        rows.append({**rows[0], "symbol": "OTHER"})
+    elif mutation == "missing":
+        rows.pop()
+    elif mutation == "duplicate":
+        rows[-1]["symbol"] = rows[0]["symbol"]
+    else:
+        rows[0]["provider"] = "unknown"
+    with pytest.raises(ValueError, match="source receipt|source snapshot identity"):
+        module.run_multisession(report, 5)
+    assert not (tmp_path / "qlib_disjoint_holding_economic_result.json").exists()
+
+
+@pytest.mark.parametrize("mutation", ["duplicate_prediction", "extra_instrument", "duplicate_label",
+                                      "missing_label"])
+def test_hash_matched_malformed_keys_do_not_reach_economics(tmp_path, monkeypatch, mutation):
+    module, report = _source_bundle(tmp_path, monkeypatch)
+    if mutation in {"duplicate_prediction", "extra_instrument"}:
+        path = tmp_path / "qlib_test_predictions.csv"
+        frame = pd.read_csv(path)
+        if mutation == "duplicate_prediction":
+            frame = pd.concat([frame, frame.iloc[[0]]], ignore_index=True)
+        else:
+            frame.loc[0, "instrument"] = "OTHER"
+        frame.to_csv(path, index=False)
+        report["qlib_prediction_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    else:
+        path = tmp_path / "qlib_static_dataset.parquet"
+        frame = pd.read_parquet(path)
+        frame = (
+            pd.concat([frame, frame.iloc[[0]]])
+            if mutation == "duplicate_label" else frame.iloc[1:]
+        )
+        frame.to_parquet(path)
+        report["qlib_dataset_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    with pytest.raises(ValueError, match="duplicate|corresponding|exact ETF"):
+        module.run_multisession(report, 5)
+    assert not (tmp_path / "qlib_disjoint_holding_economic_result.json").exists()
+
+
+def test_cross_study_close_prediction_cannot_be_relabelled_next_open(tmp_path, monkeypatch):
+    module, report = _source_bundle(tmp_path, monkeypatch, exit_kind="close")
+    skill = report["signal_quality"]
+    forecast = report["forecast"]
+    skill.update(
+        exit_price_kind="next_open", label_forward_sessions=6,
+        horizon="decision_after_T_close_entry_T_plus_1_open_exit_T_plus_6_open",
+        matches_native_fixed_holding_exit_event=True,
+    )
+    forecast.update(
+        exit_price_kind="next_open", target_horizon="next_session_open_to_T_plus_6_open",
+        native_strategy_exit_event_matches_target=True,
+    )
+    # Even after all metadata is changed, the old CLOSE prediction column
+    # is still from a different model and may not be consumed.
+    with pytest.raises(ValueError, match="prediction column schema"):
+        module.run_multisession(report, 5)
