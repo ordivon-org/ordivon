@@ -260,3 +260,13 @@ fresh-next-admission probes. Runtime cross-principal and physical effect
 qualification remain separate. Budget reconstruction tests check retained
 usage, conservative provider accounting and caller-progress reset without
 resetting resource debits or hiding invalid retained limits.
+
+### R40 original Store terminal coverage
+
+Direct normal PG terminal admission must refuse a partial original history
+that hides a pending Tool, and a detached original payload edge, without
+advancing the Run or consuming its lease. The original consistent Doctor
+validator is reused on the exact cut inside the original locked transaction.
+The SourceCut bounded model adds a terminal safety check and unsafe omission
+and legitimate acceptance probes; actual SQL and OS/Domain release remain
+separate evidence obligations.

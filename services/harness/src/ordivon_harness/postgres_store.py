@@ -663,6 +663,11 @@ class PostgresHarnessStore:
                 # terminal update. Inspect the entire *prospective* Journal,
                 # including any earlier effects settled in this very batch.
                 original_events = self.list_run_events(harness_run_id)
+                # The same original Store validates exactly the read used
+                # for terminal admission. The Run row is already locked;
+                # an omitted pending Intent or detached persisted edge
+                # cannot turn incomplete evidence into "no effects".
+                self._validate_original_run_history(current, original_events)
                 proposed_events = tuple(
                     HarnessRunEventRecord(
                         sequence=-(offset),
@@ -1057,6 +1062,13 @@ class PostgresHarnessStore:
     def _validate_run_history_snapshot(self, harness_run_id: str) -> None:
         projection = self.load_run(harness_run_id)
         events = self.list_run_events(harness_run_id)
+        self._validate_original_run_history(projection, events)
+
+    def _validate_original_run_history(
+        self, projection: HarnessRunProjection, events: tuple[HarnessRunEventRecord, ...]
+    ) -> None:
+        """Validate an exact original cut under its caller's snapshot/row lock."""
+        harness_run_id = projection.harness_run_id
         if not events or events[0].event_kind != "harness.run-created":
             raise HarnessJournalCorruption("Run has no creation Event")
         status = HarnessRunStatus.CREATED
@@ -1065,6 +1077,7 @@ class PostgresHarnessStore:
         for revision, event in enumerate(events, 1):
             if (
                 event.run_revision != revision
+                or event.harness_run_id != harness_run_id
                 or event.recorded_at_ms < when
                 or terminal is not None
             ):

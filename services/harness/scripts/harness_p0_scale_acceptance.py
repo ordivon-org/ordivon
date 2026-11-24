@@ -81,7 +81,8 @@ def _percentile(values: list[float], percentile: float) -> float:
 
 def _revision() -> str:
     return subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], text=True, encoding="utf-8"
+        ["git", "rev-parse", "HEAD"], cwd=Path(__file__).resolve().parents[1],
+        text=True, encoding="utf-8"
     ).strip()
 
 

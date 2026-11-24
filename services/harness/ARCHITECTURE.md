@@ -289,6 +289,19 @@ caller input resets only progress counters, after validating persisted
 bounds. Provider usage is conservatively reconciled before another effect.
 No new persisted schema or interface is introduced.
 
+**R40 source refinement (2026-11-24, candidate):**
+Normal PG terminal admission validates the exact original history cut under
+its existing locked Run row before scanning prospective effects. The same
+original history/edge validator serves the consistent Doctor read path.
+A truncated history or detached original payload edge cannot become a
+normal terminal with a false empty pending set. UNKNOWN quarantine stays
+distinct and no native or recipient release is certified.
+
+The local persistence scale consumer now uses only the original PostgreSQL
+Store, an explicit dedicated test DSN, a fresh owned disposable schema and
+distinct trace CAS payloads; existing historical SQLite receipts are
+unchanged. A clean revision is required for persistent benchmark evidence.
+
 **Original Run birth and legacy adoption are distinct operations.**
 For NEW Workspace-bearing Runs, the supported `HarnessAgentRun.create`
 first obtains the native HELD Workspace Claim, then commits the original Run

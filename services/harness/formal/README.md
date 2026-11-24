@@ -141,3 +141,14 @@ The real PG consumer is
 `test_issued_epoch_rejects_reused_runtime_client_request_id`; the test retains
 an old-writer fault to demonstrate that historical duplicates still block
 complete source enumeration. All older Tool UNKNOWN probes remain.
+
+### R40 original Store terminal source refinement
+
+The existing SourceCut model includes an original pending revision, visibility
+in the read cut, and normal terminal acceptance. The unsafe tail-only model
+can omit the pending revision and terminal incorrectly; the exact cut model
+checks that no normal terminal has an outstanding source and the independent
+positive probe reaches a clean terminal. UNKNOWN quarantine remains separate.
+The real PG writer now validates the exact original events it uses under its
+existing Run row lock before normal terminal admission. This reuses the
+original Doctor history/edge validator and does not prove OS or Domain release.

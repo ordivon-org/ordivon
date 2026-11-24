@@ -1160,6 +1160,37 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             self.assertEqual(reopened.load_run(run.harness_run_id).revision, after.revision)
             reopened.validate_run_history(run.harness_run_id)
 
+    def test_terminal_admission_rejects_detached_original_payload_edge(self) -> None:
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+
+        run = contract()
+        self.store.create_run(run)
+        original = self.store.load_run(run.harness_run_id)
+        now = original.updated_at_ms + 1
+        lease = self.store.acquire_run_lease(
+            run.harness_run_id, owner_id="worker:terminal-detached",
+            ttl_ms=10_000, now_ms=now,
+        )
+        created = self.store.list_run_events(run.harness_run_id)[0]
+        self.store.connection.execute(
+            "DELETE FROM run_object_refs WHERE event_id=%s AND role='payload'",
+            (created.event_id,),
+        )
+        terminal = HarnessEventWrite(
+            event_id="event:terminal-detached-source",
+            event_kind="harness.run-completed",
+            data={"stopReason": "completed"},
+            recorded_at_ms=now + 1,
+        )
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.append_events(
+                harness_run_id=run.harness_run_id, events=(terminal,),
+                expected_revision=lease.run_revision, lease=lease,
+                lease_checked_at_ms=now,
+            )
+        self.assertEqual(self.store.load_run(run.harness_run_id), original)
+        self.assertTrue(self.store.release_run_lease(lease))
+
     def test_original_pg_terminal_writer_rejects_pending_provider(self) -> None:
         """A model Provider CLAIMED is a real unresolved external effect."""
         from ordivon_harness.store_errors import HarnessTerminalConflict
@@ -1265,6 +1296,25 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             continuity.inspect_unsettled_tool_sources()["unsettledIntents"][0]["intentDigest"],
             intent.digest,
         )
+        # A partial projection must not convert unresolved history to
+        # "no effects". Inject loss of the actual persisted pending Tool
+        # event at the original Store admission boundary, not the facade.
+        from unittest.mock import patch
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+
+        full = self.store.list_run_events(run.harness_run_id)
+        partial = tuple(e for e in full if e.event_kind != "harness.tool-step-prepared")
+        self.assertLess(len(partial), len(full))
+        with patch.object(self.store, "list_run_events", return_value=partial):
+            with self.assertRaises((HarnessJournalCorruption, HarnessRevisionConflict, HarnessTerminalConflict)):
+                self.store.append_events(
+                    harness_run_id=run.harness_run_id, events=(terminal,),
+                    expected_revision=lease.run_revision, lease=lease,
+                    lease_checked_at_ms=now,
+                )
+        self.assertEqual(self.store.load_run(run.harness_run_id).revision, before.revision)
+        self.assertFalse(self.store.load_run(run.harness_run_id).status.terminal)
+        self.assertEqual(self.store.doctor()["leases"], 1)
         self.assertTrue(self.store.release_run_lease(lease))
         # A separate experimental Writer might bypass the Python admission
         # and commit a structurally contiguous completed Run. Doctor must use
@@ -1989,6 +2039,19 @@ class PostgresHarnessStoreTests(unittest.TestCase):
                 continuity.inspect_issued_tool_sources()
             with self.assertRaises((HarnessJournalCorruption, HarnessRevisionConflict)):
                 continuity.inspect_unsettled_tool_sources()
+        # The same missing source must block new admission, not only the
+        # later diagnostic. A fresh request key is intentionally legitimate.
+        later = replace(
+            intent, intent_id="harness-tool-step-intent:source-cut-next",
+            turn_id="turn:source-cut-next", tool_call_id="tool-call:source-cut-next",
+            tool_call_digest=canonical_digest({"tool": "source-cut-next"}),
+            client_request_id="request:source-cut-next", created_at_ms=clock(),
+        )
+        before = self.store.load_run(run.harness_run_id).revision
+        with patch.object(self.store, "list_run_events", return_value=truncated):
+            with self.assertRaises((HarnessJournalCorruption, HarnessRevisionConflict, HarnessSuperseded)):
+                continuity.prepare_tool_step(later)
+        self.assertEqual(self.store.load_run(run.harness_run_id).revision, before)
         # Real PG corruption: remove only the persisted payload reference,
         # leaving the Event and CAS object readable.
         prepared = next(e for e in history if e.event_kind == "harness.tool-step-prepared")

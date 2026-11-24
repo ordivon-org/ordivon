@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 import os
+import subprocess
+import tempfile
 from unittest.mock import patch
 import unittest
 
@@ -46,6 +48,25 @@ class HarnessP0ScaleAcceptanceTests(unittest.TestCase):
         self.assertTrue(
             receipt["integrity"]["payloadDigest"].startswith("sha256:")
         )
+
+    def test_receipt_revision_binds_script_source_not_invoking_checkout(self) -> None:
+        expected = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
+        ).strip()
+        original_cwd = Path.cwd()
+        with tempfile.TemporaryDirectory() as directory:
+            other = Path(directory)
+            subprocess.run(["git", "init", "-q", str(other)], check=True)
+            subprocess.run(
+                ["git", "-C", str(other), "-c", "user.name=Test",
+                 "-c", "user.email=test@example.invalid", "commit", "--allow-empty",
+                 "-qm", "unrelated checkout"], check=True,
+            )
+            try:
+                os.chdir(other)
+                self.assertEqual(MODULE._revision(), expected)
+            finally:
+                os.chdir(original_cwd)
 
     def test_scale_requires_explicit_test_dsn_not_production_fallback(self) -> None:
         with patch.dict(os.environ, {"HARNESS_PG_TEST_DSN": "", "HARNESS_PG_DSN": "unused"}, clear=True):
