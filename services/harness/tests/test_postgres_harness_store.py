@@ -653,6 +653,86 @@ class PostgresHarnessStoreTests(unittest.TestCase):
                         [],
                     )
 
+                    # The original current issuer SQL must not certify a
+                    # prepared event with a detached required reference, even
+                    # if its CAS bytes and Run revision still exist.
+                    prepared = self.store.list_run_events(run.harness_run_id)[-1]
+                    edge_cases = (
+                        ("payload", prepared.payload_digest),
+                        ("reference", prepared.data["snapshotObjectDigest"]),
+                        ("reference", prepared.data["stateObjectDigest"]),
+                        ("reference", prepared.data["toolStepIntentObjectDigest"]),
+                        ("reference", prepared.data["dispatchFenceObjectDigest"]),
+                    )
+                    for edge_role, digest in edge_cases:
+                        with self.subTest(edge_role=edge_role, digest=digest):
+                            self.assertEqual(self.store.connection.execute(
+                                "DELETE FROM run_object_refs WHERE event_id=%s AND digest=%s AND role=%s",
+                                (prepared.event_id, digest, edge_role),
+                            ).rowcount, 1)
+                            try:
+                                self.assertEqual(runtime.execute(
+                                    query, (run.harness_run_id, fence.run_revision, fence.digest)
+                                ).fetchall(), [])
+                            finally:
+                                self.store.connection.execute(
+                                    "INSERT INTO run_object_refs(harness_run_id,event_id,digest,role) VALUES (%s,%s,%s,%s)",
+                                    (run.harness_run_id, prepared.event_id, digest, edge_role),
+                                )
+                    foreign = replace(
+                        run, harness_run_id="harness-run:foreign-issuer-edge",
+                        caller_run_ref="caller-run:foreign-issuer-edge",
+                    )
+                    self.store.create_run(foreign)
+                    for edge_role, digest in edge_cases:
+                        with self.subTest(foreign_edge_role=edge_role, digest=digest):
+                            self.assertEqual(self.store.connection.execute(
+                                "UPDATE run_object_refs SET harness_run_id=%s WHERE event_id=%s AND digest=%s AND role=%s",
+                                (foreign.harness_run_id, prepared.event_id, digest, edge_role),
+                            ).rowcount, 1)
+                            try:
+                                self.assertEqual(runtime.execute(
+                                    query, (run.harness_run_id, fence.run_revision, fence.digest)
+                                ).fetchall(), [])
+                            finally:
+                                self.store.connection.execute(
+                                    "UPDATE run_object_refs SET harness_run_id=%s WHERE event_id=%s AND digest=%s AND role=%s",
+                                    (run.harness_run_id, prepared.event_id, digest, edge_role),
+                                )
+                    # Exhaust the finite current-edge standing domain:
+                    # intact, absent, or foreign for each required edge.
+                    # One and only one of the 3**5 combinations may admit.
+                    from itertools import product
+                    accepted_cuts = 0
+                    for standings in product(("intact", "absent", "foreign"), repeat=len(edge_cases)):
+                        with self.store.connection.transaction():
+                            for (edge_role, digest), standing in zip(edge_cases, standings, strict=True):
+                                self.store.connection.execute(
+                                    "DELETE FROM run_object_refs WHERE event_id=%s AND digest=%s AND role=%s",
+                                    (prepared.event_id, digest, edge_role),
+                                )
+                                if standing != "absent":
+                                    owner = run.harness_run_id if standing == "intact" else foreign.harness_run_id
+                                    self.store.connection.execute(
+                                        "INSERT INTO run_object_refs(harness_run_id,event_id,digest,role) VALUES (%s,%s,%s,%s)",
+                                        (owner, prepared.event_id, digest, edge_role),
+                                    )
+                        count = len(runtime.execute(
+                            query, (run.harness_run_id, fence.run_revision, fence.digest)
+                        ).fetchall())
+                        self.assertEqual(count, int(all(standing == "intact" for standing in standings)), standings)
+                        accepted_cuts += count
+                    self.assertEqual(accepted_cuts, 1)
+                    with self.store.connection.transaction():
+                        for edge_role, digest in edge_cases:
+                            self.store.connection.execute(
+                                "UPDATE run_object_refs SET harness_run_id=%s WHERE event_id=%s AND digest=%s AND role=%s",
+                                (run.harness_run_id, prepared.event_id, digest, edge_role),
+                            )
+                    self.assertEqual(len(runtime.execute(
+                        query, (run.harness_run_id, fence.run_revision, fence.digest)
+                    ).fetchall()), 1)
+
                     # The admission transaction has committed here. An
                     # issued, delayed native launch is NOT fenced by this
                     # past result. Preserve explicit UNKNOWN on source.

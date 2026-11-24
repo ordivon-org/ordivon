@@ -302,6 +302,23 @@ Store, an explicit dedicated test DSN, a fresh owned disposable schema and
 distinct trace CAS payloads; existing historical SQLite receipts are
 unchanged. A clean revision is required for persistent benchmark evidence.
 
+**R43 source refinement (2026-11-24, candidate):**
+The existing current issuer SQL cut now requires the five typed prepared
+Event reference edges (payload, Intent, Fence, Snapshot, State) to belong
+to that original Run/Event; its fence identity must equal the payload's
+fence object commitment. No new SQL interface or grants. The current
+cut is not a global history validator, native stop receipt, or delivery
+acknowledgment. Existing installed schema qualification must explicitly
+verify the function body; changing the Python release pointer alone does
+not replace an already-installed SQL function.
+
+Twenty-four additional direct SQLite behavior test consumers now use the
+original PG Store; logical privacy checks scan durable test-schema table
+cells with a positive persisted-content witness, not physical WAL/backup
+or filesystem privacy claims. Old storage-format tests and the historical
+Research Temporal pilot remain separately reachable pending retirement
+evidence.
+
 **R42 source refinement (2026-11-24, candidate):**
 New Tool and Provider claim admission now consumes the original Store's
 exact verified Run cut, rather than an unqualified event list. Existing

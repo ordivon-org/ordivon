@@ -6,6 +6,8 @@ from contextlib import contextmanager, ExitStack
 import os
 import unittest
 
+from psycopg import sql
+
 from ordivon_harness.postgres_store import PostgresHarnessStore
 from scripts.harness_acceptance_pg import isolated_acceptance_schema
 
@@ -24,6 +26,35 @@ class PgTestSchema:
 
     def open(self, *, initialize: bool = False) -> PostgresHarnessStore:
         return self._connections.enter_context(self.connect(initialize=initialize))
+
+    def persisted_sentinel_hits(self, sentinels: tuple[str, ...]) -> list[tuple[str, str, str]]:
+        """Inspect every logical table cell in this test's PG schema.
+
+        This is a logical durable-row check, not a WAL, physical page,
+        backup, log, or server-wide privacy claim.
+        """
+        hits = []
+        with self.connect() as store, store.connection.transaction():
+            store.connection.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            tables = store.connection.execute(
+                "SELECT table_name FROM information_schema.tables "
+                "WHERE table_schema=%s AND table_type='BASE TABLE' ORDER BY table_name",
+                (self.schema,),
+            ).fetchall()
+            if not tables:
+                raise AssertionError("PG privacy test has no durable tables")
+            for table in tables:
+                name = table["table_name"]
+                rows = store.connection.execute(
+                    sql.SQL("SELECT * FROM {}.{}").format(sql.Identifier(self.schema), sql.Identifier(name))
+                )
+                for row in rows:
+                    for column, value in row.items():
+                        raw = bytes(value) if isinstance(value, (bytes, bytearray, memoryview)) else str(value).encode()
+                        for sentinel in sentinels:
+                            if sentinel.encode() in raw:
+                                hits.append((name, column, sentinel))
+        return hits
 
 
 @contextmanager

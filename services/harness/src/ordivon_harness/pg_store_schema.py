@@ -87,22 +87,49 @@ BEGIN
            i.digest,i.kind,i.byte_length,i.content
       FROM {schema}.run_events e
       JOIN {schema}.objects p ON p.digest=e.payload_digest
+      JOIN {schema}.run_object_refs payload_ref
+        ON payload_ref.event_id=e.event_id
+       AND payload_ref.harness_run_id=e.harness_run_id
+       AND payload_ref.role='payload'
+       AND payload_ref.digest=e.payload_digest
+      CROSS JOIN LATERAL (
+        SELECT convert_from(p.content,'UTF8')::jsonb AS body
+      ) AS original
       JOIN {schema}.run_object_refs refs
         ON refs.event_id=e.event_id AND refs.role='reference'
+       AND refs.harness_run_id=e.harness_run_id
       JOIN {schema}.objects f ON f.digest=refs.digest
       JOIN {schema}.objects i ON i.digest=(
-        convert_from(p.content,'UTF8')::jsonb
-        #>> '{{data,toolStepIntentObjectDigest}}'
+        original.body #>> '{{data,toolStepIntentObjectDigest}}'
       )
      WHERE e.harness_run_id=p_run_id AND e.run_revision=p_revision
        AND e.event_kind='harness.tool-step-prepared'
+       AND p.kind='ordivon.harness-run-event-payload'
        AND f.digest=p_fence_digest
+       AND f.digest=(original.body #>> '{{data,dispatchFenceObjectDigest}}')
        AND f.kind='harness-dispatch-fence'
        AND i.kind='harness-tool-step-intent'
        AND EXISTS (
          SELECT 1 FROM {schema}.run_object_refs link
           WHERE link.event_id=e.event_id AND link.role='reference'
+            AND link.harness_run_id=e.harness_run_id
             AND link.digest=i.digest
+       )
+       AND EXISTS (
+         SELECT 1 FROM {schema}.run_object_refs link
+         JOIN {schema}.objects o ON o.digest=link.digest
+          WHERE link.event_id=e.event_id AND link.role='reference'
+            AND link.harness_run_id=e.harness_run_id
+            AND link.digest=(original.body #>> '{{data,snapshotObjectDigest}}')
+            AND o.kind='harness-run-snapshot'
+       )
+       AND EXISTS (
+         SELECT 1 FROM {schema}.run_object_refs link
+         JOIN {schema}.objects o ON o.digest=link.digest
+          WHERE link.event_id=e.event_id AND link.role='reference'
+            AND link.harness_run_id=e.harness_run_id
+            AND link.digest=(original.body #>> '{{data,stateObjectDigest}}')
+            AND o.kind='harness-run-state'
        );
 END
 $source$;

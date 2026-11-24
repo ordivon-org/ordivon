@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from pathlib import Path
-import tempfile
 import unittest
 
 from anc_canonical import canonical_digest
@@ -18,7 +16,7 @@ from ordivon_harness.ordivon.model import (
 from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from tests.pg_fixture import PgTestSchema, pg_test_schema
 from ordivon_harness.standalone import StandaloneHarnessRunner
 
 from tests.test_p0_sqlite_agent_loop import (
@@ -58,8 +56,8 @@ def private_contract(suffix: str):
 
 class PrivacyAuthorityStateTests(unittest.TestCase):
     @staticmethod
-    def run_once(root: Path, run_contract, adapter, clock: FixedClock):
-        store = SQLiteHarnessStore.initialize(root)
+    def run_once(database: PgTestSchema, run_contract, adapter, clock: FixedClock):
+        store = database.open(initialize=True)
         store.create_run(run_contract)
         continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
         bridge = HarnessAgentBridge(run_contract, continuity)
@@ -77,13 +75,19 @@ class PrivacyAuthorityStateTests(unittest.TestCase):
         )
         return store, continuity, result
 
+    def test_pg_logical_row_scanner_detects_actual_persisted_content(self) -> None:
+        sentinel = "PG-PRIVACY-TEST-POSITIVE-CONTROL"
+        with pg_test_schema() as database:
+            with database.connect(initialize=True) as store:
+                store.put_object({"content": sentinel}, kind="privacy-test-control")
+            self.assertIn(("objects", "content", sentinel), database.persisted_sentinel_hits((sentinel,)))
+
     def test_metadata_only_provider_state_retains_digest_not_model_content(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = contract("pc12a-metadata-state")
             store, continuity, result = self.run_once(
-                root,
+                database,
                 run_contract,
                 ScriptedTurnAdapter((completed_result("pc12a-metadata-state"),)),
                 clock,
@@ -108,8 +112,7 @@ class PrivacyAuthorityStateTests(unittest.TestCase):
             store.close()
 
     def test_metadata_only_provider_result_retains_digest_not_result_content(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = contract("pc12a-metadata-result")
             provider_result = replace(
@@ -117,7 +120,7 @@ class PrivacyAuthorityStateTests(unittest.TestCase):
                 content=RESULT_SENTINEL,
             )
             store, continuity, execution = self.run_once(
-                root,
+                database,
                 run_contract,
                 ScriptedTurnAdapter((provider_result,)),
                 clock,
@@ -155,12 +158,11 @@ class PrivacyAuthorityStateTests(unittest.TestCase):
                 )
                 return value
 
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             runtime = SentinelRuntime()
             run_contract = runtime_contract("pc12a-full-root-scan")
-            store = SQLiteHarnessStore.initialize(root)
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(
                 store,
@@ -215,15 +217,7 @@ class PrivacyAuthorityStateTests(unittest.TestCase):
                 TOOL_ARGUMENT_SENTINEL,
                 TOOL_OBSERVATION_SENTINEL,
             )
-            hits: list[tuple[str, str]] = []
-            for path in root.rglob("*"):
-                if not path.is_file():
-                    continue
-                payload = path.read_bytes()
-                for sentinel in sentinels:
-                    if sentinel.encode() in payload:
-                        hits.append((str(path.relative_to(root)), sentinel))
-            self.assertEqual(hits, [])
+            self.assertEqual(database.persisted_sentinel_hits(sentinels), [])
 
     def test_model_only_policy_does_not_persist_tool_projection_channels(self) -> None:
         class SentinelRuntime(FakeRuntime):
@@ -237,8 +231,7 @@ class PrivacyAuthorityStateTests(unittest.TestCase):
                 )
                 return value
 
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             runtime = SentinelRuntime()
             run_contract = replace(
@@ -249,7 +242,7 @@ class PrivacyAuthorityStateTests(unittest.TestCase):
                     allow_tool_content=False,
                 ),
             )
-            store = SQLiteHarnessStore.initialize(root)
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(
                 store,
@@ -290,18 +283,9 @@ class PrivacyAuthorityStateTests(unittest.TestCase):
             self.assertEqual(runtime.workspace_exec_count, 1)
             store.close()
 
-            hits: list[tuple[str, str]] = []
-            for path in root.rglob("*"):
-                if not path.is_file():
-                    continue
-                payload = path.read_bytes()
-                for sentinel in (
-                    TOOL_ARGUMENT_SENTINEL,
-                    TOOL_OBSERVATION_SENTINEL,
-                ):
-                    if sentinel.encode() in payload:
-                        hits.append((str(path.relative_to(root)), sentinel))
-            self.assertEqual(hits, [])
+            self.assertEqual(database.persisted_sentinel_hits(
+                (TOOL_ARGUMENT_SENTINEL, TOOL_OBSERVATION_SENTINEL)
+            ), [])
 
     def test_metadata_only_provider_failure_redacts_dynamic_detail(self) -> None:
         class ErrorAdapter(ScriptedTurnAdapter):
@@ -313,13 +297,12 @@ class PrivacyAuthorityStateTests(unittest.TestCase):
                     dispatch_safety=AgentTurnDispatchSafety.PRE_DISPATCH_SAFE,
                 )
 
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = contract("pc12a-provider-error-redaction")
             adapter = ErrorAdapter((completed_result("unused-provider-error"),))
             store, continuity, execution = self.run_once(
-                root,
+                database,
                 run_contract,
                 adapter,
                 clock,
@@ -332,20 +315,14 @@ class PrivacyAuthorityStateTests(unittest.TestCase):
             )
             self.assertNotIn(PROVIDER_ERROR_SENTINEL, retained.failure.detail)
             store.close()
-            hits = [
-                str(path.relative_to(root))
-                for path in root.rglob("*")
-                if path.is_file() and PROVIDER_ERROR_SENTINEL.encode() in path.read_bytes()
-            ]
-            self.assertEqual(hits, [])
+            self.assertEqual(database.persisted_sentinel_hits((PROVIDER_ERROR_SENTINEL,)), [])
 
     def test_private_content_provider_state_retains_exact_model_content(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_contract("pc12a-private-state")
             store, continuity, result = self.run_once(
-                root,
+                database,
                 run_contract,
                 ScriptedTurnAdapter((completed_result("pc12a-private-state"),)),
                 clock,
@@ -357,12 +334,11 @@ class PrivacyAuthorityStateTests(unittest.TestCase):
             store.close()
 
     def test_metadata_only_pause_is_digest_recoverable_but_not_content_replayable(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = contract("pc12a-redacted-pause")
             store, continuity, paused = self.run_once(
-                root,
+                database,
                 run_contract,
                 ScriptedTurnAdapter((needs_input_result("pc12a-redacted-pause"),)),
                 clock,
@@ -374,7 +350,7 @@ class PrivacyAuthorityStateTests(unittest.TestCase):
             self.assertEqual(retained.snapshot.messages_digest, retained.state.messages_digest)
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.connect() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,

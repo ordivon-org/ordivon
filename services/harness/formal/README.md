@@ -185,3 +185,12 @@ existing `integrity` premise: known typed Provider/Tool object fields
 must retain their original reference edges even when CAS bytes exist.
 The real PG mutation/admission regressions test this refinement; the
 abstract model does not claim an SQL-level proof.
+
+R43 refines the actual current issuer SQL admission boundary. The local
+finite typed-edge contract is: a returned prepared cut implies that all
+five original required edges are present and owned by that Run/Event.
+Real PG restricted-role tests exhaust all 243 combinations of intact,
+missing and foreign-owned references; exactly one combination admits.
+This is a bounded concrete implementation witness, not a proof of
+complete SQL semantics or native NoFutureSpawn. The existing original
+SourceCut model's broader history integrity premise is unchanged.

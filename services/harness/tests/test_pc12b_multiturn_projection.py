@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from pathlib import Path
-import tempfile
 import unittest
 
 from anc_canonical import canonical_digest
@@ -20,7 +18,8 @@ from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.tool_errors import ToolBridgeError, ToolBridgeErrorKind
 from ordivon_harness.protocol import HarnessProviderCallStatus
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from ordivon_harness.postgres_store import PostgresHarnessStore
+from tests.pg_fixture import pg_test_schema
 from ordivon_harness.working_view import (
     HarnessWorkingSetPin,
     HarnessWorkingSetSpec,
@@ -113,7 +112,7 @@ class MutatingProjector:
 
     def __init__(
         self,
-        store: SQLiteHarnessStore,
+        store: PostgresHarnessStore,
         continuity: EventSourcedRunContinuity,
         next_pin: HarnessWorkingSetPin,
     ) -> None:
@@ -203,11 +202,10 @@ class MultiTurnWorkingViewProjectionTests(unittest.TestCase):
         return committed, pin_b, source_a, source_b
 
     def test_mature_loop_projects_a_then_b_without_replaying_canonical_history(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_contract("pc12b-multiturn")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -285,11 +283,10 @@ class MultiTurnWorkingViewProjectionTests(unittest.TestCase):
 
     def test_metadata_only_ephemeral_projection_does_not_persist_view_content(self) -> None:
         sentinel = "PRIVATE-PC12B-EPHEMERAL-PROJECTION-SENTINEL"
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = contract("pc12b-metadata-projection")
-            store = SQLiteHarnessStore.initialize(root)
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(
                 store, run_contract, clock_ms=clock
@@ -321,19 +318,13 @@ class MultiTurnWorkingViewProjectionTests(unittest.TestCase):
             self.assertFalse(retained.state.messages_retained)
             store.close()
 
-            hits = [
-                str(path.relative_to(root))
-                for path in root.rglob("*")
-                if path.is_file() and sentinel.encode() in path.read_bytes()
-            ]
-            self.assertEqual(hits, [])
+            self.assertEqual(database.persisted_sentinel_hits((sentinel,)), [])
 
     def test_provider_claim_rejects_view_that_became_stale_after_projection(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_contract("pc12b-stale-view")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -369,11 +360,10 @@ class MultiTurnWorkingViewProjectionTests(unittest.TestCase):
                 self.assertTrue(continuity.doctor()["healthy"])
 
     def test_second_turn_response_loss_replays_b_without_third_dispatch(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_contract("pc12b-response-loss")
-            store = SQLiteHarnessStore.initialize(root)
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(
                 store, run_contract, clock_ms=clock
@@ -415,7 +405,7 @@ class MultiTurnWorkingViewProjectionTests(unittest.TestCase):
             self.assertEqual(retained.request, second_request)
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.connect() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,

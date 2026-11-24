@@ -341,3 +341,24 @@ concurrency, and Adaptive Edit are preserved. The materialization test
 uses the original PG CAS contract (canonical payload bytes, kind stored
 as row metadata), not the historical SQLite envelope digest. Legacy
 storage and privacy-specific tests remain until separately qualified.
+
+R43 current issuer cut: under the actual least-privilege Runtime SQL
+role, delete each of the five mandatory current prepared Event edges or
+transfer its Run ownership to a different actual Run. The original
+SQL returned a cut when payload, Snapshot, or State edges were absent.
+The corrected predicate denies each invalid case. A bounded exhaustive
+real PG witness traverses all 3**5 standing combinations (intact, absent,
+foreign) and accepts only the all-intact state. Positive restoration,
+stale revision and wrong fence rejection, and original UNKNOWN behavior
+remain covered. Existing installed issuer function qualification is a
+separate operator action from source qualification.
+
+Eight more existing behavioral test modules migrate to native PG:
+privacy, multi-turn projection, Agent Loop, Tool/Provider Store, Runtime
+Bridge, Standalone, and Search Batch. Privacy tests inspect every logical
+table cell in a dedicated PG schema under a repeatable-read read-only
+snapshot, with a positive persisted sentinel control. This does not
+prove privacy of WAL, logs, backups or physical pages. Native concurrent
+threads use explicit independent original PG connections. Historical
+SQLite-specific Store tests remain, as does a legacy Research Temporal
+pilot with retired imports pending its owner/consumer decision.
