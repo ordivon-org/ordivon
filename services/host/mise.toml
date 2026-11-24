@@ -45,7 +45,7 @@ description = "Source-bound CrossHair proof: Host reply ordering and bounded Wor
 run = """
 set -euo pipefail
 uv lock --check
-if report="$(uv run --locked --group formal python -m crosshair check --analysis_kind PEP316 --per_condition_timeout 25 --report_all ordivon_host_v2.social_message_commands._reply_target_precedes_source ordivon_host_v2.work_store._next_work_revision 2>&1)"; then
+if report="$(uv run --locked --group formal python -m crosshair check --analysis_kind PEP316 --per_condition_timeout 25 --report_all ordivon_host_v2.social_message_commands._reply_target_precedes_source ordivon_host_v2.work_revision_logic.next_work_revision 2>&1)"; then
   printf '%s\\n' "$report"
 else
   printf '%s\\n' "$report" >&2
