@@ -1281,6 +1281,61 @@ class FormalTraceContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "exact 40-hex"):
             self.module._git_source_changes("HEAD", "HEAD")
 
+    def test_pg_profile_separates_executed_and_conditional_evidence(self):
+        trace, invariants = manifests()
+        selected = self.module.native_profile_trace(trace, "pg")
+        self.assertEqual(self.module.validate(trace, invariants), [])
+        self.assertEqual(
+            {x["symbol"] for x in selected["provingTests"]},
+            {
+                "provider_replacement_cannot_weaken_r1_guarantees",
+                "terminal_evidence_requires_result_finish_matching_resolution_and_no_current_attempt",
+                "terminal_requires_corresponding_attempt_evidence_and_released_capacity",
+                "orphan_never_projects_as_released_capacity",
+            },
+        )
+        self.assertIn("pg18_concurrent_duplicate_never_creates_second_job",
+                      {x["symbol"] for x in selected["conditionalAcceptanceTests"]})
+        self.assertEqual(selected["contractSeams"], [])
+        self.assertEqual(len(selected["supportingContracts"]), 1)
+        for row in selected["conditionalAcceptanceTests"]:
+            self.assertEqual(row["evidenceMode"], "physical-opt-in")
+            native = self.module._native_witness_name(
+                row, {row["path"].split("/src/")[1][:-3].replace("/", "::") + "::" + row["symbol"]}
+            )
+            with self.assertRaisesRegex(ValueError, "ignored/always-on"):
+                self.module._require_native_test_role(row, {native}, set(), require_ignored=True)
+
+    def test_pg_profile_rejects_missing_or_relabelled_witness(self):
+        trace, invariants = manifests()
+        for change in ("missing", "legacy-role", "unknown-relation"):
+            mutated = copy.deepcopy(trace)
+            rows = mutated["pgNativeWitnesses"]
+            if change == "missing":
+                rows.pop()
+            elif change == "legacy-role":
+                next(row for row in rows if row["evidenceMode"] == "physical-opt-in")["evidenceMode"] = "always-on"
+            else:
+                rows[0]["modelRelations"] = ["Nonexistent"]
+            with self.subTest(change=change):
+                self.assertTrue(self.module.validate(mutated, invariants))
+
+    def test_cargo_profile_artifact_rejects_mixed_backend(self):
+        artifact = {
+            "reason": "compiler-artifact",
+            "target": {"name": "ordivon_runtime_core", "kind": ["lib"]},
+            "profile": {"test": True},
+            "features": ["postgres-registry-admission", "runtime-contract"],
+            "executable": "/build/test",
+        }
+        self.assertEqual(self.module._native_cargo_test_artifact(json.dumps(artifact), "pg"), artifact)
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            self.module._native_cargo_test_artifact(json.dumps(artifact), "legacy")
+        artifact["features"].append("transactional-runtime")
+        for profile in ("pg", "legacy"):
+            with self.assertRaisesRegex(ValueError, "exactly one"):
+                self.module._native_cargo_test_artifact(json.dumps(artifact), profile)
+
     def test_cargo_compiler_artifact_is_not_inferred_from_filenames(self):
         import json
 

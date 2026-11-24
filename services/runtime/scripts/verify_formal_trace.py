@@ -50,6 +50,70 @@ REQUIRED_MODEL_BINDINGS = {
 }
 REQUIRED_RUNTIME_INVARIANT_BINDINGS = {"I05", "I11"}
 
+# The PG-native slice observes bounded contracts, not full model refinement.
+# Keep one verifier; the original trace remains the explicit legacy slice.
+NATIVE_PROFILE_FEATURES = {"legacy": "transactional-runtime", "pg": "postgres-registry-admission"}
+PG_WITNESS_ROLES = {
+    "PG.providerContract": "always-on",
+    "PG.terminalContract": "always-on",
+    "PG.terminalProjection": "always-on",
+    "PG.orphanProjection": "always-on",
+    "PG.dispatchCAS": "physical-opt-in",
+    "PG.admissionUnique": "physical-opt-in",
+    "PG.terminalOrphanCAS": "physical-opt-in",
+    "PG.staleTerminal": "physical-opt-in",
+    "PG.composedTerminal": "physical-opt-in",
+}
+
+
+def native_profile_trace(trace: dict[str, Any], profile: str) -> dict[str, Any]:
+    if profile == "legacy":
+        return trace
+    if profile != "pg":
+        raise ValueError(f"unknown native witness profile: {profile}")
+    rows = trace["pgNativeWitnesses"]
+    return {
+        "contractSeams": [],
+        "supportingContracts": trace["supportingContracts"],
+        "provingTests": [row for row in rows if row["evidenceMode"] == "always-on"],
+        "conditionalAcceptanceTests": [row for row in rows if row["evidenceMode"] == "physical-opt-in"],
+    }
+
+
+def validate_pg_witnesses(trace: dict[str, Any]) -> list[str]:
+    rows = trace.get("pgNativeWitnesses")
+    if not isinstance(rows, list) or len(rows) != len(PG_WITNESS_ROLES) or set(_ids(rows)) != set(PG_WITNESS_ROLES):
+        return ["PG native witness identities missing or duplicated"]
+    errors = []
+    identities = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            return ["PG native witness is not an object"]
+        identity = row["id"]
+        mode = row.get("evidenceMode")
+        if mode != PG_WITNESS_ROLES[identity]:
+            errors.append(f"PG native witness {identity} has invalid evidence role")
+        path, symbol = row.get("path"), row.get("symbol")
+        if not isinstance(path, str) or not isinstance(symbol, str):
+            errors.append(f"PG native witness {identity} has incomplete source identity")
+            continue
+        if (path, symbol) in identities:
+            errors.append(f"PG native witness {identity} duplicates another native case")
+        identities.add((path, symbol))
+        errors.extend(require_test_source(ROOT / path, symbol))
+        relations = row.get("modelRelations")
+        if not isinstance(relations, list) or not relations or any(
+            not isinstance(x, str) or x not in REQUIRED_MODEL_BINDINGS | REQUIRED_SUPPORTING_CONTRACTS
+            for x in relations
+        ):
+            errors.append(f"PG native witness {identity} has invalid model relations")
+        if not isinstance(row.get("scope"), str) or not row["scope"].strip():
+            errors.append(f"PG native witness {identity} lacks bounded scope")
+        if mode == "physical-opt-in" and not symbol.startswith("pg18_"):
+            errors.append(f"PG native witness {identity} is not selected by physical PG18 lane")
+    return errors
+
+
 
 # These are the actual existing RuntimeDispatchR1.cfg obligations, not a
 # substitute for TLC. Their independent currentness check prevents a
@@ -487,6 +551,7 @@ def validate(trace: dict[str, Any], invariant_manifest: dict[str, Any]) -> list[
     ):
         errors.append("trace manifest lost explicit refinement non-claim")
 
+    errors.extend(validate_pg_witnesses(trace))
     return errors
 
 
@@ -661,6 +726,7 @@ def _qualify_current_compiler_readset(source_head: str) -> dict[str, Any]:
     if not binary.resolve(strict=True).is_relative_to(expected_root):
         raise ValueError("Cargo libtest artifact outside target directory")
     receipt = _native_libtest_depfile_receipt(binary, source_head)
+    receipt["implementationProfile"] = "legacy"
     if _qualified_native_source_head() != source_head:
         raise ValueError("compiler source changed during Cargo artifact selection")
     return receipt
@@ -989,8 +1055,10 @@ def _require_exact_native_pass(output: str) -> None:
         raise ValueError("native test must execute exactly one PASS and no ignored tests")
 
 
-def _native_cargo_test_artifact(stdout: str) -> dict[str, Any]:
+def _native_cargo_test_artifact(stdout: str, profile: str = "legacy") -> dict[str, Any]:
     """Select one Cargo-emitted compiler artifact, never guess target/deps names."""
+    feature = NATIVE_PROFILE_FEATURES[profile]
+    other_features = set(NATIVE_PROFILE_FEATURES.values()) - {feature}
     artifacts = []
     for line in stdout.splitlines():
         try:
@@ -1004,12 +1072,13 @@ def _native_cargo_test_artifact(stdout: str) -> dict[str, Any]:
             and target.get("name") == "ordivon_runtime_core"
             and target.get("kind") == ["lib"]
             and row.get("profile", {}).get("test") is True
-            and "transactional-runtime" in row.get("features", [])
+            and feature in row.get("features", [])
+            and not other_features.intersection(row.get("features", []))
             and isinstance(row.get("executable"), str)
         ):
             artifacts.append(row)
     if len(artifacts) != 1:
-        raise ValueError("Cargo must identify exactly one transactional-runtime libtest binary")
+        raise ValueError(f"Cargo must identify exactly one {feature} libtest binary")
     return artifacts[0]
 
 
@@ -1043,7 +1112,7 @@ def _native_cargo_build_environment(env: dict[str, str]) -> dict[str, str]:
     return {key: env.get(key, "") for key in sorted(keys)}
 
 
-def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
+def qualify_native_witnesses(trace: dict[str, Any], profile: str = "legacy") -> dict[str, Any]:
     """Compile once, execute the exact Cargo-provided binary, bind one native receipt.
 
     The executable and its Cargo target/profile are source-local CODE evidence,
@@ -1052,6 +1121,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
     import os
     import subprocess
 
+    feature = NATIVE_PROFILE_FEATURES[profile]
     cargo = [
         "cargo",
         "test",
@@ -1061,7 +1131,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
         "ordivon-runtime-core",
         "--no-default-features",
         "--features",
-        "transactional-runtime",
+        feature,
         "--lib",
         "--no-run",
         "--message-format=json",
@@ -1103,7 +1173,8 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
 
     manifest_path = ROOT / "crates/ordivon-runtime-core/src/lib.rs"
     cargo_json = run(cargo)
-    artifact = _native_cargo_test_artifact(cargo_json)
+    artifact = _native_cargo_test_artifact(cargo_json, profile)
+    selected = native_profile_trace(trace, profile)
     if Path(artifact["target"]["src_path"]).resolve() != manifest_path.resolve():
         raise ValueError("Cargo emitted an unexpected test source module")
     test_binary = Path(artifact["executable"])
@@ -1124,7 +1195,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
     }
     contract_rows = []
     tested_contract_names: set[str] = set()
-    for binding in [*trace["contractSeams"], *trace["supportingContracts"]]:
+    for binding in [*selected["contractSeams"], *selected["supportingContracts"]]:
         native_name = native_contract_expected(binding)
         if native_name not in registered or native_name in ignored_names:
             raise ValueError(f"compiler-owned contract witness absent/ignored: {native_name}")
@@ -1140,7 +1211,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
         )
 
     witness_rows = []
-    for witness in trace["provingTests"]:
+    for witness in selected["provingTests"]:
         name = _require_native_test_role(
             witness,
             registered,
@@ -1153,11 +1224,12 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
                 "id": witness["id"],
                 "nativeName": name,
                 "standing": "EXECUTED_PASS",
+                **({key: witness[key] for key in ("modelRelations", "scope")} if profile == "pg" else {}),
             }
         )
 
     opt_in_rows = []
-    for witness in trace["conditionalAcceptanceTests"]:
+    for witness in selected["conditionalAcceptanceTests"]:
         name = _require_native_test_role(
             witness,
             registered,
@@ -1169,6 +1241,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
                 "id": witness["id"],
                 "nativeName": name,
                 "standing": "COMPILED_IGNORED_NOT_EXECUTED",
+                **({key: witness[key] for key in ("modelRelations", "scope", "condition")} if profile == "pg" else {}),
             }
         )
 
@@ -1183,7 +1256,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
     rustc_version = provenance(["rustc", "-vV"])
     cargo_profile = {
         "package": "ordivon-runtime-core",
-        "feature": "transactional-runtime",
+        "feature": feature,
         "noDefaultFeatures": True,
         "lib": True,
         "locked": True,
@@ -1209,6 +1282,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
     }
     return {
         "kind": "ordivon.runtime-native-test-witness",
+        "implementationProfile": profile,
         "truthRole": "scoped-code-test-evidence-not-formal-refinement",
         "witnesses": witness_rows,
         "conditionalOptInWitnesses": opt_in_rows,
@@ -1245,6 +1319,7 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--native-witnesses", action="store_true")
+    parser.add_argument("--native-profile", choices=tuple(NATIVE_PROFILE_FEATURES), default="legacy")
     parser.add_argument("--impact-compiler", action="store_true")
     parser.add_argument("--impact-base", help="exact Git source base SHA")
     parser.add_argument("--impact-head", help="exact Git source HEAD SHA")
@@ -1253,6 +1328,8 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--impact-base and --impact-head must be supplied together")
     if args.impact_compiler and not args.impact_base:
         parser.error("--impact-compiler requires --impact-base and --impact-head")
+    if args.native_profile != "legacy" and args.impact_base:
+        parser.error("source impact currently describes the legacy trace; PG profile impact is UNKNOWN")
     if args.native_witnesses and args.impact_base:
         parser.error("--native-witnesses cannot be combined with --impact-base")
     for source in (TRACE, INVARIANTS):
@@ -1301,16 +1378,20 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     try:
-        receipt = qualify_native_witnesses(trace)
+        receipt = qualify_native_witnesses(trace, args.native_profile)
     except (OSError, ValueError, __import__("subprocess").TimeoutExpired) as error:
         print(f"formal native witness: UNKNOWN ({error})", file=sys.stderr)
         return 1
     if args.native_witnesses:
         print(json.dumps(receipt, sort_keys=True))
     else:
+        selected = native_profile_trace(trace, args.native_profile)
+        executed = len(selected["provingTests"])
+        typed = len(selected["contractSeams"]) + len(selected["supportingContracts"])
+        ignored = len(selected["conditionalAcceptanceTests"])
         print(
-            "formal trace: PASS (scoped manifest, Cargo native 5/5 executed "
-            "tests, 4/4 typed seams, 2 opt-in ignored; no Rust-to-TLA proof)"
+            f"formal trace: PASS (profile={args.native_profile}, Cargo native {executed}/{executed} executed "
+            f"tests, {typed}/{typed} typed seams, {ignored} opt-in ignored; no Rust-to-TLA proof)"
         )
     return 0
 
