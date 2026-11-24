@@ -252,6 +252,8 @@ def test_selector_control_inputs_use_actual_git_blobs(monkeypatch, tmp_path):
         path = repo / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("control input " + relative + "\n")
+    (repo / "tools/repo/dependency_contracts.toml").write_text("seams = []\n")
+    (repo / "docs/architecture/structure-r2-transition-r1.json").write_text('{"mappings":[]}')
     git("add", ".")
     git("commit", "-qm", "exact policy fixture")
     cut = git("rev-parse", "HEAD")
@@ -260,18 +262,18 @@ def test_selector_control_inputs_use_actual_git_blobs(monkeypatch, tmp_path):
         path = repo / relative
         original = path.read_bytes()
         path.write_bytes(original + b"changed")
-        with pytest.raises(ValueError, match="differs from SourceCut"):
+        with pytest.raises(ValueError, match="differs from exact Git SourceCut"):
             policy.qualify_current_selector(repo, cut)
         path.write_bytes(original)
     policy.qualify_current_selector(repo, cut)
     executable = repo / policy.CONTROL_INPUTS[0]
     original_mode = executable.stat().st_mode
     executable.chmod(original_mode | 0o100)
-    with pytest.raises(ValueError, match="differs from SourceCut"):
+    with pytest.raises(ValueError, match="differs from exact Git SourceCut"):
         policy.qualify_current_selector(repo, cut)
     executable.chmod(original_mode)
     policy.qualify_current_selector(repo, cut)
-    with pytest.raises(ValueError, match="checkout differs"):
+    with pytest.raises(ValueError, match="SourceCut mismatch"):
         policy.qualify_current_selector(repo, "0" * len(cut))
     path = repo / policy.CONTROL_INPUTS[0]
     original = path.read_bytes()
