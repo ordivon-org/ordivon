@@ -9,11 +9,6 @@ import pytest
 
 ROOT=Path(__file__).resolve().parents[1]
 class ResilienceRunnerTests(unittest.TestCase):
-    def test_both_venues_are_fault_injected_in_one_network_v2_session(self):
-        s=(ROOT/'scripts/run-crypto-stream-resilience-r3-session').read_text()
-        self.assertIn('--target-venue OKX',s)
-        self.assertIn('--target-venue BINANCE',s)
-        self.assertIn('PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT',s)
     def test_candidate_uses_exact_network_v2_authority_without_surfpath(self):
         s=(ROOT/'scripts/run-crypto-stream-resilience-r3-candidate').read_text()
         self.assertNotIn('surfpath',s.lower())
@@ -21,11 +16,6 @@ class ResilienceRunnerTests(unittest.TestCase):
         self.assertIn('check-network-v2-public-data',s)
         self.assertIn('ORDIVON_MC_OKX_WS_PROXY',s)
         self.assertIn('ORDIVON_MC_BINANCE_SPOT_WS_PROXY',s)
-        session=(ROOT/'scripts/run-crypto-stream-resilience-r3-session').read_text()
-        self.assertIn('run-capability-python',session)
-        self.assertIn('-m ordivon_capital.markets.crypto_stream_resilience',session)
-        self.assertNotIn('/usr/bin/uv run',session)
-        self.assertNotIn('.venv/bin/python', (ROOT/'scripts/run-crypto-stream-resilience-r3-session').read_text())
     def test_master_keeps_authority_and_clock_gates(self):
         s=(ROOT/'scripts/run-crypto-stream-resilience-r3').read_text()
         self.assertIn('check-execution-policy',s)
@@ -54,6 +44,9 @@ import json, os, pathlib, sys
 args = sys.argv[1:]
 venue = args[args.index("--target-venue")+1]
 out = pathlib.Path(args[args.index("--output")+1])
+assert args == ["-m", "ordivon_capital.markets.crypto_stream_resilience",
+                "--target-venue", venue, "--output", str(out),
+                "--measured-rounds", "3", "--deadline-seconds", "35"]
 with open(os.environ["TEST_CALLS"], "a") as f:
     f.write(venue + "\\n")
 mode = os.environ.get("TEST_MODE", "valid")
@@ -185,19 +178,27 @@ def test_candidate_exit_agrees_with_session_receipt_not_child_status_alone(tmp_p
     assert json.loads((out / "result.json").read_text())["standing"] == "WORKLOAD_QUALITY_FAILED"
 
 
-def test_concurrent_session_claim_has_exactly_one_writer(tmp_path):
+@pytest.mark.parametrize("nonexclusive_mkdir", (False, True))
+def test_concurrent_session_claim_has_exactly_one_writer(tmp_path, nonexclusive_mkdir):
     repo, env = _isolated_reconnect_carrier(tmp_path)
+    if nonexclusive_mkdir:
+        # Fault injection: an ambient command falsely admits existing roots.
+        # This is an admission-mechanism counterexample, not the CI root cause.
+        shim = tmp_path / "bin"
+        shim.mkdir()
+        mkdir = shim / "mkdir"
+        native_mkdir = shutil.which("mkdir")
+        assert native_mkdir is not None
+        mkdir.write_text("#!/bin/sh\nexec " + native_mkdir + ' -p "$@"\n')
+        mkdir.chmod(0o755)
+        env["PATH"] = str(shim) + os.pathsep + env["PATH"]
     out = tmp_path / "session"
     cmd = [str(repo / "scripts/run-crypto-stream-resilience-r3-session"), str(repo), str(out)]
     first = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     second = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     _, first_stderr = first.communicate(timeout=15)
     _, second_stderr = second.communicate(timeout=15)
-    # Admission is exactly one successful writer; the other process must
-    # fail without producer effects. Native launch/diagnostic errors may
-    # carry a different nonzero exit. Exact 73 for a rejected mkdir is
-    # checked separately with both writable and unwritable diagnostics.
-    assert (first.returncode == 0) != (second.returncode == 0), (
+    assert sorted((first.returncode, second.returncode)) == [0, 73], (
         first.returncode, second.returncode, first_stderr, second_stderr
     )
     assert (tmp_path / "calls").read_text().splitlines() == ["OKX", "BINANCE"]

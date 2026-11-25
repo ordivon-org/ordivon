@@ -1,32 +1,56 @@
 #!/usr/bin/env bash
 set -euo pipefail
 if [ "$#" -ne 2 ]; then echo "usage: $0 CAPITAL_REPO NEW_OUTPUT_DIR" >&2; exit 64; fi
-repo="$1"; out="$2"
-mkdir -- "$out" || { echo "session output must be a new directory: $out" >&2 || :; exit 73; }
-
-set +e
-"$repo/scripts/run-capability-python" -m ordivon_capital.markets.crypto_stream_resilience   --target-venue OKX   --output "$out/okx.json"   --measured-rounds 3   --deadline-seconds 35   >"$out/okx.stdout" 2>"$out/okx.stderr"
-okx_rc=$?
-
-"$repo/scripts/run-capability-python" -m ordivon_capital.markets.crypto_stream_resilience   --target-venue BINANCE   --output "$out/binance.json"   --measured-rounds 3   --deadline-seconds 35   >"$out/binance.stdout" 2>"$out/binance.stderr"
-binance_rc=$?
-set -e
-
-python3 -   "$out/okx.json" "$okx_rc" "$out/okx.stderr"   "$out/binance.json" "$binance_rc" "$out/binance.stderr"   "$out/result.json" <<'PY'
+# Keep the exclusive filesystem claim and all producer launches in one
+# interpreter. An external mkdir exit status is not the claim authority.
+exec python3 - "$1" "$2" <<'PYTHON'
 import json
 import math
 import os
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
-okx_path = Path(sys.argv[1])
-okx_rc = int(sys.argv[2])
-okx_stderr = Path(sys.argv[3])
-bn_path = Path(sys.argv[4])
-bn_rc = int(sys.argv[5])
-bn_stderr = Path(sys.argv[6])
-result_path = Path(sys.argv[7])
+repo, out = map(Path, sys.argv[1:])
+
+try:
+    out.mkdir()
+except OSError:
+    try:
+        os.write(2, f"session output must be a new directory: {out}\n".encode())
+    except OSError:
+        pass
+    raise SystemExit(73)
+
+
+def run_venue(venue, path, stderr_path):
+    # Only the successful mkdir claimant can reach either producer. Retain
+    # both attempt outcomes even if starting one producer fails.
+    try:
+        with path.with_suffix(".stdout").open("xb") as stdout, stderr_path.open("xb") as stderr:
+            completed = subprocess.run(
+                [str(repo / "scripts/run-capability-python"),
+                 "-m", "ordivon_capital.markets.crypto_stream_resilience",
+                 "--target-venue", venue, "--output", str(path),
+                 "--measured-rounds", "3", "--deadline-seconds", "35"],
+                stdout=stdout, stderr=stderr, stdin=subprocess.DEVNULL, check=False,
+            )
+        return completed.returncode if completed.returncode >= 0 else 128 - completed.returncode
+    except OSError as exc:
+        try:
+            with stderr_path.open("ab") as stderr:
+                stderr.write(f"producer launch unavailable: {exc}\n".encode(errors="replace"))
+        except OSError:
+            pass
+        return 126
+
+
+okx_path, okx_stderr = out / "okx.json", out / "okx.stderr"
+bn_path, bn_stderr = out / "binance.json", out / "binance.stderr"
+result_path = out / "result.json"
+okx_rc = run_venue("OKX", okx_path, okx_stderr)
+bn_rc = run_venue("BINANCE", bn_path, bn_stderr)
 
 
 def unique_object(pairs):
@@ -192,4 +216,4 @@ with tempfile.NamedTemporaryFile(mode="w", dir=result_path.parent, prefix=".resu
         temp_path.unlink()
 print(json.dumps(r, sort_keys=True, allow_nan=False))
 raise SystemExit(0 if passed else 2)
-PY
+PYTHON
