@@ -285,6 +285,65 @@ def _other_repo_managed_workspaces(
     return found
 
 
+def effective_environment(base: Path, overlays: tuple[Path, ...]) -> dict[str, str]:
+    """Use the existing bounded parser; later declared files override earlier ones.
+    Missing or unreadable required input is an error, not an empty overlay.
+    """
+    environment = load_environment_file(base)
+    for path in overlays:
+        environment.update(load_environment_file(path))
+    return environment
+
+
+def native_environment_files(value: object, base: Path) -> tuple[Path, ...]:
+    """Accept only the ordered, required, exact-path systemd property subset."""
+    if not isinstance(value, dict) or value.get("type") != "a(sb)":
+        raise ValueError("Runtime EnvironmentFiles property is not typed a(sb)")
+    entries = value.get("data")
+    if not isinstance(entries, list) or not entries:
+        raise ValueError("Runtime EnvironmentFiles property is empty")
+    paths = []
+    for entry in entries:
+        if (not isinstance(entry, list) or len(entry) != 2
+                or not isinstance(entry[0], str) or entry[1] is not False):
+            raise ValueError("Runtime EnvironmentFiles requires exact mandatory paths")
+        path = Path(entry[0])
+        if (not path.is_absolute() or any(char in entry[0] for char in "*?[]")
+                or ".." in path.parts or path in paths):
+            raise ValueError("Runtime EnvironmentFiles contains an unsupported path")
+        paths.append(path)
+    if paths[0] != base:
+        raise ValueError("Runtime EnvironmentFiles does not start with the expected PG base")
+    return tuple(paths)
+
+
+def installed_environment_files(base: Path) -> tuple[Path, ...]:
+    """Resolve the existing systemd authority without a parallel file list."""
+    prefix = ["/usr/bin/busctl", "--json=short"]
+    service = "org.freedesktop.systemd1"
+    def query(*args: str) -> object:
+        result = subprocess.run(prefix + list(args), check=True, capture_output=True,
+                                text=True, timeout=10)
+        return json.loads(result.stdout)
+    unit = query("call", service, "/org/freedesktop/systemd1",
+                 service + ".Manager", "GetUnit", "s", "ordivon-runtime.service")
+    if (not isinstance(unit, dict) or unit.get("type") != "o"
+            or unit.get("data") != ["/org/freedesktop/systemd1/unit/ordivon_2druntime_2eservice"]):
+        raise ValueError("native Runtime unit identity unavailable")
+    return native_environment_files(
+        query("get-property", service, unit["data"][0], service + ".Service", "EnvironmentFiles"),
+        base,
+    )
+
+
+def qualified_writer(row: object, source: object) -> bool:
+    """No observation from a different writer SourceCut may qualify deletion."""
+    return (isinstance(source, str) and len(source) == 64
+            and all(c in "0123456789abcdef" for c in source)
+            and isinstance(row, tuple) and len(row) == 3
+            and row[0] == "QUALIFIED_WRITER" and row[1] == source and row[2] is True)
+
+
 def _jobs(
     environment: dict[str, str], workspace_id: str | None = None,
 ) -> dict[str, tuple[int, str | None, int]]:
@@ -319,7 +378,15 @@ def _jobs(
     """).format(schema=sql.Identifier(schema))
     with psycopg.connect(environment["ORDIVON_PG_DSN"], connect_timeout=8) as connection:
         with connection.transaction():
+            # Writer qualification and the Job projection must share one
+            # read-only PG snapshot. Native close still owns effect-time checks.
+            connection.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
             connection.execute("SET LOCAL statement_timeout = '15000ms'")
+            writer = connection.execute(sql.SQL(
+                "SELECT state,source_sha256,promotion_allowed FROM {}._stage_control WHERE id='source'"
+            ).format(sql.Identifier(schema))).fetchone()
+            if not qualified_writer(writer, environment.get("ORDIVON_PG_SOURCE_SHA256")):
+                raise RuntimeError("PG writer SourceCut is not currently qualified")
             rows = connection.execute(query, (workspace_id, workspace_id)).fetchall()
     return {row[0]: (row[1], row[2], row[3]) for row in rows}
 
@@ -471,7 +538,11 @@ def _observe_release_subjects(
 
 
 def run(args: argparse.Namespace) -> dict:
-    env = load_environment_file(args.env_file)
+    if getattr(args, "installed_runtime_environment", False):
+        files = installed_environment_files(args.env_file)
+        env = effective_environment(files[0], files[1:])
+    else:
+        env = effective_environment(args.env_file, tuple(getattr(args, "env_overlay", ())))
     repo, root = args.source_repo.resolve(), args.workspace_root.resolve()
     integration_ref = args.integration_ref
     if integration_ref == "refs/heads/main":
@@ -703,6 +774,11 @@ def run(args: argparse.Namespace) -> dict:
 def main() -> int:
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--env-file",required=True,type=Path)
+    environment_mode = parser.add_mutually_exclusive_group()
+    environment_mode.add_argument("--env-overlay", action="append", type=Path, default=[],
+                                  help="Ordered explicit required overlays for a manual operator")
+    environment_mode.add_argument("--installed-runtime-environment", action="store_true",
+                                  help="Use native systemd Runtime EnvironmentFiles in exact order")
     parser.add_argument("--source-repo",required=True,type=Path)
     parser.add_argument(
         "--integration-ref",

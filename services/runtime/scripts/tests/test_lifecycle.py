@@ -1469,6 +1469,25 @@ class LifecycleTests(unittest.TestCase):
                 self.assertFalse(called)
         globals_["reclaim_apply_selected"] = original_reclaim
 
+    def test_pg_lifecycle_reuses_qualified_operator_python(self) -> None:
+        import shlex
+        unit = (REPO / "packaging/systemd/ordivon-runtime-lifecycle.service").read_text(
+            encoding="utf-8"
+        )
+        release_unit = (REPO / "packaging/systemd/ordivon-runtime-pg-release-dispatch.service").read_text(
+            encoding="utf-8"
+        )
+        release_start = next(line for line in release_unit.splitlines() if line.startswith("ExecStart="))
+        expected = shlex.split(release_start.partition("=")[2])[0]
+        self.assertEqual(expected, "/opt/ordivon/runtime-pg-operator/.venv/bin/python")
+        commands = [shlex.split(line.partition("=")[2]) for line in unit.splitlines()
+                    if line.startswith("ExecStart=")]
+        self.assertEqual(len(commands), 3)
+        for command in commands:
+            self.assertEqual(command[0], expected)
+            self.assertIn("--installed-runtime-environment", command)
+            self.assertIn("/usr/local/libexec/ordivon/ordivon-runtime-pg-reclaim", command)
+
     def test_packaged_lifecycle_uses_native_pg_workspace_reclaimer(self) -> None:
         unit = (REPO / "packaging/systemd/ordivon-runtime-lifecycle.service").read_text(
             encoding="utf-8"

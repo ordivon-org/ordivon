@@ -17,6 +17,53 @@ mod = module_from_spec(spec)
 loader.exec_module(mod)
 
 
+class PgEnvironmentBindingTests(unittest.TestCase):
+    """The input is the ordered native EnvironmentFiles, not a shadow config."""
+
+    def test_later_native_environment_file_overrides_base(self):
+        from tempfile import TemporaryDirectory
+        with TemporaryDirectory() as d:
+            root = Path(d)
+            base, one, two = (root / name for name in ("base", "one", "two"))
+            base.write_text("SOURCE=old\nKEEP=base\n")
+            one.write_text("SOURCE=middle\nEXTRA=one\n")
+            two.write_text("SOURCE=current\n")
+            self.assertEqual(
+                mod.effective_environment(base, (one, two)),
+                {"SOURCE": "current", "KEEP": "base", "EXTRA": "one"},
+            )
+            with self.assertRaises(Exception):
+                mod.effective_environment(base, (root / "missing",))
+
+    def test_native_property_preserves_order_and_requires_exact_base(self):
+        base = Path("/etc/ordivon/base.env")
+        overlay = Path("/etc/ordivon/overlay.env")
+        obj = {"type": "a(sb)", "data": [[str(base), False], [str(overlay), False]]}
+        self.assertEqual(mod.native_environment_files(obj, base), (base, overlay))
+        for invalid in (
+            {"type": "as", "data": obj["data"]},
+            {"type": "a(sb)", "data": [[str(overlay), False], [str(base), False]]},
+            {"type": "a(sb)", "data": [[str(base), False], [str(overlay), True]]},
+            {"type": "a(sb)", "data": [[str(base), False], ["relative", False]]},
+            {"type": "a(sb)", "data": [[str(base), False], ["/etc/*.env", False]]},
+            {"type": "a(sb)", "data": [[str(base), False], [str(base), False]]},
+        ):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                mod.native_environment_files(invalid, base)
+
+    def test_writer_qualification_binds_effective_source(self):
+        old, current = "a" * 64, "b" * 64
+        self.assertTrue(mod.qualified_writer(("QUALIFIED_WRITER", current, True), current))
+        for row, source in (
+            (("QUALIFIED_WRITER", current, True), old),
+            (("QUALIFIED_WRITER", current, False), current),
+            (("UNQUALIFIED", current, True), current),
+            (None, current),
+            (("QUALIFIED_WRITER", "bad", True), "bad"),
+        ):
+            self.assertFalse(mod.qualified_writer(row, source))
+
+
 class PgWorkspaceReclaimTests(unittest.TestCase):
     def setUp(self):
         self.params = dict(now_ms=10_000_000, created_ms=1_000_000,
@@ -74,7 +121,8 @@ class PgReleaseActivityProjectionTests(unittest.TestCase):
             self.skipTest("requires disposable reclaim_fixture PostgreSQL database")
         import psycopg
         schema = "reclaim_fixture"
-        env = {"ORDIVON_PG_DSN": dsn, "ORDIVON_PG_SCHEMA": schema}
+        env = {"ORDIVON_PG_DSN": dsn, "ORDIVON_PG_SCHEMA": schema,
+               "ORDIVON_PG_SOURCE_SHA256": "a" * 64}
         with psycopg.connect(dsn, autocommit=True) as conn:
             self.assertEqual(conn.execute("select current_database()").fetchone()[0],
                              "reclaim_fixture")
@@ -83,6 +131,12 @@ class PgReleaseActivityProjectionTests(unittest.TestCase):
             conn.execute("set search_path to reclaim_fixture")
             native_schema = ENTRY.parents[1] / "crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"
             conn.execute(native_schema.read_text(encoding="utf-8"))
+            with self.assertRaisesRegex(RuntimeError, "writer SourceCut"):
+                mod._jobs(env, "ws-a")
+            conn.execute("""
+                INSERT INTO _stage_control(id,state,source_sha256,promotion_allowed)
+                VALUES('source','QUALIFIED_WRITER',%s,true)
+            """, (env["ORDIVON_PG_SOURCE_SHA256"],))
             def job(job_id, workspace, created, resolution):
                 conn.execute("""
                     INSERT INTO jobs(job_id,principal,client_request_id,request_digest,
