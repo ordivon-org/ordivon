@@ -225,8 +225,8 @@ def _protected_host_service_owns_listener() -> bool:
         return False
 
 
-def _qualified_host_route_port(systemd_environment: str) -> int | None:
-    """Bind a declared Gateway route to its *actual* locally qualified Owner."""
+def _declared_host_route(systemd_environment: str) -> str | None:
+    """Parse a single explicit declaration, not effective consumer identity."""
     try:
         entries = shlex.split(systemd_environment)
     except ValueError:
@@ -236,11 +236,31 @@ def _qualified_host_route_port(systemd_environment: str) -> int | None:
         for entry in entries
         if entry.startswith("ORDIVON_GATEWAY_HOST_URL=")
     ]
-    if declared == [HOST_OWNER_URL]:
+    return declared[0] if len(declared) == 1 and declared[0] else None
+
+
+def _qualified_host_route_port(systemd_environment: str) -> int | None:
+    """Bind a declared Gateway route to its *actual* locally qualified Owner."""
+    declared = _declared_host_route(systemd_environment)
+    if declared == HOST_OWNER_URL:
         return 8898
-    if declared == [PROTECTED_HOST_OWNER_URL] and _protected_host_service_owns_listener():
+    if declared == PROTECTED_HOST_OWNER_URL and _protected_host_service_owns_listener():
         return PROTECTED_HOST_PORT
     return None
+
+
+def _declares_distinct_loopback_route(systemd_environment: str) -> bool:
+    """A different exact loopback endpoint is outside this direct-route census.
+
+    This is not proof that a proxy or indirect consumer never reaches Host.
+    Missing, ambiguous, aliased or unqualified known routes are not distinct.
+    """
+    declared = _declared_host_route(systemd_environment)
+    match = re.fullmatch(r"http://127[.]0[.]0[.]1:([1-9][0-9]{0,4})/mcp", declared or "")
+    return bool(
+        match and 1 <= int(match[1]) <= 65535
+        and int(match[1]) not in (8898, PROTECTED_HOST_PORT)
+    )
 
 
 def _owner_route_is_probed_endpoint(systemd_environment: str) -> bool:
@@ -406,6 +426,25 @@ def _apply_authenticated_host_canary(
     return standing
 
 
+def _active_peer_units(output: str) -> tuple[str, ...]:
+    """Bound and deduplicate the native census before any peer effects."""
+    if len(output.encode("utf-8")) > MAX_SOCKET_EVIDENCE_BYTES:
+        raise ValueError("active Gateway consumer census exceeds bound")
+    peers: set[str] = set()
+    for line in output.splitlines():
+        columns = line.split()
+        if not columns:
+            continue
+        unit = columns[0]
+        if not re.fullmatch(r"ordivon-gateway(?:-[a-z0-9._-]+)?[.]service", unit):
+            raise ValueError("unexpected active Gateway consumer unit")
+        if unit != GATEWAY_UNIT:
+            peers.add(unit)
+            if len(peers) > 32:
+                raise ValueError("active Gateway consumer census exceeds bound")
+    return tuple(sorted(peers))
+
+
 def _unqualified_active_peer_host_consumers(
     *, anonymous_denied: bool = False, primary_host_port: int = 8898
 ) -> tuple[str, ...]:
@@ -417,6 +456,7 @@ def _unqualified_active_peer_host_consumers(
     or the successful migration of independent direct Host connectors.
     A failed systemd query is never a positive release witness.
     """
+    # Admit the whole census before any per-peer native observation or secret read.
     units = subprocess.run(
         [
             "/usr/bin/systemctl",
@@ -433,37 +473,28 @@ def _unqualified_active_peer_host_consumers(
         check=True,
         timeout=8,
     )
+    peers = _active_peer_units(units.stdout)
     observed: set[str] = set()
-    for line in units.stdout.splitlines():
-        columns = line.split()
-        if not columns:
-            continue
-        unit = columns[0]
-        if not re.fullmatch(r"ordivon-gateway(?:-[a-z0-9._-]+)?\.service", unit):
-            raise ValueError("unexpected active Gateway consumer unit")
-        if unit == GATEWAY_UNIT:
-            continue
-        if len(observed) >= 32:
-            raise ValueError("active Gateway consumer census exceeds bound")
+    for unit in peers:
         environment = _qualified_systemd_environment(unit)
         if environment is None:
             observed.add(unit)
-        else:
-            peer_port = _qualified_host_route_port(environment)
-            if peer_port is None:
-                continue  # Unknown/different Owner target; not this exact Host.
-            # In Parallel Change a peer still using legacy 8898 is a migration
-            # blocker even when the new primary has a working protected port.
-            # NEVER send a new Host bearer to the peer's old/other listener.
-            if (
-                peer_port != primary_host_port
-                or not _declares_host_owner_identity(environment)
-                or not anonymous_denied
-                or not _authenticated_host_initialize_accepted(
-                    environment, anonymous_denied=anonymous_denied, unit=unit
-                )
-            ):
+            continue
+        peer_port = _qualified_host_route_port(environment)
+        if peer_port is None:
+            if not _declares_distinct_loopback_route(environment):
                 observed.add(unit)
+            continue
+        # Never send a protected-route token to the peer's legacy/other listener.
+        if (
+            peer_port != primary_host_port
+            or not _declares_host_owner_identity(environment)
+            or not anonymous_denied
+            or not _authenticated_host_initialize_accepted(
+                environment, anonymous_denied=anonymous_denied, unit=unit
+            )
+        ):
+            observed.add(unit)
     return tuple(sorted(observed))
 
 

@@ -989,3 +989,164 @@ def test_real_release_main_still_refuses_promotion_for_fully_qualified_parallel_
     assert report["hostOwnerAuthenticatedInitializeAccepted"] is True
     assert report["status"] == "NO_GO"
     assert report["reasons"] == ["INDEPENDENT_CONSUMER_CUTOVER_NOT_VERIFIED"]
+
+
+@pytest.mark.parametrize(
+    "environment",
+    [
+        "",
+        'ORDIVON_GATEWAY_HOST_URL="unterminated',
+        "ORDIVON_GATEWAY_HOST_URL=",
+        "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
+        "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:9999/mcp",
+        "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:19008/mcp",
+        "ORDIVON_GATEWAY_HOST_URL=https://host-alias.test/mcp",
+    ],
+)
+def test_unqualified_peer_route_is_not_proof_of_unrelated_consumer(
+    preflight: Any, monkeypatch: pytest.MonkeyPatch, environment: str
+) -> None:
+    peer = "ordivon-gateway-local-r21.service"
+    monkeypatch.setattr(
+        preflight.subprocess, "run",
+        lambda *a, **kw: subprocess.CompletedProcess(
+            a, 0, stdout=f"{peer} loaded active running secondary\n"
+        ),
+    )
+    monkeypatch.setattr(preflight, "_qualified_systemd_environment", lambda unit: environment)
+    monkeypatch.setattr(preflight, "_protected_host_service_owns_listener", lambda: False)
+
+    def forbidden(*args: Any, **kwargs: Any) -> bool:
+        raise AssertionError("Unknown peer route cannot consume Owner credentials")
+
+    monkeypatch.setattr(preflight, "_authenticated_host_initialize_accepted", forbidden)
+    assert preflight._unqualified_active_peer_host_consumers(anonymous_denied=True) == (peer,)
+
+
+def test_peer_census_bounds_all_unique_peers_before_any_credential_probe(
+    preflight: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    rows = "".join(
+        f"ordivon-gateway-peer-{i}.service loaded active running fixture\n"
+        for i in range(33)
+    )
+    monkeypatch.setattr(
+        preflight.subprocess, "run",
+        lambda *a, **kw: subprocess.CompletedProcess(a, 0, stdout=rows),
+    )
+
+    def forbidden(unit: str) -> str:
+        raise AssertionError("Census must be admitted before peer effects")
+
+    monkeypatch.setattr(preflight, "_qualified_systemd_environment", forbidden)
+    with pytest.raises(ValueError, match="census exceeds bound"):
+        preflight._unqualified_active_peer_host_consumers(anonymous_denied=True)
+
+
+def test_duplicate_peer_rows_do_not_repeat_native_observation(
+    preflight: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    peer = "ordivon-gateway-local-r21.service"
+    row = f"{peer} loaded active running fixture\n"
+    monkeypatch.setattr(
+        preflight.subprocess, "run",
+        lambda *a, **kw: subprocess.CompletedProcess(a, 0, stdout=row * 2),
+    )
+    calls: list[str] = []
+
+    def environment(unit: str) -> str:
+        calls.append(unit)
+        return "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:9999/mcp"
+
+    monkeypatch.setattr(preflight, "_qualified_systemd_environment", environment)
+    assert preflight._unqualified_active_peer_host_consumers() == ()
+    assert calls == [peer]
+
+
+# Finite decision table: route declaration, native owner observation, and
+# credential effects are different obligations. Rows explicitly describe
+# which observations may reach the authenticated probe, not its internals.
+@pytest.mark.parametrize(
+    ("route", "owner_verified", "primary", "credential", "denial", "accepted",
+     "expect_block", "expect_probe"),
+    [
+        (None, False, 8898, True, True, True, True, False),
+        ("", False, 8898, True, True, True, True, False),
+        ("http://127.0.0.1:8898/mcp", False, 8898, True, True, True, False, True),
+        ("http://127.0.0.1:8898/mcp", False, 8898, True, True, False, True, True),
+        ("http://127.0.0.1:8898/mcp", False, 8898, False, True, True, True, False),
+        ("http://127.0.0.1:8898/mcp", False, 8898, True, False, True, True, False),
+        ("http://127.0.0.1:8898/mcp", False, 19008, True, True, True, True, False),
+        ("http://127.0.0.1:19008/mcp", True, 19008, True, True, True, False, True),
+        ("http://127.0.0.1:19008/mcp", True, 19008, True, True, False, True, True),
+        ("http://127.0.0.1:19008/mcp", True, 19008, False, True, True, True, False),
+        ("http://127.0.0.1:19008/mcp", True, 19008, True, False, True, True, False),
+        ("http://127.0.0.1:19008/mcp", False, 19008, True, True, True, True, False),
+        ("http://127.0.0.1:19008/mcp", True, 8898, True, True, True, True, False),
+        ("http://127.0.0.1:9999/mcp", False, 8898, True, True, True, False, False),
+        ("http://127.0.0.1:65536/mcp", False, 8898, True, True, True, True, False),
+        ("http://127.0.0.1:08898/mcp", False, 8898, True, True, True, True, False),
+        ("http://localhost:8898/mcp", False, 8898, True, True, True, True, False),
+        ("http://127.0.0.1:8898/mcp?x=1", False, 8898, True, True, True, True, False),
+    ],
+)
+def test_peer_observation_decision_table(
+    preflight: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    route: str | None,
+    owner_verified: bool,
+    primary: int,
+    credential: bool,
+    denial: bool,
+    accepted: bool,
+    expect_block: bool,
+    expect_probe: bool,
+) -> None:
+    peer = "ordivon-gateway-test.service"
+    env = "" if route is None else f"ORDIVON_GATEWAY_HOST_URL={route}"
+    if credential:
+        env += " ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
+    monkeypatch.setattr(
+        preflight.subprocess, "run",
+        lambda *a, **kw: subprocess.CompletedProcess(
+            a, 0, stdout=f"{peer} loaded active running fixture\n"
+        ),
+    )
+    monkeypatch.setattr(preflight, "_qualified_systemd_environment", lambda unit: env)
+    monkeypatch.setattr(preflight, "_protected_host_service_owns_listener", lambda: owner_verified)
+    calls: list[str] = []
+
+    def probe(environment: str, *, anonymous_denied: bool, unit: str) -> bool:
+        assert environment == env
+        assert anonymous_denied is True
+        calls.append(unit)
+        return accepted
+
+    monkeypatch.setattr(preflight, "_authenticated_host_initialize_accepted", probe)
+    assert preflight._unqualified_active_peer_host_consumers(
+        anonymous_denied=denial, primary_host_port=primary
+    ) == ((peer,) if expect_block else ())
+    assert calls == ([peer] if expect_probe else [])
+
+
+def test_peer_census_exact_bound_and_deterministic_order(preflight: Any) -> None:
+    units = [f"ordivon-gateway-p-{i:02d}.service" for i in range(32)]
+    output = "\n".join(
+        f"{unit} loaded active running fixture" for unit in reversed(units)
+    )
+    output += "\nordivon-gateway.service loaded active running primary\n" + output
+    assert preflight._active_peer_units(output) == tuple(units)
+
+
+@pytest.mark.parametrize(
+    ("output", "reason"),
+    [
+        ("unexpected.service loaded active running fixture", "unexpected active"),
+        (" " * 131_073, "census exceeds bound"),
+    ],
+)
+def test_peer_census_rejects_unqualified_native_output(
+    preflight: Any, output: str, reason: str
+) -> None:
+    with pytest.raises(ValueError, match=reason):
+        preflight._active_peer_units(output)
