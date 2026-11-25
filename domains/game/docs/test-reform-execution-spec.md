@@ -43,3 +43,9 @@ PR native check. Keep real FFmpeg fixture task separate (effectful but cheap),
 native blank and actual downloaded game checks on qualified display/template
 runners. No new GitHub required job or READY expansion. Do not silently skip
 the pure gate. Later qualify decoder/display tiers before broadening CI.
+
+Actual mutation evidence: a disposable copy with SOURCE_TREE shape guard
+removed passes all nine old archive cases, but Hypothesis rejects it with
+field=SOURCE_TREE, value=0 (receipt value invalid_0, all hashes recomputed).
+Promote this witness to @example. This is one killed non-equivalent mutant,
+not an overall mutation score. No mutated source is published.

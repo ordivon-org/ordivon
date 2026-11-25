@@ -3,9 +3,9 @@ from contextlib import contextmanager
 import unittest
 
 import hypothesis
-from hypothesis import given, settings, strategies as st
+from hypothesis import example, given, settings, strategies as st
 
-from test_hosted_product_acceptance import ArtifactContract, SOURCE
+import test_hosted_product_acceptance as fixtures
 from hosted_product_acceptance import digest
 
 PROFILE = settings(max_examples=35, deadline=None, derandomize=True, database=None)
@@ -13,7 +13,7 @@ PROFILE = settings(max_examples=35, deadline=None, derandomize=True, database=No
 
 @contextmanager
 def fixture(**kwargs):
-    case = ArtifactContract("test_valid_identity")
+    case = fixtures.ArtifactContract("test_valid_identity")
     case.setUp()
     try:
         case.fixture(**kwargs)
@@ -32,6 +32,7 @@ class ConsumerProperties(unittest.TestCase):
             self.assertEqual(receipt["executable_sha256"], digest(exe))
 
     @PROFILE
+    @example(field="SOURCE_TREE", value="0")
     @given(field=st.sampled_from(("SOURCE_COMMIT", "PRODUCT", "SOURCE_WORKTREE",
                                  "RELEASE_PUBLISHED", "QUALIFICATION", "LINUX_SCOPE",
                                  "WINDOWS_SCOPE", "BUILD_SCHEMA", "SOURCE_TREE",
