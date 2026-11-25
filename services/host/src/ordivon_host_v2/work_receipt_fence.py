@@ -46,6 +46,43 @@ def legacy_receipt_fence_present(conn: psycopg.Connection[dict[str, Any]]) -> bo
     return True
 
 
+# Exact ordinary PostgreSQL foreign-key trigger contract on the two base tables.
+_ROOT_TRIGGER_SIGNATURES = {
+    ("command_receipts", "RI_FKey_check_ins", 5),
+    ("command_receipts", "RI_FKey_check_upd", 17),
+    ("work_snapshots", "RI_FKey_restrict_del", 9),
+    ("work_snapshots", "RI_FKey_restrict_upd", 17),
+}
+
+
+def _native_root_enforcement(conn: psycopg.Connection[dict[str, Any]]) -> bool:
+    # Catalog declaration alone is insufficient if internal triggers are disabled.
+    # This is a local qualification, not protection from a later privileged DDL.
+    rows = conn.execute(
+        "SELECT CASE WHEN t.tgrelid='command_receipts'::regclass THEN 'command_receipts' "
+        "WHEN t.tgrelid='work_snapshots'::regclass THEN 'work_snapshots' END AS relation, "
+        "p.proname,t.tgtype,t.tgenabled,t.tgisinternal,t.tgdeferrable,"
+        "p.pronamespace='pg_catalog'::regnamespace AS native_function,"
+        "current_setting('session_replication_role') AS replication_role "
+        "FROM pg_trigger t JOIN pg_constraint c ON t.tgconstraint=c.oid "
+        "JOIN pg_proc p ON p.oid=t.tgfoid "
+        "WHERE c.conrelid='command_receipts'::regclass "
+        "AND c.conname='command_receipt_work_root_fk'"
+    ).fetchall()
+    return (
+        len(rows) == len(_ROOT_TRIGGER_SIGNATURES)
+        and {(r["relation"], r["proname"], r["tgtype"]) for r in rows} == _ROOT_TRIGGER_SIGNATURES
+        and all(
+            r["tgenabled"] in ("O", "A")
+            and r["tgisinternal"] is True
+            and r["tgdeferrable"] is False
+            and r["native_function"] is True
+            and r["replication_role"] == "origin"
+            for r in rows
+        )
+    )
+
+
 def require_native_receipt_roots(conn: psycopg.Connection[dict[str, Any]]) -> None:
     rows = {
         row["conname"]: row
@@ -65,5 +102,6 @@ def require_native_receipt_roots(conn: psycopg.Connection[dict[str, Any]]) -> No
         or fk["exact_target"] is not True
         or not _contract_matches(fk, "f", _ROOT_FK)
         or not _contract_matches(shape, "c", _ROOT_SHAPE)
+        or not _native_root_enforcement(conn)
     ):
         raise RuntimeError("native Work receipt roots unqualified")

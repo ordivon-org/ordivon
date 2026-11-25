@@ -570,3 +570,11 @@ The source option is not a production activation procedure. Before any
 activation, qualify the installed schema, real consumer/rollback reader
 fleet, recovery cut and release admission. No automatic DDL or historical
 deletion is introduced.
+
+Native root qualification also observes the four internal PostgreSQL FK
+triggers (insert/update checks and target delete/update restrictions).
+The ordinary origin session must see all four exact native signatures
+enabled for origin or always. Catalog constraint definitions alone do
+not prove active enforcement. This is a qualification of the observed
+schema under the existing transaction, not a claim that a privileged
+administrator cannot subsequently change database configuration.

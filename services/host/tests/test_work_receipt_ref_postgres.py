@@ -1014,6 +1014,70 @@ class WorkReceiptTest(unittest.TestCase):
                     )
         self.assert_replay(self.create(), first)
 
+    def test_opt_in_writer_rejects_disabled_native_root_enforcement(self):
+        first = self.create()
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            for target in ("command_receipts", "work_snapshots"):
+                with self.subTest(target=target), conn.transaction(force_rollback=True):
+                    conn.execute(
+                        "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_legacy_only"
+                    )
+                    triggers = conn.execute(
+                        "SELECT t.tgname FROM pg_trigger t JOIN pg_constraint c "
+                        "ON t.tgconstraint=c.oid "
+                        "WHERE c.conrelid='command_receipts'::regclass "
+                        "AND c.conname='command_receipt_work_root_fk' "
+                        "AND t.tgrelid=%s::regclass ORDER BY t.tgname",
+                        (target,),
+                    ).fetchall()
+                    self.assertEqual(len(triggers), 2)
+                    conn.execute(
+                        sql.SQL("ALTER TABLE {} DISABLE TRIGGER {}").format(
+                            sql.Identifier(target), sql.Identifier(triggers[0]["tgname"])
+                        )
+                    )
+                    key = self.key("disabled")
+                    digest = canonical_digest({"request": key})
+                    self.assertIsNone(claim_command_receipt(conn, key, "work.create", digest))
+                    with self.assertRaisesRegex(
+                        RuntimeError, "native Work receipt roots unqualified"
+                    ):
+                        record_work_receipt(
+                            conn, key, "work.create", digest, first, compact_requested=True
+                        )
+        self.assert_replay(self.create(), first)
+
+    def test_opt_in_writer_accepts_native_always_enabled_root_trigger(self):
+        first = self.create()
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            with conn.transaction(force_rollback=True):
+                conn.execute(
+                    "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_legacy_only"
+                )
+                row = conn.execute(
+                    "SELECT t.tgname FROM pg_trigger t JOIN pg_constraint c "
+                    "ON t.tgconstraint=c.oid "
+                    "WHERE c.conname='command_receipt_work_root_fk' "
+                    "AND c.conrelid='command_receipts'::regclass "
+                    "AND t.tgrelid='command_receipts'::regclass ORDER BY t.tgname LIMIT 1"
+                ).fetchone()
+                conn.execute(
+                    sql.SQL("ALTER TABLE command_receipts ENABLE ALWAYS TRIGGER {}").format(
+                        sql.Identifier(row["tgname"])
+                    )
+                )
+                key = self.key("always")
+                digest = canonical_digest({"request": key})
+                self.assertIsNone(claim_command_receipt(conn, key, "work.create", digest))
+                record_work_receipt(conn, key, "work.create", digest, first, compact_requested=True)
+                row = conn.execute(
+                    "SELECT receipt_work_ref,receipt_work_revision FROM command_receipts "
+                    "WHERE client_request_id=%s",
+                    (key,),
+                ).fetchone()
+                self.assertEqual(row, {"receipt_work_ref": self.work, "receipt_work_revision": 1})
+        self.assert_replay(self.create(), first)
+
     def test_native_mcp_process_opt_in_and_rollback_without_restart(self):
         # Existing public SDK surface, real stdio process and private DB only.
         env = {k: v for k, v in os.environ.items() if not k.startswith("ORDIVON_HOST_V2_")}
