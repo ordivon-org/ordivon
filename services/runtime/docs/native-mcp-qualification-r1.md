@@ -124,3 +124,33 @@ exact inventory/JUnit and CI/installed standing remain separate.
 
 Reference: https://learn.microsoft.com/en-us/azure/architecture/patterns/asynchronous-request-reply
 https://nexte.st/docs/features/retries/
+
+## R21: fixture lifetime is not test-process lifetime
+
+Compose R18–R20 and the independent native Nextest group before adoption.
+A process-per-test runner cannot establish that external transient Units
+or a PostgreSQL postmaster are absent. The test runner owns a unique
+short /var/tmp scope, not an inherited path or recursive temporary
+directory. Rust fixtures create a child there. The constructor owns the
+postmaster as soon as spawn succeeds. Normal teardown stops the endpoint,
+checks the exact private PG Attempt-to-bundle-to-Unit bindings, and
+observes native Unit absence before fast PG shutdown and directory removal.
+Unknown or failed Unit readback, shutdown failure, and panic retain the
+root. Do not reset failed native Units before the production terminal
+evidence consumer has observed them; do not change CollectMode.
+
+The suite requires the actual scope to be empty and removes it with
+rmdir only. A missing report or timed-out/killed runner is not qualified;
+the scope survives for independent inspection. The original JUnit and
+exit standing remain separate from the scope verdict. The new native
+panic challenger deliberately creates a PG fixture, unwinds, checks its
+retained root and stopped postmaster/socket, and only then removes that
+specific test-owned carrier. The independent SIGKILL marker challenger
+tests the scope contract, not arbitrary native descendant recovery.
+
+This is a bounded observation of registered Unit identities, not a
+linearizable systemd fence or proof that every possible orphan is absent.
+The outer gate does not perform blind reaping. SIGKILL of an actual live
+Fixture, unregistered Unit detection, and safe retry of physical cleanup
+remain separate qualification obligations. Direct libtest runs outside the
+strict scope may leave a diagnostic root; use the strict gate for adoption.

@@ -17,11 +17,14 @@ use uuid::Uuid;
 #[path = "pg_vertical/terminal_observation.rs"]
 mod terminal_observation;
 use terminal_observation::await_terminal;
+#[path = "pg_vertical/fixture_lifecycle.rs"]
+mod fixture_lifecycle;
+use fixture_lifecycle::{new_root, verify_units_absent, PgProcess};
 
 // A native PostgreSQL disposable cluster, Unix socket only. No production DSN is accepted.
 struct Fixture {
     root: PathBuf,
-    pg: Child,
+    pg: PgProcess,
     endpoint: Option<Child>,
     db: Client,
     /// Opt in only for disposable Harness-issuer dispatch tests.
@@ -37,10 +40,7 @@ struct Fixture {
 }
 impl Fixture {
     fn new() -> Self {
-        let root =
-            PathBuf::from("/var/tmp").join(format!("runtime-pg-mcp-{}", Uuid::now_v7().simple()));
-        fs::create_dir(&root).unwrap();
-        fs::set_permissions(&root, fs::Permissions::from_mode(0o777)).unwrap();
+        let root = new_root().expect("create isolated native fixture root");
         let unprivileged = |c: &mut Command| {
             if fs::metadata("/proc/self").unwrap().uid() == 0 {
                 c.uid(65534).gid(65534);
@@ -83,7 +83,7 @@ impl Fixture {
         unprivileged(&mut launch);
         let log = fs::File::create(root.join("postgres.log")).unwrap();
         launch.stdout(log.try_clone().unwrap()).stderr(log);
-        let mut pg = launch.spawn().unwrap();
+        let mut pg = PgProcess::new(launch.spawn().unwrap());
         let dsn = format!("host={} user=postgres dbname=postgres", root.display());
         let deadline = Instant::now() + Duration::from_secs(10);
         let mut db = loop {
@@ -336,14 +336,47 @@ exit 0
 }
 impl Drop for Fixture {
     fn drop(&mut self) {
-        if let Some(child) = &mut self.endpoint {
-            let _ = child.kill();
-            let _ = child.wait();
+        // No new native effects after endpoint exit. Preserve all failed or
+        // ambiguous fixture roots, even when Rust is already unwinding.
+        let endpoint_stopped = self.endpoint.as_mut().map_or(Ok(()), |child| {
+            child.kill().or_else(|err| {
+                if child.try_wait()?.is_some() { Ok(()) } else { Err(err) }
+            })?;
+            child.wait().map(|_| ())
+        });
+        let units = match endpoint_stopped {
+            Ok(()) => verify_units_absent(&mut self.db, &self.root),
+            Err(err) => Err(format!("endpoint stop unqualified: {err}")),
+        };
+        let pg = self.pg.stop();
+        if std::thread::panicking() || units.is_err() || pg.is_err() {
+            eprintln!("NATIVE_FIXTURE_RETAINED root={} panic={} units={units:?} pg={pg:?}",
+                self.root.display(), std::thread::panicking());
+            return;
         }
-        let _ = self.pg.kill();
-        let _ = self.pg.wait();
-        let _ = fs::remove_dir_all(&self.root);
+        if let Err(err) = fs::remove_dir_all(&self.root) {
+            eprintln!("NATIVE_FIXTURE_RETAINED root={} removal={err}", self.root.display());
+        }
     }
+}
+#[test]
+#[ignore = "requires a real disposable PostgreSQL cluster"]
+fn native_pg_fixture_panic_preserves_root_after_owned_postmaster_stop() {
+    let mut retained = None;
+    let fault = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let fixture = Fixture::new();
+        retained = Some(fixture.root.clone());
+        panic!("intentional fixture unwind");
+    }));
+    assert!(fault.is_err());
+    let root = retained.expect("native Fixture constructed before deliberate panic");
+    assert!(root.is_dir(), "panic must not erase fixture attribution");
+    assert!(!root.join("data/postmaster.pid").exists(), "postmaster did not exit");
+    assert!(!root.join(".s.PGSQL.5432").exists(), "private PG socket survived shutdown");
+    // This deliberate challenger never starts an endpoint or Unit. The
+    // original unwind retained the root; only the challenger now removes it.
+    fs::remove_dir_all(root).unwrap();
+    println!("NATIVE_PANIC_PG_STOPPED_ROOT_RETAINED");
 }
 fn rpc(url: &str, method: &str, params: Value) -> Value {
     rpc_with_timeout(url, method, params, None)

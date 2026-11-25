@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import stat
 from pathlib import Path
 import subprocess
 import sys
@@ -16,6 +17,7 @@ from pg_disposable_physical import ROOT, cargo_environment
 
 PACKAGE = "ordivon-runtime-mcp"
 BINARY = "pg_vertical"
+FIXTURE_SCOPE_ENV = "ORDIVON_NATIVE_MCP_FIXTURE_ROOT"
 # Required distinct consumer obligations; remaining inventory is native.
 REQUIRED = frozenset({
     "fresh_pg_mcp_native_runner_success_and_cancel",
@@ -29,6 +31,9 @@ REQUIRED = frozenset({
     "terminal_observation::tests::same_identity_pending_then_failed_is_not_resubmission",
     "terminal_observation::tests::reject_foreign_attempt_job_operation_and_false_terminal",
     "terminal_observation::tests::no_unqualified_error_observation_or_vacuous_timeout",
+    "fixture_lifecycle::tests::exact_absence_is_not_failed_or_inactive_unit",
+    "fixture_lifecycle::tests::exact_fixture_binding_rejects_foreign_or_traversal",
+    "native_pg_fixture_panic_preserves_root_after_owned_postmaster_stop",
 })
 SELECTION = (
     "--locked", "-p", PACKAGE, "--features", "postgres-runtime",
@@ -84,12 +89,34 @@ def consumer_environment(original: dict[str, str]) -> dict[str, str]:
     for name in list(env):
         if name.startswith(("PG", "NEXTEST_")) or name in {
             "ORDIVON_PG_TEST_DSN", "ORDIVON_PG_STAGE_TEST_DSN",
+            FIXTURE_SCOPE_ENV,
             "HARNESS_PG_PYTHON", "VIRTUAL_ENV", "PYTHONHOME", "PYTHONPATH",
             "UV_PROJECT_ENVIRONMENT", "UV_PROJECT", "UV_PYTHON", "UV_NO_SYNC",
             "UV_NO_DEFAULT_GROUPS", "UV_NO_DEV", "UV_FROZEN", "UV_NO_EDITABLE",
         }:
             env.pop(name)
     return env
+
+
+def allocate_fixture_scope() -> Path:
+    # Not a TemporaryDirectory: timeout, panic and SIGKILL must not erase
+    # the only attribution carrier. Empty verified scopes are removed below.
+    scope = Path(tempfile.mkdtemp(prefix="od-mcp-", dir="/var/tmp"))
+    scope.chmod(0o755)
+    return scope
+
+
+def release_empty_scope(scope: Path) -> None:
+    meta = scope.lstat()
+    if (scope.parent != Path("/var/tmp") or not scope.name.startswith("od-mcp-")
+        or not stat.S_ISDIR(meta.st_mode) or meta.st_uid != os.getuid()
+        or stat.S_IMODE(meta.st_mode) != 0o755 or scope.resolve() != scope):
+        raise RuntimeError(f"native fixture scope identity changed: {scope}")
+    retained = sorted(p.name for p in scope.iterdir())
+    if retained:
+        raise RuntimeError(f"native fixture resources retained: {scope}: {retained}")
+    # rmdir is itself an emptiness check, not recursive cleanup.
+    scope.rmdir()
 
 
 def prepare_harness_python(root: Path, env: dict[str, str]) -> str:
@@ -171,6 +198,9 @@ def main() -> int:
         print(f"NATIVE_MCP_DISCOVERED={len(names)}", flush=True)
         print(f"NATIVE_MCP_INVENTORY_SHA256={hashlib.sha256(listed).hexdigest()}", flush=True)
         print("NATIVE_MCP_SELECTED_TESTS=" + json.dumps(sorted(names)), flush=True)
+        scope = allocate_fixture_scope()
+        env[FIXTURE_SCOPE_ENV] = str(scope)
+        print(f"NATIVE_MCP_FIXTURE_SCOPE={scope}", flush=True)
         result = subprocess.run(
             ["cargo", "nextest", "run", *common, *SELECTION,
              "--profile", "native-mcp", "--no-tests", "fail", "--retries", "0",
@@ -193,6 +223,15 @@ def main() -> int:
             observed.setdefault(name, []).append(status)
         for name in sorted(names):
             print("NATIVE_MCP_CASE=" + json.dumps([name, observed.get(name, ["NOT_RUN"])]), flush=True)
+        # Preserve the original native report and exit before checking the
+        # independent external-resource obligation. Retained scope stays
+        # inspectable, never recursively deleted by the test runner.
+        try:
+            release_empty_scope(scope)
+        except (OSError, RuntimeError) as exc:
+            print(f"NATIVE_MCP_FIXTURE_UNQUALIFIED: {exc}", file=sys.stderr, flush=True)
+            return result.returncode or 1
+        print("NATIVE_MCP_FIXTURE_SCOPE_EMPTY_AND_RELEASED", flush=True)
         if result.returncode:
             return result.returncode
         count = exact_passes(raw, binary_id, names)

@@ -3,11 +3,15 @@ import copy
 import json
 from pathlib import Path
 import sys
+import os
+import signal
+import subprocess
 import unittest
 import xml.etree.ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from pg_mcp_qualification import BINARY, PACKAGE, REQUIRED, exact_passes, inventory, consumer_environment
+from pg_mcp_qualification import (BINARY, PACKAGE, REQUIRED, FIXTURE_SCOPE_ENV, exact_passes,
+                                   inventory, consumer_environment, allocate_fixture_scope, release_empty_scope)
 
 ID = f"{PACKAGE}::{BINARY}"
 
@@ -79,8 +83,42 @@ class NativeEvidence(unittest.TestCase):
                                     "ORDIVON_PG_TEST_DSN": "prod", "ORDIVON_PG_STAGE_TEST_DSN": "stage",
                                     "NEXTEST_RETRIES": "5", "NEXTEST_FILTERSET": "none()",
                                     "HARNESS_PG_PYTHON": "/unqualified/python", "UV_PROJECT_ENVIRONMENT": "/foreign/venv",
-                                    "VIRTUAL_ENV": "/foreign", "PYTHONPATH": "/foreign/src"})
+                                    "VIRTUAL_ENV": "/foreign", "PYTHONPATH": "/foreign/src", FIXTURE_SCOPE_ENV: "/foreign"})
         self.assertEqual(env, {"PATH": "/bin"})
+
+    def test_native_scope_release_requires_actual_empty_directory(self):
+        scope = allocate_fixture_scope()
+        marker = scope / "owned-test-marker"
+        try:
+            marker.mkdir()
+            with self.assertRaisesRegex(RuntimeError, "resources retained"):
+                release_empty_scope(scope)
+            self.assertTrue(marker.is_dir())
+            marker.rmdir()
+            release_empty_scope(scope)
+            self.assertFalse(scope.exists())
+        finally:
+            if marker.is_dir():
+                marker.rmdir()
+            if scope.is_dir():
+                scope.rmdir()
+
+    def test_sigkill_retains_attribution_scope_without_recursive_cleanup(self):
+        scope = allocate_fixture_scope()
+        marker = scope / "owned-test-marker"
+        try:
+            child = subprocess.run([sys.executable, "-c",
+                "import pathlib,os,signal,sys; pathlib.Path(sys.argv[1]).mkdir(); os.kill(os.getpid(),signal.SIGKILL)",
+                str(marker)], check=False, timeout=10)
+            self.assertEqual(child.returncode, -signal.SIGKILL)
+            with self.assertRaisesRegex(RuntimeError, "resources retained"):
+                release_empty_scope(scope)
+            self.assertTrue(marker.is_dir(), "failed scope must remain attributable")
+        finally:
+            if marker.is_dir():
+                marker.rmdir()
+            if scope.is_dir():
+                scope.rmdir()
 
 
 if __name__ == "__main__":
