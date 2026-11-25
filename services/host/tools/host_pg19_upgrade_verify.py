@@ -184,7 +184,7 @@ def seed(dsn: str) -> None:
     s.post_message(message_input("two"))
 
 
-def observe(dsn: str) -> dict[str, Any]:
+def observe(dsn: str, *, expected_revision: int = 2) -> dict[str, Any]:
     """Actual source-bound consumers, including replay and independent negative."""
     h, w, s, t = HostV2(dsn), WorkStore(dsn), SocialStore(dsn), AttentionStore(dsn)
     h.initialize()
@@ -232,7 +232,7 @@ def observe(dsn: str) -> dict[str, Any]:
     after = h.status(detail="history")
     require(before["authority"] == after["authority"], "replay mutated authority")
     require(after["doctor"]["healthy"], "Doctor unhealthy")
-    require(result["current"]["revision"] == 2, "original revision changed")
+    require(result["current"]["revision"] == expected_revision, "original revision changed")
     return {**result, "authority": after["authority"], "doctor": after["doctor"]}
 
 
