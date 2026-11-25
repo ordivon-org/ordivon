@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
+from ordivon_security_v2.evidence import read_json_evidence
 from ordivon_security_v2.provenance import verify_build_provenance
 
 
@@ -18,7 +19,7 @@ def main() -> int:
     p.add_argument("--build-type", required=True, help="Independently expected SLSA build type")
     p.add_argument("--source-uri", help="Exact expected source URI, if producer emits one")
     args = p.parse_args()
-    statement = json.loads(args.provenance.read_text())
+    statement, _ = read_json_evidence(args.provenance)
     result = verify_build_provenance(
         statement,
         artifact=args.artifact,

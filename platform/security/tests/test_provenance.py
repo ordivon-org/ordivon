@@ -1,7 +1,13 @@
 import hashlib
+import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from ordivon_security_v2.provenance import verify_build_provenance
 
@@ -111,3 +117,68 @@ class ProvenanceTests(unittest.TestCase):
         self.assertEqual(result["sourceRevision"], "a" * 40)
         self.assertIs(result["authenticated"], False)
         self.assertNotIn("inputClosureVerified", result)
+
+    def test_cli_observes_artifact_and_rejects_ambiguous_metadata(self):
+        script = Path(__file__).resolve().parents[1] / "scripts/verify_build_provenance.py"
+        report = self.artifact.parent / "provenance.json"
+        raw = json.dumps(statement(self.artifact), indent=2)
+        report.write_text(raw, encoding="utf-8")
+        command = [
+            sys.executable, str(script), "--artifact", str(self.artifact),
+            "--provenance", str(report), "--source-revision", "a" * 40,
+            "--source-uri", SOURCE, "--builder-id", BUILDER, "--build-type", BUILD_TYPE,
+        ]
+        valid = subprocess.run(command, capture_output=True, text=True, timeout=10)
+        self.assertEqual(valid.returncode, 0, valid.stderr)
+        self.assertEqual(json.loads(valid.stdout), {
+            "standing": "PROVENANCE_CONTENT_BOUND",
+            "artifact": self.artifact.name,
+            "artifactSha256": "sha256:" + hashlib.sha256(b"wheel").hexdigest(),
+            "sourceRevision": "a" * 40,
+            "builderId": BUILDER,
+            "buildType": BUILD_TYPE,
+            "authenticated": False,
+        })
+        # A synthetic duplicate metadata member cannot describe one unique observation.
+        ambiguous = raw.replace(
+            '"invocationId": "test-invocation"',
+            '"invocationId": "first", "invocationId": "test-invocation"',
+            1,
+        )
+        self.assertNotEqual(raw, ambiguous)
+        report.write_text(ambiguous, encoding="utf-8")
+        rejected = subprocess.run(command, capture_output=True, text=True, timeout=10)
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertEqual(rejected.stdout, "")
+        self.assertIn("duplicate JSON member", rejected.stderr)
+
+
+@settings(max_examples=64, derandomize=True, database=None, deadline=None)
+@given(st.binary(max_size=4096), st.sampled_from([40, 64]), st.booleans())
+def check_content_projection_preserves_exact_artifact_identity(raw, revision_size, use_uri):
+    with tempfile.TemporaryDirectory() as directory:
+        artifact = Path(directory) / "fixture.bin"
+        artifact.write_bytes(raw)
+        revision = "a" * revision_size
+        result = verify_build_provenance(
+            statement(artifact, revision),
+            artifact=artifact,
+            expected_source_revision=revision,
+            expected_source_uri=SOURCE if use_uri else None,
+            expected_builder_id=BUILDER,
+            expected_build_type=BUILD_TYPE,
+        )
+        assert result == {
+            "standing": "PROVENANCE_CONTENT_BOUND",
+            "artifact": "fixture.bin",
+            "artifactSha256": "sha256:" + hashlib.sha256(raw).hexdigest(),
+            "sourceRevision": revision,
+            "builderId": BUILDER,
+            "buildType": BUILD_TYPE,
+            "authenticated": False,
+        }
+
+
+class ProvenanceProperties(unittest.TestCase):
+    def test_content_projection_preserves_exact_artifact_identity(self):
+        check_content_projection_preserves_exact_artifact_identity()

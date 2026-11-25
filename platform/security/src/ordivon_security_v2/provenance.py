@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from hashlib import sha256
+from hashlib import file_digest
 from pathlib import Path
 from typing import Any, Literal, TypedDict
 
@@ -21,11 +21,8 @@ class ProvenanceContentBinding(TypedDict):
 
 
 def _sha256(path: Path) -> str:
-    digest = sha256()
     with path.open("rb") as source:
-        while chunk := source.read(1024 * 1024):
-            digest.update(chunk)
-    return digest.hexdigest()
+        return file_digest(source, "sha256").hexdigest()
 
 
 def verify_build_provenance(
@@ -62,6 +59,28 @@ def verify_build_provenance(
     actual_sha = _sha256(artifact)
     if subject.get("digest") != {"sha256": actual_sha}:
         raise ValueError("artifact digest mismatch")
+    return _project_build_claims(
+        statement,
+        artifact_name=artifact.name,
+        observed_sha256=actual_sha,
+        expected_source_revision=expected_source_revision,
+        expected_builder_id=expected_builder_id,
+        expected_build_type=expected_build_type,
+        expected_source_uri=expected_source_uri,
+    )
+
+
+def _project_build_claims(
+    statement: dict[str, Any],
+    *,
+    artifact_name: str,
+    observed_sha256: str,
+    expected_source_revision: str,
+    expected_builder_id: str,
+    expected_build_type: str,
+    expected_source_uri: str | None,
+) -> ProvenanceContentBinding:
+    """Project claims only after the caller has bound the actual artifact."""
     predicate = statement.get("predicate")
     if not isinstance(predicate, dict):
         raise ValueError("missing provenance predicate")
@@ -95,8 +114,8 @@ def verify_build_provenance(
             raise ValueError(f"build metadata {field} is required")
     return {
         "standing": "PROVENANCE_CONTENT_BOUND",
-        "artifact": artifact.name,
-        "artifactSha256": "sha256:" + actual_sha,
+        "artifact": artifact_name,
+        "artifactSha256": "sha256:" + observed_sha256,
         "sourceRevision": expected_source_revision,
         "builderId": expected_builder_id,
         "buildType": expected_build_type,

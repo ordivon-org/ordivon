@@ -682,3 +682,46 @@ also passed an independent file-to-stdout identity test and rejected an
 ambiguous synthetic report without a result; the Scorecard suite has seven
 passing tests. These are source and consumer contracts, not a live provider
 qualification or a complete dependency proof.
+
+### R21 — separate provenance content projection from file observation
+
+L14/L16/L23/T02/T04/T07: keep the public provenance entry point responsible
+for actual artifact observation and subject matching. Extract the remaining
+claim projection as a private pure function within the existing module,
+rather than introducing a new cross-module protocol for one consumer.
+Reuse native hashlib.file_digest for opaque artifact identity, preserving
+the original hex digest and validation order. The CLI consumes the existing
+strict JSON evidence capture; the captured statement digest is not added to
+the existing public output schema. Content binding remains unauthenticated
+and does not establish actual build readset closure or provider standing.
+
+The actual CLI regression was RED on R20 (job
+job-01a21500-1412-740c-b5b6-135760a4cd01) for ambiguous synthetic metadata.
+The candidate reuses read_json_evidence and retains the original CLI
+output contract. A standalone Hypothesis property oracle exercises
+64 generated binary/40-or-64-character revision/optional URI coordinates
+against an independent standard SHA-256 calculation and the exact output
+projection. Provenance 12 tests, Ruff and three existing static contracts
+passed (job job-01a21500-6d68-76a7-9cf3-82693d7fa746). These do not constitute
+signed provenance, input closure, or live-provider qualification.
+
+T07 schema-generation qualification: isolated CPython 3.15.2 with
+hypothesis-jsonschema 0.23.2, Hypothesis 6.170.17 and jsonschema 4.26.0
+generated 64 synthetic metadata objects under Draft 7 and independently
+validated them with the native validator (job
+job-01a214ff-d937-706e-abff-ad93e907f254). This qualifies a bounded
+synthetic generator pilot only. It is not a full SLSA or TM-BOM schema
+qualification and generation from a schema is not a semantic oracle.
+No new dependency or duplicate production schema is adopted: consume
+existing authoritative schema/profile once its dialect and consumer
+semantics are qualified. Maintain explicit negative and positive oracles.
+
+Witness and pool remain candidate decomposition targets from R20; do not
+split them by size without separate, independently qualified responsibilities
+and a genuine consumer. Prioritize the existing release and independent
+consumer obligations. Static import boundaries are not behavioral proofs.
+
+References:
+- https://slsa.dev/spec/v1.2/build-provenance
+- https://python-jsonschema.readthedocs.io/en/stable/validate/
+- https://github.com/python-jsonschema/hypothesis-jsonschema
