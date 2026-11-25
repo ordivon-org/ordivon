@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import re
 import subprocess
 from pathlib import Path
 from typing import Any
 
-from .assets import UnstableBlobError, hash_file
-from .production_source_io import read_bound_object, relative_child
-
-_SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
+from .production_output_identity import declared_source_files, observe_output_blob
+from .production_source_io import claims_source_path, read_bound_object
 
 
 def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -77,94 +74,6 @@ def _source_binding_observation(
 
 
 
-def _declared_source_files(sources: dict[str, Any]) -> set[str]:
-    """Exact source-carrier allowlist from the Production's own descriptor."""
-    paths: set[str] = set()
-    for value in sources.values():
-        if isinstance(value, str):
-            paths.add(value)
-        elif isinstance(value, list):
-            paths.update(item for item in value if isinstance(item, str))
-    return paths
-
-
-def _output_blob_observation(
-    root: Path,
-    output: dict[str, Any],
-    *,
-    declared_source_files: set[str],
-    selected_file: Path | None,
-) -> dict[str, Any]:
-    """One bounded, read-only byte comparison, not approval or publication.
-
-    A sourceCarrier is an exact-byte source assertion; outputCarrier names
-    one owner-declared local materialization of a transformed Output.
-    Neither a local path nor an explicit consumer-selected file proves
-    ongoing availability, domain acceptance, or publication.
-    """
-    expected = output.get("blobDigest")
-    carrier = output.get("sourceCarrier")
-    output_carrier = output.get("outputCarrier")
-    row: dict[str, Any] = {
-        "outputId": output.get("id"),
-        "declaredStatus": output.get("status"),
-        "expectedBlobDigest": expected,
-        "sourceCarrier": carrier,
-        "outputCarrier": output_carrier,
-        "sourceSelection": None,
-        "relation": "UNKNOWN_NO_SELECTED_BYTES",
-        "observedBlob": None,
-    }
-    selected: Path | None = None
-    if carrier is not None and output_carrier is not None:
-        row["relation"] = "INVALID_MULTIPLE_CARRIERS"
-        return row
-    if carrier is not None:
-        if not isinstance(carrier, str) or carrier not in declared_source_files:
-            row["relation"] = "INVALID_UNDECLARED_SOURCE_CARRIER"
-            return row
-        try:
-            selected = relative_child(root, carrier)
-        except ValueError:
-            row["relation"] = "INVALID_ESCAPING_SOURCE_CARRIER"
-            return row
-        row["sourceSelection"] = "declared-exact-source-carrier"
-    elif output_carrier is not None:
-        if not isinstance(output_carrier, str) or not output_carrier or "\\" in output_carrier:
-            row["relation"] = "INVALID_OUTPUT_CARRIER"
-            return row
-        try:
-            selected = relative_child(root, output_carrier)
-        except ValueError:
-            row["relation"] = "INVALID_ESCAPING_OUTPUT_CARRIER"
-            return row
-        row["sourceSelection"] = "declared-local-output-carrier"
-    if selected_file is not None:
-        row["sourceSelection"] = "explicit-consumer-file"
-        selected = selected_file
-    if selected is None:
-        return row
-    row["selectedPath"] = str(selected.resolve())
-    if not isinstance(expected, str) or _SHA256.fullmatch(expected) is None:
-        row["relation"] = "UNKNOWN_NO_VALID_DECLARED_DIGEST"
-        return row
-    try:
-        blob = hash_file(selected)
-    except UnstableBlobError:
-        row["relation"] = "UNKNOWN_SELECTED_FILE_UNSTABLE"
-        return row
-    except (OSError, ValueError):
-        row["relation"] = "UNKNOWN_SELECTED_FILE_UNAVAILABLE"
-        return row
-    row["observedBlob"] = blob.as_dict()
-    row["relation"] = (
-        "MATCHES_DECLARED_DIGEST"
-        if blob.digest == expected
-        else "DIFFERS_FROM_DECLARED_DIGEST"
-    )
-    return row
-
-
 def build_production_context(
     production_root: Path,
     *,
@@ -176,10 +85,8 @@ def build_production_context(
     production, production_manifest_digest = read_bound_object(production_path)
 
     production_id = production.get("id")
-    sources = production.get("sources")
-    if not isinstance(sources, dict) or not isinstance(sources.get("claims"), str):
-        raise TypeError("Production must reference one claims source")
-    claims_path = relative_child(root, sources["claims"])
+    claims_path = claims_source_path(root, production)
+    sources = production["sources"]
     claims_document, claims_manifest_digest = read_bound_object(claims_path)
     if claims_document.get("productionId") != production_id:
         raise ValueError("Claim set productionId does not match Production id")
@@ -237,9 +144,9 @@ def build_production_context(
         raise ValueError(
             "output-file mapping names unknown output(s): " + ", ".join(unknown_output_ids)
         )
-    source_file_names = _declared_source_files(sources)
+    source_file_names = declared_source_files(sources)
     output_observations = [
-        _output_blob_observation(
+        observe_output_blob(
             root,
             output,
             declared_source_files=source_file_names,
