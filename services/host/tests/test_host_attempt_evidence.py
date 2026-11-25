@@ -8,6 +8,7 @@ import os
 import shutil
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
@@ -147,6 +148,11 @@ def test_native_subtests_remain_separate_evidence(tmp_path):
     assert receipt["selectedCount"] == 1
     assert receipt["reportOutcomes"]["subtest:passed"] == 2
     assert receipt["reportOutcomes"]["call:passed"] == 1
+    # Native JUnit represents successful subtests under their parent test.
+    # Do not add successful subtest reports to the number of testcase nodes.
+    cases = ET.parse(dest / "junit.xml").findall(".//testcase")
+    assert len(cases) == receipt["selectedCount"]
+    assert all(case.find(tag) is None for case in cases for tag in ("error", "failure", "skipped"))
 
 
 @pytest.mark.parametrize("mode", ["dirty", "provider"])
