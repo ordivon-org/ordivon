@@ -68,6 +68,7 @@ cargo test --locked -p ordivon-runtime-core --no-default-features --features tra
 python3 scripts/tests/test_focused_verification_contract.py -v
 python3 scripts/tests/test_pg_physical_verification_contract.py -v
 python3 scripts/tests/test_pg_disposable_physical.py -v
+python3 scripts/tests/test_pg_mcp_qualification.py -v
 scripts/owner-environment extended
 python scripts/check_docs.py
 mise run formal:verify
@@ -145,3 +146,11 @@ run = "python scripts/pg_disposable_physical.py"
 [tasks."test:postgres-registry:stage"]
 description = "Verify historical stage remains non-authoritative; require explicit stage DSN and exact witness"
 run = "python3 scripts/pg_disposable_physical.py --stage"
+
+[tasks."test:postgres-registry:mcp-native"]
+description = "Qualify all native PG MCP consumer tests with exact Nextest inventory and JUnit"
+run = """
+set -euo pipefail
+mise install http:cargo-nextest
+mise exec -- python3 scripts/pg_mcp_qualification.py
+"""
