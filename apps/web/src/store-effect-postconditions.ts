@@ -4,7 +4,7 @@ import { isDeepStrictEqual } from "node:util";
 import { WebProblem } from "./errors.ts";
 import type { AgentGrantSnapshot, CanaryNote } from "./model.ts";
 import type { EffectAuditRow } from "./store-audit.ts";
-import { noteFromRow, type NoteRow } from "./store-row-projections.ts";
+import { matchesStoredCanaryNote } from "./store-canary-notes.ts";
 
 // Native statement cardinality is a mechanical precommit obligation, not
 // an external effect or arbitrary database-integrity proof.
@@ -48,12 +48,11 @@ export function assertWrittenEffectApproval(db: DatabaseSync, expected: EffectAp
 export function assertWrittenBusinessState(
   db: DatabaseSync, note: CanaryNote, prior: AgentGrantSnapshot, observedGrant: AgentGrantSnapshot,
 ): void {
-  const row = db.prepare("SELECT * FROM canary_notes WHERE note_id = ?")
-    .get(note.noteId) as NoteRow | undefined;
+
   const expectedGrant = {
     ...prior, remainingEffects: prior.remainingEffects - 1, revision: prior.revision + 1,
   };
-  if (row === undefined || !isDeepStrictEqual(noteFromRow(row), note) ||
+  if (!matchesStoredCanaryNote(db, note) ||
       !isDeepStrictEqual(observedGrant, expectedGrant)) {
     throw new WebProblem(500, "effect-business-mismatch", "Effect business state mismatch",
       "The newly written note or Grant does not match the intended local Effect.");

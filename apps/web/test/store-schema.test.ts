@@ -25,7 +25,9 @@ test("WebStore schema bootstrap preserves the single SQLite schema and connectio
   const expectedIndexes = [
     "agent_grants_resolution",
     "audit_events_committed_effect",
+    "audit_events_created_note",
     "audit_events_principal_created",
+    "canary_notes_principal_created",
     "dpop_proofs_expiry",
     "sessions_principal",
     "webauthn_credentials_principal",

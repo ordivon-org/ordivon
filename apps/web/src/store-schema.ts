@@ -74,6 +74,9 @@ export function initializeWebStoreSchema(db: DatabaseSync): void {
         FOREIGN KEY(principal_id) REFERENCES principals(principal_id)
       );
 
+      CREATE INDEX IF NOT EXISTS canary_notes_principal_created
+        ON canary_notes(principal_id, created_at DESC, note_id ASC);
+
       CREATE TABLE IF NOT EXISTS agent_grants (
         grant_id TEXT PRIMARY KEY,
         grant_digest TEXT NOT NULL,
@@ -155,5 +158,9 @@ export function initializeWebStoreSchema(db: DatabaseSync): void {
       CREATE INDEX IF NOT EXISTS audit_events_committed_effect
         ON audit_events(object_id)
         WHERE event_type = 'agent.effect.committed' AND object_type = 'effect';
+
+      CREATE INDEX IF NOT EXISTS audit_events_created_note
+        ON audit_events(object_id)
+        WHERE event_type = 'canary.note.created' AND object_type = 'canary-note';
     `);
 }

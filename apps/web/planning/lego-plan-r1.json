@@ -223,6 +223,8 @@
       ],
       "behavioralContract": "R2 create commits under admitted scope; R4 publish requires step-up approval bound to the exact effect and consumes it once; committed approval evidence cannot be reopened and pending approval lookup excludes committed effects; identical replay preserves previous receipt and conflicting payloads or fresh revoked-grant effects reject.",
       "evidence": [
+        "src/store-human-notes.ts",
+        "test/store-human-notes.test.ts",
         "experiments/pg-transaction-r1/probe.py",
         "experiments/pg-transaction-r1/sqlite-reference.ts",
         "src/store-owner-transaction.ts",
@@ -269,6 +271,7 @@
         }
       ],
       "acceptance": [
+        "Human canary draft creation also uses the shared native owner transaction kernel, requires exact Note and Audit cardinality and final projection before commit; no partial write, automatic retry, or shared authorization decision. Stable list order is created_at DESC, note_id ASC; principal-local composite and nonunique partial audit indexes preserve existing rows on reopen.",
         "Effect, Challenge and DPoP share one native BEGIN/COMMIT/ROLLBACK implementation; domain error codes remain distinct, uncertain connections are quarantined, and no automatic retry follows ambiguous outcomes.",
         "Native Web tests cover exact replay/conflict, R4 approval and revoked Grant historical replay.",
         "Local canary write != external provider effect, no installed/exactly-once distributed claim.",

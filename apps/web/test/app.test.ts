@@ -344,3 +344,27 @@ test("operator grant view reads only the authenticated principal and renders obs
     f.store.close();
   }
 });
+
+test("human note HTTP success requires its committed Note and Audit", async () => {
+  const f = await fixture();
+  try {
+    const antiCsrf = await csrf(f.app, f.token);
+    const headers = {
+      cookie: sessionCookie(f.token) + "; " + antiCsrf.cookie,
+      origin: config.origin,
+      "sec-fetch-site": "same-origin",
+      "x-csrf-token": antiCsrf.token,
+    };
+    f.store.db.exec("CREATE TEMP TRIGGER omit_note_audit BEFORE INSERT ON audit_events WHEN NEW.event_type='canary.note.created' BEGIN SELECT RAISE(IGNORE); END");
+    const denied = await f.app.inject({method:"POST",url:"/api/canary/notes",headers,payload:{content:"not committed"}});
+    assert.equal(denied.statusCode,500);
+    assert.match(String(denied.headers["content-type"]),/application\/problem\+json/);
+    assert.equal(f.store.listCanaryNotes("principal:test").length,0);
+    assert.equal(f.store.db.prepare("SELECT count(*) AS n FROM audit_events WHERE event_type='canary.note.created'").get()?.n,0);
+    f.store.db.exec("DROP TRIGGER omit_note_audit");
+    const accepted = await f.app.inject({method:"POST",url:"/api/canary/notes",headers,payload:{content:"explicit new request"}});
+    assert.equal(accepted.statusCode,201);
+    assert.deepEqual(f.store.listCanaryNotes("principal:test"),[accepted.json().note]);
+    assert.equal(f.store.db.prepare("SELECT object_id FROM audit_events WHERE event_type='canary.note.created'").get()?.object_id,accepted.json().note.noteId);
+  } finally { await f.app.close();f.store.close(); }
+});

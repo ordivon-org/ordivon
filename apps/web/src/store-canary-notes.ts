@@ -1,5 +1,6 @@
 /** Owner-local Note operations. Callers own business admission and transactions. */
 import { randomUUID } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 import type { DatabaseSync } from "node:sqlite";
 import type { CanaryNote } from "./model.ts";
 import { noteFromRow, type NoteRow } from "./store-row-projections.ts";
@@ -30,7 +31,13 @@ export function publishCanaryDraft(db: DatabaseSync, noteId: string, now: number
 }
 
 export function listPrincipalCanaryNotes(db: DatabaseSync, principalId: string): CanaryNote[] {
-  const rows = db.prepare("SELECT * FROM canary_notes WHERE principal_id = ? ORDER BY created_at DESC")
+  const rows = db.prepare("SELECT * FROM canary_notes WHERE principal_id = ? ORDER BY created_at DESC, note_id ASC")
     .all(principalId) as unknown as NoteRow[];
   return rows.map(noteFromRow);
+}
+
+/** Compare the exact intended local Note after all writes in the transaction. */
+export function matchesStoredCanaryNote(db: DatabaseSync, note: CanaryNote): boolean {
+  const row = readPrincipalNoteRow(db, note.noteId, note.principalId);
+  return row !== undefined && isDeepStrictEqual(noteFromRow(row), note);
 }

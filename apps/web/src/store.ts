@@ -12,7 +12,8 @@ import { EffectReceiptStore } from "./store-effect-receipts.ts";
 import { insertAuditRow } from "./store-audit.ts";
 import { EffectApprovalStore } from "./store-effect-approvals.ts";
 import { AgentEffectStore } from "./store-agent-effects.ts";
-import { newCanaryDraft, insertCanaryDraft, listPrincipalCanaryNotes } from "./store-canary-notes.ts";
+import { listPrincipalCanaryNotes } from "./store-canary-notes.ts";
+import { createHumanCanaryDraft } from "./store-human-notes.ts";
 import type {
   AgentEffectReceipt,
   AgentEffectRequest,
@@ -294,10 +295,7 @@ export class WebStore {
     content: string,
     now: number,
   ): CanaryNote {
-    const note = newCanaryDraft(principalId, content, now);
-    insertCanaryDraft(this.owner.db, note);
-    this.audit("canary.note.created", now, principalId, "canary-note", note.noteId, {});
-    return note;
+    return createHumanCanaryDraft(this.owner.db, principalId, content, now);
   }
 
   listCanaryNotes(principalId: string): CanaryNote[] {

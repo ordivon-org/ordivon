@@ -13,7 +13,7 @@ function isNativeBusy(error: unknown): boolean {
     native.errcode >= 0 && (native.errcode & 0xff) === 5;
 }
 
-export type OwnerTransactionKind = "effect" | "challenge" | "dpop";
+export type OwnerTransactionKind = "effect" | "challenge" | "dpop" | "note";
 
 export function requireIdleOwnerConnection(db: DatabaseSync, kind: OwnerTransactionKind): void {
   requireUsableOwnerConnection(db);
