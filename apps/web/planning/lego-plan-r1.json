@@ -230,6 +230,7 @@
       ],
       "behavioralContract": "R2 create commits under admitted scope; R4 publish requires step-up approval bound to the exact effect and consumes it once; committed approval evidence cannot be reopened and pending approval lookup excludes committed effects; identical replay preserves previous receipt and conflicting payloads or fresh revoked-grant effects reject.",
       "evidence": [
+        "crates/web-note-pg/src/pool.rs",
         "crates/web-note-pg/src/lib.rs",
         "crates/web-note-pg/src/domain.rs",
         "crates/web-note-pg/src/postgres.rs",
@@ -283,6 +284,7 @@
         }
       ],
       "acceptance": [
+        "R13 native Rust PG candidate uses a bounded mature pool, affirmative terminality before recycle, caller-held prepared Note/Audit identities and coherent read-only observation; actual post-COMMIT future cancellation and wire ACK loss recover exact evidence without retry. Full schema, authenticated composition and single-writer cutover remain gated.",
         "Rust async PG Note/Audit source candidate: same actual SQLite projection, exact writes and final readback after deferred constraints, explicit rollback, native cancellation and real COMMIT ACK loss UNKNOWN; full schema/pool/HTTP/single-writer migration remain separate gates.",
         "Human canary draft creation also uses the shared native owner transaction kernel, requires exact Note and Audit cardinality and final projection before commit; no partial write, automatic retry, or shared authorization decision. Stable list order is created_at DESC, note_id ASC; principal-local composite and nonunique partial audit indexes preserve existing rows on reopen.",
         "Effect, Challenge and DPoP share one native BEGIN/COMMIT/ROLLBACK implementation; domain error codes remain distinct, uncertain connections are quarantined, and no automatic retry follows ambiguous outcomes.",

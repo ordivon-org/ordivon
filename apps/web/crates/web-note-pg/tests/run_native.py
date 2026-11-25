@@ -27,8 +27,9 @@ def read_exact(sock: socket.socket, size: int) -> bytes:
 class CommitAckFault:
     """Forward the unencrypted local PG protocol; discard only COMMIT ACK."""
 
-    def __init__(self, cluster: Cluster):
-        self.root = cluster.root / "ack-proxy"
+    def __init__(self, cluster: Cluster, hold=False):
+        self.hold = hold
+        self.root = cluster.root / ("cancel-proxy" if hold else "ack-proxy")
         self.root.mkdir(mode=0o700)
         self.listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.listener.bind(str(self.root / ".s.PGSQL.59439"))
@@ -47,12 +48,16 @@ class CommitAckFault:
             ) as backend:
                 backend.connect(str(self.target))
 
+                disconnected = threading.Event()
+
                 def forward():
                     try:
                         while part := frontend.recv(65536):
                             backend.sendall(part)
                     except OSError:
                         pass
+                    finally:
+                        disconnected.set()
 
                 upstream = threading.Thread(target=forward, daemon=True)
                 upstream.start()
@@ -65,6 +70,10 @@ class CommitAckFault:
                         payload = read_exact(backend, size - 4)
                         if header[:1] == b"C" and payload == b"COMMIT\0":
                             self.cut = True
+                            if self.hold:
+                                (self.root / "commit-reached").write_text("committed")
+                                if not disconnected.wait(timeout=10):
+                                    raise RuntimeError("caller did not close cancelled carrier")
                             break
                         frontend.sendall(header + payload)
                 finally:
@@ -88,6 +97,7 @@ class CommitAckFault:
 if __name__ == "__main__":
     cluster = Cluster()
     fault = None
+    cancel_fault = None
     result = None
     try:
         cluster.start()
@@ -97,10 +107,12 @@ if __name__ == "__main__":
                             f"CREATE TABLE web_note_fixture_guard(token text); INSERT INTO web_note_fixture_guard VALUES ('{guard}')"],
             env=cluster.env, check=True, timeout=10)
         fault = CommitAckFault(cluster)
+        cancel_fault = CommitAckFault(cluster, hold=True)
         env = dict(cluster.env)
         env.update(WEB_NOTE_TEST_SOCKET=str(cluster.root), WEB_NOTE_TEST_USER=cluster.user,
                    WEB_NOTE_TEST_PORT="59439", WEB_NOTE_TEST_NODE=os.environ.get("NODE", "node"),
-                   WEB_NOTE_TEST_GUARD=guard, WEB_NOTE_TEST_ACK_PROXY=str(fault.root))
+                   WEB_NOTE_TEST_GUARD=guard, WEB_NOTE_TEST_ACK_PROXY=str(fault.root),
+                   WEB_NOTE_TEST_CANCEL_PROXY=str(cancel_fault.root))
         result = subprocess.run(
             ["cargo", "test", "--manifest-path", str(Path(__file__).resolve().parents[1] / "Cargo.toml"),
              "--locked", "--offline", "--test", "native", "--", "--nocapture"],
@@ -110,5 +122,9 @@ if __name__ == "__main__":
             if fault is not None:
                 fault.close(require_cut=result is not None and result.returncode == 0)
         finally:
-            cluster.close()
+            try:
+                if cancel_fault is not None:
+                    cancel_fault.close(require_cut=result is not None and result.returncode == 0)
+            finally:
+                cluster.close()
     raise SystemExit(result.returncode)

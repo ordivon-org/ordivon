@@ -180,3 +180,80 @@ cargo clippy --manifest-path apps/web/crates/web-note-pg/Cargo.toml --locked --o
 ```
 Rust 1.99.1, PG18.7, Node26.12.1 observed. Exact lock retained, direct
 dependencies use compatible ranges. No production services mutated.
+
+
+## R13 — bounded native carrier and caller-held operation identity
+
+Host Work@32, Topic #32747. Advance T03/T04, not legacy SQLite repair.
+R12 is historical evidence; its dedicated carrier and implicit async identity
+have been replaced in the Rust candidate, not in installed production.
+
+| Logic LEGO | Thought LEGO | Actual Capability |
+|---|---|---|
+| L06 Operation representation | caller-held immutable identity | PreparedNote::new/restore, UUID note + audit coordinates, representability gate |
+| L08 Admission to storage resources | bounded allocation, reuse mature allocator | deadpool-postgres 0.14 with Tokio, configurable capacity and checkout wait |
+| L08 Carrier terminality | default discard, affirmative terminal evidence | Lease; Object::take, ClientWrapper Drop; explicit commit/rollback acknowledgement |
+| L08 Reuse and isolation | clean session before reuse | RecyclingMethod::Clean, native reconnect; no custom pool |
+| L08 Effect execution | exact atomic Note/Audit | execute(&PreparedNote), existing native transaction and deferred constraint fence |
+| L08 Observation | absence is not proof of failure; consistent snapshot | observe(&PreparedNote), read-only REPEATABLE READ, exact two-coordinate binding |
+| L10 Verification | independent native evidence, failure injection | real PG PIDs, session residue, saturated pool, two real COMMIT wire faults, differential oracle |
+
+Operation contract: caller prepares and retains complete immutable intention
+(note/event IDs, admitted principal, content, timestamp) before first await.
+Restoration is representation only, not authorization. execute never creates
+a new identity or automatically replays. A second explicit execute with the
+same ID can fail with native 23505; there is no promised idempotent response.
+Observation is Exact(original Draft and exact Audit), Unobserved(snapshot
+has neither coordinate), Mismatch(partial/conflicting/changed creation
+projection), or typed error. Later Published is not the original Draft
+projection and returns Mismatch, not proof of failed creation. Unobserved
+does not justify re-execution or assert noncommit, including while in flight.
+No new public route, credential or authority; trusted caller only.
+
+R2.1 I prepared immutable operation or principal-local read, bounded pool config;
+O exact committed Note or typed error, observation sum type; S native PG plus
+pool leases; pre trusted owner caller/schema/socket, retained operation;
+post exact write and evidence, only acknowledged terminal carrier reusable;
+inv no automatic reissue, no uncertain carrier recycling, no authority from
+observation, one coherent snapshot; eff local database only; c pool checkout
+queue and native MVCC, Clean reset, no second driver; epsilon logical pool
+capacity is not an instantaneous global physical connection bound, checkout
+timeout is not execution deadline, caller must persist operation if restart
+recovery required, no production throughput or TLS/migration claims;
+prov native PIDs, wire fault, actual differential and Git; unfold pool library
+-> small terminality fence -> native transaction -> observation.
+
+Native qualification: two independently waiting PG backends, third checkout
+times out; cancel both, exact PIDs removed; disjoint transaction proceeds.
+Same PID reused after acknowledged operation; session work_mem changed by
+fixture trigger is reset; idle backend terminated and replaced. Actual
+CommandComplete COMMIT discarded once, and separately held until caller
+cancels after server commits: retained operation recovers exact single
+Note/Audit, retired carrier disappears while pool remains alive. Duplicate
+note/audit IDs reject without extra durable write; wrong principal/content or
+audit identity, orphan audit, later Published distinguish Mismatch.
+Three targeted native mutants killed: return uncertain carrier, Fast recycle
+leaks work_mem, invert exact audit binding. Existing R12 fault and R10
+SQLite differential retained. Job-01a214b0-62bc-7754-9bd7-28c7ac4e32d0.
+
+Local benchmark uses same actual list query and two rows, five alternating
+samples of 40 reads, fresh one-slot pool per call versus reused one-slot
+pool, all outputs identical. Three prior successful runs had ratios
+5.37x/9.86x/15.95x, restored-mutant run 150.199ms -> 29.990ms (5.01x).
+Variability explicit; not comparison of production services or end-to-end
+throughput, no claim of exact R12 binary benchmark. Use measured evidence
+rather than treating pool defaults as production sizing.
+
+Mature substrate references:
+https://docs.rs/deadpool-postgres/latest/deadpool_postgres/ ;
+https://docs.rs/deadpool-postgres/latest/deadpool_postgres/enum.RecyclingMethod.html ;
+https://docs.rs/tokio-postgres/latest/tokio_postgres/struct.Transaction.html ;
+https://www.postgresql.org/docs/18/transaction-iso.html .
+Direct dependency ranges; exact lockfile for reproduction.
+
+Next: full schema and real domain consumers including Effect/Grant/Approval,
+explicit caller operation coordinate durability at composition boundary,
+execution deadlines/cancellation and production pool sizing, native
+authenticated HTTP consumer via selected transport without duplicating
+Security, historical data/collation/backup/restore and single-writer cutover.
+Only retire the installed old writer after independent qualification.

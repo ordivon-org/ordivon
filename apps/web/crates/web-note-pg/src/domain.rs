@@ -21,9 +21,9 @@ pub struct Note {
     pub published_at: Option<i64>,
 }
 
-pub(crate) fn draft(principal: &str, content: &str, now: i64) -> Note {
+fn draft(note_id: Uuid, principal: &str, content: &str, now: i64) -> Note {
     Note {
-        note_id: Uuid::new_v4().to_string(),
+        note_id: note_id.to_string(),
         principal_id: principal.to_owned(),
         content: content.to_owned(),
         state: NoteState::Draft,
@@ -44,9 +44,9 @@ pub(crate) struct Audit {
 }
 
 impl Audit {
-    pub fn for_note(note: &Note) -> Self {
+    fn for_note(event_id: Uuid, note: &Note) -> Self {
         Self {
-            event_id: Uuid::new_v4().to_string(),
+            event_id: event_id.to_string(),
             principal_id: Some(note.principal_id.clone()),
             event_type: "canary.note.created".into(),
             object_type: Some("canary-note".into()),
@@ -61,4 +61,46 @@ pub(crate) fn representable(principal: &str, content: &str, now: i64) -> bool {
     !principal.contains('\0')
         && !content.contains('\0')
         && (-9_007_199_254_740_991..=9_007_199_254_740_991).contains(&now)
+}
+
+// Immutable operation coordinates, allocated synchronously by the caller.
+// Restoring these coordinates does not authorize, execute or retry an operation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PreparedNote {
+    pub(crate) note: Note,
+    pub(crate) audit: Audit,
+}
+impl PreparedNote {
+    pub fn new(principal: &str, content: &str, now: i64) -> Result<Self, crate::NoteError> {
+        Self::restore(Uuid::new_v4(), Uuid::new_v4(), principal, content, now)
+    }
+    pub fn restore(
+        note_id: Uuid,
+        event_id: Uuid,
+        principal: &str,
+        content: &str,
+        now: i64,
+    ) -> Result<Self, crate::NoteError> {
+        if !representable(principal, content, now) {
+            return Err(crate::NoteError::Unrepresentable);
+        }
+        let note = draft(note_id, principal, content, now);
+        let audit = Audit::for_note(event_id, &note);
+        Ok(Self { note, audit })
+    }
+    pub fn note_id(&self) -> &str {
+        &self.note.note_id
+    }
+    pub fn event_id(&self) -> &str {
+        &self.audit.event_id
+    }
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NoteObservation {
+    // Exact original creation projection, not a claim about every later state.
+    Exact(Note),
+    // No matching rows in this snapshot, NOT proof of noncommit.
+    Unobserved,
+    // At least one coordinate exists but exact creation evidence differs.
+    Mismatch,
 }

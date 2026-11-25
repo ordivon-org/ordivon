@@ -1,24 +1,12 @@
-use crate::NoteError;
-use crate::domain::{Audit, Note, NoteState, draft, representable};
+use crate::domain::{Audit, Note, NoteState, representable};
+use crate::pool::{Lease, local_pool};
+use crate::{NoteError, NoteObservation, PoolLimits, PreparedNote};
 use std::path::Path;
-use tokio::task::JoinHandle;
-use tokio_postgres::{Client, Config, IsolationLevel, NoTls, Row, Transaction};
-
-/// Every operation owns exactly one driver and client. Drop closes the carrier
-/// rather than returning an uncertain transaction to a pool.
-struct Connection {
-    client: Client,
-    driver: JoinHandle<()>,
-}
-impl Drop for Connection {
-    fn drop(&mut self) {
-        self.driver.abort();
-    }
-}
+use tokio_postgres::{IsolationLevel, Row, Transaction};
 
 #[derive(Clone)]
 pub struct PgNoteStore {
-    config: Config,
+    pool: deadpool_postgres::Pool,
 }
 fn db(phase: &'static str, source: tokio_postgres::Error) -> NoteError {
     NoteError::Database { phase, source }
@@ -65,59 +53,45 @@ fn one(count: u64) -> Result<(), NoteError> {
 }
 
 impl PgNoteStore {
-    /// Explicit local PG target; no environment-derived connection string or
-    /// TCP fallback. Caller owns socket trust and schema installation.
+    /// Trusted local socket and installed schema; never a public admission boundary.
     pub fn local(socket: &Path, port: u16, user: &str, database: &str) -> Result<Self, NoteError> {
-        if !socket.is_absolute() || port == 0 || user.is_empty() || database.is_empty() {
-            return Err(NoteError::Unrepresentable);
-        }
-        let mut config = Config::new();
-        config
-            .host_path(socket)
-            .port(port)
-            .user(user)
-            .dbname(database)
-            .application_name("ordivon-web-note-candidate")
-            .connect_timeout(std::time::Duration::from_secs(5));
-        Ok(Self { config })
+        Self::local_bounded(socket, port, user, database, PoolLimits::default())
     }
 
-    async fn connect(&self) -> Result<Connection, NoteError> {
-        let (client, connection) = self
-            .config
-            .connect(NoTls)
-            .await
-            .map_err(|e| db("connect", e))?;
-        let driver = tokio::spawn(async move {
-            let _ = connection.await;
-        });
-        Ok(Connection { client, driver })
+    pub fn local_bounded(
+        socket: &Path,
+        port: u16,
+        user: &str,
+        database: &str,
+        limits: PoolLimits,
+    ) -> Result<Self, NoteError> {
+        Ok(Self {
+            pool: local_pool(socket, port, user, database, limits)?,
+        })
     }
 
-    /// Caller supplies existing admitted identity and content; not a public
-    /// ingress. A new explicit invocation creates a new UUID, not a replay.
-    pub async fn create(
-        &self,
-        principal: &str,
-        content: &str,
-        now: i64,
-    ) -> Result<Note, NoteError> {
-        if !representable(principal, content, now) {
-            return Err(NoteError::Unrepresentable);
-        }
-        let note = draft(principal, content, now);
-        let audit = Audit::for_note(&note);
-        let mut conn = self.connect().await?;
-        let tx = conn
-            .client
+    async fn connect(&self) -> Result<Lease, NoteError> {
+        Ok(Lease::new(self.pool.get().await.map_err(NoteError::Pool)?))
+    }
+
+    /// No implicit retries, no upsert, no replay on duplicate identity.
+    pub async fn execute(&self, operation: &PreparedNote) -> Result<Note, NoteError> {
+        let note = &operation.note;
+        let audit = &operation.audit;
+        let mut lease = self.connect().await?;
+        let tx = lease
+            .client()
             .build_transaction()
             .isolation_level(IsolationLevel::ReadCommitted)
             .start()
             .await
             .map_err(|e| db("begin", e))?;
-        if let Err(cause) = write(&tx, &note, &audit).await {
+        if let Err(cause) = write(&tx, note, audit).await {
             return match tx.rollback().await {
-                Ok(()) => Err(cause),
+                Ok(()) => {
+                    lease.reusable();
+                    Err(cause)
+                }
                 Err(rollback) => Err(NoteError::RollbackUnknown {
                     cause: Box::new(cause),
                     rollback,
@@ -130,18 +104,53 @@ impl PgNoteStore {
                 note_id: note.note_id.clone(),
                 source,
             })?;
-        Ok(note)
+        lease.reusable();
+        Ok(note.clone())
     }
 
     pub async fn list(&self, principal: &str) -> Result<Vec<Note>, NoteError> {
         if principal.contains('\0') {
             return Err(NoteError::Unrepresentable);
         }
-        let conn = self.connect().await?;
-        conn.client.query(
+        let mut lease = self.connect().await?;
+        let rows=lease.client().query(
             "SELECT note_id,principal_id,content,state,created_at,published_at FROM canary_notes WHERE principal_id=$1 ORDER BY created_at DESC,note_id ASC",
             &[&principal],
-        ).await.map_err(|e| db("list", e))?.iter().map(note_from_row).collect()
+        ).await.map_err(|e|db("list",e))?;
+        let result = rows.iter().map(note_from_row).collect();
+        lease.reusable();
+        result
+    }
+
+    /// A coherent, read-only snapshot of both operation coordinates.
+    /// Missing rows are never translated into a failure or permission to retry.
+    pub async fn observe(&self, operation: &PreparedNote) -> Result<NoteObservation, NoteError> {
+        let mut lease = self.connect().await?;
+        let tx = lease
+            .client()
+            .build_transaction()
+            .isolation_level(IsolationLevel::RepeatableRead)
+            .read_only(true)
+            .start()
+            .await
+            .map_err(|e| db("observe-begin", e))?;
+        let row=tx.query_opt("SELECT note_id,principal_id,content,state,created_at,published_at FROM canary_notes WHERE note_id=$1",
+            &[&operation.note.note_id]).await.map_err(|e|db("observe-note",e))?;
+        let audits=tx.query("SELECT event_id,principal_id,event_type,object_type,object_id,detail_json,created_at FROM audit_events WHERE event_id=$1 OR (event_type='canary.note.created' AND object_type='canary-note' AND object_id=$2) LIMIT 2",
+            &[&operation.audit.event_id,&operation.note.note_id]).await.map_err(|e|db("observe-audit",e))?;
+        let result = if row.is_none() && audits.is_empty() {
+            NoteObservation::Unobserved
+        } else if row.as_ref().map(note_from_row).transpose()?.as_ref() == Some(&operation.note)
+            && audits.len() == 1
+            && audit_from_row(&audits[0]).map_err(|e| db("observe-decode", e))? == operation.audit
+        {
+            NoteObservation::Exact(operation.note.clone())
+        } else {
+            NoteObservation::Mismatch
+        };
+        tx.rollback().await.map_err(|e| db("observe-close", e))?;
+        lease.reusable();
+        Ok(result)
     }
 }
 

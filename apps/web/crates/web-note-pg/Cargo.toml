@@ -10,6 +10,7 @@ description = "Native async PostgreSQL Human Note domain slice; not an authentic
 [dependencies]
 tokio = { version = "1", features = ["rt", "macros", "time"] }
 tokio-postgres = "0.7"
+deadpool-postgres = "0.14"
 uuid = { version = "1", features = ["v4"] }
 serde = { version = "1", features = ["derive"] }
 thiserror = "2"

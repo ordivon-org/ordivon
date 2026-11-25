@@ -3,6 +3,10 @@
 pub enum NoteError {
     #[error("input is not representable by the PostgreSQL/JavaScript text and integer contract")]
     Unrepresentable,
+    #[error("pool checkout failed: {0}")]
+    Pool(#[source] deadpool_postgres::PoolError),
+    #[error("invalid pool configuration")]
+    PoolConfig,
     #[error("note-write-not-applied")]
     WriteNotApplied,
     #[error("note-business-mismatch")]
@@ -32,6 +36,8 @@ impl NoteError {
     pub fn code(&self) -> &'static str {
         match self {
             Self::Unrepresentable => "note-unrepresentable",
+            Self::Pool(_) => "note-pool-unavailable",
+            Self::PoolConfig => "note-pool-config-invalid",
             Self::WriteNotApplied => "note-write-not-applied",
             Self::BusinessMismatch => "note-business-mismatch",
             Self::AuditMismatch => "note-audit-mismatch",
