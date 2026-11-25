@@ -63,6 +63,28 @@ pub(crate) fn workspace_source_readset_digest_at(
     paths: &[String],
 ) -> Result<String, UniversalExecError> {
     use sha2::{Digest, Sha256};
+    let mut hash = Sha256::new();
+    observe_scoped_paths(workspace, paths, |bytes| hash.update(bytes))?;
+    Ok(format!("sha256:{}", hex::encode(hash.finalize())))
+}
+
+/// Validate the same native tree observation without manufacturing an unused
+/// digest. This deliberately still reads every file: unreadable content, alias
+/// rejection and observed mutation must not become success merely because a
+/// caller does not need a commitment.
+#[cfg(all(unix, any(feature = "postgres-registry-admission", test)))]
+pub(crate) fn validate_scoped_write_paths_at(
+    workspace: &Path,
+    paths: &[String],
+) -> Result<(), UniversalExecError> {
+    observe_scoped_paths(workspace, paths, |_| {})
+}
+
+fn observe_scoped_paths(
+    workspace: &Path,
+    paths: &[String],
+    mut emit: impl FnMut(&[u8]),
+) -> Result<(), UniversalExecError> {
     use std::io::Read;
     let workspace = canonical_directory(workspace, "workspacePath")?;
     let root = ReadsetRoot {
@@ -71,13 +93,12 @@ pub(crate) fn workspace_source_readset_digest_at(
         handle: super::super::fsutil::open_directory_nofollow(&workspace)
             .map_err(|error| io_error(&workspace, "open scoped Workspace root", error))?,
     };
-    let mut hash = Sha256::new();
-    hash.update(b"runtime-workspace-readset-v1\0");
-    hash.update(workspace_head_revision_at(&workspace)?.as_bytes());
+    emit(b"runtime-workspace-readset-v1\0");
+    emit(workspace_head_revision_at(&workspace)?.as_bytes());
     fn walk(
         root: &ReadsetRoot<'_>,
         path: &Path,
-        hash: &mut Sha256,
+        emit: &mut impl FnMut(&[u8]),
     ) -> Result<(), UniversalExecError> {
         let relative = path
             .strip_prefix(root.path)
@@ -107,12 +128,12 @@ pub(crate) fn workspace_source_readset_digest_at(
                 }
             }
         }
-        hash.update(relative.as_os_str().as_encoded_bytes());
-        hash.update([0]);
+        emit(relative.as_os_str().as_encoded_bytes());
+        emit(&[0]);
         let meta = match fs::symlink_metadata(path) {
             Ok(v) => v,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                hash.update(b"absent");
+                emit(b"absent");
                 return Ok(());
             }
             Err(e) => return Err(io_error(path, "inspect scoped source", e)),
@@ -134,13 +155,13 @@ pub(crate) fn workspace_source_readset_digest_at(
                     ));
                 }
             }
-            hash.update(b"file");
+            emit(b"file");
             #[cfg(unix)]
             {
                 use std::os::unix::fs::PermissionsExt;
-                hash.update(meta.permissions().mode().to_le_bytes());
+                emit(&meta.permissions().mode().to_le_bytes());
             }
-            hash.update(meta.len().to_le_bytes());
+            emit(&meta.len().to_le_bytes());
             let mut file = root.open_file(relative, path)?;
             let opened = file
                 .metadata()
@@ -188,7 +209,7 @@ pub(crate) fn workspace_source_readset_digest_at(
                 bytes_read = bytes_read
                     .checked_add(size as u64)
                     .ok_or_else(|| invalid("scoped source length overflow", "readPaths"))?;
-                hash.update(&buffer[..size]);
+                emit(&buffer[..size]);
             }
             let after_handle = file
                 .metadata()
@@ -204,14 +225,14 @@ pub(crate) fn workspace_source_readset_digest_at(
                 ));
             }
         } else if meta.is_dir() {
-            hash.update(b"directory");
+            emit(b"directory");
             let mut entries = fs::read_dir(path)
                 .map_err(|e| io_error(path, "list scoped source", e))?
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|e| io_error(path, "list scoped source", e))?;
             entries.sort_by_key(|v| v.file_name());
             for entry in entries {
-                walk(root, &entry.path(), hash)?;
+                walk(root, &entry.path(), emit)?;
             }
         } else {
             return Err(invalid("unsupported file in scoped read set", "readPaths"));
@@ -235,15 +256,72 @@ pub(crate) fn workspace_source_readset_digest_at(
         {
             return Err(invalid("invalid scoped read path", "readPaths"));
         }
-        walk(&root, &workspace.join(path), &mut hash)?;
+        walk(&root, &workspace.join(path), &mut emit)?;
     }
-    Ok(format!("sha256:{}", hex::encode(hash.finalize())))
+    Ok(())
 }
 
 #[cfg(test)]
 mod scoped_source_tests {
     use super::super::workspace_git_command;
     use super::*;
+    #[cfg(unix)]
+    #[test]
+    fn validation_preserves_commitment_observation_acceptance_and_error_codes() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path();
+        for args in [
+            vec!["init"],
+            vec![
+                "-c",
+                "user.name=Test",
+                "-c",
+                "user.email=test@example.invalid",
+                "commit",
+                "--allow-empty",
+                "-m",
+                "source",
+            ],
+        ] {
+            assert!(workspace_git_command()
+                .arg("-C")
+                .arg(root)
+                .args(args)
+                .output()
+                .unwrap()
+                .status
+                .success());
+        }
+        fs::create_dir(root.join("out")).unwrap();
+        fs::write(root.join("out/value"), [0, 255, 3]).unwrap();
+        let check = |paths: &[String], expected: bool| {
+            let digest = workspace_source_readset_digest_at(root, paths);
+            let validation = validate_scoped_write_paths_at(root, paths);
+            assert_eq!(digest.is_ok(), expected, "{paths:?}");
+            assert_eq!(validation.is_ok(), expected, "{paths:?}");
+            if let (Err(a), Err(b)) = (digest, validation) {
+                assert_eq!(a.code.as_str(), b.code.as_str(), "{paths:?}");
+            }
+        };
+        check(&["out".into()], true);
+        check(&["out".into(), "out".into()], true);
+        check(&["out".into(), "missing".into()], true);
+        check(&["../escape".into()], false);
+        std::os::unix::fs::symlink("out", root.join("alias")).unwrap();
+        check(&["alias/value".into()], false);
+        fs::hard_link(root.join("out/value"), root.join("out/hardlink")).unwrap();
+        check(&["out".into()], false);
+        fs::remove_file(root.join("out/hardlink")).unwrap();
+        let fifo = root.join("out/pipe");
+        use std::os::unix::ffi::OsStrExt;
+        let name = std::ffi::CString::new(fifo.as_os_str().as_bytes()).unwrap();
+        // SAFETY: name is a live NUL-terminated string in a private fixture.
+        assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+        check(&["out".into()], false);
+        fs::remove_file(fifo).unwrap();
+        check(&["out".into()], true);
+    }
+
     #[cfg(unix)]
     #[test]
     fn scoped_open_rejects_replaced_file_and_alias_ancestor() {
