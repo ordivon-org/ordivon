@@ -192,12 +192,26 @@ Native PG Runtime Workspace reclaim now consumes the existing operator-owned
 retention file /etc/ordivon/workspace-retention.json via the systemd unit's
 --policy-file argument. The packaged example is not an automatic production
 default. Missing or invalid explicitly selected policy fails closed. Without a
-policy file, legacy merged-HEAD-only behavior remains. Pinned classes cannot
+policy file, automatic close has no explicit release and retains candidates for disposition. Pinned classes cannot
 be automatically closed. This PG-native adapter consumes only class/rule,
 retention-age and clean-unintegrated opt-in semantics; it does not interpret
 the separate SQLite-era dirty/maximum-lifetime deletion options. Policy
 retention hours cannot shorten CLI minimum
-age; dirty trees and unresolved/non-successful Jobs are never candidates.
+age; dirty trees and unresolved Jobs are never candidates. Every automatic
+close, including a successful Job, requires the existing exact workspaceId
+operatorConsumerReleased=true rule with operatorReleaseBinding containing
+createdAtMs and sourceStateDigest from native workspace.get and
+latestJobActivityMs from the PG lifecycle activity projection (Job creation,
+Attempt creation/finish, Event observation, Reservation acquire/observe/release,
+Allocation acquire/release; null for no Job). This is a timestamp witness,
+not a complete row-version or generation fence.
+A legacy unbound true flag is not a grant. Refresh the candidate's Job
+activity before close; a dry-run candidate has not yet bound native source
+or generation. Use --inspect-release-subjects for bounded read-only
+native subject coordinates, which never assert consumer release. Repeat
+--inspect-workspace-id to inspect only named subjects; unobserved requested
+IDs are UNKNOWN in this projection, not proof of absence. A known failed
+or no-Job carrier also requires integrated source. The comparison is not an atomic release/close transaction.
 
 For a clean, idle, successfully executed but unintegrated Workspace commit,
 retirement requires operator policy
@@ -206,8 +220,8 @@ Git namespace refs/ordivon/retention preserves the exact source commit before
 the native Workspace close. Native Runtime remains the sole close authority
 and rechecks PG active Jobs, dependents, source digest, installed consumers,
 and worktree state. The adapter passes consumerReleased=false instead of
-inventing evidence of a semantic consumer release: native Runtime owns the
-age-based continuation boundary and retains any rejected close. The PG
+bypassing the native latest-activity grace. A release rule is an operator
+assertion, not independent domain acceptance or proof against later reuse. The PG
 native close now also checks the **latest PG Job activity under the existing
 admission advisory lock**: a resolved, recently completed Job with zero
 active leases is not an idle Workspace merely because the collector started
@@ -217,6 +231,22 @@ the old SQLite-era path. No direct directory delete or deletion on UNKNOWN.
 A native close timeout is reported as UNKNOWN/recoveryRequired, with the
 retained Git ref and native Workspace/tombstone reconciliation step. The
 close receipt is physical carrier evidence, not semantic task completion.
+The adapter binds the native close receipt to the exact requested workspaceId
+and sourceStateDigest and checks the typed removed/disposition pair. Its
+nativeCloseReceipts preserve those coordinates; newlyRemoved excludes
+already_closed replays. A missing or inconsistent receipt is UNKNOWN with
+the original closeSubject for native recovery, not permission to retry.
+Git observations use the literal local object graph without lazy acquisition;
+diagnostic-bearing membership, status and inventory observations do not
+establish reclaim eligibility. Acquire missing source objects separately.
+Runtime's existing durable closing record and tombstone remain the effect
+authority; the sweep report does not replace them.
+Sweep receipts are operator-private and published without replacing an existing
+observation coordinate. A failed receipt publication preserves the observed
+close results on stdout with recoveryRequired and UNKNOWN receipt standing;
+reconcile native Workspace/tombstone and receipt before retry. File and directory
+sync are required before reporting publication success. The preflight checks the
+receipt directory, not future disk capacity or atomic close/receipt settlement.
 Each sweep separately reports skipped classifications, eligible unintegrated
 Workspace count, preserved refs and directories outside this source repository's
 Git worktree inventory. Those directories may belong to other source repositories

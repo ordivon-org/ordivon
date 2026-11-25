@@ -767,6 +767,16 @@ check_workspace_consumer_close_r2_candidate() {
   verify_jar
   (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
     -config WorkspaceConsumerCloseR1.r2-candidate.cfg WorkspaceConsumerCloseR1.tla)
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config WorkspaceConsumerCloseR1.collector.cfg WorkspaceConsumerCloseR1.tla)
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config WorkspaceReleaseBindingR1.cfg WorkspaceReleaseBindingR1.tla)
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config WorkspaceExternalRootReclaimR1.cfg WorkspaceExternalRootReclaimR1.tla)
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config WorkspaceReclaimReceiptR1.cfg WorkspaceReclaimReceiptR1.tla)
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config WorkspaceCloseReceiptBindingR1.cfg WorkspaceCloseReceiptBindingR1.tla)
 }
 
 # Distinct two-Agent continuation scope: source DESIGN model, not installed PG claims.
@@ -802,10 +812,11 @@ falsify_workspace_multi_agent_release() {
 
 workspace_close_expect_named_counterexample() {
   local folder="$1" config="$2" property="$3" label="$4"
+  local model="${5:-WorkspaceConsumerCloseR1.tla}"
   local output="$folder/result.log" result
   set +e
   (cd "$folder"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
-    -config "$config" WorkspaceConsumerCloseR1.tla) > "$output" 2>&1
+    -config "$config" "$model") > "$output" 2>&1
   result=$?
   set -e
   if [[ "$result" -ne 12 ]] ||
@@ -844,7 +855,7 @@ check_workspace_consumer_close_counterexamples() {
   (
     tmp_dir=$(mktemp -d -t ordivon-workspace-close-XXXXXX)
     trap 'rm -rf -- "$tmp_dir"' EXIT
-    for kind in reachability unguarded spoofed ageonly fairness r2unguarded r2fairness r2reachable; do
+    for kind in reachability unguarded spoofed ageonly fairness r2unguarded r2fairness r2reachable collectorunguarded collectorreachable; do
       mkdir "$tmp_dir/$kind"
       cp "$ROOT/formal/WorkspaceConsumerCloseR1.tla" "$tmp_dir/$kind/"
       cp "$ROOT/formal/WorkspaceConsumerCloseR1.cfg" "$tmp_dir/$kind/"
@@ -854,6 +865,8 @@ check_workspace_consumer_close_counterexamples() {
     cp "$ROOT/formal/WorkspaceConsumerCloseR1.r2-candidate.cfg" "$tmp_dir/r2unguarded/"
     cp "$ROOT/formal/WorkspaceConsumerCloseR1.r2-candidate.cfg" "$tmp_dir/r2fairness/"
     cp "$ROOT/formal/WorkspaceConsumerCloseR1.r2-candidate.cfg" "$tmp_dir/r2reachable/"
+    cp "$ROOT/formal/WorkspaceConsumerCloseR1.collector.cfg" "$tmp_dir/collectorunguarded/"
+    cp "$ROOT/formal/WorkspaceConsumerCloseR1.collector.cfg" "$tmp_dir/collectorreachable/"
     workspace_close_expect_named_counterexample "$tmp_dir/reachability" \
       WorkspaceConsumerCloseR1.reachability.cfg ClosedUnreachable reachable
 
@@ -946,6 +959,18 @@ cfg.write_text(
                     "INVARIANT R2CandidateFreshReleasedCloseUnreachable\nCHECK_DEADLOCK FALSE\n", 1),
     encoding="utf-8",
 )
+# The collector must reject expiry without release, but must reach close
+# after exact release and expiry. Keep the independent invariant unchanged.
+path = root / "collectorunguarded" / model
+source = path.read_text(encoding="utf-8")
+guard = 'CollectorEligible ==\n    /\\ R2CandidateEligible\n    /\\ age = "expired"\n    /\\ released\n'
+assert source.count(guard) == 1, "collector release guard drift"
+path.write_text(source.replace(guard, guard.rsplit("    /\\ released\n", 1)[0]), encoding="utf-8")
+cfg = root / "collectorreachable" / "WorkspaceConsumerCloseR1.collector.cfg"
+content = cfg.read_text(encoding="utf-8")
+assert content.count("CHECK_DEADLOCK FALSE\n") == 1
+cfg.write_text(content.replace("CHECK_DEADLOCK FALSE\n",
+    "INVARIANT ClosedUnreachable\nCHECK_DEADLOCK FALSE\n"), encoding="utf-8")
 PY_WORKSPACE_CLOSE
     workspace_close_expect_named_counterexample "$tmp_dir/unguarded" \
       WorkspaceConsumerCloseR1.cfg FreshActiveConsumerCannotBeClosed unguarded
@@ -962,6 +987,89 @@ PY_WORKSPACE_CLOSE
       WorkspaceConsumerCloseR1.r2-candidate.cfg R2CandidateClosedConsumerFinished r2-active-consumer
     workspace_close_expect_temporal_counterexample "$tmp_dir/r2fairness" \
       WorkspaceConsumerCloseR1.r2-candidate.cfg r2-fairness-removed
+    workspace_close_expect_named_counterexample "$tmp_dir/collectorunguarded" \
+      WorkspaceConsumerCloseR1.collector.cfg CollectorClosedHasRelease collector-release-removed
+    workspace_close_expect_named_counterexample "$tmp_dir/collectorreachable" \
+      WorkspaceConsumerCloseR1.collector.cfg ClosedUnreachable collector-close-reachable
+    for field in generation source activity rootRevision effect-time reachable; do
+      folder="$tmp_dir/binding-$field"
+      mkdir "$folder"
+      cp "$ROOT/formal/WorkspaceReleaseBindingR1."{tla,cfg} "$folder/"
+      python3 - "$folder" "$field" <<'PY_BINDING'
+from pathlib import Path
+import sys
+folder = Path(sys.argv[1])
+field = sys.argv[2]
+if field == "reachable":
+    cfg = folder / "WorkspaceReleaseBindingR1.cfg"
+    cfg.write_text(cfg.read_text() + "INVARIANT ClosedUnreachable\n")
+else:
+    model = folder / "WorkspaceReleaseBindingR1.tla"
+    source = model.read_text()
+    if field == "effect-time":
+        guard = "    /\\ checked\n    /\\ CloseEligible\n"
+        replacement = '    /\\ checked\n    /\\ phase = "open"\n'
+    else:
+        guard = "    /\\ release." + field + " = " + field + "\n"
+        replacement = ""
+    assert source.count(guard) == 1, "release binding guard drift"
+    model.write_text(source.replace(guard, replacement))
+PY_BINDING
+      property=ClosedHasCurrentRelease
+      if [[ "$field" == reachable ]]; then property=ClosedUnreachable; fi
+      workspace_close_expect_named_counterexample "$folder" WorkspaceReleaseBindingR1.cfg \
+        "$property" "binding-$field" WorkspaceReleaseBindingR1.tla
+    done
+    for kind in omitted-mapping reachable; do
+      folder="$tmp_dir/external-$kind"
+      mkdir "$folder"
+      cp "$ROOT/formal/WorkspaceExternalRootReclaimR1."{tla,cfg} "$folder/"
+      if [[ "$kind" == omitted-mapping ]]; then
+        sed -i 's/CONSTANT OmitMappedRoot = FALSE/CONSTANT OmitMappedRoot = TRUE/' "$folder/WorkspaceExternalRootReclaimR1.cfg"
+        property=ClosedHasNoRoots
+      else
+        echo 'INVARIANT ClosedUnreachable' >> "$folder/WorkspaceExternalRootReclaimR1.cfg"
+        property=ClosedUnreachable
+      fi
+      workspace_close_expect_named_counterexample "$folder" WorkspaceExternalRootReclaimR1.cfg \
+        "$property" "external-$kind" WorkspaceExternalRootReclaimR1.tla
+    done
+    for kind in overwrite drop reachable; do
+      folder="$tmp_dir/receipt-$kind"
+      mkdir "$folder"
+      cp "$ROOT/formal/WorkspaceReclaimReceiptR1."{tla,cfg} "$folder/"
+      case "$kind" in
+        overwrite)
+          sed -i 's/AllowOverwrite = FALSE/AllowOverwrite = TRUE/' "$folder/WorkspaceReclaimReceiptR1.cfg"
+          property=OriginalReceiptPreserved ;;
+        drop)
+          sed -i 's/DropObservedOnFailure = FALSE/DropObservedOnFailure = TRUE/' "$folder/WorkspaceReclaimReceiptR1.cfg"
+          property=FailurePreservesObserved ;;
+        reachable)
+          echo 'INVARIANT NoDurableReceipt' >> "$folder/WorkspaceReclaimReceiptR1.cfg"
+          property=NoDurableReceipt ;;
+      esac
+      workspace_close_expect_named_counterexample "$folder" WorkspaceReclaimReceiptR1.cfg \
+        "$property" "receipt-$kind" WorkspaceReclaimReceiptR1.tla
+    done
+    for kind in identity disposition reachable; do
+      folder="$tmp_dir/close-receipt-$kind"
+      mkdir "$folder"
+      cp "$ROOT/formal/WorkspaceCloseReceiptBindingR1."{tla,cfg} "$folder/"
+      case "$kind" in
+        identity)
+          sed -i 's/IgnoreIdentity = FALSE/IgnoreIdentity = TRUE/' "$folder/WorkspaceCloseReceiptBindingR1.cfg"
+          property=ObservedBindsExact ;;
+        disposition)
+          sed -i 's/IgnoreDisposition = FALSE/IgnoreDisposition = TRUE/' "$folder/WorkspaceCloseReceiptBindingR1.cfg"
+          property=ObservedDispositionConsistent ;;
+        reachable)
+          echo 'INVARIANT NoObserved' >> "$folder/WorkspaceCloseReceiptBindingR1.cfg"
+          property=NoObserved ;;
+      esac
+      workspace_close_expect_named_counterexample "$folder" WorkspaceCloseReceiptBindingR1.cfg \
+        "$property" "close-receipt-$kind" WorkspaceCloseReceiptBindingR1.tla
+    done
   )
 }
 
