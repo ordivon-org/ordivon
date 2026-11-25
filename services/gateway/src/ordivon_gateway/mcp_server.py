@@ -8,6 +8,7 @@ from typing import Any
 import uvicorn
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
+from pydantic import StrictInt
 
 from .capabilities.host.tools import register_host_tools
 from .contracts import (
@@ -279,8 +280,8 @@ def build_server(
     async def artifact_read(
         operationRef: str,
         artifactId: str,
-        offset: int = 0,
-        maxBytes: int = 1_048_576,
+        offset: StrictInt = 0,
+        maxBytes: StrictInt = 1_048_576,
         requestId: str | None = None,
         capability: str | None = None,
         ctx: Context = None,
