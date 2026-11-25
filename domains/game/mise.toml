@@ -236,3 +236,7 @@ run = "python3 scripts/test_x11_interaction_acceptance.py"
 [tasks."test:mixed-audio-contract"]
 description = "Mixed PCM consequence and silence negative controls"
 run = "python3 scripts/test_mixed_audio_acceptance.py"
+
+[tasks."test:hosted-product-contract"]
+description = "Source-bound immutable preview identity and archive rejection"
+run = "python3 scripts/test_hosted_product_acceptance.py"

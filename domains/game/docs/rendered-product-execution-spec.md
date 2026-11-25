@@ -162,7 +162,7 @@ Do not add artifact storage, scheduler, unpacking engine, or game simulation.
 I: locally downloaded exact Actions ZIP, expected outer SHA, expected source
 commit and product. O: bound downstream consumer receipt. S: private bounded
 scratch, no normal player app data. pre: regular archive, exact outer digest,
-four exact regular members, expected READY/source, exactly three manifest
+five exact regular members, expected READY/source, exactly three manifest
 members and digest match, known export templates. post: one native Linux
 executable from the verified archive; strict rendered startup for both products,
 Room interaction and mixed PCM; bind actual executable hash and child scopes.
