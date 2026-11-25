@@ -484,3 +484,32 @@ loopback TCP to the postgres superuser while retaining OS-postgres Unix
 socket administration; the remaining roles require staged real-client
 credential migration. No workload machine bearer establishes signed
 Agent Principal authorization.
+
+### Work receipt retention — schema 0017 preparation
+
+The existing Work receipt and snapshot tables own the retention relation.
+A compact receipt binds its exact historical (workRef, revision) through a
+nullable pair and a native MATCH FULL foreign key. Full legacy receipts and
+unfinalized claims have no root pin. The CHECK binds the compact tag, operation
+and typed identity; the replay codec still validates payload and response
+digests. No separate retention registry or ordinary request-time graph scan.
+
+0017 installs the validated legacy-only format fence. The service continues
+to write full receipts; do not enable compact writers during this deployment.
+Quiesce old serving readers, qualify the new installed generation and verify
+the current schema, all consumers, backup and rollback first. The FK protects
+existence, not content mutation or deliberate privileged deletion of receipts.
+
+Before a future downgrade after compact writes, use the existing operator's
+authorized maintenance transaction with bounded lock/statement timeouts and
+call work_receipt_retention.expand_work_receipts_and_fence on its Psycopg
+dict-row connection. It takes an exclusive lock, reconstructs the exact old
+response and restores the legacy-only fence atomically. Any failure must
+roll back the operation. A native savepoint prevents partial expansion even
+if the caller catches a domain failure; the caller still owns final commit.
+An already validated exact fence with zero roots returns zero newly expanded
+rows, not the previous operation's count. Independently check the validated
+fence and zero pins before
+alembic downgrade; the migration rejects missing/weaker fences or surviving
+compact roots. On ambiguous commit, inspect actual native state before retry.
+Do not treat this source contract as production activation authority.

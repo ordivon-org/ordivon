@@ -1,11 +1,11 @@
 //! Original pending-batch identity and exclusive durable publication.
 use super::super::{
-    io_error, sha256_bytes, sync_directory, validate_relative_path, UniversalExecError,
-    UniversalExecErrorCode, UniversalExecutorConfig, WorkspaceMutateRequest,
+    io_error, sha256_bytes, sync_directory, validate_relative_path, write_bytes_atomic_if_absent,
+    UniversalExecError, UniversalExecErrorCode, UniversalExecutorConfig, WorkspaceMutateRequest,
 };
 use serde::{Deserialize, Serialize};
-use std::fs::{self, File, OpenOptions};
-use std::io::{Read, Write};
+use std::fs::{self, File};
+use std::io::Read;
 
 const BATCH_INTENT_FILE: &str = "pending-mutation-v1.json";
 pub(super) const MAX_BATCH_INTENT_BYTES: u64 = 64 * 1024 * 1024;
@@ -74,29 +74,9 @@ pub(super) fn publish_pending_exclusive(
     bytes: &[u8],
 ) -> Result<(), UniversalExecError> {
     let path = pending_path(config, workspace_id);
-    let parent = path.parent().expect("private Workspace cache has a parent");
-    fs::create_dir_all(parent).map_err(|e| incomplete(format!("batch intent directory: {e}")))?;
-    let stage = parent.join(format!(".pending-mutation-{}", uuid::Uuid::now_v7()));
-    let mut file = OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&stage)
-        .map_err(|e| incomplete(format!("batch intent staging: {e}")))?;
-    if let Err(error) = file.write_all(bytes).and_then(|()| file.sync_all()) {
-        let _ = fs::remove_file(&stage);
-        return Err(incomplete(format!(
-            "batch intent staging not durable: {error}"
-        )));
-    }
-    drop(file);
-    // Exclusive hard-link publish cannot overwrite a concurrent unfinished
-    // batch. POSIX rename with replace_existing=false does not offer this.
-    let result = fs::hard_link(&stage, &path);
-    let _ = fs::remove_file(&stage);
-    match result {
-        Ok(()) => sync_directory(parent)
-            .map_err(|e| incomplete(format!("batch intent publication durability unknown: {e}"))),
-        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => Err(incomplete(
+    match write_bytes_atomic_if_absent(&path, bytes) {
+        Ok(true) => Ok(()),
+        Ok(false) => Err(incomplete(
             "a concurrent Workspace batch already owns the durable intent",
         )),
         Err(error) => Err(incomplete(format!(

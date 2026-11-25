@@ -21,6 +21,12 @@ func _initialize() -> void:
     call_deferred("run_acceptance")
 
 func run_acceptance() -> void:
+    var args := OS.get_cmdline_user_args()
+    if (args.size() != 2 or args[0] != "--slot"
+            or not args[1].is_absolute_path() or FileAccess.file_exists(args[1])):
+        push_error("Expected -- --slot ABSOLUTE_UNUSED_PATH")
+        quit(2)
+        return
     var packed = load("res://main.tscn")
     expect(packed is PackedScene, "real packed scene loads")
     if not packed is PackedScene:
@@ -30,8 +36,7 @@ func run_acceptance() -> void:
     root.add_child(game)
     var rules = game.get_node("Rules")
     var save_slot = game.get_node("SaveSlot")
-    save_slot.slot_path = "user://game_room_encounter_acceptance.cfg"
-    DirAccess.remove_absolute(ProjectSettings.globalize_path(save_slot.slot_path))
+    save_slot.slot_path = args[1]
     var view = game.get_node("View")
     var audio = game.get_node("EncounterAudio")
     expect(audio.stream is AudioStream, "installed CC0 audio decodes as native AudioStream")
@@ -72,6 +77,7 @@ func run_acceptance() -> void:
     expect(audio.observed_play_count == 1, "door transition is silent")
     expect(rules.snapshot()["room"] == 2, "room index advances")
     expect(rules.attack() and rules.attack(), "second room has two defeatable enemies")
+    await process_frame
     expect(rules.snapshot()["phase"] == "cleared", "second room cleared")
     expect(rules.advance(), "third room entered")
     var guard_count: int = 0
@@ -79,6 +85,7 @@ func run_acceptance() -> void:
         if not rules.attack():
             expect(rules.guard(), "guard restores attack resource")
             guard_count += 1
+        await process_frame
     expect(rules.snapshot()["phase"] == "cleared", "default three-room run winnable")
     expect(rules.advance(), "final cleared door opens")
     expect(rules.snapshot()["phase"] == "won", "three room win achieved")
@@ -88,6 +95,7 @@ func run_acceptance() -> void:
     var variant = load("res://configs/variant.tres")
     var replacement_clip = load("res://assets/click2.wav")
     expect(replacement_clip is AudioStream, "alternative licensed sound is available")
+    await process_frame
     audio.stream = replacement_clip
     expect(rules.reset_run(variant), "user resource replaces native tuning")
     expect(audio.stream == replacement_clip, "audio substitution keeps rule contract unchanged")
@@ -106,6 +114,22 @@ func run_acceptance() -> void:
     expect(rules.reset_run(owned), "valid caller-owned tuning accepted")
     owned.enemies_per_room = PackedInt32Array([9, 9, 9])
     expect(rules.snapshot()["total_rooms"] == 2, "active state is independent of mutated caller resource")
+
+    # The former public Resource was an authority leak: a consumer could set
+    # attack_cost=-1 after admission, making an accepted attack gain stamina.
+    var before_escape: Dictionary = rules.snapshot()
+    var exposed: Variant = rules.get("active")
+    if exposed is Resource:
+        exposed.attack_cost = -1
+    expect(rules.attack(), "valid attack remains available after external configuration attempt")
+    var after_escape: Dictionary = rules.snapshot()
+    expect(after_escape["attack_cost"] == before_escape["attack_cost"] and
+        after_escape["stamina"] == before_escape["stamina"] - before_escape["attack_cost"],
+        "public consumer cannot bypass admitted attack cost or create stamina")
+    expect(rules.restart_run(), "rule-owned restart retains admitted configuration")
+    expect(rules.snapshot() == before_escape,
+        "rule-owned restart restores the same admitted starting state")
+    expect(not rules.is_tactical_trial(), "rule-owned mode observation is a value")
 
     var alternate = packed.instantiate()
     alternate.view_scene = load("res://encounter_view_variant.tscn")
@@ -136,6 +160,16 @@ func run_acceptance() -> void:
     expect(alternate.get_node("EncounterAudio").observed_play_count == 1, "alternate HUD retains sound consumer")
     expect(replacement_view.get_node("Encounter").text.contains("CLEARED"),
         "alternative view consumes native Signal")
+
+    # Audio consumers have been exercised above through the native scenes.
+    # The remaining arithmetic and bounded rule traces are not audio workloads.
+    await process_frame
+    audio.stop()
+    audio.stream = null
+    var alternate_audio: AudioStreamPlayer = alternate.get_node("EncounterAudio")
+    alternate_audio.stop()
+    alternate_audio.stream = null
+    await process_frame
 
     # Machine-arithmetic consumer witness for formal/verify_room_arithmetic.py:
     # the native GDScript used to overflow before the fix, although tuning and
@@ -316,29 +350,34 @@ func run_acceptance() -> void:
     # Run 3^5 bounded native traces under both historical Classic and Trial
     # without creating a second simulator. 486 total traces.
     var trace_trial: Resource = load("res://configs/tactical_trial.tres")
+    var trace_rules = preload("res://encounter_rules.gd").new()
+    root.add_child(trace_rules)
     for trial_variant in range(2):
         for trace in range(243):
-            expect(rules.reset_run(trace_trial if trial_variant == 1 else null),
+            expect(trace_rules.reset_run(trace_trial if trial_variant == 1 else null),
                 "reset correct native recipe for bounded traces")
             var code: int = trace
             for step in range(5):
                 var action: int = code % 3
                 code = floori(float(code) / 3.0)
-                var state_before: Dictionary = rules.snapshot()
+                var state_before: Dictionary = trace_rules.snapshot()
                 var result: bool = false
                 if action == 0:
-                    result = rules.attack()
+                    result = trace_rules.attack()
                 elif action == 1:
-                    result = rules.guard()
+                    result = trace_rules.guard()
                 else:
-                    result = rules.advance()
-                var state_after: Dictionary = rules.snapshot()
+                    result = trace_rules.advance()
+                var state_after: Dictionary = trace_rules.snapshot()
                 if result and state_before["phase"] == "fighting" and action < 2 and state_before.has("forecast"):
                     var prediction: Dictionary = state_before["forecast"]
                     var key: String = "attack_health_loss" if action == 0 else "guard_health_loss"
                     expect(state_before["player_health"] - state_after["player_health"] ==
                         prediction[key], "every accepted native action obeys its pre-action forecast")
                 invariant(state_after)
+
+    trace_rules.queue_free()
+    await process_frame
 
     # A direct, valid Rule Resource replacement must not be silently
     # overridden by a second root-local mode flag on Restart.
@@ -370,11 +409,12 @@ func run_acceptance() -> void:
 
     audio.stop()
     audio.stream = null
-    var alternate_audio: AudioStreamPlayer = alternate.get_node("EncounterAudio")
     alternate_audio.stop()
     alternate_audio.stream = null
-    game.free()
-    alternate.free()
+    game.queue_free()
+    alternate.queue_free()
+    await process_frame
+    await process_frame
     replacement_clip = null
     await create_timer(0.15).timeout
     if failures.is_empty():

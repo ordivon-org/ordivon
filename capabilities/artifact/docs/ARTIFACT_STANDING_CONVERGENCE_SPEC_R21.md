@@ -49,9 +49,24 @@ Safety law, under well-formed inputs: `complete => all_required_supported_by_non
 
 - v1 stage `status=PASS` may mean all *executed* gates passed while `profileVerificationComplete=false`; preserve this distinction until consumer migration, never promote missing gates.
 - v2 native `status=PASS` may be legacy compatible while `profileVerificationComplete=false`; preserve existing consumers and add scoped Standing, never reinterpret as full acceptance.
-- FLAC/WAVE/PNG claim-complete routes require explicit claimResults/native status pointers; do not weaken.
+- FLAC/WAVE/PNG claim-complete routes require explicit claimResults/native status pointers; do not weaken. All declared pointers for one required PASS/FAIL claim must resolve to claim-specific observations with the same status; a valid sibling cannot mask a malformed, unrelated, self-witnessing, or contradictory pointer. This is a conjunctive witness list, not a list of alternatives.
 - v1 and v2 profile definitions are NOT globally equivalent. Prove each common axis or mark UNKNOWN.
 - No full snapshot guarantee for sidecar formats until dependency closure is bound.
+- T4 descriptor boundary: `artifact_core/file_stream.py` shares one native
+  regular-file descriptor open and one digest/length observation between
+  FileCommitment and private InputSnapshot. Initial aliases may be resolved
+  by the caller; a final replacement alias at the committed path is rejected
+  where O_NOFOLLOW is supported. O_NONBLOCK prevents FIFO admission from
+  waiting for a writer. No parent-directory or process-readset continuity
+  guarantee is inferred.
+- T4 v2 input binding: `artifact_verification/request_inputs.py` owns typed
+  profile/subject/contract bindings and their caller-owned snapshot lifetime.
+  Legacy admission paths have before/after digest checks; observed drift or
+  unavailable input prevents service PASS and leaves Standing UNKNOWN,
+  retaining the actual native report after execution. Matching checks do not
+  establish ABA freedom, sidecar closure or native-tool honesty. Legacy
+  `ADMISSION_DIGEST_ONLY` remains wire-compatible.
+
 - Negative cases: absent claim, NOT_EVALUATED claim, explicit FAIL, conflicting native pointer, missing required gate, mismatched native identity, tool identity drift, source rebind, fake consumer success.
 - Keep old API/schema working while expand–migrate–contract is in progress.
 
@@ -82,6 +97,8 @@ Use existing public entrypoints `execute_verify_stage` (through DirectPython pro
 | T6 Retire old logic and glue | T3,T5 | One Standing authority, with duplicate branch paths removed | source graph + owner tests + actual caller checks |
 | T7 Owner-level work handoff | T5,T6 | Task reports separate execution from consumer success | existing Host/Runtime/Harness contracts; no new registry |
 | T8 Independent release and cleanup | T6,T7 | verified merged source, installed readback where relevant, obsolete history removed | CI, Code Review, consumer evidence |
+
+V1 stage admission and receipt digest comparisons reject observed Subject/Profile drift; this is not a frozen read set, a proof against transient ABA replacement, or a complete sidecar dependency closure.
 
 ## Delivery gates and stop conditions
 
@@ -270,6 +287,34 @@ Building another Runtime/Host/Harness, universal file taxonomy, custom CAS, seco
 - obra/superpowers `writing-plans`, `test-driven-development`, `verification-before-completion`, `using-git-worktrees`.
 - affaan-m/ECC `hooks`, `rules`, `skills`: selective reuse of quality gate semantics, without wholesale installation.
 
+
+### T4 narrow qualification: bounded TMJ object maps
+
+The existing Tiled R1 route is qualified for exact subject/contract snapshots
+only within its finite orthogonal object-layer-only subset. Map, layer and
+object properties must have explicit supported scalar types; file, custom
+class/project type and non-scalar properties are rejected before native
+invocation, along with the existing template/tileset/unsupported layer
+rejections. Duplicate input JSON keys and malformed IDs fail admission.
+The pure `artifact_verifiers/tiled_map.py` owns bounded map facts and
+admission diagnostics; the existing Tiled driver owns process execution,
+native evidence and format/raster roundtrips. No new registry or workflow.
+
+I: parsed exact TMJ/contract objects; O: bounded facts plus issues; S: Unit;
+pre: unique-key JSON; post: no declared file/template/tileset/class resource
+accepted within this subset; inv: failures prevent native invocation; eff:
+none for map admission; c: linear scan of declared layers/objects/properties
+plus canonical serialization/sorting; epsilon: deterministic declared-field
+scope only, not arbitrary future Tiled extensions or full process readset;
+prov: original request digests, private snapshot and native reports; unfold:
+map/property diagnostics then existing native observations. The legacy
+aggregate status and incomplete required-claim coverage remain unchanged.
+The v2 service snapshot protects original-path replacement/ABA for the two
+bound files. Direct native CLI callers retain their existing path semantics;
+same-principal scratch mutation, imported Python/native dependencies, Tiled
+global configuration, and external target acceptance are not claimed.
+
+The historical Game TMJ receipt retains its original bytes and digest. All four Artifact authority digests match the retained monorepo source cut `e2757345aae3e4d38330d0f07c8eef45bbdf998f`; the historical receipt test reads that exact Git witness rather than constraining the current driver. This is not the original external repository revision.
 
 ### T2 Web browser evidence projection
 

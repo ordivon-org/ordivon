@@ -24,15 +24,17 @@ class TemporalArtifactDeliveryContractTests(unittest.TestCase):
             if isinstance(node,ast.ClassDef) and node.name=='ArtifactWorkflow':
                 seg=ast.get_source_segment(text,node) or ''
                 for forbidden in ('subprocess.','Path(','open(','read_text(','write_text('):self.assertNotIn(forbidden,seg)
-    def test_temporal_sdk_pin(self):
-        # Both owner environments must consume the same supported SDK revision.
-        for relative in ('pyproject.toml', 'artifact-delivery/python-uv/pyproject.toml'):
+    def test_temporal_sdk_resolution_is_shared_by_both_environments(self):
+        from importlib.metadata import version
+
+        carrier = json.loads((ROOT / "artifact-delivery/artifact-python-runtime-v1.lock.json").read_text())
+        expected = carrier["pythonPackages"]["temporalio"]
+        for relative in ("uv.lock", "artifact-delivery/python-uv/uv.lock"):
             with self.subTest(environment=relative):
-                project = tomllib.loads((ROOT / relative).read_text())
-                self.assertIn('temporalio==1.34.0', project['project']['dependencies'])
-        carrier = json.loads((ROOT / 'artifact-delivery/artifact-python-runtime-v1.lock.json').read_text())
-        plan = json.loads((ROOT / 'artifact-delivery/toolchain-v1.plan.json').read_text())
-        self.assertEqual(plan['shared']['workflow']['version'], carrier['pythonPackages']['temporalio'])
+                lock = tomllib.loads((ROOT / relative).read_text())
+                resolved = {row["name"]: row["version"] for row in lock["package"]}
+                self.assertEqual(resolved["temporalio"], expected)
+        self.assertEqual(version("temporalio"), expected)
     def test_launcher_duplicate_policy(self):
         text=(ROOT/'scripts/artifact_temporal_launch.py').read_text();self.assertIn('WorkflowIDReusePolicy.REJECT_DUPLICATE',text);self.assertIn('WorkflowIDConflictPolicy.FAIL',text);self.assertIn('signal-trust',text)
     def test_receipt_fence_replays_same_build(self):
@@ -92,11 +94,12 @@ class TemporalArtifactDeliveryContractTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         with patch.object(module, 'MAIN', module.ROOT), patch.object(module, 'active', return_value=True):
-            with patch.object(module, 'temporal_sdk_version', return_value='1.32.0'):
+            with patch.object(module, 'temporal_sdk_version', return_value='0.0.0'):
                 previous = module.plan()
                 self.assertFalse(previous['temporalSdkPinned'])
                 self.assertFalse(previous['applyEligible'])
-            with patch.object(module, 'temporal_sdk_version', return_value='1.34.0'):
+            expected = json.loads((ROOT / 'artifact-delivery/artifact-python-runtime-v1.lock.json').read_text())['pythonPackages']['temporalio']
+            with patch.object(module, 'temporal_sdk_version', return_value=expected):
                 current = module.plan()
                 self.assertTrue(current['temporalSdkPinned'])
                 self.assertTrue(current['applyEligible'])
