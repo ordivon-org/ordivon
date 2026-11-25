@@ -34,6 +34,11 @@ from ordivon_capital.portfolio.information_tree import (
     MultistageProblem,
     validate_information_tree,
 )
+from ordivon_capital.portfolio.numerical_solver import (
+    NumericalSolver,
+    solve_numeric,
+    validate_numerical_solver,
+)
 from ordivon_capital.portfolio.optimality_evidence import OptimalityEvidence, certify_canonical_gap
 from ordivon_capital.portfolio.policy_contract import AlgebraicPolicyError, finite_economic_number
 from ordivon_capital.portfolio.witness_repair import WitnessRepair, repair_canonical_witness
@@ -65,10 +70,12 @@ class MultistageSolution:
     standing: str = "FINITE_TREE_CONDITIONAL_NUMERIC_NOT_MARKET_VERIFIED"
     optimality_evidence: OptimalityEvidence | None = None
     witness_repair: WitnessRepair | None = None
+    numerical_solver: str = "SLSQP"
 
 
 def solve_multistage(
     problem: MultistageProblem, *, witness_repair_max_change_r: float | None = None,
+    numerical_solver: NumericalSolver = "SLSQP",
 ) -> MultistageSolution:
     """Solve a scenario-tree convex program without market/broker side effects.
 
@@ -84,13 +91,14 @@ def solve_multistage(
       pretrade_equity_edge >= 0 before any 1r rescue deposit
     Terminal expected CRRA utility is strictly concave in positive wealth.
     """
+    validate_numerical_solver(numerical_solver)
     if witness_repair_max_change_r is not None and (
         not finite_economic_number(witness_repair_max_change_r)
         or witness_repair_max_change_r < 0
     ):
         raise AlgebraicPolicyError("finite nonnegative repair budget required")
     import numpy as np
-    from scipy.optimize import Bounds, LinearConstraint, linprog, minimize
+    from scipy.optimize import linprog
     from scipy.sparse import csr_matrix, hstack, vstack
 
     compiled = compile_multistage_constraints(problem)
@@ -161,15 +169,6 @@ def solve_multistage(
             )
         x0 = np.asarray(lp.x[:-1], dtype=float)
 
-    # SLSQP is a dense carrier. Convert only at this explicit boundary;
-    # feasibility, matrix-vector products and certificate LP remain sparse.
-    constraints = [
-        LinearConstraint(A_eq.toarray(), b_eq, b_eq),
-        LinearConstraint(A_ub.toarray(), -np.inf, b_ub),
-        LinearConstraint(W_arrival.toarray(), 0.0, np.inf),
-        LinearConstraint(W_leaf.toarray(), liabilities + numerical_interior, np.inf),
-    ]
-    bounds = Bounds(np.zeros(size), np.full(size, np.inf))
     gamma = problem.gamma
 
     def utility_and_gradient(x: Any) -> tuple[float, Any]:
@@ -194,20 +193,23 @@ def solve_multistage(
         value, grad = utility_and_gradient(x)
         return -value, -grad
 
-    found = minimize(
-        neg_objective_and_gradient, x0, method="SLSQP", jac=True,
-        bounds=bounds, constraints=constraints,
-        options={"ftol": 1e-11, "maxiter": 3000},
+    found = solve_numeric(
+        selection=numerical_solver, compiled=compiled, x0=x0,
+        objective=neg_objective_and_gradient, gamma=gamma,
+        numerical_interior=numerical_interior,
     )
     x = np.asarray(found.x, dtype=float)
+    if x.shape != (size,) or not np.all(np.isfinite(x)):
+        raise AlgebraicPolicyError("invalid numerical solver candidate coordinates")
     equality_error = float(np.max(np.abs(A_eq @ x - b_eq)))
-    inequality_error = float(max(
+    inequality_terms = np.asarray([
         0.0,
         np.max(A_ub @ x - b_ub),
         -np.min(x),
         -np.min(W_arrival @ x),
         np.max(liabilities + numerical_interior - W_leaf @ x),
-    ))
+    ])
+    inequality_error = float(np.max(inequality_terms))
     if (
         not found.success
         or not np.all(np.isfinite(x))
@@ -329,6 +331,7 @@ def solve_multistage(
         concavity_global_utility_gap_upper=gap,
         optimality_evidence=evidence,
         witness_repair=repair,
+        numerical_solver=numerical_solver,
     )
 
 def main() -> int:
@@ -356,6 +359,7 @@ def main() -> int:
     )
     parser.add_argument("--input", type=str, default="-")
     parser.add_argument("--witness-repair-max-change-r", type=float, default=None)
+    parser.add_argument("--numerical-solver", choices=("SLSQP", "TRUST_CONSTR_SPARSE"), default="SLSQP")
     args = parser.parse_args()
     try:
         if args.input == "-":
@@ -404,6 +408,7 @@ def main() -> int:
                 ),
             ),
             witness_repair_max_change_r=args.witness_repair_max_change_r,
+            numerical_solver=args.numerical_solver,
         )
     except (ValueError, TypeError, KeyError) as exc:
         parser.error(f"invalid economic research input: {exc}")
