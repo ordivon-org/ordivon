@@ -439,16 +439,30 @@ def eligible(
         and latest_job_ms <= now_ms - min_age_ms
     )
 
-def _active_process_cwds(root: Path) -> list[str]:
-    result = []
-    for process in Path("/proc").glob("[0-9]*/cwd"):
+def _active_process_paths(root: Path) -> list[str]:
+    """Advisory native consumer observation, not proof of semantic release.
+
+    External consumers can keep a Workspace file open while running outside
+    that Workspace. Inspect cwd, executable and open descriptors. Denied
+    observation is UNKNOWN and aborts the sweep; exited processes are normal.
+    """
+    prefix = str(root) + os.sep
+    result = set()
+    for process in Path("/proc").glob("[0-9]*"):
+        links = [process / "cwd", process / "exe"]
         try:
-            cwd = os.readlink(process)
-            if cwd.startswith(str(root) + "/"):
-                result.append(cwd)
-        except (OSError, PermissionError):
+            links.extend((process / "fd").iterdir())
+        except (FileNotFoundError, ProcessLookupError):
             continue
-    return result
+        for link in links:
+            try:
+                location = os.readlink(link)
+            except (FileNotFoundError, ProcessLookupError):
+                continue
+            location = location.removesuffix(" (deleted)")
+            if location == str(root) or location.startswith(prefix):
+                result.add(location)
+    return sorted(result)
 
 def _store_receipt(root: Path, data: dict) -> str:
     root.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -563,7 +577,7 @@ def run(args: argparse.Namespace) -> dict:
     policy = _retention_policy(args.policy_file)
     recent = _jobs(env)
     now = int(time.time() * 1000)
-    cwd = _active_process_cwds(root)
+    process_paths = _active_process_paths(root)
     results = {
         "checked": 0, "eligible": 0, "closed": [], "preserved": [],
         "skipped": {}, "errors": [], "retentionPolicy": (
@@ -608,8 +622,8 @@ def run(args: argparse.Namespace) -> dict:
     inspect_targets = []
     for path, head in worktrees:
         results["checked"] += 1
-        if any(item == str(path) or item.startswith(str(path)+"/") for item in cwd):
-            skip("process_cwd_active");continue
+        if any(item == str(path) or item.startswith(str(path)+"/") for item in process_paths):
+            skip("process_path_active");continue
         retention_ms, unintegrated_allowed = _workspace_retention(
             policy, path.name, args.min_age_hours
         )
@@ -715,15 +729,15 @@ def run(args: argparse.Namespace) -> dict:
             )
             if current_ignored.returncode or current_ignored.stdout:
                 skip("ignored_files_at_close");continue
-            # A process can enter a Workspace after the initial sweep CWD
+            # A process can enter a Workspace after the initial sweep path
             # census. Refresh this bounded Linux readset before any close.
             # This remains an advisory guard: native PG/systemd owns the
             # stronger physical consumer and active-lease checks.
             if any(
                 item == str(path) or item.startswith(str(path) + "/")
-                for item in _active_process_cwds(root)
+                for item in _active_process_paths(root)
             ):
-                skip("process_cwd_active_at_close");continue
+                skip("process_path_active_at_close");continue
             # Refresh only this candidate's activity before any preservation
             # or close. A later terminal Job invalidates the old disposition
             # even after the native four-hour continuation window.

@@ -70,6 +70,26 @@ class PgWorkspaceReclaimTests(unittest.TestCase):
                            latest_job_ms=5_000_000, latest_resolution="succeeded",
                            unresolved=0, min_age_ms=3_000_000)
 
+    def test_external_open_file_is_a_workspace_consumer(self):
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory(prefix="ordivon-consumer-fd-") as root:
+            workspace = Path(root) / "ws"
+            workspace.mkdir()
+            payload = workspace / "retained-result"
+            payload.write_text("native consumer")
+            self.assertFalse(str(Path.cwd()).startswith(str(workspace)))
+            with payload.open("rb"):
+                self.assertIn(str(payload), mod._active_process_paths(Path(root)))
+            self.assertNotIn(str(payload), mod._active_process_paths(Path(root)))
+
+    def test_external_consumer_unknown_is_not_an_empty_census(self):
+        from unittest.mock import patch
+
+        with patch.object(mod.os, "readlink", side_effect=PermissionError("denied")):
+            with self.assertRaises(PermissionError):
+                mod._active_process_paths(Path("/nonexistent-workspace-root"))
+
     def test_reclaims_only_old_terminal_success(self):
         self.assertTrue(mod.eligible(**self.params))
 
@@ -471,7 +491,7 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                                                 "succeeded", 0)}]
                 if later_job_activity else lambda *_: job_rows
             )),
-            patch.object(mod, "_active_process_cwds",
+            patch.object(mod, "_active_process_paths",
                          side_effect=lambda _: process_cwd_after_get.copy()),
             patch.object(mod.time, "time", return_value=future_ms / 1000),
             patch.object(mod, "connect_compatible", return_value=client),
@@ -559,7 +579,7 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                         "ORDIVON_PG_BIND": "127.0.0.1:0", "ORDIVON_PG_TOKEN": "test",
                     }),
                     patch.object(mod, "_jobs", return_value=job_rows),
-                    patch.object(mod, "_active_process_cwds", return_value=[]),
+                    patch.object(mod, "_active_process_paths", return_value=[]),
                     patch.object(mod.time, "time", return_value=future_ms / 1000),
                     patch.object(mod, "connect_compatible", return_value=client),
                 ):
@@ -1015,7 +1035,7 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
         self.assertEqual(client.calls, ["workspace.get"])
         self.assertEqual(report["closed"], [])
         self.assertEqual(report["preserved"], [])
-        self.assertEqual(report["skipped"].get("process_cwd_active_at_close"), 1)
+        self.assertEqual(report["skipped"].get("process_path_active_at_close"), 1)
         self.assertTrue(self.workspace.exists())
 
     def test_native_close_timeout_keeps_accurate_unknown_and_preserved_head(self):
