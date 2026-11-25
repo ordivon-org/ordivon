@@ -35,7 +35,8 @@ from ordivon_capital.portfolio.information_tree import (
     validate_information_tree,
 )
 from ordivon_capital.portfolio.optimality_evidence import OptimalityEvidence, certify_canonical_gap
-from ordivon_capital.portfolio.policy_contract import AlgebraicPolicyError
+from ordivon_capital.portfolio.policy_contract import AlgebraicPolicyError, finite_economic_number
+from ordivon_capital.portfolio.witness_repair import WitnessRepair, repair_canonical_witness
 
 # The existing PIT source consumer exercises this exact validation contract
 # through the old module import. Re-export the same function, not its logic.
@@ -63,9 +64,12 @@ class MultistageSolution:
     concavity_global_utility_gap_upper: float
     standing: str = "FINITE_TREE_CONDITIONAL_NUMERIC_NOT_MARKET_VERIFIED"
     optimality_evidence: OptimalityEvidence | None = None
+    witness_repair: WitnessRepair | None = None
 
 
-def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
+def solve_multistage(
+    problem: MultistageProblem, *, witness_repair_max_change_r: float | None = None,
+) -> MultistageSolution:
     """Solve a scenario-tree convex program without market/broker side effects.
 
     Every decision node t has a deterministic exogenous 1r contribution.
@@ -80,6 +84,11 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
       pretrade_equity_edge >= 0 before any 1r rescue deposit
     Terminal expected CRRA utility is strictly concave in positive wealth.
     """
+    if witness_repair_max_change_r is not None and (
+        not finite_economic_number(witness_repair_max_change_r)
+        or witness_repair_max_change_r < 0
+    ):
+        raise AlgebraicPolicyError("finite nonnegative repair budget required")
     import numpy as np
     from scipy.optimize import Bounds, LinearConstraint, linprog, minimize
     from scipy.sparse import csr_matrix, hstack, vstack
@@ -289,13 +298,18 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
         )
     }
     first = output_decisions[decisions[0].id]
+    risky_policy = {key: row["assetExposuresR"] for key, row in output_decisions.items()}
+    inequality_marginals = getattr(getattr(certificate, "ineqlin", None), "marginals", None)
+    equality_marginals = getattr(getattr(certificate, "eqlin", None), "marginals", None)
     evidence = certify_canonical_gap(
-        problem,
-        {key: row["assetExposuresR"] for key, row in output_decisions.items()},
-        getattr(getattr(certificate, "ineqlin", None), "marginals", None),
-        getattr(getattr(certificate, "eqlin", None), "marginals", None),
-        gap,
+        problem, risky_policy, inequality_marginals, equality_marginals, gap,
     )
+    repair = None
+    if witness_repair_max_change_r is not None and evidence.reason == "INEXACT_WITNESS":
+        repair = repair_canonical_witness(
+            problem, risky_policy, inequality_marginals, equality_marginals, gap,
+            max_change_r=witness_repair_max_change_r,
+        )
     return MultistageSolution(
         contributions_r_per_path=tree.months,
         expected_terminal_r=float(leaf_probabilities @ terminal_wealth),
@@ -314,6 +328,7 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
         inequality_residual=inequality_error,
         concavity_global_utility_gap_upper=gap,
         optimality_evidence=evidence,
+        witness_repair=repair,
     )
 
 def main() -> int:
@@ -340,6 +355,7 @@ def main() -> int:
         description="Read-only finite-scenario 1r CRRA multi-period research"
     )
     parser.add_argument("--input", type=str, default="-")
+    parser.add_argument("--witness-repair-max-change-r", type=float, default=None)
     args = parser.parse_args()
     try:
         if args.input == "-":
@@ -386,7 +402,8 @@ def main() -> int:
                 node_outflow_after_contribution_r=payload.get(
                     "node_outflow_after_contribution_r"
                 ),
-            )
+            ),
+            witness_repair_max_change_r=args.witness_repair_max_change_r,
         )
     except (ValueError, TypeError, KeyError) as exc:
         parser.error(f"invalid economic research input: {exc}")
