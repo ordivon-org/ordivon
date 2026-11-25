@@ -115,3 +115,23 @@
 (assert (> (* g (- z x)) (* lo (- z x))))
 (check-sat)
 (pop)
+
+; Sparse gradient resource admission: zero is initially in budget.
+; At an arbitrary coordinate, an update either checks its new bit length
+; or leaves the old value unchanged. This obligation is about locality,
+; not a model of Python integer arithmetic or its execution time.
+(declare-const bitsBefore Real)
+(declare-const bitsAfter Real)
+(declare-const touched Bool)
+(push)
+(assert (and (<= 0 bitsBefore) (<= bitsBefore 16384)
+             (=> touched (<= bitsAfter 16384))
+             (=> (not touched) (= bitsAfter bitsBefore))))
+(assert (> bitsAfter 16384))
+(check-sat)
+(pop)
+; Counterexample: an updated coordinate without its local gate can exceed budget.
+(push)
+(assert (and touched (= bitsBefore 1) (= bitsAfter 16385)))
+(check-sat)
+(pop)
