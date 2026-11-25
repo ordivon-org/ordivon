@@ -108,6 +108,7 @@ if [[ -n "$(git status --porcelain --untracked-files=normal)" ]]; then
 fi
 stage="$(mktemp -d "$target/.factory-package.XXXXXXXX")"
 trap 'rm -rf -- "$stage"' EXIT
+python3 scripts/native_export_identity.py examples/room-encounter > "$stage/export-inputs.before"
 mise run factory:validate:godot
 GAME_EXPORT_DIR="$stage/linux-x86_64" mise run export:room-linux
 GAME_EXPORT_DIR="$stage/windows-x86_64" mise run export:room-windows
@@ -122,17 +123,7 @@ mv -- "$stage/room-encounter-windows-x86_64.zip" "$stage/ready/"
   echo "SOURCE_COMMIT=$head_before"
   echo "SOURCE_TREE=$tree_before"
   echo "SOURCE_WORKTREE=clean"
-  echo "ENGINE=$(godot --version)"
-  template_root="${GAME_GODOT_TEMPLATE_DIR:-$HOME/.local/share/godot/export_templates/4.7.2.stable}"
-  for platform in linux windows; do
-    template="$template_root/linux_release.x86_64"
-    if [[ "$platform" == windows ]]; then template="$template_root/windows_release_x86_64.exe"; fi
-    if test -s "$template"; then
-      echo "TEMPLATE_${platform^^}_SHA256=$(sha256sum "$template" | cut -d' ' -f1)"
-    else
-      echo "TEMPLATE_${platform^^}_SHA256=UNKNOWN"
-    fi
-  done
+  cat "$stage/export-inputs.before"
   echo "QUALIFICATION=native_headless_preview"
   echo "LINUX_SCOPE=native_headless_smoke"
   echo "WINDOWS_SCOPE=export_only"
@@ -146,6 +137,11 @@ mv -- "$stage/room-encounter-windows-x86_64.zip" "$stage/ready/"
 if [[ "$(git rev-parse HEAD)" != "$head_before" || "$(git rev-parse 'HEAD^{tree}')" != "$tree_before" || -n "$(git status --porcelain --untracked-files=normal)" ]]; then
   echo "GAME_FACTORY_SOURCE_CHANGED_DURING_BUILD" >&2
   exit 43
+fi
+python3 scripts/native_export_identity.py examples/room-encounter > "$stage/export-inputs.after"
+if ! cmp -s "$stage/export-inputs.before" "$stage/export-inputs.after"; then
+  echo "GAME_FACTORY_EXPORT_INPUT_CHANGED_DURING_BUILD" >&2
+  exit 44
 fi
 printf 'COMPLETE_SOURCE_COMMIT=%s\\n' "$head_before" > "$stage/ready/READY"
 bundle="$target/bundle-${head_before:0:12}-${stage##*.}"
@@ -173,6 +169,7 @@ if [[ -n "$(git status --porcelain --untracked-files=normal)" ]]; then
 fi
 stage="$(mktemp -d "$target/.factory-package.XXXXXXXX")"
 trap 'rm -rf -- "$stage"' EXIT
+python3 scripts/native_export_identity.py examples/beacon-relay > "$stage/export-inputs.before"
 mise run test:beacon
 mkdir -p "$stage/linux-x86_64" "$stage/windows-x86_64"
 godot --headless --path examples/beacon-relay --export-release "Linux x86_64" "$stage/linux-x86_64/beacon-relay.x86_64"
@@ -196,17 +193,7 @@ test -s "$stage/ready/beacon-relay-windows-x86_64.zip"
   echo "SOURCE_COMMIT=$head_before"
   echo "SOURCE_TREE=$tree_before"
   echo "SOURCE_WORKTREE=clean"
-  echo "ENGINE=$(godot --version)"
-  template_root="${GAME_GODOT_TEMPLATE_DIR:-$HOME/.local/share/godot/export_templates/4.7.2.stable}"
-  for platform in linux windows; do
-    template="$template_root/linux_release.x86_64"
-    if [[ "$platform" == windows ]]; then template="$template_root/windows_release_x86_64.exe"; fi
-    if test -s "$template"; then
-      echo "TEMPLATE_${platform^^}_SHA256=$(sha256sum "$template" | cut -d' ' -f1)"
-    else
-      echo "TEMPLATE_${platform^^}_SHA256=UNKNOWN"
-    fi
-  done
+  cat "$stage/export-inputs.before"
   echo "QUALIFICATION=native_headless_preview"
   echo "LINUX_SCOPE=native_headless_smoke"
   echo "WINDOWS_SCOPE=export_only"
@@ -220,6 +207,11 @@ test -s "$stage/ready/beacon-relay-windows-x86_64.zip"
 if [[ "$(git rev-parse HEAD)" != "$head_before" || "$(git rev-parse 'HEAD^{tree}')" != "$tree_before" || -n "$(git status --porcelain --untracked-files=normal)" ]]; then
   echo "GAME_FACTORY_SOURCE_CHANGED_DURING_BUILD" >&2
   exit 43
+fi
+python3 scripts/native_export_identity.py examples/beacon-relay > "$stage/export-inputs.after"
+if ! cmp -s "$stage/export-inputs.before" "$stage/export-inputs.after"; then
+  echo "GAME_FACTORY_EXPORT_INPUT_CHANGED_DURING_BUILD" >&2
+  exit 44
 fi
 printf 'COMPLETE_SOURCE_COMMIT=%s\\n' "$head_before" > "$stage/ready/READY"
 bundle="$target/bundle-${head_before:0:12}-${stage##*.}"
