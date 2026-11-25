@@ -13,6 +13,7 @@ from typing import Any
 from uuid import UUID
 
 from .local_evidence import LocalEvidenceBinding, qualified_local_distribution
+from .metadata_json import read_metadata
 
 _FORMATS = {
     "file/json": "application/json",
@@ -59,7 +60,7 @@ def project_odps(
         raw = source
     else:
         raise TypeError("ODPS input must be a Path or immutable bytes")
-    product = json.loads(raw)
+    product = read_metadata(raw)
     if not isinstance(product, dict):
         raise TypeError("ODPS document must be an object")
     if product.get("apiVersion") != "v1.1.0" or product.get("kind") != "DataProduct":

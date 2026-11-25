@@ -90,6 +90,22 @@ class OwnerProductProjectionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "duplicate owner product"):
             project_catalog([self.sources[0], self.sources[0]])
 
+    def test_ambiguous_json_member_is_not_a_product_identity(self) -> None:
+        raw = self.sources[0].read_bytes()
+        cases = [
+            raw.replace(b'{', b'{"id":"foreign",', 1),
+            raw.replace(b'{', b'{"\\u0069d":"foreign",', 1),
+            raw.replace(b'"outputPorts": [', b'"outputPorts": [], "outputPorts": [', 1),
+            raw.replace(b'{', b'{"unused":NaN,', 1),
+            raw.replace(b'{', b'{"unused":1e9999,', 1),
+        ]
+        for index, source in enumerate(cases):
+            with self.subTest(index=index):
+                self.assertNotEqual(raw, source)
+                with self.assertRaisesRegex(ValueError, "duplicate JSON member|non-finite JSON number"):
+                    project_catalog([source])
+        self.assertEqual(project_catalog([raw]), project_catalog([self.sources[0]]))
+
     def test_canonical_product_uuid_aliases_are_one_version_identity(self) -> None:
         """Different UUID spellings must not create two copies of one product/version."""
         product = json.loads(self.sources[0].read_text(encoding="utf-8"))

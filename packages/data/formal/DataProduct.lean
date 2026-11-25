@@ -229,6 +229,30 @@ theorem same_payload_distinct_ids_not_redundancy (a b : String) (digest : Nat)
 
 #print axioms duplicate_distribution_id_rejected
 #print axioms same_payload_distinct_ids_not_redundancy
+-- Abstract one decoded object, before any last-wins dictionary conversion.
+-- A decoder supplies decoded key spelling and finite-number qualification.
+-- Each nested object must independently satisfy this same predicate.
+def metadataObjectQualified (members : List (String × Nat))
+    (finite : Bool) : Prop :=
+  (members.map Prod.fst).Nodup ∧ finite = true
+
+theorem repeated_metadata_member_rejected (key : String) (a b : Nat)
+    (finite : Bool) :
+    ¬ metadataObjectQualified [(key, a), (key, b)] finite := by
+  simp [metadataObjectQualified]
+
+theorem nonfinite_metadata_rejected (members : List (String × Nat)) :
+    ¬ metadataObjectQualified members false := by
+  simp [metadataObjectQualified]
+
+theorem distinct_finite_members_qualified (a b : String) (x y : Nat)
+    (h : a ≠ b) : metadataObjectQualified [(a, x), (b, y)] true := by
+  simp [metadataObjectQualified, h]
+
+#print axioms repeated_metadata_member_rejected
+#print axioms nonfinite_metadata_rejected
+#print axioms distinct_finite_members_qualified
+
 #print axioms projected_alias_same_version_rejected
 #print axioms projected_distinct_version_admitted
 
