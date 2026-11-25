@@ -1,5 +1,7 @@
 """Shared native Godot process qualification; no game-rule or receipt authority."""
 import re
+import subprocess
+import sys
 
 SCRIPT_FAILURES = ("SCRIPT ERROR:", "Parse Error:", "Parser Error:", "ERROR: Failed to load")
 STRICT_FAILURES = re.compile(
@@ -15,3 +17,19 @@ def verify_process(exit_code: int, stdout: str, stderr: str, *, allowed_exit_cod
         raise AssertionError(
             f"native Godot process rejected: exit={exit_code} "
             f"stdout={stdout[-3000:]} stderr={stderr[-3000:]}")
+
+
+def main() -> None:
+    """Run one real native process, preserve its diagnostics, fail closed."""
+    args = sys.argv[1:]
+    if not args or args[0] != "--" or len(args) < 2:
+        raise SystemExit("usage: native_process.py -- executable [args ...]")
+    proc = subprocess.run(args[1:], capture_output=True, text=True, errors="replace",
+                          timeout=180, check=False)
+    sys.stdout.write(proc.stdout)
+    sys.stderr.write(proc.stderr)
+    verify_process(proc.returncode, proc.stdout, proc.stderr)
+
+
+if __name__ == "__main__":
+    main()
