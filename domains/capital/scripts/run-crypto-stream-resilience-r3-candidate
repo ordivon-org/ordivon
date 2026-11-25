@@ -2,7 +2,7 @@
 set -euo pipefail
 if [ "$#" -ne 1 ]; then echo "usage: $0 OUTPUT_DIR" >&2; exit 64; fi
 out="$1"; repo="$(cd "$(dirname "$0")/.." && pwd)"
-mkdir -- "$out" || { echo "candidate output must be a new directory: $out" >&2; exit 73; }
+mkdir -- "$out" || { echo "candidate output must be a new directory: $out" >&2 || :; exit 73; }
 "$repo/scripts/check-network-v2-public-data" >"$out/network-v2-binding.json"
 readarray -t proxy < <(jq -r '.authorities.okxWs.proxy,.authorities.binanceSpotWs.proxy' "$out/network-v2-binding.json")
 set +e

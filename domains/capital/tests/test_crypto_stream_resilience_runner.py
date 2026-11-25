@@ -191,9 +191,15 @@ def test_concurrent_session_claim_has_exactly_one_writer(tmp_path):
     cmd = [str(repo / "scripts/run-crypto-stream-resilience-r3-session"), str(repo), str(out)]
     first = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     second = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    first.communicate(timeout=15)
-    second.communicate(timeout=15)
-    assert sorted((first.returncode, second.returncode)) == [0, 73]
+    _, first_stderr = first.communicate(timeout=15)
+    _, second_stderr = second.communicate(timeout=15)
+    # Admission is exactly one successful writer; the other process must
+    # fail without producer effects. Native launch/diagnostic errors may
+    # carry a different nonzero exit. Exact 73 for a rejected mkdir is
+    # checked separately with both writable and unwritable diagnostics.
+    assert (first.returncode == 0) != (second.returncode == 0), (
+        first.returncode, second.returncode, first_stderr, second_stderr
+    )
     assert (tmp_path / "calls").read_text().splitlines() == ["OKX", "BINANCE"]
     assert json.loads((out / "result.json").read_text())["standing"] == "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT"
     assert not list(out.glob(".result-*"))
@@ -211,3 +217,23 @@ def test_master_explicit_new_run_does_not_reuse_prior_output(tmp_path):
     assert again.returncode == 0
     assert prior.read_bytes() == before
     assert json.loads((new / "result.json").read_text())["standing"] == "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT"
+
+@pytest.mark.parametrize("entry", ("master", "candidate", "session"))
+@pytest.mark.parametrize("unwritable_stderr", (False, True))
+def test_existing_output_rejection_does_not_depend_on_diagnostics(tmp_path, entry, unwritable_stderr):
+    repo, env = _isolated_reconnect_carrier(tmp_path)
+    out = tmp_path / "existing"
+    out.mkdir()
+    sentinel = out / "prior.bin"
+    sentinel.write_bytes(b"unique prior evidence")
+    suffix = "" if entry == "master" else "-" + entry
+    exe = str(repo / "scripts" / ("run-crypto-stream-resilience-r3" + suffix))
+    cmd = [exe, str(repo), str(out)] if entry == "session" else [exe, str(out)]
+    if unwritable_stderr:
+        with open("/dev/full", "wb") as error_sink:
+            result = subprocess.run(cmd, env=env, stdout=subprocess.PIPE, stderr=error_sink, timeout=15)
+    else:
+        result = subprocess.run(cmd, env=env, capture_output=True, timeout=15)
+    assert result.returncode == 73
+    assert sentinel.read_bytes() == b"unique prior evidence"
+    assert not (tmp_path / "calls").exists()

@@ -2,7 +2,7 @@
 set -euo pipefail
 if [ "$#" -ne 2 ]; then echo "usage: $0 CAPITAL_REPO NEW_OUTPUT_DIR" >&2; exit 64; fi
 repo="$1"; out="$2"
-mkdir -- "$out" || { echo "session output must be a new directory: $out" >&2; exit 73; }
+mkdir -- "$out" || { echo "session output must be a new directory: $out" >&2 || :; exit 73; }
 
 set +e
 "$repo/scripts/run-capability-python" -m ordivon_capital.markets.crypto_stream_resilience   --target-venue OKX   --output "$out/okx.json"   --measured-rounds 3   --deadline-seconds 35   >"$out/okx.stdout" 2>"$out/okx.stderr"
