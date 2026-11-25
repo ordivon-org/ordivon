@@ -9,15 +9,15 @@ run = "pnpm install --frozen-lockfile && pnpm check && mise run verify:room-smt 
 
 [tasks."test:native"]
 description = "Run source-bound native Godot composition acceptance (requires installed Godot)"
-run = "godot --headless --path examples/native-composition --script res://assert.gd && godot --headless --path examples/native-composition --script res://assert_audio.gd"
+run = "python3 scripts/native_scene_acceptance.py --suite composition"
 
 [tasks."test:encounter"]
 description = "Fail-closed native Godot battle and process-restart acceptance; script errors fail even if Godot exits 0"
-run = "python3 examples/room-encounter/native_scene_acceptance.py --suite encounter"
+run = "python3 scripts/native_scene_acceptance.py --suite encounter"
 
 [tasks."test:native-receipt-selftest"]
 description = "Falsify deceptive Godot exit-0+PASS receipts containing SCRIPT ERROR"
-run = "python3 examples/room-encounter/native_scene_acceptance.py --suite selftest"
+run = "python3 scripts/native_scene_acceptance.py --suite selftest"
 
 [tasks."test:visual-native"]
 description = "Import a real CC0 sprite pack and verify Godot PackedScene appearance substitution"
@@ -25,7 +25,7 @@ run = "godot --headless --path examples/kenney-visual-composition --editor --imp
 
 [tasks."test:dialogue-native"]
 description = "Fail-closed real Dialogue Manager integration and native project launch"
-run = "python3 examples/room-encounter/native_scene_acceptance.py --suite dialogue"
+run = "python3 scripts/native_scene_acceptance.py --suite dialogue"
 
 
 [tasks."test:autonomous-study"]

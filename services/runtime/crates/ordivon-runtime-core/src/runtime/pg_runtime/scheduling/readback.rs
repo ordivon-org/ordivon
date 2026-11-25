@@ -32,7 +32,7 @@ impl PgRuntime {
         let allocated: bool = row.get(2);
         let desired: String = row.get(3);
         let resolution: Option<String> = row.get(4);
-        let current_attempt_id: Option<String> = row.get(5);
+        let has_issue: bool = row.get(5);
         let mut projection = scheduling_readback(
             spec,
             attempt_state.as_deref(),
@@ -43,16 +43,10 @@ impl PgRuntime {
         // The existing public schema only offers cause_unobserved. When a
         // persisted Job event has a concrete failure, do not mislabel it as
         // an unobserved resource wait; clients can inspect exact job.get events.
-        if projection["state"] == "pending" {
-            if let Some(attempt_id) = current_attempt_id {
-                let has_issue: bool = db.client.query_one(
-                    "SELECT EXISTS(SELECT 1 FROM job_events WHERE job_id=$1 AND attempt_id=$2 AND event_type='SCHEDULER_ISSUE')",
-                    &[&id, &attempt_id],
-                ).map_err(io)?.get(0);
-                if has_issue {
-                    projection["pendingReason"] = serde_json::Value::Null;
-                }
-            }
+        // Observe the issue and selected Attempt in the same SQL snapshot.
+        // A later event must not be mixed into an earlier pending projection.
+        if projection["state"] == "pending" && has_issue {
+            projection["pendingReason"] = serde_json::Value::Null;
         }
         value["scheduling"] = projection;
         Ok(value)
