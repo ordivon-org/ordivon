@@ -293,6 +293,108 @@ class RuntimeArchiveInspectTests(unittest.TestCase):
             self.assertEqual(self.classifications(report), {"eligible": 1})
             self.assertEqual(report["summary"]["eligibleClosure"]["conditions"], 0)
 
+    def test_recorded_recovery_obligation_excludes_stable_terminal_jobs(self) -> None:
+        for migration in (4, 5, 6):
+            with self.subTest(migration=migration), tempfile.TemporaryDirectory() as directory:
+                database = Path(directory) / "registry.sqlite3"
+                initialize_registry(database)
+                with closing(sqlite3.connect(database)) as connection:
+                    for suffix in ("required", "unknown", "clear", "absent"):
+                        add_job(connection, "job:" + suffix)
+                    if migration < 5:
+                        for suffix, status in (("required", "true"), ("unknown", "unknown"), ("clear", "false")):
+                            connection.execute(
+                                "INSERT INTO attempt_conditions VALUES (?,?,?,?,?)",
+                                ("attempt:job:" + suffix, "recovery_required", status, "fixture", "sha256:" + "a" * 64),
+                            )
+                    else:
+                        connection.execute("ALTER TABLE attempts ADD COLUMN recovery_required INTEGER")
+                        connection.execute("UPDATE attempts SET recovery_required=1 WHERE job_id='job:required'")
+                        # Capability inspection can encounter malformed historical files.
+                        connection.execute("UPDATE attempts SET recovery_required=2 WHERE job_id='job:unknown'")
+                        connection.execute("UPDATE attempts SET recovery_required=0 WHERE job_id='job:clear'")
+                        connection.execute("DROP TABLE attempt_conditions")
+                    connection.execute("UPDATE schema_migrations SET version=?", (migration,))
+                    connection.commit()
+                completed = self.run_archive(database)
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+                report = json.loads(completed.stdout)
+                self.assertEqual(self.classifications(report), {
+                    "eligible": 2, "recovery_required_or_unknown": 2,
+                })
+                self.assertEqual(report["summary"]["eligibleClosure"]["jobs"], 2)
+                self.assertEqual(
+                    {row["jobId"] for row in report["eligibleSample"]},
+                    {"job:absent", "job:clear"},
+                )
+
+    def test_recovery_on_older_attempt_is_not_hidden_by_current_attempt(self) -> None:
+        for migration in (4, 5, 6):
+            with self.subTest(migration=migration), tempfile.TemporaryDirectory() as directory:
+                database = Path(directory) / "registry.sqlite3"
+                initialize_registry(database)
+                with closing(sqlite3.connect(database)) as connection:
+                    add_job(connection, "job:multiple")
+                    connection.execute(
+                        "INSERT INTO attempts VALUES (?,?,?,?,?,?)",
+                        ("attempt:older", "job:multiple", 0, "succeeded", "/attempts/older", 0),
+                    )
+                    connection.execute(
+                        "INSERT INTO concurrency_reservations VALUES (?,?,?)",
+                        ("reservation:older", "attempt:older", "released"),
+                    )
+                    if migration < 5:
+                        connection.execute(
+                            "INSERT INTO attempt_conditions VALUES (?,?,?,?,?)",
+                            ("attempt:older", "recovery_required", "true", "fixture", "sha256:" + "a" * 64),
+                        )
+                    else:
+                        connection.execute("ALTER TABLE attempts ADD COLUMN recovery_required INTEGER")
+                        connection.execute("UPDATE attempts SET recovery_required=1 WHERE attempt_id='attempt:older'")
+                        connection.execute("DROP TABLE attempt_conditions")
+                    connection.execute("UPDATE schema_migrations SET version=?", (migration,))
+                    connection.commit()
+                completed = self.run_archive(database)
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+                report = json.loads(completed.stdout)
+                self.assertEqual(self.classifications(report), {"recovery_required_or_unknown": 1})
+                self.assertEqual(report["summary"]["eligibleClosure"]["jobs"], 0)
+                self.assertEqual(report["summary"]["eligibleClosure"]["attempts"], 0)
+                self.assertEqual(report["eligibleSample"], [])
+
+    def test_retired_condition_schema_requires_recovery_column(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "registry.sqlite3"
+            initialize_registry(database)
+            with closing(sqlite3.connect(database)) as connection:
+                add_job(connection, "job:missing-marker")
+                connection.execute("DROP TABLE attempt_conditions")
+                connection.execute("UPDATE schema_migrations SET version=5")
+                connection.commit()
+            completed = self.run_archive(database)
+            self.assertEqual(completed.returncode, 1)
+            self.assertIn("column:attempts.recovery_required", completed.stderr)
+
+    def test_archive_json_logical_bytes_count_utf8_not_codepoints(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "registry.sqlite3"
+            initialize_registry(database)
+            plan = '{"args":["中a文😀"]}'
+            snapshot = '{"workspace":"路径"}'
+            with closing(sqlite3.connect(database)) as connection:
+                add_job(connection, "job:unicode")
+                add_job(connection, "job:held", reservation_state="held_orphaned")
+                connection.execute(
+                    "UPDATE jobs SET execution_plan_json=?,workspace_snapshot_json=?",
+                    (plan, snapshot),
+                )
+                connection.commit()
+            completed = self.run_archive(database)
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            report = json.loads(completed.stdout)
+            self.assertEqual(report["summary"]["eligibleClosure"]["jobJsonLogicalBytes"],
+                             len(plan.encode("utf-8")) + len(snapshot.encode("utf-8")))
+
     def test_inspection_does_not_mutate_registry_bytes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             database = Path(directory) / "registry.sqlite3"

@@ -526,3 +526,22 @@ a malformed Work receipt or a pin inconsistent with its operation.
 Unpinned legacy full receipts remain self-contained. A history diagnostic
 without typed schema roots is explicitly unavailable, not an absence proof.
 No retirement or writer activation is implied by successful read-only audit.
+
+### Receipt maintenance: bounded native expansion
+
+The maintenance operator reuses the native root projection and exact
+hydration contract of the history audit; its candidate set is specifically
+typed pins or the compact format tag. Unpinned legacy data is not rewritten.
+Under the existing exclusive receipt lock and caller-owned savepoint, it
+stages at most 128 responses or 4 MiB of canonical response bytes per update
+batch, with a single larger response handled independently. This is a
+transport batching target, not a new business payload limit or an absolute
+memory/wire bound. The server cursor retains its bounded row fetch.
+
+Native UPDATE FROM UNNEST consumes exact keys and JSON text converted back
+to JSONB. The returned key set must equal the staged key set; counts alone
+cannot qualify expansion. Any invalid coordinate, digest, missing target,
+operation, or incomplete/relabelled update rolls back the whole maintenance
+operation, even if its caller catches the error. Only after every batch is
+qualified does the existing legacy-only fence become active. The caller
+still controls the outer transaction and timeouts.
