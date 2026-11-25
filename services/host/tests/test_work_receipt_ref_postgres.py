@@ -5,9 +5,11 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import time
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from queue import Queue
 from uuid import uuid4
 
 import psycopg
@@ -32,11 +34,35 @@ from ordivon_host_v2.work_store import WorkStore
 DSN = os.environ.get("ORDIVON_HOST_V2_RECEIPT_TEST_DSN")
 
 
+def _database_identity(dsn: str) -> tuple[str, str]:
+    # Native identity, not a textual DSN comparison. A test role that cannot
+    # establish this identity fails closed; no mutation has yet been issued.
+    with psycopg.connect(dsn) as conn:
+        row = conn.execute(
+            "SELECT current_database(), (pg_control_system()).system_identifier::text"
+        ).fetchone()
+        if row is None:
+            raise RuntimeError("receipt test database identity unobservable")
+        return row
+
+
+def _require_distinct_receipt_database(receipt_dsn: str, ordinary_dsn: str | None) -> None:
+    if ordinary_dsn and (
+        receipt_dsn == ordinary_dsn
+        or _database_identity(receipt_dsn) == _database_identity(ordinary_dsn)
+    ):
+        raise RuntimeError("receipt lifecycle tests require a distinct database")
+
+
 @unittest.skipUnless(DSN, "requires dedicated disposable receipt lifecycle PG")
 class WorkReceiptTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        if DSN is None:
+            raise RuntimeError("receipt test database not configured")
+        _require_distinct_receipt_database(DSN, os.environ.get("ORDIVON_HOST_V2_TEST_DSN"))
+
     def setUp(self):
-        assert DSN is not None
-        assert DSN != os.environ.get("ORDIVON_HOST_V2_TEST_DSN")
         HostV2(DSN).initialize()
         self.gate_open = False
         self.prefix = f"receipt:{uuid4().hex}"
@@ -386,6 +412,153 @@ class WorkReceiptTest(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "caller-owned transaction"):
                 expand_work_receipts_and_fence(conn)
         self.assertEqual(self.stored("create"), before)
+
+    def test_native_database_alias_is_rejected_before_mutation(self):
+        # Different connection strings can still select the same authority.
+        alias = psycopg.conninfo.make_conninfo(DSN, application_name="receipt-alias-control")
+        self.assertNotEqual(alias, DSN)
+        with self.assertRaisesRegex(RuntimeError, "require a distinct database"):
+            _require_distinct_receipt_database(DSN, alias)
+        with self.assertRaisesRegex(RuntimeError, "require a distinct database"):
+            _require_distinct_receipt_database(DSN, DSN)
+
+    def test_native_root_shape_mutations_and_foreign_key(self):
+        # Independent SQL oracle: no source encoder and no weakening of the
+        # production schema. Each negative statement has its own savepoint.
+        first = self.create()
+        self.commit("second", 1)
+        tag = self.tag("create", first)
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            cases = [
+                ("missing pair", tag, None, None, "work.create", "23514"),
+                ("half pair", tag, self.work, None, "work.create", "23514"),
+                ("wrong revision", tag, self.work, 2, "work.create", "23514"),
+                ("wrong work", tag, self.work + ":other", 1, "work.create", "23514"),
+                ("wrong operation", tag, self.work, 1, "message.post", "23514"),
+                ("legacy with pin", first, self.work, 1, "work.create", "23514"),
+                ("missing envelope", {"kind": tag["kind"]}, self.work, 1, "work.create", "23514"),
+                (
+                    "boolean revision",
+                    {**tag, "envelope": {**tag["envelope"], "revision": True}},
+                    self.work,
+                    1,
+                    "work.create",
+                    "23514",
+                ),
+                (
+                    "fractional representation",
+                    {**tag, "envelope": {**tag["envelope"], "revision": 1.0}},
+                    self.work,
+                    1,
+                    "work.create",
+                    "23514",
+                ),
+                (
+                    "missing target",
+                    {**tag, "envelope": {**tag["envelope"], "revision": 99}},
+                    self.work,
+                    99,
+                    "work.create",
+                    "23503",
+                ),
+            ]
+            for label, response, ref, rev, operation, expected in cases:
+                with self.subTest(label=label):
+                    with (
+                        self.assertRaises(psycopg.Error) as caught,
+                        conn.transaction(force_rollback=True),
+                    ):
+                        conn.execute(
+                            "UPDATE command_receipts SET response=%s,receipt_work_ref=%s,"
+                            "receipt_work_revision=%s,operation=%s WHERE client_request_id=%s",
+                            (Jsonb(response), ref, rev, operation, self.key("create")),
+                        )
+                    self.assertEqual(caught.exception.sqlstate, expected)
+                    actual = conn.execute(
+                        "SELECT response,receipt_work_ref,receipt_work_revision,operation "
+                        "FROM command_receipts WHERE client_request_id=%s",
+                        (self.key("create"),),
+                    ).fetchone()
+                    self.assertEqual(
+                        actual,
+                        {
+                            "response": tag,
+                            "receipt_work_ref": self.work,
+                            "receipt_work_revision": 1,
+                            "operation": "work.create",
+                        },
+                    )
+        self.assert_replay(self.create(), first)
+
+    def test_native_root_delete_and_pin_both_lock_orders(self):
+        first = self.create()
+        second = self.commit("second", 1)
+        self.commit("third", 2)
+        # Gate is open only in the dedicated DB; leave the two candidates full
+        # initially. Run real lock races, rather than sleep-based ordering.
+        self.tag("create", first)
+        self.replace("create", first)
+        for suffix, original, pin_first in (("create", first, True), ("second", second, False)):
+            with self.subTest(pin_first=pin_first):
+                rev = original["revision"]
+                norm = {**original, "admission": "existing"}
+                tag = {
+                    "kind": "ordivon.host-work-receipt-ref-v1",
+                    "envelope": {k: v for k, v in norm.items() if k != "snapshot"},
+                    "responseDigest": canonical_digest(norm),
+                }
+
+                def pin(conn):
+                    conn.execute(
+                        "UPDATE command_receipts SET response=%s,receipt_work_ref=%s,"
+                        "receipt_work_revision=%s WHERE client_request_id=%s",
+                        (Jsonb(tag), self.work, rev, self.key(suffix)),
+                    )
+
+                def erase(conn):
+                    conn.execute(
+                        "DELETE FROM work_snapshots WHERE work_ref=%s AND revision=%s",
+                        (self.work, rev),
+                    )
+
+                pids = Queue()
+
+                def contender():
+                    try:
+                        with psycopg.connect(DSN) as conn:
+                            conn.execute("SET LOCAL lock_timeout='5s'")
+                            pids.put(conn.info.backend_pid)
+                            (erase if pin_first else pin)(conn)
+                    except psycopg.Error as exc:
+                        return exc.sqlstate
+                    return "committed"
+
+                with ThreadPoolExecutor(max_workers=1) as pool:
+                    with psycopg.connect(DSN) as holder:
+                        (pin if pin_first else erase)(holder)
+                        future = pool.submit(contender)
+                        pid = pids.get(timeout=3)
+                        with psycopg.connect(DSN, autocommit=True) as observer:
+                            deadline = time.monotonic() + 3
+                            while time.monotonic() < deadline:
+                                blocked = observer.execute(
+                                    "SELECT %s=ANY(pg_blocking_pids(%s))",
+                                    (holder.info.backend_pid, pid),
+                                ).fetchone()[0]
+                                if blocked:
+                                    break
+                                time.sleep(0.01)
+                            else:
+                                self.fail("native contender did not block on exact holder")
+                    self.assertIn(future.result(timeout=6), {"23503", "23001"})
+                if pin_first:
+                    self.assertEqual(self.stored(suffix), tag)
+                    self.assert_replay(self.create(), original)
+                    # Release the pin so later fixture cleanup does not need it.
+                    self.replace(suffix, original)
+                else:
+                    self.assertEqual(self.stored(suffix), original)
+                    self.assert_replay(self.commit("second", 1), original)
 
     def tearDown(self):
         with psycopg.connect(DSN) as conn:
