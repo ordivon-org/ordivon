@@ -1002,3 +1002,36 @@ Use the owner-native `cargo test -p ordivon-runtime-mcp --features postgres-runt
 `--test pg_vertical -- --ignored --test-threads=1` after building the native Runner
 for disposable PostgreSQL lifecycle verification. A transport repair does not
 import historical state or authorize a schema epoch transition.
+
+### PostgreSQL Artifact Job lookup index (additive R1)
+
+The fresh-epoch schema includes `idx_artifacts_job`, a non-unique B-tree
+on `artifacts(job_id)`. It is a derived query access path, not new execution,
+retention, or Artifact authority. The existing Attempt composite unique index
+continues to serve the reverse lookup.
+
+For an **existing, operator-approved active Runtime schema**, use
+`crates/ordivon-runtime-core/sql/pg_artifact_job_lookup_r1.sql` with native
+`psql -X -w` in autocommit mode, explicitly supplying the current approved
+`runtime_schema` and `source_sha256` variables. Connect using the approved
+operator DSN through the normal secret handling; never place credentials
+in logs. Do not use `--single-transaction`. Set bounded lock/statement
+timeouts appropriate to the measured table size and active workload.
+Do not apply to a historical staging schema, restored unqualified epoch,
+public or Harness. The operator must separately exclude concurrent schema
+administration, source/epoch cutover and maintenance conflicts; the script's
+preflight is not a lock spanning concurrent index construction.
+
+The migration verifies current source and native physical epoch before
+issuing DDL, uses `CREATE INDEX CONCURRENTLY`, and accepts an existing
+same-name object only if PostgreSQL catalogs verify the exact usable
+index (default B-tree, one key, no predicate, expression or INCLUDE).
+No automatic DROP/REINDEX is performed. An interrupted build can leave an
+invalid index: inspect the native catalog and `pg_stat_progress_create_index`,
+resolve the incomplete object under the operator's own approved maintenance
+procedure, then rerun. A successful psql exit and native catalog readback
+are required; a matching name alone is not acceptance. Reverify the qualified
+epoch and actual consumer plans after the operation. Measure write overhead,
+index space and both read directions before claiming a performance win.
+Reverting this derived access path is a separate operator-approved
+`DROP INDEX CONCURRENTLY` of the exact qualified index, not data retirement.

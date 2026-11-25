@@ -114,6 +114,7 @@ fn payload(client_key: &str, job: &str, workspace: &str, cap: i32) -> PgAdmissio
 }
 
 mod admission_cases;
+mod artifact_index_cases;
 mod cancellation_cases;
 mod dispatch_cases;
 mod issuer_cases;
