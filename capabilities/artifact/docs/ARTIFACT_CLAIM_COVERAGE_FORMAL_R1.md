@@ -82,6 +82,18 @@ provider honesty, filesystem effects, codec implementation or domain consumers.
 `tests/test_artifact_native_identity.py` checks real service composition and
 explicit counterexamples; the earlier `claimResults` finite model is independent.
 
+## Rolling native tool dependencies
+
+A historical smoke Binding records the exact tools that produced that historical
+evidence. It is not a permanent version constraint on a rolling system FFmpeg
+or FFprobe. Current qualification combines the existing native positive and
+negative behavior checks with independently observed current executable file
+commitments. A declared digest mismatch still rejects current evidence; a
+historical digest is never rewritten or promoted to current evidence. Explicitly
+frozen independent reference packages remain exact where the profile's evidence
+depends on that frozen provider. Post-run executable identity is not an
+execution-time attestation or complete dynamic-library closure.
+
 ## Execution and evidence
 
 `mise run verify` and the existing GitHub queue task invoke the model/refinement checker **before** running the necessary native tests. Its output reports the exact source/profile SHA-256 commitments, bounded state counts, accepted states and counterexample count.

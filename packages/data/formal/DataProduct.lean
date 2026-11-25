@@ -63,6 +63,54 @@ theorem falsified_requires_two_different_observed_digests
       · simp [digestVerdict, hEqual] at h
       · exact ⟨d, o, rfl, rfl, hEqual⟩
 
+-- Committed metadata observation is a local-only all-or-nothing read.
+-- A promised remote object is not a locally observed blob. Acquisition is
+-- a separate effect; this observation cannot complete an incomplete cut.
+def localBlobSnapshot : List (Option Nat) → Option (List Nat)
+  | [] => some []
+  | none :: _ => none
+  | some x :: tail => (localBlobSnapshot tail).map (fun xs => x :: xs)
+
+theorem missing_local_blob_rejects (xs : List (Option Nat))
+    (missing : none ∈ xs) : localBlobSnapshot xs = none := by
+  induction xs with
+  | nil => simp at missing
+  | cons head tail ih =>
+    cases head with
+    | none => rfl
+    | some value =>
+      have h : none ∈ tail := by simpa using missing
+      simp [localBlobSnapshot, ih h]
+
+theorem complete_local_snapshot (xs : List Nat) :
+    localBlobSnapshot (xs.map some) = some xs := by
+  induction xs with
+  | nil => rfl
+  | cons head tail ih => simp [localBlobSnapshot, ih]
+
+theorem local_snapshot_has_no_omitted_blob (xs : List (Option Nat))
+    (observed : List Nat) (h : localBlobSnapshot xs = some observed) :
+    xs = observed.map some := by
+  induction xs generalizing observed with
+  | nil =>
+    simp [localBlobSnapshot] at h
+    simp [← h]
+  | cons head tail ih =>
+    cases head with
+    | none => simp [localBlobSnapshot] at h
+    | some value =>
+      cases ht : localBlobSnapshot tail with
+      | none => simp [localBlobSnapshot, ht] at h
+      | some rest =>
+        have eq : value :: rest = observed := by
+          simpa [localBlobSnapshot, ht] using h
+        rw [← eq]
+        simp [ih rest ht]
+
+#print axioms missing_local_blob_rejects
+#print axioms complete_local_snapshot
+#print axioms local_snapshot_has_no_omitted_blob
+
 -- Selected output integrity is a consumer-scoped decision, not a summary
 -- of unrelated ports. The caller has already resolved and uniquely identified
 -- the requested product/version/port set. This model proves only its verdict

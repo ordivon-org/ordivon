@@ -2,6 +2,7 @@
 
 Git owns source identity and blob storage. Data only reads the committed tree;
 it does not register products, publish physical files, or infer data rights.
+Missing local objects require separate explicit acquisition, never implicit hydration.
 """
 
 from __future__ import annotations
@@ -15,16 +16,29 @@ _OBJECT_ID = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}\Z")
 _MAX_ODPS_BYTES = 2 * 1024 * 1024
 
 
-def _git(repo: Path, *args: str) -> bytes:
+def _git(repo: Path, *args: str, input_bytes: bytes | None = None) -> bytes:
+    # Clear foreign repository selectors, then explicitly install this
+    # observer's local-only policy. Do not inherit a caller's fetch policy.
+    env = {
+        key: value for key, value in os.environ.items() if not key.startswith("GIT_")
+    }
+    env.update(GIT_NO_LAZY_FETCH="1", GIT_OPTIONAL_LOCKS="0")
     try:
-        return subprocess.run(
+        result = subprocess.run(
             ["/usr/bin/git", "--no-replace-objects", "-C", str(repo), *args],
             check=True,
             capture_output=True,
+            input=input_bytes,
             timeout=20,
-            env={key: value for key, value in os.environ.items()
-                 if not key.startswith("GIT_")},
-        ).stdout
+            env=env,
+        )
+        # A partial native listing with diagnostics is not a complete cut,
+        # even when the command exits successfully.
+        if result.stderr:
+            raise ValueError(
+                "committed ODPS source cannot be resolved: native diagnostic"
+            )
+        return result.stdout
     except (OSError, subprocess.SubprocessError) as error:
         raise ValueError("committed ODPS source cannot be resolved") from error
 
@@ -48,7 +62,8 @@ def tracked_owner_products(repo: Path) -> list[Path]:
 def committed_owner_products(repo: Path, revision: str) -> tuple[str, list[bytes]]:
     """Return (exact commit OID, immutable ODPS blob bytes) from one Git tree.
 
-    Resolve symbolic revisions once, then read only that exact commit. Ignore
+    Resolve symbolic revisions once, then read only that exact locally available
+    commit. Missing objects or incomplete native observations fail closed. Ignore
     uncommitted index/worktree changes and untracked files. Reject symlinked
     ODPS entries and unbounded blobs instead of silently following filesystem
     paths or claiming physical data availability.
@@ -85,5 +100,16 @@ def committed_owner_products(repo: Path, revision: str) -> tuple[str, list[bytes
         raw = _git(repo, "cat-file", "blob", oid)
         if len(raw) != size:
             raise ValueError("Git ODPS blob read-back length mismatch")
+        # cat-file is an object lookup, not an integrity check: even a
+        # same-length corrupt loose blob may be returned under the old OID.
+        # Native hash-object uses the repository's object format, without
+        # filters or object-store writes, over exactly the returned bytes.
+        observed_oid = (
+            _git(repo, "hash-object", "--no-filters", "--stdin", input_bytes=raw)
+            .decode("ascii")
+            .strip()
+        )
+        if observed_oid != oid:
+            raise ValueError("Git ODPS blob identity mismatch")
         blobs.append(raw)
     return commit, blobs

@@ -182,11 +182,24 @@ filesystem immutability, later reads, mount changes, or durable retention.
 An exact Git commit identifies the metadata tree; the native reader resolves
 the revision once, rejects non-regular ODPS Git entries and bounded input
 violations, and reads blobs by object ID with replacement objects disabled.
+Committed discovery is local-only: missing promisor trees/blobs or native
+diagnostics leave the cut unestablished, never a partial successful
+projection. Explicit Git acquisition is a separate operator effect.
 Tests exercise index/worktree mutation, prior-version replay, foreign
-Git environment redirection, exact checkout-root binding and real CLI
-projection. This qualifies metadata source selection, not physical local
+Git environment redirection, exact checkout-root binding, local-only
+partial-clone rejection/replay and real CLI projection. This qualifies metadata source selection, not physical local
 distribution immutability, Git hash collision resistance, or a full
 Git-to-Lean refinement proof.
+
+The blob read-back additionally checks the Git object identity of the exact
+returned bytes using native `git hash-object --no-filters --stdin` (without
+`-w`). Equal length and a successful `cat-file` are insufficient: the native
+SHA-1 and SHA-256 disposable-repository counterexamples replace a loose blob
+with different same-length ODPS metadata under its old object name. Both
+must be rejected, and restoring the original bytes restores the observation.
+This is a bounded blob-identity check, not a full commit/tree integrity audit,
+a proof of cryptographic collision resistance, or a guarantee of availability.
+The native hash operation is local-only; no new objects are written.
 
 ## Bounded publication and retirement state model
 

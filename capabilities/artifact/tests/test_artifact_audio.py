@@ -10,6 +10,8 @@ import wave
 from pathlib import Path
 from unittest import mock
 
+from artifact_verification.tool_identity import assess_native_tool_paths
+
 ROOT=Path(__file__).resolve().parents[1]
 SPEC=importlib.util.spec_from_file_location('artifact_audio',ROOT/'scripts/artifact_audio.py')
 MODULE=importlib.util.module_from_spec(SPEC); assert SPEC.loader is not None; SPEC.loader.exec_module(MODULE)
@@ -83,13 +85,11 @@ class ArtifactAudioTests(unittest.TestCase):
         for p in (MODULE.FLAC,MODULE.METAFLAC,MODULE.FFMPEG,MODULE.FFPROBE):
             if not p.is_file(): self.skipTest(f'required mature external tool unavailable: {p}')
 
-    def test_local_binding_tool_digests_match_proven_substrate(self):
+    def test_frozen_reference_tool_digests_match_proven_substrate(self):
         b=json.loads((ROOT/'artifact-delivery/shadow-bindings/audio-flac-pcm16-local-r1.json').read_text())
         checks=[
           ('/opt/ordivon/external/flac/1.5.0-1/rootfs/usr/bin/flac',b['bindings']['referenceDecoder']['flacBinarySha256']),
           ('/opt/ordivon/external/flac/1.5.0-1/rootfs/usr/bin/metaflac',b['bindings']['referenceDecoder']['metaflacBinarySha256']),
-          ('/usr/bin/ffmpeg',b['bindings']['independentDecoder']['ffmpegSha256']),
-          ('/usr/bin/ffprobe',b['bindings']['independentDecoder']['ffprobeSha256']),
         ]
         for path,want in checks:
             p=Path(path)
@@ -104,6 +104,19 @@ class ArtifactAudioTests(unittest.TestCase):
             value=MODULE.verify_flac(flac,BASE,root/'evidence')
             self.assertEqual(value['status'],'PASS',value)
             self.assertTrue(value['decoderMatrix']['exactByteMatch'])
+            # System FFmpeg is a rolling dependency. Qualify the actual
+            # observed executable bytes, not the historical smoke version.
+            tools = {name: value["tools"][name] for name in ("ffmpeg", "ffprobe")}
+            assessment = assess_native_tool_paths({"tools": tools})
+            self.assertEqual(assessment["status"], "OBSERVED_POSTRUN_CONSISTENT", assessment)
+            self.assertFalse(assessment["dependenciesComplete"])
+            for name, path in (("ffmpeg", MODULE.FFMPEG), ("ffprobe", MODULE.FFPROBE)):
+                with self.subTest(tool=name):
+                    self.assertEqual(assessment["observed"][name]["sha256"],
+                                     hashlib.sha256(path.read_bytes()).hexdigest())
+                    tampered = {**tools, name: {**tools[name], "sha256": "0" * 64}}
+                    self.assertTrue(assess_native_tool_paths({"tools": tampered})["rejected"])
+
             self.assertEqual(value['streamInfo']['streamInfoMd5'],value['pcmIdentity']['decodedPcmMd5'])
             required=json.loads((ROOT/'artifact-delivery/shadow-v2/examples/audio-flac-pcm16-r1-v2.json').read_text())['requiredEvidence']
             self.assertEqual(set(value['claimResults']),set(required))

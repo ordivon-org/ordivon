@@ -83,4 +83,31 @@ theorem candidate_and_exact_iff_exact {α : Type u} {query body : List α} :
 #print axioms exact_implies_candidate
 #print axioms candidate_and_exact_iff_exact
 
+
+-- A restriction of the native candidate keys is still a necessary
+-- condition for exact substring containment. The key policy may select
+-- any decidable class (e.g. a gram containing a BMP CJK codepoint).
+def HasSparseCandidateGrams {α : Type u}
+    (keep : List α → Prop) (query body : List α) : Prop :=
+  ∀ gram, IsGram3 gram query ∧ keep gram → IsGram3 gram body ∧ keep gram
+
+theorem exact_implies_sparse_candidate {α : Type u}
+    {keep : List α → Prop} {query body : List α}
+    (exact : IsSubstring query body) :
+    HasSparseCandidateGrams keep query body := by
+  intro gram h
+  exact ⟨⟨h.1.1, substring_transitive h.1.2 exact⟩, h.2⟩
+
+theorem sparse_candidate_and_exact_iff_exact {α : Type u}
+    {keep : List α → Prop} {query body : List α} :
+    (HasSparseCandidateGrams keep query body ∧ IsSubstring query body) ↔
+    IsSubstring query body := by
+  constructor
+  · exact And.right
+  · intro exact
+    exact ⟨exact_implies_sparse_candidate exact, exact⟩
+
+#print axioms exact_implies_sparse_candidate
+#print axioms sparse_candidate_and_exact_iff_exact
+
 end OrdivonHostUnicodeGram

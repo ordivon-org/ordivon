@@ -183,4 +183,118 @@ class ArtifactOpenXmlEnvironmentTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d);(root/'a').write_bytes(b'one');first=M.tree_digest(root);(root/'a').write_bytes(b'two');self.assertNotEqual(first,M.tree_digest(root));(root/'escape').symlink_to('/etc/passwd')
             with self.assertRaisesRegex(RuntimeError,'unsafe generation symlink'):M.tree_digest(root)
-if __name__=='__main__':unittest.main()
+
+
+class OpenXmlGenerationRetentionTests(unittest.TestCase):
+    def test_apply_build_is_rooted_until_generation_publication(self):
+        lock = M.load_lock()
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            lock["stableRoot"] = str(base)
+            store = "/nix/store/fixture-dotnet"
+            events = []
+
+            def resolve(_lock, *, out_link=None):
+                self.assertIsNotNone(out_link)
+                self.assertTrue(out_link.parent.is_dir())
+                out_link.symlink_to(store)
+                events.append("build-root")
+                return {"storePath": store}
+
+            def build(_base, _lock, _dotnet, _nuget):
+                self.assertEqual(events, ["build-root"])
+                generation = base / "generations" / "fixture"
+                generation.mkdir(parents=True)
+                events.append("generation")
+                return "fixture", generation, {"dotnetNixStorePath": store}
+
+            def evidence(_validator):
+                self.assertEqual(events, ["build-root", "generation"])
+                self.assertTrue(any(base.glob(".build-root-*/dotnet")))
+                events.append("corpus")
+                return {k: "fixture" for k in (
+                    "corpusId", "corpusResultDigest", "standing", "ivvStanding", "methodPromotion",
+                )}
+
+            def retain(generation, expected_store):
+                self.assertEqual(events, ["build-root", "generation", "corpus"])
+                self.assertTrue(any(base.glob(".build-root-*/dotnet")))
+                self.assertEqual(expected_store, store)
+                self.assertFalse((base / "current").exists())
+                (generation / "dotnet-gc-root").symlink_to(store)
+                events.append("retained")
+
+            with (
+                patch.object(M, "MAIN", M.ROOT),
+                patch.object(M, "load_lock", return_value=lock),
+                patch.object(M, "nix_dotnet_status", side_effect=resolve),
+                patch.object(M, "nuget_sources", return_value=[]),
+                patch.object(M, "build_generation", side_effect=build),
+                patch.object(M, "verify_external_evidence", side_effect=evidence),
+                patch.object(M, "register_generation_gc_root", side_effect=retain, create=True),
+                patch.object(M, "status", return_value={"ready": True, "generationId": "fixture"}),
+            ):
+                M.apply()
+            self.assertEqual(events, ["build-root", "generation", "corpus", "retained"])
+            self.assertEqual((base / "current").resolve(), base / "generations" / "fixture")
+            self.assertFalse(any(base.glob(".build-root-*")))
+
+
+    def test_status_rejects_unregistered_generation_before_running_sdk(self):
+        lock = M.load_lock()
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            generation = base / "generations" / "fixture"
+            generation.mkdir(parents=True)
+            (generation / "binding.json").write_text(json.dumps({
+                "dotnetNixStorePath": "/nix/store/fixture",
+                "observedDotnetSdk": "8.0.426",
+            }))
+            (base / "current").symlink_to(generation)
+            (generation / "dotnet-gc-root").symlink_to("/nix/store/fixture")
+            with (
+                patch.object(M, "load_lock", return_value=lock),
+                patch.object(M, "gc_root_registered", return_value=False),
+                patch.object(M, "run") as run,
+            ):
+                status = M.status(base)
+            self.assertFalse(status["ready"])
+            self.assertFalse(status["gcRootRegistered"])
+            self.assertIn("GC root", status["error"])
+            run.assert_not_called()
+
+    def test_failed_root_registration_preserves_previous_current(self):
+        lock = M.load_lock()
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            lock["stableRoot"] = str(base)
+            old = base / "generations" / "old"
+            old.mkdir(parents=True)
+            (base / "current").symlink_to(old)
+            new = base / "generations" / "new"
+            new.mkdir()
+            store = "/nix/store/fixture"
+
+            def resolve(_lock, *, out_link):
+                out_link.symlink_to(store)
+                return {"storePath": store}
+
+            with (
+                patch.object(M, "MAIN", M.ROOT),
+                patch.object(M, "load_lock", return_value=lock),
+                patch.object(M, "nix_dotnet_status", side_effect=resolve),
+                patch.object(M, "nuget_sources", return_value=[]),
+                patch.object(M, "build_generation", return_value=(
+                    "new", new, {"dotnetNixStorePath": store},
+                )),
+                patch.object(M, "verify_external_evidence"),
+                patch.object(M, "register_generation_gc_root", side_effect=RuntimeError("root failed")),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "root failed"):
+                    M.apply()
+            self.assertEqual((base / "current").resolve(), old)
+            self.assertFalse(any(base.glob(".build-root-*")))
+
+
+if __name__ == "__main__":
+    unittest.main()
