@@ -377,6 +377,59 @@ class OwnerProductProjectionTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "exact checkout root"):
                     committed_owner_products(a / "a", "HEAD")
 
+    def test_committed_observation_does_not_hydrate_missing_promisor_blob(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            origin, clone = root / "origin", root / "clone"
+            origin.mkdir()
+            def git(repo, *args, env=None):
+                return subprocess.run(
+                    ["/usr/bin/git", "-C", str(repo), *args], env=env,
+                    check=True, capture_output=True,
+                ).stdout.strip()
+            git(origin, "init", "-q")
+            git(origin, "config", "uploadpack.allowFilter", "true")
+            git(origin, "config", "uploadpack.allowAnySHA1InWant", "true")
+            source = self.sources[0].read_bytes()
+            entry = origin / "producer/odps.json"
+            entry.parent.mkdir()
+            entry.write_bytes(source)
+            git(origin, "add", ".")
+            git(origin, "-c", "user.name=Data Test", "-c",
+                "user.email=data@example.invalid", "commit", "-qm", "source")
+            oid = git(origin, "rev-parse", "HEAD:producer/odps.json").decode()
+            revision = git(origin, "rev-parse", "HEAD").decode()
+            for filter_spec in ("blob:none", "tree:0"):
+                with self.subTest(filter_spec=filter_spec):
+                    clone = root / filter_spec.replace(":", "-")
+                    git(root, "-c", "protocol.file.allow=always", "clone",
+                        "--filter=" + filter_spec, "--no-checkout",
+                        origin.as_uri(), str(clone))
+                    local_env = {**os.environ, "GIT_NO_LAZY_FETCH": "1"}
+                    def is_local():
+                        return subprocess.run(
+                            ["/usr/bin/git", "-C", str(clone), "cat-file", "-e", oid],
+                            env=local_env, capture_output=True, check=False,
+                        ).returncode == 0
+                    def object_store():
+                        objects = clone / ".git/objects"
+                        return {str(path.relative_to(objects)): path.read_bytes()
+                                for path in objects.rglob("*") if path.is_file()}
+                    self.assertFalse(is_local(), "partial clone fixture must omit the blob")
+                    before = object_store()
+                    with patch.dict(os.environ, {"GIT_NO_LAZY_FETCH": "0"}):
+                        with self.assertRaisesRegex(ValueError, "cannot be resolved"):
+                            committed_owner_products(clone, revision)
+                    self.assertEqual(object_store(), before)
+                    self.assertFalse(is_local())
+                    # Explicit native acquisition is distinct from observation.
+                    git(clone, "checkout", "-q", "--detach", revision,
+                        env={**local_env, "GIT_NO_LAZY_FETCH": "0"})
+                    self.assertTrue(is_local())
+                    hydrated = object_store()
+                    self.assertEqual(committed_owner_products(clone, revision), (revision, [source]))
+                    self.assertEqual(object_store(), hydrated)
+
     def test_git_view_rejects_symlinks_and_invalid_revision(self) -> None:
         with TemporaryDirectory() as tmp:
             repo = Path(tmp)

@@ -136,9 +136,12 @@ filesystem immutability, later reads, mount changes, or durable retention.
 An exact Git commit identifies the metadata tree; the native reader resolves
 the revision once, rejects non-regular ODPS Git entries and bounded input
 violations, and reads blobs by object ID with replacement objects disabled.
+Committed discovery is local-only: missing promisor trees/blobs or native
+diagnostics leave the cut unestablished, never a partial successful
+projection. Explicit Git acquisition is a separate operator effect.
 Tests exercise index/worktree mutation, prior-version replay, foreign
-Git environment redirection, exact checkout-root binding and real CLI
-projection. This qualifies metadata source selection, not physical local
+Git environment redirection, exact checkout-root binding, local-only
+partial-clone rejection/replay and real CLI projection. This qualifies metadata source selection, not physical local
 distribution immutability, Git hash collision resistance, or a full
 Git-to-Lean refinement proof.
 
