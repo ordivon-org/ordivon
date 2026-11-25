@@ -142,3 +142,81 @@ pub fn system_describe(fixture: &DescriptionInput) -> Result<SystemDescription, 
         capabilities: fixture.routes.keys().cloned().collect(),
     })
 }
+
+#[cfg(test)]
+mod property_tests {
+    use super::*;
+    use proptest::prelude::*;
+    use serde_json::json;
+
+    // The oracle is constructed from the input domain, not from the validator.
+    fn malformed_boolean() -> impl Strategy<Value = Value> {
+        prop_oneof![
+            Just(Value::Null),
+            any::<i32>().prop_map(|v| json!(v)),
+            "[a-z]{0,12}".prop_map(|v| json!(v)),
+            Just(json!([])),
+            Just(json!({}))
+        ]
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(256))]
+
+        #[test]
+        fn status_version_is_exact_integer(v in prop_oneof![
+            any::<i64>().prop_map(|v| (json!(v),v==1)),
+            Just((json!(1),true)), Just((json!(1.0),false)),
+            any::<bool>().prop_map(|v| (json!(v),false)),
+            "[0-9]{0,10}".prop_map(|v| (json!(v),false)),
+            Just((Value::Null,false))
+        ]) {
+            prop_assert_eq!(valid_status_envelope(&json!({"schemaVersion":v.0})),v.1);
+        }
+
+        #[test]
+        fn inventory_permutation_and_duplicate_invariants(
+            rows in prop::collection::vec((any::<bool>(),any::<bool>()), 1..64),
+            selected in any::<usize>(),
+        ) {
+            let mut inventory:Vec<Value> = rows.iter().enumerate()
+                .map(|(i,(configured,requested))| json!({
+                    "target": format!("node-{i}"), "configured":configured,
+                    "available": *configured && *requested,
+                })).collect();
+            prop_assert!(valid_target_inventory(&json!(inventory)));
+            inventory.reverse();
+            prop_assert!(valid_target_inventory(&json!(inventory)));
+            let duplicate = inventory[selected % inventory.len()].clone();
+            inventory.push(duplicate);
+            prop_assert!(!valid_target_inventory(&json!(inventory)));
+        }
+
+        #[test]
+        fn one_invalid_sibling_invalidates_whole_inventory(
+            count in 1usize..64, selected in any::<usize>(),
+            value in malformed_boolean(), field in prop_oneof![Just("available"),Just("configured")],
+        ) {
+            let mut inventory:Vec<Value> = (0..count).map(|i|json!({
+                "target":format!("node-{i}"),"configured":true,"available":true,
+            })).collect();
+            inventory[selected%count][field]=value;
+            prop_assert!(!valid_target_inventory(&json!(inventory)));
+        }
+
+        #[test]
+        fn contradiction_and_missing_identity_are_not_positive(
+            count in 1usize..64, selected in any::<usize>(),
+        ) {
+            let mut inventory:Vec<Value> = (0..count).map(|i|json!({
+                "target":format!("node-{i}"),"configured":true,"available":true,
+            })).collect();
+            let index=selected%count;
+            inventory[index]["configured"]=json!(false);
+            prop_assert!(!valid_target_inventory(&json!(inventory)));
+            inventory[index]["configured"]=json!(true);
+            inventory[index]["target"]=json!(" \u{1c}\u{1f}\t");
+            prop_assert!(!valid_target_inventory(&json!(inventory)));
+        }
+    }
+}

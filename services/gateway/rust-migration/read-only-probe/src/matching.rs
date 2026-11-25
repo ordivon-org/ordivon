@@ -532,3 +532,81 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod property_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(256))]
+
+        #[test]
+        fn generated_rank_oracle_and_limit_metamorphism(
+            rows in prop::collection::vec((0u8..4,0u8..3,any::<bool>(),any::<bool>()),0..96),
+            limit in 0usize..100,
+            include in any::<bool>(),
+            category_filter in any::<bool>(),
+            owner_filter in any::<bool>(),
+        ) {
+            // Construct lexical rank witnesses with disjoint patterns.
+            // The oracle uses generator labels, not CompiledMetadata::rank,
+            // folding, tokenization or SearchIndex internals.
+            let mut metadata=Vec::new();
+            let mut observations=Vec::new();
+            let mut expected=Vec::new();
+            for (i,(rank,state,category,owner)) in rows.iter().enumerate() {
+                let (name,description,kind)=match rank {
+                    0 => (format!("needle.{i:03}"),"other",Some(MatchKind::Prefix)),
+                    1 => (format!("case.{i:03}"),"needle",Some(MatchKind::Token)),
+                    2 => (format!("case.{i:03}"),"xneedlex",Some(MatchKind::Substring)),
+                    _ => (format!("case.{i:03}"),"unrelated",None),
+                };
+                let available=*state==0;
+                let error=(*state==2).then(||"unobserved".to_owned());
+                let m=Metadata {
+                    capability:name.clone(), category: if *category {"wanted"} else {"other"}.to_owned(),
+                    owner_id:if *owner {"wanted-owner"} else {"other-owner"}.to_owned(),
+                    description:description.to_owned(), tags:vec![],
+                };
+                if (!category_filter || *category) && (!owner_filter || *owner)
+                    && (include || *state != 1) && let Some(kind)=kind {
+                    expected.push((kind,name.clone()));
+                }
+                observations.push(Observation {capability:name,available,observation_error:error});
+                metadata.push(m);
+            }
+            expected.sort();
+            let index=SearchIndex::new(metadata);
+            let mut input=Query {query:"needle".to_owned(),category:category_filter.then(||"wanted".to_owned()),
+                owner_id:owner_filter.then(||"wanted-owner".to_owned()),limit,include_unavailable:include,observations};
+            let actual=index.search(&input).unwrap();
+            let oracle=SearchResult {total_matches:expected.len(),matches:expected.iter().take(limit)
+                .map(|(kind,name)|Match {capability:name.clone(),match_kind:*kind}).collect()};
+            prop_assert_eq!(&actual,&oracle);
+            input.limit=0;
+            let zero=index.search(&input).unwrap();
+            prop_assert_eq!(zero.total_matches,oracle.total_matches);
+            prop_assert!(zero.matches.is_empty());
+        }
+
+        #[test]
+        fn generated_observation_identity_corruption_rejected(
+            count in 1usize..96, selected in any::<usize>(),
+        ) {
+            let metadata:Vec<_>=(0..count).map(|i|Metadata {
+                capability:format!("cap.{i}"),category:"execution".to_owned(),
+                owner_id:"runtime.linux".to_owned(),description:"read".to_owned(),tags:vec![],
+            }).collect();
+            let observations=metadata.iter().map(|m|Observation {
+                capability:m.capability.clone(),available:true,observation_error:None
+            }).collect();
+            let index=SearchIndex::new(metadata);
+            let mut input=Query {query:"read".to_owned(),category:None,owner_id:None,limit:10,
+                include_unavailable:false,observations};
+            prop_assert!(index.search(&input).is_ok());
+            input.observations[selected%count].capability="foreign".to_owned();
+            prop_assert_eq!(index.search(&input),Err("observation identity mismatch"));
+        }
+    }
+}

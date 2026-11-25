@@ -19,6 +19,9 @@ tower-http = { version = "0.7", features = ["limit"] }
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
+[dev-dependencies]
+proptest = "1"
+
 [profile.dev]
 debug = 0
 incremental = false

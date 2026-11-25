@@ -59,6 +59,12 @@ async def observe_fixture(
             value["targets"][0]["configured"] = False
         elif case == "typed":
             value["targets"][0]["available"] = "true"
+        elif case == "context":
+            value["targets"][0]["executionProfiles"] = "trusted_local"
+        elif case == "context_null":
+            value["targets"][0]["executionProfiles"] = None
+        elif case == "context_valid":
+            value["targets"][0]["executionProfiles"] = ["trusted_local"]
         elif case == "absent":
             value["targets"] = []
         elif case == "oversize":
@@ -232,6 +238,9 @@ async def qualify_owner(binary: Path) -> None:
         "duplicate": {"standing": "unobserved", "reason": "invalid_target_inventory"},
         "contradiction": {"standing": "unobserved", "reason": "invalid_target_inventory"},
         "typed": {"standing": "unobserved", "reason": "invalid_target_inventory"},
+        "context": {"standing": "unobserved", "reason": "invalid_execution_context_inventory"},
+        "context_null": {"standing": "unobserved", "reason": "invalid_execution_context_inventory"},
+        "context_valid": {"standing": "reported", "configured": True, "available": True},
         "absent": {"standing": "unobserved", "reason": "target_not_observed"},
         "error": {"standing": "unobserved", "reason": "owner_tool_error"},
         "text": {"standing": "unobserved", "reason": "structured_result_absent"},
@@ -259,6 +268,7 @@ async def qualify_owner(binary: Path) -> None:
         ("false", False, empty, expected["false"]),
         ("false", True, match, expected["false"]),
         ("duplicate", False, match, expected["duplicate"]),
+        ("context", False, match, expected["context"]),
     ):
         result = await observe_fixture(binary, case, query="execution.linux", include=include)
         assert result == {"projection": expected_projection, "observation": expected_observation}, (
@@ -301,6 +311,7 @@ async def qualify_owner(binary: Path) -> None:
     for case, credential_case, query, expected_projection, expected_observation in (
         ("true", "valid", "execution.linux", match, expected["true"]),
         ("false", "valid", "execution.linux", empty, expected["false"]),
+        ("context", "valid", "execution.linux", match, expected["context"]),
         (
             "true",
             "wrong",

@@ -66,6 +66,14 @@ fn project(result: CallToolResult, expected_node: &str) -> Observation {
     else {
         return unknown("target_not_observed");
     };
+    // B03 selected target's explicitly supplied execution context inventory
+    // is list-valued; absent remains compatible with older Owner reports.
+    if target
+        .get("executionProfiles")
+        .is_some_and(|v| !v.is_array())
+    {
+        return unknown("invalid_execution_context_inventory");
+    }
     Observation::Reported {
         configured: target["configured"].as_bool().expect("qualified inventory"),
         available: target["available"].as_bool().expect("qualified inventory"),
@@ -166,6 +174,7 @@ async fn observe_endpoint(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
     use rmcp::model::CallToolResult;
     use serde_json::Value;
 
@@ -203,6 +212,30 @@ mod tests {
             project(CallToolResult::structured(v), "other"),
             unknown("unqualified_node")
         );
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(256))]
+        #[test]
+        fn explicit_context_container_qualification(
+            context in prop_oneof![
+                Just(Value::Null), any::<bool>().prop_map(|v|json!(v)),
+                any::<i64>().prop_map(|v|json!(v)),
+                "[a-z]{0,12}".prop_map(|v|json!(v)),
+                Just(json!({})), prop::collection::vec("[a-z]{0,8}",0..8).prop_map(|v|json!(v)),
+            ],
+            available in any::<bool>(),
+        ) {
+            let mut v=fixture();
+            v["targets"][0]["available"]=json!(available);
+            let expected=if context.is_array() {
+                Observation::Reported {configured:true,available}
+            } else {
+                unknown("invalid_execution_context_inventory")
+            };
+            v["targets"][0]["executionProfiles"]=context;
+            prop_assert_eq!(project(CallToolResult::structured(v),"fixture-linux"),expected);
+        }
     }
 
     #[test]

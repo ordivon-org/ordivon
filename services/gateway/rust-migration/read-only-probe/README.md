@@ -142,3 +142,50 @@ References:
 - https://www.rfc-editor.org/info/rfc6750/
 - https://docs.rs/rmcp/latest/rmcp/transport/streamable_http_client/struct.StreamableHttpClientTransportConfig.html
 - https://github.com/modelcontextprotocol/rust-sdk/security/advisories/GHSA-9g45-5xwm-f3wc
+
+## R14 test architecture and obligations (Host #32817 / #32824 / #32842)
+
+The natural Owner owns the producer contract; Gateway owns its receiver
+refinement, never physical readiness, authority or business completion.
+Use the existing gateway:verify and gateway:formal:verify gates, not a second
+test registry or scheduler. Each release claim binds exact source, toolchain,
+test scope, positive/negative receipts and installed consumer separately.
+
+| Logic / obligation | Capability / verification | Standing |
+| --- | --- | --- |
+| L01 route/catalog and L02 discovery | immutable metadata, proptest independent generator-labelled rank and limit oracle; Python differential, permutation and identity controls | bounded source |
+| L03 readiness | generated version/booleans/unique inventory/context type; native TCP positive and malformed reports | bounded source |
+| L04 binding and L05 ingress | existing Python public Action/Effect and actual SDK ingress tests; transfer obligations to native Rust | native implementation incomplete |
+| L06 authorization, L07 endpoint/credential | independent Security producer + native protected TCP denial/redirect/no-secret controls | fixture only for Rust |
+| L08 transport | rmcp modern/legacy, one exact business call, response bounds/timeout, explicit negative results | fixture only |
+| L09 operation identity, L10 recovery | existing Runtime producer receipt and state semantics; model and generated fault traces; real accepted/observe/cancel/Artifact | native implementation incomplete |
+| L11 projection, L12 error | exact Owner error, no success fabrication; Host Work historical absence and Topic cursor/epoch typed-error recipient required (Host #32826) | native Host recipient missing |
+| L13 evidence, L14 evolution | OTel diagnostic not truth, exact ABI directional comparison, independent actual consumer canaries | production migration unqualified |
+
+P0: each pure native boundary has independent domain-generated properties,
+automatic shrinking and explicit malformed controls. Proptest is dev-only,
+256 cases per property; default failure persistence remains enabled for real
+regressions. Promote minimized genuine counterexamples as durable regression
+tests. The previous full-sort comparator shares rank computation: keep it for
+heap equivalence, not independent rank correctness. Generated rank labels
+provide an independent narrow oracle; Python cross-language parity remains
+a separate broader witness. No universal proof or performance claim.
+
+P0: targeted mutation trials must compile and fail an actual assertion,
+not be classified as killed by timeout, missing dependency or setup failure.
+Use cargo-mutants when qualified; this runner currently lacks it, so the
+bounded initial trial uses isolated temporary edits, disables persistence
+only for deliberate mutants and restores source before final green. Test
+selection and root required gates remain the Repo/Verification Owner's task.
+No mutation tool is a production dependency or global requirement.
+
+P1: add independent state-machine operation traces, exact typed error receiver
+and real protected producer acceptance as the corresponding Rust adapters
+arrive; keep existing TLA+ positive/negative checks and actual TCP fixtures.
+P2: only retire old tests when their exact obligations and consumers are
+covered by qualified native substitutes. Coverage is diagnostic, not a proof;
+no automatic retries or skip-to-green. Installed/real Agent authorization
+and deployment acceptance remain separate, not inferred from any fixture.
+
+Upstream references: https://proptest-rs.github.io/proptest/ ;
+https://mutants.rs/ ; https://github.com/modelcontextprotocol/rust-sdk .
