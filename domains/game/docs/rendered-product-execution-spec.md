@@ -118,3 +118,34 @@ Windows acceptance inferred. Reuse native rule tests, not a second simulator.
 
 Invoke `mise run test:x11-interaction-contract` for the relation negatives.
 For the actual verified Room binary, run `python3 scripts/x11_interaction_acceptance.py --executable /absolute/room-encounter.x86_64 --sha256 VERIFIED_SHA`.
+
+## R13 — mixed PCM consequence, independent of play() counts
+
+Host #32731; refine L07 audio and L12 actual consumer. The Room rules emit
+action_accepted only for admitted combat turns. Audio feedback is an effect
+projection; reset/restoration is not a new accepted action. Native play counts
+remain useful but cannot establish non-silent mixed samples.
+
+Reuse Godot Movie Maker's native mixed WAV output
+(https://godotengine.org/article/movie-maker-mode-arrives-in-godot-4/;
+https://docs.godotengine.org/en/stable/tutorials/animation/creating_movies.html)
+and FFmpeg real decoding. AudioEffectCapture/Record are alternative in-engine
+substates, not a second mixer. PulseAudio null sink monitor is a later system
+output route (https://www.freedesktop.org/projects/pulseaudio/Documentation/User/Modules/);
+standalone server unavailable on this runner, do not touch shared audio.
+
+I: exact Room executable SHA, isolated X11 launch; O: scoped PCM receipt.
+S: private display, temporary app data, bounded movie output.
+pre: correct binary identity, actual target window, decoder, native movie output.
+post: no-event/irrelevant-key/reset control is quiet; accepted attack produces
+nontrivial mixed PCM, with input delivery and native exit verified.
+inv: no inference from stream.play(), file existence, or WAV header alone;
+reject silent positive, audible negative, malformed/truncated samples, drift.
+eff: temporary XTEST events only to owned window and engine-generated WAV.
+c: bounded fixed frames, 30 FPS, bounded audio bytes and duration; cleanup.
+epsilon: mixed PCM and controlled contrast, not physical device output or
+subjective sound quality; don't assume exact acoustic waveform across backends.
+prov: binary SHA, event program, decoded PCM SHA, sample shape and amplitude,
+native diagnostic result. unfold: existing X11 input binding + native Movie
+Maker + FFmpeg; no new audio engine or dependency. Qualify native probe before
+making a production consumer, no READY expansion or CI gate without evidence.
