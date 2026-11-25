@@ -182,7 +182,7 @@ class SocialMessageReadQueries:
             cjk_literal and sum("\u3400" <= char <= "\u9fff" for char in query) >= 3
         )
         search_predicate = (
-            "host_unicode_ngrams3(body) @> host_unicode_ngrams3(%s) AND strpos(body,%s)>0"
+            "host_cjk_sparse_ngrams3_v1(body) @> host_cjk_sparse_ngrams3_v1(%s) AND strpos(body,%s)>0"
             if unicode_gram_candidate
             else "strpos(body,%s)>0"
             if cjk_literal
