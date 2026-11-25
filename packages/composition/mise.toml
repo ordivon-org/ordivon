@@ -19,6 +19,16 @@ mise run formal:verify
 mise run formal:effect:verify
 """
 
+[tasks."pacti:verify"]
+description = "Qualify optional native Pacti algebra; missing provider is a failure"
+run = """
+set -euo pipefail
+export UV_PYTHON="$(mise which python)"
+export ORDIVON_REQUIRE_PACTI=1
+unset PYTEST_ADDOPTS
+uv run --locked --isolated --with pacti==0.3.1 python -m pytest -o addopts='' -q -rs --hypothesis-show-statistics tests/test_pacti_timeout_obligation_r1.py
+"""
+
 # Composition owns the model; Runtime exposes only pinned upstream TLA+ tools.
 [tasks."formal:verify"]
 description = "Check all four LEGO 2.1 Owner boundary modes with pinned upstream TLC"
