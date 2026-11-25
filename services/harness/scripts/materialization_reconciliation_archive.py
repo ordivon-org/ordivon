@@ -9,6 +9,7 @@ boundary. It never authorizes retry/resend and never mutates ledger standing.
 from __future__ import annotations
 
 import hashlib
+from collections import Counter
 import json
 import os
 import sqlite3
@@ -18,7 +19,8 @@ from pathlib import Path
 from typing import Any, Iterable
 
 KIND = "ordivon.materialization-reconciliation-archive"
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+LEGACY_SCHEMA_VERSION = 1
 ARCHIVABLE_STANDINGS = frozenset({"unknown", "submit-observed", "human-required"})
 AMBIGUOUS_STANDINGS = frozenset({"unknown", "submit-observed"})
 DISPOSITIONS = frozenset(
@@ -46,16 +48,35 @@ def _ledger_rows(path: Path) -> dict[str, dict[str, Any]]:
         ).fetchone()
         if exists is None:
             raise ReconciliationArchiveError("materialization ledger has no requests table")
-        return {
-            str(row["request_id"]): {
-                "standing": str(row["standing"]),
-                "effectGeneration": int(row["effect_generation"]),
-                "updatedAtMs": int(row["updated_at_ms"]),
+        # One native SELECT observes every field of each subject in the same
+        # SQLite read snapshot. Stream payload bytes into a domain-separated
+        # row fingerprint; the projection does not retain or expose prompts.
+        result = {}
+        fields = (
+            "request_id", "request_digest", "request_json", "standing",
+            "provider_coordinate", "evidence_digest", "detail",
+            "effect_generation", "created_at_ms", "updated_at_ms",
+        )
+        for row in db.execute("SELECT " + ",".join(fields) + " FROM requests"):
+            values = [row[name] for name in fields]
+            if (
+                any(not isinstance(values[i], str) for i in (0, 1, 2, 3))
+                or any(values[i] is not None and not isinstance(values[i], str)
+                       for i in (4, 5, 6))
+                or any(type(values[i]) is not int for i in (7, 8, 9))
+            ):
+                raise ReconciliationArchiveError("ledger subject contains invalid field types")
+            raw = json.dumps(values, ensure_ascii=True, separators=(",", ":")).encode("ascii")
+            row_digest = "sha256:" + hashlib.sha256(
+                b"ordivon-materialization-archive-row-v2\0" + raw
+            ).hexdigest()
+            result[values[0]] = {
+                "standing": values[3],
+                "effectGeneration": values[7],
+                "updatedAtMs": values[9],
+                "rowDigest": row_digest,
             }
-            for row in db.execute(
-                "SELECT request_id,standing,effect_generation,updated_at_ms FROM requests"
-            )
-        }
+        return result
     finally:
         db.close()
 
@@ -119,6 +140,7 @@ def _normalize_entry(value: dict[str, Any], rows: dict[str, dict[str, Any]]) -> 
         "standingAtArchive": standing,
         "effectGenerationAtArchive": row["effectGeneration"],
         "ledgerUpdatedAtMsAtArchive": row["updatedAtMs"],
+        "ledgerRowDigestAtArchive": row["rowDigest"],
         "archiveDisposition": disposition,
         "safeToResend": False,
         "automaticRetryAuthorized": False,
@@ -206,12 +228,17 @@ def load_archive(path: Path) -> dict[str, Any] | None:
         ) from error
     if (
         not isinstance(value, dict)
-        or value.get("schemaVersion") != SCHEMA_VERSION
+        or type(value.get("schemaVersion")) is not int
+        or value.get("schemaVersion") not in {LEGACY_SCHEMA_VERSION, SCHEMA_VERSION}
         or value.get("kind") != KIND
     ):
         raise ReconciliationArchiveError("reconciliation archive identity is invalid")
     entries = value.get("entries")
-    if not isinstance(entries, list) or value.get("entryCount") != len(entries):
+    if (
+        not isinstance(entries, list)
+        or type(value.get("entryCount")) is not int
+        or value.get("entryCount") != len(entries)
+    ):
         raise ReconciliationArchiveError("reconciliation archive entry count is invalid")
     return value
 
@@ -234,6 +261,9 @@ def project_archive(ledger: Path, path: Path) -> dict[str, Any]:
             "present": True,
             "archiveEntries": 0,
             "activeArchivedUnresolved": 0,
+            "exactRowArchivedUnresolved": 0,
+            "legacyTupleOnlyArchivedUnresolved": 0,
+            "archiveAuthorizesDataRelease": False,
             "staleArchiveEntries": 0,
             "actionableUnresolved": raw_unresolved,
             "actionableEffectOutcomeAmbiguous": raw_ambiguous,
@@ -246,6 +276,9 @@ def project_archive(ledger: Path, path: Path) -> dict[str, Any]:
             "present": False,
             "archiveEntries": 0,
             "activeArchivedUnresolved": 0,
+            "exactRowArchivedUnresolved": 0,
+            "legacyTupleOnlyArchivedUnresolved": 0,
+            "archiveAuthorizesDataRelease": False,
             "staleArchiveEntries": 0,
             "actionableUnresolved": raw_unresolved,
             "actionableEffectOutcomeAmbiguous": raw_ambiguous,
@@ -256,18 +289,36 @@ def project_archive(ledger: Path, path: Path) -> dict[str, Any]:
     active = []
     stale = []
     issues = []
-    seen: set[str] = set()
+    # A conflicting duplicate cannot mask a subject through its first entry.
+    id_counts = Counter(
+        raw["effectId"] for raw in archive["entries"]
+        if isinstance(raw, dict) and isinstance(raw.get("effectId"), str)
+    )
+    duplicate_ids = {effect_id for effect_id, count in id_counts.items() if count > 1}
+    exact_version = archive["schemaVersion"] == SCHEMA_VERSION
     for raw in archive["entries"]:
         if not isinstance(raw, dict):
             issues.append("archive entry is not an object")
             continue
         effect_id = raw.get("effectId")
-        if not isinstance(effect_id, str) or effect_id in seen:
+        if not isinstance(effect_id, str) or effect_id in duplicate_ids:
             issues.append("archive contains invalid or duplicate effect identity")
             continue
-        seen.add(effect_id)
         row = unresolved.get(effect_id)
-        if row is None or row["standing"] != raw.get("standingAtArchive"):
+        if (
+            row is None
+            or row["standing"] != raw.get("standingAtArchive")
+            or type(raw.get("effectGenerationAtArchive")) is not int
+            or type(raw.get("ledgerUpdatedAtMsAtArchive")) is not int
+            or row["effectGeneration"] != raw["effectGenerationAtArchive"]
+            or row["updatedAtMs"] != raw["ledgerUpdatedAtMsAtArchive"]
+        ):
+            stale.append(effect_id)
+            continue
+        # V1 did not record the full original row. Its tuple can still
+        # describe administrative attention, but cannot qualify exact replay
+        # or retirement. Never silently promote a legacy observation to V2.
+        if exact_version and row["rowDigest"] != raw.get("ledgerRowDigestAtArchive"):
             stale.append(effect_id)
             continue
         try:
@@ -284,6 +335,9 @@ def project_archive(ledger: Path, path: Path) -> dict[str, Any]:
         "present": True,
         "archiveEntries": len(archive["entries"]),
         "activeArchivedUnresolved": len(active),
+        "exactRowArchivedUnresolved": len(active) if exact_version else 0,
+        "legacyTupleOnlyArchivedUnresolved": 0 if exact_version else len(active),
+        "archiveAuthorizesDataRelease": False,
         "archivedEffectOutcomeAmbiguous": sum(
             row["standingAtArchive"] in AMBIGUOUS_STANDINGS for row in active
         ),

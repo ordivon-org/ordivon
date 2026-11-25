@@ -156,3 +156,91 @@ def test_identity_absent_archive_is_unknown_only(tmp_path: Path) -> None:
     )
     value = project_archive(db, archive)
     assert value["actionableUnresolved"] == 0
+
+
+@pytest.mark.parametrize(
+    "assignment",
+    [
+        "effect_generation=effect_generation+1",
+        "updated_at_ms=updated_at_ms+1",
+        "request_digest='changed-request'",
+        "request_json='{\"changed\":true}'",
+        "provider_coordinate='changed-provider'",
+        "evidence_digest='changed-evidence'",
+        "detail='changed-observation'",
+    ],
+)
+def test_same_standing_does_not_preserve_archive_currentness(
+    tmp_path: Path, assignment: str
+) -> None:
+    ledger = tmp_path / "ledger.sqlite"
+    archive = tmp_path / "archive.json"
+    effect = "sha256:" + "a" * 64
+    create_ledger(ledger, [(effect, "unknown")])
+    write_archive(ledger, archive, [observed(effect)], archived_at_ms=300)
+    with sqlite3.connect(ledger) as db:
+        db.execute(f"UPDATE requests SET {assignment} WHERE request_id=?", (effect,))
+    value = project_archive(ledger, archive)
+    assert value["activeArchivedUnresolved"] == 0
+    assert value["staleArchiveEntries"] == 1
+    assert value["actionableUnresolved"] == 1
+
+
+def test_unrelated_row_change_does_not_invalidate_exact_archive_subject(tmp_path: Path) -> None:
+    ledger = tmp_path / "ledger.sqlite"
+    archive = tmp_path / "archive.json"
+    one, two = "sha256:" + "a" * 64, "sha256:" + "b" * 64
+    create_ledger(ledger, [(one, "unknown"), (two, "unknown")])
+    write_archive(ledger, archive, [observed(one)], archived_at_ms=300)
+    with sqlite3.connect(ledger) as db:
+        db.execute("UPDATE requests SET evidence_digest='new' WHERE request_id=?", (two,))
+    value = project_archive(ledger, archive)
+    assert value["activeArchivedUnresolved"] == 1
+    assert value["actionableUnresolved"] == 1
+
+
+def test_legacy_tuple_only_archive_is_not_exact_or_data_release(tmp_path: Path) -> None:
+    import json
+
+    ledger = tmp_path / "ledger.sqlite"
+    archive = tmp_path / "archive.json"
+    effect = "sha256:" + "a" * 64
+    create_ledger(ledger, [(effect, "unknown")])
+    value = write_archive(ledger, archive, [observed(effect)], archived_at_ms=300)
+    assert value["schemaVersion"] == 2
+    value["schemaVersion"] = 1
+    value["entries"][0].pop("ledgerRowDigestAtArchive")
+    archive.write_text(json.dumps(value))
+    projection = project_archive(ledger, archive)
+    assert projection["activeArchivedUnresolved"] == 1
+    assert projection["legacyTupleOnlyArchivedUnresolved"] == 1
+    assert projection["exactRowArchivedUnresolved"] == 0
+    assert projection["archiveAuthorizesDataRelease"] is False
+    with sqlite3.connect(ledger) as db:
+        db.execute("UPDATE requests SET effect_generation=effect_generation+1")
+    projection = project_archive(ledger, archive)
+    assert projection["actionableUnresolved"] == 1
+    assert projection["legacyTupleOnlyArchivedUnresolved"] == 0
+
+
+@pytest.mark.parametrize("mutation", ["missing-row-digest", "duplicate-subject", "coerced-generation"])
+def test_invalid_archival_evidence_cannot_mask_unresolved(tmp_path: Path, mutation: str) -> None:
+    import json
+
+    ledger = tmp_path / "ledger.sqlite"
+    archive = tmp_path / "archive.json"
+    effect = "sha256:" + "b" * 64
+    create_ledger(ledger, [(effect, "unknown")])
+    value = write_archive(ledger, archive, [observed(effect)], archived_at_ms=300)
+    if mutation == "missing-row-digest":
+        value["entries"][0].pop("ledgerRowDigestAtArchive")
+    elif mutation == "coerced-generation":
+        value["entries"][0]["effectGenerationAtArchive"] = True
+    else:
+        value["entries"].append(dict(value["entries"][0]))
+        value["entryCount"] += 1
+    archive.write_text(json.dumps(value))
+    projection = project_archive(ledger, archive)
+    assert projection["activeArchivedUnresolved"] == 0
+    assert projection["actionableUnresolved"] == 1
+    assert projection["archiveAuthorizesDataRelease"] is False
