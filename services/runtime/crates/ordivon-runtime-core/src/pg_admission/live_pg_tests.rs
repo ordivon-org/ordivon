@@ -120,3 +120,5 @@ mod crash_cut_cases;
 mod dispatch_cases;
 mod issuer_cases;
 mod terminal_cases;
+
+mod stateful_model_cases;
