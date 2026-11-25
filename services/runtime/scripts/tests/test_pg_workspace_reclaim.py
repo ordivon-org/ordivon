@@ -1235,15 +1235,36 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                 "createdUnixMs": 1,
             })
         )
-        report, client = self.run_operator_plan(allow=False)
-        self.assertEqual(report["otherSourceRepoManagedWorkspaceCount"], 1)
-        self.assertEqual(report["otherSourceRepoManagedWorkspaceSample"],
-                         [other_workspace.name])
-        self.assertEqual(report["unregisteredDirectoryCount"], 1)
-        self.assertEqual(report["unclassifiedDirectoryCount"], 0)
-        self.assertEqual(report["eligible"], 0)
-        self.assertTrue(other_workspace.exists())
-        self.assertEqual(client.calls, [])
+        record_path = records / (other_workspace.name + ".json")
+        legacy = json.loads(record_path.read_text())
+        native = {k: v for k, v in legacy.items()
+                  if k not in ("workspaceId", "workspacePath")}
+        for record, expected in (
+            (legacy, 1), (native, 1),
+            ({**native, "workspaceId": "foreign"}, 0),
+            ({**native, "workspacePath": str(self.workspace)}, 0),
+            ({**native, "workspaceId": None}, 0),
+            ({**native, "workspacePath": None}, 0),
+            ({**native, "schemaVersion": True}, 0),
+            ({**native, "schemaVersion": 2}, 0),
+            ({**native, "state": "opening"}, 0),
+            ({**native, "createdUnixMs": True}, 0),
+            ({**native, "createdUnixMs": -1}, 0),
+            ({**native, "createdUnixMs": 2 ** 128}, 0),
+            ({**native, "sourceRevision": None}, 0),
+        ):
+            with self.subTest(record=record):
+                record_path.write_text(json.dumps(record))
+                report, client = self.run_operator_plan(allow=False)
+                self.assertEqual(report["otherSourceRepoManagedWorkspaceCount"], expected)
+                self.assertEqual(report["otherSourceRepoManagedWorkspaceSample"],
+                                 [other_workspace.name] if expected else [])
+                self.assertEqual(report["unregisteredDirectoryCount"], 1)
+                self.assertEqual(report["unclassifiedDirectoryCount"], 1 - expected)
+                self.assertEqual(report["eligible"], 0)
+                self.assertTrue(other_workspace.exists())
+                self.assertEqual(client.calls, [])
+        record_path.write_text(json.dumps(native))
 
     def test_unproven_cross_repo_record_remains_unknown_without_deletion(self):
         """An untrusted record is not enough to declare an orphan or a consumer."""

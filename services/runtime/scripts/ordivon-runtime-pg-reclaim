@@ -263,15 +263,28 @@ def _other_repo_managed_workspaces(
             continue
         try:
             record = json.loads(record_file.read_text(encoding="utf-8"))
-            if not isinstance(record, dict) or record.get("workspaceId") not in (
-                workspace_id, "",
+            if not isinstance(record, dict):
+                continue
+            if type(record.get("schemaVersion")) is not int or record["schemaVersion"] != 1:
+                continue
+            # Native WorkspaceRecord omits the derived ID/path. Opening and
+            # closed records are distinct contracts, not open inventory.
+            if set(record) - {"schemaVersion", "sourceRepo", "sourceRevision",
+                              "createdUnixMs", "workspaceId", "workspacePath"}:
+                continue
+            if not isinstance(record.get("sourceRevision"), str):
+                continue
+            if type(record.get("createdUnixMs")) is not int or not (
+                0 <= record["createdUnixMs"] < 2 ** 128
             ):
                 continue
+            if record.get("workspaceId", "") not in (workspace_id, ""):
+                continue
             source = record.get("sourceRepo")
-            claimed_workspace = record.get("workspacePath")
+            claimed_workspace = record.get("workspacePath", "")
             if not isinstance(source, str) or not Path(source).is_absolute():
                 continue
-            if claimed_workspace != str(root / workspace_id):
+            if claimed_workspace not in ("", str(root / workspace_id)):
                 continue
             foreign_repo = Path(source).resolve(strict=True)
             if foreign_repo == source_repo or not foreign_repo.is_dir():
