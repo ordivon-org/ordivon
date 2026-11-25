@@ -179,6 +179,8 @@
     "profileEnv": "RUNTIME_TEST_PROFILE",
     "defaultProfile": "pg",
     "legacyProfile": "legacy",
+    "archiveProfile": "archive",
+    "archiveTarget": "archive_migration_properties",
     "formalObligation": "PASS(selector) => matched(selector) >= 1 AND every matched test PASS",
     "zeroMatchStanding": "FAIL_CLOSED",
     "consumerTest": "scripts/tests/test_focused_verification_contract.py",

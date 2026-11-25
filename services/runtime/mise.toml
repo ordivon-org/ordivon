@@ -74,20 +74,27 @@ mise run formal:verify
 """
 
 [tasks."test:focused"]
-description = "Focused cargo-nextest, PG by default; explicit legacy profile (RUNTIME_TEST_EXPR)"
+description = "Focused cargo-nextest, PG by default; explicit legacy and archive profiles (RUNTIME_TEST_EXPR)"
 run = """
 set -euo pipefail
 case "${RUNTIME_TEST_PROFILE:-pg}" in
   pg)
     feature=postgres-registry-admission
+    target=(--lib)
     default_selector='test(nonterminal_native_transition_requires_reconciliation)'
     ;;
   legacy)
     feature=transactional-runtime
+    target=(--lib)
     default_selector='test(public_requests_reject_unknown_fields_and_path_escape)'
     ;;
+  archive)
+    feature=operator-tools
+    target=(--test archive_migration_properties)
+    default_selector='all()'
+    ;;
   *)
-    echo "Invalid RUNTIME_TEST_PROFILE: expected pg or legacy" >&2
+    echo "Invalid RUNTIME_TEST_PROFILE: expected pg, legacy or archive" >&2
     exit 2
     ;;
 esac
@@ -108,7 +115,7 @@ if [[ "$actual_nextest" != "$expected_nextest" ]]; then
   exit 1
 fi
 echo "qualified cargo-nextest $actual_nextest"
-mise exec -- cargo nextest run --locked --lib -p ordivon-runtime-core --no-default-features --features "$feature" --no-tests fail --retries 0 --status-level pass -P ci -E "${RUNTIME_TEST_EXPR:-$default_selector}"
+mise exec -- cargo nextest run --locked "${target[@]}" -p ordivon-runtime-core --no-default-features --features "$feature" --no-tests fail --retries 0 --status-level pass -P ci -E "${RUNTIME_TEST_EXPR:-$default_selector}"
 """
 
 
