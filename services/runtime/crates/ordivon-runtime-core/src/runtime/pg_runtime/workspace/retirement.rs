@@ -13,7 +13,8 @@ const WORKSPACE_JOB_CONTINUATION_HOLD_MS: i64 = 4 * 60 * 60 * 1000;
 // Read committed AFTER the shared admission lock, so a recently completed
 // Job no longer listed in activeJobIds still retains the Workspace long
 // enough for consumers to inspect artifacts and source.
-// Reuse existing PG jobs/attempts/events, with no additional registry/table.
+// Include all recorded resource activity, not just Job completion. Reuse
+// existing PG jobs/attempts/events/reservations/allocations; no new registry.
 fn require_recent_pg_job_consumer_continuation(
     tx: &mut postgres::Transaction<'_>,
     workspace_id: &str,
@@ -25,10 +26,16 @@ fn require_recent_pg_job_consumer_continuation(
             )
             SELECT GREATEST(
                 COALESCE((SELECT MAX(created_at_ms) FROM owned_jobs),0),
-                COALESCE((SELECT MAX(a.finished_at_ms) FROM attempts a
+                COALESCE((SELECT MAX(GREATEST(a.created_at_ms,a.finished_at_ms)) FROM attempts a
                           JOIN owned_jobs j ON j.job_id=a.job_id),0),
                 COALESCE((SELECT MAX(e.observed_at_ms) FROM job_events e
-                          JOIN owned_jobs j ON j.job_id=e.job_id),0)
+                          JOIN owned_jobs j ON j.job_id=e.job_id),0),
+                COALESCE((SELECT MAX(GREATEST(r.acquired_at_ms,r.state_observed_at_ms,r.released_at_ms))
+                          FROM concurrency_reservations r JOIN attempts a ON a.attempt_id=r.attempt_id
+                          JOIN owned_jobs j ON j.job_id=a.job_id),0),
+                COALESCE((SELECT MAX(GREATEST(al.acquired_at_ms,al.released_at_ms))
+                          FROM job_allocations al JOIN attempts a ON a.attempt_id=al.attempt_id
+                          JOIN owned_jobs j ON j.job_id=a.job_id),0)
             ),
             (EXTRACT(EPOCH FROM clock_timestamp()) * 1000)::bigint",
             &[&workspace_id],
@@ -66,7 +73,7 @@ impl PgRuntime {
         if active != 0 {
             return Err(RuntimeError::new(
                 RuntimeErrorCode::ConcurrencyLimit,
-                "Workspace has PG-owned active or held Jobs",
+                "Workspace has PG-owned active, held or unsettled Jobs",
                 Some("workspaceId"),
                 false,
             ));
@@ -121,5 +128,48 @@ impl PgRuntime {
             .map_err(super::super::error::map_universal_error)?;
         workspace_effect_commit(tx.commit(), "workspace.close")?;
         Ok(result)
+    }
+}
+
+#[cfg(test)]
+mod continuation_resource_activity_tests {
+    use super::*;
+
+    #[test]
+    #[ignore = "requires explicitly disposable ORDIVON_PG_TEST_DSN"]
+    fn native_pg_recent_resource_release_extends_continuation_not_job_liveness() {
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("dedicated disposable PostgreSQL cluster required");
+        let mut pg = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        pg.batch_execute(
+            "CREATE TEMP TABLE jobs (job_id TEXT PRIMARY KEY, workspace_id TEXT, created_at_ms BIGINT);
+             CREATE TEMP TABLE attempts (attempt_id TEXT PRIMARY KEY, job_id TEXT, created_at_ms BIGINT, finished_at_ms BIGINT);
+             CREATE TEMP TABLE job_events (job_id TEXT, observed_at_ms BIGINT);
+             CREATE TEMP TABLE concurrency_reservations (attempt_id TEXT, acquired_at_ms BIGINT, state_observed_at_ms BIGINT, released_at_ms BIGINT);
+             CREATE TEMP TABLE job_allocations (attempt_id TEXT, acquired_at_ms BIGINT, released_at_ms BIGINT);
+             INSERT INTO jobs VALUES ('j','ws',1),('other','ws-other',1);
+             INSERT INTO attempts VALUES ('a','j',1,1),('other-a','other',1,1);
+             INSERT INTO concurrency_reservations VALUES ('a',1,1,1);
+             INSERT INTO job_allocations VALUES ('a',1,1);
+             INSERT INTO job_allocations VALUES ('other-a',1,(EXTRACT(EPOCH FROM clock_timestamp())*1000)::bigint);"
+        ).unwrap();
+        let mut tx = pg.transaction().unwrap();
+        assert!(require_recent_pg_job_consumer_continuation(&mut tx, "ws").is_ok());
+        for (update, restore) in [
+            (
+                "UPDATE concurrency_reservations SET released_at_ms=(EXTRACT(EPOCH FROM clock_timestamp())*1000)::bigint WHERE attempt_id='a'",
+                "UPDATE concurrency_reservations SET released_at_ms=1 WHERE attempt_id='a'",
+            ),
+            (
+                "UPDATE job_allocations SET released_at_ms=(EXTRACT(EPOCH FROM clock_timestamp())*1000)::bigint WHERE attempt_id='a'",
+                "UPDATE job_allocations SET released_at_ms=1 WHERE attempt_id='a'",
+            ),
+        ] {
+            tx.batch_execute(update).unwrap();
+            assert!(require_recent_pg_job_consumer_continuation(&mut tx, "ws").is_err());
+            tx.batch_execute(restore).unwrap();
+            assert!(require_recent_pg_job_consumer_continuation(&mut tx, "ws").is_ok());
+        }
+        tx.rollback().unwrap();
     }
 }
