@@ -24,8 +24,14 @@ def qualify_batch_sizes(
     width = 40 if algorithm == "sha1" else 64
     if len(expected) > _MAX_OBJECTS:
         raise ValueError("Git cut exceeds bounded object count")
-    rows = raw.splitlines()
-    if len(rows) != len(expected) or not raw.endswith(b"\n"):
+    # cat-file --batch-check uses LF, not universal newline framing.
+    # Each row has at most OID + space + "commit" + space + 8 digits + LF.
+    # Bound the parser's allocations before splitting a malformed response.
+    count = len(expected)
+    if not count or len(raw) > count * (width + 17):
+        raise ValueError("incomplete Git object batch")
+    rows = raw.split(b"\n", count)
+    if len(rows) != count + 1 or rows.pop() != b"":
         raise ValueError("incomplete Git object batch")
     result = []
     total = 0
