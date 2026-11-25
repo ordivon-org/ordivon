@@ -63,3 +63,36 @@ examples killed 1/12 and exhaustive-field generated suite killed 12/12,
 baseline restored. The ENGINE version-string guard was exercised by the
 generated property but not separately mutated in this matrix. Put fast
 contracts before expensive Godot/SMT gates, not at the end.
+
+## R16 — shrinkable native transition and observer trace
+
+R15 #32938; T04/T05 native state and composition. Existing 486 traces
+enumerate three actions at length five, not checkpoint/restart lifecycle or
+signal trace semantics. Keep that finite oracle and SMT. Use Hypothesis
+action-list generation/shrinking (https://hypothesis.readthedocs.io/en/latest/stateful.html)
+and Godot signals (https://docs.godotengine.org/en/stable/classes/class_signal.html).
+Generate whole bounded programs, replay each in one native Godot process
+for both Classic and Trial; no persistent test RPC or duplicate rule engine.
+Stage exact Rules/Tuning/config bytes in a private minimal test project,
+not the exported product; no UI/audio/device claims. A test-only observer
+returns per-step before/after states, acceptance and ordered signals.
+Independent Python relations require rejection atomicity including no
+signals, successful combat emits state then action once, reset/advance/
+restore emit state only, checkpoint is observational, accepted restoration
+equals the saved state, restart equals initial state, turn progression and
+Trial forecast relation. Both modes on every generated program. Explicit
+lifecycle examples, no database, bounded launch timeout; failures retain
+the input list and Hypothesis shrinks it. A receipt has exact mode/step
+inventory and strict native diagnostics, not mere exit zero.
+
+I: exact Rules/Tuning/resources plus generated bounded action list.
+O: independently verified per-step relations. S: fresh rules and checkpoint
+per mode; pre: source byte staging and native process; post: expected
+transition/signal relations; inv: no mutation of original source/production
+slots, no second combat simulator; eff: private temp project and native
+process; c: <=40 actions, 24 generated programs plus explicit examples;
+epsilon: actual native rules, not exported scene/UI/peripheral or universal
+state coverage; prov: exact source revision, Hypothesis version, minimized
+action sequence. Unfold with existing uv, native_process and Godot.
+Only integrate into existing native gate after actual baseline and mutant
+qualification; no new required job or dependency pin.
