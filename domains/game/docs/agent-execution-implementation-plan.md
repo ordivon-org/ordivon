@@ -30,7 +30,7 @@ A: native G11 red->green repair
 
 ### Task A — Fix native clean-workspace G11 execution (implement first)
 
-**Files**: Modify `domains/game/mise.toml` at `[tasks."test:agent-episode"]`. Keep `examples/room-encounter/agent_episode_acceptance.py` unchanged unless an actual negative control establishes a flaw. No external library.
+**Files**: Modify `domains/game/mise.toml` at `[tasks."test:agent-episode"]`. Keep `scripts/agent_episode_acceptance.py` unchanged unless an actual negative control establishes a flaw. No external library.
 
 **Interface**
 - Input: `mise run test:agent-episode` in fresh checkout.
@@ -38,7 +38,7 @@ A: native G11 red->green repair
 - Output: the *existing* Game native acceptance receipt, with nonzero exit on pre-import failure.
 
 - [ ] A1. RED: in an isolated disposable worktree confirm `examples/room-encounter/.godot` absent, run `mise run test:agent-episode`. Expected: native parse/class errors or failure of receipt, not any artificially forced failure.
-- [ ] A2. GREEN: keep a single upstream-native import in `[tasks."test:agent-episode"]` before `python3 examples/room-encounter/agent_episode_acceptance.py`; run as a `set -euo pipefail` multiline task.
+- [ ] A2. GREEN: require a diagnostic-qualified native import in the shared `scripts/native_scene_acceptance.py --suite agent` entry before the episode consumer.
 - [ ] A3. Remove only this worktree's generated Godot cache; run `mise run test:agent-episode` again. Expected: `GAME_AGENT_EPISODE_PASS native_episodes=19` and exit 0.
 - [ ] A4. Run `mise run test:encounter`, `mise run test:dialogue-native`, `mise run test:native-receipt-selftest`; compare with baseline and inspect actual logs. For original Rule claims, preserve UI/debug and invalid-action cases.
 
@@ -85,7 +85,7 @@ Dependency: A/B/C above form the verified G11 import and CI seam. R1.1 builds on
 
 ### Task E — Make the current native output reader test observable trace coherence
 
-**Files:** Modify only Game's existing `examples/room-encounter/agent_episode_acceptance.py`. Preserve the native `agent_episode.gd` and `EncounterRules`. No workflow/runner changes.
+**Files:** Modify only Game's existing `scripts/agent_episode_acceptance.py`. Preserve the native `agent_episode.gd` and `EncounterRules`. No workflow/runner changes.
 
 **Input:** One actual successful `episode(actions, observation)` return with schema-v2 JSON, 0..64 native actions, player/debug mode. **Output:** positive verdict for coherent actual native receipt; assertion on inconsistent trace, rejected-state mutation, unknown debug fields leaking into player channel.
 

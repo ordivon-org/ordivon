@@ -257,6 +257,49 @@ def check_shared_standing() -> dict:
         ],
     }
 
+def check_multiple_witnesses() -> dict:
+    """All declared pointers must agree; order cannot conceal contradictions."""
+    profile = {"requiredEvidence": {"decoded": {"required": True}}}
+    modes = ("matching", "opposite", "unknown", "generic", "absent", "self", "invalid")
+    checked = 0
+    for status in ("PASS", "FAIL"):
+        opposite = "FAIL" if status == "PASS" else "PASS"
+        for vector in itertools.product(modes, repeat=2):
+            report = {
+                "observations": {
+                    "matching": {"status": status, "supportsClaims": ["decoded"]},
+                    "opposite": {"status": opposite, "supportsClaims": ["decoded"]},
+                    "unknown": {"status": "NOT_EVALUATED", "supportsClaims": ["decoded"]},
+                    "generic": {"status": status},
+                },
+                "claimResults": {"decoded": {
+                    "status": status,
+                    "nativePointers": [
+                        "/claimResults/decoded" if mode == "self"
+                        else "/observations/matching~2" if mode == "invalid"
+                        else f"/observations/{mode}"
+                        for mode in vector
+                    ],
+                }},
+            }
+            assessment = assess_required_evidence(profile, report)
+            # The pure coverage projection may only receive witnessed statuses.
+            # A valid explicit FAIL is a falsification, not an integrity issue.
+            issues = [
+                item for item in assessment["issues"]
+                if item != "required claim not verified PASS: decoded=FAIL"
+            ]
+            actual = assess_required_statuses(
+                assessment["expectedClaims"], assessment["claimStatuses"], issues=issues,
+            )
+            expected = status if vector == ("matching", "matching") else "UNKNOWN"
+            assert actual["verificationStatus"] == expected, (vector, actual)
+            assert assessment["complete"] == (expected == "PASS"), (vector, assessment)
+            checked += 1
+    assert checked == 98
+    return {"casesChecked": checked, "counterexamples": 0}
+
+
 def main() -> None:
     path = ROOT / "artifact_verification/claim_coverage.py"
     rows = [check_profile(profile_id) for profile_id in PROFILES]
@@ -271,6 +314,7 @@ def main() -> None:
         "totalStates": sum(row["modelStatesExhaustivelyChecked"] for row in rows),
         "counterexamples": 0,
         "sharedStandingModel": check_shared_standing(),
+        "multipleWitnessModel": check_multiple_witnesses(),
         "models": rows,
     }
     print(json.dumps(summary, ensure_ascii=False, sort_keys=True))

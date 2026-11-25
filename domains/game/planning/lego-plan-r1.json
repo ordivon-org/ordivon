@@ -528,7 +528,7 @@
       ],
       "evidence": [
         "examples/room-encounter/agent_episode.gd",
-        "examples/room-encounter/agent_episode_acceptance.py",
+        "scripts/agent_episode_acceptance.py",
         "examples/room-encounter/README.md",
         "examples/room-encounter/visual_capture.gd",
         "docs/room-encounter-playtest.md"
@@ -543,7 +543,7 @@
         "game state or persistence"
       ],
       "consumerEvidence": [
-        "examples/room-encounter/agent_episode_acceptance.py",
+        "scripts/agent_episode_acceptance.py",
         "examples/room-encounter/agent_episode.gd",
         "examples/room-encounter/README.md",
         "mise.toml",
@@ -589,17 +589,17 @@
         "prov": [
           "examples/room-encounter/README.md",
           "domains/game/mise.toml Godot 4.7.2 declared pin",
-          "examples/room-encounter/agent_episode_acceptance.py"
+          "scripts/agent_episode_acceptance.py"
         ],
         "unfold": [
           "examples/room-encounter/agent_episode.gd",
           "examples/room-encounter/encounter_rules.gd",
-          "examples/room-encounter/agent_episode_acceptance.py",
+          "scripts/agent_episode_acceptance.py",
           "examples/room-encounter/narrative/encounter_dialogue.gd",
           "examples/room-encounter/narrative/gate.dialogue",
           "examples/room-encounter/room_theme.tres",
           "examples/room-encounter/visual_capture.gd",
-          "examples/room-encounter/native_scene_acceptance.py",
+          "scripts/native_scene_acceptance.py",
           "docs/room-encounter-playtest.md"
         ]
       }

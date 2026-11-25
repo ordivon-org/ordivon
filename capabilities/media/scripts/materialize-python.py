@@ -1,23 +1,15 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import platform
 import shutil
 import subprocess
 import sys
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+from python_dependency_contract import EXPECTED_PYTHON, INPUTS, ROOT, digest, environment_probe
+
 RECEIPT = ROOT / ".venv" / ".ordivon-materialization.json"
-INPUTS = ("pyproject.toml", "uv.lock", ".python-version")
-EXPECTED_PYTHON = (ROOT / ".python-version").read_text(encoding="utf-8").strip()
-EXPECTED_JSONSCHEMA = "4.26.0"
-
-
-def digest(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def command_output(command: list[str]) -> str:
@@ -40,12 +32,8 @@ def main() -> int:
     python = ROOT / ".venv" / "bin" / "python"
     if not python.is_file():
         raise SystemExit("uv sync returned success without .venv/bin/python")
-    probe = [
-        "import importlib.metadata as m, platform",
-        f"assert platform.python_version() == {EXPECTED_PYTHON!r}",
-        f"assert m.version('jsonschema') == {EXPECTED_JSONSCHEMA!r}",
-    ]
-    subprocess.run([str(python), "-c", "; ".join(probe)], cwd=ROOT, check=True, timeout=30)
+    probe = environment_probe()
+    subprocess.run([str(python), "-c", probe], cwd=ROOT, check=True, timeout=30)
     receipt = {
         "schemaVersion": 1,
         "kind": "ordivon.studio-python-materialization-receipt",

@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "kind": "artifact-test-negative-control",
+  "purpose": "Benign fixed executable used only to test rejection by the frozen vulnerability policy; never a production build or deployment dependency.",
+  "upstreamSource": {
+    "repository": "https://github.com/golang/go",
+    "tag": "go1.26.5",
+    "commit": "c19862e5f8415b4f24b189d065ed739517c548ba",
+    "githubArchiveSha256": "34aed216c73a8ca59adaedf696313fc40bd8c4fce9e23990f94200d8971ff85f"
+  },
+  "bootstrap": {
+    "version": "go1.26.6",
+    "executableSha256": "29e6e0b8be61beb1489ceae62b304343566de8a1dc700af74bde7aeb9c80ad45"
+  },
+  "source": {
+    "file": "go1265-negative.go",
+    "sha256": "38db247238662b43e7732379aac78c14ef2561355fc9abb6c240ca7392c3519d"
+  },
+  "build": {
+    "goVersion": "go1.26.5",
+    "goos": "linux",
+    "goarch": "amd64",
+    "cgoEnabled": false,
+    "args": [
+      "build",
+      "-trimpath",
+      "-ldflags=-s -w -buildid="
+    ]
+  },
+  "fixture": {
+    "file": "go1265-negative-linux-amd64.gz",
+    "compression": "gzip",
+    "compressedSha256": "ad9ef685a91697975a94d01c0f13e615400c352f52c32c9b410ffbf92d848f02",
+    "sha256": "69f2d4199519f7d2915e446cdd2b7dcbdfe9fec1aa7f49779ba4cdafc77a5de8",
+    "size": 1585278
+  },
+  "observedNegativeControl": {
+    "dbSnapshot": "20260912-r1",
+    "dbSha256": "63b60b5493b28e6ce5b3a45753865055f890cea750b7138922963e25446975bf",
+    "vulnerabilityCount": 8,
+    "runtimeJobId": "job-01a210cc-c10e-7134-b270-d829dec1907c",
+    "stdoutSha256": "eb1f30d8eda8538d9936363ed29db962a8c46c7329cce0c8d7ec54798a217462",
+    "nonClaims": "No production safety, current vulnerability absence, or exploit behavior."
+  }
+}

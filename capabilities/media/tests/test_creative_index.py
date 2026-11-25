@@ -553,6 +553,37 @@ class CreativeIndexTests(unittest.TestCase):
         self.assertIn("source:x", ids)
         self.assertNotIn("evidence:unrelated", ids)
 
+    def test_query_is_bounded_and_endpoint_closed(self) -> None:
+        for kind in ("Work", "Source"):
+            with self.subTest(kind=kind):
+                index = {
+                    "nodes": [{"id": "hub", "kind": "Work", "name": "needle"}] + [
+                        {"id": f"leaf:{i:03}", "kind": kind} for i in range(260)
+                    ],
+                    "relations": [
+                        {"from": "hub", "to": f"leaf:{i:03}", "type": "related", "evidence": "x"}
+                        for i in range(260)
+                    ],
+                }
+                result = query_creative_index(index, "needle")
+                ids = {node["id"] for node in result["nodes"]}
+                self.assertEqual(len(ids), 250)
+                self.assertTrue(result["truncated"])
+                self.assertTrue(all(r["from"] in ids and r["to"] in ids for r in result["relations"]))
+                self.assertEqual(len(result["relations"]), 249)
+
+    def test_query_caps_initial_matches_and_relation_budget(self) -> None:
+        nodes = [{"id": f"n:{i:03}", "kind": "Work", "name": "needle"} for i in range(260)]
+        relations = [
+            {"from": "n:000", "to": "n:001", "type": "related", "evidence": str(i)}
+            for i in range(501)
+        ]
+        result = query_creative_index({"nodes": nodes, "relations": relations}, "needle")
+        self.assertEqual(len(result["nodes"]), 250)
+        self.assertLessEqual(len(result["relations"]), 500)
+        self.assertTrue(result["truncated"])
+        self.assertEqual(result, query_creative_index({"nodes": nodes, "relations": relations}, "needle"))
+
     def test_query_returns_matching_nodes_and_bounded_neighbors(self) -> None:
         index = build_creative_index(ROOT)
         result = query_creative_index(index, "scene.render")

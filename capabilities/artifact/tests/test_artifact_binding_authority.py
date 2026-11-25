@@ -122,7 +122,9 @@ class ArtifactBindingAuthorityTests(unittest.TestCase):
                 binding = registry.resolve(profile_id, "verify")
                 self.assertTrue(binding.snapshot_inputs)
                 self.assertFalse(binding.require_claim_results)
-        self.assertFalse(registry.resolve("design-2d-tiled-tmj-object-map-r1", "verify").snapshot_inputs)
+        tiled = registry.resolve("design-2d-tiled-tmj-object-map-r1", "verify")
+        self.assertTrue(tiled.snapshot_inputs)
+        self.assertFalse(tiled.require_claim_results)
 
     def test_registry_rejects_non_boolean_snapshot_configuration(self):
         with tempfile.TemporaryDirectory() as d:
