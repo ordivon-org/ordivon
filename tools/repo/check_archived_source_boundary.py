@@ -58,6 +58,11 @@ def tracked_reference_paths(root: Path, locator: str) -> list[str]:
     make the observation incomplete, never clean. This bounded lexical
     contract does not establish absence of dynamic or installed consumers.
     """
+    # grep --cached can omit all unresolved stage 1/2/3 entries, even
+    # when stage 3 carries the forbidden locator. There is no resolved
+    # stage-0 source set to qualify in that case.
+    if git(root, "ls-files", "--unmerged", "-z").stdout:
+        raise RuntimeError("archived-source observation incomplete: unmerged index")
     paths = set()
     for extra in ([], ["--cached"]):
         proc = subprocess.run(

@@ -157,6 +157,25 @@ assert v["runtimeConsumerStanding"] == "UNKNOWN"
 assert v["retirementAdmissible"] is False
 PYTEST
 
+# An unresolved three-stage index is not a complete stage-0 source set.
+# A clean worktree and clean stage 2 can hide a prohibited stage 3 object.
+base="$(git -C "$repo" rev-parse HEAD:src/current.py)"
+ours="$(printf 'clean ours\n' | git -C "$repo" hash-object -w --stdin)"
+theirs="$(git -C "$repo" rev-parse :src/current.py)"
+printf 'clean ours\n' >"$repo/src/current.py"
+printf '0 %040d\tsrc/current.py\n100644 %s 1\tsrc/current.py\n100644 %s 2\tsrc/current.py\n100644 %s 3\tsrc/current.py\n' \
+  0 "$base" "$ours" "$theirs" | git -C "$repo" update-index --index-info
+set +e
+python3 "$CHECKER" --repo "$repo" --policy policy.json --json >"$TMP/unmerged.json" 2>"$TMP/unmerged.err"
+unmerged_rc=$?
+set -e
+printf 'unmerged native rc=%s\n' "$unmerged_rc"
+test "$unmerged_rc" -ne 0
+test ! -s "$TMP/unmerged.json"
+grep -F 'unmerged index' "$TMP/unmerged.err"
+printf 'LEGACY = "/legacy/source"\n' >"$repo/src/current.py"
+git -C "$repo" add src/current.py
+
 # Missing staged blob: native grep may exit 0 or 1 with diagnostics.
 # This is an incomplete observation, not a legitimate PASS/FAIL verdict.
 git -C "$repo" config remote.origin.promisor true
