@@ -771,6 +771,8 @@ check_workspace_consumer_close_r2_candidate() {
     -config WorkspaceConsumerCloseR1.collector.cfg WorkspaceConsumerCloseR1.tla)
   (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
     -config WorkspaceReleaseBindingR1.cfg WorkspaceReleaseBindingR1.tla)
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config WorkspaceExternalRootReclaimR1.cfg WorkspaceExternalRootReclaimR1.tla)
 }
 
 # Distinct two-Agent continuation scope: source DESIGN model, not installed PG claims.
@@ -1008,6 +1010,20 @@ PY_BINDING
       if [[ "$field" == reachable ]]; then property=ClosedUnreachable; fi
       workspace_close_expect_named_counterexample "$folder" WorkspaceReleaseBindingR1.cfg \
         "$property" "binding-$field" WorkspaceReleaseBindingR1.tla
+    done
+    for kind in omitted-mapping reachable; do
+      folder="$tmp_dir/external-$kind"
+      mkdir "$folder"
+      cp "$ROOT/formal/WorkspaceExternalRootReclaimR1."{tla,cfg} "$folder/"
+      if [[ "$kind" == omitted-mapping ]]; then
+        sed -i 's/CONSTANT OmitMappedRoot = FALSE/CONSTANT OmitMappedRoot = TRUE/' "$folder/WorkspaceExternalRootReclaimR1.cfg"
+        property=ClosedHasNoRoots
+      else
+        echo 'INVARIANT ClosedUnreachable' >> "$folder/WorkspaceExternalRootReclaimR1.cfg"
+        property=ClosedUnreachable
+      fi
+      workspace_close_expect_named_counterexample "$folder" WorkspaceExternalRootReclaimR1.cfg \
+        "$property" "external-$kind" WorkspaceExternalRootReclaimR1.tla
     done
   )
 }
