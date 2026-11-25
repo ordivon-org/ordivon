@@ -47,13 +47,13 @@ run = """
 set -eu
 export_dir="${GAME_EXPORT_DIR:-$PWD/dist/room-encounter/linux-x86_64}"
 mkdir -p "$export_dir"
-godot --headless --path examples/room-encounter --editor --import
-godot --headless --path examples/room-encounter --export-release "Linux x86_64" "$export_dir/room-encounter.x86_64"
+python3 scripts/native_process.py -- godot --headless --path examples/room-encounter --editor --import
+python3 scripts/native_process.py -- godot --headless --path examples/room-encounter --export-release "Linux x86_64" "$export_dir/room-encounter.x86_64"
 test -s "$export_dir/room-encounter.x86_64"
 chmod +x "$export_dir/room-encounter.x86_64"
 cp examples/room-encounter/addons/dialogue_manager/LICENSE "$export_dir/DIALOGUE_MANAGER_LICENSE.txt"
 cp examples/room-encounter/assets/LICENSE.txt "$export_dir/KENNEY_ASSETS_LICENSE.txt"
-"$export_dir/room-encounter.x86_64" --headless --quit-after 3
+python3 scripts/native_process.py -- "$export_dir/room-encounter.x86_64" --headless --quit-after 3
 tar -czf "$export_dir/../room-encounter-linux-x86_64.tar.gz" -C "$export_dir" room-encounter.x86_64 DIALOGUE_MANAGER_LICENSE.txt KENNEY_ASSETS_LICENSE.txt
 sha256sum "$export_dir/room-encounter.x86_64" "$export_dir/../room-encounter-linux-x86_64.tar.gz"
 """
@@ -65,8 +65,8 @@ run = """
 set -eu
 export_dir="${GAME_EXPORT_DIR:-$PWD/dist/room-encounter/windows-x86_64}"
 mkdir -p "$export_dir"
-godot --headless --path examples/room-encounter --editor --import
-godot --headless --path examples/room-encounter --export-release "Windows x86_64" "$export_dir/room-encounter.exe"
+python3 scripts/native_process.py -- godot --headless --path examples/room-encounter --editor --import
+python3 scripts/native_process.py -- godot --headless --path examples/room-encounter --export-release "Windows x86_64" "$export_dir/room-encounter.exe"
 test -s "$export_dir/room-encounter.exe"
 cp examples/room-encounter/addons/dialogue_manager/LICENSE "$export_dir/DIALOGUE_MANAGER_LICENSE.txt"
 cp examples/room-encounter/assets/LICENSE.txt "$export_dir/KENNEY_ASSETS_LICENSE.txt"
@@ -172,8 +172,8 @@ trap 'rm -rf -- "$stage"' EXIT
 python3 scripts/native_export_identity.py examples/beacon-relay > "$stage/export-inputs.before"
 mise run test:beacon
 mkdir -p "$stage/linux-x86_64" "$stage/windows-x86_64"
-godot --headless --path examples/beacon-relay --export-release "Linux x86_64" "$stage/linux-x86_64/beacon-relay.x86_64"
-godot --headless --path examples/beacon-relay --export-release "Windows x86_64" "$stage/windows-x86_64/beacon-relay.exe"
+python3 scripts/native_process.py -- godot --headless --path examples/beacon-relay --export-release "Linux x86_64" "$stage/linux-x86_64/beacon-relay.x86_64"
+python3 scripts/native_process.py -- godot --headless --path examples/beacon-relay --export-release "Windows x86_64" "$stage/windows-x86_64/beacon-relay.exe"
 test -s "$stage/linux-x86_64/beacon-relay.x86_64"
 test -s "$stage/windows-x86_64/beacon-relay.exe"
 chmod +x "$stage/linux-x86_64/beacon-relay.x86_64"
@@ -181,7 +181,7 @@ cp examples/beacon-relay/LICENSE "$stage/linux-x86_64/UPSTREAM_MIT_LICENSE.txt"
 cp examples/beacon-relay/fonts/LICENSE.txt "$stage/linux-x86_64/FONT_OFL_LICENSE.txt"
 cp examples/beacon-relay/CREDITS.txt "$stage/linux-x86_64/CREDITS.txt"
 cp "$stage/linux-x86_64/"*.txt "$stage/windows-x86_64/"
-"$stage/linux-x86_64/beacon-relay.x86_64" --headless --quit-after 4
+python3 scripts/native_process.py -- "$stage/linux-x86_64/beacon-relay.x86_64" --headless --quit-after 4
 mkdir -p "$stage/ready"
 tar -czf "$stage/ready/beacon-relay-linux-x86_64.tar.gz" -C "$stage/linux-x86_64" beacon-relay.x86_64 UPSTREAM_MIT_LICENSE.txt FONT_OFL_LICENSE.txt CREDITS.txt
 (cd "$stage/windows-x86_64" && python3 -m zipfile -c "$stage/ready/beacon-relay-windows-x86_64.zip" beacon-relay.exe UPSTREAM_MIT_LICENSE.txt FONT_OFL_LICENSE.txt CREDITS.txt)
