@@ -1,4 +1,3 @@
-import { isDeepStrictEqual } from "node:util";
 import { randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 
@@ -8,6 +7,8 @@ import { AgentGrantStore, scopeContains } from "./store-agent-grants.ts";
 import { SessionStore } from "./store-sessions.ts";
 import { ChallengeStore } from "./store-challenges.ts";
 import { initializeWebStoreSchema } from "./store-schema.ts";
+import { assertWrittenBusinessState, assertWrittenEffectApproval, assertWrittenEffectAudit } from "./store-effect-postconditions.ts";
+import type { EffectApprovalRow, EffectAuditRow } from "./store-effect-postconditions.ts";
 import type {
   AgentEffectReceipt,
   AgentEffectRequest,
@@ -70,21 +71,20 @@ export class WebStore {
     objectId: string | null,
     detail: unknown,
   ): number | bigint {
-    return this.db
-      .prepare(`
-        INSERT INTO audit_events (
-          event_id, principal_id, event_type, object_type, object_id, detail_json, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
-      `)
-      .run(
-        randomUUID(),
-        principalId,
-        eventType,
-        objectType,
-        objectId,
-        JSON.stringify(detail),
-        now,
-      ).changes;
+    return this.insertAuditRow({
+      event_id: randomUUID(), principal_id: principalId, event_type: eventType,
+      object_type: objectType, object_id: objectId, detail_json: JSON.stringify(detail),
+      created_at: now,
+    });
+  }
+
+  private insertAuditRow(row: EffectAuditRow): number | bigint {
+    return this.db.prepare(`
+      INSERT INTO audit_events (
+        event_id, principal_id, event_type, object_type, object_id, detail_json, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(row.event_id, row.principal_id, row.event_type, row.object_type,
+      row.object_id, row.detail_json, row.created_at).changes;
   }
 
   ensurePrincipal(
@@ -431,28 +431,17 @@ export class WebStore {
         expected.agent_id, expected.grant_id, expected.action,
         expected.resource, expected.result_json, expected.committed_at,
       );
-    requireSingleEffectWrite(this.audit("agent.effect.committed", expected.committed_at,
-      expected.principal_id, "effect", expected.effect_id, {
+    const audit: EffectAuditRow = {
+      event_id: randomUUID(), principal_id: expected.principal_id,
+      event_type: "agent.effect.committed", object_type: "effect",
+      object_id: expected.effect_id, created_at: expected.committed_at,
+      detail_json: JSON.stringify({
         agentId: expected.agent_id, grantId: expected.grant_id, action: expected.action,
-      }), "audit");
-    return this.readWrittenEffectReceipt(expected);
-  }
-
-  // Read the expected business projections after all local writes, including
-  // receipt and audit, while the original transaction still owns commit.
-  private assertWrittenBusinessState(note: CanaryNote, prior: AgentGrantSnapshot): void {
-    const row = this.db.prepare("SELECT * FROM canary_notes WHERE note_id = ?")
-      .get(note.noteId) as NoteRow | undefined;
-    const expectedGrant = {
-      ...prior,
-      remainingEffects: prior.remainingEffects - 1,
-      revision: prior.revision + 1,
+      }),
     };
-    if (row === undefined || !isDeepStrictEqual(noteFromRow(row), note) ||
-        !isDeepStrictEqual(this.getAgentGrant(prior.grantId), expectedGrant)) {
-      throw new WebProblem(500, "effect-business-mismatch", "Effect business state mismatch",
-        "The newly written note or Grant does not match the intended local Effect.");
-    }
+    requireSingleEffectWrite(this.insertAuditRow(audit), "audit");
+    assertWrittenEffectAudit(this.db, audit);
+    return this.readWrittenEffectReceipt(expected);
   }
 
   // Owner-local write/readback invariant, not a general authenticity proof for
@@ -743,7 +732,7 @@ export class WebStore {
         action: effect.action, resource: effect.resource,
         result_json: JSON.stringify(result), committed_at: now,
       });
-      this.assertWrittenBusinessState(result.note, current);
+      assertWrittenBusinessState(this.db, result.note, current, this.getAgentGrant(current.grantId));
       this.db.exec("COMMIT");
       return { receipt, replayed: false };
     } catch (error) {
@@ -770,7 +759,7 @@ export class WebStore {
       const current = this.getAgentGrant(grant.grantId);
       const approval = this.db
         .prepare(`
-          SELECT effect_id FROM effect_approvals
+          SELECT * FROM effect_approvals
           WHERE effect_id = ?
             AND effect_digest = ?
             AND principal_id = ?
@@ -778,7 +767,7 @@ export class WebStore {
             AND expires_at > ?
         `)
         .get(effect.effectId, effect.effectDigest, current.principalId, now) as
-        | { effect_id: string }
+        | EffectApprovalRow
         | undefined;
       if (
         current.grantDigest !== grant.grantDigest ||
@@ -833,7 +822,8 @@ export class WebStore {
         action: effect.action, resource: effect.resource,
         result_json: JSON.stringify(result), committed_at: now,
       });
-      this.assertWrittenBusinessState(result.note, current);
+      assertWrittenEffectApproval(this.db, { ...approval, consumed_at: now });
+      assertWrittenBusinessState(this.db, result.note, current, this.getAgentGrant(current.grantId));
       this.db.exec("COMMIT");
       return { receipt, replayed: false };
     } catch (error) {

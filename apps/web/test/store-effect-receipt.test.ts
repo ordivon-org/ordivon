@@ -49,6 +49,38 @@ for (const kind of ["create", "publish"] as const) {
       expectedError: "effect-business-mismatch",
     },
     {
+      name: "audit-detail-changed",
+      trigger: "AFTER INSERT ON audit_events WHEN NEW.event_type = 'agent.effect.committed' BEGIN UPDATE audit_events SET detail_json = '{}' WHERE event_id = NEW.event_id; END",
+      expectedError: "effect-audit-mismatch",
+    },
+    {
+      name: "audit-deleted",
+      trigger: "AFTER INSERT ON audit_events WHEN NEW.event_type = 'agent.effect.committed' BEGIN DELETE FROM audit_events WHERE event_id = NEW.event_id; END",
+      expectedError: "effect-audit-mismatch",
+    },
+    {
+      name: "audit-duplicate",
+      trigger: "AFTER INSERT ON audit_events WHEN NEW.event_type = 'agent.effect.committed' BEGIN INSERT INTO audit_events SELECT NEW.event_id || '-extra', NEW.principal_id, NEW.event_type, NEW.object_type, NEW.object_id, NEW.detail_json, NEW.created_at; END",
+      expectedError: "effect-audit-mismatch",
+    },
+    ...(kind === "publish" ? [
+      {
+        name: "approval-reopened",
+        trigger: "AFTER UPDATE ON effect_approvals BEGIN UPDATE effect_approvals SET consumed_at = NULL WHERE effect_id = NEW.effect_id; END",
+        expectedError: "effect-approval-mismatch",
+      },
+      {
+        name: "approval-binding-changed",
+        trigger: "AFTER UPDATE ON effect_approvals BEGIN UPDATE effect_approvals SET effect_digest = 'other' WHERE effect_id = NEW.effect_id; END",
+        expectedError: "effect-approval-mismatch",
+      },
+      {
+        name: "approval-changed-after-audit",
+        trigger: "AFTER INSERT ON audit_events WHEN NEW.event_type = 'agent.effect.committed' BEGIN UPDATE effect_approvals SET verified_at = verified_at + 1 WHERE effect_id = NEW.object_id; END",
+        expectedError: "effect-approval-mismatch",
+      },
+    ] : []),
+    {
       name: "quota-restored",
       trigger: "AFTER UPDATE ON agent_grants BEGIN UPDATE agent_grants SET remaining_effects = OLD.remaining_effects WHERE grant_id = NEW.grant_id; END",
       expectedError: "effect-business-mismatch",
