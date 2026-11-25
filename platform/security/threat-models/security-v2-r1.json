@@ -283,6 +283,22 @@
         "adversary"
       ],
       "weaknesses": []
+    },
+    {
+      "symbolic_name": "unqualified-verification-promotion",
+      "title": "Scoped verification promoted beyond its evidence",
+      "description": "A passing fixture, structural coverage, model proof, or incomplete test run is represented as broader product or production qualification.",
+      "components_affected": [
+        "security-waist",
+        "runtime"
+      ],
+      "threat_persona": "evidence-spoofer",
+      "event": "A verification consumer omits source identity, execution standing, oracle scope or actual provider boundary.",
+      "sources": [
+        "human_error",
+        "failure"
+      ],
+      "weaknesses": []
     }
   ],
   "controls": [
@@ -315,6 +331,16 @@
       ],
       "status": "active",
       "priority": "critical"
+    },
+    {
+      "symbolic_name": "scoped-verification-evidence",
+      "title": "Scoped verification and independent falsification",
+      "description": "Use existing owner gates, source-bound model checks, bounded development-only property tests, native provider tests and independent negative controls. Distinguish fixture/model/coverage from production qualification, and failed, lost, skipped or unavailable from passed.",
+      "threats": [
+        "unqualified-verification-promotion"
+      ],
+      "status": "active",
+      "priority": "high"
     }
   ],
   "risks": [
@@ -344,6 +370,19 @@
       "impact_description": "An undeclared third-party or production target could be modified or disrupted.",
       "score": 15,
       "level": "high"
+    },
+    {
+      "symbolic_name": "incorrect-verification-standing",
+      "title": "Incorrect verification standing",
+      "description": "Unqualified test evidence may mask an unverified consumer obligation or incorrectly permit release promotion.",
+      "threats": [
+        "unqualified-verification-promotion"
+      ],
+      "likelihood": "possible",
+      "impact": "major",
+      "impact_description": "A passing scoped test may be mistaken for complete verification or actual product behavior.",
+      "score": 16,
+      "level": "high"
     }
   ],
   "extensions": {
@@ -354,7 +393,7 @@
         "docs/STANDARDS-BASELINE.md",
         "docs/TECHNOLOGY-SELECTION-R2.md"
       ],
-      "architectureEnvelopeSha256": "sha256:54c7bc7c9f051c092d5869450cfd95ef0c029235b31fa80eaf508be7eac91715",
+      "architectureEnvelopeSha256": "sha256:f6954249803334187ce212fcedd78b0bc2043c71a2efca2d586d7eda8a8f9d66",
       "modelingMethod": "OWASP Threat Model Library schema with STRIDE-compatible analysis; CAPEC/CWE references may be added when applicable",
       "editorStanding": "Threat Dragon is a replaceable editor/viewer, not the authority format"
     }

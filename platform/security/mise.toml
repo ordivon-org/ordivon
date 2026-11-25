@@ -14,9 +14,14 @@ set -euo pipefail
 export UV_PYTHON="$(mise which python)"
 uv sync --locked
 uv run --frozen ruff check .
-uv run --frozen python -m unittest discover -s tests -v
+# Fail on a stale architecture binding before spending the full test budget.
 uv run --frozen python scripts/validate_threat_model_binding.py threat-models/security-v2-r1.json --repo-root .
 ./scripts/validate_tmbom.sh threat-models/security-v2-r1.json
+# Single execution: generated properties and coverage share the same Core run.
+coverage_dir="$(mktemp -d)"
+trap 'rm -rf -- "$coverage_dir"' EXIT
+COVERAGE_FILE="$coverage_dir/core" uv run --frozen coverage run --branch --source=ordivon_security_v2 -m unittest discover -s tests -v
+COVERAGE_FILE="$coverage_dir/core" uv run --frozen coverage report
 # Exactly one installed, owner-pinned OPA version. Never resolve via
 # ambient /usr/bin/opa, duplicate provider snapshots or a Docker daemon.
 MISE_OFFLINE=1 MISE_AUTO_INSTALL=false mise exec -- opa test -v --fail-on-empty policies

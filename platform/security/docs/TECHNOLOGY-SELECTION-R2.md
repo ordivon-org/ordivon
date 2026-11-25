@@ -402,3 +402,100 @@ The model is not an implementation or permission rule. Do not promote an
 observation match to a release, effect or business consequence. The existing
 OPA version-cohort and normal package import candidates remain separate review
 commits; no new policy engine, registry or decision cache is introduced.
+
+### R17 — verification architecture reform (2026-11-26)
+
+Goal: prevent recurring defect classes and reduce qualification cost per
+consumer, rather than maximize test counts or add another test platform.
+Reuse the existing S01-S07 product plans, owner verify tasks, root affected
+owner/shard selection and native evidence receipts. Tests are consumers of
+specified properties, not another authority over the product.
+
+| Logic facet | Capability / native owner | Execution standing |
+|---|---|---|
+| T01 obligation selection by changed contract and risk | existing LEGO plans / affected-owner graph | retain, review cross-owner edges |
+| T02 independent oracle and refinement | Lean/TLC/SMT, reference models, native provider | retain, require nonvacuity and scoped proof |
+| T03 deterministic regression examples | unittest / pytest / OPA native tests | retain consumer-bearing examples |
+| T04 generated input exploration and shrinking | Hypothesis (Python), fast-check (TS), proptest (Rust) | Python first slice adopted; other stacks qualify with owners |
+| T05 sequence and lifecycle exploration | Hypothesis stateful, existing TLC models | opaque file model adopted; native lifecycle separately |
+| T06 metamorphic/differential tests | independent oracle + native tools | first public JSON/byte properties adopted |
+| T07 consumer/wire/schema contracts | actual package/CLI/native HTTP, Schemathesis where actual schema exists | existing tests retained; schema-generated candidate |
+| T08 test sensitivity | directed negative controls, mutmut/Cosmic Ray candidates | directed negative observed; automated mutation not qualified |
+| T09 structural coverage diagnosis | coverage.py branch, OPA coverage, native language tools | Python owner gate instrumentation; native Rego baseline |
+| T10 physical/provider integration | isolated native Runtime, OPA, Syft, Trivy, Cosign | retain; separate from fixtures and proof |
+| T11 resource/regression measurement | interleaved native benchmark / Runtime budget | retain only decision-relevant comparisons |
+| T12 execution/evidence reconciliation | existing Runtime Job, CI receipt, Host consumer | distinguish failure, lost, skip, unavailable, passed |
+
+Risk-tiered execution: routine PR owner gates run deterministic bounded
+properties alongside existing examples, with coverage collection in the same
+Core process. Do not run the same Core suite twice just for coverage.
+Coverage is diagnostic initially, not a blanket percentage acceptance gate;
+review risk-bearing missing branches and consumer obligations before choosing
+thresholds. Native Rego, AuthZEN, TypeScript/Rust, child-process, formal and
+physical qualification have separate denominators. No aggregate percentage
+across unlike evidence. Formal proof cannot establish implementation or
+external observation by itself.
+
+P0: reproduce failures at actual consumer/owner entry; preserve exact source,
+toolchain and terminal status; do not confuse unavailable environment with a
+product result. Keep Gitleaks and all existing gates. P1: add property tests
+only where a meaningful independent oracle exists, and use stateful sequences
+where operation order matters. P2: qualify coverage-guided mutation for pure
+modules, record killed/survived/equivalent/unobserved separately; no universal
+score gate. P3: qualify schema-based and fault/lifecycle integration against
+isolated fixtures with natural consumers, not production credentials or live
+effects. P4: retire duplicate cases only after their semantic obligation is
+preserved and independent controls distinguish regressions. Keep generated
+counterexamples replayable (seed/version/minimal input or explicit regression);
+the bounded CI profile is deterministic and uses no persistent example DB.
+Separate deeper exploration budgets from merge-critical checks.
+
+First actual baseline: Core110, 703/852 statements, 256/384 branches,
+combined77.59%, measured by coverage.py7.17.5 on Python3.15.2; source
+ordivon_security_v2 only, no child-process instrumentation.
+Job job-01a214c3-0835-7448-a7bb-8d5e3f029a19.
+Native OPA1.22.4 coverage1143/1153 lines (99.13%) includes test sources,
+not a semantic completeness measure (job job-01a214c3-e8b6-75d4-b344-2b0d3eb545d9).
+
+Adopted dev-only compatible ranges hypothesis>=6,<7 and coverage>=7,<8;
+uv resolved 6.170.17 and 7.17.5 with sortedcontainers2.4.0. Existing exact
+lock retained as reproducibility evidence; no product dependencies. The
+property pilot covers opaque digest/length, reflexive/symmetric public JSON
+comparison, locality of a changed child, observer precedence, and a
+bounded append/replace/truncate state machine with byte-model oracle.
+Core115 passes; 717/852 statements and rounded combined80%, public
+browser observation combined65%->98%. Job
+job-01a214c3-bc5e-75ca-8b71-6ecf4d3920dd. Directed isolated JSON child
+comparison mutation was rejected by the new locality property (job
+job-01a214c4-685f-7394-9198-0de70c8c607a). Not a general mutation score.
+The existing owner verify now measures Core branch coverage in one run,
+with disposable local coverage data and no new CI platform.
+
+Acceptance: natural owners independently review obligations and fixture
+boundary; report actual provider, source and terminal standing. Full owner
+and root verification remain distinct; neither a test count nor coverage
+percentage is production qualification. Host cooperation proposals #32802
+(Gateway) and #32803 (Repo/coordination) request concrete counterexamples,
+not presumed agreement.
+
+References:
+- https://hypothesis.readthedocs.io/en/latest/stateful.html
+- https://hypothesis.readthedocs.io/en/latest/settings.html
+- https://coverage.readthedocs.io/en/latest/branch.html
+- https://www.openpolicyagent.org/docs/policy-testing
+- https://mutmut.readthedocs.io/en/latest/
+- https://cosmic-ray.readthedocs.io/en/latest/
+- https://schemathesis.readthedocs.io/en/stable/
+
+R17 full-owner verification additionally found the existing architecture
+envelope had become stale after accumulated R11–R17 changes to this
+bound document. This is a distinct failure from product tests. The three
+existing architecture paths are retained. The reviewed model explicitly
+includes unqualified test-evidence promotion as a threat and scoped
+verification evidence as its control. No new runtime trust zone or
+production permission follows from the development-only test providers.
+Move the existing model binding and schema checks before the expensive Core
+and provider suites, so future stale-model changes fail early. Keep the
+binding gate strict; update model meaning and its exact envelope together,
+not by auto-accepting a new hash. Independent owner review remains required
+for release qualification.
