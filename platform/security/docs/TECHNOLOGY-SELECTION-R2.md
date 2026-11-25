@@ -725,3 +725,49 @@ References:
 - https://slsa.dev/spec/v1.2/build-provenance
 - https://python-jsonschema.readthedocs.io/en/stable/validate/
 - https://github.com/python-jsonschema/hypothesis-jsonschema
+
+### R22 — authority schema, dialect qualification and locked native validation
+
+T01/T02/T07/T12 and L23: distinguish the authoritative schema bytes,
+schema dialect, native validator executable and dependency graph, actual
+consumer invocation, and independent semantic assessment. Do not infer
+a complete threat assessment from a structurally valid document.
+
+The existing OWASP TM-BOM v1.0.2 schema declares Draft 2020-12 and retains
+its exact upstream SHA-256. hypothesis-jsonschema documents complete
+testing for Drafts 4/5/7; the R21 Draft 7 synthetic pilot does not qualify
+it for this schema. Use the existing native 2020-12 validator and
+constructed metadata fixtures. Consider official JSON Schema Test Suite
+and Bowtie for implementation-conformance work, not duplicate production
+schemas or claims of independently qualified semantics.
+
+The old script separately resolved check-jsonschema==0.34.0 via uvx.
+Native isolated CPython 3.15.2 qualification of 0.34.0 and 0.39.0 against
+the actual pinned model passed (job job-01a21505-9461-70ce-9d2f-dc17890a4fde).
+Eleven independent synthetic document metadata cases were evaluated
+against the exact same upstream schema on both versions: 5 valid and
+6 invalid, 22/22 expected outcomes (job
+job-01a21506-0daa-77b1-9b32-630fdd0aced9). Both use jsonschema 4.26.0,
+so this is version/CLI compatibility, not independent engine differential
+qualification. Cases cover numeric and dotted versions, Unicode title,
+description type/empty value, boolean metadata and missing required
+fields. They do not describe production topology or threat coverage.
+
+Move the validator to the existing Owner dev dependency group with
+compatible range >=0.39,<1 and the exact resolved lock; keep the
+production dependency list empty. The existing shell entry verifies
+the same pinned schema bytes before invoking the locked native CLI
+with an explicit owner project path. Keep the actual consumer regression
+corpus (including invocation from a separate cwd) and existing digest
+tampering checks. Initial corpus integration assumed errors on stderr;
+native 0.39 emits validation diagnostics on stdout, so the test uses
+the exit status and combined diagnostic channels, not an invented
+stream contract. No change to the authority schema, validation strength,
+model source-binding semantics, or production authorization.
+
+References:
+- https://json-schema.org/draft/2020-12/
+- https://github.com/python-jsonschema/hypothesis-jsonschema
+- https://pypi.org/project/check-jsonschema/0.39.0/
+- https://github.com/json-schema-org/JSON-Schema-Test-Suite
+- https://bowtie.report/

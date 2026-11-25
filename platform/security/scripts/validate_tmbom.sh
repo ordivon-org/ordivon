@@ -9,4 +9,5 @@ SCHEMA_SHA256='428772fecfed799921e90bb7e7acf7ce7bb8e379128e43c4e7f4346a528539be'
 [[ -f "$SCHEMA_FILE" ]] || { echo 'OWASP threat-model schema missing' >&2; exit 2; }
 printf '%s  %s\n' "$SCHEMA_SHA256" "$SCHEMA_FILE" | sha256sum --check --status ||
   { echo 'OWASP threat-model schema digest mismatch' >&2; exit 3; }
-uvx --from 'check-jsonschema==0.34.0' check-jsonschema --schemafile "$SCHEMA_FILE" "$MODEL"
+# The owner lock binds the executable and its transitive dependencies.
+uv run --locked --project "$SCRIPT_DIR/.." --group dev check-jsonschema --schemafile "$SCHEMA_FILE" "$MODEL"

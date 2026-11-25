@@ -1,7 +1,9 @@
 """The pinned upstream OWASP schema must fail closed on tampering without HTTP."""
 from __future__ import annotations
 
+import copy
 import hashlib
+import json
 import shutil
 import subprocess
 import tempfile
@@ -33,6 +35,58 @@ class TMBOmSchemaTests(unittest.TestCase):
             )
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("schema digest mismatch", result.stderr)
+
+
+    def test_native_metadata_schema_corpus(self):
+        # Synthetic structural document only; this is not a threat assessment.
+        base = {
+            "version": "1.0",
+            "scope": {
+                "title": "Synthetic document",
+                "description": "Metadata only",
+                "business_criticality": "low",
+                "data_sensitivity": [],
+                "exposure": "internal",
+                "tier": "non_critical",
+            },
+            "trust_zones": [], "trust_boundaries": [], "actors": [],
+            "components": [], "data_stores": [], "data_sets": [], "data_flows": [],
+        }
+        fixtures = [("valid", base, True)]
+        for name, keys, value, valid in (
+            ("version-number", ("version",), 1, False),
+            ("version-suffix", ("version",), "1.beta", False),
+            ("version-three", ("version",), "1.2.3", True),
+            ("title-unicode", ("scope", "title"), "文档 é", True),
+            ("description-array", ("scope", "description"), [], False),
+            ("description-empty", ("scope", "description"), "", True),
+            ("frozen-boolean", ("frozen",), True, True),
+            ("frozen-string", ("frozen",), "true", False),
+        ):
+            model = copy.deepcopy(base)
+            parent = model
+            for key in keys[:-1]:
+                parent = parent[key]
+            parent[keys[-1]] = value
+            fixtures.append((name, model, valid))
+        for key in ("version", "scope"):
+            model = copy.deepcopy(base)
+            del model[key]
+            fixtures.append(("missing-" + key, model, False))
+
+        with tempfile.TemporaryDirectory() as directory:
+            tmp = Path(directory)
+            for name, model, valid in fixtures:
+                with self.subTest(case=name):
+                    path = tmp / (name + ".json")
+                    path.write_text(json.dumps(model, ensure_ascii=False), encoding="utf-8")
+                    result = subprocess.run(
+                        ["bash", str(SCRIPT), path.name],
+                        cwd=tmp, text=True, capture_output=True, timeout=20,
+                    )
+                    self.assertEqual(result.returncode, 0 if valid else 1, result.stderr)
+                    if not valid:
+                        self.assertIn("Schema validation errors", result.stdout + result.stderr)
 
 
 if __name__ == "__main__":
