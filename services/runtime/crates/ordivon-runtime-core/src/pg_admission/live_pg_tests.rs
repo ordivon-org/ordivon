@@ -118,4 +118,5 @@ mod artifact_index_cases;
 mod cancellation_cases;
 mod dispatch_cases;
 mod issuer_cases;
+mod projection_inventory_cases;
 mod terminal_cases;

@@ -14,12 +14,20 @@ pub(super) fn read_artifact_inventory(
     if !include_job_inventory && snapshot.resolution.is_none() {
         return Ok(Some(Vec::new()));
     }
+    // Disjoint UNION ALL covers both directions of the ownership relation,
+    // including older Attempts, without duplicate rows or a global DISTINCT.
+    // The inverse branch uses the existing Attempt and Artifact indexes.
     let rows = if include_job_inventory {
         tx.query(
             "SELECT r.job_id,r.attempt_id,a.job_id,r.artifact_id,r.kind,r.relative_path,r.digest,r.media_type,r.byte_length,r.truncated,r.created_at_ms
              FROM artifacts r LEFT JOIN attempts a ON a.attempt_id=r.attempt_id
-             WHERE r.job_id=$1 OR r.attempt_id=$2 ORDER BY r.artifact_id",
-            &[&snapshot.job_id, &snapshot.attempt_id],
+             WHERE r.job_id=$1
+             UNION ALL
+             SELECT r.job_id,r.attempt_id,a.job_id,r.artifact_id,r.kind,r.relative_path,r.digest,r.media_type,r.byte_length,r.truncated,r.created_at_ms
+             FROM attempts a JOIN artifacts r ON r.attempt_id=a.attempt_id
+             WHERE a.job_id=$1 AND r.job_id<>$1
+             ORDER BY artifact_id",
+            &[&snapshot.job_id],
         )?
     } else {
         tx.query(
