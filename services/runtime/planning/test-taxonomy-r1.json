@@ -183,6 +183,8 @@
     "archiveTarget": "archive_migration_properties",
     "formalObligation": "PASS(selector) => matched(selector) >= 1 AND every matched test PASS",
     "zeroMatchStanding": "FAIL_CLOSED",
+    "selectedIgnoredStanding": "FAIL_CLOSED",
+    "evidence": "native filter-match inventory equals fresh unique JUnit PASS identities",
     "consumerTest": "scripts/tests/test_focused_verification_contract.py",
     "mustNotOwn": [
       "test semantics",

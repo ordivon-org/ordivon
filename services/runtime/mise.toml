@@ -115,7 +115,22 @@ if [[ "$actual_nextest" != "$expected_nextest" ]]; then
   exit 1
 fi
 echo "qualified cargo-nextest $actual_nextest"
-mise exec -- cargo nextest run --locked "${target[@]}" -p ordivon-runtime-core --no-default-features --features "$feature" --no-tests fail --retries 0 --status-level pass -P ci -E "${RUNTIME_TEST_EXPR:-$default_selector}"
+# Native Nextest owns both discovery and execution. Use a fresh per-run store,
+# not the shared ci/junit.xml, and list ignored tests without executing them.
+evidence=$(mktemp -d)
+trap 'rm -rf "$evidence"' EXIT
+python3 - "$evidence" <<'PY_NEXTTEST_STORE'
+import json
+from pathlib import Path
+import sys
+root = Path(sys.argv[1]).resolve()
+(root / "store.toml").write_text("[store]\\ndir = " + json.dumps((root / "store").as_posix()) + "\\n", encoding="utf-8")
+PY_NEXTTEST_STORE
+selection=(--locked "${target[@]}" -p ordivon-runtime-core --no-default-features --features "$feature" -P ci -E "${RUNTIME_TEST_EXPR:-$default_selector}" --user-config-file none --tool-config-file "ordivon-evidence:$evidence/store.toml")
+mise exec -- cargo nextest list "${selection[@]}" --message-format json --run-ignored all > "$evidence/list.json"
+python3 scripts/qualify_focused_evidence.py "$evidence/list.json"
+mise exec -- cargo nextest run "${selection[@]}" --no-tests fail --retries 0 --status-level pass
+python3 scripts/qualify_focused_evidence.py "$evidence/list.json" "$evidence/store/ci/junit.xml"
 """
 
 
