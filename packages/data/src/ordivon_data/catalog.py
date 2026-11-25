@@ -13,7 +13,7 @@ from urllib.parse import unquote, urlsplit
 
 from .binding_selection import identity_key
 from .local_files import scoped_sha256
-from .metadata_json import read_metadata
+from .metadata_json import contains_surrogate, read_metadata
 from .verification import digest_verdict
 
 
@@ -80,11 +80,12 @@ def _observe_distribution(
         result["reason"] = "no_access_url"
         return result
     # The bounded file-URI profile forbids raw controls, spaces, malformed
-    # percent escapes and query/fragment delimiters (including empty ones).
+    # percent escapes, surrogate code points and query/fragment delimiters.
     # Check the original spelling: urlsplit can erase controls and unquote
     # preserves invalid escapes. Neither normalization is an admission proof.
     if (
         any(ord(ch) <= 32 or ord(ch) == 127 for ch in uri)
+        or contains_surrogate(uri)
         or re.search(r"%(?![0-9A-Fa-f]{2})", uri)
         or "?" in uri
         or "#" in uri

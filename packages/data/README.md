@@ -188,6 +188,12 @@ The rebuildable Episode Parquet file is **not** present in Git, so remains
 UNKNOWN. The strict `--require-verified` gate appropriately refuses to
 declare the *whole* catalog publishable with that unbound port.
 
+The selected-port gate canonicalizes UUID product spellings, preserves exact
+opaque identifiers, versions and distribution URIs, and rejects duplicate
+canonical requests before catalog access. Unselected observations remain in
+the report. The report is JSON with non-ASCII characters escaped so rejected
+locators remain representable even on strict UTF-8 output streams.
+
 For a consumer that reads **only one** verified product output, use a
 version-bound port-specific gate; the full catalog still reports
 `NOT_ESTABLISHED` when another port is unbound:

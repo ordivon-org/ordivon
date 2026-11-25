@@ -187,3 +187,16 @@ class ProductBindingTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "product version|product identity"):
                 project_catalog(self.sources(), bindings=(self.binding(),))
             observe.assert_not_called()
+
+    def test_producer_surrogate_path_rejected_before_native_read(self):
+        product = self.versions[0]
+        for prop in product["customProperties"]:
+            if prop["property"] == "corpusManifestRelativePath":
+                prop["value"] = "evidence-\udc80"
+        with patch("ordivon_data.local_evidence.scoped_sha256") as observe:
+            with self.assertRaisesRegex(ValueError, "non-Unicode scalar"):
+                project_odps(
+                    json.dumps(product).encode(),
+                    bindings=(self.binding(product_version="1.0.0"),),
+                )
+            observe.assert_not_called()

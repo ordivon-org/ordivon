@@ -12,6 +12,7 @@ from typing import Any
 
 from .binding_selection import LocalEvidenceBinding
 from .local_files import scoped_sha256
+from .metadata_json import contains_surrogate
 
 
 def _property(props: list[Any], key: str) -> str:
@@ -52,6 +53,8 @@ def qualified_local_distribution(
     ):
         raise ValueError("producer digest must be lowercase 64-digit SHA-256")
 
+    if contains_surrogate(declared_path):
+        raise ValueError("producer relative path contains a non-Unicode scalar")
     relative = Path(declared_path)
     if (
         relative.is_absolute()

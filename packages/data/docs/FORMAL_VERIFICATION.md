@@ -91,6 +91,31 @@ IDs are not case-folded; explicit CLI request IDs remain literal keys.
 URI/path observation failures still yield UNKNOWN rather than a structural
 catalog failure. Historical catalog bytes and file rights remain unchanged.
 
+### Generated refinement and selected observation gates (R7 candidate)
+
+The existing Data verification task also runs Hypothesis via native uv, with
+no exact development dependency pin or production dependency. Generated inputs
+compare the indexed binding selector and selected-port observation selector
+with independent direct finite-list relations. Other properties cover input
+permutations, canonical UUID aliases (opaque identifiers remain exact),
+legacy ambiguity, duplicate destinations, and malformed URI lexical admission.
+The native UTF-8 path property compares descriptor-bound file hashes with
+independent expected digests. Deterministic bounded generation and shrinking
+complement the ordinary unit, CLI, actual Study and abstract Lean gates.
+The generated suite is not an exhaustive proof; invalid generated inputs are
+not counted as passed observations. Mutation qualification is scoped to
+explicitly selected defects, not a repository-wide mutation score.
+
+The compact catalog inspector keeps invalid Unicode surrogate locator strings
+as UNKNOWN without native file observation; the CLI serializes them as escaped
+JSON instead of raising an encoding error or emitting invalid UTF-8. Strict
+producer evidence rejects surrogate path declarations before file reads.
+The independent CLI `consumer_selection.py` uses the same canonical product
+identity as the producer binder, exact version and distribution URI, and a
+per-report index. Canonical duplicate requests reject before reading the
+catalog. All global observations remain visible; only the requested verdicts
+determine the selected gate. No new registry or cross-call cache.
+
 ### Shared local byte observation refinement
 
 Producer binding and catalog inspection share one descriptor-relative,

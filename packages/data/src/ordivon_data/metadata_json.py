@@ -32,6 +32,11 @@ def _finite_float(value: str) -> float:
     return number
 
 
+def contains_surrogate(value: str) -> bool:
+    """Lone UTF-16 surrogate code points cannot denote UTF-8 metadata paths."""
+    return any(0xD800 <= ord(ch) <= 0xDFFF for ch in value)
+
+
 def read_metadata(raw: bytes | str) -> Any:
     """Decode without silently choosing one of multiple declared members."""
     return json.loads(

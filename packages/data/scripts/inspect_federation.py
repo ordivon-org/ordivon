@@ -13,6 +13,7 @@ REPO_ROOT = DATA_ROOT.parents[1]
 sys.path.insert(0, str(DATA_ROOT / "src"))
 
 from ordivon_data.catalog import inspect_catalog
+from ordivon_data.consumer_selection import qualify_port_requests, select_ports
 
 
 def main() -> int:
@@ -57,8 +58,10 @@ def main() -> int:
         parser.error("integrity admission requires --verify-local")
     if args.require_verified and args.require_port:
         parser.error("--require-verified and --require-port are exclusive")
-    if len({tuple(ref) for ref in args.require_port}) != len(args.require_port):
-        parser.error("duplicate --require-port selection")
+    try:
+        qualify_port_requests(args.require_port)
+    except ValueError as error:
+        parser.error(str(error))
     try:
         result = inspect_catalog(
             args.catalog,
@@ -86,38 +89,19 @@ def main() -> int:
         ),
     }
     if args.require_port:
-        selections = []
-        for product_id, version, distribution_urn in args.require_port:
-            products = [
-                p
-                for p in result["products"]
-                if p["id"] == product_id and p["version"] == version
-            ]
-            matched = [
-                d
-                for p in products
-                for d in p["distributions"]
-                if d["id"] == distribution_urn
-            ]
-            if len(matched) > 1:
-                print("ambiguous --require-port distribution identity", file=sys.stderr)
-                return 2
-            status = matched[0]["verification"] if matched else "UNKNOWN"
-            selections.append(
-                {
-                    "productId": product_id,
-                    "productVersion": version,
-                    "distributionId": distribution_urn,
-                    "verification": status,
-                }
-            )
+        try:
+            selections = select_ports(result["products"], args.require_port)
+        except ValueError as error:
+            print(str(error), file=sys.stderr)
+            return 2
         result["inspection"]["selectedPorts"] = selections
         result["inspection"]["selectedPortIntegrityGate"] = (
             "PASS"
             if selections and all(s["verification"] == "VERIFIED" for s in selections)
             else "NOT_ESTABLISHED"
         )
-    print(json.dumps(result, indent=2, ensure_ascii=False, sort_keys=True))
+    # Preserve rejected locator spelling as escaped JSON, even on strict UTF-8 stdout.
+    print(json.dumps(result, indent=2, ensure_ascii=True, sort_keys=True))
     if args.require_port:
         # The consumer requested an exact subset. Preserve all global
         # observations in the report, but never widen a selected port's

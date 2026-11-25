@@ -5,6 +5,8 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import os
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -101,3 +103,128 @@ class CatalogAdmissionTests(unittest.TestCase):
                 for p in result["products"]
             )
         )
+
+    def test_raw_surrogate_locator_never_maps_to_native_byte_filename(self):
+        # POSIX surrogateescape can reopen a real non-UTF-8 filename.
+        if os.name != "posix":
+            self.skipTest("POSIX surrogateescape filename fixture")
+        name = "evidence-\udc80"
+        (self.root / name).write_bytes(b"known")
+        for suffix in (name, "evidence-\ud800", "evidence-\udfff"):
+            with self.subTest(suffix=ascii(suffix)):
+                dist = {
+                    **self.dist,
+                    "dcat:accessURL": {"@id": self.root.as_uri() + "/" + suffix},
+                }
+                result = inspect_distribution(dist, (self.root,), True)
+                self.assertEqual(result["verification"], "UNKNOWN")
+                self.assertNotIn("observedDigest", result)
+
+    def test_catalog_cli_preserves_invalid_locator_as_json_unknown(self):
+        for suffix in ("evidence-\udc80", "evidence-\ud800"):
+            with self.subTest(suffix=ascii(suffix)):
+                dist = {
+                    **self.dist,
+                    "dcat:accessURL": {"@id": self.root.as_uri() + "/" + suffix},
+                }
+                product = {**self.product, "dcat:distribution": [dist]}
+                path = self.root / "catalog.jsonld"
+                path.write_text(
+                    json.dumps({"@type": "dcat:Catalog", "dcat:dataset": [product]})
+                )
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(ROOT / "packages/data/scripts/inspect_federation.py"),
+                        "--catalog",
+                        str(path),
+                        "--allow-root",
+                        str(self.root),
+                        "--verify-local",
+                        "--require-verified",
+                    ],
+                    capture_output=True,
+                    check=False,
+                    timeout=20,
+                    env={**os.environ, "PYTHONIOENCODING": "utf-8:strict"},
+                )
+                self.assertEqual(result.returncode, 3, result.stderr)
+                report = json.loads(result.stdout.decode("utf-8"))
+                row = report["products"][0]["distributions"][0]
+                self.assertEqual(row["verification"], "UNKNOWN")
+                self.assertEqual(row["uri"], dist["dcat:accessURL"]["@id"])
+
+    def test_valid_utf8_percent_encoded_locator_still_verifies(self):
+        path = self.root / "数据 space#%.json"
+        path.write_bytes(b"known")
+        result = inspect_distribution(
+            {**self.dist, "dcat:accessURL": {"@id": path.as_uri()}}, (self.root,), True
+        )
+        self.assertEqual(result["verification"], "VERIFIED")
+
+    def test_cli_product_uuid_alias_selects_same_exact_port(self):
+        path = self.root / "catalog.jsonld"
+        path.write_text(
+            json.dumps({"@type": "dcat:Catalog", "dcat:dataset": [self.product]})
+        )
+        cmd = [
+            sys.executable,
+            str(ROOT / "packages/data/scripts/inspect_federation.py"),
+            "--catalog",
+            str(path),
+            "--allow-root",
+            str(self.root),
+            "--verify-local",
+        ]
+        pid = self.product["dct:identifier"]
+        for alias in (pid, pid.upper(), pid.replace("-", "")):
+            result = subprocess.run(
+                cmd + ["--require-port", alias, "1.0.0", self.dist["@id"]],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=20,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(
+                json.loads(result.stdout)["inspection"]["selectedPorts"][0][
+                    "verification"
+                ],
+                "VERIFIED",
+            )
+        # An exact distribution URN and exact version remain required.
+        result = subprocess.run(
+            cmd + ["--require-port", pid, "2.0.0", self.dist["@id"]],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=20,
+        )
+        self.assertEqual(result.returncode, 3, result.stderr)
+
+    def test_cli_duplicate_uuid_alias_requests_reject_before_catalog_read(self):
+        pid = self.product["dct:identifier"]
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "packages/data/scripts/inspect_federation.py"),
+                "--catalog",
+                str(self.root / "missing.jsonld"),
+                "--verify-local",
+                "--require-port",
+                pid,
+                "1.0.0",
+                self.dist["@id"],
+                "--require-port",
+                pid.upper(),
+                "1.0.0",
+                self.dist["@id"],
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=20,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("duplicate --require-port", result.stderr)
+        self.assertNotIn("catalog inspection failed", result.stderr)
