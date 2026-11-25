@@ -242,6 +242,53 @@ class ModelTests(unittest.TestCase):
         errors = _validate_runtime_receipt(Path("receipt.json"), receipt)
         self.assertTrue(any("jobId does not match" in error for error in errors))
 
+    def test_runtime_receipt_rejects_structurally_valid_trace_contradictions(self) -> None:
+        cases = (
+            ("foreign attempt", lambda r: r["execution"]["observations"][0].update(attemptId="attempt-foreign")),
+            ("unknown status", lambda r: r["execution"]["observations"][0].update(status="invented")),
+            ("no terminal observation", lambda r: r["execution"]["observations"][-1].update(status="working")),
+            ("premature terminal observation", lambda r: r["execution"]["observations"][0].update(status="succeeded")),
+            ("backward progress", lambda r: r["execution"]["observations"][2].update(completedSteps=0)),
+            ("backward revision", lambda r: r["execution"]["observations"][2].update(progressRevision=1)),
+            ("backward time", lambda r: r["execution"]["observations"][2].update(elapsedMs=1)),
+            ("inconsistent total", lambda r: r["execution"]["observations"][1].update(totalSteps=4)),
+            ("terminal incomplete", lambda r: r["execution"]["observations"][-1].update(completedSteps=2)),
+            ("terminal exit mismatch", lambda r: r["execution"]["observations"][-1].update(exitCode=1)),
+            ("terminal elapsed mismatch", lambda r: r["execution"]["observations"][-1].update(elapsedMs=9999)),
+            ("foreign terminal artifact", lambda r: r["evidence"]["terminalArtifactIds"].__setitem__(0, "attempt-foreign.stdout")),
+            ("current step outside plan", lambda r: r["execution"]["observations"][0].update(currentStepIndex=3)),
+            ("artifact digest mismatch", lambda r: r["evidence"].update(digest="sha256:" + "0" * 64)),
+            ("missing terminal carrier", lambda r: r["evidence"]["terminalArtifactIds"].pop()),
+            ("unclean process tree", lambda r: r["evidence"].update(processTreeDisposition="unknown")),
+            ("evidence failure", lambda r: r["evidence"].update(executionDisposition="failed")),
+            ("uncommitted delivery", lambda r: r["evidence"].update(deliveryDisposition="pending")),
+        )
+        self.assertEqual(_validate_runtime_receipt(Path("receipt.json"), RECEIPT), [])
+        for label, mutate in cases:
+            with self.subTest(label=label):
+                receipt = copy.deepcopy(RECEIPT)
+                mutate(receipt)
+                self.assertEqual(list(_validator("runtime-demo-receipt.schema.json").iter_errors(receipt)), [])
+                self.assertTrue(_validate_runtime_receipt(Path("receipt.json"), receipt), label)
+
+    def test_repository_reports_malformed_receipt_without_semantic_crash(self) -> None:
+        from unittest.mock import patch
+
+        from ordivon_studio import models
+
+        load = models._load
+        for field, invalid in (("execution", []), ("presentation", None), ("diff", {"changedPaths": [{}]})):
+            with self.subTest(field=field):
+                receipt = copy.deepcopy(RECEIPT)
+                receipt[field] = invalid
+
+                def selected_load(path: Path):
+                    return receipt if path.name == "runtime-demo.receipt.json" else load(path)
+
+                with patch.object(models, "_load", side_effect=selected_load):
+                    errors = models.validate_repository()
+                self.assertTrue(any("runtime-demo.receipt.json" in error for error in errors), errors)
+
     def test_receipt_rejects_private_paths(self) -> None:
         receipt = copy.deepcopy(RECEIPT)
         receipt["presentation"][0]["detail"] = "/root/private/source"

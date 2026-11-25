@@ -7,6 +7,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from artifact_verification.tool_identity import assess_native_tool_paths
+
 ROOT=Path(__file__).resolve().parents[1]
 SPEC=importlib.util.spec_from_file_location('artifact_software_release_elf',ROOT/'scripts/artifact_software_release_elf.py')
 M=importlib.util.module_from_spec(SPEC);assert SPEC.loader;SPEC.loader.exec_module(M)
@@ -41,15 +43,18 @@ class LinuxElfReleaseTests(unittest.TestCase):
   return p
  def write_contract(self,root:Path,c):
   p=root/'contract.json';p.write_text(json.dumps(c));return p
- def test_binding_digests(self):
-  b=json.loads((ROOT/'artifact-delivery/shadow-bindings/software-release-linux-elf-executable-local-r1.json').read_text())
-  self.assertEqual(b['status'],'LOCAL_LIVE_PROVEN')
-  for key,path in [('formatInspection','/usr/bin/file'),('elfInspection','/usr/bin/readelf'),('runtimeReadback','/usr/bin/bwrap')]:
-   self.assertEqual(hashlib.sha256(Path(path).read_bytes()).hexdigest(),b['bindings'][key]['binarySha256'])
  def test_valid_linux_elf_passes(self):
   self.require()
   with tempfile.TemporaryDirectory() as d:
    r=Path(d);fixture=self.make_fixture(r);c=contract(fixture);v=M.verify_linux_elf(fixture,self.write_contract(r,c),r/'e');self.assertEqual(v['status'],'PASS',v);self.assertEqual(v['runtimeReadback']['networkNamespace'],'unshared')
+   tools=v['tools']
+   self.assertEqual(set(tools),{'file','readelf','bubblewrap'})
+   self.assertEqual(assess_native_tool_paths({'tools':tools})['status'],'OBSERVED_POSTRUN_CONSISTENT')
+   for name,tool in tools.items():
+    with self.subTest(tool=name):
+     self.assertEqual(tool['sha256'],hashlib.sha256(Path(tool['path']).read_bytes()).hexdigest())
+     bad={**tools,name:{**tool,'sha256':'0'*64}}
+     self.assertTrue(assess_native_tool_paths({'tools':bad})['rejected'])
  def test_wrong_sha_fails_before_external_tools(self):
   self.require()
   with tempfile.TemporaryDirectory() as d:

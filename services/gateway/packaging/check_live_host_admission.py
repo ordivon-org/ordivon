@@ -627,20 +627,28 @@ def _independent_host_readiness_observations() -> dict[str, Any]:
             return None
 
     environment = observe(lambda: _qualified_systemd_environment(GATEWAY_UNIT))
-    route_qualified = (
-        _owner_route_is_probed_endpoint(environment) if isinstance(environment, str) else None
+    # One observation binds qualification and the endpoint used by the
+    # canary. Distinguish a completed negative (None in the tuple) from
+    # a failed or unavailable observation (no tuple).
+    route = (
+        observe(lambda: (_qualified_host_route_port(environment),))
+        if isinstance(environment, str)
+        else None
     )
+    candidate_port = route[0] if route is not None else None
+    route_qualified = candidate_port is not None if route is not None else None
     credential_declared = (
-        _declares_host_owner_identity(environment) if isinstance(environment, str) else None
+        observe(lambda: _declares_host_owner_identity(environment))
+        if isinstance(environment, str)
+        else None
     )
-    candidate_port = observe(
-        lambda: _qualified_host_route_port(environment) if isinstance(environment, str) else None
-    )
-    anonymous_denied = observe(
-        _rejects_unauthenticated_host_initialize
-        if candidate_port in (None, 8898)
-        else lambda: _rejects_unauthenticated_host_initialize(host_port=candidate_port)
-    )
+    anonymous_denied = None
+    if candidate_port == 8898:
+        anonymous_denied = observe(_rejects_unauthenticated_host_initialize)
+    elif candidate_port == PROTECTED_HOST_PORT:
+        anonymous_denied = observe(
+            lambda: _rejects_unauthenticated_host_initialize(host_port=candidate_port)
+        )
     clients = observe(_observed_non_gateway_host_tcp_clients)
     # Deliberately NEVER transmit an Owner token in this diagnostic branch.
     peers = observe(

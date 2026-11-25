@@ -37,6 +37,47 @@ def replay_work_receipt(
     """Decode a tagged receipt; full legacy receipts keep their existing semantics."""
     if replay.get("kind") == "ordivon.host-work":
         return replay
+    envelope = _validated_envelope(
+        replay,
+        work_ref=work_ref,
+        work_kind=work_kind,
+        revision=revision,
+        snapshot_digest=snapshot_digest,
+        actor_ref=actor_ref,
+        state=state,
+    )
+    row = conn.execute(
+        "SELECT snapshot_digest,payload,writer_actor_ref FROM work_snapshots "
+        "WHERE work_ref=%s AND revision=%s",
+        (work_ref, envelope["revision"]),
+    ).fetchone()
+    return _hydrate(replay, envelope, row)
+
+
+def replay_pinned_work_receipt(
+    replay: dict[str, Any],
+    *,
+    work_ref: str,
+    revision: int,
+    target: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Validate a receipt using the exact native root and joined target."""
+    if not isinstance(work_ref, str) or type(revision) is not int:
+        raise RuntimeError("invalid native Work receipt root")
+    envelope = _validated_envelope(replay, work_ref=work_ref, revision=revision)
+    return _hydrate(replay, envelope, target)
+
+
+def _validated_envelope(
+    replay: dict[str, Any],
+    *,
+    work_ref: str,
+    work_kind: str | None = None,
+    revision: int | None = None,
+    snapshot_digest: str | None = None,
+    actor_ref: str | None = None,
+    state: str | None = None,
+) -> dict[str, Any]:
     if replay.get("kind") != _WORK_RECEIPT_REF:
         raise RuntimeError("unknown Work receipt format")
     envelope = replay.get("envelope")
@@ -63,17 +104,18 @@ def replay_work_receipt(
         or (state is not None and envelope.get("state") != state)
     ):
         raise RuntimeError("Work receipt reference differs from committed request")
-    row = conn.execute(
-        "SELECT snapshot_digest,payload,writer_actor_ref FROM work_snapshots "
-        "WHERE work_ref=%s AND revision=%s",
-        (work_ref, rev),
-    ).fetchone()
+    return envelope
+
+
+def _hydrate(
+    replay: dict[str, Any], envelope: dict[str, Any], row: dict[str, Any] | None
+) -> dict[str, Any]:
     if (
         row is None
-        or row["snapshot_digest"] != digest
-        or row["writer_actor_ref"] != writer
+        or row["snapshot_digest"] != envelope["snapshotDigest"]
+        or row["writer_actor_ref"] != envelope["writerActorRef"]
         or not isinstance(row["payload"], dict)
-        or canonical_digest(row["payload"]) != digest
+        or canonical_digest(row["payload"]) != envelope["snapshotDigest"]
     ):
         raise RuntimeError("committed Work receipt target is missing or changed")
     result = {**envelope, "snapshot": row["payload"]}

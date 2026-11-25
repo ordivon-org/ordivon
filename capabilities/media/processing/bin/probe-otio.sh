@@ -13,6 +13,7 @@ exec /usr/bin/mise -C "$root" exec -- uv run --no-project --with 'opentimelineio
 import hashlib
 import json
 import math
+import os
 import sys
 from pathlib import Path
 
@@ -25,7 +26,11 @@ def digest(raw):
 
 def write_json(path, value):
     raw = (json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False) + "\n").encode()
-    path.write_bytes(raw)
+    # Publish each complete file atomically in the exclusively reserved directory.
+    staged = path.with_name(path.name + ".tmp")
+    with staged.open("xb") as stream:
+        stream.write(raw)
+    os.replace(staged, path)
     return digest(raw)
 
 
@@ -61,7 +66,8 @@ def inspect_clip(clip):
     if known:
         in_bounds = (
             not source.start_time < available.start_time
-            and not available.end_time_inclusive() < source.end_time_inclusive()
+            # Compare physical half-open endpoints, including mixed rates.
+            and not available.end_time_exclusive() < source.end_time_exclusive()
         )
     else:
         in_bounds = None
@@ -132,6 +138,13 @@ def validate_profile(profile):
 
 def main():
     source, profile_path, out = map(Path, sys.argv[1:])
+    # A destination belongs to exactly one attempt. Preserve all prior evidence;
+    # never overwrite a success or reuse a partially produced directory.
+    try:
+        out.mkdir(parents=True, exist_ok=False)
+    except FileExistsError:
+        print("OTIO evidence directory must be new: " + str(out), file=sys.stderr)
+        return 3
     source, profile_path = source.resolve(strict=True), profile_path.resolve(strict=True)
     raw, profile_raw = source.read_bytes(), profile_path.read_bytes()
     profile = json.loads(profile_raw)
@@ -161,7 +174,7 @@ def main():
          "ok": prefix is None or facts["badMediaReferencePrefixCount"] == 0},
     ])
     ok = all(check["ok"] for check in checks)
-    (out / "raw").mkdir(parents=True, exist_ok=True)
+    (out / "raw").mkdir()
     inspection_path = "raw/otio-inspection.json"
     inspection_digest = write_json(out / inspection_path, inspection)
     assertions_digest = write_json(out / "assertions.json", {
@@ -171,6 +184,7 @@ def main():
     evidence = {
         "schemaVersion": 1, "kind": "ordivon.media.v2.external-otio-evidence",
         "truthRole": "editorial-structure-and-range-evidence-not-nle-private-state-or-publication-approval",
+        "evidenceDirectory": str(out.resolve()),
         "input": {"path": str(source), "digest": digest(raw), "sizeBytes": len(raw)},
         "profile": {"path": str(profile_path), "digest": digest(profile_raw)},
         "tools": {"opentimelineio": {"version": otio.__version__, "entrypoint": "python-native-api"}},
