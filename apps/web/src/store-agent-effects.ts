@@ -73,6 +73,31 @@ export class AgentEffectStore {
     return receipt;
   }
 
+  // Historical replay is read-only on the common path. A miss is provisional
+  // until the native writer lock is acquired; another connection may commit
+  // the identity in between. Recheck before any mutable authority or writes.
+  private commitOrReplay(
+    agentId: string, effect: AgentEffectRequest, write: () => AgentEffectReceipt,
+  ): { receipt: AgentEffectReceipt; replayed: boolean } {
+    const existing = this.receipts.resolveAgentEffectReplay(agentId, effect);
+    if (existing !== null) return { receipt: existing, replayed: true };
+
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const committed = this.receipts.resolveAgentEffectReplay(agentId, effect);
+      if (committed !== null) {
+        this.db.exec("COMMIT");
+        return { receipt: committed, replayed: true };
+      }
+      const receipt = write();
+      this.db.exec("COMMIT");
+      return { receipt, replayed: false };
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
+  }
+
   commitAgentCanaryCreate(
     grant: AgentGrantSnapshot,
     agentId: string,
@@ -80,14 +105,7 @@ export class AgentEffectStore {
     content: string,
     now: number,
   ): { receipt: AgentEffectReceipt; replayed: boolean } {
-    // Reuse the same exact actor/digest replay contract as the admission surface.
-    const existing = this.receipts.resolveAgentEffectReplay(agentId, effect);
-    if (existing !== null) {
-      return { receipt: existing, replayed: true };
-    }
-
-    this.db.exec("BEGIN IMMEDIATE");
-    try {
+    return this.commitOrReplay(agentId, effect, () => {
       const current = this.grants.getAgentGrant(grant.grantId);
       if (
         current.grantDigest !== grant.grantDigest ||
@@ -124,12 +142,8 @@ export class AgentEffectStore {
         `)
         .run(note.noteId, note.principalId, note.content, note.createdAt).changes, "note creation");
       const receipt = this.finalizeNewEffect(current, agentId, effect, note, now, null);
-      this.db.exec("COMMIT");
-      return { receipt, replayed: false };
-    } catch (error) {
-      this.db.exec("ROLLBACK");
-      throw error;
-    }
+      return receipt;
+    });
   }
 
   commitAgentCanaryPublish(
@@ -139,14 +153,7 @@ export class AgentEffectStore {
     noteId: string,
     now: number,
   ): { receipt: AgentEffectReceipt; replayed: boolean } {
-    // Reuse the same exact actor/digest replay contract as the admission surface.
-    const existing = this.receipts.resolveAgentEffectReplay(agentId, effect);
-    if (existing !== null) {
-      return { receipt: existing, replayed: true };
-    }
-
-    this.db.exec("BEGIN IMMEDIATE");
-    try {
+    return this.commitOrReplay(agentId, effect, () => {
       const current = this.grants.getAgentGrant(grant.grantId);
       const approval = this.approvals.readLiveApproval(current.principalId, effect, now);
       if (
@@ -187,11 +194,7 @@ export class AgentEffectStore {
       this.approvals.consumeApproval(effect.effectId, now);
       const note = noteFromRow({ ...noteRow, state: "PUBLISHED", published_at: now });
       const receipt = this.finalizeNewEffect(current, agentId, effect, note, now, approval);
-      this.db.exec("COMMIT");
-      return { receipt, replayed: false };
-    } catch (error) {
-      this.db.exec("ROLLBACK");
-      throw error;
-    }
+      return receipt;
+    });
   }
 }
