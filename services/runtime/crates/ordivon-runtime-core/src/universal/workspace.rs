@@ -213,16 +213,29 @@ mod bounded_output_tests {
 
     #[test]
     fn bounded_command_stdout_stops_after_one_byte_beyond_budget() {
-        let mut command = Command::new("/usr/bin/python3");
+        const CHILD: &str = "ORDIVON_BOUNDED_STDOUT_TEST_CHILD";
+        if std::env::var_os(CHILD).is_some() {
+            use std::io::Write;
+            let mut stdout = std::io::stdout().lock();
+            for _ in 0..5000 {
+                stdout.write_all(&[b'x'; 1000]).unwrap();
+            }
+            stdout.flush().unwrap();
+            return;
+        }
+        let mut command = Command::new(std::env::current_exe().unwrap());
         command.args([
-            "-c",
-            "import sys; sys.stdout.write('x' * 5000000); sys.stdout.flush()",
-        ]);
+            "--exact",
+            "universal::workspace::bounded_output_tests::bounded_command_stdout_stops_after_one_byte_beyond_budget",
+            "--nocapture",
+            "--quiet",
+        ]).env(CHILD, "1");
         let started = Instant::now();
         let (bytes, truncated) =
             bounded_command_stdout(&mut command, 64, &[0], "large test output").unwrap();
         assert!(truncated);
         assert_eq!(bytes.len(), 64);
+        assert!(bytes.windows(16).any(|chunk| chunk == [b'x'; 16]));
         assert!(started.elapsed() < Duration::from_secs(2));
     }
 }

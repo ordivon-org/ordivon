@@ -1746,13 +1746,15 @@ mod durable_closing_intent_tests {
         git(&source, &["add", "tracked.txt"]);
         git(&source, &["commit", "-qm", "initial"]);
         let head = git(&source, &["rev-parse", "HEAD"]);
+        let runner = std::env::current_exe().expect("native test executable");
+        let executable_root = runner.parent().unwrap().to_path_buf();
         let cfg = UniversalExecutorConfig {
             store_root: tmp.path().join("runtime-store"),
             workspace_root: None,
             workspace_uid: None,
             workspace_gid: None,
-            runner_path: Some(PathBuf::from("/usr/bin/true")),
-            allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
+            runner_path: Some(runner),
+            allowed_executable_roots: vec![executable_root],
             max_runtime_ms: 10000,
             max_output_bytes: 1024 * 1024,
         };

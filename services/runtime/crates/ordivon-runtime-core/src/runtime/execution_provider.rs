@@ -528,6 +528,7 @@ mod local_linux_adapter_tests {
         assert_eq!(error.field.as_deref(), Some("execution.executionTarget"));
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn local_linux_provider_snapshot_binds_exact_runner_digest() {
         // The CI host may expose /usr/bin/true as a symlink to a multicall
