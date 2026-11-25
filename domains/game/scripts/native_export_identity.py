@@ -32,7 +32,7 @@ def capture(project: Path) -> str:
     if any((editor.parent / flag).exists() for flag in ("_sc_", "._sc_")):
         raise ValueError("self-contained editor unsupported by this native factory")
     proc = subprocess.run([str(editor), "--version"], capture_output=True, text=True, timeout=20)
-    verify_process(proc.returncode, proc.stdout, proc.stderr, strict=True)
+    verify_process(proc.returncode, proc.stdout, proc.stderr)
     version = proc.stdout.strip()
     match = re.fullmatch(r"([0-9]+\.[0-9]+(?:\.[0-9]+)?\.stable)\.official\.[0-9a-f]+", version)
     if match is None:

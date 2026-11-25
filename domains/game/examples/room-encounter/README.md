@@ -5,7 +5,7 @@ a revived game or a finished commercial product.
 
 From domains/game:
 - Run: godot --path examples/room-encounter
-- Verify: godot --headless --path examples/room-encounter --script res://assert.gd
+- Verify: `mise run test:encounter` (from `domains/game`, uses an isolated checkpoint and validates native receipts)
 
 Keyboard A/Space attacks, G guards/restores stamina, N requests the gate
 dialogue after room clear, R restarts. Enter uses native Godot UI accept on

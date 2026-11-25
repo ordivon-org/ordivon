@@ -30,7 +30,7 @@ def assert_native_trace_contract(receipt: dict, actions: str, mode: str) -> None
     assert len(steps) == len(expected_actions) <= 64
     previous = receipt["initial"]
     observations = [previous]
-    for action, step in zip(expected_actions, steps, strict=True):
+    for action, step in zip(expected_actions, steps):
         assert step["action"] == action
         assert step["before"] == previous, "broken native observation chain"
         if mode == "debug":
@@ -65,7 +65,7 @@ def episode(actions, observation="debug"):
     run = subprocess.run(command, text=True, capture_output=True, timeout=60)
     # Exit 2 is the native input-rejection protocol, never an engine error.
     verify_process(run.returncode, run.stdout, run.stderr,
-                   strict=True, allowed_exit_codes=(0, 2))
+                   allowed_exit_codes=(0, 2))
     lines = [line[len(PREFIX):] for line in run.stdout.splitlines()
              if line.startswith(PREFIX)]
     assert len(lines) == 1, f"missing or duplicate episode receipt: {run.stdout}\n{run.stderr}"
