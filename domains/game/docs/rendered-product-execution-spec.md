@@ -55,3 +55,23 @@ real decoder negative/positive contract, both actual product binary checks, owne
 publish candidate and read back. Keep #2809 head unchanged while CI is underway.
 Next: independently scoped physical input/audio, targeted human study, native profiling
 for Rust migration, conditional GdUnit4 trial; no repeated headless-only gate counted as pixels.
+
+
+## Agent invocation and acceptance separation
+
+Run `mise run test:rendered-product-contract` for the real decoder fixtures;
+`mise run test:rendered-product-native-counterexample` builds a separate native
+blank project, demonstrates headless exit zero, and requires raster rejection.
+For an independently verified native exported executable:
+
+```sh
+python3 scripts/rendered_product_acceptance.py --product beacon-relay \
+  --executable /absolute/path/to/beacon-relay.x86_64 \
+  --sha256 <verified-executable-sha256>
+```
+
+The receipt is supplemental downstream evidence, not a producer signature,
+release, physical display or sound measurement. Retain the JSON via the existing
+Runtime result/artifact route. CI stays unchanged pending actual runner
+qualification. The selected startup frames may legitimately be identical;
+motion, controls, sound and accessibility are separate next acceptance goals.

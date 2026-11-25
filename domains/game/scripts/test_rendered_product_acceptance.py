@@ -5,7 +5,8 @@ import subprocess
 import tempfile
 import unittest
 
-from rendered_product_acceptance import FRAMES, verify_rasters
+from native_process import verify_process
+from rendered_product_acceptance import FRAMES, consume, digest, verify_rasters
 
 
 class RasterContract(unittest.TestCase):
@@ -18,7 +19,7 @@ class RasterContract(unittest.TestCase):
             subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-f", "lavfi",
                             "-i", source, "-frames:v", "1", "-threads", "1",
                             str(self.root / f"{name}.fixture.png")],
-                           check=True, capture_output=True)
+                           check=True, capture_output=True, timeout=15)
         self.frames = self.root / "frames"
         self.frames.mkdir()
         for i in range(FRAMES):
@@ -53,6 +54,40 @@ class RasterContract(unittest.TestCase):
         shutil.copyfile(self.root / "flat.fixture.png", self.frames / "frame00000007.png")
         with self.assertRaisesRegex(ValueError, "uniform final"):
             verify_rasters(self.frames, 16, 16)
+
+
+class NativeBlankContract(unittest.TestCase):
+    def test_actual_exported_blank(self):
+        """A genuine native exit-zero is insufficient to qualify rendered startup."""
+        with tempfile.TemporaryDirectory(prefix="game-native-blank-") as tmp:
+            root = Path(tmp)
+            project = root / "project"
+            project.mkdir()
+            (project / "project.godot").write_text(
+                'config_version=5\n[application]\nconfig/name="Blank counterexample"\n'
+                'run/main_scene="res://blank.tscn"\n[display]\n'
+                'window/size/viewport_width=480\nwindow/size/viewport_height=720\n'
+                'window/size/window_width_override=480\nwindow/size/window_height_override=720\n'
+                '[rendering]\nrenderer/rendering_method="gl_compatibility"\n')
+            (project / "blank.tscn").write_text(
+                '[gd_scene format=3]\n\n[node name="BlankCounterexample" type="Node2D"]\n')
+            game = Path(__file__).resolve().parents[1]
+            shutil.copyfile(game / "examples/beacon-relay/export_presets.cfg",
+                            project / "export_presets.cfg")
+            exe = root / "blank.x86_64"
+            for args in (["godot", "--headless", "--path", str(project), "--editor", "--import"],
+                         ["godot", "--headless", "--path", str(project), "--export-release",
+                          "Linux x86_64", str(exe)]):
+                proc = subprocess.run(args, capture_output=True, text=True, timeout=120)
+                verify_process(proc.returncode, proc.stdout, proc.stderr)
+            exe.chmod(0o700)
+            proc = subprocess.run([str(exe), "--headless", "--quit-after", "8"],
+                                  capture_output=True, text=True, timeout=30)
+            verify_process(proc.returncode, proc.stdout, proc.stderr)
+            with self.assertRaisesRegex(ValueError, "uniform final raster"):
+                consume(exe, digest(exe), "beacon-relay")
+            with self.assertRaisesRegex(ValueError, "input executable identity differs"):
+                consume(exe, "0" * 64, "beacon-relay")
 
 
 if __name__ == "__main__":

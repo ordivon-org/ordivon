@@ -223,4 +223,8 @@ echo "GAME_FACTORY_BEACON_PACKAGES_READY_NATIVE_PREVIEW_NOT_STORE_RELEASE"
 
 [tasks."test:rendered-product-contract"]
 description = "Validate the independent FFmpeg raster consumer using real decoder fixtures (requires FFmpeg)"
-run = "python3 scripts/test_rendered_product_acceptance.py"
+run = "python3 scripts/test_rendered_product_acceptance.py RasterContract"
+
+[tasks."test:rendered-product-native-counterexample"]
+description = "Export a real blank Godot product and reject its uniform raster (requires native templates, Xvfb and FFmpeg)"
+run = "python3 scripts/test_rendered_product_acceptance.py NativeBlankContract"
