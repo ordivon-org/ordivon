@@ -3373,12 +3373,17 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
             &[&completed_job],
         )
         .unwrap();
-    let started: i64 = times.get::<_, Option<i64>>(0).expect("native Runner bound");
+    // A fast successful effect can complete before the live RUNNER_BOUND
+    // observation. The committed timestamp is optional, not synthesized.
+    let started: Option<i64> = times.get(0);
     let finished: i64 = times.get::<_, Option<i64>>(1).expect("terminal witness");
     let inspection = call(&endpoint, "job.get", json!({"jobId":completed_job}));
     assert_ne!(inspection["isError"], true, "{inspection}");
     let attempt = &inspection["structuredContent"]["attempts"][0];
-    assert_eq!(attempt["startedAtMs"], started);
+    assert_eq!(
+        attempt.get("startedAtMs"),
+        started.map(|value| json!(value)).as_ref()
+    );
     assert_eq!(attempt["finishedAtMs"], finished);
     assert!(
         attempt.get("durationMs").is_none(),
@@ -3391,8 +3396,8 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
     );
     assert_ne!(listed["isError"], true, "{listed}");
     assert_eq!(
-        listed["structuredContent"]["jobs"][0]["startedAtMs"],
-        started
+        listed["structuredContent"]["jobs"][0].get("startedAtMs"),
+        started.map(|value| json!(value)).as_ref()
     );
     let post_terminal_cancel = call(&endpoint, "job.cancel", json!({"jobId":completed_job}));
     assert_ne!(
@@ -3962,7 +3967,28 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         &[&job.as_str().unwrap()],
     ).unwrap();
     assert_eq!(bound.get::<_, String>(0), "running");
-    assert!(bound.get::<_, Option<i64>>(1).is_some());
+    let bound_at: i64 = bound
+        .get::<_, Option<i64>>(1)
+        .expect("live bound observation");
+    let bound_inspection = call(&endpoint, "job.get", json!({"jobId":job}));
+    assert_ne!(bound_inspection["isError"], true, "{bound_inspection}");
+    assert_eq!(
+        bound_inspection["structuredContent"]["attempts"][0]["startedAtMs"],
+        bound_at
+    );
+    assert!(bound_inspection["structuredContent"]["attempts"][0]
+        .get("durationMs")
+        .is_none());
+    let bound_list = call(
+        &endpoint,
+        "job.list",
+        json!({"clientRequestId":"pg-native-cancel-0001","limit":1}),
+    );
+    assert_ne!(bound_list["isError"], true, "{bound_list}");
+    assert_eq!(
+        bound_list["structuredContent"]["jobs"][0]["startedAtMs"],
+        bound_at
+    );
     assert_eq!(
         bound.get::<_, i64>(2),
         1,
@@ -4022,6 +4048,18 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         observed["structuredContent"]["executionDisposition"], "succeeded",
         "a requested native stop cannot fabricate successful effect: {observed}"
     );
+    let terminal_inspection = call(&endpoint, "job.get", json!({"jobId":job}));
+    assert_ne!(
+        terminal_inspection["isError"], true,
+        "{terminal_inspection}"
+    );
+    assert_eq!(
+        terminal_inspection["structuredContent"]["attempts"][0]["startedAtMs"],
+        bound_at
+    );
+    assert!(terminal_inspection["structuredContent"]["attempts"][0]
+        .get("durationMs")
+        .is_none());
     let reservation: String = fixture
         .db
         .query_one(
