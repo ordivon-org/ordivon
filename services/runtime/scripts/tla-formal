@@ -991,7 +991,7 @@ PY_WORKSPACE_CLOSE
       WorkspaceConsumerCloseR1.collector.cfg CollectorClosedHasRelease collector-release-removed
     workspace_close_expect_named_counterexample "$tmp_dir/collectorreachable" \
       WorkspaceConsumerCloseR1.collector.cfg ClosedUnreachable collector-close-reachable
-    for field in generation source activity reachable; do
+    for field in generation source activity rootRevision effect-time reachable; do
       folder="$tmp_dir/binding-$field"
       mkdir "$folder"
       cp "$ROOT/formal/WorkspaceReleaseBindingR1."{tla,cfg} "$folder/"
@@ -1006,9 +1006,14 @@ if field == "reachable":
 else:
     model = folder / "WorkspaceReleaseBindingR1.tla"
     source = model.read_text()
-    guard = "    /\\ release." + field + " = " + field + "\n"
+    if field == "effect-time":
+        guard = "    /\\ checked\n    /\\ CloseEligible\n"
+        replacement = '    /\\ checked\n    /\\ phase = "open"\n'
+    else:
+        guard = "    /\\ release." + field + " = " + field + "\n"
+        replacement = ""
     assert source.count(guard) == 1, "release binding guard drift"
-    model.write_text(source.replace(guard, ""))
+    model.write_text(source.replace(guard, replacement))
 PY_BINDING
       property=ClosedHasCurrentRelease
       if [[ "$field" == reachable ]]; then property=ClosedUnreachable; fi
