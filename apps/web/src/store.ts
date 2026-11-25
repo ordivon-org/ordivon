@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 
-import { hashToken } from "./identity-digests.ts";
+import { consumeDpopProof } from "./store-dpop-proofs.ts";
 import { WebProblem } from "./errors.ts";
 import { requireUsableOwnerConnection } from "./store-connection-health.ts";
 import { AgentGrantStore } from "./store-agent-grants.ts";
@@ -304,50 +304,8 @@ export class WebStore {
     return listPrincipalCanaryNotes(this.owner.db, principalId);
   }
 
-  consumeDpopProof(
-    proofId: string,
-    nowEpochSeconds: number,
-    ttlSeconds = 600,
-  ): void {
-    const bytes = Buffer.byteLength(proofId, "utf8");
-    if (
-      bytes < 1 ||
-      bytes > 256 ||
-      !Number.isSafeInteger(ttlSeconds) ||
-      ttlSeconds < 1
-    ) {
-      throw new WebProblem(
-        401,
-        "dpop-proof-invalid",
-        "Agent verification failed",
-        "The DPoP proof identity is invalid.",
-      );
-    }
-    const proofHash = hashToken(proofId);
-    this.owner.db.exec("BEGIN IMMEDIATE");
-    try {
-      this.owner.db
-        .prepare("DELETE FROM dpop_proofs WHERE expires_at <= ?")
-        .run(nowEpochSeconds);
-      const existing = this.owner.db
-        .prepare("SELECT proof_hash FROM dpop_proofs WHERE proof_hash = ?")
-        .get(proofHash);
-      if (existing !== undefined) {
-        throw new WebProblem(
-          401,
-          "dpop-proof-replayed",
-          "Agent verification failed",
-          "The DPoP proof has already been consumed.",
-        );
-      }
-      this.owner.db
-        .prepare("INSERT INTO dpop_proofs (proof_hash, expires_at) VALUES (?, ?)")
-        .run(proofHash, nowEpochSeconds + ttlSeconds);
-      this.owner.db.exec("COMMIT");
-    } catch (error) {
-      this.owner.db.exec("ROLLBACK");
-      throw error;
-    }
+  consumeDpopProof(proofId: string, nowEpochSeconds: number, ttlSeconds = 600): void {
+    consumeDpopProof(this.owner.db, proofId, nowEpochSeconds, ttlSeconds);
   }
 
   createAgentGrant(input: AgentGrantCreate, now: number): AgentGrantSnapshot {

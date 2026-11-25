@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import { stableDigest } from "./identity-digests.ts";
 import { WebProblem } from "./errors.ts";
+import { runOwnerTransaction } from "./store-owner-transaction.ts";
 import type { ChallengePurpose, ChallengeRecord } from "./model.ts";
 import type { ChallengeRow } from "./store-row-projections.ts";
 
@@ -63,8 +64,7 @@ export class ChallengeStore {
     purpose: ChallengePurpose,
     now: number,
   ): ChallengeRecord {
-    this.db.exec("BEGIN IMMEDIATE");
-    try {
+    return runOwnerTransaction(this.db, "challenge", () => {
       const row = this.db
         .prepare("SELECT * FROM webauthn_challenges WHERE challenge_id = ?")
         .get(challengeId) as ChallengeRow | undefined;
@@ -117,11 +117,7 @@ export class ChallengeStore {
         payload,
         expiresAt: row.expires_at,
       };
-      this.db.exec("COMMIT");
       return record;
-    } catch (error) {
-      this.db.exec("ROLLBACK");
-      throw error;
-    }
+    });
   }
 }

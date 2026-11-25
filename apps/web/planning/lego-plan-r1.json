@@ -33,10 +33,13 @@
       ],
       "behavioralContract": "Challenge consumption is one-shot; credential and challenge are persisted to the Owner-local store; browser/virtual authenticator proof is not a claim of physical human presence.",
       "acceptance": [
+        "Native Challenge consumer reuses one owner transaction kernel; exact one-shot state, purpose and expiry semantics are unchanged under deterministic acknowledgement and writer contention faults.",
         "Owner session/challenge tests verify one-shot behavior and browser E2E evidence scopes without treating canary enrollment as production-ready.",
         "Native ChallengeStore consumer tests prove payload snapshot capture, digest mismatch/malformed JSON rejection before consume, rollback and one-shot behavior; no arbitrary DB tamper resistance is claimed."
       ],
       "evidence": [
+        "src/store-owner-transaction.ts",
+        "test/store-owner-transaction.test.ts",
         "src/webauthn.ts",
         "src/store.ts",
         "test/app.test.ts",
@@ -166,9 +169,13 @@
       ],
       "behavioralContract": "If Security verifier is absent or returns an invalid decision, admission fails closed. OAuth/DPoP verification and policy are consumed from Security-owned contracts; Web retains only local DPoP replay state and request-to-policy input binding.",
       "acceptance": [
+        "Native DPoP local replay persistence reuses the same owner transaction kernel; expiry cleanup, replay denial and insertion share the original atomic boundary, with no change to Security verification or admission.",
         "Existing Web tests exercise missing Security verifier rejection and Security verifier boundary; real installation qualification remains UNKNOWN."
       ],
       "evidence": [
+        "src/store-owner-transaction.ts",
+        "test/store-owner-transaction.test.ts",
+        "src/store-dpop-proofs.ts",
         "src/security-agent-verifier.ts",
         "src/agent-authority.ts",
         "src/app.ts",
@@ -216,6 +223,8 @@
       ],
       "behavioralContract": "R2 create commits under admitted scope; R4 publish requires step-up approval bound to the exact effect and consumes it once; committed approval evidence cannot be reopened and pending approval lookup excludes committed effects; identical replay preserves previous receipt and conflicting payloads or fresh revoked-grant effects reject.",
       "evidence": [
+        "src/store-owner-transaction.ts",
+        "test/store-owner-transaction.test.ts",
         "src/store.ts",
         "src/store-agent-effects.ts",
         "src/store-effect-transaction.ts",
@@ -258,6 +267,7 @@
         }
       ],
       "acceptance": [
+        "Effect, Challenge and DPoP share one native BEGIN/COMMIT/ROLLBACK implementation; domain error codes remain distinct, uncertain connections are quarantined, and no automatic retry follows ambiguous outcomes.",
         "Native Web tests cover exact replay/conflict, R4 approval and revoked Grant historical replay.",
         "Local canary write != external provider effect, no installed/exactly-once distributed claim.",
         "Native HTTP tests replay three deterministic async admission interleavings; bounded TLA+ model checks response invariants, not deployed refinement.",

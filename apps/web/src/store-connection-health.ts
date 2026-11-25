@@ -13,6 +13,6 @@ export function quarantineOwnerConnection(db: DatabaseSync): void {
 export function requireUsableOwnerConnection(db: DatabaseSync): void {
   if (quarantined.has(db)) {
     throw new WebProblem(503, "web-store-recovery-required", "Web Store recovery required",
-      "The owner connection is quarantined. Explicitly close it and observe Effect state through a new usable connection.");
+      "The owner connection is quarantined. Explicitly close it and observe the operation state through a new usable connection.");
   }
 }

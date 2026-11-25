@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node --test test/*.test.ts",
     "test:effects": "node --test test/store-effect-*.test.ts",
+    "test:transactions": "node --test test/store-effect-*.test.ts test/store-owner-transaction.test.ts test/challenge-store.test.ts",
     "test:coverage": "node --test --experimental-test-coverage --test-coverage-include='src/**/*.ts' --test-coverage-include-all test/*.test.ts",
     "e2e": "bash ./browser-e2e.sh",
     "agent-native-e2e": "bash ./agent-native-e2e.sh",
