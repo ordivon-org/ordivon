@@ -209,7 +209,7 @@ Agent player-visible port could then misrepresent action availability.
 Native and Agent tests now check actual Button disabled state.
 
 Real verification defect: Godot may emit SCRIPT ERROR and still
-print PASS or exit 0. The native_scene_acceptance.py wrapper requires
+print PASS or exit 0. The Game-owned `scripts/native_scene_acceptance.py` wrapper requires
 a success receipt, exit=0, and no script or parse errors in stderr or
 stdout. Run mise run test:native-receipt-selftest to reject the four
 bad-control cases and admit the one valid case; then run
