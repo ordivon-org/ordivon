@@ -4671,6 +4671,13 @@ else:
             normal.unlink()
             legacy.write_text(json.dumps({**record, "schemaVersion": 99}))
             self.assertIsNone(observe()["manifestDigest"])
+            legacy.unlink()
+            normal.write_text(json.dumps({**record, "schemaVersion": 99}))
+            self.assertIsNone(observe()["manifestDigest"])
+            normal.write_text(json.dumps({**record, "sourceMaterialization": "mutable_checkout"}))
+            self.assertIsNone(observe()["manifestDigest"])
+            normal.write_text(json.dumps(record))
+            self.assertEqual(observe()["manifestPaths"], [str(normal)])
 
     def test_candidate_retention_deep_invalid_receipt_does_not_abort_census(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -4788,7 +4795,9 @@ else:
                 (release / "runtime").write_bytes(revision.encode())
             pending_release = candidates / pending / "release"
             manifest = pending_release / "ordivon-deployment-manifest.json"
-            manifest.write_text(json.dumps({"commit": pending, "candidateDir": str(pending_release)}))
+            manifest.write_text(json.dumps({"schemaVersion": 2, "commit": pending,
+                                           "candidateDir": str(pending_release),
+                                           "sourceMaterialization": "detached_git_checkout"}))
             os.link(pending_release / "runtime", pending_release / "runtime-copy")
             (candidates / unknown / "release" / "foreign").symlink_to(root)
             (candidates / "legacy-name").mkdir()

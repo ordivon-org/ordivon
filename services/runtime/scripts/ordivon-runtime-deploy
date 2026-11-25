@@ -2252,12 +2252,12 @@ def retention_manifest(child: Path) -> tuple[str, list[str]]:
         if (not isinstance(value, dict) or value.get("commit") != child.name
                 or value.get("candidateDir") != str(child / "release")):
             raise ValueError("manifest_subject_mismatch")
-        if name == "manifest.json" and (
+        if (
             type(value.get("schemaVersion")) is not int
             or value["schemaVersion"] != SCHEMA_VERSION
             or value.get("sourceMaterialization") != "detached_git_checkout"
         ):
-            raise ValueError("historical_manifest_schema_unqualified")
+            raise ValueError("manifest_schema_unqualified")
         observed.append((path, raw))
     if not observed:
         raise ValueError("manifest_not_observed")
