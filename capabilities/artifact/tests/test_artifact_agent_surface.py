@@ -4,6 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("artifact_agent_surface", ROOT / "scripts/artifact_agent_surface.py")
 M = importlib.util.module_from_spec(SPEC); assert SPEC and SPEC.loader; SPEC.loader.exec_module(M)
@@ -88,10 +90,14 @@ class ArtifactAgentSurfaceTests(unittest.TestCase):
         self.assertTrue(status["boundedCadProfileAdmission"])
         self.assertEqual(status["currentCadProfiles"], ["design-3d-step-solid-r1"])
         self.assertTrue(any("glb" in x for x in status["currentDesign3dProfiles"]))
-        self.assertTrue(status["observedToolPresence"]["freecad"])
-        self.assertTrue(status["observedToolPresence"]["occtStepInspector"])
         self.assertIn("bounded metric single-solid STEP/BREP profile", status["boundary"])
 
+
+    @pytest.mark.integration
+    def test_cad_native_tool_presence(self):
+        status = M.cad_boundary_status()
+        self.assertTrue(status["observedToolPresence"]["freecad"])
+        self.assertTrue(status["observedToolPresence"]["occtStepInspector"])
 
     def test_service_profile_discovery_does_not_parse_verifier_python_source(self):
         source = (ROOT / "scripts/artifact_agent_surface.py").read_text(encoding="utf-8")
