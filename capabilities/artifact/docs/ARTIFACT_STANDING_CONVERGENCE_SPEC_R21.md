@@ -49,7 +49,7 @@ Safety law, under well-formed inputs: `complete => all_required_supported_by_non
 
 - v1 stage `status=PASS` may mean all *executed* gates passed while `profileVerificationComplete=false`; preserve this distinction until consumer migration, never promote missing gates.
 - v2 native `status=PASS` may be legacy compatible while `profileVerificationComplete=false`; preserve existing consumers and add scoped Standing, never reinterpret as full acceptance.
-- FLAC/WAVE/PNG claim-complete routes require explicit claimResults/native status pointers; do not weaken.
+- FLAC/WAVE/PNG claim-complete routes require explicit claimResults/native status pointers; do not weaken. All declared pointers for one required PASS/FAIL claim must resolve to claim-specific observations with the same status; a valid sibling cannot mask a malformed, unrelated, self-witnessing, or contradictory pointer. This is a conjunctive witness list, not a list of alternatives.
 - v1 and v2 profile definitions are NOT globally equivalent. Prove each common axis or mark UNKNOWN.
 - No full snapshot guarantee for sidecar formats until dependency closure is bound.
 - T4 descriptor boundary: `artifact_core/file_stream.py` shares one native
@@ -97,6 +97,8 @@ Use existing public entrypoints `execute_verify_stage` (through DirectPython pro
 | T6 Retire old logic and glue | T3,T5 | One Standing authority, with duplicate branch paths removed | source graph + owner tests + actual caller checks |
 | T7 Owner-level work handoff | T5,T6 | Task reports separate execution from consumer success | existing Host/Runtime/Harness contracts; no new registry |
 | T8 Independent release and cleanup | T6,T7 | verified merged source, installed readback where relevant, obsolete history removed | CI, Code Review, consumer evidence |
+
+V1 stage admission and receipt digest comparisons reject observed Subject/Profile drift; this is not a frozen read set, a proof against transient ABA replacement, or a complete sidecar dependency closure.
 
 ## Delivery gates and stop conditions
 
