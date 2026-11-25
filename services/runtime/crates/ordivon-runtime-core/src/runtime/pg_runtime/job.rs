@@ -822,7 +822,7 @@ impl PgRuntime {
             );
         }
         if !contract.workspace_access.write_paths.is_empty() {
-            let _ = universal::workspace_source_readset_digest_at(
+            universal::validate_scoped_write_paths_at(
                 Path::new(&plan.workspace_path),
                 &contract.workspace_access.write_paths,
             )
