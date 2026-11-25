@@ -341,3 +341,121 @@ def test_non_tool_middleware_does_not_create_tool_observation(caplog):
     caplog.set_level(logging.INFO, logger="ordivon_gateway.audit")
     assert asyncio.run(GatewayAuditMiddleware()(ctx, owner)) is result
     assert not [r for r in caplog.records if r.name == "ordivon_gateway.audit"]
+
+
+@pytest.mark.parametrize(
+    "structured",
+    [
+        {"native_id": "job-a", "nativeId": "job-b"},
+        {"owner_id": "runtime.linux", "ownerId": "runtime.windows"},
+        {"operation_ref": "op-a", "operationRef": "op-b"},
+        {"task_id": "task-a", "taskId": 7},
+        {"native_id": "", "nativeId": "job-b"},
+    ],
+)
+def test_independent_ambiguous_correlation_identity_is_not_published(caplog, structured):
+    ctx = SimpleNamespace(request=None, method="tools/call", params={"name": "execution.get"})
+    result = {"isError": False, "structuredContent": structured}
+    calls = []
+
+    async def owner(_ctx):
+        calls.append(_ctx)
+        return result
+
+    caplog.set_level(logging.INFO, logger="ordivon_gateway.audit")
+    assert asyncio.run(GatewayAuditMiddleware()(ctx, owner)) is result
+    assert calls == [ctx]
+    event = json.loads(caplog.records[-1].message)
+    assert event["outcome"] == "returned"
+    assert not {"nativeId", "ownerId", "operationRef", "taskId"} & event.keys()
+
+
+def test_independent_conflicting_structured_aliases_not_published(caplog):
+    ctx = SimpleNamespace(request=None, method="tools/call", params={"name": "execution.get"})
+    result = {
+        "isError": False,
+        "structuredContent": {"native_id": "job-a"},
+        "structured_content": {"native_id": "job-b"},
+    }
+
+    async def owner(_ctx):
+        return result
+
+    caplog.set_level(logging.INFO, logger="ordivon_gateway.audit")
+    assert asyncio.run(GatewayAuditMiddleware()(ctx, owner)) is result
+    assert "nativeId" not in json.loads(caplog.records[-1].message)
+
+
+def test_independent_consistent_aliases_preserve_correlation(caplog):
+    ctx = SimpleNamespace(request=None, method="tools/call", params={"name": "execution.get"})
+    structured = {"native_id": "job-a", "nativeId": "job-a", "owner_id": "runtime.linux"}
+    result = {"isError": False, "structuredContent": structured, "structured_content": structured}
+
+    async def owner(_ctx):
+        return result
+
+    caplog.set_level(logging.INFO, logger="ordivon_gateway.audit")
+    assert asyncio.run(GatewayAuditMiddleware()(ctx, owner)) is result
+    event = json.loads(caplog.records[-1].message)
+    assert (event["nativeId"], event["ownerId"]) == ("job-a", "runtime.linux")
+
+
+@pytest.mark.parametrize("owner_raises", [False, True])
+def test_independent_clock_failure_preserves_owner_invocation(monkeypatch, owner_raises):
+    import ordivon_gateway.security.audit as audit
+
+    ctx = SimpleNamespace(request=None, method="tools/call", params={"name": "execution.get"})
+    result = {"isError": False}
+    error = RuntimeError("owner fixture")
+    calls = []
+
+    def broken_clock():
+        raise OSError("diagnostic clock fixture")
+
+    monkeypatch.setattr(audit, "time", SimpleNamespace(monotonic_ns=broken_clock))
+
+    async def owner(_ctx):
+        calls.append(_ctx)
+        if owner_raises:
+            raise error
+        return result
+
+    if owner_raises:
+        with pytest.raises(RuntimeError) as caught:
+            asyncio.run(GatewayAuditMiddleware()(ctx, owner))
+        assert caught.value is error
+    else:
+        assert asyncio.run(GatewayAuditMiddleware()(ctx, owner)) is result
+    assert calls == [ctx]
+
+
+def test_independent_real_task_cancellation_is_not_retried(caplog):
+    ctx = SimpleNamespace(request=None, method="tools/call", params={"name": "execution.get"})
+    calls = []
+    caplog.set_level(logging.INFO, logger="ordivon_gateway.audit")
+
+    async def scenario():
+        started = asyncio.Event()
+        never = asyncio.Event()
+
+        async def owner(_ctx):
+            calls.append(_ctx)
+            started.set()
+            await never.wait()
+
+        task = asyncio.create_task(GatewayAuditMiddleware()(ctx, owner))
+        await started.wait()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(scenario())
+    assert calls == [ctx]
+    events = [
+        json.loads(record.message)
+        for record in caplog.records
+        if record.name == "ordivon_gateway.audit" and record.message.startswith("{")
+    ]
+    assert len(events) == 1
+    assert events[0]["outcome"] == "cancelled"
+    assert "nativeId" not in events[0]

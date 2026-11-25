@@ -22,28 +22,42 @@ def _trace_identity() -> tuple[str | None, str | None]:
     return f"{span_context.trace_id:032x}", f"{span_context.span_id:016x}"
 
 
+def _structured_identity(structured: Any) -> dict[str, str] | None:
+    if not isinstance(structured, dict):
+        return None
+    identity: dict[str, str] = {}
+    for snake, camel in (
+        ("operation_ref", "operationRef"),
+        ("owner_id", "ownerId"),
+        ("native_id", "nativeId"),
+        ("task_id", "taskId"),
+    ):
+        values = [structured[key] for key in (snake, camel) if key in structured]
+        if len(values) == 2 and (
+            any(not isinstance(value, str) or not value for value in values)
+            or values[0] != values[1]
+        ):
+            # A contradictory identity tuple is not a qualified correlation.
+            return None
+        if values and isinstance(values[0], str) and values[0]:
+            identity[camel] = values[0]
+    return identity
+
+
 def _result_identity(result: HandlerResult) -> dict[str, str]:
     if isinstance(result, dict):
-        structured = result.get("structuredContent", result.get("structured_content"))
+        projections = [
+            _structured_identity(result[key])
+            for key in ("structuredContent", "structured_content")
+            if key in result
+        ]
     else:
-        structured = getattr(result, "structured_content", None)
-    if not isinstance(structured, dict):
+        projections = [_structured_identity(getattr(result, "structured_content", None))]
+    if not projections or projections[0] is None:
         return {}
-    identity: dict[str, str] = {}
-    for source, target in (
-        ("operation_ref", "operationRef"),
-        ("operationRef", "operationRef"),
-        ("owner_id", "ownerId"),
-        ("ownerId", "ownerId"),
-        ("native_id", "nativeId"),
-        ("nativeId", "nativeId"),
-        ("task_id", "taskId"),
-        ("taskId", "taskId"),
-    ):
-        value = structured.get(source)
-        if isinstance(value, str) and value and target not in identity:
-            identity[target] = value
-    return identity
+    if any(projection != projections[0] for projection in projections):
+        return {}
+    return projections[0]
 
 
 def _report_projection_failure(phase: str) -> None:
@@ -141,11 +155,16 @@ class GatewayAuditMiddleware:
         except Exception:
             _report_projection_failure("ingress")
 
-        started_ns = time.monotonic_ns()
+        started_ns: int | None = None
+        try:
+            if ctx.method == "tools/call":
+                started_ns = time.monotonic_ns()
+        except Exception:
+            _report_projection_failure("clock")
 
         def observe(result: HandlerResult | None, outcome: str | None = None) -> None:
             try:
-                if ctx.method == "tools/call":
+                if ctx.method == "tools/call" and started_ns is not None:
                     _record_result_projection(
                         ctx,
                         result,
