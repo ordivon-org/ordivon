@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import tomllib
 import unittest
@@ -19,7 +20,10 @@ class OwnerUvLockFreshness(unittest.TestCase):
     def test_verify_uses_one_freshness_aware_sync(self) -> None:
         data = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))
         script = data["tasks"]["verify"]["run"]
-        sync = "uv sync --locked --python 3.15.1"
+        sync = "uv sync --locked"
+        selection = 'export UV_PYTHON="$(mise which python)"'
+        self.assertIn(selection, script)
+        self.assertLess(script.index(selection), script.index(sync))
         self.assertIn(sync, script)
         self.assertNotIn("uv lock --check", script)
         self.assertNotIn("uv sync --frozen", script)
@@ -47,7 +51,8 @@ class OwnerUvLockFreshness(unittest.TestCase):
             and b["standing"] == "SOURCE_EXECUTABLE_TEST_CONSUMER"
             for b in bindings
         )
-        self.assertIn("uv sync --locked --python 3.15.1", s03["behavioralContract"])
+        self.assertIn("uv sync --locked", s03["behavioralContract"])
+        self.assertIn("owner interpreter", s03["behavioralContract"])
         self.assertIn("uv.lock", s03["inputs"][0])
         self.assertTrue(s03["formalObligations"])
         self.assertTrue(all(x.startswith("OPEN:") for x in s03["formalObligations"]))
@@ -69,8 +74,13 @@ class OwnerUvLockFreshness(unittest.TestCase):
             shutil.copy2(ROOT / "uv.lock", temp / "uv.lock")
             # CI has a different package cache and VIRTUAL_ENV; neither must
             # decide the oracle for a project manifest / lock inconsistency.
-            env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
+            env = {
+                k: v for k, v in os.environ.items()
+                if k != "VIRTUAL_ENV" and not k.startswith("UV_")
+            }
             env["UV_CACHE_DIR"] = str(temp / "isolated-cache")
+            env["UV_PROJECT_ENVIRONMENT"] = str(temp / "isolated-env")
+            env["UV_PYTHON"] = sys.executable
 
             def uv(*args: str) -> subprocess.CompletedProcess[str]:
                 return subprocess.run(
@@ -78,25 +88,26 @@ class OwnerUvLockFreshness(unittest.TestCase):
                     capture_output=True, timeout=40, check=False,
                 )
 
-            base = uv("lock", "--offline", "--python", "3.15.1")
+            base = uv("lock", "--offline")
             self.assertEqual(base.returncode, 0, base.stderr)
             fresh = uv(
-                "sync", "--locked", "--offline", "--python", "3.15.1",
+                "sync", "--locked", "--offline",
                 "--no-dev", "--no-install-project",
             )
             self.assertEqual(fresh.returncode, 0, fresh.stderr)
+            self.assertTrue((temp / "isolated-env" / "pyvenv.cfg").is_file())
             # Change only the local project identity: no registry packages
             # need to be downloaded to prove lock drift.
             stale = without_dev.replace('version = "0.1.0"', 'version = "0.1.1"', 1)
             self.assertNotEqual(stale, without_dev)
             (temp / "pyproject.toml").write_text(stale, encoding="utf-8")
             frozen = uv(
-                "sync", "--frozen", "--offline", "--python", "3.15.1",
+                "sync", "--frozen", "--offline",
                 "--no-dev", "--no-install-project",
             )
             self.assertEqual(frozen.returncode, 0, frozen.stderr)
             strict = uv(
-                "sync", "--locked", "--offline", "--python", "3.15.1",
+                "sync", "--locked", "--offline",
                 "--no-dev", "--no-install-project",
             )
             self.assertNotEqual(strict.returncode, 0, strict.stderr)
