@@ -122,3 +122,5 @@ mod issuer_cases;
 mod terminal_cases;
 
 mod stateful_model_cases;
+
+mod history_cases;
