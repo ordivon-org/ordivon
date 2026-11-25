@@ -228,3 +228,7 @@ run = "python3 scripts/test_rendered_product_acceptance.py RasterContract"
 [tasks."test:rendered-product-native-counterexample"]
 description = "Export a real blank Godot product and reject its uniform raster (requires native templates, Xvfb and FFmpeg)"
 run = "python3 scripts/test_rendered_product_acceptance.py NativeBlankContract"
+
+[tasks."test:x11-interaction-contract"]
+description = "Metamorphic Room window raster contract; actual product input witness is separate"
+run = "python3 scripts/test_x11_interaction_acceptance.py"

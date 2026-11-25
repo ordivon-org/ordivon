@@ -97,7 +97,7 @@ I: actual Room native executable, expected digest; O: named transition witnesses
 and scoped JSON. S: owned private Xvfb display, temporary XDG paths, target PID
 and window ID. pre: exact input SHA, independent display, unique target window
 owned by launched process, stable baseline. post: irrelevant key preserves
-raster; A changes the visible status; R restores baseline. inv: no input into
+raster; A changes the visible status; R restores the source-bound status strip. inv: no input into
 existing display, reject ambiguous ownership, no capture of other windows,
 bounded execution, strict native diagnostics and same binary SHA. eff: synthetic
 OS key press/release and window-local capture; own process and display cleanup.
@@ -110,5 +110,11 @@ qualification. Keep separately invocable, no CI gate until runner qualified.
 Negative control: a missing/no-effect input must fail the required change
 predicate, while an unrelated key must preserve state. Existing native rule
 oracle separately covers actual transition meaning; raster relations do not
-authenticate exact HP/turn values. No physical keyboard, physical audio or
+authenticate exact HP/turn values. The initial whole-frame reset hypothesis was
+falsified: 1,850 differing pixels localized to controls, consistent with retained
+valid focus. At 1152x648 compare status rows [64,128), preserve full hashes and
+require full attack/reset replay equality. Geometry is part of the contract. No physical keyboard, physical audio or
 Windows acceptance inferred. Reuse native rule tests, not a second simulator.
+
+Invoke `mise run test:x11-interaction-contract` for the relation negatives.
+For the actual verified Room binary, run `python3 scripts/x11_interaction_acceptance.py --executable /absolute/room-encounter.x86_64 --sha256 VERIFIED_SHA`.
