@@ -20,9 +20,6 @@ struct Fixture {
     pg: Child,
     endpoint: Option<Child>,
     db: Client,
-    /// Opt in only for an E2E test that executes a sibling native systemd Unit
-    /// across Cargo's private sandbox mount. Other fixtures are unchanged.
-    host_visible_test_runner: bool,
     /// Opt in only for disposable Harness-issuer dispatch tests.
     harness_dispatch_test: bool,
     /// Permit only the original Run's native Runtime Workspace Claim. There
@@ -160,7 +157,6 @@ impl Fixture {
             pg,
             endpoint: None,
             db,
-            host_visible_test_runner: false,
             harness_dispatch_test: false,
             claim_only_profile: false,
             harness_schema_override: None,
@@ -191,7 +187,7 @@ impl Fixture {
             "run cargo test --workspace to build the native runner: {}",
             runner.display()
         );
-        let runner = if self.host_visible_test_runner {
+        let runner = {
             // An actual sibling systemd unit cannot execute through Cargo's
             // private source mount. Copy only this disposable Fixture binary
             // into the same private PG test root; never touch installed units.
@@ -215,8 +211,6 @@ impl Fixture {
                 other => panic!("disposable Runner copy path changed: {other:?}"),
             }
             test_runner
-        } else {
-            runner
         };
         let output = fs::File::create(self.root.join("endpoint.log")).unwrap();
         let mut endpoint = Command::new(env!("CARGO_BIN_EXE_ordivon-runtime-pg"));
@@ -515,9 +509,6 @@ fn pg_release_get_never_claims_deployed_without_verified_operator_receipt() {
     }
 
     let mut fixture = Fixture::new();
-    // A sibling native systemd Runner cannot execute Cargo's private source
-    // path: use the established host-visible per-fixture runner artifact.
-    fixture.host_visible_test_runner = true;
     let repo = fixture.repo();
     let commit = String::from_utf8(
         Command::new("git")
@@ -1127,17 +1118,36 @@ fn fresh_pg_mcp_real_database_and_no_false_launch_success() {
         .iter()
         .map(|t| t["name"].as_str().unwrap())
         .collect::<Vec<_>>();
-    // Original D #2333 adds exactly the three native physical Claim tools to
-    // the already qualified PG-only catalog; a stale 20-tool test must not
-    // reject the legitimate exact 23-tool source without inspecting names.
-    assert_eq!(names.len(), 23, "{names:?}");
-    for claim_tool in [
+    // Ordinary ingress cannot advertise the domain-finalizer effect or
+    // the unqualified release operator. Compare independent exact names.
+    let mut observed = names.clone();
+    observed.sort_unstable();
+    let mut expected = vec![
+        "runtime.describe",
+        "release.get",
+        "workspace.open",
+        "workspace.close",
+        "workspace.get",
+        "workspace.list",
+        "workspace.read",
+        "workspace.file",
+        "workspace.content",
+        "workspace.mutate",
+        "workspace.changes",
+        "workspace.diff",
+        "workspace.exec",
+        "workspace.execPlan",
+        "job.get",
+        "job.observe",
+        "job.cancel",
+        "job.list",
+        "artifact.content",
+        "artifact.read",
         "workspace.claim.reserve",
         "workspace.claim.get",
-        "workspace.claim.release",
-    ] {
-        assert!(names.contains(&claim_tool), "{names:?}");
-    }
+    ];
+    expected.sort_unstable();
+    assert_eq!(observed, expected, "ordinary native catalog identity");
     // Operator startup receipt must describe the *same* catalog advertised
     // by the mature MCP SDK; it cannot silently retain an obsolete count.
     let startup = fs::read_to_string(fixture.root.join("endpoint.log")).unwrap();
@@ -1722,7 +1732,6 @@ fn pg_binary_artifact_representation_is_not_registry_failure() {
     use sha2::Digest as _;
 
     let mut fixture = Fixture::new();
-    fixture.host_visible_test_runner = true;
     let repo = fixture.repo();
     let endpoint = fixture.endpoint();
     let opened = call(
@@ -3315,10 +3324,6 @@ fn failed_retained_pg_transient_auto_converges_to_lost_and_releases_capacity() {
 #[ignore = "requires PostgreSQL binaries and authorized systemd/cgroup execution"]
 fn fresh_pg_mcp_native_runner_success_and_cancel() {
     let mut fixture = Fixture::new();
-    // Cargo's per-Job /run/ordivon/cargo-target is private to the test's
-    // own native Unit. A sibling transient PG Runner must use the existing
-    // disposable host-visible fixture copy rather than this private mount.
-    fixture.host_visible_test_runner = true;
     let repo = fixture.repo();
     let endpoint = fixture.endpoint();
     let open = call(
@@ -4762,7 +4767,6 @@ fn resource_queue_owner_fairness_and_idle_borrowing() {
 #[ignore = "disposable PG18 plus actual native MCP, systemd Runner and Artifacts"]
 fn b_r3_native_poisoned_candidates_cannot_block_healthy_job() {
     let mut f = Fixture::new();
-    f.host_visible_test_runner = true;
     let repo = f.repo();
     let endpoint = f.endpoint();
     let ws = format!("ws-b-r3-{}", Uuid::now_v7().simple());
@@ -5124,7 +5128,6 @@ fn b_r3_native_poisoned_candidates_cannot_block_healthy_job() {
 #[ignore = "requires disposable PG18, native HTTP MCP, real systemd runner"]
 fn b_r3_native_cancel_corrupt_frozen_plan_stops_issued_os_unit() {
     let mut f = Fixture::new();
-    f.host_visible_test_runner = true;
     let repo = f.repo();
     let endpoint = f.endpoint();
     let ws = format!("ws-r30-cancel-{}", Uuid::now_v7().simple());
@@ -5479,7 +5482,6 @@ fn pg_mcp_scheduler_revoked_harness_job_reuses_existing_cancel() {
     let digest =
         |bytes: &[u8]| -> String { format!("sha256:{}", hex::encode(Sha256::digest(bytes))) };
     let mut fixture = Fixture::new();
-    fixture.host_visible_test_runner = true;
     let repo = fixture.repo();
     let normal_endpoint = fixture.endpoint();
     let workspace_id = format!("r16-owned-{}", Uuid::now_v7().simple());
@@ -5874,7 +5876,6 @@ fn pg_mcp_scheduler_revoked_harness_job_reuses_existing_cancel() {
 #[ignore = "requires disposable PG18, original Harness Python deps and native systemd runner"]
 fn pg18_original_harness_issued_dedicated_mcp_admit_then_revoke_before_dispatch() {
     let mut fixture = Fixture::new();
-    fixture.host_visible_test_runner = true;
     fixture.harness_dispatch_test = true;
     let repo = fixture.repo();
     let id = Uuid::now_v7().simple().to_string();
@@ -6474,7 +6475,6 @@ fn pg18_mcp_claim_release_route_holds_original_legacy_claim_across_finalizer_cut
 #[ignore = "requires disposable PostgreSQL18 and real systemd transient units"]
 fn fresh_pg_native_contained_profile_git_and_control_plane_boundary() {
     let mut fixture = Fixture::new();
-    fixture.host_visible_test_runner = true;
     // Exercise the actual ordinary-Agent contained-only route while the
     // independent operator config binds its task to nonroot UID/GID.
     // Neither a trusted_local escape nor a root-contained task may green.
@@ -7106,7 +7106,6 @@ printf '%s' "$(git rev-parse HEAD)"
 #[ignore = "requires disposable PostgreSQL18 and real systemd transient units"]
 fn pg_normal_contained_only_denies_new_trusted_but_recovers_old_committed_job() {
     let mut fixture = Fixture::new();
-    fixture.host_visible_test_runner = true;
     // Original contained_local consumer needs the native nonroot Git owner
     // established on the Workspace BEFORE the trusted->contained cutover.
     // This is the existing mature fixture mechanism, not a new Runtime grant.
@@ -7328,7 +7327,6 @@ fn pg_normal_contained_only_denies_new_trusted_but_recovers_old_committed_job() 
 #[ignore = "requires disposable PostgreSQL18 and real native systemd Runner"]
 fn pg_direct_implicit_profile_exact_replay_and_explicit_trusted_denial() {
     let mut fixture = Fixture::new();
-    fixture.host_visible_test_runner = true;
     fixture.ordinary_contained_only = true;
     let repo = fixture.repo();
     let url = fixture.endpoint();
@@ -7495,7 +7493,6 @@ fn pg_direct_implicit_profile_exact_replay_and_explicit_trusted_denial() {
 #[ignore = "disposable PG18 and native Runner"]
 fn pg_job_list_exact_key_does_not_substitute_historical_result() {
     let mut fixture = Fixture::new();
-    fixture.host_visible_test_runner = true;
     let repo = fixture.repo();
     let endpoint = fixture.endpoint();
     let opened = call(
