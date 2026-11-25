@@ -280,6 +280,15 @@ locale-dependent byte reinterpretations. The new index is built CONCURRENTLY
 before retiring only the known obsolete 0012 index. PG GIN array_ops, not
 a second search engine, remains the sole derived index authority.
 
+Schema 0016 keeps the old expression index during reader transition and adds
+host_cjk_sparse_ngrams3_v1 with a separate concurrent GIN build. It generates
+only windows containing at least one codepoint in U+3400..U+9FFF, matching the
+existing query eligibility. An exact substring preserves this restricted
+candidate set by inclusion; the exact strpos predicate, ordering and byte
+budget remain unchanged. Other queries keep native FTS or short CJK strpos.
+Do not replace an indexed function in place or retire the original index
+before independent installed-reader parity and physical benchmark evidence.
+
 Human: run the disposable PostgreSQL consumer tests and compare production
 EXPLAIN with the same bound query before and after release, including
 physical index validity and Host integrity. Agent: use public message.search

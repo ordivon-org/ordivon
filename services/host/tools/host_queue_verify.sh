@@ -99,7 +99,13 @@ if [[ -n "$container" ]]; then
     database="ordivon_migration_$variant"
     docker exec "$container" createdb -U ordivon_ci "$database"
     migration_dsn="postgresql://ordivon_ci:$password@127.0.0.1:$port/$database"
-    ORDIVON_HOST_V2_DSN="$migration_dsn" uv run alembic upgrade 0014
+    # Keep schema-15-specific historical migration fixtures pinned to 0014.
+    # The serving negative fixture must exercise the immediately previous schema.
+    revision=0014
+    if [[ "$variant" == startup ]]; then
+      revision=0015
+    fi
+    ORDIVON_HOST_V2_DSN="$migration_dsn" uv run alembic upgrade "$revision"
     export "ORDIVON_HOST_V2_MIGRATION_${variant^^}_DSN=$migration_dsn"
   done
 fi
