@@ -47,6 +47,12 @@ def bounded_provider_rows(
             raise ValueError(f"{label} listing changed during pagination")
         if not 0 <= count <= max_rows or len(batch) > 100:
             raise ValueError(f"{label} exceeds bounded complete query")
+        # Native offset pagination fixes the expected size of each page.
+        # A short intermediate page cannot be repaired by a later oversized
+        # final page: equal total cardinality does not prove complete coverage.
+        remaining = count - (page - 1) * 100
+        if len(batch) != min(100, max(0, remaining)):
+            raise ValueError(f"{label} listing is truncated or inconsistent at page {page}")
         if not all(isinstance(row, dict) for row in batch):
             raise ValueError(f"malformed provider {label} row")
         rows.extend(batch)
