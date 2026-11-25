@@ -7,7 +7,7 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
-from .production_source_io import claims_source_path, read_bound_object
+from .production_source_io import claims_source_path, local_source_path, read_bound_object
 from .production_validation import _validate_cognition_record, _validate_production_semantics
 from .runtime_receipt_validation import _validate_receipt_envelope, _validate_runtime_receipt
 from .timed_text import iter_cues
@@ -36,6 +36,28 @@ def _validator(schema_name: str) -> Draft202012Validator:
     return Draft202012Validator(schema)
 
 
+def _declared_local_file(
+    root: Path, relative: str, role: str, errors: list[str]
+) -> Path | None:
+    try:
+        path = local_source_path(root, relative)
+        if not path.is_file():
+            raise ValueError("declared source is not an accessible regular file")
+    except (OSError, ValueError, TypeError) as exc:
+        errors.append(f"{root}: invalid {role} source {relative!r}: {exc}")
+        return None
+    return path
+
+
+def _read_document(path: Path, errors: list[str]) -> dict[str, Any] | None:
+    try:
+        value, _ = read_bound_object(path)
+    except (OSError, ValueError, TypeError) as exc:
+        errors.append(f"{path}: invalid production document: {exc}")
+        return None
+    return value
+
+
 def validate_repository() -> list[str]:
     errors: list[str] = []
     validators = {name: _validator(schema) for name, schema in DOCUMENT_SCHEMAS.items()}
@@ -56,7 +78,9 @@ def validate_repository() -> list[str]:
             if not path.is_file():
                 errors.append(f"{path}: required production document is missing")
                 continue
-            document, _ = read_bound_object(path)
+            document = _read_document(path, errors)
+            if document is None:
+                continue
             documents[document_name] = document
             for error in sorted(validator.iter_errors(document), key=lambda item: list(item.path)):
                 location = "/".join(str(part) for part in error.path)
@@ -68,9 +92,10 @@ def validate_repository() -> list[str]:
             sources = production.get("sources", {})
             asset_reference = sources.get("assets") if isinstance(sources, dict) else None
             if isinstance(asset_reference, str):
-                asset_path = production_directory / asset_reference
-                if asset_path.is_file():
-                    assets = _load(asset_path)
+                asset_path = _declared_local_file(production_directory, asset_reference, "assets", errors)
+                if asset_path is not None:
+                    assets = _read_document(asset_path, errors)
+                if assets is not None:
                     asset_validator = _validator("asset.schema.json")
                     for error in sorted(asset_validator.iter_errors(assets), key=lambda item: list(item.path)):
                         location = "/".join(str(part) for part in error.path)
@@ -89,7 +114,9 @@ def validate_repository() -> list[str]:
         timed_text_directory = production_directory / "timed-text"
         if timed_text_directory.is_dir():
             for path in sorted(timed_text_directory.glob("*.json")):
-                document = _load(path)
+                document = _read_document(path, errors)
+                if document is None:
+                    continue
                 for error in sorted(timed_text_validator.iter_errors(document), key=lambda item: list(item.path)):
                     location = "/".join(str(part) for part in error.path)
                     errors.append(f"{path}:{location}: {error.message}")
@@ -102,15 +129,22 @@ def validate_repository() -> list[str]:
             sources = production.get("sources", {})
             cognition_path = sources.get("cognition") if isinstance(sources, dict) else None
             if isinstance(cognition_path, str):
-                errors.extend(_validate_cognition_record(production_directory / cognition_path))
+                selected = _declared_local_file(production_directory, cognition_path, "cognition", errors)
+                if selected is not None:
+                    try:
+                        errors.extend(_validate_cognition_record(selected))
+                    except (OSError, UnicodeError) as exc:
+                        errors.append(f"{selected}: invalid cognition document: {exc}")
             receipt_paths = sources.get("receipts", []) if isinstance(sources, dict) else []
-            for relative_path in receipt_paths:
+            for relative_path in receipt_paths if isinstance(receipt_paths, list) else ():
                 if not isinstance(relative_path, str):
                     continue
-                path = production_directory / relative_path
-                if not path.is_file():
+                path = _declared_local_file(production_directory, relative_path, "receipt", errors)
+                if path is None:
                     continue
-                receipt = _load(path)
+                receipt = _read_document(path, errors)
+                if receipt is None:
+                    continue
                 errors.extend(_validate_receipt_envelope(path, receipt))
                 if receipt.get("kind") == RUNTIME_RECEIPT_KIND:
                     schema_errors = sorted(receipt_validator.iter_errors(receipt), key=lambda item: list(item.path))

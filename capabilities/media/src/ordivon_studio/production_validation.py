@@ -136,8 +136,8 @@ def _validate_production_semantics(
             resolved = (production_path.parent / source_path).resolve()
             if not resolved.is_relative_to(ROOT.resolve()):
                 errors.append(f"{prefix}: source escapes repository: {source_path}")
-            elif not resolved.exists():
-                errors.append(f"{prefix}: declared source does not exist: {source_path}")
+            elif not resolved.is_file():
+                errors.append(f"{prefix}: declared source is not an accessible regular file: {source_path}")
 
         # Same observed byte relation as the actual Production context.
         # Validation policy differs by role: a sourceCarrier is a required
