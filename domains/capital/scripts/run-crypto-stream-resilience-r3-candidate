@@ -2,7 +2,8 @@
 set -euo pipefail
 if [ "$#" -ne 1 ]; then echo "usage: $0 OUTPUT_DIR" >&2; exit 64; fi
 out="$1"; repo="$(cd "$(dirname "$0")/.." && pwd)"
-rm -rf "$out"; mkdir -p "$out"
+# The final output claim must use native exclusive mkdir, not ambient CLI behavior.
+python3 -c 'import os, sys; os.mkdir(sys.argv[1])' "$out" 2>/dev/null || { echo "candidate output must be a new directory: $out" >&2 || :; exit 73; }
 "$repo/scripts/check-network-v2-public-data" >"$out/network-v2-binding.json"
 readarray -t proxy < <(jq -r '.authorities.okxWs.proxy,.authorities.binanceSpotWs.proxy' "$out/network-v2-binding.json")
 set +e
@@ -14,12 +15,46 @@ timeout --signal=TERM --kill-after=5s 95s env \
 src=$?
 set -e
 python3 - "$out" "$src" <<'PY'
-import json,sys
+import json,os,sys,tempfile
+from pathlib import Path
 out,rc=sys.argv[1:]
-try:s=json.load(open(out+'/session/result.json'))
-except Exception:s={'standing':'NO_SESSION_RESULT'}
-b=json.load(open(out+'/network-v2-binding.json'))
-r={'schemaVersion':2,'kind':'ordivon.capital.markets.crypto-stream-resilience-r3-candidate','transport':'network-v2-provider-auto','transportBindingDigest':b.get('bindingDigest'),'sessionReturnCode':int(rc),'sessionStanding':s.get('standing'),'standing':'PASS_WORKLOAD_QUALIFIED' if int(rc)==0 and s.get('standing')=='PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT' else 'WORKLOAD_QUALITY_FAILED','brokerCredentialsUsed':False,'privateAccountDataUsed':False,'externalFinancialWritesAttempted':False,'demoExecutionAttempted':False,'liveExecutionAttempted':False}
-json.dump(r,open(out+'/result.json','w'),indent=2,sort_keys=True);open(out+'/result.json','a').write('\n');print(json.dumps(r,sort_keys=True))
+try:
+    with open(out+'/session/result.json') as source:
+        s=json.load(source)
+    if not isinstance(s,dict):
+        raise ValueError("session result is not an object")
+except (OSError,ValueError):
+    s={'standing':'NO_SESSION_RESULT'}
+with open(out+'/network-v2-binding.json') as source:
+    b=json.load(source)
+passed=(
+    int(rc)==0
+    and type(s.get('schemaVersion')) is int and s['schemaVersion']==2
+    and s.get('kind')=='ordivon.capital.markets.crypto-stream-resilience-r3-session'
+    and s.get('standing')=='PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT'
+    and all(s.get(k) is False for k in (
+        'brokerCredentialsUsed','privateAccountDataUsed','externalFinancialWritesAttempted',
+        'demoExecutionAttempted','liveExecutionAttempted',
+    ))
+    and all(
+        isinstance(s.get(venue),dict)
+        and type(s[venue].get('returnCode')) is int and s[venue]['returnCode']==0
+        and s[venue].get('standing')=='PASS_PUBLIC_STREAM_RECONNECT'
+        and type(s[venue].get('measuredRoundCount')) is int and s[venue]['measuredRoundCount']==3
+        for venue in ('okx','binance')
+    )
+)
+r={'schemaVersion':2,'kind':'ordivon.capital.markets.crypto-stream-resilience-r3-candidate','transport':'network-v2-provider-auto','transportBindingDigest':b.get('bindingDigest'),'sessionReturnCode':int(rc),'sessionStanding':s.get('standing') if isinstance(s.get('standing'),str) else 'NO_SESSION_RESULT','standing':'PASS_WORKLOAD_QUALIFIED' if passed else 'WORKLOAD_QUALITY_FAILED','brokerCredentialsUsed':False if passed else None,'privateAccountDataUsed':False if passed else None,'externalFinancialWritesAttempted':False if passed else None,'demoExecutionAttempted':False if passed else None,'liveExecutionAttempted':False if passed else None}
+result_path=Path(out)/'result.json'
+with tempfile.NamedTemporaryFile(mode='w',dir=result_path.parent,prefix='.result-',delete=False) as target:
+    tmp=Path(target.name)
+    try:
+        target.write(json.dumps(r,indent=2,sort_keys=True,allow_nan=False)+'\n')
+        target.flush()
+        os.fsync(target.fileno())
+        os.link(tmp,result_path)
+    finally:
+        tmp.unlink()
+print(json.dumps(r,sort_keys=True,allow_nan=False))
+raise SystemExit(0 if passed else 2)
 PY
-[ "$src" -eq 0 ]

@@ -263,6 +263,13 @@ into an isolated configuration and requires rejection under ordinary and optimiz
 Python, then mise run verify checks the owner suite. This does not authorize
 private account access, trading or external financial effects.
 
+The reconnect runner claims a new output directory for each invocation. Its
+default first-run destination is `.artifacts/crypto-stream-resilience-r3`;
+for a rerun, pass a new output directory with an existing parent to
+`scripts/run-crypto-stream-resilience-r3 NEW_OUTPUT_DIR`. Existing evidence
+is never implicitly removed. Partial results and raw venue logs remain in
+the claimed directory for qualified consumption or explicit retirement.
+
 **Crypto Public Shadow read-only consumer gate** (`capital.public-data.crypto-shadow-consumer-gate`):
 Exact consumer entrypoint: `scripts/consume_crypto_public_shadow_product_r1.py`.
 Input: frozen ODPS product, SHA-256-bound public observation and ODRL rights policy.

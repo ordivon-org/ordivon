@@ -1,43 +1,153 @@
 #!/usr/bin/env bash
 set -euo pipefail
-repo="$1"; out="$2"
-mkdir -p "$out"
-
-set +e
-"$repo/scripts/run-capability-python" -m ordivon_capital.markets.crypto_stream_resilience   --target-venue OKX   --output "$out/okx.json"   --measured-rounds 3   --deadline-seconds 35   >"$out/okx.stdout" 2>"$out/okx.stderr"
-okx_rc=$?
-
-"$repo/scripts/run-capability-python" -m ordivon_capital.markets.crypto_stream_resilience   --target-venue BINANCE   --output "$out/binance.json"   --measured-rounds 3   --deadline-seconds 35   >"$out/binance.stdout" 2>"$out/binance.stderr"
-binance_rc=$?
-set -e
-
-python3 -   "$out/okx.json" "$okx_rc" "$out/okx.stderr"   "$out/binance.json" "$binance_rc" "$out/binance.stderr"   "$out/result.json" <<'PY'
+if [ "$#" -ne 2 ]; then echo "usage: $0 CAPITAL_REPO NEW_OUTPUT_DIR" >&2; exit 64; fi
+# Keep the exclusive filesystem claim and all producer launches in one
+# interpreter. An external mkdir exit status is not the claim authority.
+exec python3 - "$1" "$2" <<'PYTHON'
 import json
+import math
+import os
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
-okx_path = Path(sys.argv[1])
-okx_rc = int(sys.argv[2])
-okx_stderr = Path(sys.argv[3])
-bn_path = Path(sys.argv[4])
-bn_rc = int(sys.argv[5])
-bn_stderr = Path(sys.argv[6])
-result_path = Path(sys.argv[7])
+repo, out = map(Path, sys.argv[1:])
+
+try:
+    out.mkdir()
+except OSError:
+    try:
+        os.write(2, f"session output must be a new directory: {out}\n".encode())
+    except OSError:
+        pass
+    raise SystemExit(73)
+
+
+def run_venue(venue, path, stderr_path):
+    # Only the successful mkdir claimant can reach either producer. Retain
+    # both attempt outcomes even if starting one producer fails.
+    try:
+        with path.with_suffix(".stdout").open("xb") as stdout, stderr_path.open("xb") as stderr:
+            completed = subprocess.run(
+                [str(repo / "scripts/run-capability-python"),
+                 "-m", "ordivon_capital.markets.crypto_stream_resilience",
+                 "--target-venue", venue, "--output", str(path),
+                 "--measured-rounds", "3", "--deadline-seconds", "35"],
+                stdout=stdout, stderr=stderr, stdin=subprocess.DEVNULL, check=False,
+            )
+        return completed.returncode if completed.returncode >= 0 else 128 - completed.returncode
+    except OSError as exc:
+        try:
+            with stderr_path.open("ab") as stderr:
+                stderr.write(f"producer launch unavailable: {exc}\n".encode(errors="replace"))
+        except OSError:
+            pass
+        return 126
+
+
+okx_path, okx_stderr = out / "okx.json", out / "okx.stderr"
+bn_path, bn_stderr = out / "binance.json", out / "binance.stderr"
+result_path = out / "result.json"
+okx_rc = run_venue("OKX", okx_path, okx_stderr)
+bn_rc = run_venue("BINANCE", bn_path, bn_stderr)
+
+
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON member: {key}")
+        result[key] = value
+    return result
+
+
+def reject_constant(value):
+    raise ValueError(f"nonfinite JSON constant: {value}")
+
+
+def finite_float(value):
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ValueError("nonfinite JSON number")
+    return parsed
+
+
+def qualified_round(value, role):
+    return isinstance(value, dict) and value.get("qualified") is True and value.get("role") == role
+
+
+def qualify_venue(value, rc, venue):
+    # The producer outcome is admissible only as this invocation's typed,
+    # exact venue receipt. This does not attest underlying market reality.
+    if (
+        not isinstance(value, dict)
+        or type(value.get("schemaVersion")) is not int
+        or value["schemaVersion"] != 2
+        or value.get("kind") != "ordivon.capital.markets.crypto-stream-reconnect-qualification"
+        or value.get("targetVenue") != venue
+    ):
+        raise ValueError("venue receipt identity mismatch")
+    if not all(value.get(k) is False for k in (
+        "brokerCredentialsUsed", "privateAccountDataUsed", "externalFinancialWritesAttempted",
+        "demoExecutionAttempted", "liveExecutionAttempted",
+    )):
+        raise ValueError("venue receipt public-only effect mismatch")
+    measured = value.get("measured", [])
+    if not isinstance(measured, list):
+        raise ValueError("measured rounds must be a list")
+    standing = value.get("standing")
+    latency = value.get("reconnectLatencyMs")
+    before = value.get("injectedGeneration")
+    after = value.get("reconnectedGeneration")
+    if value.get("error") is not None and not isinstance(value["error"], str):
+        raise ValueError("venue error must be text")
+    if latency is not None and not (
+        type(latency) in (int, float) and math.isfinite(latency) and latency >= 0
+    ):
+        raise ValueError("invalid reconnect latency")
+    if any(g is not None and (type(g) is not int or g <= 0) for g in (before, after)):
+        raise ValueError("invalid connection generation")
+    if standing == "PASS_PUBLIC_STREAM_RECONNECT":
+        if not (
+            rc == 0
+            and value.get("hostWallClockUsedForAdmission") is False
+            and value.get("injectedDisconnect") is True
+            and type(before) is int and type(after) is int and 0 < before < after
+            and type(latency) in (int, float) and math.isfinite(latency) and latency >= 0
+            and type(value.get("measuredRoundCountRequired")) is int
+            and value["measuredRoundCountRequired"] == len(measured) == 3
+            and qualified_round(value.get("warmup"), "WARMUP_BEFORE_INJECTION")
+            and qualified_round(value.get("recovery"), "RECOVERY")
+            and all(
+                qualified_round(row, "MEASURED_AFTER_RECOVERY")
+                and type(row.get("sequence")) is int and row["sequence"] == i
+                for i, row in enumerate(measured, 1)
+            )
+        ):
+            raise ValueError("incomplete or inconsistent successful venue receipt")
+    elif standing not in ("PARTIAL_PUBLIC_STREAM_RECONNECT", "STREAM_RECONNECT_SESSION_FAILED") or rc == 0:
+        raise ValueError("venue receipt outcome disagrees with process exit")
+    return value
 
 
 def load_venue(path: Path, rc: int, stderr_path: Path, venue: str) -> dict:
-    if path.is_file():
-        try:
-            value = json.loads(path.read_text())
-            if isinstance(value, dict):
-                return value
-        except Exception as exc:
-            parse_error = f"{type(exc).__name__}: {exc}"
-        else:
-            parse_error = "unexpected non-object JSON"
-    else:
-        parse_error = "output file missing"
-    stderr = stderr_path.read_text(errors="replace")[-4000:] if stderr_path.is_file() else ""
+    try:
+        if path.is_symlink() or not path.is_file():
+            raise ValueError("output file missing or not a regular venue receipt")
+        value = json.loads(
+            path.read_text(), object_pairs_hook=unique_object,
+            parse_constant=reject_constant, parse_float=finite_float,
+        )
+        return qualify_venue(value, rc, venue)
+    except (OSError, ValueError, OverflowError, RecursionError) as exc:
+        parse_error = f"{type(exc).__name__}: {exc}"
+    try:
+        with stderr_path.open("rb") as raw:
+            raw.seek(max(0, stderr_path.stat().st_size - 4000))
+            stderr = raw.read(4000).decode(errors="replace")
+    except OSError:
+        stderr = ""
     return {
         "schemaVersion": 2,
         "kind": "ordivon.capital.markets.crypto-stream-reconnect-qualification",
@@ -46,13 +156,12 @@ def load_venue(path: Path, rc: int, stderr_path: Path, venue: str) -> dict:
         "returnCode": rc,
         "parseError": parse_error,
         "stderrTail": stderr,
-        "brokerCredentialsUsed": False,
-        "privateAccountDataUsed": False,
-        "externalFinancialWritesAttempted": False,
-        "demoExecutionAttempted": False,
-        "liveExecutionAttempted": False,
+        "brokerCredentialsUsed": None,
+        "privateAccountDataUsed": None,
+        "externalFinancialWritesAttempted": None,
+        "demoExecutionAttempted": None,
+        "liveExecutionAttempted": None,
     }
-
 
 okx = load_venue(okx_path, okx_rc, okx_stderr, "OKX")
 bn = load_venue(bn_path, bn_rc, bn_stderr, "BINANCE")
@@ -72,6 +181,8 @@ r = {
         "returnCode": okx_rc,
         "standing": okx.get("standing"),
         "error": okx.get("error"),
+        "parseError": okx.get("parseError"),
+        "stderrTail": okx.get("stderrTail"),
         "reconnectLatencyMs": okx.get("reconnectLatencyMs"),
         "measuredRoundCount": len(okx.get("measured", [])),
         "reconnectedGeneration": okx.get("reconnectedGeneration"),
@@ -80,17 +191,29 @@ r = {
         "returnCode": bn_rc,
         "standing": bn.get("standing"),
         "error": bn.get("error"),
+        "parseError": bn.get("parseError"),
+        "stderrTail": bn.get("stderrTail"),
         "reconnectLatencyMs": bn.get("reconnectLatencyMs"),
         "measuredRoundCount": len(bn.get("measured", [])),
         "reconnectedGeneration": bn.get("reconnectedGeneration"),
     },
-    "brokerCredentialsUsed": False,
-    "privateAccountDataUsed": False,
-    "externalFinancialWritesAttempted": False,
-    "demoExecutionAttempted": False,
-    "liveExecutionAttempted": False,
+    "brokerCredentialsUsed": False if okx.get("brokerCredentialsUsed") is False and bn.get("brokerCredentialsUsed") is False else None,
+    "privateAccountDataUsed": False if okx.get("privateAccountDataUsed") is False and bn.get("privateAccountDataUsed") is False else None,
+    "externalFinancialWritesAttempted": False if okx.get("externalFinancialWritesAttempted") is False and bn.get("externalFinancialWritesAttempted") is False else None,
+    "demoExecutionAttempted": False if okx.get("demoExecutionAttempted") is False and bn.get("demoExecutionAttempted") is False else None,
+    "liveExecutionAttempted": False if okx.get("liveExecutionAttempted") is False and bn.get("liveExecutionAttempted") is False else None,
 }
-result_path.write_text(json.dumps(r, indent=2, sort_keys=True) + "\n")
-print(json.dumps(r, sort_keys=True))
+# Publish complete bytes without replacing an existing result. A failure
+# keeps raw producer outputs and cannot be mistaken for a completed receipt.
+with tempfile.NamedTemporaryFile(mode="w", dir=result_path.parent, prefix=".result-", delete=False) as temp:
+    temp_path = Path(temp.name)
+    try:
+        temp.write(json.dumps(r, indent=2, sort_keys=True, allow_nan=False) + "\n")
+        temp.flush()
+        os.fsync(temp.fileno())
+        os.link(temp_path, result_path)
+    finally:
+        temp_path.unlink()
+print(json.dumps(r, sort_keys=True, allow_nan=False))
 raise SystemExit(0 if passed else 2)
-PY
+PYTHON
