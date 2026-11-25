@@ -340,3 +340,73 @@ https://www.nexte.st/docs/design/why-process-per-test/ ;
 https://www.nexte.st/docs/features/retries/ ;
 https://nexte.st/docs/machine-readable/junit/ ;
 https://mutants.rs/timeouts.html .
+
+
+## R15 — Concurrent history and native isolation qualification
+
+Host Work@34, shared verification spec #32838, scope #32888; exact composed
+source b9864a34 (R14 plus main a888290e). No root CI or other Owner changes.
+
+| Logic LEGO | Thought | Capability and actual evidence boundary |
+|---|---|---|
+| V11 operation history | linearizability, causal partial order | Rust call/return event stamps, exact complete responses, no clock-duration claims |
+| V12 sequential oracle | representation-first | separate clean Note/Audit maps and projected list semantics, no production transition helpers |
+| V13 refinement check | Wing-Gong bounded history search | exhaustive precedence-respecting permutations, response and final fact equality; bound eight operations, actual history length four |
+| V14 concurrent generation | falsification | existing Proptest, two actual seeds, overlapping writes + concurrent observation + final list |
+| V15 deterministic scheduling | native effect evidence | PostgreSQL advisory locks, unique-index transaction-ID waits, actual Audit relation lock; poll witnessed state, not assumed timing |
+| V16 isolation counterexample | snapshot consistency | peer atomic Note/Audit commit between two observable read statements; Repeatable Read passes, Read Committed native mutant returns Mismatch |
+| V17 verifier qualification | independent negative control | stale nonoverlap, legal overlap, duplicate success, wrong final state; remove precedence guard and native test must reject |
+| V18 evidence and cost | no repeated framework | existing Nextest strict discovery/JUnit, required concurrent profile, no new production/test dependencies |
+
+R2.1 I finite complete admitted call history and independently observed
+terminal facts; O valid linearization order or no witness; S clean Note/Audit
+maps, disjoint operation coordinates; pre unique invocation/response stamps,
+<=8 calls, no external modifications in generated history; post a witness
+matches all results, real-time precedence, final facts; inv no unknown result
+translated into collision, no hidden writes or inferred authority; eff
+isolated test database only; c bounded factorial search, four calls at
+most 24 total permutations before precedence/response pruning;
+epsilon bounded generated operation shapes, not all database schedules,
+not full domain or crash/unknown linearizability, cancellation tested
+separately by R13/R14. Native fixture errors fail qualification, not an
+observed business rejection. prov exact Git, Nextest report IDs/digests,
+Runtime receipts, two explicit seed runs; unfold generator -> native calls
+-> independent history/model and final peer facts -> finite search.
+
+Real identity race controls: first transaction holds a native advisory lock
+after INSERT Audit; second transaction waits on transactionid, confirmed
+by pg_stat_activity. Test both same Note/different Audit and different
+Note/same Audit. Independent precommit counts zero; release lock, first
+success, second SQLSTATE23505, exact single Note/Audit and mismatch for
+loser. No sleep used as proof; bounded polls only to await witnessed state.
+
+Snapshot control: peer obtains ACCESS EXCLUSIVE on Audit, inserts both
+facts within one transaction. Observer reads old Note, then blocks at
+Audit SELECT; peer verifies actual query lock wait and commits. Under
+Repeatable Read observer returns Unobserved, new read returns Exact.
+Read Committed mutant returns Mismatch despite both facts atomically
+committing. Restore production source unchanged. This is a consumer-level
+coherent observation guarantee, not a claim that all PG transactions
+are linearizable or all externally mutated history is clean.
+
+Existing R14 corrupted historical-state oracle remains independent because
+it has a different precondition/transition set. Do not prematurely merge
+it with clean concurrent history model. Use no generic checker service.
+For larger histories consider mature linearizability engines, compositional
+partitioning only when cross-coordinate independence is established. Future
+work: model pending/unknown outcomes explicitly, generate multiple waves and
+fault schedules; independent oracle and cross-owner qualification, schema
+migration/restore and actual Effect/Grant/Approval domain. Root CI and
+production Rust HTTP/physical authenticator remain separate gates.
+
+Reproduction:
+```sh
+cd apps/web
+pnpm run test:pg-domain
+# focused not whole-owner qualification:
+WEB_NOTE_CONCURRENT_SEED=20261127 python3 -B crates/web-note-pg/tests/run_native.py --lane concurrent
+mise run verify:target
+```
+References: https://onlinelibrary.wiley.com/doi/full/10.1002/cpe.3928 ;
+https://www.postgresql.org/docs/18/transaction-iso.html ;
+https://proptest-rs.github.io/proptest/proptest/failure-persistence.html .

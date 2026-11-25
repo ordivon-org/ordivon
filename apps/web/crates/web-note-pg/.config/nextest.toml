@@ -22,3 +22,9 @@ path = "stateful.xml"
 store-success-output = true
 store-failure-output = true
 report-skipped = "ignored"
+
+[profile.concurrent.junit]
+path = "concurrent.xml"
+store-success-output = true
+store-failure-output = true
+report-skipped = "ignored"

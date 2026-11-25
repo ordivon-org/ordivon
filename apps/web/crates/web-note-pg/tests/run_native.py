@@ -100,9 +100,9 @@ class CommitAckFault:
 
 if __name__ == "__main__":
     parser=argparse.ArgumentParser()
-    parser.add_argument("--lane", choices=["all","native","stateful"], default="all")
+    parser.add_argument("--lane", choices=["all","native","stateful","concurrent"], default="all")
     args=parser.parse_args()
-    targets=("native","stateful") if args.lane=="all" else (args.lane,)
+    targets=("native","stateful","concurrent") if args.lane=="all" else (args.lane,)
     print(f"native qualification scope: {args.lane}", flush=True)
     manifest = Path(__file__).resolve().parents[1] / "Cargo.toml"
     base = ["cargo", "nextest"]
@@ -137,7 +137,7 @@ if __name__ == "__main__":
         if fault is not None:
             env.update(WEB_NOTE_TEST_ACK_PROXY=str(fault.root),
                        WEB_NOTE_TEST_CANCEL_PROXY=str(cancel_fault.root))
-        # Two nonoptional native targets. No global filtering or retry can
+        # Nonoptional native targets. No global filtering or retry can
         # silently turn a missing target into successful qualification.
         for target in targets:
             report = manifest.parent / "target" / "nextest" / target / (target + ".xml")
