@@ -303,3 +303,51 @@ cargo-mutants nextest integration
 (https://github.com/nextest-rs/nextest/blob/main/site/src/docs/integrations/cargo-mutants.md);
 mutmut (https://mutmut.readthedocs.io/en/latest/).
 These are methods/candidates, not blanket installed or qualified capabilities.
+
+
+### 2026-11-26 R2 — independent oracle and deterministic failure qualification
+
+The R1 metamorphic invariant compares equivalent inputs. It is necessary,
+not sufficient: a selector can omit or overselect the same consumer on
+both sides. Do not use the selector itself to generate its entire test
+universe. The existing owner and dependency TOML declarations are the
+independent input for the scoped source-contract oracle. Its singleton
+positive/negative cases and generated set-union law verify exact
+taskLocalTestConsumers, inclusion of the consumer queue tasks, and retention
+of original changedPaths. Native Runtime/Harness seam rules have a different
+declaration format and are explicitly outside this exact oracle; they
+retain their separate native checks.
+
+R2 qualification: first run original and new suites; inject compilable
+targeted omission and over-selection mutants in an isolated workspace;
+require assertion failures rather than environment/collection errors;
+restore the original production bytes and rerun. This is a bounded
+sensitivity demonstration, not a general mutation score.
+
+P0 failure-driven execution: preserve actual GitHub failed attempt and
+native traceback; distinguish source defects, fixture qualification,
+test-oracle defects and legitimate retry exhaustion. A failed required
+owner shard is a failed aggregate; do not rerun simply to erase a failure.
+At the Capital SERIALIZABLE boundary require two actual connections,
+a controlled overlap/commit observation, and exact durable read-back.
+SQLSTATE 40001 is not a domain conflict or evidence of a committed effect.
+Use a bounded whole-transaction retry policy with explicit exhaustion if
+the owner contract requires retry; qualify liveness under stated contention
+rather than blindly increasing retries or weakening assertions.
+
+P1 deterministic simulation testing: reuse owner state-machine contracts,
+virtual clock and seeded fault scheduling only at existing effect ports.
+Specify fault distribution, schedule/seed, exact replay, state invariant
+and liveness horizon; preserve actual PG/OS/network consumer qualification.
+For distributed effects, test response loss after commit, duplicate
+delivery, delayed acknowledgement, cancellation and recovery separately.
+FoundationDB's simulation plus physical/performance tests and TigerBeetle's
+protocol-aware VOPR safety/liveness testing motivate this decomposition:
+https://apple.github.io/foundationdb/engineering.html
+https://tigerbeetle.com/blog/2026-08-20-protocol-aware-dst/
+No universal simulation runtime or additional test registry is authorized.
+
+R2 exit: scoped oracle detects both demonstrated mutants, restored suite
+passes, existing CI lane remains the consumer; wider native seam coverage,
+official merge-cut CI and physical contention root cause remain separate
+obligations. Record exact source, actual results, scope and blockers.
