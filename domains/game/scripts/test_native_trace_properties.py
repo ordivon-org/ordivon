@@ -113,6 +113,41 @@ class NativeTraceProperties(unittest.TestCase):
             for step in row["steps"]:
                 type(self).mode_phases.add((row["mode"], step["after"]["phase"]))
 
+    def test_finite_terminal_obligations(self):
+        # Terminal modes are a finite obligation axis, not a random sampling
+        # axis. These input programs exercise the real rules, not a simulator.
+        classic_win = ["attack", "advance", "attack", "attack", "advance",
+                       "guard", "attack", "guard", "attack", "advance"]
+        trial_win = (["guard", "attack"] * 4 + ["advance"] +
+                     ["guard", "attack"] * 6 + ["advance"] +
+                     ["guard", "attack"] * 6 + ["advance"])
+        trial_loss = (["guard", "guard", "attack"] * 4 + ["advance"] +
+                      ["guard", "guard", "attack"] * 6 + ["advance"] +
+                      ["guard", "guard", "attack"] * 6)
+        terminal_suffix = ["checkpoint", "attack", "guard", "advance", "restart", "restore"]
+        covered = set()
+        for mode, terminal, path in (
+            ("classic", "won", classic_win),
+            ("classic", "lost", ["guard"] * 15),
+            ("trial", "won", trial_win),
+            ("trial", "lost", trial_loss),
+        ):
+            with self.subTest(mode=mode, terminal=terminal):
+                actions = path + terminal_suffix
+                observations = observe(self.root, actions)
+                verify_trace(observations, actions)
+                selected = next(row for row in observations if row["mode"] == mode)
+                self.assertEqual(selected["steps"][len(path) - 1]["after"]["phase"], terminal)
+                self.assertEqual(selected["steps"][-1]["after"]["phase"], terminal)
+                covered.update((row["mode"], step["after"]["phase"])
+                               for row in observations for step in row["steps"])
+                print(f"GAME_NATIVE_TERMINAL_WITNESS mode={mode} terminal={terminal} "
+                      f"program_length={len(actions)}", flush=True)
+        expected = {(mode, phase) for mode in ("classic", "trial")
+                    for phase in ("fighting", "cleared", "won", "lost")}
+        self.assertEqual(covered, expected)
+        print(f"GAME_NATIVE_FINITE_PHASE_COVERAGE={len(covered)}/{len(expected)}", flush=True)
+
     @classmethod
     def tearDownClass(cls):
         print(f"GAME_NATIVE_TRACE_OBSERVED programs={cls.programs} "

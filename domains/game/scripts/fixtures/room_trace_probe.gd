@@ -9,7 +9,7 @@ func observe() -> void:
         quit(2)
         return
     var parsed: Variant = JSON.parse_string(args[0])
-    if not parsed is Array or parsed.is_empty() or parsed.size() > 40:
+    if not parsed is Array or parsed.is_empty() or parsed.size() > 64:
         quit(2)
         return
     var results: Array = []

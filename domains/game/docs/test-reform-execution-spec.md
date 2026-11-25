@@ -111,3 +111,13 @@ and process restart suite; both owner verify and factory:validate:godot
 required CI job. Runtime cost is measured on native local runner; hosted
 runner qualification remains pending. Test observer stays outside product
 resource tree. No physical effect or export qualification inferred.
+
+The first integrated generated run actually observed 29 programs / 58
+mode-programs / 352 steps, but only four mode-phase pairs (Classic fighting,
+cleared, lost; Trial fighting). This falsifies any all-phase claim based on
+the random program budget. Exhaust the finite terminal-obligation axis
+with four explicit native paths (Classic/Trial x won/lost), then checkpoint,
+rejected combat/door operations, restart and restore. Require exact 8/8
+mode-phase inventory across those paths. Increase only the probe's bounded
+input length to 64 for long terminal witnesses; generated list budget stays
+at 40. This is phase reachability, not all transitions/state coverage.
