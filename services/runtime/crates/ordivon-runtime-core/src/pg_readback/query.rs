@@ -1,5 +1,6 @@
+use super::artifact_inventory::read_artifact_inventory;
 use super::terminal_event::terminal_events_coherent;
-use super::types::{PgJobReadback, PgJobSnapshot};
+use super::types::{PgJobReadback, PgJobSnapshot, PgProjectionReadback};
 use crate::pg_admission::{require_pg_writer_epoch, PgAdmissionError, PgAdmissionStore};
 use postgres::IsolationLevel;
 
@@ -13,6 +14,28 @@ impl PgAdmissionStore {
         job_id: &str,
         expected_source_sha256: &str,
     ) -> Result<PgJobReadback, PgAdmissionError> {
+        Ok(
+            match self.read_job_snapshot(job_id, expected_source_sha256, false)? {
+                Some(readback) => PgJobReadback::Observed(readback.snapshot),
+                None => PgJobReadback::Inconclusive,
+            },
+        )
+    }
+
+    pub(crate) fn observe_job_projection_readonly(
+        &mut self,
+        job_id: &str,
+        expected_source_sha256: &str,
+    ) -> Result<Option<PgProjectionReadback>, PgAdmissionError> {
+        self.read_job_snapshot(job_id, expected_source_sha256, true)
+    }
+
+    fn read_job_snapshot(
+        &mut self,
+        job_id: &str,
+        expected_source_sha256: &str,
+        include_job_inventory: bool,
+    ) -> Result<Option<PgProjectionReadback>, PgAdmissionError> {
         if job_id.is_empty()
             || expected_source_sha256.len() != 64
             || !expected_source_sha256
@@ -46,14 +69,14 @@ impl PgAdmissionStore {
             "SELECT desired_state, resolution, current_attempt_id, row_version FROM jobs WHERE job_id=$1",
             &[&job_id],
         )? else {
-            return Ok(PgJobReadback::Inconclusive);
+            return Ok(None);
         };
         let Some(attempt) = tx.query_opt(
-            "SELECT attempt_id, state, termination_intent, result_digest, finished_at_ms, row_version \
+            "SELECT attempt_id, state, termination_intent, result_digest, finished_at_ms, row_version, exit_code \
              FROM attempts WHERE job_id=$1 ORDER BY attempt_number DESC LIMIT 1",
             &[&job_id],
         )? else {
-            return Ok(PgJobReadback::Inconclusive);
+            return Ok(None);
         };
         let attempt_id: String = attempt.get(0);
         let Some(reservation) = tx.query_opt(
@@ -61,7 +84,7 @@ impl PgAdmissionStore {
             &[&attempt_id],
         )?
         else {
-            return Ok(PgJobReadback::Inconclusive);
+            return Ok(None);
         };
         let snapshot = PgJobSnapshot {
             job_id: job_id.to_owned(),
@@ -77,11 +100,27 @@ impl PgAdmissionStore {
             attempt_row_version: attempt.get(5),
             reservation_state: reservation.get(0),
         };
-        if !snapshot.lifecycle_coherent() || !terminal_events_coherent(&mut tx, &snapshot)? {
-            return Ok(PgJobReadback::Inconclusive);
+        if !snapshot.lifecycle_coherent() {
+            return Ok(None);
         }
-        // Read-only transaction commit is not an effectful admission.
+        let Some(artifacts) = read_artifact_inventory(&mut tx, &snapshot, include_job_inventory)?
+        else {
+            return Ok(None);
+        };
+        let selected = artifacts
+            .iter()
+            .filter(|a| a.attempt_id == snapshot.attempt_id)
+            .map(|a| a.registration.clone())
+            .collect::<Vec<_>>();
+        if !terminal_events_coherent(&mut tx, &snapshot, &selected)? {
+            return Ok(None);
+        }
+        let exit_code = attempt.get(6);
         tx.commit()?;
-        Ok(PgJobReadback::Observed(Box::new(snapshot)))
+        Ok(Some(PgProjectionReadback {
+            snapshot: Box::new(snapshot),
+            artifacts,
+            exit_code,
+        }))
     }
 }

@@ -20,3 +20,16 @@ pub enum PgJobReadback {
     Observed(Box<PgJobSnapshot>),
     Inconclusive,
 }
+
+/// Internal readback carrier. Every metadata item belongs to the same PG
+/// repeatable-read cut; historical registrations retain their actual origin.
+pub(crate) struct PgProjectionReadback {
+    pub(crate) snapshot: Box<PgJobSnapshot>,
+    pub(crate) artifacts: Vec<PgObservedArtifact>,
+    pub(crate) exit_code: Option<i32>,
+}
+
+pub(crate) struct PgObservedArtifact {
+    pub(crate) attempt_id: String,
+    pub(crate) registration: crate::pg_admission::PgArtifactRegistration,
+}

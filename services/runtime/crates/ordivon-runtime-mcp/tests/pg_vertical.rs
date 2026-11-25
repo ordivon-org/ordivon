@@ -3400,6 +3400,122 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
     );
     let artifacts = exec["structuredContent"]["artifacts"].as_array().unwrap();
     let stdout = artifacts.iter().find(|v| v["kind"] == "stdout").unwrap();
+    // The schema has separate FKs for Job and Attempt. An independently
+    // corrupt carrier must never be relabelled as the verified Attempt.
+    let foreign_job = "job-projection-origin-fixture";
+    let foreign_attempt = "attempt-projection-origin-fixture";
+    fixture.db.execute(
+        "INSERT INTO jobs(job_id,principal,client_request_id,request_digest,operation_digest,workspace_id,workspace_snapshot_json,execution_plan_json,execution_plan_digest,created_at_ms,desired_state,resolution,current_attempt_id,row_version)
+         SELECT $2,principal,$2,request_digest,operation_digest,workspace_id,workspace_snapshot_json,execution_plan_json,execution_plan_digest,created_at_ms,desired_state,resolution,NULL,row_version FROM jobs WHERE job_id=$1",
+        &[&completed_job, &foreign_job],
+    ).unwrap();
+    fixture.db.execute(
+        "INSERT INTO attempts(attempt_id,job_id,attempt_number,state,termination_intent,launch_token_digest,bundle_path,unit_name,created_at_ms,row_version)
+         SELECT $2,$3,1,state,termination_intent,launch_token_digest,bundle_path,$2,created_at_ms,row_version FROM attempts WHERE job_id=$1",
+        &[&completed_job, &foreign_attempt, &foreign_job],
+    ).unwrap();
+    fixture.db.execute(
+        "INSERT INTO artifacts(artifact_id,job_id,attempt_id,kind,relative_path,digest,media_type,byte_length,truncated,created_at_ms)
+         SELECT '00-foreign-projection-fixture',job_id,$2,kind,relative_path,digest,media_type,byte_length,truncated,created_at_ms FROM artifacts WHERE artifact_id=$1",
+        &[&stdout["artifactId"].as_str().unwrap(), &foreign_attempt],
+    ).unwrap();
+    let foreign = call(
+        &endpoint,
+        "job.observe",
+        json!({"jobId":completed_job,"waitMs":0,"stdoutTailBytes":0,"stderrTailBytes":0}),
+    );
+    fixture
+        .db
+        .execute(
+            "DELETE FROM artifacts WHERE artifact_id='00-foreign-projection-fixture'",
+            &[],
+        )
+        .unwrap();
+    fixture
+        .db
+        .execute(
+            "DELETE FROM attempts WHERE attempt_id=$1",
+            &[&foreign_attempt],
+        )
+        .unwrap();
+    fixture
+        .db
+        .execute("DELETE FROM jobs WHERE job_id=$1", &[&foreign_job])
+        .unwrap();
+    assert_eq!(
+        foreign["isError"], true,
+        "foreign Attempt registration must not escape as verified Job evidence: {foreign}"
+    );
+    // A same-Job historical registration is not a foreign-owner
+    // contradiction. Preserve its actual origin without borrowing its tail.
+    // This is deliberately metadata-only history in the disposable fixture.
+    let selected_attempt = stdout["attemptId"].as_str().unwrap();
+    let historical_attempt = "attempt-projection-history-fixture";
+    fixture
+        .db
+        .execute(
+            "UPDATE attempts SET attempt_number=2 WHERE attempt_id=$1",
+            &[&selected_attempt],
+        )
+        .unwrap();
+    fixture.db.execute(
+        "INSERT INTO attempts(attempt_id,job_id,attempt_number,state,termination_intent,launch_token_digest,bundle_path,unit_name,created_at_ms,row_version,result_digest,finished_at_ms)
+         SELECT $2,job_id,1,state,termination_intent,launch_token_digest,bundle_path,$2,created_at_ms,row_version,result_digest,finished_at_ms FROM attempts WHERE attempt_id=$1",
+        &[&selected_attempt, &historical_attempt],
+    ).unwrap();
+    fixture.db.execute(
+        "INSERT INTO concurrency_reservations(reservation_id,attempt_id,global_limit,state,acquired_at_ms,state_observed_at_ms,released_at_ms,release_reason)
+         SELECT $2,$2,global_limit,state,acquired_at_ms,state_observed_at_ms,released_at_ms,release_reason FROM concurrency_reservations WHERE attempt_id=$1",
+        &[&selected_attempt,&historical_attempt],
+    ).unwrap();
+    fixture.db.execute(
+        "INSERT INTO artifacts(artifact_id,job_id,attempt_id,kind,relative_path,digest,media_type,byte_length,truncated,created_at_ms)
+         SELECT '00-historical-projection-fixture',job_id,$2,kind,relative_path,$3,media_type,1,truncated,created_at_ms FROM artifacts WHERE artifact_id=$1",
+        &[&stdout["artifactId"].as_str().unwrap(),&historical_attempt,&"sha256:0000000000000000000000000000000000000000000000000000000000000000"],
+    ).unwrap();
+    let history = call(
+        &endpoint,
+        "job.observe",
+        json!({"jobId":completed_job,"waitMs":0,"stdoutTailBytes":4,"stderrTailBytes":0}),
+    );
+    fixture
+        .db
+        .execute(
+            "DELETE FROM artifacts WHERE artifact_id='00-historical-projection-fixture'",
+            &[],
+        )
+        .unwrap();
+    fixture
+        .db
+        .execute(
+            "DELETE FROM concurrency_reservations WHERE attempt_id=$1",
+            &[&historical_attempt],
+        )
+        .unwrap();
+    fixture
+        .db
+        .execute(
+            "DELETE FROM attempts WHERE attempt_id=$1",
+            &[&historical_attempt],
+        )
+        .unwrap();
+    fixture
+        .db
+        .execute(
+            "UPDATE attempts SET attempt_number=1 WHERE attempt_id=$1",
+            &[&selected_attempt],
+        )
+        .unwrap();
+    assert_ne!(history["isError"], true, "{history}");
+    assert_eq!(history["structuredContent"]["attemptId"], selected_attempt);
+    assert_eq!(history["structuredContent"]["stdoutTail"], "roof");
+    let historical = history["structuredContent"]["artifacts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|v| v["artifactId"] == "00-historical-projection-fixture")
+        .unwrap();
+    assert_eq!(historical["attemptId"], historical_attempt);
     let read = call(
         &endpoint,
         "artifact.read",

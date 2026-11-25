@@ -3,9 +3,8 @@
 
 use super::{
     active_log_window, error, io, needs_recovery_observation, output_projection_relative_path, pg,
-    pg_delivery_disposition, pg_read_error, universal, verified_terminal_log_window,
-    JobObservation, JobObserveRequest, PgAdmissionStore, PgJobReadback, PgRuntime, RuntimeError,
-    RuntimeErrorCode, RuntimeResult,
+    pg_delivery_disposition, universal, verified_terminal_log_window, JobObservation,
+    JobObserveRequest, PgAdmissionStore, PgRuntime, RuntimeError, RuntimeErrorCode, RuntimeResult,
 };
 use serde_json::json;
 use std::path::Path;
@@ -16,12 +15,12 @@ impl PgRuntime {
         db: &mut PgAdmissionStore,
         request: &JobObserveRequest,
     ) -> RuntimeResult<JobObservation> {
-        let snapshot = match db
-            .observe_job_readonly(&request.job_id, &self.config.source_sha256)
+        let readback = match db
+            .observe_job_projection_readonly(&request.job_id, &self.config.source_sha256)
             .map_err(pg)?
         {
-            PgJobReadback::Observed(s) => s,
-            PgJobReadback::Inconclusive => {
+            Some(s) => s,
+            None => {
                 return Err(RuntimeError::new(
                     RuntimeErrorCode::ReconciliationRequired,
                     "committed PG Job lacks coherent exact lifecycle evidence",
@@ -31,25 +30,22 @@ impl PgRuntime {
                 .with_operation_id(&request.job_id))
             }
         };
+        let snapshot = readback.snapshot;
         let (a, p, operation) = self.readback_attempt(db, &snapshot)?;
         let terminal = snapshot.resolution.is_some();
-        let rows=db.client.query("SELECT artifact_id,kind,digest,byte_length,truncated,relative_path FROM artifacts WHERE job_id=$1 ORDER BY artifact_id", &[&request.job_id]).map_err(pg_read_error)?;
-        let artifacts=rows.iter().map(|r|json!({"artifactId":r.get::<_,String>(0),"attemptId":a.attempt_id,"kind":r.get::<_,String>(1),"digest":r.get::<_,String>(2),"retainedBytes":r.get::<_,i64>(3),"truncated":r.get::<_,bool>(4)})).collect::<Vec<_>>();
-        let exit: Option<i32> = db
-            .client
-            .query_one(
-                "SELECT exit_code FROM attempts WHERE attempt_id=$1",
-                &[&a.attempt_id],
-            )
-            .map_err(pg_read_error)?
-            .get(0);
+        let rows = readback.artifacts;
+        let artifacts = rows.iter().map(|row| {
+            let r = &row.registration;
+            json!({"artifactId":r.artifact_id,"attemptId":row.attempt_id,"kind":r.kind,"digest":r.digest,"retainedBytes":r.byte_length,"truncated":r.truncated})
+        }).collect::<Vec<_>>();
+        let exit = readback.exit_code;
         // Preserve the existing projection for historical terminal variants.
         // An OS-only LOST reconciliation is the new explicit exception:
         // it has a committed native-stop Artifact, not a Runner result.json.
         let result_available = terminal
-            && rows
-                .iter()
-                .any(|row| row.get::<_, String>(1) == "execution_result");
+            && rows.iter().any(|row| {
+                row.attempt_id == a.attempt_id && row.registration.kind == "execution_result"
+            });
         let delivery = pg_delivery_disposition(snapshot.resolution.as_deref(), result_available);
         let mut value = json!({"jobId":request.job_id,"operationDigest":operation,"status":snapshot.resolution.clone().unwrap_or(snapshot.attempt_state.clone()),"desiredState":snapshot.desired_state,"attemptId":a.attempt_id,"attemptState":snapshot.attempt_state,"terminationIntent":snapshot.termination_intent,"exitCode":exit,"executionTerminal":terminal,"executionDisposition":snapshot.resolution,"deliveryDisposition":delivery,"effectiveLimits":{"timeoutMs":p.timeout_ms,"stdoutLimitBytes":p.stdout_limit_bytes,"stderrLimitBytes":p.stderr_limit_bytes},"recoveryRequired":needs_recovery_observation(a.state, terminal),"semanticCompletionEvaluated":false,"resultAvailable":result_available,"artifactsAvailable":!artifacts.is_empty(),"artifacts":artifacts});
         for (kind, limit, offset) in [
@@ -59,17 +55,18 @@ impl PgRuntime {
             // Lost/orphaned or other no-Artifact terminal outcomes have no
             // committed stream bytes. Do not fail observation merely because
             // a log is absent, and never project unregistered terminal bytes.
-            if terminal && !rows.iter().any(|row| row.get::<_, String>(1) == kind) {
-                continue;
-            }
             let registered = if terminal {
-                rows.iter().find(|row| row.get::<_, String>(1) == kind)
+                rows.iter()
+                    .find(|row| row.attempt_id == a.attempt_id && row.registration.kind == kind)
+                    .map(|row| &row.registration)
             } else {
                 None
             };
-            let relative: Option<String> = registered.map(|row| row.get(5));
-            let relative_path =
-                output_projection_relative_path(kind, terminal, relative.as_deref())?;
+            if terminal && registered.is_none() {
+                continue;
+            }
+            let relative = registered.map(|row| row.relative_path.as_str());
+            let relative_path = output_projection_relative_path(kind, terminal, relative)?;
             let path = Path::new(&a.bundle_path).join(&relative_path);
             if path.exists() {
                 let (window, begin, end, available) = if terminal {
@@ -84,8 +81,8 @@ impl PgRuntime {
                     verified_terminal_log_window(
                         file,
                         self.config.executor.max_output_bytes,
-                        expected.get::<_, i64>(3),
-                        &expected.get::<_, String>(2),
+                        expected.byte_length,
+                        &expected.digest,
                         offset,
                         limit,
                     )?
