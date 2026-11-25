@@ -9,16 +9,18 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from native_process import verify_process
+
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
 GAME = EXAMPLES / "room-encounter"
-SCRIPT_FAILURES = ("SCRIPT ERROR:", "Parse Error:", "ERROR: Failed to load")
 
 
 def verify_receipt(exit_code: int, stdout: str, stderr: str, receipt: str) -> str:
     combined = stdout + "\n" + stderr
-    failure = receipt.removesuffix("_PASS") + "_FAIL" if receipt.endswith("_PASS") else None
-    if (exit_code != 0 or any(term in combined for term in SCRIPT_FAILURES)
-            or (failure is not None and failure in combined)):
+    token = receipt.split(" ", 1)[0]
+    failure = token.removesuffix("_PASS") + "_FAIL"
+    verify_process(exit_code, stdout, stderr)
+    if failure in combined:
         raise AssertionError(
             f"native Godot failed or silently emitted script error: exit={exit_code} "
             f"stdout={stdout[-3000:]} stderr={stderr[-3000:]}")
@@ -30,11 +32,24 @@ def verify_receipt(exit_code: int, stdout: str, stderr: str, receipt: str) -> st
         pattern = re.escape(receipt) + r" assertions=[1-9][0-9]* sequences=[1-9][0-9]*"
     elif receipt == "GAME_NATIVE_AUDIO_COMPOSITION_PASS":
         pattern = re.escape(receipt) + r" assertions=[1-9][0-9]* played=[1-9][0-9]*"
+    elif receipt == "GAME_NATIVE_VISUAL_COMPOSITION_PASS":
+        size = r"\([1-9][0-9]*\.0, [1-9][0-9]*\.0\)"
+        pattern = re.escape(receipt) + rf" original_size={size} replacement_size={size} substitutions=1"
+    elif receipt == "GAME_BEACON_RELAY_PASS":
+        pattern = re.escape(receipt) + (
+            r" assertions=[1-9][0-9]* keyboard_frames=[1-9][0-9]*"
+            r" delivery_cycles=4 endpoints=win,loss,retry upstream_physics=yes"
+        )
     elif receipt == "GAME_INTEGRATED_ROOM_DIALOGUE_PASS":
         pattern = re.escape(receipt) + r" checks=[1-9][0-9]*"
-    else:
+    elif receipt in {
+        "GAME_ROOM_PROCESS_RESTART_PASS checks=8 phase=save",
+        "GAME_ROOM_PROCESS_RESTART_PASS checks=9 phase=load",
+    }:
         pattern = re.escape(receipt)
-    claimed = [line for line in stdout.splitlines() if line.startswith(receipt)]
+    else:
+        raise ValueError(f"unknown native receipt contract: {receipt}")
+    claimed = [line for line in stdout.splitlines() if line.startswith(token)]
     if len(claimed) != 1 or re.fullmatch(pattern, claimed[0]) is None:
         raise AssertionError(
             f"expected one format-qualified native success receipt {receipt}: "
@@ -51,9 +66,23 @@ def engine(script: str, receipt: str, extra=(), *, project=GAME):
     print(native_receipt)
 
 
+def import_project(project: Path):
+    imported = subprocess.run(
+        ["godot", "--headless", "--editor", "--import", "--path", str(project)],
+        capture_output=True, text=True, timeout=90)
+    verify_process(imported.returncode, imported.stdout, imported.stderr)
+
+
+def smoke_project(project: Path):
+    quiet = subprocess.run(
+        ["godot", "--headless", "--path", str(project), "--quit-after", "2"],
+        capture_output=True, text=True, timeout=35)
+    verify_process(quiet.returncode, quiet.stdout, quiet.stderr)
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--suite", choices=("encounter", "dialogue", "composition", "selftest"),
+    parser.add_argument("--suite", choices=("encounter", "dialogue", "composition", "visual", "beacon", "agent", "selftest"),
                         required=True)
     suite = parser.parse_args().suite
     if suite == "selftest":
@@ -63,7 +92,13 @@ def main():
         load = "GAME_ROOM_PROCESS_RESTART_PASS checks=9 phase=load"
         composition = "GAME_NATIVE_COMPOSITION_PASS"
         audio = "GAME_NATIVE_AUDIO_COMPOSITION_PASS"
+        visual = "GAME_NATIVE_VISUAL_COMPOSITION_PASS"
+        beacon = "GAME_BEACON_RELAY_PASS"
+        visual_ok = visual + " original_size=(16.0, 16.0) replacement_size=(32.0, 32.0) substitutions=1"
+        beacon_ok = beacon + " assertions=48 keyboard_frames=20 delivery_cycles=4 endpoints=win,loss,retry upstream_physics=yes"
         positive = [
+            (visual, visual_ok),
+            (beacon, beacon_ok),
             (composition, composition + " assertions=1576 sequences=64"),
             (audio, audio + " assertions=26 played=5"),
             (room, room + " assertions=23 traces=486"),
@@ -75,6 +110,16 @@ def main():
         for expected, out in positive:
             assert verify_receipt(0, out, "", expected) == out.splitlines()[-1]
         negative = [
+            (visual, 0, "native exited without receipt", ""),
+            (visual, 0, visual_ok.replace("substitutions=1", "substitutions=0"), ""),
+            (visual, 0, visual_ok, "ERROR: invalid texture"),
+            (visual, 0, visual_ok + "\n" + visual_ok, ""),
+            (beacon, 0, beacon + " assertions=garbage", ""),
+            (beacon, 0, beacon_ok.replace("delivery_cycles=4", "delivery_cycles=3"), ""),
+            (beacon, 0, beacon_ok.replace("upstream_physics=yes", "upstream_physics=no"), ""),
+            (beacon, 0, beacon_ok, "ObjectDB instances were leaked"),
+            (beacon, 0, beacon_ok, "ERROR: missing resource"),
+            (beacon, 0, beacon_ok + "\n" + beacon_ok, ""),
             (composition, 0, "Godot exited without running assertions", ""),
             (composition, 0, composition + " assertions=1576 sequences=64", "SCRIPT ERROR: invalid fixture"),
             (composition, 0, composition + " assertions=1576 sequences=0", ""),
@@ -82,6 +127,11 @@ def main():
             (audio, 0, audio + " assertions=26 played=0", ""),
             (audio, 0, audio + " assertions=26 played=5\n" + audio + " assertions=26 played=5", ""),
             (room, 0, room + " assertions=23 traces=486", "SCRIPT ERROR: missing typed node"),
+            (room, 0, room + " assertions=23 traces=486", "ERROR: native diagnostic"),
+            (save, 0, save, "ERROR: checkpoint native diagnostic"),
+            (dialogue, 0, dialogue + " checks=20", "ERROR: dialogue native diagnostic"),
+            (composition, 0, composition + " assertions=1576 sequences=64", "ERROR: scene native diagnostic"),
+            (audio, 0, audio + " assertions=26 played=5", "ERROR: audio native diagnostic"),
             (room, 0, room + " assertions=23 traces=486", "Parse Error: invalid script"),
             (room, 0, "unrelated success", ""),
             (room, 1, room + " assertions=23 traces=486", ""),
@@ -95,6 +145,9 @@ def main():
             (room, 0, room + " assertions=23 traces=0", ""),
             (dialogue, 0, dialogue + " checks=bogus", ""),
             (save, 0, save + " trailer", ""),
+            (save, 0, save + "\n" + load, ""),
+            (save, 0, save, "GAME_ROOM_PROCESS_RESTART_FAIL checks=8 phase=save"),
+            (load, 0, load + "\n" + save, ""),
         ]
         for expected, rc, out, err in negative:
             try:
@@ -102,21 +155,50 @@ def main():
             except AssertionError:
                 continue
             raise AssertionError(f"native error-injection control failed: {out!r}")
-        print(f"GAME_NATIVE_RECEIPT_FAIL_CLOSED_PASS cases={len(positive) + len(negative)}")
+        for diagnostic in ("SCRIPT ERROR: import failed", "Parser Error: import failed",
+                           "ERROR: import failed", "ObjectDB instances were leaked"):
+            try:
+                verify_process(0, "", diagnostic)
+            except AssertionError:
+                continue
+            raise AssertionError(f"import diagnostic accepted: {diagnostic}")
+        verify_process(0, "", "WARNING: Started the engine as root")
+        verify_process(2, "", "", allowed_exit_codes=(0, 2))
+        for rc, err in ((3, ""), (2, "ERROR: unexpected engine fault"), (0, "ERROR: failed native episode")):
+            try:
+                verify_process(rc, "", err, allowed_exit_codes=(0, 2))
+            except AssertionError:
+                continue
+            raise AssertionError(f"unqualified episode process admitted: {rc}, {err}")
+        print(f"GAME_NATIVE_RECEIPT_FAIL_CLOSED_PASS cases={len(positive) + len(negative) + 9}")
         return
     if suite == "composition":
         project = EXAMPLES / "native-composition"
         engine("assert.gd", "GAME_NATIVE_COMPOSITION_PASS", project=project)
         engine("assert_audio.gd", "GAME_NATIVE_AUDIO_COMPOSITION_PASS", project=project)
         return
-    imported = subprocess.run(
-        ["godot", "--headless", "--editor", "--import", "--path", str(GAME)],
-        capture_output=True, text=True, timeout=90)
-    if imported.returncode or any(term in imported.stderr + imported.stdout for term in SCRIPT_FAILURES):
-        raise AssertionError(f"Godot import failed: {imported.stderr[-3000:]}")
+    if suite == "visual":
+        project = EXAMPLES / "kenney-visual-composition"
+        import_project(project)
+        engine("acceptance.gd", "GAME_NATIVE_VISUAL_COMPOSITION_PASS", project=project)
+        smoke_project(project)
+        return
+    if suite == "beacon":
+        project = EXAMPLES / "beacon-relay"
+        import_project(project)
+        engine("acceptance.gd", "GAME_BEACON_RELAY_PASS", project=project)
+        return
+    if suite == "agent":
+        from agent_episode_acceptance import main as accept_agent_episodes
+        import_project(GAME)
+        accept_agent_episodes()
+        return
+    import_project(GAME)
     if suite == "encounter":
-        engine("assert.gd", "GAME_ROOM_ENCOUNTER_PASS")
         with tempfile.TemporaryDirectory(prefix="ordivon-game-checkpoint-") as tmp:
+            integrated_slot = str(Path(tmp) / "integrated.cfg")
+            engine("assert.gd", "GAME_ROOM_ENCOUNTER_PASS",
+                   ("--", "--slot", integrated_slot))
             slot = str(Path(tmp) / "run.cfg")
             for phase, number in (("save", 8), ("load", 9)):
                 engine("assert_process_restart.gd",
@@ -124,11 +206,7 @@ def main():
                        ("--", "--phase", phase, "--slot", slot))
     else:
         engine("narrative/acceptance.gd", "GAME_INTEGRATED_ROOM_DIALOGUE_PASS")
-        quiet = subprocess.run(
-            ["godot", "--headless", "--path", str(GAME), "--quit-after", "2"],
-            capture_output=True, text=True, timeout=35)
-        if quiet.returncode or any(term in quiet.stderr + quiet.stdout for term in SCRIPT_FAILURES):
-            raise AssertionError(f"native launch failed: {quiet.stderr[-3000:]}")
+        smoke_project(GAME)
 
 
 if __name__ == "__main__":
