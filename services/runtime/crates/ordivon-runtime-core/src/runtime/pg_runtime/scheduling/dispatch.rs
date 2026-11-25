@@ -94,7 +94,8 @@ impl PgRuntime {
             let Some(index) = next_candidate(&ranked, &usage, &node) else {
                 break;
             };
-            let candidate = ranked.remove(index);
+            // FIFO is an explicit immutable order key, not vector position.
+            let candidate = ranked.swap_remove(index);
             // Fast, side-effect-free rejection for known pressure, capacity
             // and Workspace conflicts. The PG transaction remains the only
             // authority that can actually grant a new Allocation.
@@ -157,8 +158,8 @@ impl PgRuntime {
                 let active: bool = db
                     .client
                     .query_one(
-                        "SELECT EXISTS(SELECT 1 FROM job_allocations x JOIN attempts a ON a.attempt_id=x.attempt_id WHERE a.job_id=$1 AND x.state='active')",
-                        &[&job],
+                        super::CONFIRMED_CURRENT_ALLOCATION_SQL,
+                        &[&job, &attempt_id],
                     )
                     .map_err(io)?
                     .get(0);

@@ -40,11 +40,14 @@ impl PgRuntime {
         tx.query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])
             .map_err(io)?;
         self.require_qualified_writer_tx(&mut tx)?;
-        let row=tx.query_one("SELECT a.state,j.desired_state,j.resolution FROM attempts a JOIN jobs j ON j.job_id=a.job_id WHERE a.attempt_id=$1 FOR UPDATE OF a,j",&[&a.attempt_id]).map_err(io)?;
-        if row.get::<_, String>(0) != "accepted"
-            || row.get::<_, String>(1) != "run"
-            || row.get::<_, Option<String>>(2).is_some()
-        {
+        let claimable: bool = tx
+            .query_one(
+                super::LOCKED_CLAIMABLE_ATTEMPT_SQL,
+                &[&a.attempt_id, &a.job_id],
+            )
+            .map_err(io)?
+            .get(0);
+        if !claimable {
             return Ok(false);
         }
         if tx

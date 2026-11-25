@@ -416,3 +416,75 @@ fn native_pg_scheduling_uses_current_attempt_not_highest_attempt_number() {
         .unwrap();
     assert!(!read_issue(&mut db));
 }
+
+#[test]
+#[ignore = "requires explicit disposable ORDIVON_PG_TEST_DSN"]
+fn native_pg_grant_and_confirmation_require_exact_current_attempt() {
+    let dsn = std::env::var("ORDIVON_PG_TEST_DSN").expect("explicit disposable PG DSN required");
+    let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+    db.batch_execute(
+        "CREATE TEMP TABLE jobs(job_id text PRIMARY KEY,current_attempt_id text,desired_state text NOT NULL,resolution text);
+         CREATE TEMP TABLE attempts(attempt_id text PRIMARY KEY,job_id text NOT NULL,state text NOT NULL);
+         CREATE TEMP TABLE job_allocations(attempt_id text PRIMARY KEY,state text NOT NULL);
+         INSERT INTO jobs VALUES ('job-a','a-current','run',NULL),('job-b','b-current','run',NULL);
+         INSERT INTO attempts VALUES ('a-current','job-a','accepted'),('a-history','job-a','accepted'),('b-current','job-b','accepted');
+         INSERT INTO job_allocations VALUES ('a-history','active'),('b-current','active');",
+    ).unwrap();
+    let claim = |db: &mut postgres::Client, job: &str, attempt: &str| -> Option<bool> {
+        db.query_opt(LOCKED_CLAIMABLE_ATTEMPT_SQL, &[&attempt, &job])
+            .unwrap()
+            .map(|row| row.get(0))
+    };
+    let confirmed = |db: &mut postgres::Client, job: &str, attempt: &str| -> bool {
+        db.query_one(CONFIRMED_CURRENT_ALLOCATION_SQL, &[&job, &attempt])
+            .unwrap()
+            .get(0)
+    };
+    assert_eq!(claim(&mut db, "job-a", "a-current"), Some(true));
+    assert_eq!(claim(&mut db, "job-a", "a-history"), Some(false));
+    assert_eq!(claim(&mut db, "job-a", "b-current"), None);
+    assert_eq!(claim(&mut db, "job-a", "missing"), None);
+    assert!(!confirmed(&mut db, "job-a", "a-current"));
+    assert!(!confirmed(&mut db, "job-a", "a-history"));
+    assert!(!confirmed(&mut db, "job-a", "b-current"));
+    assert!(confirmed(&mut db, "job-b", "b-current"));
+    db.batch_execute("INSERT INTO job_allocations VALUES ('a-current','active');")
+        .unwrap();
+    assert!(confirmed(&mut db, "job-a", "a-current"));
+    db.batch_execute("UPDATE jobs SET desired_state='cancelled' WHERE job_id='job-a';")
+        .unwrap();
+    assert_eq!(claim(&mut db, "job-a", "a-current"), Some(false));
+    // Active allocation stays physically held until terminal settlement.
+    assert!(confirmed(&mut db, "job-a", "a-current"));
+    db.batch_execute("UPDATE jobs SET desired_state='run',resolution='failed',current_attempt_id=NULL WHERE job_id='job-a';").unwrap();
+    assert_eq!(claim(&mut db, "job-a", "a-current"), Some(false));
+    assert!(!confirmed(&mut db, "job-a", "a-current"));
+    db.batch_execute("UPDATE jobs SET resolution=NULL,current_attempt_id='a-current' WHERE job_id='job-a'; UPDATE job_allocations SET state='released' WHERE attempt_id='a-current';").unwrap();
+    assert!(!confirmed(&mut db, "job-a", "a-current"));
+    db.batch_execute("UPDATE attempts SET state='running' WHERE attempt_id='a-current';")
+        .unwrap();
+    assert_eq!(claim(&mut db, "job-a", "a-current"), Some(false));
+}
+
+#[test]
+fn unordered_candidate_removal_preserves_priority_live_share_and_fifo() {
+    let build = || {
+        (0..256)
+            .map(|order| candidate(&format!("owner-{}", order % 7), (order % 5) as i16, order))
+            .collect::<Vec<_>>()
+    };
+    let mut reference = build();
+    let mut unordered = build();
+    let mut usage = BTreeMap::new();
+    let node = realistic_node();
+    while let Some(index) = next_candidate(&reference, &usage, &node) {
+        let expected = reference.remove(index);
+        let selected = unordered.swap_remove(next_candidate(&unordered, &usage, &node).unwrap());
+        assert_eq!(selected.order, expected.order);
+        let v: &mut (u64, u64, u64) = usage.entry(selected.spec.owner).or_default();
+        v.0 += 100;
+        v.1 += 128 * 1024 * 1024;
+        v.2 += 16;
+    }
+    assert!(unordered.is_empty());
+}
