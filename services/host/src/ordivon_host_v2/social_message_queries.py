@@ -48,7 +48,10 @@ class SocialMessageReadQueries:
     ) -> dict[str, Any]:
         if direction not in {"outgoing", "incoming", "both"}:
             raise ValueError("direction must be outgoing, incoming, or both")
-        if type(after_change_sequence) is not int or not 0 <= after_change_sequence <= HOST_WIRE_INT_MAX:
+        if (
+            type(after_change_sequence) is not int
+            or not 0 <= after_change_sequence <= HOST_WIRE_INT_MAX
+        ):
             raise ValueError("after_change_sequence must be a non-negative safe integer")
         if type(limit) is not int or not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
@@ -87,22 +90,21 @@ class SocialMessageReadQueries:
                 for row in rows[:limit]
             ]
 
-            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+            def envelope(last: dict[str, Any]) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-message-relation-list",
                     "messageRef": message_ref,
                     "direction": direction,
-                    "relations": page,
                     "hasMore": True,
-                    "nextAfterChangeSequence": after_change_sequence
-                    if not page
-                    else page[-1]["changeSequence"],
+                    "nextAfterChangeSequence": last["changeSequence"],
                     "rankingApplied": False,
                     "truthBoundary": "explicit collaboration relations only; opaque targets are references, not existence or authority proof",
                 }
 
-            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
+            page, byte_more = bounded_prefix(
+                candidates, max_bytes=max_bytes, collection_key="relations", envelope=envelope
+            )
             has_more = sql_more or byte_more
             next_sequence = after_change_sequence if not page else int(page[-1]["changeSequence"])
             return {
@@ -244,14 +246,13 @@ class SocialMessageReadQueries:
                 for row in rows[:limit]
             ]
 
-            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+            def envelope(last: dict[str, Any]) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-message-search",
                     "query": query,
-                    "messages": page,
                     "hasMore": True,
-                    "nextBeforeSequence": None if not page else int(page[-1]["sequence"]),
+                    "nextBeforeSequence": int(last["sequence"]),
                     "rankingApplied": False,
                     "ordering": "sequence_desc",
                     "truthBoundary": search_boundary
@@ -261,6 +262,7 @@ class SocialMessageReadQueries:
             page, byte_more = bounded_prefix(
                 candidates,
                 max_bytes=max_bytes,
+                collection_key="messages",
                 envelope=envelope,
                 minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES,
             )

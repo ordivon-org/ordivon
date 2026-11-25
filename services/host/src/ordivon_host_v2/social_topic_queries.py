@@ -73,19 +73,20 @@ class SocialTopicReadQueries:
                 for row in rows[:limit]
             ]
 
-            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+            def envelope(last: dict[str, Any]) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-topic-list",
                     "spaceRef": space_ref,
-                    "topics": page,
                     "hasMore": True,
-                    "nextAfterTopicRef": None if not page else page[-1]["topicRef"],
+                    "nextAfterTopicRef": last["topicRef"],
                     "rankingApplied": False,
                     "truthBoundary": "conversation-axis inventory only; not Work lifecycle or priority",
                 }
 
-            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
+            page, byte_more = bounded_prefix(
+                candidates, max_bytes=max_bytes, collection_key="topics", envelope=envelope
+            )
             has_more = sql_more or byte_more
             return {
                 "schemaVersion": 1,
@@ -151,20 +152,20 @@ class SocialTopicReadQueries:
                 "state": topic["state"],
             }
 
-            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+            def envelope(last: dict[str, Any]) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-topic-resume",
                     "topic": topic_wire,
-                    "messages": page,
                     "hasMore": True,
-                    "nextAfterSequence": after_sequence if not page else int(page[-1]["sequence"]),
+                    "nextAfterSequence": int(last["sequence"]),
                     "truthBoundary": "bounded topic conversation only; message claims require owner-native verification",
                 }
 
             page, byte_more = bounded_prefix(
                 candidates,
                 max_bytes=max_bytes,
+                collection_key="messages",
                 envelope=envelope,
                 minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES,
             )
