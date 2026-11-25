@@ -1,4 +1,5 @@
 mod logic;
+mod matching;
 use logic::{
     DescriptionInput, parse_execution_ref, system_describe, valid_status_envelope,
     valid_target_inventory,
@@ -81,6 +82,11 @@ impl ServerHandler for Probe {
 fn eval(v: Value) -> Value {
     let input = &v["input"];
     match v["operation"].as_str() {
+        Some("fold") => json!(input.as_str().map(matching::fold)),
+        Some("search") => match serde_json::from_value::<matching::SearchInput>(input.clone()) {
+            Ok(input) => json!(matching::search(input)),
+            Err(_) => json!({"error": "invalid search fixture"}),
+        },
         Some("status") => json!(valid_status_envelope(input)),
         Some("inventory") => json!(valid_target_inventory(input)),
         Some("reference") => json!(input.as_str().and_then(parse_execution_ref)),
@@ -99,6 +105,7 @@ fn eval(v: Value) -> Value {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args().skip(1);
     match args.next().as_deref() {
+        Some("casefold-digest") => println!("{}", matching::scalar_fold_digest()),
         Some("eval") => {
             for line in io::stdin().lock().lines() {
                 let v: Value = serde_json::from_str(&line?)?;
@@ -128,7 +135,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", listener.local_addr()?);
             axum::serve(listener, app).await?;
         }
-        _ => return Err("expected eval or serve <fixture>".into()),
+        _ => return Err("expected eval, casefold-digest or serve <fixture>".into()),
     }
     Ok(())
 }

@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import itertools
 import json
 import subprocess
 import sys
 import tempfile
-from dataclasses import asdict
+import unicodedata
+from dataclasses import asdict, replace
 from pathlib import Path
 
 from mcp import Client, MCPError
@@ -53,6 +55,131 @@ class InertCaller:
 
     async def call_tool(self, *args, **kwargs):
         raise AssertionError("metadata probe must not contact any Owner")
+
+
+class StatusCaller(InertCaller):
+    """Deterministic read-only fixture; never a live Owner or grant."""
+
+    async def call_tool(self, owner, tool, args):
+        if tool == "host.status":
+            return {"schemaVersion": 3, "kind": "ordivon.host-status"}
+        assert tool == "runtime.describe"
+        linux = owner == "runtime.linux"
+        return {
+            "schemaVersion": 1,
+            "node": {
+                "nodeId": "linux-pg" if linux else "windows-pg",
+                "platform": "linux" if linux else "windows",
+                "native": True,
+            },
+            "targets": [
+                {
+                    "target": "local_linux" if linux else "windows_native",
+                    "configured": True,
+                    "available": linux,
+                    "executionProfiles": ["trusted_local"],
+                    "windowsAuthorities": ["limited"],
+                }
+            ],
+            "structuredReleaseConfigured": False,
+        }
+
+
+def qualify_unicode():
+    h = hashlib.sha256()
+    count = 0
+    for scalar in range(0x110000):
+        if 0xD800 <= scalar <= 0xDFFF:
+            continue
+        char = chr(scalar)
+        h.update(char.encode() + bytes(1) + char.casefold().encode() + bytes(1))
+        count += 1
+    expected = h.hexdigest()
+    observed = subprocess.check_output([BINARY, "casefold-digest"], text=True).strip()
+    assert observed == expected, (unicodedata.unidata_version, expected, observed)
+    print("UNICODE_SCALAR_CASEFOLD_EQUAL", count, unicodedata.unidata_version, expected, flush=True)
+
+
+async def add_search_cases(add):
+    routes = default_routes()
+    template = routes["research.citation.metadata"]
+    for name, description, tags in (
+        ("test.Straße", "中文检索 ς", ("CAFÉ", "İstanbul")),
+        ("test.K", "Unicode alpha beta", ("a-b", "ß")),
+        ("test.Σ", "Greek σ ς", ("Ångström", "é")),
+        ("test.꟝", "unassigned Unicode17", ("𝾕",)),
+    ):
+        routes[name] = replace(template, capability=name, description=description, tags=tags)
+    svc = GatewayService(
+        StatusCaller({"runtime.linux": True, "runtime.windows": True, "host": True}, False),
+        routes,
+    )
+    full = await svc.capability_describe()
+    rows = [
+        {
+            "metadata": {
+                field: getattr(item, field)
+                for field in ("capability", "category", "owner_id", "description", "tags")
+            },
+            "available": item.available,
+            "observation_error": item.observation_error,
+        }
+        for item in full.capabilities
+    ]
+    queries = (
+        "execution",
+        "runtime",
+        "host",
+        "artifact",
+        "research",
+        "search",
+        "execution.linux",
+        "read",
+        "中文",
+        "检索",
+        "strasse",
+        "TEST.STRASSE",
+        "σ",
+        "Σ",
+        "k",
+        "café",
+        "i",
+        "i̇stanbul",
+        "ß",
+        "a-b",
+        "beta alpha",
+        "!!!",
+        "unfindable",
+        "é",
+        "é",
+        "ÅNGSTRÖM",
+        "꟝",
+        "ɷ",
+        "𝾕",
+    )
+    for query, category, owner_id, limit, include in itertools.product(
+        queries,
+        (None, "execution", "research"),
+        (None, "runtime.linux", "research.composition"),
+        (1, 50),
+        (False, True),
+    ):
+        kwargs = dict(
+            query=query,
+            category=category,
+            owner_id=owner_id,
+            limit=limit,
+            include_unavailable=include,
+        )
+        result = await svc.capability_search(**kwargs)
+        expected = {
+            "total_matches": result.total_matches,
+            "matches": [
+                {"capability": m.capability.capability, "match_kind": m.match_kind}
+                for m in result.matches
+            ],
+        }
+        add("search", dict(**kwargs, rows=rows), expected)
 
 
 def tool_contract(tool):
@@ -145,6 +272,8 @@ async def main():
     else:
         raise AssertionError("Python accepted invalid route identity")
 
+    qualify_unicode()
+    await add_search_cases(add)
     data = "".join(json.dumps(case, ensure_ascii=False) + "\n" for case, _ in cases)
     proc = subprocess.run(
         [BINARY, "eval"], input=data, encoding="utf-8", capture_output=True, check=True
@@ -155,7 +284,7 @@ async def main():
         assert observed == expected, (index, case["operation"], expected, observed)
     counts = {
         op: sum(case["operation"] == op for case, _ in cases)
-        for op in ("status", "inventory", "reference", "describe")
+        for op in ("status", "inventory", "reference", "describe", "search")
     }
     print("PURE_DIFFERENTIAL_PASS", len(cases), counts, flush=True)
 
