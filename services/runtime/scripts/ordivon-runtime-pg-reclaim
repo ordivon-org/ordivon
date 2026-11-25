@@ -4,7 +4,7 @@
 Use the already deployed Runtime workspace.get/workspace.close contract. Never
 delete physical Workspace files directly or infer domain acceptance from Job exit.
 
-No-Job and definitively failed/cancelled/timed-out carriers require an exact
+All automatic close candidates require an exact
 operator-owned retention-policy rule on workspaceId with
 "operatorConsumerReleased": true. That is an explicit owner disposition,
 not inferred from elapsed time, a clean Git worktree or a finished PG Job.
@@ -118,10 +118,9 @@ def _workspace_retention(
 def _operator_attests_consumer_release(
     policy: dict | None, workspace_id: str
 ) -> bool:
-    # Native Runtime currently fences PG Jobs, not an arbitrary paused
-    # Harness Run that has never issued a Job. Only a specifically authorized
-    # and revocable operator/owner disposition can extend automatic candidate
-    # discovery to no-Job or terminal non-success legacy Workspaces.
+    # The native Job/Claim fences do not establish every external consumer's
+    # release. A successful tool call is not an owner disposition either.
+    # Require the existing exact, revocable operator rule for every outcome.
     return policy is not None and any(
         rule.get("workspaceId") == workspace_id
         and rule.get("operatorConsumerReleased") is True
@@ -471,12 +470,9 @@ def run(args: argparse.Namespace) -> dict:
         )
         if ignored.returncode or ignored.stdout:
             skip("ignored_files_or_git_error");continue
-        if resolution != "succeeded" and not _operator_attests_consumer_release(
-            policy, path.name
-        ):
-            # Even clean, fully integrated source can belong to an Agent paused
-            # before its first Job or after a failed execution. Age is not
-            # evidence of the owner's relinquishment.
+        if not _operator_attests_consumer_release(policy, path.name):
+            # Even a successful, integrated Job can belong to a paused Agent.
+            # Neither elapsed time nor Job resolution proves relinquishment.
             if len(results["needsOwnerDisposition"]) < args.limit:
                 results["needsOwnerDisposition"].append(path.name)
             skip("needs_owner_disposition");continue
@@ -527,9 +523,7 @@ def run(args: argparse.Namespace) -> dict:
             if (current_age is None or current_age > retention_ms
                     or (currently_unintegrated and not current_unintegrated_allowed)):
                 skip("retention_policy_changed");continue
-            if resolution != "succeeded" and not _operator_attests_consumer_release(
-                current_policy, path.name
-            ):
+            if not _operator_attests_consumer_release(current_policy, path.name):
                 skip("owner_disposition_revoked");continue
             current_git_status = _git(path,"status","--porcelain=v1","--untracked-files=normal")
             if current_git_status.returncode or current_git_status.stdout.strip():
@@ -560,9 +554,8 @@ def run(args: argparse.Namespace) -> dict:
             closed = client.call_tool(
                 "workspace.close",
                 {"schemaVersion":1,"workspaceId":path.name,"force":False,
-                 # A quiet successful Job is NOT evidence of a semantic
-                 # consumer release. After the >=4h continuation grace the
-                 # Runtime can close without asserting consumerReleased=true.
+                 # Keep the native latest-Job activity fence even when the
+                 # operator has explicitly released this sweep candidate.
                  "consumerReleased":False,
                  "expectedSourceStateDigest":digest},
             )

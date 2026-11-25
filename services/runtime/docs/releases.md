@@ -192,12 +192,15 @@ Native PG Runtime Workspace reclaim now consumes the existing operator-owned
 retention file /etc/ordivon/workspace-retention.json via the systemd unit's
 --policy-file argument. The packaged example is not an automatic production
 default. Missing or invalid explicitly selected policy fails closed. Without a
-policy file, legacy merged-HEAD-only behavior remains. Pinned classes cannot
+policy file, automatic close has no explicit release and retains candidates for disposition. Pinned classes cannot
 be automatically closed. This PG-native adapter consumes only class/rule,
 retention-age and clean-unintegrated opt-in semantics; it does not interpret
 the separate SQLite-era dirty/maximum-lifetime deletion options. Policy
 retention hours cannot shorten CLI minimum
-age; dirty trees and unresolved/non-successful Jobs are never candidates.
+age; dirty trees and unresolved Jobs are never candidates. Every automatic
+close, including a successful Job, requires the existing exact workspaceId
+operatorConsumerReleased=true rule, rechecked before close. A known failed
+or no-Job carrier also requires integrated source.
 
 For a clean, idle, successfully executed but unintegrated Workspace commit,
 retirement requires operator policy
@@ -206,8 +209,8 @@ Git namespace refs/ordivon/retention preserves the exact source commit before
 the native Workspace close. Native Runtime remains the sole close authority
 and rechecks PG active Jobs, dependents, source digest, installed consumers,
 and worktree state. The adapter passes consumerReleased=false instead of
-inventing evidence of a semantic consumer release: native Runtime owns the
-age-based continuation boundary and retains any rejected close. The PG
+bypassing the native latest-activity grace. A release rule is an operator
+assertion, not independent domain acceptance or proof against later reuse. The PG
 native close now also checks the **latest PG Job activity under the existing
 admission advisory lock**: a resolved, recently completed Job with zero
 active leases is not an idle Workspace merely because the collector started
