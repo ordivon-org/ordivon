@@ -7,7 +7,7 @@ use super::{
     RuntimeErrorCode, RuntimeResult, TerminalCommit,
 };
 use crate::universal::{
-    open_directory_nofollow, open_regular_file_beneath, sha256_bytes, write_bytes_atomic,
+    open_directory_nofollow, open_regular_file_beneath, sha256_bytes, write_bytes_atomic_if_absent,
     CapturedOutput, RunnerRequest, RunnerResourceReceipt, RunnerResult, RunnerTerminalStatus,
     RESOURCE_RECEIPT_FILE, RESOURCE_RECEIPT_PROVIDER_LINUX_CGROUP_V2,
     RESOURCE_RECEIPT_SCHEMA_VERSION, RESOURCE_RECEIPT_SCOPE_ATTEMPT_CGROUP,
@@ -511,7 +511,7 @@ fn validate_captured_output(
             ));
         }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            write_bytes_atomic(&sealed_path, &bytes).map_err(map_universal_error)?;
+            write_bytes_atomic_if_absent(&sealed_path, &bytes).map_err(map_universal_error)?;
         }
         Err(error) => return Err(io_error("inspect sealed output", error)),
     }
@@ -597,12 +597,25 @@ fn validate_sealed_output(bundle: &Path, name: &str, expected: &[u8]) -> Runtime
     if !single_regular_file(&file)? {
         return Err(conflict());
     }
-    let mut actual = Vec::new();
-    file.by_ref()
-        .take((expected.len() as u64).saturating_add(1))
-        .read_to_end(&mut actual)
+    // The Runner bytes are already retained in memory. Compare the seal
+    // with a fixed-size buffer rather than allocating a second full copy.
+    let mut buffer = [0_u8; 64 * 1024];
+    for chunk in expected.chunks(buffer.len()) {
+        let observed = &mut buffer[..chunk.len()];
+        if let Err(error) = file.read_exact(observed) {
+            if error.kind() == std::io::ErrorKind::UnexpectedEof {
+                return Err(conflict());
+            }
+            return Err(io_error("read sealed output", error));
+        }
+        if observed != chunk {
+            return Err(conflict());
+        }
+    }
+    let extra = file
+        .read(&mut buffer[..1])
         .map_err(|error| io_error("read sealed output", error))?;
-    if actual != expected || !single_regular_file(&file)? {
+    if extra != 0 || !single_regular_file(&file)? {
         return Err(conflict());
     }
     Ok(())
@@ -730,7 +743,7 @@ mod source_observation_semantic_tests {
 
 #[cfg(test)]
 mod windows_native_result_to_pg_terminal_contract_tests {
-    use super::prepare_runner_terminal_from_bundle;
+    use super::{prepare_runner_terminal_from_bundle, validate_sealed_output};
     use crate::runtime::{AttemptRecord, AttemptState, AttemptTerminationIntent};
     use crate::universal::sha256_bytes;
     use serde_json::{json, Value};
@@ -1034,6 +1047,35 @@ mod windows_native_result_to_pg_terminal_contract_tests {
             crate::runtime::RuntimeErrorCode::ArtifactIdentityConflict
         );
         assert_eq!(fs::read(&sealed).unwrap(), stdout);
+    }
+
+    #[test]
+    fn sealed_output_streaming_comparison_checks_exact_bytes_and_eof() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("sealed");
+        let expected = vec![42; 2 * 64 * 1024 + 3];
+        fs::write(&path, &expected).unwrap();
+        validate_sealed_output(dir.path(), "sealed", &expected).unwrap();
+        for candidate in [&expected[..expected.len() - 1], &expected[1..]] {
+            fs::write(&path, candidate).unwrap();
+            assert_eq!(
+                validate_sealed_output(dir.path(), "sealed", &expected)
+                    .unwrap_err()
+                    .code,
+                crate::runtime::RuntimeErrorCode::ArtifactIdentityConflict
+            );
+        }
+        let mut changed = expected.clone();
+        changed[64 * 1024] ^= 1;
+        fs::write(&path, &changed).unwrap();
+        assert!(validate_sealed_output(dir.path(), "sealed", &expected).is_err());
+        fs::write(&path, &expected).unwrap();
+        assert!(
+            validate_sealed_output(dir.path(), "sealed", &expected[..expected.len() - 1]).is_err()
+        );
+        fs::write(&path, []).unwrap();
+        validate_sealed_output(dir.path(), "sealed", &[]).unwrap();
+        assert!(validate_sealed_output(dir.path(), "sealed", &expected).is_err());
     }
 
     #[test]
