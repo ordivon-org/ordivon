@@ -12,11 +12,14 @@ from pathlib import Path
 
 from ordivon_security_v2.attestations import (
     reference_statement,
-    sha256_file,
     subject_descriptor,
     vsa_statement,
 )
-from ordivon_security_v2.evidence import verified_evidence_path
+from ordivon_security_v2.evidence import (
+    parse_unique_json,
+    read_json_evidence,
+    verified_evidence_path,
+)
 
 
 def _json_bytes(value: object) -> bytes:
@@ -89,34 +92,46 @@ def publish_attestations(output_dir: Path, references: dict[str, bytes], vsa: by
 
 
 
-def verify_policy_decision(gate: dict[str, object], decision: dict[str, object], policy: Path) -> None:
-    """The signed-claim precursor must match a fresh native OPA evaluation."""
+def verify_policy_decision(gate: dict[str, object], decision: dict[str, object], policy: Path) -> str:
+    """Evaluate one captured policy file and return the digest of that same input.
+
+    This single-file profile does not claim a complete external OPA read set or
+    an immutable source path. The temporary snapshot belongs to this invocation.
+    """
     executable = shutil.which("opa")
     if executable is None:
         raise RuntimeError("OPA required to verify the source policy decision")
-    result = subprocess.run(
-        [
-            executable,
-            "eval",
-            "--format=raw",
-            "--data",
-            str(policy),
-            "--stdin-input",
-            "data.ordivon.security.v2.decision",
-        ],
-        input=json.dumps(gate, separators=(",", ":")),
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+    policy_bytes = policy.read_bytes()
+    with tempfile.TemporaryDirectory(prefix="security-policy-") as temporary:
+        snapshot = Path(temporary) / "policy.rego"
+        snapshot.write_bytes(policy_bytes)
+        result = subprocess.run(
+            [
+                executable,
+                "eval",
+                "--format=raw",
+                "--data",
+                str(snapshot),
+                "--stdin-input",
+                "data.ordivon.security.v2.decision",
+            ],
+            input=json.dumps(gate, separators=(",", ":"), allow_nan=False),
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if snapshot.read_bytes() != policy_bytes:
+            raise ValueError("policy snapshot changed during evaluation")
     if result.returncode != 0:
         raise RuntimeError(f"OPA decision evaluation failed: {result.stderr.strip()}")
     try:
-        evaluated = json.loads(result.stdout)
-    except json.JSONDecodeError as exc:
+        evaluated = parse_unique_json(result.stdout)
+    except ValueError as exc:
         raise RuntimeError("OPA did not return a valid decision") from exc
-    if not isinstance(evaluated, dict) or evaluated != decision:
+    # Compare JSON encodings rather than Python equality (True == 1).
+    if not isinstance(evaluated, dict) or _json_bytes(evaluated) != _json_bytes(decision):
         raise ValueError("provided decision does not match current policy on bound gate input")
+    return hashlib.sha256(policy_bytes).hexdigest()
 
 
 def main() -> int:
@@ -129,10 +144,8 @@ def main() -> int:
     parser.add_argument("--policy", type=Path, default=Path("policies/admission.rego"))
     args = parser.parse_args()
 
-    gate = json.loads(args.gate_input.read_text(encoding="utf-8"))
-    decision = json.loads(args.decision.read_text(encoding="utf-8"))
-    if not isinstance(gate, dict) or not isinstance(decision, dict):
-        raise ValueError("gate and decision must be JSON objects")
+    gate, _ = read_json_evidence(args.gate_input)
+    decision, _ = read_json_evidence(args.decision)
     subject = subject_descriptor(name=args.subject_name, git_commit=gate["subjectRevision"])
 
     # Validate ALL sources before emitting any artifact; never reuse a prior
@@ -144,12 +157,15 @@ def main() -> int:
     runner = [(ref, path) for ref, path in verified if ref["provider"] == "ordivon-runner"]
     if len(runner) != 1:
         raise ValueError("exactly one bound provider-status receipt is required")
-    provider_status = json.loads(runner[0][1].read_text(encoding="utf-8"))
+    runner_ref, runner_path = runner[0]
+    provider_status, runner_digest = read_json_evidence(runner_path)
+    if runner_digest != runner_ref["sha256"]:
+        raise ValueError("runner receipt changed after gate binding")
     if provider_status.get("observedSubjectRevision") != gate.get("observedSubjectRevision"):
         raise ValueError("provider receipt subject revision changed")
-    if provider_status.get("providers") != gate.get("providerResults"):
+    if _json_bytes(provider_status.get("providers")) != _json_bytes(gate.get("providerResults")):
         raise ValueError("provider receipt and gate results differ")
-    verify_policy_decision(gate, decision, args.policy)
+    policy_digest = verify_policy_decision(gate, decision, args.policy)
 
     # Compute all reference statements before writing any output. The
     # generation identity is deterministic and part of each immutable URI.
@@ -186,7 +202,7 @@ def main() -> int:
         verifier_versions=versions,
         resource_uri=f"git+file://{args.subject_name}@{gate['subjectRevision']}",
         policy_uri=args.policy.resolve().as_uri(),
-        policy_sha256=sha256_file(args.policy),
+        policy_sha256=policy_digest,
         input_attestations=reference_descriptors,
         passed=decision.get("standing") == "CURRENT" and decision.get("allow") is True,
     )
