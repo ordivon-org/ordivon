@@ -176,9 +176,17 @@ def unitize_external_contribution(
         raise AlgebraicPolicyError("finite equity and capital flow required")
     if unit_nav_before <= 0 or outstanding_units < 0 or contribution_r < 0:
         raise AlgebraicPolicyError("invalid unit NAV or negative contribution")
-    new_units = outstanding_units + contribution_r / unit_nav_before
-    if not _finite_economic_number(new_units):
-        raise AlgebraicPolicyError("unrepresentable outstanding units")
+    # Reconstruct the unit identity exactly for the supplied scalar values,
+    # then round once at the existing float boundary. A positive cash flow
+    # must not be silently recorded as zero newly issued units.
+    old_units = Fraction(outstanding_units)
+    exact_units = old_units + Fraction(contribution_r) / Fraction(unit_nav_before)
+    try:
+        new_units = float(exact_units)
+    except OverflowError as exc:
+        raise AlgebraicPolicyError("unrepresentable outstanding units") from exc
+    if contribution_r > 0 and Fraction(new_units) <= old_units:
+        raise AlgebraicPolicyError("positive contribution not representable in units")
     return unit_nav_before, new_units
 
 

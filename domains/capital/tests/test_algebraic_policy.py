@@ -451,3 +451,35 @@ def test_unitization_rejects_unrepresentable_output() -> None:
         unitize_external_contribution(
             unit_nav_before=1e-308, outstanding_units=1, contribution_r=1e308,
         )
+
+@pytest.mark.parametrize(
+    "nav,units,flow",
+    ((1e308, 0.0, 1e-308), (1.0, 1e20, 1.0)),
+    ids=("increment-underflows", "increment-rounded-away"),
+)
+def test_positive_capital_flow_cannot_disappear_in_unitization(nav, units, flow):
+    # Independent exact-rational accounting identity. A nonzero contribution
+    # must increase represented units, or the operation is not representable.
+    exact = Fraction(units) + Fraction(flow) / Fraction(nav)
+    assert exact > Fraction(units)
+    assert float(exact) == units
+    with pytest.raises(AlgebraicPolicyError):
+        unitize_external_contribution(
+            unit_nav_before=nav, outstanding_units=units, contribution_r=flow,
+        )
+
+
+@pytest.mark.parametrize(
+    "nav,units,flow",
+    ((3.0, 0.1, 0.2), (1.0, 2.0, 3.0), (1e-100, 0.0, 1e-200), (7.0, 2.0, 0.0)),
+)
+def test_unitization_single_rounding_of_exact_economic_identity(nav, units, flow):
+    expected = Fraction(units) + Fraction(flow) / Fraction(nav)
+    actual_nav, actual_units = unitize_external_contribution(
+        unit_nav_before=nav, outstanding_units=units, contribution_r=flow,
+    )
+    assert actual_nav == nav
+    assert actual_units == float(expected)
+    assert math.isfinite(actual_units)
+    if flow > 0:
+        assert Fraction(actual_units) > Fraction(units)
