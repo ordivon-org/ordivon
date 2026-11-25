@@ -4,8 +4,8 @@ import asyncio
 from typing import Any
 
 from ordivon_gateway.contracts import CapabilityDescriptor, CapabilityProjection
+from ordivon_gateway.logic.capability_matching import project_capability_search
 from ordivon_gateway.logic.capability_projection import (
-    project_capability_search,
     project_execution_capability,
 )
 from ordivon_gateway.logic.routing import default_routes

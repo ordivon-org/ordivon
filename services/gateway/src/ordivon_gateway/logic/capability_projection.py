@@ -6,16 +6,11 @@ The owner response remains a transient read-only projection.
 
 from __future__ import annotations
 
-import re
-from collections.abc import Mapping
-from typing import Any, Literal
+from typing import Any
 
 from ..contracts import (
     CapabilityDescriptor,
-    CapabilityProjection,
     CapabilityRoute,
-    CapabilitySearchMatch,
-    CapabilitySearchProjection,
 )
 from .runtime_status import valid_runtime_status_envelope, valid_runtime_target_inventory
 
@@ -273,117 +268,4 @@ def project_native_release_capability(
         owner_node_id=node_id,
         observation_error=issue,
         truth_boundary=route.truth_boundary,
-    )
-
-
-def _metadata_match_kind(
-    *,
-    capability: str,
-    category: str,
-    owner_id: str,
-    description: str,
-    tags: tuple[str, ...] | list[str],
-    query: str,
-    query_tokens: set[str],
-) -> Literal["exact", "prefix", "token", "substring"] | None:
-    """One lexical matching rule for prefiltering and observed search results."""
-    name = capability.casefold()
-    corpus = " ".join(
-        value.casefold() for value in (capability, category, owner_id, description, *tags) if value
-    )
-    corpus_tokens = set(re.findall(r"[a-z0-9]+", corpus))
-    if query == name:
-        return "exact"
-    if name.startswith(query):
-        return "prefix"
-    if query_tokens and query_tokens.issubset(corpus_tokens):
-        return "token"
-    if query in corpus:
-        return "substring"
-    return None
-
-
-def candidate_routes_for_search(
-    routes: Mapping[str, CapabilityRoute],
-    *,
-    query: str,
-    category: str | None,
-    owner_id: str | None,
-) -> list[CapabilityRoute]:
-    """Pure selection: never observe unrelated Owners just to rank static metadata."""
-    normalized = query.casefold()
-    tokens = set(re.findall(r"[a-z0-9]+", normalized))
-    priority = {"exact": 0, "prefix": 1, "token": 2, "substring": 3}
-    ranked: list[tuple[int, str, CapabilityRoute]] = []
-    for route in routes.values():
-        if category is not None and route.category != category:
-            continue
-        if owner_id is not None and route.owner_id != owner_id:
-            continue
-        kind = _metadata_match_kind(
-            capability=route.capability,
-            category=route.category,
-            owner_id=route.owner_id,
-            description=route.description,
-            tags=route.tags,
-            query=normalized,
-            query_tokens=tokens,
-        )
-        if kind is not None:
-            ranked.append((priority[kind], route.capability, route))
-    ranked.sort(key=lambda item: (item[0], item[1]))
-    return [route for _, _, route in ranked]
-
-
-def project_capability_search(
-    projection: CapabilityProjection,
-    *,
-    query: str,
-    category: str | None,
-    owner_id: str | None,
-    limit: int,
-    include_unavailable: bool,
-) -> CapabilitySearchProjection:
-    """Rank one immutable owner observation without I/O or authority decisions."""
-    normalized = query.casefold()
-    query_tokens = set(re.findall(r"[a-z0-9]+", normalized))
-    priority = {"exact": 0, "prefix": 1, "token": 2, "substring": 3}
-    ranked: list[tuple[int, str, CapabilitySearchMatch]] = []
-
-    for item in projection.capabilities:
-        if category is not None and item.category != category:
-            continue
-        if owner_id is not None and item.owner_id != owner_id:
-            continue
-        # An observation error is UNKNOWN owner observation, not proof of owner unavailability.
-        if not include_unavailable and not item.available and item.observation_error is None:
-            continue
-
-        match_kind = _metadata_match_kind(
-            capability=item.capability,
-            category=item.category,
-            owner_id=item.owner_id,
-            description=item.description,
-            tags=item.tags,
-            query=normalized,
-            query_tokens=query_tokens,
-        )
-        if match_kind is None:
-            continue
-
-        match = CapabilitySearchMatch(
-            match_kind=match_kind,  # type: ignore[arg-type]
-            capability=item,
-        )
-        ranked.append((priority[match_kind], item.capability, match))
-
-    ranked.sort(key=lambda row: (row[0], row[1]))
-    total_matches = len(ranked)
-    matches = [row[2] for row in ranked[:limit]]
-    return CapabilitySearchProjection(
-        query=query,
-        projection_digest=projection.projection_digest,
-        route_digest=projection.route_digest,
-        total_matches=total_matches,
-        matches=matches,
     )

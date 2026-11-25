@@ -6,7 +6,7 @@ import asyncio
 from dataclasses import replace
 from typing import Any
 
-from ordivon_gateway.logic.capability_projection import project_capability_search
+from ordivon_gateway.logic.capability_matching import project_capability_search
 from ordivon_gateway.logic.routing import default_routes
 from ordivon_gateway.service import GatewayService
 

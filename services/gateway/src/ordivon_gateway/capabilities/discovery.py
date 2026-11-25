@@ -12,9 +12,12 @@ from ..contracts import (
     CapabilitySearchProjection,
     SystemDescription,
 )
-from ..logic.capability_projection import (
-    candidate_routes_for_search,
+from ..logic.capability_matching import (
+    CapabilitySearchIndex,
+    SearchQuery,
     project_capability_search,
+)
+from ..logic.capability_projection import (
     project_execution_capability,
     project_native_release_capability,
 )
@@ -54,6 +57,7 @@ class CapabilityCatalog:
         self._routes = routes
         self._projection_timeout_seconds = projection_timeout_seconds
         self._route_digest = route_digest(routes)
+        self._search_index = CapabilitySearchIndex(routes)
 
     def system_describe(self) -> SystemDescription:
         # Endpoint configuration is observed here; the identity projection is pure.
@@ -302,9 +306,8 @@ class CapabilityCatalog:
         # A miss (or a Research-only match) cannot be delayed by unrelated
         # Windows/Host observations. Filtering on real availability still occurs
         # AFTER observing every matching route, so UNKNOWN is never guessed FALSE.
-        candidates = candidate_routes_for_search(
-            self._routes,
-            query=query,
+        candidates = self._search_index.candidates(
+            SearchQuery.compile(query),
             category=category,
             owner_id=owner_id,
         )
@@ -316,6 +319,7 @@ class CapabilityCatalog:
             owner_id=owner_id,
             limit=limit,
             include_unavailable=include_unavailable,
+            index=self._search_index,
         )
 
     async def capability_resolve(
