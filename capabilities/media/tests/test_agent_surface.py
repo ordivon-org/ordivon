@@ -43,6 +43,8 @@ class AgentSurfaceTests(unittest.TestCase):
             }),
             encoding="utf-8",
         )
+        (root / "scripts").mkdir()
+        (root / "scripts/require-python-deps.py").write_text("# fixture; gate mocked in unit tests\n")
         return root
 
     def test_discovery_imports_contract_without_concrete_studio_providers(self) -> None:
@@ -218,6 +220,7 @@ class AgentSurfaceTests(unittest.TestCase):
                 self.assertTrue(state["js"]["ready"])
                 self.assertTrue(state["js"]["resolverChecked"])
                 self.assertTrue(state["python"]["ready"])
+                self.assertTrue(state["python"]["environmentChecked"])
                 self.assertNotIn("resolve", state)
                 (root / "uv.lock").write_text("changed\n", encoding="utf-8")
                 stale = dependency_status(root)
@@ -232,7 +235,47 @@ class AgentSurfaceTests(unittest.TestCase):
             self.assertFalse(state["js"]["ready"])
             self.assertEqual(state["js"]["reason"], "JS_DEPENDENCIES_STALE_OR_UNAVAILABLE")
             self.assertTrue(state["js"]["resolverChecked"])
-            self.assertEqual(probe.call_args.args[0][:3], [shutil.which("pnpm"), "exec", "node"])
+            self.assertEqual(probe.call_args_list[0].args[0][:3], [shutil.which("pnpm"), "exec", "node"])
+
+    def test_python_receipt_does_not_establish_current_environment(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._root(directory)
+            with mock.patch("ordivon_studio.agent_dependencies.subprocess.run", return_value=mock.Mock(returncode=2)) as probe:
+                state = dependency_proposal("python", root)
+            self.assertFalse(state["ready"])
+            self.assertTrue(state["effectRequired"])
+            self.assertEqual(state["status"]["reason"], "PYTHON_ENV_STALE_OR_UNAVAILABLE")
+            self.assertEqual(probe.call_count, 1)
+            self.assertTrue(probe.call_args.args[0][-1].endswith("require-python-deps.py"))
+            with mock.patch("ordivon_studio.agent_dependencies.subprocess.run", side_effect=subprocess.TimeoutExpired("gate", 45)):
+                state = dependency_proposal("python", root)
+            self.assertEqual(state["status"]["reason"], "PYTHON_GATE_UNOBSERVED")
+            self.assertFalse(state["status"]["environmentChecked"])
+            self.assertEqual(state["status"]["standing"], "unknown")
+            self.assertIsNone(state["effectRequired"])
+            self.assertIsNone(state["plan"])
+
+    def test_malformed_receipt_and_missing_gate_do_not_admit(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._root(directory)
+            (root / "scripts/require-python-deps.py").unlink()
+            unavailable = dependency_proposal("python", root)
+            self.assertEqual(unavailable["status"]["reason"], "PYTHON_GATE_UNAVAILABLE")
+            self.assertEqual(unavailable["status"]["standing"], "unknown")
+            self.assertIsNone(unavailable["effectRequired"])
+            self.assertIsNone(unavailable["plan"])
+            (root / ".venv/.ordivon-materialization.json").write_text("[]")
+            self.assertEqual(dependency_proposal("python", root)["status"]["reason"], "PYTHON_RECEIPT_INVALID")
+
+    def test_js_unobserved_resolver_does_not_compile_acquisition(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._root(directory)
+            with mock.patch("ordivon_studio.agent_dependencies.subprocess.run", side_effect=subprocess.TimeoutExpired("pnpm", 10)):
+                state = dependency_proposal("js", root)
+            self.assertEqual(state["status"]["standing"], "unknown")
+            self.assertEqual(state["status"]["reason"], "JS_RESOLVER_UNOBSERVED")
+            self.assertIsNone(state["effectRequired"])
+            self.assertIsNone(state["plan"])
 
     def test_missing_dependencies_compile_explicit_acquisition_only(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

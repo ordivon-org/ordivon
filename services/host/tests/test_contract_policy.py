@@ -88,15 +88,19 @@ def test_release_python_and_uv_are_owned_by_immutable_mise_pin() -> None:
     assert "python find" not in install
 
 
-def test_python_pin_matches_project_requirement() -> None:
+def test_release_python_identity_is_separate_from_project_compatibility() -> None:
+    """The package accepts the qualified minor line; a release still binds exact bytes."""
     import tomllib
 
     root = Path(__file__).parents[1]
     pinned = (root / ".python-version").read_text().strip()
     project = tomllib.loads((root / "pyproject.toml").read_text())
-    assert project["project"]["requires-python"] == f"=={pinned}"
+    # PEP 440's bounded minor range admits patch updates without admitting another minor.
+    assert project["project"]["requires-python"] == ">=3.15,<3.16"
+    assert re.fullmatch(r"3\.15\.[0-9]+", pinned)
     mise = tomllib.loads((root / "mise.toml").read_text())
     assert mise["tools"]["python"] == pinned
+    # uv lock --check owns semantic lock compatibility (uv normalizes to ==3.15.*).
 
 
 def test_host_status_does_not_duplicate_foreign_or_mcp_authorities() -> None:

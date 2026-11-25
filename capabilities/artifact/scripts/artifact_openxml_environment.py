@@ -31,6 +31,7 @@ import argparse
 import shutil
 import subprocess
 import sys
+import tempfile
 from typing import Any
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -41,7 +42,8 @@ VALIDATOR_WRAPPER=ROOT/'scripts/artifact_openxml_validator_wrapper.py'
 EXTERNAL_EVIDENCE=ROOT/'scripts/artifact_openxml_external_evidence.py'
 NIX=Path('/usr/bin/nix')
 NIX_FLAKE=ROOT/'artifact-delivery/openxml-nix'
-SYSTEM_PYTHON=Path(os.environ.get('ARTIFACT_PYTHON','/root/.local/share/mise/installs/python/3.15.0/bin/python3.14'))
+SYSTEM_PYTHON=Path(os.environ.get('ARTIFACT_PYTHON',sys.executable))
+NIX_STORE=Path('/usr/bin/nix-store')
 NIX_FEATURES=['--extra-experimental-features','nix-command flakes']
 
 def canonical(v:Any)->bytes:return json.dumps(v,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()
@@ -74,20 +76,23 @@ def nix_source_cut(flake_lock:Path)->dict[str,str]:
     return {'flakeLockSha256':'sha256:'+hashlib.sha256(raw).hexdigest(),
             'nixpkgsRevision':locked['rev'],'nixpkgsNarHash':locked['narHash']}
 
-def nix_dotnet_status(lock:dict[str,Any])->dict[str,Any]:
+def nix_dotnet_status(lock:dict[str,Any], *, out_link:Path|None=None)->dict[str,Any]:
     cfg=lock['nixDotnet']; flake=ROOT/cfg['flake']; flake_lock=flake/'flake.lock'
     if flake.resolve()!=NIX_FLAKE.resolve():
         raise RuntimeError('Artifact OpenXML foreign Nix flake source')
     if not NIX.is_file():raise RuntimeError('Artifact OpenXML Nix authority is absent')
     source=nix_source_cut(flake_lock)
     target=f"path:{flake}#{cfg['package']}"
-    built=run([str(NIX),*NIX_FEATURES,'build','--no-link','--print-out-paths',target],timeout=300)
+    link_args=['--out-link',str(out_link)] if out_link is not None else ['--no-link']
+    built=run([str(NIX),*NIX_FEATURES,'build','--no-write-lock-file',*link_args,'--print-out-paths',target],timeout=300)
     if built.returncode:raise RuntimeError('Artifact OpenXML Nix closure build failed: '+built.stderr[-4000:])
     if nix_source_cut(flake_lock)!=source:
         raise RuntimeError('Artifact OpenXML Nix lock changed during build')
     paths=[line.strip() for line in built.stdout.splitlines() if line.strip().startswith('/nix/store/')]
     if len(paths)!=1:raise RuntimeError(f'Artifact OpenXML Nix closure did not resolve exactly one store path: {paths}')
     store=Path(paths[0]); dotnet=store/'bin/dotnet'
+    if out_link is not None and not gc_root_registered(out_link,str(store)):
+        raise RuntimeError('Artifact OpenXML temporary Nix build root not registered')
     probe=run([str(dotnet),'--version'],timeout=60); version=probe.stdout.strip()
     if probe.returncode or version!=cfg['expectedSdkVersion']:raise RuntimeError(f'Artifact OpenXML Nix SDK drift: {version!r}')
     info_proc=run([str(NIX),*NIX_FEATURES,'path-info','--json-format','1','--json',str(store)],timeout=60)
@@ -98,6 +103,33 @@ def nix_dotnet_status(lock:dict[str,Any])->dict[str,Any]:
         raise RuntimeError('Artifact OpenXML Nix lock changed during verification')
     return {'storePath':str(store),'narHash':nar_hash,'observedSdkVersion':version,
             'flakeLockSha256':source['flakeLockSha256'],'nixpkgsRevision':source['nixpkgsRevision']}
+
+def gc_root_registered(root:Path,store:str)->bool:
+    """A filesystem symlink alone is not a registered native Nix GC root."""
+    if not root.is_symlink() or os.readlink(root)!=store:
+        return False
+    if not Path(store).is_dir() or not NIX_STORE.is_file():
+        return False
+    # Resolve the parent only: resolving the link itself loses its root identity.
+    root_name=str(root.parent.resolve()/root.name)
+    probe=run([str(NIX_STORE),'--query','--roots',store],timeout=60)
+    return probe.returncode==0 and f'{root_name} -> {store}' in probe.stdout.splitlines()
+
+
+def register_generation_gc_root(generation:Path,store:str)->None:
+    """Retain the SDK closure for exactly this existing generation's lifetime."""
+    root=generation/'dotnet-gc-root'
+    if gc_root_registered(root,store):
+        return
+    if root.exists() or root.is_symlink():
+        if not root.is_symlink() or os.readlink(root)!=store:
+            raise RuntimeError('OpenXML generation GC root conflicts with bound SDK')
+    if not str(store).startswith('/nix/store/') or not Path(store).is_dir():
+        raise RuntimeError('OpenXML generation SDK store path unavailable')
+    result=run([str(NIX_STORE),'--realise',store,'--add-root',str(root),'--indirect'],timeout=60)
+    if result.returncode or not gc_root_registered(root,store):
+        raise RuntimeError('OpenXML generation GC root registration failed: '+result.stderr[-2000:])
+
 
 def nuget_sources(lock:dict[str,Any])->list[dict[str,str]]:
     result=[]
@@ -182,6 +214,8 @@ def status(base:Path|None=None)->dict[str,Any]:
         resolved=current.resolve(strict=True)
         if root.resolve() not in resolved.parents:raise RuntimeError('OpenXML current escapes stable root')
         binding=json.loads((resolved/'binding.json').read_text())
+        result['gcRootRegistered']=gc_root_registered(resolved/'dotnet-gc-root',binding['dotnetNixStorePath'])
+        if not result['gcRootRegistered']:raise RuntimeError('OpenXML generation Nix GC root absent or invalid')
         p=run([str(resolved/'bin/dotnet'),'--version'],timeout=60)
         if p.returncode or p.stdout.strip()!=binding['observedDotnetSdk']:raise RuntimeError('OpenXML stable dotnet probe failed')
         result.update({'ready':True,'generationId':resolved.name,'binding':binding,'dotnetVersion':p.stdout.strip()})
@@ -197,19 +231,27 @@ def plan()->dict[str,Any]:
 
 def apply()->dict[str,Any]:
     if ROOT.resolve()!=MAIN.resolve():raise RuntimeError('OpenXML environment apply is fenced to canonical /root/projects/ordivon/capabilities/artifact source')
-    lock=load_lock();dotnet=nix_dotnet_status(lock);ng=nuget_sources(lock);base=Path(lock['stableRoot']);base.mkdir(parents=True,exist_ok=True);gid,final,binding=build_generation(base,lock,dotnet,ng)
-    external_evidence=verify_external_evidence(final/'bin/validate-openxml')
-    current=base/'current'
-    if current.exists() and not current.is_symlink():raise RuntimeError('OpenXML current is not atomic symlink authority')
-    tmp=base/f'.current-{os.getpid()}'
-    if tmp.exists() or tmp.is_symlink():tmp.unlink()
-    os.symlink(Path('generations')/gid,tmp);os.replace(tmp,current)
-    dfd=os.open(base,os.O_RDONLY|os.O_DIRECTORY)
-    try:os.fsync(dfd)
-    finally:os.close(dfd)
-    observed=status(base)
-    if not observed.get('ready') or observed.get('generationId')!=gid:raise RuntimeError('OpenXML publication did not verify')
-    return {'schemaVersion':1,'kind':'artifact-openxml-environment-materialization-receipt','truthRole':'stable-openxml-method-runtime-materialization-not-subject-conformance','generationId':gid,'stableDotnet':lock['stableDotnet'],'stableValidator':lock['stableValidator'],'binding':binding,'externalEvidence':{'corpusId':external_evidence['corpusId'],'corpusResultDigest':external_evidence['corpusResultDigest'],'standing':external_evidence['standing'],'ivvStanding':external_evidence['ivvStanding'],'methodPromotion':external_evidence['methodPromotion']},'status':observed}
+    lock=load_lock();ng=nuget_sources(lock);base=Path(lock['stableRoot']);base.mkdir(parents=True,exist_ok=True)
+    # Keep the Nix-native temporary root alive until the durable generation
+    # root has been registered and publication read back. No GC invocation.
+    with tempfile.TemporaryDirectory(prefix='.build-root-',dir=base) as scratch:
+        dotnet=nix_dotnet_status(lock,out_link=Path(scratch)/'dotnet')
+        gid,final,binding=build_generation(base,lock,dotnet,ng)
+        if binding['dotnetNixStorePath']!=dotnet['storePath']:
+            raise RuntimeError('OpenXML generation SDK binding drift')
+        external_evidence=verify_external_evidence(final/'bin/validate-openxml')
+        register_generation_gc_root(final,dotnet['storePath'])
+        current=base/'current'
+        if current.exists() and not current.is_symlink():raise RuntimeError('OpenXML current is not atomic symlink authority')
+        tmp=base/f'.current-{os.getpid()}'
+        if tmp.exists() or tmp.is_symlink():tmp.unlink()
+        os.symlink(Path('generations')/gid,tmp);os.replace(tmp,current)
+        dfd=os.open(base,os.O_RDONLY|os.O_DIRECTORY)
+        try:os.fsync(dfd)
+        finally:os.close(dfd)
+        observed=status(base)
+        if not observed.get('ready') or observed.get('generationId')!=gid:raise RuntimeError('OpenXML publication did not verify')
+        return {'schemaVersion':1,'kind':'artifact-openxml-environment-materialization-receipt','truthRole':'stable-openxml-method-runtime-materialization-not-subject-conformance','generationId':gid,'stableDotnet':lock['stableDotnet'],'stableValidator':lock['stableValidator'],'binding':binding,'externalEvidence':{'corpusId':external_evidence['corpusId'],'corpusResultDigest':external_evidence['corpusResultDigest'],'standing':external_evidence['standing'],'ivvStanding':external_evidence['ivvStanding'],'methodPromotion':external_evidence['methodPromotion']},'status':observed}
 
 def main()->int:
     p=argparse.ArgumentParser();p.add_argument('--apply',action='store_true');args=p.parse_args();print(json.dumps(apply() if args.apply else plan(),sort_keys=True,indent=2));return 0

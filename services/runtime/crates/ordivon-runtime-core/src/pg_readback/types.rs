@@ -10,6 +10,8 @@ pub struct PgJobSnapshot {
     pub termination_intent: String,
     pub reservation_state: String,
     pub result_digest: Option<String>,
+    /// Durable Runner binding observation, not a native process start clock.
+    pub started_at_ms: Option<i64>,
     pub finished_at_ms: Option<i64>,
     pub job_row_version: i64,
     pub attempt_row_version: i64,
