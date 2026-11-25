@@ -1,5 +1,7 @@
 extends SceneTree
 
+const Rules = preload("res://relay_rules.gd")
+
 var count: int = 0
 var moves: int = 0
 var failed: bool = false
@@ -41,7 +43,40 @@ func _walk_to(player: Area2D, dest: Vector2) -> bool:
     _release_actions()
     return false
 
+# Pure rule checks use the same implementation consumed by the real scene.
+func _check_rules() -> void:
+    var rules = Rules.new()
+    var plan = RelayPlan.new()
+    plan.pickup_sites = PackedVector2Array([Vector2(100, 0), Vector2(200, 0), Vector2(300, 0)])
+    plan.depot = Vector2.ZERO
+    plan.initial_enemy_interval = 0.7
+    check(rules.start(plan), "valid authored plan starts pure rules")
+    check(rules.step_position(Vector2(65.9, 0)) == Rules.Event.NONE, "outside pickup boundary rejected")
+    check(rules.step_position(Vector2(66, 0)) == Rules.Event.PICKED_UP, "inclusive pickup boundary")
+    check(rules.step_position(Vector2(34.1, 0)) == Rules.Event.NONE, "outside depot boundary rejected")
+    check(rules.step_position(Vector2(34, 0)) == Rules.Event.DELIVERED, "inclusive depot boundary")
+    check(rules.delivered == 1 and not rules.carrying, "delivery changes state exactly once")
+    check(is_equal_approx(rules.enemy_interval(), 0.54), "difficulty follows delivery count")
+    check(rules.step_position(Vector2.ZERO) == Rules.Event.NONE, "depot without core does not score")
+    check(rules.tick() and rules.elapsed_seconds == 1, "playing timer advances")
+    var invalid = RelayPlan.new()
+    invalid.pickup_sites = PackedVector2Array()
+    check(not rules.start(invalid) and rules.delivered == 1 and rules.elapsed_seconds == 1, "invalid restart preserves active rule state")
+    plan.pickup_sites[1] = Vector2.ZERO
+    plan.initial_enemy_interval = 8
+    check(not rules.configure(plan) and rules.next_pickup() == Vector2(200, 0), "active route cannot be replaced")
+    check(rules.step_position(Vector2.ZERO) == Rules.Event.NONE, "escaped authoring plan does not affect active route")
+    check(rules.step_position(Vector2(200, 0)) == Rules.Event.PICKED_UP, "original second pickup remains active")
+    check(rules.step_position(Vector2.ZERO) == Rules.Event.DELIVERED, "second delivery accepted")
+    check(rules.step_position(Vector2(300, 0)) == Rules.Event.PICKED_UP, "last pickup accepted")
+    check(rules.step_position(Vector2.ZERO) == Rules.Event.WON, "last delivery enters terminal phase")
+    check(rules.phase == "won" and rules.delivered == 3 and not rules.carrying, "winning state is consistent")
+    check(rules.step_position(Vector2.ZERO) == Rules.Event.NONE and not rules.lose() and not rules.tick(), "terminal state rejects further effects")
+    check(rules.start(plan) and rules.delivered == 0 and rules.elapsed_seconds == 0, "new run captures authored plan and resets state")
+    check(rules.lose() and rules.phase == "lost" and not rules.tick(), "loss rejects timer advances")
+
 func _run() -> void:
+    _check_rules()
     var game: Node = load("res://main.tscn").instantiate()
     root.add_child(game)
     await process_frame
@@ -61,6 +96,17 @@ func _run() -> void:
     check(not game.carrying and game.delivered == 0, "nothing automatically delivered at start")
     await process_frame
     check(game.delivered == 0, "standing at home without a core does not score")
+    # Regression of an actual live-scene configuration escape: the authored
+    # Resource remains editable, but cannot change the active route.
+    var original_pickup: Vector2 = game.relay_plan.pickup_sites[0]
+    var original_position: Vector2 = player.position
+    game.relay_plan.pickup_sites[0] = game.relay_plan.depot
+    player.position = game.relay_plan.depot
+    game._physics_process(0.0)
+    check(not game.carrying and game.delivered == 0, "live authored plan mutation cannot fabricate a pickup")
+    check(game.get_node("RelaySites").pickup == original_pickup, "presentation retains captured route")
+    game.relay_plan.pickup_sites[0] = original_pickup
+    player.position = original_position
     for n in range(4):
         check(await _walk_to(player, game.relay_plan.pickup_sites[n]),
             "actual upstream movement reaches pickup %d" % (n+1))

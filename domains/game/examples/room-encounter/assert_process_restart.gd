@@ -45,9 +45,12 @@ func run_acceptance() -> void:
         expect(rules.snapshot()["room"] == 1 and rules.snapshot()["turn"] == 0,
             "new process begins from its own fresh room state")
         expect(rules.attack(), "accepted first-room attack")
+        await process_frame
         expect(rules.snapshot()["phase"] == "cleared", "first room cleared")
         expect(rules.advance(), "entered second room")
+        await process_frame
         expect(rules.guard(), "accepted second-room guard")
+        await process_frame
         expect(rules.snapshot()["room"] == 2 and rules.snapshot()["turn"] == 2
             and rules.snapshot()["phase"] == "fighting", "checkpoint is a nontrivial, mutable room state")
         expect(save_slot.save_rules(rules), "Godot native ConfigFile persists rule checkpoint")
@@ -66,6 +69,7 @@ func run_acceptance() -> void:
         expect(audio.observed_play_count == 0,
             "state restoration is not an accepted combat action or sound")
         expect(rules.attack(), "restored game can continue accepting gameplay")
+        await process_frame
         expect(rules.snapshot()["turn"] == 3 and rules.snapshot()["room"] == 2,
             "continued gameplay mutates restored rules, not a detached snapshot")
         expect(audio.observed_play_count == 1,
@@ -73,7 +77,9 @@ func run_acceptance() -> void:
 
     audio.stop()
     audio.stream = null
-    game.free()
+    game.queue_free()
+    await process_frame
+    await process_frame
     await create_timer(0.15).timeout
     # Release scene/Node/Resource references before asking Godot to quit.
     rules = null

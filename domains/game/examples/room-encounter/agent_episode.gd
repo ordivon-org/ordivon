@@ -159,9 +159,11 @@ func run_episode() -> void:
             observed_step["recognized"] = action in ["attack", "guard", "advance", "trial", "classic"]
             observed_step["accepted"] = accepted
         steps.append(observed_step)
+        # Agent actions cross the native frame boundary like real input.
+        await process_frame
 
     var last: Dictionary = rules.snapshot().duplicate(true)
-    print(PREFIX + JSON.stringify({
+    var receipt: Dictionary = {
         "schema_version": 2,
         "game": "room-encounter",
         "observation_mode": "player_visible_ui" if observation_mode == "player" else "authoritative_debug_state_not_pixels",
@@ -170,9 +172,16 @@ func run_episode() -> void:
         "steps": steps,
         "final": _observation(game, rules, observation_mode),
         "terminal": last["phase"] in ["won", "lost"]
-    }))
+    }
     var audio: AudioStreamPlayer = game.get_node("EncounterAudio")
     audio.stop()
     audio.stream = null
     game.queue_free()
+    await process_frame
+    await process_frame
+    # Match the existing native acceptance teardown: allow the audio server
+    # to drain stopped playback before process shutdown. The consumer rejects
+    # leaked resources rather than treating this delay as proof of cleanup.
+    await create_timer(0.15).timeout
+    print(PREFIX + JSON.stringify(receipt))
     quit(0)

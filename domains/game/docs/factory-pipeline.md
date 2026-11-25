@@ -123,3 +123,7 @@ game-player-feedback issue template. No custom feedback database is introduced.
 ## Archived Orbit proof and distribution
 
 The original Orbit source, historical qualification contract and publicly distributed Windows/Linux preview remain discoverable via [the read-only archive](../archive/orbit-collector/ARCHIVE.md). No current Game build, CI or dependency update consumes this retired batch.
+
+### Native export input identity
+
+For the Linux factory runner, the supported x86_64 release presets use the official Godot editor's version-matched default templates under the absolute XDG_DATA_HOME (or ~/.local/share). Custom release templates, self-contained editors and the old receipt-only GAME_GODOT_TEMPLATE_DIR override are rejected rather than silently misattributed. The package gate captures editor and both template SHA256 values before validation/export and compares them again immediately before READY. A missing or changed input fails closed; the existing source and archive digest gates still apply. The before/after evidence does not prove upstream authenticity or prevent an adversarial change-and-restore during export. Windows scope remains export-only.
