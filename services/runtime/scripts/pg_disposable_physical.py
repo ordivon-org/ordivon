@@ -19,7 +19,7 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-# One native Cargo selection for the disposable and explicit physical lanes.
+# One native Cargo build profile for every PG lane. Selection uses native inventory.
 CARGO_ARGS = (
     "test",
     "--locked",
@@ -29,23 +29,18 @@ CARGO_ARGS = (
     "--no-default-features",
     "--features",
     "postgres-registry-admission",
-    "pg18_",
-    "--",
-    "--ignored",
-    "--nocapture",
-    "--test-threads=1",
 )
 # Independent Windows PG witness consumer; same disposable PG18 fixture, not
 # a Windows production Writer or a second persistent test authority.
 WINDOWS_PG_WITNESS_CASE = "windows_pg_bundle_consumer_reads_real_admission_without_claiming_process"
 STAGE_CASE = "historical_pg_stage_is_not_an_admission_authority"
 
+# Distinct native capability lanes, not an allowlist of PG test names.
+# Every other ignored test in the compiled PG-only Core is part of the
+# disposable PG portfolio, even when its module or business name changes.
+SYSTEMD_ONLY_CASE = "native_systemctl_missing_unit_is_explicit_negative_evidence"
+SEPARATE_LANES = frozenset({STAGE_CASE, WINDOWS_PG_WITNESS_CASE, SYSTEMD_ONLY_CASE})
 
-def single_case_args(case: str) -> tuple[str, ...]:
-    return tuple(case if arg == "pg18_" else arg for arg in CARGO_ARGS)
-
-
-WINDOWS_PG_WITNESS_ARGS = single_case_args(WINDOWS_PG_WITNESS_CASE)
 PG18_LISTED_CASE = re.compile(r"^(\S+): test$", re.M)
 PG18_EXECUTED_CASE = re.compile(r"^test (\S+) \.\.\. ok$", re.M)
 PG18_RESULT = re.compile(r"^test result: ok\. (\d+) passed; 0 failed; 0 ignored;", re.M)
@@ -74,11 +69,22 @@ def cargo_environment(original: dict[str, str]) -> dict[str, str]:
 
 
 def listed_pg18_tests(output: str) -> frozenset[str]:
-    """Trust Cargo's exact --ignored --list test identity, not a frozen count."""
+    """Partition the compiled ignored inventory, not a test-name prefix.
+
+    PG-only Core has explicit historical-stage, Windows database witness,
+    and systemd-only lanes. New ordinary ignored tests cannot silently
+    escape by changing their names. Duplicate separate lanes fail closed.
+    """
     cases = PG18_LISTED_CASE.findall(output)
-    if not cases or len(cases) != len(set(cases)) or any("pg18_" not in case for case in cases):
-        raise ValueError("physical PG18 native Cargo inventory missing, duplicate or out of scope")
-    return frozenset(cases)
+    if not cases or len(cases) != len(set(cases)):
+        raise ValueError("physical PG18 native inventory missing or duplicate")
+    excluded = [case for case in cases if case.rsplit("::", 1)[-1] in SEPARATE_LANES]
+    if len(excluded) != len({case.rsplit("::", 1)[-1] for case in excluded}):
+        raise ValueError("physical PG18 separate lane identity is ambiguous")
+    expected = frozenset(cases) - set(excluded)
+    if not expected:
+        raise ValueError("physical PG18 native inventory contains no PG portfolio tests")
+    return expected
 
 
 def exact_test_count(output: str, expected: frozenset[str]) -> int:
@@ -136,9 +142,8 @@ def compile_pg_test_binary(cargo: str, env: dict[str, str]) -> tuple[Path, str]:
     build_env = dict(env)
     build_env.pop("ORDIVON_PG_TEST_DSN", None)
     build_env.pop("ORDIVON_PG_STAGE_TEST_DSN", None)
-    args = CARGO_ARGS[: CARGO_ARGS.index("--") - 1]
     built = subprocess.run(
-        [cargo, *args, "--no-run", "--message-format=json"], cwd=ROOT,
+        [cargo, *CARGO_ARGS, "--no-run", "--message-format=json"], cwd=ROOT,
         env=build_env, capture_output=True, text=True, timeout=400,
     )
     if built.returncode:
@@ -160,7 +165,7 @@ def compile_pg_test_binary(cargo: str, env: dict[str, str]) -> tuple[Path, str]:
 
 
 def verify_native_selection(
-    compiled: tuple[Path, str], args: tuple[str, ...], env: dict[str, str],
+    compiled: tuple[Path, str], env: dict[str, str],
     *, identity: str | None = None,
 ) -> int:
     """List and execute one Cargo-selected libtest artifact without rebuilding."""
@@ -185,8 +190,9 @@ def verify_native_selection(
         unchanged()
         return result
 
-    selector = args[args.index("--") - 1]
-    listed = run(selector, "--ignored", "--list")
+    # Discover all ignored cases of this exact binary before partitioning.
+    # The explicit historical-stage/Windows witness remains a single lane.
+    listed = run(*([identity] if identity is not None else []), "--ignored", "--list")
     if listed.returncode:
         raise RuntimeError(f"native libtest inventory failed (exit={listed.returncode})")
     expected = (
@@ -221,7 +227,6 @@ def explicit_lane(lane: str) -> int:
     env.pop("ORDIVON_PG_TEST_DSN" if stage else "ORDIVON_PG_STAGE_TEST_DSN", None)
     count = verify_native_selection(
         compile_pg_test_binary(cargo, env),
-        single_case_args(STAGE_CASE) if stage else CARGO_ARGS,
         env, identity=STAGE_CASE if stage else None,
     )
     print(f"{'STAGE' if stage else 'PHYSICAL'}_PG18_PASS={count}/{count}")
@@ -299,10 +304,10 @@ def main() -> int:
             print(f"sourceCut={source} standing={'DIRTY_UNQUALIFIED' if dirty else 'CLEAN'}")
             fixture_env = fixture_environment(os.environ, root, port)
             compiled = compile_pg_test_binary(cargo, fixture_env)
-            n = verify_native_selection(compiled, CARGO_ARGS, fixture_env)
+            n = verify_native_selection(compiled, fixture_env)
             print(f"DISPOSABLE_PG18_PASS={n}/{n}")
             n = verify_native_selection(
-                compiled, WINDOWS_PG_WITNESS_ARGS, fixture_env, identity=WINDOWS_PG_WITNESS_CASE
+                compiled, fixture_env, identity=WINDOWS_PG_WITNESS_CASE
             )
             print(f"DISPOSABLE_WINDOWS_PG_WITNESS_PASS={n}/{n}")
         finally:

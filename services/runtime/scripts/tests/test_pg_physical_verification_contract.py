@@ -87,7 +87,7 @@ class PgPhysicalVerificationContractTests(unittest.TestCase):
 
     def test_both_direct_lanes_require_nonempty_exact_executed_inventory(self) -> None:
         for lane, variable, name in (
-            ("physical", "ORDIVON_PG_TEST_DSN", "pg18_fixture"),
+            ("physical", "ORDIVON_PG_TEST_DSN", "native_recovery_without_pg18_prefix"),
             ("stage", "ORDIVON_PG_STAGE_TEST_DSN", "historical_pg_stage_is_not_an_admission_authority"),
         ):
             task = f"test:postgres-registry:{lane}"
@@ -100,7 +100,14 @@ class PgPhysicalVerificationContractTests(unittest.TestCase):
                     for row in trace["pgNativeWitnesses"] if row["evidenceMode"] == "physical-opt-in"
                 ]
             names = [*required, qualified]
-            inventory = "\n".join(f"{case}: test" for case in names) + f"\n{len(names)} tests, 0 benchmarks"
+            separate = (
+                ["stage::historical_pg_stage_is_not_an_admission_authority",
+                 "windows::windows_pg_bundle_consumer_reads_real_admission_without_claiming_process",
+                 "linux::native_systemctl_missing_unit_is_explicit_negative_evidence"]
+                if lane == "physical" else []
+            )
+            full_inventory = [*names, *separate]
+            inventory = "\n".join(f"{case}: test" for case in full_inventory) + f"\n{len(full_inventory)} tests, 0 benchmarks"
             output = "\n".join(f"test {case} ... ok" for case in names) + f"\ntest result: ok. {len(names)} passed; 0 failed; 0 ignored;"
             for label, listed, observed, code in (
                 ("positive", inventory, output, 0),
