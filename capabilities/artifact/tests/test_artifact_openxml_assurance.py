@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 import zipfile
@@ -10,11 +11,9 @@ from pathlib import Path
 
 import pytest
 
-pytestmark = pytest.mark.integration
-
 ROOT=Path(__file__).resolve().parents[1]
 DEFAULT=Path('/root/.local/share/ordivon-workstation/artifact-openxml-v1/current/bin/validate-openxml')
-PYTHON=Path('/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python')
+PYTHON=Path(sys.executable)
 def validator()->Path:return Path(os.environ.get('ARTIFACT_OPENXML_VALIDATOR',str(DEFAULT)))
 def run(path:Path):return subprocess.run([str(validator()),str(path)],text=True,capture_output=True,check=False,timeout=60)
 def make_pptx(path:Path,*,off_canvas:bool=False):
@@ -35,13 +34,14 @@ def make_docx(path:Path):
 def make_xlsx(path:Path):
     code="import xlsxwriter,sys;w=xlsxwriter.Workbook(sys.argv[1]);s=w.add_worksheet();s.write('A1','Artifact OpenXML');w.close()"
     r=subprocess.run([str(PYTHON),'-c',code,str(path)],text=True,capture_output=True,check=False,timeout=60);assert r.returncode==0,(r.stdout,r.stderr)
+def test_claim_and_fault_taxonomy_preserve_nonclaims():
+    claim=json.loads((ROOT/'artifact-delivery/openxml-assurance-method-v1.json').read_text());faults=json.loads((ROOT/'artifact-delivery/openxml-assurance-fault-taxonomy-v1.json').read_text())
+    assert claim['methodId']==faults['methodId'];assert 'Microsoft Office application behavior or target rendering is correct' in claim['nonClaims'];assert any(x['claimBoundary']=='explicit non-claim' for x in faults['classes'])
+
+@pytest.mark.integration
 class ArtifactOpenXmlAssuranceTests(unittest.TestCase):
     def setUp(self):
         if not validator().is_file():self.skipTest('stable OpenXML validator is not production-current')
-        if not PYTHON.is_file():self.skipTest('stable Artifact Python is not production-current')
-    def test_claim_and_fault_taxonomy_preserve_nonclaims(self):
-        claim=json.loads((ROOT/'artifact-delivery/openxml-assurance-method-v1.json').read_text());faults=json.loads((ROOT/'artifact-delivery/openxml-assurance-fault-taxonomy-v1.json').read_text())
-        self.assertEqual(claim['methodId'],faults['methodId']);self.assertIn('Microsoft Office application behavior or target rendering is correct',claim['nonClaims']);self.assertTrue(any(x['claimBoundary']=='explicit non-claim' for x in faults['classes']))
     def test_known_good_pptx_passes(self):
         with tempfile.TemporaryDirectory() as d:
             p=Path(d)/'good.pptx';make_pptx(p);r=run(p);self.assertEqual(r.returncode,0,r.stdout+r.stderr);self.assertEqual(json.loads(r.stdout)['status'],'PASS')

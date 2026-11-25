@@ -126,6 +126,23 @@ class ProcessingDiscoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "profile digest changed"):
             execute_surface_action("studio_processing_probe_plan", args, root=root)
 
+    def test_otio_plan_requires_attempt_specific_native_evidence_directory(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        profiles = execute_surface_action("studio_processing_profiles", {}, root=root)["profiles"]
+        profile = next(item for item in profiles
+                       if item["profileKind"] == "ordivon.media.v2.otio-profile")
+        result = execute_surface_action("studio_processing_probe_plan", {
+            "profileId": profile["id"],
+            "expectedProfileDigest": profile["profileDigest"],
+            "expectedAdapterDigest": profile["adapterDigest"],
+            "inputPath": "selected.otio",
+            "evidenceDirectory": "out/attempt-specific/evidence",
+        }, root=root)
+        self.assertEqual(result["expectedReceipt"], "out/attempt-specific/evidence/evidence.json")
+        self.assertEqual(result["execution"]["args"][-1], "out/attempt-specific/evidence")
+        self.assertEqual(result["evidenceDirectoryPolicy"]["mode"], "new-directory-per-attempt")
+        self.assertEqual(result["evidenceDirectoryPolicy"]["onExisting"], "reject-preserve-prior-evidence")
+
     def test_source_byte_drift_rebinds_both_profile_and_adapter(self) -> None:
         """One real compiler-consumer trace, not a claim of mathematical code refinement."""
         from ordivon_studio.agent_processing import processing_probe_plan

@@ -58,13 +58,22 @@ func enemy_interval() -> float:
         return _initial_interval
     return maxf(0.36, _initial_interval - float(_delivered) * 0.16)
 
+# Compare the closed contact disk over the coordinates actually supplied
+# by the native scene. Vector2.distance_squared_to rounds in real_t
+# (float32 on standard builds); scalar GDScript float intermediates
+# preserve the boundary without a square root.
+func _in_contact(position: Vector2, target: Vector2) -> bool:
+    var dx: float = position.x - target.x
+    var dy: float = position.y - target.y
+    return dx * dx + dy * dy <= CONTACT_RADIUS_SQUARED
+
 func step_position(position: Vector2) -> Event:
     if _phase != "playing":
         return Event.NONE
-    if not _carrying and position.distance_squared_to(next_pickup()) <= CONTACT_RADIUS_SQUARED:
+    if not _carrying and _in_contact(position, next_pickup()):
         _carrying = true
         return Event.PICKED_UP
-    if _carrying and position.distance_squared_to(_depot) <= CONTACT_RADIUS_SQUARED:
+    if _carrying and _in_contact(position, _depot):
         _carrying = false
         _delivered += 1
         if _delivered == total:
