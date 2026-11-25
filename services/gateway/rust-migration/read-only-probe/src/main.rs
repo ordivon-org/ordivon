@@ -3,6 +3,8 @@ mod matching;
 mod native_discovery;
 mod owner_credential;
 mod owner_observation;
+mod owner_resolution;
+mod owner_transport;
 use logic::{
     DescriptionInput, parse_execution_ref, system_describe, valid_status_envelope,
     valid_target_inventory,
@@ -100,6 +102,10 @@ fn eval(v: Value) -> Value {
         },
         Some("status") => json!(valid_status_envelope(input)),
         Some("inventory") => json!(valid_target_inventory(input)),
+        Some("resolve_page") => json!(owner_resolution::project(
+            &input["page"],
+            input["requestId"].as_str().unwrap_or_default()
+        )),
         Some("reference") => json!(input.as_str().and_then(parse_execution_ref)),
         Some("describe") => match serde_json::from_value::<DescriptionInput>(input.clone()) {
             Ok(fixture) => match system_describe(&fixture) {
@@ -164,6 +170,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("{}", serde_json::to_string(&result)?);
                 io::stdout().flush()?;
             }
+        }
+        Some("resolve-protected-runtime-fixture") => {
+            let endpoint=args.next().ok_or("fixture endpoint required")?;
+            let credential=args.next().ok_or("fixture credential path required")?;
+            let request_id=args.next().ok_or("fixture request identity required")?;
+            let legacy=match args.next().as_deref(){
+                None|Some("auto")=>false,
+                Some("legacy")=>true,
+                _=>return Err("unexpected fixture mode".into()),
+            };
+            if args.next().is_some(){return Err("unexpected arguments".into());}
+            let result=owner_resolution::resolve_protected_fixture(&endpoint,std::path::Path::new(&credential),&request_id,legacy).await;
+            println!("{}",serde_json::to_string(&result)?);
         }
         Some("observe-protected-runtime-fixture") => {
             let endpoint = args.next().ok_or("fixture endpoint required")?;

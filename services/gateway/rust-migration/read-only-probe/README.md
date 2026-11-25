@@ -228,3 +228,45 @@ native Host typed-error receiver; test lost response, accepted receipt,
 resolve by original key, cancellation and concurrent fault schedules as
 those capabilities are implemented. Never use read-only fixture results as
 evidence of effect-safe replay.
+
+## R16 original operation reattachment (Host #32979)
+
+Thought: keep transport lifecycle separate from semantic projection; delegate
+identity and principal-scoped current-epoch lookup to the natural PG Runtime.
+A lost response is not evidence of non-admission. No replay or submission is
+part of reattachment.
+
+| Logic | Capability | Contract / falsifier |
+| --- | --- | --- |
+| L07 endpoint and credentials | existing POSIX fixture loader | exact loopback before secret access; invalid file means zero RPC |
+| L08 SDK carrier | owner_transport.rs / rmcp / reqwest / Tokio | closed ReadRequest enum: runtime.describe or job.list; one business RPC; no redirect, retry or expired-session reinit |
+| L09 request binding | RuntimeJobListRequest | limit=2, exact clientRequestId; no invented schemaVersion or public arbitrary tool |
+| L10 resolution | owner_resolution.rs | Found, Absent, Ambiguous, Unobserved; validate every row before choosing; exact job/workspace; continuation requires a full page and matching final coordinate |
+| L11 onward | existing reference grammar | operationRef roundtrip; no claim of execution or semantic completion |
+| Verification | Proptest independent oracle, native SDK TCP | generated cardinality/identity and traces; qualified page, malformed page, wrong credential, response fault; no retry |
+
+I: operator-selected fixture endpoint and credential path, original request ID.
+O: qualified page resolution or Unobserved. Pre: existing private fixture
+credential, exact route, nonempty original ID. Invariants: no foreign identity,
+no invented unique resolution, no effect dispatch, no interpretation of a
+failed read as absence. Effect: bounded read of job.list only. Cost: one
+business RPC, at most two rows (bounded transport response). Provenance:
+exact Git, original Runtime producer contract, native fixtures and separate
+natural Runtime readback. Unknown: production identity binding and authenticated
+Rust consumer, public ABI, deployment, full producer schema compatibility.
+
+PG Runtime's actual list implementation uses a principal-scoped repeatable-read
+read-only transaction with qualified writer epoch and a limit+1 cursor.
+Its PG page returns nextCursor=null for exhaustion; older typed results can
+omit absent cursors. The native candidate deliberately rejects malformed
+pagination/row identities rather than treating them as a usable resolution.
+The Python production path and public tool surface are unchanged. A real
+Runtime job.list readback through the existing authorized connector can
+witness producer shape, but passing it to the pure evaluator is NOT native
+protected production transport qualification.
+
+Keep full gateway:verify, prior stateful transport controls, and formal
+verification. Future: actual natural producer standing, verified principal
+namespace, versioned public ABI, explicit receipt/state versus execution
+effects and qualified typed errors. Do not route job.observe as a pure read:
+it can dispatch an accepted Job. No automatic re-submission follows Absent.

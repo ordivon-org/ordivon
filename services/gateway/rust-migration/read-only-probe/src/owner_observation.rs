@@ -2,16 +2,9 @@
 //! The fixture endpoint is operator-selected, never a public tool argument.
 
 use crate::logic::{valid_status_envelope, valid_target_inventory};
-use crate::owner_credential::read_fixture_bearer;
-use rmcp::{
-    ClientLifecycleMode, ClientServiceExt,
-    model::{CallToolRequestParams, CallToolResult, ClientConfig, ProtocolVersion},
-    transport::streamable_http_client::{
-        StreamableHttpClientTransport, StreamableHttpClientTransportConfig,
-    },
-};
+use crate::owner_transport::{ReadRequest, fixture_endpoint, protected_read, read_endpoint};
 use serde::Serialize;
-use serde_json::json;
+use serde_json::Value;
 use std::{path::Path, time::Duration};
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
@@ -26,26 +19,7 @@ fn unknown(reason: &'static str) -> Observation {
     Observation::Unobserved { reason }
 }
 
-fn fixture_endpoint(endpoint: &str) -> Option<reqwest::Url> {
-    let url = reqwest::Url::parse(endpoint).ok()?;
-    (url.scheme() == "http"
-        && url.host_str() == Some("127.0.0.1")
-        && url.port().is_some()
-        && url.path() == "/mcp"
-        && url.username().is_empty()
-        && url.password().is_none()
-        && url.query().is_none()
-        && url.fragment().is_none())
-    .then_some(url)
-}
-
-fn project(result: CallToolResult, expected_node: &str) -> Observation {
-    if result.is_error == Some(true) {
-        return unknown("owner_tool_error");
-    }
-    let Some(value) = result.structured_content else {
-        return unknown("structured_result_absent");
-    };
+fn project(value: Value, expected_node: &str) -> Observation {
     if !valid_status_envelope(&value) {
         return unknown("invalid_status_envelope");
     }
@@ -89,7 +63,10 @@ pub async fn observe_runtime(
     let Some(url) = fixture_endpoint(endpoint) else {
         return unknown("unqualified_fixture_endpoint");
     };
-    observe_endpoint(url, expected_node, budget, legacy, None).await
+    match read_endpoint(url, budget, legacy, None, ReadRequest::Describe).await {
+        Ok(value) => project(value, expected_node),
+        Err(reason) => unknown(reason),
+    }
 }
 
 pub async fn observe_protected_runtime(
@@ -99,84 +76,17 @@ pub async fn observe_protected_runtime(
     budget: Duration,
     legacy: bool,
 ) -> Observation {
-    // Qualify route before opening a secret. No anonymous fallback.
-    let Some(url) = fixture_endpoint(endpoint) else {
-        return unknown("unqualified_fixture_endpoint");
-    };
-    let Ok(token) = read_fixture_bearer(credential) else {
-        return unknown("unqualified_fixture_credential");
-    };
-    observe_endpoint(url, expected_node, budget, legacy, Some(token)).await
-}
-
-async fn observe_endpoint(
-    url: reqwest::Url,
-    expected_node: &str,
-    budget: Duration,
-    legacy: bool,
-    bearer: Option<String>,
-) -> Observation {
-    let observed = tokio::time::timeout(budget, async {
-        let Ok(http) = reqwest::Client::builder()
-            .no_proxy()
-            .redirect(reqwest::redirect::Policy::none())
-            .retry(reqwest::retry::never())
-            .timeout(budget)
-            .build()
-        else {
-            return unknown("client_configuration");
-        };
-        let mut config = StreamableHttpClientTransportConfig::with_uri(url.as_str());
-        if let Some(token) = bearer {
-            config = config.auth_header(token);
-        }
-        config.max_json_response_size = 1024 * 1024;
-        config.max_sse_event_size = 1024 * 1024;
-        config.max_error_response_size = 0;
-        config.reinit_on_expired_session = false;
-        config.max_concurrent_requests = 1;
-        let transport = StreamableHttpClientTransport::with_client(http, config);
-        let Ok(client) = ClientConfig::default()
-            .serve_with_lifecycle(
-                transport,
-                if legacy {
-                    ClientLifecycleMode::Initialize
-                } else {
-                    ClientLifecycleMode::Auto {
-                        preferred_versions: vec![ProtocolVersion::V_2026_07_28],
-                        legacy_version: Some(ProtocolVersion::V_2025_11_25),
-                    }
-                },
-            )
-            .await
-        else {
-            return unknown("negotiation_failed");
-        };
-        // No generic tool dispatch or automatic MRTR. Read exactly one tool.
-        let arguments = json!({"schemaVersion": 1});
-        let response = client
-            .call_tool(
-                CallToolRequestParams::new("runtime.describe")
-                    .with_arguments(arguments.as_object().expect("literal object").clone()),
-            )
-            .await;
-        let observation = match response {
-            Ok(result) => project(result, expected_node),
-            Err(_) => unknown("protocol_or_transport_failed"),
-        };
-        let _ = client.cancel().await;
-        observation
-    })
-    .await;
-    observed.unwrap_or_else(|_| unknown("observation_deadline"))
+    match protected_read(endpoint, credential, budget, legacy, ReadRequest::Describe).await {
+        Ok(value) => project(value, expected_node),
+        Err(reason) => unknown(reason),
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use proptest::prelude::*;
-    use rmcp::model::CallToolResult;
-    use serde_json::Value;
+    use serde_json::json;
 
     fn fixture() -> Value {
         json!({
@@ -190,7 +100,7 @@ mod tests {
     fn distinct_reported_false_and_unknown() {
         let v = fixture();
         assert_eq!(
-            project(CallToolResult::structured(v.clone()), "fixture-linux"),
+            project(v.clone(), "fixture-linux"),
             Observation::Reported {
                 configured: true,
                 available: false
@@ -204,14 +114,11 @@ mod tests {
             json!({"schemaVersion":1,"node":v["node"],"targets":[]}),
         ] {
             assert!(matches!(
-                project(CallToolResult::structured(bad), "fixture-linux"),
+                project(bad, "fixture-linux"),
                 Observation::Unobserved { .. }
             ));
         }
-        assert_eq!(
-            project(CallToolResult::structured(v), "other"),
-            unknown("unqualified_node")
-        );
+        assert_eq!(project(v, "other"), unknown("unqualified_node"));
     }
 
     proptest! {
@@ -234,7 +141,7 @@ mod tests {
                 unknown("invalid_execution_context_inventory")
             };
             v["targets"][0]["executionProfiles"]=context;
-            prop_assert_eq!(project(CallToolResult::structured(v),"fixture-linux"),expected);
+            prop_assert_eq!(project(v,"fixture-linux"),expected);
         }
     }
 
