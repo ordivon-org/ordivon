@@ -11,17 +11,21 @@ suffices for a global upper bound. No solver status is an exact certificate.
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping, Set
 from dataclasses import dataclass
 from fractions import Fraction
+from itertools import islice
 from typing import Any
 
-from .information_tree import MultistageProblem, validate_information_tree
+from .information_tree import MultistageProblem, ValidatedInformationTree, validate_information_tree
 from .policy_contract import finite_economic_number
 from .rational_enclosure import enclose_inverse_power, enclose_rational
 
 Q = Fraction
 ZERO = Q(0)
 _MAX_EXACT_BITS = 16_384
+_MAX_EXACT_NODES = 63
+_MAX_EXACT_ASSETS = 16
 _RATIONAL_REASON = "EXACT_INPUT_CONDITIONAL_PROBABILITIES_AND_RECONSTRUCTED_CASH_DEBT_TURNOVER"
 _DYADIC_REASON = "EXACT_DYADIC_GRADIENT_ENCLOSURE_AND_CANONICAL_WITNESS"
 
@@ -30,6 +34,46 @@ _DYADIC_REASON = "EXACT_DYADIC_GRADIENT_ENCLOSURE_AND_CANONICAL_WITNESS"
 class DualProposal:
     inequality_marginals: tuple[float, ...]
     equality_marginals: tuple[float, ...]
+
+
+def proof_dual_dimensions(tree: ValidatedInformationTree) -> tuple[int, int] | None:
+    """Finite receipt coordinate budget; not an economic admission rule."""
+    if len(tree.ordered) > _MAX_EXACT_NODES or tree.asset_count > _MAX_EXACT_ASSETS:
+        return None
+    d = len(tree.decision)
+    # Non-root maintenance + arrivals, local turnover/margin, terminal surplus.
+    return 2 * (len(tree.ordered) - 1) + (2 * tree.asset_count + 1) * d + len(tree.leaves), d
+
+
+def freeze_dual_proposal(
+    inequality_multipliers: Any,
+    equality_multipliers: Any,
+    dimensions: tuple[int, int],
+) -> DualProposal | None:
+    """Reject excess or malformed coordinates without exhausting iterators.
+
+    The finite consumption bound is count-based; it is not a wall-time
+    sandbox for arbitrary caller-provided Python iterator implementations.
+    """
+
+    def coordinates(values: Any, count: int) -> tuple[float, ...] | None:
+        if isinstance(values, (str, bytes, bytearray, Mapping, Set)):
+            return None
+        try:
+            raw = tuple(islice(iter(values), count + 1))
+            if len(raw) != count or any(not finite_economic_number(v) for v in raw):
+                return None
+            return tuple(map(float, raw))
+        except TypeError, ValueError, OverflowError:
+            return None
+
+    y = coordinates(inequality_multipliers, dimensions[0])
+    if y is None:
+        return None
+    lam = coordinates(equality_multipliers, dimensions[1])
+    if lam is None:
+        return None
+    return DualProposal(y, lam)
 
 
 @dataclass(frozen=True)
@@ -70,7 +114,8 @@ def certify_canonical_gap(
     gamma_q = Q(problem.gamma)
     if not 0 < gamma_q <= 16 or gamma_q.denominator > 16:
         return unknown("DYADIC_GAMMA_UP_TO_16_WITH_DENOMINATOR_AT_MOST_16_ONLY")
-    if len(tree.ordered) > 63 or tree.asset_count > 16:
+    dimensions = proof_dual_dimensions(tree)
+    if dimensions is None:
         return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
     if gradient_method == "AUTO":
         # Small integer contracts retain exact rational receipts. Larger
@@ -228,16 +273,13 @@ def certify_canonical_gap(
     # Exact dual correction: for any y>=0, lambda unrestricted,
     # g*x <= b*y+d*lambda+sum(max(0,g-A'y-E'lambda)*cap).
     # All coefficient products are rational, including original margin*gross.
-    try:
-        proposal = DualProposal(
-            tuple(map(float, inequality_multipliers)), tuple(map(float, equality_multipliers))
-        )
-        y = [max(ZERO, -Q(v)) for v in proposal.inequality_marginals]
-        lam = [-Q(v) for v in proposal.equality_marginals]
-    except TypeError, ValueError, OverflowError:
+    if dimensions != (len(ub), len(eq)):
+        return unknown("INCONSISTENT_DUAL_COORDINATES")
+    proposal = freeze_dual_proposal(inequality_multipliers, equality_multipliers, dimensions)
+    if proposal is None:
         return unknown("MALFORMED_DUAL_PROPOSAL")
-    if len(y) != len(ub) or len(lam) != len(eq):
-        return unknown("MALFORMED_DUAL_PROPOSAL")
+    y = [max(ZERO, -Q(v)) for v in proposal.inequality_marginals]
+    lam = [-Q(v) for v in proposal.equality_marginals]
     residual = grad.copy()
     upper = ZERO
     for multiplier, (row, rhs) in zip((*y, *lam), (*ub, *eq), strict=True):

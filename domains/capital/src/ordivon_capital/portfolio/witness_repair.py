@@ -14,10 +14,12 @@ from dataclasses import asdict, dataclass
 from fractions import Fraction
 from typing import Any
 
-from .information_tree import MultistageProblem, validate_information_tree
+from .information_tree import MultistageProblem, ValidatedInformationTree, validate_information_tree
 from .optimality_evidence import (
     OptimalityEvidence,
     certify_canonical_gap,
+    freeze_dual_proposal,
+    proof_dual_dimensions,
     verify_canonical_gap_claim,
 )
 from .policy_contract import AlgebraicPolicyError, finite_economic_number
@@ -53,7 +55,9 @@ def _problem_digest(problem: MultistageProblem) -> str:
     return _digest(raw)
 
 
-def _validate_source(problem: MultistageProblem, source: dict[str, tuple[float, ...]]) -> None:
+def _validate_source(
+    problem: MultistageProblem, source: dict[str, tuple[float, ...]]
+) -> ValidatedInformationTree:
     tree = validate_information_tree(problem)
     if not isinstance(source, dict) or set(source) != {n.id for n in tree.decision}:
         raise AlgebraicPolicyError("repair requires complete original risky policy")
@@ -64,6 +68,7 @@ def _validate_source(problem: MultistageProblem, source: dict[str, tuple[float, 
         for row in source.values()
     ):
         raise AlgebraicPolicyError("repair requires finite aligned risky positions")
+    return tree
 
 
 def _candidate(source: dict[str, tuple[float, ...]], exponent: int):
@@ -98,12 +103,21 @@ def repair_canonical_witness(
         raise AlgebraicPolicyError("finite nonnegative repair budget required")
     if not finite_economic_number(numerical_estimate) or numerical_estimate < 0:
         raise AlgebraicPolicyError("finite nonnegative numerical estimate required")
-    _validate_source(problem, source)
-    # Freeze any iterator before replay. Malformed proposals fail closed.
-    try:
-        y, lam = tuple(inequality_multipliers), tuple(equality_multipliers)
-    except TypeError:
-        y, lam = (), ()
+    tree = _validate_source(problem, source)
+    dimensions = proof_dual_dimensions(tree)
+    proposal = (
+        None
+        if dimensions is None
+        else freeze_dual_proposal(inequality_multipliers, equality_multipliers, dimensions)
+    )
+    y, lam = (
+        ((), ())
+        if proposal is None
+        else (
+            proposal.inequality_marginals,
+            proposal.equality_marginals,
+        )
+    )
     original = certify_canonical_gap(problem, source, y, lam, numerical_estimate)
     problem_id, source_id = _problem_digest(problem), _digest(source)
 
@@ -112,6 +126,8 @@ def repair_canonical_witness(
 
     if original.reason != "INEXACT_WITNESS":
         return unknown("SOURCE_NOT_REPAIRABLE")
+    if proposal is None:
+        return unknown("MALFORMED_DUAL_PROPOSAL")
     for exponent in _CONTRACTION_EXPONENTS:
         candidate = _candidate(source, exponent)
         change = _delta(source, candidate)
