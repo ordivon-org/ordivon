@@ -26,6 +26,9 @@ REQUIRED = frozenset({
     "pg_runtime_refuses_privileged_session_hidden_behind_app_role",
     "pg_release_effect_atomic_admission_and_generic_dispatch_fence",
     "resource_queue_shared_workspace_restart_and_native_write_leases",
+    "terminal_observation::tests::same_identity_pending_then_failed_is_not_resubmission",
+    "terminal_observation::tests::reject_foreign_attempt_job_operation_and_false_terminal",
+    "terminal_observation::tests::no_unqualified_error_observation_or_vacuous_timeout",
 })
 SELECTION = (
     "--locked", "-p", PACKAGE, "--features", "postgres-runtime",
