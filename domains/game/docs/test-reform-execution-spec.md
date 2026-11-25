@@ -49,3 +49,11 @@ removed passes all nine old archive cases, but Hypothesis rejects it with
 field=SOURCE_TREE, value=0 (receipt value invalid_0, all hashes recomputed).
 Promote this witness to @example. This is one killed non-equivalent mutant,
 not an overall mutation score. No mutated source is published.
+
+
+The first broader mutation trial (8 applicable deletions, one unmatched
+patch excluded) found 7 generated kills and one survivor LINUX_SCOPE; all
+eight escaped the old fixed cases. Finite field obligations must not compete
+for a random example budget. Exhaust all 13 declared semantic fields for
+each generated invalid value and preserve value 0 as an explicit example.
+This is a finite-by-generated composition, not exhaustive value-space proof.

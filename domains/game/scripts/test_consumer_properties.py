@@ -32,19 +32,20 @@ class ConsumerProperties(unittest.TestCase):
             self.assertEqual(receipt["executable_sha256"], digest(exe))
 
     @PROFILE
-    @example(field="SOURCE_TREE", value="0")
-    @given(field=st.sampled_from(("SOURCE_COMMIT", "PRODUCT", "SOURCE_WORKTREE",
-                                 "RELEASE_PUBLISHED", "QUALIFICATION", "LINUX_SCOPE",
-                                 "WINDOWS_SCOPE", "BUILD_SCHEMA", "SOURCE_TREE",
-                                 "ENGINE_SHA256", "TEMPLATE_LINUX_SHA256",
-                                 "TEMPLATE_WINDOWS_SHA256", "ENGINE")),
-           value=st.text(alphabet="0123456789xyz_", min_size=1, max_size=12))
-    def test_rehashed_invalid_semantics(self, field, value):
-        # All generated values deliberately violate these field domains,
-        # except BUILD_SCHEMA=1; use a fixed invalid prefix for every field.
-        with fixture(fields_override={field: "invalid_" + value}) as case:
-            with self.assertRaisesRegex(ValueError, "source receipt differs|incomplete build identity"):
-                case.verify()
+    @example(value="0")
+    @given(value=st.text(alphabet="0123456789xyz_", min_size=1, max_size=12))
+    def test_rehashed_invalid_semantics(self, value):
+        # Finite obligation axis is exhaustive; only the unbounded value
+        # axis is generated. A sampled field axis left a real mutant alive.
+        for field in ("SOURCE_COMMIT", "PRODUCT", "SOURCE_WORKTREE",
+                      "RELEASE_PUBLISHED", "QUALIFICATION", "LINUX_SCOPE",
+                      "WINDOWS_SCOPE", "BUILD_SCHEMA", "SOURCE_TREE",
+                      "ENGINE_SHA256", "TEMPLATE_LINUX_SHA256",
+                      "TEMPLATE_WINDOWS_SHA256", "ENGINE"):
+            with fixture(fields_override={field: "invalid_" + value}) as case:
+                with self.assertRaisesRegex(ValueError, "source receipt differs|incomplete build identity",
+                                            msg=f"field={field}"):
+                    case.verify()
 
     @PROFILE
     @given(name=st.text(alphabet="abcXYZ0123456789", min_size=1, max_size=24),
