@@ -211,10 +211,11 @@ class DependencyUpdateOwnershipTests(unittest.TestCase):
             self.assertEqual(update["groups"]["same-dependency"], {"group-by": "dependency-name"})
             self.assertEqual(len(update["directories"]), len(set(update["directories"])))
         cargo = by_ecosystem["cargo"]
-        self.assertEqual(
-            set(cargo["directories"]),
-            {"/services/harness", "/services/runtime"},
-        )
+        # The preceding manifest-coverage test proves exactly one real
+        # updater for every tracked Cargo manifest. New independent owners
+        # are allowed without editing a second hard-coded directory inventory.
+        self.assertGreater(len(cargo["directories"]), 1)
+        self.assertEqual(len(cargo["directories"]), len(set(cargo["directories"])))
         self.assertEqual(
             cargo["groups"]["same-dependency"], {"group-by": "dependency-name"}
         )
