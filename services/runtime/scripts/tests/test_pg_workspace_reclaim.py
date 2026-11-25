@@ -267,7 +267,7 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                           ignored_emerges_during_get: bool = False,
                           close_transport_uncertain: bool = False,
                           job_case: str = "succeeded",
-                          owner_released: bool = False,
+                          owner_released: bool = True,
                           active_at_get: bool = False,
                           integration_ref: str = "refs/remotes/origin/main"):
         import argparse
@@ -362,6 +362,91 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
             report = mod.run(args)
         return report, client
 
+    def test_disposition_recheck_uses_each_candidate_not_last_scanned_job(self):
+        """Exact release is scoped to one workspace, including at close.
+
+        Interleaving another successful or failed workspace must not change
+        whether this workspace's revoked release blocks physical deletion.
+        """
+        import argparse
+        import json
+        import time
+        from unittest.mock import patch
+
+        self.git("update-ref", "refs/remotes/origin/main", self.head)
+        second = self.workspaces / "ws-z-second-candidate"
+        self.git("worktree", "add", "--detach", str(second), self.head)
+        future_ms = int((time.time() + 6 * 3600) * 1000)
+        policy_path = self.policy_file(False, released=True)
+        original = json.loads(policy_path.read_text())
+        original["rules"].append({
+            "workspaceId": second.name, "class": "ephemeral",
+            "operatorConsumerReleased": True,
+        })
+        for first_resolution, second_resolution in (
+            ("failed", "succeeded"), ("succeeded", "failed"),
+            ("failed", "failed"), ("succeeded", "succeeded"),
+        ):
+            with self.subTest(first=first_resolution, second=second_resolution):
+                policy_path.write_text(json.dumps(original))
+                for workspace in (self.workspace, second):
+                    if not workspace.exists():
+                        self.git("worktree", "add", "--detach", str(workspace), self.head)
+                args = argparse.Namespace(
+                    env_file=self.root / "mock-env",
+                    source_repo=self.repo, workspace_root=self.workspaces,
+                    min_age_hours=4, limit=25, apply=True,
+                    policy_file=policy_path,
+                    integration_ref="refs/remotes/origin/main",
+                )
+                job_rows = {
+                    self.workspace.name: (future_ms - 5 * 3600 * 1000, first_resolution, 0),
+                    second.name: (future_ms - 5 * 3600 * 1000, second_resolution, 0),
+                }
+                closed = []
+                def call(name, parameters):
+                    workspace_id = parameters["workspaceId"]
+                    if name == "workspace.get":
+                        # At first candidate's final authorization check,
+                        # revoke ONLY its owner disposition.
+                        if workspace_id == self.workspace.name:
+                            updated = json.loads(policy_path.read_text())
+                            updated["rules"][0]["operatorConsumerReleased"] = False
+                            policy_path.write_text(json.dumps(updated))
+                        return {
+                            "workspaceId": workspace_id, "dirty": False,
+                            "activeJobIds": [], "sourceRepo": str(self.repo.resolve()),
+                            "currentHeadRevision": self.head,
+                            "createdAtMs": future_ms - 7 * 3600 * 1000,
+                            "sourceStateDigest": "sha256:" + "f" * 64,
+                        }
+                    self.assertEqual(name, "workspace.close")
+                    self.assertFalse(parameters["force"])
+                    self.assertFalse(parameters["consumerReleased"])
+                    self.git("worktree", "remove", str(self.workspaces / workspace_id))
+                    closed.append(workspace_id)
+                    return {"closureDisposition": "removed"}
+
+                from unittest.mock import Mock
+                client = Mock()
+                client.call_tool.side_effect = call
+                with (
+                    patch.object(mod, "WORKSPACE_ROOT", self.workspaces.resolve()),
+                    patch.object(mod, "load_environment_file", return_value={
+                        "ORDIVON_PG_BIND": "127.0.0.1:0", "ORDIVON_PG_TOKEN": "test",
+                    }),
+                    patch.object(mod, "_jobs", return_value=job_rows),
+                    patch.object(mod, "_active_process_cwds", return_value=[]),
+                    patch.object(mod.time, "time", return_value=future_ms / 1000),
+                    patch.object(mod, "connect_compatible", return_value=client),
+                ):
+                    report = mod.run(args)
+                expected = [second.name]
+                self.assertCountEqual(closed, expected)
+                self.assertCountEqual(report["closed"], expected)
+                self.assertTrue(self.workspace.exists())
+                self.assertFalse(second.exists())
+
     def test_real_git_dry_run_respects_installed_unintegrated_policy(self):
         disabled, _ = self.run_operator_plan(allow=False)
         self.assertEqual(disabled["eligible"], 0)
@@ -392,7 +477,7 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
         for outcome in ("no_job", "failed", "timed_out", "cancelled"):
             with self.subTest(outcome=outcome):
                 report, client = self.run_operator_plan(
-                    allow=False, job_case=outcome, apply=True
+                    allow=False, job_case=outcome, apply=True, owner_released=False
                 )
                 self.assertEqual(report["eligible"], 0)
                 self.assertEqual(
@@ -401,6 +486,32 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                 self.assertEqual(report["needsOwnerDisposition"], [self.workspace.name])
                 self.assertEqual(client.calls, [])
                 self.assertTrue(self.workspace.exists())
+
+    def test_successful_job_without_consumer_release_is_not_a_close_candidate(self):
+        # A consumer can be paused after a successful tool call, for longer
+        # than the quiet period. Integration or a retention ref is not release.
+        for integrated in (False, True):
+            with self.subTest(integrated=integrated):
+                if integrated:
+                    self.git("update-ref", "refs/remotes/origin/main", self.head)
+                report, client = self.run_operator_plan(
+                    allow=True, job_case="succeeded", owner_released=False
+                )
+                self.assertEqual(report["eligible"], 0)
+                self.assertEqual(report["skipped"].get("needs_owner_disposition"), 1)
+                self.assertEqual(client.calls, [])
+                self.assertTrue(self.workspace.exists())
+
+    def test_successful_job_release_revoked_during_get_blocks_close(self):
+        self.git("update-ref", "refs/remotes/origin/main", self.head)
+        report, client = self.run_operator_plan(
+            allow=False, job_case="succeeded", owner_released=True,
+            revoke_during_get=True, apply=True,
+        )
+        self.assertEqual(report["closed"], [])
+        self.assertEqual(report["skipped"].get("owner_disposition_revoked"), 1)
+        self.assertEqual(client.calls, ["workspace.get"])
+        self.assertTrue(self.workspace.exists())
 
     def test_broad_prefix_cannot_assert_consumer_released(self):
         import json

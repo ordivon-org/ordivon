@@ -141,6 +141,44 @@ R2CandidateClosedConsumerFinished ==
 R2CandidateFreshReleasedCloseUnreachable ==
     ~ (phase = "closed" /\ age = "fresh" /\ released)
 
+\* Automatic collector refinement: expiry and exact current operator release
+\* are BOTH necessary. Explicit user close is outside this profile.
+\* Release authenticity and native source/output/Claim fences are assumptions
+\* or separate refinement obligations, not proved by this bounded model.
+CollectorReleaseRevoked ==
+    /\ phase = "open"
+    /\ released
+    /\ released' = FALSE
+    /\ UNCHANGED <<phase, age, consumer, liveJob, gitDependent>>
+
+CollectorEligible ==
+    /\ R2CandidateEligible
+    /\ age = "expired"
+    /\ released
+
+CollectorClose ==
+    /\ R2CandidateClose
+    /\ CollectorEligible
+
+CollectorNext ==
+    \/ ConsumerFinishes
+    \/ ConsumerReleases
+    \/ CollectorReleaseRevoked
+    \/ AgeExpires
+    \/ BeginJob
+    \/ EndJob
+    \/ AddGitDependent
+    \/ RemoveGitDependent
+    \/ CollectorClose
+
+CollectorSpec == Init /\ [][CollectorNext]_vars /\ WF_vars(CollectorClose)
+
+CollectorClosedHasRelease ==
+    phase = "closed" => (released /\ age = "expired" /\ consumer = "finished")
+
+StableCollectorEligibleEventuallyClosed ==
+    (<>[]CollectorEligible) => <> (phase = "closed")
+
 TypeOK ==
     /\ phase \in {"open", "closed"}
     /\ age \in {"fresh", "expired"}
