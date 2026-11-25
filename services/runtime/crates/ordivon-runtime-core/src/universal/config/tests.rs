@@ -3,13 +3,15 @@ use super::{UniversalExecErrorCode, UniversalExecutorConfig};
 use std::path::PathBuf;
 
 fn config(root: PathBuf) -> UniversalExecutorConfig {
+    let runner = std::env::current_exe().unwrap();
+    let executable_root = runner.parent().unwrap().to_path_buf();
     UniversalExecutorConfig {
         store_root: root,
         workspace_root: None,
         workspace_uid: None,
         workspace_gid: None,
-        runner_path: Some(PathBuf::from("/usr/bin/true")),
-        allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
+        runner_path: Some(runner),
+        allowed_executable_roots: vec![executable_root],
         max_runtime_ms: 10_000,
         max_output_bytes: 1024,
     }
@@ -33,8 +35,21 @@ fn incomplete_native_task_identity_is_rejected_before_any_store_effect() {
         "invalid owner config must not mutate the filesystem"
     );
     cfg.workspace_gid = Some(65534);
+    #[cfg(unix)]
     cfg.validate()
         .expect("complete nonroot identity can be qualified");
+    #[cfg(not(unix))]
+    {
+        let error = cfg
+            .ensure_store()
+            .expect_err("Unix UID/GID must not qualify a non-Unix owner");
+        assert_eq!(error.code, UniversalExecErrorCode::InvalidRequest);
+        assert_eq!(error.field.as_deref(), Some("workspaceUid"));
+        assert!(
+            !root.exists(),
+            "foreign owner config must not mutate the filesystem"
+        );
+    }
 }
 
 #[cfg(unix)]

@@ -1225,38 +1225,7 @@ fn registered_workspace_head(
     if !source_repo.is_dir() {
         return Ok(None);
     }
-    let output = workspace_git_command()
-        .arg("-C")
-        .arg(source_repo)
-        .args(["worktree", "list", "--porcelain"])
-        .output()
-        .map_err(|error| tool_unavailable("git worktree list", error))?;
-    if !output.status.success() {
-        return Err(tool_failed("git worktree list", &output.stderr));
-    }
-    let wanted = Path::new(&record.workspace_path);
-    let text = String::from_utf8(output.stdout).map_err(|error| {
-        UniversalExecError::new(
-            UniversalExecErrorCode::ToolFailed,
-            format!("git worktree list output is not UTF-8: {error}"),
-            None,
-            false,
-        )
-    })?;
-    let mut matched = false;
-    for line in text.lines() {
-        if let Some(path) = line.strip_prefix("worktree ") {
-            matched = Path::new(path) == wanted;
-        } else if matched {
-            if let Some(head) = line.strip_prefix("HEAD ") {
-                return Ok(Some(head.to_string()));
-            }
-            if line.is_empty() {
-                matched = false;
-            }
-        }
-    }
-    Ok(None)
+    registered_worktree_head_at(source_repo, Path::new(&record.workspace_path))
 }
 
 fn recover_missing_workspace_head(
@@ -1285,38 +1254,7 @@ fn recover_missing_workspace_head(
                 )
             });
     }
-    let output = workspace_git_command()
-        .arg("-C")
-        .arg(source_repo)
-        .args(["worktree", "list", "--porcelain"])
-        .output()
-        .map_err(|error| tool_unavailable("git worktree list", error))?;
-    if !output.status.success() {
-        return Err(tool_failed("git worktree list", &output.stderr));
-    }
-    let wanted = Path::new(&record.workspace_path);
-    let text = String::from_utf8(output.stdout).map_err(|error| {
-        UniversalExecError::new(
-            UniversalExecErrorCode::ToolFailed,
-            format!("git worktree list output is not UTF-8: {error}"),
-            None,
-            false,
-        )
-    })?;
-    let mut matched = false;
-    for line in text.lines() {
-        if let Some(path) = line.strip_prefix("worktree ") {
-            matched = Path::new(path) == wanted;
-        } else if matched {
-            if let Some(head) = line.strip_prefix("HEAD ") {
-                return Ok(Some(head.to_string()));
-            }
-            if line.is_empty() {
-                matched = false;
-            }
-        }
-    }
-    Ok(None)
+    registered_workspace_head(record)
 }
 
 fn remove_git_worktree_from_workspace(
@@ -1746,13 +1684,15 @@ mod durable_closing_intent_tests {
         git(&source, &["add", "tracked.txt"]);
         git(&source, &["commit", "-qm", "initial"]);
         let head = git(&source, &["rev-parse", "HEAD"]);
+        let runner = std::env::current_exe().expect("native test executable");
+        let executable_root = runner.parent().unwrap().to_path_buf();
         let cfg = UniversalExecutorConfig {
             store_root: tmp.path().join("runtime-store"),
             workspace_root: None,
             workspace_uid: None,
             workspace_gid: None,
-            runner_path: Some(PathBuf::from("/usr/bin/true")),
-            allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
+            runner_path: Some(runner),
+            allowed_executable_roots: vec![executable_root],
             max_runtime_ms: 10000,
             max_output_bytes: 1024 * 1024,
         };

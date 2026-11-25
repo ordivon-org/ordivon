@@ -705,6 +705,8 @@ impl Runtime {
                         timeout_ms: plan.timeout_ms,
                         stdout_limit_bytes: plan.stdout_limit_bytes,
                         stderr_limit_bytes: plan.stderr_limit_bytes,
+                        #[cfg(windows)]
+                        pg_terminal_peer_pid: None,
                     }) {
                         Ok(dispatch) => dispatch,
                         Err(error) => {

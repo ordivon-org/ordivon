@@ -287,6 +287,99 @@ fn workspace_dirty_paths(workspace: &Path) -> Result<Vec<String>, UniversalExecE
     Ok(paths)
 }
 
+/// Match the same Git registration despite Windows's normal/extended
+/// namespace spelling. A missing worktree cannot be canonicalized, so this
+/// is deliberately lexical and compares exact path components, not case-folded
+/// names, symlinks, or arbitrary reparse aliases.
+fn git_registration_path_matches(observed: &[u8], wanted: &Path) -> Result<bool, UniversalExecError> {
+    #[cfg(not(windows))]
+    {
+        Ok(observed == wanted.as_os_str().as_encoded_bytes())
+    }
+    #[cfg(windows)]
+    {
+        use std::path::{Component, Prefix};
+        let value = std::str::from_utf8(observed).map_err(|_| {
+            UniversalExecError::new(
+                UniversalExecErrorCode::ToolFailed,
+                "Git worktree path is not UTF-8",
+                Some("workspaceId"),
+                false,
+            )
+        })?;
+        let observed = Path::new(value);
+        if observed == wanted {
+            return Ok(true);
+        }
+        if !observed.is_absolute() || !wanted.is_absolute() {
+            return Ok(false);
+        }
+        let mut left = observed.components();
+        let mut right = wanted.components();
+        let (Some(Component::Prefix(a)), Some(Component::Prefix(b))) =
+            (left.next(), right.next())
+        else {
+            return Ok(false);
+        };
+        let same_namespace = match (a.kind(), b.kind()) {
+            (Prefix::Disk(a) | Prefix::VerbatimDisk(a), Prefix::Disk(b) | Prefix::VerbatimDisk(b)) => a.eq_ignore_ascii_case(&b),
+            (Prefix::UNC(a, b) | Prefix::VerbatimUNC(a, b), Prefix::UNC(c, d) | Prefix::VerbatimUNC(c, d)) => a == c && b == d,
+            _ => false,
+        };
+        Ok(same_namespace && left.eq(right))
+    }
+}
+
+/// A registered but malformed/ambiguous worktree is not proven absent.
+/// Use the NUL-delimited native Git interface, including paths with spaces
+/// or control characters, rather than display-oriented quoted lines.
+fn registered_worktree_head_at(
+    source: &Path,
+    wanted: &Path,
+) -> Result<Option<String>, UniversalExecError> {
+    let entries = git_output_bytes(source, ["worktree", "list", "--porcelain", "-z"])?;
+    let mut found = None;
+    let invalid_registration = || UniversalExecError::new(
+        UniversalExecErrorCode::ToolFailed,
+        "Git worktree registration has ambiguous or missing HEAD evidence",
+        Some("workspaceId"),
+        false,
+    );
+    for record in entries.split(|b| *b == 0).collect::<Vec<_>>().split(|field| field.is_empty()) {
+        let mut matched = false;
+        let mut head = None;
+        for &field in record {
+            if let Some(path) = field.strip_prefix(b"worktree ") {
+                matched = git_registration_path_matches(path, wanted)?;
+            } else if let Some(commit) = field.strip_prefix(b"HEAD ") {
+                if head.replace(commit).is_some() {
+                    return Err(invalid_registration());
+                }
+            }
+        }
+        if matched {
+            let head = head.ok_or_else(invalid_registration)?;
+            if !matches!(head.len(), 40 | 64) || !head.iter().all(u8::is_ascii_hexdigit) || found.is_some() {
+                return Err(invalid_registration());
+            }
+            found = Some(std::str::from_utf8(head).map_err(|_| invalid_registration())?.to_owned());
+        }
+    }
+    Ok(found)
+}
+
+#[cfg(all(test, windows))]
+#[test]
+fn git_registration_path_namespace_alias_is_exact_not_case_folded() {
+    let expected = Path::new(r"\\?\C:\private\managed\ws-one");
+    assert!(git_registration_path_matches(b"C:/private/managed/ws-one", expected).unwrap());
+    assert!(!git_registration_path_matches(b"C:/private/managed/ws-two", expected).unwrap());
+    assert!(!git_registration_path_matches(b"C:/private/managed/WS-ONE", expected).unwrap());
+    assert!(!git_registration_path_matches(b"C:/private/managed/ws-one/child", expected).unwrap());
+    assert!(!git_registration_path_matches(b"C:/private/other/../managed/ws-one", expected).unwrap());
+    assert!(!git_registration_path_matches(b"D:/private/managed/ws-one", expected).unwrap());
+}
+
 fn git_output_bytes<'a>(
     repo: &Path,
     args: impl IntoIterator<Item = &'a str>,
