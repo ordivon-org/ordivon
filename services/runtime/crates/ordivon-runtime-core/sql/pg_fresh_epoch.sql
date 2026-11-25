@@ -93,6 +93,8 @@ CREATE TABLE artifacts(
  truncated boolean NOT NULL DEFAULT false,
  created_at_ms bigint NOT NULL DEFAULT 0 CHECK(created_at_ms>=0),
  UNIQUE(attempt_id,kind,relative_path));
+-- Independent forward Job lookup; the unique Attempt key covers reverse lookup.
+CREATE INDEX idx_artifacts_job ON artifacts(job_id);
 CREATE TABLE _stage_control(
  id text PRIMARY KEY, state text NOT NULL, source_sha256 text NOT NULL,
  promotion_allowed boolean NOT NULL);
