@@ -18,6 +18,15 @@ command -v ffprobe >/dev/null
 command -v jq >/dev/null
 command -v sha256sum >/dev/null
 
+# jq's alternative operator treats false as absent. Validate explicit
+# optional boolean controls before invoking native conversion.
+jq -e '
+  type == "object" and .schemaVersion == 1 and
+  .kind == "ordivon.media.v2.timed-text-profile" and
+  (if has("requirePositiveDurations") then (.requirePositiveDurations | type) == "boolean" else true end) and
+  (if has("requireNonemptyPackets") then (.requireNonemptyPackets | type) == "boolean" else true end)
+' "$profile" >/dev/null || { echo "invalid timed-text profile" >&2; exit 65; }
+
 mkdir -p "$out/raw"
 normalized="$out/raw/normalized.vtt"
 packets="$out/raw/ffprobe-subtitle-packets.json"
@@ -58,14 +67,18 @@ jq -n \
   --arg actualLanguage "$actual_language" '
   $p[0] as $p |
   ($f[0].packets // []) as $packets |
+  ($p | if has("requirePositiveDurations") then .requirePositiveDurations else true end) as $requirePositive |
+  ($p | if has("requireNonemptyPackets") then .requireNonemptyPackets else true end) as $requireNonempty |
+  ([$packets[]? | (.duration_time | tonumber)] | all(. > 0)) as $positive |
+  ([$packets[]? | (.size | tonumber)] | all(. > 0)) as $nonempty |
   ($packets | length) as $count |
   ([$packets[]? | (.pts_time | tonumber)] | if length == 0 then 0 else min end) as $minStart |
   ([$packets[]? | ((.pts_time | tonumber) + (.duration_time | tonumber))] | if length == 0 then 0 else max end) as $maxEnd |
   [
     {name:"timedText.cueCount", expected:$p.expectedCueCount, actual:$count, ok:($count == $p.expectedCueCount)},
     {name:"timedText.nonnegativeStart", expected:">=0", actual:$minStart, ok:($minStart >= 0)},
-    {name:"timedText.positiveDurations", expected:true, actual:([$packets[]? | (.duration_time | tonumber)] | all(. > 0)), ok:((($p.requirePositiveDurations // true) | not) or ([$packets[]? | (.duration_time | tonumber)] | all(. > 0)))},
-    {name:"timedText.nonemptyPackets", expected:true, actual:([$packets[]? | (.size | tonumber)] | all(. > 0)), ok:((($p.requireNonemptyPackets // true) | not) or ([$packets[]? | (.size | tonumber)] | all(. > 0)))},
+    {name:"timedText.positiveDurations", required:$requirePositive, expected:(if $requirePositive then true else null end), actual:$positive, ok:(($requirePositive | not) or $positive)},
+    {name:"timedText.nonemptyPackets", required:$requireNonempty, expected:(if $requireNonempty then true else null end), actual:$nonempty, ok:(($requireNonempty | not) or $nonempty)},
     {name:"timedText.maxEndSeconds", expected:{max:$p.maxEndSeconds}, actual:$maxEnd, ok:($maxEnd <= $p.maxEndSeconds)},
     {name:"timedText.language", expected:($p.expectedLanguage // null), actual:(if $actualLanguage == "" then null else $actualLanguage end), ok:(($p.expectedLanguage // null) == null or $actualLanguage == $p.expectedLanguage)}
   ] as $checks |
