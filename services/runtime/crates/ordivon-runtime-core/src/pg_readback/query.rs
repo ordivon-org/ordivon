@@ -1,4 +1,5 @@
 use super::artifact_inventory::read_artifact_inventory;
+use super::inspection::read_inspection;
 use super::terminal_event::terminal_events_coherent;
 use super::types::{PgJobReadback, PgJobSnapshot, PgProjectionReadback};
 use crate::pg_admission::{require_pg_writer_epoch, PgAdmissionError, PgAdmissionStore};
@@ -15,7 +16,7 @@ impl PgAdmissionStore {
         expected_source_sha256: &str,
     ) -> Result<PgJobReadback, PgAdmissionError> {
         Ok(
-            match self.read_job_snapshot(job_id, expected_source_sha256, false)? {
+            match self.read_job_snapshot(job_id, expected_source_sha256, false, None)? {
                 Some(readback) => PgJobReadback::Observed(readback.snapshot),
                 None => PgJobReadback::Inconclusive,
             },
@@ -27,7 +28,16 @@ impl PgAdmissionStore {
         job_id: &str,
         expected_source_sha256: &str,
     ) -> Result<Option<PgProjectionReadback>, PgAdmissionError> {
-        self.read_job_snapshot(job_id, expected_source_sha256, true)
+        self.read_job_snapshot(job_id, expected_source_sha256, true, None)
+    }
+
+    pub(crate) fn observe_job_inspection_readonly(
+        &mut self,
+        job_id: &str,
+        expected_source_sha256: &str,
+        event_limit: u32,
+    ) -> Result<Option<PgProjectionReadback>, PgAdmissionError> {
+        self.read_job_snapshot(job_id, expected_source_sha256, true, Some(event_limit))
     }
 
     fn read_job_snapshot(
@@ -35,6 +45,7 @@ impl PgAdmissionStore {
         job_id: &str,
         expected_source_sha256: &str,
         include_job_inventory: bool,
+        event_limit: Option<u32>,
     ) -> Result<Option<PgProjectionReadback>, PgAdmissionError> {
         if job_id.is_empty()
             || expected_source_sha256.len() != 64
@@ -138,11 +149,20 @@ impl PgAdmissionStore {
             return Ok(None);
         }
         let exit_code = attempt.get(7);
+        let inspection = if let Some(limit) = event_limit {
+            let Some(metadata) = read_inspection(&mut tx, &snapshot, limit)? else {
+                return Ok(None);
+            };
+            Some(metadata)
+        } else {
+            None
+        };
         tx.commit()?;
         Ok(Some(PgProjectionReadback {
             snapshot: Box::new(snapshot),
             artifacts,
             exit_code,
+            inspection,
         }))
     }
 }
