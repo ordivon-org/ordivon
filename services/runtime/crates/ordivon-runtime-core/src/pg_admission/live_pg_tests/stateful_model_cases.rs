@@ -3,7 +3,6 @@
 //! commits; it does not simulate or prove native process effects.
 use super::*;
 use crate::PgJobReadback;
-use proptest::prelude::*;
 use proptest::test_runner::{Config, RngSeed, TestRunner};
 use std::cell::Cell;
 
@@ -144,8 +143,8 @@ fn run_trace(dsn: &str, trace: &[(usize, u8, usize)]) {
     }
     // Every trace has a cancellation before resolution, a stale CAS, and a
     // replay. Generated actions then explore orderings across three Jobs.
-    let prefix = [(0, 2, 0), (1, 4, 0), (2, 0, 0)];
-    // Ensure orphan and terminal branches are reached even for a shrunk trace.
+    let prefix = [(0, 2, 0), (1, 4, 0), (1, 3, 3), (1, 2, 0), (2, 0, 0)];
+    // Complete/replay terminal branches even for a shrunk trace.
     let suffix = [(1, 3, 3), (1, 2, 0), (0, 3, 1), (2, 3, 0), (2, 5, 0)];
     for (step, &(index, action, variant)) in prefix.iter().chain(trace).chain(&suffix).enumerate() {
         let input = &inputs[index];
