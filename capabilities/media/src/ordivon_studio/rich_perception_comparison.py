@@ -13,7 +13,13 @@ from bisect import bisect_left, bisect_right
 from collections.abc import Sequence
 from typing import Any
 
-from .perception_profiles import _correlation, _mean, _resample_profile, _vector_distance
+from .perception_profiles import (
+    _circular_shift_correlations,
+    _correlation,
+    _mean,
+    _resample_profile,
+    _vector_distance,
+)
 
 
 def structural_distance(left: dict[str, Any], right: dict[str, Any]) -> float:
@@ -99,13 +105,7 @@ def crossmodal_profile_coupling(video: dict[str, Any], audio: dict[str, Any]) ->
 def _circular_shift_correlation_null(
     left: Sequence[float], right: Sequence[float]
 ) -> dict[str, float | int]:
-    if len(left) != len(right) or len(left) < 4:
-        raise ValueError("circular-shift null requires equal profiles with at least four bins")
-    values: list[float] = []
-    right_values = list(right)
-    for shift in range(len(right_values)):
-        shifted = right_values[shift:] + right_values[:shift]
-        values.append(_correlation(left, shifted))
+    values = _circular_shift_correlations(left, right)
     baseline = values[0]
     null = values[1:]
     return {
