@@ -83,3 +83,23 @@ disables ambient SCM queries and SourceLink for copied source only; explicit
 recipe/source commitments remain. Native cross-Git-context equality and frozen
 method corpus are required, not source-string tests. Local development Temporal
 workflow uses actual four activities and OCI package; unsigned, never release.
+
+## R16 explicit operation intent and execution authority
+
+Existing ReceiptFence must not replay a legacy host observation for an explicit
+OCI operation with the same operation ID. New verify options.webProvider
+selects host or oci; bind explicit source recipe (OCI lock/runner/Node metadata)
+to immutable inputs and pass it as invocation context, not a process-global
+environment mutation. Legacy no-option operation receipt shape and host
+selection stay unchanged. The direct diagnostic stage can still use explicit
+environment selection. Reject source recipe drift before browser launch and
+different receipt inputs before replay. Native qualification remains separate.
+
+Actual Runtime native operation consumes existing DirectPython verification
+stage and receipt fence: 5 executed gate VSAs, 11 role outputs, exact OCI
+recipe readback, replay identical, different provider/recipe rejected. Full
+web-r1 remains incomplete (no visual/semantic/external delivery/release
+claim). Production Temporal Worker sandbox independently refuses direct
+Podman storage access. Do not open root API socket or claim production
+delegation complete. Runtime owner admission or qualified dedicated Activity
+route and workflow replay are next obligations.

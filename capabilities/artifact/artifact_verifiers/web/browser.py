@@ -8,7 +8,7 @@ from typing import Any
 from artifact_core.contracts import file_fact
 from artifact_core.json_validation import decode_json
 
-from .oci import run_oci_browser
+from .oci import oci_source_recipe, run_oci_browser
 from .toolchain import node_executable, node_package_root, web_verifier_runner
 
 
@@ -32,16 +32,33 @@ def _run_host(path: Path, verifier: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
-def verify_web_local(path: Path) -> dict[str, Any]:
+def web_provider_recipe(selection: str) -> dict[str, Any]:
+    if selection == "host":
+        return {"selection": "host"}
+    if selection == "oci":
+        return oci_source_recipe(web_verifier_runner())
+    raise ValueError("unqualified explicit browser provider")
+
+
+def verify_web_local(
+    path: Path, *, provider_recipe: dict[str, Any] | None = None
+) -> dict[str, Any]:
     artifact = file_fact(path)
     verifier = web_verifier_runner()
-    selected = os.environ.get("ARTIFACT_WEB_PROVIDER", "host")
+    selected = (
+        provider_recipe["selection"]
+        if provider_recipe is not None
+        else os.environ.get("ARTIFACT_WEB_PROVIDER", "host")
+    )
     provider: dict[str, Any] = {"kind": "host-local"}
     try:
         if not verifier.is_file():
             raise ValueError("HTML verifier runner unavailable")
         if selected == "oci":
-            proc, provider = run_oci_browser(artifact, verifier)
+            if provider_recipe is None:
+                proc, provider = run_oci_browser(artifact, verifier)
+            else:
+                proc, provider = run_oci_browser(artifact, verifier, provider_recipe)
         elif selected == "host":
             proc = _run_host(path, verifier)
         else:

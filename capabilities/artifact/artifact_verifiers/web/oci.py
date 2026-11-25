@@ -20,8 +20,20 @@ NODE_SOURCE = ROOT / "artifact-delivery/node"
 METADATA = ("package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml")
 
 
+def oci_source_recipe(verifier: Path) -> dict[str, Any]:
+    """Immutable source intent, not a proof that the installed carrier is ready."""
+    return {
+        "selection": "oci",
+        "lockSha256": FileCommitment.from_path(LOCK).sha256,
+        "runnerSha256": FileCommitment.from_path(verifier).sha256,
+        "nodeMetadataSha256": {
+            name: FileCommitment.from_path(NODE_SOURCE / name).sha256 for name in METADATA
+        },
+    }
+
+
 def run_oci_browser(
-    artifact: dict[str, Any], verifier: Path
+    artifact: dict[str, Any], verifier: Path, expected_recipe: dict[str, Any] | None = None
 ) -> tuple[subprocess.CompletedProcess[str], dict[str, Any]]:
     """Use one explicit local image, never pull or fall back.
 
@@ -80,6 +92,14 @@ def run_oci_browser(
         raise ValueError("OCI local image identity unavailable or mismatched")
 
     runner = FileCommitment.from_path(verifier)
+    observed_recipe = {
+        "selection": "oci",
+        "lockSha256": lock_sha,
+        "runnerSha256": runner.sha256,
+        "nodeMetadataSha256": commitments,
+    }
+    if expected_recipe is not None and expected_recipe != observed_recipe:
+        raise ValueError("OCI source recipe changed after operation admission")
     with tempfile.TemporaryDirectory(prefix="artifact-web-oci-") as scratch:
         root = Path(scratch)
         subject = stage_verified_input(
