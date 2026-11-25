@@ -26,6 +26,7 @@ import math
 from dataclasses import dataclass
 from typing import Any
 
+from ordivon_capital.portfolio.constraint_compiler import compile_multistage_constraints
 from ordivon_capital.portfolio.crra_numeric import certainty_equivalent
 from ordivon_capital.portfolio.information_tree import (
     InformationNode,
@@ -75,115 +76,20 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
       pretrade_equity_edge >= 0 before any 1r rescue deposit
     Terminal expected CRRA utility is strictly concave in positive wealth.
     """
-    tree = _validate_tree(problem)
     import numpy as np
     from scipy.optimize import Bounds, LinearConstraint, linprog, minimize
+    from scipy.sparse import csr_matrix, hstack, vstack
 
+    compiled = compile_multistage_constraints(problem)
+    tree = compiled.tree
     n = tree.asset_count
     decisions = tree.decision
-    width = 2 * n + 2
-    size = len(decisions) * width
-    offsets = {node.id: idx * width for idx, node in enumerate(decisions)}
+    offsets, size = compiled.offsets, compiled.size
     cost_start = n + 2
-    rhs_eq: list[float] = []
-    eq_rows: list[Any] = []
-    ub_rows: list[Any] = []
-    ub_rhs: list[float] = []
-    prewealth_rows: list[Any] = []
-    terminal_rows: list[Any] = []
-    terminal_probs: list[float] = []
-    all_wealth_rows: dict[str, Any] = {}
-
-    def prewealth(node: InformationNode) -> Any:
-        """Linear pre-deposit value after the parent->child market transition."""
-        row = np.zeros(size, dtype=float)
-        if node.parent is None:
-            return row
-        parent = offsets[node.parent]
-        row[parent:parent + n] = np.asarray(node.risky_gross)
-        row[parent + n] = node.cash_gross
-        row[parent + n + 1] = -node.debt_gross
-        return row
-
-    for node in tree.ordered:
-        if node.parent is not None:
-            incoming = prewealth(node)
-            all_wealth_rows[node.id] = incoming
-            prewealth_rows.append(incoming)
-            # Parent-edge maintenance must be met before next 1r deposit.
-            margin = np.zeros(size, dtype=float)
-            p = offsets[node.parent]
-            margin[p:p + n] = (
-                (np.asarray(node.maintenance) - 1.0)
-                * np.asarray(node.risky_gross)
-            )
-            margin[p + n] = -node.cash_gross
-            margin[p + n + 1] = node.debt_gross
-            ub_rows.append(margin)
-            ub_rhs.append(0.0)
-        if node.terminal:
-            terminal_rows.append(all_wealth_rows[node.id])
-            terminal_probs.append(tree.probability[node.id])
-            continue
-
-        index = offsets[node.id]
-        row = np.zeros(size)
-        row[index:index + n] = 1.0
-        row[index + n] = 1.0
-        row[index + n + 1] = -1.0
-        row[index + cost_start:index + cost_start + n] = node.turnover_cost
-        if node.parent is not None:
-            row -= all_wealth_rows[node.id]
-        eq_rows.append(row)
-        due = (
-            0.0 if problem.node_outflow_after_contribution_r is None
-            else problem.node_outflow_after_contribution_r[node.id]
-        )
-        rhs_eq.append(1.0 - due)  # Actual monthly 1r minus paid cash outflow.
-
-        # Linear epigraph for each turnover absolute value.
-        for i in range(n):
-            old = np.zeros(size)
-            if node.parent is not None:
-                old[offsets[node.parent] + i] = node.risky_gross[i]
-            buy = np.zeros(size)
-            buy[index + i] = 1.0
-            buy[index + cost_start + i] = -1.0
-            buy -= old
-            ub_rows.append(buy)
-            ub_rhs.append(0.0)
-
-            sell = np.zeros(size)
-            sell[index + i] = -1.0
-            sell[index + cost_start + i] = -1.0
-            sell += old
-            ub_rows.append(sell)
-            ub_rhs.append(0.0)
-
-        initial_margin = np.zeros(size)
-        initial_margin[index:index + n] = (
-            np.asarray(node.initial_margin) - 1.0
-        )
-        initial_margin[index + n] = -1.0
-        initial_margin[index + n + 1] = 1.0
-        ub_rows.append(initial_margin)
-        ub_rhs.append(0.0)
-
-    A_eq = np.vstack(eq_rows)
-    b_eq = np.asarray(rhs_eq)
-    A_ub = np.vstack(ub_rows)
-    b_ub = np.asarray(ub_rhs)
-    W_leaf = np.vstack(terminal_rows)
-    W_arrival = np.vstack(prewealth_rows)
-    liabilities = np.asarray(
-        [
-            0.0 if problem.terminal_liabilities_r is None
-            else problem.terminal_liabilities_r[leaf.id]
-            for leaf in tree.leaves
-        ],
-        dtype=float,
-    )
-    leaf_probabilities = np.asarray(terminal_probs)
+    A_eq, b_eq = compiled.A_eq, compiled.b_eq
+    A_ub, b_ub = compiled.A_ub, compiled.b_ub
+    W_leaf, W_arrival = compiled.W_leaf, compiled.W_arrival
+    liabilities, leaf_probabilities = compiled.liabilities, compiled.probabilities
     numerical_interior = float(np.finfo(float).eps)
 
     # An all-cash policy is a constructive, no-credit, positive-wealth
@@ -215,22 +121,22 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
         # state-wise terminal surplus. Do not fake a default risk budget.
         # If no positive surplus exists, the requested CRRA objective has
         # no feasible solution under these actual contract assumptions.
-        ext = np.zeros((A_ub.shape[0], 1))
+        ext = csr_matrix((A_ub.shape[0], 1))
         # Zero equity without a loan is solvent before next month's 1r.
         # The strictly positive CRRA domain applies only to terminal surplus.
-        arrival = np.hstack((-W_arrival, np.zeros((W_arrival.shape[0], 1))))
-        disposable = np.hstack((-W_leaf, np.ones((W_leaf.shape[0], 1))))
+        arrival = hstack((-W_arrival, csr_matrix((W_arrival.shape[0], 1))), format='csr')
+        disposable = hstack((-W_leaf, csr_matrix(np.ones((W_leaf.shape[0], 1)))), format='csr')
         c = np.zeros(size + 1)
         c[-1] = -1.0
         lp = linprog(
             c,
-            A_ub=np.vstack((np.hstack((A_ub, ext)), arrival, disposable)),
+            A_ub=vstack((hstack((A_ub, ext)), arrival, disposable), format='csr'),
             b_ub=np.concatenate((
                 b_ub,
                 np.zeros(W_arrival.shape[0]),
                 -liabilities,
             )),
-            A_eq=np.hstack((A_eq, np.zeros((A_eq.shape[0], 1)))),
+            A_eq=hstack((A_eq, csr_matrix((A_eq.shape[0], 1))), format='csr'),
             b_eq=b_eq,
             bounds=[(0.0, None)] * (size + 1),
             method="highs",
@@ -242,11 +148,13 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
             )
         x0 = np.asarray(lp.x[:-1], dtype=float)
 
+    # SLSQP is a dense carrier. Convert only at this explicit boundary;
+    # feasibility, matrix-vector products and certificate LP remain sparse.
     constraints = [
-        LinearConstraint(A_eq, b_eq, b_eq),
-        LinearConstraint(A_ub, -np.inf, b_ub),
-        LinearConstraint(W_arrival, 0.0, np.inf),
-        LinearConstraint(W_leaf, liabilities + numerical_interior, np.inf),
+        LinearConstraint(A_eq.toarray(), b_eq, b_eq),
+        LinearConstraint(A_ub.toarray(), -np.inf, b_ub),
+        LinearConstraint(W_arrival.toarray(), 0.0, np.inf),
+        LinearConstraint(W_leaf.toarray(), liabilities + numerical_interior, np.inf),
     ]
     bounds = Bounds(np.zeros(size), np.full(size, np.inf))
     gamma = problem.gamma
@@ -310,7 +218,7 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
         raise AlgebraicPolicyError("nonfinite utility or gradient at solver candidate")
     certificate = linprog(
         -gradient,
-        A_ub=np.vstack((A_ub, -W_arrival, -W_leaf)),
+        A_ub=vstack((A_ub, -W_arrival, -W_leaf), format='csr'),
         b_ub=np.concatenate((
             b_ub,
             np.zeros(W_arrival.shape[0]),

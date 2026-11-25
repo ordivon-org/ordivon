@@ -541,3 +541,23 @@ def test_nonfinite_supporting_hyperplane_is_not_zero_gap(monkeypatch):
     ))
     with pytest.raises(AlgebraicPolicyError, match="nonfinite upper optimality bound"):
         solve_multistage(problem)
+
+
+def test_supporting_linear_program_consumes_sparse_constraints(monkeypatch):
+    import scipy.optimize
+    from scipy.sparse import issparse
+
+    actual = scipy.optimize.linprog
+    calls = []
+
+    def inspect(*args, **kwargs):
+        calls.append((issparse(kwargs["A_eq"]), issparse(kwargs["A_ub"])))
+        return actual(*args, **kwargs)
+
+    monkeypatch.setattr(scipy.optimize, "linprog", inspect)
+    result = solve_multistage(MultistageProblem(2., (
+        root(margin=1.),
+        terminal("only", "root", 1, 1., .4, cash=.5, debt=.6),
+    )))
+    assert result.certainty_equivalent_terminal_r == pytest.approx(.5)
+    assert calls == [(True, True)]

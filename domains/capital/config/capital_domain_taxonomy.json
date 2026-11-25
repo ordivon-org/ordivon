@@ -68,6 +68,7 @@
       "paper_close_performance.py",
       "policy_contract.py",
       "crra_numeric.py",
+      "constraint_compiler.py",
       "algebraic_policy.py",
       "information_tree.py",
       "multistage_policy.py",
