@@ -9,13 +9,14 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
-from statistics import mean, median
-from typing import Any, Iterable
+from typing import Any
+
+from github_workflow_observation import (
+    GitHubWorkflowReader, instant, run_identity, seconds, summary, validate_attempt_jobs,
+)
 
 ECONOMIC_OUTCOMES = {
     "UNCLASSIFIED",
@@ -31,33 +32,6 @@ ECONOMIC_OUTCOMES = {
 }
 
 
-def instant(value: str | None) -> datetime | None:
-    if not value:
-        return None
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))
-
-
-def seconds(start: str | None, end: str | None) -> float | None:
-    a, b = instant(start), instant(end)
-    if a is None or b is None:
-        return None
-    return max(0.0, (b - a).total_seconds())
-
-
-def summary(values: Iterable[float | None]) -> dict[str, float | int | None]:
-    xs = sorted(float(x) for x in values if x is not None)
-    if not xs:
-        return {"count": 0, "mean": None, "median": None, "p95": None, "max": None}
-    rank = max(0, min(len(xs) - 1, int((0.95 * len(xs) + 0.999999999) // 1) - 1))
-    return {
-        "count": len(xs),
-        "mean": round(mean(xs), 3),
-        "median": round(median(xs), 3),
-        "p95": round(xs[rank], 3),
-        "max": round(max(xs), 3),
-    }
-
-
 @dataclass(frozen=True)
 class ProviderSnapshot:
     repository: str
@@ -65,15 +39,7 @@ class ProviderSnapshot:
     jobs: dict[str, list[dict[str, Any]]]
 
 
-class Gh:
-    def __init__(self, repo: str):
-        self.repo = repo
-
-    def api(self, endpoint: str) -> Any:
-        cmd = ["gh", "api", "-H", "Accept: application/vnd.github+json", endpoint]
-        out = subprocess.run(cmd, check=True, text=True, capture_output=True).stdout
-        return json.loads(out)
-
+class Gh(GitHubWorkflowReader):
     def collect(
         self,
         *,
@@ -97,7 +63,10 @@ class Gh:
                 for row in rows:
                     if workflow_name and row.get("name") != workflow_name:
                         continue
-                    runs_by_id[int(row["id"])] = row
+                    run_id, _ = run_identity(row)
+                    if run_id in runs_by_id:
+                        raise ValueError("duplicate sampled workflow run")
+                    runs_by_id[run_id] = row
                     matched += 1
                     if matched == limit:
                         break
@@ -109,24 +78,10 @@ class Gh:
             runs_by_id.values(),
             key=lambda row: (row.get("created_at") or "", int(row["id"])),
         )
-        jobs: dict[str, list[dict[str, Any]]] = {}
+        jobs = {}
         for run in runs:
-            run_id = str(run["id"])
-            jobs_for_run: list[dict[str, Any]] = []
-            page = 1
-            while True:
-                payload = self.api(
-                    f"repos/{owner}/{repo}/actions/runs/{run_id}/jobs?per_page=100&page={page}"
-                )
-                batch = payload.get("jobs", [])
-                jobs_for_run.extend(batch)
-                if len(batch) < 100 or (
-                    isinstance(payload.get("total_count"), int)
-                    and len(jobs_for_run) >= payload["total_count"]
-                ):
-                    break
-                page += 1
-            jobs[run_id] = jobs_for_run
+            run_id, attempt = run_identity(run)
+            jobs[str(run_id)] = self.collect_attempt_jobs(run_id, attempt)
         return ProviderSnapshot(self.repo, runs, jobs)
 
 
@@ -161,6 +116,8 @@ def _normalize_step(step: dict[str, Any]) -> dict[str, Any]:
 def _normalize_job(job: dict[str, Any]) -> dict[str, Any]:
     return {
         "jobId": job.get("id"),
+        "runId": job.get("run_id"),
+        "runAttempt": job.get("run_attempt"),
         "name": job.get("name"),
         "status": job.get("status"),
         "conclusion": job.get("conclusion"),
@@ -168,30 +125,77 @@ def _normalize_job(job: dict[str, Any]) -> dict[str, Any]:
         "startedAt": job.get("started_at"),
         "completedAt": job.get("completed_at"),
         "runnerWaitSeconds": seconds(job.get("created_at"), job.get("started_at")),
-        "executionSeconds": seconds(job.get("started_at"), job.get("completed_at")),
+        "executionSeconds": (
+            seconds(job.get("started_at"), job.get("completed_at"))
+            if job.get("status") == "completed" and job.get("conclusion") != "skipped"
+            else None
+        ),
         "steps": [_normalize_step(step) for step in job.get("steps", [])],
     }
+
+
+def qualified_economic_annotation(
+    run: dict[str, Any], annotation: dict[str, Any]
+) -> tuple[str, str]:
+    """Bind the existing annotation contract to this observed run attempt.
+
+    Evidence references are declared, not independently verified here.
+    """
+    native_id, attempt = run_identity(run)
+    expected = {
+        "runId": native_id,
+        "attempt": attempt,
+        "headSha": run.get("head_sha"),
+        "event": run.get("event"),
+        "providerConclusion": run.get("conclusion"),
+    }
+    if not isinstance(annotation, dict):
+        raise ValueError("malformed economic annotation")
+    for key, value in expected.items():
+        if key not in annotation or type(annotation[key]) is not type(value) or annotation[key] != value:
+            raise ValueError(f"economic annotation does not bind observed {key}")
+    refs = annotation.get("evidenceRefs")
+    if (
+        not isinstance(refs, list) or not refs
+        or not all(isinstance(ref, str) and ref.strip() for ref in refs)
+        or len(set(refs)) != len(refs)
+    ):
+        raise ValueError("economic annotation lacks declared evidence references")
+    candidate = annotation.get("economicOutcome")
+    reason = annotation.get("reason")
+    if (
+        not isinstance(candidate, str) or candidate not in ECONOMIC_OUTCOMES
+        or not isinstance(reason, str) or not reason.strip()
+    ):
+        raise ValueError("invalid economic annotation outcome or reason")
+    if run.get("status") != "completed" and candidate not in {"PENDING", "UNCLASSIFIED"}:
+        raise ValueError("nonterminal workflow attempt cannot have a final economic outcome")
+    return candidate, reason
 
 
 def normalize(
     snapshot: ProviderSnapshot,
     *,
-    economic_annotations: dict[str, dict[str, str]] | None = None,
+    economic_annotations: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     annotations = economic_annotations or {}
     normalized_runs: list[dict[str, Any]] = []
+    run_ids = [str(run_identity(run)[0]) for run in snapshot.runs]
+    if len(run_ids) != len(set(run_ids)) or set(run_ids) != set(snapshot.jobs):
+        raise ValueError("workflow snapshot has duplicate runs or missing/extra job lists")
+    seen_jobs: set[int] = set()
     for run in snapshot.runs:
-        run_id = str(run["id"])
-        jobs = snapshot.jobs.get(run_id, [])
+        native_id, attempt = run_identity(run)
+        run_id = str(native_id)
+        jobs = snapshot.jobs[run_id]
+        if not isinstance(jobs, list):
+            raise ValueError("malformed workflow snapshot job list")
+        validate_attempt_jobs(jobs, native_id, attempt, seen_jobs)
         annotation = annotations.get(run_id)
         economic = default_economic_outcome(run, jobs)
         economic_reason = "provider conclusion alone is insufficient for economic classification"
-        if annotation:
-            candidate = annotation.get("economicOutcome", "")
-            if candidate not in ECONOMIC_OUTCOMES:
-                raise ValueError(f"unsupported economic outcome for run {run_id}: {candidate}")
-            economic = candidate
-            economic_reason = annotation.get("reason", "explicit evidence annotation")
+        if run_id in annotations:
+            economic, economic_reason = qualified_economic_annotation(run, annotation)
 
         normalized_jobs = [_normalize_job(job) for job in jobs]
         normalized_runs.append(
@@ -226,6 +230,16 @@ def normalize(
         "repository": snapshot.repository,
         "runs": sorted(normalized_runs, key=lambda row: (row["createdAt"] or "", row["runId"])),
     }
+
+
+def observed_attempt_execution(run: dict[str, Any]) -> float | None:
+    """Sum measured job execution, not elapsed wall time or billed CPU time."""
+    if run.get("status") != "completed":
+        return None
+    jobs = [job for job in run["jobs"] if job.get("conclusion") != "skipped"]
+    if not jobs or any(job.get("executionSeconds") is None for job in jobs):
+        return None
+    return sum(job["executionSeconds"] for job in jobs)
 
 
 def extract_metrics(normalized: dict[str, Any]) -> dict[str, Any]:
@@ -269,6 +283,15 @@ def extract_metrics(normalized: dict[str, Any]) -> dict[str, Any]:
         ),
         "explicitAvoidableWasteRuns": len(avoidable_runs),
         "explicitAvoidableWasteExecutionSeconds": round(avoidable_seconds, 3),
+        "observedAttemptJobExecutionSeconds": summary(
+            observed_attempt_execution(run) for run in runs
+        ),
+        "jobsWithoutMeasuredExecutionSeconds": sum(
+            job.get("executionSeconds") is None for run in runs for job in run["jobs"]
+        ),
+        "skippedJobs": sum(
+            job.get("conclusion") == "skipped" for run in runs for job in run["jobs"]
+        ),
         "rootVerificationExecutionSeconds": summary(
             job.get("executionSeconds") for job in root_jobs
         ),
@@ -295,6 +318,12 @@ def project(normalized: dict[str, Any]) -> dict[str, Any]:
         "coverage": {
             "repository": normalized["repository"],
             "runs": len(normalized["runs"]),
+            "attemptScope": "OBSERVED_ATTEMPT_ONLY",
+            "historyCoverage": "BOUNDED_NONATOMIC_PROVIDER_SAMPLE",
+            "jobCostScope": "SUM_OF_OBSERVED_JOB_DURATIONS_NOT_BILLED_CPU_OR_WALL_TIME",
+            "rootVerificationScope": "NAMED_JOB_ONLY_NOT_ALL_WORKFLOW_JOBS",
+            "wallTimeScope": "RUN_CREATED_TO_UPDATED_NOT_ATTEMPT_CPU_TIME",
+            "snapshotReplayScope": "SUPPLIED_JOB_ROWS_NOT_PROVIDER_COMPLETENESS_PROOF",
         },
         "runs": normalized["runs"],
         "metrics": extract_metrics(normalized),
@@ -317,7 +346,7 @@ def snapshot_to_json(snapshot: ProviderSnapshot) -> dict[str, Any]:
     }
 
 
-def _annotations(path: Path | None) -> dict[str, dict[str, str]]:
+def _annotations(path: Path | None) -> dict[str, dict[str, Any]]:
     if path is None:
         return {}
     value = json.loads(path.read_text())

@@ -380,7 +380,7 @@ def ci_fixture():
                 "workflow_id": 1,
                 "name": "Monorepo Required",
                 "event": "pull_request",
-                "head_sha": "pr-a",
+                "head_sha": "a" * 40,
                 "head_branch": "agent/a",
                 "run_attempt": 1,
                 "status": "completed",
@@ -394,7 +394,7 @@ def ci_fixture():
                 "workflow_id": 1,
                 "name": "Monorepo Required",
                 "event": "merge_group",
-                "head_sha": "mg-a",
+                "head_sha": "b" * 40,
                 "head_branch": "gh-readonly-queue/main/pr-7-a",
                 "run_attempt": 1,
                 "status": "completed",
@@ -408,6 +408,8 @@ def ci_fixture():
             "101": [
                 {
                     "id": 1001,
+                    "run_id": 101,
+                    "run_attempt": 1,
                     "name": "root-verification",
                     "status": "completed",
                     "conclusion": "cancelled",
@@ -437,6 +439,8 @@ def ci_fixture():
             "102": [
                 {
                     "id": 1002,
+                    "run_id": 102,
+                    "run_attempt": 1,
                     "name": "root-verification",
                     "status": "completed",
                     "conclusion": "success",
@@ -473,14 +477,26 @@ def test_ci_telemetry_keeps_termination_separate_from_economic_judgment() -> Non
     assert all(run["economicOutcome"] == "UNCLASSIFIED" for run in result["runs"])
 
 
+def ci_waste_annotation():
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.ci-economic-annotation",
+        "runId": 101, "headSha": "a" * 40,
+        "event": "pull_request", "attempt": 1,
+        "providerConclusion": "cancelled",
+        "economicOutcome": "AVOIDABLE_WASTE",
+        "reason": "fixture establishes superseded work",
+        "evidenceRefs": ["fixture:attempt-1"],
+        "annotationAuthority": "test-fixture",
+        "timestamp": "2026-09-23T00:01:00Z",
+    }
+
+
 def test_ci_telemetry_requires_explicit_evidence_to_call_work_waste() -> None:
     normalized = ci_module.normalize(
         ci_fixture(),
         economic_annotations={
-            "101": {
-                "economicOutcome": "AVOIDABLE_WASTE",
-                "reason": "fixture establishes superseded work",
-            }
+            "101": ci_waste_annotation()
         },
     )
     result = ci_module.project(normalized)
@@ -555,10 +571,7 @@ def test_pressure_gate_has_no_provider_or_control_side_effects() -> None:
         ci_module.normalize(
             ci_fixture(),
             economic_annotations={
-                "101": {
-                    "economicOutcome": "AVOIDABLE_WASTE",
-                    "reason": "fixture establishes superseded work",
-                }
+                "101": ci_waste_annotation()
             },
         )
     )
@@ -900,11 +913,11 @@ def test_ci_telemetry_reads_all_requested_pages_not_only_first_hundred() -> None
     def fake_api(endpoint):
         calls.append(endpoint)
         if "/jobs?" in endpoint:
-            return {"jobs": []}
+            return {"total_count": 0, "jobs": []}
         page = 2 if "page=2" in endpoint else 1
         start, end = (101, 102) if page == 2 else (1, 101)
         return {"workflow_runs": [
-            {"id": i, "name": "Monorepo Required", "created_at": "2026-10-24T00:00:00Z"}
+            {"id": i, "run_attempt": 2, "name": "Monorepo Required", "created_at": "2026-10-24T00:00:00Z"}
             for i in range(start, end)
         ]}
 
@@ -921,13 +934,13 @@ def test_ci_telemetry_filter_continues_after_unmatched_first_page() -> None:
     def fake_api(endpoint):
         calls.append(endpoint)
         if "/jobs?" in endpoint:
-            return {"jobs": []}
+            return {"total_count": 0, "jobs": []}
         if "page=2" in endpoint:
             return {"workflow_runs": [
-                {"id": 101, "name": "Monorepo Required", "created_at": "2026-10-24T00:00:00Z"}
+                {"id": 101, "run_attempt": 2, "name": "Monorepo Required", "created_at": "2026-10-24T00:00:00Z"}
             ]}
         return {"workflow_runs": [
-            {"id": i, "name": "Unrelated Workflow", "created_at": "2026-10-24T00:00:00Z"}
+            {"id": i, "run_attempt": 2, "name": "Unrelated Workflow", "created_at": "2026-10-24T00:00:00Z"}
             for i in range(1, 101)
         ]}
 
@@ -945,11 +958,14 @@ def test_ci_telemetry_collects_all_jobs_of_one_run() -> None:
         calls.append(endpoint)
         if "/jobs?" not in endpoint:
             return {"workflow_runs": [
-                {"id": 7, "name": "Monorepo Required", "created_at": "2026-10-24T00:00:00Z"}
+                {"id": 7, "run_attempt": 2, "name": "Monorepo Required", "created_at": "2026-10-24T00:00:00Z"}
             ]}
         page = 2 if "page=2" in endpoint else 1
-        return {"jobs": ([{"id": i} for i in range(101, 102)]
-                         if page == 2 else [{"id": i} for i in range(1, 101)])}
+        assert "/runs/7/attempts/2/jobs?" in endpoint
+        ids = range(101, 102) if page == 2 else range(1, 101)
+        return {"total_count": 101, "jobs": [
+            {"id": i, "run_id": 7, "run_attempt": 2} for i in ids
+        ]}
 
     owner = ci_module.Gh("ordivon-org/ordivon")
     owner.api = fake_api
@@ -2642,3 +2658,111 @@ def test_repository_admission_rejects_deployed_host_tool_duplicate() -> None:
     with patch.object(module, "_load_json", side_effect=load_forged):
         with pytest.raises(module.ArchitectureDocsError, match="duplicate.*normalTools"):
             module.validate_repository(ROOT)
+
+
+@pytest.mark.parametrize("fault", ["wrong-run", "wrong-attempt", "missing-id",
+                                  "duplicate", "short-page", "long-page",
+                                  "changed-total", "missing-total", "bool-total"])
+def test_ci_attempt_job_pages_reject_false_completeness(fault):
+    owner = ci_module.Gh("o/r")
+
+    def api(endpoint):
+        if "/jobs?" not in endpoint:
+            return {"workflow_runs": [{"id": 7, "run_attempt": 2}]}
+        page = 2 if "page=2" in endpoint else 1
+        rows = [{"id": i, "run_id": 7, "run_attempt": 2}
+                for i in (range(101, 102) if page == 2 else range(1, 101))]
+        payload = {"total_count": 101, "jobs": rows}
+        if fault == "wrong-run":
+            rows[0]["run_id"] = 8
+        elif fault == "wrong-attempt":
+            rows[0]["run_attempt"] = 1
+        elif fault == "missing-id":
+            rows[0].pop("id")
+        elif fault == "duplicate" and page == 2:
+            rows[0]["id"] = 1
+        elif fault == "short-page" and page == 1:
+            rows.pop()
+        elif fault == "long-page" and page == 1:
+            rows.append({"id": 102, "run_id": 7, "run_attempt": 2})
+        elif fault == "changed-total" and page == 2:
+            payload["total_count"] = 102
+        elif fault == "missing-total":
+            payload.pop("total_count")
+        elif fault == "bool-total":
+            payload["total_count"] = True
+        return payload
+
+    owner.api = api
+    with pytest.raises(ValueError):
+        owner.collect(limit=1, events=("push",), workflow_name=None)
+
+
+@pytest.mark.parametrize("start,end,wanted", [
+    ("2026-11-26T00:00:05Z", "2026-11-26T00:00:01Z", None),
+    ("2026-11-26T00:00:00", "2026-11-26T00:00:01Z", None),
+    ("invalid", "2026-11-26T00:00:01Z", None),
+    ("2026-11-26T08:00:00+08:00", "2026-11-26T00:00:00Z", 0.0),
+    ("2026-11-26T08:00:00+08:00", "2026-11-26T00:00:03Z", 3.0),
+])
+def test_ci_duration_preserves_unknown_and_real_zero(start, end, wanted):
+    assert ci_module.seconds(start, end) == wanted
+
+
+@pytest.mark.parametrize("fault", ["foreign", "wrong-attempt", "duplicate",
+                                  "missing-run-jobs", "extra-run-jobs"])
+def test_ci_saved_snapshot_rejects_unqualified_job_identity(fault):
+    snapshot = ci_fixture()
+    if fault == "foreign":
+        snapshot.jobs["101"][0]["run_id"] = 102
+    elif fault == "wrong-attempt":
+        snapshot.jobs["101"][0]["run_attempt"] = 2
+    elif fault == "duplicate":
+        snapshot.jobs["101"].append(dict(snapshot.jobs["101"][0]))
+    elif fault == "missing-run-jobs":
+        snapshot.jobs.pop("101")
+    else:
+        snapshot.jobs["999"] = []
+    with pytest.raises(ValueError):
+        ci_module.normalize(snapshot)
+
+
+def test_ci_total_execution_is_not_aggregate_job_duration():
+    snapshot = ci_fixture()
+    snapshot.jobs["101"].append({
+        "id": 1003, "run_id": 101, "run_attempt": 1,
+        "name": "owner-shard-0", "status": "completed", "conclusion": "success",
+        "started_at": "2026-09-23T00:00:10Z",
+        "completed_at": "2026-09-23T00:00:40Z",
+    })
+    result = ci_module.project(ci_module.normalize(snapshot))
+    metrics = result["metrics"]
+    assert metrics["rootVerificationExecutionSeconds"]["max"] == 50
+    assert metrics["observedAttemptJobExecutionSeconds"]["max"] == 80
+    assert metrics["observedAttemptJobExecutionSeconds"]["count"] == 2
+    assert metrics["jobsWithoutMeasuredExecutionSeconds"] == 0
+    assert result["coverage"]["attemptScope"] == "OBSERVED_ATTEMPT_ONLY"
+    snapshot.jobs["101"][-1]["completed_at"] = None
+    metrics = ci_module.project(ci_module.normalize(snapshot))["metrics"]
+    assert metrics["observedAttemptJobExecutionSeconds"]["count"] == 1
+    assert metrics["jobsWithoutMeasuredExecutionSeconds"] == 1
+
+
+@pytest.mark.parametrize("field,replacement", [
+    ("runId", 102), ("attempt", 2), ("attempt", True),
+    ("headSha", "b" * 40), ("event", "push"),
+    ("providerConclusion", "success"), ("evidenceRefs", []),
+])
+def test_ci_economic_annotation_must_bind_observed_attempt(field, replacement):
+    annotation = ci_waste_annotation()
+    annotation[field] = replacement
+    with pytest.raises(ValueError):
+        ci_module.normalize(ci_fixture(), economic_annotations={"101": annotation})
+
+
+def test_ci_economic_annotation_cannot_follow_run_id_across_rerun():
+    snapshot = ci_fixture()
+    snapshot.runs[0]["run_attempt"] = 2
+    snapshot.jobs["101"][0]["run_attempt"] = 2
+    with pytest.raises(ValueError):
+        ci_module.normalize(snapshot, economic_annotations={"101": ci_waste_annotation()})
