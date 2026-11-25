@@ -115,6 +115,12 @@ if [[ -n "$container" ]]; then
     ORDIVON_HOST_V2_DSN="$migration_dsn" uv run alembic upgrade "$revision"
     export "ORDIVON_HOST_V2_MIGRATION_${variant^^}_DSN=$migration_dsn"
   done
+  # CJK retry tests exercise 0015 -> 0016 even after later schema releases.
+  database=ordivon_migration_cjk
+  docker exec "$container" createdb -U ordivon_ci "$database"
+  cjk_dsn="postgresql://ordivon_ci:$password@127.0.0.1:$port/$database"
+  ORDIVON_HOST_V2_DSN="$cjk_dsn" uv run alembic upgrade 0015
+  export ORDIVON_HOST_V2_MIGRATION_CJK_DSN="$cjk_dsn"
 fi
 uv run ruff check .
 uv run python -m pytest

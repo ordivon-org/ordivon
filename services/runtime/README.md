@@ -136,7 +136,7 @@ For installation and receipted deployment, follow [`docs/quickstart.md`](docs/qu
 ## Focused native Rust testing
 
 `mise install` now obtains official
-[cargo-nextest](https://github.com/nextest-rs/nextest) **0.9.149** using the
+[cargo-nextest](https://github.com/nextest-rs/nextest) **0.9.152** using the
 upstream [mise HTTP backend](https://mise.jdx.dev/dev-tools/backends/http.html)
 and a GitHub Release mirror. This Runtime-local Linux x64 install pins the
 official GitHub release-asset SHA-256, so the mirror is only a transport.

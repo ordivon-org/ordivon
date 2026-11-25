@@ -8,7 +8,7 @@ from typing import Any, Literal
 
 import psycopg
 
-from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
+from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_page, validate_max_bytes
 from .references.actor_refs import ActorReferenceLookup
 
 TargetKind = Literal["work", "space", "topic"]
@@ -67,32 +67,27 @@ class AttentionSubscriptionQueries:
                 for row in rows[:limit]
             ]
 
-            def envelope(last: dict[str, Any]) -> dict[str, Any]:
+            def envelope(last: dict[str, Any] | None, has_more: bool) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-subscription-list",
                     "actorRef": actor_ref,
-                    "hasMore": True,
-                    "truncated": True,
-                    "nextAfterTargetKind": last["targetKind"],
-                    "nextAfterTargetRef": last["targetRef"],
+                    "hasMore": has_more,
+                    "truncated": has_more,
+                    "nextAfterTargetKind": last["targetKind"]
+                    if has_more and last is not None
+                    else None,
+                    "nextAfterTargetRef": last["targetRef"]
+                    if has_more and last is not None
+                    else None,
                     "rankingApplied": False,
                     "truthBoundary": "actor attention-routing preferences only; not assignment, priority, ownership, or authorization",
                 }
 
-            page, byte_more = bounded_prefix(
-                candidates, max_bytes=max_bytes, collection_key="subscriptions", envelope=envelope
+            return bounded_page(
+                candidates,
+                max_bytes=max_bytes,
+                collection_key="subscriptions",
+                envelope=envelope,
+                source_has_more=sql_more,
             )
-            has_more = sql_more or byte_more
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-subscription-list",
-                "actorRef": actor_ref,
-                "subscriptions": page,
-                "hasMore": has_more,
-                "truncated": has_more,
-                "nextAfterTargetKind": page[-1]["targetKind"] if has_more and page else None,
-                "nextAfterTargetRef": page[-1]["targetRef"] if has_more and page else None,
-                "rankingApplied": False,
-                "truthBoundary": "actor attention-routing preferences only; not assignment, priority, ownership, or authorization",
-            }

@@ -17,7 +17,7 @@ from .collection_pagination import (
     DEFAULT_COLLECTION_MAX_BYTES,
     DEFAULT_SPACE_MAX_BYTES,
     MIN_SPACE_MAX_BYTES,
-    bounded_prefix,
+    bounded_page,
     validate_max_bytes,
 )
 from .references.actor_refs import ActorReferenceLookup
@@ -81,31 +81,24 @@ class SocialSpaceReadQueries:
             sql_more = len(rows) > limit
             candidates = [str(row["subject_ref"]) for row in rows[:limit]]
 
-            def envelope(last: str) -> dict[str, Any]:
+            def envelope(last: str | None, has_more: bool) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-space-subject-list",
                     "spaceRef": space_ref,
-                    "hasMore": True,
-                    "nextAfterSubjectRef": last,
+                    "hasMore": has_more,
+                    "nextAfterSubjectRef": last if has_more and last is not None else None,
                     "rankingApplied": False,
                     "truthBoundary": "social subject navigation only; references do not transfer foreign authority",
                 }
 
-            page, byte_more = bounded_prefix(
-                candidates, max_bytes=max_bytes, collection_key="subjectRefs", envelope=envelope
+            return bounded_page(
+                candidates,
+                max_bytes=max_bytes,
+                collection_key="subjectRefs",
+                envelope=envelope,
+                source_has_more=sql_more,
             )
-            has_more = sql_more or byte_more
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-space-subject-list",
-                "spaceRef": space_ref,
-                "subjectRefs": page,
-                "hasMore": has_more,
-                "nextAfterSubjectRef": page[-1] if has_more and page else None,
-                "rankingApplied": False,
-                "truthBoundary": "social subject navigation only; references do not transfer foreign authority",
-            }
 
     def list_participations(
         self,
@@ -136,31 +129,26 @@ class SocialSpaceReadQueries:
                 for row in rows[:limit]
             ]
 
-            def envelope(last: dict[str, Any]) -> dict[str, Any]:
+            def envelope(last: dict[str, Any] | None, has_more: bool) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-participation-list",
                     "spaceRef": space_ref,
-                    "hasMore": True,
-                    "nextAfterActorRef": last["actorRef"],
+                    "hasMore": has_more,
+                    "nextAfterActorRef": last["actorRef"]
+                    if has_more and last is not None
+                    else None,
                     "rankingApplied": False,
                     "truthBoundary": "social participation only; not IAM, ownership, assignment, or authorization",
                 }
 
-            page, byte_more = bounded_prefix(
-                candidates, max_bytes=max_bytes, collection_key="participants", envelope=envelope
+            return bounded_page(
+                candidates,
+                max_bytes=max_bytes,
+                collection_key="participants",
+                envelope=envelope,
+                source_has_more=sql_more,
             )
-            has_more = sql_more or byte_more
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-participation-list",
-                "spaceRef": space_ref,
-                "participants": page,
-                "hasMore": has_more,
-                "nextAfterActorRef": page[-1]["actorRef"] if has_more and page else None,
-                "rankingApplied": False,
-                "truthBoundary": "social participation only; not IAM, ownership, assignment, or authorization",
-            }
 
     def list_spaces(
         self,
@@ -213,36 +201,25 @@ class SocialSpaceReadQueries:
                 for row in rows[:limit]
             ]
 
-            def envelope(last: dict[str, Any]) -> dict[str, Any]:
-                cursor = {
-                    "beforeCreatedAt": last["createdAt"],
-                    "beforeSpaceRef": last["spaceRef"],
-                }
+            def envelope(last: dict[str, Any] | None, has_more: bool) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-space-list",
-                    "hasMore": True,
-                    "nextCursor": cursor,
+                    "hasMore": has_more,
+                    "nextCursor": {
+                        "beforeCreatedAt": last["createdAt"],
+                        "beforeSpaceRef": last["spaceRef"],
+                    }
+                    if has_more and last is not None
+                    else None,
                     "rankingApplied": False,
                     "truthBoundary": "compact social-space locator only; participation is not ownership, authority, or assignment",
                 }
 
-            page, byte_more = bounded_prefix(
-                candidates, max_bytes=max_bytes, collection_key="spaces", envelope=envelope
+            return bounded_page(
+                candidates,
+                max_bytes=max_bytes,
+                collection_key="spaces",
+                envelope=envelope,
+                source_has_more=sql_more,
             )
-            has_more = sql_more or byte_more
-            cursor = None
-            if has_more and page:
-                cursor = {
-                    "beforeCreatedAt": page[-1]["createdAt"],
-                    "beforeSpaceRef": page[-1]["spaceRef"],
-                }
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-space-list",
-                "spaces": page,
-                "hasMore": has_more,
-                "nextCursor": cursor,
-                "rankingApplied": False,
-                "truthBoundary": "compact social-space locator only; participation is not ownership, authority, or assignment",
-            }

@@ -12,7 +12,7 @@ from artifact_core.contracts import file_fact
 from artifact_trust.vsa import LOCAL_VSA_VERIFIER_ID
 
 from .claim_coverage import assess_required_statuses
-from .evidence import write_gate_receipt
+from .evidence import gate_input_issues, write_gate_receipt
 
 ProfileValidator = Callable[[Path], dict[str, Any]]
 PrimarySuffixResolver = Callable[[dict[str, Any]], str]
@@ -66,11 +66,20 @@ def execute_verify_stage(
     hooks: VerificationStageHooks,
 ) -> dict[str, Any]:
     """Execute only locally available verification gates and bind their evidence."""
+    # Observe both inputs before native validation, not when the result
+    # is later serialized. Existing path-dependent adapters stay in place.
+    admitted: dict[str, dict[str, Any]] = {}
+    admission_issues: list[str] = []
+    for role, path in (("subject", artifact), ("profile", profile_path)):
+        try:
+            admitted[role] = file_fact(path)
+        except (OSError, RuntimeError):
+            admission_issues.append(f"verification {role} identity unavailable at admission")
     profile_result = hooks.validate_profile(profile_path)
     profile = profile_result.get("profile", {})
     artifact_class = profile.get("artifactClass")
     receipts: dict[str, Any] = {}
-    failures: list[str] = []
+    failures: list[str] = list(admission_issues)
     if profile_result.get("status") != "PASS":
         failures.append("delivery profile did not PASS validation")
     expected_suffix = hooks.primary_suffix(profile) if profile else None
@@ -80,6 +89,8 @@ def execute_verify_stage(
         )
     if not artifact.is_file():
         failures.append("artifact file is absent")
+    if not admission_issues:
+        failures.extend(gate_input_issues(artifact, profile_path, admitted))
     if failures:
         return {
             "schemaVersion": 1,
@@ -88,6 +99,7 @@ def execute_verify_stage(
             "profileId": profile.get("id"),
             "failures": failures,
             "receipts": receipts,
+            "profileVerificationComplete": False,
             "standingCoverage": assess_required_statuses(
                 {
                     name for name, value in profile.get("gates", {}).items()
@@ -97,9 +109,12 @@ def execute_verify_stage(
             ),
         }
 
+    def record_gate(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        return write_gate_receipt(*args, admitted=admitted, **kwargs)
+
     profile_raw = {
         "status": profile_result.get("status"),
-        "profile": file_fact(profile_path),
+        "profile": admitted["profile"],
         "jsonSchema": profile_result.get("jsonSchema"),
         "minimalContractErrors": profile_result.get("minimalContractErrors", []),
         "boundary": (
@@ -107,7 +122,7 @@ def execute_verify_stage(
             "visual, accessibility and delivery gates remain independent."
         ),
     }
-    receipts["profileSchema"] = write_gate_receipt(
+    receipts["profileSchema"] = record_gate(
         output_dir,
         "profileSchema",
         artifact,
@@ -125,7 +140,7 @@ def execute_verify_stage(
             validator.get("packageVersion", "unknown")
             if isinstance(validator, dict) else "unknown"
         )
-        receipts["structural"] = write_gate_receipt(
+        receipts["structural"] = record_gate(
             output_dir,
             "structural",
             artifact,
@@ -150,7 +165,7 @@ def execute_verify_stage(
                         "delivery request did not PASS before document semantic verification"
                     ],
                 }
-            receipts["semantic"] = write_gate_receipt(
+            receipts["semantic"] = record_gate(
                 output_dir,
                 "semantic",
                 artifact,
@@ -160,7 +175,7 @@ def execute_verify_stage(
                 {"Pandoc": str(semantic_raw.get("pandoc", {}).get("version", "unknown"))},
             )
             dependency_raw = hooks.verify_document_dependencies(request_path, artifact)
-            receipts["dependency"] = write_gate_receipt(
+            receipts["dependency"] = record_gate(
                 output_dir,
                 "dependency",
                 artifact,
@@ -195,7 +210,7 @@ def execute_verify_stage(
                     "rendering, visual review and delivery remain separate."
                 ),
             }
-            receipts["semantic"] = write_gate_receipt(
+            receipts["semantic"] = record_gate(
                 output_dir,
                 "semantic",
                 artifact,
@@ -206,7 +221,7 @@ def execute_verify_stage(
             )
     elif artifact_class in {"fixed-view", "archive", "accessible"}:
         raw = hooks.verify_pdf(artifact)
-        receipts["structural"] = write_gate_receipt(
+        receipts["structural"] = record_gate(
             output_dir,
             "structural",
             artifact,
@@ -227,7 +242,7 @@ def execute_verify_stage(
                 }
             else:
                 conformance_raw = hooks.verify_pdf_conformance(artifact, flavour)
-            receipts["conformance"] = write_gate_receipt(
+            receipts["conformance"] = record_gate(
                 output_dir,
                 "conformance",
                 artifact,
@@ -243,7 +258,7 @@ def execute_verify_stage(
             html_validator.get("version") if isinstance(html_validator, dict)
             else "unknown"
         )
-        receipts["conformance"] = write_gate_receipt(
+        receipts["conformance"] = record_gate(
             output_dir,
             "conformance",
             artifact,
@@ -252,7 +267,7 @@ def execute_verify_stage(
             LOCAL_VSA_VERIFIER_ID,
             {"Nu Html Checker": vnu_version},
         )
-        receipts["structural"] = write_gate_receipt(
+        receipts["structural"] = record_gate(
             output_dir,
             "structural",
             artifact,
@@ -281,7 +296,7 @@ def execute_verify_stage(
             chromium.get("status") == "PASS"
             and chromium.get("accessibility", {}).get("status") == "PASS"
         )
-        receipts["accessibility"] = write_gate_receipt(
+        receipts["accessibility"] = record_gate(
             output_dir,
             "accessibility",
             artifact,
@@ -333,7 +348,7 @@ def execute_verify_stage(
                 "failure rather than a local compatibility waiver."
             ),
         }
-        receipts["target"] = write_gate_receipt(
+        receipts["target"] = record_gate(
             output_dir,
             "target",
             artifact,
@@ -363,6 +378,7 @@ def execute_verify_stage(
     # Executed required FAIL receipts are valid falsification observations,
     # not evidence-integrity issues. Preserve diagnostics for the legacy stage
     # status, but do not collapse their scoped Standing into UNKNOWN.
+    failures.extend(gate_input_issues(artifact, profile_path, admitted))
     evidence_issues = list(failures)
     failed_nonrequired = sorted(set(executed_failures) - required_gates)
     if failed_nonrequired:
@@ -396,7 +412,13 @@ def execute_verify_stage(
         "kind": "artifact-delivery-verify-stage",
         "status": "PASS" if not failures else "FAIL",
         "profileId": profile.get("id"),
-        "artifact": file_fact(artifact),
+        "artifact": admitted["subject"],
+        "inputIdentity": {
+            "scope": "ADMISSION_AND_RECEIPT_DIGEST_CHECKS",
+            "profile": admitted["profile"],
+            "sourcePathContinuity": "NOT_CLAIMED",
+            "dependencyClosure": "NOT_CLAIMED",
+        },
         "receipts": receipts,
         "profileRequiredGates": sorted(required_gates),
         "pendingRequiredGates": pending,
