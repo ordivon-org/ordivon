@@ -23,7 +23,7 @@ _AUDIT_WORK_RECEIPT = (
     "AND r.response->>'kind' IS DISTINCT FROM 'ordivon.host-work'"
 )
 _ROOT_SELECT = (
-    "SELECT r.client_request_id,r.operation,r.response,r.receipt_work_ref,"
+    "SELECT r.client_request_id,r.operation,r.request_digest,r.response,r.receipt_work_ref,"
     "r.receipt_work_revision,s.snapshot_digest,s.payload,s.writer_actor_ref "
     "FROM command_receipts r LEFT JOIN work_snapshots s "
     "ON (s.work_ref,s.revision)=(r.receipt_work_ref,r.receipt_work_revision)"

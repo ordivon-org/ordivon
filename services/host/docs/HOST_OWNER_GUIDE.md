@@ -592,3 +592,15 @@ ordinary two-statement legacy replay and three-statement compact replay
 A whole-row projection also preserves the explicitly tested schema-16
 rollback compatibility; missing pin columns under schema >=17 are errors.
 Bulk audit/maintenance retains its set-oriented root projection.
+
+The batch expansion effect is qualified independently of UPDATE RETURNING.
+For each bounded batch, a subsequent native set readback checks the exact
+identity set, JSONB response, original operation and request digest, and
+both cleared pin coordinates. Only identifiers and qualification booleans
+are returned to the application; the expected encoded responses are sent
+once for the update and again for the comparison. This catches ordinary
+BEFORE and AFTER trigger rewrites of the batch's rows; it does not claim
+protection against arbitrary later privileged DDL or unrelated trigger
+side effects. The original exclusive lock and whole-operation savepoint
+remain in force. No new payload admission limit or storage authority is
+introduced.

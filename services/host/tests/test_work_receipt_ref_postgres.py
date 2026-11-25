@@ -933,6 +933,73 @@ class WorkReceiptTest(unittest.TestCase):
         self.assert_replay(self.create(), first)
         self.assert_replay(self.commit("second", 1), second)
 
+    def test_maintenance_rejects_rewritten_payload_and_request_identity(self):
+        first = self.create()
+        second = self.commit("second", 1)
+        self.tag("create", first)
+        self.tag("second", second)
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+
+            def rows():
+                return conn.execute(
+                    "SELECT client_request_id,operation,request_digest,response,"
+                    "receipt_work_ref,receipt_work_revision FROM command_receipts "
+                    "WHERE client_request_id LIKE %s ORDER BY client_request_id",
+                    (self.prefix + ":%",),
+                ).fetchall()
+
+            before = rows()
+            for label, timing, effect in [
+                (
+                    "response",
+                    "BEFORE",
+                    "NEW.response := jsonb_set(NEW.response,'{snapshot,frontier}',"
+                    "to_jsonb('corrupt'::text)); RETURN NEW;",
+                ),
+                ("operation", "BEFORE", "NEW.operation := 'work.create'; RETURN NEW;"),
+                (
+                    "request_digest",
+                    "BEFORE",
+                    "NEW.request_digest := 'sha256:' || repeat('0',64); RETURN NEW;",
+                ),
+                (
+                    "after_response",
+                    "AFTER",
+                    "UPDATE command_receipts SET response=jsonb_set(response,"
+                    "'{snapshot,frontier}',to_jsonb('corrupt'::text)) "
+                    "WHERE client_request_id=NEW.client_request_id; RETURN NULL;",
+                ),
+            ]:
+                with self.subTest(label=label), conn.transaction(force_rollback=True):
+                    conn.execute(
+                        "CREATE FUNCTION pg_temp.receipt_effect_control() RETURNS trigger "
+                        "LANGUAGE plpgsql AS $$ BEGIN " + effect + " END; $$"
+                    )
+                    conn.execute(
+                        sql.SQL(
+                            "CREATE TRIGGER receipt_effect_control {} UPDATE ON command_receipts "
+                            "FOR EACH ROW WHEN (OLD.receipt_work_ref IS NOT NULL "
+                            "AND OLD.client_request_id={}) "
+                            "EXECUTE FUNCTION pg_temp.receipt_effect_control()"
+                        ).format(sql.SQL(timing), sql.Literal(self.key("second")))
+                    )
+                    with self.assertRaisesRegex(RuntimeError, "restored Work receipt differs"):
+                        expand_work_receipts_and_fence(conn)
+                    self.assertEqual(rows(), before)
+                    self.assertEqual(
+                        conn.execute(
+                            "SELECT count(*) AS n FROM pg_constraint "
+                            "WHERE conrelid='command_receipts'::regclass "
+                            "AND conname='command_receipt_legacy_only'"
+                        ).fetchone()["n"],
+                        0,
+                    )
+            self.assertEqual(rows(), before)
+            self.assertEqual(expand_work_receipts_and_fence(conn), 2)
+        self.gate_open = False
+        self.assert_replay(self.create(), first)
+        self.assert_replay(self.commit("second", 1), second)
+
     def test_opt_in_writer_modes_and_exact_historical_replay(self):
         self.store = WorkStore(DSN, compact_work_receipts=True)
         first = self.create()
