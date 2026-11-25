@@ -5,7 +5,9 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+from ordivon_studio import operation_impact
 from ordivon_studio.production_context import build_production_context
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -238,6 +240,60 @@ class ProductionOperationImpactTests(unittest.TestCase):
             )
             self.assertEqual(projection["revalidateStepIds"], [])
             self.assertEqual(projection["unresolvedStepIds"], ["mastering", "deliver"])
+
+    def test_known_drift_is_not_hidden_by_an_invalid_binding(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            _, intermediate, _ = make_case(root)
+            manifest = root / "production.json"
+            data = json.loads(manifest.read_text())
+            data["outputs"][0]["sourceCarrier"] = "render/master.wav"
+            manifest.write_text(json.dumps(data))
+            # A second independent input changes while the output binding is invalid.
+            extra = root / "extra.txt"
+            extra.write_bytes(b"changed")
+            lineage = root / "operation-lineage.json"
+            graph = json.loads(lineage.read_text())
+            graph["operations"][1]["inputFiles"].append(
+                {"path": "extra.txt", "digest": digest(b"original")}
+            )
+            lineage.write_text(json.dumps(graph))
+            result = impact(root)
+            self.assertEqual(result["revalidateStepIds"], ["mastering", "deliver"])
+            self.assertEqual(intermediate.read_bytes(), b"v1 intermediate")
+
+    def test_each_local_carrier_is_read_once_per_projection_not_across_calls(self) -> None:
+        root = ROOT / "productions/convergence-sonic-ident"
+        with patch.object(operation_impact, "hash_file", wraps=operation_impact.hash_file) as probe:
+            first = impact(root)
+            counts = [call.args[0] for call in probe.call_args_list]
+            self.assertEqual(len(counts), len(set(counts)))
+            self.assertEqual(len(counts), 3)
+            probe.reset_mock()
+            self.assertEqual(impact(root), first)
+            self.assertEqual(probe.call_count, 3)
+
+    def test_unstable_hash_is_unknown_and_not_a_revalidation_assertion(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            make_case(root)
+            with patch.object(operation_impact, "hash_file", side_effect=RuntimeError("source changed")):
+                result = impact(root)
+            self.assertEqual(result["revalidateStepIds"], [])
+            self.assertEqual(result["unresolvedStepIds"], ["synthesize", "mastering", "deliver"])
+
+    def test_noncanonical_path_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            make_case(root)
+            lineage = root / "operation-lineage.json"
+            data = json.loads(lineage.read_text())
+            for path in (".", "./generate.py", "render//source.wav"):
+                with self.subTest(path=path):
+                    data["operations"][0]["inputFiles"][0]["path"] = path
+                    lineage.write_text(json.dumps(data))
+                    with self.assertRaisesRegex(ValueError, "safely relative"):
+                        impact(root)
 
     def test_nondeclared_graph_never_auto_activates(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

@@ -28,8 +28,8 @@ def _read_production_file(root: Path, relative: str) -> Path:
     path = Path(relative)
     if (
         path.is_absolute()
-        or ":" in path.parts[0]
-        or any(part in ("", ".", "..") for part in path.parts)
+        or ":" in relative.split("/")[0]
+        or any(part in ("", ".", "..") for part in relative.split("/"))
     ):
         raise ValueError(f"operation lineage path is not safely relative: {relative}")
     resolved_root = root.resolve()
@@ -39,24 +39,36 @@ def _read_production_file(root: Path, relative: str) -> Path:
     return candidate
 
 
-def _file_observation(root: Path, record: dict[str, str]) -> dict[str, Any]:
+def _file_observation(
+    root: Path,
+    record: dict[str, str],
+    observed_digests: dict[Path, tuple[str | None, str]],
+) -> dict[str, Any]:
     path = _read_production_file(root, record["path"])
     expected = record["digest"]
-    result: dict[str, Any] = {
+    # One observed stream per resolved local carrier, scoped to this projection.
+    # The digest is independent of the declaration; no cross-request cache or
+    # atomic filesystem snapshot is implied.
+    if path not in observed_digests:
+        try:
+            blob = hash_file(path)
+        except (OSError, ValueError):
+            observed_digests[path] = (None, "UNKNOWN_FILE_UNAVAILABLE")
+        except RuntimeError:
+            observed_digests[path] = (None, "UNKNOWN_FILE_UNSTABLE")
+        else:
+            observed_digests[path] = (blob.digest, "OBSERVED")
+    observed, relation = observed_digests[path]
+    if observed is not None:
+        relation = (
+            "MATCHES_DECLARED_DIGEST" if observed == expected else "DIFFERS_FROM_DECLARED_DIGEST"
+        )
+    return {
         "path": record["path"],
         "declaredDigest": expected,
-        "observedDigest": None,
-        "relation": "UNKNOWN_FILE_UNAVAILABLE",
+        "observedDigest": observed,
+        "relation": relation,
     }
-    try:
-        blob = hash_file(path)
-    except OSError, ValueError:
-        return result
-    result["observedDigest"] = blob.digest
-    result["relation"] = (
-        "MATCHES_DECLARED_DIGEST" if blob.digest == expected else "DIFFERS_FROM_DECLARED_DIGEST"
-    )
-    return result
 
 
 def _order(steps: list[dict[str, Any]]) -> list[str]:
@@ -112,6 +124,7 @@ def project_operation_impact(
     owned_outputs: set[str] = set()
     results: dict[str, dict[str, Any]] = {}
     produced_refs: dict[str, set[tuple[str, str]]] = {}
+    observed_digests: dict[Path, tuple[str | None, str]] = {}
 
     for step_id in ordered:
         step = by_id[step_id]
@@ -128,7 +141,8 @@ def project_operation_impact(
         input_paths = [record["path"] for record in inputs]
         if len(input_paths) != len(set(input_paths)):
             raise ValueError(f"operation lineage repeats an input path: {step_id}")
-        observed_files = [_file_observation(root, record) for record in inputs]
+        observed_files = [_file_observation(root, record, observed_digests) for record in inputs]
+        observed_by_path = {row["path"]: row for row in observed_files}
         input_refs = {(record["path"], record["digest"]) for record in inputs}
         dependency_links: list[dict[str, Any]] = []
         for predecessor in step["dependsOn"]:
@@ -141,9 +155,7 @@ def project_operation_impact(
                     "has no matching input artifact carrier/digest"
                 )
             for path, digest in selected_refs:
-                observed = next(
-                    row for row in observed_files if row["path"] == path
-                )
+                observed = observed_by_path[path]
                 dependency_links.append({
                     "fromStep": predecessor,
                     "path": path,
@@ -152,7 +164,7 @@ def project_operation_impact(
                     "historicalExecutionUseProven": False,
                 })
         if "retainedFile" in step:
-            observed_files.append(_file_observation(root, step["retainedFile"]))
+            observed_files.append(_file_observation(root, step["retainedFile"], observed_digests))
         result_refs: set[tuple[str, str]] = set()
         if "retainedFile" in step:
             retained = step["retainedFile"]
@@ -170,11 +182,13 @@ def project_operation_impact(
             for output_id in output_ids
         ]
         relations = [row["relation"] for row in (*observed_files, *output_relations)]
-        if any(relation.startswith("INVALID_") for relation in relations):
-            own_standing = "UNKNOWN_INVALID_BYTE_BINDING"
-        elif any(relation.startswith("DIFFERS_") for relation in relations):
+        # Match the formal impact lattice: known drift dominates incomplete
+        # evidence, while the individual invalid/unknown observations remain visible.
+        if "DIFFERS_FROM_DECLARED_DIGEST" in relations:
             own_standing = "BYTE_DRIFT_OBSERVED"
-        elif any(relation.startswith("UNKNOWN_") for relation in relations):
+        elif any(relation.startswith("INVALID_") for relation in relations):
+            own_standing = "UNKNOWN_INVALID_BYTE_BINDING"
+        elif any(relation != "MATCHES_DECLARED_DIGEST" for relation in relations):
             own_standing = "UNKNOWN_BYTE_EVIDENCE"
         else:
             own_standing = "MATCHES_DECLARED_BYTES"
