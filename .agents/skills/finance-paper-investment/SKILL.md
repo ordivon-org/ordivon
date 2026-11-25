@@ -14,7 +14,7 @@ metadata:
 
 This Skill is a **procedure and capability router**, not another portfolio engine, ledger, scheduler, provider client, or agent. Source remains `domains/capital`. For hypothesis freezing, holdout falsification and research candidate economics, switch to the already canonical `.agents/skills/finance-experiment-review/SKILL.md`; do not duplicate that workflow here. Human-facing operations are documented in `domains/capital/docs/FINANCE_HUMAN_GUIDE_R1.md`.
 
-Directory/LEGO consumer audit: domains/capital/docs/FINANCE_DIRECTORY_OWNER_AUDIT_R1.md. Resolve the seven current natural Owners before changing code or deleting historical files. Human and Agent routes are distinct. Use the active Skill source digest, not merely a GitHub Skill file, for deployed discoverability.
+Directory/LEGO consumer audit: domains/capital/docs/FINANCE_DIRECTORY_OWNER_AUDIT_R1.md. Resolve the current natural Owners from `domains/capital/config/capital_domain_taxonomy.json` and actual consumer paths before changing code or deleting historical files. Human and Agent routes are distinct. Use the active Skill source digest, not merely a GitHub Skill file, for deployed discoverability.
 
 ## First actual source-bound economic research case (2026-11-08)
 
