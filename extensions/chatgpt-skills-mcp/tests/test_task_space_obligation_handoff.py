@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -195,3 +196,97 @@ def test_wire_exact_native_upper_revision_retains_navigation_only():
     assert result["navigationCovered"] is True
     assert result["technicalCompletion"] == "UNKNOWN"
     assert result["effectAuthority"] == "NONE"
+
+@pytest.mark.parametrize("mutation", [
+    "utf16", "utf8_bom", "surrogate", "nul", "short_ref", "long_ref",
+    "padded_ref", "control_ref", "padded_obligation", "too_many_obligations",
+])
+def test_handoff_requires_host_representable_utf8_snapshot(mutation):
+    data = packet()
+    source = data["source"]
+    if mutation == "surrogate":
+        source["workRef"] = "work:\ud800"
+    elif mutation == "nul":
+        source["workRef"] = "work:a\x00b"
+    elif mutation == "short_ref":
+        source["workRef"] = "x"
+    elif mutation == "long_ref":
+        source["workRef"] = "w" * 1025
+    elif mutation == "padded_ref":
+        source["workRef"] = " work:old"
+    elif mutation == "control_ref":
+        source["workRef"] = "work:a\nb"
+    elif mutation == "padded_obligation":
+        source["unresolved"][0] = " consumer-readset "
+        data["links"][0]["sourceObligation"] = source["unresolved"][0]
+    elif mutation == "too_many_obligations":
+        source["unresolved"] = [f"obligation-{i}" for i in range(129)]
+        data["links"] = [
+            dict(data["links"][0], sourceObligation=value)
+            for value in source["unresolved"]
+        ]
+    raw = json.dumps(data).encode("utf-8")
+    if mutation == "utf16":
+        raw = raw.decode("utf-8").encode("utf-16")
+    elif mutation == "utf8_bom":
+        raw = b"\xef\xbb\xbf" + raw
+    completed = subprocess.run(
+        [sys.executable, str(SCRIPT)], input=raw, capture_output=True,
+        check=False, timeout=10,
+    )
+    assert completed.returncode == 2, completed.stderr
+    assert json.loads(completed.stdout)["navigationCovered"] is False
+
+
+def test_handoff_unicode_scalar_roundtrip_keeps_exact_obligation_text():
+    data = packet()
+    data["source"]["unresolved"][0] = "验证 👋 e\u0301"
+    data["links"][0]["sourceObligation"] = data["source"]["unresolved"][0]
+    completed, result = _run_cli(json.dumps(data, ensure_ascii=True))
+    assert completed.returncode == 0
+    assert result["obligationsCarried"][0] == "验证 👋 e\u0301"
+    assert result["effectAuthority"] == "NONE"
+
+@pytest.mark.parametrize("field", ["workRef", "unresolved"])
+def test_successor_snapshot_has_same_native_text_boundary(field):
+    data = packet()
+    receiver = data["successors"][0]
+    if field == "workRef":
+        receiver["workRef"] = "work:\ud800"
+        for link in data["links"]:
+            link["successorRef"] = receiver["workRef"]
+    else:
+        receiver["unresolved"][0] = "x\x00y"
+        data["links"][0]["successorObligation"] = receiver["unresolved"][0]
+    completed, result = _run_cli(json.dumps(data))
+    assert completed.returncode == 2
+    assert result["navigationCovered"] is False
+
+
+def test_handoff_ascii_stdout_does_not_change_unicode_scalar_text():
+    data = packet()
+    value = "验证 👋 e\u0301"
+    data["source"]["unresolved"][0] = value
+    data["links"][0]["sourceObligation"] = value
+    completed = subprocess.run(
+        [sys.executable, str(SCRIPT)], input=json.dumps(data).encode("utf-8"),
+        capture_output=True, check=False, timeout=10,
+        env={**os.environ, "PYTHONIOENCODING": "ascii:strict"},
+    )
+    assert completed.returncode == 0, completed.stderr
+    result = json.loads(completed.stdout)
+    assert result["obligationsCarried"][0] == value
+
+
+def test_native_snapshot_limits_are_inclusive():
+    data = packet()
+    data["source"]["workRef"] = "w" * 1024
+    data["source"]["unresolved"] = [f"obligation-{i}" for i in range(128)]
+    data["links"] = [
+        dict(data["links"][0], sourceObligation=value)
+        for value in data["source"]["unresolved"]
+    ]
+    completed, result = _run_cli(json.dumps(data))
+    assert completed.returncode == 0
+    assert result["coveredIndices"] == list(range(128))
+    assert result["technicalCompletion"] == "UNKNOWN"

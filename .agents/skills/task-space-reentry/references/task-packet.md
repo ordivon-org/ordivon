@@ -105,6 +105,13 @@ non-JSON numeric constants and uses positive Host bigint revisions (at most
 9223372036854775807). Duplicate member names, even identical values, are
 ambiguous before typed navigation assessment; never silently select a winner.
 
+The helper accepts UTF-8 JSON without BOM. Work references and obligation
+strings must be representable in the native Host Work input/PG text domain:
+3–1024 trimmed identifier characters without C0 controls, at most 128
+nonempty trimmed obligations, no NUL or unpaired surrogate in snapshot text.
+Keep exact Unicode scalar text (do not normalize distinct strings).
+Successful navigation still does not attest the existence of either Work.
+
 Helper success means only **NAVIGATION_COVERED** for the caller-supplied versions.
 It **does not verify semantic equivalence** between the strings, current
 versions at the Host, permission, source identity, implementation proof, or
