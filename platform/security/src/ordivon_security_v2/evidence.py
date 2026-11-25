@@ -19,10 +19,13 @@ class EvidenceRef:
     def from_path(cls, *, provider: str, format: str, path: Path) -> EvidenceRef:
         digest = sha256()
         length = 0
-        with path.open("rb") as source:
-            while chunk := source.read(1024 * 1024):
-                digest.update(chunk)
-                length += len(chunk)
+        # Count the same bytes passed to the digest, not file metadata.
+        # Reuse one bounded buffer instead of allocating every chunk.
+        buffer = bytearray(256 * 1024)
+        with path.open("rb") as source, memoryview(buffer) as view:
+            while count := source.readinto(buffer):
+                digest.update(view[:count])
+                length += count
         return cls(
             provider=provider,
             format=format,

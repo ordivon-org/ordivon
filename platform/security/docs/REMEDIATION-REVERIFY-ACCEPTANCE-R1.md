@@ -131,3 +131,36 @@ normal gate and distinguish detector observation, genuine secret exposure,
 credential-owner remediation, historical source scope and release standing.
 Do not treat lack of a verified credential or an unavailable Git object as
 a clean result. Use only redacted finding metadata in coordination.
+
+## R16 counted-stream evidence identity (2026-11-26)
+
+EvidenceRef requires a digest and the actual number of bytes supplied to that
+digest. This differs from the opaque SBOM digest operator and from a parsed
+JSON capture. Do not derive its byte length from separate path metadata or
+from file position after hashlib.file_digest: the Python documentation
+allows that function to leave the file object in an unknown state.
+
+Reuse Python's binary readinto, memoryview and SHA-256 primitives with one
+bounded 256 KiB buffer. Hash only the returned prefix and count that same
+prefix, including a short final read. No new library, evidence schema or
+authentication claim. The three representation contracts remain distinct:
+opaque digest, counted digest, and parse/hash of the same captured JSON.
+
+A fixed-seed interleaved comparison on 67,108,876 synthetic bytes (including
+a short tail), five samples per carrier, observed exact digest and length
+parity for all 15 results. Existing 1 MiB allocating read: median 38.707 ms,
+traced allocation peak 2,229,074 bytes; 1 MiB reusable readinto: 38.049 ms,
+1,180,801 bytes; 256 KiB reusable readinto: 38.113 ms, 394,369 bytes.
+Job `job-01a214bc-df97-7244-b353-577e108bf99f`. These are local synthetic
+Python allocations and timings, not RSS, production or concurrent mutation
+guarantees.
+
+The owner test covers six sizes around the buffer boundary including empty
+and short final reads. A directed isolated mutant hashing the entire buffer
+instead of its valid prefix was rejected by four boundary cases (job
+`job-01a214bd-5fcf-769e-9622-1da750af7351`). Preserve the existing digest,
+byte-length and reference-validation contracts; do not infer immutability
+or provider authenticity.
+
+References: https://docs.python.org/3/library/hashlib.html#hashlib.file_digest
+and https://docs.python.org/3/library/io.html#io.BufferedIOBase.readinto .

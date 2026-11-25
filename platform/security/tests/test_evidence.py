@@ -1,3 +1,4 @@
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -7,6 +8,18 @@ from ordivon_security_v2.evidence import verified_evidence_path
 
 
 class EvidenceRefTests(unittest.TestCase):
+    def test_count_and_digest_cover_same_bytes_at_buffer_boundaries(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "opaque"
+            boundary = 256 * 1024
+            for size in (0, 1, boundary - 1, boundary, boundary + 1, 3 * boundary + 17):
+                with self.subTest(size=size):
+                    raw = (bytes(range(256)) * ((size + 255) // 256))[:size]
+                    path.write_bytes(raw)
+                    ref = EvidenceRef.from_path(provider="fixture", format="opaque", path=path)
+                    self.assertEqual(ref.byte_length, size)
+                    self.assertEqual(ref.sha256, "sha256:" + hashlib.sha256(raw).hexdigest())
+
     def test_digest_binds_exact_bytes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "report.sarif"
