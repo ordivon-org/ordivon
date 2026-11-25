@@ -182,10 +182,12 @@ def _preserve_unintegrated_head(
     if not re.fullmatch(r"[0-9a-f]{40}", head):
         raise RuntimeError("unintegrated Workspace HEAD is not a commit OID")
     found = _git(repo, "rev-parse", "--verify", f"{head}^{{commit}}")
-    if found.returncode or found.stdout.strip() != head:
+    if found.returncode or found.stderr.strip() or found.stdout.strip() != head:
         raise RuntimeError("unintegrated Workspace HEAD is unavailable")
     ref = f"refs/ordivon/retention/{quote(workspace_id, safe='-._')}/{match.group(1)}"
     prior = _git(repo, "rev-parse", "--verify", "--quiet", ref)
+    if prior.stderr.strip():
+        raise RuntimeError("Git retention reference observation incomplete")
     if prior.returncode == 0:
         if prior.stdout.strip() != head:
             raise RuntimeError("retained Workspace ref collides with a different commit")
@@ -194,13 +196,13 @@ def _preserve_unintegrated_head(
         write = _git(repo, "update-ref", ref, head, "0" * 40)
         if write.returncode:
             replay = _git(repo, "rev-parse", "--verify", "--quiet", ref)
-            if replay.returncode or replay.stdout.strip() != head:
+            if replay.returncode or replay.stderr.strip() or replay.stdout.strip() != head:
                 raise RuntimeError("could not preserve unintegrated Git HEAD")
             disposition = "existing"
         else:
             disposition = "created"
     readback = _git(repo, "rev-parse", "--verify", f"{ref}^{{commit}}")
-    if readback.returncode or readback.stdout.strip() != head:
+    if readback.returncode or readback.stderr.strip() or readback.stdout.strip() != head:
         raise RuntimeError("unintegrated retention ref was not durably readable")
     return {"workspaceId": workspace_id, "retentionRef": ref,
             "retentionCommit": head, "disposition": disposition,
@@ -213,15 +215,18 @@ def _git(repo: Path, *args: str, timeout: float = 10) -> subprocess.CompletedPro
                  if not key.startswith("GIT_")}
     # Local replacement refs and grafts must not redefine the committed DAG.
     clean_env["GIT_GRAFT_FILE"] = os.devnull
+    # Observation must not acquire omitted objects or grow the source store.
+    clean_env["GIT_NO_LAZY_FETCH"] = "1"
     return subprocess.run(
-        ["git", "--no-replace-objects", "-C", str(repo), *args],
+        ["git", "--no-replace-objects", "-c", "advice.graftFileDeprecated=false",
+         "-C", str(repo), *args],
         capture_output=True, text=True, errors="surrogateescape",
         timeout=timeout, check=False, env=clean_env,
     )
 
 def _worktrees(repo: Path, root: Path) -> list[tuple[Path, str]]:
     output = _git(repo, "worktree", "list", "--porcelain", "-z", timeout=30)
-    if output.returncode:
+    if output.returncode or output.stderr.strip():
         raise RuntimeError("Git worktree inventory failed")
     worktrees = []
     for part in output.stdout.split("\0\0"):
@@ -404,6 +409,8 @@ def _unintegrated_head(
 ) -> bool | None:
     """Only an explicit canonical Git ref can prove HEAD integration."""
     observed = _git(repo, "merge-base", "--is-ancestor", head, integration_ref)
+    if observed.stderr.strip():
+        return None
     if observed.returncode == 0:
         return False
     if observed.returncode == 1:
@@ -544,6 +551,25 @@ def _store_receipt(root: Path, data: dict) -> str:
             os.close(directory_fd)
     return str(target)
 
+def _qualified_native_close_receipt(value: object, workspace_id: str, digest: str) -> dict:
+    """Observe exact native close; replay is not newly removed storage.
+
+    Runtime's existing closing record/tombstone is the effect authority.
+    Missing, foreign or inconsistent receipt fields are UNKNOWN, not failure
+    proof and not authorization to repeat the physical request.
+    """
+    if not isinstance(value, dict):
+        raise ValueError("native close receipt is not an object")
+    disposition, removed = value.get("closureDisposition"), value.get("removed")
+    if (value.get("workspaceId") != workspace_id
+            or value.get("sourceStateDigest") != digest
+            or type(removed) is not bool
+            or (disposition, removed) not in (("removed", True), ("already_closed", False))):
+        raise ValueError("native close receipt does not bind the exact request")
+    return {"workspaceId": workspace_id, "sourceStateDigest": digest,
+            "closureDisposition": disposition, "removed": removed}
+
+
 def _workspace_matches_candidate(
     workspace: dict, path: Path, head: str, repo: Path, info: tuple,
     retention_ms: int, now: int,
@@ -641,10 +667,10 @@ def run(args: argparse.Namespace) -> dict:
         # Local-only Research repositories have no origin/main; never trust
         # local main as a deletion boundary for a configured remote.
         remotes = _git(repo, "remote")
-        if remotes.returncode or remotes.stdout.strip():
+        if remotes.returncode or remotes.stderr.strip() or remotes.stdout.strip():
             raise ValueError("local main GC requires a repository without remotes")
     resolved = _git(repo, "rev-parse", "--verify", integration_ref)
-    if resolved.returncode:
+    if resolved.returncode or resolved.stderr.strip():
         raise ValueError("configured GC integration ref is unavailable")
     if root != WORKSPACE_ROOT:
         raise ValueError("PG Runtime must own the exact Workspace root")
@@ -658,6 +684,7 @@ def run(args: argparse.Namespace) -> dict:
     process_paths = _active_process_paths(root)
     results = {
         "checked": 0, "eligible": 0, "closed": [], "preserved": [],
+        "nativeCloseReceipts": [], "newlyRemoved": [],
         "skipped": {}, "errors": [], "retentionPolicy": (
             "operator-installed" if policy is not None else "legacy-merged-only"
         ),
@@ -737,7 +764,7 @@ def run(args: argparse.Namespace) -> dict:
             # HEAD retirement cannot assume non-successful source was delivered.
             skip("non_success_head_not_in_main");continue
         status = _git(path, "status", "--porcelain=v1", "--untracked-files=normal")
-        if status.returncode or status.stdout.strip():
+        if status.returncode or status.stderr.strip() or status.stdout.strip():
             skip("dirty_or_git_error");continue
         # A non-forced Git worktree removal can delete ignored files too.
         # Do not infer that generated-looking files are disposable.
@@ -745,7 +772,7 @@ def run(args: argparse.Namespace) -> dict:
             path, "ls-files", "--others", "--ignored",
             "--exclude-standard", "--directory", "-z",
         )
-        if ignored.returncode or ignored.stdout:
+        if ignored.returncode or ignored.stderr.strip() or ignored.stdout:
             skip("ignored_files_or_git_error");continue
         if (getattr(args, "inspect_release_subjects", False)
                 and (not requested_ids or path.name in requested_ids)
@@ -804,13 +831,13 @@ def run(args: argparse.Namespace) -> dict:
             if not _release_matches(current_binding, workspace, info[0]):
                 skip("owner_disposition_stale");continue
             current_git_status = _git(path,"status","--porcelain=v1","--untracked-files=normal")
-            if current_git_status.returncode or current_git_status.stdout.strip():
+            if current_git_status.returncode or current_git_status.stderr.strip() or current_git_status.stdout.strip():
                 skip("git_changed_at_close");continue
             current_ignored = _git(
                 path, "ls-files", "--others", "--ignored",
                 "--exclude-standard", "--directory", "-z",
             )
-            if current_ignored.returncode or current_ignored.stdout:
+            if current_ignored.returncode or current_ignored.stderr.strip() or current_ignored.stdout:
                 skip("ignored_files_at_close");continue
             # A process can enter a Workspace after the initial sweep path
             # census. Refresh this bounded Linux readset before any close.
@@ -845,9 +872,11 @@ def run(args: argparse.Namespace) -> dict:
                  "consumerReleased":False,
                  "expectedSourceStateDigest":digest},
             )
-            if closed.get("closureDisposition") not in ("removed","already_closed"):
-                raise RuntimeError("Runtime did not confirm closed disposition")
+            receipt = _qualified_native_close_receipt(closed, path.name, digest)
+            results["nativeCloseReceipts"].append(receipt)
             results["closed"].append(path.name)
+            if receipt["removed"]:
+                results["newlyRemoved"].append(path.name)
         except Exception as error:
             # Source preservation may have succeeded even when transport
             # fails. A post-request error cannot prove native removal did
@@ -857,6 +886,9 @@ def run(args: argparse.Namespace) -> dict:
                 "workspaceId": path.name,
                 "errorType": type(error).__name__,
                 "nativeCloseRequested": close_requested,
+                "closeSubject": ({"workspaceId": path.name, "sourceStateDigest": digest,
+                                  "createdAtMs": workspace["createdAtMs"]}
+                                 if close_requested else None),
                 "physicalCloseStanding": "UNKNOWN" if close_requested else "NOT_REQUESTED",
                 "recoveryRequired": close_requested,
                 "nextProtocolStep": (

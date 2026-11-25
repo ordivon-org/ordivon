@@ -556,6 +556,32 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                     mod._worktrees(self.repo, self.workspaces),
                 )
 
+    def test_git_observation_never_hydrates_missing_promisor_blob(self):
+        import subprocess
+        self.git("config", "uploadpack.allowFilter", "true")
+        self.git("config", "uploadpack.allowAnySHA1InWant", "true")
+        clone = self.root / "partial"
+        env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+        subprocess.run(["git", "clone", "--no-checkout", "--filter=blob:none",
+                        self.repo.as_uri(), str(clone)],
+                       env=env, check=True, capture_output=True)
+        blob = self.git("rev-parse", f"{self.head}:new-work")
+        def missing():
+            return subprocess.run(["git", "-C", str(clone), "cat-file", "-e", blob],
+                env={**env, "GIT_NO_LAZY_FETCH": "1"}, capture_output=True).returncode != 0
+        self.assertTrue(missing(), "fixture must have a genuinely absent blob")
+        observed = mod._git(clone, "cat-file", "-p", blob)
+        self.assertNotEqual(observed.returncode, 0)
+        self.assertTrue(missing(), "observation must not acquire missing content")
+
+    def test_git_membership_diagnostic_is_unknown_even_on_zero_exit(self):
+        import subprocess
+        from unittest.mock import patch
+        for rc in (0, 1):
+            with self.subTest(rc=rc), patch.object(mod, "_git", return_value=
+                    subprocess.CompletedProcess([], rc, "", "unable to read object")):
+                self.assertIsNone(mod._unintegrated_head(self.repo, self.head))
+
     def test_git_membership_error_cannot_be_misread_as_policy_unintegrated(self):
         from unittest.mock import patch
         import subprocess
@@ -576,6 +602,7 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                           process_enters_during_get: bool = False,
                           ignored_emerges_during_get: bool = False,
                           close_transport_uncertain: bool = False,
+                          close_response_override: dict | None = None,
                           job_case: str = "succeeded",
                           owner_released: bool = True,
                           active_at_get: bool = False,
@@ -659,10 +686,14 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                     assert parameters["expectedSourceStateDigest"] == "sha256:" + "f" * 64
                     if close_transport_uncertain:
                         raise TimeoutError("the test transport has no effect receipt")
+                    if close_response_override is not None:
+                        return close_response_override
                     self.enclosing.git(
                         "worktree", "remove", str(self.enclosing.workspace),
                     )
-                    return {"closureDisposition": "removed"}
+                    return {"closureDisposition": "removed", "removed": True,
+                            "workspaceId": parameters["workspaceId"],
+                            "sourceStateDigest": parameters["expectedSourceStateDigest"]}
                 raise AssertionError("unexpected call")
 
         client = RecordingRuntimeClient(self)
@@ -768,7 +799,9 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                     self.assertFalse(parameters["consumerReleased"])
                     self.git("worktree", "remove", str(self.workspaces / workspace_id))
                     closed.append(workspace_id)
-                    return {"closureDisposition": "removed"}
+                    return {"closureDisposition": "removed", "removed": True,
+                            "workspaceId": workspace_id,
+                            "sourceStateDigest": parameters["expectedSourceStateDigest"]}
 
                 from unittest.mock import Mock
                 client = Mock()
@@ -1242,6 +1275,41 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
         self.assertEqual(report["eligible"], 1)  # unrelated source repo W is eligible
         self.assertTrue(other_workspace.exists())
         self.assertEqual(client.calls, [])
+
+    def test_wrong_native_close_receipt_is_unknown_not_removal(self):
+        base = {"workspaceId": self.workspace.name, "sourceStateDigest": "sha256:" + "f" * 64,
+                "closureDisposition": "removed", "removed": True}
+        for changes in ({"workspaceId": "foreign"}, {"sourceStateDigest": "sha256:" + "e" * 64},
+                        {"removed": False}, {"removed": 1},
+                        {"closureDisposition": "already_closed"}):
+            with self.subTest(changes=changes):
+                report, client = self.run_operator_plan(
+                    allow=True, apply=True, close_response_override={**base, **changes})
+                self.assertEqual(client.calls, ["workspace.get", "workspace.close"])
+                self.assertEqual(report["closed"], [])
+                self.assertEqual(report["errors"][0]["physicalCloseStanding"], "UNKNOWN")
+                self.assertTrue(report["errors"][0]["recoveryRequired"])
+                self.assertEqual(report["errors"][0]["closeSubject"]["workspaceId"], self.workspace.name)
+                self.assertEqual(report["errors"][0]["closeSubject"]["sourceStateDigest"], base["sourceStateDigest"])
+                self.assertEqual(report["newlyRemoved"], [])
+                self.assertTrue(self.workspace.exists())
+
+    def test_native_close_receipt_is_bound_and_replay_not_new_removal(self):
+        base = {"workspaceId": self.workspace.name, "sourceStateDigest": "sha256:" + "f" * 64,
+                "closureDisposition": "already_closed", "removed": False}
+        report, client = self.run_operator_plan(allow=True, apply=True,
+                                               close_response_override=base)
+        self.assertEqual(report["closed"], [self.workspace.name])
+        self.assertEqual(report["nativeCloseReceipts"], [base])
+        self.assertEqual(report["newlyRemoved"], [])
+        self.assertEqual(client.calls, ["workspace.get", "workspace.close"])
+
+    def test_native_removed_receipt_is_counted_once(self):
+        report, client = self.run_operator_plan(allow=True, apply=True)
+        self.assertEqual(report["newlyRemoved"], [self.workspace.name])
+        self.assertEqual(report["nativeCloseReceipts"][0]["sourceStateDigest"], "sha256:" + "f" * 64)
+        self.assertIs(report["nativeCloseReceipts"][0]["removed"], True)
+        self.assertFalse(self.workspace.exists())
 
     def test_ignored_workspace_output_never_qualifies_for_deletion(self):
         # Git status --porcelain reports clean, but ordinary worktree remove

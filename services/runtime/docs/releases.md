@@ -231,6 +231,16 @@ the old SQLite-era path. No direct directory delete or deletion on UNKNOWN.
 A native close timeout is reported as UNKNOWN/recoveryRequired, with the
 retained Git ref and native Workspace/tombstone reconciliation step. The
 close receipt is physical carrier evidence, not semantic task completion.
+The adapter binds the native close receipt to the exact requested workspaceId
+and sourceStateDigest and checks the typed removed/disposition pair. Its
+nativeCloseReceipts preserve those coordinates; newlyRemoved excludes
+already_closed replays. A missing or inconsistent receipt is UNKNOWN with
+the original closeSubject for native recovery, not permission to retry.
+Git observations use the literal local object graph without lazy acquisition;
+diagnostic-bearing membership, status and inventory observations do not
+establish reclaim eligibility. Acquire missing source objects separately.
+Runtime's existing durable closing record and tombstone remain the effect
+authority; the sweep report does not replace them.
 Sweep receipts are operator-private and published without replacing an existing
 observation coordinate. A failed receipt publication preserves the observed
 close results on stdout with recoveryRequired and UNKNOWN receipt standing;

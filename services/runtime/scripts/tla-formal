@@ -775,6 +775,8 @@ check_workspace_consumer_close_r2_candidate() {
     -config WorkspaceExternalRootReclaimR1.cfg WorkspaceExternalRootReclaimR1.tla)
   (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
     -config WorkspaceReclaimReceiptR1.cfg WorkspaceReclaimReceiptR1.tla)
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config WorkspaceCloseReceiptBindingR1.cfg WorkspaceCloseReceiptBindingR1.tla)
 }
 
 # Distinct two-Agent continuation scope: source DESIGN model, not installed PG claims.
@@ -1044,6 +1046,24 @@ PY_BINDING
       esac
       workspace_close_expect_named_counterexample "$folder" WorkspaceReclaimReceiptR1.cfg \
         "$property" "receipt-$kind" WorkspaceReclaimReceiptR1.tla
+    done
+    for kind in identity disposition reachable; do
+      folder="$tmp_dir/close-receipt-$kind"
+      mkdir "$folder"
+      cp "$ROOT/formal/WorkspaceCloseReceiptBindingR1."{tla,cfg} "$folder/"
+      case "$kind" in
+        identity)
+          sed -i 's/IgnoreIdentity = FALSE/IgnoreIdentity = TRUE/' "$folder/WorkspaceCloseReceiptBindingR1.cfg"
+          property=ObservedBindsExact ;;
+        disposition)
+          sed -i 's/IgnoreDisposition = FALSE/IgnoreDisposition = TRUE/' "$folder/WorkspaceCloseReceiptBindingR1.cfg"
+          property=ObservedDispositionConsistent ;;
+        reachable)
+          echo 'INVARIANT NoObserved' >> "$folder/WorkspaceCloseReceiptBindingR1.cfg"
+          property=NoObserved ;;
+      esac
+      workspace_close_expect_named_counterexample "$folder" WorkspaceCloseReceiptBindingR1.cfg \
+        "$property" "close-receipt-$kind" WorkspaceCloseReceiptBindingR1.tla
     done
   )
 }
