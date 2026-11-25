@@ -306,3 +306,32 @@ def test_replay_does_not_promote_unknown_or_conflicting_gap_evidence():
                  standing="UNKNOWN", certified_canonical_gap_upper=0., dual_proposal=None)
     with pytest.raises(EconomicReplayMismatch, match="UNKNOWN cannot carry"):
         replay_multistage_json(**payload)
+
+
+@pytest.mark.parametrize("gamma", (0.9999999999999999,1.0000000000000002,1.000000000001))
+def test_independent_replay_preserves_deterministic_ce_near_log_limit(gamma):
+    problem = MultistageProblem(gamma,(
+        InformationNode("root",None,0,1.,initial_margin=(1.,),turnover_cost=(0.,)),
+        InformationNode("leaf","root",1,1.,risky_gross=(.4,),cash_gross=.5,
+                        debt_gross=.6,maintenance=(.3,),terminal=True),
+    ))
+    payload = _payload(problem)
+    assert payload["solution"]["certainty_equivalent_terminal_r"] == pytest.approx(.5)
+    assert replay_multistage_json(**payload)["max_identity_residual_r"] < 1e-6
+
+
+@pytest.mark.parametrize("gamma", (0.9999999999999999, 1.0, 1.0000000000000002))
+def test_independent_ce_log_limit_with_nonidentical_wealth_and_admitted_mass_error(gamma):
+    from ordivon_capital.research.independent_policy_replay import _ce
+
+    # The normalized geometric mean is exactly 1 when these weights agree.
+    # A tiny allowed total-mass error must not be amplified by 1/(1-gamma).
+    assert _ce([(0.50000000001, .25), (0.50000000001, 4.)], gamma) == pytest.approx(1., abs=1e-14)
+
+
+def test_independent_ce_harmonic_mean_and_extreme_log_range():
+    from ordivon_capital.research.independent_policy_replay import _ce
+
+    assert _ce([(.5, 1.), (.5, 4.)], 2.) == pytest.approx(1.6)
+    assert _ce([(.5, 1e-200), (.5, 1e200)], 1.) == pytest.approx(1.)
+    assert _ce([(.5, 1e-200), (.5, 1e200)], 1e300) == pytest.approx(1e-200, rel=1e-14, abs=0)

@@ -15,6 +15,7 @@ import math
 import sys
 from collections import defaultdict
 from collections.abc import Mapping
+from decimal import Decimal, localcontext
 from pathlib import Path
 from typing import Any
 
@@ -54,10 +55,24 @@ def _vector(values: Any, where: str, n: int) -> tuple[float, ...]:
 
 
 def _ce(values: list[tuple[float, float]], gamma: float) -> float:
-    if gamma == 1.0:
-        return math.exp(math.fsum(p * math.log(w) for p, w in values))
-    moment = math.fsum(p * math.exp((1 - gamma) * math.log(w)) for p, w in values)
-    return math.exp(math.log(moment) / (1 - gamma))
+    """Independent high-precision power mean; do not import the solver's CE."""
+    # The nearest binary64 gamma to 1 differs by about 1e-16. 80 decimal
+    # digits retain the small logarithm well beyond the replay tolerance.
+    # Centering at an extremal log ensures every exponential is <= 1,
+    # including extremely large finite risk aversion and wealth spreads.
+    with localcontext() as ctx:
+        ctx.prec = 80
+        pairs = [(Decimal.from_float(p), Decimal.from_float(w).ln()) for p, w in values]
+        mass = sum(p for p, _ in pairs)
+        power = 1 - Decimal.from_float(gamma)
+        if power == 0:
+            log_mean = sum(p * log_w for p, log_w in pairs) / mass
+        else:
+            logs = [log_w for _, log_w in pairs]
+            anchor = max(logs) if power > 0 else min(logs)
+            moment = sum(p * (power * (log_w - anchor)).exp() for p, log_w in pairs) / mass
+            log_mean = anchor + moment.ln() / power
+        return float(log_mean.exp())
 
 
 def replay_multistage_json(
