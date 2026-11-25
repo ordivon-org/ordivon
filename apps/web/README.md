@@ -134,6 +134,10 @@ exact replay is reconciled before any new approval or effect; current grant
 uniqueness, identity, digest and revision are checked before STEP_UP or ALLOW.
 A response code alone is not a general proof of domain completion: the
 committed receipt is the canary's authoritative result.
+For a new effect, the WebStore transaction reads back the exact intended receipt
+identity, result bytes and commit time before COMMIT. Missing, malformed or
+mismatched readback rolls back the note, quota, approval and audit effects.
+This is not a proof of authenticity for historical receipts modified later.
 
 See [the bounded protocol model and concrete race witnesses](formal/README.md).
 Use `mise run web:formal:effect-response` from the repository root when the existing
