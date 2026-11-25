@@ -4,7 +4,7 @@ pnpm = "12.23.0"
 godot = "4.7.2-stable"
 
 [tasks.verify]
-run = "pnpm install --frozen-lockfile && pnpm check && mise run verify:room-smt && mise run test:native && mise run test:native-receipt-selftest && mise run test:human-playtest-protocol && mise run test:beacon && mise run test:encounter && mise run test:agent-episode && mise run test:visual-native && mise run test:dialogue-native && mise run test:autonomous-study"
+run = "pnpm install --frozen-lockfile && pnpm check && mise run verify:room-smt && mise run test:native && mise run test:native-receipt-selftest && mise run test:human-playtest-protocol && mise run test:beacon && mise run test:encounter && mise run test:agent-episode && mise run test:visual-native && mise run test:dialogue-native && mise run test:autonomous-study && mise run test:consumer-contracts"
 
 
 [tasks."test:native"]
@@ -240,3 +240,13 @@ run = "python3 scripts/test_mixed_audio_acceptance.py"
 [tasks."test:hosted-product-contract"]
 description = "Source-bound immutable preview identity and archive rejection"
 run = "python3 scripts/test_hosted_product_acceptance.py"
+
+
+[tasks."test:consumer-contracts"]
+description = "Fast independent consumer contracts and shrinkable archive properties; no display or export"
+run = """
+set -euo pipefail
+cd scripts
+python3 -m unittest -v test_hosted_product_acceptance test_x11_interaction_acceptance test_mixed_audio_acceptance
+uv run --no-project --with hypothesis python test_consumer_properties.py
+"""
