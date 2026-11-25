@@ -68,8 +68,13 @@ class ValidatedInformationTree:
     months: int
 
 
-def _finite(x: float) -> bool:
-    return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x)
+def _finite(x: object) -> bool:
+    if not isinstance(x, (int, float)) or isinstance(x, bool):
+        return False
+    try:
+        return math.isfinite(x)
+    except OverflowError:
+        return False
 
 
 def validate_information_tree(problem: MultistageProblem) -> ValidatedInformationTree:
@@ -81,10 +86,29 @@ def validate_information_tree(problem: MultistageProblem) -> ValidatedInformatio
     if not _finite(problem.gamma) or problem.gamma <= 0:
         raise AlgebraicPolicyError("positive CRRA risk aversion required")
     nodes = problem.nodes
-    if not nodes or not all(isinstance(n, InformationNode) for n in nodes):
-        raise AlgebraicPolicyError("nonempty information tree required")
+    if not isinstance(nodes, tuple) or not nodes or not all(
+        isinstance(n, InformationNode) for n in nodes
+    ):
+        raise AlgebraicPolicyError("nonempty tuple of information nodes required")
+    # Establish the identity and ordering domains before using them as
+    # dictionary keys or sorting. Invalid caller data is a domain error.
+    for node in nodes:
+        # Establish canonical, immutable vector shape before len(), hashing
+        # observable signatures, or testing whether a terminal vector is empty.
+        if not all(isinstance(vector, tuple) for vector in (
+            node.risky_gross, node.maintenance, node.initial_margin, node.turnover_cost,
+        )):
+            raise AlgebraicPolicyError("information-node vectors must be tuples")
+        if not isinstance(node.id, str) or not node.id:
+            raise AlgebraicPolicyError("unique nonblank observation identifiers required")
+        if node.parent is not None and (not isinstance(node.parent, str) or not node.parent):
+            raise AlgebraicPolicyError("invalid parent observation identifier")
+        if type(node.t) is not int or node.t < 0:
+            raise AlgebraicPolicyError("nonnegative integer month index required")
+        if type(node.terminal) is not bool:
+            raise AlgebraicPolicyError("terminal must be a boolean")
     by_id = {n.id: n for n in nodes}
-    if len(by_id) != len(nodes) or any(not n.id or not isinstance(n.id, str) for n in nodes):
+    if len(by_id) != len(nodes):
         raise AlgebraicPolicyError("unique nonblank observation identifiers required")
     roots = [n for n in nodes if n.parent is None]
     if len(roots) != 1 or roots[0].terminal or roots[0].t != 0:
@@ -104,12 +128,8 @@ def validate_information_tree(problem: MultistageProblem) -> ValidatedInformatio
     ordered = tuple(sorted(nodes, key=lambda x: (x.t, x.id)))
     children: dict[str, list[InformationNode]] = defaultdict(list)
     for node in ordered:
-        if type(node.t) is not int or node.t < 0:
-            raise AlgebraicPolicyError("nonnegative integer month index required")
-        if type(node.terminal) is not bool:
-            raise AlgebraicPolicyError("terminal must be a boolean")
-        if not _finite(node.conditional_probability) or node.conditional_probability <= 0:
-            raise AlgebraicPolicyError("strictly positive conditional probability required")
+        if not _finite(node.conditional_probability) or not 0 < node.conditional_probability <= 1:
+            raise AlgebraicPolicyError("conditional probability must be in (0, 1]")
         if node.parent is not None:
             if node.parent not in by_id:
                 raise AlgebraicPolicyError("unrecognized parent")
@@ -204,9 +224,13 @@ def validate_information_tree(problem: MultistageProblem) -> ValidatedInformatio
         if node.parent is None:
             probability[node.id] = 1.0
         else:
-            probability[node.id] = (
-                probability[node.parent] * node.conditional_probability
-            )
+            weight = probability[node.parent] * node.conditional_probability
+            if not _finite(weight) or weight <= 0:
+                # All admitted edges have positive probability. A zero
+                # binary64 product loses a possible history, not an
+                # impossible one, and cannot enter the optimizer.
+                raise AlgebraicPolicyError("positive history probability not representable")
+            probability[node.id] = weight
     if not math.isclose(
         math.fsum(probability[n.id] for n in leaves),
         1.0, rel_tol=1e-10, abs_tol=1e-12,
