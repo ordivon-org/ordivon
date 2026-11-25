@@ -228,6 +228,12 @@ the old SQLite-era path. No direct directory delete or deletion on UNKNOWN.
 A native close timeout is reported as UNKNOWN/recoveryRequired, with the
 retained Git ref and native Workspace/tombstone reconciliation step. The
 close receipt is physical carrier evidence, not semantic task completion.
+Sweep receipts are operator-private and published without replacing an existing
+observation coordinate. A failed receipt publication preserves the observed
+close results on stdout with recoveryRequired and UNKNOWN receipt standing;
+reconcile native Workspace/tombstone and receipt before retry. File and directory
+sync are required before reporting publication success. The preflight checks the
+receipt directory, not future disk capacity or atomic close/receipt settlement.
 Each sweep separately reports skipped classifications, eligible unintegrated
 Workspace count, preserved refs and directories outside this source repository's
 Git worktree inventory. Those directories may belong to other source repositories

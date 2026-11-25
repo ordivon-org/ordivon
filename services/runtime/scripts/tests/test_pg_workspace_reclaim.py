@@ -17,6 +17,104 @@ mod = module_from_spec(spec)
 loader.exec_module(mod)
 
 
+class PgReclaimReceiptTests(unittest.TestCase):
+    def test_collision_preserves_original_exact_receipt(self):
+        from tempfile import TemporaryDirectory
+        with TemporaryDirectory() as d:
+            root = Path(d) / "receipts"
+            first = {"observedAtMs": 42, "closed": ["ws-first"]}
+            target = Path(mod._store_receipt(root, first))
+            original = target.read_bytes()
+            with self.assertRaises(FileExistsError):
+                mod._store_receipt(root, {"observedAtMs": 42, "closed": ["ws-second"]})
+            self.assertEqual(target.read_bytes(), original)
+            self.assertEqual(list(root.iterdir()), [target])
+
+    def test_file_sync_failure_leaves_no_named_receipt(self):
+        from tempfile import TemporaryDirectory
+        from unittest.mock import patch
+        with TemporaryDirectory() as d:
+            root = Path(d) / "receipts"
+            with patch.object(mod.os, "fsync", side_effect=OSError("sync failed")):
+                with self.assertRaises(OSError):
+                    mod._store_receipt(root, {"observedAtMs": 42})
+            self.assertEqual(list(root.iterdir()), [])
+
+    def test_post_link_directory_sync_failure_preserves_uncertain_bytes(self):
+        from tempfile import TemporaryDirectory
+        from unittest.mock import patch
+        import json
+        with TemporaryDirectory() as d:
+            root = Path(d) / "receipts"
+            original_sync = os.fsync
+            def fail_directory(fd):
+                import stat
+                if stat.S_ISDIR(os.fstat(fd).st_mode):
+                    raise OSError("directory sync failed")
+                original_sync(fd)
+            with patch.object(mod.os, "fsync", side_effect=fail_directory):
+                with self.assertRaises(OSError):
+                    mod._store_receipt(root, {"observedAtMs": 42, "closed": ["ws-done"]})
+            target = root / "pg-reclaim-42.json"
+            self.assertEqual(json.loads(target.read_bytes())["closed"], ["ws-done"])
+            with self.assertRaises(FileExistsError):
+                mod._store_receipt(root, {"observedAtMs": 42, "closed": []})
+
+    def test_receipt_root_alias_and_bad_coordinates_rejected(self):
+        from tempfile import TemporaryDirectory
+        with TemporaryDirectory() as d:
+            root = Path(d) / "receipts"
+            root.mkdir(mode=0o700)
+            alias = Path(d) / "alias"
+            alias.symlink_to(root, target_is_directory=True)
+            with self.assertRaises(ValueError):
+                mod._store_receipt(alias, {"observedAtMs": 42})
+            for value in (True, -1, "../outside"):
+                with self.subTest(value=value), self.assertRaises(ValueError):
+                    mod._store_receipt(root, {"observedAtMs": value})
+            self.assertEqual(list(root.iterdir()), [])
+
+    def test_invalid_receipt_namespace_rejected_before_sweep(self):
+        from tempfile import TemporaryDirectory
+        from unittest.mock import patch
+        from contextlib import redirect_stderr
+        from io import StringIO
+        with TemporaryDirectory() as d:
+            root = Path(d)
+            receipts = root / "receipts"
+            receipts.mkdir(mode=0o755)
+            args = ["reclaim", "--env-file", str(root / "env"),
+                    "--source-repo", str(root), "--workspace-root", str(root),
+                    "--receipt-root", str(receipts),
+                    "--lock-file", str(root / "lock"), "--apply"]
+            with patch.object(sys, "argv", args), patch.object(mod, "run") as run, redirect_stderr(StringIO()):
+                self.assertNotEqual(mod.main(), 0)
+                run.assert_not_called()
+
+    def test_publication_failure_does_not_erase_observed_close(self):
+        from tempfile import TemporaryDirectory
+        from unittest.mock import patch
+        from contextlib import redirect_stdout, redirect_stderr
+        from io import StringIO
+        import json
+        with TemporaryDirectory() as d:
+            root = Path(d)
+            args = ["reclaim", "--env-file", str(root / "env"),
+                    "--source-repo", str(root), "--workspace-root", str(root),
+                    "--receipt-root", str(root / "receipts"),
+                    "--lock-file", str(root / "lock"), "--apply"]
+            stdout, stderr = StringIO(), StringIO()
+            with patch.object(sys, "argv", args), patch.object(mod, "run",
+                    return_value={"closed": ["ws-done"], "errors": []}), patch.object(
+                    mod, "_store_receipt", side_effect=OSError("disk full")), redirect_stdout(
+                    stdout), redirect_stderr(stderr):
+                code = mod.main()
+            self.assertNotEqual(code, 0)
+            result = json.loads(stdout.getvalue())
+            self.assertEqual(result["closed"], ["ws-done"])
+            self.assertEqual(result["receiptPublicationStanding"], "UNKNOWN")
+            self.assertTrue(result["recoveryRequired"])
+
 class PgEnvironmentBindingTests(unittest.TestCase):
     """The input is the ordered native EnvironmentFiles, not a shadow config."""
 
@@ -146,14 +244,23 @@ class PgWorkspaceReclaimTests(unittest.TestCase):
             with self.assertRaises(PermissionError):
                 mod._observe_process_paths(Path("/nonexistent-workspace-root"), [own])
 
+    def test_production_process_inventory_failure_is_unknown(self):
+        from unittest.mock import patch
+        # Path.glob may suppress directory enumeration OSError. Simulate that
+        # incomplete legacy projection and require explicit iterdir failure.
+        with patch.object(Path, "glob", return_value=iter([])), patch.object(
+                Path, "iterdir", side_effect=PermissionError("proc root unreadable")):
+            with self.assertRaises(PermissionError):
+                mod._active_process_paths(Path("/nonexistent-workspace-root"))
+
     def test_production_process_census_does_not_hide_denied_pid(self):
         from unittest.mock import patch
         own = Path("/proc") / str(os.getpid())
-        with patch.object(Path, "glob", return_value=iter([own])) as census:
-            with patch.object(Path, "iterdir", side_effect=PermissionError("denied")):
-                with self.assertRaises(PermissionError):
-                    mod._active_process_paths(Path("/nonexistent-workspace-root"))
-            census.assert_called_once_with("[0-9]*")
+        with patch.object(Path, "iterdir", side_effect=[
+                iter([own]), PermissionError("denied")]) as census:
+            with self.assertRaises(PermissionError):
+                mod._active_process_paths(Path("/nonexistent-workspace-root"))
+            self.assertEqual(census.call_count, 2)
 
     def test_reclaims_only_old_terminal_success(self):
         self.assertTrue(mod.eligible(**self.params))
