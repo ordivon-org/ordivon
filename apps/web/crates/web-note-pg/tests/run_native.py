@@ -30,9 +30,9 @@ def read_exact(sock: socket.socket, size: int) -> bytes:
 class CommitAckFault:
     """Forward the unencrypted local PG protocol; discard only COMMIT ACK."""
 
-    def __init__(self, cluster: Cluster, hold=False):
+    def __init__(self, cluster: Cluster, hold=False, name=None):
         self.hold = hold
-        self.root = cluster.root / ("cancel-proxy" if hold else "ack-proxy")
+        self.root = cluster.root / (name or ("cancel-proxy" if hold else "ack-proxy"))
         self.root.mkdir(mode=0o700)
         self.listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.listener.bind(str(self.root / ".s.PGSQL.59439"))
@@ -100,9 +100,9 @@ class CommitAckFault:
 
 if __name__ == "__main__":
     parser=argparse.ArgumentParser()
-    parser.add_argument("--lane", choices=["all","native","stateful","concurrent","migration"], default="all")
+    parser.add_argument("--lane", choices=["all","native","stateful","concurrent","migration","effect"], default="all")
     args=parser.parse_args()
-    targets=("native","stateful","concurrent","migration") if args.lane=="all" else (args.lane,)
+    targets=("native","stateful","concurrent","migration","effect") if args.lane=="all" else (args.lane,)
     print(f"native qualification scope: {args.lane}", flush=True)
     manifest = Path(__file__).resolve().parents[1] / "Cargo.toml"
     base = ["cargo", "nextest"]
@@ -140,12 +140,20 @@ if __name__ == "__main__":
         # Nonoptional native targets. No global filtering or retry can
         # silently turn a missing target into successful qualification.
         for target in targets:
+            effect_fault = CommitAckFault(cluster, name="effect-proxy") if target == "effect" else None
+            if effect_fault is not None:
+                env["WEB_EFFECT_TEST_ACK_PROXY"]=str(effect_fault.root)
             report = manifest.parent / "target" / "nextest" / target / (target + ".xml")
             report.unlink(missing_ok=True)
-            result = subprocess.run(base + ["run"] + build + ["--test", target,
+            result = None
+            try:
+                result = subprocess.run(base + ["run"] + build + ["--test", target,
                 "--profile", target, "--no-tests", "fail", "--retries", "0", "--test-threads", "1",
                 "--status-level", "pass", "--success-output", "final"],
-                env=env, cwd=manifest.parent, check=False, timeout=180)
+                    env=env, cwd=manifest.parent, check=False, timeout=180)
+            finally:
+                if effect_fault is not None:
+                    effect_fault.close(require_cut=result is not None and result.returncode == 0)
             if result.returncode != 0:
                 break
             print_report(report, expected[target])

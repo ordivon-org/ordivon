@@ -230,6 +230,14 @@
       ],
       "behavioralContract": "R2 create commits under admitted scope; R4 publish requires step-up approval bound to the exact effect and consumes it once; committed approval evidence cannot be reopened and pending approval lookup excludes committed effects; identical replay preserves previous receipt and conflicting payloads or fresh revoked-grant effects reject.",
       "evidence": [
+        "crates/web-note-pg/src/effect/mod.rs",
+        "crates/web-note-pg/src/effect/transaction.rs",
+        "crates/web-note-pg/src/effect/authority.rs",
+        "crates/web-note-pg/src/effect/postconditions.rs",
+        "crates/web-note-pg/tests/effect.rs",
+        "crates/web-note-pg/tests/effect/model.rs",
+        "crates/web-note-pg/tests/effect-reference.ts",
+        "crates/web-note-pg/tests/effect.regressions",
         "crates/web-note-pg/schema/owner-v1.sql",
         "crates/web-note-pg/src/migration.rs",
         "crates/web-note-pg/src/migration_schema.rs",
@@ -297,6 +305,7 @@
         }
       ],
       "acceptance": [
+        "R17 actual Rust PG Effect create/publish plus cooperating pending, verified Approval and Grant revocation writers on full schema, exact transaction postconditions, actor/identity/revision/expiry fences and historical replay; independent SQLite differential, generated model, real concurrency and ACK/fault qualification. Trusted persistence boundary, not production auth/cutover.",
         "R16 full PG schema, exact original SQLite typed snapshot, native binary COPY transactional install, wrong/nonempty destination refusal, malformed and native constraint/trigger rollback, actual native dump/restore and Rust Note consumer; live migration/single writer still unqualified.",
         "R15 bounded native concurrent histories: response and exact independent final facts admit a real-time-respecting sequential witness; native unique-key races and forced snapshot interleaving, isolation/checker negative controls; no claim about unknown outcomes or full interleavings.",
         "R14 native target qualification: full Rust discovery and fresh Nextest JUnit exact identities, no omitted tests/retries, independent generated Note/Audit model with stable shrunk regressions, verified PG fixture cleanup; explicit target owner verification, root CI integration separate.",

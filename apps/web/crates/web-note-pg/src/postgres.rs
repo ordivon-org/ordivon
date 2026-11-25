@@ -11,7 +11,7 @@ pub struct PgNoteStore {
 fn db(phase: &'static str, source: tokio_postgres::Error) -> NoteError {
     NoteError::Database { phase, source }
 }
-fn note_from_row(row: &Row) -> Result<Note, NoteError> {
+pub(crate) fn note_from_row(row: &Row) -> Result<Note, NoteError> {
     let decode = |e| db("decode-note", e);
     let state: String = row.try_get("state").map_err(decode)?;
     let note = Note {
@@ -70,7 +70,7 @@ impl PgNoteStore {
         })
     }
 
-    async fn connect(&self) -> Result<Lease, NoteError> {
+    pub(crate) async fn connect(&self) -> Result<Lease, NoteError> {
         Ok(Lease::new(self.pool.get().await.map_err(NoteError::Pool)?))
     }
 

@@ -480,3 +480,99 @@ this schema, original owner-admitted context and R9 lock ordering. Do not
 create a second Security/OPA authority. Then real authenticated HTTP
 composition, streaming import and digest receipt/cutover rehearsal with
 actual source census, cross-owner independent review and root CI.
+
+
+## R17 — Native PG Effect and cooperating authority writers
+
+Host Work@36, #33057 (Effect), #33088 (verification handoff), #33091
+(cooperating writers). R16 exact 633e461f; fetched main 4d85a831 already
+ancestor, no extra source delta. Do not implement second authorization or
+repair SQLite. Reuse the full R16 schema, R13 pool lease, R9 advisory/row
+lock order, R14 mandatory native discovery and R15 concurrency evidence.
+
+| Logic | Thought | Actual capability |
+|---|---|---|
+| E01 admitted request | representation and natural owner | EffectRequest, GrantFence, EffectOperation, caller-held UUIDs |
+| E02 identity | exact replay before mutable authority | PG transaction advisory try-lock, fresh READ COMMITTED receipt |
+| E03 mutable Grant | version and scope fence | row NOWAIT, validated raw row, revision CAS, safe integer quota |
+| E04 effect-bound Approval | single consumption | explicit binding and live expiry, Approval/Note NOWAIT, publication only |
+| E05 business writes | atomic owner-local effect | native note create/publish, quota, receipt and audit |
+| E06 observations | evidence first | exact raw receipt/audit/Grant/Approval and Note after deferred constraints |
+| E07 lifecycle | no implicit retry or false ACK | shared owner_write, terminal lease reuse, typed BUSY/UNKNOWN |
+| E08 pending registration | revalidate after asynchronous STEP_UP | same identity then Grant lock, immutable pending binding, expiry refresh and final exact observations |
+| E09 verified approval writer | terminality / credential binding | same identity, live pending and Principal/credential binding, closed receipt/consumed guard, exact readback |
+| E10 revocation | single authority writer | Grant-only NOWAIT row lock, exact revision update + caller-held audit identity |
+| E11 verification | independent falsification | actual old SQLite reference, generated model, two-writer histories, native trigger/ACK faults, mutation checks |
+| E12 integration | consumer and authority boundary | actual Rust HTTP/Security/WebAuthn/Grant issuance NOT implemented here |
+
+Effect lock order: identity -> fresh receipt -> Grant -> Approval -> Note.
+Pending order: identity -> receipt -> Grant -> pending. Approval refresh
+order: identity -> receipt -> pending -> credential SHARE -> Approval.
+Revoke only locks Grant; never acquire Effect identity after Grant.
+All writer paths cooperate; advisory hash collision can conservatively
+yield BUSY and must not imply noncommit. READ COMMITTED fresh statement
+snapshot after identity lock, no retry. Replay verifies actor/digest/action/
+resource, retains historical receipt even after grant change; no claim of
+historical audit authenticity. Native API is a trusted internal persistence
+boundary; upstream authenticates Agent/Principal, recomputes content digest,
+binds concrete request and policy decision, supplies time/TTL. Risk policy,
+physical credential verification, and HTTP wire adapter remain Security /
+Web consumers; raw result_json is storage evidence, not HTTP response shape.
+
+R2.1 I=admitted typed intent/selected grant and caller-held identities;
+O=new or replay receipt, pending/approval/revocation result, typed error
+or UNKNOWN; S=R16 tables and R13 bounded pool; pre=trusted caller, all
+writers follow lock order, appropriate admission/context; post=acknowledged
+exact intended new rows or verified historical replay, approval consumed
+once, quota decremented once; inv=no terminal reopening, no automatic
+retry, no success on uncertain commit, exact observations after deferred
+triggers; eff=local PG only; c=per-identity and per-row conflict isolation,
+no measured production throughput claim; epsilon=not full linearizability,
+not arbitrary hostile DDL or uncooperative writers, caller timestamps must
+be trusted, durable cross-process prepared intent and authority UNKNOWN
+observation/cancellation require additional composition; prov=jobs and Git;
+unfold=request->identity/Grant/approval->write->exact observation->commit.
+
+New internal pending transition deliberately rechecks mutable Grant/receipt
+under lock and returns AlreadyCommitted for exact replay; no refresh of a
+committed effect's pending row. Verified approval rechecks live pending
+inside the write and credential belongs to Principal, which is stronger
+than the old split caller/SQLite storage API; does not perform WebAuthn
+or establish credential revocation policy. Revocation preserves the old
+explicit repeat semantics when using a fresh audit ID; duplicate audit ID
+fails atomically, never increments revision twice on same identity. No
+automatic replay. Full authority ACK reconciliation and later credential/
+Grant issuance writers must be separately qualified.
+
+Verification: actual old SQLite reference selected 11 create/publish
+outcomes/five projections, including wrong approval digest + foreign
+actor priority; native independent model seed20261126 48 fresh+1 replay
+49 histories/663 commands plus fixed one-step regression. Model originally
+found binding-before-approval divergence, corrected to original approval
+fence priority. 32 two-writer histories/64 actual calls (same identity
+different Grant, different identities same Grant), four independently
+held lock types, 8 native effect trigger faults, actual native COMMIT ACK
+loss followed by observation and explicit replay. Subsequent actual
+pending/approval/revocation writer lifecycle, three authority trigger
+faults with all 11 table facts unchanged, real refresh/publication and
+revoke/commit races. 8 named mandatory effect tests in split fixture/
+contract/concurrent/model/authority modules. Targeted source mutants
+identity lock, Grant revision, deferred fence, Approval readback, pending
+Grant readback, credential Principal and pending expiry all killed by
+native test assertions, not compilation or setup failure. No global
+mutation percentage or exhaustive proof.
+
+External foundations: PostgreSQL 18 transaction isolation, explicit locking,
+application consistency https://www.postgresql.org/docs/18/transaction-iso.html
+https://www.postgresql.org/docs/18/explicit-locking.html
+https://www.postgresql.org/docs/18/applevel-consistency.html .
+Retain existing Proptest/Nextest with locked compatible resolution.
+serde_json moves from dev to actual domain dependency without new package
+or lock delta. No old WebStore source or JS lock changes.
+
+Next P0: native Grant issuance/digest and read projection, coherent
+authority UNKNOWN observation and actual security/authenticated Rust HTTP
+composition; native session/challenge/DPoP and credential consumers;
+root CI/native prerequisites, real migration freeze/single writer, and
+independent natural-owner review before production. No root CI or
+production cutover claim.

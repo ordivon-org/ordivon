@@ -15,6 +15,7 @@ REQUIRED = {
         "pool_reuse_clean_reset_and_reconnect",
     },
     "stateful": {"generated_native_trajectories", "known_model_counterexamples"},
+    "effect": {"contract::actual_create_publish_sqlite_differential", "concurrent::native_effect_grant_and_approval_contention", "contract::native_effect_postconditions_rollback", "contract::effect_commit_ack_loss_is_observable", "model::generated_effect_authority_histories", "concurrent::native_effect_two_writer_histories", "authority::native_authority_writer_lifecycle_and_terminal_replay", "authority::native_authority_writer_faults_and_races"},
     "migration": {"actual_owner_schema_exact_import", "malformed_and_native_constraint_import_roll_back", "native_dump_restore_and_real_note_consumer", "copy_faults_rollback_exact_postconditions"},
     "concurrent": {"generated_concurrent_histories", "bounded_oracle_rejects_impossible_histories", "coherent_snapshot_under_forced_commit", "native_identity_conflicts_have_one_winner"},
 }

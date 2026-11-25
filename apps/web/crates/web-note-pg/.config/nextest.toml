@@ -34,3 +34,9 @@ path = "migration.xml"
 store-success-output = true
 store-failure-output = true
 report-skipped = "ignored"
+
+[profile.effect.junit]
+path = "effect.xml"
+store-success-output = true
+store-failure-output = true
+report-skipped = "ignored"
