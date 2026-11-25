@@ -235,3 +235,27 @@ def test_exact_verification_resource_scope_is_not_economic_rejection():
     assert proof.standing == "UNKNOWN"
     assert proof.reason == "EXACT_WITNESS_RESOURCE_SCOPE"
     assert proof.certified_canonical_gap_upper is None
+
+
+def test_liability_exhausting_terminal_wealth_invalidates_exact_witness():
+    # Zero risky position and 1r cash exactly meet the terminal liability.
+    # A different policy may be feasible; this witness is not.
+    problem = replace(_deterministic(2.0, 1.125), terminal_liabilities_r={"leaf": 1.0})
+    proof = certify_canonical_gap(problem, {"root": (0.0,)}, (0.0,) * 6, (0.0,), 0.0)
+    assert proof.standing == "UNKNOWN"
+    assert proof.reason == "INEXACT_WITNESS"
+    assert proof.certified_canonical_gap_upper is None
+
+
+def test_outflow_and_turnover_cannot_be_ignored_by_exact_margin_witness():
+    # The risky cap alone admits .75, but a .5 outflow and .125 fee per
+    # risky unit leave insufficient equity for a 100% initial margin.
+    original = _deterministic(2.0, 1.125)
+    problem = replace(
+        original,
+        nodes=(replace(original.nodes[0], turnover_cost=(0.125,)), original.nodes[1]),
+        node_outflow_after_contribution_r={"root": 0.5},
+    )
+    proof = certify_canonical_gap(problem, {"root": (0.75,)}, (0.0,) * 6, (0.0,), 0.0)
+    assert proof.standing == "UNKNOWN"
+    assert proof.reason == "INEXACT_WITNESS"
