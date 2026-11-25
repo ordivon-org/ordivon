@@ -328,3 +328,15 @@ unavailable; raw evidence is retained, but no binary VSA is produced for
 UNKNOWN, including when a previous VSA exists in the output directory.
 This does not waive any required renderer, nor claim a complete native
 dependency readset, arbitrary HTML execution safety or external acceptance.
+
+
+The shared V1 receipt writer also preserves explicit NOT_RUN, NOT_EVALUATED
+and UNKNOWN observations for every existing gate; it rejects a binary VSA
+even when a Boolean override was supplied. Rejected identity readback removes
+stale VSA files. OpenXML requires a subject-bound report and a consistent
+native status, exit code and error array/count. Process launch failure,
+timeout, malformed report or ambiguous exit does not prove document
+nonconformance. qpdf absent/unlaunchable/unknown exits likewise remain
+unobserved; the established qpdf structural policy for exits 2 and 3 is
+unchanged. This does not classify every possible exception inside a native
+validator, nor claim full native process input continuity.
