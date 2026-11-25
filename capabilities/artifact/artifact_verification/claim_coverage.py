@@ -143,20 +143,28 @@ def assess_required_evidence(
             if not isinstance(pointers, list) or not pointers:
                 issues.append(f"native evidence pointer absent: {name}")
                 continue
-            matched = False
+            witnessed_statuses: set[str] = set()
             for pointer in pointers:
                 try:
                     observed = _at_pointer(native_result, pointer)
                 except (ValueError, KeyError):
                     continue
-                if isinstance(observed, dict) and observed.get("status") == status:
-                    if _native_witness_covers_claim(
+                if not isinstance(observed, dict):
+                    continue
+                observed_status = observed.get("status")
+                if (
+                    isinstance(observed_status, str)
+                    and observed_status in {"PASS", "FAIL"}
+                    and _native_witness_covers_claim(
                         pointer, observed, name,
                         profile_id=profile.get("id"),
                         native_kind=native_result.get("kind"),
-                    ):
-                        matched = True
-                        break
+                    )
+                ):
+                    witnessed_statuses.add(observed_status)
+            if witnessed_statuses == {"PASS", "FAIL"}:
+                issues.append(f"contradictory native claim witnesses: {name}")
+            matched = status in witnessed_statuses
             if not matched:
                 issues.append(
                     f"native evidence status/pointer mismatch or not claim-specific: {name}"

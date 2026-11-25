@@ -212,3 +212,24 @@ class PortableBundleConsumerTests(unittest.TestCase):
             result = verify_bundle(bundle)
             self.assertEqual(result["status"], "FAIL", result)
             self.assertIn("unsafe", " ".join(result["failures"]))
+
+    def test_original_report_cannot_relabel_contract_identity(self):
+        self.require_native()
+        with tempfile.TemporaryDirectory() as scratch:
+            root = Path(scratch)
+            bundle = root / "handoff.zip"
+            build_bundle(self.producer(root / "producer"), bundle)
+            with zipfile.ZipFile(bundle) as package:
+                manifest = json.loads(package.read("bundle.json"))
+                report = json.loads(package.read("evidence/service-result.json"))
+            report["objectContract"]["sha256"] = "a" * 64
+            rewritten = json.dumps(report).encode()
+            manifest["verificationReport"]["sha256"] = sha(rewritten)
+            forged = root / "forged-report.zip"
+            self.modify_zip(bundle, forged, {
+                "evidence/service-result.json": rewritten,
+                "bundle.json": json.dumps(manifest).encode(),
+            })
+            result = verify_bundle(forged)
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertFalse(result["profileVerificationComplete"])

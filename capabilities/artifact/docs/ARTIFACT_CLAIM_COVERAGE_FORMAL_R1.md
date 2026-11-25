@@ -12,7 +12,7 @@ That is distinct from the native artifact's actual validity, data origin, legal 
 
 - **Inputs:** canonical selected Profile `P`, native verification observation `N`, native aggregate status `S`, binding's `requireClaimResults` flag `B`.
 - **Required set:** `R = keys(P.requiredEvidence)`, non-empty.
-- **Supported claim:** `Supported(r, N) := r ∈ keys(N.claimResults) ∧ status(r)=PASS ∧ ∃ptr ∈ nativePointers(r): ptr is a non-self-referential pointer to a native node with status PASS`.
+- **Supported claim:** `Supported(r, N) := r ∈ keys(N.claimResults) ∧ status(r)=PASS ∧ ∃ptr ∈ nativePointers(r): ptr is a non-self-referential pointer to a claim-specific native node with status PASS`, and no linked claim-specific native node has status FAIL. A contradictory linked witness set remains UNKNOWN in Standing (not a supported PASS or FAIL); pointer order and duplicate same-status witnesses do not change this result.
 - **Coverage:** `C(P,N) := R ≠ ∅ ∧ keys(N.claimResults)=R ∧ ∀r∈R Supported(r,N)`.
 - **Strict service admission:** `ServicePass(P,N,S,B) := S=PASS ∧ (¬B ∨ C(P,N))`.
 - **Complete profile observation:** `ProfileVerificationComplete(P,N,S,B) := S=PASS ∧ C(P,N)`.

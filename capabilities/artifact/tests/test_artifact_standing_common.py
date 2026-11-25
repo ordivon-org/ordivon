@@ -99,6 +99,7 @@ def test_existing_formal_checker_refines_shared_standing_projection() -> None:
     result = module.check_shared_standing()
     assert result["abstractCasesChecked"] == 50
     assert result["claimBindingCasesChecked"] == 16
+    assert result["multiWitnessCasesChecked"] == 54
     assert result["counterexamples"] == 0
 
 
@@ -241,3 +242,32 @@ def test_v1_invalid_failed_receipt_does_not_prove_falsification() -> None:
         assert result["receipts"]["structural"]["status"] == "FAIL"
         assert result["standingCoverage"]["verificationStatus"] == "UNKNOWN"
         assert result["standingCoverage"]["complete"] is False
+
+
+def test_conflicting_linked_claim_witnesses_cannot_qualify_in_any_order() -> None:
+    from itertools import permutations
+
+    from artifact_verification.claim_coverage import assess_required_evidence
+
+    profile = {"requiredEvidence": {"decoded": {"required": True}}}
+    native = {
+        "status": "PASS",
+        "observations": {
+            "positive": {"status": "PASS", "supportsClaims": ["decoded"]},
+            "negative": {"status": "FAIL", "supportsClaims": ["decoded"]},
+            "unrelated": {"status": "FAIL", "supportsClaims": ["other"]},
+        },
+    }
+    for status in ("PASS", "FAIL"):
+        for pointers in permutations(("/observations/positive", "/observations/negative")):
+            native["claimResults"] = {"decoded": {
+                "status": status, "nativePointers": list(pointers),
+            }}
+            result = assess_required_evidence(profile, native)
+            assert not result["complete"]
+            assert any("contradict" in issue.lower() for issue in result["issues"]), result
+    native["claimResults"] = {"decoded": {
+        "status": "PASS",
+        "nativePointers": ["/observations/positive", "/observations/unrelated"],
+    }}
+    assert assess_required_evidence(profile, native)["complete"]

@@ -203,19 +203,36 @@ def verify_bundle(bundle_path: Path) -> dict[str, Any]:
             # Retain the source proof's precise subject, contract and Profile
             # identity; provenance text cannot be relabeled to a different
             # bundle even when the receiving machine can verify its bytes.
+            if not all(isinstance(old_report.get(key), dict) for key in ("subject", "profile")):
+                raise ValueError("portable verification report identity is malformed")
             if (
                 original_request["profile"]["id"] != profile_ref["id"]
                 or original_request["profile"]["sha256"] != profile_ref["sha256"]
                 or original_request["subject"]["sha256"] != subject_ref["sha256"]
+                or old_report.get("kind") != "artifact-verification-result"
+                or old_report.get("schemaVersion") != 1
+                or old_report.get("requestId") != original_request["requestId"]
                 or old_report.get("subject", {}).get("sha256") != subject_ref["sha256"]
+                or old_report.get("subject", {}).get("size") != len(subject_raw)
+                or old_report.get("profile", {}).get("id") != profile_ref["id"]
                 or old_report.get("profile", {}).get("sha256") != profile_ref["sha256"]
+                or old_report.get("consumer") != original_request.get("consumer")
             ):
                 raise ValueError("portable bundle identity differs from original verification")
             contract_ref = manifest.get("objectContract")
             original_contract = original_request.get("objectContract")
-            if bool(contract_ref) != bool(original_contract) or (
-                contract_ref is not None
-                and contract_ref["sha256"] != original_contract["sha256"]
+            report_contract = old_report.get("objectContract")
+            if (
+                (contract_ref is None) != (original_contract is None)
+                or (contract_ref is None) != (report_contract is None)
+                or (report_contract is not None and not isinstance(report_contract, dict))
+                or (
+                    contract_ref is not None
+                    and (
+                        contract_ref["sha256"] != original_contract["sha256"]
+                        or contract_ref["sha256"] != report_contract["sha256"]
+                    )
+                )
             ):
                 raise ValueError("portable bundle object contract differs from provenance")
 

@@ -245,11 +245,40 @@ def check_shared_standing() -> dict:
             )
         binding_checked += 1
     assert binding_checked == 16
+
+    # A claim may cite multiple witnesses. Independent oracle: the set of
+    # decisive claim-specific statuses must be exactly the declared singleton;
+    # unrelated witnesses and repeated identical statuses do not change it.
+    multi_checked = 0
+    single_profile = {"requiredEvidence": {"alpha": {"required": True}}}
+    for declared in ("PASS", "FAIL"):
+        for vector in itertools.product(("PASS", "FAIL", "OTHER"), repeat=3):
+            native = {
+                "observations": {
+                    str(i): {"status": value if value != "OTHER" else "FAIL",
+                             "supportsClaims": ["alpha" if value != "OTHER" else "beta"]}
+                    for i, value in enumerate(vector)
+                },
+                "claimResults": {"alpha": {
+                    "status": declared,
+                    "nativePointers": [f"/observations/{i}" for i in range(3)],
+                }},
+            }
+            actual = assess_required_evidence(single_profile, native)
+            decisive = set(vector) - {"OTHER"}
+            expected_complete = declared == "PASS" and decisive == {"PASS"}
+            assert actual["complete"] == expected_complete, (declared, vector, actual)
+            assert any("contradictory" in issue for issue in actual["issues"]) == (
+                decisive == {"PASS", "FAIL"}
+            ), (declared, vector, actual)
+            multi_checked += 1
+    assert multi_checked == 54
     return {
         "method": "finite Cartesian abstraction + production-source refinement",
         "abstractStates": list(states),
         "abstractCasesChecked": checked,
         "claimBindingCasesChecked": binding_checked,
+        "multiWitnessCasesChecked": multi_checked,
         "counterexamples": 0,
         "nonClaims": [
             "not proof of native result honesty or pointer identity",
