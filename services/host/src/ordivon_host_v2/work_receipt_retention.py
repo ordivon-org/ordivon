@@ -13,16 +13,43 @@ from .work_receipts import replay_work_receipt
 def expand_work_receipts_and_fence(
     conn: psycopg.Connection[dict[str, Any]],
 ) -> int:
-    """Expand every compact receipt, preserving its historical response.
+    """Expand exact receipts and restore the legacy-only fence.
 
-    Caller supplies an isolated, authorized maintenance transaction, with
-    bounded lock/statement timeouts. Commit is caller-owned. An error must
-    roll back the entire transaction. The exclusive lock prevents concurrent
-    claims or finalization until the persistent legacy-only guard is installed.
-    On ambiguous commit, inspect the actual constraint and remaining roots
-    before retry; do not automatically rerun the operation.
+    Caller owns the outer transaction and its bounded lock/statement timeouts.
+    The operation uses a native savepoint: a caught exception cannot commit
+    a partial expansion. A validated existing fence with no roots is a no-op
+    (zero newly expanded rows, not a replay of the previous count).
     """
-    conn.execute("LOCK TABLE command_receipts IN ACCESS EXCLUSIVE MODE")
+    if conn.autocommit:
+        raise RuntimeError("Work receipt maintenance requires caller-owned transaction")
+    # Start the outer transaction when necessary, without committing it here.
+    # Acquire the fence inside a savepoint so failure also releases its locks.
+    conn.execute("SELECT 1")
+    with conn.transaction():
+        conn.execute("LOCK TABLE command_receipts IN ACCESS EXCLUSIVE MODE")
+        return _expand_locked(conn)
+
+
+def _expand_locked(conn: psycopg.Connection[dict[str, Any]]) -> int:
+    guard = conn.execute(
+        "SELECT contype='c' AND convalidated AND pg_get_expr(conbin,conrelid) = "
+        "'((response ->> ''kind''::text) IS DISTINCT FROM "
+        "''ordivon.host-work-receipt-ref-v1''::text)' AS valid "
+        "FROM pg_constraint WHERE conrelid='command_receipts'::regclass "
+        "AND conname='command_receipt_legacy_only'"
+    ).fetchone()
+    if guard is not None:
+        if guard["valid"] is not True:
+            raise RuntimeError("existing legacy-only receipt fence differs")
+        remaining = conn.execute(
+            "SELECT EXISTS (SELECT 1 FROM command_receipts "
+            "WHERE receipt_work_ref IS NOT NULL OR receipt_work_revision IS NOT NULL "
+            "OR response->>'kind' = 'ordivon.host-work-receipt-ref-v1') AS present"
+        ).fetchone()
+        if remaining is None or remaining["present"] is not False:
+            raise RuntimeError("compact Work receipt roots remain under legacy-only fence")
+        return 0
+
     count = 0
     with conn.cursor(name="host_work_receipt_expand") as cursor:
         cursor.itersize = 128

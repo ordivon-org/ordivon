@@ -505,7 +505,11 @@ authorized maintenance transaction with bounded lock/statement timeouts and
 call work_receipt_retention.expand_work_receipts_and_fence on its Psycopg
 dict-row connection. It takes an exclusive lock, reconstructs the exact old
 response and restores the legacy-only fence atomically. Any failure must
-roll back. Independently check the validated fence and zero pins before
+roll back the operation. A native savepoint prevents partial expansion even
+if the caller catches a domain failure; the caller still owns final commit.
+An already validated exact fence with zero roots returns zero newly expanded
+rows, not the previous operation's count. Independently check the validated
+fence and zero pins before
 alembic downgrade; the migration rejects missing/weaker fences or surviving
 compact roots. On ambiguous commit, inspect actual native state before retry.
 Do not treat this source contract as production activation authority.

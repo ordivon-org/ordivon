@@ -333,6 +333,60 @@ class WorkReceiptTest(unittest.TestCase):
         HostV2(DSN).initialize()
         self.assert_replay(self.create(), original)
 
+    def test_already_fenced_is_noop(self):
+        original = self.create()
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            self.assertEqual(expand_work_receipts_and_fence(conn), 0)
+        self.assert_replay(self.create(), original)
+
+    def test_expansion_retry_and_caught_failure_are_atomic(self):
+        first = self.create()
+        second = self.commit("second", 1)
+        self.commit("third", 2)
+        self.tag("create", first)
+        tag = self.tag("second", second)
+        self.replace("second", {**tag, "responseDigest": "sha256:" + "0" * 64})
+        before = (self.stored("create"), self.stored("second"))
+        # A caller may catch a domain error and commit unrelated work.
+        # The maintenance operation itself must still be all-or-nothing.
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            with self.assertRaisesRegex(RuntimeError, "response digest differs"):
+                expand_work_receipts_and_fence(conn)
+            self.assertEqual(conn.execute("SELECT 1 AS n").fetchone()["n"], 1)
+        self.assertEqual((self.stored("create"), self.stored("second")), before)
+        self.replace("second", tag)
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            self.assertEqual(expand_work_receipts_and_fence(conn), 2)
+        self.gate_open = False
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            self.assertEqual(expand_work_receipts_and_fence(conn), 0)
+        self.assert_replay(self.create(), first)
+        self.assert_replay(self.commit("second", 1), second)
+
+    def test_maintenance_rejects_weak_fence_and_autocommit(self):
+        original = self.create()
+        self.tag("create", original)
+        before = self.stored("create")
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            conn.execute(
+                "ALTER TABLE command_receipts ADD CONSTRAINT command_receipt_legacy_only CHECK (true)"
+            )
+            try:
+                with self.assertRaisesRegex(
+                    RuntimeError, "existing legacy-only receipt fence differs"
+                ):
+                    expand_work_receipts_and_fence(conn)
+                self.assertEqual(conn.execute("SELECT 1 AS n").fetchone()["n"], 1)
+            finally:
+                conn.execute(
+                    "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_legacy_only"
+                )
+        self.assertEqual(self.stored("create"), before)
+        with psycopg.connect(DSN, row_factory=dict_row, autocommit=True) as conn:
+            with self.assertRaisesRegex(RuntimeError, "caller-owned transaction"):
+                expand_work_receipts_and_fence(conn)
+        self.assertEqual(self.stored("create"), before)
+
     def tearDown(self):
         with psycopg.connect(DSN) as conn:
             conn.execute(
