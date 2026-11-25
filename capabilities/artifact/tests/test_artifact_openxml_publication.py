@@ -90,10 +90,21 @@ def test_recipe_and_materialization_are_independent(tmp_path):
         "observedSdkVersion": lock["nixDotnet"]["expectedSdkVersion"],
         **source,
     }
-    spec = m.generation_spec(lock, dotnet, [])
+    package = b"fixture-package"
+    spec = m.generation_spec(
+        lock,
+        dotnet,
+        [
+            {
+                "id": "DocumentFormat.OpenXml",
+                "version": "fixture",
+                "sha256": "sha256:" + hashlib.sha256(package).hexdigest(),
+            }
+        ],
+    )
     gid = hashlib.sha256(m.canonical(spec)).hexdigest()
     gen = tmp_path / "generations" / gid
-    for name in ("bin", "validator", "source", "provenance"):
+    for name in ("bin", "validator", "source", "provenance/nuget"):
         (gen / name).mkdir(parents=True)
     for src, dst in (
         (m.DOTNET_WRAPPER, "bin/dotnet"),
@@ -103,6 +114,8 @@ def test_recipe_and_materialization_are_independent(tmp_path):
         (m.NIX_FLAKE / "flake.lock", "provenance/openxml-nix-flake.lock"),
     ):
         shutil.copyfile(src, gen / dst)
+    retained = gen / "provenance/nuget/documentformat.openxml.fixture.nupkg"
+    retained.write_bytes(package)
     output = gen / "validator" / "fixture.dll"
     output.write_bytes(b"first")
     binding = {
@@ -113,6 +126,23 @@ def test_recipe_and_materialization_are_independent(tmp_path):
     }
     (gen / "binding.json").write_text(json.dumps(binding))
     assert m.qualify_materialization(tmp_path, gen, spec) == binding
+    retained.write_bytes(b"drift")
+    with pytest.raises(RuntimeError, match="NuGet"):
+        m.qualify_materialization(tmp_path, gen, spec)
+    retained.write_bytes(package)
+    extra = retained.parent / "unexpected.nupkg"
+    extra.write_bytes(package)
+    with pytest.raises(RuntimeError, match="NuGet"):
+        m.qualify_materialization(tmp_path, gen, spec)
+    extra.unlink()
+    alias = tmp_path / "alias.nupkg"
+    alias.write_bytes(package)
+    retained.unlink()
+    retained.symlink_to(alias)
+    with pytest.raises(RuntimeError, match="NuGet"):
+        m.qualify_materialization(tmp_path, gen, spec)
+    retained.unlink()
+    retained.write_bytes(package)
     output.write_bytes(b"second")
     with pytest.raises(RuntimeError, match="materialization tree drift"):
         m.qualify_materialization(tmp_path, gen, spec)

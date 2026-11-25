@@ -177,6 +177,18 @@ def qualify_materialization(base:Path,generation:Path,spec:dict[str,Any]|None=No
         path=generation/name
         if path.is_symlink() or 'sha256:'+sha(path)!=binding.get(key):
             raise RuntimeError('OpenXML generation retained provenance mismatch')
+    feed=generation/'provenance/nuget'
+    if feed.is_symlink() or not feed.is_dir():raise RuntimeError('OpenXML retained NuGet feed unavailable')
+    expected={}
+    for row in [*recipe['nugetPackages'],*recipe['sdkRestoreSupportPackages']]:
+        name=f"{row['id'].lower()}.{row['version']}.nupkg"
+        if Path(name).name!=name or name in expected:raise RuntimeError('OpenXML retained NuGet identity invalid')
+        expected[name]=row['sha256']
+    if set(p.name for p in feed.iterdir())!=set(expected):raise RuntimeError('OpenXML retained NuGet feed membership drift')
+    for name,digest in expected.items():
+        path=feed/name
+        if path.is_symlink() or not path.is_file() or 'sha256:'+sha(path)!=digest:
+            raise RuntimeError('OpenXML retained NuGet package drift')
     return binding
 
 
