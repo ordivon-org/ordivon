@@ -2230,11 +2230,15 @@ exit 0
         artifact_mise = tomllib.loads(
             (ROOT / "capabilities/artifact/mise.toml").read_text(encoding="utf-8")
         )
-        for task_name in ("queue", "verify"):
-            native = artifact_mise["tasks"][task_name]["run"]
-            for required in ("uv lock --check", "uv sync --locked", "uv run ruff check",
-                             'uv run python -m pytest -m "not integration"'):
-                self.assertIn(required, native)
+        # The queue delegates to the single portable verification recipe;
+        # native prerequisites are selected by pytest, not a second ignore list.
+        self.assertEqual(artifact_mise["tasks"]["queue"]["run"], "mise run verify")
+        portable = artifact_mise["tasks"]["verify"]["run"]
+        for required in ("uv lock --check", "uv sync --locked", "uv run ruff check",
+                         'uv run python -m pytest -m "not integration"'):
+            self.assertIn(required, portable)
+        self.assertIn('uv run python -m pytest -m "integration"',
+                      artifact_mise["tasks"]["native"]["run"])
         source_selection = subprocess.run(
             [sys.executable, str(ROOT / "tools/repo/affected_owners.py"),
              "--changed-file", "capabilities/artifact/.github/workflows/ci.yml",
@@ -2243,7 +2247,6 @@ exit 0
         )
         self.assertEqual(source_selection.returncode, 0, source_selection.stderr)
         self.assertEqual(source_selection.stdout.strip(), "artifact:queue")
-        self.assertIn("--deselect=", artifact_mise["tasks"]["queue"]["run"])
         self.assertNotIn("--deselect=", artifact_mise["tasks"]["verify"]["run"])
 
     def test_workstation_native_ci_replaces_nondiscovered_nested_ci(self) -> None:
