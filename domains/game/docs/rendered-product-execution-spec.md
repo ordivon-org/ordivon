@@ -1,0 +1,57 @@
+# Game V6 R11 — consumer-bound architecture execution specification
+
+Status: proposed execution cut; R1–R7 merged, #2809 remains under required checks.
+Host: Game factory topic, #31596, #31607, #32559, #32644. R2.1:
+(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold). No inferred owner votes.
+
+## Goal / reality / change
+
+A product consumer needs correct rule transitions, visible and usable effects,
+and evidence of actual consumption. A native exit zero or renderer initialization
+is not a pixel witness. Move from headless-only startup evidence to an independent
+rendered-startup consumer of the actual exported executable. Preserve the existing
+headless gate; do not redefine READY or require new desktop authority.
+
+## Thought / Logic / Capability map (actual source cut)
+
+| Thought LEGO | Logic LEGO, decision owner | Actual capability / source | Change |
+|---|---|---|---|
+| Mechanic transfer, falsification | advisory source retrieval/relationship projection | knowledge/, src/{knowledge-file,mechanism-relationship-graph,counterexample-projection,query-input}.ts, scripts/*query.ts | retain; no gameplay dependency |
+| Fixed-time state and explicit transition | local rule/config, terminal and invalid-input invariants | examples/beacon-relay/{relay_rules,relay_plan}.gd; examples/room-encounter/{encounter_rules,encounter_tuning}.gd; native-composition/grid_rules.gd | retain single rule authority; typed Rust candidate only after real profiling/parity |
+| Scene composition, effects as projection | presentation, movement, collision/physics, HUD | Beacon main/player/mob/hud/relay_sites; Room encounter_root/view and .tscn; Godot Node/Resource/Scene | retain native scene ownership |
+| Explicit event consequence | audio and narrative effect | encounter_audio_feedback.gd, narrative/{encounter_dialogue,gate_state}.gd; upstream Dialogue Manager; native-composition movement_audio_feedback | retain; separate actual audio evidence |
+| Durable continuity | checkpoint, restart, rule state | encounter_save_slot.gd, assert_process_restart.gd | retain; no second store |
+| Agent action/observation | action admission, bounded episode | agent_episode.gd, scripts/agent_episode_acceptance.py | retain; no synthetic human |
+| Formal refinement and independent falsification | arithmetic, traces, native process/receipt validation | formal/verify_room_arithmetic.py, native_scene_acceptance.py, native_process.py, test_godot_package_contract.py | reuse; independent pixel oracle |
+| Immutable delivery | source/template identities, package and READY | native_export_identity.py, mise.toml, GitHub Actions | no receipt scope inflation; separate downstream verifier |
+| Consumer qualification | actual render, decoded raster, evidence scope | Godot Movie Maker + Xvfb + FFmpeg | replace attempted ad hoc Win32 capture, optional Linux display-backed gate |
+| Human evidence / creative exploration | consent, paired trials, study constraints | research/room_encounter_playtest.py, docs/room-encounter-playtest.md, research/autonomous-interest-r7/ | separate authority, no fabricated trials |
+
+## External substrates and selection
+
+- Godot native Movie Maker, fixed FPS and PNG: https://docs.godotengine.org/en/stable/tutorials/animation/creating_movies.html ; CLI https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html .
+- Headless intentionally disables rendering: https://docs.godotengine.org/en/latest/classes/class_renderingserver.html . GdUnit4 scene runner provides mature simulated inputs and frame stepping https://godot-gdunit-labs.github.io/gdUnit4/latest/advanced_testing/sceneRunner/ ; use where actual consumer needs richer fixtures; no blanket replacement of proven native suites.
+- FFmpeg real decoder: https://ffmpeg.org/ffmpeg.html . Xvfb isolates display; no unrelated desktop capture or OS input.
+- Godot + Rust GDExtension https://docs.godotengine.org/en/stable/engine_details/engine_api/gdextension/index.html and https://godot-rust.github.io/ ; Bevy ECS schedule https://docs.rs/bevy/latest/bevy/ecs/schedule/index.html . Prior matched 1536 rule rows support portability, not a full engine migration. Keep Godot scene/export; switch costly pure kernel only with measured workload, actual native binding, deterministic differential replay, cross-platform export and cost win. No parallel equal-authority rule kernel in production.
+
+## Executable contract R11-P0
+
+I: explicit local executable, expected SHA-256, named product, bounded resolution.
+S: caller-owned temporary directory, no external user state; O: scoped JSON receipt.
+pre: executable exists, exact SHA, Xvfb and FFmpeg available, native display not headless.
+post: eight exact indexed PNGs from actual executable (30 fixed FPS), expected dimensions,
+real FFmpeg RGB24 decode of all frames, exact byte count, final frame nonuniform,
+strict native diagnostics and unchanged executable digest.
+inv: fail closed on missing, extra, truncated, wrong-size, uniform final raster,
+nonzero exit, timeout or diagnostic; never emit PASS from arbitrary filename/size alone.
+eff: isolated display process and temporary output; delete own scratch on termination.
+c: eight frames, maximum 1920x1080, maximum 8 MiB each encoded, bounded time.
+epsilon: backend-specific pixels; no universal reference image, no aesthetic or physical
+input/audio claim. prov: binary SHA, renderer, per-frame encoded/decoded SHA, tool identity.
+unfold: reuse native_process.verify_process, Xvfb, Godot CLI and FFmpeg, no new engine.
+
+Acceptance order: actual source rendering probe, actual exported product probe,
+real decoder negative/positive contract, both actual product binary checks, owner verify,
+publish candidate and read back. Keep #2809 head unchanged while CI is underway.
+Next: independently scoped physical input/audio, targeted human study, native profiling
+for Rust migration, conditional GdUnit4 trial; no repeated headless-only gate counted as pixels.
