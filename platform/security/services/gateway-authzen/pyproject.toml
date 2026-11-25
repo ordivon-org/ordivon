@@ -3,10 +3,10 @@ name = "ordivon-security-gateway-authzen"
 version = "0.1.0"
 description = "Security-owned AuthZEN 1.0 PDP API with OPA/Rego policy decisions"
 requires-python = "==3.15.1"
-dependencies = ["starlette==1.6.0", "uvicorn==0.53.0"]
+dependencies = ["starlette>=1.6.0,<2", "uvicorn>=0.53.0,<1"]
 
 [dependency-groups]
-dev = ["pytest==9.1.1", "ruff==0.17.2", "httpx2==2.13.0"]
+dev = ["pytest>=9.1.1,<10", "ruff>=0.17.2,<1", "httpx2>=2.13.0,<3"]
 
 [build-system]
 requires = ["uv_build>=0.13.5,<0.14.0"]
