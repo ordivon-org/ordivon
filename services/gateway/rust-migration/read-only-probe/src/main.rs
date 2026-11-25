@@ -1,5 +1,6 @@
 mod logic;
 mod matching;
+mod owner_observation;
 use logic::{
     DescriptionInput, parse_execution_ref, system_describe, valid_status_envelope,
     valid_target_inventory,
@@ -112,6 +113,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("{}", eval(v));
             }
         }
+        Some("observe-runtime-fixture") => {
+            let endpoint = args.next().ok_or("fixture endpoint required")?;
+            let node = args.next().ok_or("expected fixture node required")?;
+            let legacy = match args.next().as_deref() {
+                None | Some("auto") => false,
+                Some("legacy") => true,
+                _ => return Err("unexpected fixture mode".into()),
+            };
+            if args.next().is_some() {
+                return Err("unexpected arguments".into());
+            }
+            let observation = owner_observation::observe_runtime(
+                &endpoint, &node, std::time::Duration::from_secs(3), legacy,
+            ).await;
+            println!("{}", serde_json::to_string(&observation)?);
+        }
         Some("serve") => {
             let path = args.next().ok_or("fixture path required")?;
             let fixture: Fixture = serde_json::from_slice(&std::fs::read(path)?)?;
@@ -135,7 +152,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", listener.local_addr()?);
             axum::serve(listener, app).await?;
         }
-        _ => return Err("expected eval, casefold-digest or serve <fixture>".into()),
+        _ => return Err("expected eval, casefold-digest, observe-runtime-fixture <endpoint> <node>, or serve <fixture>".into()),
     }
     Ok(())
 }
