@@ -91,11 +91,10 @@ def test_bash_login_and_nonlogin_match_home_manager_policy() -> None:
         assert values["CDF"] == values["FF"] == values["FP"] == "function"
 
 
-def test_default_workstation_observability_services_remain_cold() -> None:
+def test_default_workstation_owned_observability_services_remain_cold() -> None:
     for service in (
         "netdata.service",
         "prometheus.service",
-        "prometheus-node-exporter.service",
         "ordivon-gatus.service",
     ):
         active = subprocess.run(

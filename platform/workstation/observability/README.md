@@ -5,7 +5,8 @@ Operations v2 deliberately contains no Ordivon collector implementation.
 Selected composition:
 
 ```text
-node_exporter -> Prometheus
+Network-owned node_exporter -> Network Prometheus
+Workstation Prometheus -> Workstation-owned targets
 journald -> Vector -> Loki
 OTel SDK/Collector -> standard telemetry path when introduced
 Gatus -> black-box endpoint contracts
@@ -14,7 +15,7 @@ Grafana -> visualization when explicitly admitted
 
 Configured shared slices (not a claim of current service readiness):
 
-- metrics: node_exporter `127.0.0.1:29100` -> Prometheus `127.0.0.1:29091`;
+- metrics: Workstation Prometheus `127.0.0.1:29091` scrapes its own and Cloudflare connector targets. Network owns the package node exporter on `127.0.0.1:29100`, its EnvFile and lifecycle, and its six scoped systemd unit observations. Workstation does not reconcile or scrape that unit as generic node facts. Package installation is not lifecycle authority; any future generic node-metrics consumer needs a separately qualified carrier and owner.
 - logs: journald -> Vector -> Loki HTTP `127.0.0.1:3100` / gRPC `127.0.0.1:9096`.
 - traces: OTLP `127.0.0.1:4317/4318` -> Vector -> Tempo OTLP/HTTP `127.0.0.1:14318` -> query API `127.0.0.1:3200`; desired state does not itself prove live trace acceptance.
 - black-box SLO: Gatus `127.0.0.1:8080`, with desired state now owned under `observability/gatus/`; direct A/B endpoint probes bind the existing loopback CONNECT carriers without becoming Network or domain truth.

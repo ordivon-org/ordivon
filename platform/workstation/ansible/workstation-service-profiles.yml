@@ -15,7 +15,6 @@
       - loki.service
       - vector.service
       - prometheus.service
-      - prometheus-node-exporter.service
       - ordivon-gatus.service
       - ordivon-tempo.service
   tasks:

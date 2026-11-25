@@ -47,21 +47,6 @@
         mode: "0644"
       notify: Try-restart Operations Prometheus if active
 
-    - name: Bind node exporter to loopback on the Operations v2 port
-      ansible.builtin.copy:
-        src: ../observability/node-exporter.conf
-        dest: /etc/conf.d/prometheus-node-exporter
-        owner: root
-        group: root
-        mode: "0644"
-      notify: Try-restart node exporter if active
-
-    - name: Keep node exporter cold by default
-      ansible.builtin.systemd_service:
-        name: prometheus-node-exporter.service
-        enabled: false
-        state: stopped
-
     - name: Keep Operations Prometheus cold by default
       ansible.builtin.systemd_service:
         name: prometheus.service
@@ -76,11 +61,6 @@
     - name: Try-restart Netdata if profile is active
       ansible.builtin.command:
         argv: [/usr/bin/systemctl, try-restart, netdata.service]
-      changed_when: false
-
-    - name: Try-restart node exporter if active
-      ansible.builtin.command:
-        argv: [/usr/bin/systemctl, try-restart, prometheus-node-exporter.service]
       changed_when: false
 
     - name: Try-restart Operations Prometheus if active

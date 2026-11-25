@@ -38,7 +38,6 @@ class ServiceProfileTests(unittest.TestCase):
             "ordivon-grafana.service",
             "ordivon-tempo.service",
             "prometheus.service",
-            "prometheus-node-exporter.service",
             "ordivon-gatus.service",
         ):
             self.assertIn(service, playbook)
@@ -49,12 +48,12 @@ class ServiceProfileTests(unittest.TestCase):
         grafana = (ROOT / "ansible/observability-grafana.yml").read_text()
 
         self.assertIn("Keep Netdata cold by default", metrics)
-        self.assertIn("Keep node exporter cold by default", metrics)
+        self.assertNotIn("Keep node exporter cold by default", metrics)
         self.assertIn("Keep Operations Prometheus cold by default", metrics)
         self.assertNotIn("Enable and start Netdata", metrics)
         self.assertNotIn("Enable and start node exporter", metrics)
         self.assertNotIn("Enable and start Operations Prometheus", metrics)
-        self.assertIn("try-restart, prometheus-node-exporter.service", metrics)
+        self.assertNotIn("try-restart, prometheus-node-exporter.service", metrics)
         self.assertIn("try-restart, prometheus.service", metrics)
         self.assertIn("Keep Loki cold by default", logs)
         self.assertIn("Keep Vector cold by default", logs)

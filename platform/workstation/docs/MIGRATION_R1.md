@@ -38,7 +38,7 @@ A legacy component may be deleted only when all applicable gates are met:
 
 A component MUST NOT survive merely because it has tests or historical evidence.
 
-## First vertical slice — shared node metrics
+## Historical first vertical slice — shared node metrics
 
 R1 deliberately starts with the generic facts most duplicated by the giant Doctor.
 
@@ -63,6 +63,10 @@ Accepted facts:
 - Gatus remains active and separate at `127.0.0.1:8080`.
 
 This is the first concrete replacement path for generic CPU/memory/filesystem/process-host observation formerly duplicated inside the global Doctor. It does **not** authorize deletion of owner-semantic checks yet.
+
+## Current shared exporter authority
+
+The preceding slice records the September migration, not present authority. Network now owns the package exporter lifecycle and EnvFile on port 29100, with only its scoped systemd collector enabled. Workstation keeps its own Prometheus cold by default and does not stop, restart, reconfigure or advertise the Network exporter as generic node metrics. Its optional generic node-metrics consumer would require a separately qualified carrier. See the observability README.
 
 ## Next migration frontier
 
