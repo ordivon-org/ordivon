@@ -1,7 +1,7 @@
 [tools]
 shellcheck = "0.11.0"
 python = "3.15.1"
-uv = "0.13.5"
+uv = "latest"
 # Go Task is the actual Network materialization language, and the R13
 # concurrent Task subprocess tests must run on GitHub and Linux alike.
 task = "3.54.0"

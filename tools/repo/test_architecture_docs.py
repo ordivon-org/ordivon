@@ -5,7 +5,9 @@ import hashlib
 import importlib.util
 import json
 import re
+import subprocess
 import sys
+import tomllib
 from pathlib import Path
 from unittest.mock import patch
 
@@ -1184,7 +1186,7 @@ def test_git01_network_uv_nonmerge_uses_current_native_route_consumer() -> None:
     assert selection["evidenceScope"] == "NATIVE_CONSUMER_PASS"
     assert selection["sourceQualification"]["branchDeletionAllowed"] is False
     owner = tomllib.loads((ROOT / "platform/network/mise.toml").read_text())
-    assert owner["tools"]["uv"] == "0.13.5"
+    assert owner["tools"]["uv"] == "latest"
     assert "ci" in owner["tasks"] and "behavior" in owner["tasks"]
     module.validate_formal_issue_census(census, plans)
 
@@ -1996,6 +1998,17 @@ def test_repo_test_function_names_are_unique() -> None:
         assert not duplicates, (source, duplicates)
 
 
+def test_mise_managed_uv_requests_follow_latest() -> None:
+    config_paths = subprocess.check_output(
+        ["git", "ls-files", "-z", "--", "*mise.toml"], cwd=ROOT
+    )
+    for relative_path in config_paths.decode().strip("\0").split("\0"):
+        manifest = tomllib.loads((ROOT / relative_path).read_text(encoding="utf-8"))
+        request = manifest.get("tools", {}).get("uv")
+        if relative_path == "mise.toml" or request is not None:
+            assert request == "latest", relative_path
+
+
 def test_git01_three_uv_owner_nonmerge_effects_use_current_verified_consumers() -> None:
     """Old uv 0.13.5 patches must not replace the current native Owner graph."""
     import tomllib
@@ -2028,7 +2041,7 @@ def test_git01_three_uv_owner_nonmerge_effects_use_current_verified_consumers() 
                 ROOT / owner / "evidence/r7-artifact-development-publication-intent.json"
             ).is_file()
         else:
-            assert tuple(map(int, mise["tools"]["uv"].split("."))) >= (0, 13, 5)
+            assert mise["tools"]["uv"] == "latest"
         assert task in mise["tasks"]
     module.validate_formal_issue_census(census, plans)
 
