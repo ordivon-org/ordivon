@@ -152,3 +152,31 @@ prov native RED job-01a214af-47de-73ed-974f-6df38b18e49c and original fixtures;
 unfold role identity -> sample qualification -> recording -> group alert.
 Source PR/CI, installed bytes, loaded rules and independent consumers remain
 separate acceptance steps. No service restart or network effect in this work.
+
+## R14 testing reform — native differential and combinatorial verification
+
+Host proposal #32915 extends the R12 candidate PR #2831 and is independent of
+R13 history parsing. Existing global TESTING_UPSTREAM_ADOPTION_R1 and Work@5
+remain authoritative for task semantics. Reference: NIST SP 800-142 and native
+Prometheus rule testing (https://prometheus.io/docs/prometheus/latest/configuration/unit_testing_rules/).
+
+| Priority | Logic | Native capability and closure |
+| --- | --- | --- |
+| P0 | Finite independent rule oracle | 243 exhaustive ternary states plus 5-state pair interactions in two contexts, 475 deduplicated vectors, 1425 alert checks; native promtool, not a second evaluator |
+| P0 | Mutation evidence | actual old raw count, removed role uniqueness, wrong direct threshold; detect semantic mismatches, not just syntax/exit failures |
+| P1 | Temporal and lifecycle model | preserve native stale/recovery regression; Hypothesis stateful/Z3 for unbounded trace inputs where useful |
+| P1 | Test cost and retirement | changed property/readset selection, measured runtime, retain independent negative controls and consumer evidence; no count-based deletion |
+| P1 | Reproducible carrier | reuse R11 uv/mise, keep native promtool mandatory in core:validate; generic CI native installation and exact protected CI remain separately qualified |
+| P2 | Independent fault and consumer acceptance | native isolated netem/Toxiproxy and real OS/application witness; no live disruption or causal claim from model tests |
+
+R2.1: I five named roles, five synthetic observation states and exact rules;
+O independent expected/observed three-alert agreement; S temporary native test
+fixture/TSDB; pre real promtool; post 243 ternary states and all pair projections
+covered; inv missing/duplicate cannot impersonate distinct roles; eff isolated
+test only; c measured 19.67s for 475 vectors (not a universal runtime SLA);
+epsilon higher-order duplicate combinations and variable temporal traces not
+exhausted, production not observed; prov matrix Job
+job-01a214e3-6cd3-72f9-af54-0388db11aaaa and mutant Job
+job-01a214e4-140a-7473-bd78-bd7537a698b9; unfold specification -> generated fixture
+-> native engine -> comparison. Keep existing temporal fixtures. No new runtime
+dependency, registry or verification service.
