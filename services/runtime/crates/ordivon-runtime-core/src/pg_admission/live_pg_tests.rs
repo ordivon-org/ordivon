@@ -119,3 +119,5 @@ mod cancellation_cases;
 mod dispatch_cases;
 mod issuer_cases;
 mod terminal_cases;
+
+mod history_cases;
