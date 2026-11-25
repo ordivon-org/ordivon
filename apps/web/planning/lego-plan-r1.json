@@ -218,6 +218,8 @@
       "evidence": [
         "src/store.ts",
         "src/store-agent-effects.ts",
+        "src/store-effect-transaction.ts",
+        "test/store-effect-lock-contention.test.ts",
         "src/store-effect-approvals.ts",
         "src/store-effect-receipts.ts",
         "src/store-effect-postconditions.ts",
@@ -260,6 +262,7 @@
         "Native HTTP tests replay three deterministic async admission interleavings; bounded TLA+ model checks response invariants, not deployed refinement.",
         "Native SQLite tests preserve exact target Note, Grant, Receipt, Audit and Approval postconditions or roll back; audit lookup uses a bounded non-unique partial index, preserving duplicates for detection.",
         "WebStore is a compatibility facade; one AgentEffectStore owns the transaction, with receipt and approval components on the same connection. No new database or authority.",
+        "Native contention with a peer WAL writer returns typed 503 only for BUSY before transaction acquisition. Historical replay needs no writer lock; after acquisition preserve original error and reconcile by identity without automatic retry.",
         "Native owner transaction recovery covers BEGIN/COMMIT acknowledgement faults, rollback failure and explicit connection reopening, and abrupt disposable child process death on both sides of COMMIT. A bounded trace oracle checks identity, quota, revision and receipt on every transition; no automatic Effect retry.",
         "An initial receipt miss is provisional until native writer admission; a second lookup resolves exact historical replay or conflicting identity before mutable Grant checks. A COMMIT exception does not establish non-commit; rollback only while the connection reports an active transaction and never automatically reissue.",
         "Deterministic two-connection WAL tests cover create/publish exact replay, conflict, stale distinct effects, and before/after-commit acknowledgement injection; no process-crash, lock-wait or distributed delivery proof."
