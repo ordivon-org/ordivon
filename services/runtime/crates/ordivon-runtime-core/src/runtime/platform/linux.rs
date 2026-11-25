@@ -1145,6 +1145,7 @@ pub(crate) fn wait_for_attempt_change(
 mod tests {
     use super::*;
 
+    #[cfg(unix)]
     #[test]
     fn contained_native_bind_source_rejects_symlink_leaf_ancestor_and_traversal() {
         let root = std::env::temp_dir().join(format!(
@@ -1210,6 +1211,7 @@ mod tests {
         fs::remove_dir_all(root).unwrap();
     }
 
+    #[cfg(unix)]
     #[test]
     fn executable_validation_preserves_absolute_proxy_invocation_path() {
         let root =
@@ -1235,6 +1237,7 @@ mod tests {
         fs::remove_dir_all(root).unwrap();
     }
 
+    #[cfg(unix)]
     #[test]
     fn executable_validation_rejects_proxy_invocation_outside_allowed_roots() {
         let root = std::env::temp_dir().join(format!(
@@ -1281,19 +1284,21 @@ mod tests {
 
     #[test]
     fn executable_validation_preserves_exact_step_field_on_physical_failure() {
+        let root = tempfile::tempdir().unwrap();
+        let missing = root.path().join("missing-executable");
         let config = UniversalExecutorConfig {
-            store_root: PathBuf::from("/tmp/ordivon-missing-executable-test"),
+            store_root: root.path().join("store"),
             workspace_root: None,
             workspace_uid: None,
             workspace_gid: None,
-            runner_path: Some(PathBuf::from("/usr/bin/true")),
-            allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
+            runner_path: Some(std::env::current_exe().unwrap()),
+            allowed_executable_roots: vec![root.path().to_path_buf()],
             max_runtime_ms: 60_000,
             max_output_bytes: 1_048_576,
         };
         let error = validate_executable(
             &config,
-            "/definitely/not/an/ordivon/executable",
+            missing.to_str().unwrap(),
             "execution.steps[3].executable",
         )
         .unwrap_err();
@@ -1328,6 +1333,7 @@ mod tests {
         assert!(command.get_args().any(|arg| arg == "--slice=system.slice"));
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn trusted_workspace_cargo_target_requires_native_unit_mount() {
         let budget = super::super::super::ExecutionBudget::default();
@@ -1363,6 +1369,7 @@ mod tests {
 
     // All these samples are subprocess output, not mocked PG outcomes. Native
     // systemd consumers must never learn "not-found" from missing output.
+    #[cfg(target_os = "linux")]
     #[test]
     fn incomplete_systemctl_show_cannot_invent_not_found_or_inactive() {
         let output = Command::new("/usr/bin/sh")
@@ -1374,6 +1381,7 @@ mod tests {
         assert!(error.retryable);
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn failed_systemctl_show_with_partial_stdout_is_not_native_truth() {
         let output = Command::new("/usr/bin/sh")
@@ -1387,6 +1395,7 @@ mod tests {
         assert_eq!(error.code, RuntimeErrorCode::ToolFailed);
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn systemctl_show_without_manager_job_state_is_not_terminal_evidence() {
         let output = Command::new("/usr/bin/sh")
@@ -1399,6 +1408,7 @@ mod tests {
         assert!(parse_systemctl_show_output(output).is_err());
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn duplicate_systemctl_state_cannot_silently_override_first_observation() {
         let output = Command::new("/usr/bin/sh")
@@ -1411,6 +1421,7 @@ mod tests {
         assert!(parse_systemctl_show_output(output).is_err());
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn unrecognized_systemctl_active_state_is_unknown_not_inactive() {
         let output = Command::new("/usr/bin/sh")
@@ -1423,6 +1434,7 @@ mod tests {
         assert!(parse_systemctl_show_output(output).is_err());
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn explicit_systemctl_not_found_is_native_negative_evidence() {
         let output = Command::new("/usr/bin/sh")
@@ -1444,6 +1456,7 @@ mod tests {
         assert!(!unit_has_pending_job(&properties));
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn three_fields_without_full_systemd_witness_are_inconclusive() {
         let output = Command::new("/usr/bin/sh")
@@ -1456,6 +1469,7 @@ mod tests {
         assert!(parse_systemctl_show_output(output).is_err());
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn unrecognized_systemctl_load_state_is_unknown_not_false() {
         let output = Command::new("/usr/bin/sh")
@@ -1464,6 +1478,7 @@ mod tests {
         assert!(parse_systemctl_show_output(output).is_err());
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     #[ignore = "requires a running native Linux systemd manager"]
     fn native_systemctl_missing_unit_is_explicit_negative_evidence() {
@@ -1492,6 +1507,7 @@ mod tests {
         assert!(!unit_has_pending_job(&settled));
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn bounded_observation_output_fails_fast_for_hung_cli() {
         let mut command = Command::new("/usr/bin/sh");
@@ -1506,6 +1522,7 @@ mod tests {
         assert!(started.elapsed() < Duration::from_secs(1));
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn bounded_observation_output_preserves_success_output() {
         let mut command = Command::new("/usr/bin/printf");
@@ -1517,6 +1534,7 @@ mod tests {
         assert_eq!(output.stdout, b"ok");
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn systemd_run_command_uses_native_encrypted_credential_for_job_snapshot() {
         let budget = super::super::super::ExecutionBudget::default();
