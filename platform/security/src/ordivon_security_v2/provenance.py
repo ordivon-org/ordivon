@@ -4,9 +4,8 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Any, Literal, TypedDict
 
-from .attestations import STATEMENT_TYPE
-
-SLSA_PROVENANCE_PREDICATE = "https://slsa.dev/provenance/v1"
+from .attestation_vocabulary import SLSA_PROVENANCE_PREDICATE as SLSA_PROVENANCE_PREDICATE
+from .attestation_vocabulary import STATEMENT_TYPE
 
 
 class ProvenanceContentBinding(TypedDict):

@@ -335,7 +335,7 @@
     {
       "symbolic_name": "scoped-verification-evidence",
       "title": "Scoped verification and independent falsification",
-      "description": "Use existing owner gates, source-bound model checks, bounded development-only property tests, native provider tests and independent negative controls. Distinguish fixture/model/coverage from production qualification, and failed, lost, skipped or unavailable from passed. Separate process coverage from test standing; require observed consumer execution, isolated mutation evidence, and explicit selected and unobserved scopes. Use observed test contexts only for diagnosis; unobserved dependencies cannot justify skipping mandatory validation.",
+      "description": "Use existing owner gates, source-bound model checks, bounded development-only property tests, native provider tests and independent negative controls. Distinguish fixture/model/coverage from production qualification, and failed, lost, skipped or unavailable from passed. Separate process coverage from test standing; require observed consumer execution, isolated mutation evidence, and explicit selected and unobserved scopes. Use observed test contexts only for diagnosis; unobserved dependencies cannot justify skipping mandatory validation. Enforce static assurance dependency boundaries with native import contracts; separate content identity from provider standing.",
       "threats": [
         "unqualified-verification-promotion"
       ],
@@ -393,7 +393,7 @@
         "docs/STANDARDS-BASELINE.md",
         "docs/TECHNOLOGY-SELECTION-R2.md"
       ],
-      "architectureEnvelopeSha256": "sha256:3f474c1b6033bd89291de65c1602e44645004ecc472cb9607944abaa7131c923",
+      "architectureEnvelopeSha256": "sha256:ca66c3506550de82566a7b764e8366f5aa8efe54ec542ef822fe3d611add4e80",
       "modelingMethod": "OWASP Threat Model Library schema with STRIDE-compatible analysis; CAPEC/CWE references may be added when applicable",
       "editorStanding": "Threat Dragon is a replaceable editor/viewer, not the authority format"
     }

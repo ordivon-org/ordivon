@@ -16,6 +16,7 @@ where = ["src"]
 dev = [
   "coverage>=7.10,<8",
   "hypothesis>=6,<7",
+  "import-linter>=2.16,<3",
   "ruff>=0.17.2,<1",
 ]
 # Opt-in, never a product dependency or ordinary PR execution requirement.
@@ -43,3 +44,47 @@ parallel = true
 source_paths = ["src/"]
 only_mutate = ["src/ordivon_security_v2/browser_security_observation.py"]
 pytest_add_cli_args_test_selection = ["tests/test_evidence_properties.py", "-k", "public_json_diff"]
+
+[tool.importlinter]
+root_package = "ordivon_security_v2"
+
+[[tool.importlinter.contracts]]
+id = "assurance-independent"
+name = "Assurance producers and validators remain independent"
+type = "independence"
+modules = [
+  "ordivon_security_v2.attestations",
+  "ordivon_security_v2.provenance",
+  "ordivon_security_v2.signed_vsa",
+  "ordivon_security_v2.scorecard",
+  "ordivon_security_v2.vex",
+  "ordivon_security_v2.remediation",
+]
+
+[[tool.importlinter.contracts]]
+id = "evidence-foundation"
+name = "Evidence and standard vocabulary do not depend on assurance consumers"
+type = "forbidden"
+source_modules = [
+  "ordivon_security_v2.evidence",
+  "ordivon_security_v2.attestation_vocabulary",
+]
+forbidden_modules = [
+  "ordivon_security_v2.attestations",
+  "ordivon_security_v2.provenance",
+  "ordivon_security_v2.signed_vsa",
+  "ordivon_security_v2.scorecard",
+  "ordivon_security_v2.vex",
+  "ordivon_security_v2.remediation",
+]
+
+[[tool.importlinter.contracts]]
+id = "observation-layers"
+name = "Observation representation, comparison and aggregation stay layered"
+type = "layers"
+containers = ["ordivon_security_v2"]
+layers = [
+  "browser_security_pool",
+  "browser_security_comparison",
+  "browser_security_observation | browser_security_witness",
+]

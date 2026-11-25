@@ -14,6 +14,8 @@ set -euo pipefail
 export UV_PYTHON="$(mise which python)"
 uv sync --locked
 uv run --frozen ruff check .
+# Enforce owner-local architecture contracts before expensive verification.
+uv run --frozen lint-imports --no-cache
 # Fail on a stale architecture binding before spending the full test budget.
 uv run --frozen python scripts/validate_threat_model_binding.py threat-models/security-v2-r1.json --repo-root .
 ./scripts/validate_tmbom.sh threat-models/security-v2-r1.json

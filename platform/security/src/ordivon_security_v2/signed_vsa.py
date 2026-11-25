@@ -5,9 +5,9 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
+from .attestation_vocabulary import VSA_PREDICATE as VSA_PREDICATE
 from .evidence import parse_unique_json
 
-VSA_PREDICATE = "https://slsa.dev/verification_summary/v1"
 DSSE_PAYLOAD_TYPE = "application/vnd.in-toto+json"
 
 

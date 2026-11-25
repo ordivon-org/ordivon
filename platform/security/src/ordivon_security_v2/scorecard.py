@@ -1,14 +1,10 @@
 from __future__ import annotations
 
-import hashlib
-import json
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-
-def _sha256(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+from .evidence import read_json_evidence
 
 
 def validate_scorecard_report(
@@ -84,12 +80,12 @@ def load_and_validate_scorecard_report(
     expected_commit: str,
     required_checks: Iterable[str] = (),
 ) -> dict[str, Any]:
-    report = json.loads(report_path.read_text())
+    report, digest = read_json_evidence(report_path)
     result = validate_scorecard_report(
         report,
         expected_repo=expected_repo,
         expected_commit=expected_commit,
         required_checks=required_checks,
     )
-    result["evidenceSha256"] = _sha256(report_path)
+    result["evidenceSha256"] = digest
     return result

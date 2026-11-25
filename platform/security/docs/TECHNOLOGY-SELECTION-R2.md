@@ -613,3 +613,72 @@ References:
 - https://coverage.readthedocs.io/en/latest/contexts.html
 - https://www.testmon.org/
 - https://github.com/tarpas/pytest-testmon
+
+### R20 — enforce module boundaries with mature native architecture tests
+
+Source census of R19 (job job-01a214f7-c0f6-71d2-af6e-39045fa7f9b6):
+Core 14 Python modules; witness 296 lines, comparison 150, pool 135
+(pool aggregate function 124), VEX 133, remediation/evidence 108 each,
+provenance 105, signed VSA 104, Scorecard 95. AuthZEN already separates
+server (139 lines), policy evaluation (107) and JSON qualification (60).
+File size is a review trigger, not an independent defect or a hard gate.
+Split by representation, ownership of invariants, change reason and actual
+consumers; retain natural public interfaces and avoid general utility bags.
+
+| Logic / capability boundary | R20 disposition |
+|---|---|
+| Standard in-toto / SLSA vocabulary | Shared dependency-free constants; preserve previous exported names |
+| Attestation statement production | Independent of provenance and VSA validators |
+| Provenance and VSA validation | Independently consume standard vocabulary and evidence where needed |
+| Scorecard provider report projection | Reuse existing exact captured JSON evidence operator |
+| Evidence capture | Foundation; must not depend on high-level assurance consumers |
+| Observation representation / comparison / pool aggregation | Enforce existing directional layers; do not mechanically split by LOC |
+| Architecture dependency verification (T01/T03) | Native Import Linter / Grimp; ordinary owner entry before expensive tests |
+
+Native Import Linter 2.17 / Grimp 3.20 on CPython 3.15.2 diagnosed the
+actual provenance-to-attestation import solely for Statement v1 (job
+job-01a214f8-8a96-7613-94d7-b97e904800da). The shared vocabulary removes that
+edge without changing URI values or public producer/validator entrypoints.
+Scorecard previously parsed text and independently reopened the file for
+its digest. Its actual two regression tests failed on old source: differing
+captured report versus digest after a controlled synthetic file replacement,
+and accepted duplicate JSON members (job job-01a214f8-d3a5-730e-a067-90ffbec0e95a).
+Reuse read_json_evidence for the same capture and existing duplicate-name
+qualification. This is content identity, not authenticated provider or
+current-world assurance. The existing Scorecard CLI and named-check
+semantics remain unchanged for unambiguous reports.
+
+Adopt import-linter>=2.16,<3 in development dependencies (2.16 supports
+Python 3.15), exact lock 2.17 with Grimp 3.20. Three native contracts cover
+assurance sibling independence, foundation dependency direction, and
+observation layering. No ignored edges, no custom import analyzer, no
+production dependency. The candidate native graph passed three contracts,
+15 files and 16 dependencies, plus six Scorecard tests (job
+job-01a214f9-72aa-7235-bd7c-f62c67f2d9). The graph is scoped to static
+imports; dynamic dependencies, behavioral coupling, semantic correctness
+and external consumers require separate evidence. The old historical edge
+is a negative control in an isolated source copy, never a production change.
+
+Future split priorities: map actual witness consumers and canonical identity
+obligations before separating representation and bundle construction;
+split the pool aggregator only after independent per-group and composition
+oracles are specified. Keep AuthZEN native transport/policy boundaries.
+Prefer replacement with mature native providers rather than adding facade
+layers. Affected-owner/CI qualification and independent consumer acceptance
+remain required before release.
+
+References:
+- https://import-linter.readthedocs.io/en/stable/get_started/configure/
+- https://import-linter.readthedocs.io/en/stable/contract_types/layers/
+- https://import-linter.readthedocs.io/en/stable/contract_types/forbidden/
+- https://import-linter.readthedocs.io/en/stable/release_notes/
+
+Native negative controls independently restored the historical import edge
+and introduced reverse-direction foundation and observation-layer imports in
+disposable copies. Each named contract rejected its own counterexample
+(jobs job-01a214fa-111b-7382-8445-7a436a8578d2 and
+job-01a214fa-8062-74ab-aab3-38a1d88cdaa3). The actual Scorecard CLI
+also passed an independent file-to-stdout identity test and rejected an
+ambiguous synthetic report without a result; the Scorecard suite has seven
+passing tests. These are source and consumer contracts, not a live provider
+qualification or a complete dependency proof.

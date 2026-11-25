@@ -4,9 +4,10 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
-STATEMENT_TYPE = "https://in-toto.io/Statement/v1"
-REFERENCE_PREDICATE = "https://in-toto.io/attestation/reference/v0.1"
-VSA_PREDICATE = "https://slsa.dev/verification_summary/v1"
+# Preserve existing consumer imports; the vocabulary owns the identifiers.
+from .attestation_vocabulary import REFERENCE_PREDICATE as REFERENCE_PREDICATE
+from .attestation_vocabulary import STATEMENT_TYPE as STATEMENT_TYPE
+from .attestation_vocabulary import VSA_PREDICATE as VSA_PREDICATE
 
 
 def sha256_file(path: Path) -> str:
