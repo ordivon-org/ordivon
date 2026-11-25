@@ -69,6 +69,7 @@
       "policy_contract.py",
       "crra_numeric.py",
       "constraint_compiler.py",
+      "canonical_caps.py",
       "numerical_solver.py",
       "optimality_evidence.py",
       "rational_enclosure.py",

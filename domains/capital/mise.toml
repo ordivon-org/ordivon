@@ -117,7 +117,7 @@ description = "Exact canonical financing, finite caps and residual correction ob
 run = """
 set -euo pipefail
 observed="$(cd ../../tools/formal && mise exec -- z3 -smt2 ../../domains/capital/formal/CanonicalGapEvidenceR1.smt2)"
-expected="$(printf 'unsat\\nunsat\\nunsat\\nunsat\\nunsat\\nunsat\\nsat\\nsat\\nunsat\\nunsat\\nsat\\nunsat\\nsat')"
+expected="$(printf 'unsat\\nunsat\\nunsat\\nunsat\\nunsat\\nunsat\\nsat\\nsat\\nunsat\\nunsat\\nsat\\nunsat\\nsat\\nunsat\\nunsat\\nunsat\\nsat\\nsat')"
 if [ "$observed" != "$expected" ]; then
   printf 'Unexpected canonical-gap proof result: %s\\n' "$observed" >&2
   exit 1

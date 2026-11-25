@@ -27,6 +27,7 @@ import math
 from dataclasses import dataclass
 from typing import Any
 
+from ordivon_capital.portfolio.canonical_caps import CapMethod, validate_cap_method
 from ordivon_capital.portfolio.constraint_compiler import compile_multistage_constraints
 from ordivon_capital.portfolio.crra_numeric import certainty_equivalent
 from ordivon_capital.portfolio.information_tree import (
@@ -76,6 +77,7 @@ class MultistageSolution:
 def solve_multistage(
     problem: MultistageProblem, *, witness_repair_max_change_r: float | None = None,
     numerical_solver: NumericalSolver = "SLSQP",
+    cap_method: CapMethod = "LEGACY_V1",
 ) -> MultistageSolution:
     """Solve a scenario-tree convex program without market/broker side effects.
 
@@ -92,6 +94,7 @@ def solve_multistage(
     Terminal expected CRRA utility is strictly concave in positive wealth.
     """
     validate_numerical_solver(numerical_solver)
+    validate_cap_method(cap_method)
     if witness_repair_max_change_r is not None and (
         not finite_economic_number(witness_repair_max_change_r)
         or witness_repair_max_change_r < 0
@@ -335,12 +338,14 @@ def solve_multistage(
     equality_marginals = getattr(getattr(certificate, "eqlin", None), "marginals", None)
     evidence = certify_canonical_gap(
         problem, risky_policy, inequality_marginals, equality_marginals, gap,
+        cap_method=cap_method,
     )
     repair = None
     if witness_repair_max_change_r is not None and evidence.reason == "INEXACT_WITNESS":
         repair = repair_canonical_witness(
             problem, risky_policy, inequality_marginals, equality_marginals, gap,
             max_change_r=witness_repair_max_change_r,
+            cap_method=cap_method,
         )
     return MultistageSolution(
         contributions_r_per_path=tree.months,
@@ -390,6 +395,7 @@ def main() -> int:
     parser.add_argument("--input", type=str, default="-")
     parser.add_argument("--witness-repair-max-change-r", type=float, default=None)
     parser.add_argument("--numerical-solver", choices=("SLSQP", "TRUST_CONSTR_SPARSE"), default="SLSQP")
+    parser.add_argument("--cap-method", choices=("LEGACY_V1", "STRUCTURED_V2"), default="LEGACY_V1")
     args = parser.parse_args()
     try:
         if args.input == "-":
@@ -439,6 +445,7 @@ def main() -> int:
             ),
             witness_repair_max_change_r=args.witness_repair_max_change_r,
             numerical_solver=args.numerical_solver,
+            cap_method=args.cap_method,
         )
     except (ValueError, TypeError, KeyError) as exc:
         parser.error(f"invalid economic research input: {exc}")

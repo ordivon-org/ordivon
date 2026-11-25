@@ -14,12 +14,14 @@ from dataclasses import asdict, dataclass
 from fractions import Fraction
 from typing import Any
 
+from .canonical_caps import CapMethod, validate_cap_method
 from .information_tree import MultistageProblem, ValidatedInformationTree, validate_information_tree
 from .optimality_evidence import (
     OptimalityEvidence,
     certify_canonical_gap,
     freeze_dual_proposal,
     proof_dual_dimensions,
+    proof_methods,
     verify_canonical_gap_claim,
 )
 from .policy_contract import AlgebraicPolicyError, finite_economic_number
@@ -97,8 +99,10 @@ def repair_canonical_witness(
     numerical_estimate: float,
     *,
     max_change_r: float,
+    cap_method: CapMethod = "LEGACY_V1",
 ) -> WitnessRepair:
     """Return a separately identified witness or UNKNOWN, within a caller budget."""
+    validate_cap_method(cap_method)
     if not finite_economic_number(max_change_r) or max_change_r < 0:
         raise AlgebraicPolicyError("finite nonnegative repair budget required")
     if not finite_economic_number(numerical_estimate) or numerical_estimate < 0:
@@ -118,7 +122,9 @@ def repair_canonical_witness(
             proposal.equality_marginals,
         )
     )
-    original = certify_canonical_gap(problem, source, y, lam, numerical_estimate)
+    original = certify_canonical_gap(
+        problem, source, y, lam, numerical_estimate, cap_method=cap_method
+    )
     problem_id, source_id = _problem_digest(problem), _digest(source)
 
     def unknown(reason: str):
@@ -133,7 +139,9 @@ def repair_canonical_witness(
         change = _delta(source, candidate)
         if not 0 < change <= Fraction(max_change_r):
             continue
-        evidence = certify_canonical_gap(problem, candidate, y, lam, numerical_estimate)
+        evidence = certify_canonical_gap(
+            problem, candidate, y, lam, numerical_estimate, cap_method=cap_method
+        )
         if evidence.certified_canonical_gap_upper is not None:
             return WitnessRepair(
                 "VERIFIED_DISTINCT_CANONICAL_WITNESS",
@@ -157,10 +165,16 @@ def verify_repaired_witness(
     claim: WitnessRepair,
 ) -> bool:
     """Verify the receipt from its original contract and policy; no optimizer."""
-    if claim.standing != "VERIFIED_DISTINCT_CANONICAL_WITNESS" or claim.canonical_evidence is None:
+    if (
+        not isinstance(claim, WitnessRepair)
+        or claim.standing != "VERIFIED_DISTINCT_CANONICAL_WITNESS"
+        or not isinstance(claim.canonical_evidence, OptimalityEvidence)
+        or not isinstance(claim.source_evidence, OptimalityEvidence)
+    ):
         return False
+    methods = proof_methods(claim.canonical_evidence.reason)
     proposal = claim.canonical_evidence.dual_proposal
-    if proposal is None:
+    if methods is None or proposal is None:
         return False
     try:
         _validate_source(problem, source)
@@ -180,6 +194,7 @@ def verify_repaired_witness(
             proposal.inequality_marginals,
             proposal.equality_marginals,
             claim.source_evidence.numerical_tangent_gap_estimate,
+            cap_method=methods[1],
         )
         if original.reason != "INEXACT_WITNESS" or original != claim.source_evidence:
             return False

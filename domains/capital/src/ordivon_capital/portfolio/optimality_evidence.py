@@ -17,6 +17,12 @@ from fractions import Fraction
 from itertools import islice
 from typing import Any
 
+from .canonical_caps import (
+    CapMethod,
+    structured_arrival_cap,
+    structured_decision_caps,
+    validate_cap_method,
+)
 from .information_tree import MultistageProblem, ValidatedInformationTree, validate_information_tree
 from .policy_contract import AlgebraicPolicyError, finite_economic_number
 from .rational_enclosure import enclose_inverse_power, enclose_rational
@@ -99,6 +105,7 @@ def certify_canonical_gap(
     numerical_estimate: float,
     *,
     gradient_method: str = "AUTO",
+    cap_method: CapMethod = "LEGACY_V1",
 ) -> OptimalityEvidence:
     """Bound optimum minus utility of a reconstructed exact feasible policy.
 
@@ -110,6 +117,7 @@ def certify_canonical_gap(
     def unknown(reason: str) -> OptimalityEvidence:
         return OptimalityEvidence(numerical_estimate, None, "UNKNOWN", reason)
 
+    validate_cap_method(cap_method)
     if not finite_economic_number(numerical_estimate) or numerical_estimate < 0:
         raise AlgebraicPolicyError("finite nonnegative numerical estimate required")
 
@@ -144,6 +152,7 @@ def certify_canonical_gap(
         return unknown("INEXACT_WITNESS")
     x = [ZERO] * size
     cap = [ZERO] * size
+    equity_caps: dict[str, Fraction] = {}
     probabilities: dict[str, Fraction] = {}
     eq: list[tuple[dict[int, Fraction], Fraction]] = []
     ub: list[tuple[dict[int, Fraction], Fraction]] = []
@@ -168,7 +177,15 @@ def certify_canonical_gap(
             incoming.update({p + n: lend, p + n + 1: -borrow})
             old = [x[p + i] * g for i, g in enumerate(gross)]
             old_cap = [cap[p + i] * g for i, g in enumerate(gross)]
-            wealth_cap = sum(old_cap, ZERO) + cap[p + n] * lend
+            if cap_method == "STRUCTURED_V2":
+                wealth_cap = structured_arrival_cap(
+                    equity_caps[node.parent],
+                    tuple(map(Q, tree.by_id[node.parent].initial_margin)),
+                    gross,
+                    lend,
+                )
+            else:
+                wealth_cap = sum(old_cap, ZERO) + cap[p + n] * lend
             margin = {
                 p + i: (Q(m) - 1) * g
                 for i, (m, g) in enumerate(zip(node.maintenance, gross, strict=True))
@@ -218,13 +235,24 @@ def certify_canonical_gap(
         net = equity - sum(risky, ZERO)
         x[j : j + width] = [*risky, max(ZERO, net), max(ZERO, -net), *turnover]
         funded_cap = 1 + wealth_cap
-        risky_caps = [funded_cap / m for m in margins]
-        cap[j : j + width] = [
-            *risky_caps,
-            funded_cap,
-            sum(risky_caps, ZERO),
-            *(a + b for a, b in zip(risky_caps, old_cap, strict=True)),
-        ]
+        if cap_method == "STRUCTURED_V2":
+            funded_cap -= due
+            if funded_cap < 0:
+                return unknown("INEXACT_WITNESS")
+            equity_caps[node.id] = funded_cap
+            cap[j : j + width] = structured_decision_caps(
+                funded_cap,
+                margins,
+                tuple(old_cap),
+            )
+        else:
+            risky_caps = [funded_cap / m for m in margins]
+            cap[j : j + width] = [
+                *risky_caps,
+                funded_cap,
+                sum(risky_caps, ZERO),
+                *(a + b for a, b in zip(risky_caps, old_cap, strict=True)),
+            ]
         if not _within_bit_budget((*x[j : j + width], *cap[j : j + width], probabilities[node.id])):
             return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
         row = {i: -a for i, a in incoming.items()}
@@ -323,9 +351,23 @@ def certify_canonical_gap(
         numerical_estimate,
         result,
         "EXACT_RATIONAL_CANONICAL_WITNESS_GAP_UPPER",
-        _RATIONAL_REASON if gradient_method == "RATIONAL" else _DYADIC_REASON,
+        (_RATIONAL_REASON if gradient_method == "RATIONAL" else _DYADIC_REASON)
+        + ("_STRUCTURED_CAP_V2" if cap_method == "STRUCTURED_V2" else ""),
         proposal,
     )
+
+
+def proof_methods(reason: object) -> tuple[str, CapMethod] | None:
+    """Historical reasons are immutable method identities, not heuristics."""
+    if not isinstance(reason, str):
+        return None
+    methods = {
+        _RATIONAL_REASON: ("RATIONAL", "LEGACY_V1"),
+        _DYADIC_REASON: ("DYADIC", "LEGACY_V1"),
+        _RATIONAL_REASON + "_STRUCTURED_CAP_V2": ("RATIONAL", "STRUCTURED_V2"),
+        _DYADIC_REASON + "_STRUCTURED_CAP_V2": ("DYADIC", "STRUCTURED_V2"),
+    }
+    return methods.get(reason)
 
 
 def verify_canonical_gap_claim(
@@ -352,8 +394,8 @@ def verify_canonical_gap_claim(
     ):
         return False
     proposal = claim.dual_proposal
-    methods = {_RATIONAL_REASON: "RATIONAL", _DYADIC_REASON: "DYADIC"}
-    if not isinstance(claim.reason, str) or claim.reason not in methods:
+    methods = proof_methods(claim.reason)
+    if methods is None:
         return False
     return claim == certify_canonical_gap(
         problem,
@@ -361,5 +403,6 @@ def verify_canonical_gap_claim(
         proposal.inequality_marginals,
         proposal.equality_marginals,
         claim.numerical_tangent_gap_estimate,
-        gradient_method=methods[claim.reason],
+        gradient_method=methods[0],
+        cap_method=methods[1],
     )
