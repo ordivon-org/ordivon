@@ -86,6 +86,37 @@ partial-clone rejection/replay and real CLI projection. This qualifies metadata 
 distribution immutability, Git hash collision resistance, or a full
 Git-to-Lean refinement proof.
 
+The blob read-back additionally checks the Git object identity of the exact
+returned bytes using native `git hash-object --no-filters --stdin` (without
+`-w`). Equal length and a successful `cat-file` are insufficient: the native
+SHA-1 and SHA-256 disposable-repository counterexamples replace a loose blob
+with different same-length ODPS metadata under its old object name. Both
+must be rejected, and restoring the original bytes restores the observation.
+This is a bounded blob-identity check, not a full commit/tree integrity audit,
+a proof of cryptographic collision resistance, or a guarantee of availability.
+The native hash operation is local-only; no new objects are written.
+
+The R9 exact-cut refinement additionally obtains the resolved commit/root
+tree and every distinct tree traversed by native Git. The local-only
+`cat-file --batch-check` response must match the requested ordered OIDs,
+kinds and bounded sizes before `--batch` contents are requested. Native Git
+supplies framing/traversal; the standard library hashes the exact canonical
+Git header and returned bytes in the repository's object format. The commit
+must name the resolved root tree. The batch is limited to 20,000 objects and
+8 MiB of declared contents plus framing; this is a preflight bound, not an
+OS memory guarantee during a concurrent object mutation.
+
+Disposable SHA-1/SHA-256 repositories demonstrate that static nested-tree
+corruption can redirect a valid ODPS Blob under an old commit. Native
+regression and batch framing negatives reject it while valid cuts, including
+local-only partial clones with available objects, retain the existing
+consumer contract. This assumes quiescent Git storage across commands; it
+is not an atomic Git snapshot, whole-repository fsck, proof of collision
+resistance, authentication of the source publisher, or physical-data truth.
+The existing complete-local-snapshot Lean model remains abstract. No new
+Git object, object store, production dependency or implicit hydration.
+
+
 ## Bounded publication and retirement state model
 
 `formal/DataPublication.lean` now specifies a finite control-state protocol:

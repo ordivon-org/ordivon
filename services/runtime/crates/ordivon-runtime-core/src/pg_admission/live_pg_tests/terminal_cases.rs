@@ -245,6 +245,7 @@ fn pg18_readonly_job_projection_fences_stage_and_incoherent_terminal() {
     assert_eq!(first.attempt_state, "accepted");
     assert_eq!(first.resolution, None);
     assert_eq!(first.reservation_state, "active");
+    assert_eq!(first.started_at_ms, None);
     // Source is still QUALIFIED_WRITER, but its physical epoch is no
     // longer operator-qualified. A restored/historical Job must not be
     // advertised through this API as current authoritative state.

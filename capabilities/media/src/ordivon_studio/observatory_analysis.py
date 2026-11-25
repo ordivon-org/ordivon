@@ -259,6 +259,11 @@ def _apple_rank_contrast(observations: list[dict[str, Any]]) -> dict[str, Any] |
 def analyze_snapshot(snapshot: dict[str, Any], *, clusters: int = 8) -> dict[str, Any]:
     if snapshot.get("schemaVersion") != 1 or snapshot.get("kind") != SNAPSHOT_KIND:
         raise ValueError("not an Ordivon Studio cultural snapshot")
+    # The producer hashes the payload before inserting snapshotDigest.
+    # An absent witness may be derived, but an explicit mismatch is not absence.
+    snapshot_digest = _canonical_digest({key: value for key, value in snapshot.items() if key != "snapshotDigest"})
+    if "snapshotDigest" in snapshot and snapshot["snapshotDigest"] != snapshot_digest:
+        raise ValueError("snapshotDigest does not match snapshot payload")
     observations = snapshot.get("observations", [])
     if not isinstance(observations, list):
         raise ValueError("snapshot observations must be an array")
@@ -273,7 +278,7 @@ def analyze_snapshot(snapshot: dict[str, Any], *, clusters: int = 8) -> dict[str
         "schemaVersion": 1,
         "kind": REPORT_KIND,
         "analyzedAt": _utc_now(),
-        "snapshotDigest": snapshot.get("snapshotDigest") or _canonical_digest(snapshot),
+        "snapshotDigest": snapshot_digest,
         "corpus": {
             "observations": len(observations),
             "countsByProvider": snapshot.get("countsByProvider", {}),

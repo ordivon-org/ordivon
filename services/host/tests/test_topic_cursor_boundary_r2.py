@@ -1,106 +1,198 @@
-"""Topic Cursor is one PG-bound consumption LEGO shared by Social and Attention.
+"""Independent Topic cursor model against native PG, not an SQL-string simulator."""
 
-This tests the negative paths and the information-hiding boundary without
-requiring an additional service or a second cursor database. The existing
-PG18 suite covers concurrency, MVCC and real MCP behaviors.
-"""
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
+import os
+from uuid import uuid4
 
+import psycopg
 import pytest
+from hypothesis import example, given, settings
+from hypothesis import strategies as st
+from psycopg.rows import dict_row
 
+from ordivon_host_v2.attention_store import AttentionStore
+from ordivon_host_v2.collaboration_inputs import MessageInput, SpaceInput, TopicInput
 from ordivon_host_v2.errors import ConflictError
-from ordivon_host_v2.topic_cursor_records import (
-    ack_topic_cursor_in_tx,
-    get_topic_cursor_in_tx,
-    list_topic_cursors_in_tx,
-    topic_high_sequence_in_tx,
-)
+from ordivon_host_v2.references.actor_store import ActorReferenceStore
+from ordivon_host_v2.social_store import SocialStore
+from ordivon_host_v2.topic_cursor_records import list_topic_cursors_in_tx
+from ordivon_host_v2.work_inputs import ActorKind, ActorRefInput
+
+DSN = os.environ.get("ORDIVON_HOST_V2_TEST_DSN")
+native_db = pytest.mark.skipif(not DSN, reason="requires native disposable PostgreSQL")
 
 
-class FakeCursorConn:
-    def __init__(self, *, high: int = 7, current: int = 3) -> None:
-        self.high = high
-        self.current = current
-        self.queries: list[tuple[str, tuple[Any, ...]]] = []
-        self.rows: list[dict[str, Any]] = []
-
-    def execute(self, query: str, params: tuple[Any, ...]) -> FakeCursorConn:
-        self.queries.append((query, params))
-        if "COALESCE(MAX(sequence),0)" in query:
-            self.rows = [{"high": self.high}]
-        elif "FROM topic_consumption_cursors" in query and "topic_ref=ANY" in query:
-            self.rows = [{"topic_ref": "topic:a", "cursor": self.current}]
-        elif "FROM topic_consumption_cursors" in query:
-            self.rows = [{"cursor": self.current}]
-        elif "INSERT INTO topic_consumption_cursors" in query:
-            requested = int(params[2])
-            self.rows = [] if requested < self.current else [
-                {"previous_cursor": self.current, "cursor": requested}
-            ]
-        else:
-            raise AssertionError(f"unexpected SQL: {query}")
-        return self
-
-    def fetchone(self) -> dict[str, Any] | None:
-        return self.rows[0] if self.rows else None
-
-    def fetchall(self) -> list[dict[str, Any]]:
-        return self.rows
-
-
-@pytest.mark.parametrize("invalid", [True, 3.0, -1, 8])
-def test_invalid_topic_ack_is_never_written(invalid: object) -> None:
-    conn = FakeCursorConn()
-    with pytest.raises((ValueError, ConflictError)):
-        ack_topic_cursor_in_tx(conn, actor_ref="actor:a", topic_ref="topic:a", cursor=invalid)
-    assert all("INSERT INTO topic_consumption_cursors" not in sql for sql, _ in conn.queries)
-
-
-def test_read_and_ack_share_callers_connection_and_cursor_domain() -> None:
-    conn = FakeCursorConn(high=7, current=3)
-    assert topic_high_sequence_in_tx(conn, "topic:a") == 7
-    before = get_topic_cursor_in_tx(conn, actor_ref="actor:a", topic_ref="topic:a")
-    assert before["cursor"] == 3 and before["topicHighSequence"] == 7
-    after = ack_topic_cursor_in_tx(conn, actor_ref="actor:a", topic_ref="topic:a", cursor=7)
-    assert after["previousCursor"] == 3 and after["cursor"] == 7
-    assert after["topicHighSequence"] == 7
-    assert all(params[0] == "actor:a" for sql, params in conn.queries if "topic_consumption_cursors" in sql)
-    assert any("WHERE topic_consumption_cursors.cursor<=EXCLUDED.cursor" in sql for sql, _ in conn.queries)
-
-
-def test_backward_ack_rejected_by_atomic_upsert() -> None:
-    conn = FakeCursorConn(high=7, current=4)
-    with pytest.raises(ConflictError, match="backwards"):
-        ack_topic_cursor_in_tx(conn, actor_ref="actor:a", topic_ref="topic:a", cursor=3)
-    assert any("INSERT INTO topic_consumption_cursors" in sql for sql, _ in conn.queries)
-
-
-def test_attention_bulk_cursor_reads_are_single_snapshot_and_empty_safe() -> None:
-    conn = FakeCursorConn(high=7, current=3)
-    assert list_topic_cursors_in_tx(conn, actor_ref="actor:a", topic_refs=[]) == {}
-    assert conn.queries == []
-    assert list_topic_cursors_in_tx(
-        conn, actor_ref="actor:a", topic_refs=["topic:a", "topic:b"]
-    ) == {"topic:a": 3}
-    assert conn.queries == [
-        (
-            "SELECT topic_ref,cursor FROM topic_consumption_cursors "
-            "WHERE actor_ref=%s AND topic_ref=ANY(%s)",
-            ("actor:a", ["topic:a", "topic:b"]),
+def seed():
+    assert DSN
+    uid = uuid4().hex
+    actors = [f"actor:agent:cursor-model:{uid}:{i}" for i in range(2)]
+    topics = [f"topic:cursor-model:{uid}:{i}" for i in range(2)]
+    space = f"space:cursor-model:{uid}"
+    social, attention = SocialStore(DSN), AttentionStore(DSN)
+    for actor in actors:
+        ActorReferenceStore(DSN).declare_actor(
+            ActorRefInput(actor_ref=actor, actor_kind=ActorKind.AGENT),
+            client_request_id=f"declare:{actor}",
         )
+    social.create_space(
+        SpaceInput(space_ref=space, purpose="cursor model", actor_ref=actors[0]),
+        client_request_id=f"space:{uid}",
+    )
+    highs = []
+    for i, topic in enumerate(topics):
+        social.create_topic(
+            TopicInput(topic_ref=topic, space_ref=space, title="cursor model", actor_ref=actors[0]),
+            client_request_id=f"topic:{topic}",
+        )
+        for actor in actors:
+            attention.follow(
+                actor_ref=actor,
+                target_kind="topic",
+                target_ref=topic,
+                client_request_id=f"follow:{actor}:{topic}",
+            )
+        posted = social.post_message(
+            MessageInput(
+                message_ref=f"message:cursor-model:{uid}:{i}",
+                client_request_id=f"post:{uid}:{i}",
+                space_ref=space,
+                topic_ref=topic,
+                author_actor_ref=actors[0],
+                body="cursor model evidence",
+                recorded_at_ms=i,
+            )
+        )
+        highs.append(posted["sequence"])
+    return actors, topics, highs, social, attention
+
+
+@pytest.mark.parametrize("value", [True, 3.0, -1, 2**53])
+def test_invalid_type_or_coordinate_rejected_before_connection(value, monkeypatch):
+    def forbidden(*args, **kwargs):
+        pytest.fail("invalid cursor reached database checkout")
+
+    monkeypatch.setattr(psycopg, "connect", forbidden)
+    with pytest.raises(ValueError):
+        SocialStore("postgresql://unreachable").ack_topic_cursor(
+            actor_ref="actor:a", topic_ref="topic:a", cursor=value, client_request_id="bad:cursor"
+        )
+
+
+def test_empty_bulk_cursor_lookup_needs_no_database():
+    class Forbidden:
+        def execute(self, *args, **kwargs):
+            pytest.fail("empty bulk cursor lookup must not issue SQL")
+
+    assert list_topic_cursors_in_tx(Forbidden(), actor_ref="actor:a", topic_refs=[]) == {}
+
+
+@native_db
+@pytest.mark.usefixtures("host_test_db_ready")
+def test_cursor_and_horizon_are_one_native_projection(monkeypatch):
+    actors, topics, highs, social, _ = seed()
+    original = psycopg.Connection.execute
+    reads = []
+
+    def observe(conn, query, *args, **kwargs):
+        result = original(conn, query, *args, **kwargs)
+        if isinstance(query, str) and (
+            "FROM topic_consumption_cursors" in query or "FROM messages" in query
+        ):
+            reads.append(query)
+        return result
+
+    monkeypatch.setattr(psycopg.Connection, "execute", observe)
+    result = social.get_topic_cursor(actor_ref=actors[0], topic_ref=topics[0])
+    assert result["cursor"] == 0
+    assert result["topicHighSequence"] == highs[0]
+    assert len(reads) == 1, "cursor and horizon must be one native query"
+
+
+@native_db
+@pytest.mark.usefixtures("host_test_db_ready")
+@settings(max_examples=12, deadline=None, derandomize=True)
+@example(
+    ops=[
+        (0, 0, "high"),
+        (0, 0, "replay"),
+        (0, 0, "zero"),
+        (0, 1, "future"),
+        (1, 0, "mid"),
+        (1, 1, "high"),
+        (0, 0, "replay"),
+        (1, 1, "future"),
+        (0, 1, "high"),
     ]
+)
+@given(
+    ops=st.lists(
+        st.tuples(
+            st.integers(0, 1),
+            st.integers(0, 1),
+            st.sampled_from(("zero", "mid", "high", "future", "replay")),
+        ),
+        min_size=4,
+        max_size=12,
+    )
+)
+def test_native_cursor_model_matches_public_read_ack_and_reentry(ops):
+    actors, topics, highs, social, attention = seed()
+    model = {(i, j): 0 for i in range(2) for j in range(2)}
+    receipts = {}
+    for i, j, op in ops:
+        pair = (i, j)
+        cursor = {"zero": 0, "mid": highs[j] // 2, "high": highs[j], "future": highs[j] + 1}.get(op)
 
+        def ack(value, request):
+            return social.ack_topic_cursor(
+                actor_ref=actors[i], topic_ref=topics[j], cursor=value, client_request_id=request
+            )
 
-def test_cursor_sql_is_owned_by_one_module_not_copied_across_consumers() -> None:
-    root = Path(__file__).resolve().parents[1] / "src" / "ordivon_host_v2"
-    truth = (root / "topic_cursor_records.py").read_text(encoding="utf-8")
-    assert "INSERT INTO topic_consumption_cursors" in truth
-    for filename in (
-        "social_topic_commands.py", "social_topic_queries.py", "attention_reentry_queries.py"
-    ):
-        source = (root / filename).read_text(encoding="utf-8")
-        assert "FROM topic_consumption_cursors" not in source
-        assert "INSERT INTO topic_consumption_cursors" not in source
+        if op == "replay" and pair in receipts:
+            request, value, original = receipts[pair]
+            replay = ack(value, request)
+            assert replay == {**original, "admission": "existing"}
+        else:
+            if cursor is None:
+                cursor = highs[j]
+            request = f"model:{uuid4().hex}"
+            prior = model[pair]
+            if cursor < prior or cursor > highs[j]:
+                with pytest.raises(ConflictError):
+                    ack(cursor, request)
+                # Failed admission must not consume its receipt identity.
+                accepted = ack(prior, request)
+                assert accepted["previousCursor"] == prior
+                assert accepted["cursor"] == prior
+                receipts[pair] = (request, prior, accepted)
+            else:
+                accepted = ack(cursor, request)
+                assert accepted["previousCursor"] == prior
+                assert accepted["cursor"] == cursor
+                assert accepted["topicHighSequence"] == highs[j]
+                model[pair] = cursor
+                receipts[pair] = (request, cursor, accepted)
+        for (ai, tj), expected in model.items():
+            observed = social.get_topic_cursor(actor_ref=actors[ai], topic_ref=topics[tj])
+            assert (observed["cursor"], observed["topicHighSequence"]) == (expected, highs[tj])
+    for i, actor in enumerate(actors):
+        reentry = attention.reentry(actor, after_sequence=0, limit=500)
+        actual = {
+            item["navigationRef"]: item["resumeAfterSequence"]
+            for item in reentry["items"]
+            if item["navigationKind"] == "topic"
+        }
+        assert {topic: actual[topic] for topic in topics} == {
+            topic: model[i, j] for j, topic in enumerate(topics)
+        }
+    with psycopg.connect(DSN, row_factory=dict_row) as conn:
+        stored = conn.execute(
+            "SELECT actor_ref,topic_ref,cursor FROM topic_consumption_cursors "
+            "WHERE actor_ref=ANY(%s)",
+            (actors,),
+        ).fetchall()
+    stored_map = {(row["actor_ref"], row["topic_ref"]): row["cursor"] for row in stored}
+    assert all(
+        stored_map.get((actors[i], topics[j]), 0) == value for (i, j), value in model.items()
+    )

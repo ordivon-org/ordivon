@@ -8,7 +8,9 @@ import json
 import subprocess
 from pathlib import Path
 
-GAME = Path(__file__).resolve().parent
+from native_process import verify_process
+
+GAME = Path(__file__).resolve().parents[1] / "examples" / "room-encounter"
 PREFIX = "GAME_AGENT_EPISODE_JSON="
 _NATIVE_ACTIONS = frozenset({"attack", "guard", "advance", "trial", "classic"})
 _PLAYER_OBSERVATION_KEYS = frozenset({
@@ -28,7 +30,7 @@ def assert_native_trace_contract(receipt: dict, actions: str, mode: str) -> None
     assert len(steps) == len(expected_actions) <= 64
     previous = receipt["initial"]
     observations = [previous]
-    for action, step in zip(expected_actions, steps, strict=True):
+    for action, step in zip(expected_actions, steps):
         assert step["action"] == action
         assert step["before"] == previous, "broken native observation chain"
         if mode == "debug":
@@ -61,12 +63,9 @@ def episode(actions, observation="debug"):
         *(["--observation", observation] if observation is not None else [])
     ]
     run = subprocess.run(command, text=True, capture_output=True, timeout=60)
-    # A Godot process may exit 0 and emit valid output despite GDScript errors;
-    # fail closed on actual engine script exceptions.
-    assert "SCRIPT ERROR:" not in (run.stderr + run.stdout), (
-        f"Godot script error despite process rc={run.returncode}: {run.stderr}")
-    assert "Parse Error:" not in (run.stderr + run.stdout), (
-        f"Godot parse error: {run.stderr}")
+    # Exit 2 is the native input-rejection protocol, never an engine error.
+    verify_process(run.returncode, run.stdout, run.stderr,
+                   allowed_exit_codes=(0, 2))
     lines = [line[len(PREFIX):] for line in run.stdout.splitlines()
              if line.startswith(PREFIX)]
     assert len(lines) == 1, f"missing or duplicate episode receipt: {run.stdout}\n{run.stderr}"

@@ -14,23 +14,60 @@ from .canonical_json import canonical_digest
 from .social_errors import MessageNotFound
 
 
-def verify_message_content_digest(row: dict[str, Any]) -> None:
-    # Digest is a claim about all immutable message fields, not an
-    # authoritative pointer by itself. Every consumer-visible read must
-    # bind the stored claim to the actual PostgreSQL row bytes/values.
-    actual = canonical_digest(
-        {
-            "messageRef": row["message_ref"],
-            "spaceRef": row["space_ref"],
-            "topicRef": row["topic_ref"],
-            "authorActorRef": row["author_actor_ref"],
-            "messageKind": row["message_kind"],
-            "body": row["body"],
-            "recordedAtMs": row["recorded_at_ms"],
-        }
+def message_content(
+    *,
+    message_ref: str,
+    space_ref: str,
+    topic_ref: str,
+    author_actor_ref: str,
+    message_kind: str,
+    body: str,
+    recorded_at_ms: int,
+) -> dict[str, Any]:
+    """Immutable digest preimage shared by command and read consumers."""
+    return {
+        "messageRef": message_ref,
+        "spaceRef": space_ref,
+        "topicRef": topic_ref,
+        "authorActorRef": author_actor_ref,
+        "messageKind": message_kind,
+        "body": body,
+        "recordedAtMs": recorded_at_ms,
+    }
+
+
+def _verified_content(row: dict[str, Any]) -> dict[str, Any]:
+    content = message_content(
+        message_ref=row["message_ref"],
+        space_ref=row["space_ref"],
+        topic_ref=row["topic_ref"],
+        author_actor_ref=row["author_actor_ref"],
+        message_kind=row["message_kind"],
+        body=row["body"],
+        recorded_at_ms=row["recorded_at_ms"],
     )
-    if actual != row["message_digest"]:
+    if canonical_digest(content) != row["message_digest"]:
         raise RuntimeError("Host message content digest differs from stored claim")
+    return content
+
+
+def verified_message_wire(
+    row: dict[str, Any],
+    *,
+    include_scope: bool = True,
+) -> dict[str, Any]:
+    """Verify all immutable fields before emitting full or topic-scoped wire data."""
+    content = _verified_content(row)
+    if not include_scope:
+        del content["spaceRef"]
+        del content["topicRef"]
+    return {
+        "sequence": int(row["sequence"]),
+        **content,
+        "messageDigest": row["message_digest"],
+        "recordedAtMs": int(row["recorded_at_ms"]),
+        "createdAt": row["created_at"].isoformat(),
+    }
 
 
 def require_message(conn: psycopg.Connection[dict[str, Any]], message_ref: str) -> dict[str, Any]:

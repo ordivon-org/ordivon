@@ -233,6 +233,14 @@ class ExecutionObservationMethods:
         max_bytes: int = 1_048_576,
     ) -> ArtifactChunk:
         owner_id, native_id = parse_execution_ref(operation_ref)
+        # Reject invalid caller ranges before crossing the Owner boundary.
+        if (
+            type(offset) is not int
+            or offset < 0
+            or type(max_bytes) is not int
+            or not 1 <= max_bytes <= 1_048_576
+        ):
+            raise GatewayError("artifact read requested an invalid range/cursor")
         result = await self._caller.call_tool(
             owner_id,
             "artifact.read",
@@ -252,11 +260,7 @@ class ExecutionObservationMethods:
         observed_offset = result.get("offset")
         next_offset = result.get("nextOffset")
         if (
-            type(offset) is not int
-            or offset < 0
-            or type(max_bytes) is not int
-            or not 1 <= max_bytes <= 1_048_576
-            or type(observed_offset) is not int
+            type(observed_offset) is not int
             or observed_offset != offset
             or type(next_offset) is not int
             or not offset <= next_offset <= offset + max_bytes

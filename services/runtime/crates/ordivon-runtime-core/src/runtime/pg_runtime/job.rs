@@ -1142,8 +1142,11 @@ impl PgRuntime {
                 state: a.state,
                 termination_intent: a.termination_intent,
                 created_at_ms: a.created_at_ms,
-                started_at_ms: None,
+                // Same committed Attempt snapshot as the terminal facts.
+                // Runner binding is an observation, not physical process start.
+                started_at_ms: snapshot.started_at_ms.and_then(|v| u64::try_from(v).ok()),
                 finished_at_ms: snapshot.finished_at_ms.map(|v| v as u64),
+                // Do not invent physical duration from mixed clock semantics.
                 duration_ms: None,
                 exit_code: exit,
                 result_available: terminal && by_kind.contains_key("execution_result"),

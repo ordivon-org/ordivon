@@ -17,7 +17,7 @@ from psycopg_pool import ConnectionPool, PoolTimeout
 
 from ordivon_host_v2.attention_store import AttentionStore
 from ordivon_host_v2.mcp_server import build_server
-from ordivon_host_v2.service import HostV2
+from ordivon_host_v2.service import REQUIRED_SCHEMA_VERSION, HostV2
 from ordivon_host_v2.social_store import SocialStore
 from ordivon_host_v2.work_store import WorkStore
 
@@ -129,7 +129,7 @@ def test_one_pool_serves_mcp_work_social_attention_and_status() -> None:
             assert any(row["sourceRef"] == posted["messageRef"] for row in changes["events"])
             result = await call(client, "host.status", {"detail": "integrity"})
             assert result["doctor"]["healthy"] is True
-            assert result["authority"]["journalSchema"] == 16
+            assert result["authority"]["journalSchema"] == REQUIRED_SCHEMA_VERSION
 
     with ConnectionPool(
         DSN, min_size=1, max_size=1, kwargs={"row_factory": dict_row},
