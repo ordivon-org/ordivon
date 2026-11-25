@@ -4,8 +4,56 @@
 use std::{fs, path::Path};
 
 use super::{
-    canonical_directory, invalid, io_error, workspace_head_revision_at, UniversalExecError,
+    canonical_directory, invalid, io_error, same_source_metadata, workspace_head_revision_at,
+    UniversalExecError,
 };
+
+// Hold the original Linux Workspace directory across the traversal. Reuse
+// the existing native beneath-root/no-symlink resolver, not another path policy.
+struct ReadsetRoot<'a> {
+    path: &'a Path,
+    #[cfg(unix)]
+    handle: fs::File,
+}
+
+impl ReadsetRoot<'_> {
+    fn open_file(&self, relative: &Path, path: &Path) -> Result<fs::File, UniversalExecError> {
+        #[cfg(unix)]
+        let file = super::super::fsutil::open_regular_file_beneath(&self.handle, relative, true);
+        #[cfg(windows)]
+        let file = {
+            let _ = relative;
+            fs::File::open(path)
+        };
+        file.map_err(|error| io_error(path, "open scoped source", error))
+    }
+}
+
+fn require_stable_file(
+    path: &Path,
+    expected: &fs::Metadata,
+    observed: &fs::Metadata,
+) -> Result<(), UniversalExecError> {
+    #[cfg(unix)]
+    let single_link = {
+        use std::os::unix::fs::MetadataExt;
+        observed.nlink() == 1
+    };
+    #[cfg(windows)]
+    let single_link = true; // existing opened-handle Win32 check below
+    if !observed.is_file() || !single_link || !same_source_metadata(expected, observed) {
+        return Err(UniversalExecError::new(
+            super::UniversalExecErrorCode::WorkspaceMutationIncomplete,
+            format!(
+                "scoped source changed during commitment: {}",
+                path.display()
+            ),
+            Some("readPaths"),
+            true,
+        ));
+    }
+    Ok(())
+}
 
 /// Domain-separated source commitment over an explicit read set. Git HEAD is
 /// always bound; unrelated mutable paths are excluded rather than disabling
@@ -17,12 +65,22 @@ pub(crate) fn workspace_source_readset_digest_at(
     use sha2::{Digest, Sha256};
     use std::io::Read;
     let workspace = canonical_directory(workspace, "workspacePath")?;
+    let root = ReadsetRoot {
+        path: &workspace,
+        #[cfg(unix)]
+        handle: super::super::fsutil::open_directory_nofollow(&workspace)
+            .map_err(|error| io_error(&workspace, "open scoped Workspace root", error))?,
+    };
     let mut hash = Sha256::new();
     hash.update(b"runtime-workspace-readset-v1\0");
     hash.update(workspace_head_revision_at(&workspace)?.as_bytes());
-    fn walk(root: &Path, path: &Path, hash: &mut Sha256) -> Result<(), UniversalExecError> {
+    fn walk(
+        root: &ReadsetRoot<'_>,
+        path: &Path,
+        hash: &mut Sha256,
+    ) -> Result<(), UniversalExecError> {
         let relative = path
-            .strip_prefix(root)
+            .strip_prefix(root.path)
             .map_err(|_| invalid("source path escaped Workspace", "readPaths"))?;
         if relative.components().any(|v| {
             matches!(
@@ -37,7 +95,7 @@ pub(crate) fn workspace_source_readset_digest_at(
         if relative.components().any(|v| v.as_os_str() == ".git") {
             return Ok(());
         }
-        let mut ancestor = root.to_path_buf();
+        let mut ancestor = root.path.to_path_buf();
         for component in relative.components() {
             ancestor.push(component.as_os_str());
             if let Ok(meta) = fs::symlink_metadata(&ancestor) {
@@ -83,8 +141,11 @@ pub(crate) fn workspace_source_readset_digest_at(
                 hash.update(meta.permissions().mode().to_le_bytes());
             }
             hash.update(meta.len().to_le_bytes());
-            let mut file =
-                fs::File::open(path).map_err(|e| io_error(path, "open scoped source", e))?;
+            let mut file = root.open_file(relative, path)?;
+            let opened = file
+                .metadata()
+                .map_err(|error| io_error(path, "inspect opened scoped source", error))?;
+            require_stable_file(path, &meta, &opened)?;
             #[cfg(windows)]
             {
                 use std::os::windows::io::AsRawHandle;
@@ -115,6 +176,7 @@ pub(crate) fn workspace_source_readset_digest_at(
                     ));
                 }
             }
+            let mut bytes_read = 0u64;
             let mut buffer = [0u8; 65536];
             loop {
                 let size = file
@@ -123,7 +185,23 @@ pub(crate) fn workspace_source_readset_digest_at(
                 if size == 0 {
                     break;
                 }
+                bytes_read = bytes_read
+                    .checked_add(size as u64)
+                    .ok_or_else(|| invalid("scoped source length overflow", "readPaths"))?;
                 hash.update(&buffer[..size]);
+            }
+            let after_handle = file
+                .metadata()
+                .map_err(|error| io_error(path, "reinspect opened scoped source", error))?;
+            let after_path = fs::symlink_metadata(path)
+                .map_err(|error| io_error(path, "reinspect scoped source path", error))?;
+            require_stable_file(path, &meta, &after_handle)?;
+            require_stable_file(path, &meta, &after_path)?;
+            if bytes_read != meta.len() {
+                return Err(invalid(
+                    "scoped source length changed during commitment",
+                    "readPaths",
+                ));
             }
         } else if meta.is_dir() {
             hash.update(b"directory");
@@ -157,7 +235,7 @@ pub(crate) fn workspace_source_readset_digest_at(
         {
             return Err(invalid("invalid scoped read path", "readPaths"));
         }
-        walk(&workspace, &workspace.join(path), &mut hash)?;
+        walk(&root, &workspace.join(path), &mut hash)?;
     }
     Ok(format!("sha256:{}", hex::encode(hash.finalize())))
 }
@@ -166,6 +244,105 @@ pub(crate) fn workspace_source_readset_digest_at(
 mod scoped_source_tests {
     use super::super::workspace_git_command;
     use super::*;
+    #[cfg(unix)]
+    #[test]
+    fn scoped_open_rejects_replaced_file_and_alias_ancestor() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("input");
+        fs::write(&path, b"same").unwrap();
+        let before = fs::symlink_metadata(&path).unwrap();
+        let root = ReadsetRoot {
+            path: temp.path(),
+            handle: super::super::super::fsutil::open_directory_nofollow(temp.path()).unwrap(),
+        };
+        fs::rename(&path, temp.path().join("original")).unwrap();
+        fs::write(&path, b"same").unwrap();
+        let replacement = root.open_file(Path::new("input"), &path).unwrap();
+        assert!(require_stable_file(&path, &before, &replacement.metadata().unwrap()).is_err());
+        fs::create_dir(temp.path().join("real")).unwrap();
+        fs::write(temp.path().join("real/value"), b"same").unwrap();
+        std::os::unix::fs::symlink("real", temp.path().join("alias")).unwrap();
+        assert!(root
+            .open_file(Path::new("alias/value"), &temp.path().join("alias/value"))
+            .is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn scoped_observation_rejects_post_open_mutation_and_hardlink() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("input");
+        fs::write(&path, b"same").unwrap();
+        let opened = fs::File::open(&path).unwrap();
+        let before = opened.metadata().unwrap();
+        require_stable_file(&path, &before, &opened.metadata().unwrap()).unwrap();
+        fs::write(&path, b"changed length").unwrap();
+        assert!(require_stable_file(&path, &before, &opened.metadata().unwrap()).is_err());
+        let before = opened.metadata().unwrap();
+        fs::hard_link(&path, temp.path().join("alias")).unwrap();
+        assert!(require_stable_file(&path, &before, &opened.metadata().unwrap()).is_err());
+    }
+
+    // The v1 commitment is a wire contract, not a file-layout contract.
+    // Assemble its expected bytes independently of the traversal and guards.
+    #[cfg(unix)]
+    #[test]
+    fn stable_scoped_tree_preserves_v1_commitment_wire_bytes() {
+        use std::os::unix::fs::PermissionsExt;
+        let temp = tempfile::tempdir().unwrap();
+        for args in [
+            vec!["init"],
+            vec![
+                "-c",
+                "user.name=Test",
+                "-c",
+                "user.email=test@example.invalid",
+                "commit",
+                "--allow-empty",
+                "-m",
+                "source",
+            ],
+        ] {
+            assert!(workspace_git_command()
+                .arg("-C")
+                .arg(temp.path())
+                .args(args)
+                .output()
+                .unwrap()
+                .status
+                .success());
+        }
+        fs::create_dir(temp.path().join("input")).unwrap();
+        let a = temp.path().join("input/a");
+        let b = temp.path().join("input/b");
+        fs::write(&b, [0u8, 255, 1]).unwrap();
+        fs::write(&a, b"hello").unwrap();
+        fs::set_permissions(&a, fs::Permissions::from_mode(0o644)).unwrap();
+        fs::set_permissions(&b, fs::Permissions::from_mode(0o755)).unwrap();
+        let head = workspace_git_command()
+            .arg("-C")
+            .arg(temp.path())
+            .args(["rev-parse", "HEAD"])
+            .output()
+            .unwrap();
+        assert!(head.status.success());
+        let mut expected = b"runtime-workspace-readset-v1\0".to_vec();
+        expected.extend_from_slice(String::from_utf8(head.stdout).unwrap().trim().as_bytes());
+        expected.extend_from_slice(b"input\0directoryinput/a\0file");
+        expected.extend_from_slice(&0o100644_u32.to_le_bytes());
+        expected.extend_from_slice(&5_u64.to_le_bytes());
+        expected.extend_from_slice(b"helloinput/b\0file");
+        expected.extend_from_slice(&0o100755_u32.to_le_bytes());
+        expected.extend_from_slice(&3_u64.to_le_bytes());
+        expected.extend_from_slice(&[0u8, 255, 1]);
+        expected.extend_from_slice(b"missing\0absent");
+        assert_eq!(
+            workspace_source_readset_digest_at(temp.path(), &["missing".into(), "input".into()])
+                .unwrap(),
+            super::super::super::fsutil::sha256_bytes(&expected),
+        );
+    }
+
     #[test]
     fn scoped_commitment_tracks_its_read_set_and_rejects_aliases() {
         let root = std::env::temp_dir().join(format!("runtime-readset-{}", uuid::Uuid::now_v7()));
