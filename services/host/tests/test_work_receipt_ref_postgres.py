@@ -635,6 +635,77 @@ class WorkReceiptTest(unittest.TestCase):
         self.assert_replay(self.create(), first)
         self.assert_replay(self.commit("second", 1), second)
 
+    def test_public_replay_rejects_wrong_or_missing_persisted_root(self):
+        first = self.create()
+        second = self.commit("second", 1)
+        self.tag("create", first)
+        self.tag("second", second)
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+
+            class BoundStore(WorkStore):
+                @contextmanager
+                def _connect(self):
+                    yield conn
+
+            self.store = BoundStore(DSN)
+            for label, suffix, assignment, params in [
+                ("wrong create revision", "create", "receipt_work_revision=2", ()),
+                (
+                    "missing create pin",
+                    "create",
+                    "receipt_work_ref=NULL,receipt_work_revision=NULL",
+                    (),
+                ),
+                ("legacy carrying pin", "create", "response=%s", (Jsonb(first),)),
+                ("wrong commit revision", "second", "receipt_work_revision=1", ()),
+            ]:
+                with self.subTest(label=label), conn.transaction(force_rollback=True):
+                    conn.execute(
+                        "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_work_root_shape"
+                    )
+                    conn.execute(
+                        "UPDATE command_receipts SET " + assignment + " WHERE client_request_id=%s",
+                        (*params, self.key(suffix)),
+                    )
+                    with self.assertRaisesRegex(
+                        RuntimeError, "native Work receipt root|reference differs"
+                    ):
+                        if suffix == "create":
+                            self.create()
+                        else:
+                            self.commit("second", 1)
+            self.assert_replay(self.create(), first)
+            self.assert_replay(self.commit("second", 1), second)
+
+    def test_native_point_replay_retains_bounded_query_count(self):
+        first = self.create()
+        second = self.commit("second", 1)
+        self.tag("second", second)
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            statements = []
+
+            class CountedConnection:
+                def __getattr__(self, name):
+                    return getattr(conn, name)
+
+                def execute(self, query, params=None):
+                    statements.append(query)
+                    return conn.execute(query, params)
+
+            class BoundStore(WorkStore):
+                @contextmanager
+                def _connect(self):
+                    yield CountedConnection()
+
+            self.store = BoundStore(DSN)
+            self.assert_replay(self.create(), first)
+            self.assertEqual(len(statements), 2)
+            self.assertFalse(any("FROM work_snapshots" in q for q in statements))
+            statements.clear()
+            self.assert_replay(self.commit("second", 1), second)
+            self.assertEqual(len(statements), 3)
+            self.assertEqual(sum("FROM work_snapshots" in q for q in statements), 1)
+
     def test_maintenance_refuses_corrupt_native_pin_before_expansion(self):
         first = self.create()
         self.commit("second", 1)

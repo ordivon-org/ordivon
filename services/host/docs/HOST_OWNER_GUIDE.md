@@ -578,3 +578,17 @@ enabled for origin or always. Catalog constraint definitions alone do
 not prove active enforcement. This is a qualification of the observed
 schema under the existing transaction, not a claim that a privileged
 administrator cannot subsequently change database configuration.
+
+### Point replay observes the persisted root
+
+The Work command path reuses the generic idempotency claim arbiter and
+conflict validation, then observes the stored receipt row and schema
+version in a single SQL statement. A legacy response must have no native
+pin; a compact response must have the exact persisted native work/revision
+identity, agreeing with the requested context and immutable envelope.
+The shared codec verifies the exact indexed historical target. The
+ordinary two-statement legacy replay and three-statement compact replay
+(including the claim) are preserved, without an extra schema query.
+A whole-row projection also preserves the explicitly tested schema-16
+rollback compatibility; missing pin columns under schema >=17 are errors.
+Bulk audit/maintenance retains its set-oriented root projection.
