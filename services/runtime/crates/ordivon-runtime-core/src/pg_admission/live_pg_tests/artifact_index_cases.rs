@@ -9,16 +9,14 @@ fn migrate(dsn: &str, schema: &str, source: &str) -> std::process::Output {
             "-w",
             "--dbname",
             dsn,
-            "--set",
-            &format!("runtime_schema={schema}"),
-            "--set",
-            &format!("source_sha256={source}"),
+            "--set", "ON_ERROR_STOP=1",
             "--file",
             concat!(
                 env!("CARGO_MANIFEST_DIR"),
                 "/sql/pg_artifact_job_lookup_r1.sql"
             ),
         ])
+        .env("PGOPTIONS", format!("-c search_path={schema} -c ordivon.runtime_schema={schema} -c ordivon.source_sha256={source}"))
         .output()
         .expect("native psql operator migration")
 }
@@ -186,6 +184,16 @@ fn pg18_artifact_job_index_fresh_and_online_migration() {
 #[test]
 #[ignore = "requires explicit isolated PostgreSQL qualification and psql"]
 fn pg18_artifact_job_index_interrupted_concurrent_build_remains_inconclusive() {
+    concurrent_build_challenger(false);
+}
+
+#[test]
+#[ignore = "requires explicit isolated PostgreSQL qualification and psql"]
+fn pg18_artifact_job_index_epoch_drift_during_build_is_not_success() {
+    concurrent_build_challenger(true);
+}
+
+fn concurrent_build_challenger(drift_epoch: bool) {
     use std::process::Stdio;
     use std::time::{Duration, Instant};
     let dsn = physical_pg_test_dsn();
@@ -223,15 +231,20 @@ fn pg18_artifact_job_index_interrupted_concurrent_build_remains_inconclusive() {
             "--dbname",
             &dsn,
             "--set",
-            &format!("runtime_schema={}", s.name),
-            "--set",
-            &format!("source_sha256={source}"),
+            "ON_ERROR_STOP=1",
             "--file",
             concat!(
                 env!("CARGO_MANIFEST_DIR"),
                 "/sql/pg_artifact_job_lookup_r1.sql"
             ),
         ])
+        .env(
+            "PGOPTIONS",
+            format!(
+                "-c search_path={} -c ordivon.runtime_schema={} -c ordivon.source_sha256={source}",
+                s.name, s.name
+            ),
+        )
         .env("PGAPPNAME", &app)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -250,6 +263,38 @@ fn pg18_artifact_job_index_interrupted_concurrent_build_remains_inconclusive() {
         }
         std::thread::sleep(Duration::from_millis(25));
     };
+    if drift_epoch {
+        assert!(invalid.is_some(), "build must have reached native catalog");
+        s.admin
+            .execute(
+                "UPDATE _stage_control SET promotion_allowed=false WHERE id='epoch'",
+                &[],
+            )
+            .unwrap();
+        writing.rollback().unwrap();
+        let output = child.wait_with_output().unwrap();
+        assert!(
+            !output.status.success(),
+            "postflight must reject epoch drift"
+        );
+        assert!(
+            String::from_utf8_lossy(&output.stderr).contains("source/physical epoch not qualified")
+        );
+        assert_eq!(index_oid(&mut s), invalid);
+        assert!(
+            exact_index(&mut s),
+            "physical DDL may commit despite failed qualification"
+        );
+        assert!(!migrate(&dsn, &s.name, &source).status.success());
+        s.qualify();
+        assert_success(migrate(&dsn, &s.name, &source));
+        assert_eq!(
+            index_oid(&mut s),
+            invalid,
+            "qualified retry reuses same physical index"
+        );
+        return;
+    }
     let cancelled: bool=s.admin.query_one(
         "SELECT COALESCE(bool_or(pg_cancel_backend(pid)),false) FROM pg_stat_activity WHERE application_name=$1",
         &[&app]).unwrap().get(0);
