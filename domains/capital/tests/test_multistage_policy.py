@@ -427,3 +427,34 @@ def test_information_tree_must_not_erase_positive_terminal_path() -> None:
     assert Fraction(rare.conditional_probability)**2 > 0
     with pytest.raises(AlgebraicPolicyError):
         validate_information_tree(MultistageProblem(2.0, nodes))
+
+
+@pytest.mark.parametrize(
+    ("target", "field", "value"),
+    (
+        ("problem", "nodes", 17),
+        ("root", "initial_margin", None),
+        ("root", "turnover_cost", None),
+        ("leaf", "risky_gross", None),
+        ("leaf", "maintenance", None),
+        ("leaf", "risky_gross", [1.1]),
+        ("leaf", "initial_margin", None),
+        ("leaf", "turnover_cost", None),
+    ),
+)
+def test_information_tree_rejects_noncanonical_vector_shapes(target, field, value):
+    from dataclasses import replace
+
+    from ordivon_capital.portfolio.information_tree import validate_information_tree
+
+    first = root()
+    leaf = terminal("only", "root", 1, 1.0, 1.1)
+    problem = MultistageProblem(2.0, (first, leaf))
+    if target == "problem":
+        problem = replace(problem, **{field: value})
+    elif target == "root":
+        problem = replace(problem, nodes=(replace(first, **{field: value}), leaf))
+    else:
+        problem = replace(problem, nodes=(first, replace(leaf, **{field: value})))
+    with pytest.raises(AlgebraicPolicyError):
+        validate_information_tree(problem)

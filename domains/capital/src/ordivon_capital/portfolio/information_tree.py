@@ -86,11 +86,19 @@ def validate_information_tree(problem: MultistageProblem) -> ValidatedInformatio
     if not _finite(problem.gamma) or problem.gamma <= 0:
         raise AlgebraicPolicyError("positive CRRA risk aversion required")
     nodes = problem.nodes
-    if not nodes or not all(isinstance(n, InformationNode) for n in nodes):
-        raise AlgebraicPolicyError("nonempty information tree required")
+    if not isinstance(nodes, tuple) or not nodes or not all(
+        isinstance(n, InformationNode) for n in nodes
+    ):
+        raise AlgebraicPolicyError("nonempty tuple of information nodes required")
     # Establish the identity and ordering domains before using them as
     # dictionary keys or sorting. Invalid caller data is a domain error.
     for node in nodes:
+        # Establish canonical, immutable vector shape before len(), hashing
+        # observable signatures, or testing whether a terminal vector is empty.
+        if not all(isinstance(vector, tuple) for vector in (
+            node.risky_gross, node.maintenance, node.initial_margin, node.turnover_cost,
+        )):
+            raise AlgebraicPolicyError("information-node vectors must be tuples")
         if not isinstance(node.id, str) or not node.id:
             raise AlgebraicPolicyError("unique nonblank observation identifiers required")
         if node.parent is not None and (not isinstance(node.parent, str) or not node.parent):
