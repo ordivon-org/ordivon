@@ -342,3 +342,45 @@ References (external rationale, not project acceptance):
 - https://docs.cedarpolicy.com/auth/authorization.html
 - https://docs.cedarpolicy.com/policies/validation.html
 - https://slsa.dev/spec/v1.2/build-track-basics
+
+### R12 — lifecycle discriminator and provider admission
+
+Reference the native OPA REST metrics, bundle activation and operations
+contracts rather than introducing a custom query cache or distribution engine.
+The new opt-in script `scripts/qualify_opa_bundle_lifecycle.py` exercises a
+synthetic, non-authorizing arithmetic policy through native OPA bundle
+loading, concurrent evaluation, bad update, valid update, publisher failure,
+non-persistent restart and recovery. Its returned synthetic revision field
+and arithmetic result are observed in the same response. The publisher
+exists only in the isolated fixture. It is not a deployment tool.
+
+Observed on native OPA 1.22.4 (R12 first run): 32/32 concurrent arithmetic
+results were exact and the provider reported 32 prepared-query cache hits.
+After an invalid update and after publisher unavailability the previous
+result remained available and bundle health still returned HTTP 200. A
+fresh non-persistent restart with the publisher unavailable did not yield
+a result or bundle readiness. Subsequent valid bundle activation recovered.
+
+Therefore readiness, loaded version, source freshness, decision evidence
+and effect acceptance must remain separate observations. Do not infer that
+a healthy provider has loaded the desired current snapshot, or that an
+old active snapshot is qualified for a new effect. Bundle distribution is
+eventually consistent and the native status plane is not a replacement for
+per-evaluation evidence. The synthetic revision in this test is not a
+cryptographically authenticated production bundle receipt. Source identity,
+actual consumer currentness, installed trust and independent acceptance
+remain distinct, open proof obligations.
+
+Execution gate: retain the existing source evaluator until the natural
+owners qualify the replacement at the real consumer boundary. Promote
+neither the isolated server nor its fixture publisher to production.
+Measure concurrency and update cost separately from authorization
+semantics. Keep exact toolchain and schema identities where required;
+the cross-owner OPA cohort guard and Gateway package consumer CI must pass
+without weakening existing tests.
+
+Native reference documentation:
+- https://www.openpolicyagent.org/docs/rest-api
+- https://www.openpolicyagent.org/docs/management-bundles
+- https://www.openpolicyagent.org/docs/operations
+- https://www.openpolicyagent.org/docs/management-status
