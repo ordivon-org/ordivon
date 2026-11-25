@@ -571,3 +571,45 @@ requires frozen acceptance versus locked rejection; actual owner task and
 S03 consumer-binding tests remain separate and unchanged. No registry cache
 is required by this semantic oracle. This prevents future optional groups
 from breaking the fixture through unrelated package resolution.
+
+### R19 — observed test impact versus complete validation
+
+T01/T09/T12: select validation obligations from the existing owner graph,
+contract changes, risk and real consumers. Dynamic traces are positive
+observations only; absent edges remain UNKNOWN. Use them to prioritize
+diagnostic investigation, not to remove mandatory checks. Retain full owner
+and cross-owner gates, including non-Python providers, subprocesses, model
+checks, fixtures and dependency/toolchain changes.
+
+Native coverage.py 7.17.5 dynamic_context=test_function on the actual R18
+117-test Core run observed 91 distinct nonempty context labels. The actual
+remediation CLI had 19 measured physical source lines (including
+non-statement positions) but zero test labels. Some lines in other modules
+had both empty and nonempty contexts. Job
+job-01a214f2-b894-7115-85de-1f2316d0cc1d. Neither line counts nor context
+counts represent an exhaustive obligation matrix or independent test count.
+
+A separate disposable synthetic three-test experiment with pytest-testmon
+2.4.0 / pytest 9.2.0 / coverage 7.17.5 / CPython 3.15.2 demonstrated a
+selection gap: initial 3/3 pass, a changed arithmetic result only in a
+child process, native selection zero tests and exit 0, independent full
+suite one failure and exit 1. Job job-01a214f3-3052-758c-9a97-0e78d5d96da9.
+This is a bounded counterexample to automatic skipping under this
+configuration, not a universal judgment of the tool. Do not adopt
+pytest-testmon as a release selector or add its dependency database to
+Security. Keep mature coverage contexts for diagnostic ranking.
+
+Use one shared Core task for ordinary verification and opt-in native impact
+diagnosis. The latter requests dynamic test contexts, reports assigned and
+unassigned slices, and still runs every Core test and the CLI presence gate.
+The slices overlap and exclude different observed contexts; their
+percentages are not additive. No bespoke dependency graph, new production
+dependency, second scheduler or decision authority. A future selector must
+prove recall against full-run independent counterexamples and preserve
+unknown, external, provider and changed-contract obligations. Toolchain,
+manifest, fixture or cross-owner changes require the existing full gates.
+
+References:
+- https://coverage.readthedocs.io/en/latest/contexts.html
+- https://www.testmon.org/
+- https://github.com/tarpas/pytest-testmon

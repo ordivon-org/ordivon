@@ -17,18 +17,8 @@ uv run --frozen ruff check .
 # Fail on a stale architecture binding before spending the full test budget.
 uv run --frozen python scripts/validate_threat_model_binding.py threat-models/security-v2-r1.json --repo-root .
 ./scripts/validate_tmbom.sh threat-models/security-v2-r1.json
-# One Core run, native child-process collection, distinct report scopes.
-(
-  coverage_dir="$(mktemp -d)"
-  trap 'rm -rf -- "$coverage_dir"' EXIT
-  export COVERAGE_FILE="$coverage_dir/core"
-  export COVERAGE_RCFILE="$PWD/pyproject.toml"
-  uv run --frozen coverage run -m unittest discover -s tests -v
-  uv run --frozen coverage combine
-  uv run --frozen coverage report --include='*/ordivon_security_v2/*'
-  # Presence sentinel for the actual CLI consumer, not a semantic score.
-  uv run --frozen coverage report --include='*/scripts/verify_remediation_delta.py' --fail-under=1
-)
+# Reuse the same Core execution and presence checks as impact diagnostics.
+mise run verify-core
 # Exactly one installed, owner-pinned OPA version. Never resolve via
 # ambient /usr/bin/opa, duplicate provider snapshots or a Docker daemon.
 MISE_OFFLINE=1 MISE_AUTO_INSTALL=false mise exec -- opa test -v --fail-on-empty policies
@@ -40,6 +30,40 @@ uv run --locked --project services/gateway-authzen --group dev ruff format --che
 uv run --locked --project services/gateway-authzen --group dev python -m pytest -q services/gateway-authzen/tests
 MISE_OFFLINE=1 MISE_AUTO_INSTALL=false mise exec -- opa check --strict services/gateway-authzen/policies/gateway_artifact.rego
 git ls-files -z -- '*.sh' | xargs -0 -r shellcheck
+"""
+
+# Shared Core execution; no test selection based on historical coverage.
+[tasks.verify-core]
+run = """
+set -euo pipefail
+coverage_dir="$(mktemp -d)"
+trap 'rm -rf -- "$coverage_dir"' EXIT
+export COVERAGE_FILE="$coverage_dir/core"
+export COVERAGE_RCFILE="$PWD/pyproject.toml"
+uv run --frozen coverage run -m unittest discover -s tests -v
+uv run --frozen coverage combine
+uv run --frozen coverage report --include='*/ordivon_security_v2/*'
+# Actual CLI execution presence, not a semantic percentage threshold.
+uv run --frozen coverage report --include='*/scripts/verify_remediation_delta.py' --fail-under=1
+if [[ "${ORDIVON_SECURITY_COVERAGE_CONTEXT:-}" == "test_function" ]]; then
+  # Both slices are diagnostic; lines can belong to both and neither is a
+  # complete dependency graph. No context is promoted to a negative edge.
+  echo 'IMPACT_DIAGNOSTIC_CONTEXT_ASSIGNED'
+  uv run --frozen coverage report --include='*/ordivon_security_v2/*,*/scripts/verify_remediation_delta.py' --contexts='.+' --fail-under=0
+  echo 'IMPACT_DIAGNOSTIC_CONTEXT_UNASSIGNED'
+  uv run --frozen coverage report --include='*/ordivon_security_v2/*,*/scripts/verify_remediation_delta.py' --contexts='^$' --fail-under=0
+fi
+"""
+
+# Developer diagnosis only. The full ordinary owner gate still executes all
+# Core, OPA, AuthZEN and native checks; impact never decides what to skip.
+[tasks.verify-test-impact]
+run = """
+set -euo pipefail
+export UV_PYTHON="$(mise which python)"
+uv sync --locked
+export ORDIVON_SECURITY_COVERAGE_CONTEXT=test_function
+mise run verify-core
 """
 
 # Deliberately separate from the merge-critical test budget. Mutmut writes

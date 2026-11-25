@@ -32,6 +32,7 @@ line-length = 100
 select = ["E9", "F", "I", "UP"]
 
 [tool.coverage.run]
+dynamic_context = "${ORDIVON_SECURITY_COVERAGE_CONTEXT-}"
 branch = true
 source = ["ordivon_security_v2", "scripts"]
 # Native Python child-process collection, not a custom test wrapper.
