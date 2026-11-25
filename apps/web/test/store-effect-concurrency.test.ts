@@ -92,3 +92,55 @@ for (const kind of ["create", "publish"] as const) {
     });
   }
 }
+
+for (const phase of ["before-commit", "after-commit"] as const) {
+  test("commit acknowledgement failure preserves the original error and replay truth: " + phase, () => {
+    const dir = mkdtempSync(join(tmpdir(), "ordivon-effect-ack-"));
+    const path = join(dir, "web.sqlite");
+    const first = new WebStore(path);
+    const second = new WebStore(path);
+    try {
+      first.ensurePrincipal(principalId, "fixture", "Fixture", now);
+      const grant = first.createAgentGrant({
+        grantId: "grant:ack", principalId, agentId, audience,
+        allowedActions: ["canary.note.create"], resourcePrefixes: ["/canary/notes"],
+        expiresAtEpochSeconds: now + 60, maxRiskClass: "R4", stepUpAtOrAbove: "R4", remainingEffects: 2,
+      }, now);
+      const effect: AgentEffectRequest = {
+        effectId: stableDigest(phase), effectDigest: stableDigest("content"), action: "canary.note.create",
+        resource: "/canary/notes", audience, riskClass: "R2", effectType: "website.canary.note.create",
+      };
+      const commit = (store: WebStore) => store.commitAgentCanaryCreate(grant, agentId, effect, "draft", now);
+      const nativeExec = first.db.exec.bind(first.db);
+      const original = new Error("synthetic acknowledgement failure: " + phase);
+      let rollbackCalls = 0;
+      Object.defineProperty(first.db, "exec", { configurable: true, value: (sql: string) => {
+        if (sql === "COMMIT") {
+          if (phase === "after-commit") nativeExec(sql);
+          throw original;
+        }
+        if (sql === "ROLLBACK") rollbackCalls++;
+        nativeExec(sql);
+      }});
+      try {
+        assert.throws(() => commit(first), (error: unknown) => error === original);
+      } finally {
+        Reflect.deleteProperty(first.db, "exec");
+      }
+      assert.equal(rollbackCalls, phase === "before-commit" ? 1 : 0);
+      assert.equal(first.db.isTransaction, false);
+      const observed = second.getAgentEffect(effect.effectId);
+      assert.equal(observed !== null, phase === "after-commit");
+      const outcome = commit(second);
+      assert.equal(outcome.replayed, phase === "after-commit");
+      if (observed !== null) assert.deepEqual(outcome.receipt, observed);
+      assert.equal(second.getAgentGrant(grant.grantId).remainingEffects, 1);
+      assert.equal(second.db.prepare("SELECT count(*) AS n FROM agent_effects").get()?.n, 1);
+      assert.equal(second.db.prepare("SELECT count(*) AS n FROM canary_notes").get()?.n, 1);
+    } finally {
+      second.close();
+      first.close();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+}

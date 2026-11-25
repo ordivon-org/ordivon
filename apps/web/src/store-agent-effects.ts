@@ -93,7 +93,15 @@ export class AgentEffectStore {
       this.db.exec("COMMIT");
       return { receipt, replayed: false };
     } catch (error) {
-      this.db.exec("ROLLBACK");
+      // A failed acknowledgement is not evidence that COMMIT did not occur.
+      // Only roll back a transaction that is still active; never auto-reissue.
+      if (this.db.isTransaction) {
+        try {
+          this.db.exec("ROLLBACK");
+        } catch (rollbackError) {
+          throw new AggregateError([error, rollbackError], "Effect transaction and rollback failed");
+        }
+      }
       throw error;
     }
   }
