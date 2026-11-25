@@ -82,7 +82,7 @@ def nix_dotnet_status(lock:dict[str,Any], *, out_link:Path|None=None)->dict[str,
         raise RuntimeError('Artifact OpenXML foreign Nix flake source')
     if not NIX.is_file():raise RuntimeError('Artifact OpenXML Nix authority is absent')
     source=nix_source_cut(flake_lock)
-    target=f"path:{flake}#{cfg['package']}"
+    target=f"path:{flake}#{cfg['package']}^out"
     link_args=['--out-link',str(out_link)] if out_link is not None else ['--no-link']
     built=run([str(NIX),*NIX_FEATURES,'build','--no-write-lock-file',*link_args,'--print-out-paths',target],timeout=300)
     if built.returncode:raise RuntimeError('Artifact OpenXML Nix closure build failed: '+built.stderr[-4000:])
