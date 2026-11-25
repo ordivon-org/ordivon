@@ -542,3 +542,337 @@ fn pg18_concurrent_duplicate_never_creates_second_job() {
     assert_eq!(scratch.count("attempts"), 1);
     assert_eq!(scratch.count("concurrency_reservations"), 1);
 }
+
+// The operator-owned marker is a new-Job gate, not a writer-epoch change.
+// Already admitted work and exact historical replay must remain operable.
+#[test]
+#[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+fn pg18_maintenance_marker_blocks_new_job_not_replay_or_terminal() {
+    let dsn = physical_pg_test_dsn();
+    let mut scratch = Scratch::new(&dsn);
+    scratch.qualify();
+    let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+    let first = payload(
+        "maintenance-first",
+        "job-maintenance-first",
+        "maintenance-ws",
+        2,
+    );
+    let second = payload(
+        "maintenance-second",
+        "job-maintenance-second",
+        "maintenance-ws",
+        2,
+    );
+    assert_eq!(
+        store.admit(&first).unwrap(),
+        PgAdmissionOutcome::Created(first.job_id.clone())
+    );
+    let mut operator = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+    operator
+        .close_new_job_admission_for_maintenance(&"a".repeat(64), &"b".repeat(64))
+        .unwrap();
+    assert_eq!(
+        store.admit(&first).unwrap(),
+        PgAdmissionOutcome::Existing(first.job_id.clone())
+    );
+    assert!(
+        matches!(
+            store.admit(&second),
+            Err(PgAdmissionError::MaintenanceClosed)
+        ),
+        "new admission crossed durable maintenance closure"
+    );
+    assert_eq!(scratch.count("jobs"), 1);
+    assert_eq!(scratch.count("attempts"), 1);
+    assert_eq!(scratch.count("concurrency_reservations"), 1);
+    let terminal = PgTerminalNoArtifacts {
+        attempt_id: first.attempt_id.clone(),
+        expected_row_version: 0,
+        terminal_state: "failed".into(),
+        result_digest: "sha256:maintenance-terminal".into(),
+        reason_code: "NATIVE_PG_TEST".into(),
+        exit_code: Some(3),
+        finished_at_ms: first.created_at_ms + 1,
+        expected_source_sha256: first.expected_source_sha256.clone(),
+    };
+    assert_eq!(
+        store.commit_terminal_no_artifacts(&terminal).unwrap(),
+        PgTerminalOutcome::Committed(first.job_id.clone())
+    );
+    assert_eq!(
+        store.admit(&first).unwrap(),
+        PgAdmissionOutcome::Existing(first.job_id.clone())
+    );
+    assert!(store.admit(&second).is_err());
+    // A malformed or foreign marker is not a grant to reopen.
+    scratch.admin.execute("UPDATE _stage_control SET state='UNKNOWN',promotion_allowed=true WHERE id='maintenance'", &[]).unwrap();
+    assert!(store.admit(&second).is_err());
+}
+
+#[test]
+#[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+fn pg18_maintenance_close_fences_stale_snapshots_and_exact_subject() {
+    let dsn = physical_pg_test_dsn();
+    let mut scratch = Scratch::new(&dsn);
+    scratch.qualify();
+    let mut writer = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+    let mut operator = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+    let mut stale = writer
+        .client
+        .build_transaction()
+        .isolation_level(IsolationLevel::Serializable)
+        .start()
+        .unwrap();
+    // Snapshot precedes close; this is the real source-lock predicate in admit_once.
+    let initial = stale
+        .query_one(
+            "SELECT state FROM _stage_control WHERE id='maintenance'",
+            &[],
+        )
+        .unwrap()
+        .get::<_, String>(0);
+    assert_eq!(initial, "ADMISSION_OPEN");
+    assert!(matches!(
+        operator.close_new_job_admission_for_maintenance(&"c".repeat(64), &"b".repeat(64)),
+        Err(PgAdmissionError::Unqualified)
+    ));
+    operator
+        .close_new_job_admission_for_maintenance(&"a".repeat(64), &"b".repeat(64))
+        .unwrap();
+    stale
+        .query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])
+        .unwrap();
+    // Source qualification still succeeds, but the permanent row changed.
+    stale
+        .query_one(
+            "SELECT state FROM _stage_control WHERE id='source' FOR UPDATE",
+            &[],
+        )
+        .unwrap();
+    let err = stale
+        .query_one(
+            "SELECT state FROM _stage_control WHERE id='maintenance' FOR SHARE",
+            &[],
+        )
+        .unwrap_err();
+    assert_eq!(
+        err.code(),
+        Some(&postgres::error::SqlState::T_R_SERIALIZATION_FAILURE)
+    );
+    stale.rollback().unwrap();
+    assert!(matches!(
+        writer.admit(&payload("late", "job-late", "ws", 2)),
+        Err(PgAdmissionError::MaintenanceClosed)
+    ));
+    assert_eq!(scratch.count("jobs"), 0);
+    operator
+        .close_new_job_admission_for_maintenance(&"a".repeat(64), &"b".repeat(64))
+        .unwrap();
+    assert!(matches!(
+        operator.close_new_job_admission_for_maintenance(&"a".repeat(64), &"c".repeat(64)),
+        Err(PgAdmissionError::IdempotencyConflict)
+    ));
+    let marker = scratch.admin.query_one("SELECT state,source_sha256,promotion_allowed FROM _stage_control WHERE id='maintenance'", &[]).unwrap();
+    assert_eq!(
+        (
+            marker.get::<_, String>(0),
+            marker.get::<_, String>(1),
+            marker.get::<_, bool>(2)
+        ),
+        ("ADMISSION_CLOSED".into(), "b".repeat(64), false)
+    );
+}
+
+#[test]
+#[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+fn pg18_maintenance_missing_or_malformed_gate_never_bootstraps_open() {
+    let dsn = physical_pg_test_dsn();
+    let mut scratch = Scratch::new(&dsn);
+    scratch.qualify();
+    let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+    let job = payload("new-gate", "job-new-gate", "ws", 1);
+    scratch
+        .admin
+        .execute("DELETE FROM _stage_control WHERE id='maintenance'", &[])
+        .unwrap();
+    assert!(matches!(
+        store.admit(&job),
+        Err(PgAdmissionError::MaintenanceClosed)
+    ));
+    assert!(matches!(
+        store.close_new_job_admission_for_maintenance(&"a".repeat(64), &"b".repeat(64)),
+        Err(PgAdmissionError::Unqualified)
+    ));
+    for (state, digest, flag) in [
+        ("ADMISSION_OPEN", "b".repeat(64), true),
+        ("ADMISSION_OPEN", "0".repeat(64), false),
+        ("UNKNOWN", "0".repeat(64), true),
+        ("ADMISSION_CLOSED", "b".repeat(64), false),
+    ] {
+        scratch.admin.execute("INSERT INTO _stage_control VALUES('maintenance',$1,$2,$3) ON CONFLICT(id) DO UPDATE SET state=EXCLUDED.state,source_sha256=EXCLUDED.source_sha256,promotion_allowed=EXCLUDED.promotion_allowed", &[&state,&digest,&flag]).unwrap();
+        assert!(matches!(
+            store.admit(&job),
+            Err(PgAdmissionError::MaintenanceClosed)
+        ));
+        assert_eq!(scratch.count("jobs"), 0);
+    }
+    // Test-only owner initialization is explicit; the library never does this.
+    scratch.admin.execute("UPDATE _stage_control SET state='ADMISSION_OPEN',source_sha256=repeat('0',64),promotion_allowed=true WHERE id='maintenance'", &[]).unwrap();
+    assert!(matches!(
+        store.admit(&job),
+        Ok(PgAdmissionOutcome::Created(_))
+    ));
+    store
+        .close_new_job_admission_for_maintenance(&"a".repeat(64), &"b".repeat(64))
+        .unwrap();
+    let cancel = PgCancelIntent {
+        job_id: job.job_id.clone(),
+        observed_at_ms: job.created_at_ms + 1,
+        expected_source_sha256: job.expected_source_sha256.clone(),
+    };
+    store.request_cancel_intent(&cancel).unwrap();
+    assert_eq!(
+        store.observe_cancel_intent(&cancel).unwrap(),
+        PgCancelObservation::Confirmed(job.job_id.clone())
+    );
+}
+
+#[test]
+#[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+fn pg18_maintenance_operator_requires_protected_column_privileges() {
+    let dsn = physical_pg_test_dsn();
+    let mut scratch = Scratch::new(&dsn);
+    scratch.qualify();
+    let role = format!("test_maintenance_{}", Uuid::now_v7().simple());
+    scratch
+        .admin
+        .batch_execute(&format!(
+            "CREATE ROLE \"{role}\" NOLOGIN;
+         GRANT USAGE ON SCHEMA \"{schema}\" TO \"{role}\";
+         GRANT ALL ON ALL TABLES IN SCHEMA \"{schema}\" TO \"{role}\";
+         REVOKE ALL ON \"{schema}\"._stage_control FROM \"{role}\";
+         GRANT SELECT,UPDATE(id) ON \"{schema}\"._stage_control TO \"{role}\";
+         GRANT EXECUTE ON FUNCTION pg_control_system(),pg_control_checkpoint() TO \"{role}\";",
+            schema = scratch.name
+        ))
+        .unwrap();
+    let mut app = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+    app.client
+        .batch_execute(&format!("SET ROLE \"{role}\""))
+        .unwrap();
+    let first = payload("role-first", "job-role-first", "ws", 2);
+    assert!(matches!(
+        app.admit(&first),
+        Ok(PgAdmissionOutcome::Created(_))
+    ));
+    let denied = app
+        .close_new_job_admission_for_maintenance(&"a".repeat(64), &"b".repeat(64))
+        .unwrap_err();
+    assert!(
+        matches!(denied,PgAdmissionError::Database(ref e) if e.code()==Some(&postgres::error::SqlState::INSUFFICIENT_PRIVILEGE))
+    );
+    assert_eq!(
+        scratch
+            .admin
+            .query_one(
+                "SELECT state FROM _stage_control WHERE id='maintenance'",
+                &[]
+            )
+            .unwrap()
+            .get::<_, String>(0),
+        "ADMISSION_OPEN"
+    );
+    let mut operator = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+    operator
+        .close_new_job_admission_for_maintenance(&"a".repeat(64), &"b".repeat(64))
+        .unwrap();
+    assert_eq!(
+        app.admit(&first).unwrap(),
+        PgAdmissionOutcome::Existing(first.job_id.clone())
+    );
+    assert!(matches!(
+        app.admit(&payload("role-second", "job-role-second", "ws", 2)),
+        Err(PgAdmissionError::MaintenanceClosed)
+    ));
+    // The existing application UPDATE(id) privilege can rename the marker,
+    // but missing mandatory identity still cannot grant a new Job.
+    app.client
+        .execute(
+            "UPDATE _stage_control SET id='damaged-maintenance' WHERE id='maintenance'",
+            &[],
+        )
+        .unwrap();
+    assert!(matches!(
+        app.admit(&payload("role-third", "job-role-third", "ws", 2)),
+        Err(PgAdmissionError::MaintenanceClosed)
+    ));
+    app.client.batch_execute("RESET ROLE").unwrap();
+    drop(app);
+    scratch
+        .admin
+        .batch_execute(&format!("DROP OWNED BY \"{role}\"; DROP ROLE \"{role}\";"))
+        .unwrap();
+}
+
+#[test]
+#[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+fn pg18_maintenance_closure_readback_is_exact_and_never_grants_effect() {
+    let dsn = physical_pg_test_dsn();
+    let mut scratch = Scratch::new(&dsn);
+    scratch.qualify();
+    let mut operator = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+    let mut observer = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+    let source = "a".repeat(64);
+    let subject = "b".repeat(64);
+    assert_eq!(
+        observer
+            .observe_maintenance_closure(&source, &subject)
+            .unwrap(),
+        PgMaintenanceClosureObservation::Inconclusive
+    );
+    operator
+        .close_new_job_admission_for_maintenance(&source, &subject)
+        .unwrap();
+    // A different connection reconciles an assumed lost write acknowledgement.
+    assert_eq!(
+        observer
+            .observe_maintenance_closure(&source, &subject)
+            .unwrap(),
+        PgMaintenanceClosureObservation::ConfirmedClosed
+    );
+    assert_eq!(
+        observer
+            .observe_maintenance_closure(&source, &"c".repeat(64))
+            .unwrap(),
+        PgMaintenanceClosureObservation::Inconclusive
+    );
+    assert!(matches!(
+        observer.observe_maintenance_closure(&"c".repeat(64), &subject),
+        Err(PgAdmissionError::Unqualified)
+    ));
+    scratch
+        .admin
+        .execute(
+            "UPDATE _stage_control SET promotion_allowed=true WHERE id='maintenance'",
+            &[],
+        )
+        .unwrap();
+    assert_eq!(
+        observer
+            .observe_maintenance_closure(&source, &subject)
+            .unwrap(),
+        PgMaintenanceClosureObservation::Inconclusive
+    );
+    scratch
+        .admin
+        .execute("DELETE FROM _stage_control WHERE id='maintenance'", &[])
+        .unwrap();
+    assert_eq!(
+        observer
+            .observe_maintenance_closure(&source, &subject)
+            .unwrap(),
+        PgMaintenanceClosureObservation::Inconclusive
+    );
+    assert_eq!(scratch.count("jobs"), 0);
+}

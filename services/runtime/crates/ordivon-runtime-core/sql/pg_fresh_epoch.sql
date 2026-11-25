@@ -96,4 +96,7 @@ CREATE TABLE artifacts(
 CREATE TABLE _stage_control(
  id text PRIMARY KEY, state text NOT NULL, source_sha256 text NOT NULL,
  promotion_allowed boolean NOT NULL);
+-- The admission gate is a permanent native authority row. Its absence
+-- in a legacy or damaged installation is not evidence of OPEN.
+INSERT INTO _stage_control VALUES('maintenance','ADMISSION_OPEN',repeat('0',64),true);
 COMMIT;

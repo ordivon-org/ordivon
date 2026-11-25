@@ -142,6 +142,14 @@ fn transient_pg_transaction_abort(code: Option<&postgres::error::SqlState>) -> b
 }
 
 fn pg(e: PgAdmissionError) -> RuntimeError {
+    if matches!(&e, PgAdmissionError::MaintenanceClosed) {
+        return RuntimeError::new(
+            RuntimeErrorCode::DeploymentInProgress,
+            "PG Runtime new-admission gate is not qualified OPEN; reconcile maintenance state",
+            None,
+            false,
+        );
+    }
     let issuer_not_current = matches!(&e, PgAdmissionError::IssuerNotCurrent);
     let aborted = matches!(
         &e,

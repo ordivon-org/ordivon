@@ -12,6 +12,8 @@ mod contract_tests;
 #[path = "pg_dispatch.rs"]
 mod dispatch;
 mod input_contract;
+mod maintenance;
+pub use maintenance::PgMaintenanceClosureObservation;
 #[path = "pg_issuer_guard.rs"]
 mod issuer;
 #[cfg(all(test, feature = "postgres-registry-admission"))]
@@ -43,6 +45,8 @@ pub enum PgAdmissionError {
     Capacity,
     IdempotencyConflict,
     PendingEffect,
+    /// Durable operator closure; existing settlement and exact replay remain available.
+    MaintenanceClosed,
     /// Workspace physical identity changed after a Job was planned, but before
     /// its PG admission acquired the global effect/admission lock.
     WorkspaceStale,

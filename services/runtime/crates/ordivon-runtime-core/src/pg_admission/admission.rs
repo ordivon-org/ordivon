@@ -145,6 +145,13 @@ impl PgAdmissionStore {
             return Ok(PgAdmissionOutcome::Existing(job_id));
         }
         // Exact historical replay above is not a new physical Job grant.
+        // A permanent gate row is mandatory for NEW Jobs. The row lock
+        // invalidates stale SERIALIZABLE snapshots after a close commits.
+        // Missing/malformed/closed all fail closed. Exact historical replay
+        // above and existing terminal/cancellation paths do not use this gate.
+        if !maintenance::new_job_admission_open(&mut tx)? {
+            return Err(PgAdmissionError::MaintenanceClosed);
+        }
         if let Some(schema) = issuer_schema {
             issuer::require_current_harness_issuer_for_new_job(&mut tx, i, schema)?;
         }

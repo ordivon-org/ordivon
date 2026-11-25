@@ -187,12 +187,12 @@ facts.
 Runtime Registry's accepted-Attempt cancellation path commits a local,
 synthetic result digest and a Cancelled Job without any physical dispatch.
 The dispatch-only abstraction omitted this legal concrete transition. The
-model now includes \`CancelAcceptedBeforeDispatch\` and the distinct
-\`resultEvidence = "localCancel"\` tag, with zero dispatch count, released
+model now includes `CancelAcceptedBeforeDispatch` and the distinct
+`resultEvidence = "localCancel"` tag, with zero dispatch count, released
 reservation, no selected current Attempt and committed terminal standing.
-\`LocalCancellationNeverDispatched\` requires that a local synthetic
+`LocalCancellationNeverDispatched` requires that a local synthetic
 cancellation result cannot impersonate a provider result. Existing
-\`TerminalAttemptWasDispatched\` continues to apply to physical result
+`TerminalAttemptWasDispatched` continues to apply to physical result
 evidence and does not extend to locally cancelled Attempts.
 
 The finite-model proof does not establish installed Runtime behavior,
@@ -715,3 +715,46 @@ reachability, cross-DB unsafe close, late claim after close, and unauthorized
 grant. This is not a production Runtime Claim API, a cross-DB ACID commit,
 source-to-installed refinement, legacy Run migration or ignored Artifact
 finalization proof.
+
+## RuntimePgMaintenanceAdmissionR1
+
+This model refines only the new-Job entrance of the existing fresh-PG Runtime.
+The Workstation offline maintenance protocol additionally owns external roots,
+backup, exact target, handoff, native detach and recovery; it cannot infer any
+of those from this gate. See the existing Workstation
+`providers/d_drive_compact/formal/PGOfflineMaintenanceR1.tla` when integrated.
+
+- **Input/Output:** qualified source and physical writer epoch, exact immutable
+  maintenance-subject digest; native closed state or rejected/unknown closure.
+  Readback confirms only that exact closed subject or remains inconclusive.
+- **State:** one permanent operator-owned row of existing `_stage_control`.
+  Fresh DDL initializes OPEN; the historical installed schema requires an
+  independently qualified one-time bootstrap before replacing all writers.
+  Do not bootstrap on missing readback. Old writers cannot be assumed to honor
+  the new row, and mixed versions are not maintenance-qualified.
+- **Pre/Post:** the existing short common lock serializes new Job insertion
+  and closure, with the permanent row checked under a row lock. The operator
+  closes with a native row update; a stale SERIALIZABLE read must fail or
+  retry from a new snapshot. The writer/physical epoch remains valid for
+  cancellation, terminal settlement and exact historical replay.
+- **Invariant:** missing, damaged, foreign or closed never permits a new Job;
+  an existing subject cannot be overwritten by a different close; an unknown
+  COMMIT cannot authorize any host effect. No automatic reopen, expiry or
+  session-death release. No reopening implementation in this source slice.
+- **Effect/Cost:** a short native transaction and constant-size protected
+  row observation/update, not a long-held maintenance lock or a new registry.
+  Exact closure is not proof of no other Workspace/Host/OS consumers.
+- **Evidence/Limit:** native physical PG18 tests in the existing admission
+  suite exercise the actual source path, the stale-snapshot SQL boundary,
+  restricted role, malformed/missing row and independent exact readback.
+  The finite TLC model assumes correct installed writer coverage and abstracts
+  native row versions. It is not a Rust refinement proof or a shutdown grant.
+
+Run TLC using the existing pinned/verified TLA+ JAR, in a disposable copy of
+`RuntimePgMaintenanceAdmissionR1.tla` and its `.cfg`. Independently flip one
+of OmitVersion, OmitGate, LoseOnRestart, BlockSettlement, or BlockReplay to
+TRUE and expect the corresponding named invariant to fail. Add
+NeverClosedDrainedReplay to the invariant set as a non-vacuity control; the
+normal model must be able to close, settle and replay. The integration owner
+should compose the scoped model into the existing shared formal runner rather
+than introduce a second runner or silently treat the model as installed proof.
