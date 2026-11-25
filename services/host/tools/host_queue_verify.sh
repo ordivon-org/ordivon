@@ -171,5 +171,16 @@ if [[ -n "$container" ]]; then
 fi
 uv run ruff check .
 # Full qualification must not inherit filters or collect-only options.
-unset PYTEST_ADDOPTS
-uv run python -m pytest --host-require-complete-suite --strict-config --strict-markers
+unset PYTEST_ADDOPTS PYTEST_PLUGINS
+# Consume the optional evidence destination at this boundary, not in
+# nested queue-governance tests or their child processes.
+evidence_dir="${ORDIVON_HOST_QUEUE_EVIDENCE_DIR:-}"
+unset ORDIVON_HOST_QUEUE_EVIDENCE_DIR
+if [[ -n "$evidence_dir" ]]; then
+  uv run python -m pytest --host-require-complete-suite --strict-config --strict-markers \
+    -p tools.host_attempt_evidence \
+    --host-evidence-dir "$evidence_dir" \
+    --junitxml "$evidence_dir/junit.xml"
+else
+  uv run python -m pytest --host-require-complete-suite --strict-config --strict-markers
+fi

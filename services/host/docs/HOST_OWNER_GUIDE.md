@@ -584,3 +584,28 @@ This consumes the public pytest 9.2 subtest report API, not a parallel
 runner; it cannot establish unexpressed semantic obligations or defend
 against arbitrary malicious plugins. Report behavior is qualified on
 the actual locked pytest version.
+
+### Native attempt evidence (opt-in)
+
+Set ORDIVON_HOST_QUEUE_EVIDENCE_DIR to a fresh, non-existent directory
+outside the checkout, under an existing private parent, before invoking
+the complete Host queue. The queue consumes the destination at its own
+boundary and clears inherited pytest selection/plugin environment
+variables. It invokes the existing native pytest runner with JUnit XML
+and a small optional attempt-evidence plugin. It does not retry tests or
+replace the complete-suite verdict. Both the native JUnit and receipt
+are private, non-overwriting artifacts; failure traces may contain
+sensitive fixture information and must not be automatically published.
+
+The receipt records an invocation UUID, observed clean Git commit/Host
+tree and lock digest before and after, actual Python and pytest versions,
+native report outcome counts, nonpassing node IDs, the exit status after
+the complete-suite gate, and native JUnit digest and bytes. A missing
+report or changed source cannot turn a zero exit into qualification.
+A later passing attempt does not replace the earlier nonpass artifact.
+GitHub environment values are only provider declarations, with source
+matching required; actual provider check/run/attempt and Runtime artifact
+identity must be independently read back by the consumer. Before/after
+source observations do not prove immutability during execution, complete
+environment equivalence, or protection from hostile plugins. A killed
+or interrupted process may leave no complete receipt; absence is UNKNOWN.
