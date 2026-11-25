@@ -12,10 +12,13 @@ import re
 import subprocess
 from pathlib import Path
 
-from .git_identity import qualify_batch_sizes, verify_object_batch
+from .git_identity import (
+    partition_object_batches,
+    qualify_batch_sizes,
+    verify_object_batch,
+)
 
 _OBJECT_ID = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}\Z")
-_MAX_ODPS_BYTES = 2 * 1024 * 1024
 
 
 def _git(repo: Path, *args: str, input_bytes: bytes | None = None) -> bytes:
@@ -106,28 +109,37 @@ def committed_owner_products(repo: Path, revision: str) -> tuple[str, list[bytes
     # individually valid blob. The repository is assumed quiescent: this is
     # not an atomic snapshot across separate Git commands.
     algorithm = _git(repo, "rev-parse", "--show-object-format").decode("ascii").strip()
-    expected = [(commit, "commit"), *((oid, "tree") for oid in sorted(tree_ids))]
+    blob_ids = sorted({oid for _, oid in objects})
+    expected = [
+        (commit, "commit"),
+        *((oid, "tree") for oid in sorted(tree_ids)),
+        *((oid, "blob") for oid in blob_ids),
+    ]
     request = "".join(oid + "\n" for oid, _ in expected).encode("ascii")
     headers = qualify_batch_sizes(
         _git(repo, "cat-file", "--batch-check", input_bytes=request),
         expected,
         algorithm,
     )
-    verify_object_batch(
-        _git(repo, "cat-file", "--batch", input_bytes=request),
-        headers,
-        algorithm,
-        commit=commit,
-        root_tree=root_tree,
-    )
-    blobs = []
-    for _, oid in sorted(objects):
-        size = int(_git(repo, "cat-file", "-s", oid).decode("ascii").strip())
-        if not 0 < size <= _MAX_ODPS_BYTES:
-            raise ValueError("Git ODPS source exceeds bounded input size")
-        raw = _git(repo, "cat-file", "blob", oid)
-        if len(raw) != size:
-            raise ValueError("Git ODPS blob read-back length mismatch")
+    # Complete preflight before any content request. Each chunk is
+    # bounded independently; only one commit is permitted, in chunk zero.
+    blobs: dict[str, bytes] = {}
+    for index, batch in enumerate(partition_object_batches(headers)):
+        batch_request = b"".join(
+            header.split(b" ", 1)[0] + b"\n" for header, _ in batch
+        )
+        blobs.update(
+            verify_object_batch(
+                _git(repo, "cat-file", "--batch", input_bytes=batch_request),
+                batch,
+                algorithm,
+                commit=commit,
+                root_tree=root_tree,
+                require_commit=index == 0,
+            )
+        )
+    for oid in blob_ids:
+        raw = blobs[oid]
         # cat-file is an object lookup, not an integrity check: even a
         # same-length corrupt loose blob may be returned under the old OID.
         # Native hash-object uses the repository's object format, without
@@ -139,5 +151,6 @@ def committed_owner_products(repo: Path, revision: str) -> tuple[str, list[bytes
         )
         if observed_oid != oid:
             raise ValueError("Git ODPS blob identity mismatch")
-        blobs.append(raw)
-    return commit, blobs
+    # Retain every path, including paths with identical content. Deduplicate
+    # native reads and hashes only, not producer identity or multiplicity.
+    return commit, [blobs[oid] for _, oid in sorted(objects)]
