@@ -348,7 +348,7 @@ fn registered_worktree_head_at(
     for record in entries.split(|b| *b == 0).collect::<Vec<_>>().split(|field| field.is_empty()) {
         let mut matched = false;
         let mut head = None;
-        for field in record.iter().copied() {
+        for &field in record {
             if let Some(path) = field.strip_prefix(b"worktree ") {
                 matched = git_registration_path_matches(path, wanted)?;
             } else if let Some(commit) = field.strip_prefix(b"HEAD ") {
