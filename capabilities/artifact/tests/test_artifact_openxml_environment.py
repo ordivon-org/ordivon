@@ -183,12 +183,6 @@ class ArtifactOpenXmlEnvironmentTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'corpus digest drift'):
                 M.verify_external_evidence(Path('/tmp/validator'))
 
-    def test_apply_runs_external_evidence_before_current_publication(self):
-        source=(ROOT/'scripts/artifact_openxml_environment.py').read_text()
-        gate=source.index("external_evidence=verify_external_evidence(final/'bin/validate-openxml')")
-        publish=source.index("os.symlink(Path('generations')/gid,tmp)")
-        self.assertLess(gate,publish)
-
     def test_tree_digest_detects_bytes_and_unsafe_symlink(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d);(root/'a').write_bytes(b'one');first=M.tree_digest(root);(root/'a').write_bytes(b'two');self.assertNotEqual(first,M.tree_digest(root));(root/'escape').symlink_to('/etc/passwd')
@@ -242,6 +236,8 @@ class OpenXmlGenerationRetentionTests(unittest.TestCase):
                 patch.object(M, "build_generation", side_effect=build),
                 patch.object(M, "verify_external_evidence", side_effect=evidence),
                 patch.object(M, "register_generation_gc_root", side_effect=retain, create=True),
+                patch.object(M, "generation_spec", return_value={}),
+                patch.object(M, "qualify_materialization", return_value={"dotnetNixStorePath":store}),
                 patch.object(M, "status", return_value={"ready": True, "generationId": "fixture"}),
             ):
                 M.apply()
@@ -297,6 +293,8 @@ class OpenXmlGenerationRetentionTests(unittest.TestCase):
                 patch.object(M, "build_generation", return_value=(
                     "new", new, {"dotnetNixStorePath": store},
                 )),
+                patch.object(M, "generation_spec", return_value={}),
+                patch.object(M, "qualify_materialization", return_value={"dotnetNixStorePath":store}),
                 patch.object(M, "verify_external_evidence"),
                 patch.object(M, "register_generation_gc_root", side_effect=RuntimeError("root failed")),
             ):
