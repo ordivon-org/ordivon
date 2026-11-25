@@ -1563,6 +1563,61 @@ def exact_git_reference_hints(
 
 
 
+
+def inverse_document_frontier(
+    repo: Path, source: str, prefix: str, *, limit: int = 48,
+    after: str | None = None, per_path_limit: int = 48,
+) -> dict:
+    """Enumerate a bounded exact-cut page of documents needing consumer review.
+
+    Membership and ordering are derived from Git, never from a mutable
+    checkout or a manually maintained document registry. A cursor merely
+    selects a page; it does not attest that earlier pages were scanned.
+    Every result remains a lexical investigation hint, never retirement.
+    """
+    exact_commit(repo, source, local_only=True)
+    if (not prefix or not prefix.endswith("/") or prefix.startswith("/")
+            or chr(92) in prefix
+            or any(part in {"", ".", ".."} for part in prefix[:-1].split("/"))):
+        raise ValueError("inverse document prefix must be canonical relative directory")
+    if not 1 <= limit <= 64 or not 1 <= per_path_limit <= 256:
+        raise ValueError("inverse document page limit 1..64; reference limit 1..256")
+    paths = [item["path"] for item in tree(repo, source, local_only=True)
+             if item["path"].startswith(prefix)
+             and item["path"].lower().endswith(".md")]
+    start = 0
+    if after is not None:
+        if after not in paths:
+            raise ValueError("inverse cursor must name an exact document at SourceCut")
+        start = paths.index(after) + 1
+    page = paths[start:start + limit]
+    queries = []
+    for offset in range(0, len(page), 8):
+        batch = exact_git_reference_hints(
+            repo, source, page[offset:offset + 8], per_path_limit=per_path_limit)
+        queries.extend(batch["queries"])
+    remaining = len(paths) - start - len(page)
+    counts = collections.Counter(q["inverseWitnessStanding"] for q in queries)
+    return {
+        "kind": "ordivon.source.inverse-document-witness-frontier",
+        "sourceCut": source,
+        "sourceTree": git(repo, "rev-parse", f"{source}^{{tree}}",
+                          local_only=True).decode().strip(),
+        "prefix": prefix,
+        "documentPathsAtSourceCut": len(paths),
+        "omittedBeforePage": start,
+        "pageCount": len(page),
+        "remainingAfterPage": remaining,
+        "nextAfter": page[-1] if remaining and page else None,
+        "inverseWitnessCounts": dict(sorted(counts.items())),
+        "queries": queries,
+        "runtimeConsumerStanding": "UNKNOWN",
+        "retirementAdmissible": False,
+        "proofReuseAdmissible": False,
+        "truthBoundary": "EXACT_GIT_DOCUMENT_MEMBERSHIP_AND_LEXICAL_HINTS_ONLY",
+    }
+
+
 def independent_scope_frontier(
     repo: Path, source: str, *, external_git: list[str],
     non_git_data: list[str], max_entries: int = 512,
@@ -1954,6 +2009,12 @@ def main() -> int:
                         help="cross-format Git textual reference witness for exact file path")
     parser.add_argument("--reference-limit", type=int, default=48,
                         help="maximum witness lines per source path, 1..256")
+    parser.add_argument("--inverse-doc-prefix",
+                        help="enumerate exact-cut Markdown reverse reference candidates")
+    parser.add_argument("--inverse-doc-limit", type=int, default=48,
+                        help="bounded document page size, 1..64")
+    parser.add_argument("--inverse-doc-after",
+                        help="resume after exact document path at same SourceCut")
     parser.add_argument("--static-python-consumers", action="store_true",
                         help="exact Git AST import candidate references; not live consumers")
     parser.add_argument("--imports-prefix",
@@ -1968,7 +2029,9 @@ def main() -> int:
                         help="small exact-Git source/path query; repeat for multiple files")
     args = parser.parse_args()
     if args.scope_census:
-        if (args.problem_legos or args.reference_path or args.lookup_path
+        if (args.problem_legos or args.reference_path or args.inverse_doc_prefix
+                or args.inverse_doc_after is not None or args.inverse_doc_limit != 48
+                or args.lookup_path
                 or args.static_python_consumers or args.live_cells or args.proposal_cut
                 or args.use_proposal_cells or args.only_problems or args.imports_prefix
                 or args.reference_limit != 48
@@ -2005,6 +2068,23 @@ def main() -> int:
         parser.error("--relation-evidence requires --problem-legos")
     if args.relation_evidence and (args.proposal_cut or args.use_proposal_cells):
         parser.error("source relation evidence must use current native source cells")
+    if args.inverse_doc_prefix is not None:
+        if (args.reference_path or args.lookup_path or args.static_python_consumers
+                or args.live_cells or args.proposal_cut or args.use_proposal_cells
+                or args.only_problems or args.imports_prefix or args.problem_legos):
+            parser.error("inverse document mode is separate from other projections")
+        result = inverse_document_frontier(
+            args.repo, args.source_cut, args.inverse_doc_prefix,
+            limit=args.inverse_doc_limit, after=args.inverse_doc_after,
+            per_path_limit=args.reference_limit)
+        if args.summary:
+            for query in result["queries"]:
+                query.pop("textualHits")
+        # Native paths may contain surrogateescaped filesystem bytes.
+        print(json.dumps(result, ensure_ascii=True, sort_keys=True, indent=2))
+        return 0
+    if args.inverse_doc_after is not None or args.inverse_doc_limit != 48:
+        parser.error("inverse document paging requires inverse-doc-prefix")
     if args.reference_path:
         if (args.lookup_path or args.static_python_consumers or args.live_cells
                 or args.proposal_cut or args.use_proposal_cells or args.only_problems
@@ -2013,10 +2093,10 @@ def main() -> int:
         result = exact_git_reference_hints(
             args.repo, args.source_cut, args.reference_path,
             per_path_limit=args.reference_limit)
-        print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
+        print(json.dumps(result, ensure_ascii=True, sort_keys=True, indent=2))
         return 0
     if args.reference_limit != 48:
-        parser.error("reference-limit requires reference-path")
+        parser.error("reference-limit requires reference-path or inverse-doc-prefix")
     if args.problem_legos and (
         args.lookup_path or args.static_python_consumers or args.imports_prefix
         or args.only_problems or args.live_cells

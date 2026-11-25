@@ -4,8 +4,10 @@ These are classification mechanics tests, not mathematical implementation
 refinement or proof of semantic consumers.
 """
 import importlib.util
+import json
 import pathlib
 import subprocess
+import sys
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -620,6 +622,53 @@ class ExactGitCrossFormatReferenceTests(unittest.TestCase):
             self.assertEqual(q["inverseWitnessStanding"], "NOT_EVALUATED_MULTILINE_LOCATOR")
             self.assertIsNone(q["distinctExternalTextualCarriers"])
             self.assertFalse(q["retirementAdmissible"])
+
+    def test_inverse_document_frontier_cli_pages_exact_native_membership(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = pathlib.Path(tmp)
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True).strip()
+            git("init", "-q")
+            git("config", "user.name", "Inverse frontier fixture")
+            git("config", "user.email", "inverse@example.invalid")
+            (repo / "docs").mkdir()
+            (repo / "docs" / "a-design.md").write_text("independent design\n")
+            (repo / "docs" / "b-live.md").write_text("b-live source\n")
+            (repo / "docs" / "c-history.md").write_text("historical evidence\n")
+            (repo / "docs" / "data.json").write_text("{}")
+            (repo / "consumer.py").write_text("# docs/b-live.md\n")
+            git("add", "-A")
+            git("commit", "-qm", "fixture")
+            cut = git("rev-parse", "HEAD")
+            # Change the checkout after fixing SourceCut; do not count it.
+            (repo / "docs" / "later.md").write_text("not part of cut\n")
+            command = [sys.executable, str(ROOT / "tools/repo/exhaustive_coverage.py"),
+                       "--repo", str(repo), "--source-cut", cut,
+                       "--inverse-doc-prefix", "docs/", "--inverse-doc-limit", "2",
+                       "--summary"]
+            first = json.loads(subprocess.check_output(command, text=True))
+            self.assertEqual(first["sourceCut"], cut)
+            self.assertEqual(first["documentPathsAtSourceCut"], 3)
+            self.assertEqual(first["pageCount"], 2)
+            self.assertEqual(first["remainingAfterPage"], 1)
+            self.assertEqual(first["nextAfter"], "docs/b-live.md")
+            self.assertEqual([x["queryPath"] for x in first["queries"]],
+                             ["docs/a-design.md", "docs/b-live.md"])
+            self.assertEqual(first["inverseWitnessCounts"], {
+                "NO_EXTERNAL_TEXTUAL_WITNESS": 1, "NON_DOCUMENT_TEXTUAL_HINTS": 1})
+            self.assertTrue(all("textualHits" not in x for x in first["queries"]))
+            self.assertFalse(first["retirementAdmissible"])
+            second = json.loads(subprocess.check_output(
+                [*command, "--inverse-doc-after", first["nextAfter"]], text=True))
+            self.assertEqual([x["queryPath"] for x in second["queries"]],
+                             ["docs/c-history.md"])
+            self.assertEqual(second["remainingAfterPage"], 0)
+            self.assertIsNone(second["nextAfter"])
+            self.assertFalse(second["retirementAdmissible"])
+            with self.assertRaises(ValueError):
+                M.inverse_document_frontier(repo, cut, "docs/", after="docs/later.md")
 
     def test_bad_cut_invalid_relative_path_and_bounds_fail_closed(self) -> None:
         target = "capabilities/artifact/scripts/artifact_audio.py"
