@@ -24,6 +24,7 @@ from .contracts import (
     RuntimeReleaseProjection,
     SystemDescription,
 )
+from .logic.execution_refs import validate_artifact_cursor, validate_observation_wait
 from .security import (
     CapabilityAuthorizer,
     GatewayAuditMiddleware,
@@ -240,7 +241,7 @@ def build_server(
     async def execution_get(
         operationRef: str,
         eventLimit: int = 10,
-        waitMs: int = 0,
+        waitMs: StrictInt = 0,
         requestId: str | None = None,
         capability: str | None = None,
         ctx: Context = None,
@@ -253,6 +254,7 @@ def build_server(
         """
         if require_http_execution_identity:
             _require_http_execution_identity(ctx)
+        validate_observation_wait(waitMs)
         await _qualify_gateway_operation_ref(gateway, operationRef, capability, requestId, ctx)
         return await _owner_boundary(
             gateway.execution_get(operationRef, event_limit=eventLimit, wait_ms=waitMs)
@@ -296,6 +298,7 @@ def build_server(
         # Reuse the trusted HTTP ingress identity fence before any owner read.
         if require_http_execution_identity:
             _require_http_execution_identity(ctx)
+        validate_artifact_cursor(offset, maxBytes)
         await _qualify_gateway_operation_ref(gateway, operationRef, capability, requestId, ctx)
         return await _owner_boundary(
             gateway.artifact_read(operationRef, artifactId, offset=offset, max_bytes=maxBytes)
