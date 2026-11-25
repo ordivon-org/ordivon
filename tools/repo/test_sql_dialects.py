@@ -10,6 +10,7 @@ from tools.repo.check_sql_dialects import (
     OSQUERY_DEFAULT_TIMEOUT_SECONDS,
     OSQUERY_TIMEOUT_SECONDS,
     POSTGRESQL_RUNTIME_EPOCH,
+    POSTGRESQL_RUNTIME_ARTIFACT_INDEX,
     POSTGRESQL_RUNTIME_CLAIMS,
     POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER,
     ROOT,
@@ -279,6 +280,7 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         self.assertEqual(classify("platform/workstation/inventory/queries/uptime.sql"), "osquery")
         self.assertEqual(classify("studies/experimental-episodes/episode-store/sql/runtime_r5c_export.sql"), "postgresql")
         self.assertEqual(classify("services/runtime/crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"), "postgresql")
+        self.assertEqual(classify(POSTGRESQL_RUNTIME_ARTIFACT_INDEX), "postgresql")
         self.assertEqual(classify("services/runtime/crates/ordivon-runtime-core/sql/pg_workspace_claim_r1.sql"), "postgresql")
         self.assertEqual(classify("services/runtime/sql/pg_resource_scheduler_v1.sql"), "postgresql")
         self.assertEqual(classify("catalogs/capabilities/ele/schema.sql"), "postgresql")
@@ -313,6 +315,7 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             row("IndexStmt", "job_runtime_release_effects",
                 "idx_runtime_release_effect_request"),
             row("CreateStmt", "artifacts"),
+            row("IndexStmt", "artifacts", "idx_artifacts_job"),
             row("CreateStmt", "_stage_control"),
             row("TransactionStmt", transaction_kind=2),
         ]
@@ -336,6 +339,43 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             with self.subTest(mutant=mutant):
                 self.assertTrue(pg_runtime_ddl_structure_issues(
                     POSTGRESQL_RUNTIME_EPOCH, statements))
+
+    def test_pg_runtime_artifact_index_online_ast_rejects_mutations(self):
+        row = self._pg_ast_statement
+        online = [row("DoStmt"), row("IndexStmt", "artifacts", "idx_artifacts_job"),
+                  row("DoStmt"), row("DoStmt")]
+        index = online[1].stmt
+        index.concurrent = True
+        index.if_not_exists = True
+        index.unique = False
+        index.whereClause = None
+        index.accessMethod = "btree"
+        index.indexIncludingParams = None
+        index.indexParams = [SimpleNamespace(name="job_id", expr=None, opclass=None, collation=None)]
+        self.assertEqual(pg_runtime_ddl_structure_issues(POSTGRESQL_RUNTIME_ARTIFACT_INDEX, online), [])
+        from copy import deepcopy
+        for mutant in ("missing_postflight", "blocking", "wrong_column", "wrong_table",
+                       "partial", "included", "unique", "extra_drop"):
+            rows = deepcopy(online)
+            item = rows[1].stmt
+            if mutant == "missing_postflight":
+                rows.pop(2)
+            elif mutant == "blocking":
+                item.concurrent = False
+            elif mutant == "wrong_column":
+                item.indexParams[0].name = "kind"
+            elif mutant == "wrong_table":
+                item.relation.relname = "jobs"
+            elif mutant == "partial":
+                item.whereClause = object()
+            elif mutant == "included":
+                item.indexIncludingParams = [object()]
+            elif mutant == "unique":
+                item.unique = True
+            elif mutant == "extra_drop":
+                rows.append(row("DropStmt"))
+            with self.subTest(mutant=mutant):
+                self.assertTrue(pg_runtime_ddl_structure_issues(POSTGRESQL_RUNTIME_ARTIFACT_INDEX, rows))
 
     def test_pg_runtime_claim_additive_migration_ast_rejects_mutations(self):
         row = self._pg_ast_statement
