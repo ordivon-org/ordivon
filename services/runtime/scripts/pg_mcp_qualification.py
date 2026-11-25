@@ -34,6 +34,7 @@ REQUIRED = frozenset({
     "fixture_lifecycle::tests::exact_absence_is_not_failed_or_inactive_unit",
     "fixture_lifecycle::tests::exact_fixture_binding_rejects_foreign_or_traversal",
     "native_pg_fixture_panic_preserves_root_after_owned_postmaster_stop",
+    "native_pg_fixture_refuses_failed_registered_unit_until_native_absence",
 })
 SELECTION = (
     "--locked", "-p", PACKAGE, "--features", "postgres-runtime",
@@ -229,7 +230,17 @@ def main() -> int:
         try:
             release_empty_scope(scope)
         except (OSError, RuntimeError) as exc:
-            print(f"NATIVE_MCP_FIXTURE_UNQUALIFIED: {exc}", file=sys.stderr, flush=True)
+            # stdout is a distinct retained verdict; compiler stderr may
+            # already have reached the Runtime log capture limit.
+            print(f"NATIVE_MCP_FIXTURE_UNQUALIFIED: {exc}", flush=True)
+            if scope.is_dir() and not scope.is_symlink():
+                for root in sorted(scope.iterdir()):
+                    if root.is_dir() and not root.is_symlink():
+                        marker = root / "fixture-retention.txt"
+                        if marker.is_file() and not marker.is_symlink():
+                            with marker.open("rb") as stream:
+                                reason = stream.read(4096).decode("utf-8", "replace")
+                            print("NATIVE_MCP_FIXTURE_DIAGNOSTIC=" + json.dumps([root.name, reason]), flush=True)
             return result.returncode or 1
         print("NATIVE_MCP_FIXTURE_SCOPE_EMPTY_AND_RELEASED", flush=True)
         if result.returncode:

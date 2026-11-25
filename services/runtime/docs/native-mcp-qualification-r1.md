@@ -154,3 +154,16 @@ The outer gate does not perform blind reaping. SIGKILL of an actual live
 Fixture, unregistered Unit detection, and safe retry of physical cleanup
 remain separate qualification obligations. Direct libtest runs outside the
 strict scope may leave a diagnostic root; use the strict gate for adoption.
+
+R21 integration initially reported 42/42 native JUnit passes but correctly
+failed external-resource qualification. The one retained root was the
+historical list-result case: private PG readback showed an invented
+r6-previous-* historical identity. Both exact native units were absent
+and PG shut down. Preserve this original run as RED; use the same native
+Attempt identity shape for the synthetic historical row, with history
+semantics still expressed by attempt_number. Do not weaken the guard.
+Retained diagnostic reason is written inside the exact fixture and the
+outer verdict is emitted on stdout even when compiler stderr is capped.
+An additional real failed transient Unit challenger verifies that loaded
+failure is not absence and only test-owned, dead, identity-bound Unit
+retirement enables release.
