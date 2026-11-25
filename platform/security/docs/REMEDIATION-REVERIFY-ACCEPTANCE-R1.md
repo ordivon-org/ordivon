@@ -1,7 +1,7 @@
 # Remediation and fresh re-verification acceptance R1
 
 Date: 2026-09-12
-Standing: `BASELINE_VULNERABILITIES_CLEARED_ON_FRESH_EVIDENCE` for the bounded fixture; no autonomous mutation authority claim.
+Historical recorded standing (2026-09-12): `BASELINE_VULNERABILITIES_CLEARED_ON_FRESH_EVIDENCE` for that bounded observation only. Not the current CLI contract or a current vulnerability verdict.
 
 ## Ownership
 
@@ -44,7 +44,7 @@ The observed delta was `4 -> 0`.
 `ordivon_security_v2.remediation` does not implement a package updater. It verifies:
 
 - before evidence actually contains vulnerabilities for the requested package;
-- after evidence comes from a changed/fresh SBOM rather than replaying the old inventory;
+- the supplied after SBOM bytes differ from the before SBOM bytes; scan-input binding is not established by this comparison;
 - Trivy evidence on both sides is explicitly CycloneDX-SBOM based;
 - every baseline vulnerability identity is absent from the after scan;
 - any remaining/new after findings remain visible rather than being hidden by a successful delta.
@@ -62,3 +62,40 @@ is not a scanner receipt. Missing Results is not accepted as an observed empty
 array in this profile. Consumers needing fresh remediation acceptance must
 independently qualify the exact scan inputs, producer and coverage; this CLI
 does not manufacture that evidence.
+
+## R14 native consumer and temporal validity observation (2026-11-26)
+
+The historical 4-to-0 observation is not a permanent regression oracle.
+Native Syft 1.55.0 / CycloneDX 1.7 and Trivy 0.76.2 used isolated requirements
+manifests (setuptools 65.5.0 and 83.0.0), not installed packages. A vulnerability
+database was downloaded into a private temporary cache; both native scans
+used that cache with updates disabled. Unique package vulnerability-ID counts
+were 5 and 1, with one shared ID. The existing CLI rejected baseline clearance.
+Runtime Job `job-01a214ad-aa9a-70fc-a16c-e2b1c647e73d` exited 1 at the verifier;
+both native scans completed. Observed SHA-256 values:
+
+| Input | Digest (hex) |
+|---|---|
+| Before SBOM | 26c6a70bfb06a0688c5efb9ea836bfd4d861f856a22f3cb505b9527d93c50f56 |
+| After SBOM | 890fd2fb7e43ab3c5744bfa307264d18e5fbed205d9a22973665c551f287b819 |
+| Before report | b3396c1d17452279ee7645b200bd8d505ab8dd25e8fbe83f6b53554da973cb15 |
+| After report | 06d218edb8c5e42de8efcdcca394f92d23116194a7868b25be778e24f885224e |
+
+These are bounded observations, not retained signed scan receipts. Exact DB
+bytes and metadata were not captured; Trivy warned third-party SBOMs can affect
+accuracy. Scratch inputs and DB were ephemeral. No current verdict for any
+installed Ordivon dependency follows. Authenticated qualification must retain
+actual scan-input and report identities, provider/database identity, coverage,
+execution observation and independent consumer acceptance.
+
+`tests/test_remediation_cli.py` exercises actual stdout JSON, all four digests,
+unbound/unauthenticated standing and explicit rejection of missing Results.
+This synthetic first-party consumer does not establish external migration.
+Tracked source search outside Security found inventory references only;
+dynamic or external consumer compatibility remains UNKNOWN.
+
+Preserve native Syft/Trivy and the existing report-delta contract. Qualify
+native coverage and authenticated receipts with the build/scan owner before
+new clearance claims. Do not build another scanner or normalize unknown to
+clearance. Use existing SLSA/in-toto verification only where subject and
+verifier semantics are satisfied; a signature alone does not prove coverage.
