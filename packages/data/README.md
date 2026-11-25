@@ -181,6 +181,12 @@ keywords; omission requires unique selection in the corresponding scope.
 Other product versions are not implicitly bound. An explicit missing target or
 duplicate binding is rejected. This does not establish full RDF graph identity
 across multiple product versions or grant file rights.
+All selected metadata declarations are prepared before any bound file read.
+A malformed later declaration cannot trigger earlier distribution reads.
+The compact projection's repeated UUID subjects can coalesce under generic
+RDF graph expansion; use the documented compact consumer contract, not
+cross-version RDF graph joins or rights inference.
+
 
 For this source cut, the producer-owned Finance JSON and Episode manifest are
 both Git-tracked with matching SHA-256 declarations and can be VERIFIED.

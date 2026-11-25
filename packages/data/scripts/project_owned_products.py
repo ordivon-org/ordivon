@@ -109,7 +109,7 @@ def main() -> int:
     ) as error:
         print(f"ODPS discovery projection failed: {error}", file=sys.stderr)
         return 2
-    print(json.dumps(projected, sort_keys=True, indent=2, ensure_ascii=False))
+    print(json.dumps(projected, sort_keys=True, indent=2, ensure_ascii=True))
     if revision is not None:
         print(f"sourceCommit={revision} (metadata only)", file=sys.stderr)
     return 0

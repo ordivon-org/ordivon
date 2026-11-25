@@ -116,6 +116,52 @@ per-report index. Canonical duplicate requests reject before reading the
 catalog. All global observations remain visible; only the requested verdicts
 determine the selected gate. No new registry or cross-call cache.
 
+### Complete producer evidence plan (R8 candidate)
+
+Target selection alone is insufficient: malformed path/digest declarations
+in a later selected product must not cause any earlier bound file read.
+`prepare_local_evidence` produces immutable scoped path/digest/URI
+coordinates, without claiming file existence. `observe_local_evidence`
+consumes one such plan through the existing descriptor reader and returns
+an evidence patch; projection applies patches only after all selected reads
+succeed. Preparation validates unique properties, SHA-256 syntax, relative
+path confinement and lexical root/path support. It is not physical existence,
+permission, multi-file atomicity or a stronger retention contract.
+
+The Lean `prepareEvidenceBatch` reuses the existing all-or-nothing list
+operator and its three lemmas (missing reject, complete admission, no omitted
+coordinate). Generated tests use the actual Episode metadata shape with
+multiple versions and permuted invalid declarations. Native regressions
+exercise late failure, missing/duplicate properties and NUL/surrogate paths.
+The abstract lemmas do not prove Python or native file observations.
+Projected producer identity, name, version, purpose and policy fields reject
+lone surrogate code points before bound I/O. The CLI emits escaped JSON
+without depending on the stdout locale; unprojected source evidence is
+not rewritten. Lifecycle and generated tests share one floating uv test
+environment, retaining all existing native consumer and formal gates.
+
+### RDF graph identity is a separate representation obligation
+
+The compact catalog profile qualifies rows by canonical product ID/version
+and exact output selection. It does not establish that a general RDF parser
+will preserve those rows as distinct graph subjects. Native RDFLib 7.6.0
+observation on two synthetic versions of the actual Episode product, with
+distinct bound file bytes, produced two compact dataset rows but one RDF
+Dataset subject, two Distribution subjects and two access URLs associated
+with the shared subject. A disposable experiment with deterministic
+version-qualified graph node identifiers and explicit product version links
+produced two Dataset and four Distribution subjects, each Dataset having one
+version and one bound access URL. This is a representation experiment, not
+a new supported graph output or policy authorization.
+
+The existing ODRL/PROV artifacts already use their own versioned target
+references; the experiment does not establish their equivalence with new
+graph node identifiers. Preserve those frozen references and the current
+compact ABI. Before introducing graph export, require an actual graph
+consumer, a version-qualified identity contract (including distributions),
+explicit source-identity and policy/provenance mapping, and native RDF/SHACL
+consumer tests. No inference of rights from a graph identity match.
+
 ### Shared local byte observation refinement
 
 Producer binding and catalog inspection share one descriptor-relative,
