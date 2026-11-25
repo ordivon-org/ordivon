@@ -25,6 +25,27 @@ command -v ffmpeg >/dev/null
 command -v jq >/dev/null
 command -v sha256sum >/dev/null
 
+# Validate the declared policy before native observation; invalid is not optional.
+jq -es '
+  def text: type == "string" and (length > 0);
+  def integer: type == "number" and isfinite and (floor == .);
+  def positive_integer: integer and . > 0;
+  length == 1 and (.[0] |
+    type == "object" and .schemaVersion == 1 and
+    (.id | text) and
+    .kind == "ordivon.media.v2.audio-profile" and
+    (.audio | type == "object") and (.loudness | type == "object") and
+    (.audio | (.streamCount | positive_integer) and
+      (if has("streamIndex") then
+        (.streamIndex | integer and . >= 0) and .streamIndex < .streamCount
+       else true end) and
+      (.sampleRate | positive_integer) and (.channels | positive_integer) and
+      (.codec | text) and (.channelLayout | text)) and
+    (.loudness | .measurement == "ffmpeg-loudnorm-bs1770-family" and
+      ([.targetLufs,.toleranceLu,.maxTruePeakDbtp] | all(.[]; type == "number" and isfinite)) and
+      .toleranceLu >= 0))
+' "$profile" >/dev/null || { echo "invalid audio profile" >&2; exit 65; }
+
 mkdir -p "$out/raw"
 probe="$out/raw/ffprobe.json"
 loud_stderr="$out/raw/ffmpeg-loudnorm.stderr"
