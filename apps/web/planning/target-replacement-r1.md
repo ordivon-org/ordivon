@@ -120,3 +120,63 @@ separate evidence.
   actual install. The initial networkidle wait in the browser fixture was
   unsuitable; final fixture waits for real Response.json decoding and a frame.
   No production backend, PG driver, or Security policy cutover in this round.
+
+
+## R12 — native Rust/PostgreSQL domain slice execution spec
+
+Host Work@31, Topic #32702; R11 is retained. First T03/T04 implementation:
+actual Human Note create/list persistence, not a new authentication route.
+The existing R10 business contract is the reference.
+
+| Logic | Thought | Actual capability / remaining qualification |
+|---|---|---|
+| L04 admitted context | natural owner, no policy duplication | existing Web boundary; trusted caller supplies principal |
+| L06 domain state | representation-first | domain.rs Note, NoteState, Audit; error.rs typed storage outcomes |
+| L08 native write | atomic exact Note/Audit | postgres.rs async tokio-postgres, row count, parameter binding, READ COMMITTED, deferred-constraint fence, final readback |
+| L08 carrier lifecycle | RAII, ambiguous outcome distinct | dedicated local Unix-socket connection per call; discard driver, explicit rollback, CommitUnknown with note ID, no automatic retry |
+| L08 read | deterministic principal-scoped projection | same order as R10; reject unrepresentable JS timestamp |
+| L10 qualification | native fault, differential, independent observation | tests/native.rs, actual SQLite reference, isolated R9 cluster and one-shot wire fault |
+
+R2.1 I caller-admitted principal, Unicode scalar content, safe JS integer time;
+O committed Note or typed error (commit failure UNKNOWN plus note ID);
+S private PG carrier per operation, actual Note/Audit tables;
+pre valid schema, trusted local socket, representable input;
+post exact single Note and Audit after deferred constraints then native commit
+acknowledged; inv no partial commit in tested precommit faults, no automatic
+reissue or authority inference, no uncertain connection recycling;
+eff local PG read/write; c native MVCC and indexed reads, setup per operation;
+epsilon no hostile DDL, production TLS/pool/full migration/HTTP integration,
+cancellation after COMMIT may be ambiguous, a dropped future loses returned
+identity; prov native tests and exact Git; unfold domain -> adapter -> SQL.
+
+PG-only counterexample: DEFERRABLE INITIALLY DEFERRED constraint trigger
+changes Note after precommit readback. Force SET CONSTRAINTS ALL IMMEDIATE
+before final projection. Without the fence, native mutant returned success.
+Actual wire fault discards CommandComplete COMMIT; driver returns
+CommitUnknown and independent peer observes one exact committed Note/Audit.
+R9 cluster lifecycle reused, private data-directory/no TCP/random guard
+verified before destructive fixture DDL.
+
+References: https://www.postgresql.org/docs/18/sql-set-constraints.html ;
+https://docs.rs/tokio-postgres/latest/tokio_postgres/struct.Transaction.html ;
+https://docs.rs/sqlx/latest/sqlx/struct.Pool.html .
+Choose existing native async driver; qualify pooling separately, no homemade
+pool or new network hop. Use matched workload before changing carrier.
+
+Exit gates: (1) native Note create/list source qualification (this candidate);
+(2) bounded mature pool lifecycle, cancellation/reconnect, no stale transaction,
+unknown commit and caller-held operation identity, measured setup/concurrency;
+(3) full owner PG schema and other consumers, TEXT exact bytes, safe integer
+range, Unicode (PG text excludes NUL; Rust strings exclude lone surrogates),
+collation, historical migration and backup/restore; (4) real authenticated
+product composition and native Security/HTTP consumer tests; (5) independent
+review, deploy/recover, single writer cutover and retirement. Never dual-write
+or replay unknown operations. No raw principal public route.
+
+Native isolated reproduction:
+```sh
+python3 -B apps/web/crates/web-note-pg/tests/run_native.py
+cargo clippy --manifest-path apps/web/crates/web-note-pg/Cargo.toml --locked --offline --all-targets -- -D warnings
+```
+Rust 1.99.1, PG18.7, Node26.12.1 observed. Exact lock retained, direct
+dependencies use compatible ranges. No production services mutated.
