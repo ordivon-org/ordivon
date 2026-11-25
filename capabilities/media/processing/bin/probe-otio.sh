@@ -61,7 +61,8 @@ def inspect_clip(clip):
     if known:
         in_bounds = (
             not source.start_time < available.start_time
-            and not available.end_time_inclusive() < source.end_time_inclusive()
+            # Compare physical half-open endpoints, including mixed rates.
+            and not available.end_time_exclusive() < source.end_time_exclusive()
         )
     else:
         in_bounds = None
