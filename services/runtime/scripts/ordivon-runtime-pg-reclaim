@@ -289,23 +289,31 @@ def _jobs(
     import psycopg
     from psycopg import sql
     schema = environment["ORDIVON_PG_SCHEMA"]
+    # Align the observable activity coordinate with native retirement:
+    # Job, Attempt, Event, Reservation and Allocation timestamps. This is
+    # still an advisory projection, not the native effect-time consumer fence.
     query = sql.SQL("""
         WITH activity AS (
             SELECT j.workspace_id, j.job_id, j.created_at_ms, j.resolution,
                    GREATEST(
                        j.created_at_ms,
                        COALESCE(events.last_event_ms, 0),
-                       COALESCE(attempts.last_finished_ms, 0)
+                       COALESCE(attempts.last_activity_ms, 0)
                    ) AS last_activity_ms
               FROM {schema}.jobs j
-              LEFT JOIN (
-                   SELECT job_id, MAX(observed_at_ms) AS last_event_ms
-                     FROM {schema}.job_events GROUP BY job_id
-              ) events ON events.job_id = j.job_id
-              LEFT JOIN (
-                   SELECT job_id, MAX(finished_at_ms) AS last_finished_ms
-                     FROM {schema}.attempts GROUP BY job_id
-              ) attempts ON attempts.job_id = j.job_id
+              LEFT JOIN LATERAL (
+                   SELECT MAX(e.observed_at_ms) AS last_event_ms
+                     FROM {schema}.job_events e WHERE e.job_id = j.job_id
+              ) events ON TRUE
+              LEFT JOIN LATERAL (
+                   SELECT MAX(GREATEST(a.created_at_ms, a.finished_at_ms,
+                                       r.acquired_at_ms, r.state_observed_at_ms, r.released_at_ms,
+                                       al.acquired_at_ms, al.released_at_ms)) AS last_activity_ms
+                     FROM {schema}.attempts a
+                     LEFT JOIN {schema}.concurrency_reservations r ON r.attempt_id = a.attempt_id
+                     LEFT JOIN {schema}.job_allocations al ON al.attempt_id = a.attempt_id
+                    WHERE a.job_id = j.job_id
+              ) attempts ON TRUE
               WHERE (%s::text IS NULL OR j.workspace_id = %s)
         )
         SELECT workspace_id, MAX(last_activity_ms) AS last_ms,

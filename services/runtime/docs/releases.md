@@ -201,7 +201,10 @@ age; dirty trees and unresolved Jobs are never candidates. Every automatic
 close, including a successful Job, requires the existing exact workspaceId
 operatorConsumerReleased=true rule with operatorReleaseBinding containing
 createdAtMs and sourceStateDigest from native workspace.get and
-latestJobActivityMs from the PG Job activity projection (null for no Job).
+latestJobActivityMs from the PG lifecycle activity projection (Job creation,
+Attempt creation/finish, Event observation, Reservation acquire/observe/release,
+Allocation acquire/release; null for no Job). This is a timestamp witness,
+not a complete row-version or generation fence.
 A legacy unbound true flag is not a grant. Refresh the candidate's Job
 activity before close; a dry-run candidate has not yet bound native source
 or generation. A known failed or no-Job carrier also requires integrated

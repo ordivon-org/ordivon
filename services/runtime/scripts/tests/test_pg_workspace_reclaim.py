@@ -106,6 +106,27 @@ class PgReleaseActivityProjectionTests(unittest.TestCase):
             job("new", "ws-a", 30, "succeeded")
             self.assertEqual(mod._jobs(env, "ws-a"), {"ws-a": (30, "succeeded", 0)})
             self.assertNotEqual(mod._jobs(env, "ws-a")["ws-a"], first["ws-a"])
+            conn.execute("""
+                INSERT INTO attempts(attempt_id,job_id,attempt_number,state,termination_intent,
+                    launch_token_digest,bundle_path,unit_name,created_at_ms,finished_at_ms)
+                VALUES('a','new',1,'succeeded','natural','d','/fixture','fixture.service',31,32)
+            """)
+            self.assertEqual(mod._jobs(env, "ws-a"), {"ws-a": (32, "succeeded", 0)})
+            conn.execute("""
+                INSERT INTO concurrency_reservations(reservation_id,attempt_id,global_limit,state,
+                    acquired_at_ms,state_observed_at_ms,released_at_ms)
+                VALUES('r','a',1,'released',31,40,39)
+            """)
+            self.assertEqual(mod._jobs(env, "ws-a"), {"ws-a": (40, "succeeded", 0)})
+            conn.execute("""
+                INSERT INTO job_allocations(attempt_id,resources_json,workspace_access_json,
+                    owner,state,acquired_at_ms,released_at_ms)
+                VALUES('a','{}','{}','fixture','released',31,50)
+            """)
+            self.assertEqual(mod._jobs(env, "ws-a"), {"ws-a": (50, "succeeded", 0)})
+            conn.execute("UPDATE attempts SET created_at_ms=60,finished_at_ms=NULL WHERE attempt_id='a'")
+            self.assertEqual(mod._jobs(env, "ws-a"), {"ws-a": (60, "succeeded", 0)})
+            self.assertEqual(mod._jobs(env)["ws-b"], (100, None, 1))
 
 
 class PgOperatorRetentionPolicyTests(unittest.TestCase):
