@@ -5,10 +5,11 @@ from typing import Any
 # Existing tests/tool consumers monkeypatch the shared psycopg module here.
 import psycopg as psycopg
 from psycopg.types.json import Jsonb
+from psycopg_pool import ConnectionPool
 
 from .canonical_json import canonical_digest
 from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES
-from .command_receipts import claim_command_receipt, record_command_receipt
+from .command_receipts import claim_command_receipt
 from .errors import ConflictError, WorkNotFound
 from .postgres_bounds import HOST_WIRE_INT_MAX
 from .postgres_connections import HostPostgresConnections
@@ -20,6 +21,7 @@ from .work_inputs import (
     WorkState,
 )
 from .work_queries import WorkReadQueries, read_work_in_tx
+from .work_receipt_writer import record_work_receipt
 from .work_receipts import replay_work_receipt
 from .work_relation_commands import WorkRelationCommands
 from .work_revision_logic import next_work_revision
@@ -31,6 +33,35 @@ class WorkStore(HostPostgresConnections):
     This store owns durable Host semantic work continuity only. It deliberately does not
     inspect Runtime, Git, domain truth, social priority, assignment, or EffectAuthority.
     """
+
+    def __init__(
+        self,
+        dsn: str,
+        *,
+        pool: ConnectionPool | None = None,
+        compact_work_receipts: bool = False,
+    ) -> None:
+        super().__init__(dsn, pool=pool)
+        if type(compact_work_receipts) is not bool:
+            raise ValueError("compact_work_receipts must be boolean")
+        self._compact_work_receipts = compact_work_receipts
+
+    def _record_work_receipt(
+        self,
+        conn: psycopg.Connection[dict[str, Any]],
+        client_request_id: str,
+        operation: str,
+        request_digest: str,
+        result: dict[str, Any],
+    ) -> None:
+        record_work_receipt(
+            conn,
+            client_request_id,
+            operation,
+            request_digest,
+            result,
+            compact_requested=self._compact_work_receipts,
+        )
 
     def get_work(self, work_ref: str, revision: int | None = None) -> dict[str, Any]:
         return WorkReadQueries(self._connect).get_work(work_ref, revision)
@@ -119,7 +150,9 @@ class WorkStore(HostPostgresConnections):
                 admission = "existing"
             result = read_work_in_tx(conn, value.work_ref, None)
             result["admission"] = admission
-            record_command_receipt(conn, client_request_id, "work.create", request_digest, result)
+            self._record_work_receipt(
+                conn, client_request_id, "work.create", request_digest, result
+            )
             return result
 
     def commit_snapshot(
@@ -186,7 +219,7 @@ class WorkStore(HostPostgresConnections):
                 ):
                     result = read_work_in_tx(conn, work_ref, next_revision)
                     result["admission"] = "existing"
-                    record_command_receipt(
+                    self._record_work_receipt(
                         conn,
                         client_request_id,
                         "work.snapshot.commit",
@@ -214,7 +247,7 @@ class WorkStore(HostPostgresConnections):
             )
             result = read_work_in_tx(conn, work_ref, next_revision)
             result["admission"] = "committed"
-            record_command_receipt(
+            self._record_work_receipt(
                 conn, client_request_id, "work.snapshot.commit", request_digest, result
             )
             return result

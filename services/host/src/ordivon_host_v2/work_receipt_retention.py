@@ -7,6 +7,7 @@ from typing import Any
 import psycopg
 
 from .canonical_json import canonical_bytes
+from .work_receipt_fence import legacy_receipt_fence_present
 from .work_receipt_roots import (
     ROOT_BATCH_SIZE,
     hydrate_native_work_receipt,
@@ -39,16 +40,7 @@ def expand_work_receipts_and_fence(
 
 
 def _expand_locked(conn: psycopg.Connection[dict[str, Any]]) -> int:
-    guard = conn.execute(
-        "SELECT contype='c' AND convalidated AND pg_get_expr(conbin,conrelid) = "
-        "'((response ->> ''kind''::text) IS DISTINCT FROM "
-        "''ordivon.host-work-receipt-ref-v1''::text)' AS valid "
-        "FROM pg_constraint WHERE conrelid='command_receipts'::regclass "
-        "AND conname='command_receipt_legacy_only'"
-    ).fetchone()
-    if guard is not None:
-        if guard["valid"] is not True:
-            raise RuntimeError("existing legacy-only receipt fence differs")
+    if legacy_receipt_fence_present(conn):
         remaining = conn.execute(
             "SELECT EXISTS (SELECT 1 FROM command_receipts "
             "WHERE receipt_work_ref IS NOT NULL OR receipt_work_revision IS NOT NULL "

@@ -2,23 +2,27 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 import subprocess
 import sys
 import time
 import unittest
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from pathlib import Path
 from queue import Queue
 from unittest.mock import patch
 from uuid import uuid4
 
 import psycopg
+from mcp import Client, StdioServerParameters
 from psycopg import sql
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from ordivon_host_v2.canonical_json import canonical_bytes, canonical_digest
+from ordivon_host_v2.command_receipts import claim_command_receipt
 from ordivon_host_v2.errors import ConflictError
 from ordivon_host_v2.health.receipt_roots import count_invalid_work_receipt_roots
 from ordivon_host_v2.references.actor_store import ActorReferenceStore
@@ -31,6 +35,7 @@ from ordivon_host_v2.work_inputs import (
     WorkState,
 )
 from ordivon_host_v2.work_receipt_retention import expand_work_receipts_and_fence
+from ordivon_host_v2.work_receipt_writer import record_work_receipt
 from ordivon_host_v2.work_receipts import replay_work_receipt
 from ordivon_host_v2.work_store import WorkStore
 
@@ -856,6 +861,269 @@ class WorkReceiptTest(unittest.TestCase):
         self.gate_open = False
         self.assert_replay(self.create(), first)
         self.assert_replay(self.commit("second", 1), second)
+
+    def test_opt_in_writer_modes_and_exact_historical_replay(self):
+        self.store = WorkStore(DSN, compact_work_receipts=True)
+        first = self.create()
+        self.assertEqual(self.stored("create")["kind"], "ordivon.host-work")
+        with psycopg.connect(DSN) as conn:
+            conn.execute("ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_legacy_only")
+        self.gate_open = True
+        # The original default writer remains legacy even without the fence.
+        self.store = WorkStore(DSN)
+        second = self.commit("legacy_second", 1)
+        self.assertEqual(self.stored("legacy_second")["kind"], "ordivon.host-work")
+        self.store = WorkStore(DSN, compact_work_receipts=True)
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            responses = list(pool.map(lambda _: self.commit("compact_third", 2), range(4)))
+        self.assertEqual(sum(r["admission"] == "committed" for r in responses), 1)
+        third = responses[0]
+        for item in responses:
+            self.assert_replay({**item, "admission": "existing"}, third)
+        # A distinct create key can bind a later head, not necessarily revision one.
+        later = self.create("later_create")
+        self.assertEqual(later["revision"], 3)
+        duplicate = self.commit("distinct_commit", 2)
+        self.assertEqual(duplicate["revision"], 3)
+        self.assertEqual(duplicate["admission"], "existing")
+        self.commit("fourth", 3)
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            rows = conn.execute(
+                "SELECT response,receipt_work_ref,receipt_work_revision FROM command_receipts "
+                "WHERE client_request_id=ANY(%s)",
+                ([self.key(x) for x in ("compact_third", "later_create", "distinct_commit")],),
+            ).fetchall()
+            self.assertEqual(len(rows), 3)
+            for row in rows:
+                self.assertEqual(row["response"]["kind"], "ordivon.host-work-receipt-ref-v1")
+                self.assertNotIn("snapshot", row["response"]["envelope"])
+                self.assertEqual(row["receipt_work_ref"], self.work)
+                self.assertEqual(row["receipt_work_revision"], 3)
+            self.assertEqual(expand_work_receipts_and_fence(conn), 4)
+        self.gate_open = False
+        self.assert_replay(self.create(), first)
+        self.assert_replay(self.commit("legacy_second", 1), second)
+        self.assert_replay(self.commit("compact_third", 2), third)
+        self.assert_replay(self.create("later_create"), later)
+        self.assert_replay(self.commit("distinct_commit", 2), duplicate)
+        # Same opted-in process sees the restored fence, without restart.
+        self.commit("fifth", 4)
+        self.assertEqual(self.stored("fifth")["kind"], "ordivon.host-work")
+
+    def test_opt_in_writer_waiting_on_rollback_reobserves_native_fence(self):
+        self.store = WorkStore(DSN, compact_work_receipts=True)
+        first = self.create()
+        self.tag("create", first)
+        second = self.commit("second", 1)
+        self.assertEqual(self.stored("second")["kind"], "ordivon.host-work-receipt-ref-v1")
+        pids = Queue()
+        parent = self
+
+        class ObservedStore(WorkStore):
+            @contextmanager
+            def _connect(self):
+                with psycopg.connect(DSN, row_factory=dict_row) as conn:
+                    conn.execute("SET LOCAL lock_timeout='8s'")
+                    pids.put(conn.info.backend_pid)
+                    yield conn
+
+        writer = ObservedStore(DSN, compact_work_receipts=True)
+
+        def write():
+            return writer.commit_snapshot(
+                parent.work,
+                expected_revision=2,
+                snapshot=WorkSnapshotInput(
+                    objective="synthetic", frontier="r3", established=["a", "a", "b"]
+                ),
+                actor_ref=parent.actor,
+                client_request_id=parent.key("waiting"),
+            )
+
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            with psycopg.connect(DSN, row_factory=dict_row) as holder:
+                self.assertEqual(expand_work_receipts_and_fence(holder), 2)
+                future = pool.submit(write)
+                pid = pids.get(timeout=5)
+                with psycopg.connect(DSN, autocommit=True) as observer:
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        if observer.execute(
+                            "SELECT %s=ANY(pg_blocking_pids(%s))",
+                            (holder.info.backend_pid, pid),
+                        ).fetchone()[0]:
+                            break
+                        time.sleep(0.01)
+                    else:
+                        self.fail("writer did not block on rollback fence holder")
+            self.assertEqual(future.result(timeout=10)["admission"], "committed")
+        self.gate_open = False
+        self.assertEqual(self.stored("waiting")["kind"], "ordivon.host-work")
+        self.assert_replay(self.create(), first)
+        self.assert_replay(self.commit("second", 1), second)
+
+    def test_opt_in_writer_refuses_weak_or_missing_native_contract(self):
+        first = self.create()
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            conn.execute("SELECT 1")
+            for label, ddl, message in [
+                (
+                    "weak fence",
+                    [
+                        "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_legacy_only",
+                        "ALTER TABLE command_receipts ADD CONSTRAINT command_receipt_legacy_only CHECK (true)",
+                    ],
+                    "legacy-only receipt fence differs",
+                ),
+                (
+                    "missing FK",
+                    [
+                        "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_legacy_only",
+                        "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_work_root_fk",
+                    ],
+                    "native Work receipt roots unqualified",
+                ),
+                (
+                    "weak shape",
+                    [
+                        "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_legacy_only",
+                        "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_work_root_shape",
+                        "ALTER TABLE command_receipts ADD CONSTRAINT command_receipt_work_root_shape CHECK (true)",
+                    ],
+                    "native Work receipt roots unqualified",
+                ),
+            ]:
+                with self.subTest(label=label), conn.transaction(force_rollback=True):
+                    for statement in ddl:
+                        conn.execute(statement)
+                    key = self.key("unqualified")
+                    digest = canonical_digest({"request": key})
+                    self.assertIsNone(claim_command_receipt(conn, key, "work.create", digest))
+                    with self.assertRaisesRegex(RuntimeError, message):
+                        record_work_receipt(
+                            conn, key, "work.create", digest, first, compact_requested=True
+                        )
+                    row = conn.execute(
+                        "SELECT response,receipt_work_ref,receipt_work_revision FROM command_receipts "
+                        "WHERE client_request_id=%s",
+                        (key,),
+                    ).fetchone()
+                    self.assertEqual(
+                        row,
+                        {"response": None, "receipt_work_ref": None, "receipt_work_revision": None},
+                    )
+        self.assert_replay(self.create(), first)
+
+    def test_native_mcp_process_opt_in_and_rollback_without_restart(self):
+        # Existing public SDK surface, real stdio process and private DB only.
+        env = {k: v for k, v in os.environ.items() if not k.startswith("ORDIVON_HOST_V2_")}
+        env.update(
+            ORDIVON_HOST_V2_DSN=DSN,
+            ORDIVON_HOST_V2_TRANSPORT="stdio",
+            ORDIVON_HOST_V2_PG_POOL_MAX_SIZE="2",
+            ORDIVON_HOST_V2_COMPACT_WORK_RECEIPTS="1",
+        )
+        command = ["-c", "from ordivon_host_v2.mcp_server import main; main()"]
+        create_args = {
+            "workRef": self.work,
+            "workKind": "test",
+            "actorRef": self.actor,
+            "initialSnapshot": {"objective": "synthetic MCP", "frontier": "r1"},
+        }
+        commit_args = {
+            "workRef": self.work,
+            "expectedRevision": 1,
+            "actorRef": self.actor,
+            "snapshot": {"objective": "synthetic MCP", "frontier": "r2"},
+        }
+
+        def storage(revision):
+            with psycopg.connect(DSN, row_factory=dict_row) as conn:
+                rows = conn.execute(
+                    "SELECT response,receipt_work_ref,receipt_work_revision FROM command_receipts "
+                    "WHERE operation IN ('work.create','work.snapshot.commit') AND "
+                    "(receipt_work_ref=%s OR response->>'workRef'=%s)",
+                    (self.work, self.work),
+                ).fetchall()
+            matches = [
+                row
+                for row in rows
+                if row["receipt_work_revision"] == revision
+                or row["response"].get("revision") == revision
+            ]
+            self.assertEqual(len(matches), 1)
+            return matches[0]
+
+        async def scenario():
+            async with Client(
+                StdioServerParameters(command=sys.executable, args=command, env=env),
+                raise_exceptions=True,
+                read_timeout_seconds=12,
+            ) as client:
+                self.assertEqual(len((await client.list_tools()).tools), 31)
+                first = (await client.call_tool("work.create", create_args)).structured_content
+                self.assertEqual(first["admission"], "committed")
+                self.assertEqual(storage(1)["response"]["kind"], "ordivon.host-work")
+                with psycopg.connect(DSN) as conn:
+                    conn.execute(
+                        "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_legacy_only"
+                    )
+                self.gate_open = True
+                second = (
+                    await client.call_tool("work.snapshot.commit", commit_args)
+                ).structured_content
+                self.assertEqual(second["admission"], "committed")
+                stored = storage(2)
+                self.assertEqual(stored["response"]["kind"], "ordivon.host-work-receipt-ref-v1")
+                self.assertEqual(stored["receipt_work_ref"], self.work)
+                replay = (
+                    await client.call_tool("work.snapshot.commit", commit_args)
+                ).structured_content
+                self.assert_replay(replay, second)
+                with psycopg.connect(DSN, row_factory=dict_row) as conn:
+                    self.assertEqual(expand_work_receipts_and_fence(conn), 1)
+                self.gate_open = False
+                self.assertEqual(storage(2)["response"]["kind"], "ordivon.host-work")
+                self.assert_replay(
+                    (
+                        await client.call_tool("work.snapshot.commit", commit_args)
+                    ).structured_content,
+                    second,
+                )
+                third_args = {
+                    **commit_args,
+                    "expectedRevision": 2,
+                    "snapshot": {"objective": "synthetic MCP", "frontier": "r3"},
+                }
+                third = (
+                    await client.call_tool("work.snapshot.commit", third_args)
+                ).structured_content
+                self.assertEqual(third["revision"], 3)
+                self.assertEqual(storage(3)["response"]["kind"], "ordivon.host-work")
+
+        try:
+            asyncio.run(scenario())
+        finally:
+            # SDK request IDs are canonical hashes rather than fixture prefixes.
+            with psycopg.connect(DSN) as conn:
+                conn.execute(
+                    "DELETE FROM command_receipts WHERE operation IN ('work.create','work.snapshot.commit') "
+                    "AND (receipt_work_ref=%s OR response->>'workRef'=%s)",
+                    (self.work, self.work),
+                )
+
+        invalid = subprocess.run(
+            [sys.executable, *command],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            env={**env, "ORDIVON_HOST_V2_COMPACT_WORK_RECEIPTS": "true"},
+            timeout=8,
+            check=False,
+        )
+        self.assertNotEqual(invalid.returncode, 0)
+        self.assertIn("ORDIVON_HOST_V2_COMPACT_WORK_RECEIPTS must be 0 or 1", invalid.stderr)
+        self.assertFalse(invalid.stdout)
 
     def tearDown(self):
         with psycopg.connect(DSN) as conn:
