@@ -376,3 +376,54 @@ def test_native_multistage_rejects_ambiguous_economic_input(bad_case: str) -> No
     )
     assert result.returncode != 0, result.stdout
     assert not result.stdout
+
+@pytest.mark.parametrize("case", ("id-list", "parent-list", "time-string", "gamma-overflow", "probability-overflow", "probability-above-one"))
+def test_information_tree_malformed_inputs_have_domain_error(case: str) -> None:
+    from dataclasses import replace
+
+    from ordivon_capital.portfolio.information_tree import validate_information_tree
+
+    first = root()
+    leaf = terminal("only", "root", 1, 1.0, 1.1)
+    gamma = 2
+    if case == "id-list":
+        leaf = replace(leaf, id=["bad"])
+    elif case == "parent-list":
+        leaf = replace(leaf, parent=["root"])
+    elif case == "time-string":
+        leaf = replace(leaf, t="1")
+    elif case == "gamma-overflow":
+        gamma = 10**400
+    elif case == "probability-overflow":
+        leaf = replace(leaf, conditional_probability=10**400)
+    elif case == "probability-above-one":
+        # Sum tolerance is not permission to admit a probability above one.
+        leaf = replace(leaf, conditional_probability=1.0 + 1e-12)
+    with pytest.raises(AlgebraicPolicyError):
+        validate_information_tree(MultistageProblem(gamma, (first, leaf)))
+
+
+def test_information_tree_must_not_erase_positive_terminal_path() -> None:
+    from dataclasses import replace
+
+    from ordivon_capital.portfolio.information_tree import validate_information_tree
+
+    rare = InformationNode(
+        id="rare", parent="root", t=1, conditional_probability=1e-200,
+        risky_gross=(.9,), cash_gross=1, debt_gross=1.01,
+        maintenance=(.3,), initial_margin=(.4,), turnover_cost=(0,),
+    )
+    common = replace(rare, id="common", conditional_probability=1.0, risky_gross=(1.1,))
+    nodes = (
+        root(), rare, common,
+        terminal("rare-rare", "rare", 2, 1e-200, .8),
+        terminal("rare-common", "rare", 2, 1.0, 1.1),
+        terminal("common-only", "common", 2, 1.0, 1.1),
+    )
+    # A possible history has mathematically positive probability. A binary64
+    # representation that underflows must be rejected rather than becoming
+    # a silently zero-weight scenario in the objective.
+    from fractions import Fraction
+    assert Fraction(rare.conditional_probability)**2 > 0
+    with pytest.raises(AlgebraicPolicyError):
+        validate_information_tree(MultistageProblem(2.0, nodes))
