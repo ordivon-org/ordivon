@@ -20,6 +20,7 @@ from .work_inputs import (
     WorkState,
 )
 from .work_queries import WorkReadQueries, read_work_in_tx
+from .work_receipts import replay_work_receipt
 from .work_relation_commands import WorkRelationCommands
 from .work_revision_logic import next_work_revision
 
@@ -71,7 +72,9 @@ class WorkStore(HostPostgresConnections):
         with self._connect() as conn, conn.transaction():
             replay = claim_command_receipt(conn, client_request_id, "work.create", request_digest)
             if replay is not None:
-                return replay
+                return replay_work_receipt(
+                    conn, replay, work_ref=value.work_ref, work_kind=value.kind
+                )
             ActorReferenceLookup._require_actor(conn, value.actor_ref)
             # PostgreSQL's unique WorkRef arbiter is the creation linearization
             # point. SELECT-before-INSERT cannot arbitrate concurrent identical
@@ -132,7 +135,9 @@ class WorkStore(HostPostgresConnections):
         # Revision is a typed CAS identity, not Python numeric equality:
         # bool is an int subclass, and 1.0 compares equal to 1.
         if type(expected_revision) is not int or not 1 <= expected_revision < HOST_WIRE_INT_MAX:
-            raise ValueError("expected_revision must be a positive PostgreSQL BIGINT predecessor within JSON safe integer range")
+            raise ValueError(
+                "expected_revision must be a positive PostgreSQL BIGINT predecessor within JSON safe integer range"
+            )
         payload = snapshot.canonical_payload()
         snapshot_digest = canonical_digest(payload)
         request = {
@@ -149,7 +154,15 @@ class WorkStore(HostPostgresConnections):
                 conn, client_request_id, "work.snapshot.commit", request_digest
             )
             if replay is not None:
-                return replay
+                return replay_work_receipt(
+                    conn,
+                    replay,
+                    work_ref=work_ref,
+                    revision=expected_revision + 1,
+                    snapshot_digest=snapshot_digest,
+                    actor_ref=actor_ref,
+                    state=state.value,
+                )
             ActorReferenceLookup._require_actor(conn, actor_ref)
             current = conn.execute(
                 "SELECT work_ref,state,current_revision FROM works WHERE work_ref=%s FOR UPDATE",
