@@ -15,25 +15,18 @@ import os
 import re
 import shlex
 import subprocess
-import time
 from pathlib import Path
 from typing import Any
 
-from ordivon_gateway.logic.host_tool_contracts import (
-    SOCIAL_WORK_HOST_TOOLS as _SOCIAL_WORK_HOST_TOOLS,
-)
+import requests
+
 from ordivon_gateway.security.owner_identity import OwnerCallError, _read_private_token_file
+from ordivon_gateway.security.standing_transport import observe_configured_pair
 
 MAX_POLICY_BYTES = 2_097_152
 MAX_SOCKET_EVIDENCE_BYTES = 131_072
 GATEWAY_UNIT = "ordivon-gateway.service"
 SECURITY_UNIT = "ordivon-security-gateway-authzen.service"
-ACTIVE_POLICY_CREDENTIAL = Path(
-    "/run/credentials/ordivon-security-gateway-authzen.service/trusted-issuer"
-)
-# No second list of permitted Host actions or AuthZEN policy.
-HOST_TOOLS = frozenset(_SOCIAL_WORK_HOST_TOOLS) | {"host.status"}
-
 # The installed Gateway Owner endpoint is local; do not chase caller-provided
 # hosts, redirects or public URLs from a production release preflight.
 HOST_OWNER_URL = "http://127.0.0.1:8898/mcp"
@@ -245,49 +238,6 @@ def _qualified_host_route_port(systemd_environment: str) -> int | None:
 
 def _owner_route_is_probed_endpoint(systemd_environment: str) -> bool:
     return _qualified_host_route_port(systemd_environment) is not None
-
-
-def _policy_data(path: Path) -> dict[str, Any]:
-    if not path.is_absolute() or path.is_symlink() or not path.is_file():
-        raise ValueError("installed Security operator policy data is unavailable")
-    if path.stat().st_size > MAX_POLICY_BYTES:
-        raise ValueError("installed Security operator policy data exceeds bounded size")
-    document = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(document, dict):
-        raise ValueError("installed Security operator policy data must be an object")
-    return document
-
-
-def _active_host_grant_count(document: dict[str, Any], *, now: int) -> int:
-    root = document.get("ordivon")
-    security = root.get("security") if isinstance(root, dict) else None
-    grants = security.get("gateway_host_actor_grants") if isinstance(security, dict) else None
-    if not isinstance(grants, list):
-        return 0
-
-    def active(grant: Any) -> bool:
-        if not isinstance(grant, dict) or grant.get("active") is not True:
-            return False
-        before = grant.get("notBeforeEpochSeconds")
-        expiry = grant.get("expiresAtEpochSeconds")
-        tools = grant.get("allowedTools")
-        return (
-            type(before) in (int, float)
-            and type(expiry) in (int, float)
-            and before <= now < expiry
-            and isinstance(grant.get("principalId"), str)
-            and grant["principalId"].startswith("principal:")
-            and isinstance(grant.get("issuer"), str)
-            and bool(grant["issuer"])
-            # Rego grants bind exact Host ActorRefs, including existing agent: names.
-            # This necessary check is not an AuthZEN ALLOW or Host actor proof.
-            and isinstance(grant.get("actorRef"), str)
-            and bool(grant["actorRef"])
-            and isinstance(tools, list)
-            and any(isinstance(tool, str) and tool in HOST_TOOLS for tool in tools)
-        )
-
-    return sum(active(grant) for grant in grants)
 
 
 def _declared_owner_credential_path(
@@ -578,20 +528,22 @@ def _apply_installed_security_read_surface(
 
 
 def assess(
-    document: dict[str, Any],
+    policy_standing: dict[str, Any] | None,
     systemd_environment: str,
     *,
-    now: int,
     anonymous_host_initialize_denied: bool | None = None,
     observed_non_gateway_host_tcp_clients: list[str] | None = None,
     unqualified_active_host_consumers: tuple[str, ...] = (),
 ) -> dict[str, Any]:
-    active_count = _active_host_grant_count(document, now=now)
+    qualified_standing = (
+        policy_standing is not None
+        and policy_standing.get("standing") == "OBSERVED_FOR_EXACT_READ_PAIR"
+    )
     credential_declared = _declares_host_owner_identity(systemd_environment)
     owner_route_qualified = _owner_route_is_probed_endpoint(systemd_environment)
     failures: list[str] = []
-    if active_count == 0:
-        failures.append("HOST_OPERATOR_DELEGATIONS_ABSENT_OR_INACTIVE")
+    if not qualified_standing:
+        failures.append("HOST_SECURITY_POLICY_STANDING_UNOBSERVED")
     if not credential_declared:
         failures.append("GATEWAY_HOST_OWNER_CREDENTIAL_NOT_CONFIGURED")
     if not owner_route_qualified:
@@ -608,7 +560,7 @@ def assess(
         "schemaVersion": 1,
         "kind": "ordivon.gateway-host-release-precondition",
         "status": "NO_GO" if failures else "NECESSARY_PRECONDITIONS_PRESENT",
-        "activeHostDelegationCount": active_count,
+        "effectivePolicyStanding": policy_standing,
         "hostOwnerCredentialDeclared": credential_declared,
         "hostOwnerRouteQualified": owner_route_qualified,
         "anonymousHostInitializeDenied": anonymous_host_initialize_denied is True,
@@ -617,7 +569,7 @@ def assess(
         "reasons": failures,
         "unverified": [
             "actual Principal-to-Actor and resource authorization",
-            "positive and negative live Host AuthZEN consumer canaries",
+            "actual live Agent and other Host AuthZEN consumer canaries",
             "Host bearer rotation, peer consistency and post-promotion revalidation",
             "direct Host MCP connector migration",
             "Cloudflare remote Host ingress target and direct-consumer migration",
@@ -707,12 +659,6 @@ def _independent_host_readiness_observations() -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--policy-data",
-        type=Path,
-        default=ACTIVE_POLICY_CREDENTIAL,
-        help="CURRENT systemd-loaded Security PDP policy credential (not raw source)",
-    )
-    parser.add_argument(
         "--gateway-unit",
         default=GATEWAY_UNIT,
         help="Real installed Gateway systemd unit to inspect",
@@ -722,7 +668,7 @@ def main() -> int:
         raise SystemExit("production release preflight only supports its natural Gateway unit")
 
     try:
-        data = _policy_data(args.policy_data)
+        policy_standing = observe_configured_pair()
         environment = _qualified_systemd_environment(args.gateway_unit)
         if environment is None:
             raise ValueError("Gateway EnvironmentFile overrides are not a qualified owner route")
@@ -751,9 +697,8 @@ def main() -> int:
         standing = _apply_installed_security_read_surface(
             _apply_authenticated_host_canary(
                 assess(
-                    data,
+                    policy_standing,
                     environment,
-                    now=int(time.time()),
                     anonymous_host_initialize_denied=anonymous_denied,
                     observed_non_gateway_host_tcp_clients=_observed_non_gateway_host_tcp_clients(),
                     unqualified_active_host_consumers=_unqualified_active_peer_host_consumers(
@@ -765,7 +710,14 @@ def main() -> int:
             ),
             qualified=_installed_security_host_read_surface_qualified(),
         )
-    except OSError, ValueError, subprocess.SubprocessError, json.JSONDecodeError:
+    except (
+        OSError,
+        ValueError,
+        OwnerCallError,
+        requests.RequestException,
+        subprocess.SubprocessError,
+        RecursionError,
+    ):
         standing = {
             "schemaVersion": 1,
             "kind": "ordivon.gateway-host-release-precondition",

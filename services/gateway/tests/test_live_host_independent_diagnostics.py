@@ -32,8 +32,8 @@ def test_unobservable_security_still_reports_independent_host_blockers_without_b
     monkeypatch.setattr(sys, "argv", ["check_live_host_admission.py"])
     monkeypatch.setattr(
         gate,
-        "_policy_data",
-        lambda _path: (_ for _ in ()).throw(ValueError("private service credential invisible")),
+        "observe_configured_pair",
+        lambda: (_ for _ in ()).throw(ValueError("private service credential invisible")),
     )
     monkeypatch.setattr(
         gate,
@@ -80,7 +80,7 @@ def test_independent_probe_unavailability_remains_unknown_not_false_or_go(
 ) -> None:
     monkeypatch.setattr(sys, "argv", ["check_live_host_admission.py"])
     monkeypatch.setattr(
-        gate, "_policy_data", lambda _path: (_ for _ in ()).throw(OSError("private"))
+        gate, "observe_configured_pair", lambda: (_ for _ in ()).throw(OSError("private"))
     )
 
     def unavailable(*_args: Any, **_kwargs: Any) -> Any:
