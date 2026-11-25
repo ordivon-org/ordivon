@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Native Git storage refinement contract, independent of the operator.
 # I: an explicitly selected pack cohort + existing object identities.
-# O: original identities and content survive locally; only redundant pack
+# O: original identities and content survive locally (retained union covers
+# original union, not necessarily one identical pack); only redundant pack
 # representations in the admitted cohort may disappear. Git owns the MIDX.
 # Held packs, other packs and local unreachable objects are not deletion
 # authority. This isolated fixture does not qualify live concurrency, a
@@ -12,7 +13,7 @@ tmp="$(mktemp -d -t ordivon-git-pack-preservation-XXXXXX)"
 trap 'rm -rf -- "$tmp"' EXIT
 
 fixture() {
-  local fmt="$1" repo="$tmp/$1" packdir a b c d e f keep duplicate representative different outside outside_duplicate oid
+  local fmt="$1" repo="$tmp/$1" packdir a b c d e f keep duplicate representative different partial outside outside_duplicate oid
   git init -q --bare --object-format="$fmt" "$repo"
   packdir="$repo/objects/pack"
   git -C "$repo" config gc.auto 0
@@ -30,6 +31,9 @@ fixture() {
   duplicate="pack-$(printf '%s\n' "$a" "$b" | git -C "$repo" pack-objects --no-reuse-object --no-reuse-delta --compression=0 --window=0 "$packdir/pack")"
   keep="pack-$(printf '%s\n' "$b" "$a" | git -C "$repo" pack-objects --no-reuse-object --no-reuse-delta --compression=1 --window=0 "$packdir/pack")"
   different="pack-$(printf '%s\n' "$c" "$d" | git -C "$repo" pack-objects --no-reuse-object --no-reuse-delta --compression=0 --window=0 "$packdir/pack")"
+  partial="pack-$(printf '%s\n' "$a" "$c" | git -C "$repo" pack-objects --no-reuse-object --no-reuse-delta --compression=0 --window=0 "$packdir/pack")"
+  # Nonpreferred ties select newer packs; keep the two covering packs newer.
+  touch -t 202001010000 "$packdir/$partial.pack"
   outside="pack-$(printf '%s\n' "$e" "$f" | git -C "$repo" pack-objects --no-reuse-object --no-reuse-delta --compression=0 --window=0 "$packdir/pack")"
   outside_duplicate="pack-$(printf '%s\n' "$e" "$f" | git -C "$repo" pack-objects --no-reuse-object --no-reuse-delta --compression=9 --window=0 "$packdir/pack")"
   test "$outside" != "$outside_duplicate"
@@ -38,12 +42,12 @@ fixture() {
   test "$duplicate" != "$keep"
   # These markers simulate a promisor cohort; no external promise is relied
   # upon. In particular, all postconditions must hold with lazy fetch disabled.
-  for oid in "$representative" "$duplicate" "$keep" "$different"; do
+  for oid in "$representative" "$duplicate" "$keep" "$different" "$partial"; do
     : > "$packdir/$oid.promisor"
   done
   printf 'fixture-held\n' > "$packdir/$keep.keep"
   git -C "$repo" prune-packed
-  for oid in "$representative" "$duplicate" "$keep" "$different"; do
+  for oid in "$representative" "$duplicate" "$keep" "$different" "$partial"; do
     git -C "$repo" show-index --object-format="$fmt" < "$packdir/$oid.idx" |
       awk '{print $2}' | LC_ALL=C sort > "$tmp/$fmt-$oid.ids"
   done
@@ -54,18 +58,28 @@ fixture() {
   if cmp -s "$tmp/$fmt-$representative.ids" "$tmp/$fmt-$different.ids"; then
     echo "unexpected equal object identities" >&2; exit 1
   fi
+  # Union coverage, not one-pack equality: neither retained pack alone
+  # contains the partial pack, but their exact OID union does.
+  cat "$tmp/$fmt-$representative.ids" "$tmp/$fmt-$different.ids" |
+    LC_ALL=C sort -u > "$tmp/$fmt.cover"
+  test -z "$(LC_ALL=C comm -23 "$tmp/$fmt-$partial.ids" "$tmp/$fmt.cover")"
+  test -n "$(LC_ALL=C comm -23 "$tmp/$fmt-$partial.ids" "$tmp/$fmt-$representative.ids")"
+  test -n "$(LC_ALL=C comm -23 "$tmp/$fmt-$partial.ids" "$tmp/$fmt-$different.ids")"
   printf '%s\n' "$a" "$b" "$c" "$d" "$e" "$f" > "$tmp/$fmt.all"
   git -C "$repo" cat-file --batch < "$tmp/$fmt.all" > "$tmp/$fmt.before"
   sha256sum "$packdir/$outside.pack" "$packdir/$outside.idx" "$packdir/$outside_duplicate.pack" "$packdir/$outside_duplicate.idx" > "$tmp/$fmt.outside"
   git -C "$repo" verify-pack "$packdir/$representative.idx"
   git -C "$repo" verify-pack "$packdir/$different.idx"
-  printf '%s.idx\n' "$representative" "$duplicate" "$keep" "$different" |
+  printf '%s.idx\n' "$representative" "$duplicate" "$keep" "$different" "$partial" |
     git -C "$repo" multi-pack-index write --stdin-packs --no-bitmap --preferred-pack="$representative.pack"
   git -C "$repo" multi-pack-index verify
   git -C "$repo" multi-pack-index expire
   test ! -e "$packdir/$duplicate.pack"
   test ! -e "$packdir/$duplicate.idx"
   test ! -e "$packdir/$duplicate.promisor"
+  test ! -e "$packdir/$partial.pack"
+  test ! -e "$packdir/$partial.idx"
+  test ! -e "$packdir/$partial.promisor"
   for oid in "$representative" "$keep" "$different"; do
     test -f "$packdir/$oid.pack"
     test -f "$packdir/$oid.promisor"
