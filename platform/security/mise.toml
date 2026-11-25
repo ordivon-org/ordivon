@@ -17,11 +17,18 @@ uv run --frozen ruff check .
 # Fail on a stale architecture binding before spending the full test budget.
 uv run --frozen python scripts/validate_threat_model_binding.py threat-models/security-v2-r1.json --repo-root .
 ./scripts/validate_tmbom.sh threat-models/security-v2-r1.json
-# Single execution: generated properties and coverage share the same Core run.
-coverage_dir="$(mktemp -d)"
-trap 'rm -rf -- "$coverage_dir"' EXIT
-COVERAGE_FILE="$coverage_dir/core" uv run --frozen coverage run --branch --source=ordivon_security_v2 -m unittest discover -s tests -v
-COVERAGE_FILE="$coverage_dir/core" uv run --frozen coverage report
+# One Core run, native child-process collection, distinct report scopes.
+(
+  coverage_dir="$(mktemp -d)"
+  trap 'rm -rf -- "$coverage_dir"' EXIT
+  export COVERAGE_FILE="$coverage_dir/core"
+  export COVERAGE_RCFILE="$PWD/pyproject.toml"
+  uv run --frozen coverage run -m unittest discover -s tests -v
+  uv run --frozen coverage combine
+  uv run --frozen coverage report --include='*/ordivon_security_v2/*'
+  # Presence sentinel for the actual CLI consumer, not a semantic score.
+  uv run --frozen coverage report --include='*/scripts/verify_remediation_delta.py' --fail-under=1
+)
 # Exactly one installed, owner-pinned OPA version. Never resolve via
 # ambient /usr/bin/opa, duplicate provider snapshots or a Docker daemon.
 MISE_OFFLINE=1 MISE_AUTO_INSTALL=false mise exec -- opa test -v --fail-on-empty policies
@@ -33,6 +40,34 @@ uv run --locked --project services/gateway-authzen --group dev ruff format --che
 uv run --locked --project services/gateway-authzen --group dev python -m pytest -q services/gateway-authzen/tests
 MISE_OFFLINE=1 MISE_AUTO_INSTALL=false mise exec -- opa check --strict services/gateway-authzen/policies/gateway_artifact.rego
 git ls-files -z -- '*.sh' | xargs -0 -r shellcheck
+"""
+
+# Deliberately separate from the merge-critical test budget. Mutmut writes
+# generated sources and reports only to a private scratch checkout subset.
+[tasks.verify-mutation]
+run = """
+set -euo pipefail
+export UV_PYTHON="$(mise which python)"
+uv sync --locked --group mutation
+bin="$(uv run --frozen --group mutation python -c 'import sys; from pathlib import Path; print(Path(sys.executable).parent)')"
+mutation_dir="$(mktemp -d)"
+trap 'rm -rf -- "$mutation_dir"' EXIT
+mkdir -p "$mutation_dir/src" "$mutation_dir/tests"
+cp -a src/ordivon_security_v2 "$mutation_dir/src/"
+cp tests/test_evidence_properties.py "$mutation_dir/tests/"
+cp pyproject.toml "$mutation_dir/"
+(
+  cd "$mutation_dir"
+  export PATH="$bin:$PATH"
+  export PYTHONPATH="$PWD/src"
+  sha256sum src/ordivon_security_v2/browser_security_observation.py tests/test_evidence_properties.py
+  python -c 'import importlib.metadata as m; print({x:m.version(x) for x in ("mutmut","pytest","hypothesis")})'
+  python -m pytest -q tests/test_evidence_properties.py -k public_json_diff
+  mutmut run --max-children 2 '*changed_json_paths*'
+  mutmut export-cicd-stats
+  cat mutants/mutmut-cicd-stats.json
+  mutmut results
+)
 """
 
 # Reuse the existing pinned Lean provider in tools/formal. This is a scoped

@@ -499,3 +499,75 @@ and provider suites, so future stale-model changes fail early. Keep the
 binding gate strict; update model meaning and its exact envelope together,
 not by auto-accepting a new hash. Independent owner review remains required
 for release qualification.
+
+### R18 — native multi-process evidence and independent mutation oracle
+
+T09/T12: a passing parent runner is not a measurement of its children.
+Use coverage.py's native subprocess patch (introduced in 7.10), isolated
+parallel data and native combine. Keep the Core package denominator distinct
+from the remediation CLI script. The ordinary owner entry runs Core exactly
+once, combines native process data, reports the Core scope and requires
+nonzero recorded execution of that real CLI (presence sentinel, not a
+semantic percentage gate). Scope collection to the package and scripts;
+do not present an aggregate over all scripts or across unlike providers.
+Missing child data must not become positive coverage. Empty instrumented
+children that execute no selected source are not additional tested cases.
+Keep configuration out of the data filename prefix; an initial diagnostic
+experiment accidentally caused native combine to treat a config file as a
+data shard, demonstrating that report existence alone is insufficient.
+A clean focused pilot observed exactly two CLI-executing child shards and
+one parent shard, and 13/13 script statements (job
+job-01a214e4-41c0-710e-a94c-b97e7d8bd3bf). The earlier same-source
+diagnostic comparison, with the noted config-file warning, measured
+parent 717/852 statements and 269/384 branches; native children
+732/852 and 278/384, both with 115 passing tests. This is observation
+recovery, not new test sensitivity, and the initial run is not an
+unqualified coverage receipt (job job-01a214e3-0b33-70f3-b9de-09740089d258).
+
+T08/T02: native Mutmut 3.8.1 on CPython 3.15.2 qualifies a bounded
+pure public JSON comparison pilot. The exact copied comparator source
+SHA-256 is 72ab3d5a03571099de549d824735d49064e0467ee4f55faedd8f2eb0046638d6.
+The original two standalone property oracles left five mutants surviving;
+the independent constructed-coordinate oracle and deterministic multi-change
+ordering check detect all 38 selected function mutants on the same source.
+The five prior surviving mutants were reidentified as killed. Jobs
+job-01a214e5-1709-7717-ba7c-217fed863ac3 and
+job-01a214e6-b3dc-77b7-b376-12e8a450793c. The attempted direct unittest
+Hypothesis instance-method integration failed its differing-executors
+health check (job job-01a214e6-2bf3-70ee-9ff5-f562b2b8f7c3); the adopted
+oracle functions are independent of test instance identity. Both existing
+unittest discovery and pytest consume the same functions, without suppressing
+health checks or altering production comparison. Do not count other
+generated but unselected mutants as checked or infer release qualification.
+
+Keep mutation development-only and opt-in under the existing owner task,
+with compatible dependency ranges and exact resolved lock. Use a disposable
+copy of the selected pure source and test, bounded workers, native provider
+result export and source digests. A successful mutation tool exit is not
+an assertion that all mutations were killed. Do not apply mutations to
+production sources, expand to effectful providers, or make an overall
+mutation-score threshold before survivor/equivalence/unknown review.
+The normal verification budget retains the existing owner tests and
+formal/provider checks. No second test framework, scheduler or evidence store.
+
+The existing verification-promotion threat applies to incomplete process
+observation and stale mutation results as well as fixture/model promotion.
+Refine the existing control, preserve the same trust zones and binding paths,
+and independently revalidate the source-bound model and pinned schema.
+
+References:
+- https://coverage.readthedocs.io/en/latest/subprocess.html
+- https://coverage.readthedocs.io/en/latest/commands/cmd_combine.html
+- https://mutmut.readthedocs.io/en/latest/
+- https://hypothesis.readthedocs.io/en/latest/stateful.html
+
+R18 full-owner integration initially found a native uv regression fixture
+that removed only the dev group from the real project, leaving the newly
+declared optional mutation group in its offline scratch resolver. The
+failure was actual, not a stale-lock verdict. The fixture now constructs a
+separate dependency-free project using the owner's interpreter constraint.
+It still creates a real native lock, changes the manifest identity, and
+requires frozen acceptance versus locked rejection; actual owner task and
+S03 consumer-binding tests remain separate and unchanged. No registry cache
+is required by this semantic oracle. This prevents future optional groups
+from breaking the fixture through unrelated package resolution.

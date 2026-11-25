@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -59,19 +57,22 @@ class OwnerUvLockFreshness(unittest.TestCase):
         self.assertIn("no installed or policy admission authority", s03["outputs"][0])
 
     def test_frozen_sync_alone_accepts_stale_lock(self) -> None:
-        original = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
-        # Remove owner dev requirements and generate a legitimate small lock.
-        without_dev, changed = re.subn(
-            r'(?m)^dev = \[\n(?:  "[^"]+",?\n)+\]',
-            "dev = []",
-            original,
-            count=1,
+        owner_project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))[
+            "project"
+        ]
+        # This oracle concerns native uv semantics, not the owner's dev groups.
+        # An isolated, dependency-free project makes the negative control
+        # independent of registry/cache contents and future group additions.
+        manifest = (
+            '[project]\n'
+            'name = "security-lock-freshness-fixture"\n'
+            'version = "0.1.0"\n'
+            f'requires-python = {json.dumps(owner_project["requires-python"])}\n'
+            'dependencies = []\n'
         )
-        self.assertEqual(changed, 1)
         with tempfile.TemporaryDirectory(prefix="ordivon-lock-drift-") as directory:
             temp = Path(directory)
-            (temp / "pyproject.toml").write_text(without_dev, encoding="utf-8")
-            shutil.copy2(ROOT / "uv.lock", temp / "uv.lock")
+            (temp / "pyproject.toml").write_text(manifest, encoding="utf-8")
             # CI has a different package cache and VIRTUAL_ENV; neither must
             # decide the oracle for a project manifest / lock inconsistency.
             env = {
@@ -98,8 +99,8 @@ class OwnerUvLockFreshness(unittest.TestCase):
             self.assertTrue((temp / "isolated-env" / "pyvenv.cfg").is_file())
             # Change only the local project identity: no registry packages
             # need to be downloaded to prove lock drift.
-            stale = without_dev.replace('version = "0.1.0"', 'version = "0.1.1"', 1)
-            self.assertNotEqual(stale, without_dev)
+            stale = manifest.replace('version = "0.1.0"', 'version = "0.1.1"', 1)
+            self.assertNotEqual(stale, manifest)
             (temp / "pyproject.toml").write_text(stale, encoding="utf-8")
             frozen = uv(
                 "sync", "--frozen", "--offline",
