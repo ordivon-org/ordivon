@@ -378,6 +378,63 @@ fn native_pg_fixture_panic_preserves_root_after_owned_postmaster_stop() {
     fs::remove_dir_all(root).unwrap();
     println!("NATIVE_PANIC_PG_STOPPED_ROOT_RETAINED");
 }
+#[test]
+#[ignore = "requires disposable PostgreSQL and authorized systemd"]
+fn native_pg_fixture_refuses_failed_registered_unit_until_native_absence() {
+    let mut fixture = Fixture::new();
+    let job = format!("job-{}", Uuid::now_v7());
+    let attempt = format!("attempt-{}", Uuid::now_v7());
+    let unit = format!("ordivon-pg-{attempt}.service");
+    let bundle = fixture.root.join("store/pg-attempts").join(&attempt);
+    // Only a synthetic row in this isolated fixture, not a production Job.
+    let digest = format!("sha256:{}", "a".repeat(64));
+    fixture.db.execute(
+        "INSERT INTO fresh.jobs(job_id,principal,client_request_id,request_digest,operation_digest,workspace_id,workspace_snapshot_json,execution_plan_json,execution_plan_digest,created_at_ms,desired_state,resolution,current_attempt_id) VALUES($1,'fixture-probe',$1,$2,$2,'ws-fixture-probe','{}','{}',$2,0,'run','failed',NULL)",
+        &[&job,&digest],
+    ).unwrap();
+    fixture.db.execute(
+        "INSERT INTO fresh.attempts(attempt_id,job_id,attempt_number,state,termination_intent,launch_token_digest,bundle_path,unit_name,created_at_ms) VALUES($1,$2,1,'failed','natural',$3,$4,$5,0)",
+        &[&attempt,&job,&digest,&bundle.to_string_lossy().to_string(),&unit],
+    ).unwrap();
+    let read_unit = || {
+        let out = Command::new("/usr/bin/timeout").args(["3s","systemctl","show",&unit,"--no-pager",
+            "-p","LoadState","-p","ActiveState","-p","MainPID","-p","ControlGroup",
+            "-p","ExecMainStatus","-p","Transient","-p","WorkingDirectory","-p","ExecStart"]).output().unwrap();
+        assert!(out.status.success());
+        String::from_utf8(out.stdout).unwrap()
+    };
+    assert!(read_unit().lines().any(|l| l=="LoadState=not-found"));
+    let failed = Command::new("/usr/bin/timeout")
+        .args(["10s","systemd-run","--wait","--property=CollectMode=inactive","--property=Type=exec"])
+        .arg(format!("--unit={unit}"))
+        .arg(format!("--working-directory={}",fixture.root.display()))
+        .arg("/usr/bin/false").output().unwrap();
+    assert!(!failed.status.success(), "negative native unit must fail");
+    let state=read_unit();
+    for property in ["LoadState=loaded","ActiveState=failed","MainPID=0","ControlGroup=","Transient=yes","ExecMainStatus=1"] {
+        assert!(state.lines().any(|line| line==property), "expected {property}: {state}");
+    }
+    assert!(state.lines().any(|l| l==format!("WorkingDirectory={}",fixture.root.display())));
+    assert!(state.lines().any(|l| l.starts_with("ExecStart={ path=/usr/bin/false ;")));
+    let rejected=verify_units_absent(&mut fixture.db,&fixture.root).unwrap_err();
+    assert!(rejected.contains("Unit not absent") && rejected.contains(&unit), "{rejected}");
+    assert!(fixture.root.is_dir(), "retained native failure must preserve root");
+    // Test-only controlled retirement after native failure evidence is read.
+    // The exact private registered Unit was absent before this test created
+    // it and has no process/cgroup. Never reset arbitrary or running Units.
+    let rechecked=read_unit();
+    for property in ["LoadState=loaded","ActiveState=failed","MainPID=0","ControlGroup=","Transient=yes","ExecMainStatus=1"] {
+        assert!(rechecked.lines().any(|l| l==property), "{rechecked}");
+    }
+    assert!(rechecked.lines().any(|l| l==format!("WorkingDirectory={}",fixture.root.display())));
+    let reset=Command::new("/usr/bin/timeout").args(["3s","systemctl","reset-failed",&unit]).output().unwrap();
+    assert!(reset.status.success(),"{reset:?}");
+    verify_units_absent(&mut fixture.db,&fixture.root).unwrap();
+    let root=fixture.root.clone();
+    drop(fixture);
+    assert!(!root.exists(),"qualified fixture must release its actual directory");
+    println!("NATIVE_FAILED_UNIT_REJECTED_THEN_EXACT_ABSENCE_RELEASED");
+}
 fn rpc(url: &str, method: &str, params: Value) -> Value {
     rpc_with_timeout(url, method, params, None)
 }
