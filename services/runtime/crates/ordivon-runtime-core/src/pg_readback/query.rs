@@ -49,7 +49,7 @@ impl PgAdmissionStore {
             return Ok(PgJobReadback::Inconclusive);
         };
         let Some(attempt) = tx.query_opt(
-            "SELECT attempt_id, state, termination_intent, result_digest, finished_at_ms, row_version \
+            "SELECT attempt_id, state, termination_intent, result_digest, finished_at_ms, row_version, started_at_ms \
              FROM attempts WHERE job_id=$1 ORDER BY attempt_number DESC LIMIT 1",
             &[&job_id],
         )? else {
@@ -73,6 +73,7 @@ impl PgAdmissionStore {
             attempt_state: attempt.get(1),
             termination_intent: attempt.get(2),
             result_digest: attempt.get(3),
+            started_at_ms: attempt.get(6),
             finished_at_ms: attempt.get(4),
             attempt_row_version: attempt.get(5),
             reservation_state: reservation.get(0),
