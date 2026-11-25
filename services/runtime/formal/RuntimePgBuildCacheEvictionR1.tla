@@ -5,7 +5,8 @@ EXTENDS Naturals
 \* ownership remain real implementation/installed obligations, not model proofs.
 \* Detached bytes are rebuildable compiler outputs, NOT Git source or Artifact.
 \* Hidden durable roots model earlier Attempts or independent allocations.
-\* Their absence must be qualified before detach, not inferred from latest Job.
+\* Incomplete terminal/release evidence or recent resource activity also
+\* blocks qualification. Absence is not inferred from the latest Job.
 VARIABLES gate, job, cache, detached, qualified, source, phase, hiddenRoot
 Vars == <<gate, job, cache, detached, qualified, source, phase, hiddenRoot>>
 
@@ -17,7 +18,8 @@ Init ==
     /\ qualified = FALSE
     /\ source = "preserved"
     /\ phase = "ready"
-    /\ hiddenRoot \in {"none", "unsettledAttempt", "unreleasedAllocation"}
+    /\ hiddenRoot \in {"none", "unsettledAttempt", "unreleasedAllocation",
+                     "incompleteSettlement", "recentActivity"}
 
 AcquirePruneFence ==
     /\ gate = "free"
@@ -97,7 +99,8 @@ TypeOK ==
     /\ detached \in BOOLEAN
     /\ qualified \in BOOLEAN
     /\ source = "preserved"
-    /\ hiddenRoot \in {"none", "unsettledAttempt", "unreleasedAllocation"}
+    /\ hiddenRoot \in {"none", "unsettledAttempt", "unreleasedAllocation",
+                     "incompleteSettlement", "recentActivity"}
     /\ phase \in {"ready", "planning", "qualified", "detached", "outside_fence", "disposed"}
 
 NoActiveJobWithoutBuild == job = "active" => cache = "present"

@@ -188,6 +188,16 @@ class NativePgReclamationRootTests(unittest.TestCase):
                     ("missing reservation", "DELETE FROM concurrency_reservations WHERE attempt_id='earlier'", "INSERT INTO concurrency_reservations VALUES ('r1','earlier',1,'released',1,1,1,NULL)"),
                     ("unknown reservation", "UPDATE concurrency_reservations SET state='future_state' WHERE attempt_id='earlier'", "UPDATE concurrency_reservations SET state='released' WHERE attempt_id='earlier'"),
                     ("active allocation", "INSERT INTO job_allocations VALUES ('earlier','{}','{}','owner','active',1,NULL)", "DELETE FROM job_allocations WHERE attempt_id='earlier'"),
+                    ("missing terminal timestamp", "UPDATE attempts SET finished_at_ms=NULL WHERE attempt_id='earlier'", "UPDATE attempts SET finished_at_ms=1 WHERE attempt_id='earlier'"),
+                    ("missing result witness", "UPDATE attempts SET result_digest=NULL WHERE attempt_id='earlier'", "UPDATE attempts SET result_digest='result' WHERE attempt_id='earlier'"),
+                    ("empty result witness", "UPDATE attempts SET result_digest='' WHERE attempt_id='earlier'", "UPDATE attempts SET result_digest='result' WHERE attempt_id='earlier'"),
+                    ("missing reservation release", "UPDATE concurrency_reservations SET released_at_ms=NULL WHERE attempt_id='earlier'", "UPDATE concurrency_reservations SET released_at_ms=1 WHERE attempt_id='earlier'"),
+                    ("missing allocation release", "INSERT INTO job_allocations VALUES ('earlier','{}','{}','owner','released',1,NULL)", "DELETE FROM job_allocations WHERE attempt_id='earlier'"),
+                    ("terminal job retains current pointer", "UPDATE jobs SET current_attempt_id='latest' WHERE job_id='j'", "UPDATE jobs SET current_attempt_id=NULL WHERE job_id='j'"),
+                    ("latest attempt contradicts job", "UPDATE attempts SET state='failed' WHERE attempt_id='latest'", "UPDATE attempts SET state='succeeded' WHERE attempt_id='latest'"),
+                    ("resolved job without attempts", "INSERT INTO jobs VALUES ('j0','p','req0','rd','od','ws','{}','{}','ed',1,'run','succeeded',NULL,0)", "DELETE FROM jobs WHERE job_id='j0'"),
+                    ("recent reservation release", "UPDATE concurrency_reservations SET released_at_ms=(EXTRACT(EPOCH FROM clock_timestamp())*1000)::bigint WHERE attempt_id='earlier'", "UPDATE concurrency_reservations SET released_at_ms=1 WHERE attempt_id='earlier'"),
+                    ("recent allocation release", "INSERT INTO job_allocations VALUES ('earlier','{}','{}','owner','released',1,(EXTRACT(EPOCH FROM clock_timestamp())*1000)::bigint)", "DELETE FROM job_allocations WHERE attempt_id='earlier'"),
                 ):
                     with self.subTest(case=label):
                         conn.execute(change)
@@ -197,8 +207,66 @@ class NativePgReclamationRootTests(unittest.TestCase):
                         finally:
                             conn.execute(restore)
                         evict.pg_qualification(conn, schema, source, "ws")
+                self.assert_post_lock_snapshot(conn, dsn, schema, source)
             finally:
                 conn.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(schema)))
+
+
+    def assert_post_lock_snapshot(self, conn, dsn, schema, source):
+        """Real two-connection admission race; filesystem/MCP effect is not invoked."""
+        from concurrent.futures import ThreadPoolExecutor
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        import time
+        import psycopg
+        from psycopg.conninfo import make_conninfo
+
+        # A deployment may override the session isolation default. A waiting
+        # RR transaction can freeze its snapshot before the lock is granted.
+        rr_dsn = make_conninfo(dsn, options=r"-c default_transaction_isolation=repeatable\ read")
+        with psycopg.connect(rr_dsn, autocommit=True) as probe:
+            self.assertEqual(probe.execute("SHOW default_transaction_isolation").fetchone()[0],
+                             "repeatable read")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name in ("cache/build", "workspace-records", "workspaces"):
+                (root / name).mkdir(parents=True)
+            cache = root / "cache/build/ws"
+            cache.mkdir()
+            args = SimpleNamespace(workspace_id="ws", expected_head=HEAD,
+                expected_source_state_digest=DIGEST, env_file=root / "unused",
+                env_overlay=[], store_root=root, apply=False)
+            env = {"ORDIVON_PG_STORE_ROOT": str(root), "ORDIVON_PG_SOURCE_SHA256": source,
+                   "ORDIVON_PG_DSN": rr_dsn, "ORDIVON_PG_SCHEMA": schema}
+            with (patch.object(evict, "effective_environment", return_value=env),
+                  patch.object(evict, "native_workspace_snapshot"),
+                  patch.object(evict, "assert_source_and_cache", return_value=cache),
+                  patch.object(evict, "external_processes_using", return_value=[]),
+                  ThreadPoolExecutor(max_workers=1) as pool):
+                with conn.transaction():
+                    conn.execute("SELECT pg_advisory_xact_lock(%s)", (evict.ADMISSION_LOCK,))
+                    conn.execute("UPDATE attempts SET state='running' WHERE attempt_id='earlier'")
+                    future = pool.submit(evict.run, args)
+                    with psycopg.connect(dsn, autocommit=True) as monitor:
+                        deadline = time.monotonic() + 8
+                        while True:
+                            waiters = monitor.execute(
+                                "SELECT count(*) FROM pg_locks WHERE locktype='advisory' AND NOT granted"
+                            ).fetchone()[0]
+                            if waiters:
+                                break
+                            if time.monotonic() >= deadline:
+                                self.fail("candidate never waited on the native admission lock")
+                            time.sleep(0.02)
+                # Writer commits while the candidate waits; qualification
+                # must see the newly live Attempt, not the prior settled row.
+                try:
+                    with self.assertRaisesRegex(RuntimeError, "unqualified PG"):
+                        future.result(timeout=10)
+                finally:
+                    conn.execute("UPDATE attempts SET state='lost' WHERE attempt_id='earlier'")
+                self.assertTrue(cache.is_dir())
+                self.assertEqual(evict.run(args)["effect"], "not_requested")
 
 
 if __name__ == "__main__":
