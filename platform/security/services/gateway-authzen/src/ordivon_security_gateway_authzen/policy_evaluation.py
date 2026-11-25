@@ -11,6 +11,8 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from .json_qualification import qualify_json_object
+
 
 class EvaluationUnavailable(Exception):
     pass
@@ -54,7 +56,7 @@ class PolicyEvaluation:
 
 
 def evaluate_policy(
-    payload: str, opa: str, policy: str, data: str, commitment_key: bytes
+    payload: bytes, opa: str, policy: str, data: str, commitment_key: bytes
 ) -> PolicyEvaluation:
     """Capture once and evaluate those bytes; do not infer a future decision.
 
@@ -65,6 +67,7 @@ def evaluate_policy(
         resolved_policy = Path(policy).resolve(strict=True)
         policy_bytes = resolved_policy.read_bytes()
         data_bytes = Path(data).read_bytes()
+        qualify_json_object(data_bytes)
         with tempfile.TemporaryDirectory(prefix="ordivon-pdp-") as directory:
             root = Path(directory)
             policy_snapshot, data_snapshot = root / "policy.rego", root / "data.json"
@@ -84,23 +87,21 @@ def evaluate_policy(
                     "data.ordivon.security.gateway_artifact.allow",
                 ],
                 input=payload,
-                encoding="utf-8",
-                text=True,
                 capture_output=True,
                 timeout=2.0,
                 check=True,
             )
-    except (OSError, UnicodeError, subprocess.SubprocessError) as exc:
+    except (OSError, ValueError, RecursionError, subprocess.SubprocessError) as exc:
         raise EvaluationUnavailable("OPA decision unavailable") from exc
     output = result.stdout.strip()
-    if output not in ("true", "false"):
+    if output not in (b"true", b"false"):
         raise EvaluationUnavailable("OPA returned a nonboolean result")
     return PolicyEvaluation(
-        decision=output == "true",
+        decision=output == b"true",
         policy_sha256=_sha256(policy_bytes),
         policy_data_commitment="hmac-sha256:"
         + hmac.digest(commitment_key, data_bytes, "sha256").hex(),
-        input_sha256=_sha256(payload.encode("utf-8")),
+        input_sha256=_sha256(payload),
         declared_release_revision=_declared_release_revision(resolved_policy),
         evaluated_at_ms=time.time_ns() // 1_000_000,
     )
