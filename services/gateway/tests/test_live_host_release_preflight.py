@@ -1008,7 +1008,8 @@ def test_unqualified_peer_route_is_not_proof_of_unrelated_consumer(
 ) -> None:
     peer = "ordivon-gateway-local-r21.service"
     monkeypatch.setattr(
-        preflight.subprocess, "run",
+        preflight.subprocess,
+        "run",
         lambda *a, **kw: subprocess.CompletedProcess(
             a, 0, stdout=f"{peer} loaded active running secondary\n"
         ),
@@ -1027,11 +1028,11 @@ def test_peer_census_bounds_all_unique_peers_before_any_credential_probe(
     preflight: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     rows = "".join(
-        f"ordivon-gateway-peer-{i}.service loaded active running fixture\n"
-        for i in range(33)
+        f"ordivon-gateway-peer-{i}.service loaded active running fixture\n" for i in range(33)
     )
     monkeypatch.setattr(
-        preflight.subprocess, "run",
+        preflight.subprocess,
+        "run",
         lambda *a, **kw: subprocess.CompletedProcess(a, 0, stdout=rows),
     )
 
@@ -1049,7 +1050,8 @@ def test_duplicate_peer_rows_do_not_repeat_native_observation(
     peer = "ordivon-gateway-local-r21.service"
     row = f"{peer} loaded active running fixture\n"
     monkeypatch.setattr(
-        preflight.subprocess, "run",
+        preflight.subprocess,
+        "run",
         lambda *a, **kw: subprocess.CompletedProcess(a, 0, stdout=row * 2),
     )
     calls: list[str] = []
@@ -1067,8 +1069,16 @@ def test_duplicate_peer_rows_do_not_repeat_native_observation(
 # credential effects are different obligations. Rows explicitly describe
 # which observations may reach the authenticated probe, not its internals.
 @pytest.mark.parametrize(
-    ("route", "owner_verified", "primary", "credential", "denial", "accepted",
-     "expect_block", "expect_probe"),
+    (
+        "route",
+        "owner_verified",
+        "primary",
+        "credential",
+        "denial",
+        "accepted",
+        "expect_block",
+        "expect_probe",
+    ),
     [
         (None, False, 8898, True, True, True, True, False),
         ("", False, 8898, True, True, True, True, False),
@@ -1107,7 +1117,8 @@ def test_peer_observation_decision_table(
     if credential:
         env += " ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
     monkeypatch.setattr(
-        preflight.subprocess, "run",
+        preflight.subprocess,
+        "run",
         lambda *a, **kw: subprocess.CompletedProcess(
             a, 0, stdout=f"{peer} loaded active running fixture\n"
         ),
@@ -1131,9 +1142,7 @@ def test_peer_observation_decision_table(
 
 def test_peer_census_exact_bound_and_deterministic_order(preflight: Any) -> None:
     units = [f"ordivon-gateway-p-{i:02d}.service" for i in range(32)]
-    output = "\n".join(
-        f"{unit} loaded active running fixture" for unit in reversed(units)
-    )
+    output = "\n".join(f"{unit} loaded active running fixture" for unit in reversed(units))
     output += "\nordivon-gateway.service loaded active running primary\n" + output
     assert preflight._active_peer_units(output) == tuple(units)
 

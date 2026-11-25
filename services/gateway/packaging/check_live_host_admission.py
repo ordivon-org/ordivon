@@ -258,8 +258,7 @@ def _declares_distinct_loopback_route(systemd_environment: str) -> bool:
     declared = _declared_host_route(systemd_environment)
     match = re.fullmatch(r"http://127[.]0[.]0[.]1:([1-9][0-9]{0,4})/mcp", declared or "")
     return bool(
-        match and 1 <= int(match[1]) <= 65535
-        and int(match[1]) not in (8898, PROTECTED_HOST_PORT)
+        match and 1 <= int(match[1]) <= 65535 and int(match[1]) not in (8898, PROTECTED_HOST_PORT)
     )
 
 
