@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -68,6 +69,7 @@ def _python_receipt_status(root: Path) -> dict[str, Any]:
         probe = subprocess.run(
             [sys.executable, "-E", "-s", str(gate.resolve())],
             cwd=root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            env={key: value for key, value in os.environ.items() if key != "PYTHONOPTIMIZE"},
             check=False, timeout=45,
         )
     except (OSError, subprocess.TimeoutExpired):
@@ -125,12 +127,27 @@ def _js_status(root: Path) -> dict[str, Any]:
     }
 
 
+_UNOBSERVED_REASONS = {
+    "PYTHON_GATE_UNAVAILABLE", "PYTHON_GATE_UNOBSERVED",
+    "JS_RESOLVER_UNOBSERVED", "JS_RESOLVER_UNAVAILABLE",
+}
+
+
+def _standing(status: dict[str, Any]) -> str:
+    if status["ready"]:
+        return "ready"
+    if status["reason"] in _UNOBSERVED_REASONS:
+        return "unknown"
+    return "not-ready"
+
+
 def dependency_status(root: Path = ROOT) -> dict[str, Any]:
+    js, python = _js_status(root), _python_receipt_status(root)
     return {
         "schemaVersion": 1,
         "kind": "ordivon.studio-dependency-status",
-        "js": _js_status(root),
-        "python": _python_receipt_status(root),
+        "js": {**js, "standing": _standing(js)},
+        "python": {**python, "standing": _standing(python)},
         "boundary": "Observation never acquires dependencies. Missing capability is repaired only through an explicit acquisition proposal.",
     }
 
@@ -139,6 +156,19 @@ def dependency_proposal(target: str, root: Path = ROOT) -> dict[str, Any]:
     if target not in {"js", "python"}:
         raise ValueError("dependency target must be js or python")
     current = _js_status(root) if target == "js" else _python_receipt_status(root)
+    standing = _standing(current)
+    current = {**current, "standing": standing}
+    if standing == "unknown":
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.studio-dependency-acquisition-proposal",
+            "target": target,
+            "ready": False,
+            "effectRequired": None,
+            "plan": None,
+            "status": current,
+            "authorityBoundary": "Observation is unavailable; restore the observation path before proposing acquisition.",
+        }
     if current["ready"]:
         return {
             "schemaVersion": 1,

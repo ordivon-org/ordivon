@@ -251,14 +251,31 @@ class AgentSurfaceTests(unittest.TestCase):
                 state = dependency_proposal("python", root)
             self.assertEqual(state["status"]["reason"], "PYTHON_GATE_UNOBSERVED")
             self.assertFalse(state["status"]["environmentChecked"])
+            self.assertEqual(state["status"]["standing"], "unknown")
+            self.assertIsNone(state["effectRequired"])
+            self.assertIsNone(state["plan"])
 
     def test_malformed_receipt_and_missing_gate_do_not_admit(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = self._root(directory)
             (root / "scripts/require-python-deps.py").unlink()
-            self.assertEqual(dependency_proposal("python", root)["status"]["reason"], "PYTHON_GATE_UNAVAILABLE")
+            unavailable = dependency_proposal("python", root)
+            self.assertEqual(unavailable["status"]["reason"], "PYTHON_GATE_UNAVAILABLE")
+            self.assertEqual(unavailable["status"]["standing"], "unknown")
+            self.assertIsNone(unavailable["effectRequired"])
+            self.assertIsNone(unavailable["plan"])
             (root / ".venv/.ordivon-materialization.json").write_text("[]")
             self.assertEqual(dependency_proposal("python", root)["status"]["reason"], "PYTHON_RECEIPT_INVALID")
+
+    def test_js_unobserved_resolver_does_not_compile_acquisition(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._root(directory)
+            with mock.patch("ordivon_studio.agent_dependencies.subprocess.run", side_effect=subprocess.TimeoutExpired("pnpm", 10)):
+                state = dependency_proposal("js", root)
+            self.assertEqual(state["status"]["standing"], "unknown")
+            self.assertEqual(state["status"]["reason"], "JS_RESOLVER_UNOBSERVED")
+            self.assertIsNone(state["effectRequired"])
+            self.assertIsNone(state["plan"])
 
     def test_missing_dependencies_compile_explicit_acquisition_only(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
