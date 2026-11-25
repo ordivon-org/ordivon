@@ -4,11 +4,10 @@
 from __future__ import annotations
 
 import argparse
-import ctypes
 import hashlib
 import json
+import math
 import os
-import errno
 import shutil
 import sqlite3
 import sys
@@ -17,7 +16,7 @@ from contextlib import closing
 from pathlib import Path
 from typing import Any
 
-from snapshot_fds import pinned_source_entry
+from snapshot_fds import pinned_source_entry, publish_new_directory as publish_restored_directory
 
 
 def sha256_file(path: Path) -> str:
@@ -41,8 +40,31 @@ def load_and_verify(source: Path) -> tuple[dict[str, Any], list[tuple[Path, dict
     manifest_path = source / "manifest.json"
     if manifest_path.is_symlink() or not manifest_path.is_file():
         raise ValueError("snapshot manifest.json is missing or not a regular file")
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if not isinstance(manifest, dict) or manifest.get("schemaVersion") != 1:
+    def unique_fields(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("duplicate snapshot manifest field")
+            result[key] = value
+        return result
+
+    def reject_nonfinite(_):
+        raise ValueError("nonfinite snapshot manifest field")
+
+    def finite_float(raw):
+        value = float(raw)
+        if not math.isfinite(value):
+            raise ValueError("nonfinite snapshot manifest number")
+        return value
+
+    # One manifest must have one interpretation, including nested records.
+    # This does not by itself prove complete historical evidence membership.
+    with pinned_source_entry(source, Path("manifest.json")) as bound_manifest:
+        manifest = json.loads(bound_manifest.read_text(encoding="utf-8"),
+                              object_pairs_hook=unique_fields,
+                              parse_constant=reject_nonfinite, parse_float=finite_float)
+    if (not isinstance(manifest, dict) or type(manifest.get("schemaVersion")) is not int
+            or manifest["schemaVersion"] != 1):
         raise ValueError("unsupported snapshot manifest schema")
     records = manifest.get("files")
     if not isinstance(records, list) or not records:
@@ -68,10 +90,11 @@ def load_and_verify(source: Path) -> tuple[dict[str, Any], list[tuple[Path, dict
         expected_digest = record.get("digest")
         if type(expected_bytes) is not int or expected_bytes < 0:
             raise ValueError(f"invalid byte length for {relative}")
-        if path.stat().st_size != expected_bytes:
-            raise ValueError(f"byte length mismatch for {relative}")
-        if not isinstance(expected_digest, str) or sha256_file(path) != expected_digest:
-            raise ValueError(f"digest mismatch for {relative}")
+        with pinned_source_entry(source, relative) as bound_source:
+            if bound_source.stat().st_size != expected_bytes:
+                raise ValueError(f"byte length mismatch for {relative}")
+            if not isinstance(expected_digest, str) or sha256_file(bound_source) != expected_digest:
+                raise ValueError(f"digest mismatch for {relative}")
         verified.append((relative, record))
 
     if Path("registry.sqlite3") not in seen:
@@ -123,29 +146,6 @@ def restore_snapshot(source: Path, destination: Path) -> Path:
         raise
     return destination
 
-
-def publish_restored_directory(staging: Path, destination: Path) -> None:
-    """Publish a new restore atomically, never replacing another owner.
-
-    The earlier destination.exists() check is only a preflight, not a
-    concurrency fence. Linux uses the kernel RENAME_NOREPLACE primitive.
-    """
-    if sys.platform.startswith("linux"):
-        try:
-            renameat2 = ctypes.CDLL(None, use_errno=True).renameat2
-        except AttributeError as error:
-            raise OSError(errno.ENOSYS, "atomic no-replace rename unavailable") from error
-        renameat2.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
-        renameat2.restype = ctypes.c_int
-        # Native Linux ABI: AT_FDCWD=-100, RENAME_NOREPLACE=1.
-        if renameat2(-100, os.fsencode(staging), -100, os.fsencode(destination), 1) != 0:
-            code = ctypes.get_errno()
-            raise OSError(code, os.strerror(code), str(destination))
-    elif os.name == "nt":
-        # Windows os.rename fails if the target already exists.
-        os.rename(staging, destination)
-    else:
-        raise OSError(errno.ENOSYS, "atomic no-replace directory publication unavailable")
 
 
 def parse_args() -> argparse.Namespace:

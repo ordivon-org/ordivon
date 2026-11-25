@@ -124,14 +124,23 @@ Do not delete individual Registry rows or Attempt bundles manually.
 
 A complete logical export should include:
 
-- a verified SQLite backup created by `scripts/backup.py`;
-- the control root selected for that backup;
+- a verified native database backup: for PostgreSQL, use the existing
+  pgBackRest recovery path in [operations.md](operations.md); for historical
+  SQLite only, use `scripts/backup.py`;
+- the control root and required configuration selected for that backup;
 - required Attempt bundles and Artifact bytes;
 - open or preserved Git Workspace state;
 - deployment and recovery receipts needed to interpret the instance;
 - the exact Runtime source commit, binary digests, protocol versions, and Tool catalog digest.
 
-Verify the snapshot manifest and SQLite integrity before considering the export complete. Restore into a new destination with `scripts/restore.py`; restore never overwrites live state.
+Verify the selected database's native restore and exact required evidence
+before considering the export complete. The legacy SQLite snapshot verifier
+and `scripts/restore.py` operate on historical snapshots, never live PostgreSQL
+state. An incident's original damaged bytes and distinct recovery stages are
+not duplicate logical backups merely because their sizes match. A lossless
+carrier conversion must retain the full required member manifest and
+independently verify the restored original bytes and actual recovery
+obligations before retiring the old carrier.
 
 Cross-host migration may require repairing Git worktree paths, executable locations, service configuration, cache paths, and systemd identity. A successful file copy alone does not prove a recoverable Runtime instance.
 

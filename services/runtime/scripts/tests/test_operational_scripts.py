@@ -109,6 +109,52 @@ class OperationalScriptTests(unittest.TestCase):
             self.assertTrue(swapped)
             self.assertEqual((root / "snapshot/sub/sample.txt").read_bytes(), b"SAME BYTES")
 
+    def test_pinned_snapshot_entry_never_blocks_on_fifo(self):
+        if not sys.platform.startswith("linux"):
+            self.skipTest("Linux native fd fixture")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            fifo = root / "payload"
+            os.mkfifo(fifo)
+            code = (
+                "from pathlib import Path; from snapshot_fds import pinned_source_entry; "
+                "from contextlib import ExitStack; import sys; "
+                "stack=ExitStack(); stack.enter_context(pinned_source_entry(Path(sys.argv[1]), Path('payload')))"
+            )
+            result = subprocess.run(
+                [sys.executable, "-c", code, str(root)], cwd=REPO / "scripts",
+                capture_output=True, text=True, timeout=2,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("not a regular file", result.stderr)
+
+    def test_backup_publication_does_not_replace_competing_empty_directory(self):
+        from unittest.mock import patch
+        from types import SimpleNamespace
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            database = root / "registry.sqlite3"
+            with closing(sqlite3.connect(database)) as conn:
+                conn.execute("CREATE TABLE witness (v TEXT)")
+                conn.execute("INSERT INTO witness VALUES ('snapshot')")
+                conn.commit()
+            dest = root / "backup"
+            native_backup = backup.sqlite_backup
+            identities = []
+            def competing_writer(source, staging_file):
+                native_backup(source, staging_file)
+                dest.mkdir()
+                identities.append(dest.stat().st_ino)
+            args = SimpleNamespace(database=database, destination=dest, control_root=None)
+            with patch.object(backup, "parse_args", return_value=args), \
+                 patch.object(backup, "sqlite_backup", side_effect=competing_writer):
+                with self.assertRaises(FileExistsError):
+                    backup.main()
+            self.assertEqual(dest.stat().st_ino, identities[0])
+            self.assertEqual(list(dest.iterdir()), [])
+            self.assertEqual(list(root.glob(".backup.partial-*")), [])
+
     def test_backup_restore_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -410,6 +456,66 @@ class OperationalScriptTests(unittest.TestCase):
                 restore.load_and_verify(snapshot)
             self.assertFalse((root / "restored").exists())
 
+    def test_restore_validation_rejects_fifo_replacing_checked_regular_file(self):
+        if not sys.platform.startswith("linux"):
+            self.skipTest("Linux native descriptor fixture")
+        for target in ("manifest.json", "empty.txt"):
+            with self.subTest(target=target), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                database = root / "registry.sqlite3"
+                with closing(sqlite3.connect(database)) as db:
+                    db.execute("CREATE TABLE witness (v TEXT)")
+                (root / "empty.txt").write_bytes(b"")
+                records = [
+                    {"path": name, "bytes": (root / name).stat().st_size,
+                     "digest": restore.sha256_file(root / name)}
+                    for name in ("registry.sqlite3", "empty.txt")
+                ]
+                (root / "manifest.json").write_text(
+                    json.dumps({"schemaVersion": 1, "files": records}))
+                code = (
+                    "import os,sys; from pathlib import Path; import restore; "
+                    "root=Path(sys.argv[1]); target=root/sys.argv[2]; "
+                    "native=Path.is_file\n"
+                    "def swap(p,*a,**k):\n"
+                    "    result=native(p,*a,**k)\n"
+                    "    if result and p==target:\n"
+                    "        p.rename(root/'retained-original'); os.mkfifo(p)\n"
+                    "    return result\n"
+                    "Path.is_file=swap; restore.load_and_verify(root)\n"
+                )
+                result = subprocess.run(
+                    [sys.executable, "-c", code, str(root), target],
+                    cwd=REPO / "scripts", capture_output=True, text=True, timeout=3,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("not a regular file", result.stderr)
+                self.assertTrue((root / "retained-original").is_file())
+
+    def test_restore_rejects_ambiguous_manifest_identity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            snapshot = root / "snapshot"
+            snapshot.mkdir()
+            database = snapshot / "registry.sqlite3"
+            with closing(sqlite3.connect(database)) as db:
+                db.execute("CREATE TABLE witness (v TEXT)")
+            records = [{"path": "registry.sqlite3", "bytes": database.stat().st_size,
+                        "digest": restore.sha256_file(database)}]
+            files = json.dumps(records)
+            for payload in (
+                '{"schemaVersion":true,"files":' + files + '}',
+                '{"schemaVersion":1,"metadata":1e9999,"files":' + files + '}',
+                '{"schemaVersion":1,"metadata":NaN,"files":' + files + '}',
+                '{"schemaVersion":2,"schemaVersion":1,"files":' + files + '}',
+                '{"schemaVersion":1,"files":[],"files":' + files + '}',
+                '{"schemaVersion":1,"files":' + files.replace('"path":', '"path":"other","path":', 1) + '}',
+            ):
+                with self.subTest(payload=payload):
+                    (snapshot / "manifest.json").write_text(payload)
+                    with self.assertRaises(ValueError):
+                        restore.load_and_verify(snapshot)
+
     def test_restore_rejects_boolean_size_alias(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -536,10 +642,13 @@ class OperationalScriptTests(unittest.TestCase):
             )
             original_open = restore.os.open
             swapped = False
+            opens = 0
 
             def swap_after_parent_fd(path, flags, *args, **kwargs):
-                nonlocal swapped
-                if path == "note.txt" and kwargs.get("dir_fd") is not None and not swapped:
+                nonlocal swapped, opens
+                if path == "note.txt" and kwargs.get("dir_fd") is not None:
+                    opens += 1
+                if path == "note.txt" and kwargs.get("dir_fd") is not None and opens == 2 and not swapped:
                     control.rename(snapshot / "original-control")
                     control.symlink_to(outside, target_is_directory=True)
                     swapped = True

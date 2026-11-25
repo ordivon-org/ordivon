@@ -177,7 +177,7 @@ The exact Tool names and descriptions are generated in [`reference/tools.md`](re
 
 - Reconnect to existing work through `workspace.list`, `workspace.get`, `job.list`, and `job.observe`.
 - For a **verified legacy SQLite-backed instance only**, observe one Workspace locally without reconciliation with `ordivon-runtime-inspect workspace --database /var/lib/ordivon/registry/registry.sqlite3 --store-root /var/lib/ordivon/runtime --workspace-id <workspace> --pretty`. This CLI path does **not** inspect a PostgreSQL Registry; for a PG instance use its native `workspace.get`, `job.get` and `job.list` projections.
-- Back up and restore through `scripts/backup.py` and `scripts/restore.py`.
+- For PostgreSQL backup and recovery, use the existing pgBackRest route in [operations.md](operations.md). The `scripts/backup.py` and `scripts/restore.py` commands are legacy SQLite-only.
 - Repair only through the documented doctor/repair sequence in [`recovery.md`](recovery.md).
 - Release Workspaces through `workspace.close` or the receipted lifecycle tools, never by deleting directories directly.
 - For instance retirement, export required state, stop the service, preserve any mandated evidence, then delete the operator-owned state roots described in [`data-and-privacy.md`](data-and-privacy.md).

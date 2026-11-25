@@ -15,7 +15,7 @@ from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 
-from snapshot_fds import pinned_source_entry
+from snapshot_fds import pinned_source_entry, publish_new_directory
 
 
 def sha256_file(path: Path) -> str:
@@ -122,7 +122,7 @@ def main() -> int:
             "files": files,
         }
         (staging / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        os.replace(staging, destination)
+        publish_new_directory(staging, destination)
     except Exception:
         shutil.rmtree(staging, ignore_errors=True)
         raise
