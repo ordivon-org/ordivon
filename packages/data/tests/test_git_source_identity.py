@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import stat
 import subprocess
 import sys
 import unittest
@@ -68,7 +69,22 @@ class GitSourceIdentityTests(unittest.TestCase):
                 saved = obj.read_bytes()
                 header, raw = zlib.decompress(saved).split(b"\0", 1)
                 self.assertEqual(raw, original)
-                obj.write_bytes(zlib.compress(header + b"\0" + changed))
+                # Git loose objects are read-only for ordinary users. Replace
+                # the entry only inside this disposable repository, using the
+                # writable parent directory, without elevating privileges.
+                mode = stat.S_IMODE(obj.stat().st_mode)
+
+                def replace_fixture_object(
+                    obj: Path, mode: int, content: bytes
+                ) -> None:
+                    replacement = obj.with_name(obj.name + ".fixture")
+                    replacement.write_bytes(content)
+                    replacement.chmod(mode)
+                    replacement.replace(obj)
+
+                replace_fixture_object(
+                    obj, mode, zlib.compress(header + b"\0" + changed)
+                )
                 # Git cat-file itself accepts this corrupt, same-length object.
                 self.assertEqual(git("cat-file", "blob", oid), changed.strip())
                 self.assertNotEqual(
@@ -78,7 +94,7 @@ class GitSourceIdentityTests(unittest.TestCase):
                     ValueError, "Git ODPS blob identity mismatch"
                 ):
                     committed_owner_products(repo, commit)
-                obj.write_bytes(saved)
+                replace_fixture_object(obj, mode, saved)
                 self.assertEqual(
                     committed_owner_products(repo, commit), (commit, [original])
                 )
