@@ -214,7 +214,8 @@ def test_exact_message_read_rejects_invalid_selector_before_pdp(invalid) -> None
 
 
 def test_real_opa_gateway_pep_consumer_rejects_cross_principal_and_revocation(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Refine the current Host PEP contract against the existing Security OPA implementation.
 
