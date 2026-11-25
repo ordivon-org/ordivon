@@ -577,11 +577,13 @@ def test_pressure_gate_has_no_provider_or_control_side_effects() -> None:
     )
     admitted = pressure_module.assess(queue_projection, annotated_ci)
     admitted_gates = {row["gate"]: row for row in admitted["gates"]}
-    assert admitted_gates["CI_WASTE"]["status"] == "PROVEN"
-    assert admitted["controlsAdmitted"] == [
-        "cancellation-optimization",
-        "ci-deduplication",
+    # A source-bound annotation is a useful hypothesis, not independent causal proof.
+    assert admitted_gates["CI_WASTE"]["status"] == "INSUFFICIENT_EVIDENCE"
+    assert admitted_gates["CI_WASTE"]["evidence"]["declaredWasteAttempts"] == [
+        {"runId": 101, "runAttempt": 1, "headSha": "a" * 40,
+         "evidenceRefs": ["fixture:attempt-1"]}
     ]
+    assert admitted["controlsAdmitted"] == []
 
 
 SCHEMA_DIR = ROOT / "docs" / "architecture" / "schemas"
@@ -2766,3 +2768,54 @@ def test_ci_economic_annotation_cannot_follow_run_id_across_rerun():
     snapshot.jobs["101"][0]["run_attempt"] = 2
     with pytest.raises(ValueError):
         ci_module.normalize(snapshot, economic_annotations={"101": ci_waste_annotation()})
+
+
+@pytest.mark.parametrize("identities", [[(51, 1)], [(51, None)], [(51, 1), ("51", 1)],
+                                        [(True, 1)], [(0, 1)], [(51, True)]])
+def test_pressure_free_text_never_proves_waste(identities):
+    rows = [{"runId": run, "runAttempt": attempt, "status": "completed",
+             "economicOutcome": "AVOIDABLE_WASTE", "economicReason": "free text"}
+            for run, attempt in identities]
+    result = pressure_module.assess({}, {
+        "metrics": {"runs": len(rows), "explicitAvoidableWasteRuns": len(rows),
+                    "unclassifiedTerminalRuns": 0},
+        "runs": rows,
+    })
+    assert next(g for g in result["gates"] if g["gate"] == "CI_WASTE")["status"] == "INSUFFICIENT_EVIDENCE"
+    assert result["controlsAdmitted"] == []
+
+
+def test_ci_annotation_survives_projection_and_matches_existing_schema():
+    import jsonschema
+    annotation = ci_waste_annotation()
+    result = ci_module.project(ci_module.normalize(ci_fixture(),
+        economic_annotations={"101": annotation}))
+    row = next(r for r in result["runs"] if r["runId"] == 101)
+    assert row["economicAnnotation"] == annotation
+    assert row["economicAnnotation"] is not annotation
+    schema = json.loads((SCHEMA_DIR / "convergence-ci-observation-v1.schema.json").read_text())
+    jsonschema.validate(result, schema)
+    annotation_schema = json.loads((SCHEMA_DIR / "convergence-ci-economic-annotation-v1.schema.json").read_text())
+    jsonschema.validate({"101": row["economicAnnotation"]}, annotation_schema,
+                        format_checker=jsonschema.Draft202012Validator.FORMAT_CHECKER)
+
+
+@pytest.mark.parametrize("field,value", [("runId", 102), ("runAttempt", 2),
+    ("headSha", "b" * 40), ("conclusion", "success"), ("economicReason", "altered"),
+    ("economicOutcome", "DUPLICATED")])
+def test_pressure_revalidates_annotation_at_consumer_boundary(field, value):
+    result = ci_module.project(ci_module.normalize(ci_fixture(),
+        economic_annotations={"101": ci_waste_annotation()}))
+    row = next(r for r in result["runs"] if r["runId"] == 101)
+    row[field] = value
+    assessment = pressure_module.assess({}, result)
+    gate = next(g for g in assessment["gates"] if g["gate"] == "CI_WASTE")
+    assert gate["status"] == "INSUFFICIENT_EVIDENCE"
+    assert not gate["evidence"].get("declaredWasteAttempts")
+    assert not assessment["controlsAdmitted"]
+
+
+def test_pressure_actual_projection_matches_existing_schema():
+    import jsonschema
+    schema = json.loads((SCHEMA_DIR / "convergence-pressure-assessment-v1.schema.json").read_text())
+    jsonschema.validate(pressure_module.assess({}), schema)
