@@ -708,12 +708,12 @@ jobs:
         image: postgres:18.6
         env:
           POSTGRES_USER: postgres
-          POSTGRES_DB: ordivon_paper
+          POSTGRES_DB: postgres
           POSTGRES_PASSWORD: ${{ github.run_id }}
         ports:
           - 5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d ordivon_paper"
+          --health-cmd "pg_isready -U postgres -d postgres"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 12
@@ -842,6 +842,7 @@ jobs:
         shell: bash
         env:
           OWNER_TASKS_JSON: ${{ toJSON(matrix.tasks) }}
+          CI_PAPER_SERVICE_ID: ${{ job.services.paper_postgres.id }}
         run: |
           set -euo pipefail
           # GitHub's matrix data is a JSON array from the verified preflight.
@@ -867,6 +868,13 @@ jobs:
               "".join(task + "\n" for task in tasks), encoding="utf-8"
           )
           PYTASKS
+          # Provision once, before either database consumer can mutate state.
+          # Fresh service container + CREATE DATABASE, not adoption by DSN.
+          if grep -Eq '^(capital:verify|harness:queue)$' "$RUNNER_TEMP/ordivon-affected-tasks.txt"; then
+            capital_test_lease="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
+            echo "::add-mask::$capital_test_lease"
+            ORDIVON_CAPITAL_TEST_LEASE="$capital_test_lease" bash tools/repo/ci_provision_paper_pg.sh
+          fi
           while IFS= read -r task || [[ -n "$task" ]]; do
             [[ -z "$task" ]] && continue
             if [[ "$task" == "formal:verify" ]]; then
@@ -992,6 +1000,7 @@ jobs:
               # Container and credentials exist only in this GitHub job.
               # Separate Accounting schemas share this one ephemeral test DB.
               # Real Paper and general Ledger consumers were both verified.
+              ORDIVON_CAPITAL_TEST_LEASE="$capital_test_lease" \
               ORDIVON_CAPITAL_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
               ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
               mise run "$task" </dev/null
@@ -999,6 +1008,7 @@ jobs:
               # Nautilus/Databento source-to-Paper subset. Ordinary provider
               # tests depend on external credentials; this bounded subset does
               # not. Fail if its physical PG consumer would be silently skipped.
+              ORDIVON_CAPITAL_TEST_LEASE="$capital_test_lease" \
               ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
               ORDIVON_FINANCE_REQUIRE_PHYSICAL_PG=1 \
               mise --cd domains/capital run verify:nonlive:nautilus </dev/null

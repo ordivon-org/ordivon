@@ -2392,5 +2392,138 @@ class ParallelRootVerificationTests(unittest.TestCase):
                                  completed.stderr)
 
 
+class PaperPostgresProvisioningTests(unittest.TestCase):
+    """Exercise the actual provisioning carrier and selected CI shell route.
+
+    Docker/Mise substitutes here are control-plane observations only; actual
+    PostgreSQL and container lifecycle are independently qualified.
+    """
+
+    def test_provisioner_rejects_invalid_inputs_and_never_retries_or_leaks(self):
+        import os
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            trace = root / "trace"
+            docker = root / "docker"
+            docker.write_text(
+                '#!/usr/bin/env bash\n'
+                'printf "%s\\n" "$@" >> "$TRACE"\n'
+                'cat >> "$TRACE"\n'
+                'if [[ "${FAIL_PROVISION:-0}" == 1 ]]; then\n'
+                '  cat "$TRACE" >&2; exit 17\n'
+                'fi\n'
+            )
+            docker.chmod(0o700)
+            token = "b" * 64
+            service = "a" * 64
+            env = {**os.environ, "PATH": str(root) + os.pathsep + os.environ["PATH"],
+                   "TRACE": str(trace), "CI_PAPER_SERVICE_ID": service,
+                   "ORDIVON_CAPITAL_TEST_LEASE": token}
+            cmd = ["bash", "tools/repo/ci_provision_paper_pg.sh"]
+            for key, value in (("CI_PAPER_SERVICE_ID", "other"),
+                               ("ORDIVON_CAPITAL_TEST_LEASE", "bad")):
+                with self.subTest(key=key):
+                    result = subprocess.run(cmd, cwd=ROOT, env=env | {key: value},
+                                            capture_output=True, text=True, timeout=10)
+                    self.assertEqual(result.returncode, 2)
+                    self.assertFalse(trace.exists())
+            result = subprocess.run(cmd, cwd=ROOT, env=env, capture_output=True,
+                                    text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            recorded = trace.read_text()
+            self.assertEqual(recorded.splitlines()[:4], ["exec", "-i", service, "psql"])
+            self.assertIn("--dbname=postgres", recorded)
+            self.assertIn("CREATE DATABASE ordivon_paper TEMPLATE template0;", recorded)
+            self.assertIn(f"ordivon-capital-test:v1:{token}:ordivon_paper", recorded)
+            self.assertLess(recorded.index("CREATE DATABASE"), recorded.index("COMMENT ON DATABASE"))
+            self.assertNotIn("DROP DATABASE", recorded)
+            self.assertNotIn(token, result.stdout + result.stderr)
+            trace.unlink()
+            result = subprocess.run(cmd, cwd=ROOT, env=env | {"FAIL_PROVISION": "1"},
+                                    capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 1)
+            self.assertNotIn(token, result.stdout + result.stderr)
+            self.assertEqual(trace.read_text().splitlines().count("exec"), 1)
+
+    def test_ci_provisions_once_before_consumers_and_routes_same_lease(self):
+        import os
+        import re
+        import yaml
+
+        owners = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())["jobs"]["owner-verification"]
+        service = owners["services"]["paper_postgres"]
+        self.assertEqual(service["env"]["POSTGRES_DB"], "postgres")
+        step = next(row for row in owners["steps"] if row["name"] == "Verify affected owners")
+        self.assertEqual(step["env"]["CI_PAPER_SERVICE_ID"],
+                         "$" + "{{ job.services.paper_postgres.id }}")
+        actual = step["run"]
+        before_loop = actual.split("PYTASKS\n", 1)[1].split("while IFS= read -r task", 1)[0]
+        branch = actual.split("# The selected task must not consume the following queue entries.\n", 1)[1]
+        branch = branch.split('echo "::endgroup::"', 1)[0]
+        # Bind only the provider's concrete port and job identity in the real
+        # shell route; the source/selection gates are tested in their own suite.
+        branch = re.sub(r"\$\{\{ github\.run_id \}\}", "1234", branch)
+        branch = re.sub(r"\$\{\{ job\.services\.paper_postgres\.ports\['5432'\] \}\}", "54321", branch)
+        self.assertNotIn("$" + "{{", branch)
+        script = "set -euo pipefail\n" + before_loop + '\nwhile IFS= read -r task; do\n' + branch + '\ndone < "$RUNNER_TEMP/ordivon-affected-tasks.txt"\n'
+        for tasks, fail in ((["capital:verify", "harness:queue"], False),
+                            (["harness:queue", "capital:verify"], False),
+                            (["harness:queue"], False),
+                            (["game:verify"], False),
+                            (["capital:verify"], True)):
+            with self.subTest(tasks=tasks, fail=fail), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                trace = root / "calls"
+                sql = root / "sql"
+                docker = root / "docker"
+                docker.write_text(
+                    '#!/usr/bin/env bash\nprintf "provision\\n" >> "$TRACE"\n'
+                    'cat > "$SQL"\nif [[ "$FAIL_PROVISION" == 1 ]]; then exit 17; fi\n'
+                )
+                mise = root / "mise"
+                mise.write_text(
+                    '#!/usr/bin/env bash\nprintf "%s|%s|%s|%s|%s\\n" "$*" '
+                    '"${ORDIVON_CAPITAL_TEST_LEASE-}" "${ORDIVON_CAPITAL_PG_TEST_DSN-}" '
+                    '"${ORDIVON_CAPITAL_PAPER_PG_TEST_DSN-}" "${HARNESS_PG_TEST_DSN-}" >> "$TRACE"\n'
+                )
+                for tool in (docker, mise):
+                    tool.chmod(0o700)
+                (root / "ordivon-affected-tasks.txt").write_text("\n".join(tasks) + "\n")
+                env = {**os.environ, "PATH": str(root) + os.pathsep + os.environ["PATH"],
+                       "RUNNER_TEMP": str(root), "TRACE": str(trace), "SQL": str(sql),
+                       "CI_PAPER_SERVICE_ID": "a" * 64, "FAIL_PROVISION": str(int(fail))}
+                for key in ("ORDIVON_CAPITAL_TEST_LEASE", "ORDIVON_CAPITAL_PG_TEST_DSN",
+                            "ORDIVON_CAPITAL_PAPER_PG_TEST_DSN", "HARNESS_PG_TEST_DSN"):
+                    env.pop(key, None)
+                result = subprocess.run(["bash", "-c", script], cwd=ROOT, env=env,
+                                        capture_output=True, text=True, timeout=15)
+                self.assertEqual(result.returncode, int(fail), result.stderr)
+                calls = trace.read_text().splitlines()
+                if tasks == ["game:verify"]:
+                    self.assertEqual(calls, ["run game:verify||||"])
+                    self.assertFalse(sql.exists())
+                    continue
+                self.assertEqual(calls[0], "provision")
+                self.assertEqual(calls.count("provision"), 1)
+                if fail:
+                    self.assertEqual(calls, ["provision"])
+                    continue
+                token = re.search(r"ordivon-capital-test:v1:([0-9a-f]{64}):ordivon_paper", sql.read_text()).group(1)
+                rows = [line.split("|") for line in calls[1:]]
+                for args, lease, general, paper, harness in rows:
+                    if "capital:verify" in args:
+                        self.assertEqual(lease, token)
+                        self.assertTrue(general and general == paper and not harness)
+                    elif "verify:nonlive:nautilus" in args:
+                        self.assertEqual(lease, token)
+                        self.assertTrue(paper and not general and not harness)
+                    else:
+                        self.assertEqual(args, "run harness:queue")
+                        self.assertFalse(lease or general or paper)
+                        self.assertIn("dbname=ordivon_paper", harness)
+                self.assertEqual(len(rows), 3 if "capital:verify" in tasks else 1)
+
+
 if __name__ == "__main__":
     unittest.main()
