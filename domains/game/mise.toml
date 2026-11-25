@@ -30,7 +30,7 @@ run = "python3 scripts/native_scene_acceptance.py --suite dialogue"
 
 [tasks."test:autonomous-study"]
 description = "Native R7 study evaluator/selftest from Game owner"
-run = "uv run --with check-jsonschema==0.38.0 python research/autonomous-interest-r7/protocol_selftest.py"
+run = "uv run --with check-jsonschema==0.39.0 python research/autonomous-interest-r7/protocol_selftest.py"
 
 [tasks."test:human-playtest-protocol"]
 description = "Falsify offline Human-study CSV consent, release digest and UNKNOWN semantics with synthetic temporary fixtures"
@@ -77,7 +77,7 @@ sha256sum "$export_dir/room-encounter.exe" "$export_dir/../room-encounter-window
 
 [tasks."verify:room-smt"]
 description = "Prove signed i64 Godot Room arithmetic model with upstream Z3; native source acceptance is separate"
-run = "uv run --no-project --with z3-solver==4.15.4.0 python3 formal/verify_room_arithmetic.py"
+run = "uv run --no-project --with z3-solver==5.4.1.0 python3 formal/verify_room_arithmetic.py"
 
 # Thin compositions of existing native tasks, not a second execution engine.
 [tasks."factory:validate:godot"]
