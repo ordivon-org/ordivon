@@ -12,6 +12,8 @@ import re
 import subprocess
 from pathlib import Path
 
+from .git_identity import qualify_batch_sizes, verify_object_batch
+
 _OBJECT_ID = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}\Z")
 _MAX_ODPS_BYTES = 2 * 1024 * 1024
 
@@ -78,20 +80,46 @@ def committed_owner_products(repo: Path, revision: str) -> tuple[str, list[bytes
     )
     if _OBJECT_ID.fullmatch(commit) is None:
         raise ValueError("Git source revision did not resolve to an exact commit")
-    tree = _git(repo, "ls-tree", "-r", "-z", "--full-tree", commit)
+    root_tree = (
+        _git(repo, "rev-parse", "--verify", commit + "^{tree}").decode("ascii").strip()
+    )
+    tree = _git(repo, "ls-tree", "-r", "-t", "-z", "--full-tree", commit)
+    tree_ids = {root_tree}
     objects: list[tuple[str, str]] = []
     for entry in tree.split(b"\x00"):
         if not entry:
             continue
         metadata, path = entry.split(b"\t", 1)
+        mode, kind, oid = metadata.decode("ascii").split(" ")
+        if kind == "tree":
+            tree_ids.add(oid)
+            continue
         if not path.endswith(b"/odps.json"):
             continue
-        mode, kind, oid = metadata.decode("ascii").split(" ")
         if mode not in ("100644", "100755") or kind != "blob":
             raise ValueError("ODPS tracked source is not a regular Git blob")
         objects.append((path.decode("utf-8"), oid))
     if not objects:
         raise ValueError("Git commit has no producer-owned ODPS inputs")
+    # Qualify the commit and every distinct tree in the native traversal.
+    # Static corruption can otherwise redirect the listing to a different,
+    # individually valid blob. The repository is assumed quiescent: this is
+    # not an atomic snapshot across separate Git commands.
+    algorithm = _git(repo, "rev-parse", "--show-object-format").decode("ascii").strip()
+    expected = [(commit, "commit"), *((oid, "tree") for oid in sorted(tree_ids))]
+    request = "".join(oid + "\n" for oid, _ in expected).encode("ascii")
+    headers = qualify_batch_sizes(
+        _git(repo, "cat-file", "--batch-check", input_bytes=request),
+        expected,
+        algorithm,
+    )
+    verify_object_batch(
+        _git(repo, "cat-file", "--batch", input_bytes=request),
+        headers,
+        algorithm,
+        commit=commit,
+        root_tree=root_tree,
+    )
     blobs = []
     for _, oid in sorted(objects):
         size = int(_git(repo, "cat-file", "-s", oid).decode("ascii").strip())
