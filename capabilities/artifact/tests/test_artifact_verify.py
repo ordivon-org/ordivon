@@ -2,6 +2,7 @@ import binascii
 import hashlib
 import importlib.util
 import json
+import re
 import struct
 import subprocess
 import tempfile
@@ -23,32 +24,25 @@ def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def historical_game_source_digests(relative_path: str) -> set[str]:
-    """Read retired Game producer bytes from Git, never from an active game.
-
-    A removal commit is not a source revision for the removed path. Limit
-    candidates to revisions where the tracked file was added/modified; the
-    frozen Artifact acceptance receipt remains unchanged and historical.
-    """
+def historical_game_source_digest(relative_path: str, source_revision: str) -> str:
+    """Read exact imported Git bytes without scanning or reviving retired source."""
     relative = Path(relative_path)
     if relative.is_absolute() or ".." in relative.parts or not relative.parts:
         raise ValueError("invalid historical Game source path")
+    if not re.fullmatch(r"[0-9a-f]{40}", source_revision):
+        raise ValueError("historical Game source must use a full Git commit identity")
     source_path = (GAME_ROOT.relative_to(MONOREPO_ROOT) / relative).as_posix()
-    revisions = subprocess.check_output(
-        ["git", "-C", str(MONOREPO_ROOT), "log", "--diff-filter=AM",
-         "--format=%H", "HEAD", "--", source_path],
-        text=True, timeout=25,
-    ).splitlines()
-    if not revisions:
-        raise AssertionError(f"no committed Game source history for {relative_path}")
-    digests = set()
-    for revision in revisions:
+    try:
         source = subprocess.check_output(
-            ["git", "-C", str(MONOREPO_ROOT), "show", f"{revision}:{source_path}"],
-            timeout=15,
+            ["git", "-C", str(MONOREPO_ROOT), "show", f"{source_revision}:{source_path}"],
+            timeout=25,
         )
-        digests.add(hashlib.sha256(source).hexdigest())
-    return digests
+    except subprocess.CalledProcessError as error:
+        raise AssertionError(
+            f"UNKNOWN historical Game source: {source_revision}:{source_path}; "
+            "retrieve the exact Git object before qualification"
+        ) from error
+    return hashlib.sha256(source).hexdigest()
 
 
 def chunk(kind: bytes, payload: bytes) -> bytes:
@@ -473,9 +467,13 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         # Game no longer owns the old Station Zero executable/evidence path.
         # Recheck its exact historical bytes, not a revived active game.
         game_evidence = receipt['gameAcceptance']
-        self.assertIn(
+        # The original consumerRevision belongs to the historical Game
+        # authority; the monorepo import commit preserves its exact bytes.
+        self.assertEqual(
             game_evidence['sha256'],
-            historical_game_source_digests(game_evidence['relativePath']),
+            historical_game_source_digest(
+                game_evidence['relativePath'], '6847ebff6e0ed92b63dda3c2b67f94fb97ee3d70',
+            ),
         )
         self.assertEqual(len(receipt['subjects']),3)
         self.assertTrue(all(x['serviceCandidateStatus']=='PASS' for x in receipt['subjects']))
@@ -579,16 +577,11 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             receipt['producerEvidence']['harness'],
             receipt['producerEvidence']['acceptedReproducibilityBoundary'],
         ):
-            observed=historical_game_source_digests(evidence['relativePath'])
-            if evidence['sha256'] not in observed:
-                self.skipTest(
-                    'UNKNOWN historical Game producer source: '
-                    + evidence['relativePath']
-                    + '; current monorepo has no matching Git bytes, '
-                      'so this archived release cannot be requalified'
-                )
-            self.assertIn(evidence['sha256'], observed)
-            self.assertNotIn('0'*64, observed)
+            observed = historical_game_source_digest(
+                evidence['relativePath'], 'a6b1a0a7c6a6c3ce6fdb5a6ae42259159f1d3c30',
+            )
+            self.assertEqual(observed, evidence['sha256'], evidence['relativePath'])
+
 
     def test_unrouted_profile_fails_closed(self):
         with tempfile.TemporaryDirectory() as d:
