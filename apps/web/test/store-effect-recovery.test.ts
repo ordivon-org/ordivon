@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { WebStore } from "../src/store.ts";
 import { WebProblem } from "../src/errors.ts";
+import { runEffectTransaction } from "../src/store-effect-transaction.ts";
 import { agentId, commit, effect, now, principalId, seed } from "./fixtures/effect-recovery.ts";
 import type { AgentGrantSnapshot } from "../src/model.ts";
 
@@ -186,5 +187,112 @@ test("approved publish cannot commit a missing or already published note", () =>
       assert.deepEqual(store.getAgentGrant(grant.grantId), grant);
       assert.equal(store.db.isTransaction, false);
     }
+  });
+});
+
+test("rollback and close failure before native close cannot expose tentative owner state", () => {
+  withDatabase((path, store, grant) => {
+    const nativeExec = store.db.exec.bind(store.db);
+    const original = new Error("commit before native call");
+    const rollback = new Error("rollback before native call");
+    const close = new Error("close before native call");
+    const historical = commit(store, grant, "quarantine-historical");
+    const current = store.getAgentGrant(grant.grantId);
+    const peer = new WebStore(path);
+    try {
+      Object.defineProperty(store.db, "exec", { configurable: true, value: (sql: string) => {
+        if (sql === "COMMIT") throw original;
+        if (sql === "ROLLBACK") throw rollback;
+        nativeExec(sql);
+      }});
+      Object.defineProperty(store.db, "close", { configurable: true, value: () => { throw close; } });
+      try {
+        assert.throws(() => commit(store, current, "quarantine"), (error: unknown) =>
+          error instanceof AggregateError && error.errors.length === 3 &&
+          error.errors[0] === original && error.errors[1] === rollback && error.errors[2] === close);
+        assert.equal(store.db.isOpen, true);
+        assert.equal(store.db.isTransaction, true);
+        assert.equal(peer.getAgentEffect(effect("quarantine").effectId), null);
+        assert.deepEqual(peer.getAgentGrant(grant.grantId), current);
+        assert.deepEqual(peer.getAgentEffect(effect("quarantine-historical").effectId), historical.receipt);
+
+        const checks: [string, () => unknown][] = [
+          ["receipt", () => store.getAgentEffect(effect("quarantine").effectId)],
+          ["historical replay", () => store.resolveAgentEffectReplay(agentId, effect("quarantine-historical"))],
+          ["grant", () => store.getAgentGrant(grant.grantId)],
+          ["note read", () => store.listCanaryNotes(principalId)],
+          ["note write", () => store.createCanaryNote(principalId, "must not write", now)],
+          ["audit", () => store.audit("test", now, principalId, null, null, {})],
+          ["principal", () => store.getPrincipal(principalId)],
+          ["session read", () => store.listSessions(principalId)],
+          ["challenge write", () => store.createChallenge("login", principalId, "test", now)],
+          ["approval", () => store.effectApproval(principalId, effect("quarantine"), now)],
+          ["effect retry", () => commit(store, current, "quarantine")],
+          ["native coordinator", () => runEffectTransaction(store.db, () => assert.fail("quarantined write callback ran"))],
+        ];
+        for (const [name, operation] of checks) {
+          assert.throws(operation, (error: unknown) =>
+            error instanceof WebProblem && error.status === 503 && error.code === "web-store-recovery-required", name);
+        }
+      } finally {
+        Reflect.deleteProperty(store.db, "exec");
+        Reflect.deleteProperty(store.db, "close");
+      }
+      // Explicit owner shutdown is permitted; no automatic retry of the effect.
+      store.close();
+      assert.equal(store.db.isOpen, false);
+      assert.equal(peer.getAgentEffect(effect("quarantine").effectId), null);
+      assert.deepEqual(peer.getAgentGrant(grant.grantId), current);
+      assert.equal(peer.listCanaryNotes(principalId).length, 1);
+      assert.equal(commit(peer, current, "quarantine").replayed, false);
+      assert.equal(peer.listCanaryNotes(principalId).length, 2);
+      assert.equal(peer.getAgentGrant(grant.grantId).remainingEffects, 0);
+      assert.equal(peer.db.prepare("SELECT count(*) AS n FROM audit_events WHERE event_type = 'agent.effect.committed'").get()?.n, 2);
+    } finally { peer.close(); }
+  });
+});
+
+test("quarantine survives loss of rollback acknowledgement even when native state is idle", () => {
+  withDatabase((path, store, grant) => {
+    const nativeExec = store.db.exec.bind(store.db);
+    const original = new Error("commit failed before native call");
+    const rollback = new Error("rollback acknowledgement lost");
+    const close = new Error("close failed before native call");
+    const peer = new WebStore(path);
+    try {
+      Object.defineProperty(store.db, "exec", { configurable: true, value: (sql: string) => {
+        if (sql === "COMMIT") throw original;
+        nativeExec(sql);
+        if (sql === "ROLLBACK") throw rollback;
+      }});
+      Object.defineProperty(store.db, "close", { configurable: true, value: () => { throw close; } });
+      try {
+        assert.throws(() => commit(store, grant, "idle-quarantine"), (error: unknown) =>
+          error instanceof AggregateError && error.errors[0] === original &&
+          error.errors[1] === rollback && error.errors[2] === close);
+        assert.equal(store.db.isOpen, true);
+        assert.equal(store.db.isTransaction, false);
+        assert.equal(peer.getAgentEffect(effect("idle-quarantine").effectId), null);
+        assert.deepEqual(peer.getAgentGrant(grant.grantId), grant);
+        for (const operation of [
+          () => store.getAgentEffect(effect("idle-quarantine").effectId),
+          () => commit(store, grant, "idle-quarantine"),
+          () => runEffectTransaction(store.db, () => assert.fail("quarantined callback ran")),
+        ]) {
+          assert.throws(operation, (error: unknown) =>
+            error instanceof WebProblem && error.code === "web-store-recovery-required");
+        }
+        // A distinct connection is not contaminated by this local health marker.
+        assert.equal(commit(peer, grant, "idle-quarantine").replayed, false);
+        assertCommitted(peer, grant, "idle-quarantine");
+        assert.throws(() => store.getAgentEffect(effect("idle-quarantine").effectId),
+          (error: unknown) => error instanceof WebProblem && error.code === "web-store-recovery-required");
+      } finally {
+        Reflect.deleteProperty(store.db, "exec");
+        Reflect.deleteProperty(store.db, "close");
+      }
+      store.close();
+      assert.equal(store.db.isOpen, false);
+    } finally { peer.close(); }
   });
 });

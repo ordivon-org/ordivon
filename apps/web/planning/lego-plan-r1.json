@@ -219,6 +219,7 @@
         "src/store.ts",
         "src/store-agent-effects.ts",
         "src/store-effect-transaction.ts",
+        "src/store-connection-health.ts",
         "test/store-effect-lock-contention.test.ts",
         "src/store-effect-approvals.ts",
         "src/store-effect-receipts.ts",
@@ -268,6 +269,7 @@
         "Deterministic two-connection WAL tests cover create/publish exact replay, conflict, stale distinct effects, and before/after-commit acknowledgement injection; no process-crash, lock-wait or distributed delivery proof."
       ],
       "formalObligations": [
+        "A failed rollback quarantines the owner connection before close; normal facade and transaction operations reject without observing tentative state even if native close fails. A new usable connection and explicit observation are required; raw native instrumentation is not an isolation boundary.",
         "Source/transaction behavior does not prove installed WebStore durability, physical provider effects or cross-provider exactly-once."
       ],
       "authority": "Web canary identity/grant/receipt source only, not external provider or Security truth",

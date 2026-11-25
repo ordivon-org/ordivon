@@ -3,6 +3,7 @@ import { DatabaseSync } from "node:sqlite";
 
 import { hashToken } from "./identity-digests.ts";
 import { WebProblem } from "./errors.ts";
+import { requireUsableOwnerConnection } from "./store-connection-health.ts";
 import { AgentGrantStore } from "./store-agent-grants.ts";
 import { SessionStore } from "./store-sessions.ts";
 import { ChallengeStore } from "./store-challenges.ts";
@@ -36,23 +37,36 @@ import type {
 } from "./store-row-projections.ts";
 
 export class WebStore {
+  // Native handle retained for owner lifecycle and native test instrumentation.
+  // Product operations below must go through the health-checked owner accessor.
   readonly db: DatabaseSync;
-  private readonly grants: AgentGrantStore;
-  private readonly sessions: SessionStore;
-  private readonly challenges: ChallengeStore;
-  private readonly receipts: EffectReceiptStore;
-  private readonly approvals: EffectApprovalStore;
-  private readonly effects: AgentEffectStore;
+  private readonly components: {
+    db: DatabaseSync;
+    grants: AgentGrantStore;
+    sessions: SessionStore;
+    challenges: ChallengeStore;
+    receipts: EffectReceiptStore;
+    approvals: EffectApprovalStore;
+    effects: AgentEffectStore;
+  };
 
   constructor(path: string) {
     this.db = new DatabaseSync(path);
     initializeWebStoreSchema(this.db);
-    this.grants = new AgentGrantStore(this.db, (...args) => this.audit(...args));
-    this.challenges = new ChallengeStore(this.db);
-    this.receipts = new EffectReceiptStore(this.db);
-    this.approvals = new EffectApprovalStore(this.db);
-    this.effects = new AgentEffectStore(this.db, this.grants, this.receipts, this.approvals);
-    this.sessions = new SessionStore(this.db, (...args) => this.audit(...args), (id) => this.getPrincipal(id));
+    const grants = new AgentGrantStore(this.db, (...args) => this.audit(...args));
+    const receipts = new EffectReceiptStore(this.db);
+    const approvals = new EffectApprovalStore(this.db);
+    this.components = {
+      db: this.db, grants, receipts, approvals,
+      challenges: new ChallengeStore(this.db),
+      effects: new AgentEffectStore(this.db, grants, receipts, approvals),
+      sessions: new SessionStore(this.db, (...args) => this.audit(...args), (id) => this.getPrincipal(id)),
+    };
+  }
+
+  private get owner(): WebStore["components"] {
+    requireUsableOwnerConnection(this.db);
+    return this.components;
   }
 
   close(): void {
@@ -67,7 +81,7 @@ export class WebStore {
     objectId: string | null,
     detail: unknown,
   ): number | bigint {
-    return insertAuditRow(this.db, {
+    return insertAuditRow(this.owner.db, {
       event_id: randomUUID(), principal_id: principalId, event_type: eventType,
       object_type: objectType, object_id: objectId, detail_json: JSON.stringify(detail),
       created_at: now,
@@ -80,7 +94,7 @@ export class WebStore {
     displayName: string,
     now: number,
   ): Principal {
-    const row = this.db
+    const row = this.owner.db
       .prepare("SELECT * FROM principals WHERE principal_id = ?")
       .get(principalId) as PrincipalRow | undefined;
     if (row !== undefined) {
@@ -94,7 +108,7 @@ export class WebStore {
       }
       return principalFromRow(row);
     }
-    this.db
+    this.owner.db
       .prepare(
         "INSERT INTO principals (principal_id, user_name, display_name, created_at) VALUES (?, ?, ?, ?)",
       )
@@ -104,7 +118,7 @@ export class WebStore {
   }
 
   getPrincipal(principalId: string): Principal {
-    const row = this.db
+    const row = this.owner.db
       .prepare("SELECT * FROM principals WHERE principal_id = ?")
       .get(principalId) as PrincipalRow | undefined;
     if (row === undefined) {
@@ -119,7 +133,7 @@ export class WebStore {
   }
 
   findPrincipalByUserName(userName: string): Principal {
-    const row = this.db
+    const row = this.owner.db
       .prepare("SELECT * FROM principals WHERE user_name = ?")
       .get(userName) as PrincipalRow | undefined;
     if (row === undefined) {
@@ -134,7 +148,7 @@ export class WebStore {
   }
 
   listCredentials(principalId: string): StoredCredential[] {
-    const rows = this.db
+    const rows = this.owner.db
       .prepare(
         "SELECT * FROM webauthn_credentials WHERE principal_id = ? ORDER BY created_at",
       )
@@ -143,7 +157,7 @@ export class WebStore {
   }
 
   getActiveCredential(credentialId: string): StoredCredential {
-    const row = this.db
+    const row = this.owner.db
       .prepare(
         "SELECT * FROM webauthn_credentials WHERE credential_id = ? AND revoked_at IS NULL",
       )
@@ -171,7 +185,7 @@ export class WebStore {
     },
     now: number,
   ): void {
-    this.db
+    this.owner.db
       .prepare(`
         INSERT INTO webauthn_credentials (
           credential_id, principal_id, public_key, counter, transports_json,
@@ -205,7 +219,7 @@ export class WebStore {
     newCounter: number,
     now: number,
   ): void {
-    const result = this.db
+    const result = this.owner.db
       .prepare(`
         UPDATE webauthn_credentials
         SET counter = ?, last_used_at = ?
@@ -230,7 +244,7 @@ export class WebStore {
     ttlSeconds = 120,
     payload: unknown = {},
   ): ChallengeRecord {
-    return this.challenges.createChallenge(purpose, principalId, challenge, now, ttlSeconds, payload);
+    return this.owner.challenges.createChallenge(purpose, principalId, challenge, now, ttlSeconds, payload);
   }
 
   consumeChallenge(
@@ -238,7 +252,7 @@ export class WebStore {
     purpose: ChallengePurpose,
     now: number,
   ): ChallengeRecord {
-    return this.challenges.consumeChallenge(challengeId, purpose, now);
+    return this.owner.challenges.consumeChallenge(challengeId, purpose, now);
   }
 
   createSession(
@@ -248,7 +262,7 @@ export class WebStore {
     absoluteSeconds: number,
     userAgent: string | null,
   ): { token: string; session: SessionView } {
-    return this.sessions.createSession(principalId, now, idleSeconds, absoluteSeconds, userAgent);
+    return this.owner.sessions.createSession(principalId, now, idleSeconds, absoluteSeconds, userAgent);
   }
 
   authenticateSession(
@@ -256,11 +270,11 @@ export class WebStore {
     now: number,
     idleSeconds: number,
   ): AuthenticatedSession {
-    return this.sessions.authenticateSession(token, now, idleSeconds);
+    return this.owner.sessions.authenticateSession(token, now, idleSeconds);
   }
 
   listSessions(principalId: string): SessionView[] {
-    return this.sessions.listSessions(principalId);
+    return this.owner.sessions.listSessions(principalId);
   }
 
   revokeSession(
@@ -268,11 +282,11 @@ export class WebStore {
     sessionId: string,
     now: number,
   ): boolean {
-    return this.sessions.revokeSession(principalId, sessionId, now);
+    return this.owner.sessions.revokeSession(principalId, sessionId, now);
   }
 
   revokeAllSessions(principalId: string, now: number): number {
-    return this.sessions.revokeAllSessions(principalId, now);
+    return this.owner.sessions.revokeAllSessions(principalId, now);
   }
 
   createCanaryNote(
@@ -281,13 +295,13 @@ export class WebStore {
     now: number,
   ): CanaryNote {
     const note = newCanaryDraft(principalId, content, now);
-    insertCanaryDraft(this.db, note);
+    insertCanaryDraft(this.owner.db, note);
     this.audit("canary.note.created", now, principalId, "canary-note", note.noteId, {});
     return note;
   }
 
   listCanaryNotes(principalId: string): CanaryNote[] {
-    return listPrincipalCanaryNotes(this.db, principalId);
+    return listPrincipalCanaryNotes(this.owner.db, principalId);
   }
 
   consumeDpopProof(
@@ -310,12 +324,12 @@ export class WebStore {
       );
     }
     const proofHash = hashToken(proofId);
-    this.db.exec("BEGIN IMMEDIATE");
+    this.owner.db.exec("BEGIN IMMEDIATE");
     try {
-      this.db
+      this.owner.db
         .prepare("DELETE FROM dpop_proofs WHERE expires_at <= ?")
         .run(nowEpochSeconds);
-      const existing = this.db
+      const existing = this.owner.db
         .prepare("SELECT proof_hash FROM dpop_proofs WHERE proof_hash = ?")
         .get(proofHash);
       if (existing !== undefined) {
@@ -326,26 +340,26 @@ export class WebStore {
           "The DPoP proof has already been consumed.",
         );
       }
-      this.db
+      this.owner.db
         .prepare("INSERT INTO dpop_proofs (proof_hash, expires_at) VALUES (?, ?)")
         .run(proofHash, nowEpochSeconds + ttlSeconds);
-      this.db.exec("COMMIT");
+      this.owner.db.exec("COMMIT");
     } catch (error) {
-      this.db.exec("ROLLBACK");
+      this.owner.db.exec("ROLLBACK");
       throw error;
     }
   }
 
   createAgentGrant(input: AgentGrantCreate, now: number): AgentGrantSnapshot {
-    return this.grants.createAgentGrant(input, now);
+    return this.owner.grants.createAgentGrant(input, now);
   }
 
   getAgentGrant(grantId: string): AgentGrantSnapshot {
-    return this.grants.getAgentGrant(grantId);
+    return this.owner.grants.getAgentGrant(grantId);
   }
 
   listAgentGrants(principalId: string): AgentGrantSnapshot[] {
-    return this.grants.listAgentGrants(principalId);
+    return this.owner.grants.listAgentGrants(principalId);
   }
 
   revokeAgentGrant(
@@ -354,7 +368,7 @@ export class WebStore {
     expectedDigest: string,
     now: number,
   ): AgentGrantSnapshot {
-    return this.grants.revokeAgentGrant(principalId, grantId, expectedDigest, now);
+    return this.owner.grants.revokeAgentGrant(principalId, grantId, expectedDigest, now);
   }
 
   resolveAgentGrant(
@@ -364,38 +378,38 @@ export class WebStore {
     resource: string,
     now: number,
   ): AgentGrantSnapshot {
-    return this.grants.resolveAgentGrant(agentId, audience, action, resource, now);
+    return this.owner.grants.resolveAgentGrant(agentId, audience, action, resource, now);
   }
 
   getAgentEffect(effectId: string): AgentEffectReceipt | null {
-    return this.receipts.getAgentEffect(effectId);
+    return this.owner.receipts.getAgentEffect(effectId);
   }
 
   resolveAgentEffectReplay(agentId: string, effect: AgentEffectRequest): AgentEffectReceipt | null {
-    return this.receipts.resolveAgentEffectReplay(agentId, effect);
+    return this.owner.receipts.resolveAgentEffectReplay(agentId, effect);
   }
 
   registerPendingEffectApproval(principalId: string, effect: AgentEffectRequest, now: number, ttlSeconds = 300): void {
-    this.approvals.registerPendingEffectApproval(principalId, effect, now, ttlSeconds);
+    this.owner.approvals.registerPendingEffectApproval(principalId, effect, now, ttlSeconds);
   }
 
   requirePendingEffectApproval(principalId: string, effectId: string, now: number): { effectId: string; effectDigest: string } {
-    return this.approvals.requirePendingEffectApproval(principalId, effectId, now);
+    return this.owner.approvals.requirePendingEffectApproval(principalId, effectId, now);
   }
 
   putEffectApproval(principalId: string, credentialId: string, effectId: string, effectDigest: string, now: number, ttlSeconds = 120): void {
-    this.approvals.putEffectApproval(principalId, credentialId, effectId, effectDigest, now, ttlSeconds);
+    this.owner.approvals.putEffectApproval(principalId, credentialId, effectId, effectDigest, now, ttlSeconds);
   }
 
   effectApproval(principalId: string, effect: AgentEffectRequest, now: number): ReturnType<EffectApprovalStore["effectApproval"]> {
-    return this.approvals.effectApproval(principalId, effect, now);
+    return this.owner.approvals.effectApproval(principalId, effect, now);
   }
 
   commitAgentCanaryCreate(grant: AgentGrantSnapshot, agentId: string, effect: AgentEffectRequest, content: string, now: number): { receipt: AgentEffectReceipt; replayed: boolean } {
-    return this.effects.commitAgentCanaryCreate(grant, agentId, effect, content, now);
+    return this.owner.effects.commitAgentCanaryCreate(grant, agentId, effect, content, now);
   }
 
   commitAgentCanaryPublish(grant: AgentGrantSnapshot, agentId: string, effect: AgentEffectRequest, noteId: string, now: number): { receipt: AgentEffectReceipt; replayed: boolean } {
-    return this.effects.commitAgentCanaryPublish(grant, agentId, effect, noteId, now);
+    return this.owner.effects.commitAgentCanaryPublish(grant, agentId, effect, noteId, now);
   }
 }

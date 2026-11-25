@@ -1,6 +1,7 @@
 /** Native SQLite write boundary. Business identity, replay and policy remain with the caller. */
 import type { DatabaseSync } from "node:sqlite";
 import { WebProblem } from "./errors.ts";
+import { quarantineOwnerConnection, requireUsableOwnerConnection } from "./store-connection-health.ts";
 
 // SQLite primary result code SQLITE_BUSY (5); extended BUSY results share
 // that low byte. Never classify a message string or a later COMMIT failure.
@@ -13,6 +14,7 @@ function isNativeBusy(error: unknown): boolean {
 }
 
 export function requireIdleEffectConnection(db: DatabaseSync): void {
+  requireUsableOwnerConnection(db);
   if (db.isTransaction) {
     throw new WebProblem(500, "effect-transaction-active", "Effect transaction unavailable",
       "The local Effect coordinator requires an idle owner connection.");
@@ -41,6 +43,8 @@ export function runEffectTransaction<T>(db: DatabaseSync, write: () => T): T {
       try {
         db.exec("ROLLBACK");
       } catch (rollbackError) {
+        // Mark before close: close itself may fail while the transaction is live.
+        quarantineOwnerConnection(db);
         const failures = [error, rollbackError];
         try {
           db.close();
