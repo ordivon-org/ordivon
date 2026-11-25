@@ -389,6 +389,7 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                           release_binding_override: dict | None = None,
                           later_job_activity: bool = False,
                           inspect_release_subjects: bool = False,
+                          real_process_observation: bool = False,
                           integration_ref: str = "refs/remotes/origin/main"):
         import argparse
         from unittest.mock import patch
@@ -480,6 +481,9 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                 1 if job_case == "active" else 0,
             )
         }
+        observe_processes = mod._active_process_paths if real_process_observation else (
+            lambda _: process_cwd_after_get.copy()
+        )
         with (
             patch.object(mod, "WORKSPACE_ROOT", self.workspaces.resolve()),
             patch.object(
@@ -492,7 +496,7 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                 if later_job_activity else lambda *_: job_rows
             )),
             patch.object(mod, "_active_process_paths",
-                         side_effect=lambda _: process_cwd_after_get.copy()),
+                         side_effect=observe_processes),
             patch.object(mod.time, "time", return_value=future_ms / 1000),
             patch.object(mod, "connect_compatible", return_value=client),
         ):
@@ -1027,6 +1031,18 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
         self.assertEqual(report["closed"], [])
         self.assertEqual(report["skipped"].get("ignored_files_at_close"), 1)
         self.assertTrue((self.workspace / "ignored-cache" / "result").exists())
+
+    def test_real_external_file_consumer_blocks_reclamation_decision(self):
+        # Real file descriptor, native /proc and Git worktree; only PG/close
+        # transport is isolated by the existing operator-plan fixture.
+        with (self.workspace / "new-work").open("rb"):
+            report, client = self.run_operator_plan(
+                allow=True, apply=True, real_process_observation=True,
+            )
+        self.assertEqual(client.calls, [])
+        self.assertEqual(report["closed"], [])
+        self.assertEqual(report["skipped"].get("process_path_active"), 1)
+        self.assertTrue(self.workspace.exists())
 
     def test_process_enters_workspace_after_scan_and_prevents_close(self):
         report, client = self.run_operator_plan(
