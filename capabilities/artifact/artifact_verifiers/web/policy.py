@@ -25,6 +25,14 @@ def assess_browser_report(
         or output.get("status") != report.get("status")
     ):
         issues.append("browser report transport or subject identity is unqualified")
+    provider = report.get("provider")
+    oci = isinstance(provider, dict) and provider.get("kind") == "podman-oci"
+    if oci and (
+        report.get("methodBound") is not True
+        or provider.get("inputSnapshotSha256") != subject_sha256
+        or output.get("tooling") != provider.get("expectedTooling")
+    ):
+        issues.append("OCI method or staged subject identity is unqualified")
     browsers = output.get("browsers")
     if not isinstance(browsers, dict):
         issues.append("browser results are absent or malformed")
@@ -37,6 +45,17 @@ def assess_browser_report(
         name = item["name"]
         if name in by_name or key != name.lower():
             issues.append(f"ambiguous browser identity: {name}")
+        if (
+            oci
+            and item.get("status") == "PASS"
+            and not (
+                all(isinstance(item.get(k), str) and item[k] for k in ("version", "executable"))
+                and isinstance(item.get("title"), str)
+                and type(item.get("headingCount")) is int
+                and item["headingCount"] >= 0
+            )
+        ):
+            issues.append(f"incomplete native engine observation: {name}")
         by_name[name] = item
     required = []
     for item in [profile.get("targetRenderer", {}), *profile.get("secondaryRenderers", [])]:
@@ -52,6 +71,15 @@ def assess_browser_report(
         or type(accessibility.get("violationCount")) is not int
         or accessibility["violationCount"] < 0
         or (accessibility["status"] == "PASS") != (accessibility["violationCount"] == 0)
+    ):
+        accessibility = {}
+    if (
+        oci
+        and accessibility
+        and (
+            not isinstance(accessibility.get("violations"), list)
+            or len(accessibility["violations"]) != accessibility["violationCount"]
+        )
     ):
         accessibility = {}
     # Engine launch/load errors are operational observations, not independent
