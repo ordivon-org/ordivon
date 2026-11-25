@@ -59,3 +59,30 @@ References: https://nexte.st/docs/machine-readable/list/
 https://nexte.st/docs/machine-readable/junit/
 https://nexte.st/docs/features/retries/
 https://nexte.st/docs/design/why-process-per-test/
+
+## R19: make the native environment correct by construction
+
+The initial strict run executed 33 tests, with 25 PASS and 8 failures.
+Six had no host-visible Runner selection and shared a cross-mount
+execution failure. Replace the optional switch with the existing
+private byte-verified Runner copy in every native endpoint Fixture.
+Keep deliberate negative launch and security cases unchanged.
+Ordinary MCP exact catalog identity excludes the finalizer-only
+claim.release and unqualified release.apply; do not change production
+authorization merely to satisfy a stale assertion.
+
+Materialize the actual Harness source lock with the existing uv sync
+--locked --no-editable --group test in the suite's private environment;
+bind HARNESS_PG_PYTHON explicitly, validate original issuer imports and
+lock identity. No implicit system Python or shared project environment.
+
+Make native Nextest inherited-handle leaks fail instead of pass.
+This is not a proof that independently launched systemd units are gone.
+External-resource acceptance needs exact Fixture identity, private PG
+Attempt identity, native Unit carrier and physical state. A retained
+failed Unit may be required by the LOST test until its terminal PG
+commit: do not change production CollectMode or reset prematurely.
+After preserving evidence, only exact test-owned dead Units can be
+released, never a broad systemctl reset. Unknown, live or foreign
+ownership must block retirement. Separate panic-safe Fixture cleanup
+and SIGKILL recovery proof remain explicit obligations.

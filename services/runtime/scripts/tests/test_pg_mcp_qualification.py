@@ -77,7 +77,9 @@ class NativeEvidence(unittest.TestCase):
     def test_production_connection_and_filter_environment_removed(self):
         env = consumer_environment({"PATH": "/bin", "PGHOST": "prod", "PGOPTIONS": "secret",
                                     "ORDIVON_PG_TEST_DSN": "prod", "ORDIVON_PG_STAGE_TEST_DSN": "stage",
-                                    "NEXTEST_RETRIES": "5", "NEXTEST_FILTERSET": "none()"})
+                                    "NEXTEST_RETRIES": "5", "NEXTEST_FILTERSET": "none()",
+                                    "HARNESS_PG_PYTHON": "/unqualified/python", "UV_PROJECT_ENVIRONMENT": "/foreign/venv",
+                                    "VIRTUAL_ENV": "/foreign", "PYTHONPATH": "/foreign/src"})
         self.assertEqual(env, {"PATH": "/bin"})
 
 

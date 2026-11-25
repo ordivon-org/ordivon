@@ -81,9 +81,38 @@ def consumer_environment(original: dict[str, str]) -> dict[str, str]:
     for name in list(env):
         if name.startswith(("PG", "NEXTEST_")) or name in {
             "ORDIVON_PG_TEST_DSN", "ORDIVON_PG_STAGE_TEST_DSN",
+            "HARNESS_PG_PYTHON", "VIRTUAL_ENV", "PYTHONHOME", "PYTHONPATH",
+            "UV_PROJECT_ENVIRONMENT", "UV_PROJECT", "UV_PYTHON", "UV_NO_SYNC",
+            "UV_NO_DEFAULT_GROUPS", "UV_NO_DEV", "UV_FROZEN", "UV_NO_EDITABLE",
         }:
             env.pop(name)
     return env
+
+
+def prepare_harness_python(root: Path, env: dict[str, str]) -> str:
+    """Materialize the actual source-cut Harness lock in a private environment."""
+    harness = ROOT.parent / "harness"
+    lock = harness / "uv.lock"
+    digest = hashlib.sha256(lock.read_bytes()).hexdigest()
+    fixture_env = dict(env, UV_PROJECT_ENVIRONMENT=str(root / "harness-venv"))
+    subprocess.run(
+        ["uv", "sync", "--locked", "--no-editable", "--group", "test"],
+        cwd=harness, env=fixture_env, check=True, timeout=400,
+    )
+    python = str(root / "harness-venv" / "bin" / "python")
+    subprocess.run(
+        [python, "-c", "import jsonschema, psycopg, pytest; import sys; print(sys.version)"],
+        cwd=harness, env=fixture_env, check=True, timeout=30,
+    )
+    subprocess.run(
+        [python, "tests/original_pg_issuer_native_fixture.py", "--help"],
+        cwd=harness, env=dict(fixture_env, PYTHONPATH=f"{harness / 'src'}:{harness}"),
+        check=True, timeout=30, stdout=subprocess.DEVNULL,
+    )
+    if hashlib.sha256(lock.read_bytes()).hexdigest() != digest:
+        raise RuntimeError("Harness lock changed during environment preparation")
+    print(f"HARNESS_UV_LOCK_SHA256={digest}", flush=True)
+    return python
 
 
 def main() -> int:
@@ -117,12 +146,14 @@ def main() -> int:
     ], cwd=ROOT, env=env, check=True, timeout=400)
     with tempfile.TemporaryDirectory(prefix="ordivon-mcp-nextest-", dir="/var/tmp") as temp:
         base = Path(temp)
+        env["HARNESS_PG_PYTHON"] = prepare_harness_python(base, env)
         config = base / "nextest.toml"
         # Private native report store, never reuse a shared old report.
         config.write_text(
             (ROOT / ".config/nextest.toml").read_text()
             + '\n[store]\ndir = ' + json.dumps(str(base / "store"))
-            + '\n[profile.native-mcp.junit]\npath = "junit.xml"\nreport-skipped = "none"\n',
+            + '\n[profile.native-mcp]\nleak-timeout = { period = "500ms", result = "fail" }\n'
+            + '[profile.native-mcp.junit]\npath = "junit.xml"\nreport-skipped = "none"\n',
             encoding="utf-8",
         )
         common = ["--config-file", str(config), "--user-config-file", "none"]
