@@ -1,6 +1,7 @@
 mod logic;
 mod matching;
 mod native_discovery;
+mod owner_credential;
 mod owner_observation;
 use logic::{
     DescriptionInput, parse_execution_ref, system_describe, valid_status_envelope,
@@ -138,13 +139,38 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             ).await;
             println!("{}", serde_json::to_string(&observation)?);
         }
-        Some("discover-runtime-fixture") => {
+        Some("observe-protected-runtime-fixture") => {
+            let endpoint = args.next().ok_or("fixture endpoint required")?;
+            let node = args.next().ok_or("expected fixture node required")?;
+            let credential = args.next().ok_or("fixture credential path required")?;
+            let legacy = match args.next().as_deref() {
+                None | Some("auto") => false,
+                Some("legacy") => true,
+                _ => return Err("unexpected fixture mode".into()),
+            };
+            if args.next().is_some() {
+                return Err("unexpected arguments".into());
+            }
+            let observation = owner_observation::observe_protected_runtime(
+                &endpoint, &node, std::path::Path::new(&credential),
+                std::time::Duration::from_secs(3), legacy,
+            ).await;
+            println!("{}", serde_json::to_string(&observation)?);
+        }
+        Some(mode @ ("discover-runtime-fixture" | "discover-protected-runtime-fixture")) => {
             let path = args.next().ok_or("fixture path required")?;
             let endpoint = args.next().ok_or("fixture endpoint required")?;
             let node = args.next().ok_or("fixture node required")?;
+            let credential = if mode == "discover-protected-runtime-fixture" {
+                Some(args.next().ok_or("fixture credential path required")?)
+            } else {
+                None
+            };
             if args.next().is_some() { return Err("unexpected arguments".into()); }
             let fixture = serde_json::from_slice(&std::fs::read(path)?)?;
-            let discovery = native_discovery::discover_runtime_fixture(fixture, &endpoint, &node).await?;
+            let discovery = native_discovery::discover_runtime_fixture(
+                fixture, &endpoint, &node, credential.as_deref().map(std::path::Path::new),
+            ).await?;
             println!("{}", serde_json::to_string(&discovery)?);
         }
         Some("serve") => {
@@ -170,7 +196,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", listener.local_addr()?);
             axum::serve(listener, app).await?;
         }
-        _ => return Err("expected eval, casefold-digest, observe-runtime-fixture <endpoint> <node>, or serve <fixture>".into()),
+        _ => return Err("expected eval, casefold-digest, observe-runtime-fixture, observe-protected-runtime-fixture, discover-runtime-fixture, discover-protected-runtime-fixture, or serve <fixture>".into()),
     }
     Ok(())
 }

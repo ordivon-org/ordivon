@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
+import secrets
 import socket
 import tempfile
 from dataclasses import asdict
@@ -12,6 +14,7 @@ from typing import Any
 
 import uvicorn
 from mcp.server import MCPServer
+from starlette.responses import PlainTextResponse, RedirectResponse
 
 from ordivon_gateway.logic.routing import default_routes
 
@@ -23,10 +26,14 @@ async def observe_fixture(
     legacy: bool = False,
     query: str | None = None,
     include: bool = False,
+    credential_case: str | None = None,
 ) -> dict:
     server = MCPServer("runtime-readonly-fixture")
     calls: list[int] = []
     wire: list[dict] = []
+    requests: list[str] = []
+    authenticated: list[bool] = []
+    bearer = secrets.token_urlsafe(32)
 
     @server.tool(name="runtime.describe", structured_output=case != "text")
     async def runtime_describe(schemaVersion: int = 1) -> dict[str, Any]:
@@ -66,6 +73,20 @@ async def observe_fixture(
     )
 
     async def capture(scope, receive, send):
+        if scope["type"] == "http" and credential_case is not None:
+            requests.append(scope["path"])
+            # Do not store the received header or token, only the comparison.
+            ok = secrets.compare_digest(
+                dict(scope["headers"]).get(b"authorization", b""),
+                ("Bearer " + bearer).encode("ascii"),
+            )
+            authenticated.append(ok)
+            if not ok:
+                await PlainTextResponse("denied", status_code=401)(scope, receive, send)
+                return
+            if credential_case == "redirect":
+                await RedirectResponse("/sink", status_code=307)(scope, receive, send)
+                return
         if scope["type"] == "http" and scope.get("method") == "POST":
             chunks = []
 
@@ -94,14 +115,41 @@ async def observe_fixture(
                 await asyncio.sleep(0.02)
             assert uv.started
             with tempfile.TemporaryDirectory(prefix="native-discovery-") as tmp:
-                if query is None:
+                if credential_case is not None:
+                    credential = Path(tmp) / "bearer"
+                    if credential_case != "missing":
+                        if credential_case == "fifo":
+                            os.mkfifo(credential, 0o600)
+                        elif credential_case == "symlink":
+                            target = Path(tmp) / "target"
+                            target.write_text(bearer, encoding="ascii")
+                            target.chmod(0o600)
+                            credential.symlink_to(target)
+                        else:
+                            data = {
+                                "wrong": "wrong-token",
+                                "oversize_file": "a" * 16385,
+                                "malformed": "two tokens",
+                                "nonascii": "é",
+                                "empty": "",
+                            }.get(credential_case, bearer + "\n")
+                            credential.write_text(data, encoding="utf-8")
+                            credential.chmod(0o644 if credential_case == "public" else 0o600)
+                    args = [
+                        "observe-protected-runtime-fixture",
+                        endpoint,
+                        "fixture-linux",
+                        str(credential),
+                        "legacy" if legacy else "auto",
+                    ]
+                elif query is None:
                     args = [
                         "observe-runtime-fixture",
                         endpoint,
                         "fixture-linux",
                         "legacy" if legacy else "auto",
                     ]
-                else:
+                if query is not None:
                     route = asdict(default_routes()["execution.linux"])
                     metadata = {
                         key: route[key]
@@ -120,6 +168,9 @@ async def observe_fixture(
                         encoding="utf-8",
                     )
                     args = ["discover-runtime-fixture", str(path), endpoint, "fixture-linux"]
+                    if credential_case is not None:
+                        args[0] = "discover-protected-runtime-fixture"
+                        args.append(str(credential))
                 proc = await asyncio.create_subprocess_exec(
                     str(binary),
                     *args,
@@ -133,11 +184,33 @@ async def observe_fixture(
                         proc.kill()
                         await proc.wait()
                 assert proc.returncode == 0, err.decode()
+                assert bearer.encode() not in out and bearer.encode() not in err
                 result = json.loads(out)
-            tool_calls = [item for item in wire if item.get("method") == "tools/call"]
             if query == "zz-no-such-route-xyz":
-                assert wire == [] and calls == [], (wire, calls)
+                assert not requests and not wire and not calls
                 return result
+            if credential_case in {
+                "missing",
+                "public",
+                "symlink",
+                "fifo",
+                "oversize_file",
+                "malformed",
+                "nonascii",
+                "empty",
+            }:
+                assert not requests and not wire and not calls
+                return result
+            if credential_case == "wrong":
+                assert requests and not any(authenticated) and not wire and not calls
+                return result
+            if credential_case == "redirect":
+                assert requests and all(authenticated)
+                assert set(requests) == {"/mcp"} and not wire and not calls
+                return result
+            if credential_case is not None:
+                assert requests and all(authenticated) and set(requests) == {"/mcp"}
+            tool_calls = [item for item in wire if item.get("method") == "tools/call"]
             assert len(tool_calls) == 1, (case, wire)
             assert tool_calls[0]["params"]["name"] == "runtime.describe"
             assert tool_calls[0]["params"]["arguments"] == {"schemaVersion": 1}
@@ -196,3 +269,62 @@ async def qualify_owner(binary: Path) -> None:
     result = await observe_fixture(binary, "true", query="zz-no-such-route-xyz")
     assert result == {"projection": empty, "observation": None}, result
     print("NATIVE_DISCOVERY_ZERO_RPC_PASS", result, flush=True)
+
+    for credential_case in (
+        "valid",
+        "wrong",
+        "missing",
+        "public",
+        "symlink",
+        "fifo",
+        "oversize_file",
+        "malformed",
+        "nonascii",
+        "empty",
+        "redirect",
+    ):
+        observed = await observe_fixture(binary, "true", credential_case=credential_case)
+        if credential_case == "valid":
+            assert observed == expected["true"], observed
+        elif credential_case in {"wrong", "redirect"}:
+            assert observed["standing"] == "unobserved", observed
+        else:
+            assert observed == {
+                "standing": "unobserved",
+                "reason": "unqualified_fixture_credential",
+            }, observed
+        print("NATIVE_PROTECTED_OWNER_PASS", credential_case, observed, flush=True)
+    observed = await observe_fixture(binary, "true", legacy=True, credential_case="valid")
+    assert observed == expected["true"], observed
+    print("NATIVE_PROTECTED_OWNER_LEGACY_PASS", observed, flush=True)
+
+    for case, credential_case, query, expected_projection, expected_observation in (
+        ("true", "valid", "execution.linux", match, expected["true"]),
+        ("false", "valid", "execution.linux", empty, expected["false"]),
+        (
+            "true",
+            "wrong",
+            "execution.linux",
+            match,
+            {"standing": "unobserved", "reason": "negotiation_failed"},
+        ),
+        (
+            "true",
+            "missing",
+            "execution.linux",
+            match,
+            {"standing": "unobserved", "reason": "unqualified_fixture_credential"},
+        ),
+        ("true", "fifo", "zz-no-such-route-xyz", empty, None),
+    ):
+        observed = await observe_fixture(
+            binary,
+            case,
+            query=query,
+            credential_case=credential_case,
+        )
+        assert observed == {
+            "projection": expected_projection,
+            "observation": expected_observation,
+        }, observed
+        print("NATIVE_PROTECTED_DISCOVERY_PASS", case, credential_case, query, observed, flush=True)

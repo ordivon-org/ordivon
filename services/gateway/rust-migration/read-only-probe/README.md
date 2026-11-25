@@ -99,3 +99,46 @@ sort. qualify_owner.py covers five composition scenarios, including a zero-RPC
 miss. The optional local debug benchmark uses seven alternating samples at
 19 and 1,900 synthetic metadata rows; it is not a timing gate or a production
 end-to-end benchmark.
+
+## R13 protected read-only composition (Host #32753)
+
+The independent fixture now exercises an authenticated client boundary, not
+an authorization service. Operator-only commands:
+
+    observe-protected-runtime-fixture <endpoint> <node> <credential-file> [auto|legacy]
+    discover-protected-runtime-fixture <query-fixture> <endpoint> <node> <credential-file>
+
+The original unauthenticated fixture remains for R11/R12 comparisons. Protected
+commands never fall back to it. Endpoint qualification precedes credential
+loading; a lexical miss skips credential loading and network observation.
+The file adapter requires an absolute POSIX regular file with no group/world
+permissions, uses O_NOFOLLOW and O_NONBLOCK, checks the same open descriptor
+before/after a bounded 16 KiB read, and accepts RFC 6750 bearer syntax after
+trimming ASCII surrounding whitespace. The credential directory is operator
+trusted; this is not a sandbox, memory-zeroization proof, Windows ACL proof,
+or acceptance of the full systemd credential permission contract. The token
+is not a public tool argument; only a file path enters CLI arguments. The
+fixture generates ephemeral synthetic credentials, never a production token.
+
+rmcp owns the bearer header and protocol lifecycle; reqwest disables proxies,
+redirects and HTTP retries. The network observation has the existing 3s
+deadline and 1 MiB response bound; filesystem access is not part of the
+network deadline. HTTP loopback here is only the isolated test carrier, not
+an RFC6750 production TLS qualification. No Owner authentication grant,
+Security PDP, public schema or installation is changed.
+
+The independent Python MCP fixture rejects wrong credentials before business
+dispatch. Tests assert zero network for invalid local credentials, zero
+redirect-target request, exactly one business read when qualified, and no
+synthetic token in subprocess stdout/stderr. Five additional composed
+discovery cases cover positive/negative status, invalid authentication,
+missing credential, and lexical miss. An authentication failure is
+Unobserved, never proof of physical unavailability. Actual protected natural
+Runtime, issuer/deployment identity, TLS or equivalent transport security,
+Windows and systemd service credential acceptance remain separate gates.
+
+References:
+- https://systemd.io/CREDENTIALS/
+- https://www.rfc-editor.org/info/rfc6750/
+- https://docs.rs/rmcp/latest/rmcp/transport/streamable_http_client/struct.StreamableHttpClientTransportConfig.html
+- https://github.com/modelcontextprotocol/rust-sdk/security/advisories/GHSA-9g45-5xwm-f3wc

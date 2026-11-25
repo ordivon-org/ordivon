@@ -2,10 +2,10 @@
 //! qualification carrier. No public route, grant, status cache or effect.
 use crate::{
     matching::{RuntimeSearchFixture, RuntimeSearchPlan, SearchResult},
-    owner_observation::{Observation, observe_runtime},
+    owner_observation::{Observation, observe_protected_runtime, observe_runtime},
 };
 use serde::Serialize;
-use std::time::Duration;
+use std::{path::Path, time::Duration};
 
 #[derive(Serialize)]
 pub struct Discovery {
@@ -17,10 +17,17 @@ pub async fn discover_runtime_fixture(
     fixture: RuntimeSearchFixture,
     endpoint: &str,
     expected_node: &str,
+    credential: Option<&Path>,
 ) -> Result<Discovery, &'static str> {
     let plan = RuntimeSearchPlan::new(fixture)?;
     let observation = if plan.requires_observation() {
-        Some(observe_runtime(endpoint, expected_node, Duration::from_secs(3), false).await)
+        let budget = Duration::from_secs(3);
+        Some(match credential {
+            Some(path) => {
+                observe_protected_runtime(endpoint, expected_node, path, budget, false).await
+            }
+            None => observe_runtime(endpoint, expected_node, budget, false).await,
+        })
     } else {
         None
     };

@@ -2,6 +2,7 @@
 //! The fixture endpoint is operator-selected, never a public tool argument.
 
 use crate::logic::{valid_status_envelope, valid_target_inventory};
+use crate::owner_credential::read_fixture_bearer;
 use rmcp::{
     ClientLifecycleMode, ClientServiceExt,
     model::{CallToolRequestParams, CallToolResult, ClientConfig, ProtocolVersion},
@@ -11,7 +12,7 @@ use rmcp::{
 };
 use serde::Serialize;
 use serde_json::json;
-use std::time::Duration;
+use std::{path::Path, time::Duration};
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
 #[serde(tag = "standing", rename_all = "snake_case")]
@@ -80,6 +81,33 @@ pub async fn observe_runtime(
     let Some(url) = fixture_endpoint(endpoint) else {
         return unknown("unqualified_fixture_endpoint");
     };
+    observe_endpoint(url, expected_node, budget, legacy, None).await
+}
+
+pub async fn observe_protected_runtime(
+    endpoint: &str,
+    expected_node: &str,
+    credential: &Path,
+    budget: Duration,
+    legacy: bool,
+) -> Observation {
+    // Qualify route before opening a secret. No anonymous fallback.
+    let Some(url) = fixture_endpoint(endpoint) else {
+        return unknown("unqualified_fixture_endpoint");
+    };
+    let Ok(token) = read_fixture_bearer(credential) else {
+        return unknown("unqualified_fixture_credential");
+    };
+    observe_endpoint(url, expected_node, budget, legacy, Some(token)).await
+}
+
+async fn observe_endpoint(
+    url: reqwest::Url,
+    expected_node: &str,
+    budget: Duration,
+    legacy: bool,
+    bearer: Option<String>,
+) -> Observation {
     let observed = tokio::time::timeout(budget, async {
         let Ok(http) = reqwest::Client::builder()
             .no_proxy()
@@ -91,6 +119,9 @@ pub async fn observe_runtime(
             return unknown("client_configuration");
         };
         let mut config = StreamableHttpClientTransportConfig::with_uri(url.as_str());
+        if let Some(token) = bearer {
+            config = config.auth_header(token);
+        }
         config.max_json_response_size = 1024 * 1024;
         config.max_sse_event_size = 1024 * 1024;
         config.max_error_response_size = 0;
