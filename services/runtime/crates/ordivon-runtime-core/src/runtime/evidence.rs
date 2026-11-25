@@ -7,9 +7,9 @@ use super::{
     RuntimeErrorCode, RuntimeResult, TerminalCommit,
 };
 use crate::universal::{
-    open_directory_nofollow, open_regular_file_beneath, sha256_bytes, sha256_file,
-    write_bytes_atomic, CapturedOutput, RunnerRequest, RunnerResourceReceipt, RunnerResult,
-    RunnerTerminalStatus, RESOURCE_RECEIPT_FILE, RESOURCE_RECEIPT_PROVIDER_LINUX_CGROUP_V2,
+    open_directory_nofollow, open_regular_file_beneath, sha256_bytes, write_bytes_atomic,
+    CapturedOutput, RunnerRequest, RunnerResourceReceipt, RunnerResult, RunnerTerminalStatus,
+    RESOURCE_RECEIPT_FILE, RESOURCE_RECEIPT_PROVIDER_LINUX_CGROUP_V2,
     RESOURCE_RECEIPT_SCHEMA_VERSION, RESOURCE_RECEIPT_SCOPE_ATTEMPT_CGROUP,
     UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
@@ -501,18 +501,7 @@ fn validate_captured_output(
     };
     let sealed_path = bundle.join(sealed_name);
     match fs::symlink_metadata(&sealed_path) {
-        Ok(metadata) if metadata.file_type().is_file() => {
-            if fs::read(&sealed_path).map_err(|error| io_error("read sealed output", error))?
-                != bytes
-            {
-                return Err(RuntimeError::new(
-                    RuntimeErrorCode::ArtifactIdentityConflict,
-                    "Existing sealed Artifact bytes differ from Runner commitment",
-                    Some("artifact"),
-                    false,
-                ));
-            }
-        }
+        Ok(metadata) if metadata.file_type().is_file() => {}
         Ok(_) => {
             return Err(RuntimeError::new(
                 RuntimeErrorCode::ArtifactIdentityConflict,
@@ -528,19 +517,7 @@ fn validate_captured_output(
     }
     // A concurrent publisher can only certify exactly the same bytes.
     // Never register a temporary, partial or different file as immutable.
-    if sha256_file(&sealed_path).map_err(map_universal_error)? != digest
-        || fs::metadata(&sealed_path)
-            .map_err(|error| io_error("inspect sealed output", error))?
-            .len()
-            != bytes.len() as u64
-    {
-        return Err(RuntimeError::new(
-            RuntimeErrorCode::ArtifactIdentityConflict,
-            "Sealed Artifact bytes differ from Runner commitment",
-            Some("artifact"),
-            false,
-        ));
-    }
+    validate_sealed_output(bundle, sealed_name, &bytes)?;
     Ok(ArtifactRegistration {
         artifact_id: expected_id,
         kind: expected_kind.to_string(),
@@ -550,6 +527,85 @@ fn validate_captured_output(
         byte_length: bytes.len() as u64,
         truncated: output.truncated,
     })
+}
+
+// Validate the opened seal, not merely equal bytes observed at a pathname.
+// A preexisting hard link can alias the Runner's still-mutable preview.
+fn validate_sealed_output(bundle: &Path, name: &str, expected: &[u8]) -> RuntimeResult<()> {
+    use std::io::Read;
+    let conflict = || {
+        RuntimeError::new(
+            RuntimeErrorCode::ArtifactIdentityConflict,
+            "Sealed Artifact is aliased or differs from Runner commitment",
+            Some("artifact"),
+            false,
+        )
+    };
+    #[cfg(unix)]
+    let mut file = {
+        let root = open_directory_nofollow(bundle)
+            .map_err(|error| io_error("open Attempt bundle", error))?;
+        open_regular_file_beneath(&root, Path::new(name), true)
+            .map_err(|error| io_error("open sealed output", error))?
+    };
+    #[cfg(windows)]
+    let mut file = {
+        use std::os::windows::fs::OpenOptionsExt;
+        use windows_sys::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT;
+        fs::OpenOptions::new()
+            .read(true)
+            .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT)
+            .open(bundle.join(name))
+            .map_err(|error| io_error("open sealed output", error))?
+    };
+    #[cfg(not(any(unix, windows)))]
+    let mut file =
+        fs::File::open(bundle.join(name)).map_err(|error| io_error("open sealed output", error))?;
+    let single_regular_file = |file: &fs::File| -> RuntimeResult<bool> {
+        let metadata = file
+            .metadata()
+            .map_err(|error| io_error("inspect sealed output", error))?;
+        if !metadata.is_file() {
+            return Ok(false);
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            Ok(metadata.nlink() == 1)
+        }
+        #[cfg(windows)]
+        {
+            use std::os::windows::io::AsRawHandle;
+            use windows_sys::Win32::Storage::FileSystem::{
+                GetFileInformationByHandle, BY_HANDLE_FILE_INFORMATION,
+                FILE_ATTRIBUTE_REPARSE_POINT,
+            };
+            // SAFETY: a live file handle and writable POD output structure.
+            let mut info: BY_HANDLE_FILE_INFORMATION = unsafe { std::mem::zeroed() };
+            if unsafe { GetFileInformationByHandle(file.as_raw_handle() as _, &mut info) } == 0 {
+                return Err(io_error(
+                    "inspect sealed output links",
+                    std::io::Error::last_os_error(),
+                ));
+            }
+            Ok(info.nNumberOfLinks == 1
+                && info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT == 0)
+        }
+        #[cfg(not(any(unix, windows)))]
+        Ok(false)
+    };
+    if !single_regular_file(&file)? {
+        return Err(conflict());
+    }
+    let mut actual = Vec::new();
+    file.by_ref()
+        .take((expected.len() as u64).saturating_add(1))
+        .read_to_end(&mut actual)
+        .map_err(|error| io_error("read sealed output", error))?;
+    if actual != expected || !single_regular_file(&file)? {
+        return Err(conflict());
+    }
+    Ok(())
 }
 
 fn map_universal_error(error: crate::UniversalExecError) -> RuntimeError {
@@ -954,6 +1010,30 @@ mod windows_native_result_to_pg_terminal_contract_tests {
             fs::read(directory.path().join("stdout.log")).unwrap(),
             stdout,
         );
+    }
+
+    #[test]
+    fn terminal_artifact_refuses_a_hardlinked_preexisting_seal() {
+        let directory = tempfile::tempdir().unwrap();
+        let attempt = admitted_windows_attempt(directory.path());
+        let stdout = b"committed output\n";
+        let raw = directory.path().join("stdout.log");
+        let sealed = directory.path().join("sealed-stdout.log");
+        fs::write(&raw, stdout).unwrap();
+        fs::write(directory.path().join("stderr.log"), b"").unwrap();
+        fs::write(
+            directory.path().join("result.json"),
+            serde_json::to_vec(&native_launcher_result(&attempt, stdout)).unwrap(),
+        )
+        .unwrap();
+        fs::hard_link(&raw, &sealed).unwrap();
+        let result = prepare_runner_terminal_from_bundle(&attempt);
+        assert!(result.is_err(), "must not certify an aliased mutable inode");
+        assert_eq!(
+            result.unwrap_err().code,
+            crate::runtime::RuntimeErrorCode::ArtifactIdentityConflict
+        );
+        assert_eq!(fs::read(&sealed).unwrap(), stdout);
     }
 
     #[test]
