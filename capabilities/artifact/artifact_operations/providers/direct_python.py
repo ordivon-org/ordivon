@@ -294,7 +294,11 @@ class DirectPythonOperationProvider:
             verify_pdf=verify_pdf,
             verify_pdf_conformance=verify_pdf_conformance,
             verify_html_conformance=verify_html_conformance,
-            verify_web_local=partial(verify_web_local, provider_recipe=web_recipe),
+            verify_web_local=(
+                verify_web_local
+                if web_recipe is None
+                else partial(verify_web_local, provider_recipe=web_recipe)
+            ),
         )
 
     def execute_verify_stage(

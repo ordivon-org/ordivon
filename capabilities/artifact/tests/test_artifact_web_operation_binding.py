@@ -115,3 +115,23 @@ def test_runtime_owned_explicit_oci_verify_consumes_exact_receipt(tmp_path, monk
             sort_keys=True,
         ),
     )
+
+
+def test_explicit_recipe_is_forwarded_without_ambient_mutation(tmp_path, monkeypatch):
+    from artifact_operations.providers import direct_python
+
+    subject = tmp_path / "fixture.html"
+    subject.write_text("<h1>test</h1>")
+    provider = DirectPythonOperationProvider()
+    recipe = provider.prepare_operation(operation(subject, "oci")).context["webProviderRecipe"]
+    calls = []
+
+    def observe(path, *, provider_recipe):
+        calls.append((path, provider_recipe))
+        return {"status": "NOT_RUN"}
+
+    monkeypatch.setattr(direct_python, "verify_web_local", observe)
+    assert provider._verification_stage_hooks(recipe).verify_web_local(subject) == {
+        "status": "NOT_RUN"
+    }
+    assert calls == [(subject, recipe)]
