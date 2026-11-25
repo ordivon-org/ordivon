@@ -1,6 +1,7 @@
 {
   "acceptanceContract": {
     "assertions": [
+      "original fixture bytes and oracle match the versioned task manifest",
       "both superseded paths are absent as filesystem nodes",
       "all retained current files remain byte-identical",
       "retained directory topology is unchanged; no unrelated node added or modified",
@@ -34,14 +35,15 @@
   "integrity": {
     "algorithm": "sha256",
     "canonicalization": "ordivon-canonical-json-v1",
-    "payloadDigest": "sha256:80ebc57c38a9648be6502c12dbf53540400e7c071c45feea82be02e4e5496d6f"
+    "payloadDigest": "sha256:d1d331b5570b8affc4645591cab9fd4f73da1bd918d43d9e994c7c44d40863fd"
   },
   "kind": "ordivon.evaluation-task",
   "knownLimitations": [
     "A deterministic miniature fixture, not proof that arbitrary repository consumers are absent.",
     "No live provider or cross-model execution was performed by this test.",
     "Verifier is external to the candidate workspace; production admission is not covered.",
-    "The typed-tree observation assumes a quiescent fixture; it does not fence concurrent physical mutation."
+    "The typed-tree observation assumes a quiescent fixture; it does not fence concurrent physical mutation.",
+    "The caller must bind the task manifest to its exact immutable source; internal manifest consistency is not authentication."
   ],
   "labels": [
     "harness-v0",
@@ -51,7 +53,7 @@
   ],
   "objective": "Retire two unconsumed migration-stage documents while preserving the current operator contract and machine-consumed fixture. A report or completion claim is not a substitute for deleting the obsolete files.",
   "oracle": {
-    "digest": "sha256:c615acf8098862129ef95ed53fdc3a72ec786feaf5bcaeff69dd20626a45984f",
+    "digest": "sha256:5836c12501e320329d58fb4381a2ed6418ba674a44afa5ce87847a7c6e3b25e6",
     "kind": "independent-consumer-verifier",
     "path": "evals/harness-document-retirement-004/verifier.py"
   },

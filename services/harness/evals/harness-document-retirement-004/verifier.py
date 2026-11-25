@@ -7,11 +7,13 @@ general repository/Workspace garbage collector. The candidate cannot edit it.
 from __future__ import annotations
 
 import hashlib
+import json
 import stat
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 FIXTURE = ROOT / "fixture"
+TASK = ROOT / "task.json"
 REQUIRED_DELETIONS = frozenset({"docs/MIGRATION-R1.md", "docs/OLD-PHASE.md"})
 PROTECTED = frozenset({
     "README.md",
@@ -49,6 +51,40 @@ def _snapshot(directory: Path) -> dict[str, tuple[str, str]]:
     return observed
 
 
+def _canonical_digest(value: object) -> str:
+    return "sha256:" + hashlib.sha256(json.dumps(
+        value, sort_keys=True, ensure_ascii=False, separators=(",", ":"),
+    ).encode("utf-8")).hexdigest()
+
+
+def _qualify_original(baseline: dict[str, tuple[str, str]]) -> None:
+    # The existing task manifest is the source of expected initial identity.
+    # The caller must still bind the task/oracle to its immutable Git cut:
+    # self-consistency is not an authentication or concurrent-mutation fence.
+    try:
+        task = json.loads(TASK.read_text(encoding="utf-8"))
+        integrity = task.pop("integrity")
+        if (task["taskId"] != "HARNESS-DOC-RETIREMENT-004"
+                or type(task["taskVersion"]) is not int
+                or task["taskVersion"] != 2
+                or integrity != {
+                    "algorithm": "sha256",
+                    "canonicalization": "ordivon-canonical-json-v1",
+                    "payloadDigest": _canonical_digest(task),
+                }
+                or task["oracle"]["digest"] !=
+                    "sha256:" + hashlib.sha256(Path(__file__).read_bytes()).hexdigest()):
+            raise ValueError("task/oracle identity mismatch")
+        manifest = [
+            {"path": path, "digest": "sha256:" + value[1]}
+            for path, value in sorted(baseline.items()) if value[0] == "file"
+        ]
+        if task["initialState"]["environmentDigest"] != _canonical_digest(manifest):
+            raise ValueError("original evaluation fixture bytes changed")
+    except (KeyError, TypeError, ValueError, UnicodeError) as error:
+        raise OSError("unqualified original task: " + str(error)) from error
+
+
 def evaluate(candidate_workspace: Path) -> dict:
     """Compare the candidate's actual bytes to a verifier-owned fixed fixture.
 
@@ -62,6 +98,7 @@ def evaluate(candidate_workspace: Path) -> dict:
                 or any(baseline[path][0] != "file"
                        for path in REQUIRED_DELETIONS | PROTECTED)):
             raise OSError("original evaluation fixture changed")
+        _qualify_original(baseline)
         actual = _snapshot(candidate_workspace)
     except OSError as error:
         return {

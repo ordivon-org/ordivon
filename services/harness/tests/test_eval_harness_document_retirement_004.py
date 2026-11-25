@@ -108,6 +108,32 @@ class DocumentRetirementAcceptanceTests(unittest.TestCase):
         os.mkfifo(self.workspace / "docs/OLD-PHASE.md")
         self.assertEqual(self.evaluate()["standing"], "UNKNOWN")
 
+    def test_same_paths_different_original_bytes_are_not_the_frozen_fixture(self) -> None:
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as root:
+            changed = Path(root) / "baseline"
+            shutil.copytree(FIXTURE, changed)
+            protected = "docs/OPERATOR.md"
+            value = b"mutated independent baseline, same paths"
+            (changed / protected).write_bytes(value)
+            (self.workspace / protected).write_bytes(value)
+            self.remove_target()
+            with patch.object(verifier, "FIXTURE", changed):
+                self.assertEqual(self.evaluate()["standing"], "UNKNOWN")
+
+    def test_task_manifest_drift_is_unknown(self) -> None:
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "task.json"
+            task = json.loads((EVAL / "task.json").read_text())
+            task["objective"] += " silently replaced"
+            path.write_text(json.dumps(task))
+            self.remove_target()
+            with patch.object(verifier, "TASK", path):
+                self.assertEqual(self.evaluate()["standing"], "UNKNOWN")
+
     def test_incomplete_census_is_unknown_not_empty(self) -> None:
         from unittest.mock import patch
 
