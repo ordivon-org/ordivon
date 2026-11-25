@@ -11,14 +11,14 @@ suffices for a global upper bound. No solver status is an exact certificate.
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping, Set
+from collections.abc import Iterable, Mapping, Set
 from dataclasses import dataclass
 from fractions import Fraction
 from itertools import islice
 from typing import Any
 
 from .information_tree import MultistageProblem, ValidatedInformationTree, validate_information_tree
-from .policy_contract import finite_economic_number
+from .policy_contract import AlgebraicPolicyError, finite_economic_number
 from .rational_enclosure import enclose_inverse_power, enclose_rational
 
 Q = Fraction
@@ -28,6 +28,12 @@ _MAX_EXACT_NODES = 63
 _MAX_EXACT_ASSETS = 16
 _RATIONAL_REASON = "EXACT_INPUT_CONDITIONAL_PROBABILITIES_AND_RECONSTRUCTED_CASH_DEBT_TURNOVER"
 _DYADIC_REASON = "EXACT_DYADIC_GRADIENT_ENCLOSURE_AND_CANONICAL_WITNESS"
+
+
+def _within_bit_budget(values: Iterable[Fraction]) -> bool:
+    return all(
+        max(v.numerator.bit_length(), v.denominator.bit_length()) <= _MAX_EXACT_BITS for v in values
+    )
 
 
 @dataclass(frozen=True)
@@ -104,11 +110,8 @@ def certify_canonical_gap(
     def unknown(reason: str) -> OptimalityEvidence:
         return OptimalityEvidence(numerical_estimate, None, "UNKNOWN", reason)
 
-    def within_budget(values: Any) -> bool:
-        return all(
-            max(v.numerator.bit_length(), v.denominator.bit_length()) <= _MAX_EXACT_BITS
-            for v in values
-        )
+    if not finite_economic_number(numerical_estimate) or numerical_estimate < 0:
+        raise AlgebraicPolicyError("finite nonnegative numerical estimate required")
 
     tree = validate_information_tree(problem)
     gamma_q = Q(problem.gamma)
@@ -133,7 +136,11 @@ def certify_canonical_gap(
     width = 2 * n + 2
     offsets = {node.id: i * width for i, node in enumerate(tree.decision)}
     size = len(offsets) * width
-    if set(risky_policy) != set(offsets):
+    if (
+        not isinstance(risky_policy, dict)
+        or len(risky_policy) != len(offsets)
+        or risky_policy.keys() != offsets.keys()
+    ):
         return unknown("INEXACT_WITNESS")
     x = [ZERO] * size
     cap = [ZERO] * size
@@ -183,10 +190,14 @@ def certify_canonical_gap(
             continue
         j = offsets[node.id]
         raw_risky = risky_policy[node.id]
-        if len(raw_risky) != n or any(not finite_economic_number(v) or v < 0 for v in raw_risky):
+        if (
+            not isinstance(raw_risky, tuple)
+            or len(raw_risky) != n
+            or any(not finite_economic_number(v) or v < 0 for v in raw_risky)
+        ):
             return unknown("INEXACT_WITNESS")
         risky = tuple(map(Q, raw_risky))
-        if not within_budget(risky):
+        if not _within_bit_budget(risky):
             return unknown("INEXACT_WITNESS")
         due = (
             ZERO
@@ -214,7 +225,7 @@ def certify_canonical_gap(
             sum(risky_caps, ZERO),
             *(a + b for a, b in zip(risky_caps, old_cap, strict=True)),
         ]
-        if not within_budget((*x[j : j + width], *cap[j : j + width], probabilities[node.id])):
+        if not _within_bit_budget((*x[j : j + width], *cap[j : j + width], probabilities[node.id])):
             return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
         row = {i: -a for i, a in incoming.items()}
         row.update({j + i: Q(1) for i in range(n)})
@@ -243,6 +254,8 @@ def certify_canonical_gap(
         return unknown("INEXACT_WITNESS")
     grad = [ZERO] * size
     grad_hi = [ZERO] * size
+    # Both gradients start at zero. Each leaf changes only its row support;
+    # induction preserves the bit bound on every untouched coordinate.
     for row, liability, probability in leaves:
         wealth = dot(row, x) - liability
         if gradient_method == "RATIONAL":
@@ -254,7 +267,7 @@ def certify_canonical_gap(
             factor = probability / wealth**gamma
             for j, a in row.items():
                 grad[j] += factor * a
-            if not within_budget(grad):
+            if not _within_bit_budget(grad[j] for j in row):
                 return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
         else:
             enclosure = enclose_inverse_power(wealth, gamma_q, max_bits=_MAX_EXACT_BITS)
@@ -265,7 +278,7 @@ def certify_canonical_gap(
                 t0, t1 = sorted((a * probability * low, a * probability * high))
                 grad[j] += enclose_rational(t0)[0]
                 grad_hi[j] += enclose_rational(t1)[1]
-            if not within_budget((*grad, *grad_hi)):
+            if not _within_bit_budget(v[j] for v in (grad, grad_hi) for j in row):
                 return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
     if gradient_method == "RATIONAL":
         grad_hi = grad
@@ -286,7 +299,7 @@ def certify_canonical_gap(
         upper += multiplier * rhs
         for j, a in row.items():
             residual[j] -= multiplier * a
-        if not within_budget((upper, *(residual[j] for j in row))):
+        if not _within_bit_budget((upper, *(residual[j] for j in row))):
             return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
     gap = upper
     for r, c, g, hi, a in zip(residual, cap, grad, grad_hi, x, strict=True):
@@ -294,7 +307,7 @@ def certify_canonical_gap(
         # at most the lower-gradient displacement plus (hi-g)*(cap-x).
         # This is an exact enclosure error, not an empirical epsilon.
         gap += max(ZERO, r) * c - g * a + (hi - g) * (c - a)
-        if not within_budget((gap,)):
+        if not _within_bit_budget((gap,)):
             return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
     if gap < 0:
         return unknown("INCONSISTENT_EXACT_BOUND")
@@ -326,18 +339,21 @@ def verify_canonical_gap_claim(
     economic policy is false or infeasible. No optimizer is called.
     """
     if (
-        claim.standing != "EXACT_RATIONAL_CANONICAL_WITNESS_GAP_UPPER"
-        or claim.dual_proposal is None
+        not isinstance(claim, OptimalityEvidence)
+        or claim.standing != "EXACT_RATIONAL_CANONICAL_WITNESS_GAP_UPPER"
+        or not isinstance(claim.dual_proposal, DualProposal)
     ):
         return False
     if (
         not finite_economic_number(claim.numerical_tangent_gap_estimate)
         or claim.numerical_tangent_gap_estimate < 0
+        or not finite_economic_number(claim.certified_canonical_gap_upper)
+        or claim.certified_canonical_gap_upper < 0
     ):
         return False
     proposal = claim.dual_proposal
     methods = {_RATIONAL_REASON: "RATIONAL", _DYADIC_REASON: "DYADIC"}
-    if claim.reason not in methods:
+    if not isinstance(claim.reason, str) or claim.reason not in methods:
         return False
     return claim == certify_canonical_gap(
         problem,
