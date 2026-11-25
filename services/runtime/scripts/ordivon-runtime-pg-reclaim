@@ -523,7 +523,9 @@ def run(args: argparse.Namespace) -> dict:
             if (current_age is None or current_age > retention_ms
                     or (currently_unintegrated and not current_unintegrated_allowed)):
                 skip("retention_policy_changed");continue
-            if resolution != "succeeded" and not _operator_attests_consumer_release(
+            # Revalidate this candidate's own observed Job disposition, never
+            # the final scan-loop value from a different Workspace.
+            if info[1] != "succeeded" and not _operator_attests_consumer_release(
                 current_policy, path.name
             ):
                 skip("owner_disposition_revoked");continue
