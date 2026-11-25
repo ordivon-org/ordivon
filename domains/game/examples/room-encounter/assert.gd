@@ -107,6 +107,22 @@ func run_acceptance() -> void:
     owned.enemies_per_room = PackedInt32Array([9, 9, 9])
     expect(rules.snapshot()["total_rooms"] == 2, "active state is independent of mutated caller resource")
 
+    # The former public Resource was an authority leak: a consumer could set
+    # attack_cost=-1 after admission, making an accepted attack gain stamina.
+    var before_escape: Dictionary = rules.snapshot()
+    var exposed: Variant = rules.get("active")
+    if exposed is Resource:
+        exposed.attack_cost = -1
+    expect(rules.attack(), "valid attack remains available after external configuration attempt")
+    var after_escape: Dictionary = rules.snapshot()
+    expect(after_escape["attack_cost"] == before_escape["attack_cost"] and
+        after_escape["stamina"] == before_escape["stamina"] - before_escape["attack_cost"],
+        "public consumer cannot bypass admitted attack cost or create stamina")
+    expect(rules.restart_run(), "rule-owned restart retains admitted configuration")
+    expect(rules.snapshot() == before_escape,
+        "rule-owned restart restores the same admitted starting state")
+    expect(not rules.is_tactical_trial(), "rule-owned mode observation is a value")
+
     var alternate = packed.instantiate()
     alternate.view_scene = load("res://encounter_view_variant.tscn")
     root.add_child(alternate)

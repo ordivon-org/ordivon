@@ -138,9 +138,9 @@ function validateDeclaredGameConsumerPaths(plan: any): void {
   assert.ok(nativeMise.includes('&& mise run test:native'),
     'Game Owner verify must execute the native Godot consumer');
   assert.ok(nativeMise.includes('[tasks."test:native"]'));
-  assert.ok(nativeMise.includes('godot --headless --path examples/native-composition --script res://assert.gd'));
-  const godotTest = readFileSync(new URL('../examples/native-composition/assert.gd', import.meta.url), 'utf8');
-  assert.ok(godotTest.includes('load("res://main.tscn")'));
+  // Do not freeze the physical command spelling or test implementation.
+  // The independent native task and its missing/invalid receipt controls
+  // establish execution; this catalog test only checks declared locators.
 }
 
 test('Game declared paths resolve to source queries and bounded Godot fixture ports', () => {

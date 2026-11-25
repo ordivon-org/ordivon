@@ -37,7 +37,6 @@ uv run python -m pytest -m "not integration" \
   --deselect=tests/test_artifact_cad_step.py::ArtifactCadStepTests::test_contract_divergence_fails_after_read \
   --deselect=tests/test_artifact_cad_step.py::ArtifactCadStepTests::test_positive_fixture \
   --ignore=tests/test_artifact_message.py \
-  --deselect=tests/test_artifact_software_release.py::SoftwareReleaseTests::test_local_binding_digests_match \
   --deselect=tests/test_artifact_software_release_elf.py::LinuxElfReleaseTests::test_binding_digests \
   --deselect=tests/test_artifact_wave.py::ArtifactWaveTests::test_local_binding_digests_match \
   --ignore=tests/test_artifact_web_archive.py
