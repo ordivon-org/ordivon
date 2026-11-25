@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import { randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 
@@ -437,6 +438,23 @@ export class WebStore {
     return this.readWrittenEffectReceipt(expected);
   }
 
+  // Read the expected business projections after all local writes, including
+  // receipt and audit, while the original transaction still owns commit.
+  private assertWrittenBusinessState(note: CanaryNote, prior: AgentGrantSnapshot): void {
+    const row = this.db.prepare("SELECT * FROM canary_notes WHERE note_id = ?")
+      .get(note.noteId) as NoteRow | undefined;
+    const expectedGrant = {
+      ...prior,
+      remainingEffects: prior.remainingEffects - 1,
+      revision: prior.revision + 1,
+    };
+    if (row === undefined || !isDeepStrictEqual(noteFromRow(row), note) ||
+        !isDeepStrictEqual(this.getAgentGrant(prior.grantId), expectedGrant)) {
+      throw new WebProblem(500, "effect-business-mismatch", "Effect business state mismatch",
+        "The newly written note or Grant does not match the intended local Effect.");
+    }
+  }
+
   // Owner-local write/readback invariant, not a general authenticity proof for
   // historical receipts. Compare the exact bytes and all intended row fields
   // while the caller still owns the business transaction.
@@ -725,6 +743,7 @@ export class WebStore {
         action: effect.action, resource: effect.resource,
         result_json: JSON.stringify(result), committed_at: now,
       });
+      this.assertWrittenBusinessState(result.note, current);
       this.db.exec("COMMIT");
       return { receipt, replayed: false };
     } catch (error) {
@@ -814,6 +833,7 @@ export class WebStore {
         action: effect.action, resource: effect.resource,
         result_json: JSON.stringify(result), committed_at: now,
       });
+      this.assertWrittenBusinessState(result.note, current);
       this.db.exec("COMMIT");
       return { receipt, replayed: false };
     } catch (error) {

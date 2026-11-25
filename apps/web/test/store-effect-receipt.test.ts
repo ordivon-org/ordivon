@@ -37,6 +37,22 @@ for (const kind of ["create", "publish"] as const) {
       name, trigger: mutation + " BEGIN SELECT RAISE(IGNORE); END",
       expectedError: "effect-write-not-applied",
     })),
+    {
+      name: "note-content-changed",
+      trigger: (kind === "create" ? "AFTER INSERT" : "AFTER UPDATE") +
+        " ON canary_notes BEGIN UPDATE canary_notes SET content = 'other' WHERE note_id = NEW.note_id; END",
+      expectedError: "effect-business-mismatch",
+    },
+    {
+      name: "note-changed-after-audit",
+      trigger: "AFTER INSERT ON audit_events WHEN NEW.event_type = 'agent.effect.committed' BEGIN UPDATE canary_notes SET content = 'other'; END",
+      expectedError: "effect-business-mismatch",
+    },
+    {
+      name: "quota-restored",
+      trigger: "AFTER UPDATE ON agent_grants BEGIN UPDATE agent_grants SET remaining_effects = OLD.remaining_effects WHERE grant_id = NEW.grant_id; END",
+      expectedError: "effect-business-mismatch",
+    },
   ];
   for (const { name, trigger, expectedError } of cases) {
     test("native " + kind + " rolls back invalid owner effect: " + name, () => {
