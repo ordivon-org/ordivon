@@ -6,7 +6,6 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use ordivon_runtime_core::*;
 use ordivon_runtime_core::{
     WorkspaceChangePageRequest as ExecWorkspaceChangePageRequest,
