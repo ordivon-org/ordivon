@@ -9,13 +9,30 @@ import json
 import sys
 from collections.abc import Mapping
 
+# Host work.get revision is a positive PostgreSQL bigint, not an arbitrary
+# Python integer. This is the consumer's native wire admission boundary.
+_MAX_HOST_REVISION = 2**63 - 1
+
+
+def _unique_members(pairs):
+    row = {}
+    for key, value in pairs:
+        if key in row:
+            raise ValueError("duplicate JSON object member")
+        row[key] = value
+    return row
+
+
+def _reject_constant(_value):
+    raise ValueError("non-finite JSON numeric constant")
+
 
 def _strict_work(row: object, *, terminal: bool) -> dict:
     if not isinstance(row, dict) or set(row) != {"workRef", "revision", "state", "unresolved"}:
         raise ValueError("work must contain exactly workRef, revision, state, unresolved")
     if not isinstance(row["workRef"], str) or not row["workRef"].strip():
         raise ValueError("invalid workRef")
-    if type(row["revision"]) is not int or row["revision"] < 1:
+    if type(row["revision"]) is not int or not 1 <= row["revision"] <= _MAX_HOST_REVISION:
         raise ValueError("invalid revision")
     allowed = ("completed", "abandoned") if terminal else ("open",)
     if row["state"] not in allowed:
@@ -125,8 +142,10 @@ def main() -> int:
         raw = sys.stdin.buffer.read(262145)
         if len(raw) > 262144:
             raise ValueError("input exceeds 262144 bytes")
-        result = assess(json.loads(raw))
-    except (ValueError, TypeError, KeyError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        result = assess(json.loads(
+            raw, object_pairs_hook=_unique_members, parse_constant=_reject_constant,
+        ))
+    except (ValueError, TypeError, KeyError, UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
         print(json.dumps({"kind": "ordivon.task-obligation-handoff-error-v1",
                           "error": str(exc), "navigationCovered": False}),
               file=sys.stdout)

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -145,3 +148,50 @@ def test_duplicate_receiver_needs_index_and_wrong_index_fails_closed():
     assert helper.assess(data)["navigationCovered"] is True
     data["links"][1]["successorIndex"] = 2
     assert helper.assess(data)["navigationCovered"] is False
+
+def _run_cli(raw):
+    completed = subprocess.run(
+        [sys.executable, str(SCRIPT)], input=raw, capture_output=True,
+        text=True, check=False, timeout=10,
+    )
+    return completed, json.loads(completed.stdout)
+
+
+@pytest.mark.parametrize("mutation", ["duplicate_root", "duplicate_revision", "duplicate_link", "nonfinite_shadow"])
+def test_wire_member_ambiguity_is_rejected_before_typed_coverage(mutation):
+    data = packet()
+    raw = json.dumps(data)
+    if mutation == "duplicate_root":
+        raw = '{"source": null, ' + raw[1:]
+    elif mutation == "duplicate_revision":
+        raw = raw.replace('"revision": 2', '"revision": 1, "revision": 2', 1)
+    elif mutation == "duplicate_link":
+        raw = raw.replace('"successorRevision": 4', '"successorRevision": 4, "successorRevision": 4', 1)
+    else:
+        raw = raw.replace('"revision": 2', '"revision": NaN, "revision": 2', 1)
+    completed, result = _run_cli(raw)
+    assert completed.returncode == 2
+    assert result["navigationCovered"] is False
+    assert result["kind"] == "ordivon.task-obligation-handoff-error-v1"
+
+
+def test_wire_revision_outside_native_host_range_rejected():
+    data = packet()
+    data["source"]["revision"] = 2**63
+    for link in data["links"]:
+        link["sourceRevision"] = 2**63
+    completed, result = _run_cli(json.dumps(data))
+    assert completed.returncode == 2
+    assert result["navigationCovered"] is False
+
+
+def test_wire_exact_native_upper_revision_retains_navigation_only():
+    data = packet()
+    data["source"]["revision"] = 2**63 - 1
+    for link in data["links"]:
+        link["sourceRevision"] = 2**63 - 1
+    completed, result = _run_cli(json.dumps(data))
+    assert completed.returncode == 0
+    assert result["navigationCovered"] is True
+    assert result["technicalCompletion"] == "UNKNOWN"
+    assert result["effectAuthority"] == "NONE"
