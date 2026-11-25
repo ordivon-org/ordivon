@@ -542,3 +542,13 @@ any missing native obligations must fail rather than be counted as passing.
 Portable/focused pytest retains native skip behavior. This gate qualifies
 the observed collected suite, not the existence of every possible semantic
 test, the installed production consumer, or a hostile test plugin.
+
+Caller-provisioned complete queue runs must supply all ten distinct database
+fixtures before migration. The queue compares PostgreSQL server major,
+native cluster system identifier and database OID through read-only catalog
+queries, not DSN spelling. Missing, aliased, wrong-major or unobservable
+identities fail before Alembic or test execution. Caller-provisioned
+fixtures still require an explicitly disposable test fleet; catalog
+identity does not prove that a database is safe to mutate. The native
+identity query must be available to the test role. Fresh owned-container
+runs provision their own fixture fleet as before.

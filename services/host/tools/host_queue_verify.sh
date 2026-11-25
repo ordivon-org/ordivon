@@ -75,6 +75,53 @@ if [[ ! "$pg_version" =~ ^[0-9]+$ ]] || (( pg_version / 10000 != 18 )); then
   exit 4
 fi
 
+# Caller-provisioned complete qualification must have every isolated fixture
+# before the first migration. Compare native identity, not textual DSN aliases.
+# The owned container path provisions all named databases below.
+if [[ -z "$container" ]]; then
+  fixture_vars=(
+    ORDIVON_HOST_V2_TEST_DSN
+    ORDIVON_HOST_V2_BOUNDARY_MESSAGE_DSN
+    ORDIVON_HOST_V2_BOUNDARY_CHANGE_DSN
+    ORDIVON_HOST_V2_RECEIPT_TEST_DSN
+    ORDIVON_HOST_V2_MIGRATION_CLOCK_DSN
+    ORDIVON_HOST_V2_MIGRATION_HISTORY_DSN
+    ORDIVON_HOST_V2_MIGRATION_ALLOCATOR_DSN
+    ORDIVON_HOST_V2_MIGRATION_LOCK_DSN
+    ORDIVON_HOST_V2_MIGRATION_STARTUP_DSN
+    ORDIVON_HOST_V2_MIGRATION_CJK_DSN
+  )
+  for fixture in "${fixture_vars[@]}"; do
+    if [[ -z "${!fixture:-}" ]]; then
+      echo "HOST_QUEUE_FIXTURE_MISSING: $fixture" >&2
+      exit 4
+    fi
+  done
+  declare -A observed_db_identities=()
+  for fixture in "${fixture_vars[@]}"; do
+    if ! identity="$(PGCONNECT_TIMEOUT=5 psql -X -Atq "${!fixture}" -c "
+      SELECT current_setting('server_version_num') || ':' ||
+        system_identifier::text || ':' ||
+        (SELECT oid::text FROM pg_catalog.pg_database WHERE datname=current_database())
+      FROM pg_catalog.pg_control_system()
+    " 2>/dev/null)" ||
+      [[ ! "$identity" =~ ^([0-9]+):([0-9]+):([0-9]+)$ ]]; then
+      echo "HOST_QUEUE_FIXTURE_IDENTITY_UNOBSERVABLE: $fixture" >&2
+      exit 4
+    fi
+    if (( ${BASH_REMATCH[1]} / 10000 != pg_version / 10000 )); then
+      echo "HOST_QUEUE_FIXTURE_MAJOR_MISMATCH: $fixture" >&2
+      exit 4
+    fi
+    db_key="${BASH_REMATCH[2]}:${BASH_REMATCH[3]}"
+    if [[ -v "observed_db_identities[$db_key]" ]]; then
+      echo "HOST_QUEUE_FIXTURE_ALIAS: $fixture and ${observed_db_identities[$db_key]}" >&2
+      exit 4
+    fi
+    observed_db_identities[$db_key]="$fixture"
+  done
+fi
+
 # Alembic owns schema creation; never select unrelated production DSN.
 export ORDIVON_HOST_V2_DSN="$ORDIVON_HOST_V2_TEST_DSN"
 uv lock --check
