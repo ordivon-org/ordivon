@@ -65,6 +65,49 @@ if __name__ == "__main__":
     unittest.main()
 
 
+class PgReleaseActivityProjectionTests(unittest.TestCase):
+    """Explicit scratch-only check against the actual native PG schema."""
+
+    def test_scoped_activity_recheck_matches_global_projection(self):
+        dsn = os.getenv("ORDIVON_RECLAIM_TEST_DSN")
+        if not dsn:
+            self.skipTest("requires disposable reclaim_fixture PostgreSQL database")
+        import psycopg
+        schema = "reclaim_fixture"
+        env = {"ORDIVON_PG_DSN": dsn, "ORDIVON_PG_SCHEMA": schema}
+        with psycopg.connect(dsn, autocommit=True) as conn:
+            self.assertEqual(conn.execute("select current_database()").fetchone()[0],
+                             "reclaim_fixture")
+            self.assertIsNone(conn.execute("select to_regnamespace(%s)", (schema,)).fetchone()[0])
+            conn.execute("create schema reclaim_fixture")
+            conn.execute("set search_path to reclaim_fixture")
+            native_schema = ENTRY.parents[1] / "crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"
+            conn.execute(native_schema.read_text(encoding="utf-8"))
+            def job(job_id, workspace, created, resolution):
+                conn.execute("""
+                    INSERT INTO jobs(job_id,principal,client_request_id,request_digest,
+                        operation_digest,workspace_id,workspace_snapshot_json,
+                        execution_plan_json,execution_plan_digest,created_at_ms,
+                        desired_state,resolution)
+                    VALUES(%s,'fixture',%s,'r','o',%s,'{}','{}','p',%s,'run',%s)
+                """, (job_id, job_id, workspace, created, resolution))
+            job("old", "ws-a", 10, "succeeded")
+            job("foreign", "ws-b", 100, None)
+            conn.execute("""
+                INSERT INTO job_events(event_id,job_id,event_sequence,event_type,
+                    origin,reason_code,detail_json,detail_digest,observed_at_ms)
+                VALUES('e','old',1,'fixture','fixture','fixture','{}','d',20)
+            """)
+            first = mod._jobs(env)
+            self.assertEqual(first, {"ws-a": (20, "succeeded", 0),
+                                     "ws-b": (100, None, 1)})
+            self.assertEqual(mod._jobs(env, "ws-a"), {"ws-a": first["ws-a"]})
+            self.assertEqual(mod._jobs(env, "missing"), {})
+            job("new", "ws-a", 30, "succeeded")
+            self.assertEqual(mod._jobs(env, "ws-a"), {"ws-a": (30, "succeeded", 0)})
+            self.assertNotEqual(mod._jobs(env, "ws-a")["ws-a"], first["ws-a"])
+
+
 class PgOperatorRetentionPolicyTests(unittest.TestCase):
     """Reuse the actual Git storage and retention contract, not fake a close."""
 
@@ -269,6 +312,8 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                           job_case: str = "succeeded",
                           owner_released: bool = True,
                           active_at_get: bool = False,
+                          release_binding_override: dict | None = None,
+                          later_job_activity: bool = False,
                           integration_ref: str = "refs/remotes/origin/main"):
         import argparse
         from unittest.mock import patch
@@ -278,6 +323,18 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
         policy_path = self.policy_file(
             allow, pinned=pinned, released=owner_released
         )
+        if owner_released:
+            import json
+            data = json.loads(policy_path.read_text())
+            rule = next(rule for rule in data["rules"] if rule.get("operatorConsumerReleased"))
+            rule["operatorReleaseBinding"] = {
+                "createdAtMs": future_ms - 7 * 3600 * 1000,
+                "sourceStateDigest": "sha256:" + "f" * 64,
+                "latestJobActivityMs": None if job_case == "no_job" else future_ms - 5 * 3600 * 1000,
+            }
+            if release_binding_override is not None:
+                rule["operatorReleaseBinding"].update(release_binding_override)
+            policy_path.write_text(json.dumps(data))
         args = argparse.Namespace(
             env_file=self.root / "mock-env",
             source_repo=self.repo,
@@ -353,7 +410,11 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                 mod, "load_environment_file",
                 return_value={"ORDIVON_PG_BIND": "127.0.0.1:0", "ORDIVON_PG_TOKEN": "test"},
             ),
-            patch.object(mod, "_jobs", return_value=job_rows),
+            patch.object(mod, "_jobs", side_effect=(
+                [job_rows, {self.workspace.name: (future_ms - 4 * 3600 * 1000 - 1,
+                                                "succeeded", 0)}]
+                if later_job_activity else lambda *_: job_rows
+            )),
             patch.object(mod, "_active_process_cwds",
                          side_effect=lambda _: process_cwd_after_get.copy()),
             patch.object(mod.time, "time", return_value=future_ms / 1000),
@@ -383,6 +444,12 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
             "workspaceId": second.name, "class": "ephemeral",
             "operatorConsumerReleased": True,
         })
+        for rule in original["rules"]:
+            rule["operatorReleaseBinding"] = {
+                "createdAtMs": future_ms - 7 * 3600 * 1000,
+                "sourceStateDigest": "sha256:" + "f" * 64,
+                "latestJobActivityMs": future_ms - 5 * 3600 * 1000,
+            }
         for first_resolution, second_resolution in (
             ("failed", "succeeded"), ("succeeded", "failed"),
             ("failed", "failed"), ("succeeded", "succeeded"),
@@ -512,6 +579,43 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
         self.assertEqual(report["skipped"].get("owner_disposition_revoked"), 1)
         self.assertEqual(client.calls, ["workspace.get"])
         self.assertTrue(self.workspace.exists())
+
+    def test_release_cannot_authorize_a_different_source_or_generation(self):
+        self.git("update-ref", "refs/remotes/origin/main", self.head)
+        for changed in ({"sourceStateDigest": "sha256:" + "0" * 64},
+                        {"createdAtMs": 1}):
+            with self.subTest(changed=changed):
+                report, client = self.run_operator_plan(
+                    allow=False, apply=True, release_binding_override=changed
+                )
+                self.assertEqual(report["closed"], [])
+                self.assertNotIn("workspace.close", client.calls)
+                self.assertTrue(self.workspace.exists())
+
+    def test_later_terminal_job_invalidates_old_release(self):
+        self.git("update-ref", "refs/remotes/origin/main", self.head)
+        report, client = self.run_operator_plan(
+            allow=False, apply=True, later_job_activity=True
+        )
+        self.assertEqual(report["closed"], [])
+        self.assertNotIn("workspace.close", client.calls)
+        self.assertTrue(self.workspace.exists())
+
+    def test_legacy_unbound_release_is_not_a_grant(self):
+        config = mod._retention_policy(self.policy_file(True, released=True))
+        self.assertIsNone(mod._operator_release_binding(config, self.workspace.name))
+
+    def test_boolean_or_malformed_release_binding_is_rejected(self):
+        import json
+        path = self.policy_file(True, released=True)
+        data = json.loads(path.read_text())
+        for bad in (True, {"createdAtMs": True, "sourceStateDigest": "sha256:" + "f" * 64,
+                           "latestJobActivityMs": None}):
+            with self.subTest(binding=bad):
+                data["rules"][0]["operatorReleaseBinding"] = bad
+                path.write_text(json.dumps(data))
+                with self.assertRaisesRegex(ValueError, "release binding"):
+                    mod._retention_policy(path)
 
     def test_broad_prefix_cannot_assert_consumer_released(self):
         import json
