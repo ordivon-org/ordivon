@@ -83,6 +83,8 @@ Use existing public entrypoints `execute_verify_stage` (through DirectPython pro
 | T7 Owner-level work handoff | T5,T6 | Task reports separate execution from consumer success | existing Host/Runtime/Harness contracts; no new registry |
 | T8 Independent release and cleanup | T6,T7 | verified merged source, installed readback where relevant, obsolete history removed | CI, Code Review, consumer evidence |
 
+V1 stage admission and receipt digest comparisons reject observed Subject/Profile drift; this is not a frozen read set, a proof against transient ABA replacement, or a complete sidecar dependency closure.
+
 ## Delivery gates and stop conditions
 
 - P0 merge gate: all new negative tests and owner queue verification; no complete status from unknown or contradictory required claims; old entrypoints still runnable.
