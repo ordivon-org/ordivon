@@ -311,3 +311,150 @@ def test_public_nested_json_work_snapshot_is_original_not_mutated_after_pep_allo
         assert owner.calls == [("host", "work.create", accepted)]
 
     asyncio.run(scenario())
+
+
+@pytest.mark.parametrize(("original", "changed"), [(1, True), (True, 1), (1, 1.0), (0.0, -0.0)])
+def test_public_json_number_kind_and_boolean_do_not_alias(original, changed):
+    async def scenario():
+        owner = _Owner()
+        adapter = HostContinuityAdapter(owner)
+        middleware = GatewayCapabilityAuthorizationMiddleware(_Authorizer())
+        request = {"topicRef": "topic:demo", "limit": original}
+
+        async def changed_call(_ctx):
+            return await adapter.call("topic.resume", {"topicRef": "topic:demo", "limit": changed})
+
+        with pytest.raises(GatewayError, match="public Host arguments changed"):
+            await middleware(_ctx("topic.resume", request), changed_call)
+        assert owner.calls == []
+
+    asyncio.run(scenario())
+
+
+def test_omitted_selector_cannot_be_filled_with_unbound_reference():
+    async def scenario():
+        owner = _Owner()
+        adapter = HostContinuityAdapter(owner)
+        middleware = GatewayCapabilityAuthorizationMiddleware(_Authorizer())
+
+        async def changed_call(_ctx):
+            return await adapter.call("message.search", {"query": "x", "topicRef": "topic:other"})
+
+        with pytest.raises(GatewayError, match="selector"):
+            await middleware(_ctx("message.search", {"query": "x"}), changed_call)
+        assert owner.calls == []
+
+    asyncio.run(scenario())
+
+
+def test_authorizer_arguments_and_resource_are_not_aliases_to_binding():
+    class MutatingAuthorizer(_Authorizer):
+        async def authorize(self, **request):
+            request["arguments"]["initialSnapshot"]["objective"] = "changed"
+            request["requested_resource"]["properties"]["requestSha256"] = "changed"
+            return await super().authorize(**request)
+
+    async def scenario():
+        owner = _Owner()
+        adapter = HostContinuityAdapter(owner)
+        middleware = GatewayCapabilityAuthorizationMiddleware(MutatingAuthorizer())
+        request = {
+            "workRef": "work:demo",
+            "actorRef": "actor:demo",
+            "workKind": "task",
+            "initialSnapshot": {"objective": "original", "frontier": "pending"},
+        }
+
+        async def changed_call(_ctx):
+            return await adapter.call(
+                "work.create",
+                request | {"initialSnapshot": {"objective": "changed", "frontier": "pending"}},
+            )
+
+        result = await middleware(_ctx("work.create", request), changed_call)
+        assert result.is_error is True
+        assert result.structured_content["error"]["code"] == "CAPABILITY_AUTHZ_BINDING_MISMATCH"
+        assert owner.calls == []
+
+    asyncio.run(scenario())
+
+
+def test_native_mcp_sdk_rejects_changed_scalar_and_omitted_selector():
+    from mcp import Client
+    from mcp.server import MCPServer
+
+    class TestIngress:
+        async def __call__(self, ctx, call_next):
+            if ctx.method == "tools/call":
+                ctx.request = _ctx("unused", {}).request
+            return await call_next(ctx)
+
+    async def scenario():
+        owner = _Owner()
+        adapter = HostContinuityAdapter(owner)
+        server = MCPServer("test-host-request-representation")
+        server.middleware.append(TestIngress())
+        server.middleware.append(GatewayCapabilityAuthorizationMiddleware(_Authorizer()))
+
+        @server.tool(name="topic.resume")
+        async def retarget_number(topicRef: str, limit: int) -> dict[str, Any]:
+            return await adapter.call("topic.resume", {"topicRef": topicRef, "limit": bool(limit)})
+
+        @server.tool(name="message.search")
+        async def retarget_omitted(query: str, topicRef: str | None = None) -> dict[str, Any]:
+            return await adapter.call(
+                "message.search", {"query": query, "topicRef": topicRef or "topic:other"}
+            )
+
+        async with Client(server, raise_exceptions=False) as client:
+            assert (
+                await client.call_tool("topic.resume", {"topicRef": "topic:demo", "limit": 1})
+            ).is_error
+            assert (await client.call_tool("message.search", {"query": "x"})).is_error
+            assert not (
+                await client.call_tool("message.search", {"query": "x", "topicRef": "topic:exact"})
+            ).is_error
+        assert owner.calls == [
+            ("host", "message.search", {"query": "x", "topicRef": "topic:exact"})
+        ]
+
+    asyncio.run(scenario())
+
+
+def test_actual_native_host_optional_selectors_default_to_null():
+    from mcp import Client
+
+    from ordivon_gateway.logic.host_tool_contracts import HOST_READ_SELECTORS
+    from ordivon_gateway.mcp_server import build_server
+    from ordivon_gateway.service import GatewayService
+
+    async def scenario():
+        async with Client(build_server(GatewayService(_Owner())), raise_exceptions=True) as client:
+            schemas = {item.name: item.input_schema for item in (await client.list_tools()).tools}
+        for name, selectors in HOST_READ_SELECTORS.items():
+            schema = schemas[name]
+            for selector in selectors:
+                if selector not in schema.get("required", []):
+                    assert "default" in schema["properties"][selector]
+                    assert schema["properties"][selector]["default"] is None
+
+    asyncio.run(scenario())
+
+
+def test_public_request_witness_is_not_mutable_through_accessor():
+    from ordivon_gateway.logic.host_tool_contracts import (
+        bind_public_tool_call,
+        current_public_tool_call,
+    )
+
+    original = {"snapshot": {"objective": "original"}}
+    with bind_public_tool_call("work.create", original):
+        original["snapshot"]["objective"] = "changed"
+        witness = current_public_tool_call()
+        assert witness is not None
+        witness[1]["snapshot"]["objective"] = "changed-again"
+        assert current_public_tool_call() == (
+            "work.create",
+            {"snapshot": {"objective": "original"}},
+        )
+    assert current_public_tool_call() is None

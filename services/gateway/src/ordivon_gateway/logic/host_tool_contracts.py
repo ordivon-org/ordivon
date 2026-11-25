@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
+from copy import deepcopy
 from typing import Annotated, Any
 
 from pydantic import Field
@@ -18,9 +20,24 @@ _PUBLIC_TOOL_CALL: ContextVar[tuple[str, Mapping[str, Any]] | None] = ContextVar
 )
 
 
+def canonical_request_bytes(value: Any) -> bytes:
+    """Existing Host digest representation, preserving JSON scalar kinds."""
+    return json.dumps(
+        value, ensure_ascii=False, sort_keys=True, allow_nan=False, separators=(",", ":")
+    ).encode("utf-8")
+
+
+def same_request_value(left: Any, right: Any) -> bool:
+    """Equality of the digest representation, not Python numeric equality."""
+    try:
+        return canonical_request_bytes(left) == canonical_request_bytes(right)
+    except TypeError, ValueError, OverflowError, RecursionError:
+        return False
+
+
 @contextmanager
 def bind_public_tool_call(tool_name: str, arguments: Mapping[str, Any]) -> Iterator[None]:
-    token = _PUBLIC_TOOL_CALL.set((tool_name, dict(arguments)))
+    token = _PUBLIC_TOOL_CALL.set((tool_name, deepcopy(dict(arguments))))
     try:
         yield
     finally:
@@ -28,7 +45,8 @@ def bind_public_tool_call(tool_name: str, arguments: Mapping[str, Any]) -> Itera
 
 
 def current_public_tool_call() -> tuple[str, Mapping[str, Any]] | None:
-    return _PUBLIC_TOOL_CALL.get()
+    # Never expose the mutable stored witness to downstream Tool code.
+    return deepcopy(_PUBLIC_TOOL_CALL.get())
 
 
 HostCollectionBytes = Annotated[int, Field(ge=16_384, le=4_194_304)]

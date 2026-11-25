@@ -75,6 +75,25 @@ def _assert_exact_host_tool_dispatch(directory: Path) -> set[str]:
                 assert isinstance(key, ast.Constant) and isinstance(key.value, str), public
                 assert key.value not in forwarded, f"{public}: duplicate delegated field"
                 forwarded[key.value] = value
+            parameters = {
+                arg.arg
+                for arg in (*method.args.posonlyargs, *method.args.args, *method.args.kwonlyargs)
+            }
+            assert set(forwarded) == parameters, (
+                f"{public}: delegated field set differs from public signature"
+            )
+            normalized = {
+                ("work.create", "initialSnapshot"): "verified_snapshot",
+                ("work.snapshot.commit", "snapshot"): "verified_snapshot",
+                ("work.list", "limit"): "verified_limit",
+            }
+            for key, value in forwarded.items():
+                if key in HOST_READ_SELECTORS.get(public, ()):
+                    continue  # checked below with selector-specific diagnostic
+                expected = normalized.get((public, key), key)
+                assert isinstance(value, ast.Name) and value.id == expected, (
+                    f"{public}: forwarded argument {key} is not its public value"
+                )
             # The PEP binds a read to these canonical selectors. A different
             # actual object must not be substituted after authorization.
             for selector in HOST_READ_SELECTORS.get(public, ()):
@@ -103,6 +122,12 @@ def test_every_registered_host_action_and_read_selector_matches_actual_owner_cal
             'return await _host("work.snapshot.commit", '
             '{"workRef": workRef, "revision": revision})',
             "public action != delegated Owner tool",
+        ),
+        (
+            "social.py",
+            '"includeArchived": includeArchived,',
+            '"includeArchived": True,',
+            "forwarded argument includeArchived",
         ),
         (
             "social.py",
