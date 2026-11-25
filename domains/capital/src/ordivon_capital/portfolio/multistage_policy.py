@@ -26,6 +26,7 @@ import math
 from dataclasses import dataclass
 from typing import Any
 
+from ordivon_capital.portfolio.crra_numeric import certainty_equivalent
 from ordivon_capital.portfolio.information_tree import (
     InformationNode,
     MultistageProblem,
@@ -289,6 +290,7 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
     ))
     if (
         not found.success
+        or not np.all(np.isfinite(x))
         or not math.isfinite(equality_error)
         or not math.isfinite(inequality_error)
         or equality_error > 1e-7
@@ -305,6 +307,8 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
     # Maximize that tangent over the *same primal feasible polyhedron*
     # using proven upstream HiGHS linear programming.
     value, gradient = utility_and_gradient(x)
+    if not math.isfinite(value) or not np.all(np.isfinite(gradient)):
+        raise AlgebraicPolicyError("nonfinite utility or gradient at solver candidate")
     certificate = linprog(
         -gradient,
         A_ub=np.vstack((A_ub, -W_arrival, -W_leaf)),
@@ -321,9 +325,10 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
             "independent LP supporting-hyperplane bound unavailable: "
             + certificate.message
         )
-    gap = max(0.0, float(gradient @ (certificate.x - x)))
-    if not math.isfinite(gap):
+    raw_gap = float(gradient @ (certificate.x - x))
+    if not math.isfinite(raw_gap):
         raise AlgebraicPolicyError("nonfinite upper optimality bound")
+    gap = max(0.0, raw_gap)
     # Gap is a visible numerical evidence value, never turned into a
     # fictitious mathematical or portfolio-risk guarantee.
     terminal_wealth = W_leaf @ x
@@ -331,24 +336,12 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
     # Preserve existing gross-account CE semantics even if the objective
     # explicitly uses disposable surplus. Renaming fields by interpretation
     # would silently corrupt old read-only consumers.
-    if gamma == 1:
-        certainty_equivalent_disposable = math.exp(value)
-        certainty_equivalent_gross = math.exp(
-            float(leaf_probabilities @ np.log(terminal_wealth))
-        )
-    else:
-        disposable_moment = float(
-            leaf_probabilities @ disposable_wealth ** (1 - gamma)
-        )
-        gross_moment = float(
-            leaf_probabilities @ terminal_wealth ** (1 - gamma)
-        )
-        certainty_equivalent_disposable = math.exp(
-            math.log(disposable_moment) / (1 - gamma)
-        )
-        certainty_equivalent_gross = math.exp(
-            math.log(gross_moment) / (1 - gamma)
-        )
+    certainty_equivalent_disposable = certainty_equivalent(
+        disposable_wealth, leaf_probabilities, gamma
+    )
+    certainty_equivalent_gross = certainty_equivalent(
+        terminal_wealth, leaf_probabilities, gamma
+    )
     output_decisions: dict[str, dict[str, Any]] = {}
     for node in decisions:
         start = offsets[node.id]

@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from fractions import Fraction
 from typing import Any
 
+from .crra_numeric import certainty_equivalent as crra_certainty_equivalent
 from .policy_contract import AlgebraicPolicyError, finite_economic_number
 
 
@@ -331,12 +332,9 @@ def solve_one_period(problem: OnePeriodProblem) -> OnePeriodSolution:
         )
     scenario_equities = wealth_matrix @ x
     utility = -objective(x)
-    if gamma == 1:
-        certainty_equivalent = math.exp(utility)
-    else:
-        certainty_equivalent = math.exp(
-            math.log1p((1 - gamma) * utility) / (1 - gamma)
-        )
+    if not np.all(np.isfinite(x)) or not math.isfinite(utility) or not math.isfinite(residual):
+        raise AlgebraicPolicyError("nonfinite numerical portfolio result")
+    certainty_equivalent = crra_certainty_equivalent(scenario_equities, ps, gamma)
     fees = float(k @ x[ti:])
     return OnePeriodSolution(
         risky_weights=tuple(float(v) for v in x[:n]),

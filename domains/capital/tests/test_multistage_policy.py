@@ -501,3 +501,43 @@ def test_shared_policy_error_preserves_existing_consumer_identity():
     assert not any(finite_economic_number(x) for x in (
         True, False, "1.0", None, float("nan"), float("inf"), 10**400,
     ))
+
+@pytest.mark.parametrize("gamma", (1.0, 0.9999999999999999, 1.0000000000000002, 1.000000000001, 2.0))
+def test_crra_deterministic_cash_certainty_equivalent_is_terminal_wealth(gamma):
+    # With a strictly inferior risky return, the all-cash optimum is 0.5r.
+    # A certainty equivalent of a deterministic outcome cannot depend on gamma.
+    single = solve_one_period(OnePeriodProblem(
+        gamma, (1.,), (0.,), (0.,),
+        (Scenario(1., (.4,), .5, .6, (.3,)),),
+    ))
+    multi = solve_multistage(MultistageProblem(
+        gamma, (
+            root(margin=1.),
+            terminal("only", "root", 1, 1., .4, cash=.5, debt=.6),
+        ),
+    ))
+    assert single.expected_equity == pytest.approx(.5, abs=1e-12)
+    assert multi.expected_terminal_r == pytest.approx(.5, abs=1e-12)
+    assert single.certainty_equivalent == pytest.approx(.5, abs=1e-12, rel=0)
+    assert multi.certainty_equivalent_terminal_r == pytest.approx(.5, abs=1e-12, rel=0)
+    assert multi.certainty_equivalent_disposable_r == pytest.approx(.5, abs=1e-12, rel=0)
+
+def test_nonfinite_supporting_hyperplane_is_not_zero_gap(monkeypatch):
+    from types import SimpleNamespace
+
+    import numpy as np
+    import scipy.optimize
+
+    # All-cash is strictly feasible, so the only linprog call is the
+    # supporting-hyperplane certificate. A reported success with NaN is
+    # deliberately not a certificate of zero global optimality gap.
+    def nonfinite_certificate(c, *args, **kwargs):
+        return SimpleNamespace(success=True, x=np.full(len(c), np.nan), message="injected")
+
+    monkeypatch.setattr(scipy.optimize, "linprog", nonfinite_certificate)
+    problem = MultistageProblem(2., (
+        root(margin=1.),
+        terminal("only", "root", 1, 1., .4, cash=.5, debt=.6),
+    ))
+    with pytest.raises(AlgebraicPolicyError, match="nonfinite upper optimality bound"):
+        solve_multistage(problem)
