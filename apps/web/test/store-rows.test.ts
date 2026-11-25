@@ -66,3 +66,53 @@ test("grant and committed effect projections retain exact security audit fields"
   assert.deepEqual(effect.result, { ok: true });
   assert.equal(effect.committedAt, 12);
 });
+
+test("native Grant read projection rejects unrepresentable stored rows with Grant-specific error", async (t) => {
+  const { DatabaseSync } = await import("node:sqlite");
+  const { initializeWebStoreSchema } = await import("../src/store-schema.ts");
+  const { AgentGrantStore } = await import("../src/store-agent-grants.ts");
+  const cases = [
+    ["agent_id", Uint8Array.of(97, 49)],
+    ["audience", Uint8Array.of(119, 101, 98)],
+    ["grant_digest", Uint8Array.of(100)],
+    ["allowed_actions_json", "{broken"],
+    ["resource_prefixes_json", '["/notes", 3]'],
+    ["max_risk_class", "R9"],
+    ["max_risk_class", "R4\n"],
+    ["max_risk_class", Uint8Array.of(82, 52)],
+    ["allowed_actions_json", new TextEncoder().encode('["create"]')],
+    ["step_up_at_or_above", "unknown"],
+    ["remaining_effects", 1.5],
+    ["revision", 1.5],
+    ["expires_at", "not-a-time"],
+    ["expires_at", 1.5],
+  ] as const;
+  for (const [column, value] of cases) {
+    await t.test(column + "=" + value, () => {
+      const db = new DatabaseSync(":memory:");
+      try {
+        initializeWebStoreSchema(db);
+        db.prepare("INSERT INTO principals VALUES (?, ?, ?, ?)").run("p1", "alice", "Alice", 1);
+        const store = new AgentGrantStore(db, () => {});
+        const created = store.createAgentGrant({
+          grantId: "g1", principalId: "p1", agentId: "a1", audience: "web",
+          allowedActions: ["create"], resourcePrefixes: ["/notes"],
+          expiresAtEpochSeconds: 100, maxRiskClass: "R4",
+          stepUpAtOrAbove: "R2", remainingEffects: 3,
+        }, 1);
+        assert.deepEqual(store.getAgentGrant("g1"), created);
+        assert.deepEqual(store.listAgentGrants("p1"), [created]);
+        db.prepare("UPDATE agent_grants SET remaining_effects = 0, active = 0, revision = 2 WHERE grant_id = ?").run("g1");
+        assert.deepEqual(store.getAgentGrant("g1"), { ...created, remainingEffects: 0, active: false, revision: 2 });
+        db.prepare("UPDATE agent_grants SET remaining_effects = 3, active = 1, revision = 1 WHERE grant_id = ?").run("g1");
+        db.prepare("UPDATE agent_grants SET " + column + " = ? WHERE grant_id = ?").run(value, "g1");
+        const invalid = (error: unknown) => error instanceof WebProblem &&
+          error.status === 500 && error.code === "agent-grant-corrupt";
+        assert.throws(() => store.getAgentGrant("g1"), invalid);
+        assert.throws(() => store.listAgentGrants("p1"), invalid);
+      } finally {
+        db.close();
+      }
+    });
+  }
+});
