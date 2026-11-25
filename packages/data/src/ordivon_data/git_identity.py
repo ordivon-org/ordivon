@@ -10,6 +10,7 @@ import hashlib
 import re
 
 _MAX_BATCH_BYTES = 8 * 1024 * 1024
+_MAX_CUT_BYTES = 64 * 1024 * 1024
 _MAX_OBJECTS = 20_000
 _MAX_ODPS_BYTES = 2 * 1024 * 1024
 
@@ -47,11 +48,36 @@ def qualify_batch_sizes(
         size = int(size_text)
         if kind == "blob" and not 0 < size <= _MAX_ODPS_BYTES:
             raise ValueError("Git ODPS source exceeds bounded input size")
-        total += size + len(row) + 2
-        if total > _MAX_BATCH_BYTES:
+        frame_size = size + len(row) + 2
+        if frame_size > _MAX_BATCH_BYTES:
+            raise ValueError("Git object exceeds bounded batch bytes")
+        total += frame_size
+        if total > _MAX_CUT_BYTES:
             raise ValueError("Git cut exceeds bounded object bytes")
         result.append((row, size))
     return result
+
+
+def partition_object_batches(
+    headers: list[tuple[bytes, int]],
+) -> list[list[tuple[bytes, int]]]:
+    """Maximal contiguous batches, retaining exact admitted order."""
+    batches: list[list[tuple[bytes, int]]] = []
+    current: list[tuple[bytes, int]] = []
+    used = 0
+    for header, size in headers:
+        frame_size = len(header) + size + 2
+        if size < 0 or frame_size > _MAX_BATCH_BYTES:
+            raise ValueError("Git object exceeds bounded batch bytes")
+        if current and used + frame_size > _MAX_BATCH_BYTES:
+            batches.append(current)
+            current = []
+            used = 0
+        current.append((header, size))
+        used += frame_size
+    if current:
+        batches.append(current)
+    return batches
 
 
 def verify_object_batch(
@@ -61,6 +87,7 @@ def verify_object_batch(
     *,
     commit: str,
     root_tree: str,
+    require_commit: bool = True,
 ) -> dict[str, bytes]:
     """Verify ordered frames and retain only selected metadata blobs."""
     if len(raw) > _MAX_BATCH_BYTES:
@@ -94,6 +121,6 @@ def verify_object_batch(
         if kind == b"blob":
             blobs[oid.decode("ascii")] = bytes(view[start:end])
         offset = end + 1
-    if offset != len(raw) or not commit_seen:
+    if offset != len(raw) or commit_seen != require_commit:
         raise ValueError("incomplete Git object batch")
     return blobs
