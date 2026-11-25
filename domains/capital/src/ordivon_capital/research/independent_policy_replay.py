@@ -258,6 +258,28 @@ def replay_multistage_json(
     gap = _number(solution.get("concavity_global_utility_gap_upper"), "reported_gap")
     if gap < 0:
         raise EconomicReplayMismatch("negative reported gap")
+    # The historical name is retained on the wire, but only a numerical
+    # estimate is consumed here. Exact canonical-witness claims remain
+    # reported, never certified by this independent cashflow replay.
+    claim = solution.get("optimality_evidence")
+    claim_standing = "LEGACY_NUMERIC_ONLY"
+    claimed_upper = None
+    if claim is not None:
+        if not isinstance(claim, Mapping):
+            raise EconomicReplayMismatch("optimality evidence must be an object")
+        estimate = _number(claim.get("numerical_tangent_gap_estimate"), "numeric gap estimate")
+        if estimate != gap:
+            raise EconomicReplayMismatch("inconsistent numerical gap projections")
+        claim_standing = claim.get("standing")
+        if claim_standing == "EXACT_RATIONAL_CANONICAL_WITNESS_GAP_UPPER":
+            claimed_upper = _number(claim.get("certified_canonical_gap_upper"), "claimed exact gap")
+            if claimed_upper < 0 or not isinstance(claim.get("dual_proposal"), Mapping):
+                raise EconomicReplayMismatch("invalid claimed exact gap evidence")
+        elif claim_standing == "UNKNOWN":
+            if claim.get("certified_canonical_gap_upper") is not None or claim.get("dual_proposal") is not None:
+                raise EconomicReplayMismatch("UNKNOWN cannot carry a certified gap")
+        else:
+            raise EconomicReplayMismatch("unrecognized optimality evidence standing")
     encoded = json.dumps(
         {"problem": problem, "solution": solution}, sort_keys=True, separators=(",", ":")
     )
@@ -271,6 +293,8 @@ def replay_multistage_json(
         "minimum_collateral_surplus_r": min_collateral_surplus,
         "recomputed_expected_utility": utility,
         "reported_numeric_gap_not_independently_certified": gap,
+        "reported_optimality_evidence_standing": claim_standing,
+        "reported_canonical_gap_upper_not_independently_certified": claimed_upper,
         "numeric_tolerance_r": _NUMERIC_TOLERANCE_R,
     }
 

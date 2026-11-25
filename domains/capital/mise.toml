@@ -13,6 +13,7 @@ mise run verify:formal:unit-r-margin
 mise run verify:formal:unit-r-rebalance
 mise run verify:formal:algebraic-capital
 mise run verify:formal:multistage-one-r
+mise run verify:formal:canonical-gap
 mise run verify:formal:broker-liquidation
 uv lock --check
 uv sync --locked --group test
@@ -106,6 +107,19 @@ observed="$(cd ../../tools/formal && mise exec -- z3 -smt2 ../../domains/capital
 expected="$(printf 'unsat\\nunsat\\nunsat\\nunsat\\nunsat\\nsat')"
 if [ "$observed" != "$expected" ]; then
   printf 'Unexpected multi-stage 1r Z3 result: %s\\n' "$observed" >&2
+  exit 1
+fi
+printf '%s\\n' "$observed"
+"""
+
+[tasks."verify:formal:canonical-gap"]
+description = "Exact canonical financing, finite caps and residual correction obligations"
+run = """
+set -euo pipefail
+observed="$(cd ../../tools/formal && mise exec -- z3 -smt2 ../../domains/capital/formal/CanonicalGapEvidenceR1.smt2)"
+expected="$(printf 'unsat\\nunsat\\nunsat\\nunsat\\nunsat\\nunsat\\nsat\\nsat')"
+if [ "$observed" != "$expected" ]; then
+  printf 'Unexpected canonical-gap proof result: %s\\n' "$observed" >&2
   exit 1
 fi
 printf '%s\\n' "$observed"

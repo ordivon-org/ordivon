@@ -16,8 +16,9 @@ the TWR unit account requires separate unitization.
 
 Finite scenario expected CRRA utility of net terminal liabilities plus linear self-financing/trade/margin
 constraints is a concave maximization on a convex feasible set. A supporting
-hyperplane LP gives a *numerical global optimality-gap upper bound*, not
-a formal proof of SciPy or an authenticated return forecast.
+hyperplane LP gives a numerical tangent-gap estimate, not a strict bound.
+The separate exact-rational checker may certify a reconstructed canonical
+witness for scoped integer gamma; otherwise its standing is UNKNOWN.
 """
 
 from __future__ import annotations
@@ -33,6 +34,7 @@ from ordivon_capital.portfolio.information_tree import (
     MultistageProblem,
     validate_information_tree,
 )
+from ordivon_capital.portfolio.optimality_evidence import OptimalityEvidence, certify_canonical_gap
 from ordivon_capital.portfolio.policy_contract import AlgebraicPolicyError
 
 # The existing PIT source consumer exercises this exact validation contract
@@ -57,8 +59,10 @@ class MultistageSolution:
     terminal_distribution: dict[str, dict[str, float]]
     equality_residual: float
     inequality_residual: float
+    # Historical field: numerical tangent estimate, NOT a strict bound.
     concavity_global_utility_gap_upper: float
     standing: str = "FINITE_TREE_CONDITIONAL_NUMERIC_NOT_MARKET_VERIFIED"
+    optimality_evidence: OptimalityEvidence | None = None
 
 
 def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
@@ -211,8 +215,8 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
 
     # Finite-scenario CRRA objective is concave on the positive-wealth domain.
     # Its tangent at a feasible point is an affine GLOBAL upper bound.
-    # Maximize that tangent over the *same primal feasible polyhedron*
-    # using proven upstream HiGHS linear programming.
+    # Estimate its maximum over the numerical polyhedron using HiGHS.
+    # The primal LP optimum is tolerance-qualified, not a strict upper.
     value, gradient = utility_and_gradient(x)
     if not math.isfinite(value) or not np.all(np.isfinite(gradient)):
         raise AlgebraicPolicyError("nonfinite utility or gradient at solver candidate")
@@ -285,6 +289,13 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
         )
     }
     first = output_decisions[decisions[0].id]
+    evidence = certify_canonical_gap(
+        problem,
+        {key: row["assetExposuresR"] for key, row in output_decisions.items()},
+        getattr(getattr(certificate, "ineqlin", None), "marginals", None),
+        getattr(getattr(certificate, "eqlin", None), "marginals", None),
+        gap,
+    )
     return MultistageSolution(
         contributions_r_per_path=tree.months,
         expected_terminal_r=float(leaf_probabilities @ terminal_wealth),
@@ -302,6 +313,7 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
         equality_residual=equality_error,
         inequality_residual=inequality_error,
         concavity_global_utility_gap_upper=gap,
+        optimality_evidence=evidence,
     )
 
 def main() -> int:

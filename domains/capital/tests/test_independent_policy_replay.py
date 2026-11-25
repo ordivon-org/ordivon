@@ -220,6 +220,8 @@ def test_independent_bisection_one_period_log_utility_checks_optimality_gap() ->
 
 def test_replay_stands_apart_from_optimizer_gap_claim() -> None:
     payload = _payload(_two_months_with_liabilities())
+    # Older receipts have no typed proof field; preserve numeric-only replay.
+    payload["solution"].pop("optimality_evidence")
     payload["solution"]["concavity_global_utility_gap_upper"] = 0.0
     audit = replay_multistage_json(**payload)
     assert audit["standing"].endswith("NOT_OPTIMALITY_CERTIFICATE")
@@ -289,3 +291,18 @@ def test_independent_replay_rejects_ambiguous_source_bytes(tmp_path, field):
     )
     assert result.returncode != 0, result.stdout
     assert not result.stdout
+
+
+def test_replay_does_not_promote_unknown_or_conflicting_gap_evidence():
+    payload = _payload(_two_months_with_liabilities())
+    claim = payload["solution"]["optimality_evidence"]
+    audit = replay_multistage_json(**payload)
+    assert audit["reported_optimality_evidence_standing"] == claim["standing"]
+    assert audit["reported_canonical_gap_upper_not_independently_certified"] == claim["certified_canonical_gap_upper"]
+    claim["numerical_tangent_gap_estimate"] = payload["solution"]["concavity_global_utility_gap_upper"] + 1.
+    with pytest.raises(EconomicReplayMismatch, match="inconsistent numerical gap"):
+        replay_multistage_json(**payload)
+    claim.update(numerical_tangent_gap_estimate=payload["solution"]["concavity_global_utility_gap_upper"],
+                 standing="UNKNOWN", certified_canonical_gap_upper=0., dual_proposal=None)
+    with pytest.raises(EconomicReplayMismatch, match="UNKNOWN cannot carry"):
+        replay_multistage_json(**payload)
