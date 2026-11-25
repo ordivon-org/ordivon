@@ -1367,7 +1367,10 @@ exit 0
                     finally:
                         source.write_bytes(original)
 
-            from pg_issuer_consumer import RUNTIME_PG_CORE_ROOT
+            if __package__:
+                from .pg_issuer_consumer import RUNTIME_PG_CORE_ROOT
+            else:
+                from pg_issuer_consumer import RUNTIME_PG_CORE_ROOT
 
             extra = clone / RUNTIME_PG_CORE_ROOT / "r4_untracked_fixture.rs"
             self.assertFalse(extra.exists())
