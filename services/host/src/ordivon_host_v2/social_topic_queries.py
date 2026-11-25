@@ -24,7 +24,7 @@ from .postgres_bounds import HOST_WIRE_INT_MAX
 from .references.actor_refs import ActorReferenceLookup
 from .references.record_refs import RecordReferenceLookup
 from .social_errors import TopicResumeCursorAhead
-from .social_message_records import verify_message_content_digest
+from .social_message_records import verified_message_wire
 from .topic_cursor_records import get_topic_cursor_in_tx, topic_high_sequence_in_tx
 
 
@@ -129,21 +129,7 @@ class SocialTopicReadQueries:
                 (topic_ref, after_sequence, limit + 1),
             ).fetchall()
             sql_more = len(rows) > limit
-            for row in rows[:limit]:
-                verify_message_content_digest(row)
-            candidates = [
-                {
-                    "sequence": int(row["sequence"]),
-                    "messageRef": row["message_ref"],
-                    "authorActorRef": row["author_actor_ref"],
-                    "messageKind": row["message_kind"],
-                    "body": row["body"],
-                    "messageDigest": row["message_digest"],
-                    "recordedAtMs": int(row["recorded_at_ms"]),
-                    "createdAt": row["created_at"].isoformat(),
-                }
-                for row in rows[:limit]
-            ]
+            candidates = [verified_message_wire(row, include_scope=False) for row in rows[:limit]]
             topic_wire = {
                 "topicRef": topic["topic_ref"],
                 "spaceRef": topic["space_ref"],
