@@ -316,6 +316,30 @@ global configuration, and external target acceptance are not claimed.
 
 The historical Game TMJ receipt retains its original bytes and digest. All four Artifact authority digests match the retained monorepo source cut `e2757345aae3e4d38330d0f07c8eef45bbdf998f`; the historical receipt test reads that exact Git witness rather than constraining the current driver. This is not the original external repository revision.
 
+### T2 Web browser evidence projection
+
+Separate browser invocation from pure policy projection. The latter requires
+a subject-bound native report, successful transport, unambiguous engine
+names and exact report shape before admitting observations. Required engine
+launch/load absence or operational failure is UNKNOWN, never native content
+falsification. A qualified axe violation is decisive scoped negative evidence.
+Legacy stage FAIL still blocks publication when a required observation is
+unavailable; raw evidence is retained, but no binary VSA is produced for
+UNKNOWN, including when a previous VSA exists in the output directory.
+This does not waive any required renderer, nor claim a complete native
+dependency readset, arbitrary HTML execution safety or external acceptance.
+
+
+The shared V1 receipt writer also preserves explicit NOT_RUN, NOT_EVALUATED
+and UNKNOWN observations for every existing gate; it rejects a binary VSA
+even when a Boolean override was supplied. Rejected identity readback removes
+stale VSA files. OpenXML requires a subject-bound report and a consistent
+native status, exit code and error array/count. Process launch failure,
+timeout, malformed report or ambiguous exit does not prove document
+nonconformance. qpdf absent/unlaunchable/unknown exits likewise remain
+unobserved; the established qpdf structural policy for exits 2 and 3 is
+unchanged. This does not classify every possible exception inside a native
+validator, nor claim full native process input continuity.
 
 ### T8 Python generation publication refinement
 
