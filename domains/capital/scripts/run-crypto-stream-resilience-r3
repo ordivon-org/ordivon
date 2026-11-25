@@ -1,8 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
-out="$repo/.artifacts/crypto-stream-resilience-r3"
-rm -rf "$out"; mkdir -p "$out"
+if [ "$#" -gt 1 ]; then echo "usage: $0 [NEW_OUTPUT_DIR]" >&2; exit 64; fi
+if [ "$#" -eq 0 ]; then
+  mkdir -p -- "$repo/.artifacts"
+  out="$repo/.artifacts/crypto-stream-resilience-r3"
+else
+  out="$1"
+fi
+# Existing evidence is a consumer-owned resource, not disposable scratch.
+# An explicit new destination permits reruns without overwriting prior runs.
+mkdir -- "$out" || { echo "reconnect output must be a new directory: $out" >&2; exit 73; }
 "$repo/scripts/check-execution-policy" --mode non-live >/dev/null
 "$repo/scripts/check-crypto-data-adapter-policy" >/dev/null
 "$repo/scripts/check-clock-quality-gate" >/dev/null
@@ -10,10 +18,11 @@ start="$(date +%s%N)"; set +e
 "$repo/scripts/run-crypto-stream-resilience-r3-candidate" "$out/network-v2" >"$out/candidate.stdout" 2>"$out/candidate.stderr"; rc=$?
 set -e; end="$(date +%s%N)"
 if [ "$rc" -ne 0 ]; then cat "$out/network-v2/result.json" >&2 2>/dev/null || true; exit "$rc"; fi
-cp "$out/network-v2/session/result.json" "$out/result.json"
-cp "$out/network-v2/session/okx.json" "$out/okx.json"
-cp "$out/network-v2/session/binance.json" "$out/binance.json"
-cp "$out/network-v2/network-v2-binding.json" "$out/network-v2-binding.json"
+cp -- "$out/network-v2/session/okx.json" "$out/okx.json"
+cp -- "$out/network-v2/session/binance.json" "$out/binance.json"
+cp -- "$out/network-v2/network-v2-binding.json" "$out/network-v2-binding.json"
+# The completed session receipt is linked only after its retained evidence.
+ln -- "$out/network-v2/session/result.json" "$out/result.json"
 python3 - "$out/result.json" "$out/network-v2-binding.json" "$start" "$end" <<'PY'
 import json,sys
 s=json.load(open(sys.argv[1])); b=json.load(open(sys.argv[2]))
