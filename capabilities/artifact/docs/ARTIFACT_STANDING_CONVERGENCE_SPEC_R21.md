@@ -313,3 +313,15 @@ same-principal scratch mutation, imported Python/native dependencies, Tiled
 global configuration, and external target acceptance are not claimed.
 
 The historical Game TMJ receipt retains its original bytes and digest. All four Artifact authority digests match the retained monorepo source cut `e2757345aae3e4d38330d0f07c8eef45bbdf998f`; the historical receipt test reads that exact Git witness rather than constraining the current driver. This is not the original external repository revision.
+
+
+### T8 Python generation publication refinement
+
+Readiness of a retained generation is distinct from matching the current
+desired release. Reuse of a generation requires exact desired spec, generation
+namespace, wrapper and retained uv provenance identity, plus a native wrapper
+probe. A single owner-local advisory lock serializes pointer publications;
+qualification occurs before changing current. Failed post-publication readback
+restores the exact previous symlink when the publisher still owns its target.
+No arbitrary-process exclusion, crash-atomic cross-service deployment,
+full interpreter shared-library closure or worker acceptance is claimed.
