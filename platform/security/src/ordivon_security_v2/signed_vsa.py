@@ -1,26 +1,14 @@
 from __future__ import annotations
 
 import base64
-import json
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
+from .evidence import parse_unique_json
+
 VSA_PREDICATE = "https://slsa.dev/verification_summary/v1"
 DSSE_PAYLOAD_TYPE = "application/vnd.in-toto+json"
-
-
-def _parse_unique_json(data: bytes | str) -> Any:
-    """Reject ambiguous JSON names at the signed evidence/trust boundary."""
-    def unique_mapping(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-        values: dict[str, Any] = {}
-        for name, value in pairs:
-            if name in values:
-                raise ValueError(f"duplicate JSON member: {name}")
-            values[name] = value
-        return values
-
-    return json.loads(data, object_pairs_hook=unique_mapping)
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -36,7 +24,7 @@ def sha256_file(path: Path) -> str:
 
 
 def decode_bundle_statement(bundle_path: Path) -> tuple[dict[str, Any], bytes]:
-    bundle = _parse_unique_json(bundle_path.read_text(encoding="utf-8"))
+    bundle = parse_unique_json(bundle_path.read_text(encoding="utf-8"))
     envelope = bundle.get("dsseEnvelope")
     if not isinstance(envelope, dict):
         raise ValueError("Sigstore bundle does not contain a DSSE envelope")
@@ -52,14 +40,14 @@ def decode_bundle_statement(bundle_path: Path) -> tuple[dict[str, Any], bytes]:
         payload = base64.b64decode(payload_text, validate=True)
     except Exception as exc:  # binascii.Error is an implementation detail here.
         raise ValueError("DSSE payload is not valid base64") from exc
-    statement = _parse_unique_json(payload)
+    statement = parse_unique_json(payload)
     if not isinstance(statement, dict):
         raise ValueError("DSSE payload is not an in-toto Statement object")
     return statement, payload
 
 
 def load_trust_mapping(path: Path) -> dict[str, str]:
-    payload = _parse_unique_json(path.read_text(encoding="utf-8"))
+    payload = parse_unique_json(path.read_text(encoding="utf-8"))
     if payload.get("schemaVersion") != 1:
         raise ValueError("unsupported trust-policy schema")
     verifiers = payload.get("verifiers")

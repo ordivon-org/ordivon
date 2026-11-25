@@ -47,3 +47,30 @@ class RemediationDeltaTests(unittest.TestCase):
             ar = self._write(r, "a", self._report([{**v, "InstalledVersion": "2"}]))
             with self.assertRaisesRegex(ValueError, "remain after remediation"):
                 verify_remediation_delta(package="p", before_sbom_path=bsb, before_report_path=br, after_sbom_path=asb, after_report_path=ar)
+
+    def test_supplied_report_delta_is_not_fresh_scan_binding(self):
+        with tempfile.TemporaryDirectory() as td:
+            r = Path(td)
+            bsb = self._write(r, "b-sbom", {"component": "old"})
+            asb = self._write(r, "a-sbom", {"component": "new"})
+            br = self._write(r, "b-report", self._report([
+                {"VulnerabilityID": "CVE-A", "PkgName": "p", "InstalledVersion": "1"},
+            ]))
+            # A clean report from another scan can be supplied with any changed SBOM.
+            ar = self._write(r, "unrelated-clean-report", self._report([]))
+            result = verify_remediation_delta(package="p", before_sbom_path=bsb, before_report_path=br, after_sbom_path=asb, after_report_path=ar)
+            self.assertEqual(result["standing"], "BASELINE_VULNERABILITY_IDS_ABSENT_IN_SUPPLIED_REPORTS")
+            self.assertEqual(result["scanInputBinding"], "UNKNOWN")
+            self.assertIs(result["authenticated"], False)
+
+    def test_missing_results_is_not_an_observed_empty_result(self):
+        with tempfile.TemporaryDirectory() as td:
+            r = Path(td)
+            bsb = self._write(r, "b-sbom", {"component": "old"})
+            asb = self._write(r, "a-sbom", {"component": "new"})
+            br = self._write(r, "b-report", self._report([
+                {"VulnerabilityID": "CVE-A", "PkgName": "p", "InstalledVersion": "1"},
+            ]))
+            ar = self._write(r, "a-report", {"ArtifactType": "cyclonedx"})
+            with self.assertRaisesRegex(ValueError, "Results"):
+                verify_remediation_delta(package="p", before_sbom_path=bsb, before_report_path=br, after_sbom_path=asb, after_report_path=ar)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from hashlib import sha256
@@ -80,3 +81,25 @@ def build_gate_input(
         "authority": authority,
         "evidenceRefs": refs,
     }
+
+
+def parse_unique_json(data: bytes | str) -> object:
+    """Reject duplicate member names rather than silently choose a meaning."""
+    def unique_mapping(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        values: dict[str, object] = {}
+        for name, value in pairs:
+            if name in values:
+                raise ValueError(f"duplicate JSON member: {name}")
+            values[name] = value
+        return values
+
+    return json.loads(data, object_pairs_hook=unique_mapping)
+
+
+def read_json_evidence(path: Path) -> tuple[dict, str]:
+    """Parse and identify the same captured bytes; no freshness or issuer claim."""
+    raw = path.read_bytes()
+    value = parse_unique_json(raw.decode("utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError("evidence must be a JSON object")
+    return value, "sha256:" + sha256(raw).hexdigest()

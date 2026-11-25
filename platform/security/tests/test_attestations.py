@@ -1,3 +1,5 @@
+import hashlib
+import importlib.util
 import json
 import os
 import subprocess
@@ -5,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from ordivon_security_v2.attestations import (
     REFERENCE_PREDICATE,
@@ -195,6 +198,117 @@ class AttestationEmissionBoundaryTests(unittest.TestCase):
         gate["providerResults"][0]["exitCode"] = 1
         gate["providerResults"][0]["blocking"] = True
         self.gate.write_text(json.dumps(gate), encoding="utf-8")
+        run = self.emit()
+        self.assertNotEqual(run.returncode, 0)
+        self.assertIn("provider receipt and gate results differ", run.stderr)
+
+
+    def test_rejects_ambiguous_gate_before_emitting(self) -> None:
+        self.create_gate()
+        original = self.gate.read_text()
+        self.gate.write_text('{"subjectRevision":"' + "b" * 40 + '",' + original[1:])
+        run = self.emit()
+        self.assertNotEqual(run.returncode, 0)
+        self.assertIn("duplicate", run.stderr)
+        self.assertFalse((self.output / "verification-summary.vsa.intoto.json").exists())
+
+    def test_attested_policy_digest_is_of_evaluated_bytes(self) -> None:
+        self.create_gate()
+        policy = self.root / "admission.rego"
+        original = (OWNER / "policies/admission.rego").read_bytes()
+        policy.write_bytes(original)
+        replacement = original + b"\n# changed after native evaluation\n"
+        module_spec = importlib.util.spec_from_file_location(
+            "test_emit_attestations", OWNER / "scripts/emit_attestations.py"
+        )
+        assert module_spec is not None and module_spec.loader is not None
+        emitter = importlib.util.module_from_spec(module_spec)
+        module_spec.loader.exec_module(emitter)
+        real_run = subprocess.run
+
+        def run_then_change_policy(*args, **kwargs):
+            result = real_run(*args, **kwargs)
+            policy.write_bytes(replacement)
+            return result
+
+        argv = [
+            "emit_attestations.py", "--gate-input", str(self.gate),
+            "--decision", str(self.decision), "--output-dir", str(self.output),
+            "--subject-name", "ordivon", "--verifier-revision", self.revision,
+            "--policy", str(policy),
+        ]
+        with patch.object(sys, "argv", argv), patch.object(subprocess, "run", run_then_change_policy):
+            self.assertEqual(emitter.main(), 0)
+        statement = json.loads((self.output / "verification-summary.vsa.intoto.json").read_bytes())
+        self.assertEqual(policy.read_bytes(), replacement)
+        self.assertEqual(statement["predicate"]["policy"]["digest"]["sha256"],
+                         hashlib.sha256(original).hexdigest())
+
+
+    def test_runner_semantics_must_match_gate_bound_bytes(self) -> None:
+        self.create_gate()
+        runner = self.artifacts / "provider-status.json"
+        original = runner.read_bytes()
+        replacement = json.dumps({**json.loads(original), "profile": "unbound-profile"}).encode()
+        module_spec = importlib.util.spec_from_file_location(
+            "test_emit_runner", OWNER / "scripts/emit_attestations.py"
+        )
+        assert module_spec is not None and module_spec.loader is not None
+        emitter = importlib.util.module_from_spec(module_spec)
+        module_spec.loader.exec_module(emitter)
+        read_text = Path.read_text
+        read_bytes = Path.read_bytes
+
+        def read_swapped_text(path, *args, **kwargs):
+            if path != runner:
+                return read_text(path, *args, **kwargs)
+            path.write_bytes(replacement)
+            try:
+                return read_text(path, *args, **kwargs)
+            finally:
+                path.write_bytes(original)
+
+        def read_swapped_bytes(path, *args, **kwargs):
+            if path != runner:
+                return read_bytes(path, *args, **kwargs)
+            path.write_bytes(replacement)
+            try:
+                return read_bytes(path, *args, **kwargs)
+            finally:
+                path.write_bytes(original)
+
+        argv = [
+            "emit_attestations.py", "--gate-input", str(self.gate),
+            "--decision", str(self.decision), "--output-dir", str(self.output),
+            "--subject-name", "ordivon", "--verifier-revision", self.revision,
+            "--policy", str(OWNER / "policies/admission.rego"),
+        ]
+        with (
+            patch.object(sys, "argv", argv),
+            patch.object(Path, "read_text", read_swapped_text),
+            patch.object(Path, "read_bytes", read_swapped_bytes),
+        ):
+            with self.assertRaisesRegex(ValueError, "runner receipt.*binding"):
+                emitter.main()
+        self.assertEqual(runner.read_bytes(), original)
+        self.assertFalse((self.output / "verification-summary.vsa.intoto.json").exists())
+
+
+    def test_rejects_integer_alias_for_boolean_decision(self) -> None:
+        self.create_gate()
+        decision = json.loads(self.decision.read_text())
+        self.assertIs(decision["allow"], True)
+        decision["allow"] = 1
+        self.decision.write_text(json.dumps(decision))
+        run = self.emit()
+        self.assertNotEqual(run.returncode, 0)
+        self.assertIn("does not match current policy", run.stderr)
+
+    def test_rejects_integer_alias_for_runner_boolean(self) -> None:
+        self.create_gate()
+        gate = json.loads(self.gate.read_text())
+        gate["providerResults"][0]["mechanicalSuccess"] = 1
+        self.gate.write_text(json.dumps(gate))
         run = self.emit()
         self.assertNotEqual(run.returncode, 0)
         self.assertIn("provider receipt and gate results differ", run.stderr)

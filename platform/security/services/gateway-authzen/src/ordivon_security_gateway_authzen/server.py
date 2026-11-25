@@ -8,55 +8,66 @@ from __future__ import annotations
 
 import asyncio
 import hmac
-import json
 import os
-import subprocess
+import secrets
 import uuid
 from pathlib import Path
 
 from starlette.applications import Starlette
-from starlette.requests import Request
+from starlette.requests import ClientDisconnect, Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 
+from .json_qualification import InvalidJsonObject, qualify_json_object
+from .policy_evaluation import EvaluationUnavailable
+from .policy_evaluation import evaluate_policy as _opa_decision
 
-class EvaluationUnavailable(Exception):
+MAX_REQUEST_BYTES = 8192
+
+
+class InvalidRequestBody(ValueError):
     pass
 
 
-def _opa_decision(payload: dict, opa: str, policy: str, data: str) -> bool:
-    try:
-        result = subprocess.run(
-            [
-                opa,
-                "eval",
-                "--stdin-input",
-                "--format",
-                "raw",
-                "--data",
-                policy,
-                "--data",
-                data,
-                "data.ordivon.security.gateway_artifact.allow",
-            ],
-            input=json.dumps(payload, separators=(",", ":"), ensure_ascii=False),
-            text=True,
-            capture_output=True,
-            timeout=2.0,
-            check=True,
-        )
-    except (OSError, subprocess.SubprocessError) as exc:
-        raise EvaluationUnavailable("OPA decision unavailable") from exc
-    output = result.stdout.strip()
-    if output not in ("true", "false"):
-        raise EvaluationUnavailable("OPA returned a nonboolean result")
-    return output == "true"
+class RequestTooLarge(ValueError):
+    pass
+
+
+async def _read_evaluation(request: Request) -> bytes:
+    """Bound retained bytes before parsing, then require a unique JSON object.
+
+    A rejected wire representation never reaches OPA. The ASGI server owns
+    network framing and chunk allocation; this is an application buffer bound.
+    """
+    lengths = request.headers.getlist("content-length")
+    declared = None
+    if lengths:
+        if len(lengths) != 1 or not lengths[0].isascii() or not lengths[0].isdigit():
+            raise InvalidRequestBody("invalid content length")
+        digits = lengths[0].lstrip("0") or "0"
+        limit = str(MAX_REQUEST_BYTES)
+        if len(digits) > len(limit) or (len(digits) == len(limit) and digits > limit):
+            raise RequestTooLarge
+        declared = int(digits)
+    raw = bytearray()
+    async for chunk in request.stream():
+        if len(raw) + len(chunk) > MAX_REQUEST_BYTES:
+            raise RequestTooLarge
+        raw.extend(chunk)
+    if declared is not None and declared != len(raw):
+        raise InvalidRequestBody("content length mismatch")
+    captured = bytes(raw)
+    qualify_json_object(captured)
+    return captured
 
 
 def make_app(*, token_path: str, policy: str, policy_data: str, opa: str) -> Starlette:
     for value in (token_path, policy, policy_data, opa):
         if not Path(value).is_absolute():
             raise ValueError("Security AuthZEN inputs must be absolute paths")
+
+    instance_id = str(uuid.uuid4())
+    commitment_key = secrets.token_bytes(32)
 
     async def health(_request: Request) -> JSONResponse:
         return JSONResponse({"status": "ok", "owner": "security", "policyEngine": "opa"})
@@ -68,7 +79,11 @@ def make_app(*, token_path: str, policy: str, policy_data: str, opa: str) -> Sta
             expected = Path(token_path).read_text(encoding="utf-8").strip()
         except OSError, UnicodeError:
             return JSONResponse({"error": "credential_unavailable"}, status_code=503)
-        if len(expected) < 32 or not supplied or not hmac.compare_digest(supplied, expected):
+        if (
+            len(expected) < 32
+            or not supplied
+            or not hmac.compare_digest(supplied.encode("utf-8"), expected.encode("utf-8"))
+        ):
             return JSONResponse({"error": "unauthorized"}, status_code=401)
         request_id = request.headers.get("x-request-id", "")
         try:
@@ -78,22 +93,31 @@ def make_app(*, token_path: str, policy: str, policy_data: str, opa: str) -> Sta
             return JSONResponse({"error": "invalid_request_id"}, status_code=400)
         if request.headers.get("content-type", "").split(";")[0].strip() != "application/json":
             return JSONResponse({"error": "unsupported_media_type"}, status_code=415)
-        if int(request.headers.get("content-length", "0") or "0") > 8192:
-            return JSONResponse({"error": "request_too_large"}, status_code=413)
-        raw = await request.body()
-        if len(raw) > 8192:
-            return JSONResponse({"error": "request_too_large"}, status_code=413)
         try:
-            payload = json.loads(raw)
-        except ValueError, UnicodeDecodeError:
-            return JSONResponse({"error": "invalid_json"}, status_code=400)
-        if not isinstance(payload, dict):
+            payload = await _read_evaluation(request)
+        except RequestTooLarge:
+            return JSONResponse({"error": "request_too_large"}, status_code=413)
+        except InvalidRequestBody, InvalidJsonObject:
             return JSONResponse({"error": "invalid_evaluation"}, status_code=400)
+        except ValueError, RecursionError, ClientDisconnect:
+            return JSONResponse({"error": "invalid_json"}, status_code=400)
+        standing_request = request.headers.getlist("x-ordivon-policy-standing")
+        if standing_request not in ([], ["v1"]):
+            return JSONResponse({"error": "invalid_standing_version"}, status_code=400)
         try:
-            permitted = await asyncio.to_thread(_opa_decision, payload, opa, policy, policy_data)
+            observation = await asyncio.to_thread(
+                _opa_decision, payload, opa, policy, policy_data, commitment_key
+            )
         except EvaluationUnavailable:
             return JSONResponse({"error": "decision_unavailable"}, status_code=503)
-        return JSONResponse({"decision": permitted}, headers={"X-Request-ID": request_id})
+        body: dict[str, object] = {"decision": observation.decision}
+        if standing_request:
+            body["context"] = {
+                "ordivonPolicyStanding": observation.standing(
+                    request_id=request_id, instance_id=instance_id
+                )
+            }
+        return JSONResponse(body, headers={"X-Request-ID": request_id, "Cache-Control": "no-store"})
 
     return Starlette(
         routes=[
