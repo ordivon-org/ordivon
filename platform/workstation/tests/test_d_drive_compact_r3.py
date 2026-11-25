@@ -236,3 +236,151 @@ def test_run_r3_suppresses_cross_agent_recovery_during_active_request():
     assert "recoveryTaskSuppressed" in text
     assert text.index("Atomic-Json $request $req") < text.index("Disable-ScheduledTask")
     assert text.index("Enable-ScheduledTask") < text.index("Remove-Item -LiteralPath $request")
+
+
+def test_legacy_gate_refuses_pg_runtime_before_pressure_or_trim(tmp_path, monkeypatch):
+    """An old registry/lock cannot authorize the current PG runtime's shutdown."""
+    import argparse
+    import json
+
+    gate = load_gate()
+    monkeypatch.setattr(gate, "parse_args", lambda: argparse.Namespace(
+        maintenance_id="synthetic-maintenance", unit_name="synthetic-gate",
+        transaction_root=tmp_path, pressure_wait_seconds=1,
+    ))
+    monkeypatch.setattr(gate.signal, "signal", lambda *args: None)
+    calls = []
+
+    def run(argv, *, timeout, check=False):
+        calls.append(tuple(argv))
+        return gate.subprocess.CompletedProcess(argv, 0, stdout="123\n", stderr="")
+
+    def forbidden_pressure(*args):
+        calls.append(("PRESSURE_EFFECT",))
+        raise AssertionError("legacy gate reached a physical effect")
+
+    monkeypatch.setattr(gate, "run", run)
+    monkeypatch.setattr(gate.os, "readlink", lambda path: "/usr/local/libexec/ordivon/ordivon-runtime-pg")
+    monkeypatch.setattr(gate, "pause_pressure", forbidden_pressure)
+    assert gate.main() == 42
+    terminal = json.loads((tmp_path / "gate-terminal.json").read_text())
+    assert terminal["reasonCode"] == "RUNTIME_AUTHORITY_UNSUPPORTED"
+    assert terminal["phase"] == "AUTHORITY_PREFLIGHT"
+    assert not (tmp_path / "ready.json").exists()
+    assert all(call[0] == "/usr/bin/systemctl" and "show" in call for call in calls)
+
+
+def test_legacy_authority_preflight_requires_stable_pid_and_real_carriers(tmp_path, monkeypatch):
+    import pytest
+
+    gate = load_gate()
+    registry = tmp_path / "registry.sqlite3"
+    lock = tmp_path / "admission.lock"
+    registry.write_bytes(b"synthetic legacy identity")
+    lock.write_bytes(b"")
+    monkeypatch.setattr(gate, "REGISTRY_DB", registry)
+    monkeypatch.setattr(gate, "ADMISSION_LOCK", lock)
+    monkeypatch.setattr(gate.os, "readlink", lambda _: str(gate.LEGACY_RUNTIME_EXECUTABLE))
+
+    def set_pids(*values):
+        pids = iter(values)
+        monkeypatch.setattr(gate, "run", lambda argv, **kwargs:
+            gate.subprocess.CompletedProcess(argv, 0, stdout=next(pids), stderr=""))
+
+    set_pids("123", "123")
+    identity = gate.require_legacy_runtime_authority()
+    assert identity == (123, (registry.stat().st_dev, registry.stat().st_ino),
+                        (lock.stat().st_dev, lock.stat().st_ino))
+    set_pids("123", "124")
+    with pytest.raises(gate.GateFailure, match="changed during observation"):
+        gate.require_legacy_runtime_authority()
+    for invalid in ("0", "", "unknown"):
+        set_pids(invalid)
+        with pytest.raises(gate.GateFailure, match="MainPID"):
+            gate.require_legacy_runtime_authority()
+    lock.unlink()
+    set_pids("123")
+    with pytest.raises(gate.GateFailure) as caught:
+        gate.require_legacy_runtime_authority()
+    assert caught.value.reason_code == "RUNTIME_AUTHORITY_UNSUPPORTED"
+    assert not lock.exists()
+
+
+def test_quiescence_requires_complete_exact_nonnegative_integer_census():
+    import pytest
+    gate = load_gate()
+    zero = {
+        "activeReservations": 0,
+        "heldReservations": 0,
+        "jobsActive": 0,
+        "nonterminalAttempts": 0,
+        "recoveryRequired": 0,
+    }
+    assert gate.status_counts(zero) == zero
+    assert gate.is_quiescent(zero)
+    assert not gate.is_quiescent({})
+    for key in zero:
+        missing = dict(zero)
+        del missing[key]
+        assert not gate.is_quiescent(missing)
+        with pytest.raises(ValueError):
+            gate.status_counts(missing)
+        for value in (False, "0", 0.0, None, -1):
+            malformed = {**zero, key: value}
+            assert not gate.is_quiescent(malformed)
+            with pytest.raises(ValueError):
+                gate.status_counts(malformed)
+
+
+def test_doctor_requires_explicit_untruncated_empty_capacity_and_exact_counts(tmp_path, monkeypatch):
+    import json
+
+    import pytest
+
+    gate = load_gate()
+    valid = {
+        "integrityCheck": "ok", "violationCount": 0,
+        "summary": {
+            "capacityHolders": [], "capacityHoldersTruncated": False,
+            "recoveryRequiredAttempts": 0,
+        },
+    }
+
+    def observe(payload):
+        monkeypatch.setattr(gate, "run", lambda argv, **kwargs:
+            gate.subprocess.CompletedProcess(argv, 0, stdout=json.dumps(payload), stderr=""))
+        return gate.full_doctor(tmp_path / "doctor.json", 1)
+
+    assert observe(valid) == valid
+    for patch in ({"violationCount": False}, {"violationCount": "0"}):
+        with pytest.raises(gate.GateFailure):
+            observe({**valid, **patch})
+    for key, value in (
+        ("recoveryRequiredAttempts", False),
+        ("recoveryRequiredAttempts", "0"),
+        ("capacityHoldersTruncated", None),
+        ("capacityHoldersTruncated", 0),
+        ("capacityHoldersTruncated", True),
+        ("capacityHolders", [{"id": "held"}]),
+    ):
+        with pytest.raises(gate.GateFailure):
+            observe({**valid, "summary": {**valid["summary"], key: value}})
+    summary = dict(valid["summary"])
+    del summary["capacityHoldersTruncated"]
+    with pytest.raises(gate.GateFailure):
+        observe({**valid, "summary": summary})
+
+
+def test_final_health_uses_same_complete_census_as_drain():
+    gate = load_gate()
+    valid = {key: 0 for key in (
+        "activeReservations", "heldReservations", "jobsActive",
+        "nonterminalAttempts", "recoveryRequired",
+    )}
+    assert gate.healthy_quiescent_runtime({"status": "healthy", "registry": valid})
+    for key in valid:
+        missing = dict(valid)
+        del missing[key]
+        for invalid in (missing, {**valid, key: 1}, {**valid, key: False}):
+            assert not gate.healthy_quiescent_runtime({"status": "healthy", "registry": invalid})
+    assert not gate.healthy_quiescent_runtime({"status": "unhealthy", "registry": valid})

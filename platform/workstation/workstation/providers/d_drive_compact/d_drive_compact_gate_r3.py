@@ -9,6 +9,7 @@ import json
 import os
 import re
 import signal
+import stat
 import subprocess
 import time
 from pathlib import Path
@@ -126,6 +127,50 @@ def service_enablement(unit: str) -> str:
     return state or "unknown"
 
 
+LEGACY_RUNTIME_EXECUTABLE = Path("/usr/local/libexec/ordivon/ordivon-runtime")
+
+
+def require_legacy_runtime_authority() -> tuple[int, tuple[int, int], tuple[int, int]]:
+    """Qualify only the actual legacy Runtime; never infer PG quiescence.
+
+    The legacy SQLite registry, lock and inspector are one authority tuple.
+    A different/unknown running executable or missing carrier is not an
+    empty registry. This read-only gate precedes all maintenance effects.
+    A PG-native maintenance contract must close admissions separately from
+    allowing terminal/cancellation progress; it cannot reuse this lock.
+    """
+    def pid() -> int:
+        result = run(
+            ["/usr/bin/systemctl", "show", "--property=MainPID", "--value",
+             "ordivon-runtime.service"],
+            timeout=10,
+        )
+        value = result.stdout.strip()
+        if result.returncode or not re.fullmatch(r"[1-9][0-9]*", value):
+            raise ValueError("Runtime MainPID unavailable")
+        return int(value)
+
+    try:
+        before = pid()
+        executable = Path(os.readlink(f"/proc/{before}/exe"))
+        if executable != LEGACY_RUNTIME_EXECUTABLE:
+            raise ValueError("running Runtime is not the qualified legacy carrier")
+        carriers = []
+        for path in (REGISTRY_DB, ADMISSION_LOCK):
+            metadata = path.lstat()
+            if not stat.S_ISREG(metadata.st_mode):
+                raise ValueError("legacy registry/lock is not a regular file")
+            carriers.append((metadata.st_dev, metadata.st_ino))
+        if pid() != before or Path(os.readlink(f"/proc/{before}/exe")) != executable:
+            raise ValueError("Runtime authority changed during observation")
+        return before, carriers[0], carriers[1]
+    except (OSError, ValueError, subprocess.SubprocessError) as exc:
+        raise GateFailure(
+            "RUNTIME_AUTHORITY_UNSUPPORTED", "AUTHORITY_PREFLIGHT",
+            str(exc),
+        ) from exc
+
+
 def pressure_snapshot() -> dict[str, str]:
     return {
         "timerState": service_state(PRESSURE_TIMER),
@@ -195,14 +240,21 @@ def status_projection() -> dict[str, Any]:
     )
 
 
+QUIESCENCE_COUNTS = (
+    "activeReservations", "heldReservations", "jobsActive",
+    "nonterminalAttempts", "recoveryRequired",
+)
+
+
 def status_counts(payload: dict[str, Any]) -> dict[str, int]:
-    return {
-        "activeReservations": int(payload.get("activeReservations", -1)),
-        "heldReservations": int(payload.get("heldReservations", -1)),
-        "jobsActive": int(payload.get("jobsActive", -1)),
-        "nonterminalAttempts": int(payload.get("nonterminalAttempts", -1)),
-        "recoveryRequired": int(payload.get("recoveryRequired", -1)),
-    }
+    """Missing, negative or coerced counters cannot prove an empty Runtime."""
+    counts = {}
+    for key in QUIESCENCE_COUNTS:
+        value = payload.get(key)
+        if type(value) is not int or value < 0:
+            raise ValueError(f"missing or invalid Runtime count: {key}")
+        counts[key] = value
+    return counts
 
 
 def active_job_ids(payload: dict[str, Any]) -> list[str]:
@@ -220,7 +272,21 @@ def active_job_ids(payload: dict[str, Any]) -> list[str]:
 
 
 def is_quiescent(counts: dict[str, int]) -> bool:
-    return all(counts[k] == 0 for k in counts)
+    return set(counts) == set(QUIESCENCE_COUNTS) and all(
+        type(counts[key]) is int and counts[key] == 0
+        for key in QUIESCENCE_COUNTS
+    )
+
+
+def healthy_quiescent_runtime(payload: dict[str, Any]) -> bool:
+    """Final health must refine the same complete census as drain."""
+    registry = payload.get("registry")
+    if payload.get("status") != "healthy" or not isinstance(registry, dict):
+        return False
+    try:
+        return is_quiescent(status_counts(registry))
+    except ValueError:
+        return False
 
 
 def full_doctor(doctor_path: Path, timeout_seconds: float) -> dict[str, Any]:
@@ -249,16 +315,17 @@ def full_doctor(doctor_path: Path, timeout_seconds: float) -> dict[str, Any]:
         raise GateFailure("DOCTOR_INVALID_JSON", "INTEGRITY_VERIFY", "Runtime Doctor returned non-object JSON")
     atomic_write_json(doctor_path, payload)
     summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
-    violations = int(payload.get("violationCount", -1))
+    violations = payload.get("violationCount")
     holders = summary.get("capacityHolders") if isinstance(summary, dict) else None
     if (
         cp.returncode != 0
         or payload.get("integrityCheck") != "ok"
-        or violations != 0
-        or int(summary.get("recoveryRequiredAttempts", -1)) != 0
+        or type(violations) is not int or violations != 0
+        or type(summary.get("recoveryRequiredAttempts")) is not int
+        or summary.get("recoveryRequiredAttempts") != 0
         or not isinstance(holders, list)
         or len(holders) != 0
-        or bool(summary.get("capacityHoldersTruncated", False))
+        or summary.get("capacityHoldersTruncated") is not False
     ):
         raise GateFailure(
             "INTEGRITY_REJECTED",
@@ -358,13 +425,16 @@ def main() -> int:
     write_state("CREATED")
 
     try:
+        authority = require_legacy_runtime_authority()
         pressure = pause_pressure(args.pressure_wait_seconds)
         pressure_before = dict(pressure["before"])
         pressure_paused = True
         write_state("PRESSURE_QUIESCED", pressure=pressure)
 
-        ADMISSION_LOCK.parent.mkdir(parents=True, exist_ok=True)
-        lock_handle = ADMISSION_LOCK.open("a+")
+        if require_legacy_runtime_authority() != authority:
+            raise GateFailure("RUNTIME_AUTHORITY_DRIFTED", "FENCE_ACQUIRE",
+                              "legacy authority changed after preflight")
+        lock_handle = ADMISSION_LOCK.open("r+")
         lock_deadline = time.monotonic() + args.lock_wait_seconds
         while True:
             try:
@@ -374,6 +444,11 @@ def main() -> int:
                 if time.monotonic() >= lock_deadline:
                     raise GateFailure("ADMISSION_FENCE_TIMEOUT", "FENCE_ACQUIRE", "exclusive admission.lock was not acquired")
                 time.sleep(0.1)
+        lock_metadata = os.fstat(lock_handle.fileno())
+        if ((lock_metadata.st_dev, lock_metadata.st_ino) != authority[2]
+                or require_legacy_runtime_authority() != authority):
+            raise GateFailure("RUNTIME_AUTHORITY_DRIFTED", "FENCE_ACQUIRE",
+                              "legacy fence no longer binds the observed authority")
         write_state("FENCE_ACQUIRED", admissionLock=str(ADMISSION_LOCK))
 
         drain_deadline = time.monotonic() + args.drain_seconds
@@ -426,19 +501,16 @@ def main() -> int:
         final_status = run_json([RUNTIME_STATUS, "--health", "--json"], timeout=20)
         atomic_write_json(status_path, final_status)
         registry = final_status.get("registry") if isinstance(final_status.get("registry"), dict) else {}
-        if (
-            final_status.get("status") != "healthy"
-            or int(registry.get("jobsActive", -1)) != 0
-            or int(registry.get("activeReservations", -1)) != 0
-            or int(registry.get("heldReservations", -1)) != 0
-            or int(registry.get("recoveryRequired", -1)) != 0
-        ):
+        if not healthy_quiescent_runtime(final_status):
             raise GateFailure("RUNTIME_HEALTH_REJECTED", "FINAL_HEALTH", "Runtime health did not bind a zero-holder healthy cut")
 
         services = {unit: service_state(unit) for unit in CONTROL_PLANE_UNITS}
         if any(state != "active" for state in services.values()):
             raise GateFailure("CONTROL_PLANE_NOT_ACTIVE", "FINAL_HEALTH", f"control plane states={services}")
 
+        if require_legacy_runtime_authority() != authority:
+            raise GateFailure("RUNTIME_AUTHORITY_DRIFTED", "FINAL_HEALTH",
+                              "legacy authority changed before trim")
         run(["/usr/bin/sync"], timeout=30, check=True)
         trim_cp = run(["/usr/sbin/fstrim", "-v", "/"], timeout=300)
         if trim_cp.returncode != 0:
@@ -476,6 +548,9 @@ def main() -> int:
             "pressureBefore": pressure_before,
             "pressurePaused": pressure.get("paused"),
         }
+        if require_legacy_runtime_authority() != authority:
+            raise GateFailure("RUNTIME_AUTHORITY_DRIFTED", "FINAL_HEALTH",
+                              "legacy authority changed before READY")
         atomic_write_json(ready_path, ready)
         ready_sha = sha256_file(ready_path)
         write_state("READY_HELD", readySha256=ready_sha)
@@ -493,6 +568,9 @@ def main() -> int:
                     or handoff.get("readySha256") != ready_sha
                 ):
                     raise GateFailure("HANDOFF_BINDING_MISMATCH", "READY_HELD", "handoff does not bind the exact ready receipt")
+                if require_legacy_runtime_authority() != authority:
+                    raise GateFailure("RUNTIME_AUTHORITY_DRIFTED", "READY_HELD",
+                                      "legacy authority changed before handoff")
                 handoff_seen = True
                 atomic_write_json(
                     handoff_observed_path,
