@@ -75,8 +75,45 @@ func _check_rules() -> void:
     check(rules.start(plan) and rules.delivered == 0 and rules.elapsed_seconds == 0, "new run captures authored plan and resets state")
     check(rules.lose() and rules.phase == "lost" and not rules.tick(), "loss rejects timer advances")
 
+# The game contract is the closed radius-34 disk around each represented
+# coordinate. Near-boundary cases deliberately target native Vector2 rounding.
+func _check_contact_geometry() -> void:
+    var rules = Rules.new()
+    var plan = RelayPlan.new()
+    plan.pickup_sites = PackedVector2Array([Vector2.ZERO, Vector2(100, 100), Vector2(200, 200)])
+    plan.depot = Vector2(240, 448)
+    for degree in range(360):
+        for offset in range(-4, 5):
+            var radius = 34.0 + offset * 0.000001
+            var angle = deg_to_rad(float(degree))
+            var point = Vector2(radius * cos(angle), radius * sin(angle))
+            # GDScript scalar float is double precision; independently use
+            # the Euclidean norm, not Vector2's rounded squared-distance op.
+            var expected = sqrt(pow(point.x, 2.0) + pow(point.y, 2.0)) <= 34.0
+            if not rules.start(plan):
+                check(false, "contact fixture starts")
+                return
+            var actual = rules.step_position(point) == Rules.Event.PICKED_UP
+            if actual != expected:
+                check(false, "contact disk mismatch degree=%d offset=%d" % [degree, offset])
+                return
+    check(true, "3240 near-boundary native pickup contacts match scalar norm")
+    plan.pickup_sites = PackedVector2Array([Vector2(100, 0), Vector2(200, 0), Vector2(300, 0)])
+    plan.depot = Vector2.ZERO
+    check(rules.start(plan), "depot contact fixture starts")
+    check(rules.step_position(Vector2(100, 0)) == Rules.Event.PICKED_UP, "depot fixture carries core")
+    var just_outside = Vector2(33.917179107666016, 2.3717200756073)
+    check(rules.step_position(just_outside) == Rules.Event.NONE, "rounded false positive must not deliver")
+    check(rules.carrying and rules.delivered == 0, "outside contact preserves carried state")
+    check(rules.step_position(Vector2(34, 0)) == Rules.Event.DELIVERED, "exact closed-disk depot boundary delivers")
+
 func _run() -> void:
     _check_rules()
+    if failed:
+        return
+    _check_contact_geometry()
+    if failed:
+        return
     var game: Node = load("res://main.tscn").instantiate()
     root.add_child(game)
     await process_frame
