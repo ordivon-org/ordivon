@@ -35,6 +35,16 @@ profile and adapter paths with their independent SHA-256 byte identities. It doe
 not invoke equipment or claim it is installed. Execute a selected adapter through
 Runtime only after the actual tool and source artifact are available.
 
+Audio uses FFmpeg's native loudnorm `stats_file` JSON output (observed on
+FFmpeg 9.0.2), not JSON extracted from stderr. Diagnostics remain a separate
+raw evidence file. Finite measurements retain their numeric values;
+nonfinite or invalid observations have null numeric values and explicit
+`measurementStanding`, with raw provider strings retained. Required
+nonfinite integrated loudness or true peak cannot establish mechanical PASS.
+Run the native differential/negative regression with
+`python -m unittest discover -s processing/tests -p test_native_loudness_observation.py -v`
+in the owner tool environment.
+
 ## Dependency and ownership boundaries
 
 The AV technical adapter intentionally does **not** invoke the Studio asset, QC,
