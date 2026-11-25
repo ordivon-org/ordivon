@@ -29,7 +29,7 @@ def task_runner(tmp_path):
             "import json, os, sys\n"
             "with open(os.environ['TRACE'], 'a', encoding='utf-8') as out:\n"
             "    print(json.dumps({'tool': os.path.basename(sys.argv[0]),"
-            "'argv': sys.argv[1:], 'physical': os.environ.get('ORDIVON_FINANCE_REQUIRE_PHYSICAL_PG')}),file=out)\n"
+            "'argv': sys.argv[1:], 'physical': os.environ.get('ORDIVON_FINANCE_REQUIRE_PHYSICAL_PG'), 'complete': os.environ.get('ORDIVON_CAPITAL_REQUIRE_COMPLETE_TESTS')}),file=out)\n"
         )
         tool.chmod(0o700)
 
@@ -43,6 +43,7 @@ def task_runner(tmp_path):
             PAPER: "test_disposable_paper",
         }
         env.pop("ORDIVON_FINANCE_REQUIRE_PHYSICAL_PG", None)
+        env.pop("ORDIVON_CAPITAL_REQUIRE_COMPLETE_TESTS", None)
         for key, value in (overrides or {}).items():
             if value is None:
                 env.pop(key, None)
@@ -107,7 +108,9 @@ def test_actual_pytest_selection_and_qualification(task, selection, task_runner)
         assert "--hypothesis-show-statistics" in args and "-rs" in args
     if task == "verify:nonlive:nautilus":
         assert call["physical"] == "1"
-        assert {"tests/test_nautilus_candidate.py", "tests/test_native_dbn.py"} <= set(args)
+        assert not any(arg.startswith("tests/") for arg in args)
+    if task in ("verify", "verify:nonlive:nautilus"):
+        assert call["complete"] == "1"
 
 
 def test_declared_marker_and_strictness_contract():
@@ -116,3 +119,20 @@ def test_declared_marker_and_strictness_contract():
     assert {"provider_qualification", "native_nonlive"} <= markers
     assert config["strict_markers"] is True
     assert config["strict_xfail"] is True
+
+
+@pytest.mark.parametrize("task", ["verify", "verify:provider", "verify:nonlive:nautilus"])
+@pytest.mark.parametrize(
+    "key,value",
+    [
+        ("PYTEST_ADDOPTS", "--noconftest --collect-only"),
+        ("PYTEST_ADDOPTS", "-k nonexistent"),
+        ("PYTEST_PLUGINS", "unqualified_plugin"),
+        ("PYTHONOPTIMIZE", "1"),
+    ],
+)
+def test_required_task_rejects_inherited_runner_overrides(task, key, value, task_runner):
+    result, calls = task_runner(task, {key: value})
+    assert result.returncode == 2
+    assert key in result.stderr
+    assert not calls

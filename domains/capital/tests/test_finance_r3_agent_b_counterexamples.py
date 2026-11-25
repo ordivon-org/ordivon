@@ -5,6 +5,7 @@ import unittest
 from copy import deepcopy
 from decimal import Decimal
 
+import pytest
 from test_nautilus_paper_bridge import episode
 
 from ordivon_capital.applications.nautilus_paper_bridge import (
@@ -314,6 +315,8 @@ class FinanceR3AgentBNativeSourceTests(unittest.TestCase):
             next_open_native_paper_session(node=node, run_config_id="RUN-1", **args)
 
 
+@pytest.mark.provider_qualification
+@pytest.mark.native_nonlive
 class NativeQlibPredictionFieldContractTests(unittest.TestCase):
     """Actual R3 reader, pinned Nautilus, synthetic sources; no provider or PG."""
 

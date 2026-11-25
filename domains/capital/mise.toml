@@ -5,6 +5,7 @@ rust = { version = "1.99.1", components = "clippy,rustfmt" }
 [tasks.verify]
 run = """
 set -euo pipefail
+source scripts/verification_environment.sh
 # This is native acceptance, not a developer-only pytest run.
 for required in ORDIVON_CAPITAL_PG_TEST_DSN ORDIVON_CAPITAL_PAPER_PG_TEST_DSN; do
   if [[ ! "${!required-}" =~ [^[:space:]] ]]; then
@@ -25,7 +26,7 @@ mise run verify:formal:broker-liquidation
 uv lock --check
 uv sync --locked --group test
 uv run --group test ruff check .
-uv run --locked --group test python -m pytest -rs --hypothesis-show-statistics -m "not provider_qualification"
+ORDIVON_CAPITAL_REQUIRE_COMPLETE_TESTS=1 uv run --locked --group test python -m pytest -rs --hypothesis-show-statistics -m "not provider_qualification"
 mise run formal:paper
 mise run formal:accounting-reservation
 mise run formal:pit-capture
@@ -136,6 +137,7 @@ printf '%s\\n' "$observed"
 description = "Run pinned upstream NautilusTrader rc9 through existing Finance nonlive reconciliation"
 run = """
 set -euo pipefail
+source scripts/verification_environment.sh
 if [[ ! "${ORDIVON_CAPITAL_PAPER_PG_TEST_DSN-}" =~ [^[:space:]] ]]; then
   echo "Native nonlive verification requires disposable ORDIVON_CAPITAL_PAPER_PG_TEST_DSN" >&2
   exit 2
@@ -147,14 +149,14 @@ PYTHONPATH=src uv run --locked --group nonlive python tools/nautilus_rc4/nonlive
 PYTHONPATH=src uv run --locked --group nonlive python tools/nautilus_rc4/equity_paper_qualification.py
 # This physical/non-live subset is source-qualified independently from other
 # provider tests requiring secrets or node-local external binaries.
-uv run --isolated --locked --group test --group nonlive python -m pytest --strict-markers -m native_nonlive \
-    tests/test_nautilus_candidate.py tests/test_native_dbn.py
+ORDIVON_CAPITAL_REQUIRE_COMPLETE_TESTS=1 uv run --isolated --locked --group test --group nonlive python -m pytest --strict-markers -rs -m native_nonlive
 """
 
 [tasks."verify:provider"]
 description = "Run node-local external-provider and credential-bound qualification tests"
 run = """
 set -euo pipefail
+source scripts/verification_environment.sh
 uv lock --check
 # Provider tests call the legacy run-capability-python, which syncs the project
 # .venv with only research/test and removes optional nonlive. Preserve a

@@ -421,6 +421,25 @@ test databases; missing or blank values fail before running any validation task.
 verify:nonlive:nautilus task requires the disposable Paper DSN as well. A direct
 uv run --locked --group test python -m pytest run without these DSNs is a developer
 source check, not native database acceptance. Skips remain explicitly reported.
+The native test admission candidate additionally requires a **provisioner-owned** disposable
+database lease. A trusted CI or local fixture must create a fresh database, for example from
+`template0`, and assign its database comment to
+`ordivon-capital-test:v1:<64 lowercase hex characters>:<database name>`.
+Pass the same fresh per-run token in `ORDIVON_CAPITAL_TEST_LEASE` to pytest. If both DSNs
+are used, each target needs its own name-bound comment with that token (the same qualified
+database may serve both). The test checker only reads the actual PostgreSQL catalog and
+never creates or marks a target. Do not mark or adopt an existing application database.
+Use one explicit local Unix socket or numeric loopback endpoint, explicit database/user,
+and no libpq service, host-list, hostaddr, or ambient routing overrides. The trusted
+provisioner remains responsible for database creation, endpoint lifetime and cleanup.
+This is protection against accidental misrouting, not proof against a malicious privileged
+administrator or concurrent server replacement. Do not log the token or DSNs.
+
+The required base and native_nonlive lanes reject inherited PYTEST_ADDOPTS,
+PYTEST_PLUGINS and PYTHONOPTIMIZE and require all selected tests' setup, call and teardown
+reports to pass without skip or xfail. Native nonlive uses pytest marker discovery instead
+of a fixed file list. The separate provider qualification lane is not a complete native
+acceptance receipt; optional external evidence may still be unavailable.
 Bounded Hypothesis properties and native reservation state-machine traces augment
 fixed regressions; generated examples have independent economic/accounting oracles.
 They do not prove all possible states, production concurrency, or provider authority. Tests carrying that
