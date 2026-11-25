@@ -374,6 +374,7 @@ fn native_pg_scheduling_uses_current_attempt_not_highest_attempt_number() {
                attempt_id text PRIMARY KEY, job_id text, attempt_number bigint, state text
              );
              CREATE TEMP TABLE job_allocations (attempt_id text, state text);
+             CREATE TEMP TABLE job_events (job_id text, attempt_id text, event_type text);
              INSERT INTO jobs VALUES ('job-r3','{}','attempt-current','run',NULL);
              INSERT INTO attempts VALUES ('attempt-current','job-r3',1,'accepted'),
                  ('attempt-later','job-r3',2,'running');",
@@ -383,4 +384,35 @@ fn native_pg_scheduling_uses_current_attempt_not_highest_attempt_number() {
     assert_eq!(row.get::<_, Option<String>>(1).as_deref(), Some("accepted"));
     assert_eq!(row.get::<_, String>(3), "run");
     assert!(row.get::<_, Option<String>>(4).is_none());
+    assert!(!row.get::<_, bool>(5));
+    // Foreign Job, other Attempt and non-issue event must not erase UNKNOWN.
+    db.batch_execute(
+        "INSERT INTO job_events VALUES
+        ('job-foreign','attempt-current','SCHEDULER_ISSUE'),
+        ('job-r3','attempt-later','SCHEDULER_ISSUE'),
+        ('job-r3','attempt-current','OTHER');",
+    )
+    .unwrap();
+    let read_issue = |db: &mut postgres::Client| -> bool {
+        db.query_one(SCHEDULING_READBACK_SQL, &[&"job-r3"])
+            .unwrap()
+            .get(5)
+    };
+    assert!(!read_issue(&mut db));
+    db.batch_execute(
+        "INSERT INTO job_events VALUES ('job-r3','attempt-current','SCHEDULER_ISSUE');",
+    )
+    .unwrap();
+    assert!(read_issue(&mut db));
+    db.batch_execute("UPDATE jobs SET desired_state='cancelled' WHERE job_id='job-r3';")
+        .unwrap();
+    assert!(!read_issue(&mut db));
+    db.batch_execute(
+        "UPDATE jobs SET desired_state='run',current_attempt_id=NULL WHERE job_id='job-r3';",
+    )
+    .unwrap();
+    assert!(!read_issue(&mut db)); // fallback selects later running Attempt
+    db.batch_execute("UPDATE jobs SET current_attempt_id='missing' WHERE job_id='job-r3';")
+        .unwrap();
+    assert!(!read_issue(&mut db));
 }
