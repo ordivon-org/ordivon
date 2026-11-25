@@ -176,6 +176,9 @@ def unitize_external_contribution(
         raise AlgebraicPolicyError("finite equity and capital flow required")
     if unit_nav_before <= 0 or outstanding_units < 0 or contribution_r < 0:
         raise AlgebraicPolicyError("invalid unit NAV or negative contribution")
+    if contribution_r == 0:
+        # The identity transition must not round an unchanged integer count.
+        return unit_nav_before, outstanding_units
     # Reconstruct the unit identity exactly for the supplied scalar values,
     # then round once at the existing float boundary. A positive cash flow
     # must not be silently recorded as zero newly issued units.

@@ -315,7 +315,8 @@ def test_feasible_economic_replay_is_not_an_optimality_certificate() -> None:
     assert invest.expected_utility > cash_only.expected_utility
 
 def _integer_crra_tangent_upper_excess(
-    problem: OnePeriodProblem, result: OnePeriodSolution, *, discard_dual: bool = False
+    problem: OnePeriodProblem, result: OnePeriodSolution, *, discard_dual: bool = False,
+    exact_point: tuple[Fraction, ...] | None = None,
 ) -> Fraction:
     """Independent exact-rational check of a proposed LP dual witness.
 
@@ -351,7 +352,11 @@ def _integer_crra_tangent_upper_excess(
             row[i], row[n + 2 + i] = q(sign), q(-1)
             rows.append(tuple(row))
             rhs.append(sign * prev)
-    point = (*map(q, result.risky_weights), q(result.cash_weight), q(result.debt_weight))
+    if exact_point is not None:
+        _assert_exact_canonical_primal(problem, exact_point)
+    point = exact_point if exact_point is not None else (
+        *map(q, result.risky_weights), q(result.cash_weight), q(result.debt_weight)
+    )
     gradient = [zero] * len(box)
     tangent_at_point = zero
     for scenario in problem.scenarios:
@@ -483,3 +488,104 @@ def test_unitization_single_rounding_of_exact_economic_identity(nav, units, flow
     assert math.isfinite(actual_units)
     if flow > 0:
         assert Fraction(actual_units) > Fraction(units)
+
+def _assert_exact_canonical_primal(
+    problem: OnePeriodProblem, point: tuple[Fraction, ...]
+) -> None:
+    """Independent economic feasibility of the represented rational inputs.
+
+    No float tolerance or solver status is used; the certificate concerns
+    this witness, not the raw approximate optimizer output.
+    """
+    q = Fraction
+    n = len(problem.old_weights)
+    assert len(point) == n + 2
+    assert all(isinstance(v, Fraction) and v >= 0 for v in point)
+    w, cash, debt = point[:n], point[n], point[n + 1]
+    assert cash * debt == 0
+    fee = sum(
+        q(k) * abs(x - q(old))
+        for k, x, old in zip(problem.turnover_cost, w, problem.old_weights, strict=True)
+    )
+    assert sum(w) + cash - debt + fee == 1
+    assert sum(q(m) * x for m, x in zip(problem.initial_margin, w, strict=True)) + fee <= 1
+    for scenario in problem.scenarios:
+        positions = tuple(q(g) * x for g, x in zip(scenario.risky_gross_returns, w, strict=True))
+        wealth = sum(positions) + q(scenario.cash_gross_return) * cash - q(scenario.debt_gross_return) * debt
+        requirement = sum(q(m) * x for m, x in zip(scenario.maintenance, positions, strict=True))
+        assert wealth > 0
+        assert wealth >= requirement
+
+
+def _exact_primal_near_cash_liquidation_anchor(
+    problem: OnePeriodProblem, result: OnePeriodSolution,
+) -> tuple[Fraction, ...] | None:
+    """Bounded witness proposal only; no general feasibility claim.
+
+    Shrink nonnegative risky exposures towards an independently checked
+    liquidation anchor and reconstruct the financing from actual fees.
+    Failure to find a witness is UNKNOWN, not proof of infeasibility.
+    """
+    q = Fraction
+    n = len(problem.old_weights)
+    old = tuple(map(q, problem.old_weights))
+    k = tuple(map(q, problem.turnover_cost))
+
+    def canonical(risky: tuple[Fraction, ...]) -> tuple[Fraction, ...]:
+        fee = sum(c * abs(w - prev) for c, w, prev in zip(k, risky, old, strict=True))
+        net = 1 - sum(risky) - fee
+        return (*risky, max(q(0), net), max(q(0), -net))
+
+    try:
+        _assert_exact_canonical_primal(problem, canonical((q(0),) * n))
+    except AssertionError:
+        return None
+    raw = tuple(max(q(0), q(v)) for v in result.risky_weights)
+    for scale in (q(1), *(1 - q(1, 2**i) for i in range(48, -1, -1))):
+        point = canonical(tuple(scale * v for v in raw))
+        try:
+            _assert_exact_canonical_primal(problem, point)
+        except AssertionError:
+            continue
+        return point
+    return None
+
+
+@pytest.mark.parametrize("case", (0, 1, 2, 4))
+def test_exact_feasible_witness_has_nonnegative_small_certified_gap(case: int) -> None:
+    problem = _solver_contract_cases()[case]
+    result = solve_one_period(problem)
+    point = _exact_primal_near_cash_liquidation_anchor(problem, result)
+    assert point is not None
+    _assert_exact_canonical_primal(problem, point)
+    assert max(abs(float(w) - r) for w, r in zip(point[:-2], result.risky_weights, strict=True)) < 1e-6
+    # Concavity gives U* - U(point) <= max gradient dot (y-point).
+    # Since the point is exactly feasible, the gap cannot be negative.
+    bound = _integer_crra_tangent_upper_excess(problem, result, exact_point=point)
+    assert 0 <= bound <= Fraction(1, 100_000)
+    # The exact feasibility check must precede the tangent certificate.
+    bad = (*point[:-2], point[-2] + Fraction(1, 100), point[-1])
+    with pytest.raises(AssertionError):
+        _integer_crra_tangent_upper_excess(problem, result, exact_point=bad)
+
+
+def test_primal_witness_without_qualified_cash_anchor_remains_unknown() -> None:
+    problem = one_asset(
+        returns=(1.1, 1.2), probs=(.5, .5), gamma=2,
+        initial=.4, maintenance=(.2, .2), cash=1, debt=1.01,
+        turnover=1.0, previous=2.0,
+    )
+    # Retaining old exposure is feasible, but liquidating it is not.
+    _assert_exact_canonical_primal(problem, (Fraction(2), Fraction(0), Fraction(1)))
+    result = solve_one_period(problem)
+    assert _exact_primal_near_cash_liquidation_anchor(problem, result) is None
+
+@pytest.mark.parametrize("units", (2**53 + 1, 2**60 + 3, 0.0, 3.25))
+def test_zero_external_flow_is_exact_identity_on_admitted_units(units: int | float) -> None:
+    # No cash flow is the identity transition even for a representable
+    # integer that cannot itself be converted to binary64 without change.
+    nav, observed = unitize_external_contribution(
+        unit_nav_before=3.0, outstanding_units=units, contribution_r=0,
+    )
+    assert nav == 3.0
+    assert Fraction(observed) == Fraction(units)
