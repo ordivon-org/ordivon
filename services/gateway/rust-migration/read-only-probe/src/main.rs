@@ -5,6 +5,7 @@ mod owner_credential;
 mod owner_observation;
 mod owner_resolution;
 mod owner_transport;
+mod principal_binding;
 use logic::{
     DescriptionInput, parse_execution_ref, system_describe, valid_status_envelope,
     valid_target_inventory,
@@ -102,6 +103,17 @@ fn eval(v: Value) -> Value {
         },
         Some("status") => json!(valid_status_envelope(input)),
         Some("inventory") => json!(valid_target_inventory(input)),
+        Some("principal_namespace") => {
+            let coords = input.as_array().filter(|v| v.len() == 4).and_then(|v| {
+                Some([
+                    v[0].as_str()?,
+                    v[1].as_str()?,
+                    v[2].as_str()?,
+                    v[3].as_str()?,
+                ])
+            });
+            json!(coords.map(|v| principal_binding::namespace(v[0], v[1], v[2], v[3])))
+        }
         Some("resolve_page") => json!(owner_resolution::project(
             &input["page"],
             input["requestId"].as_str().unwrap_or_default()
@@ -170,6 +182,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("{}", serde_json::to_string(&result)?);
                 io::stdout().flush()?;
             }
+        }
+        Some("qualify-principal-runtime-fixture") => {
+            let endpoint=args.next().ok_or("fixture endpoint required")?;
+            let credential=args.next().ok_or("fixture credential path required")?;
+            let legacy=match args.next().as_deref(){
+                Some("auto")=>false,Some("legacy")=>true,
+                _=>return Err("unexpected fixture mode".into()),
+            };
+            if args.next().is_some(){return Err("unexpected arguments".into());}
+            // Operator-only synthetic identity, bounded input, not HTTP ingress.
+            use std::io::Read;
+            let mut bytes=Vec::new();
+            io::stdin().take(65537).read_to_end(&mut bytes)?;
+            if bytes.len()>65536 {return Err("fixture exceeds input budget".into());}
+            let input:principal_binding::BindingFixture=serde_json::from_slice(&bytes)?;
+            let result=principal_binding::qualify_fixture(input,&endpoint,std::path::Path::new(&credential),legacy).await;
+            println!("{}",serde_json::to_string(&result)?);
         }
         Some("resolve-protected-runtime-fixture") => {
             let endpoint=args.next().ok_or("fixture endpoint required")?;

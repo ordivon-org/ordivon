@@ -15,6 +15,7 @@ from pathlib import Path
 
 from mcp import Client, MCPError
 from qualify_owner import qualify_owner
+from qualify_principal import qualify_principal
 from qualify_resolution import qualify_resolution
 from qualify_stateful import qualify_stateful
 
@@ -406,3 +407,4 @@ if __name__ == "__main__":
     asyncio.run(qualify_owner(BINARY))
     asyncio.run(qualify_stateful(BINARY))
     asyncio.run(qualify_resolution(BINARY))
+    asyncio.run(qualify_principal(BINARY))

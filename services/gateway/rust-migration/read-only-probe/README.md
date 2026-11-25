@@ -270,3 +270,34 @@ verification. Future: actual natural producer standing, verified principal
 namespace, versioned public ABI, explicit receipt/state versus execution
 effects and qualified typed errors. Do not route job.observe as a pure read:
 it can dispatch an accepted Job. No automatic re-submission follows Absent.
+
+## R17 principal-scoped reattachment (Host #33037)
+
+Thought: issuer + subject are a namespace, not authentication. Preserve
+the exact Python security/execution_access.py SHA256 compact UTF-8 JSON
+string array, not general JCS, normalization or delimiter concatenation.
+OpenID Connect Core section 5.7 and RFC 8785 section 3.2 supply the
+identity/representation principles, not a replacement protocol.
+
+| Logic | Capability | Verification obligation |
+| --- | --- | --- |
+| L05 ingress | existing Security request context | no tool arg or caller ActorRef mints verified identity |
+| L09 namespace | principal_binding.rs / serde_json / sha2 | exact ordered issuer/principal/capability/request domain; existing Python parity |
+| L10 recovery | owner_resolution and owner_transport | scoped request only; exact Found reference or Unqualified |
+| L06 authority | natural Security/Runtime | binding is neither policy ALLOW nor admission |
+| L14 ABI | existing public surface | fixture inputs never exposed as public MCP tools |
+| tests | independent Python oracle, Proptest, protected TCP | Unicode, delimiter, coordinate separation, exact match, error and no-call controls |
+
+I: operator-only synthetic identity, capability, request and operationRef.
+O: Matched or Unqualified; never an effect permit. Pre: nonblank ingress
+coordinates, nonempty request, exact supported Linux reference.
+Invariant: no raw public request forwarding, no mismatched ref acceptance,
+no fallback on absence, no identity normalization. Effect: at most one
+scoped job.list call; no job.observe, submit or cancel. Fixture stdin
+bounded to 64 KiB. Proof: exact source, independent Python SHA256 oracle,
+actual existing Python context function, generated properties and real
+SDK TCP. Sampled digest separation is not a universal collision proof.
+Production verified ingress and actual protected natural Owner standing
+remain unqualified. No production secret, public ABI change or new auth
+system. Next qualify actual producer and ingress, then typed receipts,
+Host errors and versioned ABI. Do not automatically resubmit on absence.
