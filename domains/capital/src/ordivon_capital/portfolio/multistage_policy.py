@@ -266,16 +266,15 @@ def solve_multistage(problem: MultistageProblem) -> MultistageSolution:
         grad = W_leaf.T @ (leaf_probabilities * W ** (-gamma))
         return utility, grad
 
-    def neg_objective(x: Any) -> float:
-        value, _ = utility_and_gradient(x)
-        return -value
-
-    def neg_gradient(x: Any) -> Any:
-        _, grad = utility_and_gradient(x)
-        return -grad
+    # SciPy's jac=True contract caches the joint objective/gradient at the
+    # current point. Both use the same terminal wealth matrix product; separate
+    # callbacks would recompute the full pair at the same trial point.
+    def neg_objective_and_gradient(x: Any) -> tuple[float, Any]:
+        value, grad = utility_and_gradient(x)
+        return -value, -grad
 
     found = minimize(
-        neg_objective, x0, method="SLSQP", jac=neg_gradient,
+        neg_objective_and_gradient, x0, method="SLSQP", jac=True,
         bounds=bounds, constraints=constraints,
         options={"ftol": 1e-11, "maxiter": 3000},
     )
