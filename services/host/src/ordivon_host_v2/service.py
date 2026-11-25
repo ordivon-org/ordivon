@@ -4,7 +4,7 @@ import psycopg
 
 from .health.diagnostics import HostStatusQueries
 
-REQUIRED_SCHEMA_VERSION = 16
+REQUIRED_SCHEMA_VERSION = 17
 
 
 class HostV2(HostStatusQueries):

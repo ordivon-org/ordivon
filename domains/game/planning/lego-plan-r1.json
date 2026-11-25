@@ -599,7 +599,7 @@
           "examples/room-encounter/narrative/gate.dialogue",
           "examples/room-encounter/room_theme.tres",
           "examples/room-encounter/visual_capture.gd",
-          "examples/room-encounter/native_scene_acceptance.py",
+          "scripts/native_scene_acceptance.py",
           "docs/room-encounter-playtest.md"
         ]
       }

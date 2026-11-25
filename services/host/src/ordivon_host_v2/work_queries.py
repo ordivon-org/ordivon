@@ -107,7 +107,9 @@ class WorkReadQueries:
         if revision is not None and (
             type(revision) is not int or not 1 <= revision <= HOST_WIRE_INT_MAX
         ):
-            raise ValueError("revision must be a positive PostgreSQL BIGINT within JSON safe integer range")
+            raise ValueError(
+                "revision must be a positive PostgreSQL BIGINT within JSON safe integer range"
+            )
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             return read_work_in_tx(conn, work_ref, revision)
@@ -152,26 +154,23 @@ class WorkReadQueries:
                 for row in rows[:limit]
             ]
 
-            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
-                cursor = (
-                    None
-                    if not page
-                    else {
-                        "beforeUpdatedAt": page[-1]["updatedAt"],
-                        "beforeWorkRef": page[-1]["workRef"],
-                    }
-                )
+            def envelope(last: dict[str, Any]) -> dict[str, Any]:
+                cursor = {
+                    "beforeUpdatedAt": last["updatedAt"],
+                    "beforeWorkRef": last["workRef"],
+                }
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-work-list",
-                    "works": page,
                     "hasMore": True,
                     "nextCursor": cursor,
                     "rankingApplied": False,
                     "truthBoundary": "compact point-in-time Work inventory; not priority, assignment, Runtime activity, or domain currentness",
                 }
 
-            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
+            page, byte_more = bounded_prefix(
+                candidates, max_bytes=max_bytes, collection_key="works", envelope=envelope
+            )
             has_more = sql_more or byte_more
             cursor = None
             if has_more and page:

@@ -94,6 +94,13 @@ if [[ -n "$container" ]]; then
       export ORDIVON_HOST_V2_BOUNDARY_CHANGE_DSN="$boundary_dsn"
     fi
   done
+  # Receipt format activation/rollback tests may change the native fence.
+  # Isolate those tests from the ordinary suite and caller-supplied databases.
+  database=ordivon_receipt_lifecycle
+  docker exec "$container" createdb -U ordivon_ci "$database"
+  receipt_dsn="postgresql://ordivon_ci:$password@127.0.0.1:$port/$database"
+  ORDIVON_HOST_V2_DSN="$receipt_dsn" uv run alembic upgrade head
+  export ORDIVON_HOST_V2_RECEIPT_TEST_DSN="$receipt_dsn"
   # Preserve the original 0014 state in separate destructive negative fixtures.
   for variant in clock history allocator lock startup; do
     database="ordivon_migration_$variant"
@@ -103,7 +110,7 @@ if [[ -n "$container" ]]; then
     # The serving negative fixture must exercise the immediately previous schema.
     revision=0014
     if [[ "$variant" == startup ]]; then
-      revision=0015
+      revision=0016
     fi
     ORDIVON_HOST_V2_DSN="$migration_dsn" uv run alembic upgrade "$revision"
     export "ORDIVON_HOST_V2_MIGRATION_${variant^^}_DSN=$migration_dsn"

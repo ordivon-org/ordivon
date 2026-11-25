@@ -25,7 +25,7 @@ from .errors import ConflictError
 from .postgres_bounds import HOST_WIRE_INT_MAX
 from .references.record_refs import RecordReferenceLookup
 from .social_errors import MessageNotFound
-from .social_message_records import require_message, verify_message_content_digest
+from .social_message_records import require_message, verified_message_wire
 
 
 class SocialMessageReadQueries:
@@ -48,7 +48,10 @@ class SocialMessageReadQueries:
     ) -> dict[str, Any]:
         if direction not in {"outgoing", "incoming", "both"}:
             raise ValueError("direction must be outgoing, incoming, or both")
-        if type(after_change_sequence) is not int or not 0 <= after_change_sequence <= HOST_WIRE_INT_MAX:
+        if (
+            type(after_change_sequence) is not int
+            or not 0 <= after_change_sequence <= HOST_WIRE_INT_MAX
+        ):
             raise ValueError("after_change_sequence must be a non-negative safe integer")
         if type(limit) is not int or not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
@@ -87,22 +90,21 @@ class SocialMessageReadQueries:
                 for row in rows[:limit]
             ]
 
-            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+            def envelope(last: dict[str, Any]) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-message-relation-list",
                     "messageRef": message_ref,
                     "direction": direction,
-                    "relations": page,
                     "hasMore": True,
-                    "nextAfterChangeSequence": after_change_sequence
-                    if not page
-                    else page[-1]["changeSequence"],
+                    "nextAfterChangeSequence": last["changeSequence"],
                     "rankingApplied": False,
                     "truthBoundary": "explicit collaboration relations only; opaque targets are references, not existence or authority proof",
                 }
 
-            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
+            page, byte_more = bounded_prefix(
+                candidates, max_bytes=max_bytes, collection_key="relations", envelope=envelope
+            )
             has_more = sql_more or byte_more
             next_sequence = after_change_sequence if not page else int(page[-1]["changeSequence"])
             return {
@@ -132,7 +134,7 @@ class SocialMessageReadQueries:
             ).fetchone()
             if row is None:
                 raise MessageNotFound(message_ref)
-            verify_message_content_digest(row)
+            wire = verified_message_wire(row)
             if expected_digest is not None and row["message_digest"] != expected_digest:
                 raise ConflictError(
                     f"message digest mismatch: expected {expected_digest}, "
@@ -141,16 +143,7 @@ class SocialMessageReadQueries:
             return {
                 "schemaVersion": 1,
                 "kind": "ordivon.host-message-read",
-                "sequence": int(row["sequence"]),
-                "messageRef": row["message_ref"],
-                "spaceRef": row["space_ref"],
-                "topicRef": row["topic_ref"],
-                "authorActorRef": row["author_actor_ref"],
-                "messageKind": row["message_kind"],
-                "body": row["body"],
-                "messageDigest": row["message_digest"],
-                "recordedAtMs": int(row["recorded_at_ms"]),
-                "createdAt": row["created_at"].isoformat(),
+                **wire,
                 "truthBoundary": (
                     "exact durable Host message projection only; message content remains "
                     "collaboration evidence until interpreted by the owning domain"
@@ -226,32 +219,15 @@ class SocialMessageReadQueries:
                 ),
             ).fetchall()
             sql_more = len(rows) > limit
-            for row in rows[:limit]:
-                verify_message_content_digest(row)
-            candidates = [
-                {
-                    "sequence": int(row["sequence"]),
-                    "messageRef": row["message_ref"],
-                    "spaceRef": row["space_ref"],
-                    "topicRef": row["topic_ref"],
-                    "authorActorRef": row["author_actor_ref"],
-                    "messageKind": row["message_kind"],
-                    "body": row["body"],
-                    "messageDigest": row["message_digest"],
-                    "recordedAtMs": int(row["recorded_at_ms"]),
-                    "createdAt": row["created_at"].isoformat(),
-                }
-                for row in rows[:limit]
-            ]
+            candidates = [verified_message_wire(row) for row in rows[:limit]]
 
-            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+            def envelope(last: dict[str, Any]) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-message-search",
                     "query": query,
-                    "messages": page,
                     "hasMore": True,
-                    "nextBeforeSequence": None if not page else int(page[-1]["sequence"]),
+                    "nextBeforeSequence": int(last["sequence"]),
                     "rankingApplied": False,
                     "ordering": "sequence_desc",
                     "truthBoundary": search_boundary
@@ -261,6 +237,7 @@ class SocialMessageReadQueries:
             page, byte_more = bounded_prefix(
                 candidates,
                 max_bytes=max_bytes,
+                collection_key="messages",
                 envelope=envelope,
                 minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES,
             )
