@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +20,7 @@ from artifact_core.admission import AdmissionHooks, admit_delivery_request
 from artifact_core.build_bindings import BuildCapabilityBindingRegistry
 from artifact_core.build_planning import compile_delivery_plan_from_validation
 from artifact_core.contracts import file_fact, sha256_file
-from artifact_core.json_validation import validate_json_document
+from artifact_core.json_validation import load_json, validate_json_document
 from artifact_core.profile_v1 import validate_profile_v1
 from artifact_operations.receipt import expected_file, operation_file_fact
 from artifact_trust import vsa as trust_vsa
@@ -37,6 +38,7 @@ from artifact_verifiers.presentation import (
     verify_presentation_semantics,
 )
 from artifact_verifiers.web import verify_html_conformance, verify_web_local
+from artifact_verifiers.web.browser import web_provider_recipe
 from scripts.artifact_oci_package import execute_oci_package_stage
 
 from .common import PreparedOperation
@@ -45,9 +47,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ARTIFACT_ROOT = ROOT / "artifact-delivery"
 DEFAULT_PROFILE_SCHEMA = ARTIFACT_ROOT / "profile-v1.schema.json"
 DEFAULT_REQUEST_SCHEMA = ARTIFACT_ROOT / "request-v1.schema.json"
-DEFAULT_PRESENTATION_SOURCE_SCHEMA = (
-    ARTIFACT_ROOT / "presentation-source-v1.schema.json"
-)
+DEFAULT_PRESENTATION_SOURCE_SCHEMA = ARTIFACT_ROOT / "presentation-source-v1.schema.json"
 DEFAULT_PRESENTATION_SEMANTIC_SVG_SOURCE_SCHEMA = (
     ARTIFACT_ROOT / "presentation-semantic-svg-source-v1.schema.json"
 )
@@ -206,9 +206,7 @@ class DirectPythonOperationProvider:
         source_path = Path(validation["resolved"]["source"]["path"])
         profile_path = Path(validation["resolved"]["profile"]["path"])
         if output_directory is None:
-            output_directory = _resolve_request_path(
-                request_path, str(request["outputDirectory"])
-            )
+            output_directory = _resolve_request_path(request_path, str(request["outputDirectory"]))
         output_directory.mkdir(parents=True, exist_ok=True)
         output_path = output_directory / _request_output_name(
             str(request["requestId"]), _primary_suffix(profile)
@@ -281,7 +279,9 @@ class DirectPythonOperationProvider:
             hooks=self._document_dependency_hooks(),
         )
 
-    def _verification_stage_hooks(self) -> VerificationStageHooks:
+    def _verification_stage_hooks(
+        self, web_recipe: dict[str, Any] | None = None
+    ) -> VerificationStageHooks:
         return VerificationStageHooks(
             validate_profile=validate_profile_v1,
             primary_suffix=_primary_suffix,
@@ -294,7 +294,7 @@ class DirectPythonOperationProvider:
             verify_pdf=verify_pdf,
             verify_pdf_conformance=verify_pdf_conformance,
             verify_html_conformance=verify_html_conformance,
-            verify_web_local=verify_web_local,
+            verify_web_local=partial(verify_web_local, provider_recipe=web_recipe),
         )
 
     def execute_verify_stage(
@@ -303,42 +303,34 @@ class DirectPythonOperationProvider:
         artifact: Path,
         output_dir: Path,
         request_path: Path | None = None,
+        *,
+        web_recipe: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         return execute_verify_stage(
             profile_path,
             artifact,
             output_dir,
             request_path,
-            hooks=self._verification_stage_hooks(),
+            hooks=self._verification_stage_hooks(web_recipe),
         )
 
     @staticmethod
     def validate_trust_material(value: dict[str, Any]) -> dict[str, Any]:
         unknown = set(value) - {"trustPolicy", "bundles", "signerIds"}
         if unknown:
-            raise RuntimeError(
-                f"trust material contains unsupported fields: {sorted(unknown)}"
-            )
+            raise RuntimeError(f"trust material contains unsupported fields: {sorted(unknown)}")
         if set(value) != {"trustPolicy", "bundles", "signerIds"}:
-            raise RuntimeError(
-                "trust material requires exactly trustPolicy, bundles and signerIds"
-            )
-        trust_policy = operation_file_fact(
-            expected_file(dict(value["trustPolicy"]), "trustPolicy")
-        )
+            raise RuntimeError("trust material requires exactly trustPolicy, bundles and signerIds")
+        trust_policy = operation_file_fact(expected_file(dict(value["trustPolicy"]), "trustPolicy"))
         bundles_value = value["bundles"]
         signers = value["signerIds"]
         if not isinstance(bundles_value, dict) or not bundles_value:
             raise RuntimeError("trust material bundles must be non-empty")
         if not isinstance(signers, dict) or set(signers) != set(bundles_value):
-            raise RuntimeError(
-                "trust material signerIds must exactly match bundle gates"
-            )
+            raise RuntimeError("trust material signerIds must exactly match bundle gates")
         bundles: dict[str, Any] = {}
         for gate, fact in sorted(bundles_value.items()):
-            bundles[gate] = operation_file_fact(
-                expected_file(dict(fact), f"bundles.{gate}")
-            )
+            bundles[gate] = operation_file_fact(expected_file(dict(fact), f"bundles.{gate}"))
             if not isinstance(signers[gate], str) or not signers[gate]:
                 raise RuntimeError(f"signerIds.{gate} must be non-empty")
         commitment = {
@@ -368,12 +360,26 @@ class DirectPythonOperationProvider:
         if kind == "verify":
             profile_path = expected_file(dict(inputs["profile"]), "profile")
             artifact_path = expected_file(dict(inputs["artifact"]), "artifact")
+            exact = {
+                "profile": operation_file_fact(profile_path),
+                "artifact": operation_file_fact(artifact_path),
+            }
+            # Historical operations retain their receipt inputs and host default.
+            # New explicit selections are distinct immutable operation intents.
+            recipe = {"selection": "host"}
+            if "webProvider" in options:
+                profile = load_json(profile_path)
+                if not isinstance(profile, dict) or profile.get("artifactClass") != "web":
+                    raise ValueError("webProvider requires a web profile")
+                recipe = web_provider_recipe(options["webProvider"])
+                exact["webProviderRecipe"] = recipe
             return PreparedOperation(
+                exact,
                 {
-                    "profile": operation_file_fact(profile_path),
-                    "artifact": operation_file_fact(artifact_path),
+                    "profilePath": profile_path,
+                    "artifactPath": artifact_path,
+                    "webProviderRecipe": recipe,
                 },
-                {"profilePath": profile_path, "artifactPath": artifact_path},
             )
 
         if kind == "verify-trust":
@@ -404,16 +410,12 @@ class DirectPythonOperationProvider:
         if kind == "package":
             profile_path = expected_file(dict(inputs["profile"]), "profile")
             artifact_path = expected_file(dict(inputs["artifact"]), "artifact")
-            verify_report_path = expected_file(
-                dict(inputs["verifyReport"]), "verifyReport"
-            )
+            verify_report_path = expected_file(dict(inputs["verifyReport"]), "verifyReport")
             local = bool(options.get("allowLocalUnsignedDevelopment", False))
             trust = (
                 None
                 if local
-                else self.validate_trust_material(
-                    dict(inputs.get("trustMaterial") or {})
-                )
+                else self.validate_trust_material(dict(inputs.get("trustMaterial") or {}))
             )
             exact: dict[str, Any] = {
                 "profile": operation_file_fact(profile_path),
@@ -447,10 +449,9 @@ class DirectPythonOperationProvider:
             out = output_directory / "derived-plan.json"
             _write_json(out, plan)
             if plan.get("status") != "PASS":
-                raise RuntimeError(
-                    f"derived plan did not PASS: {plan.get('failures')}"
-                )
+                raise RuntimeError(f"derived plan did not PASS: {plan.get('failures')}")
             resolved = plan["resolvedInputs"]
+
             def simple(value: dict[str, Any]) -> dict[str, Any]:
                 digest = value.get("sha256") or (value.get("digest") or {}).get("sha256")
                 return {
@@ -459,6 +460,7 @@ class DirectPythonOperationProvider:
                     "name": value.get("name") or Path(value["path"]).name,
                     "size": value.get("size"),
                 }
+
             return {"plan": "derived-plan.json"}, {
                 "requestId": plan.get("requestId"),
                 "profile": simple(resolved["profile"]),
@@ -472,14 +474,9 @@ class DirectPythonOperationProvider:
             report = output_directory / "build-stage.json"
             _write_json(report, result)
             if result.get("status") != "PASS":
-                raise RuntimeError(
-                    f"build stage did not PASS: {result.get('failures')}"
-                )
+                raise RuntimeError(f"build stage did not PASS: {result.get('failures')}")
             artifact_path = Path(result["artifact"]["path"])
-            if (
-                artifact_path.parent.resolve() != artifacts.resolve()
-                or not artifact_path.is_file()
-            ):
+            if artifact_path.parent.resolve() != artifacts.resolve() or not artifact_path.is_file():
                 raise RuntimeError("build output escaped operation directory")
             return {
                 "buildReport": "build-stage.json",
@@ -495,13 +492,12 @@ class DirectPythonOperationProvider:
                 context["profilePath"],
                 context["artifactPath"],
                 evidence,
+                web_recipe=context["webProviderRecipe"],
             )
             report = output_directory / "verify-stage.json"
             _write_json(report, result)
             if result.get("status") != "PASS":
-                raise RuntimeError(
-                    f"verify stage did not PASS: {result.get('failures')}"
-                )
+                raise RuntimeError(f"verify stage did not PASS: {result.get('failures')}")
             roles = {"verifyReport": "verify-stage.json"}
             gates: list[str] = []
             for path in sorted(evidence.glob("*.json")):
@@ -514,22 +510,15 @@ class DirectPythonOperationProvider:
                     gate = path.name[:-9]
                     roles[f"rawEvidence:{gate}"] = relative
             return roles, {
-                "profileVerificationComplete": bool(
-                    result.get("profileVerificationComplete")
-                ),
+                "profileVerificationComplete": bool(result.get("profileVerificationComplete")),
                 "gateVsas": gates,
             }
 
         if operation_kind == "verify-trust":
             normalized = context["gateVsas"]
             trust = context["trust"]
-            gate_paths = {
-                gate: Path(fact["path"]) for gate, fact in normalized.items()
-            }
-            bundles = {
-                gate: Path(fact["path"])
-                for gate, fact in trust["bundles"].items()
-            }
+            gate_paths = {gate: Path(fact["path"]) for gate, fact in normalized.items()}
+            bundles = {gate: Path(fact["path"]) for gate, fact in trust["bundles"].items()}
             result = trust_vsa.aggregate_vsa_gates(
                 context["profilePath"],
                 context["artifactPath"],
@@ -556,10 +545,7 @@ class DirectPythonOperationProvider:
             bundles = (
                 None
                 if trust is None
-                else {
-                    gate: Path(fact["path"])
-                    for gate, fact in trust["bundles"].items()
-                }
+                else {gate: Path(fact["path"]) for gate, fact in trust["bundles"].items()}
             )
             result = execute_oci_package_stage(
                 context["profilePath"],
@@ -568,19 +554,13 @@ class DirectPythonOperationProvider:
                 package,
                 allow_local_unsigned=context["local"],
                 gate_bundles=bundles,
-                trust_policy_path=(
-                    None
-                    if trust is None
-                    else Path(trust["trustPolicy"]["path"])
-                ),
+                trust_policy_path=(None if trust is None else Path(trust["trustPolicy"]["path"])),
                 signer_ids=None if trust is None else trust["signerIds"],
             )
             out = output_directory / "oci-package-stage.json"
             _write_json(out, result)
             if result.get("status") != "PASS":
-                raise RuntimeError(
-                    f"OCI package stage did not PASS: {result.get('failures')}"
-                )
+                raise RuntimeError(f"OCI package stage did not PASS: {result.get('failures')}")
             layout = package / "layout"
             roles = {
                 "packageReport": "oci-package-stage.json",
@@ -588,16 +568,12 @@ class DirectPythonOperationProvider:
                 "ociLayoutMarker": "package/layout/oci-layout",
             }
             for blob in sorted((layout / "blobs" / "sha256").glob("*")):
-                roles[f"ociBlob:{blob.name}"] = (
-                    f"package/layout/blobs/sha256/{blob.name}"
-                )
+                roles[f"ociBlob:{blob.name}"] = f"package/layout/blobs/sha256/{blob.name}"
             return roles, {
                 "releaseReady": bool(result.get("releaseReady")),
                 "trustStanding": result.get("trustStanding"),
                 "packageRelativePath": "package/layout",
-                "subjectDigest": result.get("oci", {})
-                .get("subject", {})
-                .get("digest"),
+                "subjectDigest": result.get("oci", {}).get("subject", {}).get("digest"),
                 "referrerCount": len(
                     result.get("oci", {}).get("discover", {}).get("referrers", [])
                 ),
