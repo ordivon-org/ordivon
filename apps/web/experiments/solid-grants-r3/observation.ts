@@ -1,26 +1,26 @@
 import type {GrantObservation} from "../../src/grant-observation.ts";
 type Row = Pick<GrantObservation["grants"][number], "principalId" | "grantId" | "agentId" | "active" | "revision" | "remainingEffects" | "expiresAtEpochSeconds">;
-export type Observation = Omit<GrantObservation,"grants"> & {readonly grants:readonly Row[]};
+export type Observation = Omit<GrantObservation,"grants" | "displayName"> & {readonly grants:readonly Row[]};
 
-export type State =
+export type State<T extends Observation = Observation> =
   | {generation:number;status:"loading"|"denied"|"unavailable"|"suspended";observation:null}
-  | {generation:number;status:"observed";observation:Observation};
+  | {generation:number;status:"observed";observation:T};
 
 export const initial:State={generation:0,status:"loading",observation:null};
-export function begin(previous:State):State {
+export function begin<T extends Observation>(previous:State<T>):State<T> {
   return {generation:previous.generation+1,status:"loading",observation:null};
 }
 // A page lifecycle boundary invalidates both retained data and all pending
 // generations, even if the next network response was previously authorized.
-export function suspend(previous:State):State {
+export function suspend<T extends Observation>(previous:State<T>):State<T> {
   if(previous.status==="suspended") return previous;
   return {generation:previous.generation+1,status:"suspended",observation:null};
 }
-export type Outcome =
+export type Outcome<T extends Observation = Observation> =
   | {status:"denied"|"unavailable";observation:null}
-  | {status:"observed";observation:Observation};
+  | {status:"observed";observation:T};
 
-export function settle(previous:State, generation:number, outcome:Outcome):State {
+export function settle<T extends Observation>(previous:State<T>, generation:number, outcome:Outcome<T>):State<T> {
   if(previous.generation!==generation || previous.status!=="loading") return previous;
   return {...outcome,generation};
 }

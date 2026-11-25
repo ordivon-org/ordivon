@@ -7,6 +7,7 @@ export interface WebConfig {
   readonly rpID: string;
   readonly rpName: string;
   readonly databasePath: string;
+  readonly operatorGrantsDist?: string;
   readonly bootstrapEnrollmentToken?: string;
   readonly agentIssuer?: string;
   readonly agentAllowInsecureIssuer?: boolean;
@@ -39,6 +40,9 @@ export function loadConfig(): WebConfig {
     databasePath:
       process.env.ORDIVON_WEB_DB ??
       fileURLToPath(new URL("../.web.sqlite3", import.meta.url)),
+    ...(process.env.ORDIVON_WEB_OPERATOR_GRANTS_DIST === undefined ? {} : {
+      operatorGrantsDist: process.env.ORDIVON_WEB_OPERATOR_GRANTS_DIST,
+    }),
     ...(process.env.ORDIVON_WEB_BOOTSTRAP_ENROLLMENT_TOKEN === undefined
       ? {}
       : {

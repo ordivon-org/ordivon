@@ -6,21 +6,24 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "vite build",
-    "test": "node --test observation.test.ts",
+    "build:operator": "vite build --mode operator",
+    "probe:operator": "node operator-browser-probe.ts",
+    "verify:operator": "pnpm typecheck && pnpm test && pnpm build:operator && pnpm probe:operator",
+    "test": "node --test *.test.ts",
     "probe": "node browser-probe.ts",
     "probe:native-async": "node --conditions=browser native-async-probe.mjs"
   },
   "dependencies": {
-    "@ui-sdk/core": "0.1.0-beta.16",
-    "@ui-sdk/solid": "0.1.0-beta.16",
-    "solid-js": "2.0.3",
-    "@solidjs/web": "2.0.3"
+    "@solidjs/web": "^2.0.3",
+    "@ui-sdk/core": "0.1.0-beta.17",
+    "@ui-sdk/solid": "0.1.0-beta.17",
+    "solid-js": "^2.0.3"
   },
   "devDependencies": {
-    "@solidjs/vite-plugin": "3.0.1",
-    "vite": "8.3.5",
+    "@solidjs/vite-plugin": "^3.0.1",
+    "@types/node": "^26.6.7",
+    "playwright": "1.64.1",
     "typescript": "7.0.2",
-    "@types/node": "26.6.5",
-    "playwright": "1.64.1"
+    "vite": "^8.3.8"
   }
 }

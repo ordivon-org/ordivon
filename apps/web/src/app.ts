@@ -37,6 +37,7 @@ import {
   textHeader,
 } from "./browser-request-boundary.ts";
 import { WebStore } from "./store.ts";
+import { loadOperatorGrantsUi } from "./operator-grants-ui.ts";
 import { WebAuthnAccountService } from "./webauthn.ts";
 
 export interface WebDependencies {
@@ -50,6 +51,7 @@ export async function createWebApp(
   config: WebConfig,
   dependencies: WebDependencies = {},
 ): Promise<FastifyInstance> {
+  const operatorUi = config.operatorGrantsDist === undefined ? null : loadOperatorGrantsUi(config.operatorGrantsDist);
   const app = Fastify({
     logger: false,
     trustProxy: false,
@@ -393,10 +395,19 @@ export async function createWebApp(
     },
   );
 
+  // Build artifacts are public code only, never request-derived paths or owner data.
+  if (operatorUi !== null) {
+    for (const [path, asset] of operatorUi.assets) {
+      app.get(path, async (_request, reply) => reply.header("Cache-Control", "no-store")
+        .type(asset.contentType).send(asset.bytes));
+    }
+  }
+
   app.get("/operator/grants", async (request, reply) => {
     // Also cover authentication failures, not only the successful HTML.
     reply.header("Cache-Control", "no-store");
     const auth = authenticated(request);
+    if (operatorUi !== null) return reply.type("text/html; charset=utf-8").send(operatorUi.html);
     const observedAt = now();
     const grants = store.listAgentGrants(auth.principal.principalId);
     return reply.type("text/html; charset=utf-8")
@@ -408,6 +419,7 @@ export async function createWebApp(
     const observedAt = now();
     return {
       principalId: auth.principal.principalId,
+      displayName: auth.principal.displayName,
       observedAt,
       grants: store.listAgentGrants(auth.principal.principalId),
     };

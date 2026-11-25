@@ -7,6 +7,7 @@
     "purpose": "Decompose confirmed website Human/Agent authority and effect-replay responsibilities, with explicit canary scope and cross-Security consumer contracts. No new Web runtime or registry.",
     "sourceEvidence": [
       "README.md",
+      "planning/target-replacement-r1.md",
       "src/app.ts",
       "src/webauthn.ts",
       "src/store.ts",
@@ -124,9 +125,15 @@
       ],
       "behavioralContract": "Issued Grants and revocations bind one Principal/Agent/scope and remain source-owned; revoked Grants block future effects without invalidating already committed historical exact replay.",
       "acceptance": [
+        "Opt-in Solid 2 actual operator route consumes the same authenticated Owner observation and exact displayed fields, never an admission decision. The explicit generation/lifecycle fence clears private observations and rejects late success; the native select is read-only. No test bridge in product build; absent/invalid configured assets fail startup.",
         "Owner Agent authority tests cover Grant revocation and future-effect denial distinct from historical committed receipts."
       ],
       "evidence": [
+        "src/operator-grants-ui.ts",
+        "src/grant-observation.ts",
+        "test/operator-grants-ui.test.ts",
+        "experiments/solid-grants-r3/operator.tsx",
+        "experiments/solid-grants-r3/operator-browser-probe.ts",
         "src/webauthn.ts",
         "src/store.ts",
         "src/app.ts",

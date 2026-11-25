@@ -21,6 +21,10 @@
   },
   "include": [
     "app.tsx",
+    "operator.tsx",
+    "operator-observation.ts",
+    "operator-observation.test.ts",
+    "operator-browser-probe.ts",
     "observation.ts",
     "observation.test.ts",
     "browser-probe.ts",

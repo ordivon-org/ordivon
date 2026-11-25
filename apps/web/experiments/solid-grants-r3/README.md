@@ -1,9 +1,12 @@
-# Solid 2 / UI SDK Grant observation — R3 research candidate
+# Solid 2 Grant renderer and isolated UI SDK research consumer
 
-This is an isolated, opt-in research consumer, not a production UI or an
-installed/deployed capability. It uses the Web Owner's actual authenticated
+The original app.tsx entry remains an isolated, opt-in research consumer, not an
+installed/deployed capability. The separate operator.tsx entry is an opt-in
+actual product route source candidate (not installed); see
+[Target replacement execution spec](../../planning/target-replacement-r1.md). It uses the Web Owner's actual authenticated
 GET /api/security/agents/grants with its additive principalId and observedAt
-metadata. The server-rendered /operator/grants remains the baseline.
+metadata. The server-rendered /operator/grants remains the default behavioral reference
+when no candidate build directory is configured.
 The only Agent action is a local filter. The test bridge is exposed on
 window exclusively in the test build, not registered via WebMCP or routed
 to any model. No Agent domain mutation or external credentials are added. R5 adds a human-only sign-out control using the existing native session endpoints.

@@ -3,6 +3,7 @@ import type { AgentGrantSnapshot } from "./model.ts";
 export type GrantAvailability = "revoked" | "expired" | "exhausted" | "candidate";
 export interface GrantObservation {
   readonly principalId: string;
+  readonly displayName: string;
   readonly observedAt: number;
   readonly grants: readonly AgentGrantSnapshot[];
 }
