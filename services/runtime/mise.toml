@@ -7,12 +7,13 @@ rust = { version = "1.99.1", components = "clippy,rustfmt" }
 # Upstream prebuilt Nextest, fetched directly from its official GitHub release.
 # Do not make root CI depend on an extra third-party release proxy.
 # Keep the official release SHA-256 and byte-size verification.
-# Only linux-x64 is admitted until the other platforms' exact assets are qualified.
+# Admit only the verified official Linux and Windows x64 release assets.
 [tools."http:cargo-nextest"]
 version = "0.9.152"
 
 [tools."http:cargo-nextest".platforms]
 linux-x64 = { url = "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.152/cargo-nextest-0.9.152-x86_64-unknown-linux-gnu.tar.gz", checksum = "sha256:d039b43c3e0958441b6ad0a39c8884d018b3d2e8fb9928f209074b1100b5e17a", size = 12393262 }
+windows-x64 = { url = "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.152/cargo-nextest-0.9.152-x86_64-pc-windows-msvc.zip", checksum = "sha256:cc6bf4b6a7ac18e462cd6c9bae67e26921b888249c2988c6acabf3df387ed9d6", size = 7966280 }
 
 [tasks."formal:kani:verify"]
 description = "Verify actual Rust PostgreSQL terminal and Attempt lifecycle properties with upstream Kani"
