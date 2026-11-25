@@ -132,3 +132,71 @@ end OrdivonSecurity.Remediation
 #print axioms OrdivonSecurity.Remediation.qualified_example
 #print axioms OrdivonSecurity.Remediation.report_delta_with_unknown_scan_is_insufficient
 #print axioms OrdivonSecurity.Remediation.unrelated_after_scan_cannot_qualify
+
+-- Provider readiness is not evidence of the current source cut.
+-- This model classifies a synthetic observation, not authorization.
+namespace OrdivonSecurity.ProviderObservation
+
+inductive Standing where
+  | unknown
+  | different
+  | matched
+  deriving DecidableEq, Repr
+
+structure Observation where
+  healthy : Bool
+  desired : String
+  observed : Option String
+  sameEvaluation : Bool
+  sourceQualified : Bool
+  deriving Repr
+
+def classify (o : Observation) : Standing :=
+  if o.sameEvaluation && o.sourceQualified then
+    match o.observed with
+    | none => .unknown
+    | some value => if value = o.desired then .matched else .different
+  else .unknown
+
+theorem health_independent (o : Observation) (health : Bool) :
+    classify { o with healthy := health } = classify o := by
+  rfl
+
+theorem missing_observation_unknown (o : Observation)
+    (h : o.observed = none) : classify o = .unknown := by
+  simp [classify, h]
+
+theorem unbound_observation_unknown (o : Observation)
+    (h : o.sameEvaluation = false) : classify o = .unknown := by
+  simp [classify, h]
+
+theorem unqualified_source_unknown (o : Observation)
+    (h : o.sourceQualified = false) : classify o = .unknown := by
+  simp [classify, h]
+
+def healthyOld : Observation := {
+  healthy := true
+  desired := "new"
+  observed := some "old"
+  sameEvaluation := true
+  sourceQualified := true
+}
+
+theorem healthy_old_not_matched : classify healthyOld = .different := by decide
+
+theorem qualified_match_reachable :
+    classify { healthyOld with observed := some "new" } = .matched := by decide
+
+theorem same_label_without_binding_unknown :
+    classify { healthyOld with observed := some "new", sameEvaluation := false }
+      = .unknown := by decide
+
+end OrdivonSecurity.ProviderObservation
+
+#print axioms OrdivonSecurity.ProviderObservation.health_independent
+#print axioms OrdivonSecurity.ProviderObservation.missing_observation_unknown
+#print axioms OrdivonSecurity.ProviderObservation.unbound_observation_unknown
+#print axioms OrdivonSecurity.ProviderObservation.unqualified_source_unknown
+#print axioms OrdivonSecurity.ProviderObservation.healthy_old_not_matched
+#print axioms OrdivonSecurity.ProviderObservation.qualified_match_reachable
+#print axioms OrdivonSecurity.ProviderObservation.same_label_without_binding_unknown

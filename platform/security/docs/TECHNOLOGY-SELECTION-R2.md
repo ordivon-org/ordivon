@@ -384,3 +384,21 @@ Native reference documentation:
 - https://www.openpolicyagent.org/docs/management-bundles
 - https://www.openpolicyagent.org/docs/operations
 - https://www.openpolicyagent.org/docs/management-status
+
+### R13 — independent observation classification model
+
+The existing Lean `formal/ConsequenceEvidence.lean` now unfolds a pure
+ProviderObservation model: an absent or unqualified observation is UNKNOWN,
+a qualified different identity is DIFFERENT, and a qualified matching identity
+is MATCHED for that observation only. Provider health is independent of this
+classification. The seven model obligations and a directed mutation distinguish
+missing evidence from a known mismatch and a reachable match. A synthetic
+label is not an authenticated bundle identity; the model assumes its observation
+facts and does not establish the native producer, real authority or live currentness.
+
+Keep the provider-native lifecycle experiment as the independent observation
+of carrier behavior, and keep the existing real consumer tests and root CI.
+The model is not an implementation or permission rule. Do not promote an
+observation match to a release, effect or business consequence. The existing
+OPA version-cohort and normal package import candidates remain separate review
+commits; no new policy engine, registry or decision cache is introduced.
