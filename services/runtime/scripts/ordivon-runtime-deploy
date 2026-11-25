@@ -2233,6 +2233,41 @@ def prune_candidate_artifacts(
     }
 
 
+def retention_manifest(child: Path) -> tuple[str, list[str]]:
+    """Observe two known manifest filenames without preferring conflicting bytes.
+
+    Historical prepare accepted an explicit --candidate-manifest path. These
+    are the two observed conventions, not proof of complete manifest coverage.
+    A missing modern name may have a qualified historical representation;
+    a present but invalid modern record must never be shadowed by another.
+    """
+    observed = []
+    for name in ("ordivon-deployment-manifest.json", "manifest.json"):
+        path = child / "release" / name
+        try:
+            path.lstat()
+        except FileNotFoundError:
+            continue
+        raw, value = read_retention_record(path)
+        if (not isinstance(value, dict) or value.get("commit") != child.name
+                or value.get("candidateDir") != str(child / "release")):
+            raise ValueError("manifest_subject_mismatch")
+        if name == "manifest.json" and (
+            type(value.get("schemaVersion")) is not int
+            or value["schemaVersion"] != SCHEMA_VERSION
+            or value.get("sourceMaterialization") != "detached_git_checkout"
+        ):
+            raise ValueError("historical_manifest_schema_unqualified")
+        observed.append((path, raw))
+    if not observed:
+        raise ValueError("manifest_not_observed")
+    if any(raw != observed[0][1] for _, raw in observed):
+        raise ValueError("conflicting_manifest_representations")
+    return "sha256:" + hashlib.sha256(observed[0][1]).hexdigest(), [
+        str(path) for path, _ in observed
+    ]
+
+
 def retention_subject(child: Path, protected: set[str], *, max_entries: int = 20000) -> dict:
     """Reverse projection: explain observed retention cost and missing evidence.
 
@@ -2244,7 +2279,7 @@ def retention_subject(child: Path, protected: set[str], *, max_entries: int = 20
     subject = {
         "name": child.name, "path": str(child), "disposition": "UNKNOWN",
         "allocationStanding": "UNKNOWN", "allocatedBytes": None,
-        "duplicateInodeEntries": 0, "manifestDigest": None,
+        "duplicateInodeEntries": 0, "manifestDigest": None, "manifestPaths": [],
         "identity": None, "missingEvidence": [], "observations": [],
     }
     try:
@@ -2265,13 +2300,8 @@ def retention_subject(child: Path, protected: set[str], *, max_entries: int = 20
                 ]
         else:
             subject["missingEvidence"] = ["EXACT_RESOURCE_CLASSIFICATION"]
-        manifest = child / "release" / "ordivon-deployment-manifest.json"
         try:
-            raw, value = read_retention_record(manifest)
-            if (not isinstance(value, dict) or value.get("commit") != child.name
-                    or value.get("candidateDir") != str(child / "release")):
-                raise ValueError("manifest_subject_mismatch")
-            subject["manifestDigest"] = "sha256:" + hashlib.sha256(raw).hexdigest()
+            subject["manifestDigest"], subject["manifestPaths"] = retention_manifest(child)
         except (OSError, ValueError, TypeError):
             subject["observations"].append("manifest_identity_unqualified")
             subject["missingEvidence"].append("EXACT_MANIFEST_IDENTITY")

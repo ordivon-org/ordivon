@@ -4631,6 +4631,47 @@ else:
                     conflict.stderr,
                 )
 
+    def test_candidate_retention_recovers_old_manifest_filename_without_shadowing(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            current, old = "c" * 40, "a" * 40
+            for revision in (current, old):
+                (root / "candidates" / revision / "release").mkdir(parents=True)
+            release = root / "candidates" / old / "release"
+            legacy = release / "manifest.json"
+            normal = release / "ordivon-deployment-manifest.json"
+            record = {"schemaVersion": 2, "commit": old, "candidateDir": str(release),
+                      "sourceMaterialization": "detached_git_checkout"}
+            legacy.write_text(json.dumps(record))
+            receipts = root / "receipts"
+            receipts.mkdir()
+            command = [sys.executable, "scripts/ordivon-runtime-deploy",
+                       "candidate-retention-inspect", "--candidate-dir",
+                       str(root / "candidates" / current / "release"), "--commit", current,
+                       "--receipt-root", str(receipts)]
+            def observe():
+                report = json.loads(subprocess.run(command, cwd=REPO, check=True,
+                                                  capture_output=True, text=True).stdout)
+                self.assertEqual(report["actions"], [])
+                return next(x for x in report["subjects"] if x["name"] == old)
+            subject = observe()
+            self.assertEqual(subject["manifestDigest"],
+                             "sha256:" + __import__("hashlib").sha256(legacy.read_bytes()).hexdigest())
+            self.assertEqual(subject["manifestPaths"], [str(legacy)])
+            self.assertEqual(subject["disposition"], "DEFERRED")
+            normal.write_bytes(legacy.read_bytes())
+            self.assertEqual(set(observe()["manifestPaths"]), {str(normal), str(legacy)})
+            normal.write_text(json.dumps({**record, "other": 1}))
+            subject = observe()
+            self.assertIsNone(subject["manifestDigest"])
+            self.assertIn("EXACT_MANIFEST_IDENTITY", subject["missingEvidence"])
+            normal.unlink()
+            normal.symlink_to(legacy)
+            self.assertIsNone(observe()["manifestDigest"])
+            normal.unlink()
+            legacy.write_text(json.dumps({**record, "schemaVersion": 99}))
+            self.assertIsNone(observe()["manifestDigest"])
+
     def test_candidate_retention_deep_invalid_receipt_does_not_abort_census(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
