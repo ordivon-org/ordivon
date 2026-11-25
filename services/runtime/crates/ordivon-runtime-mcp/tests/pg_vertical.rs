@@ -3366,6 +3366,34 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
     // Cancelling a completed effect must return its existing Owner observation,
     // never require a current native Runner or mutate terminal truth.
     let completed_job = exec["structuredContent"]["jobId"].as_str().unwrap();
+    let times = fixture
+        .db
+        .query_one(
+            "SELECT started_at_ms,finished_at_ms FROM attempts WHERE job_id=$1",
+            &[&completed_job],
+        )
+        .unwrap();
+    let started: i64 = times.get::<_, Option<i64>>(0).expect("native Runner bound");
+    let finished: i64 = times.get::<_, Option<i64>>(1).expect("terminal witness");
+    let inspection = call(&endpoint, "job.get", json!({"jobId":completed_job}));
+    assert_ne!(inspection["isError"], true, "{inspection}");
+    let attempt = &inspection["structuredContent"]["attempts"][0];
+    assert_eq!(attempt["startedAtMs"], started);
+    assert_eq!(attempt["finishedAtMs"], finished);
+    assert!(
+        attempt.get("durationMs").is_none(),
+        "mixed clock duration is not a physical measurement"
+    );
+    let listed = call(
+        &endpoint,
+        "job.list",
+        json!({"clientRequestId":"pg-native-physical-0001","limit":1}),
+    );
+    assert_ne!(listed["isError"], true, "{listed}");
+    assert_eq!(
+        listed["structuredContent"]["jobs"][0]["startedAtMs"],
+        started
+    );
     let post_terminal_cancel = call(&endpoint, "job.cancel", json!({"jobId":completed_job}));
     assert_ne!(
         post_terminal_cancel["isError"], true,
@@ -3942,6 +3970,14 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         "cancelled"
     );
     assert_eq!(cancelled["structuredContent"]["resultAvailable"], false);
+    let never_bound = call(&endpoint, "job.get", json!({"jobId":pending_job}));
+    assert_ne!(never_bound["isError"], true, "{never_bound}");
+    let attempt = &never_bound["structuredContent"]["attempts"][0];
+    assert!(
+        attempt.get("startedAtMs").is_none(),
+        "pre-dispatch cancel has no Runner bound observation"
+    );
+    assert!(attempt.get("durationMs").is_none());
     let dispatched: i64 = fixture
         .db
         .query_one(
