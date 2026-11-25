@@ -44,7 +44,7 @@ def project_execution_capability(
             configured=True,
             available=False,
             context_mode=route.context_mode,  # type: ignore[arg-type]
-            observation_error=observation_error,
+            observation_error=observation_error or "Runtime status was not observed",
             truth_boundary=route.truth_boundary,
         )
 
@@ -220,13 +220,14 @@ def project_native_release_capability(
         issue = configuration_error or "Linux Runtime Owner endpoint is unconfigured"
     elif owner_response is None:
         issue = issue or "Runtime source/installed release state is not observed"
+    elif not valid_runtime_status_envelope(owner_response):
+        issue = "invalid native Linux Runtime structured-release status"
     else:
         node = owner_response.get("node")
         targets = owner_response.get("targets")
         enabled = owner_response.get("structuredReleaseConfigured")
         if (
-            not valid_runtime_status_envelope(owner_response)
-            or not isinstance(node, dict)
+            not isinstance(node, dict)
             or node.get("nodeId") != "linux-pg"
             or node.get("platform") != "linux"
             or node.get("native") is not True

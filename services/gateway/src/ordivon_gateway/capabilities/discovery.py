@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 from importlib.metadata import version as package_version
 
 from ..contracts import (
@@ -36,8 +37,19 @@ from ..logic.readiness_confirmation import (
     compare_readiness_observations,
     status_probe_owners,
 )
+from ..logic.readiness_evidence import OwnerConfiguration, OwnerObservation
+from ..logic.readiness_inquiry import project_readiness_inquiry
 from .owner_observation import OwnerStatusObserver
 from .research import resolve_research_capability
+
+
+@dataclass(frozen=True, slots=True)
+class _CatalogRead:
+    """Internal request-local evidence; no private state on public descriptors."""
+
+    projection: CapabilityProjection
+    owner_configurations: dict[str, OwnerConfiguration]
+    owner_observations: dict[str, OwnerObservation]
 
 
 class CapabilityCatalog:
@@ -87,9 +99,9 @@ class CapabilityCatalog:
             selected = [route]
         else:
             selected = [self._routes[key] for key in sorted(self._routes)]
-        return await self._describe_routes(selected)
+        return (await self._observe_routes(selected)).projection
 
-    async def _describe_routes(self, selected: list[CapabilityRoute]) -> CapabilityProjection:
+    async def _observe_routes(self, selected: list[CapabilityRoute]) -> _CatalogRead:
         # A search can restrict observations to matching routes before any I/O.
         # Normalize order independently from search ranking for stable digests.
         selected = sorted(selected, key=lambda route: route.capability)
@@ -211,10 +223,10 @@ class CapabilityCatalog:
         owner_configs["host.write"] = owner_configs["host"]
         if host_status_route == "host.read":
             owner_configs["host"] = owner_configs["host.read"]
-        return assemble_catalog_projection(
-            values,
-            self._routes,
-            route_identity=self._route_digest,
+        return _CatalogRead(
+            projection=assemble_catalog_projection(
+                values, self._routes, route_identity=self._route_digest
+            ),
             owner_configurations=owner_configs,
             owner_observations=observed_owner_status,
         )
@@ -230,11 +242,15 @@ class CapabilityCatalog:
             raise GatewayError(f"unknown capability: {capability}")
 
         async def once() -> CapabilityInquiryProjection:
-            projection = await self.capability_describe(capability)
+            read = await self._observe_routes([route])
+            projection = read.projection
             descriptor = projection.capabilities[0]
-            inquiry = descriptor._readiness_inquiry
-            if inquiry is None:
-                raise GatewayError("Gateway readiness inquiry was not assembled")
+            inquiry = project_readiness_inquiry(
+                descriptor,
+                route,
+                owner_configurations=read.owner_configurations,
+                owner_observations=read.owner_observations,
+            )
             return CapabilityInquiryProjection(
                 capability=descriptor.capability,
                 owner_id=descriptor.owner_id,
@@ -311,7 +327,7 @@ class CapabilityCatalog:
             category=category,
             owner_id=owner_id,
         )
-        projection = await self._describe_routes(candidates)
+        projection = (await self._observe_routes(candidates)).projection
         return project_capability_search(
             projection,
             query=query,

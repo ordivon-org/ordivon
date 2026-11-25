@@ -7,8 +7,11 @@ from typing import Any
 
 from ..contracts import CapabilityDescriptor, CapabilityProjection, CapabilityRoute
 from .catalog_identity import digest_json
-from .readiness_inquiry import project_readiness_inquiry
-from .runtime_status import valid_runtime_status_envelope, valid_runtime_target_inventory
+from .runtime_status import (
+    runtime_ready_target_observed,
+    valid_runtime_status_envelope,
+    valid_runtime_target_inventory,
+)
 
 
 def project_host_capability(
@@ -28,6 +31,8 @@ def project_host_capability(
         )
         if not available:
             error = "invalid Host status projection"
+    if configured and result is None and error is None:
+        error = "Host status was not observed"
     return CapabilityDescriptor(
         capability=route.capability,
         owner_id=route.owner_id,
@@ -56,7 +61,10 @@ def project_artifact_capability(
         if not configured:
             continue
         any_configured = True
-        if error is not None or result is None:
+        if error is not None:
+            continue
+        if result is None:
+            errors.append(f"{owner_id}: Runtime status was not observed")
             continue
         if not valid_runtime_status_envelope(result):
             errors.append(f"{owner_id}: invalid versioned Runtime status envelope")
@@ -71,7 +79,7 @@ def project_artifact_capability(
         if not valid_runtime_target_inventory(targets):
             errors.append(f"{owner_id}: invalid Runtime target status projection")
             continue
-        if any(item["configured"] is True and item["available"] is True for item in targets):
+        if runtime_ready_target_observed(result):
             available = True
             if node_id is not None:
                 nodes.append(node_id)
@@ -112,10 +120,8 @@ def assemble_catalog_projection(
     routes: Mapping[str, CapabilityRoute],
     *,
     route_identity: str,
-    owner_configurations: dict[str, tuple[bool, str | None]],
-    owner_observations: dict[str, tuple[dict[str, Any] | None, str | None]],
 ) -> CapabilityProjection:
-    """Enrich from the same evidence; never re-observe an Owner."""
+    """Enrich static route metadata and bind the public projection digest."""
     enriched: list[CapabilityDescriptor] = []
     for value in values:
         route = routes.get(value.capability)
@@ -124,12 +130,6 @@ def assemble_catalog_projection(
             continue
         descriptor = value.model_copy(
             update={"description": route.description, "tags": list(route.tags)}
-        )
-        descriptor._readiness_inquiry = project_readiness_inquiry(
-            descriptor,
-            route,
-            owner_configurations=owner_configurations,
-            owner_observations=owner_observations,
         )
         enriched.append(descriptor)
     return CapabilityProjection(
