@@ -220,3 +220,7 @@ mv -T -- "$stage/ready" "$bundle"
 echo "GAME_FACTORY_BUNDLE_PATH=$bundle"
 echo "GAME_FACTORY_BEACON_PACKAGES_READY_NATIVE_PREVIEW_NOT_STORE_RELEASE"
 """
+
+[tasks."test:rendered-product-contract"]
+description = "Validate the independent FFmpeg raster consumer using real decoder fixtures (requires FFmpeg)"
+run = "python3 scripts/test_rendered_product_acceptance.py"
