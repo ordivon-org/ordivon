@@ -163,3 +163,131 @@ def test_systemd_uses_native_credentials_for_private_config_and_tls_cert() -> No
     assert "LoadCredential=tls-cert:/etc/ordivon/security/gateway-authzen/server.pem" in unit
     assert "ORDIVON_SECURITY_AUTHZEN_POLICY_DATA_FILE=%d/trusted-issuer" in unit
     assert "--ssl-certfile %d/tls-cert" in unit
+
+
+def _raw_request(client: TestClient, raw: bytes, **extra_headers: str):
+    return client.post(
+        "/access/v1/evaluation",
+        content=raw,
+        headers={
+            "Authorization": "Bearer fixture-secret-token-a01b02c03d04e05f06g07h08",
+            "X-Request-ID": str(uuid.uuid4()),
+            "Content-Type": "application/json",
+            **extra_headers,
+        },
+    )
+
+
+def test_wire_rejects_ambiguous_duplicate_fields(client: TestClient):
+    valid = json.dumps(_payload())
+    nested = valid.replace('"type": "user"', '"type": "unknown", "type": "user"', 1)
+    top = '{"action":{"name":"unknown"},' + valid[1:]
+    for raw in (nested, top):
+        response = _raw_request(client, raw.encode())
+        assert response.status_code == 400
+        assert "decision" not in response.json()
+
+
+@pytest.mark.parametrize("length", ["invalid", "-1", "+1"])
+def test_wire_rejects_invalid_declared_length(client: TestClient, length: str):
+    response = _raw_request(client, json.dumps(_payload()).encode(), **{"Content-Length": length})
+    assert response.status_code == 400
+    assert "decision" not in response.json()
+
+
+def test_wire_rejects_non_json_numeric_constants(client: TestClient):
+    raw = json.dumps(_payload())[:-1] + ', "context": {"value": NaN}}'
+    response = _raw_request(client, raw.encode())
+    assert response.status_code == 400
+    assert "decision" not in response.json()
+
+
+def test_wire_length_mismatch_and_overflow(client: TestClient):
+    raw = json.dumps(_payload()).encode()
+    for value in ("1", str(len(raw) + 1)):
+        assert _raw_request(client, raw, **{"Content-Length": value}).status_code == 400
+    assert _raw_request(client, raw, **{"Content-Length": "9" * 5000}).status_code == 413
+
+
+def test_wire_exact_size_limit_and_valid_allow(client: TestClient):
+    raw = json.dumps(_payload()).encode()
+    valid = raw + b" " * (8192 - len(raw))
+    r = _raw_request(client, valid)
+    assert r.status_code == 200 and r.json() == {"decision": True}
+    assert _raw_request(client, valid + b" ").status_code == 413
+
+
+def test_wire_rejects_overflow_and_deeply_nested_input(client: TestClient):
+    raw = json.dumps(_payload())[:-1] + ', "context": {"value": 1e999}}'
+    assert _raw_request(client, raw.encode()).status_code == 400
+    assert _raw_request(client, b"[" * 2000 + b"]" * 2000).status_code == 400
+
+
+def test_streaming_body_rejected_before_reading_remaining_chunks(client: TestClient):
+    import asyncio
+
+    calls = 0
+    sent = []
+
+    async def receive():
+        nonlocal calls
+        calls += 1
+        if calls > 2:
+            raise AssertionError("oversize request continued reading")
+        return {"type": "http.request", "body": b"x" * 4097, "more_body": True}
+
+    async def send(message):
+        sent.append(message)
+
+    scope = {
+        "type": "http",
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "http",
+        "path": "/access/v1/evaluation",
+        "root_path": "",
+        "query_string": b"",
+        "headers": [
+            (b"authorization", b"Bearer fixture-secret-token-a01b02c03d04e05f06g07h08"),
+            (b"x-request-id", str(uuid.uuid4()).encode()),
+            (b"content-type", b"application/json"),
+        ],
+        "server": ("testserver", 80),
+        "client": ("testclient", 12345),
+    }
+    asyncio.run(client.app(scope, receive, send))
+    assert calls == 2
+    assert sent[0]["status"] == 413
+
+
+@pytest.mark.parametrize("encoding", ["utf-16", "utf-32"])
+def test_wire_requires_utf8_json(client: TestClient, encoding: str):
+    assert _raw_request(client, json.dumps(_payload()).encode(encoding)).status_code == 400
+
+
+def test_wire_rejects_non_scalar_unicode(client: TestClient):
+    raw = json.dumps(_payload())[:-1] + r', "context": {"value": "\ud800"}}'
+    assert _raw_request(client, raw.encode()).status_code == 400
+
+
+def test_invalid_representation_never_calls_policy(client: TestClient, monkeypatch):
+    from ordivon_security_gateway_authzen import server
+
+    def forbidden_call(*args, **kwargs):
+        pytest.fail("unqualified representation reached the policy engine")
+
+    monkeypatch.setattr(server, "_opa_decision", forbidden_call)
+    invalid = [
+        b'{"subject":{}, "subject":{}}',
+        b'{"context":{"x":1,"x":2}}',
+        b'{"context":{"x":NaN}}',
+        b'{"context":{"x":1e999}}',
+        b'{"context":{"x":"\\ud800"}}',
+        b'{"context":{"x":"\xff"}}',
+        b"[" * 2000 + b"]" * 2000,
+        b" " * 8193,
+    ]
+    for raw in invalid:
+        response = _raw_request(client, raw)
+        assert response.status_code in (400, 413)
+        assert "decision" not in response.json()
