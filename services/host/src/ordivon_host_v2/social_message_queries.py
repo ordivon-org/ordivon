@@ -25,7 +25,7 @@ from .errors import ConflictError
 from .postgres_bounds import HOST_WIRE_INT_MAX
 from .references.record_refs import RecordReferenceLookup
 from .social_errors import MessageNotFound
-from .social_message_records import require_message, verify_message_content_digest
+from .social_message_records import require_message, verified_message_wire
 
 
 class SocialMessageReadQueries:
@@ -134,7 +134,7 @@ class SocialMessageReadQueries:
             ).fetchone()
             if row is None:
                 raise MessageNotFound(message_ref)
-            verify_message_content_digest(row)
+            wire = verified_message_wire(row)
             if expected_digest is not None and row["message_digest"] != expected_digest:
                 raise ConflictError(
                     f"message digest mismatch: expected {expected_digest}, "
@@ -143,16 +143,7 @@ class SocialMessageReadQueries:
             return {
                 "schemaVersion": 1,
                 "kind": "ordivon.host-message-read",
-                "sequence": int(row["sequence"]),
-                "messageRef": row["message_ref"],
-                "spaceRef": row["space_ref"],
-                "topicRef": row["topic_ref"],
-                "authorActorRef": row["author_actor_ref"],
-                "messageKind": row["message_kind"],
-                "body": row["body"],
-                "messageDigest": row["message_digest"],
-                "recordedAtMs": int(row["recorded_at_ms"]),
-                "createdAt": row["created_at"].isoformat(),
+                **wire,
                 "truthBoundary": (
                     "exact durable Host message projection only; message content remains "
                     "collaboration evidence until interpreted by the owning domain"
@@ -228,23 +219,7 @@ class SocialMessageReadQueries:
                 ),
             ).fetchall()
             sql_more = len(rows) > limit
-            for row in rows[:limit]:
-                verify_message_content_digest(row)
-            candidates = [
-                {
-                    "sequence": int(row["sequence"]),
-                    "messageRef": row["message_ref"],
-                    "spaceRef": row["space_ref"],
-                    "topicRef": row["topic_ref"],
-                    "authorActorRef": row["author_actor_ref"],
-                    "messageKind": row["message_kind"],
-                    "body": row["body"],
-                    "messageDigest": row["message_digest"],
-                    "recordedAtMs": int(row["recorded_at_ms"]),
-                    "createdAt": row["created_at"].isoformat(),
-                }
-                for row in rows[:limit]
-            ]
+            candidates = [verified_message_wire(row) for row in rows[:limit]]
 
             def envelope(last: dict[str, Any]) -> dict[str, Any]:
                 return {

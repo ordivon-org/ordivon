@@ -78,7 +78,8 @@
       },
       "objectContractRequired": true,
       "standingRef": "artifact-delivery/shadow-bindings/design-2d-tiled-tmj-local-r1.json",
-      "requiredStanding": "LOCAL_LIVE_PROVEN"
+      "requiredStanding": "LOCAL_LIVE_PROVEN",
+      "snapshotInputs": true
     },
     {
       "profileId": "design-3d-glb-material-scene-r1",
