@@ -6,6 +6,7 @@ import json
 import subprocess
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import opentimelineio as otio
@@ -15,6 +16,53 @@ PROBE = ROOT / "processing/bin/probe-otio.sh"
 
 
 class StructuredProbeTests(unittest.TestCase):
+    def test_evidence_directory_is_single_attempt_and_preserves_history(self):
+        source_path = ROOT / "productions/runtime-introduction/timeline/assembly.v2.otio"
+        profile = ROOT / "processing/profiles/otio-runtime-introduction-v2.json"
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "source.otio"
+            source.write_bytes(source_path.read_bytes())
+
+            def run(out):
+                return subprocess.run(
+                    ["bash", str(PROBE), str(source), str(profile), str(out)],
+                    capture_output=True, text=True, timeout=45,
+                )
+
+            out = root / "attempt"
+            first = run(out)
+            self.assertEqual(first.returncode, 0, first.stderr)
+            before = {p.relative_to(out): p.read_bytes() for p in out.rglob("*") if p.is_file()}
+            self.assertEqual(json.loads(first.stdout)["editorialGate"]["ok"], True)
+            # Valid repeat is rejected, rather than overwriting the first receipt.
+            repeat = run(out)
+            self.assertNotEqual(repeat.returncode, 0)
+            self.assertEqual(repeat.stdout, "")
+            self.assertEqual({p.relative_to(out): p.read_bytes() for p in out.rglob("*") if p.is_file()}, before)
+
+            # Concurrent callers for one destination cannot both publish evidence.
+            raced = root / "raced"
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                results = list(pool.map(run, (raced, raced)))
+            self.assertEqual(sum(r.returncode == 0 for r in results), 1)
+            winner = next(r for r in results if r.returncode == 0)
+            receipt = json.loads((raced / "evidence.json").read_bytes())
+            self.assertEqual(receipt, json.loads(winner.stdout))
+            self.assertEqual(receipt["evidenceDirectory"], str(raced.resolve()))
+            self.assertEqual(list(raced.rglob("*.tmp")), [])
+
+            # A failed new attempt cannot publish a previous success; a prior
+            # receipt remains immutable and cannot match substituted input.
+            source.write_bytes(b"invalid OTIO")
+            failed = run(root / "failed")
+            self.assertNotEqual(failed.returncode, 0)
+            self.assertEqual(failed.stdout, "")
+            self.assertFalse((root / "failed/evidence.json").exists())
+            self.assertEqual({p.relative_to(out): p.read_bytes() for p in out.rglob("*") if p.is_file()}, before)
+            self.assertNotEqual(receipt["input"]["digest"],
+                                "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest())
+
     def test_native_ranges_and_literal_prefix_not_log_text(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
