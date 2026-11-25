@@ -101,7 +101,10 @@ class ReceiptFence:
             or receipt.get("operationId") != operation_id
         ):
             raise RuntimeError("committed operation receipt identity mismatch")
-        if receipt.get("inputs") != inputs:
+        # Compare the persisted JSON representation, not Python's bool/int equality.
+        if json.dumps(receipt.get("inputs"), sort_keys=True) != json.dumps(
+            inputs, sort_keys=True
+        ):
             raise RuntimeError(
                 "operationId reuse attempted with different immutable inputs"
             )

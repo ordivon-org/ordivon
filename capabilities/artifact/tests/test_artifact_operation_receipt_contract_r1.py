@@ -120,3 +120,25 @@ def test_valid_exact_receipt_replays_without_producer(tmp_path: Path) -> None:
     assert first["roles"]["artifact"]["sha256"] == replayed["roles"]["artifact"]["sha256"]
     assert replayed["replayed"] is True
     assert calls == 1
+
+
+@pytest.mark.parametrize("original,changed", [(True, 1), (False, 0), (1, True), (0, False)])
+def test_nested_json_boolean_and_number_are_distinct_replay_inputs(
+    tmp_path: Path, original: object, changed: object
+) -> None:
+    fence = ReceiptFence(tmp_path / "state")
+    calls = 0
+
+    def producer(directory: Path):
+        nonlocal calls
+        calls += 1
+        (directory / "artifact.bin").write_bytes(b"committed")
+        return {"artifact": "artifact.bin"}, {}
+
+    first = fence.run("build", "typed", {"nested": [{"flag": original}], "other": 2}, producer)
+    exact = fence.run("build", "typed", {"other": 2, "nested": [{"flag": original}]}, producer)
+    assert exact["replayed"] is True
+    assert exact["roles"] == first["roles"]
+    with pytest.raises(RuntimeError, match="different immutable inputs"):
+        fence.run("build", "typed", {"nested": [{"flag": changed}], "other": 2}, producer)
+    assert calls == 1
