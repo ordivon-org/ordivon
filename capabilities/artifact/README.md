@@ -259,3 +259,21 @@ paths remain provenance, never the consumer's source location. This is not
 a claim of target application acceptance or remote publication.
 See `docs/ARTIFACT_PORTABLE_HANDOFF_R1.md` and
 `tests/test_artifact_portable_bundle.py`.
+
+
+### Dependency currentness and release commitments
+
+Repository Python and uv selection follow the supported Python minor series
+and the current uv resolver. Direct requirements declare compatibility floors;
+resolved transitive versions and wheel hashes belong to uv.lock, not a second
+set of direct pins. The development and managed runtime locks must agree on
+shared runtime package versions; the runtime excludes developer tools.
+
+An installed Python generation still binds the exact selected interpreter,
+project and lock bytes, package observations and environment tree. A rolling
+interpreter selection is not authority to rebind an existing generation:
+materialization requires the selected release snapshot and its native readback.
+The old cross-format toolchain smoke lock remains historical; the Python
+doctor and Temporal deployment use the current managed carrier commitments.
+Source acceptance, materialization in scratch, installed currentness and
+consumer/Temporal history replay remain separate.
