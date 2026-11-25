@@ -54,6 +54,8 @@ if __name__=='__main__': unittest.main()
 class StreamingFailureAttributionTests(unittest.IsolatedAsyncioTestCase):
     async def test_reader_failure_is_not_masked_by_queue_timeout(self):
         import asyncio
+        import time
+        from types import SimpleNamespace
         from unittest.mock import patch
 
         from ordivon_capital.markets import crypto_public_streaming as cps
@@ -68,7 +70,18 @@ class StreamingFailureAttributionTests(unittest.IsolatedAsyncioTestCase):
                 awaitable.close()
             raise TimeoutError
 
+        # This is a reader/queue ordering test, not a real-time performance
+        # test. A busy executor may spend the entire 100ms deadline before
+        # either reader gets CPU. Advance only the module-local logical
+        # clock, preserving the actual event loop and cancellation.
+        ticks = iter((0., 0., 0., 0.))
+        clock = SimpleNamespace(
+            monotonic=lambda: next(ticks, 1.),
+            monotonic_ns=time.monotonic_ns,
+            time_ns=time.time_ns,
+        )
         with (
+            patch.object(cps, "time", clock),
             patch.object(cps, "network_v2_ws_proxies", return_value=("http://a", "http://b")),
             patch.object(cps, "_okx_reader", side_effect=fail_reader),
             patch.object(cps, "_binance_reader", side_effect=fail_reader),
@@ -76,3 +89,35 @@ class StreamingFailureAttributionTests(unittest.IsolatedAsyncioTestCase):
         ):
             with self.assertRaises(ConnectionResetError):
                 await cps.capture_streaming(rounds=1, warmup_rounds=0, deadline_seconds=0.1)
+
+
+    async def test_deadline_before_reader_execution_is_partial_not_invented_failure(self):
+        import time
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        from ordivon_capital.markets import crypto_public_streaming as cps
+
+        started = []
+
+        async def fail_reader(*_args, **_kwargs):
+            started.append(True)
+            raise ConnectionResetError(104, "unobserved reader failure")
+
+        ticks = iter((0., .2))
+        clock = SimpleNamespace(
+            monotonic=lambda: next(ticks, 1.),
+            monotonic_ns=time.monotonic_ns,
+            time_ns=time.time_ns,
+        )
+        with (
+            patch.object(cps, "time", clock),
+            patch.object(cps, "network_v2_ws_proxies", return_value=("http://a", "http://b")),
+            patch.object(cps, "_okx_reader", side_effect=fail_reader),
+            patch.object(cps, "_binance_reader", side_effect=fail_reader),
+        ):
+            result = await cps.capture_streaming(rounds=1, warmup_rounds=0, deadline_seconds=.1)
+        self.assertEqual(started, [])
+        self.assertEqual(result["standing"], "PARTIAL_STREAMING_PUBLIC_SHADOW")
+        self.assertFalse(result["allMeasuredQualified"])
+        self.assertEqual(result["acceptedSnapshotCount"], 0)
