@@ -2,23 +2,93 @@
 from collections import Counter
 from pathlib import Path
 import sys
+import tomllib
+
+import pytest
 
 from hypothesis import given, settings, strategies as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import affected_owners
 import ci_owner_shards
 import convergence_plan
 
-# Use the actual declared consumer seams, plus a stable independent witness
-# for the previously missed Composition consumer.
-CONSUMERS = []
-convergence_plan.load_dependency_graph(test_only_consumers=CONSUMERS)
+# Read the existing declarations independently of the selector under test.
+# Never derive a generator or expected consumer list from the very graph
+# construction whose omission we want to detect.
+HERE = Path(__file__).resolve().parent
+OWNERS = tomllib.loads((HERE / "owners.toml").read_text(encoding="utf-8"))["owners"]
+SEAMS = tomllib.loads((HERE / "dependency_contracts.toml").read_text(encoding="utf-8"))["seams"]
+SOURCE_CONTRACTS = tuple(
+    seam for seam in SEAMS if seam["kind"] == "TEST_ONLY_SOURCE_CONTRACT"
+)
+ROOTS = {owner["name"]: owner["root"] for owner in OWNERS}
+TASKS_BY_OWNER = {
+    owner["name"]: owner.get("queue_verify_task", owner["verify_task"])
+    for owner in OWNERS
+}
+TASKS = tuple(TASKS_BY_OWNER.values())
+EXACT_SEAMS = tuple(
+    seam for seam in SOURCE_CONTRACTS if seam.get("selection_scope") == "PATH"
+)
 PATH_CASES = tuple(sorted({
-    fragment + "verification-probe.py" if fragment.endswith("/") else fragment
-    for _, _, fragment, scope in CONSUMERS if scope == "PATH"
-} | {owner.root + "verification-probe.py" for owner in affected_owners.OWNERS}))
-TASKS = tuple(owner.queue_task for owner in affected_owners.OWNERS)
+    seam["allowed_fragment"] + (
+        "verification-probe.py" if seam["allowed_fragment"].endswith("/") else ""
+    )
+    for seam in EXACT_SEAMS
+} | {root + "verification-probe.py" for root in ROOTS.values()}
+  | {seam["contract_ref"] for seam in SEAMS
+     if seam["kind"] == "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"}))
+
+# Native Runtime/Harness test-only rules have a separate semantic
+# declaration format. Restrict this independent oracle to the source
+# contract provider roots, not those distinct native rules.
+NATIVE_PROVIDER_ROOTS = tuple(sorted({
+    ROOTS[seam["to_owner"]] for seam in SEAMS
+    if seam["kind"] == "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+}))
+SOURCE_CASES = tuple(
+    path for path in PATH_CASES
+    if any(path.startswith(ROOTS[seam["to_owner"]]) for seam in SOURCE_CONTRACTS)
+    and not path.startswith(NATIVE_PROVIDER_ROOTS)
+)
+
+
+def expected_source_consumers(paths):
+    """Independent finite set oracle for the declared source-contract scope."""
+    expected = set()
+    for seam in SOURCE_CONTRACTS:
+        fragment = seam["allowed_fragment"]
+        provider_root = ROOTS[seam["to_owner"]]
+        if seam.get("selection_scope", "OWNER") == "OWNER":
+            relevant = any(path.startswith(provider_root) for path in paths)
+        else:
+            relevant = any(
+                path == fragment or (fragment.endswith("/") and path.startswith(fragment))
+                for path in paths
+            )
+        if relevant:
+            expected.add(seam["from_owner"])
+    return expected
+
+
+@pytest.mark.parametrize("path", SOURCE_CASES)
+def test_every_declared_source_consumer_has_independent_witness(path):
+    plan = convergence_plan.build_plan(changed_files=[path])
+    expected = expected_source_consumers([path])
+    assert set(plan["taskLocalTestConsumers"]) == expected
+    assert {TASKS_BY_OWNER[owner] for owner in expected} <= set(plan["queueVerifyTasks"])
+
+
+@settings(max_examples=80, deadline=None, derandomize=True)
+@given(st.lists(st.sampled_from(SOURCE_CASES), min_size=1, max_size=6, unique=True))
+def test_declared_source_consumers_compose_as_set_union(paths):
+    expected = expected_source_consumers(paths)
+    for variants in (paths, ["./" + path for path in reversed(paths)]):
+        plan = convergence_plan.build_plan(changed_files=variants)
+        assert set(plan["taskLocalTestConsumers"]) == expected
+        assert {TASKS_BY_OWNER[owner] for owner in expected} <= set(plan["queueVerifyTasks"])
+        assert plan["changedPaths"] == variants
+
 
 
 def selection(paths):
