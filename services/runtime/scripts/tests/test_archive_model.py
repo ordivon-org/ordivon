@@ -147,7 +147,7 @@ def populate(connection, migration, reverse):
             for key, value in zip(closure, values, strict=True):
                 closure[key] += value
     if migration >= 5:
-        connection.execute("ALTER TABLE attempts ADD COLUMN recovery_required INTEGER")
+        fixtures.add_recovery_tuple_columns(connection)
         connection.executemany("UPDATE attempts SET recovery_required=1 WHERE attempt_id=?",
                                [(x,) for x in markers])
         connection.execute("DROP TABLE attempt_conditions")
