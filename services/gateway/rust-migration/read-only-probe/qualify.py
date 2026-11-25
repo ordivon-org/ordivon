@@ -158,6 +158,16 @@ async def add_search_cases(add):
         "ɷ",
         "𝾕",
     )
+    batch_queries = []
+    batch_expected = []
+    observations = [
+        dict(
+            capability=row["metadata"]["capability"],
+            available=row["available"],
+            observation_error=row["observation_error"],
+        )
+        for row in rows
+    ]
     for query, category, owner_id, limit, include in itertools.product(
         queries,
         (None, "execution", "research"),
@@ -181,6 +191,56 @@ async def add_search_cases(add):
             ],
         }
         add("search", dict(**kwargs, rows=rows), expected)
+        batch_queries.append(dict(**kwargs, observations=observations))
+        batch_expected.append(expected)
+    metadata = [row["metadata"] for row in rows]
+    add("search_batch", {"metadata": metadata, "queries": batch_queries}, batch_expected)
+    print("NATIVE_BATCH_PYTHON_ORACLE", len(batch_expected), flush=True)
+    bad = [dict(obs) for obs in observations]
+    bad[0], bad[1] = bad[1], bad[0]
+    add(
+        "search_batch",
+        {"metadata": metadata, "queries": [dict(batch_queries[0], observations=bad)]},
+        {"error": "observation identity mismatch"},
+    )
+    add(
+        "search_batch",
+        {"metadata": metadata, "queries": [dict(batch_queries[0], observations=observations[:-1])]},
+        {"error": "observation identity mismatch"},
+    )
+    add(
+        "search_batch",
+        {"metadata": [*metadata, metadata[0]], "queries": []},
+        {"error": "duplicate metadata identity"},
+    )
+    # A later request's negative or unknown evidence must not inherit a prior
+    # positive observation from the shared lexical index.
+    sample = metadata[0]
+
+    def obs(available, error):
+        return [
+            {"capability": sample["capability"], "available": available, "observation_error": error}
+        ]
+
+    params = dict(
+        query=sample["capability"], category=None, owner_id=None, limit=1, include_unavailable=False
+    )
+    match = {
+        "total_matches": 1,
+        "matches": [{"capability": sample["capability"], "match_kind": "exact"}],
+    }
+    add(
+        "search_batch",
+        {
+            "metadata": [sample],
+            "queries": [
+                dict(params, observations=obs(True, None)),
+                dict(params, observations=obs(False, None)),
+                dict(params, observations=obs(False, "unobserved")),
+            ],
+        },
+        [match, {"total_matches": 0, "matches": []}, match],
+    )
 
 
 def tool_contract(tool):
@@ -285,7 +345,7 @@ async def main():
         assert observed == expected, (index, case["operation"], expected, observed)
     counts = {
         op: sum(case["operation"] == op for case, _ in cases)
-        for op in ("status", "inventory", "reference", "describe", "search")
+        for op in ("status", "inventory", "reference", "describe", "search", "search_batch")
     }
     print("PURE_DIFFERENTIAL_PASS", len(cases), counts, flush=True)
 

@@ -5,14 +5,25 @@ from __future__ import annotations
 import asyncio
 import json
 import socket
+import tempfile
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
 import uvicorn
 from mcp.server import MCPServer
 
+from ordivon_gateway.logic.routing import default_routes
 
-async def observe_fixture(binary: Path, case: str, *, legacy: bool = False) -> dict:
+
+async def observe_fixture(
+    binary: Path,
+    case: str,
+    *,
+    legacy: bool = False,
+    query: str | None = None,
+    include: bool = False,
+) -> dict:
     server = MCPServer("runtime-readonly-fixture")
     calls: list[int] = []
     wire: list[dict] = []
@@ -82,24 +93,51 @@ async def observe_fixture(binary: Path, case: str, *, legacy: bool = False) -> d
                     break
                 await asyncio.sleep(0.02)
             assert uv.started
-            proc = await asyncio.create_subprocess_exec(
-                str(binary),
-                "observe-runtime-fixture",
-                endpoint,
-                "fixture-linux",
-                "legacy" if legacy else "auto",
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            try:
-                out, err = await asyncio.wait_for(proc.communicate(), 8)
-            finally:
-                if proc.returncode is None:
-                    proc.kill()
-                    await proc.wait()
-            assert proc.returncode == 0, err.decode()
-            result = json.loads(out)
+            with tempfile.TemporaryDirectory(prefix="native-discovery-") as tmp:
+                if query is None:
+                    args = [
+                        "observe-runtime-fixture",
+                        endpoint,
+                        "fixture-linux",
+                        "legacy" if legacy else "auto",
+                    ]
+                else:
+                    route = asdict(default_routes()["execution.linux"])
+                    metadata = {
+                        key: route[key]
+                        for key in ("capability", "category", "owner_id", "description", "tags")
+                    }
+                    path = Path(tmp) / "search.json"
+                    path.write_text(
+                        json.dumps(
+                            {
+                                "metadata": metadata,
+                                "query": query,
+                                "limit": 10,
+                                "include_unavailable": include,
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+                    args = ["discover-runtime-fixture", str(path), endpoint, "fixture-linux"]
+                proc = await asyncio.create_subprocess_exec(
+                    str(binary),
+                    *args,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                try:
+                    out, err = await asyncio.wait_for(proc.communicate(), 8)
+                finally:
+                    if proc.returncode is None:
+                        proc.kill()
+                        await proc.wait()
+                assert proc.returncode == 0, err.decode()
+                result = json.loads(out)
             tool_calls = [item for item in wire if item.get("method") == "tools/call"]
+            if query == "zz-no-such-route-xyz":
+                assert wire == [] and calls == [], (wire, calls)
+                return result
             assert len(tool_calls) == 1, (case, wire)
             assert tool_calls[0]["params"]["name"] == "runtime.describe"
             assert tool_calls[0]["params"]["arguments"] == {"schemaVersion": 1}
@@ -137,3 +175,24 @@ async def qualify_owner(binary: Path) -> None:
     observed = await observe_fixture(binary, "true", legacy=True)
     assert observed == expected["true"]
     print("NATIVE_OWNER_LEGACY_PASS", observed, flush=True)
+
+    empty = {"total_matches": 0, "matches": []}
+    match = {
+        "total_matches": 1,
+        "matches": [{"capability": "execution.linux", "match_kind": "exact"}],
+    }
+    for case, include, expected_projection, expected_observation in (
+        ("true", False, match, expected["true"]),
+        ("false", False, empty, expected["false"]),
+        ("false", True, match, expected["false"]),
+        ("duplicate", False, match, expected["duplicate"]),
+    ):
+        result = await observe_fixture(binary, case, query="execution.linux", include=include)
+        assert result == {"projection": expected_projection, "observation": expected_observation}, (
+            case,
+            result,
+        )
+        print("NATIVE_DISCOVERY_COMPOSITION_PASS", case, include, result, flush=True)
+    result = await observe_fixture(binary, "true", query="zz-no-such-route-xyz")
+    assert result == {"projection": empty, "observation": None}, result
+    print("NATIVE_DISCOVERY_ZERO_RPC_PASS", result, flush=True)

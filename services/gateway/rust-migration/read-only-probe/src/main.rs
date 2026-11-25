@@ -1,5 +1,6 @@
 mod logic;
 mod matching;
+mod native_discovery;
 mod owner_observation;
 use logic::{
     DescriptionInput, parse_execution_ref, system_describe, valid_status_envelope,
@@ -88,6 +89,14 @@ fn eval(v: Value) -> Value {
             Ok(input) => json!(matching::search(input)),
             Err(_) => json!({"error": "invalid search fixture"}),
         },
+        Some("search_batch") => match serde_json::from_value::<matching::BatchInput>(input.clone())
+        {
+            Ok(input) => match matching::search_batch(input) {
+                Ok(results) => json!(results),
+                Err(error) => json!({"error": error}),
+            },
+            Err(_) => json!({"error": "invalid search batch fixture"}),
+        },
         Some("status") => json!(valid_status_envelope(input)),
         Some("inventory") => json!(valid_target_inventory(input)),
         Some("reference") => json!(input.as_str().and_then(parse_execution_ref)),
@@ -128,6 +137,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &endpoint, &node, std::time::Duration::from_secs(3), legacy,
             ).await;
             println!("{}", serde_json::to_string(&observation)?);
+        }
+        Some("discover-runtime-fixture") => {
+            let path = args.next().ok_or("fixture path required")?;
+            let endpoint = args.next().ok_or("fixture endpoint required")?;
+            let node = args.next().ok_or("fixture node required")?;
+            if args.next().is_some() { return Err("unexpected arguments".into()); }
+            let fixture = serde_json::from_slice(&std::fs::read(path)?)?;
+            let discovery = native_discovery::discover_runtime_fixture(fixture, &endpoint, &node).await?;
+            println!("{}", serde_json::to_string(&discovery)?);
         }
         Some("serve") => {
             let path = args.next().ok_or("fixture path required")?;

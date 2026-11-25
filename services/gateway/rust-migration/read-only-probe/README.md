@@ -70,3 +70,32 @@ and pure differential checks. Next: producer-owned credential and endpoint
 adapter, qualified Runtime output contract, protected real recipient,
 versioned public discovery surface, then effect identity/recovery and
 consumer migration. No new authority or generic effect transport.
+
+## R12 compiled index and native discovery composition (Host #32701)
+
+The native search batch compiles immutable complete metadata once, validates
+unique capability identities and the exact ordered identity of every
+request-local observation vector, then uses a bounded standard BinaryHeap for
+the best K matches while counting all matches. Equal rank/name uses source
+position as the final tie breaker. This is O(M log K) ranking (for K >= 2),
+O(K) retained rank entries, not a bound on the metadata or batch input size.
+UNKNOWN observations remain eligible when known-unavailable items are filtered.
+No observation or grant is cached. The single-query evaluator and batch
+qualifier share the same ranking implementation.
+
+The operator-only discover-runtime-fixture command composes this plan with
+the R11 native MCP adapter for the single execution.linux metadata fixture.
+A lexical miss makes zero Owner RPCs. A match makes exactly one business
+runtime.describe call and projects fresh reported or unobserved evidence.
+It rejects other route identities and invalid query bounds. This does not
+provide a production endpoint or a full capability.search ABI; the Owner is
+an independent loopback SDK fixture, not an authenticated production Runtime.
+No credential or authority has been added.
+
+The existing qualify.py compares 1,044 real Python search results in both
+single and compiled batch modes, plus identity and changing-observation
+controls. Rust tests independently compare 252 cases against the former full
+sort. qualify_owner.py covers five composition scenarios, including a zero-RPC
+miss. The optional local debug benchmark uses seven alternating samples at
+19 and 1,900 synthetic metadata rows; it is not a timing gate or a production
+end-to-end benchmark.
