@@ -1,10 +1,10 @@
 /** Transaction coordinator for local canary effects; no HTTP or WebStore dependency. */
-import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import { WebProblem } from "./errors.ts";
 import type { AgentEffectReceipt, AgentEffectRequest, AgentGrantSnapshot, CanaryNote } from "./model.ts";
 import { scopeContains, type AgentGrantStore } from "./store-agent-grants.ts";
-import { noteFromRow, type NoteRow } from "./store-row-projections.ts";
+import { noteFromRow } from "./store-row-projections.ts";
+import { newCanaryDraft, insertCanaryDraft, readPrincipalNoteRow, publishCanaryDraft } from "./store-canary-notes.ts";
 import type { EffectReceiptStore } from "./store-effect-receipts.ts";
 import type { EffectApprovalStore } from "./store-effect-approvals.ts";
 import { assertWrittenBusinessState, assertWrittenEffectApproval, requireSingleEffectWrite, type EffectApprovalRow } from "./store-effect-postconditions.ts";
@@ -133,22 +133,8 @@ export class AgentEffectStore {
         current, grant, agentId, effect,
         "canary.note.create", "/canary/notes", "website.canary.note.create",
       );
-      const noteId = randomUUID();
-      const note: CanaryNote = {
-        noteId,
-        principalId: current.principalId,
-        content,
-        state: "DRAFT",
-        createdAt: now,
-        publishedAt: null,
-      };
-      requireSingleEffectWrite(this.db
-        .prepare(`
-          INSERT INTO canary_notes (
-            note_id, principal_id, content, state, created_at, published_at
-          ) VALUES (?, ?, ?, 'DRAFT', ?, NULL)
-        `)
-        .run(note.noteId, note.principalId, note.content, note.createdAt).changes, "note creation");
+      const note = newCanaryDraft(current.principalId, content, now);
+      requireSingleEffectWrite(insertCanaryDraft(this.db, note), "note creation");
       const receipt = this.finalizeNewEffect(current, agentId, effect, note, now, null);
       return receipt;
     });
@@ -183,9 +169,7 @@ export class AgentEffectStore {
         current, grant, agentId, effect,
         "canary.note.publish", "/canary/notes/" + noteId, "website.canary.note.publish",
       );
-      const noteRow = this.db
-        .prepare("SELECT * FROM canary_notes WHERE note_id = ? AND principal_id = ?")
-        .get(noteId, current.principalId) as NoteRow | undefined;
+      const noteRow = readPrincipalNoteRow(this.db, noteId, current.principalId);
       if (noteRow === undefined || noteRow.state !== "DRAFT") {
         throw new WebProblem(
           409,
@@ -194,11 +178,7 @@ export class AgentEffectStore {
           "The requested canary note is missing or no longer a draft.",
         );
       }
-      requireSingleEffectWrite(this.db
-        .prepare(
-          "UPDATE canary_notes SET state = 'PUBLISHED', published_at = ? WHERE note_id = ?",
-        )
-        .run(now, noteId).changes, "note publication");
+      requireSingleEffectWrite(publishCanaryDraft(this.db, noteId, now), "note publication");
       this.approvals.consumeApproval(effect.effectId, now);
       const note = noteFromRow({ ...noteRow, state: "PUBLISHED", published_at: now });
       const receipt = this.finalizeNewEffect(current, agentId, effect, note, now, approval);

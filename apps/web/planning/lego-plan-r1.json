@@ -224,6 +224,8 @@
         "src/store-audit.ts",
         "src/store-schema.ts",
         "test/store-effect-receipt.test.ts",
+        "test/store-effect-concurrency.test.ts",
+        "src/store-canary-notes.ts",
         "test/store-schema.test.ts",
         "src/app.ts",
         "src/webauthn.ts",
@@ -254,7 +256,9 @@
         "Local canary write != external provider effect, no installed/exactly-once distributed claim.",
         "Native HTTP tests replay three deterministic async admission interleavings; bounded TLA+ model checks response invariants, not deployed refinement.",
         "Native SQLite tests preserve exact target Note, Grant, Receipt, Audit and Approval postconditions or roll back; audit lookup uses a bounded non-unique partial index, preserving duplicates for detection.",
-        "WebStore is a compatibility facade; one AgentEffectStore owns the transaction, with receipt and approval components on the same connection. No new database or authority."
+        "WebStore is a compatibility facade; one AgentEffectStore owns the transaction, with receipt and approval components on the same connection. No new database or authority.",
+        "An initial receipt miss is provisional until native writer admission; a second lookup resolves exact historical replay or conflicting identity before mutable Grant checks. A COMMIT exception does not establish non-commit; rollback only while the connection reports an active transaction and never automatically reissue.",
+        "Deterministic two-connection WAL tests cover create/publish exact replay, conflict, stale distinct effects, and before/after-commit acknowledgement injection; no process-crash, lock-wait or distributed delivery proof."
       ],
       "formalObligations": [
         "Source/transaction behavior does not prove installed WebStore durability, physical provider effects or cross-provider exactly-once."

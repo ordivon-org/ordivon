@@ -11,6 +11,7 @@ import { EffectReceiptStore } from "./store-effect-receipts.ts";
 import { insertAuditRow } from "./store-audit.ts";
 import { EffectApprovalStore } from "./store-effect-approvals.ts";
 import { AgentEffectStore } from "./store-agent-effects.ts";
+import { newCanaryDraft, insertCanaryDraft, listPrincipalCanaryNotes } from "./store-canary-notes.ts";
 import type {
   AgentEffectReceipt,
   AgentEffectRequest,
@@ -28,12 +29,10 @@ import type {
 import {
   principalFromRow,
   credentialFromRow,
-  noteFromRow,
 } from "./store-row-projections.ts";
 import type {
   PrincipalRow,
   CredentialRow,
-  NoteRow,
 } from "./store-row-projections.ts";
 
 export class WebStore {
@@ -281,39 +280,14 @@ export class WebStore {
     content: string,
     now: number,
   ): CanaryNote {
-    const noteId = randomUUID();
-    this.db
-      .prepare(`
-        INSERT INTO canary_notes (
-          note_id, principal_id, content, state, created_at, published_at
-        ) VALUES (?, ?, ?, 'DRAFT', ?, NULL)
-      `)
-      .run(noteId, principalId, content, now);
-    this.audit(
-      "canary.note.created",
-      now,
-      principalId,
-      "canary-note",
-      noteId,
-      {},
-    );
-    return {
-      noteId,
-      principalId,
-      content,
-      state: "DRAFT",
-      createdAt: now,
-      publishedAt: null,
-    };
+    const note = newCanaryDraft(principalId, content, now);
+    insertCanaryDraft(this.db, note);
+    this.audit("canary.note.created", now, principalId, "canary-note", note.noteId, {});
+    return note;
   }
 
   listCanaryNotes(principalId: string): CanaryNote[] {
-    const rows = this.db
-      .prepare(
-        "SELECT * FROM canary_notes WHERE principal_id = ? ORDER BY created_at DESC",
-      )
-      .all(principalId) as unknown as NoteRow[];
-    return rows.map(noteFromRow);
+    return listPrincipalCanaryNotes(this.db, principalId);
   }
 
   consumeDpopProof(
