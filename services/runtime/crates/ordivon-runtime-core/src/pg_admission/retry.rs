@@ -1,5 +1,21 @@
 //! PostgreSQL admission owner: retry.
 
+// Only a server-confirmed SQLSTATE 40001 COMMIT failure establishes a
+// rolled-back database-only transaction. Other COMMIT errors (including
+// connection loss) are still UNKNOWN; a caller with physical effects must
+// not use this helper to infer that the effects did not happen.
+pub(super) fn commit_admission_transaction(
+    tx: postgres::Transaction<'_>,
+) -> Result<(), super::PgAdmissionError> {
+    tx.commit().map_err(|error| {
+        if error.code() == Some(&postgres::error::SqlState::T_R_SERIALIZATION_FAILURE) {
+            super::PgAdmissionError::Database(error)
+        } else {
+            super::PgAdmissionError::UnknownCommit
+        }
+    })
+}
+
 // Only retry a server-confirmed, fully aborted SERIALIZABLE transaction.
 // An uncertain COMMIT or an external process effect is never eligible.
 const MAX_ABORTED_TRANSACTION_ATTEMPTS: u32 = 8;

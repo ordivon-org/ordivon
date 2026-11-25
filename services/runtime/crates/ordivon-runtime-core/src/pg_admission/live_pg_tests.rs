@@ -121,3 +121,5 @@ mod issuer_cases;
 mod terminal_cases;
 
 mod history_cases;
+
+mod commit_outcome_cases;

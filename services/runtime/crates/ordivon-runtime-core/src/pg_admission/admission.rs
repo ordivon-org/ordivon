@@ -64,8 +64,8 @@ impl PgAdmissionStore {
     ) -> Result<PgAdmissionOutcome, PgAdmissionError> {
         // PostgreSQL SERIALIZABLE can abort at a row lock while the scheduler
         // updates its qualified epoch or an adjacent state transition. Retry
-        // only an explicitly failed, pre-COMMIT transaction: its effects
-        // have rolled back. Never replay an UNKNOWN COMMIT acknowledgement.
+        // only a server-confirmed rolled-back transaction, including a
+        // COMMIT that explicitly returns SQLSTATE 40001. Never replay UNKNOWN.
         retry_aborted_transaction(
             || self.admit_once(i, release, guard, issuer_schema),
             |e| {
@@ -141,7 +141,7 @@ impl PgAdmissionStore {
                         && row.get::<_, String>(7) == digest => {}
                 _ => return Err(PgAdmissionError::IdempotencyConflict),
             }
-            tx.commit().map_err(|_| PgAdmissionError::UnknownCommit)?;
+            super::retry::commit_admission_transaction(tx)?;
             return Ok(PgAdmissionOutcome::Existing(job_id));
         }
         // Exact historical replay above is not a new physical Job grant.
@@ -240,12 +240,13 @@ impl PgAdmissionStore {
                 &[&format!("event-{}",Uuid::now_v7()),&i.job_id,&i.attempt_id,
                   &((idx+1) as i64),event_type,next_state,reason,&encoded,&digest,&i.created_at_ms])?;
         }
-        // A failed COMMIT is UNKNOWN, not a retryable assertion of no effect.
+        // Unknown acknowledgement stays UNKNOWN. An explicit server 40001
+        // proves rollback of this database-only admission transaction.
         tx.query_one(
             "SELECT pg_notify('ordivon_runtime_schedule',current_schema())",
             &[],
         )?;
-        tx.commit().map_err(|_| PgAdmissionError::UnknownCommit)?;
+        super::retry::commit_admission_transaction(tx)?;
         Ok(PgAdmissionOutcome::Created(i.job_id.clone()))
     }
 }
