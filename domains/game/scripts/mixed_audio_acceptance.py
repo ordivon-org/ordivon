@@ -89,7 +89,7 @@ def record(x, executable, root, key):
         window = None
         for _ in range(80):
             require(p.poll() is None, "game exited before target")
-            window = x.target(p.pid)
+            window = x.target(p.pid, movie=True)
             if window is not None:
                 break
             time.sleep(0.05)
@@ -108,7 +108,7 @@ def record(x, executable, root, key):
             require(p.poll() is None, "game exited before input")
             time.sleep(0.05)
         require(4 <= at < FRAMES - 30, "event outside bounded recording")
-        require(x.target(p.pid) == window, "target identity changed before input")
+        require(x.target(p.pid, movie=True) == window, "target identity changed before input")
         x.press(window, key)
         end = len(list(root.glob("frame*.png")))
         require(at + 2 < end < FRAMES, "recording ended during event")

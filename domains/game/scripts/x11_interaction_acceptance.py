@@ -43,6 +43,18 @@ def verify_relations(frames):
                    "status_sha256": sha(status_strip(frames[name]))} for name in names}
 
 
+def room_window_identity(properties, pid, *, movie=False):
+    if not re.search(rf"^_NET_WM_PID\(CARDINAL\) = {pid}$", properties, re.M):
+        return False
+    match = re.search(r'^WM_NAME\(STRING\) = "([^"\n]+)"$', properties, re.M)
+    if match is None:
+        return False
+    title = match.group(1)
+    if not movie:
+        return title == "Room Encounter"
+    return re.fullmatch(r"MovieWriter: Frame [1-9]\d* \(time: \d{2}:\d{2}:\d{2}:\d{2}\) - Room Encounter", title) is not None
+
+
 class XTest:
     """Only the small native ABI needed by this isolated consumer."""
 
@@ -83,14 +95,12 @@ class XTest:
             if children:
                 self.free(children)
 
-    def target(self, pid):
+    def target(self, pid, *, movie=False):
         hits = []
         for window in self.windows():
             p = subprocess.run(["xprop", "-id", str(window), "_NET_WM_PID", "WM_NAME"],
                                capture_output=True, text=True, timeout=3)
-            if (p.returncode == 0 and
-                    re.search(rf"^_NET_WM_PID\(CARDINAL\) = {pid}$", p.stdout, re.M) and
-                    re.search(r'^WM_NAME\(STRING\) = "Room Encounter"$', p.stdout, re.M)):
+            if p.returncode == 0 and room_window_identity(p.stdout, pid, movie=movie):
                 hits.append(window)
         require(len(hits) <= 1, "ambiguous target window")
         return hits[0] if hits else None

@@ -1,6 +1,6 @@
 """Metamorphic relation tests; actual X11 product witness is separate."""
 import unittest
-from x11_interaction_acceptance import FRAME_BYTES, WIDTH, STATUS_ROWS, verify_relations
+from x11_interaction_acceptance import FRAME_BYTES, WIDTH, STATUS_ROWS, verify_relations, room_window_identity
 
 
 class Relations(unittest.TestCase):
@@ -40,6 +40,19 @@ class Relations(unittest.TestCase):
         del self.frames["restart_repeat"]
         with self.assertRaisesRegex(ValueError, "inventory"):
             verify_relations(self.frames)
+
+
+class WindowIdentity(unittest.TestCase):
+    def test_native_movie_title_is_mode_specific(self):
+        def props(title, pid=42):
+            return f'_NET_WM_PID(CARDINAL) = {pid}\nWM_NAME(STRING) = "{title}"\n'
+        movie = "MovieWriter: Frame 41 (time: 00:00:01:11) - Room Encounter"
+        self.assertTrue(room_window_identity(props(movie), 42, movie=True))
+        self.assertFalse(room_window_identity(props(movie), 42))
+        self.assertTrue(room_window_identity(props("Room Encounter"), 42))
+        self.assertFalse(room_window_identity(props("Room Encounter"), 42, movie=True))
+        self.assertFalse(room_window_identity(props(movie, 43), 42, movie=True))
+        self.assertFalse(room_window_identity(props(movie + " impostor"), 42, movie=True))
 
 
 if __name__ == "__main__":
