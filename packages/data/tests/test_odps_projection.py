@@ -5,12 +5,12 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from unittest.mock import patch
 import subprocess
 import tomllib
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[3]
 import sys
@@ -93,16 +93,18 @@ class OwnerProductProjectionTests(unittest.TestCase):
     def test_ambiguous_json_member_is_not_a_product_identity(self) -> None:
         raw = self.sources[0].read_bytes()
         cases = [
-            raw.replace(b'{', b'{"id":"foreign",', 1),
-            raw.replace(b'{', b'{"\\u0069d":"foreign",', 1),
+            raw.replace(b"{", b'{"id":"foreign",', 1),
+            raw.replace(b"{", b'{"\\u0069d":"foreign",', 1),
             raw.replace(b'"outputPorts": [', b'"outputPorts": [], "outputPorts": [', 1),
-            raw.replace(b'{', b'{"unused":NaN,', 1),
-            raw.replace(b'{', b'{"unused":1e9999,', 1),
+            raw.replace(b"{", b'{"unused":NaN,', 1),
+            raw.replace(b"{", b'{"unused":1e9999,', 1),
         ]
         for index, source in enumerate(cases):
             with self.subTest(index=index):
                 self.assertNotEqual(raw, source)
-                with self.assertRaisesRegex(ValueError, "duplicate JSON member|non-finite JSON number"):
+                with self.assertRaisesRegex(
+                    ValueError, "duplicate JSON member|non-finite JSON number"
+                ):
                     project_catalog([source])
         self.assertEqual(project_catalog([raw]), project_catalog([self.sources[0]]))
 
@@ -112,29 +114,41 @@ class OwnerProductProjectionTests(unittest.TestCase):
         alias = {**product, "id": product["id"].upper()}
         self.assertNotEqual(alias["id"], product["id"])
         for forms in ((product, alias), (alias, product)):
-            with self.subTest(forms=[x["id"] for x in forms]):
-                with self.assertRaisesRegex(ValueError, "duplicate owner product"):
-                    project_catalog([json.dumps(x).encode() for x in forms])
+            with (
+                self.subTest(forms=[x["id"] for x in forms]),
+                self.assertRaisesRegex(ValueError, "duplicate owner product"),
+            ):
+                project_catalog([json.dumps(x).encode() for x in forms])
         # Versions remain distinct; preserve producer-provided spelling.
         alias["version"] = "new-independent-version"
         projected = project_catalog([json.dumps(x).encode() for x in (product, alias)])
         self.assertEqual(len(projected["dcat:dataset"]), 2)
-        self.assertEqual({x["dct:identifier"] for x in projected["dcat:dataset"]},
-                         {product["id"], alias["id"]})
+        self.assertEqual(
+            {x["dct:identifier"] for x in projected["dcat:dataset"]},
+            {product["id"], alias["id"]},
+        )
 
-    def test_canonical_port_uuid_aliases_cannot_duplicate_one_distribution(self) -> None:
+    def test_canonical_port_uuid_aliases_cannot_duplicate_one_distribution(
+        self,
+    ) -> None:
         product = json.loads(self.sources[0].read_text(encoding="utf-8"))
         original = product["outputPorts"][0]
         alias = {**original, "name": "independent-name", "id": original["id"].upper()}
         self.assertNotEqual(alias["id"], original["id"])
         for ports in ([original, alias], [alias, original]):
-            with self.subTest(ports=[x["id"] for x in ports]):
-                with self.assertRaisesRegex(ValueError, "duplicate output port id"):
-                    project_catalog([json.dumps({**product, "outputPorts": ports}).encode()])
+            with (
+                self.subTest(ports=[x["id"] for x in ports]),
+                self.assertRaisesRegex(ValueError, "duplicate output port id"),
+            ):
+                project_catalog(
+                    [json.dumps({**product, "outputPorts": ports}).encode()]
+                )
         # Non-UUID IDs are opaque, not case-folded by the projector.
         original = {**original, "id": "Owner-Port"}
         alias = {**alias, "id": "owner-port"}
-        projected = project_catalog([json.dumps({**product, "outputPorts": [original, alias]}).encode()])
+        projected = project_catalog(
+            [json.dumps({**product, "outputPorts": [original, alias]}).encode()]
+        )
         self.assertEqual(len(projected["dcat:dataset"][0]["dcat:distribution"]), 2)
 
     def test_malformed_product_does_not_fall_back_to_unsafe_metadata(self) -> None:
@@ -343,36 +357,51 @@ class OwnerProductProjectionTests(unittest.TestCase):
     def test_explicit_checkout_ignores_foreign_git_environment(self) -> None:
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
+
             def create(name: str, content: bytes) -> tuple[Path, str]:
                 repo = root / name
                 repo.mkdir()
+
                 def git(*args: str) -> str:
                     return subprocess.check_output(
                         ["/usr/bin/git", "-C", str(repo), *args], text=True
                     ).strip()
+
                 git("init", "-q")
                 entry = repo / name / "odps.json"
                 entry.parent.mkdir()
                 entry.write_bytes(content)
                 git("add", ".")
-                git("-c", "user.name=Data Test", "-c",
-                    "user.email=data@example.invalid", "commit", "-qm", "source")
+                git(
+                    "-c",
+                    "user.name=Data Test",
+                    "-c",
+                    "user.email=data@example.invalid",
+                    "commit",
+                    "-qm",
+                    "source",
+                )
                 return repo, git("rev-parse", "HEAD")
+
             expected = self.sources[0].read_bytes()
             a, commit = create("a", expected)
             b, foreign_commit = create("b", self.sources[1].read_bytes())
             self.assertNotEqual(commit, foreign_commit)
-            with patch.dict(os.environ, {
-                "GIT_DIR": str(b / ".git"),
-                "GIT_WORK_TREE": str(b),
-                "GIT_INDEX_FILE": str(b / ".git/index"),
-                "GIT_OBJECT_DIRECTORY": str(b / ".git/objects"),
-                "GIT_CONFIG_COUNT": "1",
-                "GIT_CONFIG_KEY_0": "core.worktree",
-                "GIT_CONFIG_VALUE_0": str(b),
-            }):
-                self.assertEqual(committed_owner_products(a, "HEAD"),
-                                 (commit, [expected]))
+            with patch.dict(
+                os.environ,
+                {
+                    "GIT_DIR": str(b / ".git"),
+                    "GIT_WORK_TREE": str(b),
+                    "GIT_INDEX_FILE": str(b / ".git/index"),
+                    "GIT_OBJECT_DIRECTORY": str(b / ".git/objects"),
+                    "GIT_CONFIG_COUNT": "1",
+                    "GIT_CONFIG_KEY_0": "core.worktree",
+                    "GIT_CONFIG_VALUE_0": str(b),
+                },
+            ):
+                self.assertEqual(
+                    committed_owner_products(a, "HEAD"), (commit, [expected])
+                )
                 self.assertEqual(tracked_owner_products(a), [a / "a/odps.json"])
                 with self.assertRaisesRegex(ValueError, "exact checkout root"):
                     committed_owner_products(a / "a", "HEAD")
@@ -382,11 +411,15 @@ class OwnerProductProjectionTests(unittest.TestCase):
             root = Path(tmp)
             origin, clone = root / "origin", root / "clone"
             origin.mkdir()
+
             def git(repo, *args, env=None):
                 return subprocess.run(
-                    ["/usr/bin/git", "-C", str(repo), *args], env=env,
-                    check=True, capture_output=True,
+                    ["/usr/bin/git", "-C", str(repo), *args],
+                    env=env,
+                    check=True,
+                    capture_output=True,
                 ).stdout.strip()
+
             git(origin, "init", "-q")
             git(origin, "config", "uploadpack.allowFilter", "true")
             git(origin, "config", "uploadpack.allowAnySHA1InWant", "true")
@@ -395,40 +428,86 @@ class OwnerProductProjectionTests(unittest.TestCase):
             entry.parent.mkdir()
             entry.write_bytes(source)
             git(origin, "add", ".")
-            git(origin, "-c", "user.name=Data Test", "-c",
-                "user.email=data@example.invalid", "commit", "-qm", "source")
+            git(
+                origin,
+                "-c",
+                "user.name=Data Test",
+                "-c",
+                "user.email=data@example.invalid",
+                "commit",
+                "-qm",
+                "source",
+            )
             oid = git(origin, "rev-parse", "HEAD:producer/odps.json").decode()
             revision = git(origin, "rev-parse", "HEAD").decode()
             for filter_spec in ("blob:none", "tree:0"):
                 with self.subTest(filter_spec=filter_spec):
                     clone = root / filter_spec.replace(":", "-")
-                    git(root, "-c", "protocol.file.allow=always", "clone",
-                        "--filter=" + filter_spec, "--no-checkout",
-                        origin.as_uri(), str(clone))
+                    git(
+                        root,
+                        "-c",
+                        "protocol.file.allow=always",
+                        "clone",
+                        "--filter=" + filter_spec,
+                        "--no-checkout",
+                        origin.as_uri(),
+                        str(clone),
+                    )
                     local_env = {**os.environ, "GIT_NO_LAZY_FETCH": "1"}
-                    def is_local():
-                        return subprocess.run(
-                            ["/usr/bin/git", "-C", str(clone), "cat-file", "-e", oid],
-                            env=local_env, capture_output=True, check=False,
-                        ).returncode == 0
-                    def object_store():
+
+                    def is_local(clone, local_env):
+                        return (
+                            subprocess.run(
+                                [
+                                    "/usr/bin/git",
+                                    "-C",
+                                    str(clone),
+                                    "cat-file",
+                                    "-e",
+                                    oid,
+                                ],
+                                env=local_env,
+                                capture_output=True,
+                                check=False,
+                            ).returncode
+                            == 0
+                        )
+
+                    def object_store(clone):
                         objects = clone / ".git/objects"
-                        return {str(path.relative_to(objects)): path.read_bytes()
-                                for path in objects.rglob("*") if path.is_file()}
-                    self.assertFalse(is_local(), "partial clone fixture must omit the blob")
-                    before = object_store()
-                    with patch.dict(os.environ, {"GIT_NO_LAZY_FETCH": "0"}):
-                        with self.assertRaisesRegex(ValueError, "cannot be resolved"):
-                            committed_owner_products(clone, revision)
-                    self.assertEqual(object_store(), before)
-                    self.assertFalse(is_local())
+                        return {
+                            str(path.relative_to(objects)): path.read_bytes()
+                            for path in objects.rglob("*")
+                            if path.is_file()
+                        }
+
+                    self.assertFalse(
+                        is_local(clone, local_env),
+                        "partial clone fixture must omit the blob",
+                    )
+                    before = object_store(clone)
+                    with (
+                        patch.dict(os.environ, {"GIT_NO_LAZY_FETCH": "0"}),
+                        self.assertRaisesRegex(ValueError, "cannot be resolved"),
+                    ):
+                        committed_owner_products(clone, revision)
+                    self.assertEqual(object_store(clone), before)
+                    self.assertFalse(is_local(clone, local_env))
                     # Explicit native acquisition is distinct from observation.
-                    git(clone, "checkout", "-q", "--detach", revision,
-                        env={**local_env, "GIT_NO_LAZY_FETCH": "0"})
-                    self.assertTrue(is_local())
-                    hydrated = object_store()
-                    self.assertEqual(committed_owner_products(clone, revision), (revision, [source]))
-                    self.assertEqual(object_store(), hydrated)
+                    git(
+                        clone,
+                        "checkout",
+                        "-q",
+                        "--detach",
+                        revision,
+                        env={**local_env, "GIT_NO_LAZY_FETCH": "0"},
+                    )
+                    self.assertTrue(is_local(clone, local_env))
+                    hydrated = object_store(clone)
+                    self.assertEqual(
+                        committed_owner_products(clone, revision), (revision, [source])
+                    )
+                    self.assertEqual(object_store(clone), hydrated)
 
     def test_git_view_rejects_symlinks_and_invalid_revision(self) -> None:
         with TemporaryDirectory() as tmp:
