@@ -18,6 +18,7 @@ updates:
     directories:
       - "/apps/web/experiments/grant-render-benchmark"
       - "/apps/web"
+      - "/apps/web/experiments/solid-grants-r3"
       - "/capabilities/artifact/artifact-delivery/node"
       - "/capabilities/media"
       - "/domains/capital/tools/okx_official_cli"

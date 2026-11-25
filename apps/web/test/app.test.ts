@@ -313,6 +313,17 @@ test("operator grant view reads only the authenticated principal and renders obs
     assert.match(response.body, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
     assert.doesNotMatch(response.body, /grant:other-private/);
     assert.equal(f.store.getAgentGrant("grant:current").remainingEffects, 3);
+    const wire = await f.app.inject({
+      method: "GET", url: "/api/security/agents/grants",
+      headers: { cookie: sessionCookie(f.token) },
+    });
+    assert.equal(wire.statusCode, 200);
+    assert.equal(wire.headers["cache-control"], "no-store");
+    assert.equal(wire.json().principalId, "principal:test");
+    assert.equal(wire.json().observedAt, f.now());
+    assert.equal(wire.json().grants.length, 4);
+    assert.ok(wire.json().grants.every((g: {principalId:string}) => g.principalId === "principal:test"));
+
     const other = f.store.createSession("principal:other", f.now(), 60, 300, null);
     const otherView = await f.app.inject({
       method: "GET", url: "/operator/grants",

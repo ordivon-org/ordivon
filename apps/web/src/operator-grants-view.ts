@@ -1,13 +1,6 @@
 import type { AgentGrantSnapshot, Principal } from "./model.ts";
 
-type GrantAvailability = "revoked" | "expired" | "exhausted" | "candidate";
-
-function availability(grant: AgentGrantSnapshot, observedAt: number): GrantAvailability {
-  if (!grant.active) return "revoked";
-  if (grant.expiresAtEpochSeconds <= observedAt) return "expired";
-  if (grant.remainingEffects <= 0) return "exhausted";
-  return "candidate";
-}
+import { grantAvailability, type GrantAvailability } from "./grant-observation.ts";
 
 const labels: Record<GrantAvailability, string> = {
   revoked: "Revoked",
@@ -36,7 +29,7 @@ export function renderOperatorGrants(
   observedAt: number,
 ): string {
   const rows = grants.map((grant) => {
-    const status = availability(grant, observedAt);
+    const status = grantAvailability(grant, observedAt);
     return '<tr><th scope="row">' + html(grant.grantId) +
       '</th><td>' + html(grant.agentId) +
       '</td><td data-availability="' + status + '">' + labels[status] +
