@@ -100,6 +100,54 @@ class RestoreSmokeFailedStopTests(unittest.TestCase):
                         shutil.rmtree(path)
                 log.unlink(missing_ok=True)
 
+    def test_start_attempt_without_pid_cannot_claim_release(self) -> None:
+        """A missing PID file is not positive proof of stopped after start."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-stop-unknown-", dir="/tmp") as temp:
+            base = Path(temp)
+            shim = base / "sudo"
+            shim.write_text(
+                '#!/bin/sh\n'
+                'case "$*" in\n'
+                '  *pgbackrest*) touch "$RESTORE_ROOT/recovery.signal"; exit 0;;\n'
+                '  *pg_ctl*start*) touch "$START_MARKER"; exit 0;;\n'
+                '  *pg_ctl*stop*) exit 72;;\n'
+                '  *psql*"select not pg_is_in_recovery"*) printf "t\\n"; exit 0;;\n'
+                '  *psql*temporal_visibility*"schema_version"*) printf "1.14\\n"; exit 0;;\n'
+                '  *psql*temporal_visibility*"executions_visibility"*) printf "test-workflow|2\\n"; exit 0;;\n'
+                '  *psql*temporal*"schema_version"*) printf "1.19\\n"; exit 0;;\n'
+                'esac\nexit 73\n',
+                encoding="utf-8",
+            )
+            shim.chmod(0o755)
+            chown = base / "chown"
+            chown.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            chown.chmod(0o755)
+            identity = uuid.uuid4().hex
+            data = Path(f"/tmp/ordivon-stop-unknown-{identity}-data")
+            socket = Path(f"/tmp/ordivon-stop-unknown-{identity}-socket")
+            log = Path(f"/tmp/ordivon-stop-unknown-{identity}.log")
+            env = {
+                **os.environ, "PATH": f"{temp}:/usr/bin:/bin",
+                "RESTORE_ROOT": str(data), "SOCKET_ROOT": str(socket), "LOG": str(log),
+                "START_MARKER": str(base / "started"),
+            }
+            try:
+                result = subprocess.run(
+                    ["/bin/bash", str(SCRIPT), "fake-backup", "test-workflow", "55439"],
+                    env=env, text=True, capture_output=True, timeout=10, check=False,
+                )
+                self.assertTrue((base / "started").exists())
+                self.assertNotEqual(result.returncode, 0, result.stdout)
+                self.assertTrue(data.is_dir())
+                self.assertTrue(socket.is_dir())
+                self.assertTrue(log.is_file())
+                self.assertNotIn('"standing":"PASS"', result.stdout)
+            finally:
+                for path in (data, socket):
+                    if path.exists() and not path.is_symlink():
+                        shutil.rmtree(path)
+                log.unlink(missing_ok=True)
+
     def test_recovered_configuration_and_failed_stop_do_not_emit_pass(self) -> None:
         with tempfile.TemporaryDirectory(prefix="ordivon-restore-fixture-", dir="/tmp") as temp:
             base = Path(temp)

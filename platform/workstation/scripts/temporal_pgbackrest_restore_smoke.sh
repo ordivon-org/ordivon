@@ -71,7 +71,17 @@ cleanup() {
   if [ "$owned_socket" = true ]; then same_scratch "$SOCKET_ROOT" directory "$socket_identity" || return 1; fi
   if [ "$owned_log" = true ]; then same_scratch "$LOG" file "$log_identity" || return 1; fi
   if [ "$owned_restore" = true ]; then
-    if [ -f "$RESTORE_ROOT/postmaster.pid" ]; then
+    # Once startup is dispatched, absence of its PID file is not a
+    # qualified stop. Preserve the whole carrier for reconciliation.
+    if [ "$start_attempted" = true ] && { [ ! -f "$RESTORE_ROOT/postmaster.pid" ] || [ -L "$RESTORE_ROOT/postmaster.pid" ]; }; then
+      echo "restore smoke could not confirm isolated PostgreSQL stopped; preserving owned scratch" >&2
+      return 1
+    fi
+    if [ -e "$RESTORE_ROOT/postmaster.pid" ] || [ -L "$RESTORE_ROOT/postmaster.pid" ]; then
+      if [ ! -f "$RESTORE_ROOT/postmaster.pid" ] || [ -L "$RESTORE_ROOT/postmaster.pid" ]; then
+        echo "restore smoke could not confirm isolated PostgreSQL stopped; preserving owned scratch" >&2
+        return 1
+      fi
       # A PID file from backup bytes or an uncertain pre-start failure is
       # not authority to signal any server. Check our exact PGDATA first.
       if [ "$start_attempted" != true ] || \
@@ -83,7 +93,7 @@ cleanup() {
         echo "restore smoke could not confirm isolated PostgreSQL stopped; preserving owned scratch" >&2
         return 1
       fi
-      if [ -f "$RESTORE_ROOT/postmaster.pid" ]; then
+      if [ -e "$RESTORE_ROOT/postmaster.pid" ] || [ -L "$RESTORE_ROOT/postmaster.pid" ]; then
         echo "restore smoke PostgreSQL pid file remains after stop; preserving owned scratch" >&2
         return 1
       fi

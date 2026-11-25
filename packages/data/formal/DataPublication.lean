@@ -150,6 +150,35 @@ theorem unobserved_scratch_not_owned (created : Nat) :
 theorem same_scratch_identity_matches (created : Nat) :
     ScratchIdentityMatches created (some created) := rfl
 
+-- Start intent is recorded before the effect. Missing PID metadata after
+-- dispatch is UNKNOWN, not a stop receipt. A stop witness is supplied by
+-- the isolated native lifecycle owner, not inferred from a missing pathname.
+inductive ScratchLifecycle where
+  | neverDispatched
+  | startDispatched
+  | stopQualified
+  deriving DecidableEq, Repr
+
+def ScratchReleaseQualified (phase : ScratchLifecycle) : Prop :=
+  phase = .neverDispatched ∨ phase = .stopQualified
+
+inductive ScratchLifecycleStep : ScratchLifecycle → ScratchLifecycle → Prop where
+  | dispatch : ScratchLifecycleStep .neverDispatched .startDispatched
+  | qualifiedStop : ScratchLifecycleStep .startDispatched .stopQualified
+
+theorem dispatch_requires_stop_witness :
+    ¬ ScratchReleaseQualified .startDispatched := by
+  simp [ScratchReleaseQualified]
+
+theorem before_start_can_release :
+    ScratchReleaseQualified .neverDispatched := by simp [ScratchReleaseQualified]
+
+theorem qualified_stop_can_release :
+    ScratchReleaseQualified .stopQualified := by simp [ScratchReleaseQualified]
+
+#print axioms dispatch_requires_stop_witness
+#print axioms before_start_can_release
+#print axioms qualified_stop_can_release
 #print axioms stale_reclaim_cut_rejected
 #print axioms unknown_retention_rejected
 #print axioms missing_preservation_witness_rejected
