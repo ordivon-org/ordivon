@@ -67,3 +67,5 @@ if bash "$probe" "$work/malformed.otio" "$work/profile.json" "$work/malformed-ev
 fi
 
 echo 'processing OTIO smoke: PASS (official OTIO inspection accepted good timeline; range/count/malformed negatives rejected)'
+
+PYTHONPATH="$root/src" UV_PYTHON=3.13 /usr/bin/mise -C "$root" exec -- uv run --no-project --with 'opentimelineio==0.18.1' --with 'jsonschema==4.26.0' python -m unittest discover -s "$root/processing/tests" -p 'test_otio_asset_binding.py' -v
