@@ -57,6 +57,22 @@ a total, exact digest-equality relation. Real SHA-256 digest values are modeled
 abstractly: digest equality proves only hash equality, not metaphysical byte
 identity, origin authenticity, producer authorization, or permission to publish.
 
+### Product version binding refinement (R3 candidate)
+
+The abstract selector `selectProductVersion` consumes canonical product IDs.
+A missing requested version is admissible only for a unique matching product.
+An explicit version is independent of other versions; the native planner also
+requires exactly one matching port and rejects duplicate destination bindings.
+`binding_selection.py` is the pure identity/demand module; the projection
+takes a single metadata snapshot per source and qualifies all target indices
+before `local_evidence.py` observes physical files. Existing
+`LocalEvidenceBinding` imports and positional arguments remain supported.
+The explicit `--bind-local-versioned` CLI selects both versions.
+The native tests cover distinct bytes, source/binding permutations, UUID aliases,
+missing targets, ambiguous legacy demand and zero distribution reads on
+selection failure. This is an abstract model plus scoped behavioral refinement,
+not full JSON-LD graph identity, source immutability, rights, or Python proof.
+
 ### Shared local byte observation refinement
 
 Producer binding and catalog inspection share one descriptor-relative,

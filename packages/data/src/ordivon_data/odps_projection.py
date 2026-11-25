@@ -10,9 +10,14 @@ import hashlib
 import json
 from pathlib import Path
 from typing import Any
-from uuid import UUID
 
-from .local_evidence import LocalEvidenceBinding, qualified_local_distribution
+from .binding_selection import (
+    LocalEvidenceBinding,
+    identity_key,
+    select_bindings,
+    uuid_uri,
+)
+from .local_evidence import qualified_local_distribution
 from .metadata_json import read_metadata
 
 _FORMATS = {
@@ -22,38 +27,16 @@ _FORMATS = {
 }
 
 
-def _uuid_uri(value: str) -> str | None:
-    """Keep upstream IDs as supplied; mint no URI for a non-UUID identifier."""
-    try:
-        return "urn:uuid:" + str(UUID(value))
-    except ValueError:
-        return None
-
-
-def _identity_key(value: str) -> tuple[str, str]:
-    """Compare the identity actually emitted by this projection.
-
-    UUID spellings can normalize to one RDF URI (RFC 9562); opaque source
-    IDs retain exact spelling. The tags prevent collisions across kinds.
-    """
-    uri = _uuid_uri(value)
-    return ("uuid", uri) if uri is not None else ("opaque", value)
-
-
 def _text(value: Any, *, field: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"ODPS missing nonempty {field}")
     return value
 
 
-def project_odps(
-    source: Path | bytes, *, bindings: tuple[LocalEvidenceBinding, ...] = ()
-) -> tuple[dict[str, Any], str]:
-    """Project one ODPS metadata blob, never its physical availability.
-
-    Bytes may originate from an exact Git commit, while Path remains the
-    explicit live/local mode consumed by existing owner workflows.
-    """
+def _project_metadata(
+    source: Path | bytes,
+) -> tuple[dict[str, Any], dict[str, Any], str]:
+    """Parse one source snapshot and project metadata without physical file I/O."""
     if isinstance(source, Path):
         raw = source.read_bytes()
     elif isinstance(source, bytes):
@@ -72,7 +55,7 @@ def project_odps(
     product_id = _text(product.get("id"), field="id")
     version = _text(product.get("version"), field="version")
     name = _text(product.get("name"), field="name")
-    dataset_uri = _uuid_uri(product_id)
+    dataset_uri = uuid_uri(product_id)
 
     outputs = product.get("outputPorts")
     if not isinstance(outputs, list) or not outputs:
@@ -98,11 +81,11 @@ def project_odps(
         port_id = port.get("id")
         if port_id is not None:
             port_id = _text(port_id, field="outputPort.id")
-            identity = _identity_key(port_id)
+            identity = identity_key(port_id)
             if identity in seen_port_ids:
                 raise ValueError("ODPS duplicate output port id after projection")
             seen_port_ids.add(identity)
-            stable_uri = _uuid_uri(port_id)
+            stable_uri = uuid_uri(port_id)
             if stable_uri:
                 entry["@id"] = stable_uri
             else:
@@ -149,10 +132,28 @@ def project_odps(
         entry["@id"] = dataset_uri
     if rights:
         entry["odrl:hasPolicy"] = {"@id": rights[0]}
-    for binding in bindings:
-        if binding.product_id == product_id:
-            qualified_local_distribution(product, entry, binding)
-    return entry, "sha256:" + hashlib.sha256(raw).hexdigest()
+    return product, entry, "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+def _bind_entries(
+    entries: list[tuple[dict[str, Any], dict[str, Any], str]],
+    bindings: tuple[LocalEvidenceBinding, ...],
+) -> None:
+    # Resolve the entire demand set before opening a distribution file.
+    products = [product for product, _, _ in entries]
+    for product_index, port_index, binding in select_bindings(products, bindings):
+        product, entry, _ = entries[product_index]
+        qualified_local_distribution(product, entry, binding, port_index=port_index)
+
+
+def project_odps(
+    source: Path | bytes, *, bindings: tuple[LocalEvidenceBinding, ...] = ()
+) -> tuple[dict[str, Any], str]:
+    """Project one metadata snapshot and only explicitly qualified file evidence."""
+    observation = _project_metadata(source)
+    _bind_entries([observation], bindings)
+    _, entry, digest = observation
+    return entry, digest
 
 
 def project_catalog(
@@ -161,21 +162,17 @@ def project_catalog(
     """Build an immutable-source-fingerprinted DCAT discovery view, not a registry."""
     if not sources:
         raise ValueError("no producer-owned ODPS inputs")
-    entries = [project_odps(source, bindings=bindings) for source in sources]
-    datasets = [entry for entry, _ in entries]
-    for binding in bindings:
-        if not any(entry["dct:identifier"] == binding.product_id for entry in datasets):
-            raise ValueError(
-                "local evidence binding refers to unprojected owner product"
-            )
+    entries = [_project_metadata(source) for source in sources]
+    datasets = [entry for _, entry, _ in entries]
     keys = [
-        (_identity_key(entry["dct:identifier"]), entry["dcat:version"])
+        (identity_key(entry["dct:identifier"]), entry["dcat:version"])
         for entry in datasets
     ]
     if len(set(keys)) != len(keys):
         raise ValueError("duplicate owner product identifier and version")
+    _bind_entries(entries, bindings)
     datasets.sort(key=lambda entry: (entry["dct:identifier"], entry["dcat:version"]))
-    source_hashes = sorted(digest for _, digest in entries)
+    source_hashes = sorted(digest for _, _, digest in entries)
     projection_payload = json.dumps(
         {"datasets": datasets, "sourceHashes": source_hashes},
         sort_keys=True,

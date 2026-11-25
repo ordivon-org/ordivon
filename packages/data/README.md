@@ -168,6 +168,20 @@ python3 packages/data/scripts/inspect_federation.py \
   --catalog /tmp/ordivon-qualified-products.jsonld --verify-local
 ```
 
+For catalogs containing multiple versions of the same canonical product ID,
+the legacy `--bind-local` form rejects ambiguous selection before any bound
+file is read. Use the explicit form for a versioned product and port:
+
+```text
+--bind-local-versioned PRODUCT_ID PRODUCT_VERSION PORT_NAME PORT_VERSION PATH_PROPERTY SHA_PROPERTY OWNER_ROOT
+```
+
+The Python binding also accepts optional `product_version` and `port_version`
+keywords; omission requires unique selection in the corresponding scope.
+Other product versions are not implicitly bound. An explicit missing target or
+duplicate binding is rejected. This does not establish full RDF graph identity
+across multiple product versions or grant file rights.
+
 For this source cut, the producer-owned Finance JSON and Episode manifest are
 both Git-tracked with matching SHA-256 declarations and can be VERIFIED.
 The rebuildable Episode Parquet file is **not** present in Git, so remains

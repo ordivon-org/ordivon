@@ -44,6 +44,22 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--bind-local-versioned",
+        action="append",
+        nargs=7,
+        default=[],
+        metavar=(
+            "PRODUCT_ID",
+            "PRODUCT_VERSION",
+            "PORT_NAME",
+            "PORT_VERSION",
+            "PATH_PROPERTY",
+            "SHA_PROPERTY",
+            "OWNER_ROOT",
+        ),
+        help="Bind one exact product version and port version; repeatable.",
+    )
+    parser.add_argument(
         "--at-commit",
         metavar="REVISION",
         help=(
@@ -64,6 +80,18 @@ def main() -> int:
             owner_root=Path(owner_root),
         )
         for product_id, port_name, path_property, digest_property, owner_root in args.bind_local
+    )
+    bindings += tuple(
+        LocalEvidenceBinding(
+            product_id=product_id,
+            product_version=product_version,
+            port_name=port_name,
+            port_version=port_version,
+            path_property=path_property,
+            digest_property=digest_property,
+            owner_root=Path(owner_root),
+        )
+        for product_id, product_version, port_name, port_version, path_property, digest_property, owner_root in args.bind_local_versioned
     )
     try:
         if args.at_commit:

@@ -210,6 +210,39 @@ theorem projected_distinct_version_admitted
       some [(normalize b, v2), (normalize a, v1)] := by
   simp [admitProjectedUnique, projectedProductKey, admitUnique, different]
 
+-- Product binding operates on canonical identities, before physical evidence.
+-- Omitted version means a unique matching product, not all its versions.
+def selectProductVersion (id : String) (version : Option String)
+    (rows : List ProductIdentity) : Option ProductIdentity :=
+  match rows.filter (fun row =>
+    row.1 == id && (match version with
+      | none => true
+      | some v => row.2 == v)) with
+  | [row] => some row
+  | _ => none
+
+theorem omitted_product_version_rejects_two
+    (id v1 v2 : String) :
+    selectProductVersion id none [(id, v1), (id, v2)] = none := by
+  simp [selectProductVersion]
+
+theorem exact_product_version_selects_only_one
+    (id v1 v2 : String) (h : v1 ≠ v2) :
+    selectProductVersion id (some v2) [(id, v1), (id, v2)] =
+      some (id, v2) := by
+  simp [selectProductVersion, h]
+
+theorem unrelated_product_version_frame
+    (id requested other : String) (rows : List ProductIdentity)
+    (h : other ≠ requested) :
+    selectProductVersion id (some requested) (rows ++ [(id, other)]) =
+      selectProductVersion id (some requested) rows := by
+  simp [selectProductVersion, List.filter_append, h]
+
+#print axioms omitted_product_version_rejects_two
+#print axioms exact_product_version_selects_only_one
+#print axioms unrelated_product_version_frame
+
 -- Discovery may contain anonymous rows. Only explicit IDs participate
 -- in the uniqueness obligation. Payload equality never merges identities.
 def explicitDistributionIds (rows : List (Option String × Nat)) : List String :=
