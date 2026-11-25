@@ -175,6 +175,10 @@ def verify_native_selection(
         from verify_formal_trace import sha256
 
     binary, digest = compiled
+    # Keep upstream libtest capture enabled: test-body diagnostics are
+    # not execution receipts. Ignore inherited opt-out as well as explicit flags.
+    test_env = dict(env)
+    test_env.pop("RUST_TEST_NOCAPTURE", None)
 
     def unchanged() -> None:
         if binary.is_symlink() or sha256(binary) != digest:
@@ -184,7 +188,7 @@ def verify_native_selection(
         unchanged()
         result = subprocess.run(
             [str(binary), *libtest_args],
-            cwd=ROOT / "crates/ordivon-runtime-core", env=env,
+            cwd=ROOT / "crates/ordivon-runtime-core", env=test_env,
             capture_output=True, text=True, timeout=400,
         )
         unchanged()
@@ -200,7 +204,7 @@ def verify_native_selection(
         else listed_single_case(listed.stdout, identity)
     )
     required = required_pg_physical_witnesses(expected) if identity is None else frozenset()
-    result = run(*sorted(expected), "--exact", "--ignored", "--nocapture", "--test-threads=1")
+    result = run(*sorted(expected), "--exact", "--ignored", "--test-threads=1")
     # libtest execution evidence comes from stdout, never compiler stderr.
     for line in result.stdout.splitlines():
         if line.startswith("test ") or line.startswith("test result:"):

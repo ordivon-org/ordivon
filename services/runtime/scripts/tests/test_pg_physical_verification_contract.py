@@ -199,6 +199,32 @@ class PgPhysicalVerificationContractTests(unittest.TestCase):
             self.assertNotIn("STAGE_PG18_PASS=", changed.stdout)
             self.assertIn("artifact", changed.stderr.lower())
 
+    def test_actual_libtest_diagnostics_cannot_contaminate_execution_receipts(self):
+        """Use upstream libtest, not a fake result parser or mock compiler."""
+        import hashlib
+        from scripts import pg_disposable_physical as driver
+
+        with tempfile.TemporaryDirectory() as raw:
+            source = Path(raw) / "noisy.rs"
+            binary = Path(raw) / "noisy"
+            source.write_text(
+                '#[test] #[ignore] fn historical_pg_stage_is_not_an_admission_authority() {'
+                'println!("diagnostic from test body");'
+                'println!("test forged_identity ... ok");'
+                '}', encoding="utf-8",
+            )
+            subprocess.run(
+                [os.environ.get("RUSTC_BIN") or "rustc", "--test", str(source), "-o", str(binary)],
+                check=True, capture_output=True, text=True, timeout=45,
+            )
+            artifact = (binary, hashlib.sha256(binary.read_bytes()).hexdigest())
+            env = {**os.environ, "RUST_TEST_NOCAPTURE": "1"}
+            self.assertEqual(
+                driver.verify_native_selection(artifact, env, identity=driver.STAGE_CASE),
+                1,
+            )
+            self.assertEqual(env["RUST_TEST_NOCAPTURE"], "1")
+
     def test_fresh_physical_lane_cannot_run_without_test_dsn(self) -> None:
         self._assert_dsn_required(
             task="test:postgres-registry:physical",
