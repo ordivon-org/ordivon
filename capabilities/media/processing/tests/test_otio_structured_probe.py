@@ -1,12 +1,12 @@
 """Native behavior tests for the production probe, not implementation shape."""
 from __future__ import annotations
 
+import concurrent.futures
 import hashlib
 import json
 import subprocess
 import tempfile
 import unittest
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import opentimelineio as otio
@@ -43,7 +43,7 @@ class StructuredProbeTests(unittest.TestCase):
 
             # Concurrent callers for one destination cannot both publish evidence.
             raced = root / "raced"
-            with ThreadPoolExecutor(max_workers=2) as pool:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
                 results = list(pool.map(run, (raced, raced)))
             self.assertEqual(sum(r.returncode == 0 for r in results), 1)
             winner = next(r for r in results if r.returncode == 0)
