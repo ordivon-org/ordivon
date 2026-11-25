@@ -166,7 +166,7 @@ def test_host_search_preserves_cjk_literal_substring_and_english_fts(monkeypatch
         assert len(observed) == 1
         sql, args = observed[0]
         if mode == "trigram":
-            assert "host_unicode_ngrams3(body) @> host_unicode_ngrams3(%s)" in sql
+            assert "host_cjk_sparse_ngrams3_v1(body) @> host_cjk_sparse_ngrams3_v1(%s)" in sql
             assert "AND strpos(body,%s)>0" in sql
             assert args[0] == query and args[1] == query
         elif mode == "strpos":

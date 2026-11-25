@@ -24,7 +24,7 @@ from .postgres_bounds import HOST_WIRE_INT_MAX
 from .references.actor_refs import ActorReferenceLookup
 from .references.record_refs import RecordReferenceLookup
 from .social_errors import TopicResumeCursorAhead
-from .social_message_records import verify_message_content_digest
+from .social_message_records import verified_message_wire
 from .topic_cursor_records import get_topic_cursor_in_tx, topic_high_sequence_in_tx
 
 
@@ -73,19 +73,20 @@ class SocialTopicReadQueries:
                 for row in rows[:limit]
             ]
 
-            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+            def envelope(last: dict[str, Any]) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-topic-list",
                     "spaceRef": space_ref,
-                    "topics": page,
                     "hasMore": True,
-                    "nextAfterTopicRef": None if not page else page[-1]["topicRef"],
+                    "nextAfterTopicRef": last["topicRef"],
                     "rankingApplied": False,
                     "truthBoundary": "conversation-axis inventory only; not Work lifecycle or priority",
                 }
 
-            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
+            page, byte_more = bounded_prefix(
+                candidates, max_bytes=max_bytes, collection_key="topics", envelope=envelope
+            )
             has_more = sql_more or byte_more
             return {
                 "schemaVersion": 1,
@@ -129,21 +130,7 @@ class SocialTopicReadQueries:
                 (topic_ref, after_sequence, limit + 1),
             ).fetchall()
             sql_more = len(rows) > limit
-            for row in rows[:limit]:
-                verify_message_content_digest(row)
-            candidates = [
-                {
-                    "sequence": int(row["sequence"]),
-                    "messageRef": row["message_ref"],
-                    "authorActorRef": row["author_actor_ref"],
-                    "messageKind": row["message_kind"],
-                    "body": row["body"],
-                    "messageDigest": row["message_digest"],
-                    "recordedAtMs": int(row["recorded_at_ms"]),
-                    "createdAt": row["created_at"].isoformat(),
-                }
-                for row in rows[:limit]
-            ]
+            candidates = [verified_message_wire(row, include_scope=False) for row in rows[:limit]]
             topic_wire = {
                 "topicRef": topic["topic_ref"],
                 "spaceRef": topic["space_ref"],
@@ -151,20 +138,20 @@ class SocialTopicReadQueries:
                 "state": topic["state"],
             }
 
-            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+            def envelope(last: dict[str, Any]) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-topic-resume",
                     "topic": topic_wire,
-                    "messages": page,
                     "hasMore": True,
-                    "nextAfterSequence": after_sequence if not page else int(page[-1]["sequence"]),
+                    "nextAfterSequence": int(last["sequence"]),
                     "truthBoundary": "bounded topic conversation only; message claims require owner-native verification",
                 }
 
             page, byte_more = bounded_prefix(
                 candidates,
                 max_bytes=max_bytes,
+                collection_key="messages",
                 envelope=envelope,
                 minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES,
             )

@@ -67,21 +67,22 @@ class AttentionSubscriptionQueries:
                 for row in rows[:limit]
             ]
 
-            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+            def envelope(last: dict[str, Any]) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-subscription-list",
                     "actorRef": actor_ref,
-                    "subscriptions": page,
                     "hasMore": True,
                     "truncated": True,
-                    "nextAfterTargetKind": None if not page else page[-1]["targetKind"],
-                    "nextAfterTargetRef": None if not page else page[-1]["targetRef"],
+                    "nextAfterTargetKind": last["targetKind"],
+                    "nextAfterTargetRef": last["targetRef"],
                     "rankingApplied": False,
                     "truthBoundary": "actor attention-routing preferences only; not assignment, priority, ownership, or authorization",
                 }
 
-            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
+            page, byte_more = bounded_prefix(
+                candidates, max_bytes=max_bytes, collection_key="subscriptions", envelope=envelope
+            )
             has_more = sql_more or byte_more
             return {
                 "schemaVersion": 1,

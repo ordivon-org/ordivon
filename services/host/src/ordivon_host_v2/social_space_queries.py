@@ -81,19 +81,20 @@ class SocialSpaceReadQueries:
             sql_more = len(rows) > limit
             candidates = [str(row["subject_ref"]) for row in rows[:limit]]
 
-            def envelope(page: list[str]) -> dict[str, Any]:
+            def envelope(last: str) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-space-subject-list",
                     "spaceRef": space_ref,
-                    "subjectRefs": page,
                     "hasMore": True,
-                    "nextAfterSubjectRef": None if not page else page[-1],
+                    "nextAfterSubjectRef": last,
                     "rankingApplied": False,
                     "truthBoundary": "social subject navigation only; references do not transfer foreign authority",
                 }
 
-            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
+            page, byte_more = bounded_prefix(
+                candidates, max_bytes=max_bytes, collection_key="subjectRefs", envelope=envelope
+            )
             has_more = sql_more or byte_more
             return {
                 "schemaVersion": 1,
@@ -135,19 +136,20 @@ class SocialSpaceReadQueries:
                 for row in rows[:limit]
             ]
 
-            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+            def envelope(last: dict[str, Any]) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-participation-list",
                     "spaceRef": space_ref,
-                    "participants": page,
                     "hasMore": True,
-                    "nextAfterActorRef": None if not page else page[-1]["actorRef"],
+                    "nextAfterActorRef": last["actorRef"],
                     "rankingApplied": False,
                     "truthBoundary": "social participation only; not IAM, ownership, assignment, or authorization",
                 }
 
-            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
+            page, byte_more = bounded_prefix(
+                candidates, max_bytes=max_bytes, collection_key="participants", envelope=envelope
+            )
             has_more = sql_more or byte_more
             return {
                 "schemaVersion": 1,
@@ -159,7 +161,6 @@ class SocialSpaceReadQueries:
                 "rankingApplied": False,
                 "truthBoundary": "social participation only; not IAM, ownership, assignment, or authorization",
             }
-
 
     def list_spaces(
         self,
@@ -212,26 +213,23 @@ class SocialSpaceReadQueries:
                 for row in rows[:limit]
             ]
 
-            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
-                cursor = (
-                    None
-                    if not page
-                    else {
-                        "beforeCreatedAt": page[-1]["createdAt"],
-                        "beforeSpaceRef": page[-1]["spaceRef"],
-                    }
-                )
+            def envelope(last: dict[str, Any]) -> dict[str, Any]:
+                cursor = {
+                    "beforeCreatedAt": last["createdAt"],
+                    "beforeSpaceRef": last["spaceRef"],
+                }
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-space-list",
-                    "spaces": page,
                     "hasMore": True,
                     "nextCursor": cursor,
                     "rankingApplied": False,
                     "truthBoundary": "compact social-space locator only; participation is not ownership, authority, or assignment",
                 }
 
-            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
+            page, byte_more = bounded_prefix(
+                candidates, max_bytes=max_bytes, collection_key="spaces", envelope=envelope
+            )
             has_more = sql_more or byte_more
             cursor = None
             if has_more and page:

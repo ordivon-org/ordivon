@@ -10,7 +10,7 @@ import pytest
 from ordivon_host_v2 import social_store
 from ordivon_host_v2.canonical_json import canonical_digest
 from ordivon_host_v2.social_errors import MessageNotFound
-from ordivon_host_v2.social_message_records import require_message, verify_message_content_digest
+from ordivon_host_v2.social_message_records import require_message, verified_message_wire
 from ordivon_host_v2.social_store import SocialStore
 
 
@@ -75,10 +75,10 @@ def test_shared_message_digest_helper_accepts_original_and_rejects_corrupt_row()
             "recordedAtMs": row["recorded_at_ms"],
         }
     )
-    verify_message_content_digest(row)
+    assert verified_message_wire(row)["body"] == row["body"]
     row["body"] = "tampered after original commit"
     with pytest.raises(RuntimeError, match="Host message content digest differs from stored claim"):
-        verify_message_content_digest(row)
+        verified_message_wire(row)
 
 
 def test_shared_message_lookup_uses_supplied_pg_transaction_conn() -> None:
