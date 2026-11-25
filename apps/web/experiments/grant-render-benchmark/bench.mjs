@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import {build,preview} from "vite";
+import {build} from "vite";
+import {acquirePreview,releasePreviews} from "./preview-lifecycle.mjs";
 import react from "@vitejs/plugin-react";
 import solid from "@solidjs/vite-plugin";
 import {chromium} from "playwright";
@@ -48,7 +49,7 @@ try{
    const js=(await readdir(resolve(out,"assets"))).filter(x=>x.endsWith(".js"));
    let bytes=0,gz=0;
    for(const f of js){const b=await readFile(resolve(out,"assets",f));bytes+=b.length;gz+=gzipSync(b).length;}
-   const server=await preview({...options,preview:{host:"127.0.0.1",port:0,strictPort:true}});servers.push(server);
+   const server=await acquirePreview(servers,{...options,preview:{host:"127.0.0.1",port:0,strictPort:true}});
    results.push({name:v.name,port:server.httpServer.address().port,buildMs,jsBytes:bytes,gzipBytes:gz,loads:{}});
  }
  for(const n of [1000,5000]){
@@ -102,9 +103,7 @@ try{
  if(browser){
   try{await browser.close()}catch(error){failures.push(error)}
  }
- const settled=await Promise.allSettled(servers.map(s=>new Promise((resolve,reject)=>
-  s.httpServer.close(error=>error?reject(error):resolve())
- )));
+ const settled=await releasePreviews(servers);
  for(const result of settled)if(result.status==="rejected")failures.push(result.reason);
  for(const [key,value] of Object.entries(tempEnvironment)){
   if(value===undefined)delete process.env[key];else process.env[key]=value;

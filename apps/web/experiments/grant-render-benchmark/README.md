@@ -17,7 +17,14 @@ Chromium executable:
     mise exec -- pnpm test:lifecycle
     ORDIVON_WEB_CHROMIUM_EXECUTABLE=/absolute/path/to/chromium mise exec -- pnpm benchmark
 
-Build output is disposable, isolated per invocation, and removed after browser\nand preview consumers release it. The stdout result (not the build directory)\nis the evidence candidate. A cleanup failure reports the scratch coordinate;\nexternal termination is outside this contract.\n\nNo lifecycle scripts or package Agent skills were approved. The package/lock
+Build output is disposable. Browser and Vite preview owners (including
+native close hooks) must release before scratch removal and result
+publication. Unknown release retains the recovery coordinate; external
+termination is outside this contract.
+
+Offline installation requires the exact lockfile dependency closure in the
+selected store, not merely an unreferenced-cache policy. No lifecycle
+scripts or package Agent skills were approved. The package/lock
 are isolated from the production Web package. This is a research candidate,
 not an unconditional production gate.
 

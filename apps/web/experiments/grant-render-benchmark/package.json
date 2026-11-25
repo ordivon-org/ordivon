@@ -6,7 +6,7 @@
   "scripts": {
     "typecheck": "tsc -p react/tsconfig.json && tsc -p solid/tsconfig.json",
     "benchmark": "node bench.mjs",
-    "test:lifecycle": "node --test benchmark-lifecycle.test.mjs",
+    "test:lifecycle": "node --test benchmark-lifecycle.test.mjs preview-lifecycle.test.mjs",
     "compiler:witness": "node compiler-witness.mjs"
   },
   "dependencies": {
