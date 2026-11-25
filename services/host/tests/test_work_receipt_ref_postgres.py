@@ -18,6 +18,7 @@ from psycopg.types.json import Jsonb
 
 from ordivon_host_v2.canonical_json import canonical_digest
 from ordivon_host_v2.errors import ConflictError
+from ordivon_host_v2.health.receipt_roots import count_invalid_work_receipt_roots
 from ordivon_host_v2.references.actor_store import ActorReferenceStore
 from ordivon_host_v2.service import HostV2
 from ordivon_host_v2.work_inputs import (
@@ -559,6 +560,73 @@ class WorkReceiptTest(unittest.TestCase):
                 else:
                     self.assertEqual(self.stored(suffix), original)
                     self.assert_replay(self.commit("second", 1), original)
+
+    def test_joined_root_audit_matches_point_oracle_and_checks_native_coordinates(self):
+        first = self.create()
+        second = self.commit("second", 1)
+        self.commit("third", 2)
+        tag = self.tag("create", first)
+        self.tag("second", second)
+
+        def old_oracle(conn):
+            count = 0
+            with conn.cursor(name="independent_old_root_oracle") as cursor:
+                cursor.execute(
+                    "SELECT response FROM command_receipts "
+                    "WHERE operation IN ('work.create','work.snapshot.commit') "
+                    "AND response IS NOT NULL "
+                    "AND response->>'kind' IS DISTINCT FROM 'ordivon.host-work'"
+                )
+                for row in cursor:
+                    try:
+                        r = row["response"]
+                        replay_work_receipt(conn, r, work_ref=r["envelope"]["workRef"])
+                    except RuntimeError, ValueError, TypeError, KeyError:
+                        count += 1
+            return count
+
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            baseline = count_invalid_work_receipt_roots(conn)
+            self.assertEqual(old_oracle(conn), baseline)
+            with conn.transaction(force_rollback=True):
+                conn.execute(
+                    "UPDATE command_receipts SET response=jsonb_set(response,'{responseDigest}',"
+                    "to_jsonb('invalid'::text)) WHERE client_request_id=%s",
+                    (self.key("create"),),
+                )
+                self.assertEqual(old_oracle(conn), baseline + 1)
+                self.assertEqual(count_invalid_work_receipt_roots(conn), baseline + 1)
+
+            # Controlled corruption in a private transaction; the old oracle
+            # follows only the JSON envelope, so cannot observe a wrong pin.
+            for label, sql, params in [
+                ("wrong pin", "receipt_work_revision=2", ()),
+                ("absent pin", "receipt_work_ref=NULL,receipt_work_revision=NULL", ()),
+                ("foreign operation", "operation='message.post'", ()),
+                ("legacy with pin", "response=%s", (Jsonb(first),)),
+                (
+                    "missing target",
+                    "receipt_work_revision=99,response=%s",
+                    (Jsonb({**tag, "envelope": {**tag["envelope"], "revision": 99}}),),
+                ),
+            ]:
+                with self.subTest(label=label), conn.transaction(force_rollback=True):
+                    conn.execute(
+                        "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_work_root_shape"
+                    )
+                    conn.execute(
+                        "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_work_root_fk"
+                    )
+                    conn.execute(
+                        "UPDATE command_receipts SET " + sql + " WHERE client_request_id=%s",
+                        (*params, self.key("create")),
+                    )
+                    self.assertEqual(count_invalid_work_receipt_roots(conn), baseline + 1)
+                    if label in ("wrong pin", "absent pin", "foreign operation", "legacy with pin"):
+                        self.assertEqual(old_oracle(conn), baseline)
+            self.assertEqual(count_invalid_work_receipt_roots(conn), baseline)
+        self.assert_replay(self.create(), first)
+        self.assert_replay(self.commit("second", 1), second)
 
     def tearDown(self):
         with psycopg.connect(DSN) as conn:

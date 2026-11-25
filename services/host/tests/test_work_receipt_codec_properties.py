@@ -10,7 +10,11 @@ import rfc8785
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from ordivon_host_v2.work_receipts import encode_work_receipt, replay_work_receipt
+from ordivon_host_v2.work_receipts import (
+    encode_work_receipt,
+    replay_pinned_work_receipt,
+    replay_work_receipt,
+)
 
 MAX_EXACT = (1 << 53) - 1
 TEXT = st.text(alphabet=st.characters(exclude_categories=("Cs",)), max_size=40)
@@ -88,6 +92,21 @@ def test_generated_exact_replay_and_legacy_no_lookup(snapshot, revision, state, 
     assert tag["responseDigest"] == digest(expected)
     lookup = Lookup(target(original))
     assert replay_work_receipt(lookup, tag, work_ref=original["workRef"]) == expected
+    assert (
+        replay_pinned_work_receipt(
+            tag, work_ref=original["workRef"], revision=revision, target=target(original)
+        )
+        == expected
+    )
+    # Matching target bytes do not authorize a different native coordinate.
+    with pytest.raises(RuntimeError, match="reference differs"):
+        replay_pinned_work_receipt(
+            tag, work_ref=original["workRef"], revision=revision + 1, target=target(original)
+        )
+    with pytest.raises(RuntimeError, match="reference differs"):
+        replay_pinned_work_receipt(
+            tag, work_ref="work:other", revision=revision, target=target(original)
+        )
     assert lookup.keys == [(original["workRef"], revision)]
     assert replay_work_receipt(lookup, expected, work_ref=original["workRef"]) == expected
     assert len(lookup.keys) == 1
