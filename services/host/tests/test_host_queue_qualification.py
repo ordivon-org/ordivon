@@ -32,10 +32,16 @@ def _invoke(
     )
     psql.chmod(0o755)
     uv = fake / "uv"
-    uv.write_text(f'#!/bin/sh\nprintf "%s\\n" "$*" >> "{log}"\n', encoding="utf-8")
+    uv.write_text(
+        f'#!/bin/sh\nprintf "%s\\n" "$*" >> "{log}"\n'
+        'if [ "$*" = "run python -m pytest --host-require-complete-suite --strict-config --strict-markers" ]; then\n'
+        '  test -z "${PYTEST_ADDOPTS+x}" || exit 9\nfi\n',
+        encoding="utf-8",
+    )
     uv.chmod(0o755)
     env = dict(os.environ)
     env.pop("ORDIVON_HOST_V2_DSN", None)
+    env["PYTEST_ADDOPTS"] = "--collect-only -k nonexistent"
     env.update(
         {
             "ORDIVON_HOST_V2_TEST_DSN": dsn,
@@ -83,7 +89,7 @@ def test_queue_retries_transient_postgres_connection_before_migrations(tmp_path:
         "sync --locked",
         "run alembic upgrade head",
         "run ruff check .",
-        "run python -m pytest",
+        "run python -m pytest --host-require-complete-suite --strict-config --strict-markers",
     ]
 
 
@@ -121,5 +127,5 @@ def test_queue_postgres18_invokes_alembic_and_real_test_suite(tmp_path: Path) ->
         "sync --locked",
         "run alembic upgrade head",
         "run ruff check .",
-        "run python -m pytest",
+        "run python -m pytest --host-require-complete-suite --strict-config --strict-markers",
     ]

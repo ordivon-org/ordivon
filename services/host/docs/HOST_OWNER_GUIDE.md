@@ -526,3 +526,19 @@ a malformed Work receipt or a pin inconsistent with its operation.
 Unpinned legacy full receipts remain self-contained. A history diagnostic
 without typed schema roots is explicitly unavailable, not an absence proof.
 No retirement or writer activation is implied by successful read-only audit.
+
+### Complete suite qualification
+
+The queue entrypoint is distinct from portable/focused tests. It consumes
+the native pytest collection and setup/call/teardown reports, rejects skips,
+xfail/xpass, deselection, missing phases and empty suites, and preserves
+native nonzero outcomes. The queue clears inherited PYTEST_ADDOPTS so a
+developer's selection or collect-only option cannot masquerade as complete
+qualification. It uses strict pytest marker/config validation.
+
+An explicit caller-supplied test DSN without all dedicated boundary,
+migration and receipt fixtures is not sufficient for complete qualification;
+any missing native obligations must fail rather than be counted as passing.
+Portable/focused pytest retains native skip behavior. This gate qualifies
+the observed collected suite, not the existence of every possible semantic
+test, the installed production consumer, or a hostile test plugin.

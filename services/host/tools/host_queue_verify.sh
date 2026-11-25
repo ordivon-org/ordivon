@@ -123,4 +123,6 @@ if [[ -n "$container" ]]; then
   export ORDIVON_HOST_V2_MIGRATION_CJK_DSN="$cjk_dsn"
 fi
 uv run ruff check .
-uv run python -m pytest
+# Full qualification must not inherit filters or collect-only options.
+unset PYTEST_ADDOPTS
+uv run python -m pytest --host-require-complete-suite --strict-config --strict-markers
