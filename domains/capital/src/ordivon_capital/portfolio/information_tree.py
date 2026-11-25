@@ -12,7 +12,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any
 
-from .algebraic_policy import AlgebraicPolicyError
+from .policy_contract import AlgebraicPolicyError, finite_economic_number
 
 
 @dataclass(frozen=True)
@@ -68,22 +68,13 @@ class ValidatedInformationTree:
     months: int
 
 
-def _finite(x: object) -> bool:
-    if not isinstance(x, (int, float)) or isinstance(x, bool):
-        return False
-    try:
-        return math.isfinite(x)
-    except OverflowError:
-        return False
-
-
 def validate_information_tree(problem: MultistageProblem) -> ValidatedInformationTree:
     """Validate observable histories, contracts and nonanticipativity without a solver.
 
     Provider values remain caller-supplied: validity here is not market
     publication-time attestation, broker approval, or portfolio optimality.
     """
-    if not _finite(problem.gamma) or problem.gamma <= 0:
+    if not finite_economic_number(problem.gamma) or problem.gamma <= 0:
         raise AlgebraicPolicyError("positive CRRA risk aversion required")
     nodes = problem.nodes
     if not isinstance(nodes, tuple) or not nodes or not all(
@@ -121,14 +112,14 @@ def validate_information_tree(problem: MultistageProblem) -> ValidatedInformatio
         root.conditional_probability == 1.0
         and root.risky_gross == ()
         and root.maintenance == ()
-        and _finite(root.cash_gross) and _finite(root.debt_gross)
+        and finite_economic_number(root.cash_gross) and finite_economic_number(root.debt_gross)
         and root.cash_gross == root.debt_gross == 1.0
     ):
         raise AlgebraicPolicyError("root has no incoming market return")
     ordered = tuple(sorted(nodes, key=lambda x: (x.t, x.id)))
     children: dict[str, list[InformationNode]] = defaultdict(list)
     for node in ordered:
-        if not _finite(node.conditional_probability) or not 0 < node.conditional_probability <= 1:
+        if not finite_economic_number(node.conditional_probability) or not 0 < node.conditional_probability <= 1:
             raise AlgebraicPolicyError("conditional probability must be in (0, 1]")
         if node.parent is not None:
             if node.parent not in by_id:
@@ -140,10 +131,10 @@ def validate_information_tree(problem: MultistageProblem) -> ValidatedInformatio
                 raise AlgebraicPolicyError("unobservable branch label")
             if not (
                 len(node.risky_gross) == len(node.maintenance) == n_assets
-                and all(_finite(x) and x >= 0 for x in node.risky_gross)
-                and all(_finite(x) and 0 <= x <= 1 for x in node.maintenance)
-                and _finite(node.cash_gross)
-                and _finite(node.debt_gross)
+                and all(finite_economic_number(x) and x >= 0 for x in node.risky_gross)
+                and all(finite_economic_number(x) and 0 <= x <= 1 for x in node.maintenance)
+                and finite_economic_number(node.cash_gross)
+                and finite_economic_number(node.debt_gross)
                 and node.cash_gross > 0
                 and node.debt_gross >= node.cash_gross
             ):
@@ -154,8 +145,8 @@ def validate_information_tree(problem: MultistageProblem) -> ValidatedInformatio
                 raise AlgebraicPolicyError("terminal nodes cannot trade")
         elif not (
             len(node.initial_margin) == len(node.turnover_cost) == n_assets
-            and all(_finite(x) and 0 < x <= 1 for x in node.initial_margin)
-            and all(_finite(x) and x >= 0 for x in node.turnover_cost)
+            and all(finite_economic_number(x) and 0 < x <= 1 for x in node.initial_margin)
+            and all(finite_economic_number(x) and x >= 0 for x in node.turnover_cost)
         ):
             raise AlgebraicPolicyError("decision node requires provider margin and costs")
     for parent in ordered:
@@ -194,7 +185,7 @@ def validate_information_tree(problem: MultistageProblem) -> ValidatedInformatio
                 "intermediate obligations require exact decision-node coverage"
             )
         if any(
-            not _finite(v) or v < 0
+            not finite_economic_number(v) or v < 0
             for v in claims.values()
         ):
             raise AlgebraicPolicyError(
@@ -207,7 +198,7 @@ def validate_information_tree(problem: MultistageProblem) -> ValidatedInformatio
                 "terminal liabilities require one explicit obligation per leaf"
             )
         if any(
-            not _finite(v) or v < 0
+            not finite_economic_number(v) or v < 0
             for v in claims.values()
         ):
             raise AlgebraicPolicyError("nonnegative finite terminal liabilities required")
@@ -225,7 +216,7 @@ def validate_information_tree(problem: MultistageProblem) -> ValidatedInformatio
             probability[node.id] = 1.0
         else:
             weight = probability[node.parent] * node.conditional_probability
-            if not _finite(weight) or weight <= 0:
+            if not finite_economic_number(weight) or weight <= 0:
                 # All admitted edges have positive probability. A zero
                 # binary64 product loses a possible history, not an
                 # impossible one, and cannot enter the optimizer.

@@ -25,9 +25,7 @@ from dataclasses import dataclass
 from fractions import Fraction
 from typing import Any
 
-
-class AlgebraicPolicyError(ValueError):
-    """Provided economic inputs are infeasible or not well-defined."""
+from .policy_contract import AlgebraicPolicyError, finite_economic_number
 
 
 @dataclass(frozen=True)
@@ -82,7 +80,7 @@ def merton_single_risky_crra(
     rates, and *no constraint* are caller/model-owned. No invented leverage
     constant or backtest-derived empirical floor is inserted.
     """
-    if not all(_finite_economic_number(x) for x in (
+    if not all(finite_economic_number(x) for x in (
         expected_return, cash_rate, borrowing_rate, variance, gamma,
     )):
         raise AlgebraicPolicyError("finite diffusion coefficients required")
@@ -110,52 +108,38 @@ def merton_single_risky_crra(
     return represented
 
 
-def _finite_economic_number(value: object) -> bool:
-    """Economic scalar input, not an implicitly coerced boolean/string.
-
-    The numerical solver uses floating-point arithmetic; out-of-range
-    integers must fail at admission rather than in the optimizer.
-    """
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        return False
-    try:
-        return math.isfinite(value)
-    except OverflowError:
-        return False
-
-
 def _validate(problem: OnePeriodProblem) -> None:
     n = len(problem.initial_margin)
     if n == 0 or len(problem.turnover_cost) != n or len(problem.old_weights) != n:
         raise AlgebraicPolicyError("nonempty, aligned asset vector required")
-    if not _finite_economic_number(problem.gamma) or problem.gamma <= 0:
+    if not finite_economic_number(problem.gamma) or problem.gamma <= 0:
         raise AlgebraicPolicyError("positive finite CRRA gamma required")
     for margin in problem.initial_margin:
-        if not _finite_economic_number(margin) or not 0 < margin <= 1:
+        if not finite_economic_number(margin) or not 0 < margin <= 1:
             raise AlgebraicPolicyError("broker initial margin must be in (0,1]")
-    if any(not _finite_economic_number(x) or x < 0 for x in problem.turnover_cost):
+    if any(not finite_economic_number(x) or x < 0 for x in problem.turnover_cost):
         raise AlgebraicPolicyError("nonnegative turnover costs required")
-    if any(not _finite_economic_number(x) or x < 0 for x in problem.old_weights):
+    if any(not finite_economic_number(x) or x < 0 for x in problem.old_weights):
         raise AlgebraicPolicyError("long-only existing risky weights required")
     if not problem.scenarios:
         raise AlgebraicPolicyError("conditional outcome distribution required")
     probability_sum = 0.0
     for s in problem.scenarios:
         if not (
-            _finite_economic_number(s.probability)
+            finite_economic_number(s.probability)
             and 0 < s.probability <= 1
             and len(s.risky_gross_returns) == n
             and len(s.maintenance) == n
-            and _finite_economic_number(s.cash_gross_return)
-            and _finite_economic_number(s.debt_gross_return)
+            and finite_economic_number(s.cash_gross_return)
+            and finite_economic_number(s.debt_gross_return)
             and s.cash_gross_return > 0
             and s.debt_gross_return >= s.cash_gross_return
         ):
             raise AlgebraicPolicyError("scenario probability/shape/financing invalid")
         probability_sum += s.probability
-        if any(not _finite_economic_number(x) or x < 0 for x in s.risky_gross_returns):
+        if any(not finite_economic_number(x) or x < 0 for x in s.risky_gross_returns):
             raise AlgebraicPolicyError("nonnegative finite risky gross returns required")
-        if any(not _finite_economic_number(x) or not 0 <= x <= 1 for x in s.maintenance):
+        if any(not finite_economic_number(x) or not 0 <= x <= 1 for x in s.maintenance):
             raise AlgebraicPolicyError("invalid provider maintenance requirement")
     if not math.isclose(probability_sum, 1.0, rel_tol=1e-10, abs_tol=1e-12):
         raise AlgebraicPolicyError("scenario probabilities must sum to one")
@@ -170,7 +154,7 @@ def unitize_external_contribution(
     New investment unit count = contribution_r / unit_nav_before.
     The identical unit NAV after contribution is mathematically invariant.
     """
-    if not all(_finite_economic_number(x) for x in (
+    if not all(finite_economic_number(x) for x in (
         unit_nav_before, outstanding_units, contribution_r,
     )):
         raise AlgebraicPolicyError("finite equity and capital flow required")

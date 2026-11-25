@@ -458,3 +458,46 @@ def test_information_tree_rejects_noncanonical_vector_shapes(target, field, valu
         problem = replace(problem, nodes=(first, replace(leaf, **{field: value})))
     with pytest.raises(AlgebraicPolicyError):
         validate_information_tree(problem)
+
+def test_information_tree_can_validate_without_loading_either_solver():
+    """A pure information consumer must work with solver imports unavailable."""
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    program = """
+import sys
+from importlib.abc import MetaPathFinder
+class NoSolvers(MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname in (
+            'ordivon_capital.portfolio.algebraic_policy',
+            'ordivon_capital.portfolio.multistage_policy',
+        ) or fullname.split('.')[0] in ('numpy', 'scipy'):
+            raise ImportError('solver unavailable: ' + fullname)
+sys.meta_path.insert(0, NoSolvers())
+from ordivon_capital.portfolio.information_tree import (
+    InformationNode, MultistageProblem, validate_information_tree,
+)
+r = InformationNode('r', None, 0, 1, initial_margin=(.5,), turnover_cost=(0,))
+l = InformationNode('l', 'r', 1, 1, risky_gross=(1.1,), maintenance=(.3,), terminal=True)
+assert validate_information_tree(MultistageProblem(2, (r,l))).months == 1
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", program], capture_output=True, text=True, check=False,
+        env={**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1] / "src")},
+    )
+    assert result.returncode == 0, result.stderr
+
+def test_shared_policy_error_preserves_existing_consumer_identity():
+    from ordivon_capital.portfolio.policy_contract import (
+        AlgebraicPolicyError as CanonicalError,
+    )
+    from ordivon_capital.portfolio.policy_contract import finite_economic_number
+
+    assert CanonicalError is AlgebraicPolicyError
+    assert all(finite_economic_number(x) for x in (0, -1, 1.25, 5e-324))
+    assert not any(finite_economic_number(x) for x in (
+        True, False, "1.0", None, float("nan"), float("inf"), 10**400,
+    ))

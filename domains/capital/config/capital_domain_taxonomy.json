@@ -66,6 +66,7 @@
       "fund_return_inputs.py",
       "paper_vintage.py",
       "paper_close_performance.py",
+      "policy_contract.py",
       "algebraic_policy.py",
       "information_tree.py",
       "multistage_policy.py",

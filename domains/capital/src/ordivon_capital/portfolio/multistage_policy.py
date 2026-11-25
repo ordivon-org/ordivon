@@ -26,12 +26,12 @@ import math
 from dataclasses import dataclass
 from typing import Any
 
-from ordivon_capital.portfolio.algebraic_policy import AlgebraicPolicyError
 from ordivon_capital.portfolio.information_tree import (
     InformationNode,
     MultistageProblem,
     validate_information_tree,
 )
+from ordivon_capital.portfolio.policy_contract import AlgebraicPolicyError
 
 # The existing PIT source consumer exercises this exact validation contract
 # through the old module import. Re-export the same function, not its logic.
