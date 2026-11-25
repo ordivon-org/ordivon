@@ -232,3 +232,7 @@ run = "python3 scripts/test_rendered_product_acceptance.py NativeBlankContract"
 [tasks."test:x11-interaction-contract"]
 description = "Metamorphic Room window raster contract; actual product input witness is separate"
 run = "python3 scripts/test_x11_interaction_acceptance.py"
+
+[tasks."test:mixed-audio-contract"]
+description = "Mixed PCM consequence and silence negative controls"
+run = "python3 scripts/test_mixed_audio_acceptance.py"

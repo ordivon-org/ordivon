@@ -136,12 +136,16 @@ def capture(x, window, pid):
     return p.stdout
 
 
-def isolated_child(executable, root):
+def require_private_display(root):
     # Only entered by the outer launcher with its fresh private Xauthority file.
     require(os.environ.get("GAME_X11_PRIVATE_ROOT") == str(root) and
             os.environ.get("XAUTHORITY") == str(root / "authority") and
             (root / "authority").is_file() and
             re.fullmatch(r":\d+", os.environ.get("DISPLAY", "")), "not an isolated display")
+
+
+def isolated_child(executable, root):
+    require_private_display(root)
     x = XTest()
     p = None
     try:
@@ -184,7 +188,7 @@ def isolated_child(executable, root):
         x.close(x.display)
 
 
-def consume(executable, expected_sha):
+def run_private(executable, expected_sha, child_script, *, timeout=80):
     require(executable.is_absolute() and executable.is_file() and not executable.is_symlink(),
             "explicit absolute regular executable required")
     require(re.fullmatch(r"[0-9a-f]{64}", expected_sha) and digest(executable) == expected_sha,
@@ -203,12 +207,12 @@ def consume(executable, expected_sha):
             env[name] = str(path)
         args = ["xvfb-run", "-a", "-f", str(root / "authority"), "-s",
                 "-screen 0 1280x800x24 -nolisten tcp", sys.executable,
-                str(Path(__file__).resolve()), "--executable", str(executable),
+                str(child_script.resolve()), "--executable", str(executable),
                 "--sha256", expected_sha, "--private-child", tmp]
         proc = subprocess.Popen(args, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                 start_new_session=True)
         try:
-            out, err = proc.communicate(timeout=80)
+            out, err = proc.communicate(timeout=timeout)
         except BaseException:
             os.killpg(proc.pid, signal.SIGTERM)
             try:
@@ -220,7 +224,12 @@ def consume(executable, expected_sha):
         require(proc.returncode == 0, f"private consumer rejected: {err[-3000:].decode(errors='replace')}")
         result = json.loads(out)
         require(digest(executable) == expected_sha, "executable identity changed")
-        return {"status": "PASS", "scope": "isolated_linux_x11_synthetic_input_and_raster",
+        return result
+
+
+def consume(executable, expected_sha):
+    result = run_private(executable, expected_sha, Path(__file__))
+    return {"status": "PASS", "scope": "isolated_linux_x11_synthetic_input_and_raster",
                 "executable_sha256": expected_sha, "width": WIDTH, "height": HEIGHT,
                 "status_rows": list(STATUS_ROWS), **result,
                 "physical_keyboard": "NOT_EVALUATED", "physical_audio": "NOT_EVALUATED",
