@@ -15,23 +15,15 @@ if [[ -z "$mise_bin" || ! -x "$mise_bin" ]]; then
   echo "mise unavailable; Ordivon Capital toolchain authority requires mise" >&2
   exit 2
 fi
-"$mise_bin" exec -- uv sync --frozen --group research --group test >/dev/null
+"$mise_bin" exec -- uv sync --locked --group research --group test >/dev/null
 
 "$market_python" - <<'PY'
 import importlib.metadata as metadata
 import importlib.util
 import json
 import sys
-
-expected = {
-    "numpy": "2.5.3",
-    "scipy": "1.18.1",
-    "scikit-learn": "1.9.1",
-    "pyarrow": "26.0.0",
-    "pytest": "9.1.1",
-    "websockets": "17.1",
-    "psycopg": "3.3.6",
-}
+import tomllib
+from pathlib import Path
 modules = {
     "numpy": "numpy",
     "scipy": "scipy",
@@ -41,6 +33,19 @@ modules = {
     "websockets": "websockets",
     "psycopg": "psycopg",
 }
+# The committed lock is the exact delivery identity, not a second handwritten
+# version table. Refuse ambiguous package variants rather than guessing which
+# branch a different carrier installed.
+try:
+    packages = tomllib.loads(Path("uv.lock").read_text(encoding="utf-8"))["package"]
+    expected = {}
+    for dist in modules:
+        matches = [p["version"] for p in packages if p["name"] == dist]
+        if len(matches) != 1 or not isinstance(matches[0], str) or not matches[0]:
+            raise ValueError(f"expected one locked version for {dist}")
+        expected[dist] = matches[0]
+except (OSError, ValueError, KeyError, TypeError) as exc:
+    raise SystemExit(f"invalid Capital dependency lock: {exc}") from exc
 missing = [dist for dist, mod in modules.items() if importlib.util.find_spec(mod) is None]
 versions = {dist: metadata.version(dist) for dist in expected if dist not in missing}
 print(json.dumps({
