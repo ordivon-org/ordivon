@@ -52,6 +52,21 @@ Safety law, under well-formed inputs: `complete => all_required_supported_by_non
 - FLAC/WAVE/PNG claim-complete routes require explicit claimResults/native status pointers; do not weaken.
 - v1 and v2 profile definitions are NOT globally equivalent. Prove each common axis or mark UNKNOWN.
 - No full snapshot guarantee for sidecar formats until dependency closure is bound.
+- T4 descriptor boundary: `artifact_core/file_stream.py` shares one native
+  regular-file descriptor open and one digest/length observation between
+  FileCommitment and private InputSnapshot. Initial aliases may be resolved
+  by the caller; a final replacement alias at the committed path is rejected
+  where O_NOFOLLOW is supported. O_NONBLOCK prevents FIFO admission from
+  waiting for a writer. No parent-directory or process-readset continuity
+  guarantee is inferred.
+- T4 v2 input binding: `artifact_verification/request_inputs.py` owns typed
+  profile/subject/contract bindings and their caller-owned snapshot lifetime.
+  Legacy admission paths have before/after digest checks; observed drift or
+  unavailable input prevents service PASS and leaves Standing UNKNOWN,
+  retaining the actual native report after execution. Matching checks do not
+  establish ABA freedom, sidecar closure or native-tool honesty. Legacy
+  `ADMISSION_DIGEST_ONLY` remains wire-compatible.
+
 - Negative cases: absent claim, NOT_EVALUATED claim, explicit FAIL, conflicting native pointer, missing required gate, mismatched native identity, tool identity drift, source rebind, fake consumer success.
 - Keep old API/schema working while expand–migrate–contract is in progress.
 
