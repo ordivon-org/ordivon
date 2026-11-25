@@ -10,6 +10,7 @@ import argparse
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 import json
+import math
 from pathlib import Path
 import re
 import statistics
@@ -215,24 +216,89 @@ def segments(
     return result
 
 
-def parse_matrix(rows: list[dict], metric: str, start: datetime, end: datetime) -> dict[str, list[float]]:
-    outputs: dict[str, list[float]] = {}
+@dataclass(frozen=True)
+class HistoricalSeries:
+    """A metric-independent source identity and its original sample coordinates."""
+
+    labels: tuple[tuple[str, str], ...]
+    samples: dict[float, float]
+
+
+def parse_matrix(rows: list[dict], metric: str, start: datetime, end: datetime) -> dict[str, HistoricalSeries]:
+    """Project original samples only, rejecting ambiguous roles in this window."""
+    if metric not in ("probe_success", "probe_duration_seconds"):
+        raise ValueError("Unsupported historical metric")
+    outputs: dict[str, HistoricalSeries] = {}
+    seen: set[str] = set()
     for row in rows:
-        job = row.get("metric", {}).get("job", "")
+        labels = row.get("metric", {})
+        job = labels.get("job", "")
         if job not in JOBS:
             continue
-        values = []
+        samples: dict[float, float] = {}
+        coordinates: set[float] = set()
+        valid = labels.get("__name__", metric) == metric
         for timestamp, raw in row.get("values", []):
-            if not (start.timestamp() <= float(timestamp) <= end.timestamp()):
+            try:
+                stamp = float(timestamp)
+            except (ValueError, TypeError):
+                valid = False
+                break
+            if not math.isfinite(stamp):
+                valid = False
+                break
+            if not start.timestamp() <= stamp <= end.timestamp():
                 continue
+            if stamp in coordinates:
+                valid = False
+                break
+            coordinates.add(stamp)
             try:
                 number = float(raw)
             except (ValueError, TypeError):
+                valid = False
+                break
+            # NaN represents missing telemetry, never an observation.
+            if math.isnan(number):
                 continue
-            if number == number and 0 <= number < float("inf"):
-                values.append(number)
-        outputs[job] = values
+            if (not math.isfinite(number) or number < 0
+                    or (metric == "probe_success" and number not in (0.0, 1.0))):
+                valid = False
+                break
+            samples[stamp] = number
+        # A different identity outside this segment is not evidence for it.
+        # Invalid observations, including unknown timestamps, are ambiguous.
+        if valid and not coordinates:
+            continue
+        if job in seen:
+            outputs.pop(job, None)
+            continue
+        seen.add(job)
+        if valid:
+            identity = tuple(sorted((k,v) for k,v in labels.items() if k != "__name__"))
+            outputs[job] = HistoricalSeries(identity, samples)
     return outputs
+
+
+def paired_matrix(success_rows: list[dict], duration_rows: list[dict],
+                  start: datetime, end: datetime) -> tuple[dict[str, list[float]], dict[str, list[float]]]:
+    """Keep only exact same-source, same-scrape metric pairs.
+
+    An inner join alone can silently drop failed observations when latency is
+    absent. Require equality of admitted coordinate sets before projecting.
+    """
+    successes = parse_matrix(success_rows, "probe_success", start, end)
+    durations = parse_matrix(duration_rows, "probe_duration_seconds", start, end)
+    success: dict[str, list[float]] = {}
+    duration: dict[str, list[float]] = {}
+    for job in successes.keys() & durations.keys():
+        a, b = successes[job], durations[job]
+        if a.labels != b.labels or a.samples.keys() != b.samples.keys():
+            continue
+        times = sorted(a.samples)
+        success[job] = [a.samples[stamp] for stamp in times]
+        duration[job] = [b.samples[stamp] for stamp in times]
+    return success, duration
 
 
 def qualify(
@@ -343,38 +409,37 @@ def decision(
     }
 
 
-def http_query(metric: str, start: datetime, end: datetime) -> list[dict]:
-    expr = metric+'{job=~"'+ "|".join(JOBS)+'"}'
-    url = PROM + "/api/v1/query_range?" + urlencode({
-        "query": expr, "start": int(start.timestamp()),
-        "end": int(end.timestamp()), "step": "60s",
-    })
-    with urlopen(url, timeout=14) as r:
-        data = json.load(r)
-    if data.get("status") != "success" or data.get("data", {}).get("resultType") != "matrix":
-        raise ValueError("Prometheus range query is not valid")
-    return data["data"]["result"]
-
-
-def http_raw_samples(metric: str, now: datetime) -> list[dict]:
-    """Return actual Prometheus scrape timestamps, NEVER query_range steps.
-
-    A query_range instant selector can repeat the final failed value for up
-    to the lookback delta after scraping stops. Query a range vector at one
-    instant to receive original raw sample times and distinguish silence.
-    """
-    if metric != "probe_success":
-        raise ValueError("Native failure admission accepts only probe_success")
-    expr = metric + '{job=~"' + "|".join(JOBS) + '"}[7m]'
+def _http_range_vector(metric: str, end: datetime, window: str, timeout: int) -> list[dict]:
+    """The native instant range-vector API preserves original scrape timestamps."""
+    expr = metric+'{job=~"'+ "|".join(JOBS)+'"}['+window+']'
     url = PROM + "/api/v1/query?" + urlencode({
-        "query": expr, "time": now.timestamp(),
+        "query": expr, "time": end.timestamp(),
     })
-    with urlopen(url, timeout=11) as response:
+    with urlopen(url, timeout=timeout) as response:
         data = json.load(response)
-    if (data.get("status") != "success" or
+    if (data.get("status") != "success" or data.get("warnings") or
         data.get("data", {}).get("resultType") != "matrix"):
         raise ValueError("Raw Prometheus range-vector observation invalid")
     return data["data"]["result"]
+
+
+def http_query(metric: str, start: datetime, end: datetime) -> list[dict]:
+    """Read the original historical scrape series, not lookback-replayed steps."""
+    if metric not in ("probe_success", "probe_duration_seconds"):
+        raise ValueError("Unsupported historical metric")
+    seconds = (end - start).total_seconds()
+    if not 0 <= seconds <= 168 * 3600:
+        raise ValueError("Historical range outside bounded observation window")
+    # Native range selectors are left-open/right-closed. Include the start
+    # boundary, then filter exactly to the caller's window in parse_matrix.
+    return _http_range_vector(metric, end, f"{math.ceil(seconds)+1}s", 14)
+
+
+def http_raw_samples(metric: str, now: datetime) -> list[dict]:
+    """Return actual Prometheus scrape timestamps, NEVER query_range steps."""
+    if metric != "probe_success":
+        raise ValueError("Native failure admission accepts only probe_success")
+    return _http_range_vector(metric, now, "7m", 11)
 
 
 def recent_failure_witness(now: datetime) -> bool | None:
@@ -527,8 +592,7 @@ def observe(*, hours: int) -> dict[str, object]:
         for segment in relevant:
             start = segment.start + WARMUP
             end = segment.end - timedelta(minutes=1)
-            success = parse_matrix(successes, "probe_success", start, end)
-            duration = parse_matrix(durations, "probe_duration_seconds", start, end)
+            success, duration = paired_matrix(successes, durations, start, end)
             results.append(qualify(segment, success, duration, now, allowed))
     # Live evidence is distinct from the historical trend. Do not infer
     # active failure from a missing metric or merely an older journal session.
