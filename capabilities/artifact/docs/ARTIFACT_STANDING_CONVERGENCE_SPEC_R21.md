@@ -269,3 +269,32 @@ Building another Runtime/Host/Harness, universal file taxonomy, custom CAS, seco
 - Matt Pocock `skills/engineering/to-spec`, `to-tickets`, `implement`, `tdd`, `code-review`.
 - obra/superpowers `writing-plans`, `test-driven-development`, `verification-before-completion`, `using-git-worktrees`.
 - affaan-m/ECC `hooks`, `rules`, `skills`: selective reuse of quality gate semantics, without wholesale installation.
+
+
+### T4 narrow qualification: bounded TMJ object maps
+
+The existing Tiled R1 route is qualified for exact subject/contract snapshots
+only within its finite orthogonal object-layer-only subset. Map, layer and
+object properties must have explicit supported scalar types; file, custom
+class/project type and non-scalar properties are rejected before native
+invocation, along with the existing template/tileset/unsupported layer
+rejections. Duplicate input JSON keys and malformed IDs fail admission.
+The pure `artifact_verifiers/tiled_map.py` owns bounded map facts and
+admission diagnostics; the existing Tiled driver owns process execution,
+native evidence and format/raster roundtrips. No new registry or workflow.
+
+I: parsed exact TMJ/contract objects; O: bounded facts plus issues; S: Unit;
+pre: unique-key JSON; post: no declared file/template/tileset/class resource
+accepted within this subset; inv: failures prevent native invocation; eff:
+none for map admission; c: linear scan of declared layers/objects/properties
+plus canonical serialization/sorting; epsilon: deterministic declared-field
+scope only, not arbitrary future Tiled extensions or full process readset;
+prov: original request digests, private snapshot and native reports; unfold:
+map/property diagnostics then existing native observations. The legacy
+aggregate status and incomplete required-claim coverage remain unchanged.
+The v2 service snapshot protects original-path replacement/ABA for the two
+bound files. Direct native CLI callers retain their existing path semantics;
+same-principal scratch mutation, imported Python/native dependencies, Tiled
+global configuration, and external target acceptance are not claimed.
+
+The historical Game TMJ receipt retains its original bytes and digest. All four Artifact authority digests match the retained monorepo source cut `e2757345aae3e4d38330d0f07c8eef45bbdf998f`; the historical receipt test reads that exact Git witness rather than constraining the current driver. This is not the original external repository revision.

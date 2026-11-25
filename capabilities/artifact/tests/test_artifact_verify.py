@@ -506,8 +506,17 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         self.assertEqual(receipt['nativeCrossFormatRoundTrip']['status'],'PASS')
         self.assertEqual(receipt['nativeRasterReadback']['status'],'PASS')
         self.assertEqual(receipt['gameMigrationEvidence']['layoutDigest'],'21efdf5b69858953aaef55abd0bb143f5eb24f5be8f3a3c3bcfe6cb86cc5b527')
-        for value in receipt['artifactOwnedAuthorities'].values():
-            path=ROOT/value['relativePath'];self.assertEqual(sha(path),value['sha256'],value['relativePath'])
+        # Imported monorepo source cut independently matched all four frozen
+        # Artifact authority digests. It is a retained witness, not the
+        # original external repository revision or a current-source constraint.
+        revision = "e2757345aae3e4d38330d0f07c8eef45bbdf998f"
+        for value in receipt["artifactOwnedAuthorities"].values():
+            path = (ROOT / value["relativePath"]).relative_to(MONOREPO_ROOT).as_posix()
+            source = subprocess.check_output(
+                ["git", "-C", str(MONOREPO_ROOT), "show", f"{revision}:{path}"],
+                timeout=25,
+            )
+            self.assertEqual(hashlib.sha256(source).hexdigest(), value["sha256"], path)
 
     def test_frozen_aseprite_game_consumer_smoke_separates_native_and_game_owned_metadata(self):
         receipt=json.loads((ROOT/'artifact-delivery/consumer-acceptance/game-station-zero-aseprite-horizontal-sheet-r1.json').read_text())
