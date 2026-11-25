@@ -149,3 +149,29 @@ prov: binary SHA, event program, decoded PCM SHA, sample shape and amplitude,
 native diagnostic result. unfold: existing X11 input binding + native Movie
 Maker + FFmpeg; no new audio engine or dependency. Qualify native probe before
 making a production consumer, no READY expansion or CI gate without evidence.
+
+## R14 — immutable hosted-product consumer convergence
+
+Host #32781; #2809 merged 51f78bc50a09af584f47fb7b2ceef201ee87d5dc.
+The real consumer of L11 delivery is L12, not an additional build. Adopt
+GitHub Actions immutable artifact identity, its REST SHA-256 digest
+(https://docs.github.com/en/rest/actions/artifacts), and stdlib zipfile/tarfile
+bounded member reads (https://docs.python.org/3/library/tarfile.html).
+Do not add artifact storage, scheduler, unpacking engine, or game simulation.
+
+I: locally downloaded exact Actions ZIP, expected outer SHA, expected source
+commit and product. O: bound downstream consumer receipt. S: private bounded
+scratch, no normal player app data. pre: regular archive, exact outer digest,
+four exact regular members, expected READY/source, exactly three manifest
+members and digest match, known export templates. post: one native Linux
+executable from the verified archive; strict rendered startup for both products,
+Room interaction and mixed PCM; bind actual executable hash and child scopes.
+inv: reject malformed inventories, duplicates, links, traversal, excessive
+member sizes, wrong source or digest, and any failed sub-consumer. No partial PASS.
+eff: disposable file materialization and private display execution; no upload,
+release, re-export, or mutation of input. c: bounded sizes, one product at a time.
+epsilon: tested Linux renderer/geometry/PCM only, no Windows or physical audio.
+prov: outer ZIP SHA, source, archive and executable SHA, child receipts.
+unfold: existing native consumers and Python stdlib archive decoders. Retain
+producer READY meaning and CI workflow; no new required CI check before actual
+runner qualification. Existing local direct executables remain useful probes.
