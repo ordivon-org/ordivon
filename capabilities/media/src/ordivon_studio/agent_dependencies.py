@@ -104,32 +104,47 @@ def _js_status(root: Path) -> dict[str, Any]:
             "resolverChecked": False,
         }
     resolver = Path(resolver_name)
+    gate = root / "scripts/require-js-deps.mjs"
+    base = {
+        "requiredPaths": [str(path.relative_to(root)) for path in required],
+        "resolver": str(resolver),
+        "resolverChecked": False,
+        "environmentChecked": False,
+    }
+    if not gate.is_file():
+        return {**base, "ready": False, "reason": "JS_GATE_UNAVAILABLE"}
     try:
         probe = subprocess.run(
-            [str(resolver), "exec", "node", "-e", "process.exit(0)"],
-            cwd=root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            check=False, timeout=10,
+            [str(resolver), "exec", "node", str(gate.resolve())],
+            cwd=root, capture_output=True, text=True, check=False, timeout=10,
         )
-    except (OSError, subprocess.TimeoutExpired):
-        return {
-            "ready": False, "reason": "JS_RESOLVER_UNOBSERVED",
-            "requiredPaths": [str(path.relative_to(root)) for path in required],
-            "resolverChecked": False,
-        }
-    ready = probe.returncode == 0
+    except (OSError, subprocess.TimeoutExpired, UnicodeError):
+        return {**base, "ready": False, "reason": "JS_RESOLVER_UNOBSERVED"}
+    # Only the source-owned gate's typed outcome can establish materialization
+    # failure. A resolver failure or an unrecognized response is UNKNOWN.
+    outcomes = {
+        (0, "studio_js_dependencies=ready"): "READY",
+        (2, "studio_js_dependencies=not-ready"): "JS_DEPENDENCIES_STALE_OR_UNAVAILABLE",
+        (3, "studio_js_dependencies=contract-invalid"): "JS_CONTRACT_INVALID",
+        (4, "studio_js_dependencies=unobserved"): "JS_GATE_UNOBSERVED",
+    }
+    markers = [line for line in probe.stdout.splitlines() if line.startswith("studio_js_dependencies=")]
+    reason = outcomes.get((probe.returncode, markers[0])) if len(markers) == 1 else None
+    if reason is None:
+        return {**base, "ready": False, "reason": "JS_GATE_UNOBSERVED"}
     return {
-        "ready": ready,
-        "reason": "READY" if ready else "JS_DEPENDENCIES_STALE_OR_UNAVAILABLE",
-        "requiredPaths": [str(path.relative_to(root)) for path in required],
+        **base,
+        "ready": reason == "READY",
+        "reason": reason,
         "resolverChecked": True,
-        "resolver": str(resolver),
-        "boundary": "The project-pinned pnpm resolver performs a non-mutating fail-closed dependency-status check; Studio does not duplicate pnpm currentness semantics.",
+        "environmentChecked": reason != "JS_GATE_UNOBSERVED",
+        "boundary": "Delegate to the project-pinned pnpm resolver and the same Studio CLI package identity gate; neither observation acquires dependencies.",
     }
 
 
 _UNOBSERVED_REASONS = {
     "PYTHON_GATE_UNAVAILABLE", "PYTHON_GATE_UNOBSERVED",
-    "JS_RESOLVER_UNOBSERVED", "JS_RESOLVER_UNAVAILABLE",
+    "JS_RESOLVER_UNOBSERVED", "JS_RESOLVER_UNAVAILABLE", "JS_GATE_UNAVAILABLE", "JS_GATE_UNOBSERVED",
 }
 
 
@@ -158,7 +173,7 @@ def dependency_proposal(target: str, root: Path = ROOT) -> dict[str, Any]:
     current = _js_status(root) if target == "js" else _python_receipt_status(root)
     standing = _standing(current)
     current = {**current, "standing": standing}
-    if standing == "unknown":
+    if standing == "unknown" or current["reason"] == "JS_CONTRACT_INVALID":
         return {
             "schemaVersion": 1,
             "kind": "ordivon.studio-dependency-acquisition-proposal",
@@ -167,7 +182,7 @@ def dependency_proposal(target: str, root: Path = ROOT) -> dict[str, Any]:
             "effectRequired": None,
             "plan": None,
             "status": current,
-            "authorityBoundary": "Observation is unavailable; restore the observation path before proposing acquisition.",
+            "authorityBoundary": "Observation is unavailable or the declared release contract is invalid; repair that boundary before proposing acquisition.",
         }
     if current["ready"]:
         return {
