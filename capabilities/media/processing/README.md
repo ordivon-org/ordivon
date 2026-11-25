@@ -103,21 +103,26 @@ to one selected Asset. The separate native editorial gate, renderer readback,
 Artifact/Runtime authority and recipient acceptance remain independent.
 
 
-### OTIO attempt evidence ownership
+### Native processing attempt evidence ownership
 
-The OTIO adapter requires an absent evidence directory, reserved by native
-exclusive directory creation. A repeat or competing invocation using that path
-fails with exit 3, preserving all previous files. Use a new path for each
-attempt, even after an invalid input or incomplete write. Raw observations and
-assertions are published before `evidence.json`; each file is staged and renamed
-within that directory. This is atomic file publication, not a crash-durability
+All four native probes (AV, audio, timed text and OTIO) require an absent
+evidence directory, reserved by native exclusive directory creation. A repeat
+or competing invocation using that path fails with exit 3, preserving previous
+files. Use a new path for each attempt, even after invalid input or an incomplete
+write. Raw observations and assertions are complete before the final
+`evidence.json` is atomically renamed into place. OTIO also stages each raw
+observation and assertion. This is atomic publication, not a crash-durability
 or external mutation guarantee.
 
-The existing `pnpm processing:probe:otio:introduction` entrypoint now creates a
-unique `out/processing/runtime-introduction-otio/attempt.*/evidence` directory.
-The receipt's `evidenceDirectory` identifies its actual output. There is no
-mutable "latest" receipt. Agent plans specify this admission policy; consumers
-must verify the current execution status, input/profile digests, directory, and
-raw evidence digests. An older success at a rejected destination cannot be
-accepted as this attempt's success. No policy changes are made to other
-processing adapters.
+The existing introduction probe commands create unique
+`out/processing/<probe>/attempt.*/evidence` directories. The receipt's
+`evidenceDirectory` identifies its actual output. There is no mutable "latest"
+receipt. Agent plans specify this admission policy; consumers must verify the
+current execution status, input/artifact and profile digests, directory, and raw
+evidence digests. A prior success at a rejected destination is not current
+success. Native probes remain independent of an additional custom executor;
+the existing adapter digest remains the execution commitment.
+
+`pnpm check:all` exercises all four native providers and the native concurrent
+attempt-custody regression tests. The lightweight core gate remains available
+for environments without the external media tools.

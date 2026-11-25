@@ -10,6 +10,14 @@ artifact=$(realpath "$1")
 profile=$(realpath "$2")
 out=$3
 
+# Reserve exactly one execution destination without overwriting prior evidence.
+mkdir -p -- "$(dirname -- "$out")"
+if ! mkdir -- "$out"; then
+  echo "evidence directory must be new: $out" >&2
+  exit 3
+fi
+out=$(realpath -- "$out")
+
 [[ -f "$artifact" ]] || { echo "artifact not found: $artifact" >&2; exit 66; }
 [[ -f "$profile" ]] || { echo "profile not found: $profile" >&2; exit 66; }
 command -v ffprobe >/dev/null
@@ -60,6 +68,7 @@ jq -n \
   --arg artifact "$artifact" \
   --arg artifactDigest "$artifact_sha" \
   --argjson artifactBytes "$artifact_bytes" \
+  --arg evidenceDirectory "$out" \
   --arg profile "$profile" \
   --arg profileDigest "$profile_sha" \
   --arg ffprobeVersion "$ffprobe_version" \
@@ -68,6 +77,7 @@ jq -n \
   --argjson ok "$ok" '
   {
     schemaVersion:1,
+    evidenceDirectory:$evidenceDirectory,
     kind:"ordivon.media.v2.external-qc-evidence",
     truthRole:"mechanical-profile-evidence-not-semantic-or-aesthetic-approval",
     artifact:{path:$artifact,digest:$artifactDigest,sizeBytes:$artifactBytes},
@@ -79,7 +89,8 @@ jq -n \
     aestheticQuality:"not-evaluated",
     publicationStanding:"not-evaluated"
   }
-' > "$evidence"
+' > "$evidence.tmp"
+mv -T -- "$evidence.tmp" "$evidence"
 
 if [[ "$ok" != "true" ]]; then
   jq -r '.checks[] | select(.ok == false) | "FAIL \(.name): expected=\(.expected|tojson) actual=\(.actual|tojson)"' "$assertions" >&2

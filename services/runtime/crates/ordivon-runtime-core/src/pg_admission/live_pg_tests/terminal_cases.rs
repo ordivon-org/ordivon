@@ -690,3 +690,121 @@ fn pg18_composed_admit_dispatch_artifact_terminal_is_one_consumer_chain() {
     );
     assert_eq!(scratch.count("artifacts"), 1);
 }
+
+#[test]
+#[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+fn pg18_readback_rejects_detached_unsettled_historical_attempt() {
+    use crate::PgJobReadback;
+    let dsn = physical_pg_test_dsn();
+    let mut scratch = Scratch::new(&dsn);
+    scratch.qualify();
+    let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+    let input = payload("history-readback", "history-job", "history-workspace", 2);
+    store.admit(&input).unwrap();
+    store
+        .commit_terminal_no_artifacts(&PgTerminalNoArtifacts {
+            attempt_id: input.attempt_id.clone(),
+            expected_row_version: 0,
+            terminal_state: "failed".into(),
+            result_digest: "sha256:terminal".into(),
+            reason_code: "HISTORY_TEST".into(),
+            exit_code: Some(1),
+            finished_at_ms: input.created_at_ms + 1,
+            expected_source_sha256: input.expected_source_sha256.clone(),
+        })
+        .unwrap();
+    let read = |store: &mut PgAdmissionStore| {
+        store
+            .observe_job_readonly(&input.job_id, &input.expected_source_sha256)
+            .unwrap()
+    };
+    assert!(matches!(read(&mut store), PgJobReadback::Observed(_)));
+    // Admin-only, schema-valid historical contradiction. This is not a claim
+    // that the ordinary Runtime can admit such a history.
+    scratch
+        .admin
+        .execute(
+            "UPDATE attempts SET attempt_number=2 WHERE attempt_id=$1",
+            &[&input.attempt_id],
+        )
+        .unwrap();
+    let earlier = "attempt-history-earlier";
+    scratch.admin.execute(
+        "INSERT INTO attempts(attempt_id,job_id,attempt_number,state,termination_intent,launch_token_digest,bundle_path,unit_name,created_at_ms,row_version) VALUES($1,$2,1,'running','natural','launch-old','/nonproduction/old','older.service',$3,0)",
+        &[&earlier, &input.job_id, &input.created_at_ms],
+    ).unwrap();
+    scratch.admin.execute(
+        "INSERT INTO concurrency_reservations(reservation_id,attempt_id,global_limit,state,acquired_at_ms,state_observed_at_ms) VALUES('reservation-history-earlier',$1,2,'active',$2,$2)",
+        &[&earlier, &input.created_at_ms],
+    ).unwrap();
+    assert_eq!(
+        read(&mut store),
+        PgJobReadback::Inconclusive,
+        "latest terminal Attempt cannot hide a detached live predecessor"
+    );
+    scratch
+        .admin
+        .execute(
+            "UPDATE attempts SET state='orphaned' WHERE attempt_id=$1",
+            &[&earlier],
+        )
+        .unwrap();
+    scratch
+        .admin
+        .execute(
+            "UPDATE concurrency_reservations SET state='held_orphaned' WHERE attempt_id=$1",
+            &[&earlier],
+        )
+        .unwrap();
+    assert_eq!(
+        read(&mut store),
+        PgJobReadback::Inconclusive,
+        "held orphan cannot be hidden by a terminal successor"
+    );
+    scratch.admin.execute(
+        "UPDATE attempts SET state='lost',result_digest='sha256:old',finished_at_ms=$2 WHERE attempt_id=$1",
+        &[&earlier, &input.created_at_ms],
+    ).unwrap();
+    scratch.admin.execute(
+        "UPDATE concurrency_reservations SET state='released',released_at_ms=$2 WHERE attempt_id=$1",
+        &[&earlier, &input.created_at_ms],
+    ).unwrap();
+    assert!(
+        matches!(read(&mut store), PgJobReadback::Observed(_)),
+        "settled historical predecessor must not invalidate the latest result"
+    );
+    // Scheduler allocations are separate from admission reservations.
+    // A genuine terminal writer releases both. Absence of an allocation is
+    // legal (never-dispatched); a present active allocation is not settled.
+    for attempt in [earlier, input.attempt_id.as_str()] {
+        scratch.admin.execute(
+            "INSERT INTO job_allocations(attempt_id,resources_json,workspace_access_json,owner,state,acquired_at_ms) VALUES($1,'{}','{}',$2,'active',$3) ON CONFLICT(attempt_id) DO UPDATE SET state='active',released_at_ms=NULL",
+            &[&attempt, &input.principal, &input.created_at_ms],
+        ).unwrap();
+        assert_eq!(
+            read(&mut store),
+            PgJobReadback::Inconclusive,
+            "terminal projection cannot hide active allocation for {attempt}"
+        );
+        scratch
+            .admin
+            .execute(
+                "UPDATE job_allocations SET state='released',released_at_ms=$2 WHERE attempt_id=$1",
+                &[&attempt, &input.created_at_ms],
+            )
+            .unwrap();
+        assert!(matches!(read(&mut store), PgJobReadback::Observed(_)));
+    }
+    scratch
+        .admin
+        .execute(
+            "DELETE FROM concurrency_reservations WHERE attempt_id=$1",
+            &[&earlier],
+        )
+        .unwrap();
+    assert_eq!(
+        read(&mut store),
+        PgJobReadback::Inconclusive,
+        "missing historical reservation is not evidence of release"
+    );
+}
