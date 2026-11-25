@@ -7,7 +7,7 @@ signal action_accepted(action: String)
 const MAX_TURN: int = 9223372036854775807
 @export var tuning: Resource = preload("res://configs/default.tres")
 
-var active: Resource
+var _active: Resource
 var room: int = 0
 var foes: int = 0
 var enemy_health: int = 0
@@ -34,31 +34,39 @@ func reset_run(replacement: Resource = null) -> bool:
     var selected: Resource = replacement if replacement != null else tuning
     if not accepts(selected):
         return false
-    active = selected.duplicate(true)
+    _active = selected.duplicate(true)
     room = 1
-    foes = active.enemies_per_room[0]
-    enemy_health = active.enemy_health
-    player_health = active.player_health
-    stamina = active.stamina_capacity
+    foes = _active.enemies_per_room[0]
+    enemy_health = _active.enemy_health
+    player_health = _active.player_health
+    stamina = _active.stamina_capacity
     turn = 0
     phase = "fighting"
     state_changed.emit(snapshot())
     return true
 
+# Consumers may restart or query the mode, never borrow the mutable admitted tuning.
+# GDScript underscore fields are an internal API convention, not a sandbox.
+func restart_run() -> bool:
+    return reset_run(_active) if _active != null else false
+
+func is_tactical_trial() -> bool:
+    return _active != null and _active.tactical_trial
+
 func attack() -> bool:
-    if phase != "fighting" or stamina < active.attack_cost:
+    if phase != "fighting" or stamina < _active.attack_cost:
         return false
     var pending_damage: int = _incoming_damage()
-    stamina -= active.attack_cost
+    stamina -= _active.attack_cost
     _record_turn()
-    enemy_health -= active.attack_damage
+    enemy_health -= _active.attack_damage
     if enemy_health <= 0:
         foes -= 1
         if foes == 0:
             phase = "cleared"
             enemy_health = 0
         else:
-            enemy_health = active.enemy_health
+            enemy_health = _active.enemy_health
     if phase == "fighting":
         _retaliate(0, pending_damage)
     state_changed.emit(snapshot())
@@ -72,8 +80,8 @@ func guard() -> bool:
     # when the final logical stamina should equal capacity.
     var pending_damage: int = _incoming_damage()
     var protection: int = _guard_protection(pending_damage)
-    var missing_capacity: int = active.stamina_capacity - stamina
-    stamina += mini(missing_capacity, active.guard_restore)
+    var missing_capacity: int = _active.stamina_capacity - stamina
+    stamina += mini(missing_capacity, _active.guard_restore)
     _record_turn()
     _retaliate(protection, pending_damage)
     state_changed.emit(snapshot())
@@ -83,12 +91,12 @@ func guard() -> bool:
 func advance() -> bool:
     if phase != "cleared":
         return false
-    if room >= active.enemies_per_room.size():
+    if room >= _active.enemies_per_room.size():
         phase = "won"
     else:
         room += 1
-        foes = active.enemies_per_room[room - 1]
-        enemy_health = active.enemy_health
+        foes = _active.enemies_per_room[room - 1]
+        enemy_health = _active.enemy_health
         phase = "fighting"
     state_changed.emit(snapshot())
     return true
@@ -103,8 +111,8 @@ func _record_turn() -> void:
 # The third combat turn telegraphs a stronger strike; no duplicate intent
 # ledger, no randomized hidden information, and no additional save state.
 func _incoming_damage() -> int:
-    var damage: int = active.enemy_damage
-    if active.tactical_trial and damage > 0 and turn % 3 == 2 and damage < MAX_TURN:
+    var damage: int = _active.enemy_damage
+    if _active.tactical_trial and damage > 0 and turn % 3 == 2 and damage < MAX_TURN:
         damage += 1
     return damage
 
@@ -112,7 +120,7 @@ func _incoming_damage() -> int:
 # blocks the announced strike completely. It buys safety but spends a turn
 # instead of reducing enemy HP; ordinary Guard remains the tuned block value.
 func _guard_protection(incoming: int) -> int:
-    return incoming if active.tactical_trial and turn % 3 == 2 else active.guard_block
+    return incoming if _active.tactical_trial and turn % 3 == 2 else _active.guard_block
 
 func _retaliate(block: int, incoming: int) -> void:
     player_health = maxi(0, player_health - maxi(0, incoming - block))
@@ -120,35 +128,35 @@ func _retaliate(block: int, incoming: int) -> void:
         phase = "lost"
 
 func _forecast() -> Dictionary:
-    if phase != "fighting" or not active.tactical_trial:
+    if phase != "fighting" or not _active.tactical_trial:
         return {}
     var threat: int = _incoming_damage()
     # Killing the last foe finishes combat before retaliation.
-    var last_kill: bool = foes == 1 and enemy_health <= active.attack_damage
+    var last_kill: bool = foes == 1 and enemy_health <= _active.attack_damage
     return {
         "threat_damage": threat,
         "charged": turn % 3 == 2,
-        "attack_damage": active.attack_damage,
+        "attack_damage": _active.attack_damage,
         "attack_health_loss": 0 if last_kill else mini(player_health, threat),
         "guard_health_loss": mini(player_health, maxi(0, threat - _guard_protection(threat))),
-        "guard_stamina_gain": mini(active.stamina_capacity - stamina, active.guard_restore),
-        "attack_cost": active.attack_cost
+        "guard_stamina_gain": mini(_active.stamina_capacity - stamina, _active.guard_restore),
+        "attack_cost": _active.attack_cost
     }
 
 func snapshot() -> Dictionary:
     var observed: Dictionary = {
         "room": room,
-        "total_rooms": active.enemies_per_room.size() if active != null else 0,
+        "total_rooms": _active.enemies_per_room.size() if _active != null else 0,
         "foes": foes,
         "enemy_health": enemy_health,
         "player_health": player_health,
         "stamina": stamina,
-        "attack_cost": active.attack_cost if active != null else 0,
+        "attack_cost": _active.attack_cost if _active != null else 0,
         "turn": turn,
         "phase": phase
     }
     # Classic retains its original snapshot schema and combat semantics.
-    if active != null and active.tactical_trial:
+    if _active != null and _active.tactical_trial:
         observed["forecast"] = _forecast()
     return observed
 
@@ -158,24 +166,24 @@ func checkpoint() -> Dictionary:
     var persisted: Dictionary = snapshot()
     persisted.erase("forecast")
     var identity: Dictionary = {
-        "enemies_per_room": active.enemies_per_room,
-        "player_health": active.player_health,
-        "enemy_health": active.enemy_health,
-        "attack_damage": active.attack_damage,
-        "enemy_damage": active.enemy_damage,
-        "stamina_capacity": active.stamina_capacity,
-        "attack_cost": active.attack_cost,
-        "guard_restore": active.guard_restore,
-        "guard_block": active.guard_block
+        "enemies_per_room": _active.enemies_per_room,
+        "player_health": _active.player_health,
+        "enemy_health": _active.enemy_health,
+        "attack_damage": _active.attack_damage,
+        "enemy_damage": _active.enemy_damage,
+        "stamina_capacity": _active.stamina_capacity,
+        "attack_cost": _active.attack_cost,
+        "guard_restore": _active.guard_restore,
+        "guard_block": _active.guard_block
     }
     # Backward-compatible Classic checkpoint bytes stay unchanged.
     # Trial opt-in is an explicit part of the saved tuning identity.
-    if active.tactical_trial:
+    if _active.tactical_trial:
         identity["tactical_trial"] = true
     return {"tuning": identity, "state": persisted}
 
 func restore_checkpoint(saved: Variant) -> bool:
-    if active == null or not saved is Dictionary:
+    if _active == null or not saved is Dictionary:
         return false
     if not saved.has("tuning") or not saved.has("state"):
         return false
@@ -198,23 +206,23 @@ func restore_checkpoint(saved: Variant) -> bool:
     var new_enemy_health: int = s["enemy_health"]
     var new_player_health: int = s["player_health"]
     var new_stamina: int = s["stamina"]
-    if new_room < 1 or new_room > active.enemies_per_room.size():
+    if new_room < 1 or new_room > _active.enemies_per_room.size():
         return false
-    if s["total_rooms"] != active.enemies_per_room.size() or s["attack_cost"] != active.attack_cost:
+    if s["total_rooms"] != _active.enemies_per_room.size() or s["attack_cost"] != _active.attack_cost:
         return false
-    if new_foes < 0 or new_foes > active.enemies_per_room[new_room - 1]:
+    if new_foes < 0 or new_foes > _active.enemies_per_room[new_room - 1]:
         return false
-    if new_enemy_health < 0 or new_enemy_health > active.enemy_health:
+    if new_enemy_health < 0 or new_enemy_health > _active.enemy_health:
         return false
-    if new_player_health < 0 or new_player_health > active.player_health:
+    if new_player_health < 0 or new_player_health > _active.player_health:
         return false
-    if new_stamina < 0 or new_stamina > active.stamina_capacity or s["turn"] < 0:
+    if new_stamina < 0 or new_stamina > _active.stamina_capacity or s["turn"] < 0:
         return false
     if new_phase == "fighting" and (new_foes == 0 or new_enemy_health == 0 or new_player_health == 0):
         return false
     if new_phase == "cleared" and (new_foes != 0 or new_enemy_health != 0 or new_player_health == 0):
         return false
-    if new_phase == "won" and (new_room != active.enemies_per_room.size() or
+    if new_phase == "won" and (new_room != _active.enemies_per_room.size() or
             new_foes != 0 or new_enemy_health != 0 or new_player_health == 0):
         return false
     if new_phase == "lost" and (new_player_health != 0 or new_foes == 0 or new_enemy_health == 0):
