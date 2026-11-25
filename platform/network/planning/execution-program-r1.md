@@ -121,3 +121,34 @@ PR #1507: natural Owner Taskfile (95 task API names); PR #1548: 7 owner-private 
 ## Explicit live UNKNOWN
 
 NS2 source graph still PROPOSED; all-consumer indirect egress bypass and independent no-forwarding are unproved. Historical Gluetun DoH partial failure remains unclosed. Current Windows/WSL full cold boot, old desktop Codex process route, and both iOS devices' selected Tailscale exit + ipinfo public IP are unproved. Do not upgrade any of these from source-only or current service ACTIVE to READY.
+
+## R12 refinement — identity-bound native evidence and protocol adoption (2026-11-26)
+
+Inherit Host Network Work@5, R11 #32719/#32730, N01–N10/NS2 and existing
+natural owners. Host proposal #32755 is coordination, not release authority.
+RFC 3386/8001/9912 shared risk groups motivate physical independence; RFC
+9298/9484 motivate standards-based transport candidates. Two interfaces
+sharing the same modem are not two independent physical failure domains.
+
+| Scope | Change | Acceptance / remaining boundary |
+| --- | --- | --- |
+| P0 evidence | Replace global raw sample counting for the three correlated alerts with native per-job unique fresh binary recording and current evaluation checks | promtool positive, duplicate-role negative, missing/stale and invalid binary negative; preserve alert labels; no physical-cause assertion |
+| P0 underlay | Measure independently provisioned physical WANs before claiming redundancy | independent origin observations and shared-risk inventory; no second WAN currently established |
+| P0 recovery | Keep one physical provider and native lifecycle; health cannot authorize release | observed drift, bounded recovery, exact independent consumer; no automatic protocol cutover |
+| P0 device | Issue #2105 per-device exit/DNS observation | physical device receipt, not server READY |
+| P1 verification | R11 uv/mise native lock; source-bound promtool tests, independent consumer and fault injection | no new scheduler or custom monitoring engine; source != installed |
+| P2 transport | compare mature standard HTTP/QUIC/MASQUE implementations in authorized isolated reference workloads | measured consumer compatibility, goodput, latency, resource cost; no provider or production selection from novelty |
+
+R2.1 evidence LEGO: I raw per-job probe_success and evaluation clock;
+O per-role unique fresh binary observation and existing alert states;
+S native Prometheus group; pre source-declared five jobs and raw samples;
+post each admitted role has exactly one raw series and a binary sample aged
+under 90 seconds; alert aggregation requires every role and current recording
+evaluation; inv missing/duplicate/stale/invalid is UNKNOWN, not failed or
+healthy; eff source rules only; c native PromQL role aggregation (not a
+measured runtime improvement); epsilon neither physical independence nor
+causal root cause, monitoring classification is not mutation authority;
+prov native RED job-01a214af-47de-73ed-974f-6df38b18e49c and original fixtures;
+unfold role identity -> sample qualification -> recording -> group alert.
+Source PR/CI, installed bytes, loaded rules and independent consumers remain
+separate acceptance steps. No service restart or network effect in this work.
