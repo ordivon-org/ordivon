@@ -1,6 +1,6 @@
 # Data Consumer-Bound Delivery R1 — implementation specification
 
-Status: IMPLEMENTATION IN PROGRESS. SourceCut: `3b43977e682d8c7668f6371ffd998c7821e4312a` (GitHub main, 2026-11-09). Owner: Data; independent final consumer: Research; adjacent owners: Artifact, Finance, Runtime, repository CI.
+Historical planning snapshot (status at its original SourceCut: IMPLEMENTATION IN PROGRESS). SourceCut: `3b43977e682d8c7668f6371ffd998c7821e4312a` (GitHub main, 2026-11-09). Owner: Data; independent final consumer: Research; adjacent owners: Artifact, Finance, Runtime, repository CI.
 
 ## Problem statement
 
