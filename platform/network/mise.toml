@@ -1,7 +1,7 @@
 [tools]
 shellcheck = "0.11.0"
-python = "3.15.1"
-uv = "0.13.5"
+python = "3.15"
+uv = "latest"
 # Go Task is the actual Network materialization language, and the R13
 # concurrent Task subprocess tests must run on GitHub and Linux alike.
 task = "3.54.0"
@@ -12,7 +12,7 @@ run = """
 set -euo pipefail
 test -n "$(git ls-files -- '*.sh' | head -1)"
 git ls-files -z -- '*.sh' | xargs -0 shellcheck
-PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with pytest==9.1.1 \
+PYTHONDONTWRITEBYTECODE=1 uv run --locked --python "$(command -v python)" \
   python -m pytest -q -p no:cacheprovider tests
 """
 
@@ -23,7 +23,7 @@ PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with pytest==9.1
 run = '''
 set -euo pipefail
 command -v sing-box >/dev/null || { echo 'sing-box is required for network behavior verification' >&2; exit 2; }
-PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with pytest==9.1.1   python -m pytest -q -p no:cacheprovider tests/test_egress_routing_behavior.py
+PYTHONDONTWRITEBYTECODE=1 uv run --locked --python "$(command -v python)"   python -m pytest -q -p no:cacheprovider tests/test_egress_routing_behavior.py
 '''
 
 # Opt-in installed SourceCut: rerun the SAME native sing-box independent
@@ -33,7 +33,7 @@ PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with pytest==9.1
 run = '''
 set -euo pipefail
 command -v sing-box >/dev/null || { echo 'sing-box is required' >&2; exit 2; }
-ORDIVON_NETWORK_POLICY_SOURCE=installed PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with pytest==9.1.1 python -m pytest -q -p no:cacheprovider tests/test_egress_routing_behavior.py
+ORDIVON_NETWORK_POLICY_SOURCE=installed PYTHONDONTWRITEBYTECODE=1 uv run --locked --python "$(command -v python)" python -m pytest -q -p no:cacheprovider tests/test_egress_routing_behavior.py
 '''
 
 # Opt-in live consumer-effect witness. Requires local tcpdump/netns access.
@@ -49,41 +49,45 @@ run = "PYTHONDONTWRITEBYTECODE=1 python3 acceptance/egress/finance-public-data.p
 
 [tasks.formal-vpn-recovery]
 description = "Bounded Z3 enumeration of native VPN recovery decision admission with underlay/UNKNOWN/cooldown negative controls"
-run = "PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with z3-solver==5.3.3.0 python formal/vpn_recovery_decision.py"
+run = "PYTHONDONTWRITEBYTECODE=1 uv run --locked --python \"$(command -v python)\" python formal/vpn_recovery_decision.py"
 
 
 # Finite source-bound proof: allowed countries, positive native Gluetun filter
 # and candidate composition. A missing filter exposes Hong Kong as SAT.
 [tasks.formal-vpn-admission]
 description = "Prove positive Gluetun country admission and refute missing-filter / forbidden candidates"
-run = "PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with z3-solver==5.3.3.0 python formal/vpn_candidate_admission.py"
+run = "PYTHONDONTWRITEBYTECODE=1 uv run --locked --python \"$(command -v python)\" python formal/vpn_candidate_admission.py"
 
 
 # Z3 proof over source-declared TCP HTTP CONNECT authorities and actual
 # first-match sing-box source routing. Complements native consumer verification.
 [tasks.formal]
 description = "Prove 9 open-carrier TCP CONNECT policies and refute restrictive default / rogue Finance direct mutations with Z3"
-run = "PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with z3-solver==5.3.3.0 python formal/egress_policy_refinement.py"
+run = "PYTHONDONTWRITEBYTECODE=1 uv run --locked --python \"$(command -v python)\" python formal/egress_policy_refinement.py"
 
 
 # Source-bound systemd/Quadlet control-plane separation; complements native
 # installed-unit and consumer verification, never claims physical isolation.
 [tasks.formal-control-plane]
 description = "Prove Runtime/Host/Gateway have no source-graph dependency path to Network v2"
-run = "PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with z3-solver==5.3.3.0 python formal/control_plane_independence.py"
+run = "PYTHONDONTWRITEBYTECODE=1 uv run --locked --python \"$(command -v python)\" python formal/control_plane_independence.py"
 
 # Independent DNS TTL/failover state-machine proof, source-admitted against
 # dnsproxy native Unit and the real fault-injection acceptance fixture.
 [tasks.formal-dns]
 description = "Prove upstream DNS TTL, outage and recovery in Z3 state abstraction"
-run = "PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with z3-solver==5.3.3.0 python formal/dns_cache_state.py"
+run = "PYTHONDONTWRITEBYTECODE=1 uv run --locked --python \"$(command -v python)\" python formal/dns_cache_state.py"
 
 
 [tasks.formal-core-convergence]
 description = "Source-bound Z3 proof: external network outage cannot trigger core reinstallation"
-run = "PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 --with z3-solver==5.3.3.0 python formal/core_convergence_refinement.py"
+run = "PYTHONDONTWRITEBYTECODE=1 uv run --locked --python \"$(command -v python)\" python formal/core_convergence_refinement.py"
 
 
 [tasks.formal-shared-egress-alias]
 description = "Finite graph/source refinement proof of legacy Browserless target versus Shared Egress alias for four consumers"
-run = "PYTHONDONTWRITEBYTECODE=1 uv run --no-project --python 3.15.1 python formal/shared_egress_alias_refinement.py"
+run = "PYTHONDONTWRITEBYTECODE=1 uv run --locked --python \"$(command -v python)\" python formal/shared_egress_alias_refinement.py"
+
+[tasks."test:zte"]
+description = "Run the existing read-only ZTE adapter tests using the Network test environment"
+run = '''PYTHONDONTWRITEBYTECODE=1 uv run --locked --python "$(command -v python)" python -m pytest -q -p no:cacheprovider tests/test_zte_u30pro_observer.py'''
