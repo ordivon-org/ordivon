@@ -73,20 +73,49 @@ fn event_detail(i: &PgNativeWindowsDrainInput) -> String {
     .to_string()
 }
 
+/// Exact native drain subject, shared by the journal writer, reader and
+/// terminal CAS. Borrow the existing identity; no second authority.
+pub(super) struct NativeDrainSubject<'a> {
+    pub(super) job_id: &'a str,
+    pub(super) attempt_id: &'a str,
+    pub(super) source_sha256: &'a str,
+    pub(super) launch_token_digest: &'a str,
+    pub(super) request_digest: &'a str,
+    pub(super) result_digest: &'a str,
+    pub(super) expected_row_version: i64,
+}
+#[cfg(any(windows, test))]
+impl<'a> From<&'a PgNativeWindowsDrainInput> for NativeDrainSubject<'a> {
+    fn from(i: &'a PgNativeWindowsDrainInput) -> Self {
+        Self {
+            job_id: &i.job_id,
+            attempt_id: &i.attempt_id,
+            source_sha256: &i.expected_source_sha256,
+            launch_token_digest: &i.launch_token_digest,
+            request_digest: &i.request_digest,
+            result_digest: &i.result_digest,
+            expected_row_version: i.expected_row_version,
+        }
+    }
+}
+
 /// Pure canonical native-issuer event identity, shared by current readback
 /// and by the ORIGINAL terminal+Artifact transaction. This function does not
 /// authenticate the OS: only native_terminal_gate may *produce* the event.
 fn event_detail_matches(
     detail: &str,
     digest: &str,
-    job_id: &str,
-    attempt_id: &str,
-    source_sha256: &str,
-    launch_token_digest: &str,
-    request_digest: &str,
-    result_digest: &str,
-    expected_row_version: i64,
+    subject: &NativeDrainSubject<'_>,
 ) -> Option<serde_json::Value> {
+    let NativeDrainSubject {
+        job_id,
+        attempt_id,
+        source_sha256,
+        launch_token_digest,
+        request_digest,
+        result_digest,
+        expected_row_version,
+    } = *subject;
     if sha256_digest(detail.as_bytes()) != digest {
         return None;
     }
@@ -122,18 +151,12 @@ fn event_detail_matches(
 /// that updates Attempt/Job/Reservation and records original Artifacts.
 pub(super) fn require_native_windows_drain_in_terminal_tx(
     tx: &mut postgres::Transaction<'_>,
-    job_id: &str,
-    attempt_id: &str,
-    source_sha256: &str,
-    launch_token_digest: &str,
-    request_digest: &str,
-    result_digest: &str,
-    expected_row_version: i64,
+    subject: &NativeDrainSubject<'_>,
 ) -> Result<(), PgAdmissionError> {
     let rows = tx.query(
         "SELECT origin,reason_code,detail_json,detail_digest FROM job_events \
          WHERE job_id=$1 AND attempt_id=$2 AND event_type=$3",
-        &[&job_id, &attempt_id, &NATIVE_DRAIN_EVENT],
+        &[&subject.job_id, &subject.attempt_id, &NATIVE_DRAIN_EVENT],
     )?;
     if rows.len() != 1 {
         return Err(PgAdmissionError::Blocked);
@@ -143,18 +166,7 @@ pub(super) fn require_native_windows_drain_in_terminal_tx(
     let digest: String = row.get(3);
     if row.get::<_, String>(0) != "SYSTEM_OBSERVED"
         || row.get::<_, String>(1) != NATIVE_DRAIN_REASON
-        || event_detail_matches(
-            &detail,
-            &digest,
-            job_id,
-            attempt_id,
-            source_sha256,
-            launch_token_digest,
-            request_digest,
-            result_digest,
-            expected_row_version,
-        )
-        .is_none()
+        || event_detail_matches(&detail, &digest, subject).is_none()
     {
         return Err(PgAdmissionError::Blocked);
     }
@@ -236,23 +248,14 @@ impl PgAdmissionStore {
             // observation after an ambiguous COMMIT may use a different time.
             // Replay is qualified by full source/Attempt/OS identity, never
             // by a caller's claim that no prior mutation happened.
-            let exact = event_detail_matches(
-                &stored_detail,
-                &stored_digest,
-                &i.job_id,
-                &i.attempt_id,
-                &i.expected_source_sha256,
-                &i.launch_token_digest,
-                &i.request_digest,
-                &i.result_digest,
-                i.expected_row_version,
-            )
-            .is_some_and(|v| {
-                v.get("launcherProcessId").and_then(|x| x.as_u64())
-                    == Some(i.launcher_process_id as u64)
-                    && v.get("launcherCreationFileTime").and_then(|x| x.as_u64())
-                        == Some(i.launcher_creation_file_time)
-            });
+            let exact =
+                event_detail_matches(&stored_detail, &stored_digest, &NativeDrainSubject::from(i))
+                    .is_some_and(|v| {
+                        v.get("launcherProcessId").and_then(|x| x.as_u64())
+                            == Some(i.launcher_process_id as u64)
+                            && v.get("launcherCreationFileTime").and_then(|x| x.as_u64())
+                                == Some(i.launcher_creation_file_time)
+                    });
             if !exact {
                 return Err(PgAdmissionError::IdempotencyConflict);
             }
@@ -346,17 +349,7 @@ impl PgAdmissionStore {
         {
             return Ok(false);
         }
-        let match_v = event_detail_matches(
-            &detail,
-            &digest,
-            &i.job_id,
-            &i.attempt_id,
-            &i.expected_source_sha256,
-            &i.launch_token_digest,
-            &i.request_digest,
-            &i.result_digest,
-            i.expected_row_version,
-        );
+        let match_v = event_detail_matches(&detail, &digest, &NativeDrainSubject::from(i));
         if !match_v.is_some_and(|v| {
             v.get("launcherProcessId").and_then(|x| x.as_u64())
                 == Some(i.launcher_process_id as u64)
