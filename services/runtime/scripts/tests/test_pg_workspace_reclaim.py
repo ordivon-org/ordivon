@@ -514,6 +514,95 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                 self.assertTrue(self.workspace.exists())
                 self.assertFalse(second.exists())
 
+    def test_reason_bearing_git_lock_is_a_protected_root(self):
+        # Native Git's lock reason is arbitrary metadata, not a change in
+        # the lock's authority. The locked worktree must not be a candidate.
+        self.git("update-ref", "refs/remotes/origin/main", self.head)
+        for reason in (None, "paused consumer", "multi-line\nreason"):
+            with self.subTest(reason=reason):
+                args = ["worktree", "lock"]
+                if reason is not None:
+                    args += ["--reason", reason]
+                self.git(*args, str(self.workspace))
+                try:
+                    self.assertNotIn(
+                        (self.workspace, self.head),
+                        mod._worktrees(self.repo, self.workspaces),
+                    )
+                finally:
+                    self.git("worktree", "unlock", str(self.workspace))
+        self.assertIn((self.workspace, self.head),
+                      mod._worktrees(self.repo, self.workspaces))
+
+    def test_reclaim_membership_ignores_local_replace_and_graft_overlays(self):
+        # The candidate is not an ancestor of the canonical main.
+        # Local replacement/graft overlays must not reverse that result.
+        import subprocess
+
+        self.assertTrue(mod._unintegrated_head(self.repo, self.head))
+        # Replace the protected main with a synthetic commit whose parent is the
+        # unintegrated candidate. The ordinary Git view now says integrated.
+        tree = self.git("rev-parse", f"{self.base}^{{tree}}")
+        canonical = subprocess.check_output(
+            ["git", "-C", str(self.repo), "commit-tree", tree, "-p", self.base],
+            input="independent protected main\n", text=True,
+        ).strip()
+        self.git("update-ref", "refs/remotes/origin/main", canonical)
+        replacement = subprocess.check_output(
+            ["git", "-C", str(self.repo), "commit-tree", tree, "-p", self.head],
+            input="synthetic ancestry overlay\n", text=True,
+        ).strip()
+        self.git("replace", canonical, replacement)
+        try:
+            self.assertEqual(subprocess.run(
+                ["git", "-C", str(self.repo), "merge-base", "--is-ancestor",
+                 self.head, "refs/remotes/origin/main"],
+                capture_output=True,
+            ).returncode, 0)
+            self.assertTrue(mod._unintegrated_head(self.repo, self.head))
+        finally:
+            self.git("replace", "-d", canonical)
+
+        graft = self.repo / ".git" / "info" / "grafts"
+        graft.write_text(f"{canonical} {self.head}\n", encoding="ascii")
+        try:
+            self.assertEqual(subprocess.run(
+                ["git", "-C", str(self.repo),
+                 "merge-base", "--is-ancestor", self.head,
+                 "refs/remotes/origin/main"], capture_output=True,
+            ).returncode, 0)
+            self.assertTrue(mod._unintegrated_head(self.repo, self.head))
+        finally:
+            graft.unlink()
+
+    def test_git_lock_added_during_runtime_get_blocks_close(self):
+        # Simulate a consumer creating a native lock after the scan, while
+        # the Runtime source-state read is in progress.
+        from unittest.mock import patch
+        self.git("update-ref", "refs/remotes/origin/main", self.head)
+        original = mod._operator_attests_consumer_release
+        calls = []
+        def release(policy, workspace_id):
+            answer = original(policy, workspace_id)
+            calls.append(workspace_id)
+            if len(calls) == 2:
+                self.git("worktree", "lock", "--reason", "new consumer",
+                         str(self.workspace))
+            return answer
+        try:
+            with patch.object(mod, "_operator_attests_consumer_release",
+                              side_effect=release):
+                report, client = self.run_operator_plan(
+                    allow=False, job_case="failed",
+                    owner_released=True, apply=True,
+                )
+            self.assertEqual(report["closed"], [])
+            self.assertEqual(client.calls, ["workspace.get"])
+            self.assertTrue(self.workspace.exists())
+        finally:
+            if self.workspace.exists():
+                self.git("worktree", "unlock", str(self.workspace))
+
     def test_real_git_dry_run_respects_installed_unintegrated_policy(self):
         disabled, _ = self.run_operator_plan(allow=False)
         self.assertEqual(disabled["eligible"], 0)

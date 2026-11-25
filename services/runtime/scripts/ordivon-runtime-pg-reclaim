@@ -210,22 +210,25 @@ def _git(repo: Path, *args: str, timeout: float = 10) -> subprocess.CompletedPro
     # does not override inherited GIT_DIR / GIT_OBJECT_DIRECTORY and friends.
     clean_env = {key: value for key, value in os.environ.items()
                  if not key.startswith("GIT_")}
+    # Local replacement refs and grafts must not redefine the committed DAG.
+    clean_env["GIT_GRAFT_FILE"] = os.devnull
     return subprocess.run(
-        ["git", "-C", str(repo), *args],
-        capture_output=True, text=True, timeout=timeout, check=False,
-        env=clean_env,
+        ["git", "--no-replace-objects", "-C", str(repo), *args],
+        capture_output=True, text=True, errors="surrogateescape",
+        timeout=timeout, check=False, env=clean_env,
     )
 
 def _worktrees(repo: Path, root: Path) -> list[tuple[Path, str]]:
-    output = _git(repo, "worktree", "list", "--porcelain", timeout=30)
+    output = _git(repo, "worktree", "list", "--porcelain", "-z", timeout=30)
     if output.returncode:
         raise RuntimeError("Git worktree inventory failed")
     worktrees = []
-    for part in output.stdout.strip().split("\n\n"):
-        entries = part.splitlines()
+    for part in output.stdout.split("\0\0"):
+        entries = part.split("\0")
         location = next((line[9:] for line in entries if line.startswith("worktree ")), "")
         head = next((line[5:] for line in entries if line.startswith("HEAD ")), "")
-        if not location or not head or "locked" in entries:
+        locked = any(line == "locked" or line.startswith("locked ") for line in entries)
+        if not location or not head or locked:
             continue
         path = Path(location)
         if path.parent == root and path.is_dir() and not path.is_symlink():
@@ -596,6 +599,8 @@ def run(args: argparse.Namespace) -> dict:
             latest = _jobs(env, path.name).get(path.name, (None, None, 0))
             if latest != info or not _release_matches(current_binding, workspace, latest[0]):
                 skip("owner_disposition_stale");continue
+            if (path, head) not in _worktrees(repo, root):
+                skip("git_worktree_not_currently_unlocked");continue
             # An unmerged HEAD is valuable source. Preserve it in the
             # existing Git retention namespace BEFORE any native close effect.
             if currently_unintegrated:
