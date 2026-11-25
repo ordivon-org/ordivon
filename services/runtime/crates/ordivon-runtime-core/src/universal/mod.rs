@@ -86,6 +86,8 @@ pub(crate) use workspace::{
 pub(crate) use workspace::{workspace_change_projection_at, workspace_head_revision_at};
 // Scoped read-set hashing uses portable Git/filesystem logic. The Windows
 // consumer must not silently lose the original source-continuity commitment.
+#[cfg(all(unix, feature = "postgres-registry-admission"))]
+pub(crate) use workspace::validate_scoped_write_paths_at;
 pub(crate) use workspace::workspace_source_readset_digest_at;
 #[cfg(unix)]
 pub(crate) use workspace::workspace_source_state_digest_at;

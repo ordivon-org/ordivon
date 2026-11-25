@@ -651,4 +651,6 @@ mod gitlink_worktree_root_tests {
 
 #[path = "source_readset.rs"]
 mod source_readset;
+#[cfg(all(unix, feature = "postgres-registry-admission"))]
+pub(crate) use source_readset::validate_scoped_write_paths_at;
 pub(crate) use source_readset::workspace_source_readset_digest_at;
