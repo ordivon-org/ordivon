@@ -769,6 +769,8 @@ check_workspace_consumer_close_r2_candidate() {
     -config WorkspaceConsumerCloseR1.r2-candidate.cfg WorkspaceConsumerCloseR1.tla)
   (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
     -config WorkspaceConsumerCloseR1.collector.cfg WorkspaceConsumerCloseR1.tla)
+  (cd "$ROOT/formal"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+    -config WorkspaceReleaseBindingR1.cfg WorkspaceReleaseBindingR1.tla)
 }
 
 # Distinct two-Agent continuation scope: source DESIGN model, not installed PG claims.
@@ -804,10 +806,11 @@ falsify_workspace_multi_agent_release() {
 
 workspace_close_expect_named_counterexample() {
   local folder="$1" config="$2" property="$3" label="$4"
+  local model="${5:-WorkspaceConsumerCloseR1.tla}"
   local output="$folder/result.log" result
   set +e
   (cd "$folder"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
-    -config "$config" WorkspaceConsumerCloseR1.tla) > "$output" 2>&1
+    -config "$config" "$model") > "$output" 2>&1
   result=$?
   set -e
   if [[ "$result" -ne 12 ]] ||
@@ -982,6 +985,30 @@ PY_WORKSPACE_CLOSE
       WorkspaceConsumerCloseR1.collector.cfg CollectorClosedHasRelease collector-release-removed
     workspace_close_expect_named_counterexample "$tmp_dir/collectorreachable" \
       WorkspaceConsumerCloseR1.collector.cfg ClosedUnreachable collector-close-reachable
+    for field in generation source activity reachable; do
+      folder="$tmp_dir/binding-$field"
+      mkdir "$folder"
+      cp "$ROOT/formal/WorkspaceReleaseBindingR1."{tla,cfg} "$folder/"
+      python3 - "$folder" "$field" <<'PY_BINDING'
+from pathlib import Path
+import sys
+folder = Path(sys.argv[1])
+field = sys.argv[2]
+if field == "reachable":
+    cfg = folder / "WorkspaceReleaseBindingR1.cfg"
+    cfg.write_text(cfg.read_text() + "INVARIANT ClosedUnreachable\n")
+else:
+    model = folder / "WorkspaceReleaseBindingR1.tla"
+    source = model.read_text()
+    guard = "    /\\ release." + field + " = " + field + "\n"
+    assert source.count(guard) == 1, "release binding guard drift"
+    model.write_text(source.replace(guard, ""))
+PY_BINDING
+      property=ClosedHasCurrentRelease
+      if [[ "$field" == reachable ]]; then property=ClosedUnreachable; fi
+      workspace_close_expect_named_counterexample "$folder" WorkspaceReleaseBindingR1.cfg \
+        "$property" "binding-$field" WorkspaceReleaseBindingR1.tla
+    done
   )
 }
 

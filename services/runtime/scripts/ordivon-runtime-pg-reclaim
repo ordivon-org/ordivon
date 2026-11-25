@@ -6,8 +6,9 @@ delete physical Workspace files directly or infer domain acceptance from Job exi
 
 All automatic close candidates require an exact
 operator-owned retention-policy rule on workspaceId with
-"operatorConsumerReleased": true. That is an explicit owner disposition,
-not inferred from elapsed time, a clean Git worktree or a finished PG Job.
+"operatorConsumerReleased": true and an exact operatorReleaseBinding. This
+is an explicit disposition for the observed generation, source and Job
+activity, not inferred from elapsed time or a successful Job.
 """
 from __future__ import annotations
 
@@ -90,6 +91,11 @@ def _retention_policy(path: Path | None) -> dict | None:
             if rule["workspaceId"] in explicit_releases:
                 raise ValueError("ambiguous duplicate exact owner release")
             explicit_releases.add(rule["workspaceId"])
+        if "operatorReleaseBinding" in rule:
+            binding = rule["operatorReleaseBinding"]
+            if ("operatorConsumerReleased" not in rule
+                    or not _valid_release_binding(binding)):
+                raise ValueError("invalid exact owner release binding")
     return policy
 
 
@@ -115,16 +121,52 @@ def _workspace_retention(
     )
 
 
-def _operator_attests_consumer_release(
+def _valid_release_binding(binding: object) -> bool:
+    if not isinstance(binding, dict) or set(binding) != {
+        "createdAtMs", "sourceStateDigest", "latestJobActivityMs",
+    }:
+        return False
+    created, digest, activity = (
+        binding["createdAtMs"], binding["sourceStateDigest"],
+        binding["latestJobActivityMs"],
+    )
+    return (
+        type(created) is int and created >= 0
+        and isinstance(digest, str) and RETAINED_HEAD_REF.fullmatch(digest) is not None
+        and (activity is None or (type(activity) is int and activity >= created))
+    )
+
+
+def _operator_release_binding(
     policy: dict | None, workspace_id: str
+) -> dict | None:
+    # An old unbound boolean remains readable but grants no automatic close.
+    if policy is not None:
+        for rule in policy.get("rules", []):
+            binding = rule.get("operatorReleaseBinding")
+            if (rule.get("workspaceId") == workspace_id
+                    and rule.get("operatorConsumerReleased") is True
+                    and _valid_release_binding(binding)):
+                return binding
+    return None
+
+
+def _release_matches(
+    binding: dict | None, workspace: dict, latest_job_ms: int | None,
 ) -> bool:
-    # The native Job/Claim fences do not establish every external consumer's
-    # release. A successful tool call is not an owner disposition either.
-    # Require the existing exact, revocable operator rule for every outcome.
-    return policy is not None and any(
-        rule.get("workspaceId") == workspace_id
-        and rule.get("operatorConsumerReleased") is True
-        for rule in policy.get("rules", [])
+    """An observed release is specific to this source and generation.
+
+    This is an advisory currentness check, not an atomic independent
+    consumer acknowledgement. Native close still owns PG/Claim/CAS fences.
+    """
+    created = workspace.get("createdAtMs")
+    digest = workspace.get("sourceStateDigest")
+    return (
+        binding is not None
+        and type(created) is int and created == binding["createdAtMs"]
+        and digest == binding["sourceStateDigest"]
+        and (latest_job_ms is None or type(latest_job_ms) is int)
+        and latest_job_ms == binding["latestJobActivityMs"]
     )
 
 
@@ -240,7 +282,9 @@ def _other_repo_managed_workspaces(
     return found
 
 
-def _jobs(environment: dict[str, str]) -> dict[str, tuple[int, str | None, int]]:
+def _jobs(
+    environment: dict[str, str], workspace_id: str | None = None,
+) -> dict[str, tuple[int, str | None, int]]:
     """Read a small PG projection; native close rechecks physical authority."""
     import psycopg
     from psycopg import sql
@@ -262,6 +306,7 @@ def _jobs(environment: dict[str, str]) -> dict[str, tuple[int, str | None, int]]
                    SELECT job_id, MAX(finished_at_ms) AS last_finished_ms
                      FROM {schema}.attempts GROUP BY job_id
               ) attempts ON attempts.job_id = j.job_id
+              WHERE (%s::text IS NULL OR j.workspace_id = %s)
         )
         SELECT workspace_id, MAX(last_activity_ms) AS last_ms,
                (ARRAY_AGG(resolution ORDER BY created_at_ms DESC, job_id DESC))[1]
@@ -272,7 +317,7 @@ def _jobs(environment: dict[str, str]) -> dict[str, tuple[int, str | None, int]]
     with psycopg.connect(environment["ORDIVON_PG_DSN"], connect_timeout=8) as connection:
         with connection.transaction():
             connection.execute("SET LOCAL statement_timeout = '15000ms'")
-            rows = connection.execute(query).fetchall()
+            rows = connection.execute(query, (workspace_id, workspace_id)).fetchall()
     return {row[0]: (row[1], row[2], row[3]) for row in rows}
 
 def _unintegrated_head(
@@ -466,7 +511,8 @@ def run(args: argparse.Namespace) -> dict:
         )
         if ignored.returncode or ignored.stdout:
             skip("ignored_files_or_git_error");continue
-        if not _operator_attests_consumer_release(policy, path.name):
+        binding = _operator_release_binding(policy, path.name)
+        if binding is None or binding["latestJobActivityMs"] != last_ms:
             # Even a successful, integrated Job can belong to a paused Agent.
             # Neither elapsed time nor Job resolution proves relinquishment.
             if len(results["needsOwnerDisposition"]) < args.limit:
@@ -475,6 +521,8 @@ def run(args: argparse.Namespace) -> dict:
         candidates.append((path, head, info, retention_ms, unintegrated))
     results["unregisteredDirectoryDeletionEnabled"] = False
     if not args.apply:
+        # No native source digest or generation was read in dry-run mode.
+        results["releaseBindingVerifiedAtNativeGet"] = False
         results["eligible"] = len(candidates)
         results["eligibleUnintegrated"] = sum(item[4] for item in candidates)
         results["candidates"] = [p.name for p,_,_,_,_ in candidates[:args.limit]]
@@ -501,7 +549,7 @@ def run(args: argparse.Namespace) -> dict:
                 )):
                 skip("runtime_authority_not_eligible");continue
             digest=workspace.get("sourceStateDigest")
-            if not isinstance(digest,str) or not digest.startswith("sha256:"):
+            if not isinstance(digest,str) or RETAINED_HEAD_REF.fullmatch(digest) is None:
                 skip("missing_source_digest");continue
             # Recheck Git and never force. Runtime checks held Jobs/dependents.
             currently_unintegrated = _unintegrated_head(repo, head, integration_ref)
@@ -519,8 +567,11 @@ def run(args: argparse.Namespace) -> dict:
             if (current_age is None or current_age > retention_ms
                     or (currently_unintegrated and not current_unintegrated_allowed)):
                 skip("retention_policy_changed");continue
-            if not _operator_attests_consumer_release(current_policy, path.name):
+            current_binding = _operator_release_binding(current_policy, path.name)
+            if current_binding is None:
                 skip("owner_disposition_revoked");continue
+            if not _release_matches(current_binding, workspace, info[0]):
+                skip("owner_disposition_stale");continue
             current_git_status = _git(path,"status","--porcelain=v1","--untracked-files=normal")
             if current_git_status.returncode or current_git_status.stdout.strip():
                 skip("git_changed_at_close");continue
@@ -539,6 +590,12 @@ def run(args: argparse.Namespace) -> dict:
                 for item in _active_process_cwds(root)
             ):
                 skip("process_cwd_active_at_close");continue
+            # Refresh only this candidate's activity before any preservation
+            # or close. A later terminal Job invalidates the old disposition
+            # even after the native four-hour continuation window.
+            latest = _jobs(env, path.name).get(path.name, (None, None, 0))
+            if latest != info or not _release_matches(current_binding, workspace, latest[0]):
+                skip("owner_disposition_stale");continue
             # An unmerged HEAD is valuable source. Preserve it in the
             # existing Git retention namespace BEFORE any native close effect.
             if currently_unintegrated:
