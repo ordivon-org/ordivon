@@ -1363,17 +1363,37 @@ exit 0
 
         root_tasks = tomllib.loads((ROOT / "mise.toml").read_text())["tasks"]
         route = root_tasks["capital:verify"]["run"]
-        self.assertIn("cd domains/capital", route)
-        self.assertIn("mise run verify", route)
+        # Root owns dispatch, not the owner's Python pin or its pytest
+        # spelling. The Capital suite tests its own actual task argv.
+        import os
+
         capital_mise = tomllib.loads((ROOT / "domains/capital/mise.toml").read_text())
-        self.assertEqual(capital_mise["tools"]["python"], "3.15.1")
-        verify = capital_mise["tasks"]["verify"]["run"]
-        for check in ("uv lock --check", "uv sync --locked --group test",
-                      "uv run --group test ruff check .", "pytest -m"):
-            self.assertIn(check, verify)
-        self.assertIn("not provider_qualification", verify)
-        self.assertIn("provider_qualification",
-                      capital_mise["tasks"]["verify:provider"]["run"])
+        self.assertIn("verify", capital_mise["tasks"])
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            trace = folder / "route"
+            fake = folder / "mise"
+            fake.write_text(
+                '#!/usr/bin/env bash\n'
+                'printf "%s|%s\\n" "$PWD" "$*" >> "$TRACE"\n'
+                'if [[ "$1" == install ]]; then exit "$INSTALL_EXIT"; fi\n'
+                'exit "$VERIFY_EXIT"\n'
+            )
+            fake.chmod(0o700)
+            for install_exit, verify_exit in ((0, 0), (0, 17), (19, 0)):
+                trace.unlink(missing_ok=True)
+                env = {**os.environ, "PATH": str(folder) + os.pathsep + os.environ["PATH"],
+                       "TRACE": str(trace), "INSTALL_EXIT": str(install_exit),
+                       "VERIFY_EXIT": str(verify_exit)}
+                observed = subprocess.run(
+                    ["bash", "-c", route], cwd=ROOT, env=env,
+                    capture_output=True, text=True, timeout=15,
+                )
+                self.assertEqual(observed.returncode, install_exit or verify_exit, observed.stderr)
+                expected = [f"{ROOT / 'domains/capital'}|install"]
+                if not install_exit:
+                    expected.append(f"{ROOT / 'domains/capital'}|run verify")
+                self.assertEqual(trace.read_text().splitlines(), expected)
 
         root_ci = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
         steps = required_ci_steps(root_ci)
