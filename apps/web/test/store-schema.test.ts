@@ -75,3 +75,30 @@ test("committed effect audit observation uses a bounded indexed lookup and prese
     store.close();
   }
 });
+
+test("opening a database without the effect audit index preserves existing audit history", () => {
+  const dir = mkdtempSync(join(tmpdir(), "ordivon-webstore-audit-upgrade-"));
+  const file = join(dir, "web.sqlite");
+  try {
+    const old = new WebStore(file);
+    try {
+      old.db.exec("DROP INDEX audit_events_committed_effect");
+      old.audit("agent.effect.committed", 1, null, "effect", "historical", { value: 1 });
+      old.audit("agent.effect.committed", 2, null, "effect", "historical", { value: 2 });
+    } finally {
+      old.close();
+    }
+    const reopened = new WebStore(file);
+    try {
+      const rows = reopened.db.prepare("SELECT detail_json FROM audit_events WHERE object_id = ? ORDER BY created_at").all("historical");
+      assert.deepEqual(rows.map(row => row.detail_json), ['{"value":1}', '{"value":2}']);
+      const sql = "SELECT * FROM audit_events WHERE event_type = 'agent.effect.committed' AND object_type = 'effect' AND object_id = ? LIMIT 2";
+      assert.equal(reopened.db.prepare(sql).all("historical").length, 2);
+      assert.ok(reopened.db.prepare("EXPLAIN QUERY PLAN " + sql).all("historical").some(row => String(row.detail).includes("SEARCH audit_events")));
+    } finally {
+      reopened.close();
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

@@ -3,12 +3,14 @@ import { DatabaseSync } from "node:sqlite";
 
 import { hashToken } from "./identity-digests.ts";
 import { WebProblem } from "./errors.ts";
-import { AgentGrantStore, scopeContains } from "./store-agent-grants.ts";
+import { AgentGrantStore } from "./store-agent-grants.ts";
 import { SessionStore } from "./store-sessions.ts";
 import { ChallengeStore } from "./store-challenges.ts";
 import { initializeWebStoreSchema } from "./store-schema.ts";
-import { assertWrittenBusinessState, assertWrittenEffectApproval, assertWrittenEffectAudit } from "./store-effect-postconditions.ts";
-import type { EffectApprovalRow, EffectAuditRow } from "./store-effect-postconditions.ts";
+import { EffectReceiptStore } from "./store-effect-receipts.ts";
+import { insertAuditRow } from "./store-audit.ts";
+import { EffectApprovalStore } from "./store-effect-approvals.ts";
+import { AgentEffectStore } from "./store-agent-effects.ts";
 import type {
   AgentEffectReceipt,
   AgentEffectRequest,
@@ -27,35 +29,30 @@ import {
   principalFromRow,
   credentialFromRow,
   noteFromRow,
-  effectReceiptFromRow,
 } from "./store-row-projections.ts";
 import type {
   PrincipalRow,
   CredentialRow,
-  AgentEffectRow,
   NoteRow,
 } from "./store-row-projections.ts";
-
-// Native statement cardinality is a mechanical precommit obligation, not
-// an external effect or arbitrary database-integrity proof.
-function requireSingleEffectWrite(changes: number | bigint, subject: string): void {
-  if (changes !== 1 && changes !== 1n) {
-    throw new WebProblem(500, "effect-write-not-applied", "Effect write not applied",
-      "Expected exactly one owner-local write: " + subject);
-  }
-}
 
 export class WebStore {
   readonly db: DatabaseSync;
   private readonly grants: AgentGrantStore;
   private readonly sessions: SessionStore;
   private readonly challenges: ChallengeStore;
+  private readonly receipts: EffectReceiptStore;
+  private readonly approvals: EffectApprovalStore;
+  private readonly effects: AgentEffectStore;
 
   constructor(path: string) {
     this.db = new DatabaseSync(path);
     initializeWebStoreSchema(this.db);
     this.grants = new AgentGrantStore(this.db, (...args) => this.audit(...args));
     this.challenges = new ChallengeStore(this.db);
+    this.receipts = new EffectReceiptStore(this.db);
+    this.approvals = new EffectApprovalStore(this.db);
+    this.effects = new AgentEffectStore(this.db, this.grants, this.receipts, this.approvals);
     this.sessions = new SessionStore(this.db, (...args) => this.audit(...args), (id) => this.getPrincipal(id));
   }
 
@@ -71,20 +68,11 @@ export class WebStore {
     objectId: string | null,
     detail: unknown,
   ): number | bigint {
-    return this.insertAuditRow({
+    return insertAuditRow(this.db, {
       event_id: randomUUID(), principal_id: principalId, event_type: eventType,
       object_type: objectType, object_id: objectId, detail_json: JSON.stringify(detail),
       created_at: now,
     });
-  }
-
-  private insertAuditRow(row: EffectAuditRow): number | bigint {
-    return this.db.prepare(`
-      INSERT INTO audit_events (
-        event_id, principal_id, event_type, object_type, object_id, detail_json, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(row.event_id, row.principal_id, row.event_type, row.object_type,
-      row.object_id, row.detail_json, row.created_at).changes;
   }
 
   ensurePrincipal(
@@ -405,430 +393,35 @@ export class WebStore {
     return this.grants.resolveAgentGrant(agentId, audience, action, resource, now);
   }
 
-  private readEffectRow(effectId: string): AgentEffectRow | undefined {
-    return this.db
-      .prepare("SELECT * FROM agent_effects WHERE effect_id = ?")
-      .get(effectId) as AgentEffectRow | undefined;
-  }
-
   getAgentEffect(effectId: string): AgentEffectReceipt | null {
-    const row = this.readEffectRow(effectId);
-    return row === undefined ? null : effectReceiptFromRow(row);
+    return this.receipts.getAgentEffect(effectId);
   }
 
-  // Shared write/audit/readback sequence for the two local business
-  // transactions. The caller retains BEGIN/COMMIT/ROLLBACK authority.
-  private recordNewEffectReceipt(expected: AgentEffectRow): AgentEffectReceipt {
-    this.db
-      .prepare(`
-        INSERT INTO agent_effects (
-          effect_id, effect_digest, principal_id, agent_id, grant_id,
-          action, resource, result_json, committed_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `)
-      .run(
-        expected.effect_id, expected.effect_digest, expected.principal_id,
-        expected.agent_id, expected.grant_id, expected.action,
-        expected.resource, expected.result_json, expected.committed_at,
-      );
-    const audit: EffectAuditRow = {
-      event_id: randomUUID(), principal_id: expected.principal_id,
-      event_type: "agent.effect.committed", object_type: "effect",
-      object_id: expected.effect_id, created_at: expected.committed_at,
-      detail_json: JSON.stringify({
-        agentId: expected.agent_id, grantId: expected.grant_id, action: expected.action,
-      }),
-    };
-    requireSingleEffectWrite(this.insertAuditRow(audit), "audit");
-    assertWrittenEffectAudit(this.db, audit);
-    return this.readWrittenEffectReceipt(expected);
+  resolveAgentEffectReplay(agentId: string, effect: AgentEffectRequest): AgentEffectReceipt | null {
+    return this.receipts.resolveAgentEffectReplay(agentId, effect);
   }
 
-  // Owner-local write/readback invariant, not a general authenticity proof for
-  // historical receipts. Compare the exact bytes and all intended row fields
-  // while the caller still owns the business transaction.
-  private readWrittenEffectReceipt(expected: AgentEffectRow): AgentEffectReceipt {
-    const row = this.readEffectRow(expected.effect_id);
-    if (row === undefined) {
-      throw new WebProblem(500, "effect-receipt-missing", "Effect receipt missing",
-        "The newly written Effect has no readable owner receipt.");
-    }
-    const receipt = effectReceiptFromRow(row);
-    if (row.effect_id !== expected.effect_id ||
-        row.effect_digest !== expected.effect_digest ||
-        row.principal_id !== expected.principal_id ||
-        row.agent_id !== expected.agent_id ||
-        row.grant_id !== expected.grant_id ||
-        row.action !== expected.action ||
-        row.resource !== expected.resource ||
-        row.result_json !== expected.result_json ||
-        row.committed_at !== expected.committed_at) {
-      throw new WebProblem(500, "effect-receipt-mismatch", "Effect receipt mismatch",
-        "The newly written Effect does not match its intended owner receipt.");
-    }
-    return receipt;
+  registerPendingEffectApproval(principalId: string, effect: AgentEffectRequest, now: number, ttlSeconds = 300): void {
+    this.approvals.registerPendingEffectApproval(principalId, effect, now, ttlSeconds);
   }
 
-  resolveAgentEffectReplay(
-    agentId: string,
-    effect: AgentEffectRequest,
-  ): AgentEffectReceipt | null {
-    const existing = this.getAgentEffect(effect.effectId);
-    if (existing === null) return null;
-    if (existing.agentId !== agentId) {
-      throw new WebProblem(
-        403,
-        "effect-actor-mismatch",
-        "Effect actor mismatch",
-        "The committed effect belongs to a different Agent.",
-      );
-    }
-    if (
-      existing.effectDigest !== effect.effectDigest ||
-      existing.action !== effect.action ||
-      existing.resource !== effect.resource
-    ) {
-      throw new WebProblem(
-        409,
-        "effect-conflict",
-        "Effect conflict",
-        "The effect identifier is already bound to different content.",
-      );
-    }
-    return existing;
+  requirePendingEffectApproval(principalId: string, effectId: string, now: number): { effectId: string; effectDigest: string } {
+    return this.approvals.requirePendingEffectApproval(principalId, effectId, now);
   }
 
-  registerPendingEffectApproval(
-    principalId: string,
-    effect: AgentEffectRequest,
-    now: number,
-    ttlSeconds = 300,
-  ): void {
-    const existing = this.db
-      .prepare(
-        "SELECT effect_digest, principal_id FROM pending_effect_approvals WHERE effect_id = ?",
-      )
-      .get(effect.effectId) as
-      | { effect_digest: string; principal_id: string }
-      | undefined;
-    if (
-      existing !== undefined &&
-      (existing.effect_digest !== effect.effectDigest ||
-        existing.principal_id !== principalId)
-    ) {
-      throw new WebProblem(
-        409,
-        "pending-effect-conflict",
-        "Pending effect conflict",
-        "The effect identifier is already bound to a different Principal or digest.",
-      );
-    }
-    this.db
-      .prepare(`
-        INSERT INTO pending_effect_approvals (
-          effect_id, effect_digest, principal_id, expires_at, created_at
-        ) VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(effect_id) DO UPDATE SET
-          expires_at = excluded.expires_at
-      `)
-      .run(
-        effect.effectId,
-        effect.effectDigest,
-        principalId,
-        now + ttlSeconds,
-        now,
-      );
+  putEffectApproval(principalId: string, credentialId: string, effectId: string, effectDigest: string, now: number, ttlSeconds = 120): void {
+    this.approvals.putEffectApproval(principalId, credentialId, effectId, effectDigest, now, ttlSeconds);
   }
 
-  requirePendingEffectApproval(
-    principalId: string,
-    effectId: string,
-    now: number,
-  ): { effectId: string; effectDigest: string } {
-    const row = this.db
-      .prepare(`
-        SELECT effect_id, effect_digest
-        FROM pending_effect_approvals
-        WHERE effect_id = ? AND principal_id = ? AND expires_at > ?
-          AND NOT EXISTS (
-            SELECT 1 FROM agent_effects
-            WHERE agent_effects.effect_id = pending_effect_approvals.effect_id
-          )
-      `)
-      .get(effectId, principalId, now) as
-      | { effect_id: string; effect_digest: string }
-      | undefined;
-    if (row === undefined) {
-      throw new WebProblem(
-        404,
-        "pending-effect-not-found",
-        "Pending effect not found",
-        "No live step-up request exists for this Principal and effect.",
-      );
-    }
-    return { effectId: row.effect_id, effectDigest: row.effect_digest };
+  effectApproval(principalId: string, effect: AgentEffectRequest, now: number): ReturnType<EffectApprovalStore["effectApproval"]> {
+    return this.approvals.effectApproval(principalId, effect, now);
   }
 
-  putEffectApproval(
-    principalId: string,
-    credentialId: string,
-    effectId: string,
-    effectDigest: string,
-    now: number,
-    ttlSeconds = 120,
-  ): void {
-    // Preserve terminal consumption evidence in the same native statement.
-    // A late approval must not reopen a committed effect or replace its binding.
-    const update = this.db
-      .prepare(`
-        INSERT INTO effect_approvals (
-          effect_id, effect_digest, principal_id, credential_id,
-          verified_at, expires_at, consumed_at
-        ) SELECT ?, ?, ?, ?, ?, ?, NULL
-        WHERE NOT EXISTS (SELECT 1 FROM agent_effects WHERE effect_id = ?)
-        ON CONFLICT(effect_id) DO UPDATE SET
-          credential_id = excluded.credential_id,
-          verified_at = excluded.verified_at,
-          expires_at = excluded.expires_at
-        WHERE effect_approvals.consumed_at IS NULL
-          AND effect_approvals.effect_digest = excluded.effect_digest
-          AND effect_approvals.principal_id = excluded.principal_id
-      `)
-      .run(
-        effectId,
-        effectDigest,
-        principalId,
-        credentialId,
-        now,
-        now + ttlSeconds,
-        effectId,
-      );
-    if (update.changes !== 1) {
-      throw new WebProblem(
-        409, "effect-approval-closed", "Effect approval unavailable",
-        "The Effect is already committed or the approval binding is no longer writable.",
-      );
-    }
+  commitAgentCanaryCreate(grant: AgentGrantSnapshot, agentId: string, effect: AgentEffectRequest, content: string, now: number): { receipt: AgentEffectReceipt; replayed: boolean } {
+    return this.effects.commitAgentCanaryCreate(grant, agentId, effect, content, now);
   }
 
-  effectApproval(
-    principalId: string,
-    effect: AgentEffectRequest,
-    now: number,
-  ): { verified: boolean; principalId: string | null; effectId: string | null; effectDigest: string | null; method: "webauthn" | null } {
-    const row = this.db
-      .prepare(`
-        SELECT effect_id
-        FROM effect_approvals
-        WHERE effect_id = ?
-          AND effect_digest = ?
-          AND principal_id = ?
-          AND consumed_at IS NULL
-          AND expires_at > ?
-      `)
-      .get(effect.effectId, effect.effectDigest, principalId, now) as
-      | { effect_id: string }
-      | undefined;
-    return row === undefined
-      ? { verified: false, principalId: null, effectId: null, effectDigest: null, method: null }
-      : {
-          verified: true,
-          principalId,
-          effectId: effect.effectId,
-          effectDigest: effect.effectDigest,
-          method: "webauthn",
-        };
-  }
-
-  // OPA ALLOW is not the effect. Recheck concrete authority inside the
-  // existing transaction before its write becomes visible.
-  private assertCommitEffectBinding(
-    current: AgentGrantSnapshot,
-    selected: AgentGrantSnapshot,
-    agentId: string,
-    effect: AgentEffectRequest,
-    expectedAction: string,
-    expectedResource: string,
-    expectedType: string,
-  ): void {
-    if (
-      current.principalId !== selected.principalId ||
-      current.agentId !== selected.agentId ||
-      current.agentId !== agentId ||
-      current.audience !== effect.audience ||
-      !current.allowedActions.includes(effect.action) ||
-      !current.resourcePrefixes.some((prefix) => scopeContains(prefix, effect.resource)) ||
-      effect.action !== expectedAction ||
-      effect.resource !== expectedResource ||
-      effect.effectType !== expectedType
-    ) {
-      throw new WebProblem(
-        403, "agent-effect-not-authorized", "Effect not authorized",
-        "The current Agent Grant does not bind the concrete Effect and target.",
-      );
-    }
-  }
-
-  commitAgentCanaryCreate(
-    grant: AgentGrantSnapshot,
-    agentId: string,
-    effect: AgentEffectRequest,
-    content: string,
-    now: number,
-  ): { receipt: AgentEffectReceipt; replayed: boolean } {
-    // Reuse the same exact actor/digest replay contract as the admission surface.
-    const existing = this.resolveAgentEffectReplay(agentId, effect);
-    if (existing !== null) {
-      return { receipt: existing, replayed: true };
-    }
-
-    this.db.exec("BEGIN IMMEDIATE");
-    try {
-      const current = this.getAgentGrant(grant.grantId);
-      if (
-        current.grantDigest !== grant.grantDigest ||
-        current.revision !== grant.revision ||
-        !current.active ||
-        current.expiresAtEpochSeconds <= now ||
-        current.remainingEffects <= 0
-      ) {
-        throw new WebProblem(
-          409,
-          "agent-grant-changed",
-          "Agent Grant changed",
-          "Mutable Agent authority changed before the Effect commit fence.",
-        );
-      }
-      this.assertCommitEffectBinding(
-        current, grant, agentId, effect,
-        "canary.note.create", "/canary/notes", "website.canary.note.create",
-      );
-      const noteId = randomUUID();
-      const note: CanaryNote = {
-        noteId,
-        principalId: current.principalId,
-        content,
-        state: "DRAFT",
-        createdAt: now,
-        publishedAt: null,
-      };
-      requireSingleEffectWrite(this.db
-        .prepare(`
-          INSERT INTO canary_notes (
-            note_id, principal_id, content, state, created_at, published_at
-          ) VALUES (?, ?, ?, 'DRAFT', ?, NULL)
-        `)
-        .run(note.noteId, note.principalId, note.content, note.createdAt).changes, "note creation");
-      requireSingleEffectWrite(this.db
-        .prepare(
-          "UPDATE agent_grants SET remaining_effects = remaining_effects - 1, revision = revision + 1 WHERE grant_id = ? AND revision = ?",
-        )
-        .run(current.grantId, current.revision).changes, "grant quota");
-      const result = { note };
-      // Missing, malformed or mismatched receipt rolls back the owner transaction.
-      const receipt = this.recordNewEffectReceipt({
-        effect_id: effect.effectId, effect_digest: effect.effectDigest,
-        principal_id: current.principalId, agent_id: agentId, grant_id: current.grantId,
-        action: effect.action, resource: effect.resource,
-        result_json: JSON.stringify(result), committed_at: now,
-      });
-      assertWrittenBusinessState(this.db, result.note, current, this.getAgentGrant(current.grantId));
-      this.db.exec("COMMIT");
-      return { receipt, replayed: false };
-    } catch (error) {
-      this.db.exec("ROLLBACK");
-      throw error;
-    }
-  }
-
-  commitAgentCanaryPublish(
-    grant: AgentGrantSnapshot,
-    agentId: string,
-    effect: AgentEffectRequest,
-    noteId: string,
-    now: number,
-  ): { receipt: AgentEffectReceipt; replayed: boolean } {
-    // Reuse the same exact actor/digest replay contract as the admission surface.
-    const existing = this.resolveAgentEffectReplay(agentId, effect);
-    if (existing !== null) {
-      return { receipt: existing, replayed: true };
-    }
-
-    this.db.exec("BEGIN IMMEDIATE");
-    try {
-      const current = this.getAgentGrant(grant.grantId);
-      const approval = this.db
-        .prepare(`
-          SELECT * FROM effect_approvals
-          WHERE effect_id = ?
-            AND effect_digest = ?
-            AND principal_id = ?
-            AND consumed_at IS NULL
-            AND expires_at > ?
-        `)
-        .get(effect.effectId, effect.effectDigest, current.principalId, now) as
-        | EffectApprovalRow
-        | undefined;
-      if (
-        current.grantDigest !== grant.grantDigest ||
-        current.revision !== grant.revision ||
-        !current.active ||
-        current.expiresAtEpochSeconds <= now ||
-        current.remainingEffects <= 0 ||
-        approval === undefined
-      ) {
-        throw new WebProblem(
-          409,
-          "effect-fence-rejected",
-          "Effect fence rejected",
-          "Mutable authority or the effect-bound approval changed before commit.",
-        );
-      }
-      this.assertCommitEffectBinding(
-        current, grant, agentId, effect,
-        "canary.note.publish", "/canary/notes/" + noteId, "website.canary.note.publish",
-      );
-      const noteRow = this.db
-        .prepare("SELECT * FROM canary_notes WHERE note_id = ? AND principal_id = ?")
-        .get(noteId, current.principalId) as NoteRow | undefined;
-      if (noteRow === undefined || noteRow.state !== "DRAFT") {
-        throw new WebProblem(
-          409,
-          "canary-note-not-publishable",
-          "Canary note not publishable",
-          "The requested canary note is missing or no longer a draft.",
-        );
-      }
-      requireSingleEffectWrite(this.db
-        .prepare(
-          "UPDATE canary_notes SET state = 'PUBLISHED', published_at = ? WHERE note_id = ?",
-        )
-        .run(now, noteId).changes, "note publication");
-      requireSingleEffectWrite(this.db
-        .prepare(
-          "UPDATE effect_approvals SET consumed_at = ? WHERE effect_id = ? AND consumed_at IS NULL",
-        )
-        .run(now, effect.effectId).changes, "approval consumption");
-      requireSingleEffectWrite(this.db
-        .prepare(
-          "UPDATE agent_grants SET remaining_effects = remaining_effects - 1, revision = revision + 1 WHERE grant_id = ? AND revision = ?",
-        )
-        .run(current.grantId, current.revision).changes, "grant quota");
-      const result = { note: noteFromRow({ ...noteRow, state: "PUBLISHED", published_at: now }) };
-      // Missing, malformed or mismatched receipt rolls back the owner transaction.
-      const receipt = this.recordNewEffectReceipt({
-        effect_id: effect.effectId, effect_digest: effect.effectDigest,
-        principal_id: current.principalId, agent_id: agentId, grant_id: current.grantId,
-        action: effect.action, resource: effect.resource,
-        result_json: JSON.stringify(result), committed_at: now,
-      });
-      assertWrittenEffectApproval(this.db, { ...approval, consumed_at: now });
-      assertWrittenBusinessState(this.db, result.note, current, this.getAgentGrant(current.grantId));
-      this.db.exec("COMMIT");
-      return { receipt, replayed: false };
-    } catch (error) {
-      this.db.exec("ROLLBACK");
-      throw error;
-    }
+  commitAgentCanaryPublish(grant: AgentGrantSnapshot, agentId: string, effect: AgentEffectRequest, noteId: string, now: number): { receipt: AgentEffectReceipt; replayed: boolean } {
+    return this.effects.commitAgentCanaryPublish(grant, agentId, effect, noteId, now);
   }
 }

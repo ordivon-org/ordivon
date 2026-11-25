@@ -3,17 +3,17 @@ import type { DatabaseSync } from "node:sqlite";
 import { isDeepStrictEqual } from "node:util";
 import { WebProblem } from "./errors.ts";
 import type { AgentGrantSnapshot, CanaryNote } from "./model.ts";
+import type { EffectAuditRow } from "./store-audit.ts";
 import { noteFromRow, type NoteRow } from "./store-row-projections.ts";
 
-export type EffectAuditRow = {
-  event_id: string;
-  principal_id: string | null;
-  event_type: string;
-  object_type: string | null;
-  object_id: string | null;
-  detail_json: string;
-  created_at: number;
-};
+// Native statement cardinality is a mechanical precommit obligation, not
+// an external effect or arbitrary database-integrity proof.
+export function requireSingleEffectWrite(changes: number | bigint, subject: string): void {
+  if (changes !== 1 && changes !== 1n) {
+    throw new WebProblem(500, "effect-write-not-applied", "Effect write not applied",
+      "Expected exactly one owner-local write: " + subject);
+  }
+}
 
 export type EffectApprovalRow = {
   effect_id: string;
