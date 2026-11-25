@@ -18,18 +18,7 @@ from github_workflow_observation import (
     GitHubWorkflowReader, instant, run_identity, seconds, summary, validate_attempt_jobs,
 )
 
-ECONOMIC_OUTCOMES = {
-    "UNCLASSIFIED",
-    "USEFUL",
-    "SAVED_WORK",
-    "AVOIDABLE_WASTE",
-    "FAILED_PRODUCTIVELY",
-    "INFRA_FAILURE",
-    "DUPLICATED",
-    "SUPERSEDED",
-    "NO_EXECUTION",
-    "PENDING",
-}
+from ci_economic_annotation import ECONOMIC_OUTCOMES, bind_annotation
 
 
 @dataclass(frozen=True)
@@ -137,40 +126,12 @@ def _normalize_job(job: dict[str, Any]) -> dict[str, Any]:
 def qualified_economic_annotation(
     run: dict[str, Any], annotation: dict[str, Any]
 ) -> tuple[str, str]:
-    """Bind the existing annotation contract to this observed run attempt.
-
-    Evidence references are declared, not independently verified here.
-    """
     native_id, attempt = run_identity(run)
-    expected = {
-        "runId": native_id,
-        "attempt": attempt,
-        "headSha": run.get("head_sha"),
-        "event": run.get("event"),
-        "providerConclusion": run.get("conclusion"),
-    }
-    if not isinstance(annotation, dict):
-        raise ValueError("malformed economic annotation")
-    for key, value in expected.items():
-        if key not in annotation or type(annotation[key]) is not type(value) or annotation[key] != value:
-            raise ValueError(f"economic annotation does not bind observed {key}")
-    refs = annotation.get("evidenceRefs")
-    if (
-        not isinstance(refs, list) or not refs
-        or not all(isinstance(ref, str) and ref.strip() for ref in refs)
-        or len(set(refs)) != len(refs)
-    ):
-        raise ValueError("economic annotation lacks declared evidence references")
-    candidate = annotation.get("economicOutcome")
-    reason = annotation.get("reason")
-    if (
-        not isinstance(candidate, str) or candidate not in ECONOMIC_OUTCOMES
-        or not isinstance(reason, str) or not reason.strip()
-    ):
-        raise ValueError("invalid economic annotation outcome or reason")
-    if run.get("status") != "completed" and candidate not in {"PENDING", "UNCLASSIFIED"}:
-        raise ValueError("nonterminal workflow attempt cannot have a final economic outcome")
-    return candidate, reason
+    qualified = bind_annotation(annotation, {
+        "runId": native_id, "attempt": attempt, "headSha": run.get("head_sha"),
+        "event": run.get("event"), "providerConclusion": run.get("conclusion"),
+    }, status=run.get("status"))
+    return qualified["economicOutcome"], qualified["reason"]
 
 
 def normalize(
@@ -220,6 +181,8 @@ def normalize(
                 "terminationReason": termination_reason(run),
                 "economicOutcome": economic,
                 "economicReason": economic_reason,
+                **({"economicAnnotation": {**annotation, "evidenceRefs": list(annotation["evidenceRefs"])}}
+                   if run_id in annotations else {}),
                 "jobs": normalized_jobs,
             }
         )
