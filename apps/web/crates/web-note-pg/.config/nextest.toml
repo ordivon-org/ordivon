@@ -28,3 +28,9 @@ path = "concurrent.xml"
 store-success-output = true
 store-failure-output = true
 report-skipped = "ignored"
+
+[profile.migration.junit]
+path = "migration.xml"
+store-success-output = true
+store-failure-output = true
+report-skipped = "ignored"

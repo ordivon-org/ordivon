@@ -100,9 +100,9 @@ class CommitAckFault:
 
 if __name__ == "__main__":
     parser=argparse.ArgumentParser()
-    parser.add_argument("--lane", choices=["all","native","stateful","concurrent"], default="all")
+    parser.add_argument("--lane", choices=["all","native","stateful","concurrent","migration"], default="all")
     args=parser.parse_args()
-    targets=("native","stateful","concurrent") if args.lane=="all" else (args.lane,)
+    targets=("native","stateful","concurrent","migration") if args.lane=="all" else (args.lane,)
     print(f"native qualification scope: {args.lane}", flush=True)
     manifest = Path(__file__).resolve().parents[1] / "Cargo.toml"
     base = ["cargo", "nextest"]

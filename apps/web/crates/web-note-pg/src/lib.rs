@@ -2,6 +2,7 @@
 //! Local Unix socket only; bounded mature pool; uncertain carriers discarded.
 mod domain;
 mod error;
+pub mod migration;
 mod pool;
 mod postgres;
 pub use domain::{Note, NoteObservation, NoteState, PreparedNote};

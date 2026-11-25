@@ -410,3 +410,73 @@ mise run verify:target
 References: https://onlinelibrary.wiley.com/doi/full/10.1002/cpe.3928 ;
 https://www.postgresql.org/docs/18/transaction-iso.html ;
 https://proptest-rs.github.io/proptest/proptest/failure-persistence.html .
+
+
+## R16 — full PG owner representation and offline migration candidate
+
+Host Work@35, #32988 and shared verification #33017, R15 composed
+becedb2c. First remove the repeated reduced fixture/schema bottleneck before
+expanding Effect/Grant/Approval authority. No legacy SQLite mutation.
+
+| Logic | Thought | Actual capability |
+|---|---|---|
+| M01 owner schema | representation-first | schema/owner-v1.sql, all 11 tables/8 explicit indexes, PK/FK/CHECK |
+| M02 source acquisition | consistent snapshot, raw representation | migration/sqlite-export.ts, caller-owned read-only SQLite WAL, one read transaction, actual storage class/hex bytes |
+| M03 compatibility | reject nonrepresentable; no silent coercion | migration_schema.rs static ordered columns, raw typed Cell, UTF8/NUL/safe JS integer/nullability/key ordering |
+| M04 target binding | natural owner, isolation | explicit matching empty UTF8 schema, no temp namespace, local search_path, caller-exclusive carrier |
+| M05 import operator | reuse native bulk transfer | tokio-postgres BinaryCopyInWriter, COPY FROM STDIN BINARY per table in FK order, count and exact readback after constraints |
+| M06 observation | exact evidence | read_snapshot in caller-owned consistent transaction, no JSONB normalization, C byte ordering |
+| M07 failure and recovery | atomicity, UNKNOWN distinct | rollback DDL and rows; commit/rollback unknown errors; no automatic retry |
+| M08 restore | genuine consumer, recovery-first | native pg_dump / pg_restore fresh private database; restored full snapshot; actual Rust Note create/observe |
+| M09 falsification | independent native effects | strict Nextest migration lane, actual old SQLite schema, independent byte SQL/index inventory, malformed/FK/CHECK/trigger omission/mutation, empty snapshot |
+| M10 writer cutover | single authority | NOT qualified: source freeze, durable manifest/digest, real live census, resource bounds, security/permissions, writer switch and recovery |
+
+R2.1 I=typed ordered complete source snapshot, explicit destination schema;
+O=acknowledged exact install or typed error/UNKNOWN; S=caller-exclusive
+maintenance connection/empty schema; pre=quiesced source for cutover,
+read-only source connection UTF8, destination UTF8 empty/exclusive,
+no temp namespace, source representability; post=all table rows exact after
+COPY/constraints and COMMIT; inv=never overwrite existing schema, no
+automatic replay, no partial commit in tested precommit failures;
+eff=local PG DDL+COPY; c=one bulk COPY per table, whole snapshot in memory
+and final readback O(rows/bytes), no production throughput claim;
+epsilon=no live data, no arbitrary hostile DDL, no durable migration manifest
+or source freeze orchestration, no TLS/role/ACL recovery qualification,
+connection owner must discard uncertain/cancelled carriers, no proof of
+source semantic validity solely from byte identity; prov=native tests/Git;
+unfold=SQLite raw types->typed snapshot->static schema->COPY->exact readback.
+
+Preserve TEXT even when JSON-looking (historical exact receipt/audit bytes
+and duplicates must remain visible), BYTEA for credential, BIGINT validated
+safe-JS integer, original NULL vs empty, explicit C ordering matching
+tested SQLite BINARY UTF8. SQLite storage classes are independently
+observed; malformed historical values are refused, never repaired during
+transfer. A complete empty snapshot is valid; a missing table is not.
+Source export uses SQL hex before JS string decoding to preserve invalid
+UTF8 for explicit refusal. Actual on-disk synthetic source uses original
+WebStore schema and independent read-only connection, 21 rows in all 11
+tables. Source unsafe integer and REAL rejected before import; target six
+malformed and three FK/CHECK faults rejected; native COPY row suppression
+and mutation detected and all relations rolled back. Restored exact rows
+then actual PgNoteStore creates one Note/Audit only, all other tables equal.
+
+Use native pg_dump/pg_restore of disposable fresh database; archive includes
+public schema DDL, so remove only template-created empty public in private
+restore fixture. Do not use --clean on a populated destination. Archive
+does not qualify production role/ACL preservation. Target qualification
+includes migration lane by default; focused lane is not full target PASS.
+Native mutation: removal of exact readback or native quota CHECK killed;
+isolated count-check removal survived because exact readback still catches
+omission (defense in depth, not reported as kill).
+
+References: https://sqlite.org/datatype3.html ;
+https://www.postgresql.org/docs/18/collation.html ;
+https://www.postgresql.org/docs/18/sql-copy.html ;
+https://www.postgresql.org/docs/18/app-pgdump.html ;
+https://docs.rs/tokio-postgres/latest/tokio_postgres/binary_copy/index.html .
+
+Next: actual PG Effect create/publish and Grant/Approval transaction using
+this schema, original owner-admitted context and R9 lock ordering. Do not
+create a second Security/OPA authority. Then real authenticated HTTP
+composition, streaming import and digest receipt/cutover rehearsal with
+actual source census, cross-owner independent review and root CI.

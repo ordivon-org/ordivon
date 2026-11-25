@@ -230,6 +230,12 @@
       ],
       "behavioralContract": "R2 create commits under admitted scope; R4 publish requires step-up approval bound to the exact effect and consumes it once; committed approval evidence cannot be reopened and pending approval lookup excludes committed effects; identical replay preserves previous receipt and conflicting payloads or fresh revoked-grant effects reject.",
       "evidence": [
+        "crates/web-note-pg/schema/owner-v1.sql",
+        "crates/web-note-pg/src/migration.rs",
+        "crates/web-note-pg/src/migration_schema.rs",
+        "crates/web-note-pg/migration/sqlite-export.ts",
+        "crates/web-note-pg/tests/migration.rs",
+        "crates/web-note-pg/tests/sqlite-migration-reference.ts",
         "crates/web-note-pg/tests/concurrent.rs",
         "crates/web-note-pg/tests/concurrent/model.rs",
         "crates/web-note-pg/tests/stateful.rs",
@@ -291,6 +297,7 @@
         }
       ],
       "acceptance": [
+        "R16 full PG schema, exact original SQLite typed snapshot, native binary COPY transactional install, wrong/nonempty destination refusal, malformed and native constraint/trigger rollback, actual native dump/restore and Rust Note consumer; live migration/single writer still unqualified.",
         "R15 bounded native concurrent histories: response and exact independent final facts admit a real-time-respecting sequential witness; native unique-key races and forced snapshot interleaving, isolation/checker negative controls; no claim about unknown outcomes or full interleavings.",
         "R14 native target qualification: full Rust discovery and fresh Nextest JUnit exact identities, no omitted tests/retries, independent generated Note/Audit model with stable shrunk regressions, verified PG fixture cleanup; explicit target owner verification, root CI integration separate.",
         "R13 native Rust PG candidate uses a bounded mature pool, affirmative terminality before recycle, caller-held prepared Note/Audit identities and coherent read-only observation; actual post-COMMIT future cancellation and wire ACK loss recover exact evidence without retry. Full schema, authenticated composition and single-writer cutover remain gated.",

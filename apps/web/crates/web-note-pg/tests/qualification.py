@@ -15,6 +15,7 @@ REQUIRED = {
         "pool_reuse_clean_reset_and_reconnect",
     },
     "stateful": {"generated_native_trajectories", "known_model_counterexamples"},
+    "migration": {"actual_owner_schema_exact_import", "malformed_and_native_constraint_import_roll_back", "native_dump_restore_and_real_note_consumer", "copy_faults_rollback_exact_postconditions"},
     "concurrent": {"generated_concurrent_histories", "bounded_oracle_rejects_impossible_histories", "coherent_snapshot_under_forced_commit", "native_identity_conflicts_have_one_winner"},
 }
 
