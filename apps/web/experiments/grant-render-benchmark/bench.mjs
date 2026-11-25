@@ -36,7 +36,7 @@ if(platform()==="linux" && Buffer.byteLength(scratch)>55){
 // and the browser must use this same root, not a shared system temp directory.
 const tempEnvironment=Object.fromEntries(["TMPDIR","TMP","TEMP"].map(key=>[key,process.env[key]]));
 for(const key of Object.keys(tempEnvironment))process.env[key]=scratch;
-let browser,primaryError;
+let browser,primaryError,resultPayload;
 const quantile=(v,q)=>{const a=[...v].sort((a,b)=>a-b);return Math.round(a[Math.ceil(q*a.length)-1]*100)/100};
 try{
  browser=await chromium.launch({headless:true,executablePath:executable});
@@ -91,7 +91,7 @@ try{
   }
   for(const v of results){const x=samples[v.name];assert.equal(x.mount.length,5);assert.equal(x.update.length,250);v.loads[n]={mountMedianMs:quantile(x.mount,.5),updateMedianMs:quantile(x.update,.5),updateP95Ms:quantile(x.update,.95),mountSamples:x.mount.length,updateSamples:x.update.length}}
  }
- console.log("GRANT_BENCHMARK_RESULT="+JSON.stringify({browser:browser.version(),node:process.version,host:{platform:platform(),arch:arch(),cpu:cpus()[0]?.model,logicalCpus:cpus().length,totalMemoryBytes:totalmem()},metrics:"synchronous array update and DOM commit; excludes layout/paint, network and agent tokens; compiler configuration is not a proof of transform coverage",results:results.map(({port,...v})=>v)}));
+ resultPayload=JSON.stringify({browser:browser.version(),node:process.version,host:{platform:platform(),arch:arch(),cpu:cpus()[0]?.model,logicalCpus:cpus().length,totalMemoryBytes:totalmem()},metrics:"synchronous array update and DOM commit; excludes layout/paint, network and agent tokens; compiler configuration is not a proof of transform coverage",results:results.map(({port,...v})=>v)});
 }catch(error){
  primaryError=error;
  throw error;
@@ -117,3 +117,5 @@ try{
    "Benchmark cleanup incomplete; retained/recheck scratch: "+scratch);
  }
 }
+// Only the completed release path may publish a success candidate.
+console.log("GRANT_BENCHMARK_RESULT="+resultPayload);
