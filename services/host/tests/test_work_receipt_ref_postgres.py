@@ -10,13 +10,15 @@ import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from queue import Queue
+from unittest.mock import patch
 from uuid import uuid4
 
 import psycopg
+from psycopg import sql
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from ordivon_host_v2.canonical_json import canonical_digest
+from ordivon_host_v2.canonical_json import canonical_bytes, canonical_digest
 from ordivon_host_v2.errors import ConflictError
 from ordivon_host_v2.health.receipt_roots import count_invalid_work_receipt_roots
 from ordivon_host_v2.references.actor_store import ActorReferenceStore
@@ -625,6 +627,233 @@ class WorkReceiptTest(unittest.TestCase):
                     if label in ("wrong pin", "absent pin", "foreign operation", "legacy with pin"):
                         self.assertEqual(old_oracle(conn), baseline)
             self.assertEqual(count_invalid_work_receipt_roots(conn), baseline)
+        self.assert_replay(self.create(), first)
+        self.assert_replay(self.commit("second", 1), second)
+
+    def test_maintenance_refuses_corrupt_native_pin_before_expansion(self):
+        first = self.create()
+        self.commit("second", 1)
+        self.tag("create", first)
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            conn.execute("SELECT 1")
+            for label, sql, params in [
+                ("wrong revision", "receipt_work_revision=2", ()),
+                ("absent pin", "receipt_work_ref=NULL,receipt_work_revision=NULL", ()),
+                ("foreign operation", "operation='message.post'", ()),
+                ("legacy with pin", "response=%s", (Jsonb(first),)),
+            ]:
+                with self.subTest(label=label), conn.transaction(force_rollback=True):
+                    # A native negative control, only in this isolated transaction.
+                    conn.execute(
+                        "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_work_root_shape"
+                    )
+                    conn.execute(
+                        "UPDATE command_receipts SET " + sql + " WHERE client_request_id=%s",
+                        (*params, self.key("create")),
+                    )
+
+                    def read_row():
+                        return conn.execute(
+                            "SELECT response,operation,receipt_work_ref,receipt_work_revision "
+                            "FROM command_receipts WHERE client_request_id=%s",
+                            (self.key("create"),),
+                        ).fetchone()
+
+                    before = read_row()
+                    with self.assertRaises(RuntimeError):
+                        expand_work_receipts_and_fence(conn)
+                    self.assertEqual(read_row(), before)
+                    self.assertEqual(
+                        conn.execute(
+                            "SELECT count(*) AS n FROM pg_constraint "
+                            "WHERE conrelid='command_receipts'::regclass "
+                            "AND conname='command_receipt_legacy_only'"
+                        ).fetchone()["n"],
+                        0,
+                    )
+        self.assert_replay(self.create(), first)
+
+    def test_maintenance_late_batch_corruption_rolls_back_all_expansions(self):
+        first = self.create()
+        tag = self.tag("create", first)
+        prefix = self.key("batch:")
+        last = prefix + "0260"
+        with psycopg.connect(DSN) as conn:
+            conn.execute(
+                "INSERT INTO command_receipts(client_request_id,operation,request_digest,"
+                "response,receipt_work_ref,receipt_work_revision) "
+                "SELECT %s||lpad(g::text,4,'0'),operation,request_digest,response,"
+                "receipt_work_ref,receipt_work_revision FROM command_receipts "
+                "CROSS JOIN generate_series(1,260) g WHERE client_request_id=%s",
+                (prefix, self.key("create")),
+            )
+            conn.execute(
+                "UPDATE command_receipts SET response=%s WHERE client_request_id=%s",
+                (Jsonb({**tag, "responseDigest": "sha256:" + "0" * 64}), last),
+            )
+
+        def rows(conn):
+            return conn.execute(
+                "SELECT client_request_id,response,receipt_work_ref,receipt_work_revision "
+                "FROM command_receipts WHERE client_request_id LIKE %s "
+                "OR client_request_id=%s ORDER BY client_request_id",
+                (prefix + "%", self.key("create")),
+            ).fetchall()
+
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            before = rows(conn)
+            self.assertEqual(len(before), 261)
+            with self.assertRaisesRegex(RuntimeError, "response digest differs"):
+                expand_work_receipts_and_fence(conn)
+            self.assertEqual(rows(conn), before)
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            self.assertEqual(rows(conn), before)
+            conn.execute(
+                "UPDATE command_receipts SET response=%s WHERE client_request_id=%s",
+                (Jsonb(tag), last),
+            )
+
+            class CountingConnection:
+                def __init__(self, native):
+                    self.native = native
+                    self.statements = 0
+                    self.updates = []
+
+                def __getattr__(self, name):
+                    return getattr(self.native, name)
+
+                def execute(self, query, params=None):
+                    self.statements += 1
+                    if query.startswith("UPDATE command_receipts AS r"):
+                        self.updates.append(tuple(len(v.encode("utf-8")) for v in params[1]))
+                    return self.native.execute(query, params)
+
+            counted = CountingConnection(conn)
+            self.assertEqual(expand_work_receipts_and_fence(counted), 261)
+            self.assertLessEqual(counted.statements, 12)  # No per-row SQL regression.
+            self.assertEqual(sum(map(len, counted.updates)), 261)
+            self.assertTrue(all(0 < len(batch) <= 128 for batch in counted.updates))
+            after = rows(conn)
+            self.assertEqual(
+                [r["client_request_id"] for r in after], [r["client_request_id"] for r in before]
+            )
+            for row in after:
+                self.assertEqual(row["response"], {**first, "admission": "existing"})
+                self.assertIsNone(row["receipt_work_ref"])
+                self.assertIsNone(row["receipt_work_revision"])
+            self.assertEqual(expand_work_receipts_and_fence(conn), 0)
+        self.gate_open = False
+        self.assert_replay(self.create(), first)
+
+    def test_maintenance_byte_budget_and_oversized_singleton(self):
+        first = self.create()
+        tag = self.tag("create", first)
+        # A test-specific budget exercises the same branch without allocating
+        # megabytes or imposing a new limit on historical business payloads.
+        norm = {**first, "admission": "existing"}
+        one_size = len(canonical_bytes(norm))
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            conn.execute(
+                "INSERT INTO command_receipts(client_request_id,operation,request_digest,"
+                "response,receipt_work_ref,receipt_work_revision) "
+                "SELECT %s||g::text,operation,request_digest,response,receipt_work_ref,"
+                "receipt_work_revision FROM command_receipts CROSS JOIN generate_series(1,2) g "
+                "WHERE client_request_id=%s",
+                (self.key("byte:"), self.key("create")),
+            )
+            original = conn.execute(
+                "SELECT client_request_id,response FROM command_receipts "
+                "WHERE receipt_work_ref=%s ORDER BY client_request_id",
+                (self.work,),
+            ).fetchall()
+            self.assertEqual(len(original), 3)
+
+            class ObservedConnection:
+                def __init__(self, native):
+                    self.native = native
+                    self.update_sizes = []
+
+                def __getattr__(self, name):
+                    return getattr(self.native, name)
+
+                def execute(self, query, params=None):
+                    if query.startswith("UPDATE command_receipts AS r"):
+                        self.update_sizes.append([len(item.encode("utf-8")) for item in params[1]])
+                    return self.native.execute(query, params)
+
+            # Two rows fit the first budget; one row exceeds the second.
+            # Force rollback of the first independent execution, including DDL.
+            with conn.transaction(force_rollback=True):
+                observed = ObservedConnection(conn)
+                with patch(
+                    "ordivon_host_v2.work_receipt_retention._UPDATE_BATCH_BYTES", 2 * one_size
+                ):
+                    self.assertEqual(expand_work_receipts_and_fence(observed), 3)
+                self.assertEqual([len(b) for b in observed.update_sizes], [2, 1])
+            observed = ObservedConnection(conn)
+            with patch("ordivon_host_v2.work_receipt_retention._UPDATE_BATCH_BYTES", one_size - 1):
+                self.assertEqual(expand_work_receipts_and_fence(observed), 3)
+            self.assertEqual(observed.update_sizes, [[one_size], [one_size], [one_size]])
+            restored = conn.execute(
+                "SELECT response FROM command_receipts WHERE client_request_id=ANY(%s)",
+                ([row["client_request_id"] for row in original],),
+            ).fetchall()
+            self.assertEqual([row["response"] for row in restored], [norm] * 3)
+            self.assertEqual(tag["responseDigest"], canonical_digest(norm))
+        self.gate_open = False
+        self.assert_replay(self.create(), first)
+
+    def test_maintenance_rejects_missing_or_relabelled_update_identity(self):
+        first = self.create()
+        second = self.commit("second", 1)
+        self.tag("create", first)
+        self.tag("second", second)
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+
+            def rows():
+                return conn.execute(
+                    "SELECT client_request_id,response,receipt_work_ref,receipt_work_revision "
+                    "FROM command_receipts WHERE receipt_work_ref=%s "
+                    "OR client_request_id LIKE %s ORDER BY client_request_id",
+                    (self.work, self.prefix + ":%"),
+                ).fetchall()
+
+            before = rows()
+            for label, effect in [
+                ("suppress", "RETURN NULL;"),
+                (
+                    "relabel",
+                    "NEW.client_request_id := NEW.client_request_id || ':relabeled'; RETURN NEW;",
+                ),
+            ]:
+                with self.subTest(label=label), conn.transaction(force_rollback=True):
+                    # Exercise the real UPDATE/RETURNING contract, not a mock
+                    # result. The trigger and all changes are private/rolled back.
+                    conn.execute(
+                        "CREATE FUNCTION pg_temp.receipt_update_control() RETURNS trigger "
+                        "LANGUAGE plpgsql AS $$ BEGIN " + effect + " END; $$"
+                    )
+                    conn.execute(
+                        sql.SQL(
+                            "CREATE TRIGGER receipt_update_control BEFORE UPDATE ON command_receipts "
+                            "FOR EACH ROW WHEN (OLD.client_request_id={}) "
+                            "EXECUTE FUNCTION pg_temp.receipt_update_control()"
+                        ).format(sql.Literal(self.key("second")))
+                    )
+                    with self.assertRaisesRegex(RuntimeError, "root disappeared"):
+                        expand_work_receipts_and_fence(conn)
+                    self.assertEqual(rows(), before)
+                    self.assertEqual(
+                        conn.execute(
+                            "SELECT count(*) AS n FROM pg_constraint "
+                            "WHERE conrelid='command_receipts'::regclass "
+                            "AND conname='command_receipt_legacy_only'"
+                        ).fetchone()["n"],
+                        0,
+                    )
+            self.assertEqual(rows(), before)
+            self.assertEqual(expand_work_receipts_and_fence(conn), 2)
+        self.gate_open = False
         self.assert_replay(self.create(), first)
         self.assert_replay(self.commit("second", 1), second)
 
