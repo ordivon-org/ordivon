@@ -269,3 +269,17 @@ Building another Runtime/Host/Harness, universal file taxonomy, custom CAS, seco
 - Matt Pocock `skills/engineering/to-spec`, `to-tickets`, `implement`, `tdd`, `code-review`.
 - obra/superpowers `writing-plans`, `test-driven-development`, `verification-before-completion`, `using-git-worktrees`.
 - affaan-m/ECC `hooks`, `rules`, `skills`: selective reuse of quality gate semantics, without wholesale installation.
+
+
+### T2 Web browser evidence projection
+
+Separate browser invocation from pure policy projection. The latter requires
+a subject-bound native report, successful transport, unambiguous engine
+names and exact report shape before admitting observations. Required engine
+launch/load absence or operational failure is UNKNOWN, never native content
+falsification. A qualified axe violation is decisive scoped negative evidence.
+Legacy stage FAIL still blocks publication when a required observation is
+unavailable; raw evidence is retained, but no binary VSA is produced for
+UNKNOWN, including when a previous VSA exists in the output directory.
+This does not waive any required renderer, nor claim a complete native
+dependency readset, arbitrary HTML execution safety or external acceptance.
