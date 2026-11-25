@@ -1012,8 +1012,9 @@ continues to serve the reverse lookup.
 
 For an **existing, operator-approved active Runtime schema**, use
 `crates/ordivon-runtime-core/sql/pg_artifact_job_lookup_r1.sql` with native
-`psql -X -w` in autocommit mode, explicitly supplying the current approved
-`runtime_schema` and `source_sha256` variables. Connect using the approved
+`psql -X -w -v ON_ERROR_STOP=1` in autocommit mode, explicitly supplying
+`search_path`, `ordivon.runtime_schema`, and `ordivon.source_sha256` as
+connection/session settings (for example via approved PGOPTIONS). Connect using the approved
 operator DSN through the normal secret handling; never place credentials
 in logs. Do not use `--single-transaction`. Set bounded lock/statement
 timeouts appropriate to the measured table size and active workload.
@@ -1022,8 +1023,8 @@ public or Harness. The operator must separately exclude concurrent schema
 administration, source/epoch cutover and maintenance conflicts; the script's
 preflight is not a lock spanning concurrent index construction.
 
-The migration verifies current source and native physical epoch before
-issuing DDL, uses `CREATE INDEX CONCURRENTLY`, and accepts an existing
+The migration verifies current source and native physical epoch both before
+and after DDL, uses `CREATE INDEX CONCURRENTLY`, and accepts an existing
 same-name object only if PostgreSQL catalogs verify the exact usable
 index (default B-tree, one key, no predicate, expression or INCLUDE).
 No automatic DROP/REINDEX is performed. An interrupted build can leave an
