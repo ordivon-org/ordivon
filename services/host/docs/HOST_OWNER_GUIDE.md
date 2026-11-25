@@ -513,3 +513,16 @@ fence and zero pins before
 alembic downgrade; the migration rejects missing/weaker fences or surviving
 compact roots. On ambiguous commit, inspect actual native state before retry.
 Do not treat this source contract as production activation authority.
+
+### Receipt-root audit: native set association
+
+Schema 0017 history audit streams the existing typed receipt-to-snapshot
+association through one native LEFT JOIN (128 rows per cursor batch).
+The read-only caller owns the repeatable-read cut. The shared codec still
+validates the exact envelope, native coordinates, writer, snapshot digest
+and reconstructed response digest. The ordinary request replay retains
+its exact single lookup; the history audit must not hide a missing target,
+a malformed Work receipt or a pin inconsistent with its operation.
+Unpinned legacy full receipts remain self-contained. A history diagnostic
+without typed schema roots is explicitly unavailable, not an absence proof.
+No retirement or writer activation is implied by successful read-only audit.

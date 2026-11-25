@@ -9,6 +9,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+class UnstableBlobError(RuntimeError):
+    """The observed file descriptor changed while its bytes were read."""
+
+
 @dataclass(frozen=True, slots=True)
 class BlobInfo:
     digest: str
@@ -43,7 +47,7 @@ def hash_file(path: Path, chunk_size: int = 1024 * 1024) -> BlobInfo:
         stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns
     )
     if identity(before) != identity(after) or bytes_read != after.st_size:
-        raise RuntimeError(f"source file changed during hashing: {path}")
+        raise UnstableBlobError(f"source file changed during hashing: {path}")
     media_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
     return BlobInfo(
         digest=f"sha256:{digest.hexdigest()}",

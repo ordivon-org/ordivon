@@ -329,3 +329,77 @@ def test_http_execution_identity_requirement_preserves_verified_and_stdio_paths(
         assert local_owner.calls[-1][2]["clientRequestId"] == "request:bound"
 
     asyncio.run(run())
+
+
+@pytest.mark.parametrize(
+    "name,extra",
+    [
+        ("execution.get", {"waitMs": -1}),
+        ("execution.get", {"waitMs": 30001}),
+        ("artifact.read", {"artifactId": "stdout", "offset": -1}),
+        ("artifact.read", {"artifactId": "stdout", "maxBytes": 0}),
+        ("artifact.read", {"artifactId": "stdout", "maxBytes": 1048577}),
+    ],
+)
+def test_verified_invalid_local_range_needs_no_owner_read(name, extra):
+    owner = PrincipalScopedOwner()
+    server = build_server(GatewayService(owner), require_http_execution_identity=True)
+    verified = _context(server, "principal:cf-access:A")
+
+    async def scenario():
+        await server.call_tool(
+            "execution.submit",
+            {
+                "capability": "execution.linux",
+                "requestId": "req-local-range",
+                "workspaceId": "ws-test",
+                "executable": "/usr/bin/true",
+                "args": [],
+            },
+            verified,
+        )
+        before = len(owner.calls)
+        with pytest.raises(ToolError):
+            await server.call_tool(
+                name,
+                {
+                    "operationRef": "ordivon-exec:v1:runtime.linux:job-namespace-1",
+                    "requestId": "req-local-range",
+                    "capability": "execution.linux",
+                    **extra,
+                },
+                verified,
+            )
+        assert owner.calls[before:] == []
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize(
+    "name,extra",
+    [
+        ("execution.get", {"waitMs": -1}),
+        ("artifact.read", {"artifactId": "stdout", "maxBytes": 0}),
+    ],
+)
+def test_invalid_range_does_not_weaken_missing_ingress_identity(name, extra):
+    owner = PrincipalScopedOwner()
+    server = build_server(GatewayService(owner), require_http_execution_identity=True)
+    unverified = Context(
+        request_context=SimpleNamespace(request=SimpleNamespace(scope={"state": {}})),
+        mcp_server=server,
+    )
+    with pytest.raises(ToolError, match="verified ingress Principal"):
+        asyncio.run(
+            server.call_tool(
+                name,
+                {
+                    "operationRef": "ordivon-exec:v1:runtime.linux:job-namespace-1",
+                    "requestId": "req-local-range",
+                    "capability": "execution.linux",
+                    **extra,
+                },
+                unverified,
+            )
+        )
+    assert owner.calls == []

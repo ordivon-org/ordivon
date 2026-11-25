@@ -105,10 +105,12 @@ def validate_repository() -> list[str]:
                 receipt = _load(path)
                 errors.extend(_validate_receipt_envelope(path, receipt))
                 if receipt.get("kind") == RUNTIME_RECEIPT_KIND:
-                    for error in sorted(receipt_validator.iter_errors(receipt), key=lambda item: list(item.path)):
+                    schema_errors = sorted(receipt_validator.iter_errors(receipt), key=lambda item: list(item.path))
+                    for error in schema_errors:
                         location = "/".join(str(part) for part in error.path)
                         errors.append(f"{path}:{location}: {error.message}")
-                    errors.extend(_validate_runtime_receipt(path, receipt))
+                    if not schema_errors:
+                        errors.extend(_validate_runtime_receipt(path, receipt))
     return errors
 
 
