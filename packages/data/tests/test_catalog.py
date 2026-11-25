@@ -56,6 +56,57 @@ class CatalogProjectionTests(TestCase):
                 inspect_distribution(dist, (root,), True)["verification"], "FALSIFIED"
             )
 
+    def test_malformed_file_uri_never_admits_normalized_local_bytes(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            payload = b"known"
+            digest = "sha256:" + hashlib.sha256(payload).hexdigest()
+            names = (
+                "plain.json",
+                "literal%GG.json",
+                "literal%.json",
+                "literal%0.json",
+                "with space.json",
+                "line\nfeed.json",
+                "question?.json",
+                "hash#.json",
+                "中文.json",
+            )
+            for name in names:
+                path = root / name
+                path.write_bytes(payload)
+                with self.subTest(valid=name):
+                    result = inspect_distribution(
+                        {
+                            "dcat:accessURL": {"@id": path.as_uri()},
+                            "dct:identifier": digest,
+                        },
+                        (root,),
+                        True,
+                    )
+                    self.assertEqual(result["verification"], "VERIFIED")
+            plain = (root / "plain.json").as_uri()
+            malformed = [root.as_uri() + "/" + name for name in names[1:5]] + [
+                " " + plain,
+                "\t" + plain,
+                plain.replace("plain", "pl\nain"),
+                plain.replace("plain", "pl\tain"),
+                plain + "?",
+                plain + "#",
+            ]
+            for uri in malformed:
+                with self.subTest(invalid=uri):
+                    result = inspect_distribution(
+                        {
+                            "dcat:accessURL": {"@id": uri},
+                            "dct:identifier": digest,
+                        },
+                        (root,),
+                        True,
+                    )
+                    self.assertEqual(result["verification"], "UNKNOWN")
+                    self.assertNotIn("observedDigest", result)
+
     def test_missing_and_external_files_remain_unknown(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)

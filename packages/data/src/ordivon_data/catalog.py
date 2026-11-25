@@ -6,6 +6,7 @@ Missing, remote, malformed and unbound data remain UNKNOWN rather than FAIL.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlsplit
@@ -70,6 +71,18 @@ def inspect_distribution(
     uri = result["uri"]
     if not isinstance(uri, str):
         result["reason"] = "no_access_url"
+        return result
+    # The bounded file-URI profile forbids raw controls, spaces, malformed
+    # percent escapes and query/fragment delimiters (including empty ones).
+    # Check the original spelling: urlsplit can erase controls and unquote
+    # preserves invalid escapes. Neither normalization is an admission proof.
+    if (
+        any(ord(ch) <= 32 or ord(ch) == 127 for ch in uri)
+        or re.search(r"%(?![0-9A-Fa-f]{2})", uri)
+        or "?" in uri
+        or "#" in uri
+    ):
+        result["reason"] = "unsupported_uri_or_authority"
         return result
     try:
         parts = urlsplit(uri)
