@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 import sys
+from contextlib import closing
 from pathlib import Path
 
 import pytest
@@ -178,7 +179,7 @@ def test_same_standing_does_not_preserve_archive_currentness(
     effect = "sha256:" + "a" * 64
     create_ledger(ledger, [(effect, "unknown")])
     write_archive(ledger, archive, [observed(effect)], archived_at_ms=300)
-    with sqlite3.connect(ledger) as db:
+    with closing(sqlite3.connect(ledger)) as db, db:
         db.execute(f"UPDATE requests SET {assignment} WHERE request_id=?", (effect,))
     value = project_archive(ledger, archive)
     assert value["activeArchivedUnresolved"] == 0
@@ -192,7 +193,7 @@ def test_unrelated_row_change_does_not_invalidate_exact_archive_subject(tmp_path
     one, two = "sha256:" + "a" * 64, "sha256:" + "b" * 64
     create_ledger(ledger, [(one, "unknown"), (two, "unknown")])
     write_archive(ledger, archive, [observed(one)], archived_at_ms=300)
-    with sqlite3.connect(ledger) as db:
+    with closing(sqlite3.connect(ledger)) as db, db:
         db.execute("UPDATE requests SET evidence_digest='new' WHERE request_id=?", (two,))
     value = project_archive(ledger, archive)
     assert value["activeArchivedUnresolved"] == 1
@@ -216,7 +217,7 @@ def test_legacy_tuple_only_archive_is_not_exact_or_data_release(tmp_path: Path) 
     assert projection["legacyTupleOnlyArchivedUnresolved"] == 1
     assert projection["exactRowArchivedUnresolved"] == 0
     assert projection["archiveAuthorizesDataRelease"] is False
-    with sqlite3.connect(ledger) as db:
+    with closing(sqlite3.connect(ledger)) as db, db:
         db.execute("UPDATE requests SET effect_generation=effect_generation+1")
     projection = project_archive(ledger, archive)
     assert projection["actionableUnresolved"] == 1
