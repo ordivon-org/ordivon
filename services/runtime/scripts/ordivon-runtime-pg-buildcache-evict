@@ -95,18 +95,35 @@ def pg_qualification(conn, schema, source: str, workspace_id: str) -> tuple[int,
             WHERE j.workspace_id=%s AND r.state IN ('active','held_orphaned')),
         (SELECT resolution FROM {s}.jobs WHERE workspace_id=%s
             ORDER BY created_at_ms DESC,job_id DESC LIMIT 1),
+        (SELECT COUNT(*) FROM {s}.attempts a
+            JOIN {s}.jobs j ON j.job_id=a.job_id
+            LEFT JOIN {s}.concurrency_reservations r ON r.attempt_id=a.attempt_id
+            WHERE j.workspace_id=%s AND (
+                a.state NOT IN ('succeeded','failed','timed_out','cancelled','lost')
+                OR r.state IS DISTINCT FROM 'released')),
+        (SELECT COUNT(*) FROM {s}.job_allocations al
+            JOIN {s}.attempts a ON a.attempt_id=al.attempt_id
+            JOIN {s}.jobs j ON j.job_id=a.job_id
+            WHERE j.workspace_id=%s AND al.state IS DISTINCT FROM 'released'),
         (EXTRACT(EPOCH FROM clock_timestamp())*1000)::bigint
     """).format(s=s)
-    j, a, e, unresolved, held, latest, now = conn.execute(
-        query, (workspace_id,) * 6
+    j, a, e, unresolved, held, latest, unsettled, allocated, now = conn.execute(
+        query, (workspace_id,) * 8
     ).fetchone()
     last = max((v or 0) for v in (j, a, e))
     result = {"lastActivityUnixMs": int(last), "nowUnixMs": int(now),
               "unresolvedJobs": int(unresolved), "heldReservations": int(held),
               "lastJobResolution": latest,
+              "unsettledAttempts": int(unsettled),
+              "unreleasedAllocations": int(allocated),
               "idleHours": round((int(now) - last) / 3600000, 2) if last else None}
-    if not qualified_quiet(int(last), int(now), int(unresolved), int(held), latest):
-        raise RuntimeError("Workspace has recent, unresolved, held or unqualified PG Job activity")
+    # The newest successful Job is not a complete root census. Inspect every
+    # Attempt, including older detached rows, and the independent allocation.
+    # Missing/unknown reservation or orphaned state is not proven settlement.
+    # This remains a PG prerequisite, not native OS/consumer release evidence.
+    if (not qualified_quiet(int(last), int(now), int(unresolved), int(held), latest)
+            or unsettled != 0 or allocated != 0):
+        raise RuntimeError("Workspace has recent, unresolved, held or unqualified PG Job/Attempt/allocation activity")
     return int(now), result
 
 

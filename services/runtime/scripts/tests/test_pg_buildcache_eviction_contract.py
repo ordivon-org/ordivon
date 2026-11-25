@@ -141,5 +141,65 @@ class OpenFdConsumerTests(unittest.TestCase):
                 self.assertIn(pid, consumers)
 
 
+class NativePgReclamationRootTests(unittest.TestCase):
+    """Opt-in isolated PostgreSQL oracle, using the actual writer schema.
+
+    No production DSN fallback. Terminal Job resolution is not a complete
+    census of its Attempts, reservations or physical allocations.
+    """
+
+    def test_every_attempt_and_allocation_must_be_settled(self):
+        import os
+        import uuid
+
+        dsn = os.environ.get("ORDIVON_PG_BUILDCACHE_TEST_DSN")
+        if not dsn:
+            self.skipTest("explicit private PG build-cache fixture required")
+        import psycopg
+        from psycopg import sql
+
+        schema = "cache_test_" + uuid.uuid4().hex
+        source = "a" * 64
+        old = 1
+        with psycopg.connect(dsn, autocommit=True) as conn:
+            self.assertEqual(conn.info.dbname, "ordivon_buildcache_test")
+            conn.execute(sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(schema)))
+            try:
+                conn.execute(sql.SQL("SET search_path TO {}").format(sql.Identifier(schema)))
+                ddl = SCRIPT.parent.parent / "crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"
+                conn.execute(ddl.read_text())
+                conn.execute("INSERT INTO _stage_control VALUES ('source','QUALIFIED_WRITER',%s,true)", (source,))
+                conn.execute("""INSERT INTO jobs VALUES
+                    ('j','p','req','rd','od','ws','{}','{}','ed',%s,'run','succeeded',NULL,0)""", (old,))
+                conn.execute("""INSERT INTO attempts
+                    (attempt_id,job_id,attempt_number,state,termination_intent,launch_token_digest,bundle_path,unit_name,created_at_ms,result_digest,finished_at_ms)
+                    VALUES ('latest','j',2,'succeeded','natural','ld','b','u2',%s,'result',%s),
+                           ('earlier','j',1,'lost','natural','ld','b','u1',%s,'result',%s)""",
+                    (old, old, old, old))
+                conn.execute("""INSERT INTO concurrency_reservations
+                    (reservation_id,attempt_id,global_limit,state,acquired_at_ms,state_observed_at_ms,released_at_ms)
+                    VALUES ('r2','latest',1,'released',%s,%s,%s),('r1','earlier',1,'released',%s,%s,%s)""",
+                    (old, old, old, old, old, old))
+                evict.pg_qualification(conn, schema, source, "ws")
+                for label, change, restore in (
+                    ("older running", "UPDATE attempts SET state='running' WHERE attempt_id='earlier'", "UPDATE attempts SET state='lost' WHERE attempt_id='earlier'"),
+                    ("unknown state", "UPDATE attempts SET state='future_state' WHERE attempt_id='earlier'", "UPDATE attempts SET state='lost' WHERE attempt_id='earlier'"),
+                    ("orphaned released", "UPDATE attempts SET state='orphaned' WHERE attempt_id='earlier'", "UPDATE attempts SET state='lost' WHERE attempt_id='earlier'"),
+                    ("missing reservation", "DELETE FROM concurrency_reservations WHERE attempt_id='earlier'", "INSERT INTO concurrency_reservations VALUES ('r1','earlier',1,'released',1,1,1,NULL)"),
+                    ("unknown reservation", "UPDATE concurrency_reservations SET state='future_state' WHERE attempt_id='earlier'", "UPDATE concurrency_reservations SET state='released' WHERE attempt_id='earlier'"),
+                    ("active allocation", "INSERT INTO job_allocations VALUES ('earlier','{}','{}','owner','active',1,NULL)", "DELETE FROM job_allocations WHERE attempt_id='earlier'"),
+                ):
+                    with self.subTest(case=label):
+                        conn.execute(change)
+                        try:
+                            with self.assertRaises(RuntimeError):
+                                evict.pg_qualification(conn, schema, source, "ws")
+                        finally:
+                            conn.execute(restore)
+                        evict.pg_qualification(conn, schema, source, "ws")
+            finally:
+                conn.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(schema)))
+
+
 if __name__ == "__main__":
     unittest.main()

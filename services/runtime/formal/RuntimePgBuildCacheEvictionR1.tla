@@ -4,8 +4,10 @@ EXTENDS Naturals
 \* The PG advisory admission lock, source qualification and native OS process
 \* ownership remain real implementation/installed obligations, not model proofs.
 \* Detached bytes are rebuildable compiler outputs, NOT Git source or Artifact.
-VARIABLES gate, job, cache, detached, qualified, source, phase
-Vars == <<gate, job, cache, detached, qualified, source, phase>>
+\* Hidden durable roots model earlier Attempts or independent allocations.
+\* Their absence must be qualified before detach, not inferred from latest Job.
+VARIABLES gate, job, cache, detached, qualified, source, phase, hiddenRoot
+Vars == <<gate, job, cache, detached, qualified, source, phase, hiddenRoot>>
 
 Init ==
     /\ gate = "free"
@@ -15,6 +17,7 @@ Init ==
     /\ qualified = FALSE
     /\ source = "preserved"
     /\ phase = "ready"
+    /\ hiddenRoot \in {"none", "unsettledAttempt", "unreleasedAllocation"}
 
 AcquirePruneFence ==
     /\ gate = "free"
@@ -22,15 +25,16 @@ AcquirePruneFence ==
     /\ phase = "ready"
     /\ gate' = "pruner"
     /\ phase' = "planning"
-    /\ UNCHANGED <<job, cache, detached, qualified, source>>
+    /\ UNCHANGED <<job, cache, detached, qualified, source, hiddenRoot>>
 
 RecheckUnderFence ==
     /\ gate = "pruner"
     /\ phase = "planning"
     /\ job = "idle"
+    /\ hiddenRoot = "none"
     /\ qualified' = TRUE
     /\ phase' = "qualified"
-    /\ UNCHANGED <<gate, job, cache, detached, source>>
+    /\ UNCHANGED <<gate, job, cache, detached, source, hiddenRoot>>
 
 DetachRebuildableCache ==
     /\ gate = "pruner"
@@ -41,27 +45,27 @@ DetachRebuildableCache ==
     /\ cache' = "absent"
     /\ detached' = TRUE
     /\ phase' = "detached"
-    /\ UNCHANGED <<gate, job, qualified, source>>
+    /\ UNCHANGED <<gate, job, qualified, source, hiddenRoot>>
 
 ReleaseAdmissionFence ==
     /\ gate = "pruner"
     /\ phase = "detached"
     /\ gate' = "free"
     /\ phase' = "outside_fence"
-    /\ UNCHANGED <<job, cache, detached, qualified, source>>
+    /\ UNCHANGED <<job, cache, detached, qualified, source, hiddenRoot>>
 
 DeleteAlreadyDetachedBytes ==
     /\ phase = "outside_fence"
     /\ detached
     /\ detached' = FALSE
     /\ phase' = "disposed"
-    /\ UNCHANGED <<gate, job, cache, qualified, source>>
+    /\ UNCHANGED <<gate, job, cache, qualified, source, hiddenRoot>>
 
 AcquireJobFence ==
     /\ gate = "free"
     /\ job = "idle"
     /\ gate' = "admitter"
-    /\ UNCHANGED <<job, cache, detached, qualified, source, phase>>
+    /\ UNCHANGED <<job, cache, detached, qualified, source, phase, hiddenRoot>>
 
 AdmitJobAndRebuildIfNeeded ==
     /\ gate = "admitter"
@@ -69,12 +73,12 @@ AdmitJobAndRebuildIfNeeded ==
     /\ gate' = "free"
     /\ job' = "active"
     /\ cache' = "present"
-    /\ UNCHANGED <<detached, qualified, source, phase>>
+    /\ UNCHANGED <<detached, qualified, source, phase, hiddenRoot>>
 
 FinishJob ==
     /\ job = "active"
     /\ job' = "idle"
-    /\ UNCHANGED <<gate, cache, detached, qualified, source, phase>>
+    /\ UNCHANGED <<gate, cache, detached, qualified, source, phase, hiddenRoot>>
 
 Next ==
     \/ AcquirePruneFence
@@ -93,10 +97,12 @@ TypeOK ==
     /\ detached \in BOOLEAN
     /\ qualified \in BOOLEAN
     /\ source = "preserved"
+    /\ hiddenRoot \in {"none", "unsettledAttempt", "unreleasedAllocation"}
     /\ phase \in {"ready", "planning", "qualified", "detached", "outside_fence", "disposed"}
 
 NoActiveJobWithoutBuild == job = "active" => cache = "present"
 DetachedRequiresQualified == detached => qualified
+DetachedHasNoHiddenRoot == detached => hiddenRoot = "none"
 SourceIsNeverEvicted == source = "preserved"
 \* Anti-vacuity: MUST be violated in a reachable legitimate eviction.
 NeverDetached == ~detached
