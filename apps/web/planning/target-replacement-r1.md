@@ -257,3 +257,86 @@ execution deadlines/cancellation and production pool sizing, native
 authenticated HTTP consumer via selected transport without duplicating
 Security, historical data/collation/backup/restore and single-writer cutover.
 Only retire the installed old writer after independent qualification.
+
+
+## R14 — Web test architecture replacement execution spec
+
+Host Work@33 and shared verification Topic #32805, #32814, #32866.
+No duplicate global runner or registry; root selector/Host/Composition are
+other active owners. Source baseline 95eba099 (R13 plus main da283e36).
+Goal: qualify actual target consumers without treating a green legacy suite,
+coverage percentage, ignored tests, or test count as proof of replacement.
+
+| Logic LEGO | Thought LEGO | Actual capability / next gate |
+|---|---|---|
+| V01 test obligations and impact | consumer-first, completeness | existing Owner verify, native Nextest discovery; unknown nonempty test targets fail full native gate |
+| V02 representation and oracle | independent falsification | independent Note/Audit maps + exact PG peer facts, TS reference, existing Solid generation fence |
+| V03 generation | state-machine traces, shrinkability | Proptest std-only dev dependency, bounded trace 1..32, 48 new cases and saved seeds |
+| V04 counterexample replay | regression closure | persisted Proptest seeds plus stable concrete command sequences, no replay of real effects |
+| V05 native execution | isolation, resource scope | existing disposable PG18 Unix socket/guard; Nextest process-per-test, serialized within shared fixture; precompile/discover before launching one-shot fault carriers |
+| V06 physical faults | actual effects versus ACK | native triggers, lock/cancel, COMMIT wire cuts, PID readback; existing R9 primitive and R13 domain cases |
+| V07 verdict | PASS/FAIL/SKIP/UNKNOWN distinct | Nextest JSON inventory, fresh JUnit exact identities, no skip/retry/zero test; no success until cleanup |
+| V08 consumer | behavioral differential | existing SQLite reference, real Chromium on /operator/grants, native field/identity/late-response assertions |
+| V09 nonfunctional | measure not assert uncalibrated timings | move prior R13 timing diagnostic out of correctness path; separate benchmark task is future work |
+| V10 integration and evidence | source-bound and natural owner | owner verify:target, native tool version/run IDs and report digests; root CI/release acceptance remains independent |
+
+P0 completed source candidate: 4 independently named original PG tests,
+generated trajectory test and stable regression test (6 named tests);
+test support reuses exact existing isolated fixture. Native report consumer
+rejects ignored/deselected obligations, unknown nonempty target, missing
+or stale report (unlink before launch), mismatched identities/counts and
+nonpassing/flaky verdict. It is not a custom test execution framework.
+Report PASS is a suite verdict, overall qualification only after wire
+fault confirmation and native cleanup. Full target must discover all Rust
+test targets, empty lib test binary is allowed, newly nonempty target is
+an explicit obligation to integrate, not silently discarded.
+Focused --lane native/stateful is not full target PASS. Requires isolated
+worktree per run (JUnit paths scoped to worktree; no concurrent runs in
+same worktree). Native process timeouts are not a claim of server statement
+deadlines. Disposition remains UNKNOWN on lost Runtime execution evidence.
+
+Independent model: maintain plain BTreeMaps keyed separately by Note and Audit
+identities, no production helpers for expected facts. Generated operations:
+execute, observe arbitrary/known, publish imported row, remove/corrupt audit,
+insert orphan, list. After each step compare both principals, raw Note/Audit
+rows and counts, plus exact observation when invoked. UUIDs are controlled
+fixture identities, not authorization. This is bounded sequential modeling,
+not proof of all interleavings; native concurrency tests cover distinct named
+fault cases. 3 shrink-derived regression sequences: one-step cross-principal
+leak, two-step shared audit identity, two-step orphan plus execute. Saved
+seeds versioned; explicit minimized sequences survive generator evolution.
+Mutation kill requires actual native assertion and fresh JUnit failure;
+compilation/timeout/fixture failure not a kill. No global mutation-score
+claim. Avoid fork/timeout/bit-set proptest features since Nextest owns process
+lifecycle. Exact lock retained; no production dependency changes.
+
+Execution (Linux with native PG18, Rust, Nextest >=0.9.143, Node/pnpm,
+matching Playwright Chromium and native Clippy/rustfmt):
+```sh
+cd apps/web
+# provision locked browser if missing, using existing Playwright tooling
+pnpm --dir experiments/solid-grants-r3 install --frozen-lockfile --ignore-scripts
+pnpm --dir experiments/solid-grants-r3 exec playwright install chromium
+mise run verify:target
+# focused native source qualification, not whole target
+pnpm run test:pg-domain
+```
+Browser path is caller-owned (PLAYWRIGHT_BROWSERS_PATH if a private XDG
+cache is used); missing runtime or browser is failure, never skip. Existing
+portable web:verify remains unchanged; root required CI must explicitly
+consume verify:target after native environment and selector qualification
+by root owner. Do not silently strengthen root job prerequisites without
+cross-owner review. Actual authenticated Rust route and full PG schema,
+cross-owner consumer, physical authenticator, production and installed
+release remain unqualified. Next: independent multi-seed discovery,
+concurrent state-machine/linearizability model, schema migration/restore
+qualification, full Effect/Grant/Approval model, browser lifecycle, formal
+model-to-native refinement, mutation automation in isolated job, and
+cost/flake observation. Adopt mature upstream tools only as real consumers
+require, no universal test registry.
+
+References: https://proptest-rs.github.io/proptest/proptest/failure-persistence.html ;
+https://www.nexte.st/docs/design/why-process-per-test/ ;
+https://www.nexte.st/docs/features/retries/ ;
+https://nexte.st/docs/machine-readable/junit/ ;
+https://mutants.rs/timeouts.html .

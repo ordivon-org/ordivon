@@ -1,6 +1,8 @@
 """R9 disposable cluster + one-shot local wire fault, never a production DSN."""
 from __future__ import annotations
 import os
+import argparse
+import json
 from pathlib import Path
 import secrets
 import socket
@@ -12,6 +14,7 @@ import threading
 root = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(root / "experiments/pg-transaction-r1"))
 from probe import Cluster
+from qualification import discover, print_report
 
 
 def read_exact(sock: socket.socket, size: int) -> bytes:
@@ -90,11 +93,29 @@ class CommitAckFault:
         self.listener.close()
         self.thread.join(timeout=3)
         if require_cut:
-            assert self.cut and self.error is None and not self.thread.is_alive(), self.error
+            if not self.cut or self.error is not None or self.thread.is_alive():
+                raise RuntimeError(f"required wire fault not confirmed: {self.error}")
             print("wire fault: native COMMIT acknowledgement discarded exactly once", flush=True)
 
 
 if __name__ == "__main__":
+    parser=argparse.ArgumentParser()
+    parser.add_argument("--lane", choices=["all","native","stateful"], default="all")
+    args=parser.parse_args()
+    targets=("native","stateful") if args.lane=="all" else (args.lane,)
+    print(f"native qualification scope: {args.lane}", flush=True)
+    manifest = Path(__file__).resolve().parents[1] / "Cargo.toml"
+    base = ["cargo", "nextest"]
+    # Compile and discover before launching any disposable database or wire
+    # fixture. Cold builds cannot consume the one-shot listener's deadline.
+    build = ["--manifest-path", str(manifest), "--locked", "--offline"]
+    env_base = {k: v for k, v in os.environ.items() if not k.startswith(("NEXTEST_", "PG", "PROPTEST_"))}
+    subprocess.run(base + ["--version"], env=env_base, check=True, timeout=10)
+    selection = ["--tests"] if args.lane=="all" else [arg for target in targets for arg in ("--test",target)]
+    discovery = subprocess.run(base + ["list"] + build + selection + ["--message-format","json"],
+                   env=env_base, cwd=manifest.parent, check=True, timeout=180, stdout=subprocess.PIPE)
+    expected=discover(json.loads(discovery.stdout),targets)
+    print("native discovery:", json.dumps({k:sorted(v) for k,v in expected.items()}),flush=True)
     cluster = Cluster()
     fault = None
     cancel_fault = None
@@ -106,17 +127,29 @@ if __name__ == "__main__":
             cluster.psql + ["-v", "ON_ERROR_STOP=1", "-c",
                             f"CREATE TABLE web_note_fixture_guard(token text); INSERT INTO web_note_fixture_guard VALUES ('{guard}')"],
             env=cluster.env, check=True, timeout=10)
-        fault = CommitAckFault(cluster)
-        cancel_fault = CommitAckFault(cluster, hold=True)
-        env = dict(cluster.env)
+        if "native" in targets:
+            fault = CommitAckFault(cluster)
+            cancel_fault = CommitAckFault(cluster, hold=True)
+        env = dict(env_base)
         env.update(WEB_NOTE_TEST_SOCKET=str(cluster.root), WEB_NOTE_TEST_USER=cluster.user,
                    WEB_NOTE_TEST_PORT="59439", WEB_NOTE_TEST_NODE=os.environ.get("NODE", "node"),
-                   WEB_NOTE_TEST_GUARD=guard, WEB_NOTE_TEST_ACK_PROXY=str(fault.root),
-                   WEB_NOTE_TEST_CANCEL_PROXY=str(cancel_fault.root))
-        result = subprocess.run(
-            ["cargo", "test", "--manifest-path", str(Path(__file__).resolve().parents[1] / "Cargo.toml"),
-             "--locked", "--offline", "--test", "native", "--", "--nocapture"],
-            env=env, check=False, timeout=180)
+                   WEB_NOTE_TEST_GUARD=guard)
+        if fault is not None:
+            env.update(WEB_NOTE_TEST_ACK_PROXY=str(fault.root),
+                       WEB_NOTE_TEST_CANCEL_PROXY=str(cancel_fault.root))
+        # Two nonoptional native targets. No global filtering or retry can
+        # silently turn a missing target into successful qualification.
+        for target in targets:
+            report = manifest.parent / "target" / "nextest" / target / (target + ".xml")
+            report.unlink(missing_ok=True)
+            result = subprocess.run(base + ["run"] + build + ["--test", target,
+                "--profile", target, "--no-tests", "fail", "--retries", "0", "--test-threads", "1",
+                "--status-level", "pass", "--success-output", "final"],
+                env=env, cwd=manifest.parent, check=False, timeout=180)
+            if result.returncode != 0:
+                break
+            print_report(report, expected[target])
+
     finally:
         try:
             if fault is not None:
@@ -127,4 +160,6 @@ if __name__ == "__main__":
                     cancel_fault.close(require_cut=result is not None and result.returncode == 0)
             finally:
                 cluster.close()
+    if result.returncode == 0:
+        print(f"native qualification complete: scope={args.lane}; discovery/JUnit/fixture cleanup confirmed", flush=True)
     raise SystemExit(result.returncode)

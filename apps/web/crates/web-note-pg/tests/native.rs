@@ -4,7 +4,8 @@ use ordivon_web_note_pg::{
 };
 use serde_json::{Value, json};
 use std::{path::PathBuf, time::Duration};
-use tokio_postgres::{Client, Config, NoTls};
+use support::{counts, fixture, reset};
+use tokio_postgres::Client;
 
 // Test-only shorthand. Actual consumers must hold PreparedNote before await.
 trait FixtureCreate {
@@ -14,80 +15,6 @@ impl FixtureCreate for PgNoteStore {
     async fn create(&self, p: &str, c: &str, t: i64) -> Result<Note, NoteError> {
         self.execute(&PreparedNote::new(p, c, t)?).await
     }
-}
-async fn fixture() -> (PgNoteStore, Client) {
-    let socket =
-        PathBuf::from(std::env::var_os("WEB_NOTE_TEST_SOCKET").expect("isolated fixture socket"));
-    let user = std::env::var("WEB_NOTE_TEST_USER").unwrap();
-    let port: u16 = std::env::var("WEB_NOTE_TEST_PORT")
-        .unwrap()
-        .parse()
-        .unwrap();
-    let mut config = Config::new();
-    config
-        .host_path(&socket)
-        .port(port)
-        .user(&user)
-        .dbname("postgres");
-    let (client, conn) = config.connect(NoTls).await.unwrap();
-    tokio::spawn(async move {
-        conn.await.unwrap();
-    });
-    // Destructive fixture DDL must never target a live owner database.
-    assert!(
-        socket
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .starts_with("ordivon-web-pg-")
-    );
-    let actual: String = client
-        .query_one("SHOW data_directory", &[])
-        .await
-        .unwrap()
-        .get(0);
-    assert_eq!(
-        std::fs::canonicalize(actual).unwrap(),
-        std::fs::canonicalize(socket.join("data")).unwrap()
-    );
-    let listen: String = client
-        .query_one("SHOW listen_addresses", &[])
-        .await
-        .unwrap()
-        .get(0);
-    assert_eq!(listen, "");
-    let marker: String = client
-        .query_one("SELECT token FROM web_note_fixture_guard", &[])
-        .await
-        .unwrap()
-        .get(0);
-    assert_eq!(marker, std::env::var("WEB_NOTE_TEST_GUARD").unwrap());
-    let store = PgNoteStore::local_bounded(
-        &socket,
-        port,
-        &user,
-        "postgres",
-        PoolLimits {
-            max_size: 2,
-            wait: Duration::from_millis(250),
-        },
-    )
-    .unwrap();
-    (store, client)
-}
-async fn counts(client: &Client) -> (i64, i64) {
-    let row = client
-        .query_one(
-            "SELECT (SELECT count(*) FROM canary_notes),(SELECT count(*) FROM audit_events)",
-            &[],
-        )
-        .await
-        .unwrap();
-    (row.get(0), row.get(1))
-}
-async fn reset(client: &Client) {
-    client.batch_execute("DROP TABLE IF EXISTS canary_notes,audit_events,principals CASCADE; DROP FUNCTION IF EXISTS fault() CASCADE;").await.unwrap();
-    client.batch_execute(support::SCHEMA).await.unwrap();
 }
 async fn trigger(client: &Client, function: &str, definition: &str) {
     client.batch_execute(&format!("CREATE FUNCTION fault() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN {function} END; $$; {definition}")).await.unwrap();
@@ -226,6 +153,11 @@ async fn native_contract_and_differential() {
     println!(
         "actual SQLite/PG domain trace: 4 exact normalized states/audits; UUID order checked independently"
     );
+}
+
+#[tokio::test]
+async fn pool_saturation_and_precommit_cancellation() {
+    let (store, peer) = fixture().await;
     reset(&peer).await;
     peer.batch_execute("SELECT pg_advisory_lock(681231)")
         .await
@@ -324,7 +256,11 @@ async fn native_contract_and_differential() {
     println!(
         "actual disjoint commit during native lock wait; cancelled carrier gone, no partial state"
     );
+}
 
+#[tokio::test]
+async fn commit_ack_loss_and_postcommit_cancellation() {
+    let (store, peer) = fixture().await;
     // Real native COMMIT; the local wire fixture discards CommandComplete.
     reset(&peer).await;
     let proxy = PgNoteStore::local(
@@ -498,6 +434,12 @@ async fn native_contract_and_differential() {
     );
     drop(proxy);
     drop(store);
+}
+
+#[tokio::test]
+async fn pool_reuse_clean_reset_and_reconnect() {
+    let (store, peer) = fixture().await;
+    drop(store);
     let socket = PathBuf::from(std::env::var_os("WEB_NOTE_TEST_SOCKET").unwrap());
     let user = std::env::var("WEB_NOTE_TEST_USER").unwrap();
     let port = std::env::var("WEB_NOTE_TEST_PORT")
@@ -628,40 +570,5 @@ async fn native_contract_and_differential() {
         NoteObservation::Unobserved
     );
 
-    // Same actual list operation and rows; compare fresh one-slot pool per
-    // call against a reused one-slot pool. Not a production load benchmark.
-    let expected = store.list("p").await.unwrap();
-    let mut fresh = Vec::new();
-    let mut warm = Vec::new();
-    for round in 0..5 {
-        for reuse in if round % 2 == 0 {
-            [false, true]
-        } else {
-            [true, false]
-        } {
-            let t = std::time::Instant::now();
-            for _ in 0..40 {
-                let result = if reuse {
-                    store.list("p").await.unwrap()
-                } else {
-                    new_store().list("p").await.unwrap()
-                };
-                assert_eq!(result, expected);
-            }
-            if reuse {
-                warm.push(t.elapsed().as_secs_f64() * 1000.0)
-            } else {
-                fresh.push(t.elapsed().as_secs_f64() * 1000.0)
-            }
-        }
-    }
-    let mut f = fresh.clone();
-    let mut w = warm.clone();
-    f.sort_by(f64::total_cmp);
-    w.sort_by(f64::total_cmp);
-    println!(
-        "carrier benchmark: {}",
-        json!({"operationsPerSample":40,"rows":expected.len(),"freshMs":fresh,"reuseMs":warm,"freshMedianMs":f[2],"reuseMedianMs":w[2],"ratio":f[2]/w[2]})
-    );
     assert_eq!(counts(&peer).await, (2, 2));
 }

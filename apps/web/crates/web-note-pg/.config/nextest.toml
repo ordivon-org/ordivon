@@ -1,0 +1,24 @@
+nextest-version = "0.9.143"
+
+[store]
+dir = "target/nextest"
+
+# Native owner qualification: no retry laundering, explicit timeout and report.
+# The private PG fixture is provisioned by tests/run_native.py.
+[profile.default]
+retries = 0
+flaky-result = "fail"
+test-threads = 1
+slow-timeout = { period = "30s", terminate-after = 3 }
+
+[profile.native.junit]
+path = "native.xml"
+store-success-output = true
+store-failure-output = true
+report-skipped = "ignored"
+
+[profile.stateful.junit]
+path = "stateful.xml"
+store-success-output = true
+store-failure-output = true
+report-skipped = "ignored"

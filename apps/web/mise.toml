@@ -10,3 +10,19 @@ set -euo pipefail
 pnpm install --frozen-lockfile
 pnpm run ci
 """
+
+
+[tasks."verify:target"]
+description = "Full target-candidate verification (requires Rust/Nextest, native PG18 and Chromium)"
+shell = "bash -c"
+run = """
+set -euo pipefail
+mise run verify
+cargo fetch --locked --manifest-path crates/web-note-pg/Cargo.toml
+cargo fmt --manifest-path crates/web-note-pg/Cargo.toml -- --check
+cargo clippy --manifest-path crates/web-note-pg/Cargo.toml --locked --offline --all-targets -- -D warnings
+pnpm run test:pg-primitives
+pnpm run test:pg-domain
+pnpm --dir experiments/solid-grants-r3 install --frozen-lockfile --ignore-scripts
+pnpm --dir experiments/solid-grants-r3 verify:operator
+"""

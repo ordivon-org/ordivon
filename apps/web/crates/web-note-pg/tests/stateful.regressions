@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc c6dbe1d85b0e4a89b2460b7e53a4afc12411967566bf4f6cb6fec08aacfd45ef # shrinks to [Execute(Intent { n: 0, a: 0, p: false, c: "", t: 0 })]
+cc d4e7e53d5548ae94b5cbc93b5756a18493ee622a2aa28a8affae8c2a0f04b61c # shrinks to [Execute(Intent { n: 0, a: 2, p: false, c: "", t: 0 }), Execute(Intent { n: 1, a: 2, p: false, c: "", t: 0 })]
