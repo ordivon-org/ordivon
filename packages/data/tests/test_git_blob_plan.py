@@ -94,3 +94,111 @@ class GitBlobPlanTests(unittest.TestCase):
                     sum(a[:2] == ("cat-file", "--batch") for a in calls), 1
                 )
                 self.assertFalse(any(a[:2] == ("cat-file", "blob") for a in calls))
+
+    def test_large_native_cut_partitions_and_preserves_every_path(self):
+        for fmt in ("sha1", "sha256"):
+            with self.subTest(fmt=fmt), TemporaryDirectory() as tmp:
+                repo = Path(tmp)
+                payloads = {
+                    f"owner-{i:02}": bytes([65 + i]) * (2 * 1024 * 1024)
+                    for i in range(5)
+                }
+                payloads["same-content"] = payloads["owner-00"]
+                commit = self.make_repo(repo, fmt, payloads)
+                with patch.object(
+                    git_sources, "_git", wraps=git_sources._git
+                ) as native:
+                    observed = git_sources.committed_owner_products(repo, commit)
+                self.assertEqual(
+                    observed, (commit, [payloads[k] for k in sorted(payloads)])
+                )
+                calls = [
+                    c
+                    for c in native.call_args_list
+                    if c.args[1:3] == ("cat-file", "--batch")
+                ]
+                self.assertEqual(len(calls), 2)
+                self.assertEqual(
+                    sum(
+                        c.args[1:3] == ("cat-file", "--batch-check")
+                        for c in native.call_args_list
+                    ),
+                    1,
+                )
+                self.assertEqual(
+                    sum(c.args[1:2] == ("hash-object",) for c in native.call_args_list),
+                    5,
+                )
+
+    def test_late_corrupt_native_batch_returns_no_partial_observation(self):
+        import stat
+        import zlib
+
+        for fmt in ("sha1", "sha256"):
+            with self.subTest(fmt=fmt), TemporaryDirectory() as tmp:
+                repo = Path(tmp)
+                payloads = {
+                    f"owner-{i:02}": bytes([65 + i]) * (2 * 1024 * 1024)
+                    for i in range(5)
+                }
+                commit = self.make_repo(repo, fmt, payloads)
+                oids = [
+                    subprocess.check_output(
+                        [
+                            "/usr/bin/git",
+                            "-C",
+                            tmp,
+                            "rev-parse",
+                            f"HEAD:{name}/odps.json",
+                        ]
+                    )
+                    .decode()
+                    .strip()
+                    for name in payloads
+                ]
+                oid = max(oids)
+                obj = repo / ".git" / "objects" / oid[:2] / oid[2:]
+                saved = obj.read_bytes()
+                unpacked = zlib.decompress(saved)
+                altered = unpacked[:-1] + bytes([unpacked[-1] ^ 1])
+                replacement = obj.with_name(obj.name + ".fixture")
+                replacement.write_bytes(zlib.compress(altered))
+                replacement.chmod(stat.S_IMODE(obj.stat().st_mode))
+                replacement.replace(obj)
+                with (
+                    patch.object(git_sources, "_git", wraps=git_sources._git) as native,
+                    self.assertRaisesRegex(
+                        ValueError, "Git ODPS blob identity mismatch"
+                    ),
+                ):
+                    git_sources.committed_owner_products(repo, commit)
+                calls = [
+                    c
+                    for c in native.call_args_list
+                    if c.args[1:3] == ("cat-file", "--batch")
+                ]
+                self.assertEqual(len(calls), 2)
+                self.assertIn(
+                    oid.encode(), calls[-1].kwargs["input_bytes"].splitlines()
+                )
+                self.assertFalse(
+                    any(c.args[1:2] == ("hash-object",) for c in native.call_args_list)
+                )
+
+    def test_cut_budget_rejects_before_any_content_request(self):
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            payloads = {f"owner-{i}": bytes([65 + i]) * 512 for i in range(5)}
+            commit = self.make_repo(repo, "sha1", payloads)
+            with (
+                patch("ordivon_data.git_identity._MAX_CUT_BYTES", 2000),
+                patch.object(git_sources, "_git", wraps=git_sources._git) as native,
+                self.assertRaisesRegex(ValueError, "bounded object bytes"),
+            ):
+                git_sources.committed_owner_products(repo, commit)
+            self.assertFalse(
+                any(
+                    c.args[1:3] == ("cat-file", "--batch")
+                    for c in native.call_args_list
+                )
+            )

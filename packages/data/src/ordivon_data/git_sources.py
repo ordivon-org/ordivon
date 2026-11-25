@@ -12,7 +12,11 @@ import re
 import subprocess
 from pathlib import Path
 
-from .git_identity import qualify_batch_sizes, verify_object_batch
+from .git_identity import (
+    partition_object_batches,
+    qualify_batch_sizes,
+    verify_object_batch,
+)
 
 _OBJECT_ID = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}\Z")
 
@@ -117,13 +121,23 @@ def committed_owner_products(repo: Path, revision: str) -> tuple[str, list[bytes
         expected,
         algorithm,
     )
-    blobs = verify_object_batch(
-        _git(repo, "cat-file", "--batch", input_bytes=request),
-        headers,
-        algorithm,
-        commit=commit,
-        root_tree=root_tree,
-    )
+    # Complete preflight before any content request. Each chunk is
+    # bounded independently; only one commit is permitted, in chunk zero.
+    blobs: dict[str, bytes] = {}
+    for index, batch in enumerate(partition_object_batches(headers)):
+        batch_request = b"".join(
+            header.split(b" ", 1)[0] + b"\n" for header, _ in batch
+        )
+        blobs.update(
+            verify_object_batch(
+                _git(repo, "cat-file", "--batch", input_bytes=batch_request),
+                batch,
+                algorithm,
+                commit=commit,
+                root_tree=root_tree,
+                require_commit=index == 0,
+            )
+        )
     for oid in blob_ids:
         raw = blobs[oid]
         # cat-file is an object lookup, not an integrity check: even a

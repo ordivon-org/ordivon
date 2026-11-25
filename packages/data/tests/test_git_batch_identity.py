@@ -102,9 +102,21 @@ class GitBatchIdentityTests(unittest.TestCase):
                         expected + [(oid, "blob")],
                         algorithm,
                     )
-            blobs = [(str(i) * width, "blob") for i in range(1, 5)]
+            blobs = [(f"{i:0{width}x}", "blob") for i in range(1, 33)]
             headers = b"".join(
                 f"{oid} blob {2 * 1024 * 1024}\n".encode() for oid, _ in blobs
             )
+            # 32 maximal Blobs plus protocol framing exceed 64 MiB.
+            qualify_batch_sizes(
+                checks + b"".join(headers.splitlines(keepends=True)[:-1]),
+                expected + blobs[:-1],
+                algorithm,
+            )
             with self.assertRaisesRegex(ValueError, "bounded object bytes"):
                 qualify_batch_sizes(checks + headers, expected + blobs, algorithm)
+            with self.assertRaisesRegex(ValueError, "bounded batch bytes"):
+                qualify_batch_sizes(
+                    checks + f"{'f' * width} tree {8 * 1024 * 1024}\n".encode(),
+                    expected + [("f" * width, "tree")],
+                    algorithm,
+                )

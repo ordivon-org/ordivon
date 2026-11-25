@@ -231,6 +231,26 @@ Generated framing tests exercise arbitrary binary payloads in both native
 Git object formats and single-byte changes, complementing disposable
 native repositories and missing-promisor-object tests.
 
+R11 replaces the single combined 8 MiB content request with a complete
+header preflight followed by maximal contiguous batches of at most 8 MiB
+declared frame bytes. The cut admits at most 64 MiB of declared frames
+and 20,000 distinct objects; the per-Blob nonempty 2 MiB limit is unchanged.
+A single frame must fit its batch. The first batch alone must verify the
+commit/root relation; every batch independently verifies exact framing,
+kind and object identity. The original sorted path multiplicity is restored
+only after every batch and every native Blob hash succeeds. No partial
+observation is returned after a later failure. Header and retained-byte
+limits are declared budgets, not RSS bounds or concurrency isolation.
+
+For positive ordered frame sizes, a maximal prefix leaves a suffix no
+longer than any other legal first batch. Induction gives the minimum
+number of contiguous batches without reordering. Hypothesis compares the
+implementation against an independent finite dynamic-programming oracle;
+native SHA-1 and SHA-256 tests use 10 MiB of distinct metadata, and corrupt
+a late loose Blob in a disposable repository. The tests do not constitute
+a machine-checked proof of the Python implementation or support for
+arbitrarily large repositories. No new production dependency.
+
 The existing complete-local-snapshot Lean model remains abstract. No new
 Git object, object store, production dependency or implicit hydration.
 
