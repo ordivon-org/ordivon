@@ -11,7 +11,7 @@ from typing import Any
 
 from ..canonical_json import canonical_digest
 from ..postgres_connections import HostPostgresConnections
-from ..work_receipts import replay_work_receipt
+from .receipt_roots import count_invalid_work_receipt_roots
 
 
 class HostStatusQueries(HostPostgresConnections):
@@ -189,35 +189,14 @@ class HostStatusQueries(HostPostgresConnections):
                         digest_bad == 0,
                         f"invalid={digest_bad}",
                     )
-                    # A compact receipt independently pins its exact historical revision.
-                    # Legacy full receipts have their own replay payload and do not pin it.
-                    root_bad = 0
-                    with conn.cursor(name="host_work_receipt_root_scan") as cursor:
-                        cursor.itersize = 128
-                        cursor.execute(
-                            "SELECT response FROM command_receipts "
-                            "WHERE operation IN ('work.create','work.snapshot.commit') "
-                            "AND response IS NOT NULL "
-                            "AND response->>'kind' IS DISTINCT FROM 'ordivon.host-work'"
+                    # Native typed roots are available only after schema 0017.
+                    if schema_version >= 17:
+                        root_bad = count_invalid_work_receipt_roots(conn)
+                        add_check(
+                            "work.receipt_history_roots", root_bad == 0, f"invalid={root_bad}"
                         )
-                        for row in cursor:
-                            response = row["response"]
-                            try:
-                                if not isinstance(response, dict):
-                                    raise ValueError("invalid Work receipt")
-                                envelope = response.get("envelope")
-                                if not isinstance(envelope, dict) or not isinstance(
-                                    envelope.get("workRef"), str
-                                ):
-                                    raise ValueError("invalid Work receipt root")
-                                replay_work_receipt(conn, response, work_ref=envelope["workRef"])
-                            except RuntimeError, ValueError, TypeError, KeyError:
-                                root_bad += 1
-                    add_check(
-                        "work.receipt_history_roots",
-                        root_bad == 0,
-                        f"invalid={root_bad}",
-                    )
+                    else:
+                        add_check("work.receipt_history_roots", False, "unavailable=typed roots")
                 doctor = {
                     "healthy": all(item["status"] == "ok" for item in checks),
                     "checks": checks,
