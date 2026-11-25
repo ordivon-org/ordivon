@@ -175,3 +175,32 @@ prov: outer ZIP SHA, source, archive and executable SHA, child receipts.
 unfold: existing native consumers and Python stdlib archive decoders. Retain
 producer READY meaning and CI workflow; no new required CI check before actual
 runner qualification. Existing local direct executables remain useful probes.
+
+## R17 — shared delivery identity, platform-local native execution
+
+Host #33018: keep #2842 in its protected queue, build on R15/R16 source.
+The Windows consumer must not copy the Linux implementation or assume
+Linux evidence entails Windows. Thought LEGO: immutable identity, effect
+boundary, platform adapter, independent observation. L11 outer ZIP, READY,
+source and manifest checks remain single authority; L12 Linux tar versus
+Windows ZIP materialization; native Windows Runtime owns launch in active
+interactive session, Godot Movie Maker owns frames, existing FFmpeg raster
+oracle owns decode. No capture of desktop or injection into physical input.
+
+I: exact hosted outer SHA/source/product, explicit platform; O: separate
+Windows native startup/recording receipt and decoded raster witness.
+S: owned private stage, exact executable digest, native child process;
+pre: verified bundle, exact native inventory and regular files, isolated
+app-data env, explicit absolute stage; post: Windows process exit zero,
+native diagnostic and Movie Maker renderer witness, exact eight PNGs,
+decoder nonuniform final and hashes bound to the same executable.
+inv: no second manifest parser, no archive path extraction, no unrelated
+desktop capture, no global keyboard, no actual audio or human claim.
+eff: Windows native process and bounded local files; c: fixed eight frames,
+bounded archive/member/time, owned cleanup. epsilon: Windows native
+rendered startup only, not physical display presentation or gameplay.
+prov: outer/source/native archive/exe SHA, Windows process session and
+renderer, frame hashes and existing FFmpeg decoder; unfold: Python
+zipfile, Runtime native launch, .NET ProcessStartInfo, Movie Maker
+(https://docs.godotengine.org/en/stable/tutorials/animation/creating_movies.html),
+existing verify_rasters. No READY expansion or new required CI job.
