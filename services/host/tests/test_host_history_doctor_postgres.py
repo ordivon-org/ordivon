@@ -79,7 +79,8 @@ def test_missing_historical_revisions_do_not_break_healthy_current_work() -> Non
             connection.execute("DELETE FROM actor_refs WHERE actor_ref=%s", (actor_ref,))
 
 
-def test_current_snapshot_payload_corruption_is_a_doctor_failure() -> None:
+@pytest.mark.parametrize("corrupt_value", ['"changed-without-digest"', "9007199254740992"])
+def test_current_snapshot_payload_corruption_is_a_doctor_failure(corrupt_value) -> None:
     assert DSN is not None
     token = uuid4().hex
     actor_ref = f"actor:agent:current-diagnostic:{token}"
@@ -102,8 +103,8 @@ def test_current_snapshot_payload_corruption_is_a_doctor_failure() -> None:
         with psycopg.connect(DSN) as connection:
             connection.execute(
                 "UPDATE work_snapshots SET payload=jsonb_set(payload,'{frontier}',"
-                "'\"changed-without-digest\"'::jsonb) WHERE work_ref=%s AND revision=1",
-                (work_ref,),
+                "%s::jsonb) WHERE work_ref=%s AND revision=1",
+                (corrupt_value, work_ref),
             )
         for detail in ("integrity", "history"):
             doctor = HostV2(DSN).status(detail=detail)["doctor"]
