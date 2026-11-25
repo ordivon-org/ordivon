@@ -13,7 +13,7 @@ set -euo pipefail
 test -n "$(git ls-files -- '*.sh' | head -1)"
 git ls-files -z -- '*.sh' | xargs -0 shellcheck
 PYTHONDONTWRITEBYTECODE=1 uv run --locked --python "$(command -v python)" \
-  python -m pytest -q -p no:cacheprovider tests
+  env -u PYTEST_ADDOPTS -u PYTEST_PLUGINS PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -o addopts= -q -p no:cacheprovider -p hypothesis.extra.pytestplugin tests
 """
 
 
@@ -23,7 +23,7 @@ PYTHONDONTWRITEBYTECODE=1 uv run --locked --python "$(command -v python)" \
 run = '''
 set -euo pipefail
 command -v sing-box >/dev/null || { echo 'sing-box is required for network behavior verification' >&2; exit 2; }
-PYTHONDONTWRITEBYTECODE=1 uv run --locked --python "$(command -v python)"   python -m pytest -q -p no:cacheprovider tests/test_egress_routing_behavior.py
+PYTHONDONTWRITEBYTECODE=1 uv run --locked --python "$(command -v python)"   env -u PYTEST_ADDOPTS -u PYTEST_PLUGINS PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -o addopts= -q -p no:cacheprovider -p hypothesis.extra.pytestplugin tests/test_egress_routing_behavior.py
 '''
 
 # Opt-in installed SourceCut: rerun the SAME native sing-box independent
@@ -33,7 +33,7 @@ PYTHONDONTWRITEBYTECODE=1 uv run --locked --python "$(command -v python)"   pyth
 run = '''
 set -euo pipefail
 command -v sing-box >/dev/null || { echo 'sing-box is required' >&2; exit 2; }
-ORDIVON_NETWORK_POLICY_SOURCE=installed PYTHONDONTWRITEBYTECODE=1 uv run --locked --python "$(command -v python)" python -m pytest -q -p no:cacheprovider tests/test_egress_routing_behavior.py
+ORDIVON_NETWORK_POLICY_SOURCE=installed PYTHONDONTWRITEBYTECODE=1 uv run --locked --python "$(command -v python)" env -u PYTEST_ADDOPTS -u PYTEST_PLUGINS PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -o addopts= -q -p no:cacheprovider -p hypothesis.extra.pytestplugin tests/test_egress_routing_behavior.py
 '''
 
 # Opt-in live consumer-effect witness. Requires local tcpdump/netns access.
@@ -90,4 +90,4 @@ run = "PYTHONDONTWRITEBYTECODE=1 uv run --locked --python \"$(command -v python)
 
 [tasks."test:zte"]
 description = "Run the existing read-only ZTE adapter tests using the Network test environment"
-run = '''PYTHONDONTWRITEBYTECODE=1 uv run --locked --python "$(command -v python)" python -m pytest -q -p no:cacheprovider tests/test_zte_u30pro_observer.py'''
+run = '''PYTHONDONTWRITEBYTECODE=1 uv run --locked --python "$(command -v python)" env -u PYTEST_ADDOPTS -u PYTEST_PLUGINS PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -o addopts= -q -p no:cacheprovider -p hypothesis.extra.pytestplugin tests/test_zte_u30pro_observer.py'''

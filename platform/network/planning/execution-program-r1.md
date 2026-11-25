@@ -180,3 +180,32 @@ job-01a214e3-6cd3-72f9-af54-0388db11aaaa and mutant Job
 job-01a214e4-140a-7473-bd78-bd7537a698b9; unfold specification -> generated fixture
 -> native engine -> comparison. Keep existing temporal fixtures. No new runtime
 dependency, registry or verification service.
+
+
+## R15 — Joint qualification and native test execution identity (2026-11-26)
+
+Host #33060/#33067. Join existing R11–R14 exact candidates, retain both
+native Task validation calls and the existing uv lock. RED: native
+`PYTEST_ADDOPTS=--collect-only mise run ci` reports 543 collected but exits
+zero (job-01a21506-4005-7711-ad46-6105aeabbc29). All four owner pytest
+entrypoints now remove ambient pytest options/plugins, disable automatic
+plugin discovery, and explicitly load the new test-only Hypothesis plugin
+from the same locked dev dependency group. Interactive focused testing
+remains available through direct uv/pytest invocations, not the qualification gate.
+
+Use Hypothesis rule-based stateful testing for the 19-source-role graph,
+with bounded deterministic sequences of omission, duplication, corruption,
+repair, pool loss and reordering. Independent multiset oracle, native
+API-shaped implementation input, no native network mutations. Shared
+test-only fixture inputs extracted from the example tests; no new runner
+or production dependency. R2.1 I source roles and generated operation
+sequences; O native test outcomes or rejection; S bounded test state; pre
+locked source and declared pytest plugins; post native selected obligations
+executed without ambient selector suppression; inv independent role
+multiplicity and identity, collection != execution; eff isolated testing;
+c bounded examples and steps; epsilon no universal proof, no protection
+against malicious source/environment outside the scoped selectors, no
+production acceptance; prov exact job receipts; unfold locked uv -> native
+pytest -> stateful oracle -> test evidence. The conflicting shared package
+node-exporter lifecycle remains a cross-owner source contract, not an
+authorization to change the active unit.
