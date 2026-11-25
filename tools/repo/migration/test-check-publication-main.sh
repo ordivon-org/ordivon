@@ -33,6 +33,64 @@ check() {
 }
 check 0 'publication=SYNCED'
 
+# Publication is a read-only consumer of Git objects, not an object producer.
+# A staged, unique nested tree must be rejected without materializing that
+# tree or changing the index. Optional cache refresh is also not permitted.
+mkdir -p "$repo/unique-staged/nested"
+printf 'unpublished staged content\n' > "$repo/unique-staged/nested/file"
+git -C "$repo" add unique-staged
+object_snapshot() {
+  (cd "$repo/.git" && find objects -type f -printf '%P\n' | LC_ALL=C sort && sha256sum index)
+}
+object_snapshot > "$tmp/source-before"
+set +e
+"$CHECK" "$repo" > "$tmp/out" 2>&1
+status="$?"
+set -e
+test "$status" -eq 65
+object_snapshot > "$tmp/source-after"
+if ! cmp -s "$tmp/source-before" "$tmp/source-after"; then
+  echo 'read-only publication check mutated index or object store' >&2
+  diff -u "$tmp/source-before" "$tmp/source-after" >&2 || true
+  exit 1
+fi
+git -C "$repo" restore --staged -- unique-staged
+rm -r "$repo/unique-staged"
+check 0 'publication=SYNCED'
+
+# Clean qualification must leave the source storage and index unchanged too.
+object_snapshot > "$tmp/source-before"
+"$CHECK" "$repo" > "$tmp/out" 2>&1
+object_snapshot > "$tmp/source-after"
+cmp "$tmp/source-before" "$tmp/source-after"
+grep -Fx 'publication=SYNCED' "$tmp/out" >/dev/null
+
+# Index-only mode and intent-to-add changes are still disqualifying after
+# replacing write-tree with the native read-only comparison.
+git -C "$repo" update-index --chmod=+x file.txt
+object_snapshot > "$tmp/source-before"
+set +e
+"$CHECK" "$repo" > "$tmp/out" 2>&1
+status="$?"
+set -e
+test "$status" -eq 65
+object_snapshot > "$tmp/source-after"
+cmp "$tmp/source-before" "$tmp/source-after"
+git -C "$repo" restore --staged -- file.txt
+printf '' > "$repo/intent.txt"
+git -C "$repo" add --intent-to-add intent.txt
+object_snapshot > "$tmp/source-before"
+set +e
+"$CHECK" "$repo" > "$tmp/out" 2>&1
+status="$?"
+set -e
+test "$status" -eq 65
+object_snapshot > "$tmp/source-after"
+cmp "$tmp/source-before" "$tmp/source-after"
+git -C "$repo" restore --staged -- intent.txt
+rm -f "$repo/intent.txt"
+check 0 'publication=SYNCED'
+
 # Exact repository authority, not merely a clean checkout somewhere.
 # The foreign repository is clean and published. The intended repository
 # has unique dirty bytes. A provider observation from the foreign repository
