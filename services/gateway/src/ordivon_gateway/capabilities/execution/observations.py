@@ -8,7 +8,12 @@ from ...contracts import (
     ExecutionObservation,
     ExecutionResolution,
 )
-from ...logic.execution_refs import GatewayError, parse_execution_ref
+from ...logic.execution_refs import (
+    GatewayError,
+    parse_execution_ref,
+    validate_artifact_cursor,
+    validate_observation_wait,
+)
 from ...logic.execution_refs import format_execution_ref as _execution_ref
 from ...logic.owner_protocol import (
     OwnerToolCaller,
@@ -90,8 +95,7 @@ class ExecutionObservationMethods:
         # Runtime's execution observation authority is job.observe; Gateway does not
         # project the job.get event timeline, so forwarding eventLimit would add no truth.
         _ = event_limit
-        if type(wait_ms) is not int or not 0 <= wait_ms <= 30_000:
-            raise GatewayError("waitMs must be an integer between 0 and 30000")
+        validate_observation_wait(wait_ms)
         result = await self._caller.call_tool(
             owner_id,
             "job.observe",
@@ -233,6 +237,7 @@ class ExecutionObservationMethods:
         max_bytes: int = 1_048_576,
     ) -> ArtifactChunk:
         owner_id, native_id = parse_execution_ref(operation_ref)
+        validate_artifact_cursor(offset, max_bytes)
         result = await self._caller.call_tool(
             owner_id,
             "artifact.read",
@@ -252,11 +257,7 @@ class ExecutionObservationMethods:
         observed_offset = result.get("offset")
         next_offset = result.get("nextOffset")
         if (
-            type(offset) is not int
-            or offset < 0
-            or type(max_bytes) is not int
-            or not 1 <= max_bytes <= 1_048_576
-            or type(observed_offset) is not int
+            type(observed_offset) is not int
             or observed_offset != offset
             or type(next_offset) is not int
             or not offset <= next_offset <= offset + max_bytes

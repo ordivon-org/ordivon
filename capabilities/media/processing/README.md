@@ -80,3 +80,49 @@ The compiler does not implement FFmpeg, OTIO, or subtitle processing; it
 does not check tool installation, mutate source media, or grant execution
 authority. A profile check is a mechanical predicate, never aesthetic or
 publication approval.
+
+### Optional editorial Asset identity composition
+
+Use the separate native check only for a Production with an explicitly selected
+Asset manifest. It does not replace the existing editorial range/profile gate.
+
+```bash
+bash processing/bin/verify-otio-assets.sh \
+  productions/runtime-introduction/timeline/assembly.v2.otio \
+  productions/runtime-introduction/assets.json runtime-introduction
+```
+
+Supply both `--expected-timeline-digest` and `--expected-manifest-digest`
+from the selected source commitment for frozen binding; an unpinned read
+only establishes the observed declaration. Supply explicit
+`--materialized ASSET_ID=PATH` mappings to verify local bytes against selected
+Blob digest and length. Missing observations remain unknown; a supplied wrong
+or missing file rejects. The native timeline and manifest are parsed from
+the exact hashed bytes. The active URI, not an inactive alternate, must resolve
+to one selected Asset. The separate native editorial gate, renderer readback,
+Artifact/Runtime authority and recipient acceptance remain independent.
+
+
+### Native processing attempt evidence ownership
+
+All four native probes (AV, audio, timed text and OTIO) require an absent
+evidence directory, reserved by native exclusive directory creation. A repeat
+or competing invocation using that path fails with exit 3, preserving previous
+files. Use a new path for each attempt, even after invalid input or an incomplete
+write. Raw observations and assertions are complete before the final
+`evidence.json` is atomically renamed into place. OTIO also stages each raw
+observation and assertion. This is atomic publication, not a crash-durability
+or external mutation guarantee.
+
+The existing introduction probe commands create unique
+`out/processing/<probe>/attempt.*/evidence` directories. The receipt's
+`evidenceDirectory` identifies its actual output. There is no mutable "latest"
+receipt. Agent plans specify this admission policy; consumers must verify the
+current execution status, input/artifact and profile digests, directory, and raw
+evidence digests. A prior success at a rejected destination is not current
+success. Native probes remain independent of an additional custom executor;
+the existing adapter digest remains the execution commitment.
+
+`pnpm check:all` exercises all four native providers and the native concurrent
+attempt-custody regression tests. The lightweight core gate remains available
+for environments without the external media tools.

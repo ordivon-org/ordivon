@@ -77,11 +77,78 @@ filesystem immutability, later reads, mount changes, or durable retention.
 An exact Git commit identifies the metadata tree; the native reader resolves
 the revision once, rejects non-regular ODPS Git entries and bounded input
 violations, and reads blobs by object ID with replacement objects disabled.
+Committed discovery is local-only: missing promisor trees/blobs or native
+diagnostics leave the cut unestablished, never a partial successful
+projection. Explicit Git acquisition is a separate operator effect.
 Tests exercise index/worktree mutation, prior-version replay, foreign
-Git environment redirection, exact checkout-root binding and real CLI
-projection. This qualifies metadata source selection, not physical local
+Git environment redirection, exact checkout-root binding, local-only
+partial-clone rejection/replay and real CLI projection. This qualifies metadata source selection, not physical local
 distribution immutability, Git hash collision resistance, or a full
 Git-to-Lean refinement proof.
+
+The blob read-back additionally checks the Git object identity of the exact
+returned bytes using native `git hash-object --no-filters --stdin` (without
+`-w`). Equal length and a successful `cat-file` are insufficient: the native
+SHA-1 and SHA-256 disposable-repository counterexamples replace a loose blob
+with different same-length ODPS metadata under its old object name. Both
+must be rejected, and restoring the original bytes restores the observation.
+This is a bounded blob-identity check, not a full commit/tree integrity audit,
+a proof of cryptographic collision resistance, or a guarantee of availability.
+The native hash operation is local-only; no new objects are written.
+
+The R9 exact-cut refinement additionally obtains the resolved commit/root
+tree and every distinct tree traversed by native Git. The local-only
+`cat-file --batch-check` response must match the requested ordered OIDs,
+kinds and bounded sizes before `--batch` contents are requested. Native Git
+supplies framing/traversal; the standard library hashes the exact canonical
+Git header and returned bytes in the repository's object format. The commit
+must name the resolved root tree. The batch is limited to 20,000 objects and
+8 MiB of declared contents plus framing; this is a preflight bound, not an
+OS memory guarantee during a concurrent object mutation.
+
+Disposable SHA-1/SHA-256 repositories demonstrate that static nested-tree
+corruption can redirect a valid ODPS Blob under an old commit. Native
+regression and batch framing negatives reject it while valid cuts, including
+local-only partial clones with available objects, retain the existing
+consumer contract. This assumes quiescent Git storage across commands; it
+is not an atomic Git snapshot, whole-repository fsck, proof of collision
+resistance, authentication of the source publisher, or physical-data truth.
+R10 extends the same native batch plan to distinct selected ODPS Blob OIDs.
+All commit/tree/blob headers must pass before the content batch, including
+the existing nonempty per-Blob 2 MiB limit. The 8 MiB declared frame limit
+now covers the combined source cut (not only commit/tree objects); larger
+cuts fail closed and require a separately qualified partitioning policy.
+The native `hash-object --no-filters --stdin` check remains for each distinct
+selected Blob. Return values preserve every original sorted source path,
+including duplicate contents; no producer identities are deduplicated.
+The plan and bytes are invocation-local; no persisted evidence cache.
+Generated framing tests exercise arbitrary binary payloads in both native
+Git object formats and single-byte changes, complementing disposable
+native repositories and missing-promisor-object tests.
+
+R11 replaces the single combined 8 MiB content request with a complete
+header preflight followed by maximal contiguous batches of at most 8 MiB
+declared frame bytes. The cut admits at most 64 MiB of declared frames
+and 20,000 distinct objects; the per-Blob nonempty 2 MiB limit is unchanged.
+A single frame must fit its batch. The first batch alone must verify the
+commit/root relation; every batch independently verifies exact framing,
+kind and object identity. The original sorted path multiplicity is restored
+only after every batch and every native Blob hash succeeds. No partial
+observation is returned after a later failure. Header and retained-byte
+limits are declared budgets, not RSS bounds or concurrency isolation.
+
+For positive ordered frame sizes, a maximal prefix leaves a suffix no
+longer than any other legal first batch. Induction gives the minimum
+number of contiguous batches without reordering. Hypothesis compares the
+implementation against an independent finite dynamic-programming oracle;
+native SHA-1 and SHA-256 tests use 10 MiB of distinct metadata, and corrupt
+a late loose Blob in a disposable repository. The tests do not constitute
+a machine-checked proof of the Python implementation or support for
+arbitrarily large repositories. No new production dependency.
+
+The existing complete-local-snapshot Lean model remains abstract. No new
+Git object, object store, production dependency or implicit hydration.
+
 
 ## Bounded publication and retirement state model
 
@@ -192,22 +259,6 @@ needs a consumer invariant or an actual known failure mode. Historical frozen
 evidence may have real downstream consumers: delete only after proving loss of
 reachability and fulfilling the actual retention/recovery authority.
 
-## Guidance by role
-
-**Human:** identify the final consumer, the business/scientific definition
-and the minimum specification. Demand a counterexample to proposed weak
-models, check which assumptions match reality and decide whether a test
-really became redundant. Approve a version migration by real consumer
-compatibility evidence, not by a passing synthetic model.
-
-**Agent:** resolve existing formal Skills and Owner-native tools first. Write
-an explicit input domain, postconditions, invariants and error states.
-Run Lean for the abstract model, CrossHair for the pure Python portion, and
-actual owner read-back at I/O edges. Record exact code SourceCut, verifier
-version, assumptions, negative oracle and relevant native consumer outcome.
-Never relabel `UNKNOWN` as `FALSIFIED` and never report bounded symbolic
-exploration as full installed-code refinement.
-
 ## Read-only product projection evidence boundary
 
 `src/ordivon_data/odps_projection.py` is a concrete ODPS v1.1-to-DCAT 3
@@ -241,20 +292,11 @@ from ODPS alone (the explicit operator binding is an additional assumption).
 Source identity, physical availability, rights and downstream acceptance
 must remain distinct from the Lean abstract digest verdict.
 
-## Cross-owner adoption without a new platform
+## Scope of proof evidence
 
-- Runtime/Host/Harness: use their existing state-transition models, Rust
-  contracts and PostgreSQL read-back; choose TLA+/Quint only for consequential
-  concurrency/liveness questions.
-- Artifact/Media: reuse real byte/format validators, native QC and bounded
-  differential checks; formalize deterministic metadata and admission rules.
-- Finance: formalize point-in-time data semantics, portfolio constraints,
-  margin and state transitions; real provider snapshots and downstream
-  research acceptance remain separate.
-- Research: specify estimands, sampling/inference assumptions and reproducible
-  source identities; statistical assumptions cannot generally be proved from
-  software code.
-- ELE/Skills: model discovery/qualification state and provenance; external
-  facts and installation/permission effects still require direct observation.
-
-This file does not grant authority over those owners' code, tests or releases.
+The existing models and symbolic checks are bounded source-level inputs,
+not production transaction, release or reclamation services. The natural
+Runtime, Preservation, Artifact, Research and Finance Owners retain
+installed/effect/consumer authority. Use their own native acceptance.
+Workflow guidance lives in [AGENTS.md](../AGENTS.md) and the
+[README](../README.md); do not duplicate generic cross-owner instructions here.

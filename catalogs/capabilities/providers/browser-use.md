@@ -33,7 +33,7 @@ Prefer thinner or more deterministic providers first when appropriate:
 
 1. **HTTP/API/fetch** for public/read-only data when no interaction is required;
 2. **Playwright/Puppeteer/Selenium** for known, repeatable browser flows and tests where selectors/assertions should be deterministic;
-3. **Browser Use** when browser navigation/action selection itself requires agent reasoning;
+3. **Agent-directed Playwright** for adaptive browser actions where available; **Browser Use** as a qualified fallback;
 4. **generic Computer Use** when the task spans desktop applications or non-browser GUI surfaces.
 
 Browser Use and Playwright can share/control the same Chromium instance through CDP; they are complementary rather than mutually exclusive.

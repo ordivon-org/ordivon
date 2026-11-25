@@ -1,41 +1,14 @@
 from __future__ import annotations
 
-import hashlib
-import json
 import re
 import subprocess
 from pathlib import Path
 from typing import Any
 
-from .assets import hash_file
+from .assets import UnstableBlobError, hash_file
+from .production_source_io import read_bound_object, relative_child
 
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
-
-
-def _load_object(path: Path) -> dict[str, Any]:
-    """Legacy object-only reader also consumed by the learning projection."""
-    value, _ = _load_bound_object(path)
-    return value
-
-
-def _load_bound_object(path: Path) -> tuple[dict[str, Any], str]:
-    """Bind parsed JSON to the SHA-256 digest of the *same* bytes read."""
-    source_bytes = path.read_bytes()
-    value = json.loads(source_bytes)
-    if not isinstance(value, dict):
-        raise TypeError(f"{path} must contain one JSON object")
-    return value, "sha256:" + hashlib.sha256(source_bytes).hexdigest()
-
-
-def _relative_child(root: Path, relative: str) -> Path:
-    candidate = Path(relative)
-    if candidate.is_absolute():
-        raise ValueError(f"Production source path must be relative: {relative}")
-    resolved_root = root.resolve()
-    resolved = (root / candidate).resolve()
-    if resolved != resolved_root and resolved_root not in resolved.parents:
-        raise ValueError(f"Production source path escapes Production root: {relative}")
-    return resolved
 
 
 def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -151,7 +124,7 @@ def _output_blob_observation(
             row["relation"] = "INVALID_UNDECLARED_SOURCE_CARRIER"
             return row
         try:
-            selected = _relative_child(root, carrier)
+            selected = relative_child(root, carrier)
         except ValueError:
             row["relation"] = "INVALID_ESCAPING_SOURCE_CARRIER"
             return row
@@ -161,7 +134,7 @@ def _output_blob_observation(
             row["relation"] = "INVALID_OUTPUT_CARRIER"
             return row
         try:
-            selected = _relative_child(root, output_carrier)
+            selected = relative_child(root, output_carrier)
         except ValueError:
             row["relation"] = "INVALID_ESCAPING_OUTPUT_CARRIER"
             return row
@@ -177,6 +150,9 @@ def _output_blob_observation(
         return row
     try:
         blob = hash_file(selected)
+    except UnstableBlobError:
+        row["relation"] = "UNKNOWN_SELECTED_FILE_UNSTABLE"
+        return row
     except (OSError, ValueError):
         row["relation"] = "UNKNOWN_SELECTED_FILE_UNAVAILABLE"
         return row
@@ -197,14 +173,14 @@ def build_production_context(
 ) -> dict[str, Any]:
     root = production_root.resolve()
     production_path = root / "production.json"
-    production, production_manifest_digest = _load_bound_object(production_path)
+    production, production_manifest_digest = read_bound_object(production_path)
 
     production_id = production.get("id")
     sources = production.get("sources")
     if not isinstance(sources, dict) or not isinstance(sources.get("claims"), str):
         raise TypeError("Production must reference one claims source")
-    claims_path = _relative_child(root, sources["claims"])
-    claims_document, claims_manifest_digest = _load_bound_object(claims_path)
+    claims_path = relative_child(root, sources["claims"])
+    claims_document, claims_manifest_digest = read_bound_object(claims_path)
     if claims_document.get("productionId") != production_id:
         raise ValueError("Claim set productionId does not match Production id")
 

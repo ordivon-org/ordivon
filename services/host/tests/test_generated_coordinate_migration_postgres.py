@@ -84,7 +84,7 @@ def test_schema15_rejects_unrepresentable_legacy_state_atomically(variant, error
     env = {**os.environ, "ORDIVON_HOST_V2_DSN": dsn}
     env.pop("ORDIVON_HOST_V2_SQLALCHEMY_URL", None)
     result = subprocess.run(
-        [sys.executable, "-m", "alembic", "upgrade", "head"],
+        [sys.executable, "-m", "alembic", "upgrade", "0015"],
         cwd=ROOT,
         env=env,
         capture_output=True,
@@ -123,7 +123,7 @@ def test_schema15_lock_timeout_rolls_back_then_normal_retry_succeeds():
         }
         env.pop("ORDIVON_HOST_V2_SQLALCHEMY_URL", None)
         blocked = subprocess.run(
-            [sys.executable, "-m", "alembic", "upgrade", "head"],
+            [sys.executable, "-m", "alembic", "upgrade", "0015"],
             cwd=ROOT,
             env=env,
             capture_output=True,
@@ -138,7 +138,7 @@ def test_schema15_lock_timeout_rolls_back_then_normal_retry_succeeds():
         assert observe(conn) == before
     # Once the blocker releases naturally, retry the same native migration.
     retry = subprocess.run(
-        [sys.executable, "-m", "alembic", "upgrade", "head"],
+        [sys.executable, "-m", "alembic", "upgrade", "0015"],
         cwd=ROOT,
         env=env,
         capture_output=True,

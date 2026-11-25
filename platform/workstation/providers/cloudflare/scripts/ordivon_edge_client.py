@@ -180,7 +180,8 @@ def git(
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
     completed = subprocess.run(
-        ["git", "-C", str(repository), *arguments],
+        ["git", "--no-replace-objects", "-C", str(repository), *arguments],
+        env={key: value for key, value in os.environ.items() if not key.startswith("GIT_")},
         text=True,
         check=False,
         stdout=subprocess.PIPE,

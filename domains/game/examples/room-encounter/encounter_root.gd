@@ -18,13 +18,12 @@ func _project_mode_title(_state: Dictionary) -> void:
     # Mode title is a disposable projection of the admitted Rule Resource.
     # Direct Rule Resource substitution, Restart and restore all use this one
     # signal path, rather than maintaining a second mode/UI state ledger.
-    view.render_mode_title(rules.active != null and rules.active.tactical_trial)
+    view.render_mode_title(rules.is_tactical_trial())
 
 func restart_run() -> void:
     # Rules owns the admitted tuning Resource. Do not shadow its mode in
     # the presentation/input adapter; a selected variant survives Restart.
-    if rules.active != null:
-        rules.reset_run(rules.active)
+    rules.restart_run()
 
 func _ready() -> void:
     view = view_scene.instantiate()

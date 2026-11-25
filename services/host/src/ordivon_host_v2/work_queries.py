@@ -14,7 +14,7 @@ from typing import Any
 import psycopg
 
 from .canonical_json import canonical_digest
-from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
+from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_page, validate_max_bytes
 from .errors import WorkNotFound, WorkRevisionUnavailable
 from .postgres_bounds import HOST_WIRE_INT_MAX
 from .work_inputs import WorkState
@@ -107,7 +107,9 @@ class WorkReadQueries:
         if revision is not None and (
             type(revision) is not int or not 1 <= revision <= HOST_WIRE_INT_MAX
         ):
-            raise ValueError("revision must be a positive PostgreSQL BIGINT within JSON safe integer range")
+            raise ValueError(
+                "revision must be a positive PostgreSQL BIGINT within JSON safe integer range"
+            )
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             return read_work_in_tx(conn, work_ref, revision)
@@ -152,39 +154,25 @@ class WorkReadQueries:
                 for row in rows[:limit]
             ]
 
-            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
-                cursor = (
-                    None
-                    if not page
-                    else {
-                        "beforeUpdatedAt": page[-1]["updatedAt"],
-                        "beforeWorkRef": page[-1]["workRef"],
-                    }
-                )
+            def envelope(last: dict[str, Any] | None, has_more: bool) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-work-list",
-                    "works": page,
-                    "hasMore": True,
-                    "nextCursor": cursor,
+                    "hasMore": has_more,
+                    "nextCursor": {
+                        "beforeUpdatedAt": last["updatedAt"],
+                        "beforeWorkRef": last["workRef"],
+                    }
+                    if has_more and last is not None
+                    else None,
                     "rankingApplied": False,
                     "truthBoundary": "compact point-in-time Work inventory; not priority, assignment, Runtime activity, or domain currentness",
                 }
 
-            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
-            has_more = sql_more or byte_more
-            cursor = None
-            if has_more and page:
-                cursor = {
-                    "beforeUpdatedAt": page[-1]["updatedAt"],
-                    "beforeWorkRef": page[-1]["workRef"],
-                }
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-work-list",
-                "works": page,
-                "hasMore": has_more,
-                "nextCursor": cursor,
-                "rankingApplied": False,
-                "truthBoundary": "compact point-in-time Work inventory; not priority, assignment, Runtime activity, or domain currentness",
-            }
+            return bounded_page(
+                candidates,
+                max_bytes=max_bytes,
+                collection_key="works",
+                envelope=envelope,
+                source_has_more=sql_more,
+            )

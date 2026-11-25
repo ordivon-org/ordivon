@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import shutil
 import subprocess
 import tarfile
 import tempfile
@@ -35,28 +36,33 @@ def run_task(root: Path, name: str, fail: str = "") -> subprocess.CompletedProce
         """case "$2" in
   factory:validate:godot) exit 0;;
   test:beacon) if [[ "$INJECT_FAILURE" == test ]]; then exit 43; fi; exit 0;;
-  export:room-linux)
-    mkdir -p "$GAME_EXPORT_DIR"
-    printf "fixture-linux" > "$GAME_EXPORT_DIR/../room-encounter-linux-x86_64.tar.gz";;
-  export:room-windows)
-    if [[ "$INJECT_FAILURE" == windows ]]; then exit 47; fi
-    mkdir -p "$GAME_EXPORT_DIR"
-    printf "fixture-windows" > "$GAME_EXPORT_DIR/../room-encounter-windows-x86_64.zip";;
+  export:room-linux|export:room-windows)
+    python3 -c 'import sys,tomllib,subprocess; from pathlib import Path; tasks=tomllib.loads(Path("mise.toml").read_text())["tasks"]; sys.exit(subprocess.run(["/bin/bash","-c",tasks[sys.argv[1]]["run"]]).returncode)' "$2";;
   *) echo "unexpected mise task: $*" >&2; exit 70;;
 esac
 """,
     )
     executable(
         bin_dir / "godot",
-        """if [[ "$1" == --version ]]; then echo "fixture-godot"; exit 0; fi
+        """if [[ "$1" == --version ]]; then echo "4.7.2.stable.official.deadbeef"; exit 0; fi
+if [[ "$*" == *"--import"* ]]; then
+  if [[ "$INJECT_FAILURE" == import_error ]]; then echo "ERROR: import diagnostic" >&2; fi
+  exit 0
+fi
 if [[ "$*" == *"Windows x86_64"* ]] && [[ "$INJECT_FAILURE" == windows ]]; then exit 47; fi
 dest=""
 for arg in "$@"; do dest="$arg"; done
 if [[ "$*" == *"Linux x86_64"* ]]; then
   printf "#!/bin/sh\\nexit 0\\n" > "$dest"
+  if [[ "$INJECT_FAILURE" == smoke_error ]]; then
+    printf '#!/bin/sh\necho "ERROR: exported startup diagnostic" >&2\nexit 0\n' > "$dest"
+  fi
   chmod +x "$dest"
+  if [[ "$INJECT_FAILURE" == export_linux_error ]]; then echo "ERROR: Linux export diagnostic" >&2; fi
 elif [[ "$*" == *"Windows x86_64"* ]]; then
   printf "fixture-win-binary" > "$dest"
+  if [[ "$INJECT_FAILURE" == export_windows_error ]]; then echo "ERROR: Windows export diagnostic" >&2; fi
+  if [[ "$INJECT_FAILURE" == template_late ]]; then printf 'changed' >> "$XDG_DATA_HOME/godot/export_templates/4.7.2.stable/windows_release_x86_64.exe"; fi
 else
   echo "unexpected fixture Godot action: $*" >&2
   exit 71
@@ -94,6 +100,8 @@ exit 72
 ''',
     )
     for rel in (
+        "examples/room-encounter/addons/dialogue_manager/LICENSE",
+        "examples/room-encounter/assets/LICENSE.txt",
         "examples/beacon-relay/LICENSE",
         "examples/beacon-relay/fonts/LICENSE.txt",
         "examples/beacon-relay/CREDITS.txt",
@@ -101,8 +109,28 @@ exit 72
         dest = root / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text("fixture license or credits\n", encoding="utf-8")
+    shutil.copyfile(GAME / "mise.toml", root / "mise.toml")
+    (root / "scripts").mkdir()
+    for module in ("native_export_identity.py", "native_process.py"):
+        shutil.copyfile(GAME / "scripts" / module, root / "scripts" / module)
+    for product in ("room-encounter", "beacon-relay"):
+        project = root / "examples" / product
+        project.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(GAME / "examples" / product / "export_presets.cfg", project / "export_presets.cfg")
+        if fail == "custom_template":
+            preset = project / "export_presets.cfg"
+            preset.write_text(preset.read_text().replace('custom_template/release=""', 'custom_template/release="wrong.bin"'))
+    data = root / "native-data"
+    templates = data / "godot/export_templates/4.7.2.stable"
+    templates.mkdir(parents=True)
+    (templates / "linux_release.x86_64").write_bytes(b"fixture-linux-template")
+    if fail != "missing_template":
+        (templates / "windows_release_x86_64.exe").write_bytes(b"fixture-windows-template")
     env = {**os.environ, "PATH": str(bin_dir) + os.pathsep + os.environ["PATH"],
-           "INJECT_FAILURE": fail, "GIT_STATUS_COUNTER_FILE": str(root / "git-status-counter")}
+           "INJECT_FAILURE": fail, "GIT_STATUS_COUNTER_FILE": str(root / "git-status-counter"), "XDG_DATA_HOME": str(data)}
+    env.pop("GAME_GODOT_TEMPLATE_DIR", None)
+    if fail == "misleading_override":
+        env["GAME_GODOT_TEMPLATE_DIR"] = str(root / "wrong-template-dir")
     if name.endswith("beacon"):
         env["GAME_EXPORT_DIR"] = str(root / "dist" / "beacon-relay")
     return subprocess.run(
@@ -138,6 +166,16 @@ def assert_failure(name: str, failure: str) -> None:
             assert "GAME_FACTORY_DIRTY_SOURCE_NOT_RELEASABLE" in result.stderr
         elif failure == "root_dirty_late":
             assert "GAME_FACTORY_SOURCE_CHANGED_DURING_BUILD" in result.stderr
+        elif failure == "template_late":
+            assert "GAME_FACTORY_EXPORT_INPUT_CHANGED_DURING_BUILD" in result.stderr
+        elif failure in ("import_error", "export_linux_error", "export_windows_error", "smoke_error"):
+            assert "native Godot process rejected: exit=0" in result.stderr
+        elif failure == "missing_template":
+            assert "missing or empty native export input" in result.stderr
+        elif failure == "custom_template":
+            assert "unsupported or ambiguous native export preset" in result.stderr
+        elif failure == "misleading_override":
+            assert "GAME_GODOT_TEMPLATE_DIR is unsupported" in result.stderr
 
 
 def assert_success(name: str, archives: tuple[str, str]) -> None:
@@ -156,6 +194,9 @@ def assert_success(name: str, archives: tuple[str, str]) -> None:
         assert f"SOURCE_COMMIT={FIXTURE_SHA}" in receipt
         assert f"SOURCE_TREE={FIXTURE_SHA}" in receipt
         assert "SOURCE_WORKTREE=clean" in receipt
+        for label, value in (("LINUX", b"fixture-linux-template"), ("WINDOWS", b"fixture-windows-template")):
+            assert f"TEMPLATE_{label}_SHA256={hashlib.sha256(value).hexdigest()}" in receipt
+        assert f"ENGINE_SHA256={hashlib.sha256((root / 'fixture-bin/godot').read_bytes()).hexdigest()}" in receipt
         assert "RELEASE_PUBLISHED=false" in receipt
         assert "QUALIFICATION=native_headless_preview" in receipt
         assert "LINUX_SCOPE=native_headless_smoke" in receipt
@@ -170,8 +211,10 @@ def assert_success(name: str, archives: tuple[str, str]) -> None:
             with zipfile.ZipFile(bundle / archives[1]) as ar:
                 assert {"beacon-relay.exe", "CREDITS.txt"}.issubset(ar.namelist())
         else:
-            assert (bundle / archives[0]).read_bytes() == b"fixture-linux"
-            assert (bundle / archives[1]).read_bytes() == b"fixture-windows"
+            with tarfile.open(bundle / archives[0], "r:gz") as ar:
+                assert {"room-encounter.x86_64", "DIALOGUE_MANAGER_LICENSE.txt", "KENNEY_ASSETS_LICENSE.txt"} == set(ar.getnames())
+            with zipfile.ZipFile(bundle / archives[1]) as ar:
+                assert {"room-encounter.exe", "DIALOGUE_MANAGER_LICENSE.txt", "KENNEY_ASSETS_LICENSE.txt"} == set(ar.namelist())
 
 
 if __name__ == "__main__":
@@ -187,6 +230,13 @@ if __name__ == "__main__":
         ("factory:package:beacon", "root_dirty_late"),
     ):
         assert_failure(task, fail)
+    for task in ("factory:package:room", "factory:package:beacon"):
+        for failure in ("template_late", "missing_template", "custom_template", "misleading_override"):
+            assert_failure(task, failure)
+    for task in ("factory:package:room", "factory:package:beacon"):
+        for failure in ("export_linux_error", "export_windows_error", "smoke_error"):
+            assert_failure(task, failure)
+    assert_failure("factory:package:room", "import_error")
     assert_success("factory:package:room", ROOM)
     assert_success("factory:package:beacon", BEACON)
-    print("GAME_FACTORY_PACKAGE_CONTRACT_PASS failures=9 successes=2")
+    print("GAME_FACTORY_PACKAGE_CONTRACT_PASS failures=24 successes=2")

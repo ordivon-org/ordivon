@@ -35,7 +35,7 @@ class MissingNativeValidatorEvidenceTests(unittest.TestCase):
                         "failures": ["OpenXML validator unavailable"],
                     },
                 )
-                def receipt(*args):
+                def receipt(*args, **_kwargs):
                     return {"status": args[4]["status"]}
                 with mock.patch.object(stage, "write_gate_receipt", side_effect=receipt) as writer:
                     result = stage.execute_verify_stage(

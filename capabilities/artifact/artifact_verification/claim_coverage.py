@@ -6,6 +6,7 @@ contains no additional profile registry, provider selection or transport semanti
 """
 from __future__ import annotations
 
+import re
 from typing import Any
 
 _STATUSES = frozenset({"PASS", "FAIL", "NOT_EVALUATED"})
@@ -14,6 +15,8 @@ _STATUSES = frozenset({"PASS", "FAIL", "NOT_EVALUATED"})
 def _at_pointer(value: dict[str, Any], pointer: str) -> object:
     if not isinstance(pointer, str) or not pointer.startswith("/"):
         raise ValueError("native pointer must be an absolute JSON pointer")
+    if re.search(r"~(?![01])", pointer):
+        raise ValueError("native pointer contains an invalid JSON pointer escape")
     # A claim cannot be its own evidence. The native observation must sit
     # outside the claimResults projection, otherwise a self-referential PASS
     # would make the evidence check vacuous.
@@ -143,21 +146,27 @@ def assess_required_evidence(
             if not isinstance(pointers, list) or not pointers:
                 issues.append(f"native evidence pointer absent: {name}")
                 continue
-            matched = False
-            for pointer in pointers:
+            # Every declared witness is part of the evidence commitment.
+            # An existential match would hide a contradictory or malformed
+            # sibling pointer, depending on the order of the supplied list.
+            def matches(pointer: object) -> bool:
+                if not isinstance(pointer, str):
+                    return False
                 try:
                     observed = _at_pointer(native_result, pointer)
                 except (ValueError, KeyError):
-                    continue
-                if isinstance(observed, dict) and observed.get("status") == status:
-                    if _native_witness_covers_claim(
+                    return False
+                return (
+                    isinstance(observed, dict)
+                    and observed.get("status") == status
+                    and _native_witness_covers_claim(
                         pointer, observed, name,
                         profile_id=profile.get("id"),
                         native_kind=native_result.get("kind"),
-                    ):
-                        matched = True
-                        break
-            if not matched:
+                    )
+                )
+
+            if not all(matches(pointer) for pointer in pointers):
                 issues.append(
                     f"native evidence status/pointer mismatch or not claim-specific: {name}"
                 )

@@ -2,17 +2,29 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from typing import Any
+
+import psycopg
 
 from .attention_delta_queries import AttentionDeltaQueries
 from .attention_reentry import project_reentry, reentry_topic_refs
 from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, validate_max_bytes
 from .postgres_bounds import HOST_WIRE_INT_MAX
+from .references.actor_refs import ActorReferenceLookup
 from .topic_cursor_records import list_topic_cursors_in_tx
 
 
-class AttentionReentryQueries(AttentionDeltaQueries):
-    """Explicitly depends on Delta's same-transaction _delta_in_tx contract."""
+class AttentionReentryQueries:
+    """Compose Delta and Topic cursors inside one owned read-only snapshot."""
+
+    def __init__(
+        self,
+        connect: Callable[[], AbstractContextManager[psycopg.Connection[dict[str, Any]]]],
+    ) -> None:
+        self._connect = connect
+        self._delta = AttentionDeltaQueries(connect)
 
     def reentry(
         self,
@@ -32,7 +44,7 @@ class AttentionReentryQueries(AttentionDeltaQueries):
         # Cursor, events, and topic resume cursors come from one MVCC snapshot.
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
-            self._require_actor(conn, actor_ref)
+            ActorReferenceLookup._require_actor(conn, actor_ref)
             if after_sequence is None:
                 row = conn.execute(
                     "SELECT cursor FROM attention_cursors WHERE actor_ref=%s", (actor_ref,)
@@ -42,7 +54,7 @@ class AttentionReentryQueries(AttentionDeltaQueries):
             # The delta SQL is an expensive multi-source query. Its bounded
             # event page is already ordered. Trimming a prefix for the re-entry
             # response budget must not re-run that query or change snapshots.
-            delta = self._delta_in_tx(
+            delta = self._delta._delta_in_tx(
                 conn, actor_ref, after_sequence=after_sequence,
                 limit=limit, max_bytes=max_bytes,
             )

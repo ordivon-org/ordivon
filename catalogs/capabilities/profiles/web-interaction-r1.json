@@ -47,12 +47,12 @@
     {
       "id": "playwright",
       "rank": 40,
-      "semanticObject": "deterministic browser flow",
+      "semanticObject": "agent-directed structured browser execution",
       "useWhen": [
-        "browser interaction is required and selectors/assertions/control flow are known or should be deterministic"
+        "browser interaction is required, including known flows and Agent-directed snapshot-act-reobserve flows"
       ],
       "escalateWhen": [
-        "the current page state or changing affordances must determine the next action"
+        "Playwright is unavailable or a different provider is required by the actual session/environment constraints"
       ],
       "availabilityAuthority": "Workstation v2 exact Playwright CLI binding or caller/application equivalent; library presence alone is insufficient"
     },
@@ -61,13 +61,12 @@
       "rank": 50,
       "semanticObject": "adaptive browser interaction",
       "useWhen": [
-        "browser interaction is required and the exact path/affordances are not known in advance",
-        "logged-in or stateful UI requires observe-act-reobserve reasoning"
+        "Playwright is unavailable and an isolated Browser Use adapter advertises required target identity for both click and input"
       ],
       "escalateWhen": [
         "the task crosses outside browser semantics into desktop/native GUI"
       ],
-      "availabilityAuthority": "isolated Browser Use provider lane health"
+      "availabilityAuthority": "isolated Browser Use lane health and required action identity CLI contract; neither proves physical effect safety"
     },
     {
       "id": "computer_use",
@@ -85,7 +84,7 @@
   "invariants": [
     "Do not infer provider availability from documentation or installed libraries alone.",
     "Do not route a simple readable HTTP task through a browser.",
-    "Do not route a known deterministic browser regression through Browser Use merely because Browser Use is available.",
+    "Prefer available Playwright for both deterministic and Agent-directed adaptive browser flows.",
     "Browser Use current-state element indexes are ephemeral; re-observe after meaningful state change.",
     "A provider action succeeding is not semantic completion; verify the relevant provider/domain state.",
     "Do not automatically retry an ambiguous consequential external effect without owner-native idempotency or authoritative absence evidence."

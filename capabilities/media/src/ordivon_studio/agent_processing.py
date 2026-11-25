@@ -132,6 +132,17 @@ def processing_probe_plan(
         ),
     }
 
+    plan["evidenceDirectoryPolicy"] = {
+        "mode": "new-directory-per-attempt",
+        "admission": "native-adapter-reserves-absent-path",
+        "onExisting": "reject-preserve-prior-evidence",
+        "consumerObligation": (
+            "Use a new target-namespace path for each attempt. Check this attempt's "
+            "exit status and the receipt's directory, input/artifact and profile digests; "
+            "the presence of a prior receipt does not prove current success."
+        ),
+    }
+
     # Opt-in execution-time binding: Runtime owns the host path/digest
     # commitments and the witness. Studio does not claim immutable inputs or
     # proof that an opaque Provider consumed the committed bytes.

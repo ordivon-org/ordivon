@@ -3366,6 +3366,34 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
     // Cancelling a completed effect must return its existing Owner observation,
     // never require a current native Runner or mutate terminal truth.
     let completed_job = exec["structuredContent"]["jobId"].as_str().unwrap();
+    let times = fixture
+        .db
+        .query_one(
+            "SELECT started_at_ms,finished_at_ms FROM attempts WHERE job_id=$1",
+            &[&completed_job],
+        )
+        .unwrap();
+    let started: i64 = times.get::<_, Option<i64>>(0).expect("native Runner bound");
+    let finished: i64 = times.get::<_, Option<i64>>(1).expect("terminal witness");
+    let inspection = call(&endpoint, "job.get", json!({"jobId":completed_job}));
+    assert_ne!(inspection["isError"], true, "{inspection}");
+    let attempt = &inspection["structuredContent"]["attempts"][0];
+    assert_eq!(attempt["startedAtMs"], started);
+    assert_eq!(attempt["finishedAtMs"], finished);
+    assert!(
+        attempt.get("durationMs").is_none(),
+        "mixed clock duration is not a physical measurement"
+    );
+    let listed = call(
+        &endpoint,
+        "job.list",
+        json!({"clientRequestId":"pg-native-physical-0001","limit":1}),
+    );
+    assert_ne!(listed["isError"], true, "{listed}");
+    assert_eq!(
+        listed["structuredContent"]["jobs"][0]["startedAtMs"],
+        started
+    );
     let post_terminal_cancel = call(&endpoint, "job.cancel", json!({"jobId":completed_job}));
     assert_ne!(
         post_terminal_cancel["isError"], true,
@@ -3437,6 +3465,28 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         published_artifact["structuredContent"]["content"], "native-proof",
         "a mutable Runner source must not invalidate an already published Artifact"
     );
+    // Only the disposable, already terminal fixture may retire its raw log.
+    // The public readback must depend on the committed Artifact, not the preview.
+    fs::remove_file(&original_stdout).unwrap();
+    let retired_raw = call(
+        &endpoint,
+        "job.observe",
+        json!({"jobId":completed_job,"waitMs":0,"stdoutTailBytes":4,"stderrTailBytes":0}),
+    );
+    assert_ne!(retired_raw["isError"], true, "{retired_raw}");
+    assert_eq!(retired_raw["structuredContent"]["stdoutTail"], "roof");
+    assert_eq!(retired_raw["structuredContent"]["stdoutOffset"], 8);
+    assert_eq!(retired_raw["structuredContent"]["stdoutNextOffset"], 12);
+    assert_eq!(retired_raw["structuredContent"]["stdoutAvailableBytes"], 12);
+    let after_raw_retire = call(
+        &endpoint,
+        "artifact.read",
+        json!({"jobId":completed_job,"artifactId":stdout["artifactId"],"offset":0,"maxBytes":100}),
+    );
+    assert_eq!(
+        after_raw_retire["structuredContent"]["content"],
+        "native-proof"
+    );
     fs::write(&stdout_path, b"forged-stdout-after-terminal").unwrap();
     let forged_artifact = call(
         &endpoint,
@@ -3460,6 +3510,12 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         forged_observation["isError"], true,
         "terminal stdoutTail bypassed Artifact digest while artifact.read rejected it: {forged_observation}"
     );
+    let forged_zero_tail = call(
+        &endpoint,
+        "job.observe",
+        json!({"jobId":completed_job,"waitMs":0,"stdoutTailBytes":0,"stderrTailBytes":0}),
+    );
+    assert_eq!(forged_zero_tail["isError"], true, "{forged_zero_tail}");
     fs::write(&stdout_path, b"native-proof").unwrap();
     let restored = call(
         &endpoint,
@@ -3942,6 +3998,14 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         "cancelled"
     );
     assert_eq!(cancelled["structuredContent"]["resultAvailable"], false);
+    let never_bound = call(&endpoint, "job.get", json!({"jobId":pending_job}));
+    assert_ne!(never_bound["isError"], true, "{never_bound}");
+    let attempt = &never_bound["structuredContent"]["attempts"][0];
+    assert!(
+        attempt.get("startedAtMs").is_none(),
+        "pre-dispatch cancel has no Runner bound observation"
+    );
+    assert!(attempt.get("durationMs").is_none());
     let dispatched: i64 = fixture
         .db
         .query_one(

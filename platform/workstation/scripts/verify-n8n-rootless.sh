@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# The operator supplies the qualified local cluster endpoint (libpq inputs).
+# Do not infer another database when this invocation lacks a source binding.
+: "${PGHOST:?PGHOST must name the qualified local PostgreSQL Unix socket directory}"
+: "${PGPORT:?PGPORT must name the qualified local PostgreSQL port}"
+if [[ "$PGHOST" != /* || "$PGHOST" == *,* || ! "$PGPORT" =~ ^[1-9][0-9]{0,4}$ ]] || (( PGPORT > 65535 )); then
+  echo "invalid local PostgreSQL endpoint" >&2
+  exit 2
+fi
+# libpq hostaddr/service can override or supplement an explicit socket host.
+# This invocation selects its own endpoint; do not inherit those selectors.
+unset PGHOSTADDR PGSERVICE PGSERVICEFILE
+
 UID_N8N=934
 RUNTIME_DIR=/run/user/${UID_N8N}
 run_n8n() {
@@ -47,6 +59,6 @@ printf '%s\n' '== outbound connectivity =='
 run_n8n podman exec ordivon-n8n node -e "fetch('https://api.github.com',{headers:{'user-agent':'ordivon-n8n-acceptance'}}).then(r=>{console.log(r.status); if(!r.ok)process.exit(2)}).catch(e=>{console.error(e);process.exit(3)})"
 
 printf '%s\n' '== PostgreSQL =='
-runuser -u postgres -- psql -h /var/lib/postgres/ordivon-data-r5-pg-14550-v4 -p 14550 -d n8n -Atqc "select 'tables='||count(*) from pg_tables where schemaname='public';"
+runuser -u postgres -- psql -h "$PGHOST" -p "$PGPORT" -d n8n -Atqc "select 'tables='||count(*) from pg_tables where schemaname='public';"
 
 printf '%s\n' 'n8n rootless acceptance: PASS'
