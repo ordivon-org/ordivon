@@ -79,11 +79,16 @@ export class AgentEffectStore {
   private commitOrReplay(
     agentId: string, effect: AgentEffectRequest, write: () => AgentEffectReceipt,
   ): { receipt: AgentEffectReceipt; replayed: boolean } {
+    // Never return a receipt from, or roll back, an enclosing caller transaction.
+    if (this.db.isTransaction) {
+      throw new WebProblem(500, "effect-transaction-active", "Effect transaction unavailable",
+        "The local Effect coordinator requires an idle owner connection.");
+    }
     const existing = this.receipts.resolveAgentEffectReplay(agentId, effect);
     if (existing !== null) return { receipt: existing, replayed: true };
 
-    this.db.exec("BEGIN IMMEDIATE");
     try {
+      this.db.exec("BEGIN IMMEDIATE");
       const committed = this.receipts.resolveAgentEffectReplay(agentId, effect);
       if (committed !== null) {
         this.db.exec("COMMIT");
@@ -99,7 +104,16 @@ export class AgentEffectStore {
         try {
           this.db.exec("ROLLBACK");
         } catch (rollbackError) {
-          throw new AggregateError([error, rollbackError], "Effect transaction and rollback failed");
+          // A shared connection with an unconfirmed rollback is not reusable.
+          // Native close rolls back an active SQLite transaction; reopening is
+          // an explicit owner action, never an automatic retry of the Effect.
+          const failures = [error, rollbackError];
+          try {
+            this.db.close();
+          } catch (closeError) {
+            failures.push(closeError);
+          }
+          throw new AggregateError(failures, "Effect transaction and rollback failed; owner connection recovery required");
         }
       }
       throw error;

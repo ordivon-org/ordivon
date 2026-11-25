@@ -12,6 +12,8 @@
     "start": "node src/server.ts",
     "typecheck": "tsc --noEmit",
     "test": "node --test test/*.test.ts",
+    "test:effects": "node --test test/store-effect-*.test.ts",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-include='src/**/*.ts' --test-coverage-include-all test/*.test.ts",
     "e2e": "bash ./browser-e2e.sh",
     "agent-native-e2e": "bash ./agent-native-e2e.sh",
     "ci": "pnpm --dir ../../platform/security/contracts/agent-request-verifier-v1 install --frozen-lockfile && pnpm typecheck && pnpm test"
