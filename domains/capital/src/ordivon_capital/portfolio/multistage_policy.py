@@ -224,6 +224,36 @@ def solve_multistage(
             f"inequality={inequality_error}"
         )
 
+    if numerical_solver == "TRUST_CONSTR_SPARSE":
+        # Interior-point convergence can leave excess epigraph turnover,
+        # even when every linear row is feasible. The economic wire requires
+        # actual absolute trades, not a relaxed upper bound on trading costs.
+        # Bound the fee discrepancy plus the original equality residual by
+        # the existing independent consumer's absolute replay tolerance.
+        # This is numerical admission, not a financial risk budget; do not
+        # silently modify x, forgive fees, or reroute to another solver.
+        for node in decisions:
+            j = offsets[node.id]
+            pos = x[j:j+n]
+            prior = (
+                (0.0,) * n if node.parent is None else
+                tuple(float(v) * g for v, g in zip(
+                    x[offsets[node.parent]:offsets[node.parent]+n],
+                    node.risky_gross, strict=True,
+                ))
+            )
+            actual_fee = math.fsum(
+                k * abs(float(v) - old)
+                for k, v, old in zip(node.turnover_cost, pos, prior, strict=True)
+            )
+            epigraph_fee = float(np.asarray(node.turnover_cost) @ x[j+cost_start:j+cost_start+n])
+            discrepancy = abs(epigraph_fee - actual_fee) + equality_error
+            if not math.isfinite(discrepancy) or discrepancy > 1e-6:
+                raise AlgebraicPolicyError(
+                    "sparse numerical candidate violates economic turnover identity: "
+                    f"{node.id}; residual={discrepancy}"
+                )
+
     # Finite-scenario CRRA objective is concave on the positive-wealth domain.
     # Its tangent at a feasible point is an affine GLOBAL upper bound.
     # Estimate its maximum over the numerical polyhedron using HiGHS.

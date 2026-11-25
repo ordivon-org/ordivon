@@ -87,7 +87,7 @@ def solve_numeric(
         options={
             "sparse_jacobian": True,
             "factorization_method": "AugmentedSystem",
-            "gtol": 1e-12,
+            "gtol": 1e-13,
             "initial_barrier_parameter": 1e-7,
             "initial_barrier_tolerance": 1e-7,
             "barrier_tol": 1e-12,
