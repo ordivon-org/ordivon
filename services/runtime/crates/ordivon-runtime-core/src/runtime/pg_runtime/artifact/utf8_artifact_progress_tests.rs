@@ -94,6 +94,11 @@ fn pg18_artifact_readers_reject_cross_job_attempt_origin() {
             "/sql/pg_fresh_epoch.sql"
         )))
         .unwrap();
+    // Explicit legacy-corruption fixture: older installed epochs lacked this
+    // composite FK. Readback must remain defensive even after fresh-schema reform.
+    admin
+        .batch_execute("ALTER TABLE artifacts DROP CONSTRAINT artifact_owner_pair_fk")
+        .unwrap();
     let source = "a".repeat(64);
     let epoch = admin
         .query_one(

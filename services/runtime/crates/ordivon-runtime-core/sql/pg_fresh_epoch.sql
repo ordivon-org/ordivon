@@ -34,7 +34,8 @@ CREATE TABLE attempts(
  process_start_identity text, runner_start_digest text,
  infrastructure_error_digest text, started_at_ms bigint CHECK(started_at_ms >= 0),
  row_version bigint NOT NULL DEFAULT 0, result_digest text, exit_code integer,
- finished_at_ms bigint, UNIQUE(job_id,attempt_number));
+ finished_at_ms bigint, UNIQUE(job_id,attempt_number),
+ CONSTRAINT idx_attempts_owner_pair UNIQUE(job_id,attempt_id));
 CREATE TABLE idempotency_keys(
  principal text NOT NULL, client_request_id text NOT NULL,
  operation_digest text NOT NULL, job_id text NOT NULL UNIQUE REFERENCES jobs(job_id),
@@ -68,7 +69,9 @@ CREATE TABLE job_events(
  event_sequence bigint NOT NULL,event_type text NOT NULL,
  origin text NOT NULL,previous_state text,new_state text,reason_code text NOT NULL,
  detail_json text NOT NULL,detail_digest text NOT NULL,
- observed_at_ms bigint NOT NULL,UNIQUE(job_id,event_sequence));
+ observed_at_ms bigint NOT NULL,UNIQUE(job_id,event_sequence),
+ CONSTRAINT event_owner_pair_fk FOREIGN KEY(job_id,attempt_id)
+ REFERENCES attempts(job_id,attempt_id) MATCH SIMPLE);
 -- Exact Runtime ReleaseEffect ownership, not an unqualified 'pending' flag.
 CREATE TABLE job_runtime_release_effects(
   job_id text PRIMARY KEY REFERENCES jobs(job_id) ON DELETE CASCADE,
@@ -92,7 +95,9 @@ CREATE TABLE artifacts(
  byte_length bigint NOT NULL DEFAULT 0 CHECK(byte_length>=0),
  truncated boolean NOT NULL DEFAULT false,
  created_at_ms bigint NOT NULL DEFAULT 0 CHECK(created_at_ms>=0),
- UNIQUE(attempt_id,kind,relative_path));
+ UNIQUE(attempt_id,kind,relative_path),
+ CONSTRAINT artifact_owner_pair_fk FOREIGN KEY(job_id,attempt_id)
+ REFERENCES attempts(job_id,attempt_id) MATCH SIMPLE);
 -- Independent forward Job lookup; the unique Attempt key covers reverse lookup.
 CREATE INDEX idx_artifacts_job ON artifacts(job_id);
 CREATE TABLE _stage_control(

@@ -26,6 +26,32 @@ fn pg18_native_owner_pair_expand_validate_contract() {
     let event = "INSERT INTO job_events(event_id,job_id,attempt_id,event_sequence,event_type,
                  origin,reason_code,detail_json,detail_digest,observed_at_ms)
                  VALUES($1,$2,$3,$4,'FIXTURE','test','TEST','{}','sha256:fixture',1)";
+    // The fresh schema rejects both false pairs directly at the write boundary.
+    reject_fk(
+        scratch
+            .admin
+            .execute(artifact, &[&"fresh-bad-artifact", &a.job_id, &b.attempt_id]),
+        "artifact_owner_pair_fk",
+    );
+    reject_fk(
+        scratch.admin.execute(
+            event,
+            &[&"fresh-bad-event", &a.job_id, &b.attempt_id, &100_i64],
+        ),
+        "event_owner_pair_fk",
+    );
+    let fresh_valid: i64 = scratch.admin.query_one("SELECT count(*) FROM pg_constraint WHERE conrelid IN ('artifacts'::regclass,'job_events'::regclass) AND conname IN ('artifact_owner_pair_fk','event_owner_pair_fk') AND convalidated AND conenforced", &[]).unwrap().get(0);
+    assert_eq!(fresh_valid, 2);
+    // Reconstruct only this private fixture's legacy shape for migration proof.
+    // The real readback must still reject corruption in an unexpanded old schema.
+    scratch
+        .admin
+        .batch_execute(
+            "ALTER TABLE artifacts DROP CONSTRAINT artifact_owner_pair_fk;
+        ALTER TABLE job_events DROP CONSTRAINT event_owner_pair_fk;
+        ALTER TABLE attempts DROP CONSTRAINT idx_attempts_owner_pair;",
+        )
+        .unwrap();
     // Legacy individual FKs permit a pair of individually valid, unrelated IDs.
     scratch
         .admin

@@ -340,6 +340,42 @@ class SQLDialectBoundaryTests(unittest.TestCase):
                 self.assertTrue(pg_runtime_ddl_structure_issues(
                     POSTGRESQL_RUNTIME_EPOCH, statements))
 
+    def test_pg_runtime_owner_pair_ast_rejects_mutations(self):
+        from copy import deepcopy
+        from tools.repo.check_sql_dialects import pg_runtime_owner_pair_issues
+        row = self._pg_ast_statement
+        statements = [row("CreateStmt", table) for table in ("attempts", "artifacts", "job_events")]
+        pair = [SimpleNamespace(sval=x) for x in ("job_id", "attempt_id")]
+        for entry, name in zip(statements, ("idx_attempts_owner_pair", "artifact_owner_pair_fk", "event_owner_pair_fk")):
+            unique = name == "idx_attempts_owner_pair"
+            entry.stmt.tableElts = [SimpleNamespace(
+                conname=name, contype=SimpleNamespace(name="CONSTR_UNIQUE" if unique else "CONSTR_FOREIGN"),
+                is_enforced=not unique, deferrable=False, initdeferred=False, skip_validation=False,
+                keys=pair, initially_valid=True, pktable=SimpleNamespace(relname="attempts", schemaname=None),
+                fk_attrs=pair, pk_attrs=pair, fk_matchtype="s", fk_upd_action="a", fk_del_action="a")]
+        self.assertEqual(pg_runtime_owner_pair_issues(statements), [])
+        for mutant in ("missing", "wrong_columns", "wrong_parent", "cascade", "not_enforced", "match_full", "not_valid", "deferrable"):
+            rows = deepcopy(statements)
+            c = rows[1].stmt.tableElts[0]
+            if mutant == "missing":
+                rows[1].stmt.tableElts = []
+            elif mutant == "wrong_columns":
+                c.pk_attrs = [SimpleNamespace(sval="attempt_id")]
+            elif mutant == "wrong_parent":
+                c.pktable.relname = "jobs"
+            elif mutant == "cascade":
+                c.fk_del_action = "c"
+            elif mutant == "not_enforced":
+                c.is_enforced = False
+            elif mutant == "match_full":
+                c.fk_matchtype = "f"
+            elif mutant == "not_valid":
+                c.skip_validation = True
+            elif mutant == "deferrable":
+                c.deferrable = True
+            with self.subTest(mutant=mutant):
+                self.assertTrue(pg_runtime_owner_pair_issues(rows))
+
     def test_pg_runtime_artifact_index_online_ast_rejects_mutations(self):
         row = self._pg_ast_statement
         online = [row("DoStmt"), row("IndexStmt", "artifacts", "idx_artifacts_job"),

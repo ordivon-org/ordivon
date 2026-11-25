@@ -379,6 +379,46 @@ def host_postgres_only_sources(root: Path) -> list[str]:
     return sorted(set(issues))
 
 
+def pg_runtime_owner_pair_issues(parsed: object) -> list[str]:
+    """Native parser AST checks; not a replacement for database enforcement."""
+    tables = {
+        statement.stmt.relation.relname: statement.stmt
+        for statement in parsed
+        if type(statement.stmt).__name__ == "CreateStmt"
+    }
+    issues = []
+    pair = ("job_id", "attempt_id")
+    def columns(values):
+        return tuple(value.sval for value in (values or ()))
+    for table, constraint in (
+        ("attempts", "idx_attempts_owner_pair"),
+        ("artifacts", "artifact_owner_pair_fk"),
+        ("job_events", "event_owner_pair_fk"),
+    ):
+        matches = [element for element in getattr(tables.get(table), "tableElts", ())
+                   if getattr(element, "conname", None) == constraint]
+        if len(matches) != 1:
+            issues.append(f"PostgreSQL Runtime owner pair missing or duplicated: {table}.{constraint}")
+            continue
+        c = matches[0]
+        # The parser populates is_enforced for FK/CHECK, not ordinary UNIQUE.
+        # Native UNIQUE is enforced by its index; do not infer a missing
+        # constraint from the default AST flag on this different node kind.
+        common = not c.deferrable and not c.initdeferred and not c.skip_validation
+        if table == "attempts":
+            valid = common and c.contype.name == "CONSTR_UNIQUE" and columns(c.keys) == pair
+        else:
+            valid = (
+                common and c.contype.name == "CONSTR_FOREIGN" and c.is_enforced and c.initially_valid
+                and c.pktable.relname == "attempts" and not c.pktable.schemaname
+                and columns(c.fk_attrs) == pair and columns(c.pk_attrs) == pair
+                and c.fk_matchtype == "s" and c.fk_upd_action == "a" and c.fk_del_action == "a"
+            )
+        if not valid:
+            issues.append(f"PostgreSQL Runtime owner pair shape changed: {table}.{constraint}")
+    return issues
+
+
 def pg_runtime_ddl_structure_issues(name: str, parsed: object) -> list[str]:
     """Check the full PG Runtime schema AST, including named side effects.
 
@@ -618,6 +658,8 @@ def check(root: Path) -> tuple[list[str], list[str]]:
             parsed = parse_sql((root / name).read_text(encoding="utf-8"))
             if name in (POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_ARTIFACT_INDEX, POSTGRESQL_RUNTIME_CLAIMS, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER):
                 issues.extend(pg_runtime_ddl_structure_issues(name, parsed))
+                if name == POSTGRESQL_RUNTIME_EPOCH:
+                    issues.extend(pg_runtime_owner_pair_issues(parsed))
             elif name == POSTGRESQL_ELE_STUDY_SCHEMA:
                 # This PG-only Catalog read model is a schema, four
                 # source/section/head/reference tables, two native indexes,
