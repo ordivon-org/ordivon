@@ -1211,6 +1211,7 @@ mod tests {
         fs::remove_dir_all(root).unwrap();
     }
 
+    #[cfg(unix)]
     #[test]
     fn executable_validation_preserves_absolute_proxy_invocation_path() {
         let root =
