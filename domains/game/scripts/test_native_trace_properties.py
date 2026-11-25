@@ -11,6 +11,9 @@ from hypothesis import given, example, settings, strategies as st
 
 from native_process import verify_process
 
+if not __debug__:
+    raise RuntimeError("native property assertions must be enabled")
+
 GAME = Path(__file__).resolve().parents[1] / "examples" / "room-encounter"
 PROBE = Path(__file__).resolve().parent / "fixtures" / "room_trace_probe.gd"
 ACTIONS = ("attack", "guard", "advance", "restart", "checkpoint", "restore", "invalid_restore")
@@ -45,6 +48,7 @@ def verify_trace(observations, actions):
         assert initial["phase"] == "fighting" and initial["turn"] == 0
         assert row["initial_events"] == [["state", initial]], "initial observer"
         assert [step["action"] for step in row["steps"]] == actions, "step inventory"
+        assert ("forecast" in initial) == (row["mode"] == "trial"), "mode projection"
         current = saved = initial
         for step in row["steps"]:
             action, before, after = step["action"], step["before"], step["after"]
@@ -77,6 +81,8 @@ def verify_trace(observations, actions):
                 saved = before
             assert 1 <= after["room"] <= after["total_rooms"]
             assert all(after[k] >= 0 for k in ("foes", "player_health", "enemy_health", "stamina", "turn"))
+            assert after["phase"] in ("fighting", "cleared", "won", "lost")
+            assert ("forecast" in after) == (row["mode"] == "trial"), "mode projection"
             current = after
 
 
@@ -87,14 +93,31 @@ class NativeTraceProperties(unittest.TestCase):
         cls.addClassCleanup(cls.tmp.cleanup)
         cls.root = Path(cls.tmp.name)
         stage(cls.root)
+        cls.programs = 0
+        cls.steps = 0
+        cls.mode_phases = set()
 
     @settings(max_examples=24, deadline=None, derandomize=True, database=None)
     @example(actions=["advance"])
+    @example(actions=["guard"])
+    @example(actions=["invalid_restore"])
     @example(actions=["attack", "checkpoint", "guard", "restart", "restore", "invalid_restore", "advance"])
     @example(actions=["guard"] * 15 + ["attack", "restart", "restore"])
     @given(actions=st.lists(st.sampled_from(ACTIONS), min_size=1, max_size=40))
     def test_generated_native_trace(self, actions):
-        verify_trace(observe(self.root, actions), actions)
+        observations = observe(self.root, actions)
+        verify_trace(observations, actions)
+        type(self).programs += 1
+        type(self).steps += len(actions) * 2
+        for row in observations:
+            for step in row["steps"]:
+                type(self).mode_phases.add((row["mode"], step["after"]["phase"]))
+
+    @classmethod
+    def tearDownClass(cls):
+        print(f"GAME_NATIVE_TRACE_OBSERVED programs={cls.programs} "
+              f"mode_programs={2 * cls.programs} steps={cls.steps} "
+              f"mode_phases={sorted(cls.mode_phases)}", flush=True)
 
 
 if __name__ == "__main__":

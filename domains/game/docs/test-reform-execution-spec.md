@@ -90,9 +90,24 @@ O: independently verified per-step relations. S: fresh rules and checkpoint
 per mode; pre: source byte staging and native process; post: expected
 transition/signal relations; inv: no mutation of original source/production
 slots, no second combat simulator; eff: private temp project and native
-process; c: <=40 actions, 24 generated programs plus explicit examples;
+process; c: <=40 actions, 24 generated programs plus five explicit examples;
 epsilon: actual native rules, not exported scene/UI/peripheral or universal
 state coverage; prov: exact source revision, Hypothesis version, minimized
 action sequence. Unfold with existing uv, native_process and Godot.
 Only integrate into existing native gate after actual baseline and mutant
 qualification; no new required job or dependency pin.
+
+Actual baseline job-01a214f9-1892-70b9-a887-6774af010550 passed in 5.049s
+test time, 5.786s wall, Hypothesis 6.170.17. Controlled native mutations in
+disposable copies, job-01a214f9-c4d7-706f-a06a-36b612744fc9: rejected advance
+emits state (old real 16,099 assertions/486 traces PASS, new shrunk
+[advance] rejects), guard swaps state/action signals ([guard] rejects),
+invalid restore emits state ([invalid_restore] rejects). All 3 killed.
+Only first mutant was executed through the legacy suite; no global mutation
+score. Preserve all three one-action witnesses as explicit examples.
+Gate: existing test:encounter composes native-trace after original scene
+and process restart suite; both owner verify and factory:validate:godot
+(and the existing PR native check) already consume it. No additional
+required CI job. Runtime cost is measured on native local runner; hosted
+runner qualification remains pending. Test observer stays outside product
+resource tree. No physical effect or export qualification inferred.

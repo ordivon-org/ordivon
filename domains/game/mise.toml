@@ -13,7 +13,11 @@ run = "python3 scripts/native_scene_acceptance.py --suite composition"
 
 [tasks."test:encounter"]
 description = "Fail-closed native Godot battle and process-restart acceptance; script errors fail even if Godot exits 0"
-run = "python3 scripts/native_scene_acceptance.py --suite encounter"
+run = "python3 scripts/native_scene_acceptance.py --suite encounter && mise run test:native-trace"
+
+[tasks."test:native-trace"]
+description = "Shrinkable real native Rule state and observer traces in both modes"
+run = "uv run --no-project --with hypothesis python scripts/test_native_trace_properties.py"
 
 [tasks."test:native-receipt-selftest"]
 description = "Falsify deceptive Godot exit-0+PASS receipts containing SCRIPT ERROR"
