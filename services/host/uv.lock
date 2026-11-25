@@ -567,7 +567,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "hypothesis", specifier = ">=6,<7" },
-    { name = "pytest", specifier = ">=8,<10" },
+    { name = "pytest", specifier = ">=9.2,<10" },
     { name = "ruff", specifier = ">=0.15,<1" },
     { name = "testcontainers", extras = ["postgres"], specifier = ">=4,<5" },
 ]
