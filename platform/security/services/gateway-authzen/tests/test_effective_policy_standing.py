@@ -171,3 +171,163 @@ def test_declared_release_label_is_not_a_generic_path_claim(tmp_path):
         result = call(client)[0].json()["context"]["ordivonPolicyStanding"]
     assert result["declaredReleaseRevision"] == revision
     assert result["policySha256"] == "sha256:" + hashlib.sha256(policy.read_bytes()).hexdigest()
+
+
+def test_ambiguous_owner_data_is_unavailable_not_a_decision(endpoint):
+    client, _, data = endpoint
+    data.write_text(
+        '{"fixture":{"allowed":"foreign","allowed":"fixture-actor"}}',
+        encoding="utf-8",
+    )
+    response, _, _ = call(client)
+    assert response.status_code == 503
+    assert "decision" not in response.json()
+    assert "context" not in response.json()
+
+
+def test_policy_receives_exact_decimal_and_request_commitment(endpoint):
+    client, policy, _ = endpoint
+    policy.write_text(
+        """package ordivon.security.gateway_artifact
+default allow := false
+allow if { input.context.value == 9007199254740993 }
+""",
+        encoding="utf-8",
+    )
+    raw = b'{ "context": { "value": 9007199254740993.0 } }'
+    response = client.post(
+        "/access/v1/evaluation",
+        content=raw,
+        headers={
+            "Authorization": "Bearer " + TOKEN,
+            "X-Request-ID": str(uuid.uuid4()),
+            "X-Ordivon-Policy-Standing": "v1",
+            "Content-Type": "application/json",
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["decision"] is True
+    assert response.json()["context"]["ordivonPolicyStanding"]["inputSha256"] == (
+        "sha256:" + hashlib.sha256(raw).hexdigest()
+    )
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        b'{"fixture":{"allowed":"fixture-actor"},"x":NaN}',
+        b'{"fixture":{"allowed":"fixture-actor"},"x":1e999}',
+        b'{"fixture":{"allowed":"fixture-actor"},"x":"\\ud800"}',
+        b'{"fixture":{"allowed":"fixture-actor"},"x":"\xff"}',
+        b"[]",
+    ],
+)
+def test_invalid_owner_data_never_reaches_opa(endpoint, monkeypatch, raw):
+    from ordivon_security_gateway_authzen import policy_evaluation
+
+    client, _, data = endpoint
+    data.write_bytes(raw)
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("unqualified owner data reached native OPA")
+
+    monkeypatch.setattr(policy_evaluation.subprocess, "run", forbidden)
+    response, _, _ = call(client)
+    assert response.status_code == 503
+    assert response.json() == {"error": "decision_unavailable"}
+
+
+def test_numeric_neighbor_does_not_alias_to_permit(endpoint):
+    client, policy, _ = endpoint
+    policy.write_text(
+        """package ordivon.security.gateway_artifact
+default allow := false
+allow if { input.context.value == 9007199254740992 }
+""",
+        encoding="utf-8",
+    )
+    for value, expected in (("9007199254740992.0", True), ("9007199254740993.0", False)):
+        raw = ('{"context":{"value":' + value + "}}").encode()
+        response = client.post(
+            "/access/v1/evaluation",
+            content=raw,
+            headers={
+                "Authorization": "Bearer " + TOKEN,
+                "X-Request-ID": str(uuid.uuid4()),
+                "X-Ordivon-Policy-Standing": "v1",
+                "Content-Type": "application/json",
+            },
+        )
+        assert response.status_code == 200
+        assert response.json()["decision"] is expected
+        assert response.json()["context"]["ordivonPolicyStanding"]["inputSha256"] == (
+            "sha256:" + hashlib.sha256(raw).hexdigest()
+        )
+
+
+@pytest.mark.parametrize("raw", [b"null", b"false", b"[]", b"1"])
+def test_non_object_preserves_wire_error(endpoint, raw):
+    client, _, _ = endpoint
+    response = client.post(
+        "/access/v1/evaluation",
+        content=raw,
+        headers={
+            "Authorization": "Bearer " + TOKEN,
+            "X-Request-ID": str(uuid.uuid4()),
+            "Content-Type": "application/json",
+        },
+    )
+    assert response.status_code == 400
+    assert response.json() == {"error": "invalid_evaluation"}
+
+
+def test_native_opa_differential_exact_numeric_and_wire_format(endpoint):
+    import subprocess
+
+    client, policy, data = endpoint
+    policy.write_text(
+        """package ordivon.security.gateway_artifact
+default allow := false
+allow if { input.context.value == 9007199254740992 }
+""",
+        encoding="utf-8",
+    )
+    # Compare through the HTTP carrier with the original bytes supplied to
+    # the independent native evaluator, not a second Python numeric oracle.
+    for n in range(9007199254740989, 9007199254740996):
+        for lexeme in (str(n), str(n) + ".0", str(n) + "e0", str(n * 10) + "e-1"):
+            raw = ('{\r\n "context": {"value":' + lexeme + "}\r\n}").encode()
+            direct = subprocess.run(
+                [
+                    str(OPA),
+                    "eval",
+                    "--stdin-input",
+                    "--format",
+                    "raw",
+                    "--data",
+                    str(policy),
+                    "--data",
+                    str(data),
+                    "data.ordivon.security.gateway_artifact.allow",
+                ],
+                input=raw,
+                capture_output=True,
+                check=True,
+                timeout=2,
+            ).stdout.strip()
+            assert direct in (b"true", b"false")
+            response = client.post(
+                "/access/v1/evaluation",
+                content=raw,
+                headers={
+                    "Authorization": "Bearer " + TOKEN,
+                    "X-Request-ID": str(uuid.uuid4()),
+                    "X-Ordivon-Policy-Standing": "v1",
+                    "Content-Type": "application/json",
+                },
+            )
+            assert response.status_code == 200
+            assert response.json()["decision"] is (direct == b"true")
+            assert response.json()["context"]["ordivonPolicyStanding"]["inputSha256"] == (
+                "sha256:" + hashlib.sha256(raw).hexdigest()
+            )

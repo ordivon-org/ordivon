@@ -8,8 +8,6 @@ from __future__ import annotations
 
 import asyncio
 import hmac
-import json
-import math
 import os
 import secrets
 import uuid
@@ -20,31 +18,11 @@ from starlette.requests import ClientDisconnect, Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 
+from .json_qualification import InvalidJsonObject, qualify_json_object
 from .policy_evaluation import EvaluationUnavailable
 from .policy_evaluation import evaluate_policy as _opa_decision
 
 MAX_REQUEST_BYTES = 8192
-
-
-def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
-    """A policy input has exactly one meaning; reject duplicate keys at every depth."""
-    result: dict[str, object] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError("duplicate JSON key")
-        result[key] = value
-    return result
-
-
-def _reject_constant(value: str) -> object:
-    raise ValueError("non-JSON numeric constant")
-
-
-def _finite_float(value: str) -> float:
-    number = float(value)
-    if not math.isfinite(number):
-        raise ValueError("unrepresentable JSON number")
-    return number
 
 
 class InvalidRequestBody(ValueError):
@@ -55,7 +33,7 @@ class RequestTooLarge(ValueError):
     pass
 
 
-async def _read_evaluation(request: Request) -> str:
+async def _read_evaluation(request: Request) -> bytes:
     """Bound retained bytes before parsing, then require a unique JSON object.
 
     A rejected wire representation never reaches OPA. The ASGI server owns
@@ -78,20 +56,9 @@ async def _read_evaluation(request: Request) -> str:
         raw.extend(chunk)
     if declared is not None and declared != len(raw):
         raise InvalidRequestBody("content length mismatch")
-    payload = json.loads(
-        raw.decode("utf-8"),
-        object_pairs_hook=_unique_object,
-        parse_constant=_reject_constant,
-        parse_float=_finite_float,
-    )
-    if not isinstance(payload, dict):
-        raise InvalidRequestBody("evaluation must be an object")
-    # Validate the exact serialized text before handing it to the subprocess.
-    # An escaped unpaired surrogate is not a Unicode scalar and cannot be
-    # encoded on the UTF-8 policy transport.
-    encoded = json.dumps(payload, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
-    encoded.encode("utf-8")
-    return encoded
+    captured = bytes(raw)
+    qualify_json_object(captured)
+    return captured
 
 
 def make_app(*, token_path: str, policy: str, policy_data: str, opa: str) -> Starlette:
@@ -130,9 +97,9 @@ def make_app(*, token_path: str, policy: str, policy_data: str, opa: str) -> Sta
             payload = await _read_evaluation(request)
         except RequestTooLarge:
             return JSONResponse({"error": "request_too_large"}, status_code=413)
-        except InvalidRequestBody:
+        except InvalidRequestBody, InvalidJsonObject:
             return JSONResponse({"error": "invalid_evaluation"}, status_code=400)
-        except ValueError, UnicodeDecodeError, RecursionError, ClientDisconnect:
+        except ValueError, RecursionError, ClientDisconnect:
             return JSONResponse({"error": "invalid_json"}, status_code=400)
         standing_request = request.headers.getlist("x-ordivon-policy-standing")
         if standing_request not in ([], ["v1"]):
