@@ -32,3 +32,6 @@ changed 21 scalar folds relative to Python Unicode 17. The qualifier checks all
 1,112,064 Unicode scalars against the actual Python interpreter, then compares
 ranking/filtering/limits against the public Python Gateway using deterministic
 read-only Owner fixtures. This is not a full Rust readiness/Owner adapter.
+
+The existing `mise run gateway:verify` queue runs these native Rust and Python
+qualification steps; a missing compiler or failed probe is not a skipped test.
