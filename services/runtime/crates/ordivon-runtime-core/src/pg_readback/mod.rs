@@ -2,6 +2,7 @@
 //! Does not create an execution effect or infer OS finality.
 mod artifact_inventory;
 mod coherence;
+mod inspection;
 mod query;
 mod terminal_event;
 #[cfg(test)]

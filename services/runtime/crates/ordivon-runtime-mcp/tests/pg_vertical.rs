@@ -3506,6 +3506,56 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
          SELECT '00-historical-projection-fixture',job_id,$2,kind,relative_path,$3,media_type,1,truncated,created_at_ms FROM artifacts WHERE artifact_id=$1",
         &[&stdout["artifactId"].as_str().unwrap(),&historical_attempt,&"sha256:0000000000000000000000000000000000000000000000000000000000000000"],
     ).unwrap();
+    // Native historical inspection fixture. These are metadata-only events,
+    // not an assertion of additional physical execution.
+    fixture.db.execute(
+        "INSERT INTO job_events(event_id,job_id,attempt_id,event_sequence,event_type,origin,reason_code,detail_json,detail_digest,observed_at_ms)
+         SELECT 'inspection-history-fixture',job_id,$2,max(event_sequence)+1,'FIXTURE_HISTORY','test','TEST','{}','sha256:fixture',max(observed_at_ms) FROM job_events WHERE job_id=$1 GROUP BY job_id",
+        &[&completed_job,&historical_attempt],
+    ).unwrap();
+    fixture.db.execute(
+        "INSERT INTO job_events(event_id,job_id,attempt_id,event_sequence,event_type,origin,reason_code,detail_json,detail_digest,observed_at_ms)
+         SELECT 'inspection-job-fixture',job_id,NULL,max(event_sequence)+1,'FIXTURE_JOB','test','TEST','{}','sha256:fixture',max(observed_at_ms) FROM job_events WHERE job_id=$1 GROUP BY job_id",
+        &[&completed_job],
+    ).unwrap();
+    let historical_inspection = call(
+        &endpoint,
+        "job.get",
+        json!({"jobId":completed_job,"eventLimit":100}),
+    );
+    let zero_events = call(
+        &endpoint,
+        "job.get",
+        json!({"jobId":completed_job,"eventLimit":0}),
+    );
+    fixture.db.execute("DELETE FROM job_events WHERE event_id IN ('inspection-history-fixture','inspection-job-fixture')",&[]).unwrap();
+    assert_ne!(
+        historical_inspection["isError"], true,
+        "{historical_inspection}"
+    );
+    let view = &historical_inspection["structuredContent"];
+    let timeline = view["timeline"].as_array().unwrap();
+    let historical_event = timeline
+        .iter()
+        .find(|v| v["eventType"] == "FIXTURE_HISTORY")
+        .unwrap();
+    assert_eq!(
+        historical_event["attemptId"], historical_attempt,
+        "inspection must not relabel historical events"
+    );
+    let job_event = timeline
+        .iter()
+        .find(|v| v["eventType"] == "FIXTURE_JOB")
+        .unwrap();
+    assert!(
+        job_event.get("attemptId").is_none(),
+        "job-level events must not acquire fictional Attempt origin"
+    );
+    assert_eq!(view["artifacts"]["count"], artifacts.len() + 1);
+    assert_eq!(view["attempts"][0]["artifactCount"], artifacts.len());
+    assert_eq!(view["attemptsTruncated"], true);
+    assert_eq!(zero_events["structuredContent"]["timeline"], json!([]));
+    assert_eq!(zero_events["structuredContent"]["eventsTruncated"], true);
     let history = call(
         &endpoint,
         "job.observe",

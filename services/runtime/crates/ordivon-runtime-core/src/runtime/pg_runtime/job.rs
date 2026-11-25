@@ -1050,51 +1050,57 @@ impl PgRuntime {
         }
         let mut db = self.store()?;
         self.authorize(&mut db, job, principal)?;
-        let snapshot = match db
-            .observe_job_readonly(job, &self.config.source_sha256)
+        let readback = db
+            .observe_job_inspection_readonly(job, &self.config.source_sha256, event_limit)
             .map_err(pg)?
-        {
-            PgJobReadback::Observed(s) => s,
-            _ => return Err(error("inconclusive PG lifecycle")),
-        };
+            .ok_or_else(|| error("inconclusive PG lifecycle or inspection"))?;
+        let snapshot = readback.snapshot;
         let (a, p, operation) = self.readback_attempt(&mut db, &snapshot)?;
-        let j = db
-            .client
-            .query_one(
-                "SELECT client_request_id,created_at_ms FROM jobs WHERE job_id=$1",
-                &[&job],
-            )
-            .map_err(pg_read_error)?;
-        let counts=db.client.query_one("SELECT count(*),COALESCE(sum(byte_length),0)::bigint,count(*) FILTER(WHERE truncated) FROM artifacts WHERE job_id=$1",&[&job]).map_err(pg_read_error)?;
+        let metadata = readback
+            .inspection
+            .ok_or_else(|| error("missing inspection metadata"))?;
+        let created = metadata.created_at_ms;
         let mut by_kind = std::collections::BTreeMap::new();
-        for row in db
-            .client
-            .query(
-                "SELECT kind,count(*) FROM artifacts WHERE job_id=$1 GROUP BY kind",
-                &[&job],
-            )
-            .map_err(pg_read_error)?
-        {
-            by_kind.insert(row.get(0), row.get::<_, i64>(1) as u64);
+        let (mut count, mut bytes, mut truncated) = (0_u64, 0_u64, 0_u64);
+        let (mut attempt_count, mut attempt_bytes, mut attempt_truncated) = (0_u64, 0_u64, 0_u64);
+        let mut result_available = false;
+        for item in &readback.artifacts {
+            let r = &item.registration;
+            let length =
+                u64::try_from(r.byte_length).map_err(|_| error("negative Artifact length"))?;
+            count += 1;
+            bytes = bytes
+                .checked_add(length)
+                .ok_or_else(|| error("Artifact byte count overflow"))?;
+            truncated += u64::from(r.truncated);
+            *by_kind.entry(r.kind.clone()).or_insert(0_u64) += 1;
+            if item.attempt_id == snapshot.attempt_id {
+                attempt_count += 1;
+                attempt_bytes = attempt_bytes
+                    .checked_add(length)
+                    .ok_or_else(|| error("Attempt Artifact byte count overflow"))?;
+                attempt_truncated += u64::from(r.truncated);
+                result_available |= r.kind == "execution_result";
+            }
         }
-        let events=db.client.query("SELECT event_sequence,event_type,origin,previous_state,new_state,reason_code,observed_at_ms FROM job_events WHERE job_id=$1 ORDER BY event_sequence LIMIT $2",&[&job,&(i64::from(event_limit)+1)]).map_err(pg_read_error)?;
-        let created = j.get::<_, i64>(1) as u64;
         let mut previous = created;
-        let timeline = events
-            .iter()
+        let events_truncated = metadata.events.len() > event_limit as usize;
+        let timeline = metadata
+            .events
+            .into_iter()
             .take(event_limit as usize)
             .map(|r| {
-                let at = r.get::<_, i64>(6) as u64;
+                let at = r.observed_at_ms;
                 let delta = at.saturating_sub(previous);
                 previous = at;
                 RuntimeInspectionEvent {
-                    sequence: r.get::<_, i64>(0) as u64,
-                    attempt_id: Some(a.attempt_id.clone()),
-                    event_type: r.get(1),
-                    origin: r.get(2),
-                    previous_state: r.get(3),
-                    new_state: r.get(4),
-                    reason_code: r.get(5),
+                    sequence: r.sequence,
+                    attempt_id: r.attempt_id,
+                    event_type: r.event_type,
+                    origin: r.origin,
+                    previous_state: r.previous_state,
+                    new_state: r.new_state,
+                    reason_code: r.reason_code,
                     observed_at_ms: at,
                     elapsed_ms: at.saturating_sub(created),
                     delta_ms: delta,
@@ -1103,21 +1109,14 @@ impl PgRuntime {
             })
             .collect();
         let terminal = snapshot.resolution.is_some();
-        let exit = db
-            .client
-            .query_one(
-                "SELECT exit_code FROM attempts WHERE attempt_id=$1",
-                &[&a.attempt_id],
-            )
-            .map_err(pg_read_error)?
-            .get(0);
+        let exit = readback.exit_code;
         Ok(RuntimeJobInspection {
             schema_version: 2,
             generated_at_ms: now()? as u64,
             migration_version: 0,
             job: RuntimeInspectionJob {
                 job_id: job.into(),
-                client_request_id: j.get(0),
+                client_request_id: metadata.client_request_id,
                 operation_digest: operation,
                 workspace_id: p.workspace_id,
                 source_revision: p.source_revision,
@@ -1149,24 +1148,24 @@ impl PgRuntime {
                 // Do not invent physical duration from mixed clock semantics.
                 duration_ms: None,
                 exit_code: exit,
-                result_available: terminal && by_kind.contains_key("execution_result"),
+                result_available: terminal && result_available,
                 reservation_state: ReservationState::parse(&snapshot.reservation_state)?,
                 reservation_release_reason: None,
                 conditions: vec![],
-                artifact_count: counts.get::<_, i64>(0) as u64,
-                artifact_bytes: counts.get::<_, i64>(1) as u64,
-                truncated_artifacts: counts.get::<_, i64>(2) as u64,
+                artifact_count: attempt_count,
+                artifact_bytes: attempt_bytes,
+                truncated_artifacts: attempt_truncated,
             }],
-            attempts_truncated: false,
+            attempts_truncated: metadata.has_other_attempts,
             artifacts: RuntimeInspectionArtifactSummary {
-                count: counts.get::<_, i64>(0) as u64,
-                bytes: counts.get::<_, i64>(1) as u64,
-                truncated: counts.get::<_, i64>(2) as u64,
+                count,
+                bytes,
+                truncated,
                 by_kind,
             },
             episodes: RuntimeInspectionEpisodes::default(),
             timeline,
-            events_truncated: events.len() > event_limit as usize,
+            events_truncated,
         })
     }
 }
