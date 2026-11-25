@@ -49,8 +49,23 @@ def test_owner_census_has_no_retained_physical_repo_contract():
     assert row["researchProvenanceRule"].startswith("frozen Research/Paper1 records")
 
 
-def test_current_docs_do_not_claim_physical_carrier_is_retained():
-    census_doc = (ROOT / "docs/ORDIVON_CAPITAL_EXTERNAL_OWNER_CENSUS_R1.md").read_text()
-    assert "is retained because frozen Research/Paper1" not in census_doc
-    assert "Physical rename is therefore blocked" not in census_doc
-    assert "physical standalone carrier is retired" in census_doc
+def test_retired_carrier_consumers_bind_the_same_archived_subject():
+    # A prose sentence is not a recovery contract. Cross-check the actual
+    # structured source and recovery identities without asserting live restore.
+    taxonomy = json.loads((ROOT / "config/capital_domain_taxonomy.json").read_text())
+    census = json.loads((ROOT / "config/external_owner_census.json").read_text())
+    source = taxonomy["standaloneCarrierRetirement"]
+    owner = census["standaloneCarrierRetirement"]
+    identity = next(
+        row for row in taxonomy["retiredCompatibilityIdentities"]
+        if row["identity"] == source["path"]
+    )
+    surface = next(
+        row for row in census["retiredCompatibilitySurfaces"]
+        if row["id"] == "capital-standalone-source-carrier"
+    )
+    assert source["path"] == owner["path"] == identity["identity"] == surface["surface"]
+    assert source["standing"] == owner["standing"] == "RETIRED_ARCHIVED"
+    assert identity["standing"] == surface["standing"] == "RETIRED_ARCHIVED_SOURCE_COORDINATE"
+    assert source["recovery"] == owner["recovery"] == identity["recovery"] == surface["recovery"]
+    assert source["recovery"]["exactFullTreeRestoreValidated"] is True
