@@ -9,7 +9,7 @@ from typing import Any
 import psycopg
 
 from .attention_sql import ATTENTION_DELTA_SQL
-from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
+from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_page, validate_max_bytes
 from .errors import ConflictError
 from .postgres_bounds import HOST_WIRE_INT_MAX
 from .references.actor_refs import ActorReferenceLookup
@@ -131,33 +131,25 @@ class AttentionDeltaQueries:
                 }
             )
 
-        def envelope(last: dict[str, Any]) -> dict[str, Any]:
+        def envelope(last: dict[str, Any] | None, has_more: bool) -> dict[str, Any]:
             return {
                 "schemaVersion": 1,
                 "kind": "ordivon.host-attention-delta-r1",
                 "actorRef": actor_ref,
                 "afterSequence": after_sequence,
                 "snapshotHighSequence": high,
-                "hasMore": True,
-                "nextAfterSequence": last["changeSequence"],
+                "hasMore": has_more,
+                "nextAfterSequence": int(last["changeSequence"])
+                if has_more and last is not None
+                else high,
                 "rankingApplied": False,
                 "truthBoundary": "rebuildable actor-scoped navigation over owner rows; not inbox truth, priority, assignment, or authority",
             }
 
-        page, byte_more = bounded_prefix(
-            candidates, max_bytes=max_bytes, collection_key="events", envelope=envelope
+        return bounded_page(
+            candidates,
+            max_bytes=max_bytes,
+            collection_key="events",
+            envelope=envelope,
+            source_has_more=sql_more,
         )
-        has_more = sql_more or byte_more
-        next_sequence = int(page[-1]["changeSequence"]) if has_more and page else high
-        return {
-            "schemaVersion": 1,
-            "kind": "ordivon.host-attention-delta-r1",
-            "actorRef": actor_ref,
-            "afterSequence": after_sequence,
-            "snapshotHighSequence": high,
-            "events": page,
-            "hasMore": has_more,
-            "nextAfterSequence": next_sequence,
-            "rankingApplied": False,
-            "truthBoundary": "rebuildable actor-scoped navigation over owner rows; not inbox truth, priority, assignment, or authority",
-        }

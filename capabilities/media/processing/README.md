@@ -80,3 +80,24 @@ The compiler does not implement FFmpeg, OTIO, or subtitle processing; it
 does not check tool installation, mutate source media, or grant execution
 authority. A profile check is a mechanical predicate, never aesthetic or
 publication approval.
+
+### Optional editorial Asset identity composition
+
+Use the separate native check only for a Production with an explicitly selected
+Asset manifest. It does not replace the existing editorial range/profile gate.
+
+```bash
+bash processing/bin/verify-otio-assets.sh \
+  productions/runtime-introduction/timeline/assembly.v2.otio \
+  productions/runtime-introduction/assets.json runtime-introduction
+```
+
+Supply both `--expected-timeline-digest` and `--expected-manifest-digest`
+from the selected source commitment for frozen binding; an unpinned read
+only establishes the observed declaration. Supply explicit
+`--materialized ASSET_ID=PATH` mappings to verify local bytes against selected
+Blob digest and length. Missing observations remain unknown; a supplied wrong
+or missing file rejects. The native timeline and manifest are parsed from
+the exact hashed bytes. The active URI, not an inactive alternate, must resolve
+to one selected Asset. The separate native editorial gate, renderer readback,
+Artifact/Runtime authority and recipient acceptance remain independent.

@@ -6,10 +6,10 @@ production descriptors remain source-owned; this module only enumerates them.
 
 from __future__ import annotations
 
-import hashlib
-import json
 from pathlib import Path
 from typing import Any
+
+from .production_source_io import read_bound_object
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -32,9 +32,10 @@ def production_standing(root: Path = ROOT) -> dict[str, Any]:
             production_path = production_root / "production.json"
             if not production_path.is_file():
                 continue
-            value = json.loads(production_path.read_text(encoding="utf-8"))
-            if not isinstance(value, dict):
-                raise ValueError(f"Production descriptor must be an object: {production_path}")
+            try:
+                value, source_digest = read_bound_object(production_path)
+            except TypeError as exc:
+                raise ValueError(f"Production descriptor must be an object: {production_path}") from exc
             outputs: list[dict[str, Any]] = []
             raw_outputs = value.get("outputs", [])
             if isinstance(raw_outputs, list):
@@ -61,7 +62,7 @@ def production_standing(root: Path = ROOT) -> dict[str, Any]:
                     "outputs": outputs,
                     "source": {
                         "path": str(production_path.relative_to(root)),
-                        "digest": "sha256:" + hashlib.sha256(production_path.read_bytes()).hexdigest(),
+                        "digest": source_digest,
                     },
                 }
             )
