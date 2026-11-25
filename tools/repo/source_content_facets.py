@@ -11,6 +11,7 @@ import ast
 import collections
 import hashlib
 import json
+import os
 import re
 import subprocess
 import tomllib
@@ -23,11 +24,24 @@ SOURCE_EXTENSIONS = frozenset({".py",".rs",".ts",".tsx",".js",".mjs",".sh",".ps1
 TOPIC_HINTS = frozenset({"kind","schemaVersion","id","name","type","status","subjectRef","sourceCut","sourceRevision"})
 
 
-def git(*args: str, repo: Path) -> bytes:
-    p = subprocess.run(["git","--no-replace-objects","-C",str(repo),*args],capture_output=True,check=False)
-    if p.returncode:
-        raise ValueError(f"Git failed at {args[:2]}: {p.stderr[:280]!r}")
+def _local_git(repo: Path, *args: str, data: bytes | None = None) -> bytes:
+    """Read exact local Git objects; acquisition is a distinct effect.
+
+    Neither missing objects nor command diagnostics qualify a projection.
+    Ambient Git selectors cannot redirect this explicit observation subject.
+    """
+    env = {key: value for key, value in os.environ.items()
+           if not key.startswith("GIT_")}
+    env.update(GIT_NO_LAZY_FETCH="1", GIT_OPTIONAL_LOCKS="0")
+    p = subprocess.run(["git", "--no-replace-objects", "-C", str(repo), *args],
+                       input=data, capture_output=True, check=False, env=env)
+    if p.returncode or p.stderr:
+        raise ValueError(f"Git local observation incomplete at {args[:2]}: {p.stderr[:280]!r}")
     return p.stdout
+
+
+def git(*args: str, repo: Path) -> bytes:
+    return _local_git(repo, *args)
 
 
 def exact_git_commit(repo: Path, oid: str) -> str:
@@ -52,28 +66,45 @@ def exact_tree(repo: Path, cut: str) -> list[dict]:
     return sorted(rows,key=lambda x:x["path"])
 
 
+def _batch_input(oids: list[str]) -> bytes:
+    if (any(not isinstance(oid, str) or not re.fullmatch(r"[a-f0-9]{40}", oid)
+            for oid in oids) or len(set(oids)) != len(oids)):
+        raise ValueError("Git batch requires distinct exact source blob OIDs")
+    return "".join(s+"\n" for s in oids).encode("ascii")
+
+
 def batch_sizes(repo: Path, oids: list[str]) -> dict[str,int]:
-    p=subprocess.run(["git","--no-replace-objects","-C",str(repo),"cat-file","--batch-check"],
-                     input=("".join(s+"\n" for s in oids)).encode(),capture_output=True,check=True)
-    d={}
-    for line in p.stdout.decode().splitlines():
-        parts=line.split()
-        if len(parts)!=3 or parts[1]!="blob": raise ValueError("unexpected Git object type")
-        d[parts[0]]=int(parts[2])
-    if len(d)!=len(oids): raise ValueError("incomplete Git object sizes")
-    return d
+    raw = _local_git(repo, "cat-file", "--batch-check", data=_batch_input(oids))
+    lines = raw.decode("ascii").splitlines()
+    if len(lines) != len(oids):
+        raise ValueError("incomplete Git object sizes")
+    result = {}
+    for oid, line in zip(oids, lines, strict=True):
+        parts = line.split()
+        if len(parts)!=3 or parts[0]!=oid or parts[1]!="blob" or not parts[2].isdigit():
+            raise ValueError("incomplete or unexpected Git object identity")
+        result[oid] = int(parts[2])
+    return result
 
 
 def batch_contents(repo: Path, oids: list[str], sizes: dict[str,int]) -> dict[str,bytes]:
-    p=subprocess.run(["git","--no-replace-objects","-C",str(repo),"cat-file","--batch"],
-                     input=("".join(s+"\n" for s in oids)).encode(),capture_output=True,check=True)
-    result={}; data=p.stdout; pos=0
+    data_in = _batch_input(oids)
+    if any(type(sizes.get(oid)) is not int or not 0 <= sizes[oid] <= MAX_READ_BYTES
+           for oid in oids):
+        raise ValueError("Git batch content requires qualified bounded blob sizes")
+    data = _local_git(repo, "cat-file", "--batch", data=data_in)
+    result={}; pos=0
     for oid in oids:
-        nl=data.index(b"\n",pos)
-        header=data[pos:nl].decode().split()
-        if len(header)!=3 or header[0]!=oid or header[1]!="blob":
-            raise ValueError("wrong object returned for requested blob")
-        n=int(header[2]); assert n==sizes[oid]
+        nl=data.find(b"\n",pos)
+        if nl < 0:
+            raise ValueError("incomplete Git object header")
+        header=data[pos:nl].decode("ascii").split()
+        if (len(header)!=3 or header[0]!=oid or header[1]!="blob"
+                or not header[2].isdigit()):
+            raise ValueError("incomplete or wrong Git object returned")
+        n=int(header[2])
+        if n != sizes[oid]:
+            raise ValueError("Git object size differs from qualified size")
         start=nl+1;stop=start+n
         if stop>=len(data) or data[stop:stop+1]!=b"\n":
             raise ValueError("missing complete blob delimiter")
