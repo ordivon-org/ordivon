@@ -7629,3 +7629,26 @@ fn pg_job_list_exact_key_does_not_substitute_historical_result() {
         "reconciliation_required"
     );
 }
+
+#[test]
+#[ignore = "disposable native PG catalog comparison"]
+fn native_pg_catalog_compatibility_digest() {
+    let mut fixture = Fixture::new();
+    let endpoint = fixture.endpoint();
+    let result = rpc(&endpoint, "tools/list", json!({}));
+    let mut tools = result["tools"].as_array().unwrap().clone();
+    tools.sort_by(|a, b| a["name"].as_str().cmp(&b["name"].as_str()));
+    assert!(!tools.is_empty());
+    assert!(tools.windows(2).all(|w| w[0]["name"] != w[1]["name"]));
+    let bytes = serde_json::to_vec(&tools).unwrap();
+    use sha2::{Digest, Sha256};
+    println!(
+        "R14_CATALOG tools={} bytes={} sha256={}",
+        tools.len(),
+        bytes.len(),
+        hex::encode(Sha256::digest(&bytes))
+    );
+    if let Ok(expected) = std::env::var("ORDIVON_RUNTIME_EXPECTED_CATALOG_SHA256") {
+        assert_eq!(hex::encode(Sha256::digest(&bytes)), expected);
+    }
+}
