@@ -201,6 +201,27 @@ This is a bounded blob-identity check, not a full commit/tree integrity audit,
 a proof of cryptographic collision resistance, or a guarantee of availability.
 The native hash operation is local-only; no new objects are written.
 
+The R9 exact-cut refinement additionally obtains the resolved commit/root
+tree and every distinct tree traversed by native Git. The local-only
+`cat-file --batch-check` response must match the requested ordered OIDs,
+kinds and bounded sizes before `--batch` contents are requested. Native Git
+supplies framing/traversal; the standard library hashes the exact canonical
+Git header and returned bytes in the repository's object format. The commit
+must name the resolved root tree. The batch is limited to 20,000 objects and
+8 MiB of declared contents plus framing; this is a preflight bound, not an
+OS memory guarantee during a concurrent object mutation.
+
+Disposable SHA-1/SHA-256 repositories demonstrate that static nested-tree
+corruption can redirect a valid ODPS Blob under an old commit. Native
+regression and batch framing negatives reject it while valid cuts, including
+local-only partial clones with available objects, retain the existing
+consumer contract. This assumes quiescent Git storage across commands; it
+is not an atomic Git snapshot, whole-repository fsck, proof of collision
+resistance, authentication of the source publisher, or physical-data truth.
+The existing complete-local-snapshot Lean model remains abstract. No new
+Git object, object store, production dependency or implicit hydration.
+
+
 ## Bounded publication and retirement state model
 
 `formal/DataPublication.lean` now specifies a finite control-state protocol:
