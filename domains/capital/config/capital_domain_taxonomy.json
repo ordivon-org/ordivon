@@ -70,6 +70,7 @@
       "crra_numeric.py",
       "constraint_compiler.py",
       "optimality_evidence.py",
+      "rational_enclosure.py",
       "witness_repair.py",
       "algebraic_policy.py",
       "information_tree.py",

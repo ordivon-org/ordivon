@@ -92,8 +92,8 @@ def test_receipt_roundtrip_and_tampered_dual():
 @pytest.mark.parametrize(
     "gamma,policy,reason",
     (
-        (0.5, {"root": (0.0,)}, "INTEGER_GAMMA_1_TO_16_ONLY"),
-        (17.0, {"root": (0.0,)}, "INTEGER_GAMMA_1_TO_16_ONLY"),
+        (0.3, {"root": (0.0,)}, "DYADIC_GAMMA_UP_TO_16_WITH_DENOMINATOR_AT_MOST_16_ONLY"),
+        (17.0, {"root": (0.0,)}, "DYADIC_GAMMA_UP_TO_16_WITH_DENOMINATOR_AT_MOST_16_ONLY"),
         (2.0, {"root": (nextafter(1.0, inf),)}, "INEXACT_WITNESS"),
         (2.0, {"root": (nan,)}, "INEXACT_WITNESS"),
         (2.0, {"root": (-0.01,)}, "INEXACT_WITNESS"),
@@ -116,7 +116,7 @@ def test_bad_dual_proposal_never_becomes_certificate(bad):
 
 
 def test_fractional_solver_still_returns_numeric_result_without_claiming_exactness():
-    result = solve_multistage(_deterministic(0.5))
+    result = solve_multistage(_deterministic(0.3))
     assert result.optimality_evidence.standing == "UNKNOWN"
     assert result.optimality_evidence.certified_canonical_gap_upper is None
 

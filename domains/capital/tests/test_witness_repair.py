@@ -77,7 +77,7 @@ def test_no_anchor_terminal_claim_and_fractional_gamma():
     r = repair_canonical_witness(p, {"root": (1.0,)}, (0.0,) * 6, (0.0,), 0.0, max_change_r=2**-40)
     assert r.standing == "UNKNOWN" and r.canonical_evidence is None
     r = repair_canonical_witness(
-        _problem(0.5), {"root": (1.0,)}, (0.0,) * 6, (0.0,), 0.0, max_change_r=2**-40
+        _problem(0.3), {"root": (1.0,)}, (0.0,) * 6, (0.0,), 0.0, max_change_r=2**-40
     )
     assert r.standing == "UNKNOWN" and r.reason == "SOURCE_NOT_REPAIRABLE"
 

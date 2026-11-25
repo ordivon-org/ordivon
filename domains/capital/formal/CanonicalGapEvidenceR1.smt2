@@ -92,3 +92,26 @@
 (assert (< (- (* C lend) (* D borrow)) (- (* c lend) (* d borrow))))
 (check-sat)
 (pop)
+
+; Interval tangent correction, independently of the source of the interval.
+(declare-const lo Real)
+(declare-const hi Real)
+(declare-const z Real)
+(push)
+(assert (and (<= lo g) (<= g hi) (<= 0 x) (<= x cap) (<= 0 z) (<= z cap)))
+(assert (> (* g (- z x)) (+ (* lo (- z x)) (* (- hi lo) (- cap x)))))
+(check-sat)
+(pop)
+; Positive square root ordering (compose for powers of two).
+(push)
+(assert (and (<= 0 lo) (<= 0 g) (<= 0 hi)
+             (<= (* lo lo) (* g g)) (<= (* g g) (* hi hi))))
+(assert (or (< g lo) (> g hi)))
+(check-sat)
+(pop)
+; Omitting interval uncertainty can understate the true tangent.
+(push)
+(assert (and (= lo 0) (= hi 1) (= g 1) (= x 0) (= z 1) (= cap 1)))
+(assert (> (* g (- z x)) (* lo (- z x))))
+(check-sat)
+(pop)

@@ -15,7 +15,11 @@ from fractions import Fraction
 from typing import Any
 
 from .information_tree import MultistageProblem, validate_information_tree
-from .optimality_evidence import OptimalityEvidence, certify_canonical_gap
+from .optimality_evidence import (
+    OptimalityEvidence,
+    certify_canonical_gap,
+    verify_canonical_gap_claim,
+)
 from .policy_contract import AlgebraicPolicyError, finite_economic_number
 
 # Finite search over binary64 resolution near the original solution.
@@ -143,15 +147,46 @@ def verify_repaired_witness(
     if proposal is None:
         return False
     try:
-        # Recompute search including original evidence, candidate identity and
-        # outward-rounded actual delta. Never trust the supplied digest alone.
-        return claim == repair_canonical_witness(
+        _validate_source(problem, source)
+        if (
+            not finite_economic_number(claim.max_change_r)
+            or claim.max_change_r < 0
+            or claim.contraction_exponent not in _CONTRACTION_EXPONENTS
+        ):
+            return False
+        candidate = _candidate(source, claim.contraction_exponent)
+        delta = _delta(source, candidate)
+        if not 0 < delta <= Fraction(claim.max_change_r):
+            return False
+        original = certify_canonical_gap(
             problem,
             source,
             proposal.inequality_marginals,
             proposal.equality_marginals,
             claim.source_evidence.numerical_tangent_gap_estimate,
-            max_change_r=claim.max_change_r,
         )
+        if original.reason != "INEXACT_WITNESS" or original != claim.source_evidence:
+            return False
+        if (
+            claim.canonical_evidence.numerical_tangent_gap_estimate
+            != original.numerical_tangent_gap_estimate
+        ):
+            return False
+        if not verify_canonical_gap_claim(problem, candidate, claim.canonical_evidence):
+            return False
+        expected = WitnessRepair(
+            "VERIFIED_DISTINCT_CANONICAL_WITNESS",
+            "EXACT_REPLAY_WITHIN_EXPLICIT_BUDGET",
+            _problem_digest(problem),
+            _digest(source),
+            claim.max_change_r,
+            original,
+            candidate,
+            _digest(candidate),
+            _outward(delta),
+            claim.contraction_exponent,
+            claim.canonical_evidence,
+        )
+        return claim == expected
     except ValueError, TypeError, OverflowError, KeyError:
         return False

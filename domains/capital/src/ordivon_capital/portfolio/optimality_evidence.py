@@ -17,10 +17,13 @@ from typing import Any
 
 from .information_tree import MultistageProblem, validate_information_tree
 from .policy_contract import finite_economic_number
+from .rational_enclosure import enclose_inverse_power, enclose_rational
 
 Q = Fraction
 ZERO = Q(0)
 _MAX_EXACT_BITS = 16_384
+_RATIONAL_REASON = "EXACT_INPUT_CONDITIONAL_PROBABILITIES_AND_RECONSTRUCTED_CASH_DEBT_TURNOVER"
+_DYADIC_REASON = "EXACT_DYADIC_GRADIENT_ENCLOSURE_AND_CANONICAL_WITNESS"
 
 
 @dataclass(frozen=True)
@@ -44,6 +47,8 @@ def certify_canonical_gap(
     inequality_multipliers: Any,
     equality_multipliers: Any,
     numerical_estimate: float,
+    *,
+    gradient_method: str = "AUTO",
 ) -> OptimalityEvidence:
     """Bound optimum minus utility of a reconstructed exact feasible policy.
 
@@ -62,13 +67,22 @@ def certify_canonical_gap(
         )
 
     tree = validate_information_tree(problem)
-    # Bound exact arithmetic work; general fractional powers need interval
-    # derivatives and are deliberately not promoted to certified evidence.
-    gamma = int(problem.gamma)
-    if gamma != problem.gamma or not 1 <= gamma <= 16:
-        return unknown("INTEGER_GAMMA_1_TO_16_ONLY")
+    gamma_q = Q(problem.gamma)
+    if not 0 < gamma_q <= 16 or gamma_q.denominator > 16:
+        return unknown("DYADIC_GAMMA_UP_TO_16_WITH_DENOMINATOR_AT_MOST_16_ONLY")
     if len(tree.ordered) > 63 or tree.asset_count > 16:
         return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
+    if gradient_method == "AUTO":
+        # Small integer contracts retain exact rational receipts. Larger
+        # trees and fractional powers use a verified dyadic enclosure.
+        gradient_method = (
+            "RATIONAL" if gamma_q.denominator == 1 and len(tree.ordered) <= 15 else "DYADIC"
+        )
+    if gradient_method not in ("RATIONAL", "DYADIC"):
+        return unknown("UNRECOGNIZED_GRADIENT_METHOD")
+    if gradient_method == "RATIONAL" and gamma_q.denominator != 1:
+        return unknown("RATIONAL_GRADIENT_REQUIRES_INTEGER_GAMMA")
+    gamma = int(gamma_q)
 
     n = tree.asset_count
     width = 2 * n + 2
@@ -183,18 +197,33 @@ def certify_canonical_gap(
     ):
         return unknown("INEXACT_WITNESS")
     grad = [ZERO] * size
+    grad_hi = [ZERO] * size
     for row, liability, probability in leaves:
         wealth = dot(row, x) - liability
-        if (
-            gamma * max(wealth.numerator.bit_length(), wealth.denominator.bit_length())
-            > _MAX_EXACT_BITS
-        ):
-            return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
-        factor = probability / wealth**gamma
-        for j, a in row.items():
-            grad[j] += factor * a
-        if not within_budget(grad):
-            return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
+        if gradient_method == "RATIONAL":
+            if (
+                gamma * max(wealth.numerator.bit_length(), wealth.denominator.bit_length())
+                > _MAX_EXACT_BITS
+            ):
+                return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
+            factor = probability / wealth**gamma
+            for j, a in row.items():
+                grad[j] += factor * a
+            if not within_budget(grad):
+                return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
+        else:
+            enclosure = enclose_inverse_power(wealth, gamma_q, max_bits=_MAX_EXACT_BITS)
+            if enclosure is None:
+                return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
+            low, high = enclosure
+            for j, a in row.items():
+                t0, t1 = sorted((a * probability * low, a * probability * high))
+                grad[j] += enclose_rational(t0)[0]
+                grad_hi[j] += enclose_rational(t1)[1]
+            if not within_budget((*grad, *grad_hi)):
+                return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
+    if gradient_method == "RATIONAL":
+        grad_hi = grad
 
     # Exact dual correction: for any y>=0, lambda unrestricted,
     # g*x <= b*y+d*lambda+sum(max(0,g-A'y-E'lambda)*cap).
@@ -218,8 +247,11 @@ def certify_canonical_gap(
         if not within_budget((upper, *(residual[j] for j in row))):
             return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
     gap = upper
-    for r, c, g, a in zip(residual, cap, grad, x, strict=True):
-        gap += max(ZERO, r) * c - g * a
+    for r, c, g, hi, a in zip(residual, cap, grad, grad_hi, x, strict=True):
+        # If true gradient is in [g,hi], its tangent displacement is
+        # at most the lower-gradient displacement plus (hi-g)*(cap-x).
+        # This is an exact enclosure error, not an empirical epsilon.
+        gap += max(ZERO, r) * c - g * a + (hi - g) * (c - a)
         if not within_budget((gap,)):
             return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
     if gap < 0:
@@ -236,7 +268,7 @@ def certify_canonical_gap(
         numerical_estimate,
         result,
         "EXACT_RATIONAL_CANONICAL_WITNESS_GAP_UPPER",
-        "EXACT_INPUT_CONDITIONAL_PROBABILITIES_AND_RECONSTRUCTED_CASH_DEBT_TURNOVER",
+        _RATIONAL_REASON if gradient_method == "RATIONAL" else _DYADIC_REASON,
         proposal,
     )
 
@@ -262,10 +294,14 @@ def verify_canonical_gap_claim(
     ):
         return False
     proposal = claim.dual_proposal
+    methods = {_RATIONAL_REASON: "RATIONAL", _DYADIC_REASON: "DYADIC"}
+    if claim.reason not in methods:
+        return False
     return claim == certify_canonical_gap(
         problem,
         risky_policy,
         proposal.inequality_marginals,
         proposal.equality_marginals,
         claim.numerical_tangent_gap_estimate,
+        gradient_method=methods[claim.reason],
     )

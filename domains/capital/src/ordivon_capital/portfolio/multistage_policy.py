@@ -18,7 +18,7 @@ Finite scenario expected CRRA utility of net terminal liabilities plus linear se
 constraints is a concave maximization on a convex feasible set. A supporting
 hyperplane LP gives a numerical tangent-gap estimate, not a strict bound.
 The separate exact-rational checker may certify a reconstructed canonical
-witness for scoped integer gamma; otherwise its standing is UNKNOWN.
+witness for scoped integer and small dyadic gamma; otherwise UNKNOWN.
 """
 
 from __future__ import annotations
