@@ -13,7 +13,10 @@ uv lock --check
 uv sync --locked
 uv run ruff check src tests scripts
 uv run ruff format --check src tests scripts
-uv run python -m pytest -q
+# Required owner tests must not inherit a caller's selection or plugin policy.
+unset PYTEST_ADDOPTS PYTEST_PLUGINS
+export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
+uv run --locked python -m pytest -p hypothesis.extra.pytestplugin -o addopts='' -q tests
 uv run python scripts/check_standard_native_enterprise_r2.py
 mise run formal:verify
 mise run formal:effect:verify
@@ -25,8 +28,9 @@ run = """
 set -euo pipefail
 export UV_PYTHON="$(mise which python)"
 export ORDIVON_REQUIRE_PACTI=1
-unset PYTEST_ADDOPTS
-uv run --locked --isolated --with pacti==0.3.1 python -m pytest -o addopts='' -q -rs --hypothesis-show-statistics tests/test_pacti_timeout_obligation_r1.py
+unset PYTEST_ADDOPTS PYTEST_PLUGINS
+export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
+uv run --locked --isolated --with pacti==0.3.1 python -m pytest -p hypothesis.extra.pytestplugin -o addopts='' -q -rs --hypothesis-show-statistics tests/test_pacti_timeout_obligation_r1.py
 """
 
 # Composition owns the model; Runtime exposes only pinned upstream TLA+ tools.
