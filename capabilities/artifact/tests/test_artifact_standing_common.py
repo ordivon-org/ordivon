@@ -241,3 +241,38 @@ def test_v1_invalid_failed_receipt_does_not_prove_falsification() -> None:
         assert result["receipts"]["structural"]["status"] == "FAIL"
         assert result["standingCoverage"]["verificationStatus"] == "UNKNOWN"
         assert result["standingCoverage"]["complete"] is False
+
+
+def test_all_declared_native_pointers_must_support_the_claim() -> None:
+    from artifact_verification.claim_coverage import assess_required_evidence
+
+    profile = {"requiredEvidence": {"decoded": {"required": True}}}
+    native = {
+        "status": "PASS",
+        "observations": {
+            "good": {"status": "PASS", "supportsClaims": ["decoded"]},
+            "bad": {"status": "FAIL", "supportsClaims": ["decoded"]},
+            "unrelated": {"status": "PASS"},
+        },
+        "claimResults": {
+            "decoded": {"status": "PASS", "nativePointers": ["/observations/good"]},
+        },
+    }
+    assert assess_required_evidence(profile, native)["complete"]
+    pointers = native["claimResults"]["decoded"]["nativePointers"]
+    for other in (
+        "/observations/bad",
+        "/observations/missing",
+        "/observations/unrelated",
+        "/claimResults/decoded",
+        "/observations/good~2",
+    ):
+        for order in ([pointers[0], other], [other, pointers[0]]):
+            native["claimResults"]["decoded"]["nativePointers"] = order
+            decision = assess_required_evidence(profile, native)
+            assert not decision["complete"], (order, decision)
+    native["observations"]["second"] = {"status": "PASS", "supportsClaims": ["decoded"]}
+    native["claimResults"]["decoded"]["nativePointers"] = [
+        "/observations/good", "/observations/second",
+    ]
+    assert assess_required_evidence(profile, native)["complete"]
