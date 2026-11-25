@@ -34,6 +34,15 @@ import type {
   NoteRow,
 } from "./store-row-projections.ts";
 
+// Native statement cardinality is a mechanical precommit obligation, not
+// an external effect or arbitrary database-integrity proof.
+function requireSingleEffectWrite(changes: number | bigint, subject: string): void {
+  if (changes !== 1 && changes !== 1n) {
+    throw new WebProblem(500, "effect-write-not-applied", "Effect write not applied",
+      "Expected exactly one owner-local write: " + subject);
+  }
+}
+
 export class WebStore {
   readonly db: DatabaseSync;
   private readonly grants: AgentGrantStore;
@@ -59,8 +68,8 @@ export class WebStore {
     objectType: string | null,
     objectId: string | null,
     detail: unknown,
-  ): void {
-    this.db
+  ): number | bigint {
+    return this.db
       .prepare(`
         INSERT INTO audit_events (
           event_id, principal_id, event_type, object_type, object_id, detail_json, created_at
@@ -74,7 +83,7 @@ export class WebStore {
         objectId,
         JSON.stringify(detail),
         now,
-      );
+      ).changes;
   }
 
   ensurePrincipal(
@@ -421,10 +430,10 @@ export class WebStore {
         expected.agent_id, expected.grant_id, expected.action,
         expected.resource, expected.result_json, expected.committed_at,
       );
-    this.audit("agent.effect.committed", expected.committed_at, expected.principal_id,
-      "effect", expected.effect_id, {
+    requireSingleEffectWrite(this.audit("agent.effect.committed", expected.committed_at,
+      expected.principal_id, "effect", expected.effect_id, {
         agentId: expected.agent_id, grantId: expected.grant_id, action: expected.action,
-      });
+      }), "audit");
     return this.readWrittenEffectReceipt(expected);
   }
 
@@ -696,18 +705,18 @@ export class WebStore {
         createdAt: now,
         publishedAt: null,
       };
-      this.db
+      requireSingleEffectWrite(this.db
         .prepare(`
           INSERT INTO canary_notes (
             note_id, principal_id, content, state, created_at, published_at
           ) VALUES (?, ?, ?, 'DRAFT', ?, NULL)
         `)
-        .run(note.noteId, note.principalId, note.content, note.createdAt);
-      this.db
+        .run(note.noteId, note.principalId, note.content, note.createdAt).changes, "note creation");
+      requireSingleEffectWrite(this.db
         .prepare(
           "UPDATE agent_grants SET remaining_effects = remaining_effects - 1, revision = revision + 1 WHERE grant_id = ? AND revision = ?",
         )
-        .run(current.grantId, current.revision);
+        .run(current.grantId, current.revision).changes, "grant quota");
       const result = { note };
       // Missing, malformed or mismatched receipt rolls back the owner transaction.
       const receipt = this.recordNewEffectReceipt({
@@ -782,21 +791,21 @@ export class WebStore {
           "The requested canary note is missing or no longer a draft.",
         );
       }
-      this.db
+      requireSingleEffectWrite(this.db
         .prepare(
           "UPDATE canary_notes SET state = 'PUBLISHED', published_at = ? WHERE note_id = ?",
         )
-        .run(now, noteId);
-      this.db
+        .run(now, noteId).changes, "note publication");
+      requireSingleEffectWrite(this.db
         .prepare(
           "UPDATE effect_approvals SET consumed_at = ? WHERE effect_id = ? AND consumed_at IS NULL",
         )
-        .run(now, effect.effectId);
-      this.db
+        .run(now, effect.effectId).changes, "approval consumption");
+      requireSingleEffectWrite(this.db
         .prepare(
           "UPDATE agent_grants SET remaining_effects = remaining_effects - 1, revision = revision + 1 WHERE grant_id = ? AND revision = ?",
         )
-        .run(current.grantId, current.revision);
+        .run(current.grantId, current.revision).changes, "grant quota");
       const result = { note: noteFromRow({ ...noteRow, state: "PUBLISHED", published_at: now }) };
       // Missing, malformed or mismatched receipt rolls back the owner transaction.
       const receipt = this.recordNewEffectReceipt({

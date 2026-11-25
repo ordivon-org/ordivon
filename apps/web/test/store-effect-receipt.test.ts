@@ -11,14 +11,35 @@ const audience = "https://example.test";
 
 // The fixture uses only Node's SQLite owner and no HTTP or external service.
 for (const kind of ["create", "publish"] as const) {
-  for (const [name, mutation] of [
+  const receiptMutations = [
     ["valid-null", "result_json = 'null'"],
     ["wrong-note", "result_json = json_set(result_json, '$.note.content', 'other')"],
     ["different-bytes", "result_json = ' ' || result_json"],
     ["wrong-digest", "effect_digest = 'sha256:other'"],
     ["wrong-time", "committed_at = committed_at + 1"],
-  ] as const) {
-    test("native " + kind + " rolls back exact receipt mismatch: " + name, () => {
+    ["wrong-agent", "agent_id = 'other-agent'"],
+    ["wrong-action", "action = 'other-action'"],
+    ["wrong-resource", "resource = '/other-resource'"],
+  ] as const;
+  const businessMutations = [
+    ["ignore-note", kind === "create" ? "BEFORE INSERT ON canary_notes" : "BEFORE UPDATE ON canary_notes"],
+    ["ignore-quota", "BEFORE UPDATE ON agent_grants"],
+    ["ignore-audit", "BEFORE INSERT ON audit_events"],
+    ...(kind === "publish" ? [["ignore-approval", "BEFORE UPDATE ON effect_approvals"]] as const : []),
+  ] as const;
+  const cases = [
+    ...receiptMutations.map(([name, mutation]) => ({
+      name, trigger: "AFTER INSERT ON agent_effects BEGIN UPDATE agent_effects SET "
+        + mutation + " WHERE effect_id = NEW.effect_id; END",
+      expectedError: "effect-receipt-mismatch",
+    })),
+    ...businessMutations.map(([name, mutation]) => ({
+      name, trigger: mutation + " BEGIN SELECT RAISE(IGNORE); END",
+      expectedError: "effect-write-not-applied",
+    })),
+  ];
+  for (const { name, trigger, expectedError } of cases) {
+    test("native " + kind + " rolls back invalid owner effect: " + name, () => {
       const store = new WebStore(":memory:");
       try {
         store.ensurePrincipal(principalId, "fixture", "Fixture", now);
@@ -47,8 +68,7 @@ for (const kind of ["create", "publish"] as const) {
           ? store.commitAgentCanaryCreate(grant, agentId, effect, "draft", now)
           : store.commitAgentCanaryPublish(grant, agentId, effect, note.noteId, now);
         const before = store.db.prepare("SELECT COUNT(*) AS n FROM audit_events").get()?.n;
-        store.db.exec("CREATE TEMP TRIGGER mutate_receipt AFTER INSERT ON agent_effects BEGIN UPDATE agent_effects SET "
-          + mutation + " WHERE effect_id = NEW.effect_id; END");
+        store.db.exec("CREATE TEMP TRIGGER mutate_effect " + trigger);
         let failure: unknown;
         try { commit(); } catch (error) { failure = error; }
         assert.deepEqual({
@@ -60,11 +80,11 @@ for (const kind of ["create", "publish"] as const) {
           approval: note === null ? null : store.effectApproval(principalId, effect, now).verified,
           audit: store.db.prepare("SELECT COUNT(*) AS n FROM audit_events").get()?.n,
         }, {
-          error: "effect-receipt-mismatch", quota: grant.remainingEffects,
+          error: expectedError, quota: grant.remainingEffects,
           revision: grant.revision, receipt: null, notes: note === null ? [] : ["DRAFT"],
           approval: note === null ? null : true, audit: before,
         });
-        store.db.exec("DROP TRIGGER mutate_receipt");
+        store.db.exec("DROP TRIGGER mutate_effect");
         const outcome = commit();
         assert.equal(outcome.replayed, false);
         assert.deepEqual(commit(), { receipt: outcome.receipt, replayed: true });
