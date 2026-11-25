@@ -384,3 +384,119 @@ def test_final_health_uses_same_complete_census_as_drain():
         for invalid in (missing, {**valid, key: 1}, {**valid, key: False}):
             assert not gate.healthy_quiescent_runtime({"status": "healthy", "registry": invalid})
     assert not gate.healthy_quiescent_runtime({"status": "unhealthy", "registry": valid})
+
+
+def test_materialization_status_exposes_exact_copy_without_retirement_authority(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location("compact_materialize", PROVIDER / "materialize.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    src = tmp_path / "source.ps1"
+    src.write_bytes(b"canonical")
+    exact = tmp_path / "exact.ps1"
+    exact.write_bytes(src.read_bytes())
+    divergent = tmp_path / "different.ps1"
+    divergent.write_bytes(b"unique historical payload")
+    alias = tmp_path / "alias.ps1"
+    alias.symlink_to(exact)
+    missing = tmp_path / "missing.ps1"
+    # Keep the real mapping shape: each distinct source is a separate key.
+    files = {}
+    for i, dst in enumerate((exact, divergent, alias, missing)):
+        source = tmp_path / f"source-{i}.ps1"
+        source.write_bytes(src.read_bytes())
+        files[source] = dst
+    monkeypatch.setattr(module, "FILES", files)
+    report = module.status()
+    rows = {Path(row["target"]).name: row for row in report["files"]}
+    assert rows["exact.ps1"]["retentionStanding"] == "EXACT_COPY_REVIEW"
+    assert rows["exact.ps1"]["matches"] is True
+    assert rows["exact.ps1"]["logicalBytes"] == len(src.read_bytes())
+    assert rows["different.ps1"]["retentionStanding"] == "DIVERGENT_RETAIN"
+    assert rows["alias.ps1"]["retentionStanding"] == "UNKNOWN_RETAIN"
+    assert rows["alias.ps1"]["matches"] is False
+    assert rows["missing.ps1"]["retentionStanding"] == "ABSENT"
+    assert report["deleteAuthority"] is False
+    assert report["consumerCoverage"] == "UNKNOWN"
+    assert exact.exists() and divergent.exists() and alias.is_symlink()
+
+
+def test_materialization_status_missing_source_preserves_existing_target(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location("compact_materialize", PROVIDER / "materialize.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    source = tmp_path / "missing-source.ps1"
+    target = tmp_path / "historical.ps1"
+    target.write_bytes(b"unique historical bytes")
+    monkeypatch.setattr(module, "FILES", {source: target})
+    row = module.status()["files"][0]
+    assert row["retentionStanding"] == "UNKNOWN_RETAIN"
+    assert row["matches"] is False
+    assert row["present"] is True
+    assert target.read_bytes() == b"unique historical bytes"
+
+
+def test_materialization_observation_rejects_replacement_and_unreadable_path(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location("compact_materialize", PROVIDER / "materialize.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    subject = tmp_path / "subject"
+    subject.write_bytes(b"old")
+    replacement = tmp_path / "replacement"
+    replacement.write_bytes(b"new")
+    original = module.os.open
+
+    def replace_then_open(path, *args, **kwargs):
+        replacement.replace(subject)
+        return original(path, *args, **kwargs)
+
+    with monkeypatch.context() as context:
+        context.setattr(module.os, "open", replace_then_open)
+        assert module._observe_regular(subject)["standing"] == "UNKNOWN"
+    assert subject.read_bytes() == b"new"
+
+    # An observation failure is not evidence of absence.
+    def denied(path):
+        raise PermissionError("synthetic metadata denial")
+
+    with monkeypatch.context() as context:
+        context.setattr(Path, "lstat", denied)
+        assert module._observe_regular(subject) == {"standing": "UNKNOWN", "present": None}
+
+
+def test_materialization_observation_bounds_nonregular_and_large_files(tmp_path):
+    import os
+
+    spec = importlib.util.spec_from_file_location("compact_materialize", PROVIDER / "materialize.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    pipe = tmp_path / "pipe"
+    os.mkfifo(pipe)
+    assert module._observe_regular(pipe)["standing"] == "UNKNOWN"
+    large = tmp_path / "large"
+    with large.open("wb") as stream:
+        stream.truncate(8 * 1024 * 1024 + 1)
+    assert module._observe_regular(large)["standing"] == "UNKNOWN"
+
+
+def test_materialization_projection_distinguishes_shared_inode_and_aliased_parent(tmp_path, monkeypatch):
+    import os
+
+    spec = importlib.util.spec_from_file_location("compact_materialize", PROVIDER / "materialize.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    source = tmp_path / "source"
+    source.write_bytes(b"same")
+    target = tmp_path / "target"
+    os.link(source, target)
+    monkeypatch.setattr(module, "FILES", {source: target})
+    row = module.status()["files"][0]
+    assert row["retentionStanding"] == "EXACT_COPY_REVIEW"
+    assert row["physicalRelation"] == "SAME_INODE"
+    assert row["linkCount"] == 2
+    target.unlink()
+    target.write_bytes(source.read_bytes())
+    row = module.status()["files"][0]
+    assert row["physicalRelation"] == "DISTINCT_INODES"
+    alias = tmp_path / "alias"
+    alias.symlink_to(tmp_path, target_is_directory=True)
+    assert module._observe_regular(alias / "target")["standing"] == "UNKNOWN"
