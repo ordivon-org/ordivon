@@ -4,18 +4,33 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import json
+import os
 import subprocess
 from functools import cache
 from pathlib import Path
 
 
+def source_git_env() -> dict[str, str]:
+    # The explicit repository is the observation subject. Never consume
+    # ambient Git selectors, write optional index updates, or fetch objects.
+    env = {key: value for key, value in os.environ.items()
+           if not key.startswith("GIT_")}
+    env.update(GIT_NO_LAZY_FETCH="1", GIT_OPTIONAL_LOCKS="0")
+    return env
+
+
 def git(root: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["/usr/bin/git", "-C", str(root), *args],
+    result = subprocess.run(
+        ["/usr/bin/git", "--no-replace-objects", "-C", str(root), *args],
         check=check,
         capture_output=True,
         text=True,
+        errors="surrogateescape",
+        env=source_git_env(),
     )
+    if result.stderr:
+        raise RuntimeError("Git repository observation incomplete")
+    return result
 
 
 def load_policy(path: Path) -> dict:
@@ -25,7 +40,8 @@ def load_policy(path: Path) -> dict:
     if value.get("kind") != "ordivon.archived-source-reference-policy":
         raise ValueError("unexpected policy kind")
     locator = value.get("legacyLocator")
-    if not isinstance(locator, str) or not locator.startswith("/"):
+    if (not isinstance(locator, str) or not locator.startswith("/")
+            or "\n" in locator or "\r" in locator or "\x00" in locator):
         raise ValueError("legacyLocator must be an absolute string")
     classes = value.get("allowedReferenceClasses")
     exact = value.get("allowedExactPaths")
@@ -35,24 +51,27 @@ def load_policy(path: Path) -> dict:
 
 
 def tracked_reference_paths(root: Path, locator: str) -> list[str]:
-    # Git paths are byte sequences: human-readable grep C-quotes
-    # names containing LF or non-UTF8 bytes. Preserve exact file identity.
-    proc = subprocess.run(
-        ["/usr/bin/git", "-C", str(root), "grep", "-l", "-z", "-F", locator, "--", "."],
-        check=False,
-        capture_output=True,
-    )
-    if proc.returncode not in (0, 1):
-        raise RuntimeError(
-            proc.stderr.decode("utf-8", errors="replace").strip() or "git grep failed"
+    """Union staged and tracked-worktree literal witnesses.
+
+    A staged reference hidden by an unstaged edit or sparse checkout remains
+    a source-retirement obligation. Git grep diagnostics (including exit 0/1)
+    make the observation incomplete, never clean. This bounded lexical
+    contract does not establish absence of dynamic or installed consumers.
+    """
+    paths = set()
+    for extra in ([], ["--cached"]):
+        proc = subprocess.run(
+            ["/usr/bin/git", "--no-replace-objects", "-C", str(root),
+             "grep", "-l", "-z", "-F", "--no-textconv", "--no-recurse-submodules",
+             "--no-color", *extra, "-e", locator, "--", "."],
+            check=False, capture_output=True, env=source_git_env(),
         )
-    return sorted(
-        {
-            item.decode("utf-8", errors="surrogateescape")
-            for item in proc.stdout.split(b"\0")
-            if item
-        }
-    )
+        if proc.returncode not in (0, 1) or proc.stderr:
+            raise RuntimeError("Git grep failed: archived-source observation incomplete")
+        # Git paths are byte sequences; do not split on LF or decode lossily.
+        paths.update(item.decode("utf-8", errors="surrogateescape")
+                     for item in proc.stdout.split(b"\0") if item)
+    return sorted(paths)
 
 
 def matches_glob(path: str, pattern: str) -> bool:
@@ -139,6 +158,9 @@ def main() -> int:
         "allowedReferenceFileCount": len(allowed),
         "forbiddenReferenceFileCount": len(forbidden),
         "status": "PASS" if not forbidden else "FAIL",
+        "observationScope": "TRACKED_WORKTREE_AND_STAGED_LITERAL_REFERENCES",
+        "runtimeConsumerStanding": "UNKNOWN",
+        "retirementAdmissible": False,
         "forbidden": forbidden,
         "allowed": allowed,
     }

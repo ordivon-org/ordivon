@@ -108,4 +108,67 @@ assert v["status"] == "FAIL"
 assert v["forbidden"] == ["src/current.py"]
 PY
 
+# Inverse retirement check must include the staged source, even when its
+# forbidden reference is hidden by an unstaged edit or sparse worktree.
+git -C "$repo" add src/current.py
+printf 'clean = true\n' >"$repo/src/current.py"
+set +e
+python3 "$CHECKER" --repo "$repo" --policy policy.json --json >"$TMP/staged-fail.json"
+stage_rc=$?
+set -e
+# Collect both independent controls before asserting.
+git -C "$repo" update-index --skip-worktree src/current.py
+rm -- "$repo/src/current.py"
+set +e
+python3 "$CHECKER" --repo "$repo" --policy policy.json --json >"$TMP/sparse-fail.json"
+sparse_rc=$?
+set -e
+printf 'native staged-hidden rc=%s sparse-hidden rc=%s\n' "$stage_rc" "$sparse_rc"
+git -C "$repo" update-index --no-skip-worktree src/current.py
+git -C "$repo" checkout -- src/current.py
+test "$stage_rc" -eq 1
+test "$sparse_rc" -eq 1
+python3 - "$TMP/staged-fail.json" "$TMP/sparse-fail.json" <<'PYTEST'
+import json,sys
+for path in sys.argv[1:]:
+    v=json.load(open(path))
+    assert v["status"]=="FAIL"
+    assert v["forbidden"]==["src/current.py"]
+PYTEST
+# Foreign repository/index selectors must not hide the intended subject.
+foreign="$TMP/foreign"
+git init -q "$foreign"
+git -C "$foreign" config user.name test
+git -C "$foreign" config user.email test@example.invalid
+cp "$repo/policy.json" "$foreign/policy.json"
+git -C "$foreign" add policy.json
+git -C "$foreign" commit -qm foreign
+set +e
+env GIT_DIR="$foreign/.git" GIT_WORK_TREE="$foreign" GIT_INDEX_FILE="$foreign/.git/index" \
+  python3 "$CHECKER" --repo "$repo" --policy policy.json --json >"$TMP/foreign-fail.json"
+foreign_rc=$?
+set -e
+test "$foreign_rc" -eq 1
+python3 - "$TMP/foreign-fail.json" <<'PYTEST'
+import json,sys
+v=json.load(open(sys.argv[1]))
+assert v["forbidden"] == ["src/current.py"]
+assert v["runtimeConsumerStanding"] == "UNKNOWN"
+assert v["retirementAdmissible"] is False
+PYTEST
+
+# Missing staged blob: native grep may exit 0 or 1 with diagnostics.
+# This is an incomplete observation, not a legitimate PASS/FAIL verdict.
+git -C "$repo" config remote.origin.promisor true
+git -C "$repo" config remote.origin.partialclonefilter blob:none
+git -C "$repo" config remote.origin.url "$TMP/unavailable-origin"
+oid="$(git -C "$repo" rev-parse :src/current.py)"
+rm -- "$repo/.git/objects/${oid:0:2}/${oid:2}"
+set +e
+python3 "$CHECKER" --repo "$repo" --policy policy.json --json >"$TMP/missing.json" 2>"$TMP/missing.err"
+missing_rc=$?
+set -e
+test "$missing_rc" -ne 0
+test ! -s "$TMP/missing.json"
+grep -F 'observation incomplete' "$TMP/missing.err"
 echo "PASS archived-source boundary smoke"
