@@ -14,6 +14,10 @@ use std::{
 };
 use uuid::Uuid;
 
+#[path = "pg_vertical/terminal_observation.rs"]
+mod terminal_observation;
+use terminal_observation::await_terminal;
+
 // A native PostgreSQL disposable cluster, Unix socket only. No production DSN is accepted.
 struct Fixture {
     root: PathBuf,
@@ -342,8 +346,13 @@ impl Drop for Fixture {
     }
 }
 fn rpc(url: &str, method: &str, params: Value) -> Value {
+    rpc_with_timeout(url, method, params, None)
+}
+fn rpc_with_timeout(url: &str, method: &str, params: Value, timeout: Option<Duration>) -> Value {
     tokio::runtime::Runtime::new().unwrap().block_on(async {
-    let client=reqwest::Client::new();
+    let mut builder=reqwest::Client::builder();
+    if let Some(timeout)=timeout {builder=builder.timeout(timeout);}
+    let client=builder.build().unwrap();
     let mut request=client.post(url).bearer_auth("p".repeat(32)).header("Accept","application/json, text/event-stream").header("MCP-Protocol-Version","2026-07-28").header("Mcp-Method",method);
     if let Some(name)=params.get("name").and_then(Value::as_str) {request=request.header("Mcp-Name",name);}
     let mut params=params;
@@ -394,40 +403,10 @@ fn committed_40001_job_id(result: &Value) -> Option<&str> {
 }
 
 fn observe_committed_40001(url: &str, original: Value) -> Value {
-    let Some(job_id) = committed_40001_job_id(&original) else {
+    if committed_40001_job_id(&original).is_none() {
         return original;
-    };
-    let deadline = Instant::now() + Duration::from_secs(25);
-    loop {
-        // This is a different *read/observe* MCP operation. Do not invoke
-        // workspace.exec again after its admission has already committed.
-        let observed = call(
-            url,
-            "job.observe",
-            json!({"jobId": job_id, "waitMs": 4000,
-                "stdoutTailBytes":8192,"stderrTailBytes":8192}),
-        );
-        if observed["isError"] == true {
-            assert_eq!(
-                committed_40001_job_id(&observed),
-                Some(job_id),
-                "new or unqualified observation error: {observed}"
-            );
-        } else {
-            assert_eq!(
-                observed["structuredContent"]["jobId"], job_id,
-                "readback must bind the original committed Job"
-            );
-            if observed["structuredContent"]["executionTerminal"] == true {
-                return observed;
-            }
-        }
-        assert!(
-            Instant::now() < deadline,
-            "committed 40001 Job did not converge: {observed}"
-        );
-        thread::sleep(Duration::from_millis(20));
     }
+    await_terminal(url, original, Duration::from_secs(25))
 }
 
 #[test]
@@ -3332,36 +3311,12 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         json!({"workspaceId":"ws-physical","sourceRepo":repo,"sourceRevision":"HEAD"}),
     );
     assert_ne!(open["isError"], true, "{open}");
-    let mut exec = call(
+    let initial = call(
         &endpoint,
         "workspace.exec",
         json!({"clientRequestId":"pg-native-physical-0001","execution":{"workspaceId":"ws-physical","executable":"/usr/bin/printf","args":["native-proof"],"cwdRelative":".","timeoutMs":5000},"waitMs":10000}),
     );
-    assert_ne!(
-        exec["isError"], true,
-        "physical native launch required: {exec}"
-    );
-    // Resource-aware PG admission can return STARTING while the current
-    // physical Job is still queued. Observe the SAME committed Job rather
-    // than redispatching a second external effect.
-    let admitted_id = exec["structuredContent"]["jobId"]
-        .as_str()
-        .unwrap()
-        .to_owned();
-    for _ in 0..30 {
-        if exec["structuredContent"]["executionTerminal"] == true {
-            break;
-        }
-        exec = call(
-            &endpoint,
-            "job.observe",
-            json!({"jobId":admitted_id,"waitMs":1000,"stdoutTailBytes":256}),
-        );
-        assert_ne!(
-            exec["isError"], true,
-            "existing PG Job observation failed: {exec}"
-        );
-    }
+    let exec = await_terminal(&endpoint, initial, Duration::from_secs(25));
     assert_eq!(
         exec["structuredContent"]["executionDisposition"], "succeeded",
         "{exec}"
@@ -3632,7 +3587,7 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         dispatch_count, 1,
         "exact replay must never redispatch the first Attempt"
     );
-    let second = call(
+    let second_initial = call(
         &endpoint,
         "workspace.exec",
         json!({
@@ -3642,6 +3597,7 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
             "waitMs":10000
         }),
     );
+    let second = await_terminal(&endpoint, second_initial, Duration::from_secs(25));
     assert_ne!(second["isError"], true, "{second}");
     assert_eq!(
         second["structuredContent"]["executionDisposition"], "succeeded",
@@ -3677,46 +3633,7 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         "waitMs":12000,"stdoutTailBytes":8192
     });
     let planned_first = call(&endpoint, "workspace.execPlan", plan_request.clone());
-    // The physical Job can already be committed when a later PostgreSQL
-    // reconciliation/observation snapshot reports 40001. In that case do
-    // NOT resubmit the effect: retain the exact committed operation identity
-    // and reconcile by Job ID, as the public MCP retry contract requires.
-    let planned = if planned_first["isError"] == true {
-        assert_eq!(
-            planned_first["structuredContent"]["error"]["commitState"], "committed",
-            "{planned_first}"
-        );
-        assert_eq!(
-            planned_first["structuredContent"]["error"]["retryClass"], "reconcile_first",
-            "{planned_first}"
-        );
-        let committed = planned_first["structuredContent"]["error"]["operationId"]
-            .as_str()
-            .expect("known committed operationId")
-            .to_string();
-        let mut observed = serde_json::Value::Null;
-        for _ in 0..5 {
-            observed = call(
-                &endpoint,
-                "job.observe",
-                json!({"jobId":committed,"waitMs":12000,"stdoutTailBytes":8192}),
-            );
-            if observed["isError"] != true {
-                break;
-            }
-            assert_eq!(
-                observed["structuredContent"]["error"]["commitState"], "committed",
-                "{observed}"
-            );
-            assert_eq!(
-                observed["structuredContent"]["error"]["operationId"], committed,
-                "{observed}"
-            );
-        }
-        observed
-    } else {
-        planned_first
-    };
+    let planned = await_terminal(&endpoint, planned_first, Duration::from_secs(25));
     assert_ne!(planned["isError"], true, "{planned}");
     assert_eq!(
         planned["structuredContent"]["executionDisposition"], "succeeded",
@@ -3745,7 +3662,7 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
     assert_eq!(issued, 1, "idempotent plan replay cannot launch again");
 
     // Fail-fast is proven by exact Runner output, not simulated by MCP.
-    let stopped = call(
+    let stopped_initial = call(
         &endpoint,
         "workspace.execPlan",
         json!({
@@ -3753,9 +3670,15 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
             "execution":{"workspaceId":"ws-physical","steps":[
                 {"id":"fail","executable":"/usr/bin/false","cwdRelative":".","timeoutMs":3000},
                 {"id":"must-not-run","executable":"/usr/bin/printf","args":["FAILFAST_BROKEN"],"cwdRelative":".","timeoutMs":3000}
-            ]},"waitMs":12000,"stdoutTailBytes":8192
+            ]},"waitMs":0,"stdoutTailBytes":8192
         }),
     );
+    // Exercise a zero-wait submission deliberately. A pending response
+    // is not a failed command. Observe exactly the original admission.
+    println!("FAILFAST_INITIAL_TERMINAL={} STATE={}",
+        stopped_initial["structuredContent"]["executionTerminal"],
+        stopped_initial["structuredContent"]["attemptState"]);
+    let stopped = await_terminal(&endpoint, stopped_initial, Duration::from_secs(25));
     assert_ne!(stopped["isError"], true, "{stopped}");
     assert_eq!(
         stopped["structuredContent"]["executionDisposition"], "failed",
@@ -3768,6 +3691,18 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
             .contains("FAILFAST_BROKEN"),
         "{stopped}"
     );
+    let stopped_job = stopped["structuredContent"]["jobId"].as_str().unwrap();
+    let facts = fixture.db.query_one(
+        "SELECT (SELECT count(*) FROM attempts WHERE job_id=$1), \
+         (SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'), \
+         (SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='JOB_TERMINAL'), \
+         (SELECT resolution FROM jobs WHERE job_id=$1)",
+        &[&stopped_job],
+    ).unwrap();
+    assert_eq!(facts.get::<_, i64>(0), 1, "exactly one Attempt");
+    assert_eq!(facts.get::<_, i64>(1), 1, "exactly one native dispatch");
+    assert_eq!(facts.get::<_, i64>(2), 1, "exactly one terminal event");
+    assert_eq!(facts.get::<_, String>(3), "failed", "independent PG terminal");
     // The actual Gateway/Agent job.list consumer must retain the terminal
     // Attempt after jobs.current_attempt_id is cleared on completion.
     let finished_list = call(
@@ -4475,6 +4410,24 @@ fn resource_queue_shared_workspace_restart_and_native_write_leases() {
         blocked["structuredContent"]["scheduling"]["state"], "pending",
         "{blocked}"
     );
+    let blocked_job = blocked["structuredContent"]["jobId"].as_str().unwrap();
+    assert_eq!(blocked["structuredContent"]["executionTerminal"], false);
+    assert_eq!(blocked["structuredContent"]["attemptState"], "accepted");
+    let before = fixture.db.query_one(
+        "SELECT (SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'), \
+         (SELECT count(*) FROM job_allocations x JOIN attempts a ON a.attempt_id=x.attempt_id WHERE a.job_id=$1 AND x.state='active')",
+        &[&blocked_job],
+    ).unwrap();
+    assert_eq!(before.get::<_, i64>(0), 0, "held capacity prevents dispatch");
+    assert_eq!(before.get::<_, i64>(1), 0, "held capacity prevents allocation");
+    let pending_observation = call(&endpoint, "job.observe", json!({
+        "jobId":blocked_job,"waitMs":0,"stdoutTailBytes":0,"stderrTailBytes":0
+    }));
+    assert_ne!(pending_observation["isError"], true, "{pending_observation}");
+    assert_eq!(pending_observation["structuredContent"]["jobId"], blocked_job);
+    assert_eq!(pending_observation["structuredContent"]["executionTerminal"], false);
+    assert_eq!(pending_observation["structuredContent"]["attemptId"], blocked["structuredContent"]["attemptId"]);
+    println!("CONTROLLED_PENDING_NO_DISPATCH_OR_ALLOCATION");
     let replay = submit(
         &endpoint,
         "resource-pending",
@@ -4535,6 +4488,22 @@ fn resource_queue_shared_workspace_restart_and_native_write_leases() {
                 .into(),
         ],
     );
+    // Preserve the original passive DB wait above: an active observer
+    // must not rescue a stalled autonomous scheduler and turn this test green.
+    let observed_blocked = await_terminal(&endpoint, blocked.clone(), Duration::from_secs(20));
+    assert_eq!(observed_blocked["structuredContent"]["executionDisposition"], "succeeded");
+    let after = fixture.db.query_one(
+        "SELECT (SELECT count(*) FROM attempts WHERE job_id=$1), \
+         (SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'), \
+         (SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='JOB_TERMINAL'), \
+         (SELECT resolution FROM jobs WHERE job_id=$1)",
+        &[&blocked_job],
+    ).unwrap();
+    assert_eq!(after.get::<_, i64>(0), 1);
+    assert_eq!(after.get::<_, i64>(1), 1);
+    assert_eq!(after.get::<_, i64>(2), 1);
+    assert_eq!(after.get::<_, String>(3), "succeeded");
+    println!("CONTROLLED_PENDING_TERMINAL_EXACT_ONCE_AFTER_PASSIVE_CONVERGENCE");
     let release = fixture.root.join("release-readers");
     let shared_wait = format!("while [ ! -f '{}' ]; do sleep 0.1; done", release.display());
     let mut shared = Vec::new();

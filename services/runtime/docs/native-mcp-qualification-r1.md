@@ -17,7 +17,7 @@ acceptance adapter tests; it does not claim native consumer coverage.
 
 ## Logic and capability map
 
-- Obligation: eight stable critical witness identities spanning admission,
+- Obligation: stable critical witness identities spanning admission,
   execution/cancellation, binary evidence, close/admit race, revoked
   writer, privilege boundary, release fencing, restart/leasing. Discover
   all additional test identities from Nextest JSON, not source grep.
@@ -86,3 +86,41 @@ After preserving evidence, only exact test-owned dead Units can be
 released, never a broad systemctl reset. Unknown, live or foreign
 ownership must block retirement. Separate panic-safe Fixture cleanup
 and SIGKILL recovery proof remain explicit obligations.
+
+## R20: async terminal observation as a test consumer contract
+
+The R19 full gate reported 32/33, with a new fail-fast Plan assertion
+receiving an accepted, nonterminal Job. That receipt proves admission,
+not a final execution outcome. Do not resubmit, change production
+scheduler policy or silently turn a pending result into failure.
+
+Reuse the existing MCP client and native PG fixtures. Extract one test
+consumer module: qualify ordinary or committed E40001 response, preserve
+Job identity and the first known Attempt and Operation digest, observe
+only the original Job, and require a typed terminal predicate consistent
+with a recognized disposition. Terminal does not mean domain success.
+A monotonic per-observation-phase budget caps server waits and HTTP
+transport; expiration and unexpected errors remain failures with the
+last known receipt when available. This is not a production client or
+retry scheduler. The preceding submit has its own existing wait budget.
+
+The independent scripted clock/state sequences reject foreign identities,
+unqualified errors, malformed terminal predicates, inconsistent disposition
+and unbounded pending; an already-terminal receipt must not be observed
+again. Require key observer tests in native Nextest discovery.
+
+Native qualification deliberately submits fail-fast at waitMs=0 and
+retains the actual failed result, missing second-step output, exact one
+Attempt, one dispatch and one terminal event. A separate held-capacity
+case checks real accepted/pending and zero allocation/dispatch, then
+retains the existing passive PG convergence check through endpoint
+restart before consuming the same Job terminal. Observation must not
+rescue a stalled scheduler and hide the original obligation.
+
+Keep the R19 RED and distinguish a verified pending-to-terminal consumer
+from a proof of the original scheduling cause. Do not retry the entire
+test to turn a failure green. Native suite, compiled source mutants,
+exact inventory/JUnit and CI/installed standing remain separate.
+
+Reference: https://learn.microsoft.com/en-us/azure/architecture/patterns/asynchronous-request-reply
+https://nexte.st/docs/features/retries/
