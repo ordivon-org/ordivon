@@ -51,6 +51,13 @@ set -euo pipefail
 uv run --locked python tools/host_pg19_upgrade_verify.py --old-bin "${HOST_PG18_BIN:?explicit PG18 bin required}" --new-bin "${HOST_PG19_BIN:?explicit PG19 bin required}"
 """
 
+[tasks."test:postgres19:search-upgrade"]
+description = "Native PG18 to PG19 ICU+C search index refinement with independent scan oracle"
+run = """
+set -euo pipefail
+uv run --locked python tools/host_pg19_upgrade_verify.py --icu-search --old-bin "${HOST_PG18_BIN:?explicit PG18 bin required}" --new-bin "${HOST_PG19_BIN:?explicit PG19 bin required}"
+"""
+
 [tasks."test:postgres19:pitr"]
 description = "Native isolated PG19 pgBackRest point-in-time recovery and consumer replay"
 run = """

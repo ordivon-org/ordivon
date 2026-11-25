@@ -19,6 +19,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from host_pg19_search_verify import observe_search, reindex_and_verify, seed_search
+
 from ordivon_host_v2.attention_store import AttentionStore
 from ordivon_host_v2.canonical_json import canonical_digest
 from ordivon_host_v2.collaboration_inputs import MessageInput, SpaceInput, TopicInput
@@ -66,7 +68,8 @@ class Cluster:
             capture=capture,
         )
 
-    def initialize(self) -> None:
+    def initialize(self, *, icu: bool = False) -> None:
+        locale_args = ("--locale-provider=icu", "--icu-locale=und") if icu else ()
         self.command(
             "initdb",
             "-D",
@@ -74,6 +77,7 @@ class Cluster:
             "-U",
             "ordivon_ci",
             "--locale=C",
+            *locale_args,
             "--encoding=UTF8",
             "--auth-local=trust",
             "--auth-host=reject",
@@ -236,7 +240,7 @@ def observe(dsn: str, *, expected_revision: int = 2) -> dict[str, Any]:
     return {**result, "authority": after["authority"], "doctor": after["doctor"]}
 
 
-def qualify(old_bin: Path, new_bin: Path) -> None:
+def qualify(old_bin: Path, new_bin: Path, *, icu_search: bool = False) -> None:
     # No caller-supplied DB, no production connection, and no TCP listener.
     require(
         not any(key in os.environ for key in ("ORDIVON_HOST_V2_DSN", "ORDIVON_HOST_V2_TEST_DSN")),
@@ -262,7 +266,7 @@ def qualify(old_bin: Path, new_bin: Path) -> None:
 
     try:
         for cluster in (old, new):
-            cluster.initialize()
+            cluster.initialize(icu=icu_search)
         old.start()
         old.verify_major(18)
         old.command(
@@ -274,6 +278,13 @@ def qualify(old_bin: Path, new_bin: Path) -> None:
             env={**os.environ, "ORDIVON_HOST_V2_DSN": old.dsn()},
         )
         seed(old.dsn())
+        if icu_search:
+            seed_search(old.dsn(), space=SPACE, topic=TOPIC, actor=PEER)
+            original_search = observe_search(old.dsn())
+            require(
+                original_search["locale"][:4] == ["i", "C", "C", "und"],
+                "ICU+C witness locale differs",
+            )
         expected = observe(old.dsn())
         digest = canonical_digest(expected)
         print(f"pre_upgrade_digest={digest}", flush=True)
@@ -296,6 +307,8 @@ def qualify(old_bin: Path, new_bin: Path) -> None:
         run([*upgrade, "--copy"], cwd=scratch)
         new.start()
         new.verify_major(19)
+        if icu_search:
+            reindex_and_verify(new.dsn(), topic=TOPIC, before=original_search)
         actual = observe(new.dsn())
         require(actual == expected, "upgraded Host consumer/replay mismatch")
         print(f"post_upgrade_digest={canonical_digest(actual)}", flush=True)
@@ -313,6 +326,8 @@ def qualify(old_bin: Path, new_bin: Path) -> None:
 
         old.start()
         old.verify_major(18)
+        if icu_search:
+            require(observe_search(old.dsn()) == original_search, "old search copy differs")
         restored = observe(old.dsn())
         require(restored == expected, "original PG18 copy differs")
         print(f"old_copy_digest={canonical_digest(restored)}", flush=True)
@@ -333,8 +348,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--old-bin", type=Path, required=True)
     parser.add_argument("--new-bin", type=Path, required=True)
+    parser.add_argument(
+        "--icu-search",
+        action="store_true",
+        help="Exercise ICU+C copied FTS index negative and native REINDEX",
+    )
     args = parser.parse_args()
-    qualify(args.old_bin.resolve(strict=True), args.new_bin.resolve(strict=True))
+    qualify(
+        args.old_bin.resolve(strict=True),
+        args.new_bin.resolve(strict=True),
+        icu_search=args.icu_search,
+    )
 
 
 if __name__ == "__main__":
