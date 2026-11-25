@@ -89,6 +89,7 @@ class CircularShiftOperatorTest(unittest.TestCase):
             self.assertEqual(values, [statistics.correlation(left, right[i:] + right[:i])
                                       for i in range(4)])
 
+    @unittest.skipUnless(Path("/usr/bin/ffmpeg").is_file() and Path("/usr/bin/ffprobe").is_file(), "native FFmpeg equipment unavailable")
     def test_native_ffmpeg_profiles_keep_exact_report(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
