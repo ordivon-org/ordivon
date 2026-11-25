@@ -149,5 +149,11 @@ export function initializeWebStoreSchema(db: DatabaseSync): void {
 
       CREATE INDEX IF NOT EXISTS audit_events_principal_created
         ON audit_events(principal_id, created_at);
+
+      -- Non-unique: legacy or unexpected duplicate audit records remain visible
+      -- to the transaction-local postcondition instead of being silently discarded.
+      CREATE INDEX IF NOT EXISTS audit_events_committed_effect
+        ON audit_events(object_id)
+        WHERE event_type = 'agent.effect.committed' AND object_type = 'effect';
     `);
 }

@@ -29,6 +29,7 @@ export function assertWrittenEffectAudit(db: DatabaseSync, expected: EffectAudit
   const rows = db.prepare(`
     SELECT * FROM audit_events
     WHERE event_type = 'agent.effect.committed' AND object_type = 'effect' AND object_id = ?
+    LIMIT 2
   `).all(expected.object_id);
   if (rows.length !== 1 || !isDeepStrictEqual({ ...rows[0] }, expected)) {
     throw new WebProblem(500, "effect-audit-mismatch", "Effect audit mismatch",

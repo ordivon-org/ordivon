@@ -24,6 +24,7 @@ test("WebStore schema bootstrap preserves the single SQLite schema and connectio
   ];
   const expectedIndexes = [
     "agent_grants_resolution",
+    "audit_events_committed_effect",
     "audit_events_principal_created",
     "dpop_proofs_expiry",
     "sessions_principal",
@@ -49,5 +50,28 @@ test("WebStore schema bootstrap preserves the single SQLite schema and connectio
     }
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("committed effect audit observation uses a bounded indexed lookup and preserves duplicates", () => {
+  const store = new WebStore(":memory:");
+  try {
+    const db = store.db;
+    const insert = db.prepare("INSERT INTO audit_events VALUES (?, NULL, ?, ?, ?, '{}', 0)");
+    for (let i = 0; i < 500; i++) {
+      insert.run("unrelated-" + i, "agent.effect.committed", "effect", "other-" + i);
+    }
+    insert.run("first", "agent.effect.committed", "effect", "target");
+    insert.run("second", "agent.effect.committed", "effect", "target");
+    insert.run("third", "agent.effect.committed", "effect", "target");
+    insert.run("not-an-effect", "other", "effect", "target");
+    const sql = "SELECT * FROM audit_events WHERE event_type = 'agent.effect.committed' AND object_type = 'effect' AND object_id = ? LIMIT 2";
+    const plan = db.prepare("EXPLAIN QUERY PLAN " + sql).all("target");
+    assert.ok(plan.some(row => String(row.detail).includes("SEARCH audit_events")), JSON.stringify(plan));
+    const rows = db.prepare(sql).all("target");
+    assert.equal(rows.length, 2);
+    assert.ok(rows.every(row => row.event_type === "agent.effect.committed" && row.object_id === "target"));
+  } finally {
+    store.close();
   }
 });
