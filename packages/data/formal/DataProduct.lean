@@ -183,6 +183,55 @@ theorem admitting_new_version_preserves_unique_identity
     cases hAdmitted
     exact List.nodup_cons.mpr ⟨hIn, hKnown⟩
 
+-- Inverse uniqueness: distinct surface spellings may denote the same
+-- projected UUID. Compare the semantic key before admission, not the spelling.
+-- The normalization function abstracts the existing native UUID parser;
+-- opaque identifiers are not globally lowercased. Versions remain independent.
+def projectedProductKey (normalize : String → String)
+    (candidate : ProductIdentity) : ProductIdentity :=
+  (normalize candidate.1, candidate.2)
+
+def admitProjectedUnique (normalize : String → String)
+    (known : List ProductIdentity) (candidate : ProductIdentity) :
+    Option (List ProductIdentity) :=
+  admitUnique (known.map (projectedProductKey normalize))
+    (projectedProductKey normalize candidate)
+
+theorem projected_alias_same_version_rejected
+    (normalize : String → String) (a b version : String)
+    (alias : normalize a = normalize b) :
+    admitProjectedUnique normalize [(a, version)] (b, version) = none := by
+  simp [admitProjectedUnique, projectedProductKey, admitUnique, alias]
+
+theorem projected_distinct_version_admitted
+    (normalize : String → String) (a b v1 v2 : String)
+    (different : v2 ≠ v1) :
+    admitProjectedUnique normalize [(a, v1)] (b, v2) =
+      some [(normalize b, v2), (normalize a, v1)] := by
+  simp [admitProjectedUnique, projectedProductKey, admitUnique, different]
+
+-- Discovery may contain anonymous rows. Only explicit IDs participate
+-- in the uniqueness obligation. Payload equality never merges identities.
+def explicitDistributionIds (rows : List (Option String × Nat)) : List String :=
+  rows.filterMap (fun row => row.1)
+
+def distributionIdentityQualified (rows : List (Option String × Nat)) : Prop :=
+  (explicitDistributionIds rows).Nodup
+
+theorem duplicate_distribution_id_rejected (id : String) (a b : Nat) :
+    ¬ distributionIdentityQualified [(some id, a), (some id, b)] := by
+  simp [distributionIdentityQualified, explicitDistributionIds]
+
+theorem same_payload_distinct_ids_not_redundancy (a b : String) (digest : Nat)
+    (distinct : a ≠ b) :
+    distributionIdentityQualified [(some a, digest), (some b, digest)] := by
+  simp [distributionIdentityQualified, explicitDistributionIds, distinct]
+
+#print axioms duplicate_distribution_id_rejected
+#print axioms same_payload_distinct_ids_not_redundancy
+#print axioms projected_alias_same_version_rejected
+#print axioms projected_distinct_version_admitted
+
 #print axioms verified_requires_equal_observed_digests
 #print axioms falsified_requires_two_different_observed_digests
 #print axioms admitting_new_version_preserves_unique_identity

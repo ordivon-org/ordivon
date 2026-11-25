@@ -149,6 +149,13 @@ def inspect_catalog(
             not isinstance(item, dict) for item in distributions
         ):
             raise TypeError("dataset distributions must be a list of objects")
+        # Explicit distribution identity is a structural contract before
+        # byte verification. Distinct IDs may refer to identical payloads;
+        # anonymous distributions do not establish a stable selection key.
+        ids = [item["@id"] for item in distributions
+               if isinstance(item.get("@id"), str) and item["@id"]]
+        if len(set(ids)) != len(ids):
+            raise ValueError("duplicate distribution identity within product version")
         products.append(
             {
                 "id": product_id,

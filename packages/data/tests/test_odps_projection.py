@@ -90,6 +90,37 @@ class OwnerProductProjectionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "duplicate owner product"):
             project_catalog([self.sources[0], self.sources[0]])
 
+    def test_canonical_product_uuid_aliases_are_one_version_identity(self) -> None:
+        """Different UUID spellings must not create two copies of one product/version."""
+        product = json.loads(self.sources[0].read_text(encoding="utf-8"))
+        alias = {**product, "id": product["id"].upper()}
+        self.assertNotEqual(alias["id"], product["id"])
+        for forms in ((product, alias), (alias, product)):
+            with self.subTest(forms=[x["id"] for x in forms]):
+                with self.assertRaisesRegex(ValueError, "duplicate owner product"):
+                    project_catalog([json.dumps(x).encode() for x in forms])
+        # Versions remain distinct; preserve producer-provided spelling.
+        alias["version"] = "new-independent-version"
+        projected = project_catalog([json.dumps(x).encode() for x in (product, alias)])
+        self.assertEqual(len(projected["dcat:dataset"]), 2)
+        self.assertEqual({x["dct:identifier"] for x in projected["dcat:dataset"]},
+                         {product["id"], alias["id"]})
+
+    def test_canonical_port_uuid_aliases_cannot_duplicate_one_distribution(self) -> None:
+        product = json.loads(self.sources[0].read_text(encoding="utf-8"))
+        original = product["outputPorts"][0]
+        alias = {**original, "name": "independent-name", "id": original["id"].upper()}
+        self.assertNotEqual(alias["id"], original["id"])
+        for ports in ([original, alias], [alias, original]):
+            with self.subTest(ports=[x["id"] for x in ports]):
+                with self.assertRaisesRegex(ValueError, "duplicate output port id"):
+                    project_catalog([json.dumps({**product, "outputPorts": ports}).encode()])
+        # Non-UUID IDs are opaque, not case-folded by the projector.
+        original = {**original, "id": "Owner-Port"}
+        alias = {**alias, "id": "owner-port"}
+        projected = project_catalog([json.dumps({**product, "outputPorts": [original, alias]}).encode()])
+        self.assertEqual(len(projected["dcat:dataset"][0]["dcat:distribution"]), 2)
+
     def test_malformed_product_does_not_fall_back_to_unsafe_metadata(self) -> None:
         data = json.loads(self.sources[0].read_text(encoding="utf-8"))
         with TemporaryDirectory() as tmp:

@@ -29,6 +29,16 @@ def _uuid_uri(value: str) -> str | None:
         return None
 
 
+def _identity_key(value: str) -> tuple[str, str]:
+    """Compare the identity actually emitted by this projection.
+
+    UUID spellings can normalize to one RDF URI (RFC 9562); opaque source
+    IDs retain exact spelling. The tags prevent collisions across kinds.
+    """
+    uri = _uuid_uri(value)
+    return ("uuid", uri) if uri is not None else ("opaque", value)
+
+
 def _text(value: Any, *, field: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"ODPS missing nonempty {field}")
@@ -68,7 +78,7 @@ def project_odps(
         raise ValueError("ODPS active product must declare nonempty outputPorts")
     distributions = []
     seen_ports: set[tuple[str, str | None]] = set()
-    seen_port_ids: set[str] = set()
+    seen_port_ids: set[tuple[str, str]] = set()
     for port in outputs:
         if not isinstance(port, dict):
             raise TypeError("ODPS outputPort must be an object")
@@ -87,9 +97,10 @@ def project_odps(
         port_id = port.get("id")
         if port_id is not None:
             port_id = _text(port_id, field="outputPort.id")
-            if port_id in seen_port_ids:
-                raise ValueError("ODPS duplicate output port id")
-            seen_port_ids.add(port_id)
+            identity = _identity_key(port_id)
+            if identity in seen_port_ids:
+                raise ValueError("ODPS duplicate output port id after projection")
+            seen_port_ids.add(identity)
             stable_uri = _uuid_uri(port_id)
             if stable_uri:
                 entry["@id"] = stable_uri
@@ -156,7 +167,10 @@ def project_catalog(
             raise ValueError(
                 "local evidence binding refers to unprojected owner product"
             )
-    keys = [(entry["dct:identifier"], entry["dcat:version"]) for entry in datasets]
+    keys = [
+        (_identity_key(entry["dct:identifier"]), entry["dcat:version"])
+        for entry in datasets
+    ]
     if len(set(keys)) != len(keys):
         raise ValueError("duplicate owner product identifier and version")
     datasets.sort(key=lambda entry: (entry["dct:identifier"], entry["dcat:version"]))
