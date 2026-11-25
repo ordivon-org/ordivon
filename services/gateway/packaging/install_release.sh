@@ -43,15 +43,8 @@ fi
   "$RELEASE/pyproject.toml" \
   "$PREFIX/current/mcp-surface.json"
 
-if [ ! -f "$RELEASE/.python-version" ]; then
-  echo "release is missing .python-version" >&2
-  exit 2
-fi
-PYTHON_REQUEST=$(tr -d '\r\n' < "$RELEASE/.python-version")
-if [ -z "$PYTHON_REQUEST" ]; then
-  echo ".python-version must contain one Python request" >&2
-  exit 2
-fi
+# Read and validate the version from this exact release before selecting a carrier.
+PYTHON_REQUEST=$(/usr/bin/python3 "$RELEASE/packaging/verify_python_version.py" request "$RELEASE")
 
 # A source-qualified interpreter can be supplied only by an explicit
 # version-qualified absolute carrier; no unrelated SQLite pin is imposed
@@ -76,14 +69,7 @@ fi
 
 # Gateway is a stateless router; legacy SQLite worker transport is retired.
 # Qualify only the release Python interpreter here.
-"$PYTHON" - "$PYTHON_REQUEST" <<'PYTHON_CHECK'
-import sys
-
-requested = sys.argv[1]
-actual = sys.version.split()[0]
-if actual != requested or actual != "3.15.1":
-    raise SystemExit(f"Gateway release Python mismatch: expected {requested}, got {actual}")
-PYTHON_CHECK
+"$PYTHON" "$RELEASE/packaging/verify_python_version.py" verify "$RELEASE"
 
 UV_PYTHON_INSTALL_DIR="$PYTHON_INSTALL_DIR" "$UV" sync --locked --no-dev --python "$PYTHON" --project "$RELEASE"
 chmod -R a+rX "$RELEASE"
