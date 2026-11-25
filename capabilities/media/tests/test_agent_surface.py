@@ -45,6 +45,7 @@ class AgentSurfaceTests(unittest.TestCase):
         )
         (root / "scripts").mkdir()
         (root / "scripts/require-python-deps.py").write_text("# fixture; gate mocked in unit tests\n")
+        (root / "scripts/require-js-deps.mjs").write_text("// fixture; gate mocked in unit tests\n")
         return root
 
     def test_discovery_imports_contract_without_concrete_studio_providers(self) -> None:
@@ -215,7 +216,7 @@ class AgentSurfaceTests(unittest.TestCase):
     def test_dependency_observation_never_acquires_and_detects_exact_receipt(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = self._root(directory)
-            with mock.patch("ordivon_studio.agent_dependencies.subprocess.run", return_value=mock.Mock(returncode=0)):
+            with mock.patch("ordivon_studio.agent_dependencies.subprocess.run", return_value=mock.Mock(returncode=0, stdout="studio_js_dependencies=ready\n")):
                 state = dependency_status(root)
                 self.assertTrue(state["js"]["ready"])
                 self.assertTrue(state["js"]["resolverChecked"])
@@ -230,12 +231,70 @@ class AgentSurfaceTests(unittest.TestCase):
     def test_js_status_delegates_currentness_to_project_pinned_pnpm_resolver(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = self._root(directory)
-            with mock.patch("ordivon_studio.agent_dependencies.subprocess.run", return_value=mock.Mock(returncode=2)) as probe:
+            with mock.patch("ordivon_studio.agent_dependencies.subprocess.run", return_value=mock.Mock(returncode=2, stdout="studio_js_dependencies=not-ready\n")) as probe:
                 state = dependency_status(root)
             self.assertFalse(state["js"]["ready"])
             self.assertEqual(state["js"]["reason"], "JS_DEPENDENCIES_STALE_OR_UNAVAILABLE")
             self.assertTrue(state["js"]["resolverChecked"])
             self.assertEqual(probe.call_args_list[0].args[0][:3], [shutil.which("pnpm"), "exec", "node"])
+
+    def test_js_gate_requires_typed_observation_and_never_acquires_for_invalid_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._root(directory)
+            cases = (
+                (0, "", "unknown", "JS_GATE_UNOBSERVED", None),
+                (2, "resolver error", "unknown", "JS_GATE_UNOBSERVED", None),
+                (3, "studio_js_dependencies=contract-invalid", "not-ready", "JS_CONTRACT_INVALID", None),
+                (4, "studio_js_dependencies=unobserved", "unknown", "JS_GATE_UNOBSERVED", None),
+                (0, "studio_js_dependencies=ready", "ready", "READY", False),
+                (2, "studio_js_dependencies=not-ready", "not-ready", "JS_DEPENDENCIES_STALE_OR_UNAVAILABLE", True),
+            )
+            for code, stdout, standing, reason, effect in cases:
+                with self.subTest(code=code, stdout=stdout):
+                    with mock.patch("ordivon_studio.agent_dependencies.subprocess.run",
+                                    return_value=mock.Mock(returncode=code, stdout=stdout)) as probe:
+                        state = dependency_proposal("js", root)
+                    self.assertEqual(state["status"]["standing"], standing)
+                    self.assertEqual(state["status"]["reason"], reason)
+                    self.assertIs(state["effectRequired"], effect)
+                    self.assertEqual(bool(state["plan"]), effect is True)
+                    self.assertTrue(probe.call_args.args[0][-1].endswith("require-js-deps.mjs"))
+
+    @unittest.skipUnless(shutil.which("node"), "native Node gate requires the JS toolchain")
+    def test_native_js_gate_observes_installed_identity_not_only_metadata(self) -> None:
+        real_root = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._root(directory)
+            gate = root / "scripts/require-js-deps.mjs"
+            shutil.copyfile(real_root / "scripts/require-js-deps.mjs", gate)
+            motion = root / "apps/motion-remotion"
+            motion.mkdir(parents=True)
+            manifest = motion / "package.json"
+            declared = {"dependencies": {"remotion": "4.0.1"}, "devDependencies": {"@remotion/cli": "4.0.1"}}
+            manifest.write_text(json.dumps(declared))
+            for name in ("remotion", "@remotion/cli"):
+                package = motion / "node_modules" / name / "package.json"
+                package.parent.mkdir(parents=True)
+                package.write_text(json.dumps({"name": name, "version": "4.0.1"}))
+
+            def observe(code: int, standing: str) -> None:
+                result = subprocess.run([shutil.which("node"), str(gate)], cwd=root,
+                                        capture_output=True, text=True, check=False, timeout=10)
+                self.assertEqual(result.returncode, code, result.stderr)
+                self.assertEqual(result.stdout.strip(), f"studio_js_dependencies={standing}")
+
+            observe(0, "ready")
+            runtime = motion / "node_modules/remotion/package.json"
+            runtime.unlink()
+            observe(2, "not-ready")
+            runtime.write_text(json.dumps({"name": "remotion", "version": "4.0.2"}))
+            observe(2, "not-ready")
+            runtime.write_text(json.dumps({"name": "remotion", "version": "4.0.1"}))
+            declared["devDependencies"]["@remotion/cli"] = "^4.0.1"
+            manifest.write_text(json.dumps(declared))
+            observe(3, "contract-invalid")
+            manifest.unlink()
+            observe(4, "unobserved")
 
     def test_python_receipt_does_not_establish_current_environment(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
