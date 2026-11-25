@@ -580,7 +580,7 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
         # the Runtime source-state read is in progress.
         from unittest.mock import patch
         self.git("update-ref", "refs/remotes/origin/main", self.head)
-        original = mod._operator_attests_consumer_release
+        original = mod._operator_release_binding
         calls = []
         def release(policy, workspace_id):
             answer = original(policy, workspace_id)
@@ -590,7 +590,7 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                          str(self.workspace))
             return answer
         try:
-            with patch.object(mod, "_operator_attests_consumer_release",
+            with patch.object(mod, "_operator_release_binding",
                               side_effect=release):
                 report, client = self.run_operator_plan(
                     allow=False, job_case="failed",
