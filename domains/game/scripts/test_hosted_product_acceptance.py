@@ -25,7 +25,7 @@ class ArtifactContract(unittest.TestCase):
     def fixture(self, *, bad_source=False, bad_manifest=False, extra=False,
                 link=False, traversal=False, missing_template=False, duplicate=False,
                 fields_override=None, native_name=None, payload=b"fixture", reverse=False,
-                substituted_payload=None):
+                substituted_payload=None, windows_payload=b"fixture-windows"):
         native = io.BytesIO()
         with tarfile.open(fileobj=native, mode="w:gz") as t:
             for name in ("room-encounter.x86_64", "DIALOGUE_MANAGER_LICENSE.txt",
@@ -48,7 +48,7 @@ class ArtifactContract(unittest.TestCase):
         if missing_template:
             del fields["TEMPLATE_WINDOWS_SHA256"]
         fields.update(fields_override or {})
-        entries = {linux: native.getvalue(), windows: b"fixture-windows",
+        entries = {linux: native.getvalue(), windows: windows_payload,
                    receipt: "".join(f"{k}={v}\n" for k,v in fields.items()).encode()}
         sums = "".join(f"{hashlib.sha256(data).hexdigest()}  {name}\n" for name,data in entries.items())
         if bad_manifest:

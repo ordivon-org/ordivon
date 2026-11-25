@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import re
 import stat
+import shutil
 import subprocess
 import tarfile
 import tempfile
@@ -24,7 +25,8 @@ def names(product):
             "BUILD_SOURCE.txt", "SHA256SUMS", "READY")
 
 
-def verify_archive(path, expected_sha, source, product, target):
+def verify_archive(path, expected_sha, source, product, target, *, platform="linux"):
+    require(platform in ("linux", "windows"), "unknown native platform")
     require(path.is_file() and not path.is_symlink() and 0 < path.stat().st_size <= MAX_ARCHIVE,
             "invalid outer archive")
     require(re.fullmatch(r"[0-9a-f]{64}", expected_sha) and digest(path) == expected_sha,
@@ -68,30 +70,64 @@ def verify_archive(path, expected_sha, source, product, target):
             with archive.open(name) as stream:
                 actual = hashlib.file_digest(stream, "sha256").hexdigest()
             require(actual == entries[name], f"manifest digest differs: {name}")
-        with archive.open(linux) as stream, tarfile.open(fileobj=stream, mode="r|gz") as tar:
-            executable = target / f"{product}.x86_64"
-            seen = set()
-            licenses = ({"DIALOGUE_MANAGER_LICENSE.txt", "KENNEY_ASSETS_LICENSE.txt"}
-                        if product == "room-encounter" else
-                        {"UPSTREAM_MIT_LICENSE.txt", "FONT_OFL_LICENSE.txt", "CREDITS.txt"})
-            allowed = {executable.name} | licenses
-            for item in tar:
-                require(item.name in allowed and item.name not in seen and item.isfile(),
-                        "native member not allowed/regular")
-                seen.add(item.name)
-                require(0 < item.size <= (MAX_EXECUTABLE if item.name == executable.name else MAX_TEXT),
-                        "native member size invalid")
-                if item.name == executable.name:
-                    with tar.extractfile(item) as src, executable.open("xb") as out:
-                        while chunk := src.read(1024 * 1024):
-                            out.write(chunk)
-                    require(executable.stat().st_size == item.size, "incomplete executable")
-            require(seen == allowed, "native member inventory differs")
-        executable.chmod(0o700)
+        licenses = ({"DIALOGUE_MANAGER_LICENSE.txt", "KENNEY_ASSETS_LICENSE.txt"}
+                    if product == "room-encounter" else
+                    {"UPSTREAM_MIT_LICENSE.txt", "FONT_OFL_LICENSE.txt", "CREDITS.txt"})
+        if platform == "windows":
+            executable = materialize_windows(archive, windows, product, licenses, target)
+        else:
+            executable = materialize_linux(archive, linux, product, licenses, target)
         require(digest(path) == expected_sha, "outer archive changed")
         return executable, {"outer_sha256": expected_sha, "source_commit": source, "product": product,
                             "linux_archive_sha256": entries[linux], "windows_archive_sha256": entries[windows],
                             "build_source_sha256": entries[receipt], "executable_sha256": digest(executable)}
+
+
+
+def materialize_linux(archive, name, product, licenses, target):
+    with archive.open(name) as stream, tarfile.open(fileobj=stream, mode="r|gz") as tar:
+        executable = target / f"{product}.x86_64"
+        seen = set()
+        allowed = {executable.name} | licenses
+        for item in tar:
+            require(item.name in allowed and item.name not in seen and item.isfile(),
+                    "native member not allowed/regular")
+            seen.add(item.name)
+            require(0 < item.size <= (MAX_EXECUTABLE if item.name == executable.name else MAX_TEXT),
+                    "native member size invalid")
+            if item.name == executable.name:
+                with tar.extractfile(item) as src, executable.open("xb") as out:
+                    shutil.copyfileobj(src, out, length=1024 * 1024)
+                require(executable.stat().st_size == item.size, "incomplete executable")
+        require(seen == allowed, "native member inventory differs")
+    executable.chmod(0o700)
+    return executable
+
+
+def materialize_windows(archive, name, product, licenses, target):
+    executable = target / f"{product}.exe"
+    allowed = {executable.name} | licenses
+    # A seekable private copy avoids repeated decompression of the outer member.
+    # Its size and digest have already been verified by the shared bundle gate.
+    with tempfile.TemporaryFile() as inner:
+        with archive.open(name) as src:
+            shutil.copyfileobj(src, inner, length=1024 * 1024)
+        inner.seek(0)
+        with zipfile.ZipFile(inner) as native:
+            members = native.infolist()
+            require(len(members) == len(allowed) and {m.filename for m in members} == allowed,
+                    "Windows native member inventory differs")
+            for item in members:
+                require(not item.is_dir() and stat.S_IFMT(item.external_attr >> 16) in (0, stat.S_IFREG),
+                        "Windows native member not regular")
+                require(0 < item.file_size <= (MAX_EXECUTABLE if item.filename == executable.name else MAX_TEXT),
+                        "Windows native member size invalid")
+            # Never extract paths supplied by the archive.
+            with native.open(executable.name) as src, executable.open("xb") as out:
+                shutil.copyfileobj(src, out, length=1024 * 1024)
+            require(executable.stat().st_size == native.getinfo(executable.name).file_size,
+                    "incomplete Windows executable")
+    return executable
 
 
 def consume(path, expected_sha, source, product):
