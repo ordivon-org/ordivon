@@ -118,4 +118,5 @@ mod artifact_index_cases;
 mod cancellation_cases;
 mod dispatch_cases;
 mod issuer_cases;
+mod owner_pair_cases;
 mod terminal_cases;
