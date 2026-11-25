@@ -84,6 +84,25 @@ def compare_gate_source_scopes(
     """
     previous = compile_manifest(previous_manifest)
     current = compile_manifest(current_manifest)
+    return _compare_validated_gate_source_scopes(
+        previous_manifest,
+        current_manifest,
+        previous["manifestDigest"],
+        current["manifestDigest"],
+    )
+
+
+def _compare_validated_gate_source_scopes(
+    previous_manifest: dict[str, Any],
+    current_manifest: dict[str, Any],
+    previous_digest: str,
+    current_digest: str,
+) -> dict[str, Any]:
+    """Internal synchronous projection of cuts compiled by this caller.
+
+    Digests are obtained from compile_manifest in the same call, never
+    from a public caller or persisted validation/proof cache.
+    """
     if previous_manifest["circuitId"] != current_manifest["circuitId"]:
         raise CircuitContractError("gate source comparison requires the same circuitId")
     old_gates = {item["id"] for item in previous_manifest["gateRequirements"]}
@@ -101,8 +120,8 @@ def compare_gate_source_scopes(
     removed = sorted(old_gates - new_gates)
     return {
         "kind": "ordivon.task-local-gate-source-delta",
-        "previousManifestDigest": previous["manifestDigest"],
-        "currentManifestDigest": current["manifestDigest"],
+        "previousManifestDigest": previous_digest,
+        "currentManifestDigest": current_digest,
         "changedGateIds": changed,
         "unchangedGateIds": unchanged,
         "addedGateIds": added,
