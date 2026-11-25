@@ -582,8 +582,15 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             self.assertEqual(receipt["verification"]["assimpStatus"],"PASS")
             self.assertEqual(receipt["verification"]["blenderStatus"],"PASS")
             self.assertEqual(receipt["verification"]["godotStatus"],"PASS")
+            # Historical source identity, not a permanent pin on the current verifier.
+            revision = "e2757345aae3e4d38330d0f07c8eef45bbdf998f"
             for value in receipt["artifactOwnedAuthorities"].values():
-                path=ROOT/value["relativePath"];self.assertEqual(sha(path),value["sha256"],value["relativePath"])
+                path = (ROOT / value["relativePath"]).relative_to(MONOREPO_ROOT).as_posix()
+                source = subprocess.check_output(
+                    ["git", "-C", str(MONOREPO_ROOT), "show", f"{revision}:{path}"],
+                    timeout=25,
+                )
+                self.assertEqual(hashlib.sha256(source).hexdigest(), value["sha256"], path)
             self.assertEqual(receipt["externalSubject"]["identityStanding"],"EXACT_BYTES_OBSERVED_AT_CONSUMER_REVISION_NOT_ARTIFACT_OWNED")
 
     def test_frozen_game_godot_linux_elf_release_preserves_producer_and_artifact_authorities(self):

@@ -315,7 +315,29 @@ same-principal scratch mutation, imported Python/native dependencies, Tiled
 global configuration, and external target acceptance are not claimed.
 
 The historical Game TMJ receipt retains its original bytes and digest. All four Artifact authority digests match the retained monorepo source cut `e2757345aae3e4d38330d0f07c8eef45bbdf998f`; the historical receipt test reads that exact Git witness rather than constraining the current driver. This is not the original external repository revision.
+### T4 narrow GLB core-resource boundary
 
+Current GLB profiles explicitly exclude textures. Read only the GLB container
+header, JSON chunk and optional BIN chunk header for resource admission;
+seek past BIN without a second bulk read. The general native checker remains
+the conformance authority. Reject external buffer URIs (including embedded
+data URIs outside the core BIN subset), image/texture declarations, unqualified
+extensions, ambiguous JSON, and unknown/inconsistent chunks before import.
+A rejection is a bounded input-policy failure, not a fabricated Khronos
+observation. The static mesh route uses existing exact subject/contract
+snapshots; material and skinned-animation routes remain legacy until actual
+consumer qualification. Historical Game receipts retain their original exact
+authority hashes, read from retained monorepo cut e2757345.
+
+I: GLB descriptor + exact length and declared JSON; O: bounded resource
+facts/issues; S: Unit; pre: bounded core profile; post: no admitted core
+external resource declarations; inv: a failed admission cannot cause native
+import; eff: bounded read/seek, no external effects; c: O(JSON size + its
+declared graph), full byte commitment remains separate O(file size); epsilon:
+no complete native process readset, global configuration, extension/extra
+consumer semantics or domain acceptance claim. Direct CLI callers retain
+original-path semantics; only the qualified service snapshot prevents
+source-path ABA for subject/contract.
 
 ### T8 Python generation publication refinement
 

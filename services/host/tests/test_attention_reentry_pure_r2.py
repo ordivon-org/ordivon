@@ -225,3 +225,35 @@ def test_reentry_is_maximal_lossless_prefix_under_exact_wire_budget(case, sample
             assert result == fits[-1]
             assert len(canonical_bytes(result)) <= budget
         assert (delta, cursors) == before
+
+
+
+@pytest.mark.parametrize("shape", ["distinct", "overlap", "mixed"])
+def test_full_limit_reentry_matches_independent_prefix_oracle(shape):
+    # Valid owner horizon, mixed scalar boundaries, Unicode and escaping.
+    events = []
+    for n in range(500):
+        ref = (f"topic:{n}:汉𠀀\\\"{n}" if shape == "distinct"
+               else f"topic:{n % (3 if shape == 'overlap' else 120)}:汉𠀀")
+        event = _event(900 + n, kind="topic" if n % 5 else "work", ref=ref,
+                       reason=("mentioned", "followed_topic", "replied_to_me")[n % 3])
+        event["eventKind"] = ("message", "relation", "work")[n % 3]
+        events.append(event)
+    delta = {"events": events, "hasMore": False, "nextAfterSequence": 2000,
+             "snapshotHighSequence": 2000}
+    actor, after = "actor:汉𠀀", 899
+    cursors = {event["navigationRef"]: 2**53-1 for event in events[::7]}
+    expected = [_expected_prefix(delta, n, actor, after, cursors) for n in range(1, 501)]
+    lengths = [len(canonical_bytes(candidate)) for candidate in expected]
+    for budget in {16384, lengths[0]-1, lengths[0], lengths[99]-1, lengths[99],
+                   lengths[249], lengths[-1]-1, lengths[-1]}:
+        fits = [v for v, size in zip(expected, lengths, strict=True) if size <= budget]
+        if not fits:
+            with pytest.raises(ValueError, match="cannot fit"):
+                project_reentry(delta, actor_ref=actor, after_sequence=after,
+                                cursors=cursors, max_bytes=budget)
+        else:
+            result = project_reentry(delta, actor_ref=actor, after_sequence=after,
+                                     cursors=cursors, max_bytes=budget)
+            assert result == fits[-1]
+            assert len(canonical_bytes(result)) <= budget

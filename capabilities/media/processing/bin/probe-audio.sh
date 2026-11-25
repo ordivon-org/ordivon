@@ -25,6 +25,27 @@ command -v ffmpeg >/dev/null
 command -v jq >/dev/null
 command -v sha256sum >/dev/null
 
+# Validate the declared policy before native observation; invalid is not optional.
+jq -es '
+  def text: type == "string" and (length > 0);
+  def integer: type == "number" and isfinite and (floor == .);
+  def positive_integer: integer and . > 0;
+  length == 1 and (.[0] |
+    type == "object" and .schemaVersion == 1 and
+    (.id | text) and
+    .kind == "ordivon.media.v2.audio-profile" and
+    (.audio | type == "object") and (.loudness | type == "object") and
+    (.audio | (.streamCount | positive_integer) and
+      (if has("streamIndex") then
+        (.streamIndex | integer and . >= 0) and .streamIndex < .streamCount
+       else true end) and
+      (.sampleRate | positive_integer) and (.channels | positive_integer) and
+      (.codec | text) and (.channelLayout | text)) and
+    (.loudness | .measurement == "ffmpeg-loudnorm-bs1770-family" and
+      ([.targetLufs,.toleranceLu,.maxTruePeakDbtp] | all(.[]; type == "number" and isfinite)) and
+      .toleranceLu >= 0))
+' "$profile" >/dev/null || { echo "invalid audio profile" >&2; exit 65; }
+
 mkdir -p "$out/raw"
 probe="$out/raw/ffprobe.json"
 loud_stderr="$out/raw/ffmpeg-loudnorm.stderr"
@@ -35,14 +56,14 @@ evidence="$out/evidence.json"
 ffprobe -v error -show_format -show_streams -of json "$artifact" > "$probe"
 
 stream_index=$(jq -r '.audio.streamIndex // 0' "$profile")
-ffmpeg -hide_banner -nostats -i "$artifact" -map "0:a:${stream_index}" \
-  -af 'loudnorm=I=-23:LRA=7:TP=-1:print_format=json' -f null - 2>"$loud_stderr"
-
-awk '
-  /^[[:space:]]*\{[[:space:]]*$/ {capture=1}
-  capture {print}
-  capture && /^[[:space:]]*\}[[:space:]]*$/ {exit}
-' "$loud_stderr" > "$loud_json"
+# Native FFmpeg statistics file, not a JSON fragment scraped from diagnostics.
+# Use a fixed relative basename within the attempt's raw directory: paths
+# containing filter separators or quotes never enter the filter expression.
+(
+  cd "$out/raw"
+  ffmpeg -hide_banner -nostats -i "$artifact" -map "0:a:${stream_index}" \
+    -af 'loudnorm=I=-23:LRA=7:TP=-1:print_format=json:stats_file=ffmpeg-loudnorm.json' -f null -
+) 2>"$loud_stderr"
 
 jq -e 'has("input_i") and has("input_tp") and has("input_lra") and has("input_thresh")' "$loud_json" >/dev/null || {
   echo "FFmpeg loudnorm did not produce the expected measurement JSON" >&2
@@ -67,24 +88,36 @@ jq -n \
   $l[0] as $l |
   [$f.streams[]? | select(.codec_type == "audio")] as $audios |
   ($audios[$p.audio.streamIndex // 0] // {}) as $a |
-  ($l.input_i | tonumber) as $integrated |
-  ($l.input_tp | tonumber) as $truePeak |
-  ($l.input_lra | tonumber) as $lra |
-  ($l.input_thresh | tonumber) as $threshold |
+  # FFmpeg reports nonfinite measurements as strings; jq can saturate
+  # infinities when serializing numbers. Preserve their standing separately.
+  def observe:
+    . as $raw |
+    if $raw == "-inf" then {value:null,standing:"negative-infinity"}
+    elif $raw == "inf" or $raw == "+inf" then {value:null,standing:"positive-infinity"}
+    elif $raw == "nan" or $raw == "-nan" then {value:null,standing:"not-a-number"}
+    else (try ($raw | tonumber) catch null) as $n |
+      if ($n | type) == "number" and ($n | isfinite) then {value:$n,standing:"finite"}
+      else {value:null,standing:"unobserved-or-invalid"} end
+    end;
+  ($l.input_i | observe) as $integrated |
+  ($l.input_tp | observe) as $truePeak |
+  ($l.input_lra | observe) as $lra |
+  ($l.input_thresh | observe) as $threshold |
   [
     {name:"audio.streamCount", expected:$p.audio.streamCount, actual:($audios|length), ok:(($audios|length) == $p.audio.streamCount)},
     {name:"audio.codec", expected:$p.audio.codec, actual:$a.codec_name, ok:($a.codec_name == $p.audio.codec)},
     {name:"audio.sampleRate", expected:$p.audio.sampleRate, actual:($a.sample_rate|tonumber? // null), ok:(($a.sample_rate|tonumber? // null) == $p.audio.sampleRate)},
     {name:"audio.channels", expected:$p.audio.channels, actual:$a.channels, ok:($a.channels == $p.audio.channels)},
     {name:"audio.channelLayout", expected:$p.audio.channelLayout, actual:$a.channel_layout, ok:($a.channel_layout == $p.audio.channelLayout)},
-    {name:"loudness.integratedLufs", expected:{target:$p.loudness.targetLufs,tolerance:$p.loudness.toleranceLu}, actual:$integrated, ok:((($integrated - $p.loudness.targetLufs)|fabs) <= $p.loudness.toleranceLu)},
-    {name:"loudness.truePeakDbtp", expected:{max:$p.loudness.maxTruePeakDbtp}, actual:$truePeak, ok:($truePeak <= $p.loudness.maxTruePeakDbtp)}
+    {name:"loudness.integratedLufs", expected:{target:$p.loudness.targetLufs,tolerance:$p.loudness.toleranceLu}, actual:$integrated.value, observationStanding:$integrated.standing, ok:(if $integrated.standing == "finite" then ((($integrated.value - $p.loudness.targetLufs)|fabs) <= $p.loudness.toleranceLu) else false end)},
+    {name:"loudness.truePeakDbtp", expected:{max:$p.loudness.maxTruePeakDbtp}, actual:$truePeak.value, observationStanding:$truePeak.standing, ok:(if $truePeak.standing == "finite" then ($truePeak.value <= $p.loudness.maxTruePeakDbtp) else false end)}
   ] as $checks |
   {
     schemaVersion:1,
     kind:"ordivon.media.v2.audio-profile-assertions",
     profileId:$p.id,
-    measurement:{integratedLoudnessLufs:$integrated,truePeakDbtp:$truePeak,loudnessRangeLu:$lra,thresholdLufs:$threshold},
+    measurement:{integratedLoudnessLufs:$integrated.value,truePeakDbtp:$truePeak.value,loudnessRangeLu:$lra.value,thresholdLufs:$threshold.value},
+    measurementStanding:{integratedLoudnessLufs:$integrated.standing,truePeakDbtp:$truePeak.standing,loudnessRangeLu:$lra.standing,thresholdLufs:$threshold.standing},
     ok:($checks|all(.ok)),
     checks:$checks
   }
@@ -118,6 +151,7 @@ jq -n \
     tools:{ffprobe:{version:$ffprobeVersion},ffmpeg:{version:$ffmpegVersion}},
     evidence:{rawProbeDigest:$rawProbeDigest,rawLoudnormStderrDigest:$rawLoudnormStderrDigest,rawLoudnormJsonDigest:$rawLoudnormJsonDigest,assertionsDigest:$assertionsDigest},
     measurement:$a[0].measurement,
+    measurementStanding:$a[0].measurementStanding,
     technicalQc:{ok:$ok},
     listeningQuality:"not-evaluated",
     semanticQuality:"not-evaluated",

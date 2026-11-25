@@ -2,9 +2,7 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/../.." && pwd)
-work="$root/.tmp/processing-timedtext-smoke"
-rm -rf "$work"
-mkdir -p "$work"
+work=$(mktemp -d "${TMPDIR:-/tmp}/ordivon-media-timedtext-smoke.XXXXXX")
 trap 'rm -rf "$work"' EXIT
 
 ttconv="$root/processing/bin/ttconv-pinned.sh"
