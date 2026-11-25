@@ -19,6 +19,7 @@ import json
 import os
 import stat
 from pathlib import Path
+from collections.abc import Iterable
 import subprocess
 import sys
 import tempfile
@@ -440,6 +441,11 @@ def eligible(
     )
 
 def _active_process_paths(root: Path) -> list[str]:
+    """Production census: all visible PIDs; unreadable observations fail closed."""
+    return _observe_process_paths(root, Path("/proc").glob("[0-9]*"))
+
+
+def _observe_process_paths(root: Path, processes: Iterable[Path]) -> list[str]:
     """Advisory native consumer observation, not proof of semantic release.
 
     External consumers can keep a Workspace file open while running outside
@@ -457,7 +463,7 @@ def _active_process_paths(root: Path) -> list[str]:
         if location == str(root) or location.startswith(prefix):
             result.add(location)
 
-    for process in Path("/proc").glob("[0-9]*"):
+    for process in processes:
         links = [process / "cwd", process / "exe"]
         try:
             links.extend((process / "fd").iterdir())

@@ -80,8 +80,8 @@ class PgWorkspaceReclaimTests(unittest.TestCase):
             payload.write_text("native consumer")
             self.assertFalse(str(Path.cwd()).startswith(str(workspace)))
             with payload.open("rb"):
-                self.assertIn(str(payload), mod._active_process_paths(Path(root)))
-            self.assertNotIn(str(payload), mod._active_process_paths(Path(root)))
+                self.assertIn(str(payload), mod._observe_process_paths(Path(root), [Path("/proc") / str(os.getpid())]))
+            self.assertNotIn(str(payload), mod._observe_process_paths(Path(root), [Path("/proc") / str(os.getpid())]))
 
     def test_file_mapping_survives_original_descriptor_close(self):
         import mmap
@@ -97,10 +97,10 @@ class PgWorkspaceReclaimTests(unittest.TestCase):
                                     trackfd=False)
             try:
                 self.assertEqual(mapping[:], b"native mapped consumer")
-                self.assertIn(str(payload), mod._active_process_paths(Path(root)))
+                self.assertIn(str(payload), mod._observe_process_paths(Path(root), [Path("/proc") / str(os.getpid())]))
             finally:
                 mapping.close()
-            self.assertNotIn(str(payload), mod._active_process_paths(Path(root)))
+            self.assertNotIn(str(payload), mod._observe_process_paths(Path(root), [Path("/proc") / str(os.getpid())]))
 
     def test_mapping_path_with_whitespace_and_newline_is_not_omitted(self):
         import mmap
@@ -115,7 +115,7 @@ class PgWorkspaceReclaimTests(unittest.TestCase):
                 mapping = mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ,
                                     trackfd=False)
             try:
-                self.assertIn(str(payload), mod._active_process_paths(Path(root)))
+                self.assertIn(str(payload), mod._observe_process_paths(Path(root), [Path("/proc") / str(os.getpid())]))
             finally:
                 mapping.close()
 
@@ -134,16 +134,26 @@ class PgWorkspaceReclaimTests(unittest.TestCase):
                 mapping = mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ,
                                     trackfd=False)
             try:
-                self.assertEqual(mod._active_process_paths(workspace), [])
+                self.assertEqual(mod._observe_process_paths(workspace, [Path("/proc") / str(os.getpid())]), [])
             finally:
                 mapping.close()
 
     def test_external_consumer_unknown_is_not_an_empty_census(self):
         from unittest.mock import patch
 
+        own = Path("/proc") / str(os.getpid())
         with patch.object(mod.os, "readlink", side_effect=PermissionError("denied")):
             with self.assertRaises(PermissionError):
-                mod._active_process_paths(Path("/nonexistent-workspace-root"))
+                mod._observe_process_paths(Path("/nonexistent-workspace-root"), [own])
+
+    def test_production_process_census_does_not_hide_denied_pid(self):
+        from unittest.mock import patch
+        own = Path("/proc") / str(os.getpid())
+        with patch.object(Path, "glob", return_value=iter([own])) as census:
+            with patch.object(Path, "iterdir", side_effect=PermissionError("denied")):
+                with self.assertRaises(PermissionError):
+                    mod._active_process_paths(Path("/nonexistent-workspace-root"))
+            census.assert_called_once_with("[0-9]*")
 
     def test_reclaims_only_old_terminal_success(self):
         self.assertTrue(mod.eligible(**self.params))
@@ -538,9 +548,10 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                 1 if job_case == "active" else 0,
             )
         }
-        observe_processes = mod._active_process_paths if real_process_observation else (
-            lambda _: process_cwd_after_get.copy()
-        )
+        def observe_processes(root):
+            if real_process_observation:
+                return mod._observe_process_paths(root, [Path("/proc") / str(os.getpid())])
+            return process_cwd_after_get.copy()
         with (
             patch.object(mod, "WORKSPACE_ROOT", self.workspaces.resolve()),
             patch.object(
