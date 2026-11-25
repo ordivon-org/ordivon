@@ -30,14 +30,22 @@ class FocusedVerificationContractTests(unittest.TestCase):
         mise = tomllib.loads((RUNTIME_ROOT / "mise.toml").read_text(encoding="utf-8"))
         nextest = mise["tools"]["http:cargo-nextest"]
         version = nextest["version"]
-        artifact = nextest["platforms"]["linux-x64"]
-        expected_url = (
-            "https://github.com/nextest-rs/nextest/releases/download/"
-            f"cargo-nextest-{version}/cargo-nextest-{version}-x86_64-unknown-linux-gnu.tar.gz"
-        )
-        self.assertEqual(artifact["url"], expected_url)
-        self.assertRegex(artifact["checksum"], r"^sha256:[0-9a-f]{64}$")
-        self.assertGreater(artifact["size"], 0)
+        expected_assets = {
+            "linux-x64": "x86_64-unknown-linux-gnu.tar.gz",
+            "windows-x64": "x86_64-pc-windows-msvc.zip",
+        }
+        self.assertEqual(set(nextest["platforms"]), set(expected_assets))
+        for platform, suffix in expected_assets.items():
+            with self.subTest(platform=platform):
+                artifact = nextest["platforms"][platform]
+                expected_url = (
+                    "https://github.com/nextest-rs/nextest/releases/download/"
+                    f"cargo-nextest-{version}/cargo-nextest-{version}-{suffix}"
+                )
+                self.assertEqual(artifact["url"], expected_url)
+                self.assertRegex(artifact["checksum"], r"^sha256:[0-9a-f]{64}$")
+                self.assertIs(type(artifact["size"]), int)
+                self.assertGreater(artifact["size"], 0)
 
     @staticmethod
     def run_focused(selector: str | None, profile: str | None = None) -> subprocess.CompletedProcess[str]:
