@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import os
 import subprocess
 import sys
 import unittest
@@ -200,3 +201,138 @@ class ProductBindingTests(unittest.TestCase):
                     bindings=(self.binding(product_version="1.0.0"),),
                 )
             observe.assert_not_called()
+
+    def test_all_metadata_declarations_qualified_before_any_file_read(self):
+        bindings = tuple(self.binding(product_version=v) for v in ("1.0.0", "2.0.0"))
+        invalid = (
+            ("corpusManifestSha256", "not-a-digest"),
+            ("corpusManifestRelativePath", "../escape.json"),
+            ("corpusManifestRelativePath", "invalid\x00path"),
+            ("corpusManifestRelativePath", "invalid\ud800path"),
+            ("corpusManifestRelativePath", "/absolute.json"),
+        )
+        for property_name, value in invalid:
+            for index in (0, 1):
+                products = copy.deepcopy(self.versions)
+                for prop in products[index]["customProperties"]:
+                    if prop["property"] == property_name:
+                        prop["value"] = value
+                sources = [json.dumps(p).encode() for p in products]
+                with (
+                    self.subTest(
+                        property_name=property_name, value=ascii(value), index=index
+                    ),
+                    patch(
+                        "ordivon_data.local_evidence.scoped_sha256",
+                        side_effect=lambda path, *args, **kwargs: (
+                            hashlib.sha256(path.stem.encode()).hexdigest(),
+                            "observed",
+                        ),
+                    ) as observe,
+                ):
+                    with self.assertRaises(ValueError):
+                        project_catalog(sources, bindings=bindings)
+                    observe.assert_not_called()
+
+    def test_late_missing_or_duplicate_property_never_reads_earlier_product(self):
+        bindings = tuple(self.binding(product_version=v) for v in ("1.0.0", "2.0.0"))
+        for duplicate in (False, True):
+            products = copy.deepcopy(self.versions)
+            props = products[1]["customProperties"]
+            found = next(p for p in props if p["property"] == "corpusManifestSha256")
+            if duplicate:
+                props.append(found.copy())
+            else:
+                props.remove(found)
+            with (
+                self.subTest(duplicate=duplicate),
+                patch(
+                    "ordivon_data.local_evidence.scoped_sha256",
+                    return_value=(hashlib.sha256(b"1.0.0").hexdigest(), "observed"),
+                ) as observe,
+            ):
+                with self.assertRaisesRegex(
+                    ValueError, "missing or ambiguous producer property"
+                ):
+                    project_catalog(
+                        [json.dumps(p).encode() for p in products], bindings=bindings
+                    )
+                observe.assert_not_called()
+
+    def test_invalid_projected_unicode_is_rejected_before_file_io(self):
+        fields = (
+            ("id",),
+            ("version",),
+            ("name",),
+            ("description", "purpose"),
+            ("outputPorts", 0, "name"),
+            ("outputPorts", 0, "id"),
+            ("outputPorts", 0, "version"),
+        )
+        for fieldspec in fields:
+            products = copy.deepcopy(self.versions)
+            parent = products[1]
+            for key in fieldspec[:-1]:
+                parent = parent[key]
+            parent[fieldspec[-1]] = "bad\ud800"
+            with (
+                self.subTest(fieldspec=fieldspec),
+                patch(
+                    "ordivon_data.local_evidence.scoped_sha256",
+                    return_value=(hashlib.sha256(b"1.0.0").hexdigest(), "observed"),
+                ) as observe,
+            ):
+                with self.assertRaisesRegex(ValueError, "non-Unicode scalar"):
+                    project_catalog(
+                        [json.dumps(p).encode() for p in products],
+                        bindings=(self.binding(product_version="1.0.0"),),
+                    )
+                observe.assert_not_called()
+
+    def test_invalid_governance_policy_unicode_is_rejected(self):
+        product = copy.deepcopy(self.versions[0])
+        for prop in product["customProperties"]:
+            if prop["property"] == "governancePolicyUid":
+                prop["value"] = "urn:bad:\ud800"
+        with patch("ordivon_data.local_evidence.scoped_sha256") as observe:
+            with self.assertRaisesRegex(ValueError, "non-Unicode scalar"):
+                project_odps(
+                    json.dumps(product).encode(),
+                    bindings=(self.binding(product_version="1.0.0"),),
+                )
+            observe.assert_not_called()
+
+    def test_projector_cli_invalid_text_rejects_and_valid_unicode_serializes(self):
+        product = copy.deepcopy(self.versions[0])
+        path = self.root / "unicode-metadata.json"
+        command = [
+            sys.executable,
+            str(ROOT / "packages/data/scripts/project_owned_products.py"),
+            "--product",
+            str(path),
+        ]
+        product["name"] = "bad\ud800"
+        path.write_text(json.dumps(product))
+        bad = subprocess.run(
+            command,
+            capture_output=True,
+            check=False,
+            timeout=20,
+            env={**os.environ, "PYTHONIOENCODING": "utf-8:strict"},
+        )
+        self.assertEqual(bad.returncode, 2, bad.stderr)
+        self.assertNotIn(b"Traceback", bad.stderr)
+        self.assertEqual(bad.stdout, b"")
+        product["name"] = "数据产品"
+        path.write_text(json.dumps(product))
+        good = subprocess.run(
+            command,
+            capture_output=True,
+            check=False,
+            timeout=20,
+            env={**os.environ, "PYTHONIOENCODING": "ascii:strict"},
+        )
+        self.assertEqual(good.returncode, 0, good.stderr)
+        self.assertEqual(
+            json.loads(good.stdout)["dcat:dataset"][0]["dct:title"], product["name"]
+        )

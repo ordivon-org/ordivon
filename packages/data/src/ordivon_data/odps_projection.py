@@ -17,8 +17,8 @@ from .binding_selection import (
     select_bindings,
     uuid_uri,
 )
-from .local_evidence import qualified_local_distribution
-from .metadata_json import read_metadata
+from .local_evidence import observe_local_evidence, prepare_local_evidence
+from .metadata_json import contains_surrogate, read_metadata
 
 _FORMATS = {
     "file/json": "application/json",
@@ -30,6 +30,8 @@ _FORMATS = {
 def _text(value: Any, *, field: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"ODPS missing nonempty {field}")
+    if contains_surrogate(value):
+        raise ValueError(f"ODPS {field} contains a non-Unicode scalar")
     return value
 
 
@@ -115,6 +117,8 @@ def _project_metadata(
         rights and (not isinstance(rights[0], str) or not rights[0].startswith("urn:"))
     ):
         raise ValueError("ambiguous or invalid governance policy identity")
+    if rights and contains_surrogate(rights[0]):
+        raise ValueError("ODPS governance policy contains a non-Unicode scalar")
     entry = {
         "@type": "dcat:Dataset",
         "dct:identifier": product_id,
@@ -127,7 +131,10 @@ def _project_metadata(
     }
     description = product.get("description")
     if isinstance(description, dict) and isinstance(description.get("purpose"), str):
-        entry["dct:description"] = description["purpose"]
+        purpose = description["purpose"]
+        if contains_surrogate(purpose):
+            raise ValueError("ODPS description purpose contains a non-Unicode scalar")
+        entry["dct:description"] = purpose
     if dataset_uri:
         entry["@id"] = dataset_uri
     if rights:
@@ -139,11 +146,19 @@ def _bind_entries(
     entries: list[tuple[dict[str, Any], dict[str, Any], str]],
     bindings: tuple[LocalEvidenceBinding, ...],
 ) -> None:
-    # Resolve the entire demand set before opening a distribution file.
+    # Qualify every target and its declared path/digest before any bound file read.
     products = [product for product, _, _ in entries]
+    plan = []
     for product_index, port_index, binding in select_bindings(products, bindings):
         product, entry, _ = entries[product_index]
-        qualified_local_distribution(product, entry, binding, port_index=port_index)
+        distribution = entry["dcat:distribution"][port_index]
+        if "dcat:accessURL" in distribution or "spdx:checksum" in distribution:
+            raise ValueError("duplicate local evidence binding for output port")
+        plan.append((distribution, prepare_local_evidence(product, binding)))
+    # Keep partial observations out of the projection if any subsequent read fails.
+    patches = [observe_local_evidence(prepared) for _, prepared in plan]
+    for (distribution, _), evidence in zip(plan, patches, strict=True):
+        distribution.update(evidence)
 
 
 def project_odps(

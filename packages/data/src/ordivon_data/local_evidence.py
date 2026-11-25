@@ -7,6 +7,7 @@ is guessed. This is a current local file read, not a persistent product registry
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -26,23 +27,20 @@ def _property(props: list[Any], key: str) -> str:
     return matches[0]
 
 
-def qualified_local_distribution(
-    product: dict[str, Any],
-    projected: dict[str, Any],
-    binding: LocalEvidenceBinding,
-    *,
-    port_index: int,
-) -> None:
-    """Mutate an in-memory DCAT port after qualified local-byte observation.
+@dataclass(frozen=True)
+class PreparedLocalEvidence:
+    """Qualified metadata, not an assertion that a file exists or is verified."""
 
-    Correctness boundary: exact bytes at the open handle were hashed against
-    producer metadata. A future consumer must recheck the file; this does NOT
-    assert that the pathname remains immutable, or that data rights are granted.
-    """
-    # Selection is already qualified by the pure binding planner.
-    distribution = projected["dcat:distribution"][port_index]
-    if "dcat:accessURL" in distribution or "spdx:checksum" in distribution:
-        raise ValueError("duplicate local evidence binding for output port")
+    root: Path
+    path: Path
+    digest: str
+    uri: str
+
+
+def prepare_local_evidence(
+    product: dict[str, Any], binding: LocalEvidenceBinding
+) -> PreparedLocalEvidence:
+    """Resolve declared evidence coordinates without opening a bound file."""
     props = product.get("customProperties", [])
     if not isinstance(props, list):
         raise TypeError("ODPS customProperties must be a list")
@@ -55,6 +53,8 @@ def qualified_local_distribution(
 
     if contains_surrogate(declared_path):
         raise ValueError("producer relative path contains a non-Unicode scalar")
+    if "\x00" in declared_path:
+        raise ValueError("producer relative path contains NUL")
     relative = Path(declared_path)
     if (
         relative.is_absolute()
@@ -64,8 +64,23 @@ def qualified_local_distribution(
     ):
         raise ValueError("producer relative path must not escape owner root")
     root = binding.owner_root.absolute()
+    if ".." in root.parts or "\x00" in str(root) or contains_surrogate(str(root)):
+        raise ValueError("producer owner root has unsupported scoped path")
     actual_path = root / relative
-    actual_digest, reason = scoped_sha256(actual_path, (root,), hash_bytes=True)
+    return PreparedLocalEvidence(
+        root, actual_path, declared_digest, actual_path.as_uri()
+    )
+
+
+def observe_local_evidence(prepared: PreparedLocalEvidence) -> dict[str, Any]:
+    """Observe current native bytes and return only a qualified DCAT evidence patch.
+
+    A future consumer must recheck the file. This does not assert immutable
+    pathnames, atomic multi-file observation, or a grant of data rights.
+    """
+    actual_digest, reason = scoped_sha256(
+        prepared.path, (prepared.root,), hash_bytes=True
+    )
     if actual_digest is None:
         # Producer binding is strict admission, not a discovery verdict.
         # Preserve existing consumer I/O failure semantics without reopening.
@@ -77,14 +92,17 @@ def qualified_local_distribution(
         if reason == "local_file_read_error":
             raise OSError(message)
         raise ValueError(message)
-    if actual_digest != declared_digest:
+    if actual_digest != prepared.digest:
         raise ValueError("producer file digest differs from ODPS declaration")
 
-    distribution["dcat:accessURL"] = {"@id": actual_path.as_uri()}
-    # DCAT 3 uses SPDX checksums, keeping the producer's port identifier
-    # (dct:identifier) separate from content-integrity evidence.
-    distribution["spdx:checksum"] = {
-        "@type": "spdx:Checksum",
-        "spdx:algorithm": {"@id": "http://spdx.org/rdf/terms#checksumAlgorithm_sha256"},
-        "spdx:checksumValue": {"@value": declared_digest, "@type": "xsd:hexBinary"},
+    # Keep content-integrity evidence separate from the producer's port ID.
+    return {
+        "dcat:accessURL": {"@id": prepared.uri},
+        "spdx:checksum": {
+            "@type": "spdx:Checksum",
+            "spdx:algorithm": {
+                "@id": "http://spdx.org/rdf/terms#checksumAlgorithm_sha256"
+            },
+            "spdx:checksumValue": {"@value": prepared.digest, "@type": "xsd:hexBinary"},
+        },
     }

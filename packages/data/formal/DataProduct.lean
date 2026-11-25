@@ -297,4 +297,29 @@ theorem distinct_finite_members_qualified (a b : String) (x y : Nat)
 #print axioms selected_falsified_cannot_pass
 #print axioms selected_unknown_cannot_pass
 #print axioms exactPortVerdict_unrelated_frame
+-- Reuse the existing all-or-nothing finite-list operator for metadata
+-- preparation. The Option payload now denotes qualified path/digest
+-- coordinates, not observed blobs or a physical file availability claim.
+abbrev prepareEvidenceBatch := localBlobSnapshot
+
+theorem prepareEvidenceBatch_missing_rejects
+    (rows : List (Option Nat)) (h : none ∈ rows) :
+    prepareEvidenceBatch rows = none :=
+  missing_local_blob_rejects rows h
+
+theorem prepareEvidenceBatch_complete
+    (rows : List Nat) :
+    prepareEvidenceBatch (rows.map some) = some rows :=
+  complete_local_snapshot rows
+
+theorem prepareEvidenceBatch_no_omission
+    (rows : List (Option Nat)) (plan : List Nat)
+    (h : prepareEvidenceBatch rows = some plan) :
+    rows = plan.map some :=
+  local_snapshot_has_no_omitted_blob rows plan h
+
+#print axioms prepareEvidenceBatch_missing_rejects
+#print axioms prepareEvidenceBatch_complete
+#print axioms prepareEvidenceBatch_no_omission
+
 end OrdivonData
