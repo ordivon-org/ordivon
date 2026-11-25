@@ -73,6 +73,24 @@ missing targets, ambiguous legacy demand and zero distribution reads on
 selection failure. This is an abstract model plus scoped behavioral refinement,
 not full JSON-LD graph identity, source immutability, rights, or Python proof.
 
+### Indexed selection and catalog preflight (R6 candidate)
+
+The product/port selector materializes exact-version and wildcard buckets
+from validated metadata. All matching indices remain in each bucket; an
+unversioned port enters its wildcard bucket once. Build port indexes only
+for selected products, per invocation, with no physical-evidence cache.
+This implements the existing abstract unique selection relation; the native
+operation-count test guards against repeated scans, and the differential
+experiment checks the earlier implementation. No worst-case hash-table
+bound or full Python refinement theorem is claimed.
+
+The catalog inspector shares the producer projection's canonical product
+identity key. It completes structural and declared-checksum validation for
+the entire catalog before invoking the existing scoped file reader. Opaque
+IDs are not case-folded; explicit CLI request IDs remain literal keys.
+URI/path observation failures still yield UNKNOWN rather than a structural
+catalog failure. Historical catalog bytes and file rights remain unchanged.
+
 ### Shared local byte observation refinement
 
 Producer binding and catalog inspection share one descriptor-relative,

@@ -48,9 +48,18 @@ def select_bindings(
     bindings: tuple[LocalEvidenceBinding, ...],
 ) -> list[tuple[int, int, LocalEvidenceBinding]]:
     """Resolve every binding to one product/version and one port before I/O."""
-    by_identity: dict[tuple[str, str], list[int]] = {}
+    if not bindings:
+        return []
+    # None is the legacy unique-match request, not a concrete version.
+    # Keep all indices in each bucket so ambiguity is never collapsed.
+    by_product: dict[tuple[tuple[str, str], str | None], list[int]] = {}
     for i, product in enumerate(products):
-        by_identity.setdefault(identity_key(product["id"]), []).append(i)
+        identity = identity_key(product["id"])
+        by_product.setdefault((identity, None), []).append(i)
+        by_product.setdefault((identity, product["version"]), []).append(i)
+    # Build port indexes only for products actually selected by a request.
+    # Each is built once per call; nothing persists across observations.
+    port_indexes: dict[int, dict[tuple[str, str | None], list[int]]] = {}
     selected = []
     seen: set[tuple[int, int]] = set()
     for binding in bindings:
@@ -66,27 +75,26 @@ def select_bindings(
         ):
             if value is not None and (not isinstance(value, str) or not value.strip()):
                 raise ValueError(f"binding {label} must be a nonempty string")
-        candidates = [
-            i
-            for i in by_identity.get(identity_key(binding.product_id), [])
-            if binding.product_version is None
-            or products[i]["version"] == binding.product_version
-        ]
+        candidates = by_product.get(
+            (identity_key(binding.product_id), binding.product_version), []
+        )
         if len(candidates) != 1:
             raise ValueError(
                 "binding requires exactly one product identity and product version"
             )
         product_index = candidates[0]
         ports = products[product_index]["outputPorts"]
-        matches = [
-            i
-            for i, port in enumerate(ports)
-            if port["name"] == binding.port_name
-            and (
-                binding.port_version is None
-                or port.get("version") == binding.port_version
-            )
-        ]
+        if product_index not in port_indexes:
+            index: dict[tuple[str, str | None], list[int]] = {}
+            for i, port in enumerate(ports):
+                name, version = port["name"], port.get("version")
+                index.setdefault((name, None), []).append(i)
+                if version is not None:
+                    index.setdefault((name, version), []).append(i)
+            port_indexes[product_index] = index
+        matches = port_indexes[product_index].get(
+            (binding.port_name, binding.port_version), []
+        )
         if len(matches) != 1:
             raise ValueError(
                 "binding requires exactly one named output port at requested version"
