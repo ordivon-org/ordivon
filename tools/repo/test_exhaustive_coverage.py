@@ -508,6 +508,119 @@ class ExactGitCrossFormatReferenceTests(unittest.TestCase):
         self.assertNotIn("plugin.json", result["queries"][1]["patternsUsed"])
         self.assertFalse(result["queries"][0]["zeroTextualHitsProvesNoConsumers"])
 
+    def test_inverse_witness_census_uses_untruncated_distinct_carriers(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = pathlib.Path(tmp)
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True).strip()
+            git("init", "-q")
+            git("config", "user.name", "Inverse witness fixture")
+            git("config", "user.email", "inverse@example.invalid")
+            for name, content in {
+                "target-resource.md": "target-resource.md self reference\n",
+                "unreferenced-resource.md": "historical design intent\n",
+                "only-document.md": "normative prose\n",
+                "a.md": "target-resource.md\ntarget-resource.md\nonly-document.md\n",
+                "z.py": "# target-resource.md lexical hint, not a call\n",
+                "dynamic.py": 'name = "unreferenced" + "-resource.md"\n',
+            }.items():
+                (repo / name).write_text(content)
+            git("add", "-A")
+            git("commit", "-qm", "fixture")
+            cut = git("rev-parse", "HEAD")
+            queries = M.exact_git_reference_hints(
+                repo, cut, ["target-resource.md", "unreferenced-resource.md",
+                            "only-document.md", "missing-resource.md"],
+                per_path_limit=1)["queries"]
+            target, missing_witness, docs_only, absent = queries
+            self.assertEqual(target["totalTextualHits"], 3)
+            self.assertEqual(target["distinctExternalTextualCarriers"], 2)
+            self.assertEqual(target["externalCarrierRoleCounts"], {
+                "DOCUMENT_LITERAL_REFERENCE": 1,
+                "PYTHON_SOURCE_LITERAL_REFERENCE": 1})
+            self.assertEqual(target["inverseWitnessStanding"],
+                             "NON_DOCUMENT_TEXTUAL_HINTS")
+            self.assertTrue(target["truncated"])
+            self.assertEqual(len(target["textualHits"]), 1)
+            self.assertEqual(missing_witness["inverseWitnessStanding"],
+                             "NO_EXTERNAL_TEXTUAL_WITNESS")
+            self.assertEqual(docs_only["inverseWitnessStanding"],
+                             "DOCUMENT_ONLY_TEXTUAL_HINTS")
+            self.assertEqual(absent["inverseWitnessStanding"],
+                             "NOT_EVALUATED_ABSENT_SOURCE")
+            for query in queries:
+                self.assertEqual(query["runtimeConsumerStanding"], "UNKNOWN")
+                self.assertFalse(query["zeroTextualHitsProvesNoConsumers"])
+                self.assertFalse(query["retirementAdmissible"])
+
+    def test_inverse_reference_preserves_native_newline_consumer_identity(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = pathlib.Path(tmp)
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True).strip()
+            git("init", "-q")
+            git("config", "user.name", "Inverse witness fixture")
+            git("config", "user.email", "inverse@example.invalid")
+            (repo / "target-resource.md").write_text("target content\n")
+            name = "native\nconsumer.py"
+            (repo / name).write_text("# target-resource.md\n# target-resource.md\n")
+            git("add", "-A")
+            git("commit", "-qm", "fixture")
+            query = M.exact_git_reference_hints(
+                repo, git("rev-parse", "HEAD"), ["target-resource.md"])["queries"][0]
+            self.assertEqual(query["distinctExternalTextualCarriers"], 1)
+            self.assertEqual([x["candidateConsumerPath"] for x in query["textualHits"]],
+                             [name, name])
+            self.assertEqual([x["sourceLine"] for x in query["textualHits"]], [1, 2])
+            self.assertFalse(query["retirementAdmissible"])
+
+    def test_inverse_scan_missing_local_blob_never_means_no_consumers(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = pathlib.Path(tmp)
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True).strip()
+            git("init", "-q")
+            git("config", "user.name", "Missing witness fixture")
+            git("config", "user.email", "inverse@example.invalid")
+            (repo / "target-resource.md").write_text("design purpose\n")
+            (repo / "missing-consumer.py").write_text("# target-resource.md\n")
+            git("add", "-A")
+            git("commit", "-qm", "fixture")
+            cut = git("rev-parse", "HEAD")
+            missing = git("rev-parse", "HEAD:missing-consumer.py")
+            (repo / ".git" / "objects" / missing[:2] / missing[2:]).unlink()
+            git("config", "remote.origin.promisor", "true")
+            git("config", "remote.origin.partialclonefilter", "blob:none")
+            git("config", "remote.origin.url", str(repo / "unavailable-remote"))
+            with self.assertRaisesRegex(ValueError, "incomplete references"):
+                M.exact_git_reference_hints(repo, cut, ["target-resource.md"])
+
+    def test_inverse_multiline_locator_is_explicitly_unqualified(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = pathlib.Path(tmp)
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True).strip()
+            git("init", "-q")
+            git("config", "user.name", "Multiline locator fixture")
+            git("config", "user.email", "inverse@example.invalid")
+            name = "target\nresource.md"
+            (repo / name).write_text("design purpose\n")
+            (repo / "other.md").write_text("target\nresource.md\n")
+            git("add", "-A")
+            git("commit", "-qm", "fixture")
+            q = M.exact_git_reference_hints(repo, git("rev-parse", "HEAD"), [name])["queries"][0]
+            self.assertEqual(q["inverseWitnessStanding"], "NOT_EVALUATED_MULTILINE_LOCATOR")
+            self.assertIsNone(q["distinctExternalTextualCarriers"])
+            self.assertFalse(q["retirementAdmissible"])
+
     def test_bad_cut_invalid_relative_path_and_bounds_fail_closed(self) -> None:
         target = "capabilities/artifact/scripts/artifact_audio.py"
         with self.assertRaises(ValueError):

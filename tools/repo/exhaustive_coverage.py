@@ -21,34 +21,40 @@ import tomllib
 from pathlib import Path
 
 
-def _source_git_env() -> dict[str, str]:
+def _source_git_env(*, local_only: bool = False) -> dict[str, str]:
     # Repo/SourceCut identity comes from the explicit -C repository, never
     # inherited Agent/CI Git namespace, object DB, config, or graft overlays.
     env = {key: value for key, value in os.environ.items()
            if not key.startswith("GIT_")}
     env["GIT_GRAFT_FILE"] = os.devnull
+    if local_only:
+        env.update(GIT_NO_LAZY_FETCH="1", GIT_OPTIONAL_LOCKS="0")
     return env
 
 
-def git(repo: Path, *args: str) -> bytes:
-    p = subprocess.run(["git", "--no-replace-objects", "-C", str(repo), *args],
-                       capture_output=True, env=_source_git_env())
-    if p.returncode:
+def git(repo: Path, *args: str, local_only: bool = False) -> bytes:
+    command = ["git", "--no-replace-objects"]
+    if local_only:
+        command.extend(("-c", "advice.graftFileDeprecated=false"))
+    p = subprocess.run([*command, "-C", str(repo), *args],
+                       capture_output=True, env=_source_git_env(local_only=local_only))
+    if p.returncode or (local_only and p.stderr):
         raise ValueError(f"git {args[0]} failed: {p.stderr[:400]!r}")
     return p.stdout
 
 
-def exact_commit(repo: Path, oid: str) -> str:
+def exact_commit(repo: Path, oid: str, *, local_only: bool = False) -> str:
     if not re.fullmatch(r"[0-9a-f]{40}", oid):
         raise ValueError("source cut must be an exact 40-hex commit")
-    got = git(repo, "rev-parse", "--verify", f"{oid}^{{commit}}").decode().strip()
+    got = git(repo, "rev-parse", "--verify", f"{oid}^{{commit}}",
+              local_only=local_only).decode().strip()
     if got != oid:
         raise ValueError("source cut does not refer to requested commit")
     return oid
 
 
-def tree(repo: Path, commit: str) -> list[dict]:
-    raw = git(repo, "ls-tree", "-r", "-z", commit)
+def tree(repo: Path, commit: str, *, local_only: bool = False) -> list[dict]:
+    raw = git(repo, "ls-tree", "-r", "-z", commit, local_only=local_only)
     entries = []
     for item in raw.split(b"\0"):
         if not item:
@@ -1387,13 +1393,17 @@ def exact_git_reference_hints(
 ) -> dict:
     """Bounded textual cross-format references from immutable Git source only.
 
-    All hits are lexical observations, NOT fully resolved consumers. Unknown
-    or omitted references cannot justify move/retirement/proof acceptance.
+    Inverse discovery contract: count distinct external carriers and their
+    lexical roles over all native matches before truncating presentation.
+    A source with no external textual witness is a question, not garbage.
+    This query does not resolve dynamic, installed, or human consumers;
+    no outcome grants retirement or proof reuse. Preserve native Git path
+    bytes and fail rather than turn a failed scan into negative evidence.
     """
-    exact_commit(repo, source)
+    exact_commit(repo, source, local_only=True)
     if not paths or len(paths) > 8 or not 1 <= per_path_limit <= 256:
         raise ValueError("reference query requires 1..8 paths, limit 1..256")
-    source_files = tree(repo, source)
+    source_files = tree(repo, source, local_only=True)
     by_path = {item["path"]: item for item in source_files}
     basename_count = collections.Counter(item["path"].rsplit("/", 1)[-1]
                                          for item in source_files)
@@ -1407,7 +1417,11 @@ def exact_git_reference_hints(
             results.append({
                 "queryPath": target, "standing": "NOT_IN_EXACT_GIT_SOURCE",
                 "textualHits": [], "totalTextualHits": 0,
+                "distinctExternalTextualCarriers": None,
+                "externalCarrierRoleCounts": {},
+                "inverseWitnessStanding": "NOT_EVALUATED_ABSENT_SOURCE",
                 "runtimeConsumerStanding": "UNKNOWN",
+                "retirementAdmissible": False,
                 "zeroTextualHitsProvesNoConsumers": False})
             continue
         if not source_item["sourceIdentity"].startswith(("100644:blob:", "100755:blob:")):
@@ -1415,7 +1429,25 @@ def exact_git_reference_hints(
                 "queryPath": target, "standing": "NONREGULAR_SOURCE_CARRIER",
                 "sourceIdentity": source_item["sourceIdentity"],
                 "textualHits": [], "totalTextualHits": 0,
+                "distinctExternalTextualCarriers": None,
+                "externalCarrierRoleCounts": {},
+                "inverseWitnessStanding": "NOT_EVALUATED_NONREGULAR_SOURCE",
                 "runtimeConsumerStanding": "UNKNOWN",
+                "retirementAdmissible": False,
+                "zeroTextualHitsProvesNoConsumers": False})
+            continue
+        if "\n" in target:
+            # Git grep is a line query: a multiline -e argument is multiple
+            # patterns, not an exact locator for the requested Git path.
+            results.append({
+                "queryPath": target, "standing": "MULTILINE_LOCATOR_UNQUALIFIED",
+                "sourceIdentity": source_item["sourceIdentity"],
+                "textualHits": [], "totalTextualHits": 0,
+                "distinctExternalTextualCarriers": None,
+                "externalCarrierRoleCounts": {},
+                "inverseWitnessStanding": "NOT_EVALUATED_MULTILINE_LOCATOR",
+                "runtimeConsumerStanding": "UNKNOWN",
+                "retirementAdmissible": False,
                 "zeroTextualHitsProvesNoConsumers": False})
             continue
         base = target.rsplit("/", 1)[-1]
@@ -1427,24 +1459,34 @@ def exact_git_reference_hints(
         if basename_unique and len(base) >= 9:
             patterns.append(base)
         args = [
-            "git", "--no-replace-objects", "-C", str(repo),
-            "grep", "--null", "-n", "-I", "-F",
+            "git", "--no-replace-objects", "-c", "advice.graftFileDeprecated=false",
+            "-C", str(repo), "grep", "--null", "-n", "-I", "-F",
+            "--no-textconv", "--no-recurse-submodules", "--no-color",
         ]
         for pattern in dict.fromkeys(patterns):
             args.extend(("-e", pattern))
         args.extend((source, "--"))
-        proc = subprocess.run(args, capture_output=True, env=_source_git_env())
-        if proc.returncode not in (0, 1):
+        proc = subprocess.run(args, capture_output=True,
+                              env=_source_git_env(local_only=True))
+        # Native Git can return 0/1 even when a promised consumer blob could
+        # not be read. Diagnostics are not evidence of zero matches.
+        if proc.returncode not in (0, 1) or proc.stderr:
             raise ValueError("source Git grep failed; cannot project incomplete references")
         if len(proc.stdout) > 8 * 1024 * 1024:
             raise ValueError("reference scan exceeds bounded Git output budget")
         matches = []
-        for line in proc.stdout.split(b"\n"):
-            if not line:
-                continue
-            columns = line.split(b"\0", 2)
-            if len(columns) != 3:
+        # With --null, a path itself may contain a newline; only the
+        # third field is line-delimited. Use offsets, not repeated slicing.
+        cursor = 0
+        while cursor < len(proc.stdout):
+            first = proc.stdout.find(b"\0", cursor)
+            second = proc.stdout.find(b"\0", first + 1) if first >= 0 else -1
+            endline = proc.stdout.find(b"\n", second + 1) if second >= 0 else -1
+            if min(first, second, endline) < 0:
                 raise ValueError("unexpected Git null-delimited lexical witness")
+            columns = (proc.stdout[cursor:first], proc.stdout[first + 1:second],
+                       proc.stdout[second + 1:endline])
+            cursor = endline + 1
             locus = columns[0].decode("utf-8", "surrogateescape")
             if not locus.startswith(source + ":"):
                 raise ValueError("Git grep witness from a different SourceCut")
@@ -1457,7 +1499,7 @@ def exact_git_reference_hints(
                 raise ValueError("invalid source line reference") from exc
             if line_no <= 0:
                 raise ValueError("nonpositive source witness line")
-            content = columns[2].decode("utf-8", "replace")
+            content = columns[2].decode("utf-8", "surrogateescape")
             matched = next((p for p in patterns if p in content), None)
             if matched is None:
                 raise ValueError("Git grep result does not contain query token")
@@ -1484,6 +1526,14 @@ def exact_git_reference_hints(
                 "installedConsumerStanding": "UNKNOWN",
             })
         matches.sort(key=lambda r: (r["candidateConsumerPath"], r["sourceLine"]))
+        carriers = {r["candidateConsumerPath"]: r["candidateConsumerCarrierRole"]
+                    for r in matches}
+        roles = collections.Counter(carriers.values())
+        inverse_standing = (
+            "NO_EXTERNAL_TEXTUAL_WITNESS" if not carriers
+            else "DOCUMENT_ONLY_TEXTUAL_HINTS" if set(roles) == {"DOCUMENT_LITERAL_REFERENCE"}
+            else "NON_DOCUMENT_TEXTUAL_HINTS"
+        )
         results.append({
             "queryPath": target,
             "standing": "EXACT_GIT_FILE_LEXICAL_REFERENCE_SCAN",
@@ -1491,6 +1541,10 @@ def exact_git_reference_hints(
             "basenameUniqueInSource": basename_unique,
             "patternsUsed": list(dict.fromkeys(patterns)),
             "totalTextualHits": len(matches),
+            "distinctExternalTextualCarriers": len(carriers),
+            "externalCarrierRoleCounts": dict(sorted(roles.items())),
+            "inverseWitnessStanding": inverse_standing,
+            "retirementAdmissible": False,
             "truncated": len(matches) > per_path_limit,
             "textualHits": matches[:per_path_limit],
             "runtimeConsumerStanding": "UNKNOWN",
@@ -1499,7 +1553,8 @@ def exact_git_reference_hints(
     return {
         "kind": "ordivon.phase1.cross-format-lexical-reference-candidates",
         "sourceCut": source,
-        "sourceTree": git(repo, "rev-parse", f"{source}^{{tree}}").decode().strip(),
+        "sourceTree": git(repo, "rev-parse", f"{source}^{{tree}}",
+                          local_only=True).decode().strip(),
         "truthBoundary": "EXACT_GIT_TEXT_REFERENCE_ONLY; import/use/installed/semantic resolution UNKNOWN",
         "proofReuseAdmissible": False,
         "pathCount": len(results),
