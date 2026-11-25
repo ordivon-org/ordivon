@@ -38,7 +38,7 @@ run = "python3 -m unittest discover -s research -p 'test_room_encounter_playtest
 
 [tasks."test:agent-episode"]
 description = "Import then exercise the native Godot room scene and bounded Agent action/observation JSON, including clean checkouts"
-run = "godot --headless --path examples/room-encounter --editor --import && python3 examples/room-encounter/agent_episode_acceptance.py"
+run = "python3 scripts/native_scene_acceptance.py --suite agent"
 
 
 [tasks."export:room-linux"]

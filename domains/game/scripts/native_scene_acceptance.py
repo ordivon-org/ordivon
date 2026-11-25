@@ -9,22 +9,10 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from native_process import verify_process
+
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
 GAME = EXAMPLES / "room-encounter"
-SCRIPT_FAILURES = ("SCRIPT ERROR:", "Parse Error:", "Parser Error:", "ERROR: Failed to load")
-STRICT_FAILURES = re.compile(
-    r"ObjectDB instances were leaked|resources still in use at exit|(?:^|\s)ERROR:",
-    re.MULTILINE,
-)
-
-
-def verify_process(exit_code: int, stdout: str, stderr: str, *, strict=False):
-    combined = stdout + "\n" + stderr
-    if (exit_code != 0 or any(term in combined for term in SCRIPT_FAILURES)
-            or (strict and STRICT_FAILURES.search(combined))):
-        raise AssertionError(
-            f"native Godot process rejected: exit={exit_code} "
-            f"stdout={stdout[-3000:]} stderr={stderr[-3000:]}")
 
 
 def verify_receipt(exit_code: int, stdout: str, stderr: str, receipt: str) -> str:
@@ -90,7 +78,7 @@ def smoke_project(project: Path, *, strict=False):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--suite", choices=("encounter", "dialogue", "composition", "visual", "beacon", "selftest"),
+    parser.add_argument("--suite", choices=("encounter", "dialogue", "composition", "visual", "beacon", "agent", "selftest"),
                         required=True)
     suite = parser.parse_args().suite
     if suite == "selftest":
@@ -163,7 +151,14 @@ def main():
                 continue
             raise AssertionError(f"import diagnostic accepted: {diagnostic}")
         verify_process(0, "", "WARNING: Started the engine as root", strict=True)
-        print(f"GAME_NATIVE_RECEIPT_FAIL_CLOSED_PASS cases={len(positive) + len(negative) + 5}")
+        verify_process(2, "", "", strict=True, allowed_exit_codes=(0, 2))
+        for rc, err in ((3, ""), (2, "ERROR: unexpected engine fault"), (0, "ERROR: failed native episode")):
+            try:
+                verify_process(rc, "", err, strict=True, allowed_exit_codes=(0, 2))
+            except AssertionError:
+                continue
+            raise AssertionError(f"unqualified episode process admitted: {rc}, {err}")
+        print(f"GAME_NATIVE_RECEIPT_FAIL_CLOSED_PASS cases={len(positive) + len(negative) + 9}")
         return
     if suite == "composition":
         project = EXAMPLES / "native-composition"
@@ -180,6 +175,11 @@ def main():
         project = EXAMPLES / "beacon-relay"
         import_project(project, strict=True)
         engine("acceptance.gd", "GAME_BEACON_RELAY_PASS", project=project)
+        return
+    if suite == "agent":
+        from agent_episode_acceptance import main as accept_agent_episodes
+        import_project(GAME, strict=True)
+        accept_agent_episodes()
         return
     import_project(GAME)
     if suite == "encounter":
