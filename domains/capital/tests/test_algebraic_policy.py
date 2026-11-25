@@ -589,3 +589,32 @@ def test_zero_external_flow_is_exact_identity_on_admitted_units(units: int | flo
     )
     assert nav == 3.0
     assert Fraction(observed) == Fraction(units)
+
+
+def test_one_period_individual_probability_bound_is_not_mass_tolerance() -> None:
+    """A tolerance for total mass cannot admit an impossible event weight."""
+
+    def problem(probability):
+        return OnePeriodProblem(
+            gamma=2,
+            initial_margin=(.5,),
+            turnover_cost=(0,),
+            old_weights=(0,),
+            scenarios=(Scenario(probability, (1.1,), 1, 1.01, (.3,)),),
+        )
+
+    assert solve_one_period(problem(1.0)).expected_equity > 0
+    for invalid in (math.nextafter(1.0, math.inf), 1.00000000005, 1.0000000002):
+        with pytest.raises(AlgebraicPolicyError, match="scenario probability"):
+            solve_one_period(problem(invalid))
+
+    # Preserve the existing tolerance on accumulated probability mass,
+    # provided each individual event has a valid probability.
+    valid_near_mass = replace(
+        problem(.5),
+        scenarios=(
+            Scenario(.5, (1.1,), 1, 1.01, (.3,)),
+            Scenario(.50000000005, (.9,), 1, 1.01, (.3,)),
+        ),
+    )
+    assert solve_one_period(valid_near_mass).expected_equity > 0

@@ -143,7 +143,7 @@ def _validate(problem: OnePeriodProblem) -> None:
     for s in problem.scenarios:
         if not (
             _finite_economic_number(s.probability)
-            and s.probability > 0
+            and 0 < s.probability <= 1
             and len(s.risky_gross_returns) == n
             and len(s.maintenance) == n
             and _finite_economic_number(s.cash_gross_return)
