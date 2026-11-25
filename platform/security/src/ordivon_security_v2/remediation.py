@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from hashlib import sha256
+from hashlib import file_digest
 from pathlib import Path
 from typing import Any, Literal, TypedDict
 
@@ -24,7 +24,8 @@ class ReportDelta(TypedDict):
 
 
 def _digest(path: Path) -> str:
-    return "sha256:" + sha256(path.read_bytes()).hexdigest()
+    with path.open("rb") as source:
+        return "sha256:" + file_digest(source, "sha256").hexdigest()
 
 
 def _package_vulnerabilities(report: dict[str, Any], package: str) -> dict[str, dict[str, Any]]:

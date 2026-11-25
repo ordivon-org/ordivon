@@ -99,3 +99,35 @@ native coverage and authenticated receipts with the build/scan owner before
 new clearance claims. Do not build another scanner or normalize unknown to
 clearance. Use existing SLSA/in-toto verification only where subject and
 verifier semantics are satisfied; a signature alone does not prove coverage.
+
+## R15 evidence identity operator and release gate (2026-11-26)
+
+The opaque SBOM digest operator consumes the native Python hashlib.file_digest
+streaming primitive rather than materializing the entire file. The report
+parser deliberately still captures and hashes the same JSON bytes; do not
+replace that binding with an independent reopen. The opaque digest alone
+does not establish immutability, scanner input, source trust or completeness.
+
+On a synthetic 64 MiB binary file, actual existing eager-read and standard
+streaming carriers each produced the independently accumulated SHA-256
+in all three observations. Existing median 87.315 ms and traced Python
+allocation peak 67,109,138 bytes; streaming median 43.187 ms and traced peak
+394,369 bytes. Job `job-01a214b3-d4b0-717c-b7e9-52b2a3cba044`.
+This is a bounded local synthetic comparison, not a production latency,
+resident memory, concurrent mutation or scanner benchmark. The owner test
+covers exact-byte parity on empty, binary and multi-buffer inputs. No new
+dependency, custom hashing implementation or evidence schema.
+
+The independent native database identity experiment did not complete:
+Trivy's fresh private DB download exceeded the 65-second execution bound
+(job `job-01a214b3-1d31-7376-9a1e-aa463f6e7282`). No new DB continuity
+or cross-SBOM-provider qualification follows. Future native qualification
+must retain actual DB/metadata identity and exact input/output observations
+and distinguish an unavailable provider from a clean result.
+
+Release qualification remains independent of evidence integrity. The
+existing Gitleaks history gate detected a finding in #2808 CI. Keep the
+normal gate and distinguish detector observation, genuine secret exposure,
+credential-owner remediation, historical source scope and release standing.
+Do not treat lack of a verified credential or an unavailable Git object as
+a clean result. Use only redacted finding metadata in coordination.

@@ -1,12 +1,21 @@
+import hashlib
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from ordivon_security_v2.remediation import verify_remediation_delta
+from ordivon_security_v2.remediation import _digest, verify_remediation_delta
 
 
 class RemediationDeltaTests(unittest.TestCase):
+    def test_sbom_digest_matches_exact_bytes_across_stream_boundaries(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "sbom"
+            for raw in (b"", b"\x00\xff", bytes(range(256)) * 4097):
+                with self.subTest(size=len(raw)):
+                    path.write_bytes(raw)
+                    self.assertEqual(_digest(path), "sha256:" + hashlib.sha256(raw).hexdigest())
+
     def _write(self, root, name, value):
         p = root / name
         p.write_text(json.dumps(value))
