@@ -78,12 +78,12 @@
       "outputs": [
         "Source-local dependency/lock freshness admission or explicit verification failure; no installed or policy admission authority."
       ],
-      "behavioralContract": "For the observed Security source-toolchain consumer only, the native mise verify task first executes uv sync --locked --python 3.15.1; a mismatched pyproject.toml and uv.lock must fail before later frozen dependency consumers. A frozen sync alone does not qualify source manifest freshness. No other S03 applicability, deployment, or policy-effect acceptance is inferred.",
+      "behavioralContract": "For the observed Security source-toolchain consumer only, the native mise verify task selects the owner interpreter and first executes uv sync --locked; a mismatched pyproject.toml and uv.lock must fail before later frozen dependency consumers. A frozen sync alone does not qualify source manifest freshness. No other S03 applicability, deployment, or policy-effect acceptance is inferred.",
       "consumerBindings": [
         {
           "path": "mise.toml",
           "symbol": "tasks.verify.run",
-          "operation": "uv sync --locked --python 3.15.1 before ruff check and security tests",
+          "operation": "uv sync --locked before ruff check and security tests",
           "standing": "SOURCE_DECLARED_NATIVE_TASK_NOT_INSTALLED"
         },
         {

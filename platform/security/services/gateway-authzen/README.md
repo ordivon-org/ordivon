@@ -157,3 +157,26 @@ The current Gateway R12 tool is **source merged**, but installed Gateway and
 the connected ChatGPT action catalog must independently expose it. Do not
 use `execution.linux` to substitute a shell installer for the ReleaseEffect,
 or claim installed Runtime success without the native `release.get` receipt.
+
+## Effective policy standing (Gateway release qualification, opt-in)
+
+The existing authenticated evaluation accepts the request header
+`X-Ordivon-Policy-Standing: v1`. It returns the normal AuthZEN decision
+plus `context.ordivonPolicyStanding` for that same decision (not a second
+authorization endpoint). The request ID is echoed and the response is
+non-cacheable. The observation identifies the actual captured Rego digest,
+the normalized request digest, a process-local instance ID, a keyed private
+policy-data commitment, evaluation completion time, and the declared
+release-path revision if recognizable. The latter is not a Git or process
+attestation. No raw grant, key, token or policy data is returned.
+
+Gateway must independently bind the intended exact input to the receipt,
+require the expected source/policy digest and authorized positive and
+negative canaries on the same instance and data commitment, and impose a
+consumer-owned freshness window. A missing, stale, mismatched or unavailable
+receipt is not a denial or permission. A correlated explicit false is only
+a denial for its exact evaluation. Comparing commitments across instances
+is invalid. The provider observes per-evaluation snapshots; it does not
+assert an atomic multi-file capture, future grant validity, a deployed
+source revision, or successful Host migration. A separate native consumer
+must still qualify the actual installed ingress, Host and release gate.

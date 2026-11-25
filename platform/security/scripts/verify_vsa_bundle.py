@@ -25,18 +25,19 @@ def main() -> int:
 
     statement, signed_payload = decode_bundle_statement(args.bundle)
     expected = None if args.expected_statement is None else args.expected_statement.read_bytes()
+    key_digest = sha256_file(args.public_key)
     verify_vsa_semantics(
         statement=statement,
         expected_subject_git_commit=args.subject_git_commit,
         expected_verifier_id=args.verifier_id,
         expected_level=args.verified_level,
-        public_key_sha256=sha256_file(args.public_key),
+        public_key_sha256=key_digest,
         trust_mapping=load_trust_mapping(args.trust_policy),
         expected_statement_bytes=expected,
         signed_payload_bytes=signed_payload,
     )
     print("VSA semantic verification: PASSED")
-    print(f"publicKeySha256={sha256_file(args.public_key)}")
+    print(f"publicKeySha256={key_digest}")
     return 0
 
 

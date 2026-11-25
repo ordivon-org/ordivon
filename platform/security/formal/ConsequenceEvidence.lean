@@ -59,3 +59,76 @@ end OrdivonSecurity.Consequence
 #print axioms OrdivonSecurity.Consequence.no_authenticated_source_cannot_verify
 #print axioms OrdivonSecurity.Consequence.content_match_is_insufficient
 #print axioms OrdivonSecurity.Consequence.no_untrusted_promotion
+
+-- A report delta describes observations, not the scan's actual input.
+-- This independent specification assumes qualified digest/coverage facts
+-- supplied by the native producer; it does not implement a scanner.
+namespace OrdivonSecurity.Remediation
+
+structure Evidence where
+  beforeSbom : String
+  afterSbom : String
+  beforeScanned : Option String
+  afterScanned : Option String
+  baselinePresent : Bool
+  baselineAbsentAfter : Bool
+  producerAuthenticated : Bool
+  comparableCoverage : Bool
+  deriving Repr
+
+def ReportDelta (e : Evidence) : Prop :=
+  e.beforeSbom ≠ e.afterSbom ∧
+  e.baselinePresent = true ∧ e.baselineAbsentAfter = true
+
+def QualifiedClearance (e : Evidence) : Prop :=
+  ReportDelta e ∧
+  e.beforeScanned = some e.beforeSbom ∧
+  e.afterScanned = some e.afterSbom ∧
+  e.producerAuthenticated = true ∧ e.comparableCoverage = true
+
+theorem unknown_after_scan_cannot_qualify (e : Evidence)
+    (h : e.afterScanned = none) : ¬ QualifiedClearance e := by
+  intro q
+  have bound := q.2.2.1
+  rw [h] at bound
+  cases bound
+
+theorem unrelated_after_scan_cannot_qualify (e : Evidence)
+    (h : e.afterScanned ≠ some e.afterSbom) : ¬ QualifiedClearance e := by
+  intro q
+  exact h q.2.2.1
+
+theorem incomplete_coverage_cannot_qualify (e : Evidence)
+    (h : e.comparableCoverage = false) : ¬ QualifiedClearance e := by
+  intro q
+  have covered := q.2.2.2.2
+  rw [h] at covered
+  cases covered
+
+def qualifiedExample : Evidence := {
+  beforeSbom := "old"
+  afterSbom := "new"
+  beforeScanned := some "old"
+  afterScanned := some "new"
+  baselinePresent := true
+  baselineAbsentAfter := true
+  producerAuthenticated := true
+  comparableCoverage := true
+}
+
+theorem qualified_example : QualifiedClearance qualifiedExample := by
+  unfold QualifiedClearance ReportDelta qualifiedExample
+  decide
+
+theorem report_delta_with_unknown_scan_is_insufficient :
+    ∃ e : Evidence, ReportDelta e ∧ ¬ QualifiedClearance e := by
+  let e := { qualifiedExample with afterScanned := none }
+  refine ⟨e, ?_, unknown_after_scan_cannot_qualify e rfl⟩
+  unfold ReportDelta e qualifiedExample
+  decide
+
+end OrdivonSecurity.Remediation
+
+#print axioms OrdivonSecurity.Remediation.qualified_example
+#print axioms OrdivonSecurity.Remediation.report_delta_with_unknown_scan_is_insufficient
+#print axioms OrdivonSecurity.Remediation.unrelated_after_scan_cannot_qualify

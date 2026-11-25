@@ -50,3 +50,15 @@ The observed delta was `4 -> 0`.
 - any remaining/new after findings remain visible rather than being hidden by a successful delta.
 
 A real release still requires the normal Artifact build/provenance and Security admission chain. R1 proves the remediation/re-observation contract, not production release readiness.
+
+
+## Current report-delta contract (supersedes the old generic standing)
+
+The historical fixture standing above includes a real observed scan sequence. The
+standalone verifier cannot establish that sequence merely by comparing four
+supplied files. It returns `BASELINE_VULNERABILITY_IDS_ABSENT_IN_SUPPLIED_REPORTS`
+with `scanInputBinding=UNKNOWN` and `authenticated=false`. A changed SBOM digest
+is not a scanner receipt. Missing Results is not accepted as an observed empty
+array in this profile. Consumers needing fresh remediation acceptance must
+independently qualify the exact scan inputs, producer and coverage; this CLI
+does not manufacture that evidence.
