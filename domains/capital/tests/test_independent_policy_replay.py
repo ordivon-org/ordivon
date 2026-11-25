@@ -271,7 +271,9 @@ def test_real_replay_cli_reads_frozen_solver_pair(tmp_path) -> None:
     assert "terminalR" in rejected.stderr
 
 
-@pytest.mark.parametrize("field", ["duplicate_obligation", "duplicate_solution", "integer_terminal"])
+@pytest.mark.parametrize(
+    "field", ["duplicate_obligation", "duplicate_solution", "integer_terminal"]
+)
 def test_independent_replay_rejects_ambiguous_source_bytes(tmp_path, field):
     payload = _payload(_two_months_with_liabilities())
     if field == "integer_terminal":
@@ -284,9 +286,16 @@ def test_independent_replay_rejects_ambiguous_source_bytes(tmp_path, field):
     pair = tmp_path / "ambiguous.json"
     pair.write_text(raw, encoding="utf-8")
     result = subprocess.run(
-        [sys.executable, "-m", "ordivon_capital.research.independent_policy_replay",
-         "--input", str(pair)],
-        capture_output=True, text=True, check=False,
+        [
+            sys.executable,
+            "-m",
+            "ordivon_capital.research.independent_policy_replay",
+            "--input",
+            str(pair),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
         env={**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1] / "src")},
     )
     assert result.returncode != 0, result.stdout
@@ -298,25 +307,46 @@ def test_replay_does_not_promote_unknown_or_conflicting_gap_evidence():
     claim = payload["solution"]["optimality_evidence"]
     audit = replay_multistage_json(**payload)
     assert audit["reported_optimality_evidence_standing"] == claim["standing"]
-    assert audit["reported_canonical_gap_upper_not_independently_certified"] == claim["certified_canonical_gap_upper"]
-    claim["numerical_tangent_gap_estimate"] = payload["solution"]["concavity_global_utility_gap_upper"] + 1.
+    assert (
+        audit["reported_canonical_gap_upper_not_independently_certified"]
+        == claim["certified_canonical_gap_upper"]
+    )
+    claim["numerical_tangent_gap_estimate"] = (
+        payload["solution"]["concavity_global_utility_gap_upper"] + 1.0
+    )
     with pytest.raises(EconomicReplayMismatch, match="inconsistent numerical gap"):
         replay_multistage_json(**payload)
-    claim.update(numerical_tangent_gap_estimate=payload["solution"]["concavity_global_utility_gap_upper"],
-                 standing="UNKNOWN", certified_canonical_gap_upper=0., dual_proposal=None)
+    claim.update(
+        numerical_tangent_gap_estimate=payload["solution"]["concavity_global_utility_gap_upper"],
+        standing="UNKNOWN",
+        certified_canonical_gap_upper=0.0,
+        dual_proposal=None,
+    )
     with pytest.raises(EconomicReplayMismatch, match="UNKNOWN cannot carry"):
         replay_multistage_json(**payload)
 
 
-@pytest.mark.parametrize("gamma", (0.9999999999999999,1.0000000000000002,1.000000000001))
+@pytest.mark.parametrize("gamma", (0.9999999999999999, 1.0000000000000002, 1.000000000001))
 def test_independent_replay_preserves_deterministic_ce_near_log_limit(gamma):
-    problem = MultistageProblem(gamma,(
-        InformationNode("root",None,0,1.,initial_margin=(1.,),turnover_cost=(0.,)),
-        InformationNode("leaf","root",1,1.,risky_gross=(.4,),cash_gross=.5,
-                        debt_gross=.6,maintenance=(.3,),terminal=True),
-    ))
+    problem = MultistageProblem(
+        gamma,
+        (
+            InformationNode("root", None, 0, 1.0, initial_margin=(1.0,), turnover_cost=(0.0,)),
+            InformationNode(
+                "leaf",
+                "root",
+                1,
+                1.0,
+                risky_gross=(0.4,),
+                cash_gross=0.5,
+                debt_gross=0.6,
+                maintenance=(0.3,),
+                terminal=True,
+            ),
+        ),
+    )
     payload = _payload(problem)
-    assert payload["solution"]["certainty_equivalent_terminal_r"] == pytest.approx(.5)
+    assert payload["solution"]["certainty_equivalent_terminal_r"] == pytest.approx(0.5)
     assert replay_multistage_json(**payload)["max_identity_residual_r"] < 1e-6
 
 
@@ -326,12 +356,109 @@ def test_independent_ce_log_limit_with_nonidentical_wealth_and_admitted_mass_err
 
     # The normalized geometric mean is exactly 1 when these weights agree.
     # A tiny allowed total-mass error must not be amplified by 1/(1-gamma).
-    assert _ce([(0.50000000001, .25), (0.50000000001, 4.)], gamma) == pytest.approx(1., abs=1e-14)
+    assert _ce([(0.50000000001, 0.25), (0.50000000001, 4.0)], gamma) == pytest.approx(
+        1.0, abs=1e-14
+    )
 
 
 def test_independent_ce_harmonic_mean_and_extreme_log_range():
     from ordivon_capital.research.independent_policy_replay import _ce
 
-    assert _ce([(.5, 1.), (.5, 4.)], 2.) == pytest.approx(1.6)
-    assert _ce([(.5, 1e-200), (.5, 1e200)], 1.) == pytest.approx(1.)
-    assert _ce([(.5, 1e-200), (.5, 1e200)], 1e300) == pytest.approx(1e-200, rel=1e-14, abs=0)
+    assert _ce([(0.5, 1.0), (0.5, 4.0)], 2.0) == pytest.approx(1.6)
+    assert _ce([(0.5, 1e-200), (0.5, 1e200)], 1.0) == pytest.approx(1.0)
+    assert _ce([(0.5, 1e-200), (0.5, 1e200)], 1e300) == pytest.approx(1e-200, rel=1e-14, abs=0)
+
+
+def _actual_repaired_payload():
+    problem = MultistageProblem(
+        2.0,
+        (
+            InformationNode("root", None, 0, 1.0, initial_margin=(1.0,), turnover_cost=(0.0,)),
+            InformationNode(
+                "leaf",
+                "root",
+                1,
+                1.0,
+                risky_gross=(1.125,),
+                cash_gross=1.0,
+                debt_gross=1.1,
+                maintenance=(0.3,),
+                terminal=True,
+            ),
+        ),
+    )
+    solution = solve_multistage(problem, witness_repair_max_change_r=2**-40)
+    assert solution.optimality_evidence.standing == "UNKNOWN"
+    assert solution.witness_repair.standing == "VERIFIED_DISTINCT_CANONICAL_WITNESS"
+    return json.loads(json.dumps({"problem": asdict(problem), "solution": asdict(solution)}))
+
+
+def test_replay_keeps_repaired_witness_separate_from_original_evidence():
+    payload = _actual_repaired_payload()
+    audit = replay_multistage_json(**payload)
+    assert audit["reported_optimality_evidence_standing"] == "UNKNOWN"
+    assert audit["reported_canonical_gap_upper_not_independently_certified"] is None
+    assert (
+        audit["reported_repair_standing_not_independently_certified"]
+        == "VERIFIED_DISTINCT_CANONICAL_WITNESS"
+    )
+    assert (
+        audit["reported_repaired_witness_gap_not_independently_certified"]
+        == payload["solution"]["witness_repair"]["canonical_evidence"][
+            "certified_canonical_gap_upper"
+        ]
+    )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "source_evidence",
+        "delta",
+        "budget",
+        "source_hash",
+        "repaired_hash",
+        "policy_shape",
+        "unknown_with_proof",
+        "estimate",
+    ),
+)
+def test_replay_rejects_contradictory_repair_projections(mutation):
+    payload = _actual_repaired_payload()
+    repair = payload["solution"]["witness_repair"]
+    if mutation == "source_evidence":
+        repair["source_evidence"]["reason"] = "FORGED"
+    elif mutation == "delta":
+        repair["max_observed_change_r"] = 0.0
+    elif mutation == "budget":
+        repair["max_change_r"] = 0.0
+    elif mutation == "source_hash":
+        repair["source_policy_sha256"] = "0" * 64
+    elif mutation == "repaired_hash":
+        repair["repaired_policy_sha256"] = "0" * 64
+    elif mutation == "policy_shape":
+        repair["repaired_policy"] = {}
+    elif mutation == "unknown_with_proof":
+        repair["standing"] = "UNKNOWN"
+    elif mutation == "estimate":
+        repair["canonical_evidence"]["numerical_tangent_gap_estimate"] += 1.0
+    with pytest.raises(EconomicReplayMismatch, match="repair"):
+        replay_multistage_json(**payload)
+
+
+def test_replay_reports_unknown_repair_without_upgrading_original():
+    payload = _actual_repaired_payload()
+    repair = payload["solution"]["witness_repair"]
+    repair.update(
+        standing="UNKNOWN",
+        reason="NO_CERTIFIED_WITNESS_WITHIN_SEARCH_BUDGET",
+        repaired_policy=None,
+        repaired_policy_sha256=None,
+        max_observed_change_r=None,
+        contraction_exponent=None,
+        canonical_evidence=None,
+    )
+    audit = replay_multistage_json(**payload)
+    assert audit["reported_repair_standing_not_independently_certified"] == "UNKNOWN"
+    assert audit["reported_repaired_witness_gap_not_independently_certified"] is None
+    assert audit["reported_optimality_evidence_standing"] == "UNKNOWN"

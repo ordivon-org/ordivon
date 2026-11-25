@@ -16,6 +16,7 @@ import sys
 from collections import defaultdict
 from collections.abc import Mapping
 from decimal import Decimal, localcontext
+from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
@@ -73,6 +74,91 @@ def _ce(values: list[tuple[float, float]], gamma: float) -> float:
             moment = sum(p * (power * (log_w - anchor)).exp() for p, log_w in pairs) / mass
             log_mean = anchor + moment.ln() / power
         return float(log_mean.exp())
+
+
+def _replay_reported_repair(
+    repair: Any,
+    original_claim: Any,
+    positions: dict[str, tuple[float, ...]],
+    n_assets: int,
+    gap: float,
+) -> tuple[str, float | None]:
+    """Check wire projections only; do NOT certify a different policy's optimum."""
+    if repair is None:
+        return "NOT_REQUESTED_OR_NOT_NEEDED", None
+    if not isinstance(repair, Mapping):
+        raise EconomicReplayMismatch("repair must be an object")
+    if (
+        not isinstance(original_claim, Mapping)
+        or original_claim.get("standing") != "UNKNOWN"
+        or original_claim.get("reason") != "INEXACT_WITNESS"
+        or repair.get("source_evidence") != original_claim
+    ):
+        raise EconomicReplayMismatch("repair source evidence contradicts original evidence")
+    budget = _number(repair.get("max_change_r"), "repair budget")
+    if budget < 0:
+        raise EconomicReplayMismatch("negative repair budget")
+
+    def digest(value: Any) -> str:
+        return hashlib.sha256(
+            json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+        ).hexdigest()
+
+    if repair.get("source_policy_sha256") != digest(positions):
+        raise EconomicReplayMismatch("repair source policy identity mismatch")
+    # Contract digest is a reported identity; this consumer does not
+    # reconstruct the solver's canonical contract or prove its certificate.
+    contract_id = repair.get("problem_sha256")
+    if (
+        not isinstance(contract_id, str)
+        or len(contract_id) != 64
+        or any(c not in "0123456789abcdef" for c in contract_id)
+    ):
+        raise EconomicReplayMismatch("invalid repair contract identity")
+    standing = repair.get("standing")
+    if standing == "UNKNOWN":
+        if any(
+            repair.get(k) is not None
+            for k in (
+                "repaired_policy",
+                "repaired_policy_sha256",
+                "max_observed_change_r",
+                "contraction_exponent",
+                "canonical_evidence",
+            )
+        ):
+            raise EconomicReplayMismatch("UNKNOWN repair cannot carry a verified witness")
+        return standing, None
+    if standing != "VERIFIED_DISTINCT_CANONICAL_WITNESS":
+        raise EconomicReplayMismatch("unrecognized repair standing")
+    raw = repair.get("repaired_policy")
+    if not isinstance(raw, Mapping) or set(raw) != set(positions):
+        raise EconomicReplayMismatch("repair policy coordinates differ")
+    candidate = {key: _vector(raw[key], "repair position", n_assets) for key in positions}
+    if any(v < 0 for row in candidate.values() for v in row):
+        raise EconomicReplayMismatch("negative repair exposure")
+    if repair.get("repaired_policy_sha256") != digest(candidate):
+        raise EconomicReplayMismatch("repair policy identity mismatch")
+    delta = max(
+        abs(Fraction(a) - Fraction(b))
+        for key, row in positions.items()
+        for a, b in zip(row, candidate[key], strict=True)
+    )
+    projected = _number(repair.get("max_observed_change_r"), "repair observed change")
+    if not 0 < delta <= Fraction(projected) <= Fraction(budget):
+        raise EconomicReplayMismatch("repair change contradicts budget or source")
+    evidence = repair.get("canonical_evidence")
+    if (
+        not isinstance(evidence, Mapping)
+        or evidence.get("standing") != "EXACT_RATIONAL_CANONICAL_WITNESS_GAP_UPPER"
+        or not isinstance(evidence.get("dual_proposal"), Mapping)
+        or _number(evidence.get("numerical_tangent_gap_estimate"), "repair estimate") != gap
+    ):
+        raise EconomicReplayMismatch("inconsistent repair canonical evidence")
+    upper = _number(evidence.get("certified_canonical_gap_upper"), "repair reported bound")
+    if upper < 0:
+        raise EconomicReplayMismatch("negative repair reported bound")
+    return standing, upper
 
 
 def replay_multistage_json(
@@ -291,10 +377,16 @@ def replay_multistage_json(
             if claimed_upper < 0 or not isinstance(claim.get("dual_proposal"), Mapping):
                 raise EconomicReplayMismatch("invalid claimed exact gap evidence")
         elif claim_standing == "UNKNOWN":
-            if claim.get("certified_canonical_gap_upper") is not None or claim.get("dual_proposal") is not None:
+            if (
+                claim.get("certified_canonical_gap_upper") is not None
+                or claim.get("dual_proposal") is not None
+            ):
                 raise EconomicReplayMismatch("UNKNOWN cannot carry a certified gap")
         else:
             raise EconomicReplayMismatch("unrecognized optimality evidence standing")
+    repair_standing, repair_upper = _replay_reported_repair(
+        solution.get("witness_repair"), claim, positions, n_assets, gap
+    )
     encoded = json.dumps(
         {"problem": problem, "solution": solution}, sort_keys=True, separators=(",", ":")
     )
@@ -310,6 +402,8 @@ def replay_multistage_json(
         "reported_numeric_gap_not_independently_certified": gap,
         "reported_optimality_evidence_standing": claim_standing,
         "reported_canonical_gap_upper_not_independently_certified": claimed_upper,
+        "reported_repair_standing_not_independently_certified": repair_standing,
+        "reported_repaired_witness_gap_not_independently_certified": repair_upper,
         "numeric_tolerance_r": _NUMERIC_TOLERANCE_R,
     }
 
@@ -327,7 +421,9 @@ def main() -> int:
     parser.add_argument("--input", type=Path, required=True)
     args = parser.parse_args()
     try:
-        payload = json.loads(args.input.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
+        payload = json.loads(
+            args.input.read_text(encoding="utf-8"), object_pairs_hook=unique_object
+        )
         result = replay_multistage_json(payload["problem"], payload["solution"])
     except (ValueError, KeyError, TypeError, OverflowError) as exc:
         parser.error(str(exc))
