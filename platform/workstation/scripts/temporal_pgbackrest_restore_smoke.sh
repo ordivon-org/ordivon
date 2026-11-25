@@ -42,7 +42,34 @@ owned_restore=false
 owned_socket=false
 owned_log=false
 start_attempted=false
+restore_identity=
+socket_identity=
+log_identity=
+
+# A pathname is not an ownership token. Check device/inode and type
+# before effects; this observation is not an atomic rename/delete fence.
+scratch_identity() {
+  local target=$1 kind=$2
+  if [ -L "$target" ]; then return 1; fi
+  case "$kind" in
+    directory) [ -d "$target" ] || return 1 ;;
+    file) [ -f "$target" ] || return 1 ;;
+    *) return 1 ;;
+  esac
+  stat -c '%d:%i' -- "$target"
+}
+same_scratch() {
+  local target=$1 kind=$2 expected=$3 actual
+  if [ -z "$expected" ] || ! actual=$(scratch_identity "$target" "$kind") || [ "$actual" != "$expected" ]; then
+    echo "restore smoke scratch identity changed or unknown: $target; preserving scratch" >&2
+    return 1
+  fi
+}
 cleanup() {
+  # Check all carriers before the first cleanup effect.
+  if [ "$owned_restore" = true ]; then same_scratch "$RESTORE_ROOT" directory "$restore_identity" || return 1; fi
+  if [ "$owned_socket" = true ]; then same_scratch "$SOCKET_ROOT" directory "$socket_identity" || return 1; fi
+  if [ "$owned_log" = true ]; then same_scratch "$LOG" file "$log_identity" || return 1; fi
   if [ "$owned_restore" = true ]; then
     if [ -f "$RESTORE_ROOT/postmaster.pid" ]; then
       # A PID file from backup bytes or an uncertain pre-start failure is
@@ -61,10 +88,17 @@ cleanup() {
         return 1
       fi
     fi
+    same_scratch "$RESTORE_ROOT" directory "$restore_identity" || return 1
     rm -rf -- "$RESTORE_ROOT" || return 1
   fi
-  if [ "$owned_socket" = true ]; then rm -rf -- "$SOCKET_ROOT" || return 1; fi
-  if [ "$owned_log" = true ]; then rm -f -- "$LOG" || return 1; fi
+  if [ "$owned_socket" = true ]; then
+    same_scratch "$SOCKET_ROOT" directory "$socket_identity" || return 1
+    rm -rf -- "$SOCKET_ROOT" || return 1
+  fi
+  if [ "$owned_log" = true ]; then
+    same_scratch "$LOG" file "$log_identity" || return 1
+    rm -f -- "$LOG" || return 1
+  fi
 }
 on_exit() {
   local rc=$?
@@ -74,13 +108,16 @@ on_exit() {
 trap on_exit EXIT
 mkdir -m 0700 -- "$RESTORE_ROOT"
 owned_restore=true
+restore_identity=$(scratch_identity "$RESTORE_ROOT" directory)
 mkdir -m 0700 -- "$SOCKET_ROOT"
 owned_socket=true
+socket_identity=$(scratch_identity "$SOCKET_ROOT" directory)
 if ! (set -C; : > "$LOG"); then
   echo "restore smoke log path already exists" >&2
   exit 2
 fi
 owned_log=true
+log_identity=$(scratch_identity "$LOG" file)
 chown postgres:postgres "$RESTORE_ROOT" "$SOCKET_ROOT" "$LOG"
 
 # pgBackRest owns physical restoration. Never follow backup-origin links to
@@ -100,6 +137,10 @@ sudo -u postgres "$PGBACKREST" \
   --reset-tablespace-map \
   --tablespace-map-all="$SOCKET_ROOT/tablespaces" \
   restore
+
+same_scratch "$RESTORE_ROOT" directory "$restore_identity"
+same_scratch "$SOCKET_ROOT" directory "$socket_identity"
+same_scratch "$LOG" file "$log_identity"
 
 # Recovered configuration is data, not executable operator intent. This
 # isolated smoke intentionally does not reuse production include files,

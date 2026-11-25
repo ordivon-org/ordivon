@@ -91,6 +91,73 @@ theorem direct_publication_without_checks_is_unsafe :
     ¬ Safety (naivePublish initial) := by
   simp [Safety, naivePublish, initial]
 
+-- Exact reclamation evidence, independent of the publication control model.
+-- The generation abstracts the observation cut, not a clock or a filename.
+structure ReclaimCut where
+  subject : Nat
+  generation : Nat
+  deriving DecidableEq, Repr
+
+structure ReclaimObservation where
+  current : Option ReclaimCut := none
+  noReaders : Option ReclaimCut := none
+  retentionRelease : Option ReclaimCut := none
+  -- No remaining preservation obligation, or a distinct exact retained copy
+  -- independently satisfies every remaining obligation.
+  preservationQualified : Option ReclaimCut := none
+  deriving Repr
+
+def ReclaimQualified (expected : ReclaimCut) (o : ReclaimObservation) : Prop :=
+  o.current = some expected ∧ o.noReaders = some expected ∧
+  o.retentionRelease = some expected ∧ o.preservationQualified = some expected
+
+theorem stale_reclaim_cut_rejected (expected observed : ReclaimCut)
+    (h : observed ≠ expected) (o : ReclaimObservation)
+    (hCurrent : o.current = some observed) :
+    ¬ ReclaimQualified expected o := by
+  simp [ReclaimQualified, hCurrent, h]
+
+theorem unknown_retention_rejected (expected : ReclaimCut) (o : ReclaimObservation)
+    (h : o.retentionRelease = none) :
+    ¬ ReclaimQualified expected o := by
+  simp [ReclaimQualified, h]
+
+theorem missing_preservation_witness_rejected (expected : ReclaimCut)
+    (o : ReclaimObservation) (h : o.preservationQualified = none) :
+    ¬ ReclaimQualified expected o := by
+  simp [ReclaimQualified, h]
+
+theorem missing_reader_census_rejected (expected : ReclaimCut)
+    (o : ReclaimObservation) (h : o.noReaders = none) :
+    ¬ ReclaimQualified expected o := by
+  simp [ReclaimQualified, h]
+
+theorem exact_reclaim_witnesses_qualify (r : ReclaimCut) :
+    ReclaimQualified r ⟨some r, some r, some r, some r⟩ := by
+  simp [ReclaimQualified]
+
+-- Necessary scratch-carrier guard, not an atomic filesystem fence.
+def ScratchIdentityMatches (created : Nat) (current : Option Nat) : Prop :=
+  current = some created
+
+theorem replaced_scratch_not_owned (created current : Nat) (h : current ≠ created) :
+    ¬ ScratchIdentityMatches created (some current) := by
+  simp [ScratchIdentityMatches, h]
+
+theorem unobserved_scratch_not_owned (created : Nat) :
+    ¬ ScratchIdentityMatches created none := by simp [ScratchIdentityMatches]
+
+theorem same_scratch_identity_matches (created : Nat) :
+    ScratchIdentityMatches created (some created) := rfl
+
+#print axioms stale_reclaim_cut_rejected
+#print axioms unknown_retention_rejected
+#print axioms missing_preservation_witness_rejected
+#print axioms missing_reader_census_rejected
+#print axioms exact_reclaim_witnesses_qualify
+#print axioms replaced_scratch_not_owned
+#print axioms unobserved_scratch_not_owned
+#print axioms same_scratch_identity_matches
 #print axioms all_reachable_safe
 #print axioms published_requires_validation_and_commit
 #print axioms reclaimed_requires_no_readers_and_retention_release

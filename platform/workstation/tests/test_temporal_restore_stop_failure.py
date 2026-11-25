@@ -58,6 +58,48 @@ class RestoreSmokeFailedStopTests(unittest.TestCase):
                 log.unlink(missing_ok=True)
 
 
+    def test_replaced_scratch_directory_is_not_reclaimed(self) -> None:
+        """Path equality is not ownership of the current filesystem object."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-restore-swap-", dir="/tmp") as temp:
+            base = Path(temp)
+            shim = base / "sudo"
+            shim.write_text(
+                '#!/bin/sh\n'
+                'case "$*" in\n'
+                '  *pgbackrest*) mv "$RESTORE_ROOT" "$RESTORE_ROOT.original"; '
+                'mkdir "$RESTORE_ROOT"; printf unrelated > "$RESTORE_ROOT/canary"; exit 71;;\n'
+                'esac\nexit 73\n',
+                encoding="utf-8",
+            )
+            shim.chmod(0o755)
+            chown = base / "chown"
+            chown.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            chown.chmod(0o755)
+            identity = uuid.uuid4().hex
+            data = Path(f"/tmp/ordivon-restore-swap-{identity}-data")
+            original = Path(str(data) + ".original")
+            socket = Path(f"/tmp/ordivon-restore-swap-{identity}-socket")
+            log = Path(f"/tmp/ordivon-restore-swap-{identity}.log")
+            env = {
+                **os.environ, "PATH": f"{temp}:/usr/bin:/bin",
+                "RESTORE_ROOT": str(data), "SOCKET_ROOT": str(socket), "LOG": str(log),
+            }
+            try:
+                result = subprocess.run(
+                    ["/bin/bash", str(SCRIPT), "fake-backup", "test-workflow", "55439"],
+                    env=env, text=True, capture_output=True, timeout=10, check=False,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertTrue(original.is_dir())
+                self.assertTrue((data / "canary").exists(), "must not reclaim a substituted object")
+                self.assertEqual((data / "canary").read_text(), "unrelated")
+                self.assertNotIn('"standing":"PASS"', result.stdout)
+            finally:
+                for path in (data, original, socket):
+                    if path.exists() and not path.is_symlink():
+                        shutil.rmtree(path)
+                log.unlink(missing_ok=True)
+
     def test_recovered_configuration_and_failed_stop_do_not_emit_pass(self) -> None:
         with tempfile.TemporaryDirectory(prefix="ordivon-restore-fixture-", dir="/tmp") as temp:
             base = Path(temp)
