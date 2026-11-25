@@ -573,7 +573,23 @@ def _observe_release_subjects(
             })
 
 
+def _requested_inspection_ids(args: argparse.Namespace) -> set[str]:
+    """Bound exact consumer requests; never turn them into deletion authority."""
+    ids = tuple(getattr(args, "inspect_workspace_ids", ()))
+    if not ids:
+        return set()
+    if args.apply or not getattr(args, "inspect_release_subjects", False):
+        raise ValueError("workspace targets require read-only release inspection")
+    if len(ids) > args.limit or len(ids) != len(set(ids)):
+        raise ValueError("workspace targets must be unique and within the inspection limit")
+    if any(not isinstance(x, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,95}", x)
+           for x in ids):
+        raise ValueError("invalid exact inspection workspaceId")
+    return set(ids)
+
+
 def run(args: argparse.Namespace) -> dict:
+    requested_ids = _requested_inspection_ids(args)
     if getattr(args, "installed_runtime_environment", False):
         files = installed_environment_files(args.env_file)
         env = effective_environment(files[0], files[1:])
@@ -691,7 +707,9 @@ def run(args: argparse.Namespace) -> dict:
         )
         if ignored.returncode or ignored.stdout:
             skip("ignored_files_or_git_error");continue
-        if getattr(args, "inspect_release_subjects", False) and len(inspect_targets) < args.limit:
+        if (getattr(args, "inspect_release_subjects", False)
+                and (not requested_ids or path.name in requested_ids)
+                and len(inspect_targets) < args.limit):
             inspect_targets.append((path, head, info, retention_ms, unintegrated))
         binding = _operator_release_binding(policy, path.name)
         if binding is None or binding["latestJobActivityMs"] != last_ms:
@@ -710,6 +728,9 @@ def run(args: argparse.Namespace) -> dict:
         results["candidates"] = [p.name for p,_,_,_,_ in candidates[:args.limit]]
         if getattr(args, "inspect_release_subjects", False):
             _observe_release_subjects(env, repo, policy, now, inspect_targets, results)
+            observed_ids = {item["workspaceId"] for item in results["observedReleaseSubjects"]}
+            # Absence from this projection is not proof of physical absence.
+            results["unobservedRequestedWorkspaceIds"] = sorted(requested_ids - observed_ids)
         return results
     client = _reclaim_client(env)
     for path, head, info, retention_ms, unintegrated in candidates[:args.limit]:
@@ -835,9 +856,16 @@ def main() -> int:
     mode.add_argument("--apply", action="store_true")
     mode.add_argument("--inspect-release-subjects", action="store_true",
                       help="Read bounded native source/activity subjects without granting release")
+    parser.add_argument("--inspect-workspace-id", dest="inspect_workspace_ids",
+                        action="append", default=[],
+                        help="Exact target for read-only subject inspection (repeatable)")
     args=parser.parse_args()
     if not 1<=args.limit<=100:
         parser.error("limit must be 1..100")
+    try:
+        _requested_inspection_ids(args)
+    except ValueError as error:
+        parser.error(str(error))
     args.lock_file.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
     with args.lock_file.open("a+") as lock:
         try:

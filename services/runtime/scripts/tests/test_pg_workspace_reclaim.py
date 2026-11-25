@@ -444,6 +444,7 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                           release_binding_override: dict | None = None,
                           later_job_activity: bool = False,
                           inspect_release_subjects: bool = False,
+                          inspect_workspace_ids: tuple[str, ...] = (),
                           real_process_observation: bool = False,
                           integration_ref: str = "refs/remotes/origin/main"):
         import argparse
@@ -474,6 +475,7 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
             limit=25,
             apply=apply,
             inspect_release_subjects=inspect_release_subjects,
+            inspect_workspace_ids=inspect_workspace_ids,
             policy_file=policy_path,
             integration_ref=integration_ref,
         )
@@ -840,6 +842,45 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
         self.assertEqual(subject["standing"], "OBSERVED_SUBJECT_NOT_CONSUMER_RELEASE")
         self.assertIs(subject["existingPolicyMatches"], False)
         self.assertNotIn("operatorConsumerReleased", subject)
+
+    def test_targeted_inspection_does_not_observe_unrequested_workspace(self):
+        self.git("update-ref", "refs/remotes/origin/main", self.head)
+        report, client = self.run_operator_plan(
+            allow=False, owner_released=False, inspect_release_subjects=True,
+            inspect_workspace_ids=("ws-other-owner",),
+        )
+        self.assertEqual(client.calls, [])
+        self.assertEqual(report["observedReleaseSubjects"], [])
+        self.assertEqual(report["unobservedRequestedWorkspaceIds"], ["ws-other-owner"])
+        self.assertEqual(report["closed"], [])
+        self.assertTrue(self.workspace.exists())
+
+    def test_targeted_inspection_returns_exact_requested_subject(self):
+        self.git("update-ref", "refs/remotes/origin/main", self.head)
+        report, client = self.run_operator_plan(
+            allow=False, owner_released=False, inspect_release_subjects=True,
+            inspect_workspace_ids=(self.workspace.name,),
+        )
+        self.assertEqual(client.calls, ["workspace.get"])
+        self.assertEqual([x["workspaceId"] for x in report["observedReleaseSubjects"]],
+                         [self.workspace.name])
+        self.assertEqual(report["unobservedRequestedWorkspaceIds"], [])
+        self.assertEqual(report["eligible"], 0)
+        self.assertTrue(self.workspace.exists())
+
+    def test_targeted_inspection_rejects_invalid_scope_before_effect(self):
+        from argparse import Namespace
+        for apply, inspect, ids in (
+            (True, True, ("ws-a",)), (False, False, ("ws-a",)),
+            (False, True, ("ws-a", "ws-a")), (False, True, ("../outside",)),
+            (False, True, ("ws-a", "ws-b", "ws-c")),
+        ):
+            with self.subTest(apply=apply, inspect=inspect, ids=ids):
+                with self.assertRaises(ValueError):
+                    mod._requested_inspection_ids(Namespace(
+                        apply=apply, inspect_release_subjects=inspect,
+                        inspect_workspace_ids=ids, limit=2,
+                    ))
 
     def test_inspect_changed_activity_returns_no_release_subject(self):
         self.git("update-ref", "refs/remotes/origin/main", self.head)

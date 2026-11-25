@@ -205,8 +205,10 @@ latestJobActivityMs from the PG Job activity projection (null for no Job).
 A legacy unbound true flag is not a grant. Refresh the candidate's Job
 activity before close; a dry-run candidate has not yet bound native source
 or generation. Use --inspect-release-subjects for bounded read-only
-native subject coordinates, which never assert consumer release. A known failed or no-Job carrier also requires integrated
-source. The comparison is not an atomic release/close transaction.
+native subject coordinates, which never assert consumer release. Repeat
+--inspect-workspace-id to inspect only named subjects; unobserved requested
+IDs are UNKNOWN in this projection, not proof of absence. A known failed
+or no-Job carrier also requires integrated source. The comparison is not an atomic release/close transaction.
 
 For a clean, idle, successfully executed but unintegrated Workspace commit,
 retirement requires operator policy
