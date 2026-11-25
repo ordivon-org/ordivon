@@ -223,6 +223,8 @@
       ],
       "behavioralContract": "R2 create commits under admitted scope; R4 publish requires step-up approval bound to the exact effect and consumes it once; committed approval evidence cannot be reopened and pending approval lookup excludes committed effects; identical replay preserves previous receipt and conflicting payloads or fresh revoked-grant effects reject.",
       "evidence": [
+        "experiments/pg-transaction-r1/probe.py",
+        "experiments/pg-transaction-r1/sqlite-reference.ts",
         "src/store-owner-transaction.ts",
         "test/store-owner-transaction.test.ts",
         "src/store.ts",
@@ -279,6 +281,7 @@
         "Deterministic two-connection WAL tests cover create/publish exact replay, conflict, stale distinct effects, and before/after-commit acknowledgement injection; no process-crash, lock-wait or distributed delivery proof."
       ],
       "formalObligations": [
+        "PG candidate primitive witness only: acquire transaction-scoped effect identity lock before Grant row lock, re-observe receipt in a fresh READ COMMITTED statement, preserve revision CAS and exact serialized receipt bytes. A failed lock or unknown commit is not evidence of non-commit; no automatic reissue. Hash collisions can conservatively deny disjoint work. Full schema, async driver, approval/note row lock order, error mapping and migration remain unqualified.",
         "A failed rollback quarantines the owner connection before close; normal facade and transaction operations reject without observing tentative state even if native close fails. A new usable connection and explicit observation are required; raw native instrumentation is not an isolation boundary.",
         "Source/transaction behavior does not prove installed WebStore durability, physical provider effects or cross-provider exactly-once."
       ],
