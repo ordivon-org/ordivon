@@ -351,3 +351,15 @@ qualification occurs before changing current. Failed post-publication readback
 restores the exact previous symlink when the publisher still owns its target.
 No arbitrary-process exclusion, crash-atomic cross-service deployment,
 full interpreter shared-library closure or worker acceptance is claimed.
+
+### T2 explicit browser provider observation composition
+
+A provider assignment is an input, not a fallback inferred from successful
+results. Each selected report must have qualified transport, exact subject
+digest, matching declared Playwright/axe method versions, unambiguous browser
+identity and complete selected engine observations. Preserve original reports
+including failures of unselected engines. The projection returns
+targetObservation and accessibilityObservation, not a gate receipt or VSA;
+providerQualification remains NOT_ESTABLISHED. Browser installation, image
+identity, isolation, authorized execution and consumer acceptance are separate
+obligations. No automatic production routing is enabled by this operator.

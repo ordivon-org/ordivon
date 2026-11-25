@@ -74,3 +74,90 @@ def assess_browser_report(
         "issues": issues,
         "tooling": tooling,
     }
+
+
+def assess_browser_providers(
+    reports: dict[str, Any],
+    assignment: dict[str, str],
+    profile: dict[str, Any],
+    subject_sha256: str,
+    expected_tooling: dict[str, str],
+) -> dict[str, Any]:
+    """Project explicitly selected native observations, not provider admission.
+
+    The caller supplies the provider assignment, exact subject and expected
+    method versions. Do not infer fallback from successful observations.
+    Keep original reports including unselected failures. This is a pure
+    diagnostic consumer; no VSA, isolation, or delivery authority is granted.
+    """
+    issues: list[str] = []
+    required = [
+        item.get("name")
+        for item in [profile.get("targetRenderer", {}), *profile.get("secondaryRenderers", [])]
+        if item.get("required") is True
+    ]
+    names = {"Chromium", "Firefox", "WebKit"}
+    if (
+        not required
+        or any(not isinstance(n, str) or n not in names for n in required)
+        or len(set(required)) != len(required)
+        or set(assignment) != set(required)
+        or any(not isinstance(p, str) or not p for p in assignment.values())
+        or set(reports) != set(assignment.values())
+    ):
+        issues.append("explicit required renderer assignment is incomplete or ambiguous")
+    methods = ("playwright", "axePlaywright")
+    if any(
+        not isinstance(expected_tooling.get(k), str) or not expected_tooling[k] for k in methods
+    ):
+        issues.append("expected method versions are unqualified")
+
+    qualified: dict[str, dict[str, Any]] = {}
+    for provider, report in reports.items():
+        decision = assess_browser_report(report, profile, subject_sha256)
+        if decision["issues"]:
+            issues.extend(f"{provider}: {issue}" for issue in decision["issues"])
+            continue
+        if any(decision["tooling"].get(k) != expected_tooling.get(k) for k in methods):
+            issues.append(f"{provider}: method version mismatch")
+            continue
+        qualified[provider] = decision
+
+    selected: dict[str, Any] = {}
+    if not issues:
+        for name in required:
+            result = qualified[assignment[name]]["browserResults"].get(name, {})
+            if (
+                result.get("status") == "PASS"
+                and all(
+                    isinstance(result.get(k), str) and result[k] for k in ("version", "executable")
+                )
+                and isinstance(result.get("title"), str)
+                and type(result.get("headingCount")) is int
+                and result["headingCount"] >= 0
+            ):
+                selected[name] = result
+            else:
+                issues.append(f"{assignment[name]}: {name} observation unavailable or malformed")
+    target = "PASS" if not issues else "UNKNOWN"
+    accessibility = "UNKNOWN"
+    if "Chromium" in selected:
+        decision = qualified[assignment["Chromium"]]
+        axe = selected["Chromium"].get("accessibility")
+        if (
+            isinstance(axe, dict)
+            and isinstance(axe.get("violations"), list)
+            and len(axe["violations"]) == axe.get("violationCount")
+        ):
+            accessibility = decision["accessibility"]
+    return {
+        "targetObservation": target,
+        "accessibilityObservation": accessibility,
+        "requiredRenderers": required,
+        "providerAssignment": dict(assignment),
+        "providerReports": reports,
+        "browserResults": selected,
+        "issues": issues,
+        "tooling": dict(expected_tooling),
+        "providerQualification": "NOT_ESTABLISHED",
+    }
