@@ -65,12 +65,12 @@ jobs:
         run: |
           set -euo pipefail
           test ! -d examples/room-encounter/.godot
+          mise run test:consumer-contracts
           pnpm install --frozen-lockfile
           pnpm check
           mise run factory:validate:godot
           mise run test:beacon
           python3 scripts/test_godot_package_contract.py
-          mise run test:consumer-contracts
 
   native-preview:
     if: github.event_name != 'pull_request'

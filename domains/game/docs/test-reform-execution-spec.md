@@ -57,3 +57,9 @@ eight escaped the old fixed cases. Finite field obligations must not compete
 for a random example budget. Exhaust all 13 declared semantic fields for
 each generated invalid value and preserve value 0 as an explicit example.
 This is a finite-by-generated composition, not exhaustive value-space proof.
+
+Final controlled matrix: 12 applied semantic guard deletions; original fixed
+examples killed 1/12 and exhaustive-field generated suite killed 12/12,
+baseline restored. The ENGINE version-string guard was exercised by the
+generated property but not separately mutated in this matrix. Put fast
+contracts before expensive Godot/SMT gates, not at the end.
