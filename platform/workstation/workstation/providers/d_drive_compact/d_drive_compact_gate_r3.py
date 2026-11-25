@@ -351,6 +351,71 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
+def qualify_handoff(root: Path, maintenance_id: str, unit: str,
+                    gate_digest: str, ready_digest: str) -> str:
+    """Observe one exact READY/request/authorization/handoff chain.
+
+    This does not create permission or prove an external writer is fenced.
+    The live gate and Windows effect owner each recheck their own authority.
+    """
+    def read(path: Path) -> tuple[dict[str, Any], str]:
+        raw = path.read_bytes()
+        value = json.loads(raw)
+        if not isinstance(value, dict):
+            raise ValueError("receipt must be a JSON object")
+        return value, "sha256:" + hashlib.sha256(raw).hexdigest()
+
+    def exact(value: dict[str, Any], expected: dict[str, Any]) -> None:
+        if any(type(value.get(k)) is not type(v) or value.get(k) != v
+               for k, v in expected.items()):
+            raise ValueError("receipt identity or predicate mismatch")
+
+    def instant(value: Any) -> dt.datetime:
+        if not isinstance(value, str):
+            raise ValueError("timestamp must be a string")
+        parsed = dt.datetime.fromisoformat(value)
+        if parsed.tzinfo is None:
+            raise ValueError("timestamp must have an offset")
+        return parsed
+
+    try:
+        paths = [root.parent / "active-request.json", root / "gate-state.json",
+                 root / "authorization.json", root / "handoff.json"]
+        (request, req_sha), (state, state_sha), (auth, auth_sha), (handoff, handoff_sha) = [
+            read(path) for path in paths
+        ]
+        common = {"schemaVersion": 3, "maintenanceId": maintenance_id}
+        exact(request, common | {"kind": "ordivon.d-drive-compact-request",
+                                "gateSha256": gate_digest})
+        exact(state, common | {"kind": "ordivon.d-drive-compact-gate-state",
+                              "unitName": unit, "phase": "READY_HELD",
+                              "gateSha256": gate_digest, "readySha256": ready_digest})
+        exact(auth, common | {"kind": "ordivon.d-drive-compact-authorization",
+                             "compactAuthorized": True, "readySha256": ready_digest,
+                             "requestSha256": req_sha, "gateStateSha256": state_sha,
+                             "gateSha256": gate_digest, "gateUnit": unit,
+                             "distro": "archlinux", "vhdPath": r"D:\WSL\archlinux\ext4.vhdx"})
+        controller_digest = request.get("controllerSha256")
+        if (not isinstance(controller_digest, str)
+                or not re.fullmatch(r"sha256:[0-9a-f]{64}", controller_digest)
+                or auth.get("controllerSha256") != controller_digest):
+            raise ValueError("controller digest mismatch")
+        exact(handoff, common | {"kind": "ordivon.d-drive-compact-handoff",
+                                "status": "offline_authorized", "readySha256": ready_digest,
+                                "authorizationSha256": auth_sha})
+        now = dt.datetime.now(dt.UTC)
+        if not instant(auth.get("issuedAtUtc")) <= now < instant(auth.get("expiresAtUtc")) <= instant(request.get("expiresAtUtc")):
+            raise ValueError("grant or request expired or not current")
+        if (sha256_file(root / "ready.json") != ready_digest
+                or any(sha256_file(path) != digest for path, digest in
+                       zip(paths, (req_sha, state_sha, auth_sha, handoff_sha), strict=True))
+                or os.path.lexists(root / "gate-terminal.json")):
+            raise ValueError("handoff evidence changed or terminated")
+        return handoff_sha
+    except (OSError, ValueError, TypeError) as exc:
+        raise GateFailure("HANDOFF_BINDING_MISMATCH", "READY_HELD", str(exc)) from exc
+
+
 def main() -> int:
     args = parse_args()
     if not ID_RE.fullmatch(args.maintenance_id):
@@ -418,11 +483,25 @@ def main() -> int:
     signal.signal(signal.SIGTERM, on_signal)
     signal.signal(signal.SIGINT, on_signal)
 
-    ready_path.unlink(missing_ok=True)
-    terminal_path.unlink(missing_ok=True)
-    handoff_observed_path.unlink(missing_ok=True)
-    drain_log.unlink(missing_ok=True)
-    write_state("CREATED")
+    # Prior transaction evidence is a recovery root, including incomplete
+    # state. Never erase it to manufacture a fresh maintenance incarnation.
+    evidence_paths = (state_path, ready_path, terminal_path, handoff_path,
+                      handoff_observed_path, doctor_path, status_path, trim_path,
+                      drain_log, root / "authorization.json", root / "result.json")
+    if any(os.path.lexists(path) for path in evidence_paths):
+        return 42
+    try:
+        with state_path.open("xb") as initial:
+            initial.write((json.dumps({
+                "schemaVersion": 3, "kind": "ordivon.d-drive-compact-gate-state",
+                "maintenanceId": args.maintenance_id, "unitName": args.unit_name,
+                "phase": "CREATED", "observedAtUtc": utc_now(),
+                "gateSha256": gate_source_sha,
+            }, sort_keys=True) + "\n").encode())
+            initial.flush()
+            os.fsync(initial.fileno())
+    except FileExistsError:
+        return 42
 
     try:
         authority = require_legacy_runtime_authority()
@@ -557,21 +636,16 @@ def main() -> int:
 
         while time.monotonic() < ready_hold_deadline:
             if handoff_path.is_file():
-                try:
-                    handoff = json.loads(handoff_path.read_text(encoding="utf-8"))
-                except Exception as exc:
-                    raise GateFailure("HANDOFF_INVALID_JSON", "READY_HELD", str(exc)) from exc
-                if (
-                    not isinstance(handoff, dict)
-                    or handoff.get("maintenanceId") != args.maintenance_id
-                    or handoff.get("status") != "offline_authorized"
-                    or handoff.get("readySha256") != ready_sha
-                ):
-                    raise GateFailure("HANDOFF_BINDING_MISMATCH", "READY_HELD", "handoff does not bind the exact ready receipt")
+                handoff_sha = qualify_handoff(
+                    root, args.maintenance_id, args.unit_name, gate_source_sha, ready_sha,
+                )
                 if require_legacy_runtime_authority() != authority:
                     raise GateFailure("RUNTIME_AUTHORITY_DRIFTED", "READY_HELD",
                                       "legacy authority changed before handoff")
                 handoff_seen = True
+                # Publish the held state first; the exact acknowledgement is
+                # the final ready-to-consume observation of those bytes.
+                write_state("HANDOFF_HELD", readySha256=ready_sha, handoffSha256=handoff_sha)
                 atomic_write_json(
                     handoff_observed_path,
                     {
@@ -580,11 +654,10 @@ def main() -> int:
                         "maintenanceId": args.maintenance_id,
                         "status": "accepted",
                         "readySha256": ready_sha,
-                        "handoffSha256": sha256_file(handoff_path),
+                        "handoffSha256": handoff_sha,
                         "observedAtUtc": utc_now(),
                     },
                 )
-                write_state("HANDOFF_HELD", readySha256=ready_sha, handoffSha256=sha256_file(handoff_path))
                 handoff_deadline = time.monotonic() + args.handoff_hold_seconds
                 while time.monotonic() < handoff_deadline:
                     time.sleep(0.25)

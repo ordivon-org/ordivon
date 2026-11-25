@@ -206,7 +206,11 @@ def test_windows_json_receipts_are_bomless_durable_atomic_commits():
         text = path.read_text(encoding="utf-8")
         assert "System.Text.UTF8Encoding($false)" in text
         assert "$stream.Flush($true)" in text
-        assert "Move-Item -Force $tmp $Path" in text
+        if path == AUTHORIZER:
+            assert "[System.IO.File]::Move($tmp,$Path)" in text
+            assert "FileMode]::CreateNew" in text
+        else:
+            assert "Move-Item -Force $tmp $Path" in text
         atomic = text.split("function Atomic-Json", 1)[1].split("}", 1)[0]
         assert "Set-Content" not in atomic
 
@@ -500,3 +504,95 @@ def test_materialization_projection_distinguishes_shared_inode_and_aliased_paren
     alias = tmp_path / "alias"
     alias.symlink_to(tmp_path, target_is_directory=True)
     assert module._observe_regular(alias / "target")["standing"] == "UNKNOWN"
+
+
+def test_reentry_preserves_prior_gate_evidence_without_maintenance_effect(tmp_path, monkeypatch):
+    """The unique transaction directory is a recovery root, not disposable scratch."""
+    import argparse
+    gate = load_gate()
+    monkeypatch.setattr(gate, "parse_args", lambda: argparse.Namespace(
+        maintenance_id="prior", unit_name="prior-unit",
+        transaction_root=tmp_path, pressure_wait_seconds=1,
+    ))
+    monkeypatch.setattr(gate.signal, "signal", lambda *args: None)
+    evidence = {
+        "ready.json": b"prior READY",
+        "gate-state.json": b"prior state",
+        "gate-terminal.json": b"prior terminal",
+        "handoff-observed.json": b"prior acknowledgement",
+        "drain.ndjson": b"prior drain",
+    }
+    for name, payload in evidence.items():
+        (tmp_path / name).write_bytes(payload)
+    def unexpected():
+        raise AssertionError("reentry reached current Runtime preflight")
+    monkeypatch.setattr(gate, "require_legacy_runtime_authority", unexpected)
+    assert gate.main() != 0
+    assert {name: (tmp_path / name).read_bytes() for name in evidence} == evidence
+
+
+def test_gate_handoff_requires_exact_current_request_state_and_authorization(tmp_path):
+    import datetime as dt
+    import json
+
+    import pytest
+
+    gate = load_gate()
+    root = tmp_path / "incarnation"
+    root.mkdir()
+    req = tmp_path / "active-request.json"
+    ready = root / "ready.json"
+    state = root / "gate-state.json"
+    auth = root / "authorization.json"
+    handoff = root / "handoff.json"
+    now = dt.datetime.now(dt.UTC)
+    code = "sha256:" + "a" * 64
+    controller = "sha256:" + "b" * 64
+    def put(path, value):
+        path.write_text(json.dumps(value), encoding="utf-8")
+    put(ready, {"ready": "actual fixture"})
+    ready_digest = gate.sha256_file(ready)
+    request = {"schemaVersion": 3, "kind": "ordivon.d-drive-compact-request",
+               "maintenanceId": "test", "gateSha256": code,
+               "controllerSha256": controller,
+               "expiresAtUtc": (now + dt.timedelta(minutes=1)).isoformat()}
+    put(req, request)
+    state_value = {"schemaVersion": 3, "kind": "ordivon.d-drive-compact-gate-state",
+                   "maintenanceId": "test", "unitName": "unit", "phase": "READY_HELD",
+                   "gateSha256": code, "readySha256": ready_digest}
+    put(state, state_value)
+    grant = {"schemaVersion": 3, "kind": "ordivon.d-drive-compact-authorization",
+             "maintenanceId": "test", "compactAuthorized": True,
+             "readySha256": ready_digest, "requestSha256": gate.sha256_file(req),
+             "gateStateSha256": gate.sha256_file(state), "gateSha256": code,
+             "controllerSha256": controller, "gateUnit": "unit",
+             "distro": "archlinux", "vhdPath": r"D:\WSL\archlinux\ext4.vhdx",
+             "issuedAtUtc": now.isoformat(),
+             "expiresAtUtc": (now + dt.timedelta(seconds=30)).isoformat()}
+    for case in ("valid", "wrong-request", "wrong-state", "wrong-code",
+                 "wrong-handoff", "expired", "coerced-grant", "wrong-target"):
+        put(req, request)
+        put(state, state_value)
+        value = dict(grant)
+        if case == "wrong-request":
+            value["requestSha256"] = "wrong"
+        if case == "wrong-state":
+            value["gateStateSha256"] = "wrong"
+        if case == "wrong-code":
+            value["gateSha256"] = "wrong"
+        if case == "expired":
+            value["expiresAtUtc"] = (now - dt.timedelta(seconds=1)).isoformat()
+        if case == "coerced-grant":
+            value["compactAuthorized"] = 1
+        if case == "wrong-target":
+            value["distro"] = "other"
+        put(auth, value)
+        put(handoff, {"schemaVersion": 3, "kind": "ordivon.d-drive-compact-handoff",
+                      "maintenanceId": "test", "status": "offline_authorized",
+                      "readySha256": ready_digest,
+                      "authorizationSha256": "wrong" if case == "wrong-handoff" else gate.sha256_file(auth)})
+        if case == "valid":
+            assert gate.qualify_handoff(root, "test", "unit", code, ready_digest) == gate.sha256_file(handoff)
+        else:
+            with pytest.raises(gate.GateFailure):
+                gate.qualify_handoff(root, "test", "unit", code, ready_digest)
