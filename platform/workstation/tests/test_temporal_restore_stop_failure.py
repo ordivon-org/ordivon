@@ -111,10 +111,10 @@ class RestoreSmokeFailedStopTests(unittest.TestCase):
                 '  *pgbackrest*) touch "$RESTORE_ROOT/recovery.signal"; exit 0;;\n'
                 '  *pg_ctl*start*) touch "$START_MARKER"; exit 0;;\n'
                 '  *pg_ctl*stop*) exit 72;;\n'
-                '  *psql*"select not pg_is_in_recovery"*) printf "t\\n"; exit 0;;\n'
-                '  *psql*temporal_visibility*"schema_version"*) printf "1.14\\n"; exit 0;;\n'
-                '  *psql*temporal_visibility*"executions_visibility"*) printf "test-workflow|2\\n"; exit 0;;\n'
-                '  *psql*temporal*"schema_version"*) printf "1.19\\n"; exit 0;;\n'
+                '  *psql*"select not pg_is_in_recovery"*) printf "t\\nt\\n"; exit 0;;\n'
+                '  *psql*temporal_visibility*"schema_version"*) printf "t\\n1.14\\n"; exit 0;;\n'
+                '  *psql*temporal_visibility*"executions_visibility"*) printf "t\\ntest-workflow|2\\n"; exit 0;;\n'
+                '  *psql*temporal*"schema_version"*) printf "t\\n1.19\\n"; exit 0;;\n'
                 'esac\nexit 73\n',
                 encoding="utf-8",
             )
@@ -148,6 +148,58 @@ class RestoreSmokeFailedStopTests(unittest.TestCase):
                         shutil.rmtree(path)
                 log.unlink(missing_ok=True)
 
+    def test_matching_payload_from_wrong_endpoint_cannot_verify_restore(self) -> None:
+        """A matching result from a different connection is not restore evidence."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-restore-wrong-endpoint-", dir="/tmp") as temp:
+            base = Path(temp)
+            shim = base / "sudo"
+            shim.write_text(
+                '#!/bin/sh\n'
+                'case "$*" in\n'
+                '  *pgbackrest*) touch "$RESTORE_ROOT/recovery.signal"; exit 0;;\n'
+                '  *pg_ctl*start*) printf "999999\\n%s\\n" "$RESTORE_ROOT" > "$RESTORE_ROOT/postmaster.pid"; exit 0;;\n'
+                '  *pg_ctl*stop*) rm -f "$RESTORE_ROOT/postmaster.pid"; exit 0;;\n'
+                '  *psql*)\n'
+                '    case "$*" in *inet_server_addr*temporal_visibility*executions_visibility*|*temporal_visibility*inet_server_addr*executions_visibility*) printf "f\\n";; '
+                '*inet_server_addr*) printf "t\\n";; esac\n'
+                '    case "$*" in\n'
+                '      *"select not pg_is_in_recovery"*) printf "t\\n";;\n'
+                '      *temporal_visibility*"schema_version"*) printf "1.14\\n";;\n'
+                '      *temporal_visibility*"executions_visibility"*) printf "test-workflow|2\\n";;\n'
+                '      *temporal*"schema_version"*) printf "1.19\\n";;\n'
+                '      *) exit 73;;\n'
+                '    esac; exit 0;;\n'
+                'esac\nexit 73\n',
+                encoding="utf-8",
+            )
+            shim.chmod(0o755)
+            chown = base / "chown"
+            chown.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            chown.chmod(0o755)
+            identity = uuid.uuid4().hex
+            data = Path(f"/tmp/ordivon-restore-wrong-endpoint-{identity}-data")
+            socket = Path(f"/tmp/ordivon-restore-wrong-endpoint-{identity}-socket")
+            log = Path(f"/tmp/ordivon-restore-wrong-endpoint-{identity}.log")
+            env = {
+                **os.environ, "PATH": f"{temp}:/usr/bin:/bin",
+                "RESTORE_ROOT": str(data), "SOCKET_ROOT": str(socket), "LOG": str(log),
+            }
+            try:
+                result = subprocess.run(
+                    ["/bin/bash", str(SCRIPT), "fake-backup", "test-workflow", "55439"],
+                    env=env, text=True, capture_output=True, timeout=10, check=False,
+                )
+                self.assertNotEqual(result.returncode, 0, result.stdout)
+                self.assertNotIn('"standing":"PASS"', result.stdout)
+                self.assertFalse(data.exists(), "the qualified synthetic stop permits cleanup")
+                self.assertFalse(socket.exists())
+                self.assertFalse(log.exists())
+            finally:
+                for path in (data, socket):
+                    if path.exists() and not path.is_symlink():
+                        shutil.rmtree(path)
+                log.unlink(missing_ok=True)
+
     def test_recovered_configuration_and_failed_stop_do_not_emit_pass(self) -> None:
         with tempfile.TemporaryDirectory(prefix="ordivon-restore-fixture-", dir="/tmp") as temp:
             base = Path(temp)
@@ -162,10 +214,10 @@ class RestoreSmokeFailedStopTests(unittest.TestCase):
                 '    printf "999999\\n%s\\n" "$RESTORE_ROOT" > "$RESTORE_ROOT/postmaster.pid"\n'
                 '    touch "$FIXTURE_STARTED"; exit 0;;\n'
                 '  *pg_ctl*stop*) touch "$FIXTURE_STOP"; exit 72;;\n'
-                '  *psql*"select not pg_is_in_recovery"*) printf "t\\n"; exit 0;;\n'
-                '  *psql*temporal_visibility*"schema_version"*) printf "1.14\\n"; exit 0;;\n'
-                '  *psql*temporal_visibility*"executions_visibility"*) printf "test-workflow|2\\n"; exit 0;;\n'
-                '  *psql*temporal*"schema_version"*) printf "1.19\\n"; exit 0;;\n'
+                '  *psql*"select not pg_is_in_recovery"*) printf "t\\nt\\n"; exit 0;;\n'
+                '  *psql*temporal_visibility*"schema_version"*) printf "t\\n1.14\\n"; exit 0;;\n'
+                '  *psql*temporal_visibility*"executions_visibility"*) printf "t\\ntest-workflow|2\\n"; exit 0;;\n'
+                '  *psql*temporal*"schema_version"*) printf "t\\n1.19\\n"; exit 0;;\n'
                 'esac\nexit 73\n',
                 encoding="utf-8",
             )
