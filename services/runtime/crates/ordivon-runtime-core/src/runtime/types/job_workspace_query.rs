@@ -58,6 +58,8 @@ pub struct RuntimeWorkspaceSummary {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_state_digest: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    // Conservative protection identities; a PG Job can be held or have
+    // unqualified settlement without a running OS process.
     pub active_job_ids: Vec<String>,
 }
 
