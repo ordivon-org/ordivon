@@ -338,3 +338,14 @@ no complete native process readset, global configuration, extension/extra
 consumer semantics or domain acceptance claim. Direct CLI callers retain
 original-path semantics; only the qualified service snapshot prevents
 source-path ABA for subject/contract.
+
+### T8 Python generation publication refinement
+
+Readiness of a retained generation is distinct from matching the current
+desired release. Reuse of a generation requires exact desired spec, generation
+namespace, wrapper and retained uv provenance identity, plus a native wrapper
+probe. A single owner-local advisory lock serializes pointer publications;
+qualification occurs before changing current. Failed post-publication readback
+restores the exact previous symlink when the publisher still owns its target.
+No arbitrary-process exclusion, crash-atomic cross-service deployment,
+full interpreter shared-library closure or worker acceptance is claimed.

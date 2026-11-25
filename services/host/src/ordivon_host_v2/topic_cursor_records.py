@@ -4,6 +4,7 @@ The Social command owns transaction/receipts, while Attention re-entry shares
 only the read projection under its *existing* REPEATABLE READ snapshot.
 No second state, event bus, Actor IAM, or acknowledgement of semantic acceptance.
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -15,9 +16,7 @@ from .errors import ConflictError
 from .postgres_bounds import HOST_WIRE_INT_MAX
 
 
-def topic_high_sequence_in_tx(
-    conn: psycopg.Connection[dict[str, Any]], topic_ref: str
-) -> int:
+def topic_high_sequence_in_tx(conn: psycopg.Connection[dict[str, Any]], topic_ref: str) -> int:
     """Read the committed Topic message horizon in the caller's PG transaction."""
     return int(
         conn.execute(
@@ -31,18 +30,22 @@ def get_topic_cursor_in_tx(
     conn: psycopg.Connection[dict[str, Any]], *, actor_ref: str, topic_ref: str
 ) -> dict[str, Any]:
     """Return one actor/topic cursor without opening a second PG snapshot."""
+    # Both coordinates come from the same native statement. The scalar
+    # subquery uses the unique actor/topic key; the aggregate has one row even
+    # for an empty Topic. Neither missing cursor nor missing messages is NULL.
     row = conn.execute(
-        "SELECT cursor FROM topic_consumption_cursors WHERE actor_ref=%s AND topic_ref=%s",
-        (actor_ref, topic_ref),
+        "SELECT COALESCE((SELECT cursor FROM topic_consumption_cursors "
+        "WHERE actor_ref=%s AND topic_ref=%s),0) AS cursor,"
+        "COALESCE(MAX(sequence),0) AS high FROM messages WHERE topic_ref=%s",
+        (actor_ref, topic_ref, topic_ref),
     ).fetchone()
-    high = topic_high_sequence_in_tx(conn, topic_ref)
     return {
         "schemaVersion": 1,
         "kind": "ordivon.host-topic-cursor",
         "actorRef": actor_ref,
         "topicRef": topic_ref,
-        "cursor": 0 if row is None else int(row["cursor"]),
-        "topicHighSequence": high,
+        "cursor": int(row["cursor"]),
+        "topicHighSequence": int(row["high"]),
         "truthBoundary": "topic navigation cursor only; not evidence of semantic acceptance",
     }
 
