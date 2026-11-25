@@ -655,6 +655,71 @@ class SourceHistoryLegosTests(unittest.TestCase):
                     record["consumerQualification"], "UNKNOWN_REQUIRES_OWNER_CDC"
                 )
 
+    def test_gitlink_patch_and_merge_frontiers_ignore_display_preferences(self):
+        """Native tree entries, not presentation, determine historical owner demand."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-history-gitlink-") as temp:
+            root = Path(temp)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "Source oracle")
+            git(root, "config", "user.email", "source-oracle@example.invalid")
+            manifest = root / "tools/repo/owners.toml"
+            manifest.parent.mkdir(parents=True)
+            manifest.write_text(
+                CANONICAL_OWNER_HEADER
+                + '[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n'
+                + 'verify_task = "runtime:verify"\n'
+            )
+            (root / "README").write_text("first")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "first nested identity")
+            a = git(root, "rev-parse", "HEAD")
+            (root / "README").write_text("second")
+            git(root, "commit", "-qam", "second nested identity")
+            b = git(root, "rev-parse", "HEAD")
+            (root / "README").write_text("third")
+            git(root, "commit", "-qam", "third nested identity")
+            c = git(root, "rev-parse", "HEAD")
+            path = "services/runtime/vendor/lib"
+            def set_link(oid):
+                git(root, "update-index", "--add", "--cacheinfo", "160000," + oid + "," + path)
+            set_link(a)
+            git(root, "commit", "-qm", "fork")
+            fork = git(root, "rev-parse", "HEAD")
+            git(root, "branch", "remote-main")
+            set_link(b)
+            git(root, "commit", "-qm", "local dependency")
+            left = git(root, "rev-parse", "HEAD")
+            git(root, "switch", "-q", "remote-main")
+            set_link(c)
+            git(root, "commit", "-qm", "remote dependency")
+            right = git(root, "rev-parse", "HEAD")
+            # The merge deliberately chooses a third gitlink identity that
+            # differs from both parents. commit-tree avoids external submodule
+            # checkout requirements; native objects are the independent oracle.
+            set_link(a)
+            tree = git(root, "write-tree")
+            merge = git(root, "commit-tree", tree, "-p", right, "-p", left,
+                        "-m", "merge-specific dependency resolution")
+            expected = {left: [path], right: [path], merge: [path]}
+            self.assertEqual(git(root, "diff", "--ignore-submodules=none", "--name-only",
+                                 fork, left), path)
+            normal = history(root, left, right)
+            self.assertEqual({x["commit"]: x["changedPaths"] for x in normal["commits"]},
+                             {left: [path], right: [path]})
+            git(root, "config", "diff.ignoreSubmodules", "all")
+            git(root, "config", "diff.relative", "true")
+            self.assertEqual(git(root, "diff", "--name-only", fork, left), "")
+            report = history(root, left, right)
+            self.assertEqual({x["commit"]: x["changedPaths"] for x in report["commits"]},
+                             {left: [path], right: [path]})
+            report = history(root, fork, merge)
+            records = {x["commit"]: x for x in report["commits"]}
+            self.assertEqual({k: v["changedPaths"] for k, v in records.items()}, expected)
+            self.assertEqual(records[merge]["resultDistinctFromAllParentsPaths"], [path])
+            for record in records.values():
+                self.assertEqual(record["owners"], ["runtime"])
+                self.assertEqual(record["consumerQualification"], "UNKNOWN_REQUIRES_OWNER_CDC")
+
     def test_merge_connectors_are_preserved_not_mistaken_for_patch_proofs(self):
         with tempfile.TemporaryDirectory(prefix="ordivon-history-merge-") as temp:
             root = Path(temp)
