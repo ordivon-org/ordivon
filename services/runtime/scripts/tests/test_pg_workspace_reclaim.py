@@ -314,6 +314,7 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
                           active_at_get: bool = False,
                           release_binding_override: dict | None = None,
                           later_job_activity: bool = False,
+                          inspect_release_subjects: bool = False,
                           integration_ref: str = "refs/remotes/origin/main"):
         import argparse
         from unittest.mock import patch
@@ -342,6 +343,7 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
             min_age_hours=4,
             limit=25,
             apply=apply,
+            inspect_release_subjects=inspect_release_subjects,
             policy_file=policy_path,
             integration_ref=integration_ref,
         )
@@ -688,6 +690,33 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
         )
         self.assertEqual(report["closed"], [])
         self.assertNotIn("workspace.close", client.calls)
+        self.assertTrue(self.workspace.exists())
+
+    def test_inspect_release_subject_is_not_a_release_or_close(self):
+        self.git("update-ref", "refs/remotes/origin/main", self.head)
+        report, client = self.run_operator_plan(
+            allow=False, owner_released=False, inspect_release_subjects=True
+        )
+        self.assertEqual(report["eligible"], 0)
+        self.assertEqual(report["closed"], [])
+        self.assertEqual(client.calls, ["workspace.get"])
+        self.assertTrue(self.workspace.exists())
+        subject, = report["observedReleaseSubjects"]
+        self.assertEqual(subject["workspaceId"], self.workspace.name)
+        self.assertEqual(subject["operatorReleaseBinding"]["sourceStateDigest"], "sha256:" + "f" * 64)
+        self.assertEqual(subject["standing"], "OBSERVED_SUBJECT_NOT_CONSUMER_RELEASE")
+        self.assertIs(subject["existingPolicyMatches"], False)
+        self.assertNotIn("operatorConsumerReleased", subject)
+
+    def test_inspect_changed_activity_returns_no_release_subject(self):
+        self.git("update-ref", "refs/remotes/origin/main", self.head)
+        report, client = self.run_operator_plan(
+            allow=False, owner_released=False, inspect_release_subjects=True,
+            later_job_activity=True,
+        )
+        self.assertEqual(report["observedReleaseSubjects"], [])
+        self.assertEqual(report["skipped"].get("release_subject_changed"), 1)
+        self.assertEqual(client.calls, ["workspace.get"])
         self.assertTrue(self.workspace.exists())
 
     def test_legacy_unbound_release_is_not_a_grant(self):

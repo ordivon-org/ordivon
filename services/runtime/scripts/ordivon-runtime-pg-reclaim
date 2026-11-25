@@ -401,6 +401,75 @@ def _store_receipt(root: Path, data: dict) -> str:
             os.unlink(temp)
     return str(target)
 
+def _workspace_matches_candidate(
+    workspace: dict, path: Path, head: str, repo: Path, info: tuple,
+    retention_ms: int, now: int,
+) -> bool:
+    return (
+        workspace.get("workspaceId") == path.name
+        and workspace.get("dirty") is False
+        and workspace.get("activeJobIds") == []
+        and workspace.get("sourceRepo") == str(repo)
+        and workspace.get("currentHeadRevision") == head
+        and eligible(
+            now_ms=now, created_ms=workspace.get("createdAtMs"),
+            latest_job_ms=info[0], latest_resolution=info[1],
+            unresolved=info[2], min_age_ms=retention_ms,
+        )
+    )
+
+
+def _reclaim_client(env: dict[str, str]):
+    os.environ["no_proxy"] = "127.0.0.1,localhost"
+    return connect_compatible(
+        "http://" + env["ORDIVON_PG_BIND"] + "/mcp", env["ORDIVON_PG_TOKEN"],
+        client_name="ordivon-runtime-pg-reclaim", timeout=20.0,
+    )
+
+
+def _observe_release_subjects(
+    env: dict[str, str], repo: Path, policy: dict | None, now: int,
+    targets: list[tuple], results: dict,
+) -> None:
+    """Read bounded native subject coordinates; never authorize or close."""
+    results["observedReleaseSubjects"] = []
+    if not targets:
+        return
+    client = _reclaim_client(env)
+    for path, head, info, retention_ms, _ in targets:
+        try:
+            workspace = client.call_tool(
+                "workspace.get", {"workspaceId": path.name, "schemaVersion": 1},
+            )
+            latest = _jobs(env, path.name).get(path.name, (None, None, 0))
+            binding = {
+                "createdAtMs": workspace.get("createdAtMs"),
+                "sourceStateDigest": workspace.get("sourceStateDigest"),
+                "latestJobActivityMs": latest[0],
+            }
+            if (latest != info
+                    or not _workspace_matches_candidate(workspace, path, head, repo, latest, retention_ms, now)
+                    or not _valid_release_binding(binding)):
+                results["skipped"]["release_subject_changed"] = (
+                    results["skipped"].get("release_subject_changed", 0) + 1
+                )
+                continue
+            results["observedReleaseSubjects"].append({
+                "workspaceId": path.name, "sourceRepo": str(repo),
+                "currentHeadRevision": head, "operatorReleaseBinding": binding,
+                "existingPolicyMatches": _release_matches(
+                    _operator_release_binding(policy, path.name), workspace, latest[0],
+                ),
+                "standing": "OBSERVED_SUBJECT_NOT_CONSUMER_RELEASE",
+            })
+        except Exception as error:
+            results["errors"].append({
+                "workspaceId": path.name, "errorType": type(error).__name__,
+                "nativeCloseRequested": False, "physicalCloseStanding": "NOT_REQUESTED",
+                "recoveryRequired": False, "nextProtocolStep": "RECHECK_RELEASE_SUBJECT",
+            })
+
+
 def run(args: argparse.Namespace) -> dict:
     env = load_environment_file(args.env_file)
     repo, root = args.source_repo.resolve(), args.workspace_root.resolve()
@@ -465,6 +534,7 @@ def run(args: argparse.Namespace) -> dict:
         "never auto-delete"
     )
     candidates = []
+    inspect_targets = []
     for path, head in worktrees:
         results["checked"] += 1
         if any(item == str(path) or item.startswith(str(path)+"/") for item in cwd):
@@ -514,6 +584,8 @@ def run(args: argparse.Namespace) -> dict:
         )
         if ignored.returncode or ignored.stdout:
             skip("ignored_files_or_git_error");continue
+        if getattr(args, "inspect_release_subjects", False) and len(inspect_targets) < args.limit:
+            inspect_targets.append((path, head, info, retention_ms, unintegrated))
         binding = _operator_release_binding(policy, path.name)
         if binding is None or binding["latestJobActivityMs"] != last_ms:
             # Even a successful, integrated Job can belong to a paused Agent.
@@ -529,27 +601,15 @@ def run(args: argparse.Namespace) -> dict:
         results["eligible"] = len(candidates)
         results["eligibleUnintegrated"] = sum(item[4] for item in candidates)
         results["candidates"] = [p.name for p,_,_,_,_ in candidates[:args.limit]]
+        if getattr(args, "inspect_release_subjects", False):
+            _observe_release_subjects(env, repo, policy, now, inspect_targets, results)
         return results
-    os.environ["no_proxy"] = "127.0.0.1,localhost"
-    client = connect_compatible(
-        "http://" + env["ORDIVON_PG_BIND"] + "/mcp",
-        env["ORDIVON_PG_TOKEN"],
-        client_name="ordivon-runtime-pg-reclaim",
-        timeout=20.0,
-    )
+    client = _reclaim_client(env)
     for path, head, info, retention_ms, unintegrated in candidates[:args.limit]:
         close_requested = False
         try:
             workspace = client.call_tool("workspace.get", {"workspaceId":path.name,"schemaVersion":1})
-            if (workspace.get("workspaceId") != path.name or workspace.get("dirty") is not False
-                or workspace.get("activeJobIds") != []
-                or workspace.get("sourceRepo") != str(repo)
-                or workspace.get("currentHeadRevision") != head
-                or not eligible(
-                    now_ms=now,created_ms=workspace.get("createdAtMs"),
-                    latest_job_ms=info[0], latest_resolution=info[1],
-                    unresolved=info[2], min_age_ms=retention_ms,
-                )):
+            if not _workspace_matches_candidate(workspace, path, head, repo, info, retention_ms, now):
                 skip("runtime_authority_not_eligible");continue
             digest=workspace.get("sourceStateDigest")
             if not isinstance(digest,str) or RETAINED_HEAD_REF.fullmatch(digest) is None:
@@ -656,10 +716,13 @@ def main() -> int:
     parser.add_argument("--min-age-hours",type=float,default=24)
     parser.add_argument(
         "--policy-file", type=Path, default=None,
-        help="Existing operator-controlled Workspace retention JSON; absent means merged-only",
+        help="Existing operator-controlled Workspace retention JSON; absent means no release grant",
     )
     parser.add_argument("--limit",type=int,default=25)
-    parser.add_argument("--apply",action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--apply", action="store_true")
+    mode.add_argument("--inspect-release-subjects", action="store_true",
+                      help="Read bounded native source/activity subjects without granting release")
     args=parser.parse_args()
     if not 1<=args.limit<=100:
         parser.error("limit must be 1..100")
