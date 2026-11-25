@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlsplit
 
+from .binding_selection import identity_key
 from .local_files import scoped_sha256
 from .metadata_json import read_metadata
 from .verification import digest_verdict
@@ -51,9 +52,10 @@ def _declared_sha256(distribution: dict[str, Any]) -> Any:
     return declared
 
 
-def inspect_distribution(
-    distribution: dict[str, Any], allowed_roots: tuple[Path, ...], verify_local: bool
+def _describe_distribution(
+    distribution: dict[str, Any], verify_local: bool
 ) -> dict[str, Any]:
+    """Validate checksum declarations and describe metadata, without file I/O."""
     result = {
         "id": distribution.get("@id"),
         "title": distribution.get("dct:title"),
@@ -66,8 +68,13 @@ def inspect_distribution(
     access = distribution.get("dcat:accessURL")
     if isinstance(access, dict):
         result["uri"] = access.get("@id")
-    if not verify_local:
-        return result
+    return result
+
+
+def _observe_distribution(
+    result: dict[str, Any], allowed_roots: tuple[Path, ...]
+) -> dict[str, Any]:
+    """Observe bytes only after metadata admission; never reuse an old observation."""
     uri = result["uri"]
     if not isinstance(uri, str):
         result["reason"] = "no_access_url"
@@ -124,6 +131,14 @@ def inspect_distribution(
     return result
 
 
+def inspect_distribution(
+    distribution: dict[str, Any], allowed_roots: tuple[Path, ...], verify_local: bool
+) -> dict[str, Any]:
+    """Keep the independent single-distribution consumer entry point."""
+    result = _describe_distribution(distribution, verify_local)
+    return _observe_distribution(result, allowed_roots) if verify_local else result
+
+
 def inspect_catalog(
     catalog_path: Path,
     *,
@@ -132,12 +147,14 @@ def inspect_catalog(
 ) -> dict[str, Any]:
     catalog = read_metadata(catalog_path.read_text(encoding="utf-8"))
     # This checks the known compact JSON-LD projection shape; it is not RDF validation.
-    if not isinstance(catalog, dict) or catalog.get("@type") != "dcat:Catalog" or not isinstance(
-        catalog.get("dcat:dataset"), list
+    if (
+        not isinstance(catalog, dict)
+        or catalog.get("@type") != "dcat:Catalog"
+        or not isinstance(catalog.get("dcat:dataset"), list)
     ):
         raise ValueError("not a supported DCAT compact JSON-LD Catalog projection")
     products = []
-    seen_product_versions: set[tuple[str, str]] = set()
+    seen_product_versions: set[tuple[tuple[str, str], str]] = set()
     for dataset in catalog["dcat:dataset"]:
         if not isinstance(dataset, dict) or "dcat:Dataset" not in (
             dataset.get("@type")
@@ -153,7 +170,7 @@ def inspect_catalog(
             or not version
         ):
             raise ValueError("dataset has no stable product identifier and version")
-        identity = (product_id, version)
+        identity = (identity_key(product_id), version)
         if identity in seen_product_versions:
             raise ValueError("duplicate data product identity and version")
         seen_product_versions.add(identity)
@@ -165,8 +182,11 @@ def inspect_catalog(
         # Explicit distribution identity is a structural contract before
         # byte verification. Distinct IDs may refer to identical payloads;
         # anonymous distributions do not establish a stable selection key.
-        ids = [item["@id"] for item in distributions
-               if isinstance(item.get("@id"), str) and item["@id"]]
+        ids = [
+            item["@id"]
+            for item in distributions
+            if isinstance(item.get("@id"), str) and item["@id"]
+        ]
         if len(set(ids)) != len(ids):
             raise ValueError("duplicate distribution identity within product version")
         products.append(
@@ -176,11 +196,16 @@ def inspect_catalog(
                 "version": version,
                 "policy": dataset.get("odrl:hasPolicy"),
                 "distributions": [
-                    inspect_distribution(item, allowed_roots, verify_local)
-                    for item in distributions
+                    _describe_distribution(item, verify_local) for item in distributions
                 ],
             }
         )
+    # All product identities, distribution structures and checksum declarations
+    # have now been admitted. No invalid catalog can trigger an earlier read.
+    if verify_local:
+        for product in products:
+            for distribution in product["distributions"]:
+                _observe_distribution(distribution, allowed_roots)
     return {
         "sourceCatalog": str(catalog_path.resolve()),
         "catalogId": catalog.get("@id"),
