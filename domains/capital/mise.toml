@@ -31,7 +31,7 @@ run = """
 set -euo pipefail
 # Reuse the existing pinned uv tool rather than the older GitHub mise
 # backend, which cannot resolve this upstream Z3 Release tag.
-uvx --python 3.15 --from z3-solver==5.3.3.0 python - <<'PYZ3'
+uvx --python 3.15 --from z3-solver==5.4.1.0 python - <<'PYZ3'
 from pathlib import Path
 
 import z3
@@ -50,7 +50,7 @@ description = "Qualify scoped real Python Paper settlement implementation with u
 run = """
 set -euo pipefail
 export PYTHONPATH="$PWD/src:$PWD"
-report="$(uvx --python 3.15 --from crosshair-tool==0.0.113 --with z3-solver==5.3.3.0 crosshair check     --report_all --analysis_kind=PEP316     --per_condition_timeout=25 --per_path_timeout=5     formal.paper_settlement_source_contract.settled_cash_and_liabilities_match_model)"
+report="$(uvx --python 3.15 --from crosshair-tool==0.0.114 --with z3-solver==5.4.1.0 crosshair check     --report_all --analysis_kind=PEP316     --per_condition_timeout=25 --per_path_timeout=5     formal.paper_settlement_source_contract.settled_cash_and_liabilities_match_model)"
 printf '%s\\n' "$report"
 # CrossHair can exit zero without proving a postcondition. This source check
 # admits only its explicit scoped proof report, never silence or a timeout.
@@ -227,7 +227,7 @@ uv run --locked --group test pytest -q -m provider_qualification tests/test_okx_
 description = "Check Markets->Research capture-time non-backdating and price-basis guards with pinned upstream Z3"
 run = """
 set -euo pipefail
-uvx --python 3.15 --from z3-solver==5.3.3.0 python - <<'PYZ3'
+uvx --python 3.15 --from z3-solver==5.4.1.0 python - <<'PYZ3'
 from pathlib import Path
 import z3
 raw = Path("formal/MarketsCapturePITR1.smt2").read_bytes()
@@ -272,7 +272,7 @@ PYZ3
 description = "Prove Accounting reservation and two-phase settlement state invariants with pinned upstream Z3"
 run = """
 set -euo pipefail
-uvx --python 3.15 --from z3-solver==5.3.3.0 python - <<'PYZ3'
+uvx --python 3.15 --from z3-solver==5.4.1.0 python - <<'PYZ3'
 from pathlib import Path
 import z3
 raw = Path("formal/AccountingReservationR1.smt2").read_bytes()
