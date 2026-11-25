@@ -114,7 +114,8 @@
       },
       "objectContractRequired": true,
       "standingRef": "artifact-delivery/shadow-bindings/design-3d-glb-static-mesh-local-r1.json",
-      "requiredStanding": "LOCAL_LIVE_PROVEN"
+      "requiredStanding": "LOCAL_LIVE_PROVEN",
+      "snapshotInputs": true
     },
     {
       "profileId": "design-3d-step-solid-r1",
