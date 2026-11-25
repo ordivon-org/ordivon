@@ -11,7 +11,7 @@ import time
 from native_process import verify_process
 from rendered_product_acceptance import digest, require
 from x11_interaction_acceptance import (
-    WIDTH, HEIGHT, XTest, require_private_display, run_private, status_strip, capture,
+    WIDTH, HEIGHT, XTest, require_private_display, run_private, status_strip,
 )
 
 FRAMES = 180
@@ -62,6 +62,18 @@ def decode_audio(path):
     return {"wav_sha256": digest(path), "source_codec": "pcm_s32le", **summarize_pcm(proc.stdout)}
 
 
+def decode_frame(path):
+    require(path.is_file() and not path.is_symlink() and path.stat().st_size <= 8 * 1024 * 1024,
+            "invalid synchronized frame")
+    proc = subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-xerror",
+                           "-threads", "1", "-i", str(path), "-frames:v", "1",
+                           "-pix_fmt", "rgb24", "-f", "rawvideo", "-threads", "1", "pipe:1"],
+                          capture_output=True, timeout=10)
+    require(proc.returncode == 0 and not proc.stderr and
+            len(proc.stdout) == WIDTH * HEIGHT * 3, "synchronized frame decode failed")
+    return proc.stdout
+
+
 def record(x, executable, root, key):
     root.mkdir()
     env = os.environ.copy()
@@ -86,16 +98,20 @@ def record(x, executable, root, key):
         x.focus(x.display, window, 2, 0)
         x.sync(x.display, 0)
         time.sleep(0.25)
-        before = capture(x, window, p.pid)
-        require(x.target(p.pid) == window, "target identity changed")
-        at = len(list(root.glob("frame*.png")))
-        require(0 < at < FRAMES - 30, "event outside bounded recording")
+        # Observe a completed pre-input movie frame, then send exactly one key.
+        # Decode both source-bound frames after the writer exits; no second
+        # x11grab path competing with the native movie capture.
+        for _ in range(60):
+            at = len(list(root.glob("frame*.png")))
+            if at >= 4:
+                break
+            require(p.poll() is None, "game exited before input")
+            time.sleep(0.05)
+        require(4 <= at < FRAMES - 30, "event outside bounded recording")
+        require(x.target(p.pid) == window, "target identity changed before input")
         x.press(window, key)
-        after = capture(x, window, p.pid)
         end = len(list(root.glob("frame*.png")))
-        require(at < end < FRAMES, "recording ended during event")
-        changed = status_strip(before) != status_strip(after)
-        require(changed == (key == "a"), "input/status relation failed")
+        require(at + 2 < end < FRAMES, "recording ended during event")
         out, err = p.communicate(timeout=45)
         stdout = out.decode(errors="replace")
         verify_process(p.returncode, stdout, err.decode(errors="replace"))
@@ -104,8 +120,13 @@ def record(x, executable, root, key):
                 f"{FRAMES} frames at {FPS} FPS" in stdout, "native movie witness missing")
         require({f.name for f in root.glob("*.png")} ==
                 {f"frame{i:08d}.png" for i in range(FRAMES)}, "wrong movie inventory")
+        before = decode_frame(root / f"frame{at - 2:08d}.png")
+        after = decode_frame(root / f"frame{end - 2:08d}.png")
+        changed = status_strip(before) != status_strip(after)
+        require(changed == (key == "a"), f"{key}: input/status relation failed")
         result = decode_audio(root / "frame.wav")
-        return {"key": key, "frame_count_before_input": at, "frame_count_after_input": end,
+        return {"key": key, "pre_status_sha256": hashlib.sha256(status_strip(before)).hexdigest(),
+                "post_status_sha256": hashlib.sha256(status_strip(after)).hexdigest(), "frame_count_before_input": at, "frame_count_after_input": end,
                 "status_changed": changed, "pid": p.pid, "window_id": window,
                 "renderer": renderer[0], **result}
     finally:
