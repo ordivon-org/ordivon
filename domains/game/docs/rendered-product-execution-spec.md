@@ -75,3 +75,40 @@ release, physical display or sound measurement. Retain the JSON via the existing
 Runtime result/artifact route. CI stays unchanged pending actual runner
 qualification. The selected startup frames may legitimately be identical;
 motion, controls, sound and accessibility are separate next acceptance goals.
+
+## R12 — interaction refinement, not another game engine
+
+Host #32683/#32694; extend downstream L12 consumer. L03 rules and L04 tuning
+remain product-owned, L05/06 Godot GUI/InputEvent projection, L07 audio and L08
+save remain separate. L09 Agent action API is not a substitute for L06 OS event
+delivery. L10 independent metamorphic observation and L11 source-bound binary
+delivery feed L12; L13 human quality is not inferred.
+
+Mature substrates: Godot input propagation
+https://docs.godotengine.org/en/stable/tutorials/inputs/inputevent.html ;
+XTEST https://www.x.org/releases/X11R7.7/doc/libXtst/xtestlib.html ;
+FFmpeg x11grab https://ffmpeg.org/ffmpeg-devices.html#x11grab .
+Existing libX11/libXtst, Xvfb, FFmpeg are available; xdotool is absent.
+Use a narrow Python ctypes binding to the existing XTEST functions instead of
+adding an automation framework or implementing key simulation. No physical
+desktop input, no extra production authority, no native dependency pin.
+
+I: actual Room native executable, expected digest; O: named transition witnesses
+and scoped JSON. S: owned private Xvfb display, temporary XDG paths, target PID
+and window ID. pre: exact input SHA, independent display, unique target window
+owned by launched process, stable baseline. post: irrelevant key preserves
+raster; A changes the visible status; R restores baseline. inv: no input into
+existing display, reject ambiguous ownership, no capture of other windows,
+bounded execution, strict native diagnostics and same binary SHA. eff: synthetic
+OS key press/release and window-local capture; own process and display cleanup.
+c: bounded frames/commands/time, 1152x648 RGB. epsilon: backend-specific
+metamorphic startup test; no universal pixel golden or human engagement.
+prov: executable, window/PID, input sequence, actual captured RGB SHA and
+renderer. unfold: Xvfb + Xlib/XTEST + FFmpeg + existing strict process
+qualification. Keep separately invocable, no CI gate until runner qualified.
+
+Negative control: a missing/no-effect input must fail the required change
+predicate, while an unrelated key must preserve state. Existing native rule
+oracle separately covers actual transition meaning; raster relations do not
+authenticate exact HP/turn values. No physical keyboard, physical audio or
+Windows acceptance inferred. Reuse native rule tests, not a second simulator.
