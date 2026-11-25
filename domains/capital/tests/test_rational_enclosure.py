@@ -3,9 +3,10 @@
 from dataclasses import replace
 from decimal import Decimal, localcontext
 from fractions import Fraction as Q
-from random import Random
 
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from ordivon_capital.portfolio.information_tree import InformationNode, MultistageProblem
 from ordivon_capital.portfolio.multistage_policy import solve_multistage
@@ -20,20 +21,21 @@ from ordivon_capital.portfolio.rational_enclosure import (
 from ordivon_capital.portfolio.witness_repair import verify_repaired_witness
 
 
-def test_signed_rational_rounding_and_exact_power_enclosures():
-    rng = Random(20261125)
-    for _ in range(256):
-        value = Q(rng.randint(-(10**9), 10**9), rng.randint(1, 10**9))
-        lo, hi = enclose_rational(value)
-        assert lo <= value <= hi and hi - lo <= Q(1, 2**96)
-        wealth = Q(rng.randint(1, 10**6), rng.randint(1, 10**6))
-        gamma = Q(rng.randint(1, 64), rng.choice((1, 2, 4, 8, 16)))
-        if gamma > 16:
-            continue
-        lo, hi = enclose_inverse_power(wealth, gamma, max_bits=16384)
-        exact = wealth ** (-gamma.numerator)
-        assert 0 <= lo <= hi and hi - lo <= Q(1, 2**96)
-        assert lo**gamma.denominator <= exact <= hi**gamma.denominator
+@settings(max_examples=256, derandomize=True, deadline=None)
+@given(
+    value=st.fractions(min_value=-(10**9), max_value=10**9, max_denominator=10**9),
+    wealth=st.fractions(min_value=Q(1, 10**6), max_value=10**6, max_denominator=10**6),
+    numerator=st.integers(1, 64),
+    denominator=st.sampled_from((4, 8, 16)),
+)
+def test_signed_rational_rounding_and_exact_power_enclosures(value, wealth, numerator, denominator):
+    lo, hi = enclose_rational(value)
+    assert lo <= value <= hi and hi - lo <= Q(1, 2**96)
+    gamma = Q(numerator, denominator)
+    lo, hi = enclose_inverse_power(wealth, gamma, max_bits=16384)
+    exact = wealth ** (-gamma.numerator)
+    assert 0 <= lo <= hi and hi - lo <= Q(1, 2**96)
+    assert lo**gamma.denominator <= exact <= hi**gamma.denominator
 
 
 def test_scope_is_explicit_and_no_fake_bound():

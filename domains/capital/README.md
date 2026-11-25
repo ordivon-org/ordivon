@@ -415,7 +415,15 @@ No provider resources or live effects are admitted by this proof.
 ## Verification boundary
 
 Required repository CI is hermetic and authority-free. The capital:verify task runs the
-Capital source suite with provider_qualification tests excluded. Tests carrying that
+Capital source suite with provider_qualification tests excluded. Native acceptance requires
+both ORDIVON_CAPITAL_PG_TEST_DSN and ORDIVON_CAPITAL_PAPER_PG_TEST_DSN pointing to disposable
+test databases; missing or blank values fail before running any validation task. The
+verify:nonlive:nautilus task requires the disposable Paper DSN as well. A direct
+uv run --locked --group test python -m pytest run without these DSNs is a developer
+source check, not native database acceptance. Skips remain explicitly reported.
+Bounded Hypothesis properties and native reservation state-machine traces augment
+fixed regressions; generated examples have independent economic/accounting oracles.
+They do not prove all possible states, production concurrency, or provider authority. Tests carrying that
 marker require node-local external-owner runtimes, exact candidate binaries, or
 credential bindings and therefore are not evidence that a clean GitHub runner can or
 should reproduce provider reality.

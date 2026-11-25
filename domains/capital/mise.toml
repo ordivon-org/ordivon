@@ -5,6 +5,13 @@ rust = { version = "1.99.1", components = "clippy,rustfmt" }
 [tasks.verify]
 run = """
 set -euo pipefail
+# This is native acceptance, not a developer-only pytest run.
+for required in ORDIVON_CAPITAL_PG_TEST_DSN ORDIVON_CAPITAL_PAPER_PG_TEST_DSN; do
+  if [[ ! "${!required-}" =~ [^[:space:]] ]]; then
+    printf 'Native Capital verification requires disposable %s\\n' "$required" >&2
+    exit 2
+  fi
+done
 mise run verify:formal:risk-exposure
 mise run verify:formal:passive-general
 mise run verify:formal:passive-benchmark
@@ -18,7 +25,7 @@ mise run verify:formal:broker-liquidation
 uv lock --check
 uv sync --locked --group test
 uv run --group test ruff check .
-uv run --group test python -m pytest -m "not provider_qualification"
+uv run --locked --group test python -m pytest -rs --hypothesis-show-statistics -m "not provider_qualification"
 mise run formal:paper
 mise run formal:accounting-reservation
 mise run formal:pit-capture
@@ -129,6 +136,11 @@ printf '%s\\n' "$observed"
 description = "Run pinned upstream NautilusTrader rc9 through existing Finance nonlive reconciliation"
 run = """
 set -euo pipefail
+if [[ ! "${ORDIVON_CAPITAL_PAPER_PG_TEST_DSN-}" =~ [^[:space:]] ]]; then
+  echo "Native nonlive verification requires disposable ORDIVON_CAPITAL_PAPER_PG_TEST_DSN" >&2
+  exit 2
+fi
+export ORDIVON_FINANCE_REQUIRE_PHYSICAL_PG=1
 uv lock --check
 uv run --locked --group nonlive python -c 'import nautilus_trader; assert nautilus_trader.__version__ == "2.0.0rc9"'
 PYTHONPATH=src uv run --locked --group nonlive python tools/nautilus_rc4/nonlive_effect_matrix.py

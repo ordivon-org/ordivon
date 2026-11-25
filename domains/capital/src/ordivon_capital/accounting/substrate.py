@@ -179,11 +179,20 @@ def resolution_instruction(
 
 
 def stable_accounting_id(namespace: str, *parts: str) -> int:
-    if not namespace.strip() or not parts or any(not part.strip() for part in parts):
+    components = (namespace, *parts)
+    if not parts or any(not isinstance(value, str) or not value.strip() for value in components):
         raise AccountingMappingError(
-            "accounting identity binding requires non-empty namespace and parts"
+            "accounting identity binding requires non-empty text namespace and parts"
         )
-    payload = "\x1f".join((namespace, *parts)).encode()
+    # Preserve historical bytes for canonical components, but the reserved
+    # separator must never occur inside a component. Otherwise distinct
+    # tuples have identical preimages without any cryptographic collision.
+    if any("\x1f" in value for value in components):
+        raise AccountingMappingError("accounting identity component contains reserved separator")
+    try:
+        payload = "\x1f".join(components).encode("utf-8")
+    except UnicodeEncodeError as exc:
+        raise AccountingMappingError("accounting identity requires valid UTF-8 text") from exc
     value = int.from_bytes(hashlib.sha256(payload).digest()[:16], "big")
     return value or 1
 

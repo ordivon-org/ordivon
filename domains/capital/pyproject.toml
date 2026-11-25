@@ -31,6 +31,7 @@ test = [
     # Existing Finance native-report tests require real pandas empty DataFrame semantics.
     "pandas==3.1.1",
     "pytest>=9.1.1",
+    "hypothesis>=6,<7",
     "ruff>=0.17.2",
 ]
 
@@ -41,6 +42,8 @@ package = false
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-q"
+strict_markers = true
+strict_xfail = true
 markers = [
     "provider_qualification: requires node-local provider runtimes, external owner binaries, or credential bindings; excluded from hermetic required CI",
     "native_nonlive: upstream Nautilus/Databento decoder conformance; requires the pinned nonlive dependency group",
