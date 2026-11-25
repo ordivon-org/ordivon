@@ -18,7 +18,7 @@ from .collection_pagination import (
     DEFAULT_COLLECTION_MAX_BYTES,
     DEFAULT_MESSAGE_COLLECTION_MAX_BYTES,
     MIN_MESSAGE_COLLECTION_MAX_BYTES,
-    bounded_prefix,
+    bounded_page,
     validate_max_bytes,
 )
 from .errors import ConflictError
@@ -90,34 +90,27 @@ class SocialMessageReadQueries:
                 for row in rows[:limit]
             ]
 
-            def envelope(last: dict[str, Any]) -> dict[str, Any]:
+            def envelope(last: dict[str, Any] | None, has_more: bool) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-message-relation-list",
                     "messageRef": message_ref,
                     "direction": direction,
-                    "hasMore": True,
-                    "nextAfterChangeSequence": last["changeSequence"],
+                    "hasMore": has_more,
+                    "nextAfterChangeSequence": after_change_sequence
+                    if last is None
+                    else int(last["changeSequence"]),
                     "rankingApplied": False,
                     "truthBoundary": "explicit collaboration relations only; opaque targets are references, not existence or authority proof",
                 }
 
-            page, byte_more = bounded_prefix(
-                candidates, max_bytes=max_bytes, collection_key="relations", envelope=envelope
+            return bounded_page(
+                candidates,
+                max_bytes=max_bytes,
+                collection_key="relations",
+                envelope=envelope,
+                source_has_more=sql_more,
             )
-            has_more = sql_more or byte_more
-            next_sequence = after_change_sequence if not page else int(page[-1]["changeSequence"])
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-message-relation-list",
-                "messageRef": message_ref,
-                "direction": direction,
-                "relations": page,
-                "hasMore": has_more,
-                "nextAfterChangeSequence": next_sequence,
-                "rankingApplied": False,
-                "truthBoundary": "explicit collaboration relations only; opaque targets are references, not existence or authority proof",
-            }
 
     def get_message(
         self,
@@ -246,36 +239,26 @@ class SocialMessageReadQueries:
                 for row in rows[:limit]
             ]
 
-            def envelope(last: dict[str, Any]) -> dict[str, Any]:
+            def envelope(last: dict[str, Any] | None, has_more: bool) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-message-search",
                     "query": query,
-                    "hasMore": True,
-                    "nextBeforeSequence": int(last["sequence"]),
+                    "hasMore": has_more,
+                    "nextBeforeSequence": int(last["sequence"])
+                    if has_more and last is not None
+                    else None,
                     "rankingApplied": False,
                     "ordering": "sequence_desc",
                     "truthBoundary": search_boundary
                     + " ordered by message sequence, not relevance/priority; message claims require owner-native verification",
                 }
 
-            page, byte_more = bounded_prefix(
+            return bounded_page(
                 candidates,
                 max_bytes=max_bytes,
                 collection_key="messages",
                 envelope=envelope,
                 minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES,
+                source_has_more=sql_more,
             )
-            has_more = sql_more or byte_more
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-message-search",
-                "query": query,
-                "messages": page,
-                "hasMore": has_more,
-                "nextBeforeSequence": int(page[-1]["sequence"]) if has_more and page else None,
-                "rankingApplied": False,
-                "ordering": "sequence_desc",
-                "truthBoundary": search_boundary
-                + " ordered by message sequence, not relevance/priority; message claims require owner-native verification",
-            }
