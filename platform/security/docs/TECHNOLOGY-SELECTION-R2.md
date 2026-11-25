@@ -186,3 +186,159 @@ Operations / Runtime / Temporal
 7. Continue the already-open Packer -> image -> libguestfs independent-readback VM closure.
 
 This ordering closes distinct lifecycle gaps while keeping the Security-owned code surface small.
+
+## R11 execution specification — 2026-11-26
+
+This section refines the existing selection baseline, not a second authority,
+registry or claim that selected technology is installed. Source cut
+9b4a302a5d52e6efccf23af21a86497b2b08b13b (draft #2808), Host #32634/#32638.
+The code/native contracts remain normative where executable. The earlier
+migration order is historical; the bottleneck order below governs this slice.
+
+### Objective and semantic decomposition
+
+Authority, Assurance, Observation and Verification are distinct capabilities.
+The Security kernel qualifies their composition; Gateway owns enforcement,
+Runtime owns native effect/attempt truth, Artifact owns actual build subjects,
+and the business owner owns consequence acceptance. Authorization is not
+execution, execution is not consequence, and content integrity is not truth.
+
+Thought LEGO: identity before interpretation; representation before algorithms;
+PDP/PEP separation; policy-as-code; exact capture; explicit applicability;
+risk-tiered effects; provenance; independent evidence; negative controls;
+partial knowledge (UNKNOWN is not FALSE); bounded resource use; replace/reuse
+before custom implementation; natural owner; evidence-first promotion.
+
+The following 24 logical facets unfold existing plan S01–S07; they are not
+24 new services or independently admitted plan nodes. Paths are Security-root
+relative. "Port" names denote contracts, not newly implemented services.
+
+| Facet | Existing S-node / input -> output | Existing carrier or candidate |
+|---|---|---|
+| L01 Principal qualification | S01/S06 issuer identity -> qualified subject | contracts/agent-request-verifier-v1; external identity provider |
+| L02 Delegation | S06 qualified principal + delegation -> scoped actor | policies/agent_admission.rego |
+| L03 Grant resolution | S06 exact grant identity and context -> applicability | policies/agent_admission.rego; AuthZEN policy |
+| L04 Resource binding | S01/S06 subject/resource -> exact resource reference | contracts/agent-admission-v1; Gateway owner resolver |
+| L05 Capability scope | S06 action/resource -> bounded scope | policies/agent_admission.rego |
+| L06 Risk classification | S06 effect description -> risk/approval requirement | existing agent admission input/profile |
+| L07 Approval binding | S06 actual approval and content -> qualified approval | formal/AgentApprovalBinding.lean |
+| L08 Policy decision | S04/S06 qualified request -> decision/error | OPA/Rego; services/gateway-authzen |
+| L09 Effect authority | S07 exact projection -> bounded effect admission | policies/effect_admission.rego |
+| L10 Validity/revocation | S03/S06 time and current owner context -> scoped validity | existing policy and natural grant owner |
+| L11 Threat model | S01/S03 architecture -> threats and mitigations | src/ordivon_security_v2/threat_model.py; TM-BOM |
+| L12 Verification planning | S03 requirement -> evidence obligation | existing threat model/admission profiles; CI owner |
+| L13 Finding interpretation | S02 provider finding -> qualified finding reference | evidence.py; scorecard.py; native scan outputs |
+| L14 Component identity | S01/S02 component/artifact -> exact subject | vex.py; Syft/CycloneDX |
+| L15 Vulnerability applicability | S03 finding + context -> scoped disposition | vex.py; detached VEX |
+| L16 Build provenance | S01/S02 build/artifact statement -> verified binding | provenance.py; Artifact owner; SLSA |
+| L17 Signature verification | S02 signed statement/key -> verification evidence | signed_vsa.py; scripts/verify_vsa_cosign.sh |
+| L18 Remediation observation | S02/S03 before/after reports -> bounded delta | remediation.py; independent scan qualification remains open |
+| L19 Runtime observation | S02 event -> native evidence reference | Runtime; Falco conditional; browser_security_observation.py |
+| L20 Effect correlation | S01/S07 original request/receipt -> correlated observation | Runtime/Artifact owner receipt; browser_security_witness.py |
+| L21 Consequence verification | S04/S05 qualified observation -> bounded conclusion | policies/consequence_verification.rego; formal/ConsequenceEvidence.lean |
+| L22 Drift/currentness | S03 exact revision/observation cut -> current/stale/unknown | threat_model.py; existing native source checks |
+| L23 Evidence authentication | S02/S03 bytes/subject/issuer -> qualified evidence | evidence.py; attestations.py; signed_vsa.py |
+| L24 Standing projection | S05 exact scope and observations -> standing/error | admission.py; scorecard.py; AuthZEN standing candidate |
+
+Here S01–S07 are the existing planning/lego-plan-r1.json nodes; all
+unproved composition and installed standing obligations remain open. A
+source mapping is not proof that a facet has a live consumer.
+
+### Capability allocation and replacement boundary
+
+| Capability | Decision | Natural authority / boundary |
+|---|---|---|
+| OPA native Rego | retain; current 1.22.4 cohort candidate | Security + Composition, root version guard unchanged |
+| OPA long-lived carrier and native bundle/status | replace repeated process startup only after qualification | Security PDP, not a new public service or registry |
+| Cedar native Rust | conditional comparator | require full diagnostic-aware semantic refinement, not dual live authority |
+| OAuth/OIDC/DPoP and WebAuthn | reuse existing contracts/issuer | external identity/approval owner, no invented identity DB |
+| Gitleaks/Semgrep/OSV/Trivy | retain distinct native evidence | CI/build/scanner owner; do not clone scanner engines |
+| Syft/CycloneDX/VEX | retain | exact component and applicability binding |
+| Sigstore/Cosign/in-toto/SLSA | retain | Artifact builds and signs; Security verifies |
+| TM-BOM/STRIDE/CWE/CAPEC | retain | exact architecture revision, not custom ontology |
+| ZAP/ClusterFuzzLite | conditional per authorized bounded consumer | native scanner/fuzz engine, no duplicated orchestration |
+| Falco/osquery | conditional distinct observation | actual event/snapshot coverage required; no world truth |
+| Tetragon | conditional inline enforcement | separate operational authority and actual need required |
+| Runtime/Temporal | reuse | effect and workflow owner, not Security evidence truth |
+| libvirt/QEMU/swtpm/Packer/libguestfs | reuse existing VM/image provider path | separate native construction vs readback |
+| Lean/TLA+/native OPA tests | retain | model proof, native behavior and independent refinement distinguished |
+| pytest/Ruff/uv/mise | retain | compatible manifest ranges, exact execution lock and one updater |
+
+### R11-Q1 — atomic provider cohort and consumer integration
+
+- Current exact #2808 CI run 45701610907 reported repo-mechanics failure:
+  Security OPA 1.22.4 and Composition 1.21.4 violate the existing
+  test_active_opa_policy_owners_consume_one_current_version. Preserve the test.
+  Qualify a coordinated one-line Composition update and actual owner gates;
+  natural Composition/Repo owners review. No downgrade or duplicate version
+  authority merely to make CI pass. apps/web is a separately declared version;
+  actual consumer membership must be established rather than assumed.
+- Gateway CI owner-shard-1 reported standalone-file import of the new
+  Security package failing. Natural Gateway owner should consume the package
+  boundary rather than reintroduce single-file coupling or remove native
+  consumer coverage. Host handoffs #32673 and #32675.
+- Keep #2808 draft until exact root CI, independently qualified external
+  report-delta consumers, and exact current Gateway composition. Supersede
+  overlapping candidates only after the replacement is qualified.
+
+### R11-Q2 — native carrier replacement (prepared evaluation)
+
+Input: exact source policy, qualified immutable data snapshot, exact input
+and consumer scope, observation time. Output: bounded decision or explicit
+unavailable/error, with the original required evidence identity. State:
+native process, loaded policy/data revision and bounded resources; not a
+cache of prior decisions. Preconditions: the existing issuer/consumer
+contracts remain valid; provider has a qualified matching snapshot and
+current lifecycle standing. Postcondition: same result, classification
+and evidence boundary for the same admitted input/snapshot as reference
+evaluation. No silent promotion of an old decision to a new effect.
+
+The provider's native bundle/status and decision metrics are candidate
+primitives, not sufficient proof of actual installed decision identity.
+The old CLI implementation remains the semantic comparator until
+qualification, not a permanent duplicate authority. Independent review must
+establish snapshot activation, restart/readiness, version refresh, current
+time semantics, bounded memory/queue/latency and failure/recovery behavior
+before any replacement is installed. No new secrets, policy/grant authority,
+production route or decision cache is introduced by this specification.
+
+The first native carrier performance discriminator is deliberately
+non-authorizing arithmetic on isolated loopback:
+scripts/benchmark_opa_carriers.py. It compares actual CLI startup with
+the mature OPA server carrier using the same synthetic arithmetic result
+and fixed-seed paired inputs. It does not qualify the real authorization
+policy or any installed service. Measure representative owner workloads,
+snapshot refresh and concurrency separately; keep a single actual source
+of authority. Require no semantic differences and a material measured
+benefit before requesting a production migration.
+
+Acceptance tiers:
+1. Native exact source contract and immutable output identity.
+2. Provider-native differential for the same qualified input snapshot;
+   normal, invalid, unknown and expiry/revocation/restart cases must remain
+   separately classified under the existing authority semantics.
+3. Model refinement review (Lean/TLA+ where the state obligation needs it)
+   plus independent oracle and negative controls; no theorem-to-production
+   inference.
+4. End-to-end installed consumer receipt at the real authorized boundary,
+   normal CI and owner rollback evidence; only then retire the old carrier.
+
+### Dependency and task lifecycle
+
+Manifest compatibility constraints are distinct from reproducible resolved
+locks and native toolchain coordinates. Prefer the existing single updater
+per ecosystem, actual lock freshness checks, compatible upgrade preview,
+clean native install, and real consumer tests. Keep exact schema/source and
+toolchain identity only where reproducibility or compatibility needs it.
+Version-cohort changes must pass the existing cross-owner guard rather
+than add competing pins. Do not delete another owner's active Workspace;
+publish the exact donor and release only after clean native readback.
+
+References (external rationale, not project acceptance):
+- https://www.openpolicyagent.org/docs/policy-performance
+- https://www.openpolicyagent.org/docs/management-bundles
+- https://www.openpolicyagent.org/docs/management-status
+- https://www.openpolicyagent.org/docs/management-decision-logs
+- https://docs.cedarpolicy.com/auth/authorization.html
+- https://docs.cedarpolicy.com/policies/validation.html
+- https://slsa.dev/spec/v1.2/build-track-basics
