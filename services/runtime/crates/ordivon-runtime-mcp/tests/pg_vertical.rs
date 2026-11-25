@@ -350,8 +350,12 @@ impl Drop for Fixture {
         };
         let pg = self.pg.stop();
         if std::thread::panicking() || units.is_err() || pg.is_err() {
-            eprintln!("NATIVE_FIXTURE_RETAINED root={} panic={} units={units:?} pg={pg:?}",
+            let diagnostic = format!("NATIVE_FIXTURE_RETAINED root={} panic={} units={units:?} pg={pg:?}",
                 self.root.display(), std::thread::panicking());
+            eprintln!("{diagnostic}");
+            // Retain a bounded direct diagnostic when the successful test's
+            // captured stderr is discarded by the upstream runner.
+            let _ = fs::write(self.root.join("fixture-retention.txt"), diagnostic);
             return;
         }
         if let Err(err) = fs::remove_dir_all(&self.root) {
@@ -7610,7 +7614,9 @@ fn pg_job_list_exact_key_does_not_substitute_historical_result() {
     let before = lookup();
     assert_eq!(before["resultAvailable"], true);
     assert_eq!(before["deliveryDisposition"], "committed");
-    let prior = format!("r6-previous-{}", Uuid::now_v7());
+    // Historical provenance is represented by attempt_number, not an
+    // invented non-native identity prefix. Retain the original history oracle.
+    let prior = format!("attempt-{}", Uuid::now_v7());
     let prior_bundle = fixture.root.join("store/pg-attempts").join(&prior);
     let row=fixture.db.query_one("SELECT artifact_id,relative_path,byte_length,digest FROM artifacts WHERE job_id=$1 AND attempt_id=$2 AND kind='execution_result'",&[&job,&current]).unwrap();
     let artifact: String = row.get(0);
