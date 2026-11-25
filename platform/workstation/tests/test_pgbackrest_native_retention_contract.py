@@ -10,12 +10,74 @@ import hashlib
 import json
 import os
 import pwd
+import re
 import shutil
 import subprocess
 import tempfile
 import time
 import unittest
 from pathlib import Path
+
+# These are test-only oracles for the observed native CLI contract.
+# The fixture's schedule, not the CLI's reported dependency graph, supplies
+# the independently expected groups and removal identities.
+_LABEL = r"[0-9]{8}-[0-9]{6}F(?:_[0-9]{8}-[0-9]{6}[DI])?"
+
+
+def require(condition, message):
+    # The documented unittest entry also works under Python -O.
+    if not condition:
+        raise AssertionError(message)
+
+
+def assert_expiration_plan(report, expected_groups):
+    groups = []
+    removals = []
+    completions = 0
+    for line in report.splitlines():
+        if "expire full backup set" in line:
+            match = re.search(r"INFO: \[DRY-RUN\] repo1: expire full backup set (.+)$", line)
+            require(match is not None, "unexpected expiration group report")
+            labels = tuple(match[1].split(", "))
+            require(all(re.fullmatch(_LABEL, x) for x in labels), "invalid plan label")
+            groups.append(labels)
+        elif "remove expired backup" in line:
+            match = re.search(
+                rf"INFO: \[DRY-RUN\] repo1: remove expired backup ({_LABEL})$", line
+            )
+            require(match is not None, "unexpected removal report")
+            removals.append(match[1])
+        elif "expire command end:" in line:
+            require(re.search(
+                r"INFO: \[DRY-RUN\] expire command end: completed successfully \(\d+ms\)$",
+                line,
+            ) is not None, "invalid dry-run completion")
+            completions += 1
+    expected = [label for group in expected_groups for label in group]
+    require(len(expected) == len(set(expected)), "invalid expected schedule")
+    require(sorted(groups) == sorted(expected_groups), "expiration groups differ")
+    require(sorted(removals) == sorted(expected), "removal identities/multiplicity differ")
+    require(completions == 1, "dry-run completion missing or repeated")
+
+
+def repository_identity(repo):
+    # Native primary is stopped before observation, so no archive writer is
+    # expected to change this private repository during either dry run.
+    result = {}
+    for path in repo.rglob("*"):
+        if path.is_file():
+            with path.open("rb") as stream:
+                result[str(path.relative_to(repo))] = (
+                    path.stat().st_size, path.stat().st_mtime_ns,
+                    hashlib.file_digest(stream, "sha256").hexdigest(),
+                )
+    return result
+
+
+def expected_witness(step):
+    # Independent model of the fixture, not another query of the primary.
+    return [{"id": i, "body": f"revision-{step}" if i == 1 else f"point-{i}"}
+            for i in range(1, step + 1)]
 
 
 @unittest.skipUnless(os.environ.get("ORDIVON_TEST_NATIVE_BACKUP_RETENTION") == "1",
@@ -108,7 +170,8 @@ class NativeBackupRetentionContract(unittest.TestCase):
             for step, kind in enumerate(schedule, 1):
                 sql(f"insert into witness values ({step}, 'point-{step}'); "
                     f"update witness set body='revision-{step}' where id=1")
-                expected = witness()
+                expected = expected_witness(step)
+                self.assertEqual(json.loads(witness()), expected)
                 start_time = time.monotonic()
                 # The first new full generation must not implicitly expire recovery roots.
                 opts = ["--no-expire-auto"] if step == 9 else []
@@ -129,30 +192,24 @@ class NativeBackupRetentionContract(unittest.TestCase):
             before_expire = info()
             self.assertEqual(label_set(before_expire), {item[0] for item in saved})
 
-            # Native planning and actual effects are different observations.
-            # Verify the dry-run leaves the backup and archive carriers unchanged.
-            def repo_identity():
-                return {
-                    str(path.relative_to(repo)): (path.stat().st_size, path.stat().st_mtime_ns)
-                    for path in repo.rglob("*") if path.is_file()
-                }
-
-            before_files = repo_identity()
+            # Freeze the private repository by stopping the only archive
+            # producer, then compare actual file bytes before/after planning.
+            stop(data)
+            before_files = repository_identity(repo)
             bad = br("--repo1-retention-full=1", "--repo1-retention-archive=1",
                      "--dry-run", "--log-level-console=info", "expire")
             print("ONE_GENERATION_DRY_RUN", bad, flush=True)
             self.assertEqual(info(), before_expire)
-            self.assertEqual(repo_identity(), before_files)
+            self.assertEqual(repository_identity(repo), before_files)
             good = br("--repo1-retention-full=2", "--repo1-retention-archive=2",
                       "--dry-run", "--log-level-console=info", "expire")
             print("TWO_GENERATION_DRY_RUN", good, flush=True)
             self.assertEqual(info(), before_expire)
-            self.assertEqual(repo_identity(), before_files)
-            self.assertIn(saved[2][0], bad)
-            self.assertNotIn(saved[2][0], "\n".join(
-                line for line in good.splitlines() if "expire full backup set" in line
-            ))
-            self.assertIn(saved[0][0], good)
+            self.assertEqual(repository_identity(repo), before_files)
+            first_group = tuple(label for label, _ in saved[:2])
+            second_group = tuple(label for label, _ in saved[2:8])
+            assert_expiration_plan(bad, [first_group, second_group])
+            assert_expiration_plan(good, [first_group])
             br("--repo1-retention-full=2", "--repo1-retention-archive=2", "expire")
             retained = info()
             self.assertEqual(len(required), 7)
@@ -164,7 +221,6 @@ class NativeBackupRetentionContract(unittest.TestCase):
                     self.assertIn(item["prior"], required)
             for label, _ in saved[:2]:
                 self.assertFalse((repo / "backup" / "retention" / label).exists())
-            stop(data)
             print("native expiry closure", sorted(required), flush=True)
 
             # Exact single-timeline WAL coverage across the retained interval.
@@ -205,7 +261,7 @@ class NativeBackupRetentionContract(unittest.TestCase):
                         self.fail(f"recovery did not promote for {label}")
                     time.sleep(0.25)
                 actual = witness(restore_socket, port + 1)
-                self.assertEqual(actual, expected)
+                self.assertEqual(json.loads(actual), expected)
                 stop(dest)
                 print("RESTORE", label, "seconds", round(time.monotonic() - begin, 3),
                       "digest", hashlib.sha256(actual.encode()).hexdigest(), flush=True)

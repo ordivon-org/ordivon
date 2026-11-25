@@ -40,3 +40,36 @@ References:
 - https://pgbackrest.org/command.html
 - https://www.postgresql.org/docs/18/continuous-archiving.html
 - https://www.freedesktop.org/software/systemd/man/latest/systemd.timer.html
+
+
+### Explicit native test qualification
+
+Ordinary portable CI can skip the opt-in backup tests and does not establish
+native recovery qualification. On the authorized Linux test carrier, use
+`mise run backup:native-verify` from this owner. This invokes the existing
+pytest runner with both private PG/pgBackRest obligations enabled. The native
+qualification hook requires exact collected and executed identities and one
+successful setup, call, and teardown for each; skip, xfail, xpass, deselection,
+collection-only, and missing or repeated execution do not qualify.
+
+Set `ORDIVON_NATIVE_BACKUP_JUNIT` to a fresh path in an attempt-owned directory
+when preserving native JUnit evidence. The task refuses an already present
+file or symlink before dispatch; the caller owns the directory and prevents
+concurrent writers. Bind the report to the actual source, lock, environment,
+and Runtime attempt. A report alone is not an installed consumer or production
+retention authorization. The portable CI lane remains separate.
+
+### Independent native recovery oracle
+
+The fixture supplies the expected expiration groups and exact removal
+multiplicities from the nine-step schedule, independently of the engine's
+reported graph. Both dry-run reports must contain their exact groups,
+removals and a single successful dry-run completion. Stop the private
+primary before comparing repository names, sizes, timestamps and SHA-256
+bytes; this is a quiescent private-fixture claim, not a live-repository
+atomicity guarantee. Independently modeled row values must match both
+the primary at each backup point and each of the seven restored points.
+The finite report-risk controls and the same-size/same-mtime byte mutation
+are portable tests; the actual restore and archive checks remain native.
+The text oracle qualifies the observed pgBackRest CLI format, not arbitrary
+future output formats or production expiration authorization.
