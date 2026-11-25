@@ -35,9 +35,14 @@ def verify_html_conformance(path: Path) -> dict[str, Any]:
     parse_error: str | None = None
     try:
         payload = proc.stdout.strip() or proc.stderr.strip()
-        parsed = json.loads(payload)
-        messages = parsed.get("messages", []) if isinstance(parsed, dict) else []
-        version = parsed.get("version") if isinstance(parsed, dict) else None
+        value = json.loads(payload)
+        if not isinstance(value, dict) or not isinstance(value.get("messages"), list):
+            raise ValueError("Nu Html Checker report must contain a messages array")
+        if any(not isinstance(item, dict) for item in value["messages"]):
+            raise ValueError("Nu Html Checker message must be an object")
+        parsed = value
+        messages = value["messages"]
+        version = value.get("version")
     except Exception as error:
         parse_error = str(error)
 
@@ -45,7 +50,7 @@ def verify_html_conformance(path: Path) -> dict[str, Any]:
         "status": (
             "PASS"
             if proc.returncode == 0 and parsed is not None and not messages
-            else "FAIL"
+            else "NOT_RUN" if parsed is None else "FAIL"
         ),
         "artifact": artifact,
         "validator": {

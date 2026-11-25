@@ -9,9 +9,56 @@ from __future__ import annotations
 import time
 from typing import Any
 
+import psycopg
+from rfc8785 import CanonicalizationError
+
 from ..canonical_json import canonical_digest
 from ..postgres_connections import HostPostgresConnections
-from ..work_receipts import replay_work_receipt
+from .receipt_roots import count_invalid_work_receipt_roots
+
+
+def _snapshot_payload_matches(row: dict[str, Any]) -> bool:
+    """Invalid persisted canonical content is a diagnostic error, not healthy or a crash."""
+    payload = row["payload"]
+    if not isinstance(payload, dict):
+        return False
+    try:
+        return canonical_digest(payload) == row["snapshot_digest"]
+    except CanonicalizationError:
+        return False
+
+
+def _read_authority(conn: psycopg.Connection[dict[str, Any]]) -> dict[str, Any]:
+    """One exact aggregate projection under the caller's read-only MVCC cut."""
+    row = conn.execute(
+        "SELECT schema_version,"
+        "(SELECT count(*) FROM actor_refs) AS actors,"
+        "(SELECT COALESCE(jsonb_object_agg(state,n),'{}'::jsonb) "
+        "FROM (SELECT state,count(*) AS n FROM works GROUP BY state) w) AS work_states,"
+        "(SELECT count(*) FROM work_snapshots) AS snapshots,"
+        "(SELECT count(*) FROM spaces) AS spaces,"
+        "(SELECT count(*) FROM topics) AS topics,"
+        "(SELECT count(*) FROM messages) AS messages,"
+        "(SELECT count(*) FROM subscriptions) AS subscriptions,"
+        "(SELECT value FROM swf_change_clock WHERE singleton) AS change_high "
+        "FROM host_v2_schema WHERE singleton"
+    ).fetchone()
+    if row is None:
+        raise RuntimeError("Host v2 schema is not initialized")
+    works_by_state = {state: int(count) for state, count in row["work_states"].items()}
+    return {
+        "journalBackend": "postgresql",
+        "journalSchema": int(row["schema_version"]),
+        "actorRefs": int(row["actors"]),
+        "works": sum(works_by_state.values()),
+        "worksByState": works_by_state,
+        "workSnapshots": int(row["snapshots"]),
+        "spaces": int(row["spaces"]),
+        "topics": int(row["topics"]),
+        "messages": int(row["messages"]),
+        "subscriptions": int(row["subscriptions"]),
+        "changeHighSequence": int(row["change_high"]),
+    }
 
 
 class HostStatusQueries(HostPostgresConnections):
@@ -24,44 +71,11 @@ class HostStatusQueries(HostPostgresConnections):
             raise ValueError("detail must be summary, integrity, or history")
         observed_at_ms = time.time_ns() // 1_000_000
         with self._connect() as conn:
-            # The multi-query doctor must observe one coherent MVCC snapshot.
-            if detail != "summary":
-                conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
-            schema_row = conn.execute(
-                "SELECT schema_version FROM host_v2_schema WHERE singleton"
-            ).fetchone()
-            if schema_row is None:
-                raise RuntimeError("Host v2 schema is not initialized")
-            schema_version = int(schema_row["schema_version"])
-
-            actor_count = int(
-                conn.execute("SELECT count(*) AS value FROM actor_refs").fetchone()["value"]
-            )
-            work_state_rows = conn.execute(
-                "SELECT state,count(*) AS value FROM works GROUP BY state"
-            ).fetchall()
-            works_by_state = {row["state"]: int(row["value"]) for row in work_state_rows}
-            work_count = sum(works_by_state.values())
-            snapshot_count = int(
-                conn.execute("SELECT count(*) AS value FROM work_snapshots").fetchone()["value"]
-            )
-            space_count = int(
-                conn.execute("SELECT count(*) AS value FROM spaces").fetchone()["value"]
-            )
-            topic_count = int(
-                conn.execute("SELECT count(*) AS value FROM topics").fetchone()["value"]
-            )
-            message_count = int(
-                conn.execute("SELECT count(*) AS value FROM messages").fetchone()["value"]
-            )
-            subscription_count = int(
-                conn.execute("SELECT count(*) AS value FROM subscriptions").fetchone()["value"]
-            )
-            change_high = int(
-                conn.execute("SELECT value FROM swf_change_clock WHERE singleton").fetchone()[
-                    "value"
-                ]
-            )
+            # Every detail mode is a read-only observation of one native cut.
+            conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+            authority = _read_authority(conn)
+            schema_version = authority["journalSchema"]
+            change_high = authority["changeHighSequence"]
 
             doctor = None
             if detail != "summary":
@@ -143,11 +157,7 @@ class HostStatusQueries(HostPostgresConnections):
                         "ON s.work_ref=w.work_ref AND s.revision=w.current_revision"
                     )
                     for row in cursor:
-                        payload = row["payload"]
-                        if (
-                            not isinstance(payload, dict)
-                            or canonical_digest(payload) != row["snapshot_digest"]
-                        ):
+                        if not _snapshot_payload_matches(row):
                             current_payload_bad += 1
                 add_check(
                     "work.current_snapshot_payload_digest",
@@ -178,46 +188,21 @@ class HostStatusQueries(HostPostgresConnections):
                         cursor.itersize = 128
                         cursor.execute("SELECT snapshot_digest,payload FROM work_snapshots")
                         for row in cursor:
-                            payload = row["payload"]
-                            if (
-                                not isinstance(payload, dict)
-                                or canonical_digest(payload) != row["snapshot_digest"]
-                            ):
+                            if not _snapshot_payload_matches(row):
                                 digest_bad += 1
                     add_check(
                         "work.snapshot_history_digest",
                         digest_bad == 0,
                         f"invalid={digest_bad}",
                     )
-                    # A compact receipt independently pins its exact historical revision.
-                    # Legacy full receipts have their own replay payload and do not pin it.
-                    root_bad = 0
-                    with conn.cursor(name="host_work_receipt_root_scan") as cursor:
-                        cursor.itersize = 128
-                        cursor.execute(
-                            "SELECT response FROM command_receipts "
-                            "WHERE operation IN ('work.create','work.snapshot.commit') "
-                            "AND response IS NOT NULL "
-                            "AND response->>'kind' IS DISTINCT FROM 'ordivon.host-work'"
+                    # Native typed roots are available only after schema 0017.
+                    if schema_version >= 17:
+                        root_bad = count_invalid_work_receipt_roots(conn)
+                        add_check(
+                            "work.receipt_history_roots", root_bad == 0, f"invalid={root_bad}"
                         )
-                        for row in cursor:
-                            response = row["response"]
-                            try:
-                                if not isinstance(response, dict):
-                                    raise ValueError("invalid Work receipt")
-                                envelope = response.get("envelope")
-                                if not isinstance(envelope, dict) or not isinstance(
-                                    envelope.get("workRef"), str
-                                ):
-                                    raise ValueError("invalid Work receipt root")
-                                replay_work_receipt(conn, response, work_ref=envelope["workRef"])
-                            except RuntimeError, ValueError, TypeError, KeyError:
-                                root_bad += 1
-                    add_check(
-                        "work.receipt_history_roots",
-                        root_bad == 0,
-                        f"invalid={root_bad}",
-                    )
+                    else:
+                        add_check("work.receipt_history_roots", False, "unavailable=typed roots")
                 doctor = {
                     "healthy": all(item["status"] == "ok" for item in checks),
                     "checks": checks,
@@ -228,19 +213,7 @@ class HostStatusQueries(HostPostgresConnections):
                 "kind": "ordivon.host-status",
                 "observedAtMs": observed_at_ms,
                 "detail": detail,
-                "authority": {
-                    "journalBackend": "postgresql",
-                    "journalSchema": schema_version,
-                    "actorRefs": actor_count,
-                    "works": work_count,
-                    "worksByState": works_by_state,
-                    "workSnapshots": snapshot_count,
-                    "spaces": space_count,
-                    "topics": topic_count,
-                    "messages": message_count,
-                    "subscriptions": subscription_count,
-                    "changeHighSequence": change_high,
-                },
+                "authority": authority,
                 "doctor": doctor,
                 "truthBoundary": {
                     "host": (
