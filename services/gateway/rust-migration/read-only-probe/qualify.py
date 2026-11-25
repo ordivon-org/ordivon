@@ -15,6 +15,7 @@ from pathlib import Path
 
 from mcp import Client, MCPError
 from qualify_owner import qualify_owner
+from qualify_stateful import qualify_stateful
 
 from ordivon_gateway.logic.execution_refs import GatewayError, parse_execution_ref
 from ordivon_gateway.logic.routing import default_routes
@@ -402,3 +403,4 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
     asyncio.run(qualify_owner(BINARY))
+    asyncio.run(qualify_stateful(BINARY))

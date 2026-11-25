@@ -189,3 +189,42 @@ and deployment acceptance remain separate, not inferred from any fixture.
 
 Upstream references: https://proptest-rs.github.io/proptest/ ;
 https://mutants.rs/ ; https://github.com/modelcontextprotocol/rust-sdk .
+
+## R15 temporal and protocol fault qualification (Host #32893)
+
+Extend R14 independent point properties with a reference trace over eight
+producer actions: ready, not-ready, malformed context, rotate credentials,
+stale credentials, missing credentials, and a response replaced by HTTP 503
+or 404 **after the independent Python SDK producer completed its tool call**.
+The bounded sequence carrier accepts only "observe" on stdin, at most 256
+requests, with one operator-provided loopback endpoint, node and credential
+path for the entire process. It reuses the existing Rust recipient; no public
+MCP tool, arbitrary dispatch, persistent credentials or production service.
+
+The independent Python qualification covers every ordered pair of actions,
+prefixing each pair with a ready observation. Each protocol mode therefore
+has 192 transitions, 160 exact business calls and 32 response-fault
+injections. Modern auto-negotiation and explicit legacy initialization have
+separate real TCP traces. Credentials are rotated via atomic replacement;
+the stale case supplies the actual previous token once rotation occurred.
+The oracle is derived from the producer action, never the receiver result.
+It checks outcome, exact business call count and version, no request for
+missing credential, zero authenticated/business dispatch for stale token,
+no re-negotiation/replay after dispatch, and no synthetic token in output.
+A lost response must not be reported as a successful observation, even when
+the producer completed the read. These are fixture-only bounded sequential
+traces, not a proof about real effects, remote cancellation, concurrent
+schedules or production authorization.
+
+The existing gateway:verify native qualification runs the trace. Deliberate
+compiled mutations in isolation must fail an assertion (not an environment
+or compile failure): enable expired-session reinitialization, invent a
+successful observation on transport failure, or cache a previous result.
+Restore original source and run both traces again. No new test dependency
+or root CI runner. Preserve native provider, installed versioned ABI and
+actual Agent consumer evidence as separate release gates. Next: operation
+identity/recovery reference model for actual Runtime effect receipt and
+native Host typed-error receiver; test lost response, accepted receipt,
+resolve by original key, cancellation and concurrent fault schedules as
+those capabilities are implemented. Never use read-only fixture results as
+evidence of effect-safe replay.

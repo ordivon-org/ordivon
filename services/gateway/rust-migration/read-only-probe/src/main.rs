@@ -23,7 +23,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use std::{
     borrow::Cow,
-    io::{self, BufRead},
+    io::{self, BufRead, Write},
     sync::Arc,
 };
 
@@ -138,6 +138,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &endpoint, &node, std::time::Duration::from_secs(3), legacy,
             ).await;
             println!("{}", serde_json::to_string(&observation)?);
+        }
+        Some("observe-protected-runtime-sequence-fixture") => {
+            let endpoint = args.next().ok_or("fixture endpoint required")?;
+            let node = args.next().ok_or("expected fixture node required")?;
+            let credential = args.next().ok_or("fixture credential path required")?;
+            let legacy = match args.next().as_deref() {
+                Some("auto") => false,
+                Some("legacy") => true,
+                _ => return Err("unexpected fixture mode".into()),
+            };
+            if args.next().is_some() {
+                return Err("unexpected arguments".into());
+            }
+            // Qualification-only carrier: one process, sequential independent reads.
+            // The command stream cannot select endpoints, tools, or credentials.
+            for (i, line) in io::stdin().lock().lines().enumerate() {
+                if i >= 256 || line? != "observe" {
+                    return Err("invalid bounded fixture sequence".into());
+                }
+                let result = owner_observation::observe_protected_runtime(
+                    &endpoint, &node, std::path::Path::new(&credential),
+                    std::time::Duration::from_secs(3), legacy,
+                ).await;
+                println!("{}", serde_json::to_string(&result)?);
+                io::stdout().flush()?;
+            }
         }
         Some("observe-protected-runtime-fixture") => {
             let endpoint = args.next().ok_or("fixture endpoint required")?;
