@@ -277,10 +277,18 @@ class ProductionOperationImpactTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             make_case(root)
-            with patch.object(operation_impact, "hash_file", side_effect=RuntimeError("source changed")):
+            with patch.object(operation_impact, "hash_file", side_effect=operation_impact.UnstableBlobError("source changed")):
                 result = impact(root)
             self.assertEqual(result["revalidateStepIds"], [])
             self.assertEqual(result["unresolvedStepIds"], ["synthesize", "mastering", "deliver"])
+
+    def test_unrelated_hasher_failure_remains_visible(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            make_case(root)
+            with patch.object(operation_impact, "hash_file", side_effect=RuntimeError("unexpected")):
+                with self.assertRaisesRegex(RuntimeError, "unexpected"):
+                    impact(root)
 
     def test_noncanonical_path_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

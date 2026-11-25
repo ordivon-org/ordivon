@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from .assets import hash_file
+from .assets import UnstableBlobError, hash_file
 
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 
@@ -177,6 +177,9 @@ def _output_blob_observation(
         return row
     try:
         blob = hash_file(selected)
+    except UnstableBlobError:
+        row["relation"] = "UNKNOWN_SELECTED_FILE_UNSTABLE"
+        return row
     except (OSError, ValueError):
         row["relation"] = "UNKNOWN_SELECTED_FILE_UNAVAILABLE"
         return row

@@ -15,7 +15,7 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
-from .assets import hash_file
+from .assets import UnstableBlobError, hash_file
 
 _KIND = "ordivon.media.operation-lineage"
 _NAME = "operation-lineage.json"
@@ -54,7 +54,7 @@ def _file_observation(
             blob = hash_file(path)
         except (OSError, ValueError):
             observed_digests[path] = (None, "UNKNOWN_FILE_UNAVAILABLE")
-        except RuntimeError:
+        except UnstableBlobError:
             observed_digests[path] = (None, "UNKNOWN_FILE_UNSTABLE")
         else:
             observed_digests[path] = (blob.digest, "OBSERVED")
