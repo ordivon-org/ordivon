@@ -18,7 +18,14 @@ command -v ffprobe >/dev/null
 command -v jq >/dev/null
 command -v sha256sum >/dev/null
 
-mkdir -p "$out/raw"
+# Reserve exactly one execution destination without overwriting prior evidence.
+mkdir -p -- "$(dirname -- "$out")"
+if ! mkdir -- "$out"; then
+  echo "evidence directory must be new: $out" >&2
+  exit 3
+fi
+out=$(realpath -- "$out")
+mkdir -- "$out/raw"
 normalized="$out/raw/normalized.vtt"
 packets="$out/raw/ffprobe-subtitle-packets.json"
 assertions="$out/assertions.json"
@@ -86,6 +93,7 @@ jq -n \
   --arg input "$input" \
   --arg inputDigest "$input_sha" \
   --argjson inputBytes "$input_bytes" \
+  --arg evidenceDirectory "$out" \
   --arg profile "$profile" \
   --arg profileDigest "$profile_sha" \
   --arg normalizedDigest "$normalized_sha" \
@@ -96,6 +104,7 @@ jq -n \
   --argjson ok "$ok" '
   {
     schemaVersion:1,
+    evidenceDirectory:$evidenceDirectory,
     kind:"ordivon.media.v2.external-timed-text-evidence",
     truthRole:"mechanical-timed-text-delivery-evidence-not-semantic-caption-completeness-or-imsc-conformance",
     input:{path:$input,digest:$inputDigest,sizeBytes:$inputBytes},
@@ -109,7 +118,8 @@ jq -n \
     imscConformance:"not-claimed",
     publicationStanding:"not-evaluated"
   }
-' > "$evidence"
+' > "$evidence.tmp"
+mv -T -- "$evidence.tmp" "$evidence"
 
 if [[ "$ok" != "true" ]]; then
   jq -r '.checks[] | select(.ok == false) | "FAIL \(.name): expected=\(.expected|tojson) actual=\(.actual|tojson)"' "$assertions" >&2

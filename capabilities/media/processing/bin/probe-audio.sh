@@ -17,7 +17,14 @@ command -v ffmpeg >/dev/null
 command -v jq >/dev/null
 command -v sha256sum >/dev/null
 
-mkdir -p "$out/raw"
+# Reserve exactly one execution destination without overwriting prior evidence.
+mkdir -p -- "$(dirname -- "$out")"
+if ! mkdir -- "$out"; then
+  echo "evidence directory must be new: $out" >&2
+  exit 3
+fi
+out=$(realpath -- "$out")
+mkdir -- "$out/raw"
 probe="$out/raw/ffprobe.json"
 loud_stderr="$out/raw/ffmpeg-loudnorm.stderr"
 loud_json="$out/raw/ffmpeg-loudnorm.json"
@@ -89,6 +96,7 @@ jq -n \
   --arg artifact "$artifact" \
   --arg artifactDigest "$artifact_sha" \
   --argjson artifactBytes "$artifact_bytes" \
+  --arg evidenceDirectory "$out" \
   --arg profile "$profile" \
   --arg profileDigest "$profile_sha" \
   --arg ffprobeVersion "$ffprobe_version" \
@@ -101,6 +109,7 @@ jq -n \
   --argjson ok "$ok" '
   {
     schemaVersion:1,
+    evidenceDirectory:$evidenceDirectory,
     kind:"ordivon.media.v2.external-audio-qc-evidence",
     truthRole:"mechanical-audio-and-loudness-evidence-not-listening-quality-or-publication-approval",
     artifact:{path:$artifact,digest:$artifactDigest,sizeBytes:$artifactBytes},
@@ -113,7 +122,8 @@ jq -n \
     semanticQuality:"not-evaluated",
     publicationStanding:"not-evaluated"
   }
-' > "$evidence"
+' > "$evidence.tmp"
+mv -T -- "$evidence.tmp" "$evidence"
 
 if [[ "$ok" != "true" ]]; then
   jq -r '.checks[] | select(.ok == false) | "FAIL \(.name): expected=\(.expected|tojson) actual=\(.actual|tojson)"' "$assertions" >&2
