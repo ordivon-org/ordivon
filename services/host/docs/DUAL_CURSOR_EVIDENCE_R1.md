@@ -1,6 +1,6 @@
 # Host R61 — Attention / Topic 双游标的正向见证与逆向证伪
 
-这是一份沿现役 `services/host/src/ordivon_host_v2/` 调用链整理的可操作消费者契约，不创建新的游标数据库、Agent 审批、任务状态或 MCP Tool。源码对象为 `attention_projections.py`、`attention_sql.py`、`attention_store.py`、`social_topic_queries.py`、`social_topic_commands.py`、`social_message_commands.py`。
+这是一份沿现役 `services/host/src/ordivon_host_v2/` 调用链整理的可操作消费者契约，不创建新的游标数据库、Agent 审批、任务状态或 MCP Tool。源码对象为 `attention_delta_queries.py`、`attention_reentry_queries.py`、`attention_subscription_queries.py`、`attention_sql.py`、`attention_store.py`、`social_topic_queries.py`、`social_topic_commands.py`、`social_message_commands.py`。
 
 ## 目标 → 现实 → 变化
 

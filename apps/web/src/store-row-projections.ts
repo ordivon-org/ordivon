@@ -41,20 +41,21 @@ export interface ChallengeRow {
   consumed_at: number | null;
 }
 
+// Database values are untrusted until the projection validates their shape.
 export interface AgentGrantRow {
-  grant_id: string;
-  grant_digest: string;
-  principal_id: string;
-  agent_id: string;
-  audience: string;
-  allowed_actions_json: string;
-  resource_prefixes_json: string;
-  expires_at: number;
-  max_risk_class: AgentGrantSnapshot["maxRiskClass"];
-  step_up_at_or_above: AgentGrantSnapshot["stepUpAtOrAbove"];
-  remaining_effects: number;
-  active: number;
-  revision: number;
+  grant_id: unknown;
+  grant_digest: unknown;
+  principal_id: unknown;
+  agent_id: unknown;
+  audience: unknown;
+  allowed_actions_json: unknown;
+  resource_prefixes_json: unknown;
+  expires_at: unknown;
+  max_risk_class: unknown;
+  step_up_at_or_above: unknown;
+  remaining_effects: unknown;
+  active: unknown;
+  revision: unknown;
 }
 
 export interface AgentEffectRow {
@@ -154,21 +155,68 @@ export function noteFromRow(row: NoteRow): CanaryNote {
   };
 }
 
+function invalidGrant(field: string): WebProblem {
+  return new WebProblem(
+    500,
+    "agent-grant-corrupt",
+    "Agent Grant state invalid",
+    "Stored Agent Grant " + field + " is invalid.",
+  );
+}
+
+function grantText(value: unknown, field: string): string {
+  if (typeof value !== "string") throw invalidGrant(field);
+  return value;
+}
+
+function grantInteger(value: unknown, field: string, minimum?: number): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) ||
+      (minimum !== undefined && value < minimum)) {
+    throw invalidGrant(field);
+  }
+  return value;
+}
+
+function grantRiskClass(value: unknown, field: string): AgentGrantSnapshot["maxRiskClass"] {
+  switch (value) {
+    case "R0": case "R1": case "R2": case "R3": case "R4": case "R5":
+      return value;
+    default:
+      throw invalidGrant(field);
+  }
+}
+
+function grantStringArray(value: unknown, field: string): string[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(grantText(value, field));
+  } catch {
+    throw invalidGrant(field);
+  }
+  if (!Array.isArray(parsed) || parsed.some((item) => typeof item !== "string")) {
+    throw invalidGrant(field);
+  }
+  return parsed;
+}
+
+// SQLite affinity and a declared row shape do not prove runtime validity.
+// Project representable values only; this is not a policy or digest verifier.
 export function grantFromRow(row: AgentGrantRow): AgentGrantSnapshot {
+  if (row.active !== 0 && row.active !== 1) throw invalidGrant("active state");
   return {
-    grantId: row.grant_id,
-    grantDigest: row.grant_digest,
-    principalId: row.principal_id,
-    agentId: row.agent_id,
-    audience: row.audience,
-    allowedActions: parseStringArray(row.allowed_actions_json),
-    resourcePrefixes: parseStringArray(row.resource_prefixes_json),
-    expiresAtEpochSeconds: row.expires_at,
-    maxRiskClass: row.max_risk_class,
-    stepUpAtOrAbove: row.step_up_at_or_above,
-    remainingEffects: row.remaining_effects,
+    grantId: grantText(row.grant_id, "identity"),
+    grantDigest: grantText(row.grant_digest, "digest"),
+    principalId: grantText(row.principal_id, "principal identity"),
+    agentId: grantText(row.agent_id, "agent identity"),
+    audience: grantText(row.audience, "audience"),
+    allowedActions: grantStringArray(row.allowed_actions_json, "allowed actions"),
+    resourcePrefixes: grantStringArray(row.resource_prefixes_json, "resource prefixes"),
+    expiresAtEpochSeconds: grantInteger(row.expires_at, "expiry"),
+    maxRiskClass: grantRiskClass(row.max_risk_class, "maximum risk class"),
+    stepUpAtOrAbove: grantRiskClass(row.step_up_at_or_above, "step-up risk class"),
+    remainingEffects: grantInteger(row.remaining_effects, "remaining effects", 0),
     active: row.active === 1,
-    revision: row.revision,
+    revision: grantInteger(row.revision, "revision", 1),
   };
 }
 

@@ -20,6 +20,11 @@ from statistics import mean, median
 from typing import Any, Iterable
 
 PR_FROM_QUEUE_BRANCH = re.compile(r"(?:^|/)pr-(\d+)-")
+REQUIRED_WORKFLOW_PATH = ".github/workflows/ci.yml"
+
+
+def _is_required_run(run: dict[str, Any]) -> bool:
+    return run.get("path") == REQUIRED_WORKFLOW_PATH and run.get("event") == "merge_group"
 
 
 def instant(value: str | None) -> datetime | None:
@@ -83,6 +88,8 @@ class Gh:
         return [item for page in pages for item in page]
 
     def collect(self, limit: int) -> ProviderSnapshot:
+        if not 1 <= limit <= 100:
+            raise ValueError("queue observation limit must be between 1 and 100")
         owner, repo = self.repo.split("/", 1)
         pulls = self.api(
             f"repos/{owner}/{repo}/pulls?state=closed&sort=updated&direction=desc&per_page={limit}"
@@ -95,16 +102,57 @@ class Gh:
                 f"repos/{owner}/{repo}/issues/{number}/timeline?per_page=100"
             )
 
+        # Native workflow scoping avoids mixing CodeQL and Required CI
+        # runs from the same merge group, or fetching their unrelated jobs.
         runs_payload = self.api(
-            f"repos/{owner}/{repo}/actions/runs?event=merge_group&per_page=100"
+            f"repos/{owner}/{repo}/actions/workflows/ci.yml/runs?event=merge_group&per_page=100"
         )
-        runs = runs_payload.get("workflow_runs", [])
+        runs = runs_payload["workflow_runs"]
+        if not all(_is_required_run(run) for run in runs):
+            raise ValueError("provider returned an unqualified required workflow run")
+        # Only jobs attributable to the bounded merged-PR sample are consumed.
+        merged_numbers = {pr["number"] for pr in merged}
+        runs = [run for run in runs if _run_pr(run) in merged_numbers]
         jobs: dict[str, list[dict[str, Any]]] = {}
         for run in runs:
             run_id = str(run["id"])
-            jobs[run_id] = self.api(
-                f"repos/{owner}/{repo}/actions/runs/{run_id}/jobs?per_page=100"
-            ).get("jobs", [])
+            attempt = run.get("run_attempt")
+            if type(attempt) is not int or attempt < 1:
+                raise ValueError("required workflow attempt is unknown")
+            if run_id in jobs:
+                raise ValueError("duplicate required workflow run")
+            rows = []
+            seen = set()
+            page = 1
+            expected_total = None
+            while True:
+                response = self.api(
+                    f"repos/{owner}/{repo}/actions/runs/{run_id}/attempts/{attempt}/jobs?per_page=100&page={page}"
+                )
+                batch = response["jobs"]
+                for job in batch:
+                    if (
+                        job.get("run_id") != run["id"]
+                        or job.get("run_attempt") != attempt
+                        or type(job.get("id")) is not int
+                        or job["id"] in seen
+                    ):
+                        raise ValueError("unqualified or duplicate required workflow attempt job")
+                    seen.add(job["id"])
+                    rows.append(job)
+                total = response.get("total_count")
+                if type(total) is not int or total < 0:
+                    raise ValueError("required workflow attempt job total is unknown")
+                if expected_total is None:
+                    expected_total = total
+                if total != expected_total or len(rows) > total:
+                    raise ValueError("required workflow attempt jobs changed during pagination")
+                if len(rows) == total:
+                    break
+                if len(batch) < 100:
+                    raise ValueError("incomplete required workflow attempt jobs")
+                page += 1
+            jobs[run_id] = rows
         return ProviderSnapshot(self.repo, merged, timelines, runs, jobs)
 
 
@@ -113,8 +161,17 @@ def _run_pr(run: dict[str, Any]) -> int | None:
     return int(match.group(1)) if match else None
 
 
-def _required_job(jobs: list[dict[str, Any]]) -> dict[str, Any] | None:
-    return next((job for job in jobs if job.get("name") == "root-verification"), None)
+def _required_job(run: dict[str, Any], jobs: list[dict[str, Any]]) -> dict[str, Any] | None:
+    attempt = run.get("run_attempt")
+    if type(attempt) is not int or attempt < 1:
+        return None
+    matches = [
+        job for job in jobs
+        if job.get("name") == "root-verification"
+        and job.get("run_id") == run["id"]
+        and job.get("run_attempt") == attempt
+    ]
+    return matches[0] if len(matches) == 1 else None
 
 
 def normalize(snapshot: ProviderSnapshot) -> dict[str, Any]:
@@ -123,7 +180,11 @@ def normalize(snapshot: ProviderSnapshot) -> dict[str, Any]:
     This is the provider boundary. Diagnosis and control are intentionally absent.
     """
     runs_by_pr: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    excluded = 0
     for run in snapshot.merge_group_runs:
+        if not _is_required_run(run):
+            excluded += 1
+            continue
         pr = _run_pr(run)
         if pr is not None:
             runs_by_pr[pr].append(run)
@@ -155,10 +216,11 @@ def normalize(snapshot: ProviderSnapshot) -> dict[str, Any]:
         normalized_runs: list[dict[str, Any]] = []
         for run in sorted(runs_by_pr.get(number, []), key=lambda row: row.get("created_at") or ""):
             jobs = snapshot.jobs.get(str(run["id"]), [])
-            required = _required_job(jobs)
+            required = _required_job(run, jobs)
             normalized_runs.append(
                 {
                     "runId": run.get("id"),
+                    "runAttempt": run.get("run_attempt"),
                     "sha": run.get("head_sha"),
                     "createdAt": run.get("created_at"),
                     "status": run.get("status"),
@@ -197,6 +259,7 @@ def normalize(snapshot: ProviderSnapshot) -> dict[str, Any]:
         "kind": "ordivon.queue-observation-set",
         "provider": "github",
         "repository": snapshot.repository,
+        "excludedUnqualifiedWorkflowRuns": excluded,
         "episodes": sorted(episodes, key=lambda row: row["pr"]),
         "queueTransitions": sorted(
             transitions, key=lambda row: (row["at"], -row["delta"], row["pr"])
@@ -316,6 +379,10 @@ def project(normalized: dict[str, Any]) -> dict[str, Any]:
                 len(episode["mergeGroupRuns"]) for episode in normalized["episodes"]
             ),
             "historicalDepthIsLowerBound": True,
+            "requiredWorkflowPath": REQUIRED_WORKFLOW_PATH,
+            "historyCoverage": "BOUNDED_NONATOMIC_PROVIDER_SAMPLE",
+            "mergeGroupRunScope": "OBSERVED_REQUIRED_WORKFLOW_ONLY_NOT_ALL_QUEUE_CHECKS",
+            "excludedUnqualifiedWorkflowRuns": normalized.get("excludedUnqualifiedWorkflowRuns", 0),
         },
         "episodes": normalized["episodes"],
         "episodeMetrics": observations,

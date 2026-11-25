@@ -60,6 +60,7 @@ def scoped_sha256(
         if not relative.parts:
             return None, "unsupported_scoped_path"
         directory_fd = None
+        fd = None
         try:
             directory_fd = os.open("/", dir_flags)
             # Anchor every ancestor, including the allowed root itself.
@@ -69,14 +70,16 @@ def scoped_sha256(
                 os.close(directory_fd)
                 directory_fd = next_fd
             fd = os.open(relative.parts[-1], file_flags, dir_fd=directory_fd)
-            with os.fdopen(fd, "rb") as stream:
-                before = os.fstat(stream.fileno())
-                if not stat.S_ISREG(before.st_mode):
-                    return None, "not_regular_file"
-                if not hash_bytes:
-                    return None, "sha256_not_bound"
+            # Own the raw descriptor until the finally block. fdopen can
+            # fail before constructing a stream (e.g. a directory).
+            before = os.fstat(fd)
+            if not stat.S_ISREG(before.st_mode):
+                return None, "not_regular_file"
+            if not hash_bytes:
+                return None, "sha256_not_bound"
+            with os.fdopen(fd, "rb", closefd=False) as stream:
                 digest = hashlib.file_digest(stream, "sha256").hexdigest()
-                after = os.fstat(stream.fileno())
+                after = os.fstat(fd)
                 identity = lambda st: (
                     st.st_dev,
                     st.st_ino,
@@ -97,6 +100,8 @@ def scoped_sha256(
             else:
                 reason = "local_file_read_error"
         finally:
+            if fd is not None:
+                os.close(fd)
             if directory_fd is not None:
                 os.close(directory_fd)
     return None, reason

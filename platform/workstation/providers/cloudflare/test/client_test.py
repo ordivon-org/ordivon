@@ -117,6 +117,39 @@ class ClientTests(unittest.TestCase):
                     if outcome == "success":
                         self.assertEqual(json.loads(stdout.getvalue()), {"receipt":{"status":"succeeded"}})
 
+    def test_explicit_source_cut_ignores_foreign_git_context_and_replace_refs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            def make_repo(name):
+                repo = root / name
+                subprocess.run(["git", "init", "-q", str(repo)], check=True)
+                def git(*args):
+                    return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+                git("config", "user.name", "Test")
+                git("config", "user.email", "test@example.invalid")
+                (repo / "src").mkdir()
+                (repo / "src/index.ts").write_text(name)
+                (repo / "wrangler.jsonc").write_text("{}")
+                git("add", ".")
+                git("commit", "-qm", "first")
+                return repo, git
+            a, ga = make_repo("a")
+            b, gb = make_repo("b")
+            first = ga("rev-parse", "HEAD")
+            self.assertNotEqual(first, gb("rev-parse", "HEAD"))
+            original = client.release_digest(a, first)
+            with mock.patch.dict(os.environ, {
+                "GIT_DIR": str(b / ".git"), "GIT_WORK_TREE": str(b),
+                "GIT_INDEX_FILE": str(b / ".git/index"),
+            }):
+                self.assertEqual(client.resolve_commit(a, "HEAD"), first)
+                self.assertEqual(client.release_digest(a, first), original)
+            (a / "src/index.ts").write_text("replacement")
+            ga("add", ".")
+            ga("commit", "-qm", "second")
+            ga("replace", first, ga("rev-parse", "HEAD"))
+            self.assertEqual(client.release_digest(a, first), original)
+
     def test_release_digest_uses_canonical_provider_at_selected_commit(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             repository = pathlib.Path(directory)

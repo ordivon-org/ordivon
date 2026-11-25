@@ -44,6 +44,22 @@ Clients may retry transient transport failures only with the same signed Request
 
 Reread authoritative state after ambiguous writes, accept a matching committed Receipt, clean only the executor's generation-bound Artifacts when non-commit is established, use conditional takeover for same-policy expired leases, and process validated cleanup tombstones through bounded GC.
 
+## Shared operation lifecycle
+
+The signed HTTP boundary in `src/index.ts` reads the bounded original body and authenticates it before dispatch. Fetch and Browser Run use the same `runOperation` in `src/operation-lifecycle.ts`. Operation-specific validation and execution remain in their existing Fetch/Browser modules; `src/idempotency.ts` remains the authority for R2 state transitions and reconciliation.
+
+The shared lifecycle has the following behavioral obligations:
+
+| Branch | Required behavior | Source / observable evidence |
+| --- | --- | --- |
+| Committed replay | Return the existing Receipt before checking the budget or invoking a provider | `beginRequest`; repeated signed request, unchanged provider and limiter call counts |
+| Acquired lease | Check budget, validate input, then invoke the selected capability | `runOperation`; rejected/rate-limited requests have no provider execution |
+| Execution failure | Commit a failed/rejected Receipt without success evidence | `createReceipt`; failure Receipt and absent success Artifacts |
+| Successful execution | Commit the operation-specific evidence and complete generation-bound Artifact key set | `createReceipt`, `commitReceipt`; matching stored Receipt and bytes |
+| Lost or ambiguous commit | Reconcile the original state; never reinterpret the commit error as an execution failure | `commitReceipt`; precommit rejection and post-write response-loss injection for both capabilities |
+
+Receipt construction and successful commit deliberately remain outside the catch for provider execution errors. A failed commit must not trigger a second, contradictory failure Receipt. Neither this module nor the HTTP router owns another request-state store. The fault-injection tests exercise these obligations with a simulated R2 binding; they are not a formal refinement proof or a live Cloudflare deployment qualification.
+
 ## Evidence
 
 Tests inject R2, commit, takeover, cleanup, policy, rate-limit, and replay failures. Every final Receipt excludes private lease tokens and ETags, binds execution and policy identity, and references Artifacts whose bytes are independently verified by the client. See [`operations.md`](operations.md) for recovery commands, [`security.md`](security.md) for protection controls, and [`../README.md#authority-boundary`](../README.md#authority-boundary) for authority.
@@ -130,8 +146,8 @@ The test suite injects R2 failures and checks:
 - stale leases cannot commit;
 - takeover increments generation;
 - stale Artifact cleanup cannot delete the current generation;
-- commit failure removes newly written Artifacts;
-- an ambiguous post-write error is recovered by rereading committed state;
+- an explicitly rejected conditional commit removes newly written Artifacts for Fetch and Browser Run;
+- an ambiguous post-write error is recovered by rereading committed state for both capabilities;
 - Fetch and Browser preserve committed evidence when recovery reads fail or a write commits after a pending observation;
 - positively observed same-intent takeover still permits old-generation cleanup without removing the new generation;
 - expired requests cannot cross a policy-version boundary;

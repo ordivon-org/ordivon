@@ -147,6 +147,42 @@ class CatalogProjectionTests(TestCase):
                 self.assertEqual(result["verification"], "UNKNOWN", uri)
                 self.assertEqual(result["reason"], reason, uri)
 
+    def test_nonregular_observation_does_not_leak_descriptors(self):
+        """Reject non-files and release the native handle even on early exit."""
+        if not Path("/proc/self/fd").is_dir():
+            self.skipTest("requires native Linux descriptor accounting")
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "directory").mkdir()
+            os.mkfifo(root / "fifo")
+            (root / "regular").write_bytes(b"valid")
+            expected = hashlib.sha256(b"valid").hexdigest()
+            before = len(os.listdir("/proc/self/fd"))
+            for leaf in ("directory", "fifo"):
+                dist = {
+                    "dcat:accessURL": {"@id": (root / leaf).as_uri()},
+                    "dct:identifier": "sha256:" + expected,
+                }
+                observations = [
+                    inspect_distribution(dist, (root,), True)
+                    for _ in range(16)
+                ]
+                self.assertEqual(len(os.listdir("/proc/self/fd")), before, leaf)
+                for observed in observations:
+                    self.assertEqual(observed["verification"], "UNKNOWN")
+                    self.assertEqual(observed["reason"], "not_regular_file")
+            dist = {
+                "dcat:accessURL": {"@id": (root / "regular").as_uri()},
+                "dct:identifier": "sha256:" + expected,
+            }
+            with patch("ordivon_data.local_files.os.fdopen", side_effect=OSError("wrapper failed")):
+                observed = inspect_distribution(dist, (root,), True)
+            self.assertEqual(observed["verification"], "UNKNOWN")
+            self.assertEqual(observed["reason"], "local_file_read_error")
+            self.assertEqual(len(os.listdir("/proc/self/fd")), before)
+            self.assertEqual(inspect_distribution(dist, (root,), True)["verification"], "VERIFIED")
+            self.assertEqual(len(os.listdir("/proc/self/fd")), before)
+
     def test_parent_directory_replacement_cannot_redirect_open(self):
         """The opened directory descriptor must win over a substituted symlink."""
         with TemporaryDirectory() as tmp:

@@ -77,9 +77,12 @@ filesystem immutability, later reads, mount changes, or durable retention.
 An exact Git commit identifies the metadata tree; the native reader resolves
 the revision once, rejects non-regular ODPS Git entries and bounded input
 violations, and reads blobs by object ID with replacement objects disabled.
+Committed discovery is local-only: missing promisor trees/blobs or native
+diagnostics leave the cut unestablished, never a partial successful
+projection. Explicit Git acquisition is a separate operator effect.
 Tests exercise index/worktree mutation, prior-version replay, foreign
-Git environment redirection, exact checkout-root binding and real CLI
-projection. This qualifies metadata source selection, not physical local
+Git environment redirection, exact checkout-root binding, local-only
+partial-clone rejection/replay and real CLI projection. This qualifies metadata source selection, not physical local
 distribution immutability, Git hash collision resistance, or a full
 Git-to-Lean refinement proof.
 
@@ -192,22 +195,6 @@ needs a consumer invariant or an actual known failure mode. Historical frozen
 evidence may have real downstream consumers: delete only after proving loss of
 reachability and fulfilling the actual retention/recovery authority.
 
-## Guidance by role
-
-**Human:** identify the final consumer, the business/scientific definition
-and the minimum specification. Demand a counterexample to proposed weak
-models, check which assumptions match reality and decide whether a test
-really became redundant. Approve a version migration by real consumer
-compatibility evidence, not by a passing synthetic model.
-
-**Agent:** resolve existing formal Skills and Owner-native tools first. Write
-an explicit input domain, postconditions, invariants and error states.
-Run Lean for the abstract model, CrossHair for the pure Python portion, and
-actual owner read-back at I/O edges. Record exact code SourceCut, verifier
-version, assumptions, negative oracle and relevant native consumer outcome.
-Never relabel `UNKNOWN` as `FALSIFIED` and never report bounded symbolic
-exploration as full installed-code refinement.
-
 ## Read-only product projection evidence boundary
 
 `src/ordivon_data/odps_projection.py` is a concrete ODPS v1.1-to-DCAT 3
@@ -241,20 +228,11 @@ from ODPS alone (the explicit operator binding is an additional assumption).
 Source identity, physical availability, rights and downstream acceptance
 must remain distinct from the Lean abstract digest verdict.
 
-## Cross-owner adoption without a new platform
+## Scope of proof evidence
 
-- Runtime/Host/Harness: use their existing state-transition models, Rust
-  contracts and PostgreSQL read-back; choose TLA+/Quint only for consequential
-  concurrency/liveness questions.
-- Artifact/Media: reuse real byte/format validators, native QC and bounded
-  differential checks; formalize deterministic metadata and admission rules.
-- Finance: formalize point-in-time data semantics, portfolio constraints,
-  margin and state transitions; real provider snapshots and downstream
-  research acceptance remain separate.
-- Research: specify estimands, sampling/inference assumptions and reproducible
-  source identities; statistical assumptions cannot generally be proved from
-  software code.
-- ELE/Skills: model discovery/qualification state and provenance; external
-  facts and installation/permission effects still require direct observation.
-
-This file does not grant authority over those owners' code, tests or releases.
+The existing models and symbolic checks are bounded source-level inputs,
+not production transaction, release or reclamation services. The natural
+Runtime, Preservation, Artifact, Research and Finance Owners retain
+installed/effect/consumer authority. Use their own native acceptance.
+Workflow guidance lives in [AGENTS.md](../AGENTS.md) and the
+[README](../README.md); do not duplicate generic cross-owner instructions here.
