@@ -56,7 +56,7 @@ fn verified_interrupted_open(
         let mut unsafe_registration = false;
         for line in item.iter().copied() {
             if let Some(path) = line.strip_prefix(b"worktree ") {
-                location = path == actual.as_os_str().as_encoded_bytes();
+                location = git_registration_path_matches(path, &actual)?;
             } else if let Some(commit) = line.strip_prefix(b"HEAD ") {
                 head = commit == revision.as_bytes();
             } else if line == b"detached" {
@@ -242,11 +242,8 @@ pub(crate) fn create_git_workspace_record(
         // A missing physical directory is safe to create only when Git also
         // has no still-registered, possibly interrupted worktree at that path.
         if resuming_opening {
-            let inventory = git_output_bytes(&source_repo, ["worktree", "list", "--porcelain", "-z"])?;
             let physical_target = managed_physical_target(&target)?;
-            if inventory.split(|b| *b == 0).any(|line| {
-                line.strip_prefix(b"worktree ") == Some(physical_target.as_os_str().as_encoded_bytes())
-            }) {
+            if registered_worktree_head_at(&source_repo, &physical_target)?.is_some() {
                 return Err(unfinished_open_error("Git still registers an absent worktree"));
             }
         }
