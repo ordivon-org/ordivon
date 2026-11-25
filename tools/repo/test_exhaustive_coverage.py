@@ -1487,6 +1487,36 @@ class CrossScopeLexicalHintsTests(unittest.TestCase):
                 M.cross_scope_exact_locator_hints(main, source),
             )
 
+    def test_missing_local_cross_scope_blob_cannot_trigger_implicit_fetch(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp).resolve()
+            target = root / "external"
+            producer = root / "producer"
+            main = root / "main"
+            sub_cut = self._git_cut(target, "info.txt", "data")
+            cut = self._git_cut(producer, "consumer.txt", str(target) + "\n")
+            def native(repo, *args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True).strip()
+            native(producer, "config", "uploadpack.allowFilter", "true")
+            native(producer, "config", "uploadpack.allowAnySHA1InWant", "true")
+            subprocess.run(["git", "clone", "-q", "--no-checkout", "--filter=blob:none",
+                            producer.as_uri(), str(main)], check=True)
+            oid = native(producer, "rev-parse", cut + ":consumer.txt")
+            census = M.independent_scope_frontier(
+                main, cut, external_git=[f"external={target}@{sub_cut}"], non_git_data=[])
+            before = {x.name for x in (main / ".git" / "objects" / "pack").iterdir()}
+            with self.assertRaisesRegex(ValueError, "lexical survey failed closed"):
+                M.cross_scope_exact_locator_hints(main, census)
+            after = {x.name for x in (main / ".git" / "objects" / "pack").iterdir()}
+            self.assertEqual(after, before)
+            import os
+            check = subprocess.run(["git", "-C", str(main), "cat-file", "--batch-check"],
+                                   input=oid + "\n", text=True, capture_output=True,
+                                   env={**os.environ, "GIT_NO_LAZY_FETCH": "1"})
+            self.assertEqual(check.stdout.strip(), oid + " missing")
+
     def test_syntax_generated_path_does_not_prove_missing_consumers(self) -> None:
         import tempfile
         with tempfile.TemporaryDirectory() as tmp:

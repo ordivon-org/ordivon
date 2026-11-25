@@ -1388,6 +1388,26 @@ def static_python_import_frontier(repo: Path, source: str,
 
 
 
+def _local_git_lexical_grep(repo: Path, source: str, flags: tuple[str, ...],
+                            tokens: list[str]) -> bytes:
+    """One source-observation primitive; no implicit acquisition of blobs."""
+    if not tokens or any(not token or "\n" in token or "\x00" in token for token in tokens):
+        raise ValueError("lexical survey failed closed: unsupported line locator")
+    args = ["git", "--no-replace-objects", "-c", "advice.graftFileDeprecated=false",
+            "-C", str(repo), "grep", "-I", "-F", "--no-textconv",
+            "--no-recurse-submodules", "--no-color", *flags]
+    for token in dict.fromkeys(tokens):
+        args.extend(("-e", token))
+    args.extend((source, "--"))
+    proc = subprocess.run(args, capture_output=True, env=_source_git_env(local_only=True))
+    # Native grep may return 0/1 despite reporting a missing promised blob.
+    if proc.returncode not in (0, 1) or proc.stderr:
+        raise ValueError("Git grep lexical survey failed closed: cannot project incomplete references")
+    if len(proc.stdout) > 8 * 1024 * 1024:
+        raise ValueError("reference scan exceeds bounded Git output budget")
+    return proc.stdout
+
+
 def exact_git_reference_hints(
     repo: Path, source: str, paths: list[str], *, per_path_limit: int = 48,
 ) -> dict:
@@ -1458,34 +1478,19 @@ def exact_git_reference_hints(
         basename_unique = basename_count[base] == 1
         if basename_unique and len(base) >= 9:
             patterns.append(base)
-        args = [
-            "git", "--no-replace-objects", "-c", "advice.graftFileDeprecated=false",
-            "-C", str(repo), "grep", "--null", "-n", "-I", "-F",
-            "--no-textconv", "--no-recurse-submodules", "--no-color",
-        ]
-        for pattern in dict.fromkeys(patterns):
-            args.extend(("-e", pattern))
-        args.extend((source, "--"))
-        proc = subprocess.run(args, capture_output=True,
-                              env=_source_git_env(local_only=True))
-        # Native Git can return 0/1 even when a promised consumer blob could
-        # not be read. Diagnostics are not evidence of zero matches.
-        if proc.returncode not in (0, 1) or proc.stderr:
-            raise ValueError("source Git grep failed; cannot project incomplete references")
-        if len(proc.stdout) > 8 * 1024 * 1024:
-            raise ValueError("reference scan exceeds bounded Git output budget")
+        raw = _local_git_lexical_grep(repo, source, ("--null", "-n"), patterns)
         matches = []
         # With --null, a path itself may contain a newline; only the
         # third field is line-delimited. Use offsets, not repeated slicing.
         cursor = 0
-        while cursor < len(proc.stdout):
-            first = proc.stdout.find(b"\0", cursor)
-            second = proc.stdout.find(b"\0", first + 1) if first >= 0 else -1
-            endline = proc.stdout.find(b"\n", second + 1) if second >= 0 else -1
+        while cursor < len(raw):
+            first = raw.find(b"\0", cursor)
+            second = raw.find(b"\0", first + 1) if first >= 0 else -1
+            endline = raw.find(b"\n", second + 1) if second >= 0 else -1
             if min(first, second, endline) < 0:
                 raise ValueError("unexpected Git null-delimited lexical witness")
-            columns = (proc.stdout[cursor:first], proc.stdout[first + 1:second],
-                       proc.stdout[second + 1:endline])
+            columns = (raw[cursor:first], raw[first + 1:second],
+                       raw[second + 1:endline])
             cursor = endline + 1
             locus = columns[0].decode("utf-8", "surrogateescape")
             if not locus.startswith(source + ":"):
@@ -1898,34 +1903,30 @@ def cross_scope_exact_locator_hints(
         for x in scopes
     ]
     subject = scope_frontier["sourceCut"]
-    exact_commit(main_repo, subject)
+    exact_commit(main_repo, subject, local_only=True)
     all_sources = [("git-scope:subject@" + subject, main_repo, subject)]
     for scope in scopes:
         if scope["scopeKind"] == "INDEPENDENT_GIT_SOURCE_CUT":
             root = Path(scope["observedLocalLocator"])
-            exact_commit(root, scope["sourceCut"])
+            exact_commit(root, scope["sourceCut"], local_only=True)
             all_sources.append((scope["scopeRef"], root, scope["sourceCut"]))
     hits = []
     scanned = []
     for reader_ref, root, cut in all_sources:
         # Binding each hint to its real blob makes the result source-qualified;
         # no uncommitted worktree data can be included accidentally.
-        blobs = {x["path"]: x["sourceIdentity"] for x in tree(root, cut)}
+        blobs = {x["path"]: x["sourceIdentity"] for x in tree(root, cut, local_only=True)}
         scanned.append({"readerScopeRef": reader_ref, "sourceCut": cut,
-                        "sourceTree": git(root, "rev-parse", f"{cut}^{{tree}}").decode().strip(),
+                        "sourceTree": git(root, "rev-parse", f"{cut}^{{tree}}", local_only=True).decode().strip(),
                         "trackedPaths": len(blobs)})
         for target_ref, token in targets:
             if target_ref == reader_ref:
                 continue
-            cmd = ["git", "--no-replace-objects", "-C", str(root),
-                   "grep", "-l", "-z", "-I", "-F", "-e",
-                   token.decode("utf-8"), cut, "--"]
-            proc = subprocess.run(cmd, capture_output=True, env=_source_git_env())
-            if proc.returncode not in (0, 1):
-                raise ValueError("Git grep lexical survey failed closed")
+            raw = _local_git_lexical_grep(root, cut, ("-l", "-z"),
+                                          [token.decode("utf-8")])
             prefix = (cut + ":").encode("ascii")
             paths = []
-            for item in proc.stdout.split(b"\0"):
+            for item in raw.split(b"\0"):
                 if not item:
                     continue
                 if not item.startswith(prefix):
