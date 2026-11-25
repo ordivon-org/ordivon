@@ -545,3 +545,28 @@ operation, or incomplete/relabelled update rolls back the whole maintenance
 operation, even if its caller catches the error. Only after every batch is
 qualified does the existing legacy-only fence become active. The caller
 still controls the outer transaction and timeouts.
+### Complete suite qualification
+
+The queue entrypoint is distinct from portable/focused tests. It consumes
+the native pytest collection and setup/call/teardown reports, rejects skips,
+xfail/xpass, deselection, missing phases and empty suites, and preserves
+native nonzero outcomes. The queue clears inherited PYTEST_ADDOPTS so a
+developer's selection or collect-only option cannot masquerade as complete
+qualification. It uses strict pytest marker/config validation.
+
+An explicit caller-supplied test DSN without all dedicated boundary,
+migration and receipt fixtures is not sufficient for complete qualification;
+any missing native obligations must fail rather than be counted as passing.
+Portable/focused pytest retains native skip behavior. This gate qualifies
+the observed collected suite, not the existence of every possible semantic
+test, the installed production consumer, or a hostile test plugin.
+
+Caller-provisioned complete queue runs must supply all ten distinct database
+fixtures before migration. The queue compares PostgreSQL server major,
+native cluster system identifier and database OID through read-only catalog
+queries, not DSN spelling. Missing, aliased, wrong-major or unobservable
+identities fail before Alembic or test execution. Caller-provisioned
+fixtures still require an explicitly disposable test fleet; catalog
+identity does not prove that a database is safe to mutate. The native
+identity query must be available to the test role. Fresh owned-container
+runs provision their own fixture fleet as before.
