@@ -97,37 +97,39 @@ class OptimalityEvidence:
     dual_proposal: DualProposal | None = None
 
 
-def certify_canonical_gap(
+# Internal, immutable, derived representation. Never deserialize this from
+# external evidence; public receipt verification always reconstructs it.
+ExactRow = tuple[tuple[tuple[int, Fraction], ...], Fraction]
+
+
+@dataclass(frozen=True)
+class PreparedCanonicalWitness:
+    x: tuple[Fraction, ...]
+    cap: tuple[Fraction, ...]
+    grad: tuple[Fraction, ...]
+    grad_hi: tuple[Fraction, ...]
+    ub: tuple[ExactRow, ...]
+    eq: tuple[ExactRow, ...]
+    gradient_method: str
+    cap_method: CapMethod
+
+
+def prepare_canonical_witness(
     problem: MultistageProblem,
     risky_policy: dict[str, tuple[float, ...]],
-    inequality_multipliers: Any,
-    equality_multipliers: Any,
-    numerical_estimate: float,
     *,
     gradient_method: str = "AUTO",
     cap_method: CapMethod = "LEGACY_V1",
-) -> OptimalityEvidence:
-    """Bound optimum minus utility of a reconstructed exact feasible policy.
-
-    Supplied multipliers are untrusted proposals, even if numerically optimal.
-    Exact residual correction over finite canonical boxes gives weak duality.
-    Resource scope limits qualification, never the admitted economic model.
-    """
-
-    def unknown(reason: str) -> OptimalityEvidence:
-        return OptimalityEvidence(numerical_estimate, None, "UNKNOWN", reason)
-
+) -> PreparedCanonicalWitness | str:
+    """Pure preparation; failure is an explicit UNKNOWN reason."""
     validate_cap_method(cap_method)
-    if not finite_economic_number(numerical_estimate) or numerical_estimate < 0:
-        raise AlgebraicPolicyError("finite nonnegative numerical estimate required")
-
     tree = validate_information_tree(problem)
     gamma_q = Q(problem.gamma)
     if not 0 < gamma_q <= 16 or gamma_q.denominator > 16:
-        return unknown("DYADIC_GAMMA_UP_TO_16_WITH_DENOMINATOR_AT_MOST_16_ONLY")
+        return "DYADIC_GAMMA_UP_TO_16_WITH_DENOMINATOR_AT_MOST_16_ONLY"
     dimensions = proof_dual_dimensions(tree)
     if dimensions is None:
-        return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
+        return "EXACT_WITNESS_RESOURCE_SCOPE"
     if gradient_method == "AUTO":
         # Small integer contracts retain exact rational receipts. Larger
         # trees and fractional powers use a verified dyadic enclosure.
@@ -135,9 +137,9 @@ def certify_canonical_gap(
             "RATIONAL" if gamma_q.denominator == 1 and len(tree.ordered) <= 15 else "DYADIC"
         )
     if gradient_method not in ("RATIONAL", "DYADIC"):
-        return unknown("UNRECOGNIZED_GRADIENT_METHOD")
+        return "UNRECOGNIZED_GRADIENT_METHOD"
     if gradient_method == "RATIONAL" and gamma_q.denominator != 1:
-        return unknown("RATIONAL_GRADIENT_REQUIRES_INTEGER_GAMMA")
+        return "RATIONAL_GRADIENT_REQUIRES_INTEGER_GAMMA"
     gamma = int(gamma_q)
 
     n = tree.asset_count
@@ -149,7 +151,7 @@ def certify_canonical_gap(
         or len(risky_policy) != len(offsets)
         or risky_policy.keys() != offsets.keys()
     ):
-        return unknown("INEXACT_WITNESS")
+        return "INEXACT_WITNESS"
     x = [ZERO] * size
     cap = [ZERO] * size
     equity_caps: dict[str, Fraction] = {}
@@ -194,7 +196,7 @@ def certify_canonical_gap(
             ub.append((margin, ZERO))
             arrivals.append(incoming)
             if dot(incoming, x) < 0 or dot(margin, x) > 0:
-                return unknown("INEXACT_WITNESS")
+                return "INEXACT_WITNESS"
         if node.terminal:
             liability = (
                 ZERO
@@ -202,7 +204,7 @@ def certify_canonical_gap(
                 else Q(problem.terminal_liabilities_r[node.id])
             )
             if dot(incoming, x) <= liability:
-                return unknown("INEXACT_WITNESS")
+                return "INEXACT_WITNESS"
             leaves.append((incoming, liability, probabilities[node.id]))
             continue
         j = offsets[node.id]
@@ -212,10 +214,10 @@ def certify_canonical_gap(
             or len(raw_risky) != n
             or any(not finite_economic_number(v) or v < 0 for v in raw_risky)
         ):
-            return unknown("INEXACT_WITNESS")
+            return "INEXACT_WITNESS"
         risky = tuple(map(Q, raw_risky))
         if not _within_bit_budget(risky):
-            return unknown("INEXACT_WITNESS")
+            return "INEXACT_WITNESS"
         due = (
             ZERO
             if problem.node_outflow_after_contribution_r is None
@@ -231,14 +233,14 @@ def certify_canonical_gap(
             - sum((a * b for a, b in zip(cost, turnover, strict=True)), ZERO)
         )
         if equity < sum((a * m for a, m in zip(risky, margins, strict=True)), ZERO):
-            return unknown("INEXACT_WITNESS")
+            return "INEXACT_WITNESS"
         net = equity - sum(risky, ZERO)
         x[j : j + width] = [*risky, max(ZERO, net), max(ZERO, -net), *turnover]
         funded_cap = 1 + wealth_cap
         if cap_method == "STRUCTURED_V2":
             funded_cap -= due
             if funded_cap < 0:
-                return unknown("INEXACT_WITNESS")
+                return "INEXACT_WITNESS"
             equity_caps[node.id] = funded_cap
             cap[j : j + width] = structured_decision_caps(
                 funded_cap,
@@ -254,7 +256,7 @@ def certify_canonical_gap(
                 *(a + b for a, b in zip(risky_caps, old_cap, strict=True)),
             ]
         if not _within_bit_budget((*x[j : j + width], *cap[j : j + width], probabilities[node.id])):
-            return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
+            return "EXACT_WITNESS_RESOURCE_SCOPE"
         row = {i: -a for i, a in incoming.items()}
         row.update({j + i: Q(1) for i in range(n)})
         row.update({j + n: Q(1), j + n + 1: Q(-1)})
@@ -279,7 +281,7 @@ def certify_canonical_gap(
         or any(dot(row, x) > rhs for row, rhs in ub)
         or any(not 0 <= a <= b for a, b in zip(x, cap, strict=True))
     ):
-        return unknown("INEXACT_WITNESS")
+        return "INEXACT_WITNESS"
     grad = [ZERO] * size
     grad_hi = [ZERO] * size
     # Both gradients start at zero. Each leaf changes only its row support;
@@ -291,43 +293,84 @@ def certify_canonical_gap(
                 gamma * max(wealth.numerator.bit_length(), wealth.denominator.bit_length())
                 > _MAX_EXACT_BITS
             ):
-                return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
+                return "EXACT_WITNESS_RESOURCE_SCOPE"
             factor = probability / wealth**gamma
             for j, a in row.items():
                 grad[j] += factor * a
             if not _within_bit_budget(grad[j] for j in row):
-                return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
+                return "EXACT_WITNESS_RESOURCE_SCOPE"
         else:
             enclosure = enclose_inverse_power(wealth, gamma_q, max_bits=_MAX_EXACT_BITS)
             if enclosure is None:
-                return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
+                return "EXACT_WITNESS_RESOURCE_SCOPE"
             low, high = enclosure
             for j, a in row.items():
                 t0, t1 = sorted((a * probability * low, a * probability * high))
                 grad[j] += enclose_rational(t0)[0]
                 grad_hi[j] += enclose_rational(t1)[1]
             if not _within_bit_budget(v[j] for v in (grad, grad_hi) for j in row):
-                return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
+                return "EXACT_WITNESS_RESOURCE_SCOPE"
     if gradient_method == "RATIONAL":
         grad_hi = grad
 
-    # Exact dual correction: for any y>=0, lambda unrestricted,
-    # g*x <= b*y+d*lambda+sum(max(0,g-A'y-E'lambda)*cap).
-    # All coefficient products are rational, including original margin*gross.
     if dimensions != (len(ub), len(eq)):
-        return unknown("INCONSISTENT_DUAL_COORDINATES")
+        return "INCONSISTENT_DUAL_COORDINATES"
+    return PreparedCanonicalWitness(
+        tuple(x),
+        tuple(cap),
+        tuple(grad),
+        tuple(grad_hi),
+        tuple((tuple(row.items()), rhs) for row, rhs in ub),
+        tuple((tuple(row.items()), rhs) for row, rhs in eq),
+        gradient_method,
+        cap_method,
+    )
+
+
+def _unknown(numerical_estimate: float, reason: str) -> OptimalityEvidence:
+    return OptimalityEvidence(numerical_estimate, None, "UNKNOWN", reason)
+
+
+def _validate_estimate(numerical_estimate: float) -> None:
+    if not finite_economic_number(numerical_estimate) or numerical_estimate < 0:
+        raise AlgebraicPolicyError("finite nonnegative numerical estimate required")
+
+
+def certify_prepared_gap(
+    prepared: PreparedCanonicalWitness | str,
+    inequality_multipliers: Any,
+    equality_multipliers: Any,
+    numerical_estimate: float,
+) -> OptimalityEvidence:
+    """Internal pure residual operator over locally prepared exact coordinates.
+
+    An externally supplied prepared object is not evidence of a problem.
+    Consumers must use verify_canonical_gap_claim with the original contract.
+    """
+    _validate_estimate(numerical_estimate)
+
+    def unknown(reason: str) -> OptimalityEvidence:
+        return _unknown(numerical_estimate, reason)
+
+    if isinstance(prepared, str):
+        return unknown(prepared)
+    x, cap, grad, grad_hi = prepared.x, prepared.cap, prepared.grad, prepared.grad_hi
+    ub, eq = prepared.ub, prepared.eq
+    gradient_method, cap_method = prepared.gradient_method, prepared.cap_method
+    dimensions = (len(ub), len(eq))
+    # Exact dual correction: any proposed dual is checked against exact rows.
     proposal = freeze_dual_proposal(inequality_multipliers, equality_multipliers, dimensions)
     if proposal is None:
         return unknown("MALFORMED_DUAL_PROPOSAL")
     y = [max(ZERO, -Q(v)) for v in proposal.inequality_marginals]
     lam = [-Q(v) for v in proposal.equality_marginals]
-    residual = grad.copy()
+    residual = list(grad)
     upper = ZERO
     for multiplier, (row, rhs) in zip((*y, *lam), (*ub, *eq), strict=True):
         upper += multiplier * rhs
-        for j, a in row.items():
+        for j, a in row:
             residual[j] -= multiplier * a
-        if not _within_bit_budget((upper, *(residual[j] for j in row))):
+        if not _within_bit_budget((upper, *(residual[j] for j, _ in row))):
             return unknown("EXACT_WITNESS_RESOURCE_SCOPE")
     gap = upper
     for r, c, g, hi, a in zip(residual, cap, grad, grad_hi, x, strict=True):
@@ -354,6 +397,33 @@ def certify_canonical_gap(
         (_RATIONAL_REASON if gradient_method == "RATIONAL" else _DYADIC_REASON)
         + ("_STRUCTURED_CAP_V2" if cap_method == "STRUCTURED_V2" else ""),
         proposal,
+    )
+
+
+def certify_canonical_gap(
+    problem: MultistageProblem,
+    risky_policy: dict[str, tuple[float, ...]],
+    inequality_multipliers: Any,
+    equality_multipliers: Any,
+    numerical_estimate: float,
+    *,
+    gradient_method: str = "AUTO",
+    cap_method: CapMethod = "LEGACY_V1",
+) -> OptimalityEvidence:
+    """Reconstruct and certify without any numerical solver or external effects."""
+    validate_cap_method(cap_method)
+    _validate_estimate(numerical_estimate)
+    prepared = prepare_canonical_witness(
+        problem,
+        risky_policy,
+        gradient_method=gradient_method,
+        cap_method=cap_method,
+    )
+    return certify_prepared_gap(
+        prepared,
+        inequality_multipliers,
+        equality_multipliers,
+        numerical_estimate,
     )
 
 

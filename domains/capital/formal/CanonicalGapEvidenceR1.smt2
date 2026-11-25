@@ -202,3 +202,37 @@
 (assert (> (+ (* lend c) (- (* borrow d))) (* (+ lend K) funded)))
 (check-sat)
 (pop)
+
+; An exact positive scaling of the proposal objective preserves order.
+; This is not a claim of binary64 equality or solver convergence.
+(declare-const objectiveA Real)
+(declare-const objectiveB Real)
+(declare-const scale Real)
+(push)
+(assert (and (> scale 0) (<= objectiveA objectiveB)))
+(assert (> (* scale objectiveA) (* scale objectiveB)))
+(check-sat)
+(pop)
+
+; Selecting a smaller separately certified bound cannot weaken validity.
+(declare-const exactGap Real)
+(declare-const baselineUpper Real)
+(declare-const proposalUpper Real)
+(declare-const selectedUpper Real)
+(push)
+(assert (and (>= exactGap 0) (>= baselineUpper exactGap)
+             (>= proposalUpper exactGap)
+             (= selectedUpper (ite (< proposalUpper baselineUpper)
+                                   proposalUpper baselineUpper))))
+(assert (or (< selectedUpper exactGap) (> selectedUpper baselineUpper)))
+(check-sat)
+(pop)
+
+; A numerically smaller unverified value can understate the exact gap.
+(push)
+(assert (and (>= exactGap 0) (>= baselineUpper exactGap)
+             (>= proposalUpper 0) (< proposalUpper baselineUpper)
+             (= selectedUpper proposalUpper)))
+(assert (< selectedUpper exactGap))
+(check-sat)
+(pop)

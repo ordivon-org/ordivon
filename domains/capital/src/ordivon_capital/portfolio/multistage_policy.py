@@ -24,10 +24,15 @@ witness for scoped integer and small dyadic gamma; otherwise UNKNOWN.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from ordivon_capital.portfolio.canonical_caps import CapMethod, validate_cap_method
+from ordivon_capital.portfolio.canonical_dual_proposal import (
+    DualProposalMethod,
+    improve_canonical_proposal,
+    validate_dual_proposal_method,
+)
 from ordivon_capital.portfolio.constraint_compiler import compile_multistage_constraints
 from ordivon_capital.portfolio.crra_numeric import certainty_equivalent
 from ordivon_capital.portfolio.information_tree import (
@@ -40,9 +45,17 @@ from ordivon_capital.portfolio.numerical_solver import (
     solve_numeric,
     validate_numerical_solver,
 )
-from ordivon_capital.portfolio.optimality_evidence import OptimalityEvidence, certify_canonical_gap
+from ordivon_capital.portfolio.optimality_evidence import (
+    OptimalityEvidence,
+    certify_prepared_gap,
+    prepare_canonical_witness,
+)
 from ordivon_capital.portfolio.policy_contract import AlgebraicPolicyError, finite_economic_number
-from ordivon_capital.portfolio.witness_repair import WitnessRepair, repair_canonical_witness
+from ordivon_capital.portfolio.witness_repair import (
+    WitnessRepair,
+    repair_canonical_witness,
+    verify_repaired_witness,
+)
 
 # The existing PIT source consumer exercises this exact validation contract
 # through the old module import. Re-export the same function, not its logic.
@@ -72,12 +85,14 @@ class MultistageSolution:
     optimality_evidence: OptimalityEvidence | None = None
     witness_repair: WitnessRepair | None = None
     numerical_solver: str = "SLSQP"
+    dual_proposal_standing: str = "NUMERICAL_TANGENT"
 
 
 def solve_multistage(
     problem: MultistageProblem, *, witness_repair_max_change_r: float | None = None,
     numerical_solver: NumericalSolver = "SLSQP",
     cap_method: CapMethod = "LEGACY_V1",
+    dual_proposal_method: DualProposalMethod = "NUMERICAL_TANGENT",
 ) -> MultistageSolution:
     """Solve a scenario-tree convex program without market/broker side effects.
 
@@ -95,6 +110,7 @@ def solve_multistage(
     """
     validate_numerical_solver(numerical_solver)
     validate_cap_method(cap_method)
+    validate_dual_proposal_method(dual_proposal_method)
     if witness_repair_max_change_r is not None and (
         not finite_economic_number(witness_repair_max_change_r)
         or witness_repair_max_change_r < 0
@@ -336,10 +352,11 @@ def solve_multistage(
     risky_policy = {key: row["assetExposuresR"] for key, row in output_decisions.items()}
     inequality_marginals = getattr(getattr(certificate, "ineqlin", None), "marginals", None)
     equality_marginals = getattr(getattr(certificate, "eqlin", None), "marginals", None)
-    evidence = certify_canonical_gap(
-        problem, risky_policy, inequality_marginals, equality_marginals, gap,
-        cap_method=cap_method,
-    )
+    prepared = prepare_canonical_witness(problem, risky_policy, cap_method=cap_method)
+    evidence = certify_prepared_gap(prepared, inequality_marginals, equality_marginals, gap)
+    proposal_standing = "NUMERICAL_TANGENT"
+    if dual_proposal_method == "CANONICAL_GRADIENT":
+        evidence, proposal_standing = improve_canonical_proposal(prepared, evidence)
     repair = None
     if witness_repair_max_change_r is not None and evidence.reason == "INEXACT_WITNESS":
         repair = repair_canonical_witness(
@@ -347,6 +364,25 @@ def solve_multistage(
             max_change_r=witness_repair_max_change_r,
             cap_method=cap_method,
         )
+    if (
+        dual_proposal_method == "CANONICAL_GRADIENT"
+        and repair is not None
+        and repair.canonical_evidence is not None
+        and repair.repaired_policy is not None
+    ):
+        repaired_prepared = prepare_canonical_witness(
+            problem, repair.repaired_policy, cap_method=cap_method,
+        )
+        improved, status = improve_canonical_proposal(
+            repaired_prepared, repair.canonical_evidence,
+        )
+        proposal_standing = "REPAIRED_" + status
+        if status == "CANONICAL_GRADIENT_SELECTED":
+            candidate = replace(repair, canonical_evidence=improved)
+            if verify_repaired_witness(problem, risky_policy, candidate):
+                repair = candidate
+            else:
+                proposal_standing = "REPAIRED_BASELINE_RETAINED_REPLAY_FAILED"
     return MultistageSolution(
         contributions_r_per_path=tree.months,
         expected_terminal_r=float(leaf_probabilities @ terminal_wealth),
@@ -367,6 +403,7 @@ def solve_multistage(
         optimality_evidence=evidence,
         witness_repair=repair,
         numerical_solver=numerical_solver,
+        dual_proposal_standing=proposal_standing,
     )
 
 def main() -> int:
@@ -396,6 +433,7 @@ def main() -> int:
     parser.add_argument("--witness-repair-max-change-r", type=float, default=None)
     parser.add_argument("--numerical-solver", choices=("SLSQP", "TRUST_CONSTR_SPARSE"), default="SLSQP")
     parser.add_argument("--cap-method", choices=("LEGACY_V1", "STRUCTURED_V2"), default="LEGACY_V1")
+    parser.add_argument("--dual-proposal-method", choices=("NUMERICAL_TANGENT", "CANONICAL_GRADIENT"), default="NUMERICAL_TANGENT")
     args = parser.parse_args()
     try:
         if args.input == "-":
@@ -446,6 +484,7 @@ def main() -> int:
             witness_repair_max_change_r=args.witness_repair_max_change_r,
             numerical_solver=args.numerical_solver,
             cap_method=args.cap_method,
+            dual_proposal_method=args.dual_proposal_method,
         )
     except (ValueError, TypeError, KeyError) as exc:
         parser.error(f"invalid economic research input: {exc}")

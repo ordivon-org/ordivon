@@ -70,6 +70,7 @@
       "crra_numeric.py",
       "constraint_compiler.py",
       "canonical_caps.py",
+      "canonical_dual_proposal.py",
       "numerical_solver.py",
       "optimality_evidence.py",
       "rational_enclosure.py",
