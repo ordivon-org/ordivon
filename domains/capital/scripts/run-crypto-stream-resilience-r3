@@ -10,7 +10,8 @@ else
 fi
 # Existing evidence is a consumer-owned resource, not disposable scratch.
 # An explicit new destination permits reruns without overwriting prior runs.
-mkdir -- "$out" || { echo "reconnect output must be a new directory: $out" >&2 || :; exit 73; }
+# The final output claim must use native exclusive mkdir, not ambient CLI behavior.
+python3 -c 'import os, sys; os.mkdir(sys.argv[1])' "$out" 2>/dev/null || { echo "reconnect output must be a new directory: $out" >&2 || :; exit 73; }
 "$repo/scripts/check-execution-policy" --mode non-live >/dev/null
 "$repo/scripts/check-crypto-data-adapter-policy" >/dev/null
 "$repo/scripts/check-clock-quality-gate" >/dev/null

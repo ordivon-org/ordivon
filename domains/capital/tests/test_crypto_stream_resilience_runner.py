@@ -102,9 +102,25 @@ out.write_text(json.dumps(result))
     return repo, env
 
 
+def _inject_nonexclusive_mkdir(tmp_path, env):
+    shim = tmp_path / "bin"
+    shim.mkdir()
+    mkdir = shim / "mkdir"
+    native_mkdir = shutil.which("mkdir")
+    assert native_mkdir is not None
+    mkdir.write_text("#!/bin/sh\nexec " + native_mkdir + ' -p "$@"\n')
+    mkdir.chmod(0o755)
+    env["PATH"] = str(shim) + os.pathsep + env["PATH"]
+
+
 @pytest.mark.parametrize("entry", ("master", "candidate", "session"))
-def test_reconnect_entry_rejects_preexisting_evidence_without_touching_it(tmp_path, entry):
+@pytest.mark.parametrize("nonexclusive_mkdir", (False, True))
+def test_reconnect_entry_rejects_preexisting_evidence_without_touching_it(
+    tmp_path, entry, nonexclusive_mkdir
+):
     repo, env = _isolated_reconnect_carrier(tmp_path)
+    if nonexclusive_mkdir:
+        _inject_nonexclusive_mkdir(tmp_path, env)
     if entry == "master":
         out = repo / ".artifacts" / "crypto-stream-resilience-r3"
         cmd = [str(repo / "scripts/run-crypto-stream-resilience-r3")]
@@ -117,10 +133,13 @@ def test_reconnect_entry_rejects_preexisting_evidence_without_touching_it(tmp_pa
     out.mkdir(parents=True)
     (out / "unique.bin").write_bytes(b"prior unconsumed evidence")
     (out / "result.json").write_text('{"standing":"PRIOR_RECEIPT"}')
+    for name in ("network-v2-binding.json", "candidate.stdout", "session.stdout"):
+        (out / name).write_bytes(b"prior " + name.encode())
+    before = {p.name: p.read_bytes() for p in out.iterdir()}
     result = subprocess.run(cmd, env=env, capture_output=True, timeout=15)
-    assert result.returncode != 0
-    assert (out / "unique.bin").read_bytes() == b"prior unconsumed evidence"
-    assert (out / "result.json").read_text() == '{"standing":"PRIOR_RECEIPT"}'
+    assert result.returncode == 73
+    assert {p.name for p in out.iterdir()} == set(before)
+    assert {p.name: p.read_bytes() for p in out.iterdir()} == before
     assert not (tmp_path / "calls").exists()
 
 
@@ -178,22 +197,17 @@ def test_candidate_exit_agrees_with_session_receipt_not_child_status_alone(tmp_p
     assert json.loads((out / "result.json").read_text())["standing"] == "WORKLOAD_QUALITY_FAILED"
 
 
+@pytest.mark.parametrize("entry", ("master", "candidate", "session"))
 @pytest.mark.parametrize("nonexclusive_mkdir", (False, True))
-def test_concurrent_session_claim_has_exactly_one_writer(tmp_path, nonexclusive_mkdir):
+def test_concurrent_reconnect_claim_has_exactly_one_writer(tmp_path, entry, nonexclusive_mkdir):
     repo, env = _isolated_reconnect_carrier(tmp_path)
     if nonexclusive_mkdir:
-        # Fault injection: an ambient command falsely admits existing roots.
-        # This is an admission-mechanism counterexample, not the CI root cause.
-        shim = tmp_path / "bin"
-        shim.mkdir()
-        mkdir = shim / "mkdir"
-        native_mkdir = shutil.which("mkdir")
-        assert native_mkdir is not None
-        mkdir.write_text("#!/bin/sh\nexec " + native_mkdir + ' -p "$@"\n')
-        mkdir.chmod(0o755)
-        env["PATH"] = str(shim) + os.pathsep + env["PATH"]
-    out = tmp_path / "session"
-    cmd = [str(repo / "scripts/run-crypto-stream-resilience-r3-session"), str(repo), str(out)]
+        # A false-success ambient mkdir must not authorize producer effects.
+        _inject_nonexclusive_mkdir(tmp_path, env)
+    out = tmp_path / "new"
+    suffix = "" if entry == "master" else "-" + entry
+    exe = str(repo / "scripts" / ("run-crypto-stream-resilience-r3" + suffix))
+    cmd = [exe, str(repo), str(out)] if entry == "session" else [exe, str(out)]
     first = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     second = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     _, first_stderr = first.communicate(timeout=15)
@@ -202,8 +216,12 @@ def test_concurrent_session_claim_has_exactly_one_writer(tmp_path, nonexclusive_
         first.returncode, second.returncode, first_stderr, second_stderr
     )
     assert (tmp_path / "calls").read_text().splitlines() == ["OKX", "BINANCE"]
-    assert json.loads((out / "result.json").read_text())["standing"] == "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT"
-    assert not list(out.glob(".result-*"))
+    expected = (
+        "PASS_WORKLOAD_QUALIFIED" if entry == "candidate"
+        else "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT"
+    )
+    assert json.loads((out / "result.json").read_text())["standing"] == expected
+    assert not list(out.rglob(".result-*"))
 
 
 def test_master_explicit_new_run_does_not_reuse_prior_output(tmp_path):
