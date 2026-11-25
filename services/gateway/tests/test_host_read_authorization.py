@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-import importlib.util
+import importlib
 import json
 import secrets
 import subprocess
@@ -214,7 +214,7 @@ def test_exact_message_read_rejects_invalid_selector_before_pdp(invalid) -> None
 
 
 def test_real_opa_gateway_pep_consumer_rejects_cross_principal_and_revocation(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Refine the current Host PEP contract against the existing Security OPA implementation.
 
@@ -244,12 +244,11 @@ def test_real_opa_gateway_pep_consumer_rejects_cross_principal_and_revocation(
     server_file = policy_root / "src/ordivon_security_gateway_authzen/server.py"
     policy = policy_root / "policies/gateway_artifact.rego"
     assert server_file.is_file() and policy.is_file()
-    spec = importlib.util.spec_from_file_location(
-        "ordivon_security_gateway_authzen_test_adapter", server_file
-    )
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # Consume the normal package namespace, not the implementation file as an
+    # independent module. Bind the imported source to this exact checkout.
+    monkeypatch.syspath_prepend(str(policy_root / "src"))
+    module = importlib.import_module("ordivon_security_gateway_authzen.server")
+    assert Path(module.__file__).resolve() == server_file.resolve()
 
     token = secrets.token_hex(32)
     token_path = tmp_path / "pdp-token"
