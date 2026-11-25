@@ -23,6 +23,25 @@ def _digest(raw: bytes) -> str:
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
+def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"ambiguous duplicate manifest key: {key}")
+        result[key] = value
+    return result
+
+
+def _time_value(value: Any) -> dict[str, float] | None:
+    return None if value is None else {"value": value.value, "rate": value.rate}
+
+
+def _range_value(value: Any) -> dict[str, Any] | None:
+    return None if value is None else {
+        "start": _time_value(value.start_time), "duration": _time_value(value.duration)
+    }
+
+
 def verify_editorial_assets(
     timeline_path: Path,
     manifest_path: Path,
@@ -44,7 +63,7 @@ def verify_editorial_assets(
     ):
         if expected is not None and actual != expected:
             raise ValueError(f"{label} digest does not match caller commitment")
-    manifest = json.loads(manifest_raw)
+    manifest = json.loads(manifest_raw, object_pairs_hook=_unique_object)
     Draft202012Validator(json.loads(SCHEMA.read_bytes())).validate(manifest)
     if manifest["productionId"] != production_id:
         raise ValueError("asset manifest productionId does not match selected Production")
@@ -59,7 +78,7 @@ def verify_editorial_assets(
         raise ValueError("selected OTIO object is not a Timeline")
     references = []
     selected = {}
-    for clip in timeline.find_clips():
+    for clip_index, clip in enumerate(timeline.find_clips()):
         ref = clip.media_reference
         if not isinstance(ref, otio.schema.ExternalReference) or not ref.target_url.startswith(PREFIX):
             raise ValueError(f"clip {clip.name!r} has no supported active Asset URI")
@@ -71,7 +90,15 @@ def verify_editorial_assets(
         if blob is None:
             raise ValueError(f"active Asset has no selected Blob: {asset_id}")
         selected[asset_id] = blob
-        references.append({"clip": clip.name, "assetId": asset_id, "uri": ref.target_url})
+        references.append({
+            "clipIndex": clip_index,
+            "clip": clip.name,
+            "activeReferenceKey": clip.active_media_reference_key,
+            "assetId": asset_id,
+            "uri": ref.target_url,
+            "sourceRange": _range_value(clip.source_range),
+            "availableRange": _range_value(ref.available_range),
+        })
     if not references:
         raise ValueError("no active clip references to qualify")
 
@@ -89,9 +116,6 @@ def verify_editorial_assets(
             standing = "local-bytes-match"
         observations[asset_id] = {"selectedBlob": blob, "materializationStanding": standing}
 
-    def time_value(value: Any) -> dict[str, float] | None:
-        return None if value is None else {"value": value.value, "rate": value.rate}
-
     return {
         "schemaVersion": 1,
         "kind": "ordivon.media.editorial-asset-binding",
@@ -99,8 +123,8 @@ def verify_editorial_assets(
         "timelineDigest": timeline_digest,
         "manifestDigest": manifest_digest,
         "nativeOTIOVersion": otio.__version__,
-        "globalStartTime": time_value(timeline.global_start_time),
-        "relativeDuration": time_value(timeline.duration()),
+        "globalStartTime": _time_value(timeline.global_start_time),
+        "relativeDuration": _time_value(timeline.duration()),
         "activeReferences": references,
         "assets": observations,
         "declaredReferenceStanding": "matched",

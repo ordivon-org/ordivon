@@ -128,3 +128,33 @@ class EditorialAssetBindingTests(unittest.TestCase):
         otio.adapters.write_to_file(timeline, str(self.timeline))
         with self.assertRaisesRegex(ValueError, "no supported active"):
             self.verify(self.timeline)
+
+    def test_active_reference_key_and_native_range_are_bound(self):
+        timeline = otio.adapters.read_from_file(str(TIMELINE))
+        clip = timeline.find_clips()[0]
+        refs = clip.media_references()
+        refs["alternate"] = otio.schema.ExternalReference(
+            target_url="ordivon-asset://missing-alternate",
+            available_range=clip.media_reference.available_range,
+        )
+        clip.set_media_references(refs, "DEFAULT_MEDIA")
+        otio.adapters.write_to_file(timeline, str(self.timeline))
+        result = self.verify(self.timeline)
+        first = result["activeReferences"][0]
+        self.assertEqual(first["clipIndex"], 0)
+        self.assertEqual(first["activeReferenceKey"], "DEFAULT_MEDIA")
+        self.assertEqual(first["sourceRange"], {
+            "start": {"value": 0, "rate": 30}, "duration": {"value": 2340, "rate": 30}
+        })
+        self.assertEqual(first["availableRange"], first["sourceRange"])
+        clip.set_media_references(refs, "alternate")
+        otio.adapters.write_to_file(timeline, str(self.timeline))
+        with self.assertRaisesRegex(ValueError, "undeclared"):
+            self.verify(self.timeline)
+
+    def test_ambiguous_manifest_key_rejected_even_when_value_matches(self):
+        raw = MANIFEST.read_text()
+        raw = raw.replace('"schemaVersion": 1,', '"schemaVersion": 1, "schemaVersion": 1,', 1)
+        self.manifest.write_text(raw)
+        with self.assertRaisesRegex(ValueError, "duplicate manifest key"):
+            self.verify(manifest=self.manifest)
