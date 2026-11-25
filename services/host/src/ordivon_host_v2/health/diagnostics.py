@@ -11,6 +11,7 @@ from typing import Any
 
 from ..canonical_json import canonical_digest
 from ..postgres_connections import HostPostgresConnections
+from ..work_receipts import replay_work_receipt
 
 
 class HostStatusQueries(HostPostgresConnections):
@@ -132,7 +133,8 @@ class HostStatusQueries(HostPostgresConnections):
                 )
 
                 # A Work is healthy when its CURRENT revision and bytes are valid.
-                # Old snapshot revisions are optional retention, not a liveness contract.
+                # Unreferenced historical revisions are optional; compact receipt
+                # roots are checked separately in history detail.
                 current_payload_bad = 0
                 with conn.cursor(name="host_current_snapshot_digest_scan") as cursor:
                     cursor.itersize = 128
@@ -153,6 +155,22 @@ class HostStatusQueries(HostPostgresConnections):
                     f"invalid={current_payload_bad}",
                 )
                 if detail == "history":
+                    # Retained reply edges may predate the strict writer rank.
+                    # General references may be cyclic; only replies require
+                    # an earlier target. This audit does not rewrite history.
+                    rank_bad = int(
+                        conn.execute(
+                            "SELECT count(*) AS value FROM message_relations r "
+                            "JOIN messages s ON s.message_ref=r.source_message_ref "
+                            "JOIN messages t ON t.message_ref=r.target_ref "
+                            "WHERE r.relation='reply_to' AND t.sequence>=s.sequence"
+                        ).fetchone()["value"]
+                    )
+                    add_check(
+                        "social.reply_history_rank",
+                        rank_bad == 0,
+                        f"invalid={rank_bad}",
+                    )
                     digest_bad = 0
                     # Stream history through Psycopg's native server cursor.
                     # A full fetchall() would retain every JSONB payload in RAM.
@@ -170,6 +188,35 @@ class HostStatusQueries(HostPostgresConnections):
                         "work.snapshot_history_digest",
                         digest_bad == 0,
                         f"invalid={digest_bad}",
+                    )
+                    # A compact receipt independently pins its exact historical revision.
+                    # Legacy full receipts have their own replay payload and do not pin it.
+                    root_bad = 0
+                    with conn.cursor(name="host_work_receipt_root_scan") as cursor:
+                        cursor.itersize = 128
+                        cursor.execute(
+                            "SELECT response FROM command_receipts "
+                            "WHERE operation IN ('work.create','work.snapshot.commit') "
+                            "AND response IS NOT NULL "
+                            "AND response->>'kind' IS DISTINCT FROM 'ordivon.host-work'"
+                        )
+                        for row in cursor:
+                            response = row["response"]
+                            try:
+                                if not isinstance(response, dict):
+                                    raise ValueError("invalid Work receipt")
+                                envelope = response.get("envelope")
+                                if not isinstance(envelope, dict) or not isinstance(
+                                    envelope.get("workRef"), str
+                                ):
+                                    raise ValueError("invalid Work receipt root")
+                                replay_work_receipt(conn, response, work_ref=envelope["workRef"])
+                            except RuntimeError, ValueError, TypeError, KeyError:
+                                root_bad += 1
+                    add_check(
+                        "work.receipt_history_roots",
+                        root_bad == 0,
+                        f"invalid={root_bad}",
                     )
                 doctor = {
                     "healthy": all(item["status"] == "ok" for item in checks),

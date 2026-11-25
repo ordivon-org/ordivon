@@ -60,7 +60,7 @@ Runtime 拥有 Workspace、Job/Attempt 与机械执行真相；Harness 拥有 Ag
 
 ## 4. Human 操作指南
 
-1. 在线查看：host.status(detail=summary) 观察 Host 自身统计；host.status(detail=integrity) 检查已覆盖的 PG 一致性。不要把 Host 健康等同于 Runtime、Git 或业务验收。 当前 integrity 模式必须检查每个 Work 的当前 Snapshot 指针与 payload 摘要；旧修订不要求连续也不应因为被裁剪而判定 Host 不健康。history 模式可额外复核仍然保留的 Snapshot，但缺失的历史版本不得伪造；历史读回可以返回缺失。此规则不宣称生产已实施历史裁剪。
+1. 在线查看：host.status(detail=summary) 观察 Host 自身统计；host.status(detail=integrity) 检查已覆盖的 PG 一致性。不要把 Host 健康等同于 Runtime、Git 或业务验收。 当前 integrity 模式必须检查每个 Work 的当前 Snapshot 指针与 payload 摘要；旧修订不要求连续也不应因为被裁剪而判定 Host 不健康。history 模式可额外复核仍然保留的 Snapshot，但缺失的历史版本不得伪造；历史读回可以返回缺失。此规则不宣称生产已实施历史裁剪。 History 模式还校验留存的 reply_to 顺序（目标 sequence 严格小于来源）及引用式 Work 回执的精确历史版本、摘要与响应；普通引用不要求无环。旧完整 Work 回执自带重放载荷，引用式回执则依赖被引用的不可变版本，历史裁剪必须保留其可验证载体。当前只扩展读取兼容，仍写旧完整回执；启用新写入格式前须验证全部实际读取者、回滚路径和精确历史根的保留规则。
 2. 接手工作：work.get 读取版本化 WorkSnapshot；topic.resume 恢复讨论；work.list、space.list、message.search 使用数量与字节预算分页。
 3. 研发变更：进入 services/host 执行 mise run verify；存在独立 Docker 环境时运行 mise run test:postgres:disposable；运行 mise run formal:reply-source 检查源码级纯函数契约。PG 集成 SKIP 不可算成 PASS。
 4. 发布：校验准确 Git SourceCut、不可变安装目录、mcp-surface.json 与真实注册工具一致，再进行已安装服务和 PG 验证。
