@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
+import requests
 
 from ordivon_gateway.security.authzen_authorizer import (
     AuthZenAuthorizerError,
@@ -28,26 +30,38 @@ class FakeResponse:
         self._request_id = request_id
         self._json_error = json_error
         self._context = context
-        self.headers: dict[str, str] = {}
+        self.headers: dict[str, str] = {"Content-Type": "application/json"}
+        self.closed = False
 
     def bind_request_id(self, request_id: str) -> None:
         self.headers["X-Request-ID"] = self._request_id or request_id
 
-    def json(self) -> dict[str, object]:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        self.closed = True
+
+    def iter_content(self, chunk_size):
+        data = self.content
+        yield from (data[i : i + chunk_size] for i in range(0, len(data), chunk_size))
+
+    @property
+    def content(self) -> bytes:
         if self._json_error:
-            raise ValueError("invalid json")
+            return b"invalid json"
         result: dict[str, object] = {"decision": self._decision}
         if self._context is not ...:
             result["context"] = self._context
-        return result
+        return json.dumps(result).encode("utf-8")
 
 
 class FakeSession:
-    def __init__(self, response: FakeResponse) -> None:
+    def __init__(self, response: FakeResponse | RawPdpResponse) -> None:
         self.response = response
         self.calls: list[dict[str, Any]] = []
 
-    def post(self, endpoint: str, **kwargs: Any) -> FakeResponse:
+    def post(self, endpoint: str, **kwargs: Any) -> FakeResponse | RawPdpResponse:
         call = {"endpoint": endpoint, **kwargs}
         self.calls.append(call)
         self.response.bind_request_id(kwargs["headers"]["X-Request-ID"])
@@ -69,7 +83,7 @@ def _resource() -> dict[str, Any]:
 
 
 def _authorizer(
-    response: FakeResponse,
+    response: FakeResponse | RawPdpResponse,
     *,
     endpoint: str = "https://pdp.example.test/access/v1/evaluation",
 ) -> tuple[AuthZenPrincipalAuthorizer, FakeSession]:
@@ -309,3 +323,59 @@ def test_authzen_malformed_context_is_not_an_authorization_decision(
     authorizer, _ = _authorizer(FakeResponse(decision=True, context=invalid_context))
     with pytest.raises(AuthZenAuthorizerError, match="decision context"):
         _authorize(authorizer)
+
+
+class RawPdpResponse(requests.Response):
+    """Use the actual HTTP client response decoder, not a pre-parsed dict."""
+
+    def __init__(self, body: bytes) -> None:
+        super().__init__()
+        self.status_code = 200
+        self._content = body
+        self._content_consumed = True
+        self.headers["Content-Type"] = "application/json"
+
+    def bind_request_id(self, request_id: str) -> None:
+        self.headers["X-Request-ID"] = request_id
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        b'{"decision":false,"decision":true}',
+        b'{"decision":true,"context":{"obligations":[{}]},"context":{}}',
+        b'{"decision":true,"context":{"nested":{"x":1,"x":2}}}',
+        rb'{"decision":false,"decisi\u006fn":true}',
+        b'{"decision":true,"context":{"number":NaN}}',
+        b'{"decision":true,"context":{"number":Infinity}}',
+        b'{"decision":true,"context":{"number":1e999}}',
+        b'{"decision":true,"context":{"text":"\xff"}}',
+        rb'{"decision":true,"context":{"text":"\ud800"}}',
+        b'{"decision":true,"context":{"padding":"' + b"x" * 65536 + b'"}}',
+    ],
+)
+def test_authzen_ambiguous_wire_never_reaches_owner(body: bytes) -> None:
+    authorizer, session = _authorizer(RawPdpResponse(body))
+    reached = False
+
+    async def forbidden_next(_ctx: Any) -> dict[str, Any]:
+        nonlocal reached
+        reached = True
+        return {"structuredContent": {"ownerReached": True}}
+
+    result = asyncio.run(
+        GatewayCapabilityAuthorizationMiddleware(authorizer)(_ctx(), forbidden_next)
+    )
+    assert not reached, "invalid wire reached Owner"
+    assert result.is_error is True
+    assert result.structured_content["error"]["code"] == "CAPABILITY_AUTHZ_UNAVAILABLE"
+    assert len(session.calls) == 1
+
+
+@pytest.mark.parametrize("decision", [True, False])
+def test_authzen_valid_raw_wire_preserves_decision(decision: bool) -> None:
+    literal = b"true" if decision else b"false"
+    body = b'{"decision":' + literal + b',"context":{"obligations":[],"metadata":[{"value":1.5}]}}'
+    authorizer, session = _authorizer(RawPdpResponse(body))
+    assert _authorize(authorizer)["outcome"] == ("ALLOW" if decision else "DENY")
+    assert len(session.calls) == 1

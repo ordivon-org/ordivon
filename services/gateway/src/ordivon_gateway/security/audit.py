@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import time
 from contextlib import suppress
 from typing import Any
 
@@ -61,8 +63,25 @@ def _annotate_ingress(principal: str | None, issuer: str | None) -> None:
         span.set_attribute("ordivon.gateway.auth.issuer", issuer)
 
 
+def _result_outcome(result: HandlerResult) -> str:
+    """Classify only the observed protocol result, not the Owner's effect."""
+    if isinstance(result, dict):
+        flags = [result[key] for key in ("isError", "is_error") if key in result]
+    else:
+        flags = [getattr(result, "is_error", None)]
+    if not flags or any(type(flag) is not bool for flag in flags):
+        return "unknown"
+    if any(flag != flags[0] for flag in flags):
+        return "unknown"
+    return "tool_error" if flags[0] else "returned"
+
+
 def _record_result_projection(
-    ctx: ServerRequestContext[Any, Any], result: HandlerResult, principal: str | None
+    ctx: ServerRequestContext[Any, Any],
+    result: HandlerResult | None,
+    principal: str | None,
+    outcome: str,
+    duration_ns: int,
 ) -> None:
     tool_name = None
     if isinstance(ctx.params, dict):
@@ -71,7 +90,7 @@ def _record_result_projection(
             tool_name = candidate
 
     span = trace.get_current_span()
-    result_identity = _result_identity(result)
+    result_identity = _result_identity(result) if result is not None else {}
     for source, attribute in (
         ("operationRef", "ordivon.operation_ref"),
         ("ownerId", "ordivon.owner_id"),
@@ -86,6 +105,9 @@ def _record_result_projection(
     event: dict[str, Any] = {
         "event": "ordivon.gateway.audit",
         "truthRole": "observability-correlation-only",
+        "observationSchemaVersion": 2,
+        "outcome": outcome,
+        "durationNs": duration_ns,
         "mcpMethod": ctx.method,
         "toolName": tool_name,
         "principal": principal if isinstance(principal, str) else None,
@@ -101,8 +123,8 @@ class GatewayAuditMiddleware:
 
     Only verified request state supplies the principal. Diagnostic failures
     cannot prevent the Owner call or replace its result. The Owner invocation
-    is deliberately outside both Exception handlers; cancellation, denial
-    and all other Owner errors retain their original semantics.
+    is never retried; cancellation, denial and all other Owner errors
+    retain their original semantics.
     """
 
     async def __call__(
@@ -119,12 +141,28 @@ class GatewayAuditMiddleware:
         except Exception:
             _report_projection_failure("ingress")
 
-        result = await call_next(ctx)
+        started_ns = time.monotonic_ns()
+
+        def observe(result: HandlerResult | None, outcome: str | None = None) -> None:
+            try:
+                if ctx.method == "tools/call":
+                    _record_result_projection(
+                        ctx,
+                        result,
+                        principal,
+                        outcome if outcome is not None else _result_outcome(result),
+                        time.monotonic_ns() - started_ns,
+                    )
+            except Exception:
+                _report_projection_failure("result")
 
         try:
-            if ctx.method == "tools/call":
-                _record_result_projection(ctx, result, principal)
+            result = await call_next(ctx)
+        except asyncio.CancelledError:
+            observe(None, "cancelled")
+            raise
         except Exception:
-            _report_projection_failure("result")
-
+            observe(None, "raised")
+            raise
+        observe(result)
         return result

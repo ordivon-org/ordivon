@@ -176,15 +176,6 @@ def test_official_main_requires_live_bearer_canary_not_only_config_declaration(
     import subprocess
     import sys
 
-    grant = {
-        "active": True,
-        "principalId": "principal:cf-access:" + "a" * 64,
-        "issuer": "https://issuer.test",
-        "actorRef": "actor:ordivon:agent",
-        "notBeforeEpochSeconds": 1000,
-        "expiresAtEpochSeconds": 9000,
-        "allowedTools": ["topic.resume"],
-    }
     env = (
         "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
         "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
@@ -193,8 +184,8 @@ def test_official_main_requires_live_bearer_canary_not_only_config_declaration(
     monkeypatch.setattr(sys, "argv", ["check_live_host_admission.py"])
     monkeypatch.setattr(
         preflight,
-        "_policy_data",
-        lambda _path: {"ordivon": {"security": {"gateway_host_actor_grants": [grant]}}},
+        "observe_configured_pair",
+        lambda: {"standing": "OBSERVED_FOR_EXACT_READ_PAIR"},
     )
     monkeypatch.setattr(preflight, "_qualified_systemd_environment", lambda _unit: env)
     monkeypatch.setattr(preflight, "_rejects_unauthenticated_host_initialize", lambda: True)
@@ -203,7 +194,6 @@ def test_official_main_requires_live_bearer_canary_not_only_config_declaration(
         preflight, "_unqualified_active_peer_host_consumers", lambda *, anonymous_denied: ()
     )
     monkeypatch.setattr(preflight, "_installed_security_host_read_surface_qualified", lambda: True)
-    monkeypatch.setattr(preflight.time, "time", lambda: 1500)
 
     def fake_auth(_env: str, *, anonymous_denied: bool) -> bool:
         assert _env == env

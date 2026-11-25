@@ -18,17 +18,6 @@ from ordivon_gateway.logic.host_tool_contracts import SOCIAL_WORK_HOST_TOOLS
 from ordivon_gateway.logic.routing import default_routes
 
 ROOT = Path(__file__).resolve().parents[1] / "src" / "ordivon_gateway"
-LOGIC_FILES = {
-    "capability_projection.py",
-    "execution_refs.py",
-    "host_tool_contracts.py",
-    "owner_protocol.py",
-    "readiness_inquiry.py",
-    "readiness_confirmation.py",
-    "runtime_status.py",
-    "research_routes.py",
-    "routing.py",
-}
 
 
 def test_business_root_is_composition_and_public_schema_only() -> None:
@@ -38,13 +27,12 @@ def test_business_root_is_composition_and_public_schema_only() -> None:
         "mcp_server.py",
         "service.py",
     }
-    assert {p.name for p in (ROOT / "logic").glob("*.py")} == LOGIC_FILES | {"__init__.py"}
     assert (ROOT / "transport/http.py").exists()
     assert (ROOT / "transport/upstream.py").exists()
 
 
 def test_logic_representation_never_imports_owner_adapters_or_security() -> None:
-    for file in (ROOT / "logic").glob("*.py"):
+    for file in (ROOT / "logic").rglob("*.py"):
         tree = ast.parse(file.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom):

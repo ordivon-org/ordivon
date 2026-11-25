@@ -913,3 +913,88 @@ structuredReleaseConfigured=false means NOT_READY, while malformed fields
 remain UNKNOWN. It is forbidden to satisfy a requested release by sending
 a generic execution.linux shell installer. R13 only changes SourceCut,
 package version and routeDigest, NOT the MCP tool schema or Surface Epoch 12.
+
+### Native tool ABI comparison boundary
+
+The existing release gate exports the actual tools/list schemas of the old and
+candidate environments, then runs the structural comparator inside the locked
+candidate environment. The early manifest/version check still uses only the
+OS standard library. The comparator uses JSON Schema Draft 2020-12 validation;
+it preserves business names and JSON literals, strips only schema-position
+prose, and rejects ambiguous, malformed or oversized wire representations.
+
+For a compatible schema evolution the old input language must be contained in
+the new input language and the new output language in the old output language.
+The implemented rule is conservative: unchanged shared schemas; a local,
+reference-free object fragment for newly declared properties; reject unknown
+shape/ref changes. It does not solve arbitrary JSON Schema implication, resolve
+remote references, certify actual SDK behavior, or qualify an installed Agent.
+A narrower numeric domain remains an incompatibility even when all valid
+business-domain samples are preserved. Never remove integer bounds or waive
+the installer gate to hide it; qualify a versioned consumer migration instead.
+### Effective Security policy standing (candidate B preflight)
+
+Gateway no longer reads Security's private grant-data credential or interprets
+its grant list. The operator supplies these **Gateway-side** release inputs:
+`ORDIVON_GATEWAY_RELEASE_POLICY_STANDING_CONFIG` (absolute nonsecret JSON
+expectation), `ORDIVON_GATEWAY_RELEASE_POLICY_STANDING_BEARER_FILE` (its own
+authorized PDP client credential), and optionally
+`ORDIVON_GATEWAY_RELEASE_POLICY_STANDING_CA_FILE` (trusted PEM CA file; default
+system CA bundle). No raw policy data, JWT, or token is included in the report.
+
+The expectation contains exactly `policySha256`, `releaseRevision`, `issuer`,
+`permitPrincipal`, `denyPrincipal`, `messageRef`. The operator independently
+binds the expected policy bytes and release label, and selects an existing
+permitted and a different denied Cloudflare Principal against the same exact
+message read. This is a read-only decision canary, not impersonation at Host
+or an Agent-authentication receipt. Never infer these inputs from the returned
+PDP witness. The fixed local HTTPS evaluation endpoint uses no proxy or
+redirects. Missing, stale, malformed, mismatched or contradictory evidence
+keeps NO_GO. A matching pair observes two decisions against the same instance
+and data commitment; it is not a general grant inventory, an attestation of
+running Git bytes, or a future authorization.
+
+R2.1: I = independently qualified expectation, two request/response captures
+and observation window; O = bounded paired observation or UNKNOWN; S =
+request-local only; pre = exact read target, trusted TLS and client credential;
+post = exact decision, correlation, input and policy/release match, same
+instance/data commitment, fresh ordered pair; inv = no Owner action or grant
+and no release GO from this witness; eff = two authenticated read-only PDP
+evaluations; c = at most two calls, bounded retained bytes; epsilon = no
+external Agent/Host ingress migration, future currentness, independent
+operator provisioning, or systemd process attestation proof. The existing
+protected release gate remains fail-closed pending independent migration
+evidence.
+
+For explicit producer/consumer qualification, extract the exact Security
+SourceCut to a private directory and run:
+```bash
+uv run --locked python packaging/qualify_policy_standing.py \
+  --producer-root /absolute/qualified/gateway-authzen \
+  --producer-revision "$SECURITY_SOURCE_COMMIT" \
+  --opa /absolute/qualified/opa
+```
+The qualifier creates only disposable TLS keys, fixture principals/grants,
+loopback listener and temporary inputs; it requires native OPA and OpenSSL and
+fails rather than silently skips. Bind the external producer SourceCut before
+running; the revision argument by itself is only a path label.
+
+### Shared PDP wire representation (consolidated candidate)
+
+Normal AuthZEN authorization and effective policy-standing observation now
+consume the same bounded PDP wire decoder and streamed response reader.
+The accepted response is an application/json UTF-8 object (maximum 65536
+decoded bytes), with unique member names, finite numeric values and no
+isolated Unicode surrogates. The transport owns socket timeouts and checks
+the monotonic observation window; this does not promise a hard wall-clock
+deadline or a bound on every internal decompressor allocation.
+Each caller retains its own status, correlation, mandatory obligations and
+decision/standing semantics; no retry, grant, or Owner action is introduced.
+The OS-only early release manifest verifier deliberately retains a stdlib
+decoder because the candidate venv does not yet exist at that stage.
+
+The integrated SourceCut combines #2736, #2717, #2748, #2743, #2742, #2783
+and #2791, with the mainline peer-census completeness correction preserved.
+Run the existing gateway:verify and gateway:formal:verify tasks plus the
+explicit real Security producer qualifier. This is source qualification,
+not installed security/Agent compatibility or permission to promote.

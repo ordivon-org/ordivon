@@ -42,3 +42,14 @@ def valid_runtime_status_envelope(response: object) -> bool:
         and type(response.get("schemaVersion")) is int
         and response["schemaVersion"] == 1
     )
+
+
+def runtime_ready_target_observed(response: object) -> bool:
+    """Positive target evidence requires a versioned, globally valid inventory."""
+    if not valid_runtime_status_envelope(response):
+        return False
+    assert isinstance(response, dict)
+    targets = response.get("targets")
+    if not valid_runtime_target_inventory(targets):
+        return False
+    return any(row["configured"] is True and row["available"] is True for row in targets)

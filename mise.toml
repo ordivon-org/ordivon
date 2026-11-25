@@ -324,13 +324,24 @@ mise run queue
 dir = "services/gateway"
 run = """
 set -euo pipefail
-uv lock --check
-uv sync --locked
-uv run ruff check .
-uv run ruff format --check .
-uv run python -m pytest -q
-uv run python formal/check_routing_conformance.py
-uv run python formal/check_owner_status_contract.py
+mise exec -- python --version
+mise exec -- uv --version
+mise exec -- uv lock --check
+mise exec -- uv sync --locked
+mise exec -- uv run ruff check .
+mise exec -- uv run ruff format --check .
+mise exec -- uv run python -m pytest -q
+mise exec -- uv run python formal/check_routing_conformance.py
+mise exec -- uv run python formal/check_owner_status_contract.py
+# The checked-in native migration probe is a consumer of this exact Python
+# contract. A green Gateway queue must include its Rust and cross-language checks.
+probe=rust-migration/read-only-probe/Cargo.toml
+rustc --version
+cargo fmt --manifest-path "$probe" --all -- --check
+cargo clippy --manifest-path "$probe" --locked --all-targets -- -D warnings
+cargo test --manifest-path "$probe" --locked
+cargo build --manifest-path "$probe" --locked
+uv run --locked python rust-migration/read-only-probe/qualify.py
 """
 
 

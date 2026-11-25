@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 import sys
 import tomllib
 from pathlib import Path
 from typing import Any
 
+MAX_CONTRACT_BYTES = 8 * 1024 * 1024
 VERSION_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 
 
@@ -17,14 +19,57 @@ def _version(value: str) -> tuple[int, int, int]:
     return tuple(int(part) for part in match.groups())
 
 
+def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON member")
+        result[key] = value
+    return result
+
+
+def _finite(value: str) -> float:
+    result = float(value)
+    if not math.isfinite(result):
+        raise ValueError("nonfinite JSON number")
+    return result
+
+
+def _read_json(path: Path) -> Any:
+    with path.open("rb") as source:
+        raw = source.read(MAX_CONTRACT_BYTES + 1)
+    if len(raw) > MAX_CONTRACT_BYTES:
+        raise ValueError("native contract exceeds bounded size")
+    value = json.loads(
+        raw.decode("utf-8"),
+        object_pairs_hook=_unique_object,
+        parse_float=_finite,
+        parse_constant=_finite,
+    )
+    # Reject escaped lone surrogates as well as invalid UTF-8 transport bytes.
+    json.dumps(value, ensure_ascii=False, allow_nan=False).encode("utf-8")
+    return value
+
+
 def _load_manifest(path: Path) -> dict[str, Any]:
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if data.get("schemaVersion") != 1 or data.get("kind") != "ordivon.mcp-tool-surface":
+    data = _read_json(path)
+    if not isinstance(data, dict):
+        raise SystemExit(f"invalid MCP surface manifest: {path}")
+    if (
+        type(data.get("schemaVersion")) is not int
+        or data["schemaVersion"] != 1
+        or data.get("kind") != "ordivon.mcp-tool-surface"
+    ):
         raise SystemExit(f"invalid MCP surface manifest: {path}")
     tools = data.get("tools")
-    if not isinstance(tools, list) or not tools or tools != sorted(set(tools)):
+    if (
+        not isinstance(tools, list)
+        or not tools
+        or not all(isinstance(name, str) and name for name in tools)
+        or tools != sorted(set(tools))
+    ):
         raise SystemExit(f"tools must be a non-empty sorted unique list: {path}")
-    if not isinstance(data.get("surfaceEpoch"), int) or data["surfaceEpoch"] < 1:
+    if type(data.get("surfaceEpoch")) is not int or data["surfaceEpoch"] < 1:
         raise SystemExit(f"surfaceEpoch must be a positive integer: {path}")
     _version(str(data.get("packageVersion", "")))
     digest = data.get("contractDigest")
@@ -42,9 +87,12 @@ def main() -> None:
         print(json.dumps(asyncio.run(_emit_native_contracts()), sort_keys=True))
         return
     if len(sys.argv) == 4 and sys.argv[1] == "--compare-native":
-        old = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
-        new = json.loads(Path(sys.argv[3]).read_text(encoding="utf-8"))
-        issues = compare_native_tool_contracts(old, new)
+        try:
+            old = _read_json(Path(sys.argv[2]))
+            new = _read_json(Path(sys.argv[3]))
+            issues = compare_native_tool_contracts(old, new)
+        except ValueError, OSError, RecursionError, TypeError:
+            issues = ["unqualified native contract representation"]
         print(json.dumps({"compatible": not issues, "incompatibilities": issues}, sort_keys=True))
         if issues:
             raise SystemExit(2)
@@ -98,111 +146,14 @@ def main() -> None:
     )
 
 
-def _semantic_schema(value: Any) -> Any:
-    """Ignore prose but retain wire defaults, bounds, types and enum contracts."""
-    if isinstance(value, dict):
-        return {
-            key: _semantic_schema(item)
-            for key, item in value.items()
-            if key not in {"title", "description", "examples"}
-        }
-    if isinstance(value, list):
-        return [_semantic_schema(item) for item in value]
-    return value
-
-
-def _tool_contract_map(contracts: Any) -> dict[str, dict[str, Any]]:
-    if not isinstance(contracts, list):
-        raise ValueError("native MCP contracts must be a list")
-    values: dict[str, dict[str, Any]] = {}
-    for item in contracts:
-        if not isinstance(item, dict) or not isinstance(item.get("name"), str):
-            raise ValueError("invalid native MCP tool row")
-        name = item["name"]
-        if not name or name in values or not isinstance(item.get("inputSchema"), dict):
-            raise ValueError(f"duplicate/invalid native MCP input tool: {name}")
-        if (
-            "outputSchema" in item
-            and item["outputSchema"] is not None
-            and not isinstance(item["outputSchema"], dict)
-        ):
-            raise ValueError(f"invalid native MCP output schema: {name}")
-        values[name] = item
-    return values
-
-
-def _compare_object_schema(
-    name: str, field: str, previous: Any, candidate: Any, *, input_side: bool
-) -> list[str]:
-    issues: list[str] = []
-    if previous is None:
-        return issues
-    if not isinstance(previous, dict) or not isinstance(candidate, dict):
-        return [f"{field} removed schema {name}"]
-    previous_props = previous.get("properties", {})
-    next_props = candidate.get("properties", {})
-    previous_defs = previous.get("$defs", {})
-    next_defs = candidate.get("$defs", {})
-    if not all(
-        isinstance(value, dict) for value in (previous_props, next_props, previous_defs, next_defs)
-    ):
-        return [f"{field} malformed schema {name}"]
-
-    old_required = set(previous.get("required", []))
-    new_required = set(candidate.get("required", []))
-    required_delta = new_required - old_required if input_side else old_required - new_required
-    for prop in sorted(required_delta):
-        issues.append(f"{field} {'new' if input_side else 'lost'} required {name}.{prop}")
-    for prop in sorted(previous_props.keys() - next_props.keys()):
-        issues.append(f"{field} removed field {name}.{prop}")
-    for prop in sorted(previous_props.keys() & next_props.keys()):
-        if _semantic_schema(previous_props[prop]) != _semantic_schema(next_props[prop]):
-            issues.append(f"{field} changed field {name}.{prop}")
-    for definition in sorted(previous_defs.keys() - next_defs.keys()):
-        issues.append(f"{field} removed definition {name}.{definition}")
-    for definition in sorted(previous_defs.keys() & next_defs.keys()):
-        if _semantic_schema(previous_defs[definition]) != _semantic_schema(next_defs[definition]):
-            issues.append(f"{field} changed definition {name}.{definition}")
-    # The outer object constraints matter too: additionalProperties=false,
-    # oneOf/anyOf, maxProperties and new closed-world clauses can break callers.
-    ignored = {"properties", "required", "$defs", "title", "description", "examples"}
-    old_outer = {k: v for k, v in previous.items() if k not in ignored}
-    new_outer = {k: v for k, v in candidate.items() if k not in ignored}
-    if _semantic_schema(old_outer) != _semantic_schema(new_outer):
-        issues.append(f"{field} changed object constraints {name}")
-    return issues
-
-
 def compare_native_tool_contracts(previous: Any, candidate: Any) -> list[str]:
-    """Conservative provider check: old tools and call/result schemas must survive.
+    # The initial manifest check runs on the OS interpreter, but native
+    # comparison must use the exact candidate's locked environment.
+    from ordivon_gateway.logic.mcp_contract_compatibility import (
+        compare_native_tool_contracts as compare,
+    )
 
-    This is NOT a claim of behavioral, authorization, or deployed Agent
-    compatibility. A reported change requires owner-qualified consumer
-    evidence or a versioned ABI, not a guessed waiver.
-    """
-    old = _tool_contract_map(previous)
-    new = _tool_contract_map(candidate)
-    issues = [f"removed tool {name}" for name in sorted(old.keys() - new.keys())]
-    for name in sorted(old.keys() & new.keys()):
-        issues.extend(
-            _compare_object_schema(
-                name,
-                "input",
-                old[name]["inputSchema"],
-                new[name]["inputSchema"],
-                input_side=True,
-            )
-        )
-        issues.extend(
-            _compare_object_schema(
-                name,
-                "output",
-                old[name].get("outputSchema"),
-                new[name].get("outputSchema"),
-                input_side=False,
-            )
-        )
-    return issues
+    return compare(previous, candidate)
 
 
 async def _emit_native_contracts() -> list[dict[str, Any]]:
