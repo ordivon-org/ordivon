@@ -11,6 +11,7 @@ import re
 
 _MAX_BATCH_BYTES = 8 * 1024 * 1024
 _MAX_OBJECTS = 20_000
+_MAX_ODPS_BYTES = 2 * 1024 * 1024
 
 
 def qualify_batch_sizes(
@@ -30,8 +31,12 @@ def qualify_batch_sizes(
     for row, (oid, kind) in zip(rows, expected, strict=True):
         if len(oid) != width or re.fullmatch(r"[0-9a-f]+", oid) is None:
             raise ValueError("invalid Git cut object identity")
-        if kind not in ("commit", "tree"):
+        if kind not in ("commit", "tree", "blob"):
             raise ValueError("unsupported Git cut object kind")
+        if row == oid.encode("ascii") + b" missing":
+            raise ValueError(
+                "committed ODPS source cannot be resolved: missing local object"
+            )
         prefix = f"{oid} {kind} ".encode("ascii")
         size_text = row[len(prefix) :]
         if (
@@ -40,6 +45,8 @@ def qualify_batch_sizes(
         ):
             raise ValueError("incomplete Git object batch")
         size = int(size_text)
+        if kind == "blob" and not 0 < size <= _MAX_ODPS_BYTES:
+            raise ValueError("Git ODPS source exceeds bounded input size")
         total += size + len(row) + 2
         if total > _MAX_BATCH_BYTES:
             raise ValueError("Git cut exceeds bounded object bytes")
@@ -54,13 +61,14 @@ def verify_object_batch(
     *,
     commit: str,
     root_tree: str,
-) -> None:
-    """Reject wrong identity, framing, kind, or commit/root relation."""
+) -> dict[str, bytes]:
+    """Verify ordered frames and retain only selected metadata blobs."""
     if len(raw) > _MAX_BATCH_BYTES:
         raise ValueError("Git cut exceeds bounded object bytes")
     view = memoryview(raw)
     offset = 0
     commit_seen = False
+    blobs: dict[str, bytes] = {}
     for header, size in headers:
         start = offset + len(header) + 1
         end = start + size
@@ -71,7 +79,8 @@ def verify_object_batch(
         digest.update(kind + b" " + size_text + b"\0")
         digest.update(view[start:end])
         if digest.hexdigest().encode("ascii") != oid:
-            raise ValueError(f"Git {kind.decode('ascii')} identity mismatch")
+            label = "ODPS blob" if kind == b"blob" else kind.decode("ascii")
+            raise ValueError(f"Git {label} identity mismatch")
         if kind == b"commit":
             if (
                 commit_seen
@@ -82,6 +91,9 @@ def verify_object_batch(
             ):
                 raise ValueError("Git commit root tree identity mismatch")
             commit_seen = True
+        if kind == b"blob":
+            blobs[oid.decode("ascii")] = bytes(view[start:end])
         offset = end + 1
     if offset != len(raw) or not commit_seen:
         raise ValueError("incomplete Git object batch")
+    return blobs

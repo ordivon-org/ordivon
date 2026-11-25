@@ -113,6 +113,19 @@ local-only partial clones with available objects, retain the existing
 consumer contract. This assumes quiescent Git storage across commands; it
 is not an atomic Git snapshot, whole-repository fsck, proof of collision
 resistance, authentication of the source publisher, or physical-data truth.
+R10 extends the same native batch plan to distinct selected ODPS Blob OIDs.
+All commit/tree/blob headers must pass before the content batch, including
+the existing nonempty per-Blob 2 MiB limit. The 8 MiB declared frame limit
+now covers the combined source cut (not only commit/tree objects); larger
+cuts fail closed and require a separately qualified partitioning policy.
+The native `hash-object --no-filters --stdin` check remains for each distinct
+selected Blob. Return values preserve every original sorted source path,
+including duplicate contents; no producer identities are deduplicated.
+The plan and bytes are invocation-local; no persisted evidence cache.
+Generated framing tests exercise arbitrary binary payloads in both native
+Git object formats and single-byte changes, complementing disposable
+native repositories and missing-promisor-object tests.
+
 The existing complete-local-snapshot Lean model remains abstract. No new
 Git object, object store, production dependency or implicit hydration.
 
