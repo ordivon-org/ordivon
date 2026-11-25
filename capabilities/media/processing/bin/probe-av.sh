@@ -10,12 +10,6 @@ artifact=$(realpath "$1")
 profile=$(realpath "$2")
 out=$3
 
-[[ -f "$artifact" ]] || { echo "artifact not found: $artifact" >&2; exit 66; }
-[[ -f "$profile" ]] || { echo "profile not found: $profile" >&2; exit 66; }
-command -v ffprobe >/dev/null
-command -v jq >/dev/null
-command -v sha256sum >/dev/null
-
 # Reserve exactly one execution destination without overwriting prior evidence.
 mkdir -p -- "$(dirname -- "$out")"
 if ! mkdir -- "$out"; then
@@ -23,7 +17,14 @@ if ! mkdir -- "$out"; then
   exit 3
 fi
 out=$(realpath -- "$out")
-mkdir -- "$out/raw"
+
+[[ -f "$artifact" ]] || { echo "artifact not found: $artifact" >&2; exit 66; }
+[[ -f "$profile" ]] || { echo "profile not found: $profile" >&2; exit 66; }
+command -v ffprobe >/dev/null
+command -v jq >/dev/null
+command -v sha256sum >/dev/null
+
+mkdir -p "$out/raw"
 probe="$out/raw/ffprobe.json"
 assertions="$out/assertions.json"
 evidence="$out/evidence.json"

@@ -9,6 +9,14 @@ fi
 input=$(realpath "$1")
 profile=$(realpath "$2")
 out=$3
+
+# Reserve exactly one execution destination without overwriting prior evidence.
+mkdir -p -- "$(dirname -- "$out")"
+if ! mkdir -- "$out"; then
+  echo "evidence directory must be new: $out" >&2
+  exit 3
+fi
+out=$(realpath -- "$out")
 root=$(cd "$(dirname "$0")/../.." && pwd)
 ttconv="$root/processing/bin/ttconv-pinned.sh"
 
@@ -18,14 +26,7 @@ command -v ffprobe >/dev/null
 command -v jq >/dev/null
 command -v sha256sum >/dev/null
 
-# Reserve exactly one execution destination without overwriting prior evidence.
-mkdir -p -- "$(dirname -- "$out")"
-if ! mkdir -- "$out"; then
-  echo "evidence directory must be new: $out" >&2
-  exit 3
-fi
-out=$(realpath -- "$out")
-mkdir -- "$out/raw"
+mkdir -p "$out/raw"
 normalized="$out/raw/normalized.vtt"
 packets="$out/raw/ffprobe-subtitle-packets.json"
 assertions="$out/assertions.json"
