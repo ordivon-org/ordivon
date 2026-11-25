@@ -132,5 +132,116 @@ class SignedVsaTests(unittest.TestCase):
             )
 
 
+class SignedVsaCompositionTests(unittest.TestCase):
+    """Native shell orchestration, with an explicitly synthetic crypto seam."""
+
+    def test_semantics_consumes_the_same_bundle_and_key_as_crypto(self):
+        import os
+        import subprocess
+        import sys
+        from hashlib import sha256
+
+        script = Path(__file__).resolve().parents[1] / "scripts/verify_vsa_cosign.sh"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            statement = SignedVsaTests()._statement()
+            invalid = json.loads(json.dumps(statement))
+            invalid["predicate"]["verificationResult"] = "FAILED"
+
+            def bundle(value):
+                return json.dumps({"dsseEnvelope": {
+                    "payloadType": DSSE_PAYLOAD_TYPE,
+                    "payload": base64.b64encode(json.dumps(value).encode()).decode(),
+                    "signatures": [{"sig": "ZmFrZQ=="}],
+                }}).encode()
+
+            original = root / "original.json"
+            replacement = root / "replacement.json"
+            original.write_bytes(bundle(invalid))
+            replacement.write_bytes(bundle(statement))
+            key = root / "key.pub"
+            key.write_bytes(b"synthetic key")
+            trust = root / "trust.json"
+            trust.write_text(json.dumps({"schemaVersion": 1, "verifiers": {
+                "https://example.invalid/verifier": {"publicKeySha256": "sha256:" + sha256(key.read_bytes()).hexdigest()}
+            }}))
+            carrier = root / "carrier"
+            carrier.write_bytes(b"synthetic carrier")
+            fake = root / "cosign"
+            fake.write_text(
+                "#!/bin/sh\n"
+                "set -eu\n"
+                "while [ $# -gt 0 ]; do\n"
+                "  case \"$1\" in --bundle) shift; cmp \"$1\" \"$ORIGINAL\" ;; "
+                "--key) shift; cmp \"$1\" \"$ORIGINAL_KEY\" ;; esac\n"
+                "  shift\n"
+                "done\n"
+                "cp \"$REPLACEMENT\" \"$ORIGINAL\"\n"
+                "printf 'synthetic crypto success\\n'\n"
+            )
+            fake.chmod(0o700)
+            env = {
+                **os.environ,
+                "PATH": str(root) + os.pathsep + str(Path(sys.executable).parent) + os.pathsep + os.environ["PATH"],
+                "ORIGINAL": str(original), "REPLACEMENT": str(replacement),
+                "ORIGINAL_KEY": str(key),
+            }
+            result = subprocess.run(
+                ["bash", str(script), str(original), str(carrier), str(key), str(trust),
+                 "a" * 40, "https://example.invalid/verifier", "SECURITY_PRODUCT_POLICY"],
+                env=env, capture_output=True, text=True,
+            )
+            self.assertIn("synthetic crypto success", result.stdout)
+            self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("not PASSED", result.stderr)
+            original.write_bytes(bundle(statement))
+            replacement.write_bytes(bundle(invalid))
+            result = subprocess.run(
+                ["bash", str(script), str(original), str(carrier), str(key), str(trust),
+                 "a" * 40, "https://example.invalid/verifier", "SECURITY_PRODUCT_POLICY"],
+                env=env, capture_output=True, text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("VSA semantic verification: PASSED", result.stdout)
+            self.assertEqual(original.read_bytes(), bundle(invalid))
+            # Verify the key identity independently: the provider consumes the
+            # original key; a changed source key cannot satisfy the trust map.
+            original.write_bytes(bundle(statement))
+            replacement_key = root / "replacement.pub"
+            replacement_key.write_bytes(b"synthetic other key")
+            trust.write_text(json.dumps({"schemaVersion": 1, "verifiers": {
+                "https://example.invalid/verifier": {
+                    "publicKeySha256": "sha256:" + sha256(replacement_key.read_bytes()).hexdigest()
+                }
+            }}))
+            fake.write_text(
+                "#!/bin/sh\nset -eu\n"
+                "while [ $# -gt 0 ]; do\n"
+                "  case \"$1\" in --key) shift; cmp \"$1\" \"$ORIGINAL_KEY\" ;; esac\n"
+                "  shift\ndone\n"
+                "cp \"$REPLACEMENT_KEY\" \"$ORIGINAL_KEY\"\n"
+                "printf 'synthetic crypto success\\n'\n"
+            )
+            env["REPLACEMENT_KEY"] = str(replacement_key)
+            result = subprocess.run(
+                ["bash", str(script), str(original), str(carrier), str(key), str(trust),
+                 "a" * 40, "https://example.invalid/verifier", "SECURITY_PRODUCT_POLICY"],
+                env=env, capture_output=True, text=True,
+            )
+            self.assertIn("synthetic crypto success", result.stdout)
+            self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("not bound", result.stderr)
+            # A failed provider must not enter semantic verification.
+            fake.write_text("#!/bin/sh\nexit 19\n")
+            result = subprocess.run(
+                ["bash", str(script), str(original), str(carrier), str(key), str(trust),
+                 "a" * 40, "https://example.invalid/verifier", "SECURITY_PRODUCT_POLICY"],
+                env=env, capture_output=True, text=True,
+            )
+            self.assertEqual(result.returncode, 19)
+            self.assertNotIn("VSA semantic verification", result.stdout)
+
+
+
 if __name__ == "__main__":
     unittest.main()

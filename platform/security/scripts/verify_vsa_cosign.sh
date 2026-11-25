@@ -11,6 +11,23 @@ VERIFIER_ID="${6:?expected verifier id required}"
 VERIFIED_LEVEL="${7:?expected verified level required}"
 EXPECTED_STATEMENT="${8:-}"
 
+# Capture each shared input once. Both verification layers must consume the
+# same bundle and public-key bytes, not reopen caller-controlled paths.
+# This is a private local snapshot, not isolation from a same-UID adversary.
+umask 077
+SNAPSHOT="$(mktemp -d)"
+trap 'rm -rf -- "$SNAPSHOT"' EXIT
+cp -- "$BUNDLE" "$SNAPSHOT/bundle.json"
+cp -- "$PUBLIC_KEY" "$SNAPSHOT/key.pub"
+cp -- "$TRUST_POLICY" "$SNAPSHOT/trust.json"
+BUNDLE="$SNAPSHOT/bundle.json"
+PUBLIC_KEY="$SNAPSHOT/key.pub"
+TRUST_POLICY="$SNAPSHOT/trust.json"
+if [[ -n "$EXPECTED_STATEMENT" ]]; then
+  cp -- "$EXPECTED_STATEMENT" "$SNAPSHOT/expected.json"
+  EXPECTED_STATEMENT="$SNAPSHOT/expected.json"
+fi
+
 cosign verify-blob-attestation \
   --bundle "$BUNDLE" \
   --key "$PUBLIC_KEY" \
