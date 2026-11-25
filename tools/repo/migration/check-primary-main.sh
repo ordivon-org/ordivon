@@ -7,7 +7,9 @@ if [ "$#" -ne 1 ]; then
 fi
 
 REPO="$1"
-git -C "$REPO" rev-parse --is-inside-work-tree >/dev/null
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/primary-git-context.sh"
+qualify_primary_git_context "$REPO"
 
 fail() {
   echo "primary checkout is not synchronized with main: $*" >&2

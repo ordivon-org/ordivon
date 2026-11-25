@@ -32,6 +32,62 @@ check() {
   test -z "$(git -C "$repo" status --porcelain)"
 }
 check 0 'publication=SYNCED'
+
+# Exact repository authority, not merely a clean checkout somewhere.
+# The foreign repository is clean and published. The intended repository
+# has unique dirty bytes. A provider observation from the foreign repository
+# cannot establish publication of the intended source.
+foreign="$tmp/foreign"
+git clone -q -b main "$remote" "$foreign"
+foreign_head="$(git -C "$foreign" rev-parse HEAD)"
+printf 'unique-unpublished-bytes\n' > "$repo/file.txt"
+reject_context() {
+  local got
+  set +e
+  "$@" >"$tmp/out" 2>&1
+  got="$?"
+  set -e
+  if [ "$got" != 65 ] || ! grep -F 'repository context' "$tmp/out" >/dev/null; then
+    echo "source context contract failed: expected rc=65 got=$got" >&2
+    cat "$tmp/out" >&2
+    return 1
+  fi
+}
+failures=0
+reject_context env GIT_DIR="$foreign/.git" GIT_WORK_TREE="$foreign" "$CHECK" "$repo" || failures=$((failures+1))
+reject_context env GIT_INDEX_FILE="$foreign/.git/index" "$CHECK" "$repo" || failures=$((failures+1))
+reject_context env GIT_CONFIG_COUNT=0 "$CHECK" "$repo" || failures=$((failures+1))
+reject_context env GIT_GRAFT_FILE="$tmp/foreign-grafts" "$CHECK" "$repo" || failures=$((failures+1))
+reject_context env GIT_COMMON_DIR="$foreign/.git" "$CHECK" "$repo" || failures=$((failures+1))
+mkdir "$foreign/subdir"
+reject_context "$CHECK" "$foreign/subdir" || failures=$((failures+1))
+reject_context env GIT_DIR="$foreign/.git" GIT_WORK_TREE="$foreign" "$HERE/integrate-main.sh" "$repo" "$foreign_head" || failures=$((failures+1))
+test "$(cat "$repo/file.txt")" = unique-unpublished-bytes
+test "$(git -C "$foreign" rev-parse HEAD)" = "$foreign_head"
+test ! -e "$foreign/.git/ordivon-main-integration.lock" || failures=$((failures+1))
+git -C "$repo" restore --worktree -- file.txt
+rmdir "$foreign/subdir"
+check 0 'publication=SYNCED'
+test "$failures" -eq 0
+
+# An existing replacement commit must not redefine the immutable HEAD
+# tree being qualified. Produce a different tree without changing main.
+alt_blob="$(printf 'different replacement tree\n' | git -C "$repo" hash-object -w --stdin)"
+alt_tree="$(printf '100644 blob %s\tfile.txt\n' "$alt_blob" | git -C "$repo" mktree)"
+alt_commit="$(printf 'replacement\n' | git -C "$repo" commit-tree "$alt_tree")"
+git -C "$repo" replace "$base" "$alt_commit"
+test "$(git -C "$repo" rev-parse 'HEAD^{tree}')" = "$alt_tree"
+set +e
+"$CHECK" "$repo" >"$tmp/out" 2>&1
+got="$?"
+set -e
+test "$got" -eq 0
+grep -Fx 'publication=SYNCED' "$tmp/out" >/dev/null
+test "$(git -C "$repo" rev-parse refs/heads/main)" = "$base"
+test "$(cat "$repo/file.txt")" = base
+git -C "$repo" replace -d "$base" >/dev/null
+check 0 'publication=SYNCED'
+
 # Negative controls: Git hides source-byte drift behind index flags even
 # when write-tree, diff --quiet and status would otherwise certify main.
 git -C "$repo" update-index --assume-unchanged file.txt
