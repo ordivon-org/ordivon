@@ -205,6 +205,29 @@ class RuntimeArchiveInspectTests(unittest.TestCase):
             self.assertFalse(report["boundaries"]["mutatesRegistry"])
             self.assertFalse(report["boundaries"]["deletesHotHistory"])
 
+    def test_json_logical_bytes_use_encoded_octets_not_codepoints(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "registry.sqlite3"
+            initialize_registry(database)
+            workspace = '{"workspace":"工作区𠀀"}'
+            plan = '{"args":["café","é","😀"]}'
+            with closing(sqlite3.connect(database)) as connection:
+                add_job(connection, "job:unicode")
+                add_job(connection, "job:excluded", resolution="lost", attempt_state="lost")
+                connection.execute(
+                    "UPDATE jobs SET workspace_snapshot_json=?,execution_plan_json=? WHERE job_id=?",
+                    (workspace, plan, "job:unicode"),
+                )
+                connection.commit()
+            before = hashlib.sha256(database.read_bytes()).hexdigest()
+            completed = self.run_archive(database)
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            report = json.loads(completed.stdout)
+            self.assertEqual(self.classifications(report), {"eligible": 1, "repairable_terminal": 1})
+            self.assertEqual(report["summary"]["eligibleClosure"]["jobJsonLogicalBytes"],
+                             len(workspace.encode("utf-8")) + len(plan.encode("utf-8")))
+            self.assertEqual(hashlib.sha256(database.read_bytes()).hexdigest(), before)
+
     def test_legacy_null_current_attempt_uses_runtime_latest_attempt_fallback(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             database = Path(directory) / "registry.sqlite3"

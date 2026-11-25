@@ -35,6 +35,7 @@ pub struct RuntimeOperatorArchiveClosure {
     pub host_dependencies: u64,
     pub supervisor_owners: u64,
     pub artifact_logical_payload_bytes: u64,
+    /// Stored JSON text octets in the SQLite database encoding; not allocated bytes.
     pub job_json_logical_bytes: u64,
 }
 
@@ -237,6 +238,8 @@ pub fn inspect_registry_archive(
             "sampleLimit",
         ));
     }
+    // open_operator_read_only begins the single native read snapshot for
+    // classification, closure totals and sample. Do not open a second one.
     let (connection, _) = open_operator_read_only(config)?;
     let migrations = registry_table_columns(&connection, "schema_migrations")?;
     if migrations.is_empty() || !migrations.contains("version") {
@@ -286,7 +289,7 @@ pub fn inspect_registry_archive(
         "0"
     };
     let closure_sql = format!(
-        "{ARCHIVE_CLASSIFICATION_SQL}, eligible AS (SELECT job_id FROM classified WHERE classification='eligible') SELECT (SELECT COUNT(*) FROM eligible),(SELECT COUNT(*) FROM attempts a JOIN eligible e ON e.job_id=a.job_id),(SELECT COUNT(*) FROM idempotency_keys i JOIN eligible e ON e.job_id=i.job_id),(SELECT COUNT(*) FROM concurrency_reservations r JOIN attempts a ON a.attempt_id=r.attempt_id JOIN eligible e ON e.job_id=a.job_id),(SELECT COUNT(*) FROM job_events x JOIN eligible e ON e.job_id=x.job_id),(SELECT COUNT(*) FROM artifacts x JOIN eligible e ON e.job_id=x.job_id),{condition_count_sql},(SELECT COUNT(*) FROM job_execution_providers p JOIN eligible e ON e.job_id=p.job_id),(SELECT COUNT(*) FROM job_host_dependencies h JOIN eligible e ON e.job_id=h.job_id),(SELECT COUNT(*) FROM attempt_supervisor_owners o JOIN attempts a ON a.attempt_id=o.attempt_id JOIN eligible e ON e.job_id=a.job_id),(SELECT COALESCE(SUM(x.byte_length),0) FROM artifacts x JOIN eligible e ON e.job_id=x.job_id),(SELECT COALESCE(SUM(LENGTH(j.execution_plan_json)+LENGTH(j.workspace_snapshot_json)),0) FROM jobs j JOIN eligible e ON e.job_id=j.job_id)"
+        "{ARCHIVE_CLASSIFICATION_SQL}, eligible AS (SELECT job_id FROM classified WHERE classification='eligible') SELECT (SELECT COUNT(*) FROM eligible),(SELECT COUNT(*) FROM attempts a JOIN eligible e ON e.job_id=a.job_id),(SELECT COUNT(*) FROM idempotency_keys i JOIN eligible e ON e.job_id=i.job_id),(SELECT COUNT(*) FROM concurrency_reservations r JOIN attempts a ON a.attempt_id=r.attempt_id JOIN eligible e ON e.job_id=a.job_id),(SELECT COUNT(*) FROM job_events x JOIN eligible e ON e.job_id=x.job_id),(SELECT COUNT(*) FROM artifacts x JOIN eligible e ON e.job_id=x.job_id),{condition_count_sql},(SELECT COUNT(*) FROM job_execution_providers p JOIN eligible e ON e.job_id=p.job_id),(SELECT COUNT(*) FROM job_host_dependencies h JOIN eligible e ON e.job_id=h.job_id),(SELECT COUNT(*) FROM attempt_supervisor_owners o JOIN attempts a ON a.attempt_id=o.attempt_id JOIN eligible e ON e.job_id=a.job_id),(SELECT COALESCE(SUM(x.byte_length),0) FROM artifacts x JOIN eligible e ON e.job_id=x.job_id),(SELECT COALESCE(SUM(LENGTH(CAST(j.execution_plan_json AS BLOB))+LENGTH(CAST(j.workspace_snapshot_json AS BLOB))),0) FROM jobs j JOIN eligible e ON e.job_id=j.job_id)"
     );
     let eligible_closure = connection
         .query_row(&closure_sql, [cutoff_ms], |row| {
