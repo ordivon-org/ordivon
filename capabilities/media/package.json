@@ -57,7 +57,7 @@
     "python:test": "pnpm python:test:core",
     "check:core": "pnpm tokens:test && pnpm tokens:build && pnpm models:check && pnpm python:test:core",
     "check": "pnpm deps:js:check && pnpm check:core && pnpm typecheck && pnpm preview:build",
-    "check:all": "pnpm check && pnpm processing:otio:smoke",
+    "check:all": "pnpm check && pnpm processing:smoke && pnpm processing:audio:smoke && pnpm processing:timedtext:smoke && pnpm processing:otio:smoke && python -m unittest discover -s processing/tests -p test_processing_attempt_evidence.py -v",
     "culture:r6:uncertainty": "pnpm deps:python:check && .venv/bin/python scripts/run-r6-creative-alpha.py uncertainty",
     "culture:r6:portfolio": "pnpm deps:python:check && .venv/bin/python scripts/run-r6-creative-alpha.py portfolio",
     "deps:js:check": "node scripts/require-js-deps.mjs",
