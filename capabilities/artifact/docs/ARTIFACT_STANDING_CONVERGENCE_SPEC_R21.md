@@ -49,7 +49,7 @@ Safety law, under well-formed inputs: `complete => all_required_supported_by_non
 
 - v1 stage `status=PASS` may mean all *executed* gates passed while `profileVerificationComplete=false`; preserve this distinction until consumer migration, never promote missing gates.
 - v2 native `status=PASS` may be legacy compatible while `profileVerificationComplete=false`; preserve existing consumers and add scoped Standing, never reinterpret as full acceptance.
-- FLAC/WAVE/PNG claim-complete routes require explicit claimResults/native status pointers; do not weaken.
+- FLAC/WAVE/PNG claim-complete routes require explicit claimResults/native status pointers; do not weaken. All declared pointers for one required PASS/FAIL claim must resolve to claim-specific observations with the same status; a valid sibling cannot mask a malformed, unrelated, self-witnessing, or contradictory pointer. This is a conjunctive witness list, not a list of alternatives.
 - v1 and v2 profile definitions are NOT globally equivalent. Prove each common axis or mark UNKNOWN.
 - No full snapshot guarantee for sidecar formats until dependency closure is bound.
 - Negative cases: absent claim, NOT_EVALUATED claim, explicit FAIL, conflicting native pointer, missing required gate, mismatched native identity, tool identity drift, source rebind, fake consumer success.

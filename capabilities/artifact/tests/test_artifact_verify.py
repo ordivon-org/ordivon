@@ -199,6 +199,42 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             self.assertFalse(result["profileVerificationComplete"])
             self.assertEqual(result["standingCoverage"]["verificationStatus"], "UNKNOWN")
 
+    def test_mixed_native_witnesses_cannot_promote_profile_standing(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.png"
+            minimal_png(subject)
+            request_path, request = self.request(root, subject)
+            profile = json.loads(Path(request["profile"]["path"]).read_text())
+            names = [
+                name for name, row in profile["requiredEvidence"].items() if row["required"]
+            ]
+            native = {
+                "status": "PASS", "failures": [],
+                "profileId": request["profile"]["id"],
+                "artifact": {"sha256": sha(subject), "size": subject.stat().st_size},
+                "observations": {name: {"status": "PASS"} for name in names},
+                "claimResults": {
+                    name: {"status": "PASS", "nativePointers": [f"/observations/{name}"]}
+                    for name in names
+                },
+            }
+            with mock.patch.object(M, "load_function", return_value=(
+                lambda *_args: native, "f" * 64
+            )):
+                good = M.verify_request(request_path)
+                self.assertTrue(good["profileVerificationComplete"], good)
+                native["observations"]["contradiction"] = {
+                    "status": "FAIL", "supportsClaims": [names[0]],
+                }
+                native["claimResults"][names[0]]["nativePointers"].append(
+                    "/observations/contradiction"
+                )
+                bad = M.verify_request(request_path)
+                self.assertEqual(bad["status"], "FAIL", bad)
+                self.assertEqual(bad["standingCoverage"]["verificationStatus"], "UNKNOWN")
+                self.assertFalse(bad["profileVerificationComplete"])
+
     def test_native_pass_with_explicit_failures_is_not_promoted(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
