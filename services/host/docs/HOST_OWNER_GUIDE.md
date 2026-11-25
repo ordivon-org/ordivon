@@ -570,3 +570,17 @@ fixtures still require an explicitly disposable test fleet; catalog
 identity does not prove that a database is safe to mutate. The native
 identity query must be available to the test role. Fresh owned-container
 runs provision their own fixture fleet as before.
+
+The complete queue additionally compares the source test-file obligations
+under the Host tests root (pytest's default test_*.py and *_test.py naming)
+against native item discovery. Each named test file must contribute at
+least one native test. Native itemcollected multiplicity must equal final
+selection, with unique node IDs. Every parent test must report exactly
+one successful setup, call and teardown in that order. Native subtests
+are separate evidence, not duplicate parent call reports; non-passing
+subtests still disqualify the complete run. Reordering tests is allowed,
+silent removals, duplicate executions/reports and rerun reports are not.
+This consumes the public pytest 9.2 subtest report API, not a parallel
+runner; it cannot establish unexpressed semantic obligations or defend
+against arbitrary malicious plugins. Report behavior is qualified on
+the actual locked pytest version.

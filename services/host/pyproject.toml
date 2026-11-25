@@ -15,7 +15,7 @@ dependencies = [
 [dependency-groups]
 dev = [
   "hypothesis>=6,<7",
-  "pytest>=8,<10",
+  "pytest>=9.2,<10",
   "ruff>=0.15,<1",
   "testcontainers[postgres]>=4,<5",
 ]
