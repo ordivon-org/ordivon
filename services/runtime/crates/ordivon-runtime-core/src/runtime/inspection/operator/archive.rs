@@ -75,7 +75,7 @@ WITH classified AS (
             WHEN EXISTS(
                 SELECT 1 FROM attempts a
                 WHERE a.job_id=j.job_id
-                  AND a.state NOT IN ('succeeded','failed','timed_out','cancelled')
+                  AND (a.state IS NULL OR a.state NOT IN ('succeeded','failed','timed_out','cancelled'))
             ) THEN 'attempt_not_stable_terminal'
             WHEN /* recovery_guard */ THEN 'recovery_required_or_unknown'
             WHEN EXISTS(
@@ -85,6 +85,14 @@ WITH classified AS (
                 WHERE a.job_id=j.job_id
                   AND r.state IN ('active','held_orphaned')
             ) THEN 'active_or_held_reservation'
+            WHEN EXISTS(
+                SELECT 1 FROM attempts a
+                WHERE a.job_id=j.job_id
+                  AND NOT (
+                    SELECT COUNT(*)=1 AND COUNT(*) FILTER (WHERE r.state='released')=1
+                    FROM concurrency_reservations r WHERE r.attempt_id=a.attempt_id
+                  )
+            ) THEN 'reservation_missing_or_unknown'
             WHEN EXISTS(
                 SELECT 1
                 FROM attempts a
