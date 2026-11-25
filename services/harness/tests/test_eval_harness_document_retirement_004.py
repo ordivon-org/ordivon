@@ -91,6 +91,37 @@ class DocumentRetirementAcceptanceTests(unittest.TestCase):
         protected.symlink_to(FIXTURE / "docs/OPERATOR.md")
         self.assertEqual(self.evaluate()["standing"], "UNKNOWN")
 
+    def test_retired_path_replaced_by_directory_is_not_absent(self) -> None:
+        self.remove_target()
+        (self.workspace / "docs/MIGRATION-R1.md").mkdir()
+        self.assertEqual(self.evaluate()["standing"], "REJECTED")
+
+    def test_unrelated_empty_directory_is_not_a_clean_retirement(self) -> None:
+        self.remove_target()
+        (self.workspace / "new-empty-authority").mkdir()
+        self.assertEqual(self.evaluate()["standing"], "REJECTED")
+
+    def test_retired_path_replaced_by_fifo_is_unknown(self) -> None:
+        import os
+
+        self.remove_target()
+        os.mkfifo(self.workspace / "docs/OLD-PHASE.md")
+        self.assertEqual(self.evaluate()["standing"], "UNKNOWN")
+
+    def test_incomplete_census_is_unknown_not_empty(self) -> None:
+        from unittest.mock import patch
+
+        self.remove_target()
+        original = Path.iterdir
+
+        def unreadable(path):
+            if path == self.workspace / "docs":
+                raise PermissionError("fixture scan denied")
+            return original(path)
+
+        with patch.object(Path, "iterdir", unreadable):
+            self.assertEqual(self.evaluate()["standing"], "UNKNOWN")
+
     def test_exhaustive_fixture_deletion_subsets(self) -> None:
         """All 2^5 deletion subsets are checked at the real verifier boundary."""
         names = sorted(
@@ -115,6 +146,7 @@ class DocumentRetirementAcceptanceTests(unittest.TestCase):
         task = json.loads((EVAL / "task.json").read_text(encoding="utf-8"))
         self.assertEqual(task["taskId"], "HARNESS-DOC-RETIREMENT-004")
         self.assertEqual(task["kind"], "ordivon.evaluation-task")
+        self.assertEqual(task["taskVersion"], 2)
         self.assertFalse(VERIFIER.is_relative_to(FIXTURE))
 
         self.assertFalse((EVAL / "task.json").is_relative_to(FIXTURE))

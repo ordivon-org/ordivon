@@ -1,9 +1,10 @@
 {
   "acceptanceContract": {
     "assertions": [
-      "both superseded documents are absent in the candidate workspace",
+      "both superseded paths are absent as filesystem nodes",
       "all retained current files remain byte-identical",
-      "no unrelated source file was added or modified",
+      "retained directory topology is unchanged; no unrelated node added or modified",
+      "unsupported nodes or incomplete filesystem census yield UNKNOWN",
       "agent claims and reports never construct acceptance"
     ],
     "verifierId": "HARNESS-DOC-RETIREMENT-004-independent-verifier"
@@ -33,13 +34,14 @@
   "integrity": {
     "algorithm": "sha256",
     "canonicalization": "ordivon-canonical-json-v1",
-    "payloadDigest": "sha256:a3cc599d1e07802982cd43b4f609c75fd90af0f4121029ca2fd58b9a6e3fa204"
+    "payloadDigest": "sha256:80ebc57c38a9648be6502c12dbf53540400e7c071c45feea82be02e4e5496d6f"
   },
   "kind": "ordivon.evaluation-task",
   "knownLimitations": [
     "A deterministic miniature fixture, not proof that arbitrary repository consumers are absent.",
     "No live provider or cross-model execution was performed by this test.",
-    "Verifier is external to the candidate workspace; production admission is not covered."
+    "Verifier is external to the candidate workspace; production admission is not covered.",
+    "The typed-tree observation assumes a quiescent fixture; it does not fence concurrent physical mutation."
   ],
   "labels": [
     "harness-v0",
@@ -49,7 +51,7 @@
   ],
   "objective": "Retire two unconsumed migration-stage documents while preserving the current operator contract and machine-consumed fixture. A report or completion claim is not a substitute for deleting the obsolete files.",
   "oracle": {
-    "digest": "sha256:14385eec26a562e7e196dbe26de0b8650158046a4ade780bd402bd25d635714d",
+    "digest": "sha256:c615acf8098862129ef95ed53fdc3a72ec786feaf5bcaeff69dd20626a45984f",
     "kind": "independent-consumer-verifier",
     "path": "evals/harness-document-retirement-004/verifier.py"
   },
@@ -59,5 +61,5 @@
   },
   "schemaVersion": 1,
   "taskId": "HARNESS-DOC-RETIREMENT-004",
-  "taskVersion": 1
+  "taskVersion": 2
 }

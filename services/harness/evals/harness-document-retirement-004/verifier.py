@@ -7,6 +7,7 @@ general repository/Workspace garbage collector. The candidate cannot edit it.
 from __future__ import annotations
 
 import hashlib
+import stat
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -17,20 +18,34 @@ PROTECTED = frozenset({
     "docs/OPERATOR.md",
     "evidence/consumed-fixture.json",
 })
-EXPECTED_INITIAL = REQUIRED_DELETIONS | PROTECTED
+# Spec v2: a bounded, quiescent filesystem tree with typed nodes. A retired
+# path must be absent as a node, not merely absent from a regular-file list.
+# Retained regular files are byte-identical and retained directory topology
+# is unchanged. Unsupported nodes or failed traversal are UNKNOWN. A full
+# closed-world fixture census is an assumption; this is not a live GC fence.
+DIRECTORIES = frozenset({"docs", "evidence"})
+EXPECTED_INITIAL = REQUIRED_DELETIONS | PROTECTED | DIRECTORIES
 
 
-def _snapshot(directory: Path) -> dict[str, str]:
-    if not directory.is_dir() or directory.is_symlink():
+def _snapshot(directory: Path) -> dict[str, tuple[str, str]]:
+    if not stat.S_ISDIR(directory.lstat().st_mode):
         raise OSError("workspace must be a normal directory")
-    observed: dict[str, str] = {}
-    for entry in sorted(directory.rglob("*")):
-        if entry.is_symlink():
-            raise OSError("symlinks are not part of this fixture contract")
-        if not entry.is_file():
-            continue
-        relative_path = entry.relative_to(directory).as_posix()
-        observed[relative_path] = hashlib.sha256(entry.read_bytes()).hexdigest()
+    observed: dict[str, tuple[str, str]] = {}
+    pending = [directory]
+    while pending:
+        # iterdir propagates filesystem scan failures; rglob can suppress them.
+        for entry in sorted(pending.pop().iterdir()):
+            relative_path = entry.relative_to(directory).as_posix()
+            mode = entry.lstat().st_mode
+            if stat.S_ISDIR(mode):
+                observed[relative_path] = ("directory", "")
+                pending.append(entry)
+            elif stat.S_ISREG(mode):
+                observed[relative_path] = (
+                    "file", hashlib.sha256(entry.read_bytes()).hexdigest(),
+                )
+            else:
+                raise OSError("unsupported node in fixture: " + relative_path)
     return observed
 
 
@@ -42,7 +57,10 @@ def evaluate(candidate_workspace: Path) -> dict:
     """
     try:
         baseline = _snapshot(FIXTURE)
-        if set(baseline) != EXPECTED_INITIAL:
+        if (set(baseline) != EXPECTED_INITIAL
+                or any(baseline[path][0] != "directory" for path in DIRECTORIES)
+                or any(baseline[path][0] != "file"
+                       for path in REQUIRED_DELETIONS | PROTECTED)):
             raise OSError("original evaluation fixture changed")
         actual = _snapshot(candidate_workspace)
     except OSError as error:
