@@ -23,6 +23,38 @@ _ADAPTERS = {
 }
 
 
+# Only owner-local source files directly selected by these adapter paths.
+# This is not a claim about the complete transitive installed environment.
+_SOURCE_DEPENDENCIES = {
+    "ordivon.media.v2.otio-profile": (".python-version", "mise.toml"),
+    "ordivon.media.v2.timed-text-profile": (
+        ".python-version", "mise.toml", "processing/bin/ttconv-pinned.sh",
+    ),
+}
+
+
+def _byte_digest(raw: bytes) -> str:
+    return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+def _source_closure(root: Path, kind: str, profile_path: str, profile_digest: str,
+                    adapter_path: str | None, adapter_digest: str | None) -> tuple[list[dict[str, str | None]], str | None]:
+    if adapter_path is None:
+        return [], None
+    entries = {profile_path: profile_digest, adapter_path: adapter_digest}
+    for relative in _SOURCE_DEPENDENCIES.get(kind, ()):
+        path = root / relative
+        try:
+            entries[relative] = _byte_digest(path.read_bytes()) if path.is_file() else None
+        except OSError:
+            entries[relative] = None
+    files = [{"path": path, "digest": value} for path, value in sorted(entries.items())]
+    if any(item["digest"] is None for item in files):
+        return files, None
+    payload = json.dumps({"schemaVersion": 1, "files": files}, sort_keys=True, separators=(",", ":"))
+    return files, _byte_digest(payload.encode())
+
+
 def processing_profiles(root: Path) -> dict[str, Any]:
     """Discover exact source-owned profiles with digest-bound adapter references.
 
@@ -53,14 +85,22 @@ def processing_profiles(root: Path) -> dict[str, Any]:
             if adapter_path is not None and adapter_path.is_file()
             else None
         )
+        profile_path = path.relative_to(root).as_posix()
+        profile_digest = _byte_digest(raw)
+        adapter_relative = adapter_path.relative_to(root).as_posix() if adapter_path else None
+        source_dependencies, source_closure_digest = _source_closure(
+            root, value["kind"], profile_path, profile_digest, adapter_relative, adapter_digest,
+        )
         profiles.append({
             "id": value["id"],
             "profileKind": value["kind"],
-            "profilePath": path.relative_to(root).as_posix(),
-            "profileDigest": "sha256:" + hashlib.sha256(raw).hexdigest(),
-            "adapterPath": adapter_path.relative_to(root).as_posix() if adapter_path else None,
+            "profilePath": profile_path,
+            "profileDigest": profile_digest,
+            "adapterPath": adapter_relative,
             "adapterPresent": adapter_path.is_file() if adapter_path else False,
             "adapterDigest": adapter_digest,
+            "sourceDependencies": source_dependencies,
+            "sourceClosureDigest": source_closure_digest,
             "inputRoles": [adapter[1], "profile", "evidenceDirectory"] if adapter else [],
             "externalToolReadiness": "not-observed",
         })
@@ -83,6 +123,7 @@ def processing_probe_plan(
     input_path: str,
     evidence_directory: str,
     expected_input_digest: str | None = None,
+    expected_source_closure_digest: str | None = None,
 ) -> dict[str, Any]:
     """Compile a native Runtime command from exact, already-discovered inputs.
 
@@ -100,6 +141,11 @@ def processing_probe_plan(
         raise ValueError("selected Media processing adapter digest changed")
     if not selected["adapterPresent"] or selected["adapterPath"] is None:
         raise ValueError("selected Media processing adapter is unavailable")
+    if selected["sourceClosureDigest"] is None:
+        raise ValueError("selected Media processing source closure unavailable")
+    if (expected_source_closure_digest is not None
+            and selected["sourceClosureDigest"] != expected_source_closure_digest):
+        raise ValueError("selected Media processing source closure digest changed")
     if not input_path.strip() or not evidence_directory.strip():
         raise ValueError("processing input and evidence directory must be non-empty")
     plan = {
@@ -118,6 +164,12 @@ def processing_probe_plan(
                 evidence_directory,
             ],
             "cwdRelative": "capabilities/media",
+        },
+        "sourceClosureBinding": {
+            "digest": selected["sourceClosureDigest"],
+            "status": "caller-selected" if expected_source_closure_digest is not None else "observed-at-compilation",
+            "files": selected["sourceDependencies"],
+            "scope": "declared-owner-local-source-files-not-installed-environment",
         },
         "expectedReceipt": str(Path(evidence_directory) / "evidence.json"),
         "completionScope": (
@@ -143,6 +195,17 @@ def processing_probe_plan(
         ),
     }
 
+    # Use the native Runtime commitment mechanism; no separate execution broker.
+    if expected_input_digest is not None or expected_source_closure_digest is not None:
+        dependencies = {}
+        for item in selected["sourceDependencies"]:
+            path = str((root / item["path"]).resolve(strict=True))
+            if path in dependencies and dependencies[path] != item["digest"]:
+                raise ValueError("conflicting Media source closure path identity")
+            dependencies[path] = item["digest"]
+    else:
+        dependencies = {}
+
     # Opt-in execution-time binding: Runtime owns the host path/digest
     # commitments and the witness. Studio does not claim immutable inputs or
     # proof that an opaque Provider consumed the committed bytes.
@@ -166,20 +229,10 @@ def processing_probe_plan(
         # path must be identical. The existing adapters independently report
         # the actual processed file digest for the consuming Production.
         plan["execution"]["args"][1] = str(source)
-        dependencies = [
-            {"path": str(source), "expectedDigest": expected_input_digest},
-            {
-                "path": str((root / selected["profilePath"]).resolve(strict=True)),
-                "expectedDigest": selected["profileDigest"],
-            },
-            {
-                "path": str((root / selected["adapterPath"]).resolve(strict=True)),
-                "expectedDigest": selected["adapterDigest"],
-            },
-        ]
-        plan["execution"]["hostDependencies"] = sorted(
-            dependencies, key=lambda item: item["path"]
-        )
+        source_path = str(source)
+        if source_path in dependencies and dependencies[source_path] != expected_input_digest:
+            raise ValueError("selected Media input conflicts with source closure")
+        dependencies[source_path] = expected_input_digest
         plan["inputByteBinding"] = {
             "inputPath": str(source),
             "expectedDigest": expected_input_digest,
@@ -191,4 +244,8 @@ def processing_probe_plan(
                 "witnesses do not prove target-namespace consumption."
             ),
         }
+    if dependencies:
+        plan["execution"]["hostDependencies"] = [
+            {"path": path, "expectedDigest": value} for path, value in sorted(dependencies.items())
+        ]
     return plan

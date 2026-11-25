@@ -66,11 +66,25 @@ For an already materialized **local Linux Runtime input**, callers can also pass
 the optional \`expectedInputDigest\` (lowercase \`sha256:<hex>\`) to
 \`studio_processing_probe_plan\`. In that case Studio validates the selected
 source bytes, resolves the actual file pathname and emits the existing Runtime
-\`execution.hostDependencies\` for the exact input, profile and adapter files.
+`execution.hostDependencies` for the exact input and declared local source
+closure. The discovery row exposes `sourceDependencies` and a relocatable
+`sourceClosureDigest`: SHA-256 of the canonical UTF-8 JSON object
+`{"schemaVersion":1,"files":[...]}`, with path/digest rows sorted by relative
+path, keys sorted and compact separators. AV/audio bind profile and entry
+adapter; OTIO additionally binds owner mise.toml and .python-version; TTML
+also binds the called ttconv wrapper. Missing source members yield an
+unavailable closure, not an installed-tool verdict.
+
+Pass `expectedSourceClosureDigest` from discovery to reject a stale wrapper or
+configuration selection. It also emits native source commitments without an
+input digest; it does not bind input bytes in that case. Legacy input-bound
+callers still get all observed source commitments, explicitly labelled
+observed-at-compilation rather than caller-selected. Legacy callers with
+neither optional digest remain unbound execution proposals.
 Compile and execute in the **same Runtime host/workspace namespace**: the
-absolute committed paths must refer to those very files at admission. Existing
-plans without this optional field remain source-only proposals; they do not
-bind input bytes. Runtime validates declared dependencies on admission and
+absolute committed paths must refer to those very files at admission.
+This finite declared local file closure is not a complete transitive inventory
+of installed executables, environment, wheels, fonts or opaque provider reads. Runtime validates declared dependencies on admission and
 dispatch, watches host-namespace path continuity, but cannot prove that an
 opaque tool consumed those bytes. The consuming Production must compare the
 adapter's raw \`artifact.digest\` or \`input.digest\` with the selected digest.

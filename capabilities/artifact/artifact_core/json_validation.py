@@ -17,16 +17,18 @@ def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def decode_json(text: str) -> Any:
+    return json.loads(text, object_pairs_hook=_unique_json_object)
+
+
 def load_json(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_unique_json_object)
+    return decode_json(path.read_text(encoding="utf-8"))
 
 
 def load_json_with_digest(path: Path) -> tuple[Any, str]:
     """Decode and hash the same opened file bytes, rejecting duplicate keys."""
     content = path.read_bytes()
-    value = json.loads(
-        content.decode("utf-8"), object_pairs_hook=_unique_json_object
-    )
+    value = decode_json(content.decode("utf-8"))
     return value, hashlib.sha256(content).hexdigest()
 
 
