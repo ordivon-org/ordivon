@@ -134,6 +134,24 @@ class DocumentRetirementAcceptanceTests(unittest.TestCase):
             with patch.object(verifier, "TASK", path):
                 self.assertEqual(self.evaluate()["standing"], "UNKNOWN")
 
+    def test_malformed_manifest_is_unknown_not_false_acceptance_or_crash(self) -> None:
+        from unittest.mock import patch
+
+        self.remove_target()
+        original = (EVAL / "task.json").read_text()
+        malformed = {
+            "null-root": "null",
+            "duplicate-key": original.replace(
+                '{', '{"taskId":"wrong earlier occurrence",', 1),
+        }
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "task.json"
+            with patch.object(verifier, "TASK", path):
+                for label, raw in malformed.items():
+                    with self.subTest(label=label):
+                        path.write_text(raw)
+                        self.assertEqual(self.evaluate()["standing"], "UNKNOWN")
+
     def test_incomplete_census_is_unknown_not_empty(self) -> None:
         from unittest.mock import patch
 

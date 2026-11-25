@@ -35,7 +35,7 @@
   "integrity": {
     "algorithm": "sha256",
     "canonicalization": "ordivon-canonical-json-v1",
-    "payloadDigest": "sha256:d1d331b5570b8affc4645591cab9fd4f73da1bd918d43d9e994c7c44d40863fd"
+    "payloadDigest": "sha256:b145d9f88b83e4fe6375198bb1d0c598cd7ac7ecdade88642b26140b573cbcd8"
   },
   "kind": "ordivon.evaluation-task",
   "knownLimitations": [
@@ -53,7 +53,7 @@
   ],
   "objective": "Retire two unconsumed migration-stage documents while preserving the current operator contract and machine-consumed fixture. A report or completion claim is not a substitute for deleting the obsolete files.",
   "oracle": {
-    "digest": "sha256:5836c12501e320329d58fb4381a2ed6418ba674a44afa5ce87847a7c6e3b25e6",
+    "digest": "sha256:7e7ed801e642b9df80b2c6aca37f1e09862fccf5037aa932f9f39214bd662139",
     "kind": "independent-consumer-verifier",
     "path": "evals/harness-document-retirement-004/verifier.py"
   },

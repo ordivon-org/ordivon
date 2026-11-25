@@ -57,12 +57,32 @@ def _canonical_digest(value: object) -> str:
     ).encode("utf-8")).hexdigest()
 
 
+def _unique_json_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate task key")
+        result[key] = value
+    return result
+
+
+def _reject_noninteger_number(token: str) -> None:
+    raise ValueError("non-integer task number: " + token)
+
+
 def _qualify_original(baseline: dict[str, tuple[str, str]]) -> None:
     # The existing task manifest is the source of expected initial identity.
     # The caller must still bind the task/oracle to its immutable Git cut:
     # self-consistency is not an authentication or concurrent-mutation fence.
     try:
-        task = json.loads(TASK.read_text(encoding="utf-8"))
+        task = json.loads(
+            TASK.read_text(encoding="utf-8"),
+            object_pairs_hook=_unique_json_object,
+            parse_float=_reject_noninteger_number,
+            parse_constant=_reject_noninteger_number,
+        )
+        if not isinstance(task, dict):
+            raise ValueError("task manifest must be an object")
         integrity = task.pop("integrity")
         if (task["taskId"] != "HARNESS-DOC-RETIREMENT-004"
                 or type(task["taskVersion"]) is not int
