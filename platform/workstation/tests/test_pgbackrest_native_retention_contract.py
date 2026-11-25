@@ -9,14 +9,14 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import pwd
 import re
 import shutil
-import subprocess
 import tempfile
 import time
 import unittest
 from pathlib import Path
+
+from native_pgbackrest_fixture import PrivatePostmasters, run_private
 
 # These are test-only oracles for the observed native CLI contract.
 # The fixture's schedule, not the CLI's reported dependency graph, supplies
@@ -84,22 +84,21 @@ def expected_witness(step):
                      "explicit isolated native PG/pgBackRest retention qualification")
 class NativeBackupRetentionContract(unittest.TestCase):
     def test_two_full_generations_retain_seven_exact_recovery_points(self):
+        import pwd
+
         self.assertEqual(os.geteuid(), 0, "explicit native fixture requires operator")
         owner = pwd.getpwnam("postgres")
         root = Path(tempfile.mkdtemp(prefix="ordivon-native-retention-", dir="/var/tmp"))
         data, socket, repo = (root / name for name in ("primary", "socket", "repo"))
         config = root / "pgbackrest.conf"
         port = 55647
-        running = set()
+        lifecycle = PrivatePostmasters(root)
 
         def own(path):
             os.chown(path, owner.pw_uid, owner.pw_gid)
 
         def run(*args, timeout=75):
-            result = subprocess.run(
-                ["sudo", "-u", "postgres", *map(str, args)], capture_output=True,
-                text=True, timeout=timeout,
-            )
+            result = run_private(*args, check=False, timeout=timeout)
             if result.returncode:
                 print("native failure", args[0], result.returncode,
                       result.stdout[-2000:], result.stderr[-2000:], flush=True)
@@ -111,19 +110,7 @@ class NativeBackupRetentionContract(unittest.TestCase):
                        f"--config-include-path={root / 'conf.d'}", "--stanza=retention",
                        *args, timeout=timeout)
 
-        def start(path, sock, bind_port):
-            running.add(path)
-            run("/usr/bin/pg_ctl", "-D", path, "-l", root / (path.name + ".log"),
-                "-o", f"-c listen_addresses='' -c unix_socket_directories={sock} -p {bind_port}",
-                "-w", "-t", "30", "start", timeout=45)
-
-        def stop(path):
-            if path in running:
-                if (path / "postmaster.pid").exists():
-                    run("/usr/bin/pg_ctl", "-D", path, "-m", "fast", "-w", "stop", timeout=35)
-                if (path / "postmaster.pid").exists():
-                    raise RuntimeError(f"private stop unqualified: {path}")
-                running.remove(path)
+        start, stop = lifecycle.start, lifecycle.stop
 
         def sql(query, sock=socket, bind_port=port):
             return run("/usr/bin/psql", "-X", "-v", "ON_ERROR_STOP=1",
@@ -269,7 +256,4 @@ class NativeBackupRetentionContract(unittest.TestCase):
                 shutil.rmtree(restore_socket)
             print("SEVEN_RETAINED_POINTS_EXACT", len(required), flush=True)
         finally:
-            for path in tuple(running):
-                stop(path)
-            shutil.rmtree(root)
-            print("private fixture removed", not root.exists(), flush=True)
+            lifecycle.cleanup()

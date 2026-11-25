@@ -73,3 +73,16 @@ The finite report-risk controls and the same-size/same-mtime byte mutation
 are portable tests; the actual restore and archive checks remain native.
 The text oracle qualifies the observed pgBackRest CLI format, not arbitrary
 future output formats or production expiration authorization.
+
+
+### Private fixture lifecycle and environment
+
+Both native scenarios share an owner-local test carrier for postmaster
+acquisition and cleanup, not a new backup engine. Register each private
+cluster before native startup, require pg_ctl status 3 and absent pid file
+before releasing it, and attempt the remaining known cleanup obligations
+if one fails. A failed or timed-out start without a qualified stop retains
+the fixture for reconciliation. Private native subprocesses clear inherited
+environment after switching users, including pgBackRest and libpq options.
+This contract covers observed native lifecycle and injected failure outcomes;
+it does not claim recovery from arbitrary process SIGKILL or host failure.

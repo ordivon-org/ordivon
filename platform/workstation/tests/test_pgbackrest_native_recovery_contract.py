@@ -8,35 +8,32 @@ from __future__ import annotations
 
 import json
 import os
-import pwd
 import re
-import shutil
-import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+
+from native_pgbackrest_fixture import PrivatePostmasters, run_private
 
 
 @unittest.skipUnless(os.environ.get("ORDIVON_TEST_NATIVE_BACKUP_CHAIN") == "1",
                      "explicit isolated native PG/pgBackRest qualification")
 class NativeBackupRecoveryContract(unittest.TestCase):
     def test_exact_backup_status_and_required_wal_are_separate_predicates(self):
+        import pwd
+
         self.assertEqual(os.geteuid(), 0, "explicit native fixture requires operator")
         owner = pwd.getpwnam("postgres")
         root = Path(tempfile.mkdtemp(prefix="ordivon-native-chain-", dir="/var/tmp"))
         data, socket, repo = (root / name for name in ("primary", "socket", "repo"))
         config = root / "pgbackrest.conf"
         port = 55645
-        started = False
+        lifecycle = PrivatePostmasters(root)
 
         def own(path):
             os.chown(path, owner.pw_uid, owner.pw_gid)
 
-        def run(*args, check=True, timeout=70):
-            return subprocess.run(
-                ["sudo", "-u", "postgres", *map(str, args)], capture_output=True,
-                text=True, check=check, timeout=timeout,
-            )
+        run = run_private
 
         def br(*args, check=True, timeout=70):
             return run("/usr/bin/pgbackrest", f"--config={config}",
@@ -75,6 +72,8 @@ class NativeBackupRecoveryContract(unittest.TestCase):
 
         try:
             own(root)
+            environment = run("/usr/bin/env").stdout.splitlines()
+            self.assertFalse(any(line.startswith("PG") for line in environment))
             for path in (socket, repo, root / "logs", root / "locks", root / "spool", root / "conf.d"):
                 path.mkdir(mode=0o700)
                 own(path)
@@ -95,10 +94,7 @@ class NativeBackupRecoveryContract(unittest.TestCase):
                     f"--config-include-path={root / 'conf.d'} --stanza=chain archive-push %p'\n"
                     "archive_timeout=5s\nwal_level=replica\n"
                 )
-            started = True
-            run("/usr/bin/pg_ctl", "-D", data, "-l", root / "postgres.log",
-                "-o", f"-c listen_addresses='' -c unix_socket_directories={socket} -p {port}",
-                "-w", "-t", "30", "start")
+            lifecycle.start(data, socket, port)
             br("stanza-create")
             br("check")
             sql("create table witness(id int primary key, body text); insert into witness values(1,'base');")
@@ -106,8 +102,7 @@ class NativeBackupRecoveryContract(unittest.TestCase):
             sql("insert into witness values(2,'increment');")
             increment = backup("incr")
             self.assertIn(base["label"], increment["reference"])
-            run("/usr/bin/pg_ctl", "-D", data, "-m", "fast", "-w", "stop")
-            started = False
+            lifecycle.stop(data)
 
             label = increment["label"]
             segment = increment["archive"]["start"]
@@ -145,9 +140,4 @@ class NativeBackupRecoveryContract(unittest.TestCase):
             self.assertEqual(rc, 0)
             self.assertEqual(retrieved.read_bytes(), recovered.read_bytes())
         finally:
-            if started or (data / "postmaster.pid").exists():
-                stop = run("/usr/bin/pg_ctl", "-D", data, "-m", "fast", "-w", "stop", check=False)
-                if stop.returncode or (data / "postmaster.pid").exists():
-                    raise RuntimeError(f"private postmaster stop unqualified; retaining {root}")
-            shutil.rmtree(root)
-            print("private fixture removed", not root.exists())
+            lifecycle.cleanup()
