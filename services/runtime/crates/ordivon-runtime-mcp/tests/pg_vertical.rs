@@ -3437,6 +3437,28 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         published_artifact["structuredContent"]["content"], "native-proof",
         "a mutable Runner source must not invalidate an already published Artifact"
     );
+    // Only the disposable, already terminal fixture may retire its raw log.
+    // The public readback must depend on the committed Artifact, not the preview.
+    fs::remove_file(&original_stdout).unwrap();
+    let retired_raw = call(
+        &endpoint,
+        "job.observe",
+        json!({"jobId":completed_job,"waitMs":0,"stdoutTailBytes":4,"stderrTailBytes":0}),
+    );
+    assert_ne!(retired_raw["isError"], true, "{retired_raw}");
+    assert_eq!(retired_raw["structuredContent"]["stdoutTail"], "roof");
+    assert_eq!(retired_raw["structuredContent"]["stdoutOffset"], 8);
+    assert_eq!(retired_raw["structuredContent"]["stdoutNextOffset"], 12);
+    assert_eq!(retired_raw["structuredContent"]["stdoutAvailableBytes"], 12);
+    let after_raw_retire = call(
+        &endpoint,
+        "artifact.read",
+        json!({"jobId":completed_job,"artifactId":stdout["artifactId"],"offset":0,"maxBytes":100}),
+    );
+    assert_eq!(
+        after_raw_retire["structuredContent"]["content"],
+        "native-proof"
+    );
     fs::write(&stdout_path, b"forged-stdout-after-terminal").unwrap();
     let forged_artifact = call(
         &endpoint,
@@ -3460,6 +3482,12 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         forged_observation["isError"], true,
         "terminal stdoutTail bypassed Artifact digest while artifact.read rejected it: {forged_observation}"
     );
+    let forged_zero_tail = call(
+        &endpoint,
+        "job.observe",
+        json!({"jobId":completed_job,"waitMs":0,"stdoutTailBytes":0,"stderrTailBytes":0}),
+    );
+    assert_eq!(forged_zero_tail["isError"], true, "{forged_zero_tail}");
     fs::write(&stdout_path, b"native-proof").unwrap();
     let restored = call(
         &endpoint,
