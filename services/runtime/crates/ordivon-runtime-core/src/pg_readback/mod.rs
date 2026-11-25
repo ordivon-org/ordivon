@@ -1,5 +1,6 @@
 //! Snapshot-bound PostgreSQL readback: query + lifecycle + event qualifications.
 //! Does not create an execution effect or infer OS finality.
+mod artifact_inventory;
 mod coherence;
 mod query;
 mod terminal_event;

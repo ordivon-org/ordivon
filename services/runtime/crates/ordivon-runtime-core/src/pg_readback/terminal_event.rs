@@ -10,6 +10,7 @@ use sha2::{Digest, Sha256};
 pub(super) fn terminal_events_coherent(
     tx: &mut Transaction<'_>,
     snapshot: &PgJobSnapshot,
+    artifacts: &[PgArtifactRegistration],
 ) -> Result<bool, PgAdmissionError> {
     let Some(resolution) = snapshot.resolution.as_deref() else {
         return Ok(true);
@@ -45,33 +46,13 @@ pub(super) fn terminal_events_coherent(
     {
         return Ok(false);
     }
-    let artifact_rows = tx.query(
-        "SELECT job_id,artifact_id,kind,relative_path,digest,media_type,byte_length,truncated,created_at_ms FROM artifacts WHERE attempt_id=$1 ORDER BY artifact_id",
-        &[&snapshot.attempt_id],
-    )?;
-    let mut artifacts = Vec::with_capacity(artifact_rows.len());
-    for row in artifact_rows {
-        if row.get::<_, String>(0) != snapshot.job_id {
-            return Ok(false);
-        }
-        artifacts.push(PgArtifactRegistration {
-            artifact_id: row.get(1),
-            kind: row.get(2),
-            relative_path: row.get(3),
-            digest: row.get(4),
-            media_type: row.get(5),
-            byte_length: row.get(6),
-            truncated: row.get(7),
-            created_at_ms: row.get(8),
-        });
-    }
-    if !valid_pg_artifacts(&artifacts) {
+    if !valid_pg_artifacts(artifacts) {
         return Ok(false);
     }
     let expected_manifest = if artifacts.is_empty() {
         None
     } else {
-        Some(pg_artifact_manifest_digest(&artifacts))
+        Some(pg_artifact_manifest_digest(artifacts))
     };
     // A structured installer owns its receipt, not a native Runner Artifact.
     // Unexpected generic Artifacts invalidate its dedicated terminal proof.
