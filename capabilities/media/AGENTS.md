@@ -182,7 +182,7 @@ publication. Use `tests/test_operation_impact.py` for independent falsifiers.
 productions/convergence-sonic-ident` and inspect `operationLineage`. Change
 one source in an isolated test workspace to see the scoped effects. The
 current `generate.py` can reproduce `render/convergence-source.wav` in a
-temporary directory under the selected Python 3.15.1 environment, but
+temporary directory under the owner-selected Python environment, but
 historical SoX/FLAC/Vorbis/FFmpeg invocation parameter closure is not yet
 qualified. See `productions/convergence-sonic-ident/README.md`.
 
