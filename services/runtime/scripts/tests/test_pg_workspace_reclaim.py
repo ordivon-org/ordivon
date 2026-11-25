@@ -83,6 +83,61 @@ class PgWorkspaceReclaimTests(unittest.TestCase):
                 self.assertIn(str(payload), mod._active_process_paths(Path(root)))
             self.assertNotIn(str(payload), mod._active_process_paths(Path(root)))
 
+    def test_file_mapping_survives_original_descriptor_close(self):
+        import mmap
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory(prefix="ordivon-consumer-mmap-") as root:
+            workspace = Path(root) / "ws"
+            workspace.mkdir()
+            payload = workspace / "mapped-result"
+            payload.write_bytes(b"native mapped consumer")
+            with payload.open("rb") as handle:
+                mapping = mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ,
+                                    trackfd=False)
+            try:
+                self.assertEqual(mapping[:], b"native mapped consumer")
+                self.assertIn(str(payload), mod._active_process_paths(Path(root)))
+            finally:
+                mapping.close()
+            self.assertNotIn(str(payload), mod._active_process_paths(Path(root)))
+
+    def test_mapping_path_with_whitespace_and_newline_is_not_omitted(self):
+        import mmap
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory(prefix="ordivon-mapped-path-") as root:
+            workspace = Path(root) / "ws"
+            workspace.mkdir()
+            payload = workspace / "with space\nand newline"
+            payload.write_bytes(b"mapped bytes")
+            with payload.open("rb") as handle:
+                mapping = mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ,
+                                    trackfd=False)
+            try:
+                self.assertIn(str(payload), mod._active_process_paths(Path(root)))
+            finally:
+                mapping.close()
+
+    def test_mapping_outside_exact_root_is_not_a_workspace_consumer(self):
+        import mmap
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory(prefix="ordivon-mapped-sibling-") as root:
+            workspace = Path(root) / "ws"
+            workspace.mkdir()
+            other = Path(root) / "ws-other"
+            other.mkdir()
+            payload = other / "mapped-result"
+            payload.write_bytes(b"other bytes")
+            with payload.open("rb") as handle:
+                mapping = mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ,
+                                    trackfd=False)
+            try:
+                self.assertEqual(mod._active_process_paths(workspace), [])
+            finally:
+                mapping.close()
+
     def test_external_consumer_unknown_is_not_an_empty_census(self):
         from unittest.mock import patch
 

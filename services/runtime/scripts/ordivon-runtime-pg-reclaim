@@ -443,11 +443,20 @@ def _active_process_paths(root: Path) -> list[str]:
     """Advisory native consumer observation, not proof of semantic release.
 
     External consumers can keep a Workspace file open while running outside
-    that Workspace. Inspect cwd, executable and open descriptors. Denied
+    that Workspace, or retain a mapping after the original FD closes. Inspect
+    cwd, executable, open descriptors and file-backed memory mappings. Denied
     observation is UNKNOWN and aborts the sweep; exited processes are normal.
+    This is a path observation in the visible Linux namespace, not an inode
+    alias census, a remote consumer proof or an atomic admission fence.
     """
     prefix = str(root) + os.sep
     result = set()
+
+    def remember(location: str) -> None:
+        location = location.removesuffix(" (deleted)")
+        if location == str(root) or location.startswith(prefix):
+            result.add(location)
+
     for process in Path("/proc").glob("[0-9]*"):
         links = [process / "cwd", process / "exe"]
         try:
@@ -459,9 +468,22 @@ def _active_process_paths(root: Path) -> list[str]:
                 location = os.readlink(link)
             except (FileNotFoundError, ProcessLookupError):
                 continue
-            location = location.removesuffix(" (deleted)")
-            if location == str(root) or location.startswith(prefix):
-                result.add(location)
+            remember(location)
+        # Linux maps lists file-backed VMAs even when no FD remains. Its
+        # pathname escapes newlines as a literal backslash + 012; a literal
+        # filename with those characters is ambiguous. Keep both possible
+        # observations rather than dropping an actual consumer.
+        try:
+            with (process / "maps").open("rb") as mappings:
+                for line in mappings:
+                    fields = line.rstrip(b"\n").split(None, 5)
+                    if len(fields) != 6 or not fields[5].startswith(b"/"):
+                        continue
+                    location = os.fsdecode(fields[5])
+                    remember(location)
+                    remember(location.replace(r"\012", "\n"))
+        except (FileNotFoundError, ProcessLookupError):
+            continue
     return sorted(result)
 
 def _store_receipt(root: Path, data: dict) -> str:
