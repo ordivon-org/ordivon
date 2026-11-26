@@ -14,6 +14,10 @@ mod dispatch;
 mod input_contract;
 #[path = "pg_issuer_guard.rs"]
 mod issuer;
+#[path = "pg_admission_native_windows_drain.rs"]
+mod native_windows_drain;
+#[cfg(any(windows, test))]
+pub(crate) use native_windows_drain::{PgNativeWindowsDrainInput, PgNativeWindowsDrainOutcome};
 #[cfg(all(test, feature = "postgres-registry-admission"))]
 mod live_pg_tests;
 mod readback;
