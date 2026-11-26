@@ -1,6 +1,12 @@
 # Network execution program R1
 
-Date: 2026-11-05. This file is an immutable *source-bound acceptance/backlog DAG*, NOT a new task-state database or scheduler. Ordivon Host Work alone owns mutable task state; Git/PR owns source and release truth; Runtime owns execution truth; systemd, Podman, Gluetun, sing-box and Tailscale own installed/runtime effects.
+Date: 2026-11-05. This file is an immutable *source-bound acceptance/backlog DAG*, NOT a new task-state database or scheduler.
+Currentness notice (2026-11-13): this is the November 5 historical obligation set,
+NOT the current open-task count or production policy. In particular, the
+Singapore-only/SG-JP historical notes below were superseded by the
+non-Hong-Kong provider selector; multiple subsequent Network PRs also fulfilled
+parts of the listed obligations. Use current Git/source, actual installed/loaded
+effects, Host Work and independent consumer evidence before reopening any row. Ordivon Host Work alone owns mutable task state; Git/PR owns source and release truth; Runtime owns execution truth; systemd, Podman, Gluetun, sing-box and Tailscale own installed/runtime effects.
 
 ## Rules of composition
 
@@ -115,3 +121,304 @@ PR #1507: natural Owner Taskfile (95 task API names); PR #1548: 7 owner-private 
 ## Explicit live UNKNOWN
 
 NS2 source graph still PROPOSED; all-consumer indirect egress bypass and independent no-forwarding are unproved. Historical Gluetun DoH partial failure remains unclosed. Current Windows/WSL full cold boot, old desktop Codex process route, and both iOS devices' selected Tailscale exit + ipinfo public IP are unproved. Do not upgrade any of these from source-only or current service ACTIVE to READY.
+
+## R12 refinement — identity-bound native evidence and protocol adoption (2026-11-26)
+
+Inherit Host Network Work@5, R11 #32719/#32730, N01–N10/NS2 and existing
+natural owners. Host proposal #32755 is coordination, not release authority.
+RFC 3386/8001/9912 shared risk groups motivate physical independence; RFC
+9298/9484 motivate standards-based transport candidates. Two interfaces
+sharing the same modem are not two independent physical failure domains.
+
+| Scope | Change | Acceptance / remaining boundary |
+| --- | --- | --- |
+| P0 evidence | Replace global raw sample counting for the three correlated alerts with native per-job unique fresh binary recording and current evaluation checks | promtool positive, duplicate-role negative, missing/stale and invalid binary negative; preserve alert labels; no physical-cause assertion |
+| P0 underlay | Measure independently provisioned physical WANs before claiming redundancy | independent origin observations and shared-risk inventory; no second WAN currently established |
+| P0 recovery | Keep one physical provider and native lifecycle; health cannot authorize release | observed drift, bounded recovery, exact independent consumer; no automatic protocol cutover |
+| P0 device | Issue #2105 per-device exit/DNS observation | physical device receipt, not server READY |
+| P1 verification | R11 uv/mise native lock; source-bound promtool tests, independent consumer and fault injection | no new scheduler or custom monitoring engine; source != installed |
+| P2 transport | compare mature standard HTTP/QUIC/MASQUE implementations in authorized isolated reference workloads | measured consumer compatibility, goodput, latency, resource cost; no provider or production selection from novelty |
+
+R2.1 evidence LEGO: I raw per-job probe_success and evaluation clock;
+O per-role unique fresh binary observation and existing alert states;
+S native Prometheus group; pre source-declared five jobs and raw samples;
+post each admitted role has exactly one raw series and a binary sample aged
+under 90 seconds; alert aggregation requires every role and current recording
+evaluation; inv missing/duplicate/stale/invalid is UNKNOWN, not failed or
+healthy; eff source rules only; c native PromQL role aggregation (not a
+measured runtime improvement); epsilon neither physical independence nor
+causal root cause, monitoring classification is not mutation authority;
+prov native RED job-01a214af-47de-73ed-974f-6df38b18e49c and original fixtures;
+unfold role identity -> sample qualification -> recording -> group alert.
+Source PR/CI, installed bytes, loaded rules and independent consumers remain
+separate acceptance steps. No service restart or network effect in this work.
+
+## R14 testing reform — native differential and combinatorial verification
+
+Host proposal #32915 extends the R12 candidate PR #2831 and is independent of
+R13 history parsing. Existing global TESTING_UPSTREAM_ADOPTION_R1 and Work@5
+remain authoritative for task semantics. Reference: NIST SP 800-142 and native
+Prometheus rule testing (https://prometheus.io/docs/prometheus/latest/configuration/unit_testing_rules/).
+
+| Priority | Logic | Native capability and closure |
+| --- | --- | --- |
+| P0 | Finite independent rule oracle | 243 exhaustive ternary states plus 5-state pair interactions in two contexts, 475 deduplicated vectors, 1425 alert checks; native promtool, not a second evaluator |
+| P0 | Mutation evidence | actual old raw count, removed role uniqueness, wrong direct threshold; detect semantic mismatches, not just syntax/exit failures |
+| P1 | Temporal and lifecycle model | preserve native stale/recovery regression; Hypothesis stateful/Z3 for unbounded trace inputs where useful |
+| P1 | Test cost and retirement | changed property/readset selection, measured runtime, retain independent negative controls and consumer evidence; no count-based deletion |
+| P1 | Reproducible carrier | reuse R11 uv/mise, keep native promtool mandatory in core:validate; generic CI native installation and exact protected CI remain separately qualified |
+| P2 | Independent fault and consumer acceptance | native isolated netem/Toxiproxy and real OS/application witness; no live disruption or causal claim from model tests |
+
+R2.1: I five named roles, five synthetic observation states and exact rules;
+O independent expected/observed three-alert agreement; S temporary native test
+fixture/TSDB; pre real promtool; post 243 ternary states and all pair projections
+covered; inv missing/duplicate cannot impersonate distinct roles; eff isolated
+test only; c measured 19.67s for 475 vectors (not a universal runtime SLA);
+epsilon higher-order duplicate combinations and variable temporal traces not
+exhausted, production not observed; prov matrix Job
+job-01a214e3-6cd3-72f9-af54-0388db11aaaa and mutant Job
+job-01a214e4-140a-7473-bd78-bd7537a698b9; unfold specification -> generated fixture
+-> native engine -> comparison. Keep existing temporal fixtures. No new runtime
+dependency, registry or verification service.
+
+
+## R15 — Joint qualification and native test execution identity (2026-11-26)
+
+Host #33060/#33067. Join existing R11–R14 exact candidates, retain both
+native Task validation calls and the existing uv lock. RED: native
+`PYTEST_ADDOPTS=--collect-only mise run ci` reports 543 collected but exits
+zero (job-01a21506-4005-7711-ad46-6105aeabbc29). All four owner pytest
+entrypoints now remove ambient pytest options/plugins, disable automatic
+plugin discovery, and explicitly load the new test-only Hypothesis plugin
+from the same locked dev dependency group. Interactive focused testing
+remains available through direct uv/pytest invocations, not the qualification gate.
+
+Use Hypothesis rule-based stateful testing for the 19-source-role graph,
+with bounded deterministic sequences of omission, duplication, corruption,
+repair, pool loss and reordering. Independent multiset oracle, native
+API-shaped implementation input, no native network mutations. Shared
+test-only fixture inputs extracted from the example tests; no new runner
+or production dependency. R2.1 I source roles and generated operation
+sequences; O native test outcomes or rejection; S bounded test state; pre
+locked source and declared pytest plugins; post native selected obligations
+executed without ambient selector suppression; inv independent role
+multiplicity and identity, collection != execution; eff isolated testing;
+c bounded examples and steps; epsilon no universal proof, no protection
+against malicious source/environment outside the scoped selectors, no
+production acceptance; prov exact job receipts; unfold locked uv -> native
+pytest -> stateful oracle -> test evidence. The conflicting shared package
+node-exporter lifecycle remains a cross-owner source contract, not an
+authorization to change the active unit.
+
+
+## R16 — Temporal coverage and historical evidence representation (2026-11-26)
+
+Host #33104, inherits exact R15 joint candidate. RED native pipeline
+accepted 32 correctly paired scrapes concentrated in 15.5 minutes as
+evidence for a 116-minute window (job-01a2153d-8348-7056-9c7e-dfd7f1a060d5).
+Extract pure `historical_observation.py`: full source labels, exact paired
+timestamps, immutable paired values, per-role leading/trailing and
+inter-sample gap checks, separate successful and failed latency summaries.
+At least 12 paired samples and no silence over 45 seconds within the
+eligible window (30s declared cadence) are required; this is a conservative
+coverage policy, not an availability estimate or proof of independence.
+Historical qualification becomes UNKNOWN for inadequate coverage;
+existing success floor uses unrounded ratio. Existing legacy all-probe
+latency ranking remains unchanged; stratified statistics are diagnostic.
+No new runtime dependency; native bundle source inventory includes the
+new module (9 files); no deployment or group-atomic install claim.
+Native local API witness 3 roles x 60 paired samples with 30s max gap
+job-01a2153f-6ff0-7383-ac92-e4e0c97241b3. Generated regular-grid missing
+slot oracle and latency partition oracle use locked Hypothesis.
+R2.1 I exact per-role series and time bounds; O paired evidence, coverage,
+diagnostic summaries, historical standing or UNKNOWN; S ephemeral typed
+samples; pre source cadence, labels, matching original coordinates;
+post exact pairs and bounded gaps; inv no implied current consumer health,
+causality or effect authority; eff read-only source/verification; c sorted
+pairing O(n log n), linear gap scan; epsilon historical stationarity and
+physical availability unproved; prov native job receipts; unfold native
+raw -> identity/time pair -> coverage -> diagnostics -> existing advisory
+consumer. Cross-owner exporter correction remains PR2867, reviewed
+separately without live effects.
+
+
+## R17 — Release consumer identity and integration convergence (2026-11-26)
+
+Host #33182; Runtime release consumer specification #33163 and GitHub
+owner finding #33171. Official #2822 owner shard passes; repository
+mechanics fails on a historical uv version literal in the current owner
+test. Preserve registration evidence and scope; verify the native task
+route rather than a historical version string. Current source verification
+must not reinterpret a historical proof as a toolchain constraint.
+
+The recovery payload contains nine nonsecret files in one directory.
+Existing native install sequentially writes these files, then separately
+writes two systemd unit files, reloads systemd and restarts the timer.
+Observed native-copy fault cuts 1..8 all produce mixed payloads; 0 and 9
+are unmixed. This is a temporary-directory injected-command-failure witness,
+not a real filesystem power-loss or live service experiment. Fresh byte
+readback rejects all incomplete cuts, same-size/same-mtime corruption and
+linked payload paths. It does not make publication atomic.
+
+Target reusable release interface (Runtime/Artifact ownership, pending):
+immutable staged generation + exact byte/mode manifest + retained roots;
+serialized preimage CAS and one durable activation pointer; consumer pins
+the generation before resolving sibling imports/config; independent readback
+of actual generation consumption; rollback as a new fenced effect. Systemd
+unit writes, reload, timer scheduling and actual process effects are separate
+obligations and cannot be declared atomic with the pointer. No Network
+installer or daemon replacement until a qualified upstream release consumer
+contract exists. Reference Nix profiles and OSTree atomic generations.
+
+R2.1 I declared payload and historical/current source coordinates; O
+byte/path readback and native route evidence; S bounded temporary test
+workspace; pre stable authorized source and declared directories; post
+no metadata-cache false match and no linked payload; inv installed bytes
+!= loaded generation != consumer acceptance; eff no live changes; c linear
+bytes; epsilon no race-free filesystem proof, power-loss durability or
+multi-file transaction claim; prov exact Host/Runtime receipts; unfold
+source -> byte readback -> native verification -> release consumer.
+Consolidate the four original Network drafts and R15/R16 into one review
+candidate for official CI; retain original branch history and natural
+owner review. Do not merge by bypassing protected checks.
+
+
+## R18 — Native generation consumer and pure response boundary (2026-11-26)
+
+Host #33243, Runtime Nix private-store qualification #33210, consumer
+witness #33251. Retain existing R17 consolidation PR2877. Adopt Nix native
+immutable store/profile/GC roots as preferred release substrate candidate,
+not an additional Network-specific installer. Runtime must supply
+serialized preimage CAS, root acquisition before physical launch, retained
+generation path through native terminal, durable receipt and reconciliation;
+systemd unit writes/reload are separately qualified effects.
+
+Actual native_switch child path calls re-resolved the active link after
+module load; RED job-01a21553-7996-7481-9c53-6f6642ff9f84 (one path and five
+malformed selection cases). Resolve source once before sibling imports
+and reuse for three child edges. This pins those paths only; a physical
+generation launch and retention fence are mandatory to avoid startup races.
+Extract pure native_selection.py: typed selected snapshot, canonical
+existing selection semantics, strict nested shapes and redacted read-only
+projection. Malformed GET response now UNKNOWN rather than AttributeError
+(three RED job-01a21554-ee26-717f-b180-7ec87018cc41). No new policy or
+provider effect. Existing bundle ten declared nonsecret files. Private
+native Nix actual ten-byte-exact/read-only payload and both generation
+CLI imports/help PASS job-01a21554-161b-718e-b10f-ce596a1f0bae; second
+generation synthetic marker, no provider execution. Generated independent
+schema/field projection tests 350 configured examples, native regression
+51 PASS and existing Z3 model job-01a21555-5414-713b-9b4d-5894862e768e.
+R2.1 I raw JSON shape, current pinned path, source manifest; O canonical
+snapshot or explicit rejection, stable child path; S immutable per-process
+identity; pre physical generation retained by Runtime; post no per-child
+re-resolution, no arbitrary nested payload projection; inv observation !=
+effect authorization; eff isolated tests only; c linear schema projection;
+epsilon no startup-race or runtime-retention proof, no production policy
+change or deployment; prov exact Runtime/Host receipts; unfold source
+-> native store -> pinned consumer -> pure representation -> existing
+native adapter. Keep native owner lock; no extra production dependency.
+
+
+## R19 — Native release identity/currentness evidence (2026-11-26)
+
+Host #33286; exact R18 donor. R17 PR2877 official 8/8 and native
+GraphQL mergeQueueEntry QUEUED position7 at observation, not merged;
+PR2867 remains independent. Runtime #33264/#33268 adopts Nix for
+normalized read-only trees, existing exact-mode exchange for legacy
+consumers, PG monotonic CAS plus native reader roots still pending.
+
+Existing native bundle verification compared file bytes and selected
+loaded-command/calendar substrings but did not qualify the manager's
+fragment, drop-ins, load state or reload-needed state. Six false accepts
+RED job-01a21566-74a6-710f-9dca-cac2a3d2234a. Separate pure source-side
+release_unit_evidence.py; require exactly one of each native systemd
+property (loaded, exact fragment, no drop-ins, no reload needed). No
+activation changes or new service dependency. Both actual units' native
+read-only property output passes job-01a21566-c910-75cc-b2be-12ae7d68f879;
+this is manager identity evidence only, not deployed candidate byte
+parity. Retain existing selected command/calendar checks, explicitly
+consumerExecutionProved=false. No full effective configuration proof or
+atomic observation across queries.
+
+Regression tests cover both units, missing/duplicate/foreign metadata,
+order invariance and actual native copy interruption at all 11 cuts of
+the ten-file payload (9 mixed middle cuts). Persist the prior isolated
+failure-cut demonstration as a reproducible regression; synthetic old
+bytes never executed, no live effects or power-loss claim. Focused
+33 PASS job-01a21567-1a43-753e-b3e9-618157b452be.
+R2.1 I declared native unit fragment and manager response; O qualified
+identity/currentness or explicit rejection; S none; pre stable trusted
+manager and source; post complete unique exact properties; inv
+installed bytes != loaded metadata != actual execution/consumption;
+eff read-only tests/source only; c linear response; epsilon no
+atomic observation, no deployment proof; prov actual Host/Runtime
+receipts; unfold native manager observation -> pure projection ->
+existing verification. Reuse native systemd, no replacement controller
+or registry. Preserve in-flight protected R17 queue head.
+
+
+## R20 — Native typed loaded configuration (2026-11-26)
+
+Host #33332, R19 donor c32a630cdd; R17 #2877 native protected queue
+position5 at observation, not merged. Runtime #33321 receipt snapshot
+and reader-lifetime proof remain distinct from per-resource activation CAS.
+Replace display-text substring acceptance with existing systemd D-Bus
+native JSON property projection (busctl GetUnit, get-property only).
+Require exact declared command tuple and exact single calendar rule,
+native signatures and numeric coordinate shapes; runtime coordinates do
+not prove execution. R19 native identity/currentness checks remain.
+RED six synthetic false accepts job-01a2156f-7a62-76f6-bae0-31f41f575b6a;
+native systemd 262.2 actual typed property 2/2 read-only PASS
+job-01a2156f-d380-76d6-b61d-dee1cf51805f. No new production dependency
+(the existing systemd distribution supplies busctl), no changed operational
+policy, no activation, no new runtime registry. Separate GetUnit and
+property reads do not prove atomic snapshots; exact selected command and
+calendar are not full effective unit configuration.
+R2.1 I declared expected tuple, native JSON; O qualified bounded configuration
+projection or rejection; S none; pre trusted stable manager; post exact
+signature, row count, selected static fields and coordinate types;
+inv configuration != execution != consumer; eff read-only tests;
+c bounded linear parsing; epsilon no whole-unit, live deployment,
+concurrent change or startup proof; prov exact jobs; unfold native manager
+-> pure projection -> existing verifier. Preserve pending R17 queue;
+recompose R18-R20 once actual merge is observed.
+Reference https://www.freedesktop.org/software/systemd/man/262/org.freedesktop.systemd1.html
+and https://www.freedesktop.org/software/systemd/man/262/busctl.html.
+
+
+## R21 — Active observation receipt refinement (2026-11-26)
+
+Host #33402; exact R20 donor e8690babd3cb521c7e41dc60f0da62e94efd481f.
+R17 PR2877 native GraphQL position2 AWAITING_CHECKS; do not reset
+the protected queue. Runtime #33387 reports actual PG/Nix target CAS
+prototype and producer/reader composition, not production ABI.
+
+The parent previously consumed any stdout object containing standing
+string, even after child exit failure or signal. Eleven false accepts RED
+job-01a2157f-e879-7337-95cc-93f8fdaecb17. Extract pure
+active_observation.py: shared producer kind/exit mapping, existing
+standing/curl parser, strict receiving relation. Success requires exit0
+plus matching kind, UTC-shaped coordinate, stable/running observation,
+two exact business roles and true typed receipts, zero claimed standby;
+NOT_QUALIFIED requires exit1 and coherent false business evidence.
+Other existing explicit UNKNOWN/rejected standings retain exit1
+semantics, malformed/contradictory observations map to UNKNOWN in the
+parent. Reject duplicate/nonfinite JSON and nonfinite/negative timing;
+no new geographic policy or operational effect. Native bundle eleven
+nonsecret files; durable copy-fault tests now cover all 12 cuts.
+Actual synthetic Python child writes success stdout then exits0/1 or
+SIGKILL; receiver distinguishes native terminal and evidence. Generated
+truth-table oracle, explicit negatives; 109 focused PASS
+job-01a21580-b82f-7125-9cf3-c0dbbbad024c. Source-only; no provider calls.
+
+R2.1 I child terminal code and JSON bytes, O bounded observation or
+UNKNOWN, S none, pre trusted retained source generation; post exact
+terminal/shape consistency, inv stdout != execution != consumer success;
+eff pure and read-only tests; c linear JSON, epsilon no freshness,
+origin authentication, complete effect or native endpoint proof from
+structure alone; prov actual Runtime jobs; unfold producer -> native
+terminal -> receiver -> existing orchestrator. No new production
+dependency or scheduler. Further decomposition of orchestration,
+freshness identity and full effect receipt remains distinct. Reference
+https://docs.python.org/3/library/subprocess.html and
+https://hypothesis.readthedocs.io/en/latest/tutorial/introduction.html.

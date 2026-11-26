@@ -33,7 +33,12 @@ def _utc(instant: datetime) -> datetime:
 
 
 def _finite_positive(x: float) -> bool:
-    return isinstance(x, (int, float)) and math.isfinite(x) and x > 0
+    return (
+        isinstance(x, (int, float))
+        and not isinstance(x, bool)
+        and math.isfinite(x)
+        and x > 0
+    )
 
 
 @dataclass(frozen=True)
@@ -44,6 +49,7 @@ class PriceVintage:
     adjusted_close: float
     raw_source_sha256: str
     source_standing: str
+    price_basis: str = "PROVIDER_ADJUSTED_CLOSE_UNATTESTED"
 
     def __post_init__(self) -> None:
         if not self.asset or not self.asset.strip():
@@ -57,11 +63,19 @@ class PriceVintage:
             char not in "0123456789abcdef" for char in self.raw_source_sha256
         ):
             raise PointInTimeError("exact source SHA256 required")
-        if self.source_standing not in (
-            "SECONDARY_VENDOR_NOT_ATTESTED",
-            "PROVIDER_ORIGIN_VERIFIED",
-        ):
+        # No independent provider-origin verifier is installed in this Owner:
+        # a raw research record or JSON cannot self-promote by string alone.
+        if self.source_standing == "PROVIDER_ORIGIN_VERIFIED":
+            raise PointInTimeError(
+                "verified provider origin requires independent Markets attestation"
+            )
+        if self.source_standing != "SECONDARY_VENDOR_NOT_ATTESTED":
             raise PointInTimeError("explicit source standing required")
+        if self.price_basis not in (
+            "PROVIDER_ADJUSTED_CLOSE_UNATTESTED",
+            "RAW_UNADJUSTED_ACTION_FREE_DECLARED",
+        ):
+            raise PointInTimeError("explicit supported price basis required")
 
 
 @dataclass(frozen=True)
@@ -81,6 +95,8 @@ class EmpiricalJointForecast:
     scenarios: tuple[JointScenario, ...]
     training_sessions: tuple[str, ...]
     source_digests: tuple[str, ...]
+    price_bases: tuple[str, ...] = ()
+    source_standings: tuple[str, ...] = ()
     standing: str = "PAST_ONLY_EMPIRICAL_JOINT_BASELINE_NOT_CALIBRATED"
     conditioning: dict[str, Any] | None = None
 
@@ -101,6 +117,8 @@ class EmpiricalJointForecast:
             ],
             "training_sessions": list(self.training_sessions),
             "source_digests": list(self.source_digests),
+            "price_bases": list(self.price_bases),
+            "source_standings": list(self.source_standings),
             "standing": self.standing,
         }
         if self.conditioning is not None:
@@ -150,6 +168,16 @@ def market_capture_to_pit_vintages(
         raise PointInTimeError(
             "whole market snapshot cannot be captured before its market close"
         )
+    from ordivon_capital.markets.equity_session_calendar import (
+        MarketSessionQualificationError,
+        require_xnys_eod_session_closes,
+        require_xnys_session_subset,
+    )
+
+    try:
+        require_xnys_eod_session_closes({last_session.isoformat(): close_at})
+    except MarketSessionQualificationError as exc:
+        raise PointInTimeError(str(exc)) from exc
     names = tuple(assets)
     if not names or len(names) != len(set(names)):
         raise PointInTimeError("unique nonempty market assets required")
@@ -163,6 +191,14 @@ def market_capture_to_pit_vintages(
         )
     except HistoricalCloseError as exc:
         raise PointInTimeError("Markets source admission failed") from exc
+    try:
+        require_xnys_session_subset(
+            (observation.session for observation in admitted.observations),
+            symbol="PIT_CAPTURE", requested_start=first_session.isoformat(),
+            requested_end=last_session.isoformat(),
+        )
+    except MarketSessionQualificationError as exc:
+        raise PointInTimeError(str(exc)) from exc
     return tuple(
         PriceVintage(
             asset=asset,
@@ -176,6 +212,49 @@ def market_capture_to_pit_vintages(
         for observation in admitted.observations
         for asset in names
     )
+
+
+def etf_eod_capture_to_pit_vintages(snapshot: Any) -> tuple[PriceVintage, ...]:
+    """Conservatively consume Markets' already-admitted raw action-free ETF EOD.
+
+    This cannot authenticate vendor release times, calendar rights or action
+    coverage: those remain operator declarations in Markets. In particular
+    mark.available_at (even SOURCE_REPORTED) is NEVER used to backdate the
+    snapshot to an earlier historical decision. Only the snapshot capture
+    instant establishes a mechanically supported information-time boundary.
+    No new data provider, asset adjustment engine, or research scheduler.
+    """
+    from ordivon_capital.markets.etf_eod_snapshot import AdmittedEtfEodSnapshot
+
+    if not isinstance(snapshot, AdmittedEtfEodSnapshot):
+        raise PointInTimeError("Markets admitted ETF EOD snapshot required")
+    captured = _utc(snapshot.captured_at)
+    if captured > _utc(snapshot.decision_at):
+        raise PointInTimeError("market capture cannot follow its decision")
+    if not snapshot.marks:
+        raise PointInTimeError("empty ETF EOD snapshot")
+    source_digest = snapshot.sha256.removeprefix("sha256:")
+    vintages = []
+    for mark in snapshot.marks:
+        if captured < _utc(mark.session_close_at) or captured < _utc(mark.available_at):
+            raise PointInTimeError("market observation cannot precede its source close")
+        # Research probability/optimizer consumers use floats, not exact
+        # currency amounts: above 2**53, integer USD cents lose exactness
+        # on conversion and a bogus return could result.
+        if type(mark.price_minor) is not int or not 0 < mark.price_minor <= 2**53:
+            raise PointInTimeError("ETF price minor units exceed exact float conversion")
+        vintages.append(
+            PriceVintage(
+                asset=mark.instrument_id,
+                session=date.fromisoformat(mark.session_date),
+                published_at=captured,
+                adjusted_close=mark.price_minor / 100,
+                raw_source_sha256=source_digest,
+                source_standing="SECONDARY_VENDOR_NOT_ATTESTED",
+                price_basis="RAW_UNADJUSTED_ACTION_FREE_DECLARED",
+            )
+        )
+    return tuple(vintages)
 
 
 def point_in_time_prices(
@@ -243,6 +322,8 @@ def empirical_joint_forecast(
     included_indices: list[int] = []
     used_sessions: list[str] = []
     digests: set[str] = set()
+    bases: set[str] = set()
+    source_standings: set[str] = set()
     excluded = 0
     for j in range(1, last + 1):
         older, newer = sessions[j - 1], sessions[j]
@@ -250,6 +331,12 @@ def empirical_joint_forecast(
         if any(before is None or after is None for before, after in pairs):
             excluded += 1
             continue
+        # LEAN's RAW and ADJUSTED are not interchangeable price series.
+        # Equality of the label only establishes consistent semantics for
+        # the numerator and denominator; it does NOT certify any dividend
+        # or split declaration supplied by the operator.
+        if any(before.price_basis != after.price_basis for before, after in pairs):
+            raise PointInTimeError("incompatible price basis within a return interval")
         gross = tuple(after.adjusted_close / before.adjusted_close for before, after in pairs)
         if not all(_finite_positive(g) for g in gross):
             raise PointInTimeError("nonfinite joint return")
@@ -259,6 +346,9 @@ def empirical_joint_forecast(
         for before, after in pairs:
             digests.add(before.raw_source_sha256)
             digests.add(after.raw_source_sha256)
+            bases.add(before.price_basis)
+            source_standings.add(before.source_standing)
+            source_standings.add(after.source_standing)
     if not included:
         raise PointInTimeError("no complete observed one-month joint returns")
     selected = included
@@ -314,6 +404,8 @@ def empirical_joint_forecast(
         scenarios=scenarios,
         training_sessions=tuple(used_sessions),
         source_digests=tuple(sorted(digests)),
+        price_bases=tuple(sorted(bases)),
+        source_standings=tuple(sorted(source_standings)),
         standing=standing,
         conditioning=conditioning,
     )
@@ -433,6 +525,7 @@ def prequential_energy_evaluation(
         )
         frozen_market = point_in_time_prices(records, as_of=t)
         realized = []
+        realized_bases = []
         reference_revision_evidence = []
         for asset in names:
             frozen_before = frozen_market.get((asset, valuation_session))
@@ -440,11 +533,12 @@ def prequential_energy_evaluation(
             evaluation_after = final_market.get((asset, next_session))
             if frozen_before is None or evaluation_before is None or evaluation_after is None:
                 raise PointInTimeError("next-session market outcome not yet published")
-            # Never divide a post-event adjusted close by a PRE-event vintage
-            # adjusted close: corporate-action back-adjustments can generate
-            # fake realized gains/losses across incompatible price bases.
-            # Freeze the forecast at t; measure both realized endpoints from
-            # the common evaluation-as-of snapshot, never from mixed clocks.
+            # One evaluation clock is necessary but insufficient: vendor
+            # adjusted and unadjusted prices can coexist in that same clock.
+            # Both realized endpoints MUST use the same stated price basis.
+            if evaluation_before.price_basis != evaluation_after.price_basis:
+                raise PointInTimeError("incompatible price basis within realized return")
+            realized_bases.append(evaluation_before.price_basis)
             realized.append(evaluation_after.adjusted_close / evaluation_before.adjusted_close)
             reference_revision_evidence.append(
                 {
@@ -452,9 +546,17 @@ def prequential_energy_evaluation(
                     "frozen_reference_close": frozen_before.adjusted_close,
                     "evaluation_reference_close": evaluation_before.adjusted_close,
                     "evaluation_outcome_close": evaluation_after.adjusted_close,
+                    # A change of basis is not a comparable reference-price
+                    # revision ratio. Preserve evidence without inventing a
+                    # cross-basis multiplicative correction factor.
                     "reference_revision_factor": (
                         evaluation_before.adjusted_close / frozen_before.adjusted_close
+                        if frozen_before.price_basis == evaluation_before.price_basis
+                        else None
                     ),
+                    "frozen_reference_price_basis": frozen_before.price_basis,
+                    "evaluation_reference_price_basis": evaluation_before.price_basis,
+                    "evaluation_outcome_price_basis": evaluation_after.price_basis,
                     "reference_revised_since_decision": evaluation_before != frozen_before,
                     "frozen_reference_source_sha256": frozen_before.raw_source_sha256,
                     "evaluation_reference_source_sha256": evaluation_before.raw_source_sha256,
@@ -477,7 +579,11 @@ def prequential_energy_evaluation(
             "evaluation_as_of": evaluated_at.isoformat(),
             "outcome_session": next_session.isoformat(),
             "realized_joint_gross": realized,
-            "realized_price_basis": "EVALUATION_AS_OF_BOTH_ENDPOINTS_ADJUSTED",
+            "realized_price_basis": (
+                "EVALUATION_AS_OF_BOTH_ENDPOINTS_ADJUSTED"
+                if all(b == "PROVIDER_ADJUSTED_CLOSE_UNATTESTED" for b in realized_bases)
+                else "EVALUATION_AS_OF_BOTH_ENDPOINTS_MATCHED_RAW_OR_MIXED_UNATTESTED"
+            ),
             "reference_revision_evidence": reference_revision_evidence,
             "training_n": distribution.training_return_count,
             "forecast_method": forecast_method,
@@ -656,6 +762,22 @@ def make_one_step_optimizer_contract(
     return {"gamma": gamma, "nodes": nodes}
 
 
+def load_pit_payload(path: Path) -> dict[str, Any]:
+    """Decode unambiguous PIT evidence for both native consumers."""
+    def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise PointInTimeError(f"duplicate JSON input key: {key}")
+            result[key] = value
+        return result
+
+    payload = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
+    if not isinstance(payload, dict):
+        raise PointInTimeError("point-in-time payload must be a JSON object")
+    return payload
+
+
 def from_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     """Produce a reproducible, zero-authority optimizer contract plus evidence."""
     expected = {
@@ -670,13 +792,17 @@ def from_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         raise PointInTimeError("expected exact data and economic-contract input fields")
 
     def record(raw: Mapping[str, Any]) -> PriceVintage:
+        numeric_price = raw["adjusted_close"]
+        if type(numeric_price) not in (int, float) or not _finite_positive(numeric_price):
+            raise PointInTimeError("JSON price must be a positive finite number")
         return PriceVintage(
             asset=raw["asset"],
             session=date.fromisoformat(raw["session"]),
             published_at=datetime.fromisoformat(raw["published_at"]),
-            adjusted_close=float(raw["adjusted_close"]),
+            adjusted_close=float(numeric_price),
             raw_source_sha256=raw["raw_source_sha256"],
             source_standing=raw["source_standing"],
+            price_basis=raw.get("price_basis", "PROVIDER_ADJUSTED_CLOSE_UNATTESTED"),
         )
 
     forecast = empirical_joint_forecast(
@@ -725,53 +851,16 @@ def from_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def solve_pit_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
-    """Research-to-Portfolio native consumer, no second optimization engine.
-
-    The only market probabilities are the caller's past-visible empirical or
-    lagged-neighbor hypotheses. The caller must also supply actual economic
-    preferences and provider financing/margin terms. This function neither
-    authenticates those inputs nor creates any order/Paper event.
-    """
-    import dataclasses
-
-    from ordivon_capital.portfolio.multistage_policy import (
-        InformationNode,
-        MultistageProblem,
-        solve_multistage,
-    )
-
-    result = from_json_payload(payload)
-    contract = result["optimizer_input"]
-    vectors = {"risky_gross", "maintenance", "initial_margin", "turnover_cost"}
-    nodes = tuple(
-        InformationNode(
-            **{key: tuple(value) if key in vectors else value for key, value in raw.items()}
-        )
-        for raw in contract["nodes"]
-    )
-    solution = solve_multistage(MultistageProblem(gamma=contract["gamma"], nodes=nodes))
-    return {
-        **result,
-        "conditional_allocation": dataclasses.asdict(solution),
-        "allocation_standing": "CONDITIONAL_UNCALIBRATED_ONE_STEP_RESEARCH",
-    }
-
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Read-only PIT research to existing Capital optimizer"
+        description="Read-only PIT forecast evidence and optimizer input"
     )
     parser.add_argument("--input", type=Path, required=True)
-    parser.add_argument(
-        "--solve",
-        action="store_true",
-        help="run the existing read-only one-step CRRA consumer, with no trades",
-    )
     args = parser.parse_args()
     try:
-        payload = json.loads(args.input.read_text(encoding="utf-8"))
-        outcome = solve_pit_payload(payload) if args.solve else from_json_payload(payload)
+        payload = load_pit_payload(args.input)
+        outcome = from_json_payload(payload)
     except (PointInTimeError, ValueError, TypeError, KeyError) as e:
         parser.error(f"incomplete point-in-time market/economic contract: {e}")
     print(json.dumps(outcome, ensure_ascii=False, sort_keys=True))

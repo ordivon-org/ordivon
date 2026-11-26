@@ -2,15 +2,31 @@ from __future__ import annotations
 
 from hashlib import sha256
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, TypedDict
 
 from .attestations import STATEMENT_TYPE
 
 SLSA_PROVENANCE_PREDICATE = "https://slsa.dev/provenance/v1"
 
 
+class ProvenanceContentBinding(TypedDict):
+    """Unsigned content projection; neither build-input closure nor authentication."""
+
+    standing: Literal["PROVENANCE_CONTENT_BOUND"]
+    artifact: str
+    artifactSha256: str
+    sourceRevision: str
+    builderId: str
+    buildType: str
+    authenticated: Literal[False]
+
+
 def _sha256(path: Path) -> str:
-    return sha256(path.read_bytes()).hexdigest()
+    digest = sha256()
+    with path.open("rb") as source:
+        while chunk := source.read(1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def verify_build_provenance(
@@ -21,8 +37,13 @@ def verify_build_provenance(
     expected_builder_id: str,
     expected_build_type: str,
     expected_source_uri: str | None = None,
-) -> dict[str, Any]:
-    """Verify statement content, NOT an issuer's identity or signed attestation."""
+) -> ProvenanceContentBinding:
+    """Match the observed artifact bytes and expected claims in a statement.
+
+    The matching dependency identifies the claimed source revision, not all
+    bytes the build actually read. Producer authentication, protected complete
+    inputs and independent receipt belong to separate evidence consumers.
+    """
     if not expected_builder_id or not expected_build_type:
         raise ValueError("expected builder and build type must be independently provided")
     if len(expected_source_revision) not in (40, 64) or any(

@@ -7,11 +7,19 @@ statistics/Profile operators. Alignment evidence is not semantic or quality trut
 
 from __future__ import annotations
 
+import math
 import statistics
+from bisect import bisect_left, bisect_right
 from collections.abc import Sequence
 from typing import Any
 
-from .perception_profiles import _correlation, _mean, _resample_profile, _vector_distance
+from .perception_profiles import (
+    _circular_shift_correlations,
+    _correlation,
+    _mean,
+    _resample_profile,
+    _vector_distance,
+)
 
 
 def structural_distance(left: dict[str, Any], right: dict[str, Any]) -> float:
@@ -43,11 +51,24 @@ def cue_boundary_silence_score(
     )
     bin_width = duration / len(rms)
     boundary_values: list[float] = []
+    # The bin centers are nondecreasing for finite nonnegative bin widths.
+    # Search on the original rounded difference, not boundary +/- window:
+    # moving the addition across the comparison can change inclusive ties.
+    indices = range(len(rms))
     for boundary in boundaries:
-        for index, value in enumerate(rms):
-            center = (index + 0.5) * bin_width
-            if abs(center - boundary) <= window_seconds:
-                boundary_values.append(float(value))
+        if math.isfinite(bin_width) and math.isfinite(boundary) and window_seconds >= 0:
+            def delta(index: int) -> float:
+                return (index + 0.5) * bin_width - boundary
+
+            start = bisect_left(indices, -window_seconds, key=delta)
+            stop = bisect_right(indices, window_seconds, key=delta)
+            boundary_values.extend(float(rms[index]) for index in range(start, stop))
+        else:
+            # Preserve the existing comparison behavior for unusual inputs.
+            for index, value in enumerate(rms):
+                center = (index + 0.5) * bin_width
+                if abs(center - boundary) <= window_seconds:
+                    boundary_values.append(float(value))
     global_mean = _mean([float(value) for value in rms])
     boundary_mean = _mean(boundary_values)
     contrast = (global_mean - boundary_mean) / (
@@ -84,13 +105,7 @@ def crossmodal_profile_coupling(video: dict[str, Any], audio: dict[str, Any]) ->
 def _circular_shift_correlation_null(
     left: Sequence[float], right: Sequence[float]
 ) -> dict[str, float | int]:
-    if len(left) != len(right) or len(left) < 4:
-        raise ValueError("circular-shift null requires equal profiles with at least four bins")
-    values: list[float] = []
-    right_values = list(right)
-    for shift in range(len(right_values)):
-        shifted = right_values[shift:] + right_values[:shift]
-        values.append(_correlation(left, shifted))
+    values = _circular_shift_correlations(left, right)
     baseline = values[0]
     null = values[1:]
     return {

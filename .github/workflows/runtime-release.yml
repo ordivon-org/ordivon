@@ -29,12 +29,50 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Tag identity is not release admission. Only a commit already in the
+      # protected main history can be used as a Runtime release source.
+      # fetch-depth: 0 on checkout supplies the protected main ref without
+      # granting write access or depending on a fresh API request.
+      - name: Require Runtime tag source to be reachable from protected main
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GIT_GRAFT_FILE=/dev/null GIT_NO_REPLACE_OBJECTS=1
+          commit="$(git --no-replace-objects rev-parse --verify "${GITHUB_SHA}^{commit}")"
+          checkout="$(git --no-replace-objects rev-parse --verify 'HEAD^{commit}')"
+          if [[ "$commit" != "$checkout" ]]; then
+            echo "RUNTIME_TAG_SOURCE_NOT_CHECKED_OUT" >&2
+            exit 42
+          fi
+          if ! main="$(git --no-replace-objects rev-parse --verify 'refs/remotes/origin/main^{commit}')"; then
+            echo "RUNTIME_PROTECTED_MAIN_REF_MISSING" >&2
+            exit 42
+          fi
+          if ! git --no-replace-objects merge-base --is-ancestor "$commit" "$main"; then
+            echo "RUNTIME_TAG_SOURCE_NOT_ON_PROTECTED_MAIN" >&2
+            exit 42
+          fi
+
+      - name: Network - acquire verified Python via official GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 platform/network/consumers/developer-egress/github_release_mise.py --python
+
+      - name: Network - acquire verified mise via official GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 platform/network/consumers/developer-egress/github_release_mise.py
+
       - name: Install monorepo toolchain
-        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5.2.10
         with:
           version: 2026.9.12
+          sha256: e79ae57945034903aee8aa2ea66b4c7ca9cd4f4edd5a8a78a589cbae6d0f428a
           install: true
-          cache: true
+          # A publishing job never restores caches from a PR/default branch.
+          cache: false
 
       - name: Bind Runtime tag to repository and owner revisions
         id: release
@@ -64,13 +102,30 @@ jobs:
       - name: Verify Runtime owner
         run: mise run runtime:verify
 
+      # Tagged releases never restore PR-writable caches; use a freshly
+      # fetched official Release Asset API archive, independently SHA256-verified.
+      - name: Install verified cargo-deny
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 tools/repo/install_verified_cargo_deny.py \
+            --cache-dir "$RUNNER_TEMP/ordivon-cargo-deny/archive" \
+            --bin-dir "$RUNNER_TEMP/ordivon-cargo-deny/bin"
+          echo "$RUNNER_TEMP/ordivon-cargo-deny/bin" >> "$GITHUB_PATH"
+
       - name: Runtime dependency and license policy
-        uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
-        with:
-          rust-version: "1.99.1"
-          manifest-path: services/runtime/Cargo.toml
-          command: check
-          arguments: --config services/runtime/deny.toml
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Select only the pinned Rust toolchain. A bare mise exec also
+          # installs unrelated PowerShell/nextest tools from Runtime mise.toml,
+          # introducing GitHub API rate-limit failure before cargo-deny runs.
+          # cargo-deny common flags precede the "check" subcommand.
+          mise -C services/runtime exec rust@1.99.1 -- cargo deny \
+            --manifest-path Cargo.toml \
+            --config deny.toml check
 
       - name: Build exact canonical Runtime release artifact set
         shell: bash
@@ -114,6 +169,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
+          import ast
           import hashlib
           import json
           import os
@@ -124,8 +180,24 @@ jobs:
           root = Path(os.environ["RUNNER_TEMP"]) / "ordivon-runtime-tagged-release"
           manifest = json.loads((root / "candidate-manifest.json").read_text(encoding="utf-8"))
           artifacts = manifest.get("artifacts")
-          if not isinstance(artifacts, list) or len(artifacts) != 12:
-              raise SystemExit("canonical Runtime release manifest must contain exactly 12 artifacts")
+          native = ast.parse(Path("services/runtime/scripts/ordivon-runtime-deploy").read_text(
+              encoding="utf-8"
+          ))
+          canonical = {}
+          for node in native.body:
+              if isinstance(node, ast.Assign):
+                  for target in node.targets:
+                      if isinstance(target, ast.Name) and target.id in (
+                          "DEFAULT_BINARIES", "DEFAULT_OPERATOR_ARTIFACTS"
+                      ):
+                          canonical[target.id] = ast.literal_eval(node.value)
+          if set(canonical) != {"DEFAULT_BINARIES", "DEFAULT_OPERATOR_ARTIFACTS"}:
+              raise SystemExit("native Runtime release artifact declarations unavailable")
+          expected_names = set(canonical["DEFAULT_BINARIES"]) | {
+              entry[0] for entry in canonical["DEFAULT_OPERATOR_ARTIFACTS"]
+          }
+          if not isinstance(artifacts, list) or len(artifacts) != len(expected_names):
+              raise SystemExit("canonical Runtime release artifact cardinality differs from native deployer")
           if manifest.get("sourceOwnerPrefix") != "services/runtime":
               raise SystemExit("tagged Runtime release must bind the monorepo Runtime owner prefix")
 
@@ -155,6 +227,9 @@ jobs:
               if stat.S_IMODE(destination.stat().st_mode) != mode:
                   raise SystemExit(f"attestation staging changed canonical mode: {name}")
               checksums.append(f"{digest}  {name}\n")
+
+          if names != expected_names:
+              raise SystemExit("tagged Runtime release manifest names differ from native deployer")
 
           (root / "subjects.sha256").write_text("".join(checksums), encoding="utf-8")
           PY
@@ -194,7 +269,26 @@ jobs:
           set -euo pipefail
           root="$RUNNER_TEMP/ordivon-runtime-tagged-release"
           mapfile -d '' -t subjects < <(find "$root/attest-subjects" -maxdepth 1 -type f -print0)
-          test "${#subjects[@]}" -eq 12
+          python3 - "$root" "${subjects[@]}" <<'PY_SUBJECT_SET'
+          import json
+          import sys
+          from pathlib import Path
+
+          root = Path(sys.argv[1])
+          artifacts = json.loads((root / "candidate-manifest.json").read_text(
+              encoding="utf-8"
+          )).get("artifacts")
+          if not isinstance(artifacts, list):
+              raise SystemExit("missing canonical Runtime release artifact list")
+          expected = [item.get("name") for item in artifacts if isinstance(item, dict)]
+          observed = [Path(item).name for item in sys.argv[2:]]
+          if (len(expected) != len(artifacts)
+                  or len(expected) != len(set(expected))
+                  or len(observed) != len(expected)
+                  or len(observed) != len(set(observed))
+                  or set(observed) != set(expected)):
+              raise SystemExit("attested subjects must exactly match the canonical manifest")
+          PY_SUBJECT_SET
           for artifact in "${subjects[@]}"; do
             for predicate in "https://slsa.dev/provenance/v1" "https://spdx.dev/Document/v2.3"; do
               gh attestation verify "$artifact" \

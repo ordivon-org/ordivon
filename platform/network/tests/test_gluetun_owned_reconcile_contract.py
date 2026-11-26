@@ -17,7 +17,8 @@ def test_recovery_requires_selected_mode_and_operator_enabled_target():
 def test_timer_is_bounded_periodic_not_a_busy_loop():
     timer = (ROOT / "network-v2-gluetun-owned-reconcile.timer").read_text()
     assert "OnBootSec=1min" in timer
-    assert "OnCalendar=*-*-* *:0/2:00" in timer
-    assert "RandomizedDelaySec=10s" in timer
+    assert "OnCalendar=*-*-* *:*:00" in timer
+    assert "RandomizedDelaySec=5s" in timer
+    assert "AccuracySec=5s" in timer
     assert "Unit=network-v2-gluetun-owned-reconcile.service" in timer
     assert "WantedBy=timers.target" in timer

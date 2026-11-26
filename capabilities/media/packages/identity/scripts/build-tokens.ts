@@ -17,6 +17,7 @@ const outputDirectory = resolve(packageRoot, 'dist');
 const raw = await readFile(sourcePath, 'utf8');
 const source = JSON.parse(raw) as TokenNode;
 const compiled: Array<{name: string; value: string}> = [];
+const sourcePaths = new Map<string, string[]>();
 
 function kebab(value: string): string {
   return value.replace(/([a-z0-9])([A-Z])/g, '$1-$2').replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase();
@@ -63,7 +64,13 @@ function compileValue(type: string | undefined, value: unknown): string {
 function visit(node: TokenNode, path: string[], inheritedType?: string): void {
   const type = typeof node.$type === 'string' ? node.$type : inheritedType;
   if ('$value' in node) {
-    compiled.push({name: path.map(kebab).join('-'), value: compileValue(type, node.$value)});
+    const name = path.map(kebab).join('-');
+    const prior = sourcePaths.get(name);
+    if (prior !== undefined) {
+      throw new Error(`token name collision: ${JSON.stringify(prior)} and ${JSON.stringify(path)} → ${name}`);
+    }
+    sourcePaths.set(name, path);
+    compiled.push({name, value: compileValue(type, node.$value)});
     return;
   }
   for (const [key, child] of Object.entries(node)) {

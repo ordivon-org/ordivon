@@ -1,0 +1,15 @@
+{
+  "sourceRepo": "/root/projects/ordivon/services/runtime",
+  "installDir": "/usr/local/libexec/ordivon",
+  "envFile": "/etc/ordivon/ordivon-runtime-pg-only.env",
+  "receiptRoot": "/var/lib/ordivon/release-receipts",
+  "service": "ordivon-runtime.service",
+  "lockFile": "/run/lock/ordivon-runtime-pg-release.lock",
+  "pgSchema": "ordivon_runtime",
+  "sourceSha256": "REPLACE_WITH_64_LOWERCASE_HEX_SOURCE_SHA256",
+  "binaries": ["ordivon-runtime-pg", "ordivon-runtime-runner"],
+  "requiredTools": ["runtime.describe", "job.observe", "release.get"],
+  "requiredRef": "origin/main",
+  "drainSeconds": 30,
+  "waitSeconds": 60
+}

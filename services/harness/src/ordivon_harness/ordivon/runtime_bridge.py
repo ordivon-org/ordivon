@@ -22,6 +22,8 @@ from ..runtime_port import (
     HarnessRuntimeClient,
     HarnessRuntimeClientError,
     HarnessRuntimeToolRejected,
+    HarnessWorkspaceAdmissionUnavailable,
+    WorkspaceBoundEffectAdmission,
 )
 from .control import ExecutionControl
 from .model import AgentToolCall, AgentToolDefinition
@@ -96,13 +98,9 @@ _RUNTIME_DELIVERY_DISPOSITIONS = frozenset(
 # Exact Runtime JobResolution states: four conclusive outcomes plus two
 # uncertain outcomes form a disjoint sum at the Runtime/Harness boundary.
 # These names are the Runtime-owned public JobResolution wire contract.
-_RUNTIME_COMMITTED_RESOLUTIONS = frozenset(
-    {"succeeded", "failed", "timed_out", "cancelled"}
-)
+_RUNTIME_COMMITTED_RESOLUTIONS = frozenset({"succeeded", "failed", "timed_out", "cancelled"})
 _RUNTIME_UNCERTAIN_RESOLUTIONS = frozenset({"lost", "orphaned"})
-_RUNTIME_JOB_RESOLUTIONS = (
-    _RUNTIME_COMMITTED_RESOLUTIONS | _RUNTIME_UNCERTAIN_RESOLUTIONS
-)
+_RUNTIME_JOB_RESOLUTIONS = _RUNTIME_COMMITTED_RESOLUTIONS | _RUNTIME_UNCERTAIN_RESOLUTIONS
 
 
 def _find_runtime_jobs_by_client_request(
@@ -176,6 +174,89 @@ def _find_runtime_jobs_by_client_request(
     raise HarnessRuntimeClientError("task.list pagination exceeded the Harness bound")
 
 
+def _require_exact_owner_effect_handoff(
+    intent: HarnessToolStepIntent,
+    fence,
+    original_request: dict[str, JsonValue],
+    owner_request: dict[str, JsonValue],
+) -> None:
+    """Qualify actual physical send bytes against the committed Tool Intent.
+
+    The sole allowed post-Journal transformation for workspace.exec is
+    appending precisely ONE source-authenticated DispatchFence reference.
+    This does NOT create Runtime admission or prove that an external effect
+    happened; the Owner remains the physical idempotency/receipt authority.
+    """
+
+    def reject() -> None:
+        # Do not leak private executable arguments or identity evidence.
+        raise ToolBridgeError(
+            "Runtime Owner handoff differs from persisted Tool Intent/Fence",
+            kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+        )
+
+    try:
+        validate_json_value(original_request)
+        validate_json_value(owner_request)
+        if (
+            intent.runtime_operation != fence.runtime_operation
+            or intent.harness_run_id != fence.harness_run_id
+            or intent.digest != fence.intent_digest
+            or intent.client_request_id != fence.client_request_id
+            or (
+                intent.runtime_operation in {"workspace.exec", "workspace.patch"}
+                and (
+                    original_request.get("clientRequestId") != intent.client_request_id
+                    or owner_request.get("clientRequestId") != intent.client_request_id
+                )
+            )
+            or canonical_digest(original_request) != intent.runtime_arguments_digest
+        ):
+            reject()
+
+        if intent.runtime_operation != "workspace.exec":
+            if canonical_digest(owner_request) != intent.runtime_arguments_digest:
+                reject()
+            return
+
+        original_execution = original_request.get("execution")
+        actual_execution = owner_request.get("execution")
+        if not isinstance(original_execution, dict) or not isinstance(actual_execution, dict):
+            reject()
+        previous_refs = original_execution.get("foreignReferences")
+        owner_refs = actual_execution.get("foreignReferences")
+        if (
+            not isinstance(previous_refs, list)
+            or not isinstance(owner_refs, list)
+            or any(not isinstance(item, dict) for item in previous_refs)
+            or any(item.get("type") == "dispatch_fence" for item in previous_refs)
+            or len(owner_refs) != len(previous_refs) + 1
+            or owner_refs[:-1] != previous_refs
+        ):
+            reject()
+        expected_fence_ref = {
+            "namespace": fence.authority_namespace,
+            "type": fence.authority_type,
+            "id": fence.fence_id,
+            "generation": str(fence.authority_generation),
+            "digest": fence.digest,
+        }
+        if owner_refs[-1] != expected_fence_ref:
+            reject()
+        without_fence = dict(owner_request)
+        without_fence["execution"] = {
+            **actual_execution,
+            "foreignReferences": previous_refs,
+        }
+        if canonical_digest(without_fence) != intent.runtime_arguments_digest:
+            reject()
+    except (TypeError, ValueError, KeyError) as error:
+        raise ToolBridgeError(
+            "Runtime Owner handoff has invalid canonical JSON or missing identity",
+            kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+        ) from error
+
+
 def _runtime_error_value(error: BaseException) -> dict[str, JsonValue]:
     if isinstance(error, HarnessRuntimeToolRejected):
         return {
@@ -213,7 +294,10 @@ def _runtime_delivery_state(payload: dict[str, JsonValue]) -> str:
         or execution_disposition not in _RUNTIME_JOB_RESOLUTIONS
     ):
         raise HarnessRuntimeClientError("Runtime executionDisposition is invalid")
-    if delivery_disposition not in _RUNTIME_DELIVERY_DISPOSITIONS:
+    if (
+        not isinstance(delivery_disposition, str)
+        or delivery_disposition not in _RUNTIME_DELIVERY_DISPOSITIONS
+    ):
         raise HarnessRuntimeClientError("Runtime deliveryDisposition is invalid")
     if (
         delivery_disposition == "committed"
@@ -232,7 +316,11 @@ def _runtime_delivery_state(payload: dict[str, JsonValue]) -> str:
     if recovery_required or delivery_disposition == "reconciliation_required":
         return "reconcile"
     if delivery_disposition == "unknown":
-        if not execution_terminal or execution_disposition != "lost" or not result_available:
+        # Native PG cancellation can commit a LOST control result with only
+        # native-stop evidence, no Runner result.json and resultAvailable=False.
+        # This is still an uncertain physical outcome, never an observed Tool
+        # success. Older Runtime variants may retain a separate lost receipt.
+        if not execution_terminal or execution_disposition != "lost":
             raise HarnessRuntimeClientError("Runtime unknown delivery projection is inconsistent")
         return "unknown"
     if delivery_disposition == "in_progress":
@@ -267,11 +355,15 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
         tool_surface_digest: str | None = None,
         tool_grant_digest: str | None = None,
         tool_grant: RuntimeToolGrantView | None = None,
+        workspace_admission: WorkspaceBoundEffectAdmission | None = None,
+        require_workspace_admission: bool = False,
     ) -> None:
         self._tool_definitions = tool_definitions or (SEARCH_WORKSPACE_DEFINITION,)
         self._tool_surface_digest = tool_surface_digest or INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST
         self._tool_grant_digest = tool_grant_digest or INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST
         self._tool_grant = tool_grant
+        self._workspace_admission = workspace_admission
+        self._workspace_admission_required = require_workspace_admission
         super().__init__(
             contract,
             run_store,
@@ -316,6 +408,42 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
             raise ToolBridgeError(
                 "independent Runtime Tool catalog drifted",
                 kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+            )
+
+    def require_workspace_turn_ready(self, *, turn_id: str | None = None) -> None:
+        """Source-consumer hook for the caller before any possibly PAUSED model Turn.
+
+        The injected Port must obtain current Runtime-owner evidence, not accept
+        a caller-crafted Boolean/foreign reference as proof. No Port means the
+        current installation cannot certify same-Workspace resume, even though
+        legacy Source callers may still execute until owner cutover.
+        """
+        if turn_id is not None and (
+            not isinstance(turn_id, str) or not turn_id or turn_id != turn_id.strip()
+        ):
+            raise ValueError("Workspace admission turn_id must be non-empty and trimmed")
+        if self._workspace_admission is None:
+            raise HarnessWorkspaceAdmissionUnavailable(
+                "Runtime PG HELD/Issuer admission is not installed for this Workspace Run"
+            )
+        try:
+            result = self._workspace_admission.require_turn_ready(
+                run_ref=self.contract.harness_run_id,
+                workspace_id=self.execution_binding.workspace_ref,
+                tool_grant_digest=self.contract.tool_grant_digest,
+                turn_id=turn_id,
+            )
+        except HarnessWorkspaceAdmissionUnavailable:
+            raise
+        except Exception as error:
+            # A readback transport failure is UNKNOWN/NO_PROVIDER, not a
+            # model-correctable argument problem or synthetic HELD evidence.
+            raise HarnessWorkspaceAdmissionUnavailable(
+                f"Runtime Workspace turn qualification unavailable: {type(error).__name__}"
+            ) from error
+        if result is not None:
+            raise HarnessWorkspaceAdmissionUnavailable(
+                "Workspace admission Port must authenticate in its owner boundary, not return a caller token"
             )
 
     def bind_run_state(
@@ -408,7 +536,11 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
         control: ExecutionControl,
     ) -> HarnessToolObservation:
         current = self.run_store.load_current_tool_step()
-        if current.receipt is not None and current.receipt.terminal:
+        if (
+            current.receipt is not None
+            and current.receipt.terminal
+            and current.receipt.status is not HarnessToolStepStatus.UNKNOWN
+        ):
             if current.observation is None:
                 raise ToolBridgeError(
                     "terminal Tool Observation content was not retained by the Privacy policy; "
@@ -450,11 +582,7 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
                 relative_path=None,
                 reconciled=True,
             )
-        return self._record_observation(
-            current.intent,
-            observation,
-            previous_receipt=current.receipt,
-        )
+        return self._record_owner_reconciliation(current, observation)
 
     def reconcile_current_tool_step_with_call(
         self,
@@ -478,7 +606,11 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
                 "recovered Tool Call differs from active durable Intent",
                 kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
             )
-        if current.receipt is not None and current.receipt.terminal:
+        if (
+            current.receipt is not None
+            and current.receipt.terminal
+            and current.receipt.status is not HarnessToolStepStatus.UNKNOWN
+        ):
             if current.observation is None:
                 raise ToolBridgeError(
                     "terminal Tool Observation content was not retained by the Privacy policy; "
@@ -497,11 +629,7 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
                 tool_name=current.intent.tool_name,
                 client_request_id=current.intent.client_request_id,
             )
-            return self._record_observation(
-                current.intent,
-                observation,
-                previous_receipt=current.receipt,
-            )
+            return self._record_owner_reconciliation(current, observation)
         if current.intent.runtime_operation != "workspace.exec":
             return self.reconcile_current_tool_step(control=control)
 
@@ -531,11 +659,7 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
             relative_path=relative_path,
             control=control,
         )
-        return self._record_observation(
-            current.intent,
-            observation,
-            previous_receipt=current.receipt,
-        )
+        return self._record_owner_reconciliation(current, observation)
 
     def _lower_runtime_tool_call(
         self,
@@ -635,7 +759,10 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
             recovery_consequence=self.recovery_consequence,
             created_at_ms=self.run_store.clock_ms(),
         )
-        self.run_store.prepare_tool_step(intent)
+        self.run_store.prepare_tool_step(
+            intent,
+            original_request=request if operation == "workspace.exec" else None,
+        )
         current = self.run_store.load_current_tool_step()
         if current.intent != intent or current.fence is None:
             raise ToolBridgeError(
@@ -647,6 +774,12 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
             self._with_dispatch_fence(request, current.fence)
             if operation == "workspace.exec"
             else request
+        )
+        # The Run revision/Fence alone is NOT a proof that the exact frozen
+        # physical request survived lowering and adapter composition.
+        # Compare the real Owner-bound bytes before any possible effect.
+        _require_exact_owner_effect_handoff(
+            current.intent, current.fence, request, dispatch_request
         )
         query = call.arguments.get("query") if call.name == "search_workspace" else None
         raw_queries = call.arguments.get("queries") if call.name == "search_workspace" else None
@@ -678,6 +811,38 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
             )
             return self._record_observation(intent, observation)
         try:
+            # These checks consume one injected Runtime-owner Port. The same
+            # Port is reused by Gateway and built-in adapters; no second
+            # authorization service or Harness PG Writer is introduced.
+            if self._workspace_admission_required and self._workspace_admission is None:
+                raise HarnessWorkspaceAdmissionUnavailable(
+                    "Runtime Workspace effect admission is unavailable"
+                )
+            if self._workspace_admission is not None:
+                try:
+                    confirmed = self._workspace_admission.require_effect_ready(
+                        run_ref=self.contract.harness_run_id,
+                        workspace_id=self.execution_binding.workspace_ref,
+                        tool_grant_digest=self.contract.tool_grant_digest,
+                        runtime_operation=operation,
+                        client_request_id=client_request_id,
+                    )
+                except HarnessWorkspaceAdmissionUnavailable:
+                    raise
+                except Exception as error:
+                    # This query happens BEFORE the native Tool request.
+                    # Unknown holder readback must not become a lookup for a
+                    # possibly non-existent Runtime Job, nor a blind retry.
+                    raise HarnessWorkspaceAdmissionUnavailable(
+                        f"Runtime Workspace effect qualification unavailable: {type(error).__name__}"
+                    ) from error
+                if confirmed is not None:
+                    raise HarnessWorkspaceAdmissionUnavailable(
+                        "Workspace effect Port returned an unqualified caller token"
+                    )
+                # The PG Fence can change while a Remote Owner readback runs.
+                # This second Source check is still not a Native spawn fence.
+                self.run_store.assert_dispatch_fence_current(current.fence)
             payload = self.runtime.call_tool(operation, dispatch_request)
             validate_json_value(payload)
             if operation == "workspace.exec":
@@ -728,6 +893,22 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
                         relative_path=relative_path,
                         reconciled=False,
                     )
+        except HarnessWorkspaceAdmissionUnavailable as error:
+            # This Port refused before any Owner call. Never misclassify it as
+            # an ambiguous Runtime submission or consult unrelated Job IDs.
+            observation = HarnessToolObservation(
+                tool_call_id=call.tool_call_id,
+                tool_name=call.name,
+                status="rejected",
+                structured_content={
+                    "type": "WorkspaceAdmissionUnavailable",
+                    "safeToCorrect": False,
+                    "physicalDispatch": False,
+                    "commitState": "not_started",
+                    "clientRequestId": client_request_id,
+                    "reason": str(error)[:512],
+                },
+            )
         except HarnessRuntimeToolRejected as error:
             if error.detail.commit_state in {"not_started", "not_committed"}:
                 observation = HarnessToolObservation(
@@ -1163,6 +1344,30 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
         raise ToolBridgeError(
             "workspace.patch.get returned an unsupported state",
             kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+        )
+
+    def _record_owner_reconciliation(
+        self, current, observation: HarnessToolObservation
+    ) -> HarnessToolObservation:
+        """Use the existing Runtime Owner observation; never re-dispatch.
+
+        An unchanged UNKNOWN is not new evidence and must not generate an
+        infinite Receipt chain. Private observations are never invented from
+        their hashes. A determinate owner status can reconcile the exact
+        historical UNKNOWN without changing Runtime clientRequestId.
+        """
+        if (
+            current.receipt is not None
+            and current.receipt.status is HarnessToolStepStatus.UNKNOWN
+            and observation.status == "unknown"
+        ):
+            if current.observation is not None:
+                return HarnessToolObservation.from_dict(current.observation)
+            return observation
+        return self._record_observation(
+            current.intent,
+            observation,
+            previous_receipt=current.receipt,
         )
 
     def _record_observation(

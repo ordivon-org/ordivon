@@ -2,7 +2,7 @@ pub(crate) fn workspace_head_and_dirty_at(
     workspace: &Path,
 ) -> Result<(String, WorkspaceHeadMode, bool), UniversalExecError> {
     let workspace = canonical_directory(workspace, "workspacePath")?;
-    let output = Command::new("git")
+    let output = workspace_git_command()
         .arg("--no-optional-locks")
         .arg("-C")
         .arg(&workspace)
@@ -131,7 +131,7 @@ fn workspace_source_state_digest_with_unborn_policy(
             if !branch.starts_with("refs/heads/") {
                 return Err(error);
             }
-            let check = Command::new("git")
+            let check = workspace_git_command()
                 .arg("-C")
                 .arg(&workspace)
                 .args(["show-ref", "--verify", "--quiet", branch])
@@ -369,7 +369,7 @@ fn symlink_target_bytes(target: &Path) -> Vec<u8> {
 }
 
 fn is_git_worktree(path: &Path) -> Result<bool, UniversalExecError> {
-    let output = Command::new("git")
+    let output = workspace_git_command()
         .arg("-C")
         .arg(path)
         .args(["rev-parse", "--is-inside-work-tree", "--show-prefix"])
@@ -441,7 +441,7 @@ mod gitlink_worktree_root_tests {
         ));
         fs::create_dir_all(&root).expect("create root");
         let run = |cwd: &Path, args: &[&str]| {
-            let output = Command::new("git")
+            let output = workspace_git_command()
                 .arg("-C")
                 .arg(cwd)
                 .args(args)
@@ -502,7 +502,7 @@ mod gitlink_worktree_root_tests {
         ));
         fs::create_dir_all(&root).expect("create root");
         let run = |cwd: &Path, args: &[&str]| {
-            let output = Command::new("git")
+            let output = workspace_git_command()
                 .arg("-C")
                 .arg(cwd)
                 .args(args)
@@ -560,7 +560,7 @@ mod gitlink_worktree_root_tests {
             std::process::id()
         ));
         fs::create_dir_all(&root).expect("create outer root");
-        let init = Command::new("git")
+        let init = workspace_git_command()
             .arg("-C")
             .arg(&root)
             .args(["init", "--quiet"])
@@ -585,7 +585,7 @@ mod gitlink_worktree_root_tests {
         ));
         fs::create_dir_all(&root).expect("create parent");
         let run = |cwd: &Path, args: &[&str]| {
-            let output = Command::new("git")
+            let output = workspace_git_command()
                 .arg("-C")
                 .arg(cwd)
                 .args(args)
@@ -632,7 +632,7 @@ mod gitlink_worktree_root_tests {
         ));
         let nested = root.join("ordinary");
         fs::create_dir_all(&nested).expect("create ordinary directory");
-        let status = Command::new("git")
+        let status = workspace_git_command()
             .arg("-C")
             .arg(&root)
             .args(["init", "--quiet"])
@@ -648,3 +648,7 @@ mod gitlink_worktree_root_tests {
         fs::remove_dir_all(&root).expect("cleanup fixture");
     }
 }
+
+#[path = "source_readset.rs"]
+mod source_readset;
+pub(crate) use source_readset::workspace_source_readset_digest_at;

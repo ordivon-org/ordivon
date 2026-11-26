@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from ordivon_studio.production_context import build_production_context
 
@@ -77,7 +79,7 @@ class ProductionContextTests(unittest.TestCase):
         self.assertEqual(context["production"]["status"], "review")
         self.assertGreater(context["claims"]["count"], 0)
         rendered = next(item for item in context["outputs"] if item["id"] == "runtime-film-en-landscape")
-        self.assertEqual(rendered["status"], "rendered")
+        self.assertEqual(rendered["status"], "approved")
         self.assertTrue(rendered["blobDigest"].startswith("sha256:"))
         currentness = context["sourceBindingCurrentness"]
         self.assertFalse(currentness["allBindingsRevalidated"])
@@ -122,6 +124,238 @@ class ProductionContextTests(unittest.TestCase):
             self.assertEqual(second_observation["boundRevision"], bound_revision)
             self.assertTrue(second_observation["revisionPresent"])
             self.assertEqual(second_observation["semanticApplicability"], "not-evaluated")
+
+    def test_real_approved_article_binds_exact_source_carrier_bytes(self) -> None:
+        context = build_production_context(ROOT / "productions/browser-perception-note")
+        self.assertEqual(context["production"]["status"], "review")
+        self.assertEqual(context["outputs"][0]["status"], "approved")
+        evidence = context["outputByteIdentity"]
+        observed = evidence["observations"][0]
+        self.assertEqual(observed["sourceSelection"], "declared-exact-source-carrier")
+        self.assertEqual(observed["relation"], "MATCHES_DECLARED_DIGEST")
+        self.assertEqual(observed["expectedBlobDigest"], observed["observedBlob"]["digest"])
+        self.assertEqual(
+            context["inputManifestIdentity"]["productionManifestSha256"],
+            "sha256:" + hashlib.sha256(
+                (ROOT / "productions/browser-perception-note/production.json").read_bytes()
+            ).hexdigest(),
+        )
+        self.assertEqual(
+            context["inputManifestIdentity"]["claimsManifestSha256"],
+            "sha256:" + hashlib.sha256(
+                (ROOT / "productions/browser-perception-note/claims.json").read_bytes()
+            ).hexdigest(),
+        )
+        self.assertEqual(evidence["publicationAuthorization"], "not-evaluated")
+
+    def test_transformed_output_needs_explicit_file_and_is_never_auto_approved(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            production = root / "production"
+            _write_fixture(production, revision="a" * 40)
+            selected = root / "selected.mp4"
+            selected.write_bytes(b"rendered-output")
+            expected = "sha256:" + hashlib.sha256(selected.read_bytes()).hexdigest()
+            manifest_path = production / "production.json"
+            manifest = json.loads(manifest_path.read_text())
+            manifest["outputs"][0]["blobDigest"] = expected
+            manifest_path.write_text(json.dumps(manifest))
+            without_file = build_production_context(production)
+            self.assertEqual(
+                without_file["outputByteIdentity"]["observations"][0]["relation"],
+                "UNKNOWN_NO_SELECTED_BYTES",
+            )
+            with_file = build_production_context(
+                production, output_files={"fixture-output": selected}
+            )
+            self.assertEqual(
+                with_file["outputByteIdentity"]["observations"][0]["relation"],
+                "MATCHES_DECLARED_DIGEST",
+            )
+            self.assertEqual(with_file["outputs"][0]["status"], "rendered")
+            self.assertEqual(
+                with_file["outputByteIdentity"]["observations"][0]["selectedPath"],
+                str(selected.resolve()),
+            )
+            self.assertEqual(
+                with_file["outputByteIdentity"]["publicationAuthorization"], "not-evaluated"
+            )
+
+            selected.write_bytes(b"changed-output")
+            stale = build_production_context(
+                production, output_files={"fixture-output": selected}
+            )
+            self.assertEqual(
+                stale["outputByteIdentity"]["observations"][0]["relation"],
+                "DIFFERS_FROM_DECLARED_DIGEST",
+            )
+            selected.unlink()
+            missing = build_production_context(
+                production, output_files={"fixture-output": selected}
+            )
+            self.assertEqual(
+                missing["outputByteIdentity"]["observations"][0]["relation"],
+                "UNKNOWN_SELECTED_FILE_UNAVAILABLE",
+            )
+
+    def test_unstable_selected_output_is_unknown_without_stopping_other_evidence(self) -> None:
+        from ordivon_studio.assets import hash_file
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            production = root / "production"
+            _write_fixture(production, revision="a" * 40)
+            selected = root / "selected.mp4"
+            selected.write_bytes(b"rendered-output")
+            manifest_path = production / "production.json"
+            manifest = json.loads(manifest_path.read_text())
+            manifest["outputs"][0]["blobDigest"] = hash_file(selected).digest
+            manifest_path.write_text(json.dumps(manifest))
+            # Exercise the actual file hasher's concurrent-change witness.
+            import os
+            from types import SimpleNamespace
+
+            real_fstat = os.fstat
+            calls = 0
+
+            def changed(fd):
+                nonlocal calls
+                observed = real_fstat(fd)
+                calls += 1
+                if calls == 1:
+                    return observed
+                return SimpleNamespace(
+                    st_dev=observed.st_dev,
+                    st_ino=observed.st_ino,
+                    st_size=observed.st_size + 1,
+                    st_mtime_ns=observed.st_mtime_ns,
+                    st_ctime_ns=observed.st_ctime_ns,
+                )
+
+            with patch("ordivon_studio.assets.os.fstat", side_effect=changed):
+                result = build_production_context(
+                    production, output_files={"fixture-output": selected}
+                )
+            row = result["outputByteIdentity"]["observations"][0]
+            self.assertEqual(row["relation"], "UNKNOWN_SELECTED_FILE_UNSTABLE")
+            self.assertIsNone(row["observedBlob"])
+            self.assertEqual(result["outputs"][0]["status"], "rendered")
+            self.assertEqual(result["outputByteIdentity"]["publicationAuthorization"], "not-evaluated")
+            self.assertEqual(calls, 2)
+
+    def test_source_carrier_unlisted_missing_and_symlink_escape_cannot_be_verified(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            production = root / "production"
+            _write_fixture(production, revision="b" * 40)
+            manifest_path = production / "production.json"
+            manifest = json.loads(manifest_path.read_text())
+            manifest["outputs"][0]["sourceCarrier"] = "raw.bin"
+            manifest_path.write_text(json.dumps(manifest))
+            unlisted = build_production_context(production)
+            self.assertEqual(
+                unlisted["outputByteIdentity"]["observations"][0]["relation"],
+                "INVALID_UNDECLARED_SOURCE_CARRIER",
+            )
+            manifest["sources"]["scripts"] = ["raw.bin"]
+            manifest_path.write_text(json.dumps(manifest))
+            missing = build_production_context(production)
+            self.assertEqual(
+                missing["outputByteIdentity"]["observations"][0]["relation"],
+                "UNKNOWN_SELECTED_FILE_UNAVAILABLE",
+            )
+            secret = root / "outside.bin"
+            secret.write_bytes(b"not-production-data")
+            (production / "raw.bin").symlink_to(secret)
+            escaped = build_production_context(production)
+            self.assertEqual(
+                escaped["outputByteIdentity"]["observations"][0]["relation"],
+                "INVALID_ESCAPING_SOURCE_CARRIER",
+            )
+
+    def test_real_production_local_output_carriers_are_byte_verified(self) -> None:
+        # Real completed media consumers; no invented physical status or provider.
+        expected = {
+            "archive-archipelago-001": 4,
+            "convergence-object-001": 1,
+            "convergence-sonic-ident": 4,
+            "friction-loop-field-zine": 1,
+            "live-relay-001": 3,
+            "ordivon-system-constellation-atlas": 3,
+            "site-social-card": 1,
+            "studio-expression-card": 1,
+        }
+        for production_id, count in expected.items():
+            with self.subTest(production=production_id):
+                context = build_production_context(ROOT / "productions" / production_id)
+                selected = [
+                    row for row in context["outputByteIdentity"]["observations"]
+                    if row["sourceSelection"] == "declared-local-output-carrier"
+                ]
+                self.assertGreaterEqual(len(selected), count)
+                self.assertTrue(
+                    all(row["relation"] == "MATCHES_DECLARED_DIGEST" for row in selected)
+                )
+                self.assertEqual(
+                    context["outputByteIdentity"]["publicationAuthorization"], "not-evaluated"
+                )
+
+    def test_local_output_carrier_never_promotes_missing_or_changed_bytes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            production = root / "production"
+            _write_fixture(production, revision="c" * 40)
+            carrier = production / "render" / "master.bin"
+            carrier.parent.mkdir()
+            carrier.write_bytes(b"exact original")
+            manifest_path = production / "production.json"
+            manifest = json.loads(manifest_path.read_text())
+            manifest["outputs"][0]["outputCarrier"] = "render/master.bin"
+            manifest["outputs"][0]["blobDigest"] = (
+                "sha256:" + hashlib.sha256(carrier.read_bytes()).hexdigest()
+            )
+            manifest_path.write_text(json.dumps(manifest))
+            first = build_production_context(production)
+            item = first["outputByteIdentity"]["observations"][0]
+            self.assertEqual(item["sourceSelection"], "declared-local-output-carrier")
+            self.assertEqual(item["relation"], "MATCHES_DECLARED_DIGEST")
+            self.assertEqual(first["outputs"][0]["status"], "rendered")
+
+            carrier.write_bytes(b"unapproved mutation")
+            changed = build_production_context(production)
+            self.assertEqual(
+                changed["outputByteIdentity"]["observations"][0]["relation"],
+                "DIFFERS_FROM_DECLARED_DIGEST",
+            )
+            carrier.unlink()
+            missing = build_production_context(production)
+            self.assertEqual(
+                missing["outputByteIdentity"]["observations"][0]["relation"],
+                "UNKNOWN_SELECTED_FILE_UNAVAILABLE",
+            )
+            secret = root / "external.bin"
+            secret.write_bytes(b"outside")
+            carrier.symlink_to(secret)
+            escaped = build_production_context(production)
+            self.assertEqual(
+                escaped["outputByteIdentity"]["observations"][0]["relation"],
+                "INVALID_ESCAPING_OUTPUT_CARRIER",
+            )
+
+            manifest["outputs"][0]["sourceCarrier"] = "render/master.bin"
+            manifest_path.write_text(json.dumps(manifest))
+            double = build_production_context(production)
+            self.assertEqual(
+                double["outputByteIdentity"]["observations"][0]["relation"],
+                "INVALID_MULTIPLE_CARRIERS",
+            )
+
+    def test_unknown_output_selection_fails_closed(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unknown output"):
+            build_production_context(
+                ROOT / "productions/browser-perception-note",
+                output_files={"not-output": Path("/does/not/matter")},
+            )
 
     def test_unknown_source_binding_mapping_fails_closed(self) -> None:
         with self.assertRaisesRegex(ValueError, "unknown binding"):

@@ -1,27 +1,11 @@
 from __future__ import annotations
 
-import json
 import subprocess
 from pathlib import Path
 from typing import Any
 
-
-def _load_object(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(value, dict):
-        raise TypeError(f"{path} must contain one JSON object")
-    return value
-
-
-def _relative_child(root: Path, relative: str) -> Path:
-    candidate = Path(relative)
-    if candidate.is_absolute():
-        raise ValueError(f"Production source path must be relative: {relative}")
-    resolved_root = root.resolve()
-    resolved = (root / candidate).resolve()
-    if resolved != resolved_root and resolved_root not in resolved.parents:
-        raise ValueError(f"Production source path escapes Production root: {relative}")
-    return resolved
+from .production_output_identity import declared_source_files, observe_output_blob
+from .production_source_io import claims_source_path, read_bound_object
 
 
 def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -89,21 +73,21 @@ def _source_binding_observation(
     return base
 
 
+
 def build_production_context(
     production_root: Path,
     *,
     source_repositories: dict[str, Path] | None = None,
+    output_files: dict[str, Path] | None = None,
 ) -> dict[str, Any]:
     root = production_root.resolve()
     production_path = root / "production.json"
-    production = _load_object(production_path)
+    production, production_manifest_digest = read_bound_object(production_path)
 
     production_id = production.get("id")
-    sources = production.get("sources")
-    if not isinstance(sources, dict) or not isinstance(sources.get("claims"), str):
-        raise TypeError("Production must reference one claims source")
-    claims_path = _relative_child(root, sources["claims"])
-    claims_document = _load_object(claims_path)
+    claims_path = claims_source_path(root, production)
+    sources = production["sources"]
+    claims_document, claims_manifest_digest = read_bound_object(claims_path)
     if claims_document.get("productionId") != production_id:
         raise ValueError("Claim set productionId does not match Production id")
 
@@ -151,6 +135,30 @@ def build_production_context(
             }
         )
 
+    selected_output_files = output_files or {}
+    output_ids = [output.get("id") for output in outputs if isinstance(output, dict)]
+    if len(output_ids) != len(set(output_ids)):
+        raise ValueError("Production outputs contain duplicate ids")
+    unknown_output_ids = sorted(set(selected_output_files) - set(output_ids))
+    if unknown_output_ids:
+        raise ValueError(
+            "output-file mapping names unknown output(s): " + ", ".join(unknown_output_ids)
+        )
+    source_file_names = declared_source_files(sources)
+    output_observations = [
+        observe_output_blob(
+            root,
+            output,
+            declared_source_files=source_file_names,
+            selected_file=selected_output_files.get(output["id"]),
+        )
+        for output in outputs
+    ]
+
+    from .operation_impact import project_operation_impact
+
+    operation_impact = project_operation_impact(root, production, output_observations)
+
     projected_outputs = []
     for output in outputs:
         if not isinstance(output, dict):
@@ -158,7 +166,7 @@ def build_production_context(
         projected_outputs.append(
             {
                 key: output[key]
-                for key in ("id", "kind", "status", "profile", "blobDigest")
+                for key in ("id", "kind", "status", "profile", "blobDigest", "outputCarrier")
                 if key in output
             }
         )
@@ -178,6 +186,25 @@ def build_production_context(
             "items": projected_claims,
         },
         "outputs": projected_outputs,
+        "operationLineage": operation_impact,
+        "inputManifestIdentity": {
+            "productionManifestSha256": production_manifest_digest,
+            "claimsManifestSha256": claims_manifest_digest,
+            "truthRole": "exact-parsed-input-bytes-not-source-currentness",
+        },
+        "outputByteIdentity": {
+            "truthRole": "point-in-time-local-byte-comparison-only",
+            "semanticApplicability": "not-evaluated",
+            "editorialApproval": "source-declared-only",
+            "publicationAuthorization": "not-evaluated",
+            "rule": (
+                "Digest equality establishes only observed byte identity at inspection. "
+                "Missing bindings are UNKNOWN, not FALSE. Declared outputCarrier paths "
+                "are local materializations, not durable Artifact ownership. Neither Output "
+                "status, file equality, nor historical receipts authorize publication."
+            ),
+            "observations": output_observations,
+        },
         "sourceBindingCurrentness": {
             "truthRole": "mechanical-git-relation-only",
             "allBindingsRevalidated": bool(observations)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only, version-exact acceptance for Ordivon's tracked SQL dialect files."""
+"""Read-only SQL dialect acceptance; PostgreSQL 18 minor updates are compatible."""
 from __future__ import annotations
 
 import argparse
@@ -23,6 +23,9 @@ SQLITE_STORAGE = "services/runtime/crates/ordivon-runtime-core/src/runtime/"
 OSQUERY_PREFIX = "platform/workstation/inventory/queries/"
 POSTGRESQL_FILE = "studies/experimental-episodes/episode-store/sql/runtime_r5c_export.sql"
 POSTGRESQL_RUNTIME_EPOCH = "services/runtime/crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"
+POSTGRESQL_RUNTIME_ARTIFACT_INDEX = "services/runtime/crates/ordivon-runtime-core/sql/pg_artifact_job_lookup_r1.sql"
+POSTGRESQL_RUNTIME_CLAIMS = "services/runtime/crates/ordivon-runtime-core/sql/pg_workspace_claim_r1.sql"
+POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER = "services/runtime/sql/pg_resource_scheduler_v1.sql"
 POSTGRESQL_ELE_STUDY_SCHEMA = "catalogs/capabilities/ele/schema.sql"
 
 # Exact full-host inventories can traverse thousands of installed Python/npm
@@ -85,9 +88,6 @@ SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
     'services/runtime/crates/ordivon-runtime-core/src/runtime/registry/query.rs': 9,
     'services/runtime/crates/ordivon-runtime-core/src/runtime/registry_storage.rs': 9,
     'services/runtime/crates/ordivon-runtime-core/src/runtime/repair.rs': 1,
-    # Explicit one-shot read-only source census for PG-selective migration.
-    # This is legacy source debt, never a new SQLite write authority.
-    'services/runtime/scripts/pg_retention_census.py': 1,
     'services/runtime/scripts/backup.py': 2,
     'services/runtime/scripts/mcp_e2e.py': 1,
     'services/runtime/scripts/restore.py': 1,
@@ -262,7 +262,7 @@ def classify(path: str) -> str | None:
         return "sqlite"
     if path.startswith(SQLITE_STORAGE) and path.endswith("_storage.sql"):
         return "sqlite"
-    if path in {POSTGRESQL_FILE, POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_ELE_STUDY_SCHEMA}:
+    if path in {POSTGRESQL_FILE, POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_ARTIFACT_INDEX, POSTGRESQL_RUNTIME_CLAIMS, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER, POSTGRESQL_ELE_STUDY_SCHEMA}:
         return "postgresql"
     return None
 
@@ -356,9 +356,10 @@ def host_postgres_only_sources(root: Path) -> list[str]:
                     for item in forbidden
                 ) or any("sqlalchemy.dialects.sqlite" in name for name in imports):
                     issues.append(f"Host PostgreSQL authority forbids embedded SQL import: {rel}")
-                if isinstance(node, ast.Constant) and isinstance(node.value, str):
-                    if "sqlite:" in node.value.lower():
-                        issues.append(f"Host PostgreSQL authority forbids SQLite DSN: {rel}")
+                if (isinstance(node, ast.Constant)
+                        and isinstance(node.value, str)
+                        and "sqlite:" in node.value.lower()):
+                    issues.append(f"Host PostgreSQL authority forbids SQLite DSN: {rel}")
                 if isinstance(node, ast.Call) and node.args:
                     target = node.func
                     dynamic = (
@@ -376,6 +377,138 @@ def host_postgres_only_sources(root: Path) -> list[str]:
     if not has_postgres_client:
         issues.append("Host PostgreSQL authority has no active psycopg.connect consumer")
     return sorted(set(issues))
+
+
+def pg_runtime_ddl_structure_issues(name: str, parsed: object) -> list[str]:
+    """Check the full PG Runtime schema AST, including named side effects.
+
+    The normal SQL gate parses source bytes with pinned pglast 8.6; this pure
+    helper also permits deterministic mutation tests without a second parser.
+    """
+    issues: list[str] = []
+    if name == POSTGRESQL_RUNTIME_EPOCH:
+        # Parse the exact complete fresh-epoch DDL, including the
+        # resource scheduler allocation table + index. Do not silently
+        # admit additional DROP/GRANT or unmanaged tables.
+        observed = tuple(type(statement.stmt).__name__ for statement in parsed)
+        expected = (
+            "TransactionStmt", "DoStmt",
+            "CreateStmt", "CreateStmt", "CreateStmt", "CreateStmt",
+            "CreateStmt", "IndexStmt", "CreateStmt", "IndexStmt",
+            "CreateStmt", "CreateStmt", "IndexStmt", "CreateStmt", "IndexStmt", "CreateStmt", "TransactionStmt",
+        )
+        named = [
+            (type(statement.stmt).__name__,
+             statement.stmt.relation.relname,
+             getattr(statement.stmt, "idxname", None))
+            for statement in parsed
+            if type(statement.stmt).__name__ in ("CreateStmt", "IndexStmt")
+        ]
+        expected_named = [
+            ("CreateStmt", name, None)
+            for name in ("jobs", "attempts", "idempotency_keys",
+                         "concurrency_reservations", "job_allocations")
+        ] + [
+            ("IndexStmt", "job_allocations", "idx_job_allocations_active"),
+            ("CreateStmt", "workspace_consumer_claims", None),
+            ("IndexStmt", "workspace_consumer_claims", "idx_workspace_consumer_claims_held"),
+            ("CreateStmt", "job_events", None),
+            ("CreateStmt", "job_runtime_release_effects", None),
+            ("IndexStmt", "job_runtime_release_effects",
+             "idx_runtime_release_effect_request"),
+            ("CreateStmt", "artifacts", None),
+            ("IndexStmt", "artifacts", "idx_artifacts_job"),
+            ("CreateStmt", "_stage_control", None),
+        ]
+        if (
+            observed != expected
+            or named != expected_named
+            or parsed[0].stmt.kind != 0
+            or parsed[-1].stmt.kind != 2
+        ):
+            issues.append(
+                f"PostgreSQL fresh-epoch DDL statement structure changed: {name}"
+            )
+    elif name == POSTGRESQL_RUNTIME_ARTIFACT_INDEX:
+        # Pure server SQL: native AST, no psql meta-command parser.
+        observed = tuple(type(statement.stmt).__name__ for statement in parsed)
+        if observed != ("DoStmt", "IndexStmt", "DoStmt", "DoStmt"):
+            issues.append(f"PostgreSQL Runtime Artifact online index structure changed: {name}")
+        else:
+            index = parsed[1].stmt
+            if (
+                index.relation.relname != "artifacts"
+                or index.idxname != "idx_artifacts_job"
+                or not index.concurrent or not index.if_not_exists
+                or index.unique or index.whereClause is not None
+                or index.accessMethod != "btree"
+                or index.indexIncludingParams
+                or len(index.indexParams) != 1
+                or index.indexParams[0].name != "job_id"
+                or index.indexParams[0].expr is not None
+                or index.indexParams[0].opclass
+                or index.indexParams[0].collation
+            ):
+                issues.append(f"PostgreSQL Runtime Artifact online index shape changed: {name}")
+    elif name == POSTGRESQL_RUNTIME_CLAIMS:
+        # The additive migration is operator-scoped to exactly the Runtime PG
+        # owner schema. One guarded DO, one new table, one partial held-claim
+        # index: no DROP/GRANT/COPY, no unmanaged schema or second registry.
+        observed = tuple(type(statement.stmt).__name__ for statement in parsed)
+        named = [
+            (type(statement.stmt).__name__, statement.stmt.relation.relname,
+             getattr(statement.stmt, "idxname", None))
+            for statement in parsed
+            if type(statement.stmt).__name__ in ("CreateStmt", "IndexStmt")
+        ]
+        if (
+            observed != ("TransactionStmt", "DoStmt", "CreateStmt",
+                         "IndexStmt", "TransactionStmt")
+            or named != [
+                ("CreateStmt", "workspace_consumer_claims", None),
+                ("IndexStmt", "workspace_consumer_claims", "idx_workspace_consumer_claims_held"),
+            ]
+            or parsed[0].stmt.kind != 0
+            or parsed[-1].stmt.kind != 2
+        ):
+            issues.append(
+                f"PostgreSQL Runtime Claim additive DDL statement structure changed: {name}"
+            )
+    elif name == POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER:
+        # Resource allocation schema is a schema-owner migration,
+        # never a GRANT/DROP or unscoped public-table side effect.
+        # Keep a full-file AST gate instead of blanket extension approval.
+        observed = tuple(type(statement.stmt).__name__ for statement in parsed)
+        if (
+            observed != (
+                "TransactionStmt", "DoStmt", "CreateStmt",
+                "IndexStmt", "TransactionStmt",
+            )
+            or parsed[0].stmt.kind != 0
+            or parsed[-1].stmt.kind != 2
+            or parsed[2].stmt.relation.relname != "job_allocations"
+            or parsed[3].stmt.idxname != "idx_job_allocations_active"
+            or parsed[3].stmt.relation.relname != "job_allocations"
+        ):
+            issues.append(
+                f"PostgreSQL resource scheduler DDL structure changed: {name}"
+            )
+    return issues
+
+
+def supported_postgres_client_version(version: str) -> bool:
+    """Accept same-major PostgreSQL minor maintenance releases at/above baseline.
+
+    The native SQL AST parser independently verifies every tracked PostgreSQL
+    source. A patch update to the PostgreSQL 18 client is not a dialect migration;
+    an older minor, new major, malformed version, or missing CLI remains UNKNOWN.
+    """
+    observed = re.fullmatch(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)", version)
+    if observed is None:
+        return False
+    baseline_major, baseline_minor = map(int, EXPECTED["postgresql"].split("."))
+    major, minor = map(int, observed.groups())
+    return major == baseline_major and minor >= baseline_minor
 
 
 def check(root: Path) -> tuple[list[str], list[str]]:
@@ -436,7 +569,7 @@ def check(root: Path) -> tuple[list[str], list[str]]:
         passed = 0
         for name in grouped["osquery"]:
             query = (root / name).read_text(encoding="utf-8")
-            if not re.match(r"^\s*SELECT\b", query, re.I):
+            if not re.match(r"^\s*SELECT\b", query, re.IGNORECASE):
                 issues.append(f"osqueryi query is not bounded read-only SELECT: {name}")
                 continue
             seconds = OSQUERY_TIMEOUT_SECONDS.get(Path(name).name, OSQUERY_DEFAULT_TIMEOUT_SECONDS)
@@ -456,8 +589,8 @@ def check(root: Path) -> tuple[list[str], list[str]]:
             try:
                 rows = json.loads(result.stdout)
                 if not isinstance(rows, list):
-                    raise ValueError("not a JSON result list")
-            except (json.JSONDecodeError, ValueError):
+                    raise TypeError("not a JSON result list")
+            except (json.JSONDecodeError, TypeError):
                 issues.append(f"osqueryi non-JSON result: {name}")
                 continue
             passed += 1
@@ -473,31 +606,18 @@ def check(root: Path) -> tuple[list[str], list[str]]:
         p = run_bounded(["psql", "--version"], cwd=root)
         observed = re.search(r"([0-9]+\.[0-9]+)", p.stdout + p.stderr)
         current = observed.group(1) if p.returncode == 0 and observed else "UNAVAILABLE"
-        if current != EXPECTED["postgresql"]:
-            issues.append(f"psql {current} != latest {EXPECTED['postgresql']}")
+        if not supported_postgres_client_version(current):
+            issues.append(
+                f"psql {current} is outside supported PostgreSQL "
+                f"{EXPECTED['postgresql']}+ maintenance versions of the same major"
+            )
         from pglast import parse_sql  # Explicit CLI dependency: uv --with pglast==8.6
         if importlib.metadata.version("pglast") != EXPECTED["pglast"]:
             issues.append("PostgreSQL AST parser version is not pinned to exact 8.6")
         for name in grouped["postgresql"]:
             parsed = parse_sql((root / name).read_text(encoding="utf-8"))
-            if name == POSTGRESQL_RUNTIME_EPOCH:
-                # Actual fresh-epoch provider uses BEGIN, a typed operator DO
-                # fence, eight CREATE TABLEs, one index and COMMIT. Parse the
-                # *whole* source; a trailing DROP or extra grant must not pass
-                # on the strength of the existing single-SELECT PG fixture.
-                observed = tuple(type(statement.stmt).__name__ for statement in parsed)
-                expected = (
-                    "TransactionStmt", "DoStmt",
-                    "CreateStmt", "CreateStmt", "CreateStmt", "CreateStmt",
-                    "CreateStmt", "CreateStmt", "IndexStmt", "CreateStmt",
-                    "CreateStmt", "TransactionStmt",
-                )
-                if observed != expected or (
-                    parsed[0].stmt.kind != 0 or parsed[-1].stmt.kind != 2
-                ):
-                    issues.append(
-                        f"PostgreSQL fresh-epoch DDL statement structure changed: {name}"
-                    )
+            if name in (POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_ARTIFACT_INDEX, POSTGRESQL_RUNTIME_CLAIMS, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER):
+                issues.extend(pg_runtime_ddl_structure_issues(name, parsed))
             elif name == POSTGRESQL_ELE_STUDY_SCHEMA:
                 # This PG-only Catalog read model is a schema, four
                 # source/section/head/reference tables, two native indexes,

@@ -2,12 +2,14 @@ import binascii
 import hashlib
 import importlib.util
 import json
+import re
 import struct
 import subprocess
 import tempfile
 import unittest
 import zlib
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 MONOREPO_ROOT = ROOT.parents[1]
@@ -22,32 +24,25 @@ def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def historical_game_source_digests(relative_path: str) -> set[str]:
-    """Read retired Game producer bytes from Git, never from an active game.
-
-    A removal commit is not a source revision for the removed path. Limit
-    candidates to revisions where the tracked file was added/modified; the
-    frozen Artifact acceptance receipt remains unchanged and historical.
-    """
+def historical_game_source_digest(relative_path: str, source_revision: str) -> str:
+    """Read exact imported Git bytes without scanning or reviving retired source."""
     relative = Path(relative_path)
     if relative.is_absolute() or ".." in relative.parts or not relative.parts:
         raise ValueError("invalid historical Game source path")
+    if not re.fullmatch(r"[0-9a-f]{40}", source_revision):
+        raise ValueError("historical Game source must use a full Git commit identity")
     source_path = (GAME_ROOT.relative_to(MONOREPO_ROOT) / relative).as_posix()
-    revisions = subprocess.check_output(
-        ["git", "-C", str(MONOREPO_ROOT), "log", "--diff-filter=AM",
-         "--format=%H", "HEAD", "--", source_path],
-        text=True, timeout=25,
-    ).splitlines()
-    if not revisions:
-        raise AssertionError(f"no committed Game source history for {relative_path}")
-    digests = set()
-    for revision in revisions:
+    try:
         source = subprocess.check_output(
-            ["git", "-C", str(MONOREPO_ROOT), "show", f"{revision}:{source_path}"],
-            timeout=15,
+            ["git", "-C", str(MONOREPO_ROOT), "show", f"{source_revision}:{source_path}"],
+            timeout=25,
         )
-        digests.add(hashlib.sha256(source).hexdigest())
-    return digests
+    except subprocess.CalledProcessError as error:
+        raise AssertionError(
+            f"UNKNOWN historical Game source: {source_revision}:{source_path}; "
+            "retrieve the exact Git object before qualification"
+        ) from error
+    return hashlib.sha256(source).hexdigest()
 
 
 def chunk(kind: bytes, payload: bytes) -> bytes:
@@ -87,6 +82,48 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         # Importing through the service is enough; delegate itself reports tool absence.
         self.assertTrue(callable(mod))
 
+    def test_native_pass_cannot_promote_stale_executable_digest(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.png"
+            minimal_png(subject)
+            request_path, _ = self.request(root, subject)
+            binary = root / "decoder"
+            binary.write_bytes(b"previous-binary")
+            reported_sha = sha(binary)
+            profile = json.loads(self.profile()[0].read_text())
+            facts = {
+                name: {"status": "PASS"} for name, declaration
+                in profile["requiredEvidence"].items() if declaration["required"]
+            }
+
+            def contradictory_native(*_args):
+                binary.write_bytes(b"replacement-binary")
+                return {
+                    "status": "PASS",
+                    "profileId": "still-image-png-srgb-r1",
+                    "artifact": {"sha256": sha(subject), "size": subject.stat().st_size},
+                    "nativeFacts": facts,
+                    "claimResults": {
+                        name: {"status": "PASS", "nativePointers": [f"/nativeFacts/{name}"]}
+                        for name in facts
+                    },
+                    "tools": {"decoder": {"path": str(binary), "sha256": reported_sha}},
+                    "failures": [],
+                }
+
+            with mock.patch.object(
+                M, "load_function", return_value=(contradictory_native, "f" * 64)
+            ):
+                result = M.verify_request(request_path)
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertFalse(result["profileVerificationComplete"])
+            self.assertTrue(result["toolIdentityAssessment"]["rejected"])
+            self.assertIn(
+                "native tool digest drift after verification: decoder",
+                result["failures"],
+            )
+
     def test_exact_still_image_request_delegates_and_digest_binds_result(self):
         self.require_png_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -101,6 +138,256 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             self.assertEqual(result["capabilityBinding"]["standing"], "LOCAL_LIVE_PROVEN")
             self.assertEqual(result["requestDigest"], M.canonical_sha256(request))
             self.assertTrue((root / "evidence/service-result.json").is_file())
+
+    def test_loader_attributes_execution_to_the_same_source_bytes(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            module_path = root / "native.py"
+            original = b"def verify(*_args):\\n    return {'marker': 'old'}\\n".replace(b"\\n", b"\n")
+            replacement = b"def verify(*_args):\\n    return {'marker': 'new'}\\n".replace(b"\\n", b"\n")
+            module_path.write_bytes(original)
+            real_read = Path.read_bytes
+
+            def swap_after_read(path):
+                data = real_read(path)
+                if path == module_path:
+                    module_path.write_bytes(replacement)
+                return data
+
+            with mock.patch.object(M, "ROOT", root), mock.patch.object(
+                Path, "read_bytes", autospec=True, side_effect=swap_after_read
+            ):
+                verifier, observed_digest = M.load_function("native.py", "verify")
+            self.assertEqual(verifier()["marker"], "old")
+            self.assertEqual(observed_digest, hashlib.sha256(original).hexdigest())
+            self.assertNotEqual(observed_digest, hashlib.sha256(replacement).hexdigest())
+
+    def test_generic_aggregate_pointer_cannot_qualify_unrelated_profile_claims(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.png"
+            minimal_png(subject)
+            request_path, request = self.request(root, subject)
+            profile = json.loads(Path(request["profile"]["path"]).read_text())
+            generic = {
+                "status": "PASS",
+                "failures": [],
+                "profileId": request["profile"]["id"],
+                "artifact": {"sha256": sha(subject), "size": subject.stat().st_size},
+                "verification": {"status": "PASS"},
+                "claimResults": {
+                    name: {
+                        "status": "PASS",
+                        "nativePointers": ["/verification"],
+                    }
+                    for name, row in profile["requiredEvidence"].items()
+                    if row["required"]
+                },
+            }
+            with mock.patch.object(M, "load_function", return_value=(
+                lambda *_args: generic, "f" * 64
+            )):
+                result = M.verify_request(request_path)
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertFalse(result["requiredEvidenceAssessment"]["complete"])
+            self.assertFalse(result["profileVerificationComplete"])
+            self.assertEqual(result["standingCoverage"]["verificationStatus"], "UNKNOWN")
+
+    def test_mixed_native_witnesses_cannot_promote_profile_standing(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.png"
+            minimal_png(subject)
+            request_path, request = self.request(root, subject)
+            profile = json.loads(Path(request["profile"]["path"]).read_text())
+            names = [
+                name for name, row in profile["requiredEvidence"].items() if row["required"]
+            ]
+            native = {
+                "status": "PASS", "failures": [],
+                "profileId": request["profile"]["id"],
+                "artifact": {"sha256": sha(subject), "size": subject.stat().st_size},
+                "observations": {name: {"status": "PASS"} for name in names},
+                "claimResults": {
+                    name: {"status": "PASS", "nativePointers": [f"/observations/{name}"]}
+                    for name in names
+                },
+            }
+            with mock.patch.object(M, "load_function", return_value=(
+                lambda *_args: native, "f" * 64
+            )):
+                good = M.verify_request(request_path)
+                self.assertTrue(good["profileVerificationComplete"], good)
+                native["observations"]["contradiction"] = {
+                    "status": "FAIL", "supportsClaims": [names[0]],
+                }
+                native["claimResults"][names[0]]["nativePointers"].append(
+                    "/observations/contradiction"
+                )
+                bad = M.verify_request(request_path)
+                self.assertEqual(bad["status"], "FAIL", bad)
+                self.assertEqual(bad["standingCoverage"]["verificationStatus"], "UNKNOWN")
+                self.assertFalse(bad["profileVerificationComplete"])
+
+    def test_native_pass_with_explicit_failures_is_not_promoted(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.png"
+            minimal_png(subject)
+            request_path, request = self.request(root, subject)
+            profile = json.loads(Path(request["profile"]["path"]).read_text())
+            facts = {name: {"status": "PASS"} for name in profile["requiredEvidence"]}
+            native = {
+                "status": "PASS",
+                "failures": ["native decoder contradiction"],
+                "profileId": request["profile"]["id"],
+                "artifact": {"sha256": sha(subject), "size": subject.stat().st_size},
+                "nativeFacts": facts,
+                "claimResults": {
+                    name: {"status": "PASS", "nativePointers": [f"/nativeFacts/{name}"]}
+                    for name in profile["requiredEvidence"]
+                },
+            }
+            with mock.patch.object(M, "load_function", return_value=(
+                lambda *_args: native, "f" * 64
+            )):
+                result = M.verify_request(request_path)
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertFalse(result["profileVerificationComplete"])
+            self.assertIn("native decoder contradiction", result["failures"])
+            self.assertFalse(result["standingCoverage"]["complete"])
+            self.assertEqual(
+                result["standingCoverage"]["verificationStatus"], "UNKNOWN"
+            )
+            self.assertEqual(
+                result["verifier"]["sourceIdentityScope"],
+                "EXACT_PYTHON_MODULE_BYTES_EXECUTED",
+            )
+            self.assertEqual(
+                result["verifier"]["nativeToolchainIdentity"],
+                "NOT_ATTESTED_BY_SERVICE",
+            )
+
+    def test_native_supported_required_failure_is_falsified_not_just_unknown(self):
+        """An independently witnessed required FAIL is different from missing evidence."""
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.png"
+            minimal_png(subject)
+            request_path, request = self.request(root, subject)
+            profile = json.loads(Path(request["profile"]["path"]).read_text())
+            statuses = {
+                name: ("FAIL" if name == "decoderMatrix" else "PASS")
+                for name, declaration in profile["requiredEvidence"].items()
+                if declaration["required"] is True
+            }
+            native = {
+                "status": "FAIL",
+                "failures": ["native decoder explicitly rejected this datastream"],
+                "profileId": request["profile"]["id"],
+                "artifact": {
+                    "sha256": sha(subject), "size": subject.stat().st_size,
+                },
+                "nativeFacts": {
+                    name: {"status": status} for name, status in statuses.items()
+                },
+                "claimResults": {
+                    name: {
+                        "status": status, "nativePointers": [f"/nativeFacts/{name}"],
+                    }
+                    for name, status in statuses.items()
+                },
+            }
+            with mock.patch.object(
+                M, "load_function",
+                return_value=(lambda *_args: native, "f" * 64),
+            ):
+                result = M.verify_request(request_path)
+            self.assertEqual(result["status"], "FAIL")
+            self.assertEqual(
+                result["requiredEvidenceAssessment"]["claimStatuses"]["decoderMatrix"],
+                "FAIL",
+            )
+            self.assertFalse(result["profileVerificationComplete"])
+            self.assertTrue(result["nativeIdentityAssessment"]["complete"])
+            self.assertEqual(
+                result["standingCoverage"]["verificationStatus"], "FAIL",
+            )
+            self.assertEqual(result["standingCoverage"]["failed"], ["decoderMatrix"])
+
+            # The same required FAIL contradicts a native aggregate PASS:
+            # preserve UNKNOWN instead of laundering either verdict.
+            native["status"] = "PASS"
+            native["failures"] = []
+            with mock.patch.object(
+                M, "load_function",
+                return_value=(lambda *_args: native, "f" * 64),
+            ):
+                contradiction = M.verify_request(request_path)
+            self.assertEqual(contradiction["status"], "FAIL")
+            self.assertFalse(contradiction["profileVerificationComplete"])
+            self.assertEqual(
+                contradiction["standingCoverage"]["verificationStatus"], "UNKNOWN",
+            )
+
+    def test_profile_snapshot_must_match_indexed_authority(self):
+        from dataclasses import replace
+
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.png"
+            minimal_png(subject)
+            request_path, request = self.request(root, subject)
+            real = M.PROFILE_REGISTRY.resolve(request["profile"]["id"])
+            contradictory = replace(real, canonical_sha256="0" * 64)
+            with mock.patch.object(
+                M.PROFILE_REGISTRY, "resolve", return_value=contradictory
+            ), mock.patch.object(M, "load_function") as delegate:
+                result = M.verify_request(request_path)
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertIn(
+                "profile snapshot differs from indexed canonical Profile authority",
+                result["failures"],
+            )
+            self.assertFalse((root / "evidence").exists())
+            delegate.assert_not_called()
+
+    def test_corrupt_or_missing_registry_authority_is_a_bounded_failure(self):
+        from unittest import mock
+
+        for error in (
+            ValueError("duplicate JSON key: status"),
+            FileNotFoundError("provider standing was removed"),
+            RuntimeError("capability registry changed after indexing"),
+        ):
+            with self.subTest(error=str(error)), tempfile.TemporaryDirectory() as d:
+                root = Path(d)
+                subject = root / "subject.png"
+                minimal_png(subject)
+                request_path, _ = self.request(root, subject)
+                with mock.patch.object(M.BINDING_REGISTRY, "resolve", side_effect=error):
+                    result = M.verify_request(request_path)
+                self.assertEqual(result["status"], "FAIL")
+                self.assertIn(str(error), result["failures"][0])
+                self.assertFalse((root / "evidence").exists())
+
+    def test_missing_indexed_profile_is_a_bounded_failure(self):
+        from unittest import mock
+
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.png"
+            minimal_png(subject)
+            request_path, _ = self.request(root, subject)
+            with mock.patch.object(
+                M.PROFILE_REGISTRY,
+                "resolve",
+                side_effect=FileNotFoundError("canonical Profile vanished"),
+            ):
+                result = M.verify_request(request_path)
+            self.assertEqual(result["status"], "FAIL")
+            self.assertIn("canonical Profile vanished", result["failures"][0])
+            self.assertFalse((root / "evidence").exists())
 
     def test_subject_digest_drift_fails_before_family_verifier(self):
         with tempfile.TemporaryDirectory() as d:
@@ -216,9 +503,13 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         # Game no longer owns the old Station Zero executable/evidence path.
         # Recheck its exact historical bytes, not a revived active game.
         game_evidence = receipt['gameAcceptance']
-        self.assertIn(
+        # The original consumerRevision belongs to the historical Game
+        # authority; the monorepo import commit preserves its exact bytes.
+        self.assertEqual(
             game_evidence['sha256'],
-            historical_game_source_digests(game_evidence['relativePath']),
+            historical_game_source_digest(
+                game_evidence['relativePath'], '6847ebff6e0ed92b63dda3c2b67f94fb97ee3d70',
+            ),
         )
         self.assertEqual(len(receipt['subjects']),3)
         self.assertTrue(all(x['serviceCandidateStatus']=='PASS' for x in receipt['subjects']))
@@ -249,8 +540,17 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         self.assertEqual(receipt['nativeCrossFormatRoundTrip']['status'],'PASS')
         self.assertEqual(receipt['nativeRasterReadback']['status'],'PASS')
         self.assertEqual(receipt['gameMigrationEvidence']['layoutDigest'],'21efdf5b69858953aaef55abd0bb143f5eb24f5be8f3a3c3bcfe6cb86cc5b527')
-        for value in receipt['artifactOwnedAuthorities'].values():
-            path=ROOT/value['relativePath'];self.assertEqual(sha(path),value['sha256'],value['relativePath'])
+        # Imported monorepo source cut independently matched all four frozen
+        # Artifact authority digests. It is a retained witness, not the
+        # original external repository revision or a current-source constraint.
+        revision = "e2757345aae3e4d38330d0f07c8eef45bbdf998f"
+        for value in receipt["artifactOwnedAuthorities"].values():
+            path = (ROOT / value["relativePath"]).relative_to(MONOREPO_ROOT).as_posix()
+            source = subprocess.check_output(
+                ["git", "-C", str(MONOREPO_ROOT), "show", f"{revision}:{path}"],
+                timeout=25,
+            )
+            self.assertEqual(hashlib.sha256(source).hexdigest(), value["sha256"], path)
 
     def test_frozen_aseprite_game_consumer_smoke_separates_native_and_game_owned_metadata(self):
         receipt=json.loads((ROOT/'artifact-delivery/consumer-acceptance/game-station-zero-aseprite-horizontal-sheet-r1.json').read_text())
@@ -282,8 +582,15 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             self.assertEqual(receipt["verification"]["assimpStatus"],"PASS")
             self.assertEqual(receipt["verification"]["blenderStatus"],"PASS")
             self.assertEqual(receipt["verification"]["godotStatus"],"PASS")
+            # Historical source identity, not a permanent pin on the current verifier.
+            revision = "e2757345aae3e4d38330d0f07c8eef45bbdf998f"
             for value in receipt["artifactOwnedAuthorities"].values():
-                path=ROOT/value["relativePath"];self.assertEqual(sha(path),value["sha256"],value["relativePath"])
+                path = (ROOT / value["relativePath"]).relative_to(MONOREPO_ROOT).as_posix()
+                source = subprocess.check_output(
+                    ["git", "-C", str(MONOREPO_ROOT), "show", f"{revision}:{path}"],
+                    timeout=25,
+                )
+                self.assertEqual(hashlib.sha256(source).hexdigest(), value["sha256"], path)
             self.assertEqual(receipt["externalSubject"]["identityStanding"],"EXACT_BYTES_OBSERVED_AT_CONSUMER_REVISION_NOT_ARTIFACT_OWNED")
 
     def test_frozen_game_godot_linux_elf_release_preserves_producer_and_artifact_authorities(self):
@@ -322,16 +629,11 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             receipt['producerEvidence']['harness'],
             receipt['producerEvidence']['acceptedReproducibilityBoundary'],
         ):
-            observed=historical_game_source_digests(evidence['relativePath'])
-            if evidence['sha256'] not in observed:
-                self.skipTest(
-                    'UNKNOWN historical Game producer source: '
-                    + evidence['relativePath']
-                    + '; current monorepo has no matching Git bytes, '
-                      'so this archived release cannot be requalified'
-                )
-            self.assertIn(evidence['sha256'], observed)
-            self.assertNotIn('0'*64, observed)
+            observed = historical_game_source_digest(
+                evidence['relativePath'], 'a6b1a0a7c6a6c3ce6fdb5a6ae42259159f1d3c30',
+            )
+            self.assertEqual(observed, evidence['sha256'], evidence['relativePath'])
+
 
     def test_unrouted_profile_fails_closed(self):
         with tempfile.TemporaryDirectory() as d:

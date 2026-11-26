@@ -1,36 +1,45 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from typing import Any
 
 import psycopg
-from psycopg.rows import dict_row
 
 from .canonical_json import canonical_digest
 from .command_receipts import claim_command_receipt, record_command_receipt
 from .errors import ConflictError
+from .references.actor_refs import ActorReferenceLookup
+from .references.record_refs import RecordReferenceLookup
 from .work_inputs import WorkRelationInput, WorkRelationKind
 
 
 class WorkRelationCommands:
     """Work relation mutations in the owning WorkStore transaction boundary.
 
-    WorkStore supplies dsn, _require_actor and _require_work. This unit adds
-    no second datastore, MCP surface, or scheduling/assignment authority.
+    The caller supplies a native connection checkout explicitly. Reference
+    checks, graph lock, edge mutation and receipt use that same transaction.
+    No second datastore, MCP surface, or scheduling/assignment authority.
     """
+
+    def __init__(
+        self, connect: Callable[[], AbstractContextManager[psycopg.Connection[dict[str, Any]]]]
+    ) -> None:
+        self._connect = connect
 
     def add_relation(self, value: WorkRelationInput, *, client_request_id: str) -> dict[str, Any]:
         value.validate_not_self_relation()
         request = {"operation": "work.relation.add", **value.model_dump(mode="json")}
         request_digest = canonical_digest(request)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             replay = claim_command_receipt(
                 conn, client_request_id, "work.relation.add", request_digest
             )
             if replay is not None:
                 return replay
-            self._require_actor(conn, value.actor_ref)
-            self._require_work(conn, value.source_work_ref)
-            self._require_work(conn, value.target_work_ref)
+            ActorReferenceLookup._require_actor(conn, value.actor_ref)
+            RecordReferenceLookup._require_work(conn, value.source_work_ref)
+            RecordReferenceLookup._require_work(conn, value.target_work_ref)
             if value.relation in {WorkRelationKind.PARENT_OF, WorkRelationKind.DEPENDS_ON}:
                 # The reachability check and INSERT must be one serialized
                 # transaction per DAG relation kind. Under READ COMMITTED, two

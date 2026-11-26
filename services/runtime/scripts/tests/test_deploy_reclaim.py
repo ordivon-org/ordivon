@@ -8,6 +8,7 @@ import json
 import os
 import re
 import runpy
+import shlex
 import shutil
 import sqlite3
 import subprocess
@@ -336,6 +337,7 @@ def add_release_operator_sources(path: Path, *, push: bool) -> str:
         "ordivon-runtime-deploy",
         "ordivon-runtime-lifecycle",
         "ordivon-runtime-reclaim",
+        "ordivon-runtime-pg-reclaim",
         "ordivon-runtime-cache",
         "ordivon-runtime-status",
         "ordivon-runtime-capacity-acceptance",
@@ -365,6 +367,29 @@ def add_release_operator_sources(path: Path, *, push: bool) -> str:
     ).stdout.strip()
 
 
+def cargo_fixture_target_setup(root: Path) -> str:
+    # Cargo test doubles must never turn a missing target into /release.
+    # Bind writes to the caller's disposable test root, not the host CWD.
+    fixture_root = shlex.quote(str(root.resolve()))
+    return (
+        f"fixture_root={fixture_root}\n"
+        "target=''\n"
+        "while [ $# -gt 0 ]; do\n"
+        '  if [ "$1" = --target-dir ]; then\n'
+        '    [ "$#" -ge 2 ] && [ -n "$2" ] || exit 64\n'
+        '    [ -z "$target" ] || exit 64\n'
+        '    target=$2; shift 2\n'
+        "  else shift; fi\n"
+        "done\n"
+        'case "$target" in /*) ;; *) exit 64;; esac\n'
+        'target=$(realpath -m -- "$target") || exit 64\n'
+        'case "$target" in "$fixture_root"/*) ;; *) exit 64;; esac\n'
+        'release=$(realpath -m -- "$target/release") || exit 64\n'
+        'case "$release" in "$target"/release) ;; *) exit 64;; esac\n'
+        'mkdir -p -- "$release" || exit 64\n'
+    )
+
+
 def fake_cargo_for_default_release(root: Path) -> Path:
     write_executable(
         root / "rustc",
@@ -385,11 +410,7 @@ def fake_cargo_for_default_release(root: Path) -> Path:
         cargo,
         "#!/bin/sh\n"
         'if [ "${1:-}" = --version ]; then printf "cargo 1.95.0 (test)\\nrelease: 1.95.0\\n"; exit 0; fi\n'
-        "target=''\n"
-        "while [ $# -gt 0 ]; do\n"
-        '  if [ "$1" = --target-dir ]; then target=$2; shift 2; else shift; fi\n'
-        "done\n"
-        'mkdir -p "$target/release"\n'
+        + cargo_fixture_target_setup(root)
         + binary_commands,
     )
     return cargo
@@ -469,6 +490,61 @@ def fake_systemctl(root: Path) -> Path:
 
 
 class DeployReclaimTests(unittest.TestCase):
+    def test_cargo_fixture_accepts_only_disposable_target(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cargo = fake_cargo_for_default_release(root)
+            target = root / "nested" / "target"
+            result = subprocess.run(
+                [str(cargo), "build", "--target-dir", str(target)],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(
+                (target / "release" / "ordivon-runtime").read_text(),
+                "ordivon-runtime-candidate\n",
+            )
+
+    @unittest.skipUnless(shutil.which("bwrap"), "requires native mount isolation")
+    def test_cargo_fixture_rejects_unbound_or_escaping_target(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            scratch = Path(directory)
+            root = scratch / "fixture"
+            root.mkdir()
+            outside = scratch / "outside"
+            outside.mkdir()
+            cargo = fake_cargo_for_default_release(root)
+            (root / "escape").symlink_to(outside, target_is_directory=True)
+            (root / "target").mkdir()
+            (root / "target" / "release").symlink_to(outside, target_is_directory=True)
+            prefix = [
+                "bwrap", "--ro-bind", "/", "/", "--bind", str(scratch),
+                str(scratch), "--dev", "/dev", "--proc", "/proc", "--",
+            ]
+            probe = subprocess.run(prefix + ["/usr/bin/true"], capture_output=True)
+            if probe.returncode:
+                self.skipTest("native mount namespace unavailable")
+            cases = [
+                [], ["--target-dir"], ["--target-dir", ""],
+                ["--target-dir", "relative"], ["--target-dir", "/"],
+                ["--target-dir", str(outside)],
+                ["--target-dir", str(root / "escape")],
+                ["--target-dir", str(root / "target")],
+                ["--target-dir", str(root / "one"), "--target-dir", str(root / "two")],
+            ]
+            for args in cases:
+                with self.subTest(args=args):
+                    result = subprocess.run(
+                        prefix + [str(cargo), "build", *args],
+                        capture_output=True,
+                        text=True,
+                    )
+                    self.assertEqual(result.returncode, 64, result.stderr)
+                    self.assertEqual(list(outside.iterdir()), [])
+                    self.assertFalse((root / "one").exists())
+                    self.assertFalse((root / "two").exists())
+
     def test_installed_baseline_drift_exposes_exact_lossless_file_differences(self) -> None:
         scripts_path = str(REPO / "scripts")
         sys.path.insert(0, scripts_path)
@@ -555,12 +631,19 @@ class DeployReclaimTests(unittest.TestCase):
             subprocess.run(
                 [
                     "git", "-c", "protocol.file.allow=always", "clone", "-q",
-                    "--filter=blob:none", bare.as_uri(), str(source),
+                    "--filter=blob:none", "--depth=1", bare.as_uri(), str(source),
                 ],
                 check=True,
             )
             old_head = subprocess.check_output(
                 ["git", "-C", str(source), "rev-parse", "HEAD"], text=True
+            ).strip()
+            owner_file.write_text("intermediate-never-checked-out\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(seed), "add", "-A"], check=True)
+            subprocess.run(["git", "-C", str(seed), "commit", "-qm", "intermediate"], check=True)
+            historical_blob = subprocess.check_output(
+                ["git", "-C", str(seed), "rev-parse", "HEAD:services/runtime/owner.txt"],
+                text=True,
             ).strip()
             owner_file.write_text("new\n", encoding="utf-8")
             subprocess.run(["git", "-C", str(seed), "add", "-A"], check=True)
@@ -586,10 +669,41 @@ class DeployReclaimTests(unittest.TestCase):
                 ).strip(),
                 "true",
             )
-            with checkout_source(source / "services/runtime", target) as materialized:
-                self.assertEqual(
-                    (materialized / "owner.txt").read_text(encoding="utf-8"), "new\n"
-                )
+            self.assertEqual(subprocess.check_output(
+                ["git", "-C", str(source), "rev-parse", "--is-shallow-repository"],
+                text=True,
+            ).strip(), "true")
+            with patch.dict(os.environ, {"GIT_NO_LAZY_FETCH": "1"}):
+                with self.assertRaisesRegex(RuntimeError, "cannot materialize exact release source"):
+                    with checkout_source(source / "services/runtime", target):
+                        self.fail("missing required blob must not produce a checkout")
+            # Materialize only the requested tree; unrelated historical blobs
+            # remain promised. Release checkout must not negotiate full history.
+            subprocess.run(
+                ["git", "-C", str(source), "archive", "--format=tar", target],
+                stdout=subprocess.DEVNULL, check=True,
+            )
+            offline = {**os.environ, "GIT_NO_LAZY_FETCH": "1"}
+            missing = subprocess.run(
+                ["git", "-C", str(source), "cat-file", "-e", historical_blob],
+                env=offline, capture_output=True,
+            )
+            self.assertNotEqual(missing.returncode, 0)
+            with patch.dict(os.environ, {"GIT_NO_LAZY_FETCH": "1"}):
+                with checkout_source(source / "services/runtime", target) as materialized:
+                    self.assertEqual(
+                        (materialized / "owner.txt").read_text(encoding="utf-8"), "new\n"
+                    )
+                    self.assertEqual(
+                        subprocess.check_output(
+                            ["git", "-C", str(materialized), "rev-parse", "HEAD"], text=True,
+                        ).strip(),
+                        target,
+                    )
+            self.assertNotEqual(subprocess.run(
+                ["git", "-C", str(source), "cat-file", "-e", historical_blob],
+                env=offline, capture_output=True,
+            ).returncode, 0)
 
     def test_release_source_owner_revision_ignores_sibling_monorepo_commits(self) -> None:
         scripts_path = str(REPO / "scripts")
@@ -688,6 +802,68 @@ class DeployReclaimTests(unittest.TestCase):
         self.assertLess(bind, maintenance)
         self.assertNotIn("reconcile_all()", source[:bind])
 
+    def test_prepare_streams_build_diagnostics_before_child_exit(self) -> None:
+        import selectors
+        import shlex
+        import time
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repo = root / "repo"
+            initialize_git_repository(repo, remote=False)
+            commit = add_release_operator_sources(repo, push=False)
+            cargo = fake_cargo_for_default_release(root)
+            gate = root / "finish-build"
+            # Keep the child alive until its parent observes the actual output.
+            # The finite loop also prevents an orphan if the observation fails.
+            write_executable(
+                cargo,
+                "#!/bin/sh\n"
+                'if [ "${1:-}" = --version ]; then printf "cargo 1.95.0 (test)\\nrelease: 1.95.0\\n"; exit 0; fi\n'
+                "printf 'native-build-stdout\\n'\n"
+                "printf 'native-build-stderr\\n' >&2\n"
+                f"gate={shlex.quote(str(gate))}\n"
+                'i=0; while [ ! -f "$gate" ] && [ "$i" -lt 100 ]; do sleep 0.1; i=$((i+1)); done\n'
+                "exit 37\n",
+            )
+            manifest = root / "candidate-manifest.json"
+            process = subprocess.Popen(
+                [
+                    sys.executable, "scripts/ordivon-runtime-deploy", "prepare",
+                    "--source-repo", str(repo), "--commit", commit,
+                    "--candidate-dir", str(repo / "target/release"),
+                    "--candidate-manifest", str(manifest), "--cargo", str(cargo),
+                ],
+                cwd=REPO, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            )
+            observed = bytearray()
+            try:
+                assert process.stderr is not None
+                with selectors.DefaultSelector() as selector:
+                    selector.register(process.stderr, selectors.EVENT_READ)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        if not selector.select(max(0, deadline - time.monotonic())):
+                            break
+                        block = os.read(process.stderr.fileno(), 4096)
+                        if not block:
+                            break
+                        observed.extend(block)
+                        if all(marker in observed for marker in
+                               (b"native-build-stdout", b"native-build-stderr")):
+                            break
+                self.assertIn(b"native-build-stdout", observed)
+                self.assertIn(b"native-build-stderr", observed)
+                self.assertIsNone(process.poll(), "build must still be running")
+                self.assertFalse(manifest.exists())
+            finally:
+                gate.touch()
+                stdout, stderr = process.communicate(timeout=15)
+            self.assertNotEqual(process.returncode, 0)
+            self.assertEqual(stdout, b"")
+            self.assertIn(b"37", stderr)
+            self.assertFalse(manifest.exists())
+
     def test_default_prepare_binds_complete_release_artifact_set(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -730,7 +906,10 @@ class DeployReclaimTests(unittest.TestCase):
                 },
             )
             artifacts = {item["name"]: item for item in report["artifacts"]}
-            self.assertEqual(len(artifacts), 13)
+            self.assertEqual(len(artifacts), 14)
+            self.assertEqual(artifacts["ordivon-runtime-pg-reclaim"]["kind"], "operator")
+            self.assertEqual(artifacts["ordivon-runtime-pg-reclaim"]["mode"], 0o755)
+            self.assertEqual((candidate / "ordivon-runtime-pg-reclaim").read_bytes(), (repo / "scripts/ordivon-runtime-pg-reclaim").read_bytes())
             self.assertEqual(artifacts["mcp_probe.py"]["kind"], "support")
             self.assertEqual(artifacts["mcp_probe.py"]["mode"], 0o644)
             self.assertEqual(artifacts["ordivon-runtime-status"]["kind"], "operator")
@@ -902,12 +1081,8 @@ class DeployReclaimTests(unittest.TestCase):
                 cargo,
                 "#!/bin/sh\n"
                 'if [ "${1:-}" = --version ]; then printf "cargo 1.95.0 (test)\\nrelease: 1.95.0\\n"; exit 0; fi\n'
-                "target=''\n"
-                "while [ $# -gt 0 ]; do\n"
-                '  if [ "$1" = --target-dir ]; then target=$2; shift 2; else shift; fi\n'
-                "done\n"
-                'mkdir -p "$target/release"\n'
-                "printf 'candidate\\n' > \"$target/release/runtime\"\n"
+                + cargo_fixture_target_setup(root)
+                + "printf 'candidate\\n' > \"$target/release/runtime\"\n"
                 'chmod 755 "$target/release/runtime"\n',
             )
             prepared = subprocess.run(
@@ -1147,13 +1322,15 @@ class DeployReclaimTests(unittest.TestCase):
                 "ordivon-runtime-deploy",
                 "ordivon-runtime-lifecycle",
                 "ordivon-runtime-reclaim",
+                "ordivon-runtime-pg-reclaim",
                 "ordivon-runtime-cache",
                 "ordivon-runtime-status",
                 "ordivon-runtime-capacity-acceptance",
                 "ordivon-runtime-pressure-control",
             ]
             previous_release_names = [
-                name for name in release_names if name != "ordivon-runtime-pressure-control"
+                name for name in release_names
+                if name not in {"ordivon-runtime-pressure-control", "ordivon-runtime-pg-reclaim"}
             ]
             for name in previous_release_names:
                 write_executable(install / name, f"old-{name}\n")
@@ -1254,7 +1431,7 @@ class DeployReclaimTests(unittest.TestCase):
                 self.assertEqual(deployed.returncode, 0, deployed.stderr or deployed.stdout)
                 result = json.loads(deployed.stdout)
                 installed = {item["name"]: item for item in result["installed"]}
-                self.assertEqual(len(installed), 13)
+                self.assertEqual(len(installed), 14)
                 self.assertEqual(installed["mcp_probe.py"]["mode"], 0o644)
                 self.assertEqual((install / "mcp_probe.py").stat().st_mode & 0o777, 0o644)
                 self.assertEqual(
@@ -1264,11 +1441,12 @@ class DeployReclaimTests(unittest.TestCase):
                 receipt = Path(result["receipt"])
                 receipt_manifest = json.loads((receipt / "manifest.json").read_text())
                 self.assertEqual(receipt_manifest["schemaVersion"], 2)
-                self.assertEqual(len(receipt_manifest["artifacts"]), 13)
+                self.assertEqual(len(receipt_manifest["artifacts"]), 14)
                 previous_by_name = {
                     item["name"]: item for item in receipt_manifest["previous"]
                 }
                 self.assertFalse(previous_by_name["ordivon-runtime-pressure-control"]["present"])
+                self.assertFalse(previous_by_name["ordivon-runtime-pg-reclaim"]["present"])
                 self.assertIsNone(previous_by_name["ordivon-runtime-pressure-control"]["digest"])
                 self.assertEqual(
                     receipt_manifest["runtimePolicy"]["previous"]["defaultRuntimeMs"],
@@ -2108,6 +2286,7 @@ class DeployReclaimTests(unittest.TestCase):
                 "ordivon-runtime-deploy",
                 "ordivon-runtime-lifecycle",
                 "ordivon-runtime-reclaim",
+                "ordivon-runtime-pg-reclaim",
                 "ordivon-runtime-cache",
                 "ordivon-runtime-status",
                 "ordivon-runtime-capacity-acceptance",
@@ -2195,6 +2374,7 @@ class DeployReclaimTests(unittest.TestCase):
                 "ordivon-runtime-deploy",
                 "ordivon-runtime-lifecycle",
                 "ordivon-runtime-reclaim",
+                "ordivon-runtime-pg-reclaim",
                 "ordivon-runtime-cache",
                 "ordivon-runtime-status",
                 "ordivon-runtime-capacity-acceptance",
@@ -2673,12 +2853,8 @@ class DeployReclaimTests(unittest.TestCase):
                 cargo,
                 "#!/bin/sh\n"
                 'if [ "${1:-}" = --version ]; then printf "cargo 1.95.0 (test)\nrelease: 1.95.0\n"; exit 0; fi\n'
-                "target=''\n"
-                "while [ $# -gt 0 ]; do\n"
-                '  if [ "$1" = --target-dir ]; then target=$2; shift 2; else shift; fi\n'
-                "done\n"
-                'mkdir -p "$target/release"\n'
-                "printf '%s\\n' \"$RUSTC\" > \"$target/release/RUSTC_USED\"\n"
+                + cargo_fixture_target_setup(root)
+                + "printf '%s\\n' \"$RUSTC\" > \"$target/release/RUSTC_USED\"\n"
                 "printf '%s\\n' \"${PATH%%:*}\" > \"$target/release/PATH_HEAD\"\n"
                 "printf 'built-from-commit\\n' > \"$target/release/runtime\"\n"
                 'chmod 755 "$target/release/runtime"\n',
@@ -2731,12 +2907,8 @@ class DeployReclaimTests(unittest.TestCase):
                 'if [ "$tool" = rustc ]; then printf "rustc 1.95.0 (test)\\nbinary: rustc\\nhost: x86_64-unknown-linux-gnu\\n"; exit 0; fi\n'
                 'if [ "$tool" = cargo ] && [ "${1:-}" = --version ]; then printf "cargo 1.95.0 (test)\\nrelease: 1.95.0\\n"; exit 0; fi\n'
                 'if [ "$tool" != cargo ]; then exit 2; fi\n'
-                "target=''\n"
-                "while [ $# -gt 0 ]; do\n"
-                '  if [ "$1" = --target-dir ]; then target=$2; shift 2; else shift; fi\n'
-                "done\n"
-                'mkdir -p "$target/release"\n'
-                'printf "%s\\n" "$RUSTC" > "$target/release/RUSTC_USED"\n'
+                + cargo_fixture_target_setup(root)
+                + 'printf "%s\\n" "$RUSTC" > "$target/release/RUSTC_USED"\n'
                 'printf "%s\\n" "$RUSTDOC" > "$target/release/RUSTDOC_USED"\n'
                 'printf "built-from-proxy\\n" > "$target/release/runtime"\n'
                 'chmod 755 "$target/release/runtime"\n',
@@ -2823,12 +2995,8 @@ class DeployReclaimTests(unittest.TestCase):
                 cargo,
                 "#!/bin/sh\n"
                 'if [ "${1:-}" = --version ]; then printf "cargo 1.95.0 (test)\\nrelease: 1.95.0\\n"; exit 0; fi\n'
-                "target=''\n"
-                "while [ $# -gt 0 ]; do\n"
-                '  if [ "$1" = --target-dir ]; then target=$2; shift 2; else shift; fi\n'
-                "done\n"
-                'mkdir -p "$target/release"\n'
-                'cat SOURCE.txt > "$target/release/runtime"\n'
+                + cargo_fixture_target_setup(root)
+                + 'cat SOURCE.txt > "$target/release/runtime"\n'
                 'chmod 755 "$target/release/runtime"\n',
             )
             completed = subprocess.run(
@@ -2876,12 +3044,8 @@ class DeployReclaimTests(unittest.TestCase):
                 cargo,
                 "#!/bin/sh\n"
                 'if [ "${1:-}" = --version ]; then printf "cargo 1.95.0 (test)\nrelease: 1.95.0\n"; exit 0; fi\n'
-                "target=''\n"
-                "while [ $# -gt 0 ]; do\n"
-                '  if [ "$1" = --target-dir ]; then target=$2; shift 2; else shift; fi\n'
-                "done\n"
-                'mkdir -p "$target/release"\n'
-                "printf 'built\n' > \"$target/release/runtime\"\n"
+                + cargo_fixture_target_setup(root)
+                + "printf 'built\n' > \"$target/release/runtime\"\n"
                 'chmod 755 "$target/release/runtime"\n'
                 "printf 'changed\n' > README.md\n",
             )
@@ -4014,12 +4178,8 @@ else:
                 cargo,
                 "#!/bin/sh\n"
                 'if [ "${1:-}" = --version ]; then printf "cargo 1.95.0 (test)\\nrelease: 1.95.0\\n"; exit 0; fi\n'
-                "target=''\n"
-                "while [ $# -gt 0 ]; do\n"
-                '  if [ "$1" = --target-dir ]; then target=$2; shift 2; else shift; fi\n'
-                "done\n"
-                'mkdir -p "$target/release"\n'
-                "printf 'candidate\n' > \"$target/release/runtime\"\n"
+                + cargo_fixture_target_setup(root)
+                + "printf 'candidate\n' > \"$target/release/runtime\"\n"
                 'chmod 755 "$target/release/runtime"\n',
             )
             prepared = subprocess.run(

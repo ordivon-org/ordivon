@@ -18,11 +18,11 @@ SPEC.loader.exec_module(DOCTOR)
 
 
 class ArtifactDeliveryToolchainDoctorTests(unittest.TestCase):
-    def test_openxml_doctor_uses_stable_method_carrier_and_compatible_dotnet8_policy(self) -> None:
+    def test_openxml_doctor_uses_stable_method_carrier_and_compatible_dotnet_policy(self) -> None:
         source = (ROOT / "scripts/artifact_delivery_toolchain_doctor.py").read_text()
         lock = json.loads((ROOT / "artifact-delivery/openxml-runtime-v1.lock.json").read_text())
         self.assertEqual(lock["methodId"], "artifact.openxml.conformance.v1")
-        self.assertEqual(lock["dotnetPolicy"]["sdkMajorMinor"], "8.0")
+        self.assertEqual(lock["dotnetPolicy"]["sdkMajorMinor"], "10.0")
         self.assertIn('OPENXML_LOCK["stableDotnet"]', source)
         self.assertIn('OPENXML_LOCK["stableValidator"]', source)
         self.assertNotIn('LOCK["openXml"]["dotnetSdk"]', source)

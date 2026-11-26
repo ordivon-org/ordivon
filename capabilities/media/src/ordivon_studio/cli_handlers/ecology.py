@@ -13,16 +13,20 @@ from ..production_context import build_production_context
 from . import _write_json
 
 
-def _parse_source_repositories(values: list[str]) -> dict[str, Path]:
-    repositories: dict[str, Path] = {}
+def _parse_named_paths(values: list[str], *, option: str) -> dict[str, Path]:
+    paths: dict[str, Path] = {}
     for value in values:
-        binding_id, separator, path = value.partition("=")
-        if not separator or not binding_id or not path:
-            raise ValueError("--source-repo must use BINDING_ID=PATH")
-        if binding_id in repositories:
-            raise ValueError(f"duplicate --source-repo binding: {binding_id}")
-        repositories[binding_id] = Path(path)
-    return repositories
+        name, separator, path = value.partition("=")
+        if not separator or not name or not path:
+            raise ValueError(f"{option} must use ID=PATH")
+        if name in paths:
+            raise ValueError(f"duplicate {option} id: {name}")
+        paths[name] = Path(path)
+    return paths
+
+
+def _parse_source_repositories(values: list[str]) -> dict[str, Path]:
+    return _parse_named_paths(values, option="--source-repo")
 
 
 def _command_production_context(args: argparse.Namespace) -> int:
@@ -30,6 +34,7 @@ def _command_production_context(args: argparse.Namespace) -> int:
         build_production_context(
             Path(args.production_root),
             source_repositories=_parse_source_repositories(args.source_repo),
+            output_files=_parse_named_paths(args.output_file, option="--output-file"),
         )
     )
     return 0

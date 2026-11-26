@@ -152,8 +152,9 @@ framework-native test runners, **not a new Ordivon test dispatcher**.
 | --- | --- | --- |
 | Host Python property/contract example | `cd services/host && mise run test:focused` | Hypothesis `@given` on real RFC 8785 canonicalization, plus independent literal example |
 | Host another exact test node | `cd services/host && HOST_PYTEST_NODE=tests/test_contract_policy.py mise run test:focused` | Scoped pytest test, *not* whole Host DB verification |
-| Rust selected core test | `cd services/runtime && mise run test:focused` | Installed cargo-nextest optional runner, JUnit `target/nextest/ci/junit.xml` |
+| Rust selected core test | `cd services/runtime && mise run test:focused` | PG-only by default; native cargo-nextest JUnit under the Cargo target directory; empty selection is a failure |
 | Rust another exact filter | `cd services/runtime && RUNTIME_TEST_EXPR='test(explicit_root_workspace_identity_is_not_forbidden_by_policy)' mise run test:focused` | That native test, not the entire Runtime suite |
+| Rust legacy-only filter | `cd services/runtime && RUNTIME_TEST_PROFILE=legacy mise run test:focused` | Explicit legacy feature while Windows still consumes it, not PostgreSQL qualification |
 | Source Owner qualification | `cd services/host && mise run verify`, or `cd services/runtime && mise run verify` | The existing Owner full gate |
 | Find the actual executable surface | `cd services/host && mise tasks ls`, or `cd services/runtime && mise tasks ls` | Official mise task discovery; no custom registry |
 
@@ -170,7 +171,7 @@ derive its expectation from the implementation.
 | Python behavior, fixtures, parameter tables | [pytest](https://github.com/pytest-dev/pytest), [fixtures](https://docs.pytest.org/en/stable/how-to/fixtures.html), [parametrize](https://docs.pytest.org/en/stable/how-to/parametrize.html) | `cd services/host && uv run python -m pytest -q tests/FILE.py`; also Harness/Gateway owner |
 | Python generated invariants | [Hypothesis](https://github.com/HypothesisWorks/hypothesis) | Already in Host; actual `test_canonical_property.py` runs with upstream Hypothesis via `mise run test:focused` |
 | Disposable PostgreSQL | [testcontainers-python](https://github.com/testcontainers/testcontainers-python) | Already in Host dev dependencies; qualified small real PG18 trial, **not** approved to replace Host queue (see binding caveat) |
-| Rust focused unit tests | [cargo-nextest](https://github.com/nextest-rs/nextest), [JUnit reference](https://nexte.st/docs/machine-readable/junit/) | `cd services/runtime && cargo nextest run --locked --lib -p ordivon-runtime-core --no-default-features --features transactional-runtime -E 'test(public_requests_reject_unknown_fields_and_path_escape)' -P ci`; native optional fast feedback |
+| Rust focused unit tests | [cargo-nextest](https://github.com/nextest-rs/nextest), [JUnit reference](https://nexte.st/docs/machine-readable/junit/) | `cd services/runtime && mise run test:focused`; native optional fast feedback |
 | Rust complete source gate | [Cargo](https://github.com/rust-lang/cargo) | Keep `cd services/runtime && mise run verify` (Cargo + clippy + environment + docs). Nextest does not replace it |
 | Browser end-to-end | [Playwright](https://github.com/microsoft/playwright) | Already pinned in Web, Game TS and Harness. Invoke existing Owner E2E tasks |
 | TypeScript unit | [Node test runner](https://nodejs.org/api/test.html) | `cd apps/web && pnpm test`; `cd domains/game && pnpm test`. No new Vitest requirement |
@@ -193,3 +194,160 @@ These repositories were checked against GitHub stars, recent activity and licens
 Do **not** build `.agents/skills/ordivon-test-*` phases, a global test-results database, another test dispatcher, or new approval gates. Do not add Nx, Vitest, Cypress, Act, Playwright MCP or custom test-generation services without a specific unmet native consumer. Favor upstream instructions/templates over copying their internal code.
 
 **Historical example only:** GitHub PR #129 (U4/Host PostgreSQL CI) currently has a separate required GitHub CI failure at Runtime supply-chain policy due to rustls 0.23.45 advisories. Its local Host PASS is not protected-main acceptance. This guide deliberately does not modify Runtime security dependencies or disguise that failure.
+
+
+## 2026-11-26 execution delta — behavioral variation and verification economics
+
+This execution spec extends this guide and the existing Host Topic
+`topic:ordivon-whole-system-optimization:test-system-portfolio-convergence-r1:20261007`.
+It is not a new test platform, authority, or global mandatory suite.
+
+**Goal.** Prevent false-green evidence and test-example overfitting while
+minimizing change-to-trust latency. Preserve existing owner-native required
+checks and real consumer obligations. Source, model, code, installed,
+executed and consumed are different claims.
+
+### Thought → Logic → Capability
+
+| Logic responsibility | Thought LEGO | Existing / candidate native capability |
+| --- | --- | --- |
+| Contract and failure model | Representation-first; assume-guarantee; Parnas | typed domain interfaces, existing R2.1 and owner contracts |
+| Input and trace generation | equivalence classes; metamorphic relations; state machines | Hypothesis, proptest, fast-check (qualify per owner) |
+| Independent oracle | differential and consumer-driven contracts | native reference model, actual owner API/PG/OS readback |
+| Concurrency and temporal correctness | happens-before; linearizability; safety/liveness | existing TLC/Quint, Rust loom/Kani when relevant, native concurrent PG |
+| Refinement | model-to-implementation simulation; anti-vacuity | existing Lean/SMT/Verus/Kani/CrossHair with bounded obligations |
+| Failure injection | adversarial counterexample; recovery | real crash/restart, disposable PG, controlled network fault; Toxiproxy/netem if needed |
+| Test effectiveness | mutation testing; counterfactuals | cargo-mutants/nextest, mutmut, StrykerJS as scoped candidates |
+| Architecture evolvability | information hiding; substitutability; variation frame | existing owner-boundary tests, add/remove implementation contract tests |
+| Scope and impact | reverse consumer closure; exact readsets | Git, affected_owners, convergence_plan, existing evidence_validity |
+| Scheduling | risk-first; resource-limited packing | GitHub required aggregate, mise, pytest, nextest groups |
+| Qualification | hermeticity; evidence currentness; fail-closed | isolated native fixtures, lockfiles, native JUnit and exact receipts |
+| Portfolio retirement | marginal information value; subsumption | existing CI telemetry and owner tests; no independent test deletion by count |
+
+Treat a test as a scoped witness, not as a proxy for correctness. A test suite
+is not a production implementation specification. Select native stateful and
+metamorphic properties for recurring classes of failure rather than adding a
+new fixture for every instance. Prove or observe an independent oracle.
+Mutation survivors demand triage (equivalent, uncovered, timed out, or actual
+weak assertion); never merge solely on a mutation-score threshold.
+
+### P0 execution contracts and exit gates
+
+1. **Root selector/sharder (current pilot):** for paths in the accepted
+   repository-relative equivalence class, verify that normalized selection,
+   directed test consumer obligations and queue tasks are invariant.
+   Preserve original changedPaths as provenance. Verify exact task multiset,
+   partition bound, order independence, and Formal exclusion (separate gate).
+   Retain explicit known Composition consumer as independent positive witness.
+   Existing CI must run the property suite, not an optional orphan script.
+   The source diff, negative baseline, positive run and native aggregate
+   are distinct evidence. Git-produced paths are not proven affected by the
+   caller-path counterexample.
+2. **False-green gates:** qualify real required test inventory, native exit
+   status, empty collection, skipped critical obligations, cancellation,
+   and incomplete runner shards. Keep existing root aggregate. Never turn
+   SKIP/ENV_BLOCKED/NOT_RUN into PASS. Retry must expose flaky outcome.
+3. **Variation and stateful contracts:** prioritize Harness arbitrary
+   turn/approval/recovery sequences and Runtime provider replacement, PG
+   admission/cancel/settlement and owner state-machine invariants. Third
+   implementation may touch its adapter, composition root and tests; any
+   core change must be justified by a genuine new semantic requirement.
+   Use existing Rust migration/PG owner work; no second authority.
+4. **Mutation and independent falsification:** baseline scoped native
+   mutation runs on critical guards/transition/selector/oracle paths.
+   Report killed/survived/equivalent/timeout separately. Run the smallest
+   suite that covers the changed obligation; schedule expensive suites
+   separately until actual detection/cost is measured.
+5. **Evidence selection:** use existing exact-SHA receipt lookup before
+   scheduling. Never claim cross-cut reuse without complete proof/readset
+   evidence; missing dynamic dependency stays UNKNOWN.
+
+### P1 and P2 work
+
+- P1: consolidate duplicated dependency/environment setup within each natural
+  owner (uv groups and lock, Cargo.lock, pnpm-lock.yaml; version ranges for
+  compatibility, immutable tool/artifact digests for evidence), remove dead
+  test wrappers only after consumer parity. Benchmark nextest process
+  isolation and resource groups; use test sizes rather than blanket retries.
+- P1: implement scoped differential/mutation and replay for Host/Gateway
+  contracts, real disposable PG on the required supported major, and
+  subprocess/OS/network failure semantics. Preserve negative and reachable
+  positive controls.
+- P1: prevent architecture regressions at real consumer seams, not by
+  freezing file layout; use native import/contract boundaries and variation
+  probes. No generic new architecture registry.
+- P2: measure false-green escape, flaky rate, detection yield, cost and
+  time-to-trust using existing CI telemetry, not test-count targets.
+  Compare test subsumption and cost Pareto front; retire tests only when
+  their distinct oracle/consumer/failure obligation is preserved.
+- P2: agent trajectory evaluations: held-out task variants, budgets,
+  end-state oracle, false acceptance and recovery; separate model quality
+  from harness and environment. Do not let an agent self-grade its effect.
+
+R2.1 pilot: I = source cut, caller path list, owner/seam manifest, selected
+queue tasks; O = canonical selection/partition and native tests; S = isolated
+Git Workspace and existing root CI; pre = existing valid source contracts
+and path admission; post = equivalent paths preserve selection and every
+non-Formal selected task appears once; inv = no dropped consumers, no
+duplicate tasks, no effect/Domain claim; eff = isolated tests and source
+candidate only; c = actual focused duration and CI cost, latter UNKNOWN;
+epsilon = finite generated examples, no universal proof; prov = exact Git
+and Runtime receipts; unfold = deterministic witness → generated variation
+→ focused regression → existing required CI → independent review.
+
+Primary upstream references: Hypothesis stateful tests and shrinking
+(https://hypothesis.readthedocs.io/en/latest/stateful.html);
+nextest retries/flaky results (https://nexte.st/docs/features/retries/),
+test groups (https://nexte.st/docs/configuration/test-groups/);
+cargo-mutants nextest integration
+(https://github.com/nextest-rs/nextest/blob/main/site/src/docs/integrations/cargo-mutants.md);
+mutmut (https://mutmut.readthedocs.io/en/latest/).
+These are methods/candidates, not blanket installed or qualified capabilities.
+
+
+### 2026-11-26 R2 — independent oracle and deterministic failure qualification
+
+The R1 metamorphic invariant compares equivalent inputs. It is necessary,
+not sufficient: a selector can omit or overselect the same consumer on
+both sides. Do not use the selector itself to generate its entire test
+universe. The existing owner and dependency TOML declarations are the
+independent input for the scoped source-contract oracle. Its singleton
+positive/negative cases and generated set-union law verify exact
+taskLocalTestConsumers, inclusion of the consumer queue tasks, and retention
+of original changedPaths. Native Runtime/Harness seam rules have a different
+declaration format and are explicitly outside this exact oracle; they
+retain their separate native checks.
+
+R2 qualification: first run original and new suites; inject compilable
+targeted omission and over-selection mutants in an isolated workspace;
+require assertion failures rather than environment/collection errors;
+restore the original production bytes and rerun. This is a bounded
+sensitivity demonstration, not a general mutation score.
+
+P0 failure-driven execution: preserve actual GitHub failed attempt and
+native traceback; distinguish source defects, fixture qualification,
+test-oracle defects and legitimate retry exhaustion. A failed required
+owner shard is a failed aggregate; do not rerun simply to erase a failure.
+At the Capital SERIALIZABLE boundary require two actual connections,
+a controlled overlap/commit observation, and exact durable read-back.
+SQLSTATE 40001 is not a domain conflict or evidence of a committed effect.
+Use a bounded whole-transaction retry policy with explicit exhaustion if
+the owner contract requires retry; qualify liveness under stated contention
+rather than blindly increasing retries or weakening assertions.
+
+P1 deterministic simulation testing: reuse owner state-machine contracts,
+virtual clock and seeded fault scheduling only at existing effect ports.
+Specify fault distribution, schedule/seed, exact replay, state invariant
+and liveness horizon; preserve actual PG/OS/network consumer qualification.
+For distributed effects, test response loss after commit, duplicate
+delivery, delayed acknowledgement, cancellation and recovery separately.
+FoundationDB's simulation plus physical/performance tests and TigerBeetle's
+protocol-aware VOPR safety/liveness testing motivate this decomposition:
+https://apple.github.io/foundationdb/engineering.html
+https://tigerbeetle.com/blog/2026-08-20-protocol-aware-dst/
+No universal simulation runtime or additional test registry is authorized.
+
+R2 exit: scoped oracle detects both demonstrated mutants, restored suite
+passes, existing CI lane remains the consumer; wider native seam coverage,
+official merge-cut CI and physical contention root cause remain separate
+obligations. Record exact source, actual results, scope and blockers.

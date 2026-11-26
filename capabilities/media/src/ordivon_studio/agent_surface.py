@@ -28,6 +28,16 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
     if schema == {"type": "object", "properties": {}, "additionalProperties": False}:
         if checked:
             raise ValueError(f"invalid arguments for {name} at <root>: unexpected properties")
+    elif name == "studio_dependencies_propose":
+        # The dependency-acquisition proposal must remain callable before its
+        # own JSON Schema validator is installed. Its sole target enum is
+        # already declared in the advertised contract above.
+        if (
+            set(checked) != {"target"}
+            or not isinstance(checked.get("target"), str)
+            or checked["target"] not in schema["properties"]["target"]["enum"]
+        ):
+            raise ValueError(f"invalid arguments for {name} at <root>: expected only target=js or python")
     else:
         from jsonschema import Draft202012Validator
 
@@ -54,7 +64,11 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
         from .production_context import build_production_context
 
         production_id = str(arguments["productionId"])
-        return build_production_context(_production_root(root, production_id))
+        selected_files = arguments.get("outputFiles") or {}
+        return build_production_context(
+            _production_root(root, production_id),
+            output_files={output_id: Path(path) for output_id, path in selected_files.items()},
+        )
     if name == "studio_learning_context":
         from .agent_productions import _production_root
         from .learning_context import build_learning_context
@@ -92,6 +106,15 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
             expected_adapter_digest=str(arguments["expectedAdapterDigest"]),
             input_path=str(arguments["inputPath"]),
             evidence_directory=str(arguments["evidenceDirectory"]),
+            expected_input_digest=arguments.get("expectedInputDigest"),
+            expected_source_closure_digest=arguments.get("expectedSourceClosureDigest"),
+        )
+    if name == "studio_processing_receipt_qualify":
+        from .processing_receipt import qualify_processing_receipt
+
+        return qualify_processing_receipt(
+            root, plan=arguments["plan"], exit_code=arguments["exitCode"],
+            expected_receipt_digest=arguments["expectedReceiptDigest"],
         )
     if name == "studio_equipment_propose":
         from .equipment import load_equipment_world, propose_operation

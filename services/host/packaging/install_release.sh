@@ -1,14 +1,23 @@
 #!/bin/bash
 set -euo pipefail
 
-if [ "$#" -ne 3 ]; then
-  echo "usage: install_release.sh <repo> <commit> <prefix>" >&2
+# The fourth argument is the independently reviewed Host Git tree OID.
+# Preparing without activating is intentionally available ONLY with that
+# tree pin: a candidate Git commit alone can be an unrelated Merge Queue SHA.
+if [ "$#" -lt 3 ] || [ "$#" -gt 5 ] ||
+   { [ "$#" -eq 5 ] && [ "$5" != "--prepare-only" ]; }; then
+  echo "usage: install_release.sh <repo> <commit> <prefix> [expected_host_tree_oid] [--prepare-only]" >&2
   exit 2
 fi
 
 REPO=$1
 COMMIT=$2
 PREFIX=$3
+EXPECTED_HOST_TREE=${4:-}
+PREPARE_ONLY=false
+if [ "$#" -eq 5 ]; then
+  PREPARE_ONLY=true
+fi
 UV=${ORDIVON_HOST_V2_RELEASE_UV:-}
 PYTHON_INSTALL_DIR=${ORDIVON_HOST_V2_PYTHON_INSTALL_DIR:-$PREFIX/python}
 SOURCE_SUBTREE="services/host"
@@ -29,6 +38,20 @@ if ! git -C "$REPO" cat-file -e "$COMMIT:$SOURCE_SUBTREE/pyproject.toml" 2>/dev/
   exit 2
 fi
 
+# An exact commit alone can name a different adjacent Merge Queue PR.
+# If an independently reviewed Host tree identity is available, verify
+# native Git tree OID before creating directories or invoking tools.
+if [[ "$#" -ge 4 ]]; then
+  case "$EXPECTED_HOST_TREE" in
+    ''|*[!0-9a-f]*) echo "expected host tree must be a nonempty lowercase Git object ID" >&2; exit 2 ;;
+  esac
+  ACTUAL_HOST_TREE=$(git -C "$REPO" rev-parse --verify "$COMMIT:$SOURCE_SUBTREE")
+  if [[ "$ACTUAL_HOST_TREE" != "$EXPECTED_HOST_TREE" ]]; then
+    echo "release Host source tree differs from expected reviewed tree" >&2
+    exit 2
+  fi
+fi
+
 mkdir -p "$PREFIX/releases"
 RELEASE="$PREFIX/releases/$COMMIT"
 if [ ! -d "$RELEASE" ]; then
@@ -44,46 +67,10 @@ fi
 # Never trust a directory solely because it is named after a real commit:
 # use Git's native blob identities to reject post-archive source drift before
 # resolving dependencies, changing the active symlink or touching a service.
-verify_release_source() {
-  local record metadata path mode expected actual rel file count=0
-  while IFS= read -r -d '' record; do
-    metadata=${record%%$'\t'*}
-    path=${record#*$'\t'}
-    mode=${metadata%% *}
-    expected=${metadata##* }
-    rel=${path#"$SOURCE_SUBTREE/"}
-    file="$RELEASE/$rel"
-    if [[ "$mode" == "120000" ]]; then
-      [[ -L "$file" ]] || {
-        echo "release source drift: missing symlink $rel" >&2
-        return 2
-      }
-      actual=$(readlink -n -- "$file" | git -C "$REPO" hash-object --stdin)
-    else
-      [[ -f "$file" && ! -L "$file" ]] || {
-        echo "release source drift: missing regular file $rel" >&2
-        return 2
-      }
-      if [[ ( "$mode" == "100755" && ! -x "$file" ) ||
-            ( "$mode" == "100644" && -x "$file" ) ]]; then
-        echo "release source drift: Git executable bit differs for $rel" >&2
-        return 2
-      fi
-      actual=$(git -C "$REPO" hash-object --no-filters -- "$file")
-    fi
-    [[ "$actual" == "$expected" ]] || {
-      echo "release source drift: Git blob differs for $rel" >&2
-      return 2
-    }
-    count=$((count + 1))
-  done < <(git -C "$REPO" ls-tree -rz "$COMMIT" "$SOURCE_SUBTREE")
-  ((count > 0)) || {
-    echo "release source drift: empty Git source subtree" >&2
-    return 2
-  }
-}
-
-verify_release_source
+# Native Git identity plus complete physical source path inventory.
+# The verifier runs from the trusted installer checkout, not the release
+# directory whose contents are being qualified.
+/usr/bin/python3 "$SCRIPT_DIR/verify_release_source.py" "$REPO" "$COMMIT" "$RELEASE"
 
 # Immutable release's mise.toml owns both Python and uv tool versions.
 # Keep the interpreter outside protected user homes so the systemd DynamicUser can
@@ -131,6 +118,23 @@ chmod -R a+rX "$PYTHON_INSTALL_DIR"
 # The lock file belongs to the immutable Git release. The venv belongs to that release too.
 UV_PYTHON_INSTALL_DIR="$PYTHON_INSTALL_DIR" "$UV" sync --locked --no-dev --python "$PYTHON" --project "$RELEASE"
 chmod -R a+rX "$RELEASE"
+
+# Qualify the frozen release with the official MCP SDK before activation:
+# tool names alone cannot detect state or pagination argument drift.
+"$RELEASE/.venv/bin/python" "$RELEASE/packaging/verify_release.py"
+
+# Build, lock and source-verify the complete candidate before changing any
+# serving symlink. Host upstream authentication cannot safely be switched
+# until the real Gateway/peer/Cloudflare consumers and Security Principal
+# grants are qualified. This mode is never a live release or a permission
+# to skip Gateway's independent Host/Security release admission gate.
+if [ "$PREPARE_ONLY" = true ]; then
+  printf 'prepared_release=%s\n' "$COMMIT"
+  printf 'prepared_host_tree=%s\n' "$EXPECTED_HOST_TREE"
+  printf 'prepared_dir=%s\n' "$RELEASE"
+  printf 'activation=NOT_PERFORMED\n'
+  exit 0
+fi
 
 ln -sfn "releases/$COMMIT" "$PREFIX/current.next"
 mv -Tf "$PREFIX/current.next" "$PREFIX/current"

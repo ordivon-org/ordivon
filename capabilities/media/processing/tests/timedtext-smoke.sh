@@ -2,9 +2,7 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/../.." && pwd)
-work="$root/.tmp/processing-timedtext-smoke"
-rm -rf "$work"
-mkdir -p "$work"
+work=$(mktemp -d "${TMPDIR:-/tmp}/ordivon-media-timedtext-smoke.XXXXXX")
 trap 'rm -rf "$work"' EXIT
 
 ttconv="$root/processing/bin/ttconv-pinned.sh"
@@ -72,5 +70,31 @@ if bash "$probe" "$work/malformed.ttml" "$work/profile.json" "$work/malformed-ev
   echo "malformed TTML unexpectedly passed" >&2
   exit 1
 fi
+
+# Explicit false is a policy choice, not an absent value. Preserve the measured
+# negative interval while making the corresponding check optional.
+jq '.requirePositiveDurations=false | .requireNonemptyPackets=false' "$work/bad-interval-profile.json" > "$work/optional-profile.json"
+bash "$probe" "$work/bad-interval.vtt" "$work/optional-profile.json" "$work/optional-evidence" >/dev/null
+jq -e '.ok and any(.checks[]; .name=="timedText.positiveDurations" and .required==false and .actual==false and .ok==true) and any(.checks[]; .name=="timedText.nonemptyPackets" and .required==false and .ok==true)' "$work/optional-evidence/assertions.json" >/dev/null
+
+# Omitting the field preserves the strict default.
+jq 'del(.requirePositiveDurations)' "$work/bad-interval-profile.json" > "$work/default-profile.json"
+if bash "$probe" "$work/bad-interval.vtt" "$work/default-profile.json" "$work/default-evidence" >/dev/null 2>"$work/default.stderr"; then
+  echo "absent duration requirement unexpectedly disabled strict default" >&2
+  exit 1
+fi
+grep -q 'FAIL timedText.positiveDurations' "$work/default.stderr"
+
+# Non-boolean policy values are invalid, not silently coerced.
+for invalid in null '"false"' 0; do
+  jq --argjson invalid "$invalid" '.requirePositiveDurations=$invalid' "$work/profile.json" > "$work/invalid-profile.json"
+  dest="$work/invalid-policy-$invalid"
+  if bash "$probe" "$work/good.ttml" "$work/invalid-profile.json" "$dest" >/dev/null 2>"$work/invalid.stderr"; then
+    echo "invalid boolean profile unexpectedly accepted" >&2
+    exit 1
+  fi
+  grep -q 'invalid timed-text profile' "$work/invalid.stderr"
+  test ! -e "$dest/evidence.json"
+done
 
 echo 'processing timed-text smoke: PASS (round-trip preserved; negative duration, overflow, malformed XML rejected)'

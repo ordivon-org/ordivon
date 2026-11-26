@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from typing import Any
 
 import psycopg
-from psycopg.rows import dict_row
 
 from .canonical_json import canonical_digest
 from .command_receipts import claim_command_receipt, record_command_receipt
 from .coordination_inputs import CoordinationIntentInput, IntentStanding
 from .errors import ConflictError
+from .references.actor_refs import ActorReferenceLookup
+from .references.record_refs import RecordReferenceLookup
 from .social_errors import MessageNotFound as MessageNotFound
 from .social_errors import SpaceNotFound as SpaceNotFound
 from .social_errors import TopicNotFound as TopicNotFound
@@ -17,23 +20,28 @@ from .social_errors import TopicNotFound as TopicNotFound
 class CoordinationIntentCommands:
     """PostgreSQL commands through the sole Host SocialStore authority."""
 
+    def __init__(
+        self, connect: Callable[[], AbstractContextManager[psycopg.Connection[dict[str, Any]]]]
+    ) -> None:
+        self._connect = connect
+
     def declare_intent(
         self, value: CoordinationIntentInput, *, client_request_id: str
     ) -> dict[str, Any]:
         value.validate_window()
         request = {"operation": "intent.declare", **value.model_dump(mode="json")}
         request_digest = canonical_digest(request)
-        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+        with self._connect() as conn, conn.transaction():
             replay = claim_command_receipt(
                 conn, client_request_id, "intent.declare", request_digest
             )
             if replay is not None:
                 return replay
-            self._require_actor(conn, value.actor_ref)
+            ActorReferenceLookup._require_actor(conn, value.actor_ref)
             if value.work_ref is not None:
-                self._require_work(conn, value.work_ref)
+                RecordReferenceLookup._require_work(conn, value.work_ref)
             if value.space_ref is not None:
-                self._require_space(conn, value.space_ref)
+                RecordReferenceLookup._require_space(conn, value.space_ref)
             immutable = (
                 value.actor_ref,
                 value.subject_ref,

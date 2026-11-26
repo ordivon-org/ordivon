@@ -121,7 +121,3 @@ Fresh Workstation observations still show `surf-clash = UNAVAILABLE` and `financ
 ## Campaign-4 currentness update
 
 Historical Campaign-4 closeout correctly recorded independence/counterevidence/cycles/cross-owner composition as conceptual-only at its closeout time. Current state is split: counterevidence/rebuttal revision has bounded direct product evidence; causal/common-cause independence, support-cycle handling, cross-owner composition and cross-implementation reproduction remain open.
-
-## Continuity
-
-- `task:harness-next-conversation-handoff-20260819`

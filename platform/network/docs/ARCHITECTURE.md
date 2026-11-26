@@ -56,6 +56,54 @@ This inventory is a source/installed/consumer map, not a second registry:
 | reference/linux/ | Standard Linux kernel and topology fidelity | Kernel/netem/containerlab/WireGuard comparisons |
 | docs/, evidence/, planning/ | Read-only guides, source evidence and plan | Host Work owns changing execution state |
 
+## Real network failure-domain graph (consumer evidence, 2026-11-14)
+
+```text
+one ZTE U30 Pro MU5358 / China Mobile 5G WAN (single observed failure domain)
+  └── LAN gateway 192.168.0.1, same learned gateway MAC
+      ├── Windows Wi-Fi Realtek 8852BE ───┐
+      └── Windows Remote NDIS USB ────────┤
+                                          └── Windows selected route → WSL2
+                                              ├── Host / Gateway / Runtime control
+                                              ├── direct IPv4 Blackbox proof
+                                              └── one Gluetun/Surfshark WG
+                                                  ├── native WireGuard health restart
+                                                  ├── existing 1-minute systemd recovery
+                                                  └── shared Carrier → Claude / Codex
+                                                                     → Finance (9 lanes)
+                                                                     → model/supply chain/Chrome
+                                                                     → Tailscale server exit
+```
+
+The existing ZTE U30 Pro read-only Provider observer independently returned
+MU5358/China Mobile 5G current PPP connected, RSRP -72 dBm and SNR 27 dB,
+with ten gateway pings and no loss at 2026-11-14 16:23 CST. These are
+**current** cellular/LAN observations, not historical cause proof for
+08:41–14:20; no physically independent second WAN is established.
+
+This diagram describes one observed first-hop failure domain. It does
+not prove an ISP internal component is the root cause. On 2026-11-14
+08:41:29 CST both Windows NCSI Internet capabilities failed together,
+all direct and VPN probes simultaneously dropped, and Gluetun's own
+health loop retried 3,178 times. Windows NCSI recovered both at
+14:20:44; first successful direct/VPN/Agent Prometheus samples followed
+within 11–34 seconds.
+
+An interface-level failover between Wi-Fi and USB RNDIS sharing the same
+gateway MAC is NOT a validated independent physical WAN failover.
+The physical alternative must be measured with distinct active egress
+and direct HTTPS via each WAN BEFORE software can route to it.
+
+One Provider source contains two distinct recovery concepts:
+native Gluetun health restarts for tunnel availability, plus the
+existing systemd one-shot for quality-aware trials ONLY when independently
+verified physical Internet works and current Claude/Codex/PyPI user
+traffic fails. Historical successful countries are source/Prometheus
+trial candidates, never simultaneously connected standby sessions.
+No new watch daemon, PostgreSQL table, duplicate tunnel or custom
+network controller is required for this fallback. Consumers validate
+effect, not a successful VPN API response alone.
+
 ## Generic live platform
 
 ```text
@@ -180,3 +228,29 @@ The Network reference CI definition is a **non-installed, standalone repository 
 ## Consumer lifecycle boundary
 
 Browserless provider/consumer migration may fail closed when an observed upper-layer workflow is actively using the path, but Network does not start, restart, enable, or require an Agent Automation/Temporal consumer service as part of network cutover or acceptance. Consumer lifecycle belongs to its own owner. A successful Network Browserless cutover proves the network/provider path and leaves upper-layer reconciliation to the consumer.
+
+
+### R14 — Native monitoring evidence graph contract
+
+The existing preflight CLI is the native I/O shell (source bytes, yq,
+local Prometheus and diagnostics); `scripts/monitoring_graph.py` holds
+the bounded loaded-config projection and active-target identity relation.
+A configured job name alone is not an observed independent probe.
+The loaded main-config projection includes label/timestamp trust,
+metric relabeling, redirects and environment proxy selection. Native
+active targets must match the declared role, pool, instance, discovered
+address, scheme, endpoint and complete request parameter mapping.
+The local API client does not inherit HTTP proxy environment variables.
+
+R2.1: I valid source job definitions and native API observations; O
+bounded graph match or rejection; S in-memory normalized projection;
+pre source owner validation; post unique identities and checked fields
+match; inv missing/ambiguous evidence never matches; eff read-only;
+c O(jobs + active targets + configuration fields); epsilon not a full
+Prometheus configuration equivalence proof (included fragment effective
+settings beyond the active target witness, rule expressions and timing
+need separate qualification), not liveness or physical independence;
+prov Host #32987 and native regression jobs; unfold source/native I/O
+-> projection/target identity -> existing CLI receipt. No new controller,
+registry or production deployment. Upstream configuration semantics:
+https://prometheus.io/docs/prometheus/latest/configuration/configuration/

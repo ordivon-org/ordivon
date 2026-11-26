@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import fcntl
 import hashlib
 import json
 import os
@@ -137,13 +138,37 @@ def probe_wrapper(wrapper:Path)->dict[str,Any]:
     return json.loads(p.stdout)
 
 
+def qualify_generation(base:Path,generation:Path,expected_spec:dict[str,Any]|None=None)->tuple[dict[str,Any],dict[str,Any]]:
+    """Check generation namespace and exact desired identity before execution."""
+    parent=(base/'generations').resolve(strict=True)
+    if generation.is_symlink() or generation.resolve(strict=True).parent!=parent:
+        raise RuntimeError('Artifact Python generation outside generation namespace')
+    binding=json.loads((generation/'binding.json').read_text())
+    if not isinstance(binding,dict) or binding.get('kind')!='artifact-python-generation-binding' or binding.get('generationId')!=generation.name:
+        raise RuntimeError('Artifact Python generation binding identity mismatch')
+    if expected_spec is not None:
+        gid=hashlib.sha256(canonical(expected_spec)).hexdigest()
+        if generation.name!=gid or any(binding.get(k)!=v for k,v in expected_spec.items()):
+            raise RuntimeError('Artifact Python generation binding differs from desired spec')
+    wrapper=generation/'bin/python'
+    if wrapper.is_symlink() or 'sha256:'+sha(wrapper)!=binding.get('wrapperSha256'):
+        raise RuntimeError('Artifact Python generation wrapper binding mismatch')
+    if expected_spec is not None:
+        provenance=generation/'provenance'
+        for name,key in (('pyproject.toml','uvProjectPyprojectSha256'),('uv.lock','uvLockSha256')):
+            if 'sha256:'+sha(provenance/name)!=expected_spec[key]:
+                raise RuntimeError('Artifact Python generation provenance binding mismatch')
+    probe=probe_wrapper(wrapper)
+    if probe.get('status')!='PASS':raise RuntimeError('Artifact Python generation probe not PASS')
+    return binding,probe
+
+
 def status(stable_root:Path|None=None)->dict[str,Any]:
     lock=load_lock();base=(stable_root or Path(lock['stableRoot']));current=base/'current';result={'schemaVersion':1,'kind':'artifact-python-environment-status','stableRoot':str(base),'stablePython':str(current/'bin/python'),'currentPresent':current.exists() or current.is_symlink(),'ready':False}
     if not current.is_symlink():return result
     try:
         resolved=current.resolve(strict=True)
-        if base.resolve() not in resolved.parents:raise RuntimeError('current generation escapes stable root')
-        binding=json.loads((resolved/'binding.json').read_text());probe=probe_wrapper(resolved/'bin/python')
+        binding,probe=qualify_generation(base,resolved)
         result.update({'ready':True,'generationId':resolved.name,'binding':binding,'probe':probe})
     except Exception as error:result['error']=str(error)
     return result
@@ -151,7 +176,9 @@ def status(stable_root:Path|None=None)->dict[str,Any]:
 
 def build_generation(base:Path,lock:dict[str,Any],project:dict[str,str],python:dict[str,str])->tuple[str,Path,dict[str,Any]]:
     spec=generation_spec(lock,project,python);gid=hashlib.sha256(canonical(spec)).hexdigest();generations=base/'generations';generations.mkdir(parents=True,exist_ok=True);final=generations/gid
-    if final.exists():return gid,final,json.loads((final/'binding.json').read_text())
+    if final.exists() or final.is_symlink():
+        binding,_=qualify_generation(base,final,spec)
+        return gid,final,binding
     staging=generations/f'.{gid}.staging-{os.getpid()}'
     if staging.exists():shutil.rmtree(staging)
     staging.mkdir(mode=0o700)
@@ -175,16 +202,34 @@ def build_generation(base:Path,lock:dict[str,Any],project:dict[str,str],python:d
 def apply()->dict[str,Any]:
     if ROOT.resolve()!=MAIN.resolve():raise RuntimeError('Artifact Python environment apply is fenced to canonical /root/projects/ordivon/capabilities/artifact source')
     lock=load_lock();project=project_status(lock);python=python_status(lock);base=Path(lock['stableRoot']);base.mkdir(parents=True,exist_ok=True);gid,final,binding=build_generation(base,lock,project,python)
-    current=base/'current'
-    if current.exists() and not current.is_symlink():raise RuntimeError('Artifact Python current target is not an atomic symlink authority')
-    tmp=base/f'.current-{os.getpid()}'
-    if tmp.exists() or tmp.is_symlink():tmp.unlink()
-    os.symlink(Path('generations')/gid,tmp);os.replace(tmp,current)
-    dfd=os.open(base,os.O_RDONLY|os.O_DIRECTORY)
-    try:os.fsync(dfd)
-    finally:os.close(dfd)
-    observed=status(base)
-    if not observed.get('ready') or observed.get('generationId')!=gid:raise RuntimeError('Artifact Python current publication did not verify')
+    # Serialize pointer publishers through an owner-local advisory lock.
+    # Readers keep using the previous generation until candidate qualification.
+    spec=generation_spec(lock,project,python)
+    with (base/'.publication.lock').open('a') as fence:
+        fcntl.flock(fence,fcntl.LOCK_EX)
+        binding,_=qualify_generation(base,final,spec)
+        current=base/'current'
+        if current.exists() and not current.is_symlink():raise RuntimeError('Artifact Python current target is not an atomic symlink authority')
+        previous=os.readlink(current) if current.is_symlink() else None
+        tmp=base/f'.current-{os.getpid()}'
+        def switch(target:str|None)->None:
+            tmp.unlink(missing_ok=True)
+            if target is None:current.unlink(missing_ok=True)
+            else:
+                os.symlink(target,tmp);os.replace(tmp,current)
+            dfd=os.open(base,os.O_RDONLY|os.O_DIRECTORY)
+            try:os.fsync(dfd)
+            finally:os.close(dfd)
+        target=str(Path('generations')/gid)
+        try:
+            switch(target)
+            observed=status(base)
+            if not observed.get('ready') or observed.get('generationId')!=gid:raise RuntimeError('Artifact Python current publication did not verify')
+        except Exception:
+            if current.is_symlink() and os.readlink(current)==target:switch(previous)
+            raise
+        finally:
+            tmp.unlink(missing_ok=True)
     return {'schemaVersion':1,'kind':'artifact-python-environment-materialization-receipt','truthRole':'stable-python-runtime-materialization-not-artifact-acceptance','generationId':gid,'stablePython':str(current/'bin/python'),'binding':binding,'status':observed}
 
 

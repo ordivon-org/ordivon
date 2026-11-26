@@ -7,13 +7,14 @@ It never promotes a source snapshot to current owner intent or edits assets.
 
 from __future__ import annotations
 
-import hashlib
 import subprocess
 from pathlib import Path
 from typing import Any
 
+from .cognition_sections import COGNITION_SECTIONS, cognition_sections
+from .production_output_identity import declared_source_files, observe_output_blob
+
 ROOT = Path(__file__).resolve().parents[2]
-COGNITION_SECTIONS = ("FRAME", "BIND", "EXPRESS", "RENDER", "AUDIT", "DECIDE", "LEARNING")
 
 
 def _duplicates(values: list[str]) -> set[str]:
@@ -130,47 +131,43 @@ def _validate_production_semantics(
 
     sources = production.get("sources", {})
     if isinstance(sources, dict):
-        source_paths: list[str] = []
-        for value in sources.values():
-            if isinstance(value, str):
-                source_paths.append(value)
-            elif isinstance(value, list):
-                source_paths.extend(item for item in value if isinstance(item, str))
-        for source_path in source_paths:
+        source_paths = declared_source_files(sources)
+        for source_path in sorted(source_paths):
             resolved = (production_path.parent / source_path).resolve()
             if not resolved.is_relative_to(ROOT.resolve()):
                 errors.append(f"{prefix}: source escapes repository: {source_path}")
             elif not resolved.exists():
                 errors.append(f"{prefix}: declared source does not exist: {source_path}")
 
-        # One owner-native, opt-in exact-byte seam. JSON Schema can check only a
-        # digest's shape; a real source-carrier witness must inspect the bytes.
-        # Derived article chapters and encoded media outputs must not be forced
-        # to equal an unrelated source artifact.
+        # Same observed byte relation as the actual Production context.
+        # Validation policy differs by role: a sourceCarrier is a required
+        # exact-byte assertion; a missing/unstable outputCarrier is UNKNOWN.
         for output in production.get("outputs", []):
-            if not isinstance(output, dict) or "sourceCarrier" not in output:
+            if not isinstance(output, dict):
                 continue
-            carrier = output["sourceCarrier"]
-            output_id = output.get("id")
-            if not isinstance(carrier, str) or carrier not in source_paths:
-                errors.append(f"{prefix}: output {output_id!r} sourceCarrier is not a declared source")
+            role = "sourceCarrier" if output.get("sourceCarrier") is not None else "outputCarrier"
+            if output.get(role) is None:
                 continue
-            path = (production_path.parent / carrier).resolve()
-            if not path.is_relative_to(ROOT.resolve()) or not path.is_file():
-                errors.append(f"{prefix}: output {output_id!r} sourceCarrier is not an accessible repository file")
-                continue
-            expected_digest = output.get("blobDigest")
-            if not isinstance(expected_digest, str):
-                errors.append(f"{prefix}: output {output_id!r} sourceCarrier requires blobDigest")
-                continue
-            try:
-                with path.open("rb") as source_file:
-                    actual_digest = "sha256:" + hashlib.file_digest(source_file, "sha256").hexdigest()
-            except OSError as exc:
-                errors.append(f"{prefix}: output {output_id!r} sourceCarrier unreadable: {exc}")
-                continue
-            if actual_digest != expected_digest:
-                errors.append(f"{prefix}: output {output_id!r} sourceCarrier digest mismatch")
+            row = observe_output_blob(
+                production_path.parent, output,
+                declared_source_files=source_paths, selected_file=None,
+            )
+            relation = row["relation"]
+            label = f"{prefix}: output {output.get('id')!r}"
+            messages = {
+                "INVALID_MULTIPLE_CARRIERS": "has multiple carrier types",
+                "INVALID_UNDECLARED_SOURCE_CARRIER": "sourceCarrier is not a declared source",
+                "INVALID_SOURCE_CARRIER_PATH": "invalid sourceCarrier path",
+                "INVALID_OUTPUT_CARRIER": "invalid outputCarrier path",
+                "INVALID_ESCAPING_SOURCE_CARRIER": "sourceCarrier escapes Production root",
+                "INVALID_ESCAPING_OUTPUT_CARRIER": "outputCarrier escapes Production root",
+                "UNKNOWN_NO_VALID_DECLARED_DIGEST": f"{role} requires blobDigest",
+                "DIFFERS_FROM_DECLARED_DIGEST": f"{role} digest mismatch",
+            }
+            if relation in messages:
+                errors.append(f"{label} {messages[relation]}")
+            elif role == "sourceCarrier" and relation != "MATCHES_DECLARED_DIGEST":
+                errors.append(f"{label} sourceCarrier lacks stable byte evidence: {relation}")
     return errors
 
 
@@ -179,14 +176,13 @@ def _validate_cognition_record(path: Path) -> list[str]:
         return [f"{path}: cognition record does not exist"]
     text = path.read_text(encoding="utf-8")
     errors: list[str] = []
-    positions: list[int] = []
+    observed = [section.title for section in cognition_sections(text) if section.title in COGNITION_SECTIONS]
     for section in COGNITION_SECTIONS:
-        marker = f"## {section}"
-        position = text.find(marker)
-        if position < 0:
+        count = observed.count(section)
+        if not count:
             errors.append(f"{path}: missing cognition section {section}")
-        else:
-            positions.append(position)
-    if not errors and positions != sorted(positions):
+        elif count > 1:
+            errors.append(f"{path}: duplicate cognition section {section}")
+    if not errors and tuple(observed) != COGNITION_SECTIONS:
         errors.append(f"{path}: cognition sections are out of protocol order")
     return errors

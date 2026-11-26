@@ -242,3 +242,66 @@ Machine-readable verdict: `artifacts/creative-preservation/operations-r7/accepta
 **Deployment qualification is separate and presently UNKNOWN**. Source acceptance proves only that the checked overlay has the declared configuration. Recovery of the actual scheduled Fixity consumer requires the deployment owner to combine this overlay with the live upstream profile and independently verify: Docker's current bound port is precisely the loopback contract, the provider is ready at the endpoint, the actual Fixity client authenticates and scans the intended AIPs, and the timer/service records a successful owner-native run. The existing live container was **not recreated** as part of this source refinement. Do not mask a data-integrity failure by disabling the timer, skipping scans, or treating a running container as API readiness. Do not infer retention/replica safety solely from this source check.
 
 **CEGAR scope**: a service existing in Compose is an abstraction of the service graph, but it is insufficient to establish that a host-native consumer can reach the provider. The concrete counterexample refines the producer/consumer edge to require exact bind address, port and deployed composition evidence. This does not prove that a later network change or Storage Service failure is impossible.
+
+## 2026-11-08 R10 deployment recovery — real provider/consumer read-back
+
+The preceding dated October 25 failure and source-only qualification remain
+historically valid. This new observation **closes that specific installed
+Linux-node mismatch** using the upstream Docker Compose and Artefactual
+Fixity providers, not a new proxy, scanner, lease service or registry.
+
+- The installed overlay
+  `/opt/ordivon/external/archivematica/1.18.0/overlays/docker-compose.preservation-r10.yml`
+  was copied from the existing Owner-tracked R10 source; both had SHA-256
+  `903d18f8c16cb9612f89a898b7690d55a79f03fee73f612d7c96c33c5595d20b`.
+  The installed Docker service's Compose provenance now lists the upstream
+  Archivematica base, the existing ClamAV R6 overlay **and** that R10 overlay.
+- A `docker compose up --no-deps --no-build -d archivematica-storage-service`
+  with those three qualified files recreated **only** the Storage Service
+  container. The image ID stayed
+  `sha256:c87bf9bd5f51b425d9933cd37542b78f4d27d08a10e78f6348f81160c30802ea`
+  and the existing staging volume stayed
+  `/var/lib/docker/volumes/am_archivematica_storage_service_staging_data/_data`.
+  Dashboard and MCP containers were not recreated.
+- Docker now publishes **only** `127.0.0.1:62081:8000`. An actual
+  `GET http://127.0.0.1:62081/api/v2/` returned HTTP 200 both immediately
+  after the service update and during final read-back.
+- The unchanged `ordivon-preservation-fixity-r7.service` was restarted
+  using its existing systemd EnvironmentFile without reading or exposing
+  credential values. systemd reported `Result=success` and
+  `ExecMainStatus=0`. Its own journal reported successful Fixity checks
+  for **six distinct AIPs**, summarized by `Successfully scanned 6 AIPs`;
+  the existing timer remained `active/waiting`.
+- The registered `mise run preservation:verify` source task remained PASS:
+  9 native tests passed and the tracked=48, payload=43, services=9
+  source-boundary evidence remained valid.
+
+**Native recovery/reconfiguration procedure**: always retain **all three**
+file inputs to Docker Compose for this installation. Running only the base
+and ClamAV Compose files can recreate a running-but-unreachable Storage Service,
+which is exactly what the former failed Fixity consumer demonstrated.
+The qualified command is equivalent to:
+
+```bash
+root=/opt/ordivon/external/archivematica/1.18.0
+cd "$root/src/hack"
+compose_files=(
+  -f "$root/src/hack/docker-compose.yml"
+  -f "$root/overlays/docker-compose.clamav-r6.yml"
+  -f "$root/overlays/docker-compose.preservation-r10.yml"
+)
+docker compose --project-name am "${compose_files[@]}" up --no-deps --no-build -d archivematica-storage-service
+docker port am-archivematica-storage-service-1 8000/tcp
+curl --noproxy '*' --fail --max-time 5 -s -o /dev/null http://127.0.0.1:62081/api/v2/
+systemctl start ordivon-preservation-fixity-r7.service
+systemctl show ordivon-preservation-fixity-r7.service --property=Result,ExecMainStatus
+```
+
+This is one date/node-scoped **installed deployment and fixity** acceptance.
+It does not establish a second off-site failure domain, actual AIP
+restore-from-backup rehearsal, owner retention clearance, legal/rights-based
+deletion authority, active Artifact file leases, or safety of automatic GC.
+An ephemeral `Artifact.stage_verified_input` observation is likewise not a
+durable AIP or retention claim. AIP storage and recovery remain Archivematica
+Storage Service responsibilities; no production deletion or re-ingest was
+performed during this corrective run.

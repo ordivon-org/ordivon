@@ -9,27 +9,74 @@ trap 'rm -rf -- "$scratch"' EXIT
 mkdir -p "$scratch/pg" "$scratch/osquery" "$target/bin"
 
 download() {
-  local url="$1" dst="$2" expected="$3"
+  local url="$1" dst="$2" expected="$3" official_alternate="${4:-}"
+  local cache="${ORDIVON_SQL_DIST_CACHE_DIR:-}" cached="" staged="" actual=""
+  # The optional cache is never a tool identity or an installation receipt.
+  # Explicit offline input retains its original strict-source semantics.
+  if [[ -z "${ORDIVON_SQL_DIST_DIR:-}" && -n "$cache" ]]; then
+    if [[ "$cache" = /* && ! -L "$cache" ]] && mkdir -p -- "$cache"; then
+      cached="$cache/$(basename "$dst")"
+      if [[ -f "$cached" && ! -L "$cached" ]] && cp -- "$cached" "$dst"; then
+        actual="$(sha256sum "$dst" | cut -d' ' -f1)"
+        if [[ "$actual" == "$expected" ]]; then
+          echo "SQL distribution cache verified: $(basename "$dst")"
+          return 0
+        fi
+        echo "SQL distribution cache digest mismatch; fetching official bytes" >&2
+      fi
+    else
+      echo "SQL distribution cache unavailable; fetching official bytes" >&2
+    fi
+  fi
   if [[ -n "${ORDIVON_SQL_DIST_DIR:-}" ]]; then
     cp -- "${ORDIVON_SQL_DIST_DIR}/$(basename "$dst")" "$dst"
   else
-    curl --fail --location --silent --show-error --retry 2 --connect-timeout 10 \
-      --max-time 95 "$url" -o "$dst"
+    # Both URLs are from the exact product publisher. Stalled CDN links
+    # must not cost 3 x 95 seconds before the first verified byte.
+    local endpoint fetched=false
+    for endpoint in "$url" "$official_alternate"; do
+      [[ -n "$endpoint" ]] || continue
+      rm -f -- "$dst"
+      if curl --fail --location --silent --show-error --retry 1 \
+          --retry-delay 1 --connect-timeout 7 --max-time 55 \
+          --speed-time 12 --speed-limit 4096 "$endpoint" -o "$dst"; then
+        fetched=true
+        break
+      fi
+    done
+    if [[ "$fetched" != true ]]; then
+      echo "SQL verifier official distribution unavailable: $(basename "$dst")" >&2
+      return 1
+    fi
   fi
-  local actual
   actual="$(sha256sum "$dst" | cut -d' ' -f1)"
   [[ "$actual" == "$expected" ]] ||
     { echo "SQL verifier release SHA-256 mismatch: $(basename "$dst")" >&2; exit 7; }
+  # Publish only qualified upstream bytes. A failed optional cache write
+  # must not invalidate a successful native download.
+  if [[ -n "$cached" ]]; then
+    if staged="$(mktemp "$cache/.sql-dist.XXXXXXXX")" &&
+       cp -- "$dst" "$staged" &&
+       [[ "$(sha256sum "$staged" | cut -d' ' -f1)" == "$expected" ]] &&
+       mv -T -- "$staged" "$cached"; then
+      echo "SQL distribution cache populated: $(basename "$dst")"
+    else
+      [[ -z "$staged" ]] || rm -f -- "$staged"
+      echo "SQL distribution cache write unavailable" >&2
+    fi
+  fi
 }
 
 download \
- 'https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/postgresql-client-18_18.6-3.pgdg24.04+1_amd64.deb' \
+ 'https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/postgresql-client-18_18.6-1.pgdg24.04+2_amd64.deb' \
  "$scratch/pg-client18.6.deb" \
- '635c8cbad024be8d1208433ec902cf721ae77028e7d6b7e0231a2768ba4dacfa'
+ 'b9d10d99a73bf7aa375be2fe36626c40499cfdf553d0ad174674a88a1b256b43' \
+ 'https://apt-archive.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/postgresql-client-18_18.6-1.pgdg24.04+2_amd64.deb'
 download \
  'https://github.com/osquery/osquery/releases/download/5.23.1/osquery_5.23.1-1.linux_amd64.deb' \
  "$scratch/osquery_5.23.1-1.linux_amd64.deb" \
- '1431a9a6394657eba3cdd3476a462a6fe9721fc3664a70f23efcf7e37816787a'
+ '1431a9a6394657eba3cdd3476a462a6fe9721fc3664a70f23efcf7e37816787a' \
+ 'https://pkg.osquery.io/deb/osquery_5.23.1-1.linux_amd64.deb'
 
 # Only extract package bytes; never invoke privileged .deb maintainer scripts.
 ar p "$scratch/pg-client18.6.deb" data.tar.xz | tar -xJf - -C "$scratch/pg"

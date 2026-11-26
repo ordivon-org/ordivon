@@ -20,9 +20,6 @@
     n8n_database_user: n8n
     n8n_main_image: ghcr.io/n8n-io/n8n@sha256:770da605a7dfdda55838fb2b66b701435690ffcce5d3067585fc7e3cb17b168f
     n8n_runner_image: ghcr.io/n8n-io/runners@sha256:f171bd9b3bb8e4668f2ec4293307043987140b26ebc2f7d8ec81b6738953a7e1
-    operations_postgres_data_dir: /var/lib/postgres/ordivon-data-r5-pg-14550-v4
-    operations_postgres_port: 55434
-    operations_postgres_socket: /var/lib/postgres/ordivon-data-r5-pg-14550-v4
     n8n_rootless_env: >-
       HOME=/var/lib/n8n USER=n8n LOGNAME=n8n PATH=/usr/bin:/bin
       XDG_RUNTIME_DIR=/run/user/934
@@ -277,8 +274,8 @@
       no_log: true
 
     - name: Install non-secret n8n container environment
-      ansible.builtin.copy:
-        src: ../n8n/n8n.env
+      ansible.builtin.template:
+        src: ../n8n/n8n.env.j2
         dest: "{{ n8n_container_env_file }}"
         owner: root
         group: root

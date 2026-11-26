@@ -28,9 +28,11 @@ def tree_digest(root:Path)->str:
     return 'sha256:'+h.hexdigest()
 
 import argparse
+import fcntl
 import shutil
 import subprocess
 import sys
+import tempfile
 from typing import Any
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -41,7 +43,8 @@ VALIDATOR_WRAPPER=ROOT/'scripts/artifact_openxml_validator_wrapper.py'
 EXTERNAL_EVIDENCE=ROOT/'scripts/artifact_openxml_external_evidence.py'
 NIX=Path('/usr/bin/nix')
 NIX_FLAKE=ROOT/'artifact-delivery/openxml-nix'
-SYSTEM_PYTHON=Path(os.environ.get('ARTIFACT_PYTHON','/root/.local/share/mise/installs/python/3.15.0/bin/python3.14'))
+SYSTEM_PYTHON=Path(os.environ.get('ARTIFACT_PYTHON',sys.executable))
+NIX_STORE=Path('/usr/bin/nix-store')
 NIX_FEATURES=['--extra-experimental-features','nix-command flakes']
 
 def canonical(v:Any)->bytes:return json.dumps(v,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()
@@ -74,20 +77,23 @@ def nix_source_cut(flake_lock:Path)->dict[str,str]:
     return {'flakeLockSha256':'sha256:'+hashlib.sha256(raw).hexdigest(),
             'nixpkgsRevision':locked['rev'],'nixpkgsNarHash':locked['narHash']}
 
-def nix_dotnet_status(lock:dict[str,Any])->dict[str,Any]:
+def nix_dotnet_status(lock:dict[str,Any], *, out_link:Path|None=None)->dict[str,Any]:
     cfg=lock['nixDotnet']; flake=ROOT/cfg['flake']; flake_lock=flake/'flake.lock'
     if flake.resolve()!=NIX_FLAKE.resolve():
         raise RuntimeError('Artifact OpenXML foreign Nix flake source')
     if not NIX.is_file():raise RuntimeError('Artifact OpenXML Nix authority is absent')
     source=nix_source_cut(flake_lock)
-    target=f"path:{flake}#{cfg['package']}"
-    built=run([str(NIX),*NIX_FEATURES,'build','--no-link','--print-out-paths',target],timeout=300)
+    target=f"path:{flake}#{cfg['package']}^out"
+    link_args=['--out-link',str(out_link)] if out_link is not None else ['--no-link']
+    built=run([str(NIX),*NIX_FEATURES,'build','--no-write-lock-file',*link_args,'--print-out-paths',target],timeout=300)
     if built.returncode:raise RuntimeError('Artifact OpenXML Nix closure build failed: '+built.stderr[-4000:])
     if nix_source_cut(flake_lock)!=source:
         raise RuntimeError('Artifact OpenXML Nix lock changed during build')
     paths=[line.strip() for line in built.stdout.splitlines() if line.strip().startswith('/nix/store/')]
     if len(paths)!=1:raise RuntimeError(f'Artifact OpenXML Nix closure did not resolve exactly one store path: {paths}')
     store=Path(paths[0]); dotnet=store/'bin/dotnet'
+    if out_link is not None and not gc_root_registered(out_link,str(store)):
+        raise RuntimeError('Artifact OpenXML temporary Nix build root not registered')
     probe=run([str(dotnet),'--version'],timeout=60); version=probe.stdout.strip()
     if probe.returncode or version!=cfg['expectedSdkVersion']:raise RuntimeError(f'Artifact OpenXML Nix SDK drift: {version!r}')
     info_proc=run([str(NIX),*NIX_FEATURES,'path-info','--json-format','1','--json',str(store)],timeout=60)
@@ -98,6 +104,33 @@ def nix_dotnet_status(lock:dict[str,Any])->dict[str,Any]:
         raise RuntimeError('Artifact OpenXML Nix lock changed during verification')
     return {'storePath':str(store),'narHash':nar_hash,'observedSdkVersion':version,
             'flakeLockSha256':source['flakeLockSha256'],'nixpkgsRevision':source['nixpkgsRevision']}
+
+def gc_root_registered(root:Path,store:str)->bool:
+    """A filesystem symlink alone is not a registered native Nix GC root."""
+    if not root.is_symlink() or os.readlink(root)!=store:
+        return False
+    if not Path(store).is_dir() or not NIX_STORE.is_file():
+        return False
+    # Resolve the parent only: resolving the link itself loses its root identity.
+    root_name=str(root.parent.resolve()/root.name)
+    probe=run([str(NIX_STORE),'--query','--roots',store],timeout=60)
+    return probe.returncode==0 and f'{root_name} -> {store}' in probe.stdout.splitlines()
+
+
+def register_generation_gc_root(generation:Path,store:str)->None:
+    """Retain the SDK closure for exactly this existing generation's lifetime."""
+    root=generation/'dotnet-gc-root'
+    if gc_root_registered(root,store):
+        return
+    if root.exists() or root.is_symlink():
+        if not root.is_symlink() or os.readlink(root)!=store:
+            raise RuntimeError('OpenXML generation GC root conflicts with bound SDK')
+    if not str(store).startswith('/nix/store/') or not Path(store).is_dir():
+        raise RuntimeError('OpenXML generation SDK store path unavailable')
+    result=run([str(NIX_STORE),'--realise',store,'--add-root',str(root),'--indirect'],timeout=60)
+    if result.returncode or not gc_root_registered(root,store):
+        raise RuntimeError('OpenXML generation GC root registration failed: '+result.stderr[-2000:])
+
 
 def nuget_sources(lock:dict[str,Any])->list[dict[str,str]]:
     result=[]
@@ -122,6 +155,43 @@ def generation_spec(lock:dict[str,Any],dotnet:dict[str,Any],nuget:list[dict[str,
     validator_ids={row['id'] for row in lock['nugetPackages']}
     return {'schemaVersion':1,'methodId':lock['methodId'],'lockSha256':'sha256:'+sha(LOCK_PATH),'dotnetWrapperSha256':'sha256:'+sha(DOTNET_WRAPPER),'validatorWrapperSha256':'sha256:'+sha(VALIDATOR_WRAPPER),'dotnetNixStorePath':dotnet['storePath'],'dotnetNixNarHash':dotnet['narHash'],'artifactNixFlakeLockSha256':dotnet['flakeLockSha256'],'nixpkgsRevision':dotnet['nixpkgsRevision'],'observedDotnetSdk':dotnet['observedSdkVersion'],'targetFramework':lock['targetFramework'],'nugetPackages':[{k:r[k] for k in ('id','version','sha256')} for r in nuget if r['id'] in validator_ids],'sdkRestoreSupportPackages':[{k:r[k] for k in ('id','version','sha256')} for r in nuget if r['id'] not in validator_ids],**source_digests(lock)}
 
+def qualify_materialization(base:Path,generation:Path,spec:dict[str,Any]|None=None)->dict[str,Any]:
+    if generation.is_symlink() or generation.resolve(strict=True).parent!=(base/'generations').resolve(strict=True):
+        raise RuntimeError('OpenXML generation outside generation namespace')
+    binding_path=generation/'binding.json'
+    if binding_path.is_symlink():raise RuntimeError('OpenXML generation binding is an alias')
+    binding=json.loads(binding_path.read_text())
+    if not isinstance(binding,dict) or binding.get('kind')!='artifact-openxml-generation-binding' or binding.get('generationId')!=generation.name:
+        raise RuntimeError('OpenXML generation binding identity mismatch')
+    recipe={k:v for k,v in binding.items() if k not in ('kind','generationId','validatorTreeDigest','materializationAuthority','nonClaims')}
+    if hashlib.sha256(canonical(recipe)).hexdigest()!=generation.name or (spec is not None and recipe!=spec):
+        raise RuntimeError('OpenXML generation binding recipe mismatch')
+    for name,key in (('dotnet','dotnetWrapperSha256'),('validate-openxml','validatorWrapperSha256')):
+        path=generation/'bin'/name
+        if path.is_symlink() or 'sha256:'+sha(path)!=binding.get(key):
+            raise RuntimeError('OpenXML generation wrapper binding mismatch')
+    validator=generation/'validator'
+    if validator.is_symlink() or not validator.is_dir() or tree_digest(validator)!=binding.get('validatorTreeDigest'):
+        raise RuntimeError('OpenXML validator materialization tree drift')
+    for name,key in (('source/ArtifactOpenXmlValidator.csproj','sourceProject'),('source/Program.cs','sourceProgram'),('provenance/openxml-nix-flake.lock','artifactNixFlakeLockSha256')):
+        path=generation/name
+        if path.is_symlink() or 'sha256:'+sha(path)!=binding.get(key):
+            raise RuntimeError('OpenXML generation retained provenance mismatch')
+    feed=generation/'provenance/nuget'
+    if feed.is_symlink() or not feed.is_dir():raise RuntimeError('OpenXML retained NuGet feed unavailable')
+    expected={}
+    for row in [*recipe['nugetPackages'],*recipe['sdkRestoreSupportPackages']]:
+        name=f"{row['id'].lower()}.{row['version']}.nupkg"
+        if Path(name).name!=name or name in expected:raise RuntimeError('OpenXML retained NuGet identity invalid')
+        expected[name]=row['sha256']
+    if set(p.name for p in feed.iterdir())!=set(expected):raise RuntimeError('OpenXML retained NuGet feed membership drift')
+    for name,digest in expected.items():
+        path=feed/name
+        if path.is_symlink() or not path.is_file() or 'sha256:'+sha(path)!=digest:
+            raise RuntimeError('OpenXML retained NuGet package drift')
+    return binding
+
+
 def make_read_only(root:Path)->None:
     for p in root.rglob('*'):
         if p.is_symlink():continue
@@ -131,17 +201,21 @@ def make_read_only(root:Path)->None:
 
 def build_generation(base:Path,lock:dict[str,Any],dotnet_authority:dict[str,Any],nuget:list[dict[str,str]])->tuple[str,Path,dict[str,Any]]:
     spec=generation_spec(lock,dotnet_authority,nuget);gid=hashlib.sha256(canonical(spec)).hexdigest();gens=base/'generations';gens.mkdir(parents=True,exist_ok=True);final=gens/gid
-    if final.exists():return gid,final,json.loads((final/'binding.json').read_text())
+    if final.exists() or final.is_symlink():return gid,final,qualify_materialization(base,final,spec)
     staging=gens/f'.{gid}.staging-{os.getpid()}'
     if staging.exists():shutil.rmtree(staging)
     staging.mkdir(mode=0o700)
     try:
         feed=staging/'provenance/nuget';feed.mkdir(parents=True)
-        for row in nuget:shutil.copy2(row['path'],feed/Path(row['path']).name)
+        for row in nuget:
+            copied=feed/Path(row['path']).name;shutil.copy2(row['path'],copied)
+            if 'sha256:'+sha(copied)!=row['sha256']:raise RuntimeError('OpenXML NuGet input drift before restore')
         shutil.copy2(NIX_FLAKE/'flake.nix',staging/'provenance/openxml-nix-flake.nix');shutil.copy2(NIX_FLAKE/'flake.lock',staging/'provenance/openxml-nix-flake.lock')
         if 'sha256:'+sha(staging/'provenance/openxml-nix-flake.lock')!=spec['artifactNixFlakeLockSha256']:
             raise RuntimeError('Artifact OpenXML Nix source drift before materialization')
         source=staging/'source';source.mkdir();shutil.copy2(ROOT/lock['sourceProject'],source/'ArtifactOpenXmlValidator.csproj');shutil.copy2(ROOT/lock['sourceProgram'],source/'Program.cs')
+        for name,key in (('ArtifactOpenXmlValidator.csproj','sourceProject'),('Program.cs','sourceProgram')):
+            if 'sha256:'+sha(source/name)!=spec[key]:raise RuntimeError('OpenXML source input drift before build')
         packages=staging/'packages';obj=staging/'obj';out=staging/'validator';out.mkdir()
         env={**os.environ,'DOTNET_MULTILEVEL_LOOKUP':'0','NUGET_PACKAGES':str(packages),'DOTNET_CLI_HOME':str(staging/'dotnet-home')}
         dotnet=Path(dotnet_authority['storePath'])/'bin/dotnet'
@@ -180,8 +254,11 @@ def status(base:Path|None=None)->dict[str,Any]:
     if not current.is_symlink():return result
     try:
         resolved=current.resolve(strict=True)
-        if root.resolve() not in resolved.parents:raise RuntimeError('OpenXML current escapes stable root')
+        if resolved.parent!=(root/'generations').resolve():raise RuntimeError('OpenXML current outside generation namespace')
         binding=json.loads((resolved/'binding.json').read_text())
+        result['gcRootRegistered']=gc_root_registered(resolved/'dotnet-gc-root',binding['dotnetNixStorePath'])
+        if not result['gcRootRegistered']:raise RuntimeError('OpenXML generation Nix GC root absent or invalid')
+        binding=qualify_materialization(root,resolved)
         p=run([str(resolved/'bin/dotnet'),'--version'],timeout=60)
         if p.returncode or p.stdout.strip()!=binding['observedDotnetSdk']:raise RuntimeError('OpenXML stable dotnet probe failed')
         result.update({'ready':True,'generationId':resolved.name,'binding':binding,'dotnetVersion':p.stdout.strip()})
@@ -197,19 +274,42 @@ def plan()->dict[str,Any]:
 
 def apply()->dict[str,Any]:
     if ROOT.resolve()!=MAIN.resolve():raise RuntimeError('OpenXML environment apply is fenced to canonical /root/projects/ordivon/capabilities/artifact source')
-    lock=load_lock();dotnet=nix_dotnet_status(lock);ng=nuget_sources(lock);base=Path(lock['stableRoot']);base.mkdir(parents=True,exist_ok=True);gid,final,binding=build_generation(base,lock,dotnet,ng)
-    external_evidence=verify_external_evidence(final/'bin/validate-openxml')
-    current=base/'current'
-    if current.exists() and not current.is_symlink():raise RuntimeError('OpenXML current is not atomic symlink authority')
-    tmp=base/f'.current-{os.getpid()}'
-    if tmp.exists() or tmp.is_symlink():tmp.unlink()
-    os.symlink(Path('generations')/gid,tmp);os.replace(tmp,current)
-    dfd=os.open(base,os.O_RDONLY|os.O_DIRECTORY)
-    try:os.fsync(dfd)
-    finally:os.close(dfd)
-    observed=status(base)
-    if not observed.get('ready') or observed.get('generationId')!=gid:raise RuntimeError('OpenXML publication did not verify')
-    return {'schemaVersion':1,'kind':'artifact-openxml-environment-materialization-receipt','truthRole':'stable-openxml-method-runtime-materialization-not-subject-conformance','generationId':gid,'stableDotnet':lock['stableDotnet'],'stableValidator':lock['stableValidator'],'binding':binding,'externalEvidence':{'corpusId':external_evidence['corpusId'],'corpusResultDigest':external_evidence['corpusResultDigest'],'standing':external_evidence['standing'],'ivvStanding':external_evidence['ivvStanding'],'methodPromotion':external_evidence['methodPromotion']},'status':observed}
+    lock=load_lock();ng=nuget_sources(lock);base=Path(lock['stableRoot']);base.mkdir(parents=True,exist_ok=True)
+    # Keep the Nix-native temporary root alive until the durable generation
+    # root has been registered and publication read back. No GC invocation.
+    with tempfile.TemporaryDirectory(prefix='.build-root-',dir=base) as scratch:
+        dotnet=nix_dotnet_status(lock,out_link=Path(scratch)/'dotnet')
+        gid,final,binding=build_generation(base,lock,dotnet,ng)
+        if binding['dotnetNixStorePath']!=dotnet['storePath']:
+            raise RuntimeError('OpenXML generation SDK binding drift')
+        binding=qualify_materialization(base,final,generation_spec(lock,dotnet,ng))
+        external_evidence=verify_external_evidence(final/'bin/validate-openxml')
+        register_generation_gc_root(final,dotnet['storePath'])
+        with (base/'.publication.lock').open('a') as fence:
+            fcntl.flock(fence,fcntl.LOCK_EX)
+            binding=qualify_materialization(base,final,generation_spec(lock,dotnet,ng))
+            current=base/'current'
+            if current.exists() and not current.is_symlink():raise RuntimeError('OpenXML current is not atomic symlink authority')
+            previous=os.readlink(current) if current.is_symlink() else None
+            tmp=base/f'.current-{os.getpid()}'
+            def switch(target:str|None)->None:
+                tmp.unlink(missing_ok=True)
+                if target is None:current.unlink(missing_ok=True)
+                else:
+                    os.symlink(target,tmp);os.replace(tmp,current)
+                dfd=os.open(base,os.O_RDONLY|os.O_DIRECTORY)
+                try:os.fsync(dfd)
+                finally:os.close(dfd)
+            target=str(Path('generations')/gid)
+            try:
+                switch(target)
+                observed=status(base)
+                if not observed.get('ready') or observed.get('generationId')!=gid:raise RuntimeError('OpenXML publication did not verify')
+            except Exception:
+                if current.is_symlink() and os.readlink(current)==target:switch(previous)
+                raise
+            finally:tmp.unlink(missing_ok=True)
+        return {'schemaVersion':1,'kind':'artifact-openxml-environment-materialization-receipt','truthRole':'stable-openxml-method-runtime-materialization-not-subject-conformance','generationId':gid,'stableDotnet':lock['stableDotnet'],'stableValidator':lock['stableValidator'],'binding':binding,'externalEvidence':{'corpusId':external_evidence['corpusId'],'corpusResultDigest':external_evidence['corpusResultDigest'],'standing':external_evidence['standing'],'ivvStanding':external_evidence['ivvStanding'],'methodPromotion':external_evidence['methodPromotion']},'status':observed}
 
 def main()->int:
     p=argparse.ArgumentParser();p.add_argument('--apply',action='store_true');args=p.parse_args();print(json.dumps(apply() if args.apply else plan(),sort_keys=True,indent=2));return 0

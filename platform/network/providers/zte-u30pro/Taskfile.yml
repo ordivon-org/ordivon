@@ -1,0 +1,12 @@
+version: '3'
+
+tasks:
+  provider:zte-u30pro:observe:
+    desc: Observe only the MU5358 device's whitelisted status and small LAN/DNS probes (no WAN speed test or device mutation)
+    cmds:
+      - python3 providers/zte-u30pro/observe.py
+
+  provider:zte-u30pro:validate:
+    desc: Deterministic source-contract tests for MU5358 read-only adapter, requiring no connected router
+    cmds:
+      - mise run test:zte

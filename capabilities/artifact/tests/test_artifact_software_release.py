@@ -1,3 +1,4 @@
+import gzip
 import hashlib
 import importlib.util
 import json
@@ -7,11 +8,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from artifact_verification.tool_identity import assess_native_tool_paths
+
 ROOT=Path(__file__).resolve().parents[1]
 SPEC=importlib.util.spec_from_file_location('artifact_software_release',ROOT/'scripts/artifact_software_release.py')
 MODULE=importlib.util.module_from_spec(SPEC); assert SPEC.loader is not None; SPEC.loader.exec_module(MODULE)
 BASE=ROOT/'artifact-delivery/shadow-contracts/software-release-oci-image-smoke-r1.json'
 GO=Path('/opt/ordivon/external/go/1.26.6/bin/go')
+NEGATIVE_FIXTURES=ROOT/'tests/fixtures/software-release'
 
 
 def run(cmd,**kw): return subprocess.run(cmd,capture_output=True,**kw)
@@ -22,33 +26,65 @@ def build_layout(root:Path, *, stdout_text='ordivon-artifact-software-release-r1
     env=os.environ.copy(); env.update({'GOROOT':'/opt/ordivon/external/go/1.26.6','PATH':'/opt/ordivon/external/go/1.26.6/bin:'+env['PATH'],'CGO_ENABLED':'0','GOOS':'linux','GOARCH':'amd64'})
     p=run([str(GO),'build','-trimpath','-ldflags=-s -w -buildid=','-o',str(src/'app'),str(src/'main.go')],env=env)
     if p.returncode: raise RuntimeError((p.stdout+p.stderr).decode())
-    ep=entrypoint
-    (src/'Containerfile').write_text('FROM scratch\nCOPY app /app\nENTRYPOINT ["'+ep+'"]\n')
-    tag='localhost/ordivon/software-release-test:'+next(tempfile._get_candidate_names())
-    p=run(['/usr/bin/podman','build','--network','host','--format','oci','--timestamp','0','-t',tag,'-f',str(src/'Containerfile'),str(src)])
-    if p.returncode: raise RuntimeError((p.stdout+p.stderr).decode())
-    layout=root/'oci'; layout.mkdir(); p=run(['/usr/bin/skopeo','copy','containers-storage:'+tag,'oci:'+str(layout)+':release'])
-    run(['/usr/bin/podman','rmi','-f',tag])
-    if p.returncode: raise RuntimeError((p.stdout+p.stderr).decode())
-    return layout
+    return package_layout(root, src, entrypoint=entrypoint)
+
+
+def package_layout(root: Path, src: Path, *, entrypoint: str = "/app") -> Path:
+    (src / "Containerfile").write_text(
+        'FROM scratch\nCOPY app /app\nENTRYPOINT ["' + entrypoint + '"]\n'
+    )
+    tag = "localhost/ordivon/software-release-test:" + next(tempfile._get_candidate_names())
+    p = run(["/usr/bin/podman", "build", "--network", "host", "--format", "oci",
+             "--timestamp", "0", "-t", tag, "-f", str(src / "Containerfile"), str(src)])
+    if p.returncode:
+        raise RuntimeError((p.stdout + p.stderr).decode())
+    try:
+        layout = root / "oci"
+        layout.mkdir()
+        p = run(["/usr/bin/skopeo", "copy", "containers-storage:" + tag,
+                 "oci:" + str(layout) + ":release"])
+        if p.returncode:
+            raise RuntimeError((p.stdout + p.stderr).decode())
+        return layout
+    finally:
+        run(["/usr/bin/podman", "rmi", "-f", tag])
+
 
 
 class SoftwareReleaseTests(unittest.TestCase):
-    def require_tools(self):
-        for p in (MODULE.SKOPEO,MODULE.PODMAN,MODULE.SYFT,MODULE.TRIVY,GO):
+    def require_tools(self, *, builder=True):
+        tools = (MODULE.SKOPEO,MODULE.PODMAN,MODULE.SYFT,MODULE.TRIVY)
+        for p in (*tools, GO) if builder else tools:
             if not p.is_file(): self.skipTest(f'missing tool {p}')
 
-    def test_local_binding_digests_match(self):
-        b=json.loads((ROOT/'artifact-delivery/shadow-bindings/software-release-oci-image-local-r1.json').read_text())
-        checks=[('/usr/bin/skopeo',b['bindings']['ociTransport']['binarySha256']),('/usr/bin/podman',b['bindings']['runtimeReadback']['binarySha256']),('/usr/bin/syft',b['bindings']['sbom']['binarySha256']),('/usr/bin/trivy',b['bindings']['security']['binarySha256'])]
-        for path,want in checks: self.assertEqual(hashlib.sha256(Path(path).read_bytes()).hexdigest(),want,path)
-        self.assertEqual(hashlib.sha256((MODULE.TRIVY_DB_ROOT/'cache/db/trivy.db').read_bytes()).hexdigest(),b['bindings']['security']['dbSha256'])
+    def test_frozen_database_binding_matches(self):
+        db = MODULE.TRIVY_DB_ROOT / "cache/db"
+        if not (db / "trivy.db").is_file() or not (db / "metadata.json").is_file():
+            self.skipTest("frozen Trivy database not materialized")
+        b = json.loads((ROOT / "artifact-delivery/shadow-bindings/software-release-oci-image-local-r1.json").read_text())
+        self.assertEqual(hashlib.sha256((db / "trivy.db").read_bytes()).hexdigest(),
+                         b["bindings"]["security"]["dbSha256"])
+        self.assertEqual(hashlib.sha256((db / "trivy.db").read_bytes()).hexdigest(),
+                         MODULE.EXPECTED_DB_SHA)
+        self.assertEqual(hashlib.sha256((db / "metadata.json").read_bytes()).hexdigest(),
+                         MODULE.EXPECTED_DB_META_SHA)
+
+    def assert_current_tool_identity(self, result):
+        tools = result["tools"]
+        self.assertEqual(set(tools), {"skopeo", "podman", "syft", "trivy"})
+        assessment = assess_native_tool_paths({"tools": tools})
+        self.assertEqual(assessment["status"], "OBSERVED_POSTRUN_CONSISTENT", assessment)
+        self.assertFalse(assessment["dependenciesComplete"])
+        tampered = {name: dict(fact) for name, fact in tools.items()}
+        tampered["skopeo"]["sha256"] = "0" * 64
+        self.assertTrue(assess_native_tool_paths({"tools": tampered})["rejected"])
 
     def test_valid_oci_release_passes(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
             root=Path(d); layout=build_layout(root); v=MODULE.verify_oci(layout,BASE,root/'e')
             self.assertEqual(v['status'],'PASS',v); self.assertEqual(v['vulnerabilityScan']['vulnerabilityCount'],0); self.assertEqual(v['secretScan']['secretCount'],0)
+            self.assert_current_tool_identity(v)
 
     def test_valid_oci_does_not_launder_wrong_manifest_contract(self):
         self.require_tools()
@@ -74,17 +110,44 @@ class SoftwareReleaseTests(unittest.TestCase):
         self.assertEqual(count,1)
         self.assertEqual(failures,['secret count exceeds object contract maximum'])
 
-    def test_vulnerable_go125_build_fails_frozen_db_policy(self):
-        self.require_tools()
-        # Current host Go 1.26.5 is intentionally retained as a negative-control builder; verifier itself does not build.
-        host=Path('/usr/bin/go')
-        if not host.is_file(): self.skipTest('host negative-control Go unavailable')
+    def test_vulnerable_go1265_fixture_fails_frozen_db_policy(self):
+        self.require_tools(builder=False)
+        # The immutable negative-control input deliberately retains old Go
+        # bytes. Production Go may roll freely; never rebuild with /usr/bin/go.
+        manifest = json.loads((NEGATIVE_FIXTURES / "go1265-negative.json").read_text())
+        fixture = manifest["fixture"]
+        compressed = (NEGATIVE_FIXTURES / fixture["file"]).read_bytes()
+        self.assertEqual(hashlib.sha256(compressed).hexdigest(), fixture["compressedSha256"])
+        payload = gzip.decompress(compressed)
+        self.assertEqual(len(payload), fixture["size"])
+        self.assertEqual(hashlib.sha256(payload).hexdigest(), fixture["sha256"])
+        source = manifest["source"]
+        self.assertEqual(hashlib.sha256((NEGATIVE_FIXTURES / source["file"]).read_bytes()).hexdigest(),
+                         source["sha256"])
+        self.assertEqual(manifest["observedNegativeControl"]["dbSha256"], MODULE.EXPECTED_DB_SHA)
         with tempfile.TemporaryDirectory() as d:
-            root=Path(d); src=root/'src'; src.mkdir(); (src/'main.go').write_text('package main\nimport "fmt"\nfunc main(){fmt.Println("ordivon-artifact-software-release-r1")}\n')
-            env=os.environ.copy(); env.update({'CGO_ENABLED':'0','GOOS':'linux','GOARCH':'amd64'}); p=run([str(host),'build','-trimpath','-ldflags=-s -w -buildid=','-o',str(src/'app'),str(src/'main.go')],env=env); self.assertEqual(p.returncode,0,(p.stdout+p.stderr).decode())
-            (src/'Containerfile').write_text('FROM scratch\nCOPY app /app\nENTRYPOINT ["/app"]\n'); tag='localhost/ordivon/software-release-test:oldgo-'+next(tempfile._get_candidate_names()); p=run(['/usr/bin/podman','build','--network','host','--format','oci','--timestamp','0','-t',tag,'-f',str(src/'Containerfile'),str(src)]); self.assertEqual(p.returncode,0,(p.stdout+p.stderr).decode()); layout=root/'oci'; layout.mkdir(); p=run(['/usr/bin/skopeo','copy','containers-storage:'+tag,'oci:'+str(layout)+':release']); run(['/usr/bin/podman','rmi','-f',tag]); self.assertEqual(p.returncode,0,(p.stdout+p.stderr).decode())
-            c=json.loads(BASE.read_text()); idx=json.loads((layout/'index.json').read_text()); c['image']['manifestDigest']=idx['manifests'][0]['digest']; c['image']['expectedFiles'][0]['sha256']=hashlib.sha256((src/'app').read_bytes()).hexdigest(); c['sbom']['requiredPackages'][0]['version']='go1.26.5-X:nodwarf5'; cp=root/'c.json'; cp.write_text(json.dumps(c)); v=MODULE.verify_oci(layout,cp,root/'e')
-            self.assertEqual(v['status'],'FAIL'); self.assertGreater(v['vulnerabilityScan']['vulnerabilityCount'],0); self.assertIn('vulnerability count exceeds object contract maximum',v['failures'])
+            root = Path(d)
+            src = root / "src"
+            src.mkdir()
+            app = src / "app"
+            app.write_bytes(payload)
+            app.chmod(0o755)
+            layout = package_layout(root, src)
+            c = json.loads(BASE.read_text())
+            idx = json.loads((layout / "index.json").read_text())
+            c["image"]["manifestDigest"] = idx["manifests"][0]["digest"]
+            c["image"]["expectedFiles"][0]["sha256"] = fixture["sha256"]
+            c["sbom"]["requiredPackages"][0]["version"] = manifest["build"]["goVersion"]
+            cp = root / "contract.json"
+            cp.write_text(json.dumps(c))
+            v = MODULE.verify_oci(layout, cp, root / "evidence")
+            self.assertEqual(v["status"], "FAIL", v)
+            for gate in ("ociIdentity", "platformConfig", "rootfsReadback", "sbom",
+                         "secretScan", "runtimeReadback"):
+                self.assertEqual(v[gate]["status"], "PASS", (gate, v))
+            self.assertGreater(v["vulnerabilityScan"]["vulnerabilityCount"], 0)
+            self.assertEqual(v["failures"], ["vulnerability count exceeds object contract maximum"])
+            self.assert_current_tool_identity(v)
 
     def test_runtime_mismatch_fails_after_static_gates_pass(self):
         self.require_tools()

@@ -97,6 +97,46 @@ class ModelTests(unittest.TestCase):
         self.assertTrue(any("unknown binding" in e
                             for e in _validate_production_semantics(path, production, unbound_claim, None)))
 
+    def test_output_carrier_schema_and_consumer_byte_falsification(self) -> None:
+        import tempfile
+        from pathlib import Path
+
+        base = ROOT / "productions/studio-expression-card"
+        original = json.loads((base / "production.json").read_text(encoding="utf-8"))
+        claims = json.loads((base / "claims.json").read_text(encoding="utf-8"))
+        self.assertEqual(list(_validator("production.schema.json").iter_errors(original)), [])
+        self.assertEqual(_validate_production_semantics(base / "production.json", original, claims, None), [])
+        with tempfile.TemporaryDirectory() as directory:
+            # A real consumer under the selected Production root, independent
+            # of JSON schema's purely structural checks.
+            from unittest import mock
+
+            test_root = Path(directory)
+            (test_root / "out").mkdir()
+            (test_root / "out/card.png").write_bytes(b"forged output")
+            counterfeit = copy.deepcopy(original)
+            counterfeit["outputs"][0]["outputCarrier"] = "out/card.png"
+            fake_production_path = test_root / "production.json"
+            with mock.patch("ordivon_studio.production_validation.ROOT", test_root):
+                self.assertEqual(
+                    list(_validator("production.schema.json").iter_errors(counterfeit)), []
+                )
+                errors = _validate_production_semantics(
+                    fake_production_path, counterfeit, claims, None
+                )
+                self.assertTrue(any("outputCarrier digest mismatch" in e for e in errors), errors)
+
+                escaped = copy.deepcopy(counterfeit)
+                escaped["outputs"][0]["outputCarrier"] = "../outside.png"
+                errors = _validate_production_semantics(
+                    fake_production_path, escaped, claims, None
+                )
+                self.assertTrue(any("invalid outputCarrier path" in e for e in errors))
+
+            double_carrier = copy.deepcopy(original)
+            double_carrier["outputs"][0]["sourceCarrier"] = "story.mdx"
+            self.assertTrue(list(_validator("production.schema.json").iter_errors(double_carrier)))
+
     def test_local_claims_require_exact_historical_git_witness(self) -> None:
         production_root = ROOT / "productions/fishing-fable-lego-study-r1"
         production_path = production_root / "production.json"
@@ -201,6 +241,53 @@ class ModelTests(unittest.TestCase):
         receipt["evidence"]["jobId"] = "job-different"
         errors = _validate_runtime_receipt(Path("receipt.json"), receipt)
         self.assertTrue(any("jobId does not match" in error for error in errors))
+
+    def test_runtime_receipt_rejects_structurally_valid_trace_contradictions(self) -> None:
+        cases = (
+            ("foreign attempt", lambda r: r["execution"]["observations"][0].update(attemptId="attempt-foreign")),
+            ("unknown status", lambda r: r["execution"]["observations"][0].update(status="invented")),
+            ("no terminal observation", lambda r: r["execution"]["observations"][-1].update(status="working")),
+            ("premature terminal observation", lambda r: r["execution"]["observations"][0].update(status="succeeded")),
+            ("backward progress", lambda r: r["execution"]["observations"][2].update(completedSteps=0)),
+            ("backward revision", lambda r: r["execution"]["observations"][2].update(progressRevision=1)),
+            ("backward time", lambda r: r["execution"]["observations"][2].update(elapsedMs=1)),
+            ("inconsistent total", lambda r: r["execution"]["observations"][1].update(totalSteps=4)),
+            ("terminal incomplete", lambda r: r["execution"]["observations"][-1].update(completedSteps=2)),
+            ("terminal exit mismatch", lambda r: r["execution"]["observations"][-1].update(exitCode=1)),
+            ("terminal elapsed mismatch", lambda r: r["execution"]["observations"][-1].update(elapsedMs=9999)),
+            ("foreign terminal artifact", lambda r: r["evidence"]["terminalArtifactIds"].__setitem__(0, "attempt-foreign.stdout")),
+            ("current step outside plan", lambda r: r["execution"]["observations"][0].update(currentStepIndex=3)),
+            ("artifact digest mismatch", lambda r: r["evidence"].update(digest="sha256:" + "0" * 64)),
+            ("missing terminal carrier", lambda r: r["evidence"]["terminalArtifactIds"].pop()),
+            ("unclean process tree", lambda r: r["evidence"].update(processTreeDisposition="unknown")),
+            ("evidence failure", lambda r: r["evidence"].update(executionDisposition="failed")),
+            ("uncommitted delivery", lambda r: r["evidence"].update(deliveryDisposition="pending")),
+        )
+        self.assertEqual(_validate_runtime_receipt(Path("receipt.json"), RECEIPT), [])
+        for label, mutate in cases:
+            with self.subTest(label=label):
+                receipt = copy.deepcopy(RECEIPT)
+                mutate(receipt)
+                self.assertEqual(list(_validator("runtime-demo-receipt.schema.json").iter_errors(receipt)), [])
+                self.assertTrue(_validate_runtime_receipt(Path("receipt.json"), receipt), label)
+
+    def test_repository_reports_malformed_receipt_without_semantic_crash(self) -> None:
+        from unittest.mock import patch
+
+        from ordivon_studio import models
+
+        load = models._load
+        for field, invalid in (("execution", []), ("presentation", None), ("diff", {"changedPaths": [{}]})):
+            with self.subTest(field=field):
+                receipt = copy.deepcopy(RECEIPT)
+                receipt[field] = invalid
+
+                def selected_load(path: Path):
+                    return receipt if path.name == "runtime-demo.receipt.json" else load(path)
+
+                with patch.object(models, "_load", side_effect=selected_load):
+                    errors = models.validate_repository()
+                self.assertTrue(any("runtime-demo.receipt.json" in error for error in errors), errors)
 
     def test_receipt_rejects_private_paths(self) -> None:
         receipt = copy.deepcopy(RECEIPT)

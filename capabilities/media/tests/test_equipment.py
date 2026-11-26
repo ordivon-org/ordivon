@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import tempfile
@@ -383,7 +384,7 @@ class EquipmentWorldTests(unittest.TestCase):
             binding_tool = root / "equipment-binding"
             binding_log = root / "binding-args.json"
             binding_tool.write_text(
-                "#!/usr/bin/env python3\nimport json,sys\nopen(" + repr(str(binding_log)) + ", 'w').write(json.dumps(sys.argv[1:]))\nprint(json.dumps({\"schemaVersion\":1,\"kind\":\"ordivon.workstation-equipment-binding\",\"state\":\"AVAILABLE\",\"executionTarget\":\"local_linux\",\"provider\":\"workstation.managed-external\",\"bindingDigest\":\"sha256:" + "a"*64 + "\",\"executable\":\"" + str(executable) + "\",\"environment\":{},\"providerIdentity\":{\"expectedSha256\":\"" + "b"*64 + "\"}}))\n",
+                "#!/usr/bin/env python3\nimport json,sys\nopen(" + repr(str(binding_log)) + ", 'w').write(json.dumps(sys.argv[1:]))\nprint(json.dumps({\"schemaVersion\":1,\"kind\":\"ordivon.workstation-equipment-binding\",\"state\":\"AVAILABLE\",\"executionTarget\":\"local_linux\",\"provider\":\"workstation.managed-external\",\"bindingDigest\":\"sha256:" + "a"*64 + "\",\"executable\":\"" + str(executable) + "\",\"equipmentId\":\"game-inkscape-e1\",\"executableDigest\":\"sha256:" + hashlib.sha256(executable.read_bytes()).hexdigest() + "\",\"environment\":{},\"providerIdentity\":{\"expectedSha256\":\"" + "b"*64 + "\"}}))\n",
                 encoding="utf-8",
             )
             binding_tool.chmod(0o755)
@@ -414,7 +415,7 @@ class EquipmentWorldTests(unittest.TestCase):
             executable.chmod(0o755)
             binding_tool = root / "equipment-binding"
             binding_tool.write_text(
-                "#!/usr/bin/env python3\nimport json\nprint(json.dumps({\"schemaVersion\":1,\"kind\":\"ordivon.workstation-equipment-binding\",\"state\":\"AVAILABLE\",\"executionTarget\":\"local_linux\",\"provider\":\"workstation.managed-external\",\"bindingDigest\":\"sha256:" + "c"*64 + "\",\"executable\":\"" + str(executable) + "\",\"environment\":{},\"providerIdentity\":{\"expectedSha256\":\"" + "d"*64 + "\"}}))\n",
+                "#!/usr/bin/env python3\nimport json\nprint(json.dumps({\"schemaVersion\":1,\"kind\":\"ordivon.workstation-equipment-binding\",\"state\":\"AVAILABLE\",\"executionTarget\":\"local_linux\",\"provider\":\"workstation.managed-external\",\"bindingDigest\":\"sha256:" + "c"*64 + "\",\"executable\":\"" + str(executable) + "\",\"equipmentId\":\"game-aseprite-e1\",\"executableDigest\":\"sha256:" + hashlib.sha256(executable.read_bytes()).hexdigest() + "\",\"environment\":{},\"providerIdentity\":{\"expectedSha256\":\"" + "d"*64 + "\"}}))\n",
                 encoding="utf-8",
             )
             binding_tool.chmod(0o755)

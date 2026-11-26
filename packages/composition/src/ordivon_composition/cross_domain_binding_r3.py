@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import json
 from importlib.resources import files
 from pathlib import Path
 from typing import Any
@@ -12,16 +11,11 @@ from jsonschema import Draft202012Validator
 
 from ordivon_composition import CircuitContractError
 
+from .cognitive_circuit_r1 import _load_json
+
 BINDING_SCHEMA = files("ordivon_composition").joinpath(
     "schemas", "cross-domain-verification-r3-binding.schema.json"
 )
-
-
-def _load_json(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(value, dict):
-        raise CircuitContractError(f"{path}: root must be an object")
-    return value
 
 
 def validate_binding(value: dict[str, Any]) -> None:
