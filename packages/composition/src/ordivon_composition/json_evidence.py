@@ -43,8 +43,26 @@ def _require_json_representation(value: Any) -> None:
             raise CircuitContractError("non-JSON representation in LEGO evidence digest")
 
 
-def _canonical_bytes(value: Any) -> bytes:
+def _git_path_bytes(value: str) -> bytes:
+    """Canonical PEP 383 spelling of an exact Git path, not a display name."""
+    try:
+        raw = value.encode("utf-8", "surrogateescape")
+    except UnicodeError as exc:
+        raise CircuitContractError("invalid Unicode scalar in JSON evidence") from exc
+    if raw.decode("utf-8", "surrogateescape") != value:
+        raise CircuitContractError("noncanonical Git byte path in JSON evidence")
+    return raw
+
+
+def _canonical_bytes(value: Any, *, git_scope_projection: bool = False) -> bytes:
     _require_json_representation(value)
+    if git_scope_projection:
+        if not isinstance(value, dict) or not isinstance(value.get("queryPrefix"), str):
+            raise CircuitContractError("Git scope projection requires exact queryPrefix")
+        _git_path_bytes(value["queryPrefix"])
+        # Only the top-level Git scope field may contain byte escapes.
+        # Validate every other value on the existing strict JSON lane.
+        _require_unicode_scalars({**value, "queryPrefix": ""})
     try:
         return json.dumps(
             value,
@@ -52,7 +70,7 @@ def _canonical_bytes(value: Any) -> bytes:
             separators=(",", ":"),
             ensure_ascii=False,
             allow_nan=False,
-        ).encode("utf-8")
+        ).encode("utf-8", errors="backslashreplace" if git_scope_projection else "strict")
     except UnicodeError as exc:
         raise CircuitContractError("non-Unicode scalar in LEGO evidence digest") from exc
     except (TypeError, RecursionError) as exc:
@@ -63,6 +81,12 @@ def _canonical_bytes(value: Any) -> bytes:
 
 def canonical_digest(value: Any) -> str:
     return "sha256:" + hashlib.sha256(_canonical_bytes(value)).hexdigest()
+
+
+def _git_scope_projection_digest(value: dict[str, Any]) -> str:
+    return (
+        "sha256:" + hashlib.sha256(_canonical_bytes(value, git_scope_projection=True)).hexdigest()
+    )
 
 
 def _single_valued_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -119,14 +143,20 @@ def _require_unicode_scalars(
     # elsewhere MUST remain Unicode scalar text. Exemption is restricted to
     # exact path-valued fields at the caller's explicit CLI boundary.
     pending: list[tuple[Any, str | None]] = [(value, None)]
+    seen: set[tuple[int, str | None]] = set()
     while pending:
         item, field = pending.pop()
+        if isinstance(item, (dict, list)):
+            key = (id(item), field)
+            if key in seen:
+                continue
+            seen.add(key)
         if isinstance(item, str):
             try:
-                item.encode(
-                    "utf-8",
-                    errors="surrogateescape" if field in git_byte_path_fields else "strict",
-                )
+                if field in git_byte_path_fields:
+                    _git_path_bytes(item)
+                else:
+                    item.encode("utf-8")
             except UnicodeError as exc:
                 raise CircuitContractError("invalid Unicode scalar in JSON evidence") from exc
         elif isinstance(item, dict):

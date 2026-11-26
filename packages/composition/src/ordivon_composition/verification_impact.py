@@ -13,6 +13,7 @@ from typing import Any
 from urllib.parse import quote_from_bytes
 
 from .cognitive_circuit_r1 import CircuitContractError, canonical_digest, compile_manifest
+from .json_evidence import _git_path_bytes, _git_scope_projection_digest
 
 
 class _GateSourceIndex:
@@ -241,15 +242,13 @@ def select_source_readset_impacts(
     ):
         raise CircuitContractError("source readset evidence must bind the exact current Git scope")
 
+    _git_path_bytes(git_source_delta["queryPrefix"])
     authority = set(git_source_delta["authorityRefs"])
 
     def source_ref(kind: str, name: str) -> str:
         # Match Git's native byte-preserving identity for both path and
         # membership edges. An already encoded percent sign is literal input.
-        try:
-            encoded = quote_from_bytes(name.encode("utf-8", "surrogateescape"), safe="/")
-        except UnicodeEncodeError as exc:
-            raise CircuitContractError("source readset name is not a Git byte path") from exc
+        encoded = quote_from_bytes(_git_path_bytes(name), safe="/")
         return f"{git_source_delta['sourceScopeRef']}:{kind}:{encoded}"
 
     # An enumerating consumer depends on the *set* of source members, not
@@ -332,7 +331,7 @@ def select_source_readset_impacts(
             "No implementation refinement, installed currentness, effect authority, or domain acceptance is established.",
         ],
     }
-    result["projectionDigest"] = canonical_digest(result)
+    result["projectionDigest"] = _git_scope_projection_digest(result)
     return result
 
 
