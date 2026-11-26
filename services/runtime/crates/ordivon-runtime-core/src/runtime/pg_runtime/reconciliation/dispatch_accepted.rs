@@ -78,45 +78,50 @@ impl PgRuntime {
                 } else {
                     None
                 };
-            let (issuer_schema, issuer_principal) =
-                if let Some((principal, schema)) = &self.config.harness_dispatch_issuer {
-                    (Some(schema.as_str()), Some(principal.as_str()))
-                } else {
-                    (self.config.harness_issuer_schema.as_deref(), None)
-                };
-            let issuer_spawn_fence = if let Some(schema) = issuer_schema {
-                let principal: String = db
-                    .client
-                    .query_one("SELECT principal FROM jobs WHERE job_id=$1", &[&job])
-                    .map_err(io)?
-                    .get(0);
-                if issuer_principal.is_none_or(|expected| expected == principal) {
-                    let path = self
-                        .config
-                        .harness_spawn_dsn_file
-                        .as_deref()
-                        .ok_or_else(|| error("issuer receiver DSN file missing"))?;
-                    if crate::pg_admission::read_private_spawn_dsn(path).map_err(io)?
-                        != self.config.dsn
-                    {
-                        return Err(error("issuer receiver DSN no longer matches Runtime"));
+            #[cfg(target_os = "linux")]
+            let issuer_spawn_fence = {
+                let (issuer_schema, issuer_principal) =
+                    if let Some((principal, schema)) = &self.config.harness_dispatch_issuer {
+                        (Some(schema.as_str()), Some(principal.as_str()))
+                    } else {
+                        (self.config.harness_issuer_schema.as_deref(), None)
+                    };
+                if let Some(schema) = issuer_schema {
+                    let principal: String = db
+                        .client
+                        .query_one("SELECT principal FROM jobs WHERE job_id=$1", &[&job])
+                        .map_err(io)?
+                        .get(0);
+                    if issuer_principal.is_none_or(|expected| expected == principal) {
+                        let path = self
+                            .config
+                            .harness_spawn_dsn_file
+                            .as_deref()
+                            .ok_or_else(|| error("issuer receiver DSN file missing"))?;
+                        if crate::pg_admission::read_private_spawn_dsn(path).map_err(io)?
+                            != self.config.dsn
+                        {
+                            return Err(error("issuer receiver DSN no longer matches Runtime"));
+                        }
+                        Some(universal::RunnerIssuerSpawnFence {
+                            dsn_file: path
+                                .to_str()
+                                .ok_or_else(|| error("issuer DSN path not UTF-8"))?
+                                .to_owned(),
+                            runtime_schema: self.config.schema.clone(),
+                            issuer_schema: schema.to_owned(),
+                            source_sha256: self.config.source_sha256.clone(),
+                            principal,
+                        })
+                    } else {
+                        None
                     }
-                    Some(universal::RunnerIssuerSpawnFence {
-                        dsn_file: path
-                            .to_str()
-                            .ok_or_else(|| error("issuer DSN path not UTF-8"))?
-                            .to_owned(),
-                        runtime_schema: self.config.schema.clone(),
-                        issuer_schema: schema.to_owned(),
-                        source_sha256: self.config.source_sha256.clone(),
-                        principal,
-                    })
                 } else {
                     None
                 }
-            } else {
-                None
             };
+            #[cfg(not(target_os = "linux"))]
+            let issuer_spawn_fence = None;
             if !self.claim_resources(db, a, plan)? {
                 return Ok(false);
             }
