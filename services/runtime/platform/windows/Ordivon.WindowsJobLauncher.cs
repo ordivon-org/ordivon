@@ -34,6 +34,9 @@ internal static class OrdivonWindowsJobLauncher
     private const uint WaitTimeout = 258;
     private const uint HandleFlagInherit = 0x00000001;
     private const int ErrorBrokenPipe = 109;
+    private const int ErrorInsufficientBuffer = 122;
+    private const uint DaclSecurityInformation = 0x00000004;
+    private const int JobObjectQuery = 0x0004;
     private const uint TimedOutExit = 124;
     private const uint CancelledExit = 125;
     private const int StdInputHandle = -10;
@@ -439,6 +442,7 @@ internal static class OrdivonWindowsJobLauncher
         public uint? ExpectedSessionId;
         public bool EmitLauncherStartEvidence;
         public uint? PgTerminalPeerProcessId;
+        public SecurityIdentifier PgTerminalPeerUserSid;
         public ExecutionAuthority Authority = ExecutionAuthority.Limited;
         public ExecutionIdentity Identity = ExecutionIdentity.Service;
         public PayloadPrivilege? RequestedPayloadPrivilege;
@@ -498,6 +502,15 @@ internal static class OrdivonWindowsJobLauncher
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern IntPtr OpenProcess(uint desiredAccess, bool inheritHandle, uint processId);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool GetKernelObjectSecurity(
+        IntPtr handle, uint securityInformation, [Out] byte[] descriptor,
+        uint length, out uint lengthNeeded);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool SetKernelObjectSecurity(
+        IntPtr handle, uint securityInformation, byte[] descriptor);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool GetExitCodeProcess(IntPtr process, out uint exitCode);
@@ -755,9 +768,16 @@ internal static class OrdivonWindowsJobLauncher
             if (current == "--pg-terminal-peer-process-id")
             {
                 uint peer;
-                if (!UInt32.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out peer) || peer == 0)
-                    throw new InvalidOperationException("--pg-terminal-peer-process-id must be a positive PID");
+                if (options.PgTerminalPeerProcessId.HasValue ||
+                    !UInt32.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out peer) || peer == 0)
+                    throw new InvalidOperationException("--pg-terminal-peer-process-id must be one positive PID");
                 options.PgTerminalPeerProcessId = peer;
+            }
+            else if (current == "--pg-terminal-peer-user-sid")
+            {
+                if (options.PgTerminalPeerUserSid != null)
+                    throw new InvalidOperationException("duplicate PG terminal peer SID");
+                options.PgTerminalPeerUserSid = new SecurityIdentifier(value);
             }
             else if (current == "--process-id")
             {
@@ -1052,6 +1072,8 @@ internal static class OrdivonWindowsJobLauncher
         }
         if (options.PgTerminalPeerProcessId.HasValue && !options.RuntimeMode)
             throw new InvalidOperationException("PG terminal peer requires Runtime mode");
+        if (options.PgTerminalPeerUserSid != null && !options.PgTerminalPeerProcessId.HasValue)
+            throw new InvalidOperationException("PG terminal peer SID requires an exact peer PID");
         if (options.RuntimeMode)
         {
             options.RuntimeBundle = NormalizeLauncherPath(options.RuntimeBundle);
@@ -1955,6 +1977,8 @@ internal static class OrdivonWindowsJobLauncher
     private static int RunRuntime(Options options)
     {
         IntPtr job = IntPtr.Zero;
+        IntPtr pgPeerProcess = IntPtr.Zero;
+        SecurityIdentifier pgPeerSid = null;
         IntPtr environment = IntPtr.Zero;
         IntPtr executionToken = IntPtr.Zero;
         TokenEvidence tokenEvidence = null;
@@ -1975,6 +1999,8 @@ internal static class OrdivonWindowsJobLauncher
         try
         {
             VerifyRuntimeRequestDigest(options);
+            if (options.PgTerminalPeerProcessId.HasValue)
+                pgPeerProcess = OpenQualifiedPgPeer(options, out pgPeerSid);
             job = CreateJobObject(IntPtr.Zero, options.JobName);
             int jobCreationError = Marshal.GetLastWin32Error();
             if (job == IntPtr.Zero)
@@ -1988,6 +2014,15 @@ internal static class OrdivonWindowsJobLauncher
             {
                 throw new InvalidOperationException(
                     "native Runtime Job Object name already exists; refusing non-exclusive Attempt ownership");
+            }
+            // The broker-owned Launcher and Job Object have a different
+            // default DACL from the admitted service. Share only observation
+            // rights with that exact authenticated service SID.
+            if (options.PgTerminalPeerUserSid != null)
+            {
+                GrantPgObservation(GetCurrentProcess(), pgPeerSid,
+                    (int)(ProcessQueryLimitedInformation | Synchronize));
+                GrantPgObservation(job, pgPeerSid, JobObjectQuery);
             }
             ConfigureExtendedLimits(job, options);
             uint cpuRate = ConfigureCpuRate(job, options.CpuQuotaPercent);
@@ -2065,6 +2100,8 @@ internal static class OrdivonWindowsJobLauncher
                 throw new InvalidOperationException("target process is not owned by the expected Job Object");
             }
 
+            if (options.PgTerminalPeerUserSid != null)
+                GrantPgObservation(pi.hProcess, pgPeerSid, (int)(ProcessQueryLimitedInformation | Synchronize));
             WriteWindowsStartEvidence(options, pi, tokenEvidence, powerRequest != IntPtr.Zero);
             stdoutThread = new Thread(stdoutCapture.Run);
             stderrThread = new Thread(stderrCapture.Run);
@@ -2203,7 +2240,7 @@ internal static class OrdivonWindowsJobLauncher
                 // independently checks the kernel object, then ACKs only
                 // AFTER its PostgreSQL durable native drain witness COMMIT.
                 // The actual terminal/Artifact CAS follows Launcher exit.
-                WaitForQualifiedPgTerminalConsumer(options);
+                WaitForQualifiedPgTerminalConsumer(options, pgPeerProcess, pgPeerSid);
                 CloseHandle(job);
                 job = IntPtr.Zero;
             }
@@ -2226,6 +2263,7 @@ internal static class OrdivonWindowsJobLauncher
         finally
         {
             if (creationAttributes != null) creationAttributes.Dispose();
+            if (pgPeerProcess != IntPtr.Zero) CloseHandle(pgPeerProcess);
             if (stdoutWrite != IntPtr.Zero) CloseHandle(stdoutWrite);
             if (stderrWrite != IntPtr.Zero) CloseHandle(stderrWrite);
             if (environment != IntPtr.Zero) Marshal.FreeHGlobal(environment);
@@ -2321,7 +2359,59 @@ internal static class OrdivonWindowsJobLauncher
         return ((ulong)created.dwHighDateTime << 32) | created.dwLowDateTime;
     }
 
-    private static void WaitForQualifiedPgTerminalConsumer(Options options)
+    private static IntPtr OpenQualifiedPgPeer(Options options, out SecurityIdentifier sid)
+    {
+        using (WindowsIdentity launcher = WindowsIdentity.GetCurrent())
+            sid = options.PgTerminalPeerUserSid ?? launcher.User;
+        if (sid == null)
+            throw new InvalidOperationException("PG terminal peer SID is unavailable");
+        IntPtr handle = OpenProcess(ProcessQueryLimitedInformation | Synchronize,
+            false, options.PgTerminalPeerProcessId.Value);
+        if (handle == IntPtr.Zero) ThrowWin32("OpenProcess(PG terminal peer)");
+        try
+        {
+            IntPtr token;
+            if (!OpenProcessToken(handle, TokenQuery, out token))
+                ThrowWin32("OpenProcessToken(PG terminal peer)");
+            try
+            {
+                using (WindowsIdentity peer = new WindowsIdentity(token))
+                {
+                    if (!sid.Equals(peer.User) || WaitForSingleObject(handle, 0) != WaitTimeout)
+                        throw new InvalidOperationException("PG terminal peer SID or lifetime differs");
+                }
+            }
+            finally { CloseHandle(token); }
+            return handle;
+        }
+        catch
+        {
+            CloseHandle(handle);
+            throw;
+        }
+    }
+
+    private static void GrantPgObservation(IntPtr handle, SecurityIdentifier sid, int rights)
+    {
+        uint length;
+        if (GetKernelObjectSecurity(handle, DaclSecurityInformation, null, 0, out length)
+            || Marshal.GetLastWin32Error() != ErrorInsufficientBuffer || length == 0 || length > 65536)
+            throw new InvalidOperationException("PG observation object DACL is unavailable");
+        byte[] bytes = new byte[length];
+        if (!GetKernelObjectSecurity(handle, DaclSecurityInformation, bytes, length, out length))
+            ThrowWin32("GetKernelObjectSecurity(PG observation)");
+        RawSecurityDescriptor descriptor = new RawSecurityDescriptor(bytes, 0);
+        RawAcl acl = descriptor.DiscretionaryAcl;
+        if (acl == null) throw new InvalidOperationException("PG observation requires an explicit object DACL");
+        acl.InsertAce(acl.Count, new CommonAce(AceFlags.None, AceQualifier.AccessAllowed, rights, sid, false, null));
+        byte[] updated = new byte[descriptor.BinaryLength];
+        descriptor.GetBinaryForm(updated, 0);
+        if (!SetKernelObjectSecurity(handle, DaclSecurityInformation, updated))
+            ThrowWin32("SetKernelObjectSecurity(PG observation)");
+    }
+
+    private static void WaitForQualifiedPgTerminalConsumer(
+        Options options, IntPtr pgPeerProcess, SecurityIdentifier pgPeerSid)
     {
         string attempt = options.RuntimeAttemptId;
         if (String.IsNullOrEmpty(attempt) || attempt.Length > 96)
@@ -2335,9 +2425,20 @@ internal static class OrdivonWindowsJobLauncher
         // ORIGINAL Launcher whose Job handle must stay alive during PG CAS.
         // Pipe peer process identity is OS-supplied, not a message field.
         string name = "Ordivon.WinPG.Terminal." + attempt;
+        PipeSecurity security = new PipeSecurity();
+        security.SetAccessRuleProtection(true, false);
+        using (WindowsIdentity launcher = WindowsIdentity.GetCurrent())
+        {
+            security.AddAccessRule(new PipeAccessRule(launcher.User,
+                PipeAccessRights.FullControl, AccessControlType.Allow));
+        }
+        security.AddAccessRule(new PipeAccessRule(pgPeerSid,
+            PipeAccessRights.ReadData | PipeAccessRights.WriteData |
+                PipeAccessRights.ReadAttributes | PipeAccessRights.Synchronize,
+            AccessControlType.Allow));
         using (NamedPipeServerStream pipe = new NamedPipeServerStream(
             name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
-            PipeOptions.Asynchronous))
+            PipeOptions.Asynchronous, 0, 0, security))
         {
             IAsyncResult pending = pipe.BeginWaitForConnection(null, null);
             if (!pending.AsyncWaitHandle.WaitOne(30000))
@@ -2347,7 +2448,8 @@ internal static class OrdivonWindowsJobLauncher
             if (!GetNamedPipeClientProcessId(
                     pipe.SafePipeHandle.DangerousGetHandle(), out nativePeer))
                 ThrowWin32("GetNamedPipeClientProcessId(PG terminal)");
-            if (nativePeer != options.PgTerminalPeerProcessId.Value)
+            if (nativePeer != options.PgTerminalPeerProcessId.Value ||
+                WaitForSingleObject(pgPeerProcess, 0) != WaitTimeout)
                 throw new InvalidOperationException(
                     "PG terminal pipe peer is not the admission-frozen Runtime process");
             // The Launcher has authenticated the caller from the OS pipe

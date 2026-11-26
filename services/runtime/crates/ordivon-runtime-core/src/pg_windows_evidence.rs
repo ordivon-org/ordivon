@@ -1088,7 +1088,10 @@ pub mod native_terminal_gate {
         use windows_sys::Win32::Foundation::{
             CloseHandle, GetLastError, FILETIME, INVALID_HANDLE_VALUE,
         };
-        use windows_sys::Win32::Storage::FileSystem::{CreateFileW, OPEN_EXISTING};
+        use windows_sys::Win32::Storage::FileSystem::{
+            CreateFileW, FILE_READ_ATTRIBUTES, FILE_READ_DATA, FILE_WRITE_DATA, OPEN_EXISTING,
+        };
+        const SYNCHRONIZE: u32 = 0x0010_0000;
         use windows_sys::Win32::System::Pipes::GetNamedPipeServerProcessId;
         use windows_sys::Win32::System::Threading::{
             GetProcessTimes, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
@@ -1111,12 +1114,12 @@ pub mod native_terminal_gate {
         }
         let name = pipe_name(&expected.attempt_id)?;
         let wide: Vec<u16> = name.encode_utf16().chain(Some(0)).collect();
-        // Generic read/write for a single bounded ACK, no sharing and no
-        // inheritable handle. The server only accepts the original PG parent.
+        // Request the exact data/identity/synchronization access used below.
+        // GENERIC_WRITE also grants the right to create another pipe instance.
         let handle = unsafe {
             CreateFileW(
                 wide.as_ptr(),
-                0x8000_0000 | 0x4000_0000,
+                FILE_READ_DATA | FILE_WRITE_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
                 0,
                 std::ptr::null(),
                 OPEN_EXISTING,
@@ -1144,7 +1147,6 @@ pub mod native_terminal_gate {
         {
             return Err("PG terminal native pipe server is not the original Launcher".into());
         }
-        const SYNCHRONIZE: u32 = 0x0010_0000;
         let process = unsafe {
             OpenProcess(
                 PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE,
