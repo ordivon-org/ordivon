@@ -357,16 +357,22 @@ fn windows_pg_native_journal_and_result_reach_one_verified_terminal_with_artifac
 #[test]
 #[ignore = "requires isolated Windows PG18 DSN, original Launcher and physical Win32 kernel"]
 fn winpg_native_real_launcher_and_postgres_same_attempt_terminal_artifact() {
-    run_winpg_native_real_attempt(false);
+    run_winpg_native_real_attempt(false, false);
 }
 #[cfg(windows)]
 #[test]
 #[ignore = "requires isolated Windows PG18 DSN, original Launcher and physical Win32 kernel"]
 fn winpg_native_wrong_peer_cannot_journal_or_terminal() {
-    run_winpg_native_real_attempt(true);
+    run_winpg_native_real_attempt(true, false);
 }
 #[cfg(windows)]
-fn run_winpg_native_real_attempt(force_wrong_peer: bool) {
+#[test]
+#[ignore = "requires isolated Windows PG18 DSN, original Launcher and physical Win32 kernel"]
+fn winpg_native_cancel_after_target_start_preserves_pg_terminal_artifact() {
+    run_winpg_native_real_attempt(false, true);
+}
+#[cfg(windows)]
+fn run_winpg_native_real_attempt(force_wrong_peer: bool, cancel_after_start: bool) {
     use crate::pg_readback::PgJobReadback;
     use crate::pg_windows_evidence::{
         reconcile_admitted_windows_pg_terminal, PgWindowsWitnessIdentity,
@@ -481,7 +487,7 @@ fn run_winpg_native_real_attempt(force_wrong_peer: bool) {
     assert!(exe.is_file());
     let stdout = bundle.join("launcher-piped-stdout.txt");
     let stderr = bundle.join("launcher-piped-stderr.txt");
-    let argv = vec![
+    let mut argv = vec![
         "--runtime-bundle".into(),
         input.bundle_path.clone(),
         "--runtime-job-id".into(),
@@ -518,6 +524,13 @@ fn run_winpg_native_real_attempt(force_wrong_peer: bool) {
         "echo".into(),
         "WINPG_TRUE_SINGLE_JOB_R50".into(),
     ];
+    if cancel_after_start {
+        argv.truncate(argv.len() - 2);
+        argv.push(
+            "echo WINPG_TRUE_SINGLE_JOB_R50 & ping -n 15 127.0.0.1 >nul & echo WINPG_LATE_EFFECT"
+                .into(),
+        );
+    }
     // Real original Windows process; parent owns the process identity.
     let mut child = Command::new(&launcher)
         .args(&argv)
@@ -563,6 +576,48 @@ fn run_winpg_native_real_attempt(force_wrong_peer: bool) {
         serde_json::to_vec(&parent).unwrap(),
     )
     .unwrap();
+    if cancel_after_start {
+        // Wait for actual stdout from the original target, not a sleep or the
+        // existence of an untrusted start file alone.
+        let deadline = Instant::now() + Duration::from_secs(8);
+        while Instant::now() < deadline
+            && !std::fs::read_to_string(bundle.join("stdout.log"))
+                .is_ok_and(|text| text.contains("WINPG_TRUE_SINGLE_JOB_R50"))
+        {
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        assert!(std::fs::read_to_string(bundle.join("stdout.log"))
+            .unwrap()
+            .contains("WINPG_TRUE_SINGLE_JOB_R50"));
+        let cancel = PgCancelIntent {
+            job_id: job.clone(),
+            observed_at_ms: crate::universal::now_unix_ms().unwrap() as i64,
+            expected_source_sha256: source.clone(),
+        };
+        assert_eq!(
+            db.request_cancel_intent(&cancel).unwrap(),
+            PgCancelOutcome::IntentRecorded(job.clone())
+        );
+        let mut reopened = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        assert_eq!(
+            reopened.observe_cancel_intent(&cancel).unwrap(),
+            PgCancelObservation::Confirmed(job.clone())
+        );
+        assert!(matches!(
+            reopened.observe_job_readonly(&job, &source).unwrap(),
+            PgJobReadback::Observed(snapshot) if snapshot.resolution.is_none()
+                && snapshot.attempt_state == "stopping"
+                && snapshot.reservation_state == "active"
+        ));
+        // Test the original launcher carrier only AFTER durable PG intent.
+        // Normal PG MCP must eventually invoke this same physical handoff.
+        crate::universal::write_json_atomic(
+            &bundle.join("cancel-requested.json"),
+            &serde_json::json!({"schemaVersion":1,"jobId":job,"attemptId":attempt}),
+        )
+        .unwrap();
+        db = reopened;
+    }
     let deadline = Instant::now() + Duration::from_secs(35);
     let mut committed = false;
     let mut rejected_peer = false;
@@ -626,13 +681,22 @@ fn run_winpg_native_real_attempt(force_wrong_peer: bool) {
         committed,
         "native Windows PG must reach same original Attempt terminal"
     );
-    assert!(exit.success(), "original Launcher did not exit0: {exit:?}");
+    if cancel_after_start {
+        assert_eq!(exit.code(), Some(125), "native cancelled target exit");
+    } else {
+        assert!(exit.success(), "original Launcher did not exit0: {exit:?}");
+    }
+    let expected_terminal = if cancel_after_start {
+        "cancelled"
+    } else {
+        "succeeded"
+    };
     assert!(
         matches!(
             db.observe_job_readonly(&job,&source).unwrap(),
             PgJobReadback::Observed(snapshot)
-                if snapshot.resolution.as_deref()==Some("succeeded")
-                   && snapshot.attempt_state=="succeeded"
+                if snapshot.resolution.as_deref()==Some(expected_terminal)
+                   && snapshot.attempt_state==expected_terminal
                    && snapshot.reservation_state=="released"
                    && snapshot.current_attempt_id.is_none()
         ),
@@ -660,5 +724,21 @@ fn run_winpg_native_real_attempt(force_wrong_peer: bool) {
     assert!(std::fs::read_to_string(bundle.join("stdout.log"))
         .unwrap()
         .contains("WINPG_TRUE_SINGLE_JOB_R50"));
-    println!("WINPG_REAL_OS_SAME_PG_ATTEMPT_TERMINAL_ARTIFACT=PASS");
+    if cancel_after_start {
+        assert!(!std::fs::read_to_string(bundle.join("stdout.log"))
+            .unwrap()
+            .contains("WINPG_LATE_EFFECT"));
+        let count: i64 = db
+            .client
+            .query_one(
+                "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='STOP_REQUESTED'",
+                &[&job],
+            )
+            .unwrap()
+            .get(0);
+        assert_eq!(count, 1);
+        println!("WINPG_REAL_OS_CANCEL_AFTER_START_SAME_PG_TERMINAL_ARTIFACT=PASS");
+    } else {
+        println!("WINPG_REAL_OS_SAME_PG_ATTEMPT_TERMINAL_ARTIFACT=PASS");
+    }
 }
