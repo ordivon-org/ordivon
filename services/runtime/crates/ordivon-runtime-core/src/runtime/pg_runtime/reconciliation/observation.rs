@@ -46,15 +46,28 @@ pub(super) fn runner_result_still_absent(path: &Path) -> RuntimeResult<bool> {
 /// Seek directly to the requested window instead of reading up to the full
 /// output ceiling on every Job observation. Terminal logs use the independent
 /// Artifact digest check in project() and must still verify all committed bytes.
+pub(super) type LogWindow = (Vec<u8>, u64, u64, u64);
+
 pub(super) fn active_log_window(
     path: &Path,
     output_ceiling: u64,
     offset: Option<u64>,
     limit: u64,
-) -> RuntimeResult<(Vec<u8>, u64, u64, u64)> {
-    use std::io::{Read, Seek, SeekFrom};
+) -> RuntimeResult<Option<LogWindow>> {
+    use std::io::{ErrorKind, Read, Seek, SeekFrom};
 
-    let mut file = fs::File::open(path).map_err(io)?;
+    let parent = path
+        .parent()
+        .ok_or_else(|| error("active output has no directory"))?;
+    let name = path
+        .file_name()
+        .ok_or_else(|| error("active output has no file name"))?;
+    let root = universal::open_directory_nofollow(parent).map_err(io)?;
+    let mut file = match universal::open_active_preview_beneath(&root, Path::new(name)) {
+        Ok(file) => file,
+        Err(e) if e.kind() == ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(io(e)),
+    };
     let available = file.seek(SeekFrom::End(0)).map_err(io)?;
     if available > output_ceiling {
         return Err(error("output exceeds retained ceiling"));
@@ -66,7 +79,7 @@ pub(super) fn active_log_window(
     file.seek(SeekFrom::Start(begin)).map_err(io)?;
     let mut window = vec![0; usize::try_from(end - begin).map_err(io)?];
     file.read_exact(&mut window).map_err(io)?;
-    Ok((window, begin, end, available))
+    Ok(Some((window, begin, end, available)))
 }
 
 /// Verify the entire committed stream, retaining only the requested byte window.
@@ -237,5 +250,39 @@ mod terminal_output_path_selection_tests {
             0
         )
         .is_err());
+    }
+}
+
+#[cfg(all(test, windows))]
+mod native_preview_sharing_tests {
+    use super::*;
+    use std::io::Write;
+    use std::os::windows::fs::OpenOptionsExt;
+    use windows_sys::Win32::Storage::FileSystem::FILE_SHARE_READ;
+
+    #[test]
+    fn preview_coexists_with_launcher_writer_without_relaxing_sealed_open() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = dir.path().join("stdout.log");
+        let mut writer = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .share_mode(FILE_SHARE_READ)
+            .open(&path)
+            .unwrap();
+        writer.write_all(b"first").unwrap();
+        let root = universal::open_directory_nofollow(dir.path()).unwrap();
+        assert!(
+            universal::open_regular_file_beneath(&root, Path::new("stdout.log"), true).is_err()
+        );
+        let first = active_log_window(&path, 64, None, 64).unwrap().unwrap();
+        assert_eq!(first.0, b"first");
+        writer.write_all(b"second").unwrap();
+        let second = active_log_window(&path, 64, Some(first.2), 64)
+            .unwrap()
+            .unwrap();
+        assert_eq!(second.0, b"second");
+        drop(writer);
+        assert!(universal::open_regular_file_beneath(&root, Path::new("stdout.log"), true).is_ok());
     }
 }

@@ -108,11 +108,36 @@ pub(crate) fn open_directory_nofollow(path: &Path) -> std::io::Result<File> {
     Ok(file)
 }
 
+/// Mutable previews may coexist with an existing writer, but never acquire
+/// write access themselves. Keep the sealed Artifact policy unchanged.
+pub(crate) fn open_active_preview_beneath(
+    root_file: &File,
+    relative: &Path,
+) -> std::io::Result<File> {
+    #[cfg(windows)]
+    {
+        open_windows_regular_file_beneath(root_file, relative, true)
+    }
+    #[cfg(not(windows))]
+    {
+        open_regular_file_beneath(root_file, relative, true)
+    }
+}
+
 #[cfg(windows)]
 pub(crate) fn open_regular_file_beneath(
     root_file: &File,
     relative: &Path,
     _deny_parent_symlinks: bool,
+) -> std::io::Result<File> {
+    open_windows_regular_file_beneath(root_file, relative, false)
+}
+
+#[cfg(windows)]
+fn open_windows_regular_file_beneath(
+    root_file: &File,
+    relative: &Path,
+    active_preview: bool,
 ) -> std::io::Result<File> {
     use std::os::windows::fs::MetadataExt;
     use std::os::windows::io::{AsRawHandle, FromRawHandle};
@@ -126,7 +151,7 @@ pub(crate) fn open_regular_file_beneath(
     };
     use windows_sys::Win32::Storage::FileSystem::{
         FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_REPARSE_POINT, FILE_READ_ATTRIBUTES, FILE_READ_DATA,
-        FILE_SHARE_READ, SYNCHRONIZE,
+        FILE_SHARE_READ, FILE_SHARE_WRITE, SYNCHRONIZE,
     };
     use windows_sys::Win32::System::IO::IO_STATUS_BLOCK;
     let invalid = || {
@@ -181,7 +206,11 @@ pub(crate) fn open_regular_file_beneath(
             &mut status_block,
             std::ptr::null(),
             FILE_ATTRIBUTE_NORMAL,
-            FILE_SHARE_READ,
+            if active_preview {
+                FILE_SHARE_READ | FILE_SHARE_WRITE
+            } else {
+                FILE_SHARE_READ
+            },
             FILE_OPEN,
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_REPARSE_POINT,
             std::ptr::null(),
