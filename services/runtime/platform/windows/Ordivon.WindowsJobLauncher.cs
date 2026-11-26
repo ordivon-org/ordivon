@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Cryptography;
@@ -436,6 +437,7 @@ internal static class OrdivonWindowsJobLauncher
         public string ExpectedUserSid;
         public uint? ExpectedSessionId;
         public bool EmitLauncherStartEvidence;
+        public uint? PgTerminalPeerProcessId;
         public ExecutionAuthority Authority = ExecutionAuthority.Limited;
         public ExecutionIdentity Identity = ExecutionIdentity.Service;
         public PayloadPrivilege? RequestedPayloadPrivilege;
@@ -531,6 +533,9 @@ internal static class OrdivonWindowsJobLauncher
 
     [DllImport("kernel32.dll")]
     private static extern uint GetCurrentProcessId();
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool GetNamedPipeClientProcessId(IntPtr pipe, out uint pid);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool GetProcessTimes(
@@ -746,7 +751,14 @@ internal static class OrdivonWindowsJobLauncher
                 continue;
             }
             string value = RequireValue(args, ref index, current);
-            if (current == "--process-id")
+            if (current == "--pg-terminal-peer-process-id")
+            {
+                uint peer;
+                if (!UInt32.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out peer) || peer == 0)
+                    throw new InvalidOperationException("--pg-terminal-peer-process-id must be a positive PID");
+                options.PgTerminalPeerProcessId = peer;
+            }
+            else if (current == "--process-id")
             {
                 uint parsed;
                 if (!UInt32.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out parsed) || parsed == 0)
@@ -1037,6 +1049,8 @@ internal static class OrdivonWindowsJobLauncher
         {
             throw new InvalidOperationException("working directory does not exist: " + options.WorkingDirectory);
         }
+        if (options.PgTerminalPeerProcessId.HasValue && !options.RuntimeMode)
+            throw new InvalidOperationException("PG terminal peer requires Runtime mode");
         if (options.RuntimeMode)
         {
             options.RuntimeBundle = NormalizeLauncherPath(options.RuntimeBundle);
@@ -2136,13 +2150,24 @@ internal static class OrdivonWindowsJobLauncher
             // after CloseHandle is not evidence of an empty object: Windows
             // destroys the named object when its last handle disappears.
             // Ordinary legacy execution keeps its existing result contract.
-            if (options.EmitLauncherStartEvidence)
+            // A native PG parent publishes launcher-start from its original
+            // CreateProcess handle; do not make it race a launcher-authored
+            // start receipt merely to request a native positive drain.
+            if (options.EmitLauncherStartEvidence || options.PgTerminalPeerProcessId.HasValue)
             {
                 JobObjectBasicAccountingInformation drained = WaitForNativeJobDrain(job);
-                WriteWindowsJobDrainEvidence(options, pi, drained);
+                if (options.EmitLauncherStartEvidence)
+                    WriteWindowsJobDrainEvidence(options, pi, drained);
             }
-            CloseHandle(job);
-            job = IntPtr.Zero;
+            // PG-only explicit opt-in: retain the REAL Job Object handle
+            // until the qualified PG consumer has queried this exact live
+            // object and durably committed its native drain witness event.
+            // Ordinary Windows execution retains original close-before-result behavior.
+            if (!options.PgTerminalPeerProcessId.HasValue)
+            {
+                CloseHandle(job);
+                job = IntPtr.Zero;
+            }
             stdoutThread.Join();
             stderrThread.Join();
             if (stdoutCapture.Error != null)
@@ -2169,6 +2194,18 @@ internal static class OrdivonWindowsJobLauncher
                 UnixTimeMilliseconds(),
                 stdout,
                 stderr);
+            if (options.PgTerminalPeerProcessId.HasValue)
+            {
+                // The target and its descendants were already terminated and
+                // the kernel reported ActiveProcesses==0 while we still own
+                // this handle.  The consumer connects after result.json exists,
+                // independently checks the kernel object, then ACKs only
+                // AFTER its PostgreSQL durable native drain witness COMMIT.
+                // The actual terminal/Artifact CAS follows Launcher exit.
+                WaitForQualifiedPgTerminalConsumer(options);
+                CloseHandle(job);
+                job = IntPtr.Zero;
+            }
             if (options.Diagnostics)
             {
                 Console.Error.WriteLine(
@@ -2281,6 +2318,53 @@ internal static class OrdivonWindowsJobLauncher
             ThrowWin32("GetProcessTimes(" + label + ")");
         }
         return ((ulong)created.dwHighDateTime << 32) | created.dwLowDateTime;
+    }
+
+    private static void WaitForQualifiedPgTerminalConsumer(Options options)
+    {
+        string attempt = options.RuntimeAttemptId;
+        if (String.IsNullOrEmpty(attempt) || attempt.Length > 96)
+            throw new InvalidOperationException("invalid PG terminal attempt identifier");
+        foreach (char ch in attempt)
+            if (!((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')
+                || (ch >= '0' && ch <= '9') || ch == '-' || ch == '_'))
+                throw new InvalidOperationException("unsafe PG terminal pipe identity");
+
+        // No second service or Registry. This temporary pipe is owned by the
+        // ORIGINAL Launcher whose Job handle must stay alive during PG CAS.
+        // Pipe peer process identity is OS-supplied, not a message field.
+        string name = "Ordivon.WinPG.Terminal." + attempt;
+        using (NamedPipeServerStream pipe = new NamedPipeServerStream(
+            name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
+            PipeOptions.Asynchronous))
+        {
+            IAsyncResult pending = pipe.BeginWaitForConnection(null, null);
+            if (!pending.AsyncWaitHandle.WaitOne(30000))
+                throw new InvalidOperationException("qualified PG terminal consumer did not connect");
+            pipe.EndWaitForConnection(pending);
+            uint nativePeer;
+            if (!GetNamedPipeClientProcessId(
+                    pipe.SafePipeHandle.DangerousGetHandle(), out nativePeer))
+                ThrowWin32("GetNamedPipeClientProcessId(PG terminal)");
+            if (nativePeer != options.PgTerminalPeerProcessId.Value)
+                throw new InvalidOperationException(
+                    "PG terminal pipe peer is not the admission-frozen Runtime process");
+            // The Launcher has authenticated the caller from the OS pipe
+            // endpoint. Only NOW may the caller record native-drain in the
+            // PG Journal. Without this Ready byte, a caller could journal an
+            // event while the real Launcher rejects that mismatched caller.
+            pipe.WriteByte((byte)'R');
+            pipe.Flush();
+            // ACK is deliberately one byte, only sent after qualified PG
+            // native witness journal commit. Untrusted early EOF/incorrect byte never releases the
+            // owner as a *qualified success*; finally still reclaims the handle.
+            byte[] ack = new byte[1];
+            IAsyncResult receipt = pipe.BeginRead(ack, 0, 1, null, null);
+            if (!receipt.AsyncWaitHandle.WaitOne(30000))
+                throw new InvalidOperationException("PG native witness acknowledgement timed out");
+            if (pipe.EndRead(receipt) != 1 || ack[0] != (byte)'T')
+                throw new InvalidOperationException("PG native witness acknowledgement missing");
+        }
     }
 
     private static void WriteWindowsJobDrainEvidence(

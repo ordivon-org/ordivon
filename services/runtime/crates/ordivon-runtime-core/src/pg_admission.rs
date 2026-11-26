@@ -14,6 +14,8 @@ mod dispatch;
 mod input_contract;
 #[path = "pg_issuer_guard.rs"]
 mod issuer;
+#[path = "pg_admission_native_windows_drain.rs"]
+mod native_windows_drain;
 #[cfg(all(test, feature = "postgres-registry-admission"))]
 mod live_pg_tests;
 mod readback;
@@ -29,6 +31,8 @@ pub(crate) use dispatch::PgRunnerBound;
 pub use dispatch::{PgBundleReady, PgDispatchIssued};
 use input_contract::unambiguous_json_object;
 pub use input_contract::PgAdmissionInput;
+#[cfg(any(windows, test))]
+pub(crate) use native_windows_drain::{PgNativeWindowsDrainInput, PgNativeWindowsDrainOutcome};
 use terminal_contract::terminal_transition;
 pub(crate) use terminal_contract::{pg_artifact_manifest_digest, valid_pg_artifacts};
 pub use terminal_contract::{PgArtifactRegistration, PgTerminalNoArtifacts, PgTerminalOutcome};
