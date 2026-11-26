@@ -51,12 +51,17 @@ class OwnerPolicyLifetimeTests(unittest.TestCase):
                 "host:current-policy-probe",
                 [owner.queue_task for owner in MODULE.affected_owners.owners_for_paths(path)],
             )
-            self.assertEqual(
-                ci_owner_shards.shard_queue(["host:current-policy-probe"])["include"],
-                [{"shard": 0, "tasks": ["host:current-policy-probe"]}],
-            )
-            with self.assertRaisesRegex(ValueError, "unknown selected"):
-                ci_owner_shards.shard_queue([old.queue_task])
+            # Existing suites can load independent module instances. Patch
+            # the consumer's actual dependency, not a presumed shared module.
+            with mock.patch.object(
+                ci_owner_shards.affected_owners, "load_owners", return_value=fresh
+            ):
+                self.assertEqual(
+                    ci_owner_shards.shard_queue(["host:current-policy-probe"])["include"],
+                    [{"shard": 0, "tasks": ["host:current-policy-probe"]}],
+                )
+                with self.assertRaisesRegex(ValueError, "unknown selected"):
+                    ci_owner_shards.shard_queue([old.queue_task])
             with self.assertRaisesRegex(ValueError, "exact canonical"):
                 MODULE.validate_queue_task_selection(
                     pinned["verificationOwners"], pinned["queueVerifyTasks"], path
