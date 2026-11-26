@@ -850,3 +850,39 @@ or peer source modification inferred.
 
 References: https://docs.python.org/3/library/json.html and
 https://www.rfc-editor.org/rfc/rfc8785 .
+
+### R25 — cumulative integration and independent architecture identity oracle
+
+P0: R23/R24 cumulative descendant c790a18e8d1fa7b33eda7f668bfe9ec99c2f7320
+is now the actual #2808 Draft head after normal fast-forward and independent
+GitHub ref readback (job job-01a2154c-eeaa-70b6-8eba-9934d72d86f0).
+Observed main 4d0607e61910668200f59ee6869a1430cd38bff6 composed cleanly
+into tree 13ac0ad6e3aec2d5c3ea481adff8e94860310f2a, with identical Security,
+Gateway and formal paths, 139 other changed paths overall. Prior R22 CI was
+terminal with preflight/root failure and CodeQL/mechanics success. New
+head requires independent official CI and natural Repo owner qualification.
+No release gate modification, merge or production deployment.
+
+P1/T02/T04: existing architecture envelope tests use the implementation
+to produce the expected digest for validation. Retain the actual current
+and stale-file tests, add an independent representation oracle: compose
+8-byte unsigned big-endian length prefixes and the exact UTF-8 path and
+file bytes from fixture coordinates using stdlib struct.pack, followed by
+one independent SHA-256. Verify 100 generated bounded file maps, including
+Unicode names, order invariance and duplicate path deduplication; a literal
+byte vector separately checks the framing. Four threat-model tests passed
+(job job-01a2154d-98f8-7728-8260-d80d3f13526a). The implementation and
+public envelope profile remain unchanged. This validates the representation
+contract, not complete release inventory or loaded-carrier identity.
+
+Keep representation, observation, construction, consumer interpretation
+and actual loaded source separate. The remaining Witness types share
+multiple consumers; do not mechanically split a module by line count or
+change class identity without independently qualified need. Natural Host
+loaded-source qualification proposal #33165 and Gateway artifact inventory
+#33195 require their own consumer and release obligations. No new runtime
+or development dependencies, no new provider or scheduler.
+
+References:
+- https://testing.googleblog.com/2025/10/simplify-your-code-functional-core.html
+- https://docs.python.org/3/library/struct.html
