@@ -176,21 +176,28 @@ def test_wire_member_ambiguity_is_rejected_before_typed_coverage(mutation):
     assert result["kind"] == "ordivon.task-obligation-handoff-error-v1"
 
 
-def test_wire_revision_outside_native_host_range_rejected():
+@pytest.mark.parametrize("revision", [2**53, 2**63 - 1, 2**63])
+@pytest.mark.parametrize("role", ["source", "successor"])
+def test_wire_revision_outside_native_host_range_rejected(revision, role):
     data = packet()
-    data["source"]["revision"] = 2**63
+    row = data["source"] if role == "source" else data["successors"][0]
+    row["revision"] = revision
+    field = "sourceRevision" if role == "source" else "successorRevision"
     for link in data["links"]:
-        link["sourceRevision"] = 2**63
+        link[field] = revision
     completed, result = _run_cli(json.dumps(data))
     assert completed.returncode == 2
     assert result["navigationCovered"] is False
 
 
-def test_wire_exact_native_upper_revision_retains_navigation_only():
+@pytest.mark.parametrize("role", ["source", "successor"])
+def test_wire_exact_native_upper_revision_retains_navigation_only(role):
     data = packet()
-    data["source"]["revision"] = 2**63 - 1
+    row = data["source"] if role == "source" else data["successors"][0]
+    row["revision"] = 2**53 - 1
+    field = "sourceRevision" if role == "source" else "successorRevision"
     for link in data["links"]:
-        link["sourceRevision"] = 2**63 - 1
+        link[field] = row["revision"]
     completed, result = _run_cli(json.dumps(data))
     assert completed.returncode == 0
     assert result["navigationCovered"] is True
@@ -290,3 +297,12 @@ def test_native_snapshot_limits_are_inclusive():
     assert completed.returncode == 0
     assert result["coveredIndices"] == list(range(128))
     assert result["technicalCompletion"] == "UNKNOWN"
+
+
+def test_handoff_revision_limit_matches_native_host_wire_contract():
+    import runpy
+
+    bounds = runpy.run_path(str(
+        ROOT / "services/host/src/ordivon_host_v2/postgres_bounds.py"
+    ))
+    assert helper._MAX_HOST_REVISION == bounds["HOST_WIRE_INT_MAX"]
