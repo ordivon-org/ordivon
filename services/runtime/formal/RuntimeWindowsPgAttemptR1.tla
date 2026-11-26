@@ -1,15 +1,18 @@
 --------------------- MODULE RuntimeWindowsPgAttemptR1 ---------------------
 EXTENDS Naturals
-\* Bounded MODEL of one PG Windows Attempt, not a proof of Rust/Win32 behavior.
-\* "OsExited" is a trusted external observation of PID + creation FILETIME.
-\* A target-writable result.json alone NEVER establishes OsExited.
-\* Win32 Job Object readback is a separately bounded kernel observation:
-\* populated, empty, not_found and unknown are distinct. NotFound/Unknown
-\* cannot be silently treated as an empty process tree. Even empty is only
-\* a NECESSARY observation alongside the exact exited-launcher witness,
-\* not a proof that the implementation CAS or installed provider is safe.
-VARIABLES job, bundle, launch, witness, osOwner, jobObject, result, writer
-Vars == <<job, bundle, launch, witness, osOwner, jobObject, result, writer>>
+\* One native Windows PostgreSQL Attempt. Bounded model, not proof of
+\* Win32 / Rust / network implementation. A result.json is untrusted.
+\* A named JobObject Empty may be observed only while the ORIGINAL Launcher
+\* still holds its handle. A live bound OS pipe + PID/birth + direct kernel
+\* ActiveProcesses=0 observation is durably recorded in the EXISTING PG
+\* Job event log BEFORE the Launcher closes its handle.
+\* After ACK and launcher exit, the JobObject may be NotFound. Only the
+\* durable issuer-qualified positive event plus exact exited-owner permits
+\* PG terminalization. Do not ever infer Empty from NotFound.
+VARIABLES job, bundle, launch, witness, osOwner, jobObject, jobHandle,
+          result, nativeDrainJournal, writer
+Vars == <<job, bundle, launch, witness, osOwner, jobObject, jobHandle,
+          result, nativeDrainJournal, writer>>
 
 Init ==
     /\ job = "accepted"
@@ -18,14 +21,17 @@ Init ==
     /\ witness = "none"
     /\ osOwner = "unknown"
     /\ jobObject = "unknown"
+    /\ jobHandle = "absent"
     /\ result = FALSE
+    /\ nativeDrainJournal = FALSE
     /\ writer = TRUE
 
 CommitImmutableBundle ==
     /\ job = "accepted"
     /\ ~bundle
     /\ bundle' = TRUE
-    /\ UNCHANGED <<job, launch, witness, osOwner, jobObject, result, writer>>
+    /\ UNCHANGED <<job, launch, witness, osOwner, jobObject, jobHandle,
+                   result, nativeDrainJournal, writer>>
 
 IssueOnce ==
     /\ job = "accepted"
@@ -34,7 +40,8 @@ IssueOnce ==
     /\ ~launch
     /\ job' = "starting"
     /\ launch' = TRUE
-    /\ UNCHANGED <<bundle, witness, osOwner, jobObject, result, writer>>
+    /\ UNCHANGED <<bundle, witness, osOwner, jobObject, jobHandle,
+                   result, nativeDrainJournal, writer>>
 
 ObserveLauncher ==
     /\ job = "starting"
@@ -43,13 +50,16 @@ ObserveLauncher ==
     /\ osOwner = "unknown"
     /\ witness' = "launcher"
     /\ osOwner' = "alive"
-    /\ UNCHANGED <<job, bundle, launch, jobObject, result, writer>>
+    /\ jobHandle' = "held"
+    /\ UNCHANGED <<job, bundle, launch, jobObject,
+                   result, nativeDrainJournal, writer>>
 
 ObserveTarget ==
     /\ witness = "launcher"
     /\ job = "starting"
     /\ witness' = "target"
-    /\ UNCHANGED <<job, bundle, launch, osOwner, jobObject, result, writer>>
+    /\ UNCHANGED <<job, bundle, launch, osOwner, jobObject, jobHandle,
+                   result, nativeDrainJournal, writer>>
 
 ObserveResult ==
     /\ job = "starting"
@@ -57,55 +67,101 @@ ObserveResult ==
     /\ ~result
     /\ result' = TRUE
     /\ witness' = "result"
-    /\ UNCHANGED <<job, bundle, launch, osOwner, jobObject, writer>>
+    /\ UNCHANGED <<job, bundle, launch, osOwner, jobObject, jobHandle,
+                   nativeDrainJournal, writer>>
 
+\* Unacknowledged launcher failure can close the last handle.
+\* It must NOT transform a missing native observation into success.
 OsExited ==
     /\ job = "starting"
     /\ osOwner = "alive"
+    /\ ~nativeDrainJournal
     /\ osOwner' = "exited"
-    /\ UNCHANGED <<job, bundle, launch, witness, jobObject, result, writer>>
+    /\ jobHandle' = "gone"
+    /\ jobObject' = "not_found"
+    /\ UNCHANGED <<job, bundle, launch, witness, result,
+                   nativeDrainJournal, writer>>
 
 OsPidReused ==
     /\ job = "starting"
     /\ osOwner = "alive"
     /\ osOwner' = "identity_conflict"
-    /\ UNCHANGED <<job, bundle, launch, witness, jobObject, result, writer>>
+    /\ UNCHANGED <<job, bundle, launch, witness, jobObject, jobHandle,
+                   result, nativeDrainJournal, writer>>
 
 OsObservationLost ==
     /\ job = "starting"
     /\ osOwner = "alive"
     /\ osOwner' = "unknown"
-    /\ UNCHANGED <<job, bundle, launch, witness, jobObject, result, writer>>
+    /\ UNCHANGED <<job, bundle, launch, witness, jobObject, jobHandle,
+                   result, nativeDrainJournal, writer>>
 
 ObserveJobObjectPopulated ==
     /\ job = "starting"
     /\ witness # "none"
+    /\ jobHandle = "held"
     /\ jobObject' = "populated"
-    /\ UNCHANGED <<job, bundle, launch, witness, osOwner, result, writer>>
+    /\ UNCHANGED <<job, bundle, launch, witness, osOwner, jobHandle,
+                   result, nativeDrainJournal, writer>>
 
 ObserveJobObjectEmpty ==
     /\ job = "starting"
     /\ witness # "none"
+    /\ osOwner = "alive"
+    /\ jobHandle = "held"
     /\ jobObject' = "empty"
-    /\ UNCHANGED <<job, bundle, launch, witness, osOwner, result, writer>>
+    /\ UNCHANGED <<job, bundle, launch, witness, osOwner, jobHandle,
+                   result, nativeDrainJournal, writer>>
 
 ObserveJobObjectNotFound ==
     /\ job = "starting"
     /\ witness # "none"
+    /\ jobHandle = "gone"
     /\ jobObject' = "not_found"
-    /\ UNCHANGED <<job, bundle, launch, witness, osOwner, result, writer>>
+    /\ UNCHANGED <<job, bundle, launch, witness, osOwner, jobHandle,
+                   result, nativeDrainJournal, writer>>
 
 ObserveJobObjectUnknown ==
     /\ job = "starting"
     /\ witness # "none"
     /\ jobObject' = "unknown"
-    /\ UNCHANGED <<job, bundle, launch, witness, osOwner, result, writer>>
+    /\ UNCHANGED <<job, bundle, launch, witness, osOwner, jobHandle,
+                   result, nativeDrainJournal, writer>>
+
+\* The OS writer directly observes the ORIGINAL object while it exists,
+\* and the existing PostgreSQL Job journal durably commits this exact event.
+CommitTrustedNativeDrainJournal ==
+    /\ job = "starting"
+    /\ writer
+    /\ witness = "result"
+    /\ result
+    /\ osOwner = "alive"
+    /\ jobHandle = "held"
+    /\ jobObject = "empty"
+    /\ ~nativeDrainJournal
+    /\ nativeDrainJournal' = TRUE
+    /\ UNCHANGED <<job, bundle, launch, witness, osOwner, jobObject, jobHandle,
+                   result, writer>>
+
+\* ACK after event commit. The named object is destroyed by Windows; this
+\* is NOT a negative observation and does not revoke the prior kernel proof.
+AcknowledgeAndCloseOriginalLauncher ==
+    /\ job = "starting"
+    /\ nativeDrainJournal
+    /\ jobHandle = "held"
+    /\ osOwner = "alive"
+    /\ jobHandle' = "gone"
+    /\ osOwner' = "exited"
+    /\ jobObject' = "not_found"
+    /\ UNCHANGED <<job, bundle, launch, witness, result,
+                   nativeDrainJournal, writer>>
 
 RevokeWriter ==
     /\ job # "terminal"
     /\ writer
     /\ writer' = FALSE
-    /\ UNCHANGED <<job, bundle, launch, witness, osOwner, jobObject, result>>
+    /\ UNCHANGED <<job, bundle, launch, witness, osOwner, jobObject, jobHandle,
+                   result, nativeDrainJournal>>
 
 CommitPgTerminal ==
     /\ job = "starting"
@@ -115,35 +171,41 @@ CommitPgTerminal ==
     /\ witness = "result"
     /\ result
     /\ osOwner = "exited"
-    /\ jobObject = "empty"
+    /\ nativeDrainJournal
+    /\ jobHandle = "gone"
     /\ job' = "terminal"
-    /\ UNCHANGED <<bundle, launch, witness, osOwner, jobObject, result, writer>>
+    /\ UNCHANGED <<bundle, launch, witness, osOwner, jobObject, jobHandle,
+                   result, nativeDrainJournal, writer>>
 
 Next == \/ CommitImmutableBundle \/ IssueOnce \/ ObserveLauncher
      \/ ObserveTarget \/ ObserveResult \/ OsExited
      \/ OsPidReused \/ OsObservationLost \/ ObserveJobObjectPopulated
      \/ ObserveJobObjectEmpty \/ ObserveJobObjectNotFound
-     \/ ObserveJobObjectUnknown \/ RevokeWriter
+     \/ ObserveJobObjectUnknown \/ CommitTrustedNativeDrainJournal
+     \/ AcknowledgeAndCloseOriginalLauncher \/ RevokeWriter
      \/ CommitPgTerminal
 
 TypeOK ==
     /\ job \in {"accepted", "starting", "terminal"}
     /\ bundle \in BOOLEAN /\ launch \in BOOLEAN /\ result \in BOOLEAN
-    /\ writer \in BOOLEAN
+    /\ writer \in BOOLEAN /\ nativeDrainJournal \in BOOLEAN
     /\ witness \in {"none", "launcher", "target", "result"}
     /\ osOwner \in {"unknown", "alive", "exited", "identity_conflict"}
     /\ jobObject \in {"unknown", "populated", "empty", "not_found"}
+    /\ jobHandle \in {"absent", "held", "gone"}
 
 LaunchRequiresCommittedBundle == launch => bundle
 TerminalRequiresExactOsExit ==
     job = "terminal" => (osOwner = "exited" /\ witness = "result" /\ result)
 NoTerminalOnUnknownOrReusedPid ==
     osOwner \in {"unknown", "identity_conflict"} => job # "terminal"
-TerminalRequiresJobObjectEmpty ==
-    job = "terminal" => jobObject = "empty"
-NoTerminalOnUnknownOrMissingJobObject ==
-    jobObject \in {"unknown", "not_found", "populated"} => job # "terminal"
-\* Anti-vacuity: this should FAIL in a valid model with a reachable terminal.
+TerminalRequiresDurableNativeDrain ==
+    job = "terminal" => (nativeDrainJournal /\ jobHandle = "gone")
+NoTerminalWithoutDurableNativeDrain ==
+    ~nativeDrainJournal => job # "terminal"
+NativeDrainRequiresBoundResult ==
+    nativeDrainJournal => (result /\ witness = "result")
+\* Anti-vacuity: MUST fail for a valid model with reachable terminal.
 NeverTerminal == job # "terminal"
 Spec == Init /\ [][Next]_Vars
 =============================================================================
