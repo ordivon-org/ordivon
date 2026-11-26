@@ -16,7 +16,6 @@ pub(super) fn required_env(key: &str) -> Result<String, std::io::Error> {
     std::env::var(key).map_err(|_| std::io::Error::other(format!("{key} required")))
 }
 
-#[cfg(target_os = "linux")]
 pub(super) fn parse_pg_headroom_pair(
     path_key: &str,
     minimum_key: &str,
@@ -38,7 +37,6 @@ pub(super) fn parse_pg_headroom_pair(
 
 /// Explicit operator cutover for ordinary Agent Job admission. This policy
 /// is bound to the authenticated MCP server, never submitted by the Agent.
-#[cfg(target_os = "linux")]
 pub(super) fn ordinary_contained_only(raw: Option<&str>) -> Result<bool, &'static str> {
     match raw {
         None | Some("trusted_local") => Ok(false), // legacy administrator compatibility
@@ -53,7 +51,6 @@ pub(super) fn ordinary_contained_only(raw: Option<&str>) -> Result<bool, &'stati
 // system has no operator-owned Unix task identity to execute them.
 // Unlike per-Job rejection, service startup failure cannot advertise a
 // usable Agent execution capability that does not exist.
-#[cfg(target_os = "linux")]
 pub(super) fn require_ordinary_contained_owner(
     restricted: bool,
     owner: Option<(u32, u32)>,
@@ -70,6 +67,16 @@ pub(super) fn load_pg_startup() -> Result<PgStartup, Box<dyn std::error::Error>>
     if !bind.ip().is_loopback() {
         return Err("PG vertical requires an explicit loopback bind".into());
     }
+    #[cfg(windows)]
+    let token = {
+        if std::env::var_os("ORDIVON_PG_TOKEN").is_some() {
+            return Err("native Windows PG requires private bearer file, not inline token".into());
+        }
+        pg_auth::read_private_token(std::path::Path::new(&required(
+            "ORDIVON_BEARER_TOKEN_FILE",
+        )?))?
+    };
+    #[cfg(not(windows))]
     let token = required("ORDIVON_PG_TOKEN")?;
     if token.len() < 32 {
         return Err("ORDIVON_PG_TOKEN requires at least 32 characters".into());
@@ -80,6 +87,10 @@ pub(super) fn load_pg_startup() -> Result<PgStartup, Box<dyn std::error::Error>>
     let contained_ordinary_only = ordinary_contained_only(
         pg_auth::optional_env("ORDIVON_PG_ORDINARY_EXECUTION_PROFILE")?.as_deref(),
     )?;
+    #[cfg(windows)]
+    if contained_ordinary_only {
+        return Err("native Windows PG does not implement Linux contained_local".into());
+    }
     let issuer_schema = pg_auth::optional_env("ORDIVON_PG_HARNESS_ISSUER_SCHEMA")?;
     let harness_bearer_file = pg_auth::optional_env("ORDIVON_PG_HARNESS_TOKEN_FILE")?;
     let harness_principal = pg_auth::optional_env("ORDIVON_PG_HARNESS_PRINCIPAL")?;
@@ -151,7 +162,14 @@ pub(super) fn load_pg_startup() -> Result<PgStartup, Box<dyn std::error::Error>>
         _ => return Err("PG Workspace UID and GID must be configured together".into()),
     };
     require_ordinary_contained_owner(contained_ordinary_only, contained_workspace_owner)?;
+    #[cfg(windows)]
+    if issuer_schema.is_some() || isolated_harness.is_some() || contained_workspace_owner.is_some()
+    {
+        return Err("native Windows PG has no qualified Linux issuer/UID transport".into());
+    }
     let config = PgRuntimeConfig {
+        #[cfg(windows)]
+        windows: windows_config(PathBuf::from(required("ORDIVON_PG_RUNNER")?))?,
         dsn: required("ORDIVON_PG_DSN")?,
         schema: required("ORDIVON_PG_SCHEMA")?,
         source_sha256: required("ORDIVON_PG_SOURCE_SHA256")?,
@@ -200,5 +218,38 @@ pub(super) fn load_pg_startup() -> Result<PgStartup, Box<dyn std::error::Error>>
         isolated_harness,
         config,
         issuer_runtime_config,
+    })
+}
+
+#[cfg(windows)]
+fn windows_config(
+    launcher_path: PathBuf,
+) -> Result<ordivon_runtime_core::WindowsExecutionConfig, Box<dyn std::error::Error>> {
+    use ordivon_runtime_core::{WindowsExecutionConfig, WindowsPrivilegedBrokerConfig};
+    use pg_auth::optional_env;
+    let privileged_broker = match (
+        optional_env("ORDIVON_WINDOWS_PRIVILEGED_BROKER_PATH")?,
+        optional_env("ORDIVON_WINDOWS_PRIVILEGED_BROKER_PIPE")?,
+    ) {
+        (None, None) => None,
+        (Some(path), Some(pipe_name)) => Some(WindowsPrivilegedBrokerConfig {
+            executable_path: path.into(),
+            pipe_name,
+        }),
+        _ => return Err("Windows broker path and pipe must be configured together".into()),
+    };
+    Ok(WindowsExecutionConfig {
+        launcher_path,
+        privileged_broker,
+        elevated_principals: optional_env("ORDIVON_WINDOWS_ELEVATED_PRINCIPALS_JSON")?
+            .map(|v| serde_json::from_str(&v))
+            .transpose()?
+            .unwrap_or_default(),
+        elevated_profiles: optional_env("ORDIVON_WINDOWS_ELEVATED_PROFILES_JSON")?
+            .map(|v| serde_json::from_str(&v))
+            .transpose()?
+            .unwrap_or_default(),
+        maintenance_lease_path: optional_env("ORDIVON_WINDOWS_MAINTENANCE_LEASE_PATH")?
+            .map(Into::into),
     })
 }
