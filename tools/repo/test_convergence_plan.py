@@ -954,6 +954,7 @@ class ConvergencePlanTests(unittest.TestCase):
         for relative in (
             "tools/repo/convergence_plan.py",
             "tools/repo/affected_owners.py",
+            "tools/repo/python_path_closure.py",
             "tools/repo/exhaustive_coverage.py",
         ):
             with self.subTest(producer=relative):
@@ -1964,8 +1965,8 @@ class OwnerSelectorFailClosedRegression(unittest.TestCase):
                 **os.environ,
                 "PATH": str(folder) + os.pathsep + os.environ["PATH"],
                 "EVENT_NAME": event,
-                "PR_BASE": "a" * 40,
-                "PR_HEAD": "b" * 40,
+                "PR_BASE": MODULE._git("rev-parse", "HEAD^1"),
+                "PR_HEAD": MODULE._git("rev-parse", "HEAD"),
                 "RUNNER_TEMP": str(folder),
                 "GITHUB_OUTPUT": str(folder / "output"),
                 "GITHUB_STEP_SUMMARY": str(folder / "summary"),
@@ -1993,15 +1994,22 @@ class OwnerSelectorFailClosedRegression(unittest.TestCase):
                 self.assertNotEqual(outcome.returncode, 0, outcome.stdout+outcome.stderr)
 
     def test_selected_owner_without_executable_queue_task_is_rejected(self):
+        import shlex
+        base, head = MODULE._git("rev-parse", "HEAD^1"), MODULE._git("rev-parse", "HEAD")
+        plan = MODULE.build_plan(base=base, head=head)
+        self.assertTrue(plan["verificationOwners"])
+        self.assertTrue(plan["queueVerifyTasks"])
+        plan["queueVerifyTasks"] = []
         stub = (
             'if [ "$1" = "tools/repo/convergence_plan.py" ]; then\n'
-            '  echo \'{"verificationOwners":["runtime"],"queueVerifyTasks":[]}\'\n'
+            f'  printf "%s\\n" {shlex.quote(json.dumps(plan))}\n'
             '  exit 0\n'
             'fi\n'
             'exec /usr/bin/python3 "$@"\n'
         )
         result = self.run_selection("pull_request", stub)
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("exact canonical changed-source task closure", result.stderr)
 
 
 

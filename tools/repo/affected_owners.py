@@ -303,6 +303,7 @@ def _source_git_env() -> dict[str, str]:
         **{key: value for key, value in os.environ.items()
            if not key.startswith("GIT_")},
         "GIT_GRAFT_FILE": os.devnull,
+        "GIT_NO_LAZY_FETCH": "1",
     }
 
 

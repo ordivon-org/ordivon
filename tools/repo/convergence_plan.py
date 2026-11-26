@@ -38,6 +38,7 @@ def _git(*args: str) -> str:
             **{key: value for key, value in os.environ.items()
                if not key.startswith("GIT_")},
             "GIT_GRAFT_FILE": os.devnull,
+            "GIT_NO_LAZY_FETCH": "1",
         },
         check=True,
         text=True,
@@ -640,6 +641,7 @@ def explain_source_impacts(
     for relative in (
         "tools/repo/convergence_plan.py",
         "tools/repo/affected_owners.py",
+        "tools/repo/python_path_closure.py",
         "tools/repo/exhaustive_coverage.py",
     ):
         producer = repo / relative
