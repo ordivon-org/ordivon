@@ -17,6 +17,7 @@ if ! mkdir -- "$out"; then
   exit 3
 fi
 out=$(realpath -- "$out")
+root=$(cd "$(dirname "$0")/../.." && pwd)
 
 [[ -f "$artifact" ]] || { echo "artifact not found: $artifact" >&2; exit 66; }
 [[ -f "$profile" ]] || { echo "profile not found: $profile" >&2; exit 66; }
@@ -24,6 +25,14 @@ command -v ffprobe >/dev/null
 command -v ffmpeg >/dev/null
 command -v jq >/dev/null
 command -v sha256sum >/dev/null
+command -v python3 >/dev/null
+
+# Retain the single admitted profile byte stream. Native validation,
+# execution policy and receipt digest all consume this attempt-owned copy.
+profile_source=$profile
+profile="$out/profile.json"
+python3 -I "$root/src/ordivon_studio/strict_json.py" "$profile_source" "$profile"
+
 
 # Validate the declared policy before native observation; invalid is not optional.
 jq -es '
@@ -131,7 +140,7 @@ jq -n \
   --arg artifactDigest "$artifact_sha" \
   --argjson artifactBytes "$artifact_bytes" \
   --arg evidenceDirectory "$out" \
-  --arg profile "$profile" \
+  --arg profile "$profile_source" \
   --arg profileDigest "$profile_sha" \
   --arg ffprobeVersion "$ffprobe_version" \
   --arg ffmpegVersion "$ffmpeg_version" \
@@ -147,7 +156,7 @@ jq -n \
     kind:"ordivon.media.v2.external-audio-qc-evidence",
     truthRole:"mechanical-audio-and-loudness-evidence-not-listening-quality-or-publication-approval",
     artifact:{path:$artifact,digest:$artifactDigest,sizeBytes:$artifactBytes},
-    profile:{path:$profile,digest:$profileDigest},
+    profile:{path:$profile,digest:$profileDigest,snapshotPath:"profile.json"},
     tools:{ffprobe:{version:$ffprobeVersion},ffmpeg:{version:$ffmpegVersion}},
     evidence:{rawProbeDigest:$rawProbeDigest,rawLoudnormStderrDigest:$rawLoudnormStderrDigest,rawLoudnormJsonDigest:$rawLoudnormJsonDigest,assertionsDigest:$assertionsDigest},
     measurement:$a[0].measurement,
