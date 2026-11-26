@@ -76,11 +76,50 @@ function Assert-Commitment([string]$Path,[string]$Expected) {
         throw 'SCM candidate file commitment differs.'
     }
 }
+# Verify the exact hashed configuration bytes bind the carrier that SCM will
+# start. Individually valid file hashes do not establish a matching product.
+# RestoreLegacy must remain possible after a failed candidate configuration.
+function Assert-PgEnvironmentBindings {
+    if ($Direction -ne 'Activate') { return }
+    $item=Get-Item -LiteralPath $PgEnvironment
+    if ($item.Length -gt 65536) { throw 'PG environment exceeds the native parser bound.' }
+    $bytes=[IO.File]::ReadAllBytes($PgEnvironment)
+    if ($bytes.Length -gt 65536) { throw 'PG environment exceeds the native parser bound.' }
+    $sha=[Security.Cryptography.SHA256]::Create()
+    try { $digest=([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-','') }
+    finally { $sha.Dispose() }
+    if ($digest -ine $ExpectedEnvironmentSha256) { throw 'PG environment bytes changed during binding.' }
+    $utf8=[Text.UTF8Encoding]::new($false,$true)
+    $values=@{}
+    foreach ($rawLine in ($utf8.GetString($bytes) -split "\r?\n")) {
+        $line=$rawLine.Trim()
+        if ($line.Length -eq 0 -or $line.StartsWith('#')) { continue }
+        $separator=$line.IndexOf('=')
+        if ($separator -lt 1) { throw 'Invalid PG environment line.' }
+        $key=$line.Substring(0,$separator).Trim()
+        $value=$line.Substring($separator+1).Trim()
+        if ($key -cnotmatch '^(ORDIVON_[A-Z0-9_]+|RUST_LOG)$' -or $values.ContainsKey($key) -or
+            $value.IndexOf([char]0) -ge 0) { throw 'Unsupported or duplicate PG environment key.' }
+        $values[$key]=$value
+    }
+    $expected=@{ORDIVON_PG_RUNNER=$PgLauncher}
+    if ($selectedQualification) {
+        $expected['ORDIVON_PG_BIND']=([Uri]$PgEndpoint).Authority
+        $expected['ORDIVON_NODE_ID']=$ExpectedNodeId
+        $expected['ORDIVON_BEARER_TOKEN_FILE']=$TokenFile
+    }
+    foreach ($key in $expected.Keys) {
+        if (-not $values.ContainsKey($key) -or $values[$key] -cne $expected[$key]) {
+            throw ('PG environment does not bind the committed activation input: '+$key)
+        }
+    }
+}
 function Assert-Commitments {
     Assert-Commitment $LegacyBinary $ExpectedLegacySha256
     Assert-Commitment $PgBinary $ExpectedPgSha256
     Assert-Commitment $PgLauncher $ExpectedLauncherSha256
     Assert-Commitment $PgEnvironment $ExpectedEnvironmentSha256
+    Assert-PgEnvironmentBindings
     # Bind the operator's file commitments to the exact installed image paths.
     # Native SCM can omit quotes on whitespace-free paths.
     $exeArgs=@(('"{0}"' -f $PgBinary))

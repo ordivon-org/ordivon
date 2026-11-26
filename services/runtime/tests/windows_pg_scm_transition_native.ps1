@@ -34,7 +34,7 @@ public sealed class Fixture : ServiceBase {
     private readonly string env;
     private Fixture(string p) { ServiceName="$name"; env=p; CanStop=true; }
     protected override void OnStart(string[] args) {
-        if (env != null && File.ReadAllText(env) == "FAIL") throw new InvalidOperationException("fixture start failure");
+        if (env != null && File.ReadAllText(env).Contains("# FAIL")) throw new InvalidOperationException("fixture start failure");
     }
     protected override void OnStop() {}
     public static void Main(string[] args) { ServiceBase.Run(new Fixture(args.Length==3?args[2]:null)); }
@@ -57,9 +57,10 @@ try {
     [System.Management.Automation.Language.Parser]::ParseFile($Operator,[ref]$tokens,[ref]$errors)|Out-Null
     if ($errors.Count) { throw ($errors|Out-String) }
     'PASS_NATIVE_SCRIPT_PARSER'
+    & (Join-Path $PSScriptRoot 'windows_pg_scm_config_binding.ps1') -Operator $Operator
     Compile-Service $legacy $legacyExe
     Compile-Service $pg $pgExe
-    [IO.File]::WriteAllText($envFile,'OK')
+    [IO.File]::WriteAllText($envFile,('ORDIVON_PG_RUNNER='+$launcher))
     [IO.File]::WriteAllText($launcher,'fixture only')
     $oldImage='"'+$legacyExe+'"'
     $newImage='"'+$pgExe+'" --windows-service --env-file "'+$envFile+'"'
@@ -109,7 +110,7 @@ try {
     Assert-State $legacy 'Running' 'Manual';Assert-State $pg 'Stopped' 'Disabled'
     if (Get-Process -Id $pgPid -ErrorAction SilentlyContinue){throw 'PG PID present'}
     'PASS_REAL_SCM_RESTORE_EXCLUSIVE'
-    [IO.File]::WriteAllText($envFile,'FAIL')
+    [IO.File]::WriteAllText($envFile,('ORDIVON_PG_RUNNER='+$launcher+[Environment]::NewLine+'# FAIL'))
     $params.Direction='Activate';$params.ExpectedWriterPid=Get-WriterPid $legacy
     $params.ExpectedEnvironmentSha256=(Get-FileHash $envFile).Hash
     Expect-Reject { & $Operator @params -Apply -IngressQuiesced -OriginalConsumerQualified -OriginalWriterDrained } 'Destination activation failed'
