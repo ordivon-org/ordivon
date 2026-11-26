@@ -9,6 +9,15 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      owner_shard_cap:
+        description: "Experimental Owner shard cap (all verification obligations preserved)"
+        required: true
+        type: choice
+        default: '4'
+        options:
+          - '3'
+          - '4'
   schedule:
     - cron: "23 17 * * 0"
 
@@ -61,6 +70,7 @@ jobs:
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
+          MANUAL_SHARD_CAP: ${{ inputs.owner_shard_cap }}
           PR_BASE: ${{ github.event.pull_request.base.sha }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
           MERGE_GROUP_BASE: ${{ github.event.merge_group.base_sha }}
@@ -156,7 +166,17 @@ jobs:
           # The native convergence plan already admitted the exact selected
           # task list. This is only a lossless, bounded partition across
           # isolated GitHub runners; it cannot change verification scope.
-          python3 tools/repo/ci_owner_shards.py "$tasks_file" > "$RUNNER_TEMP/ordivon-owner-shards.json"
+          # Begin native shard experiment projection
+          shard_cap=4
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            case "${MANUAL_SHARD_CAP:-4}" in
+              3|4) shard_cap="${MANUAL_SHARD_CAP:-4}" ;;
+              *) echo "ERROR: unsupported manual Owner shard cap" >&2; exit 43 ;;
+            esac
+          fi
+          echo "effective_owner_shard_cap=$shard_cap"
+          python3 tools/repo/ci_owner_shards.py "$tasks_file" --max-shards "$shard_cap" > "$RUNNER_TEMP/ordivon-owner-shards.json"
+          # End native shard experiment projection
           printf 'shards=%s\n' "$(cat "$RUNNER_TEMP/ordivon-owner-shards.json")" >> "$GITHUB_OUTPUT"
           has_owner_tasks=false
           for task in "${tasks[@]-}"; do

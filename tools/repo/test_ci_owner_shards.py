@@ -224,5 +224,53 @@ class ShardQueueTests(unittest.TestCase):
             ci_owner_shards.shard_queue(tasks, 5)
 
 
+class WorkflowShardExperimentTests(unittest.TestCase):
+    def test_actual_dispatch_cap_is_isolated_from_protected_events(self):
+        root = Path(__file__).resolve().parents[2]
+        workflow = (root / ".github/workflows/ci.yml").read_text()
+        marker = "          # Begin native shard experiment projection"
+        end = "          # End native shard experiment projection"
+        self.assertEqual(workflow.count(marker), 1)
+        self.assertEqual(workflow.count(end), 1)
+        script = textwrap.dedent(workflow.split(marker + "\n", 1)[1].split(end, 1)[0])
+        tasks = [owner.queue_task for owner in affected_owners.OWNERS]
+        tasks.append("formal:verify")
+        with tempfile.TemporaryDirectory() as td:
+            temp = Path(td)
+            (temp / "tasks").write_text("\n".join(tasks) + "\n")
+            env = dict(os.environ, RUNNER_TEMP=str(temp))
+            cases = [(event, value, 4) for event in
+                     ("pull_request", "merge_group", "push", "schedule")
+                     for value in ("", "3", "4", "2", "3; exit 0")]
+            cases += [("workflow_dispatch", "", 4), ("workflow_dispatch", "3", 3),
+                      ("workflow_dispatch", "4", 4)]
+            for event, value, cap in cases:
+                with self.subTest(event=event, value=value):
+                    result = subprocess.run(
+                        ["bash", "-euo", "pipefail", "-c",
+                         'tasks_file="$RUNNER_TEMP/tasks"\n' + script],
+                        cwd=root, env=dict(env, EVENT_NAME=event, MANUAL_SHARD_CAP=value),
+                        capture_output=True, text=True, timeout=15,
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    matrix = json.loads((temp / "ordivon-owner-shards.json").read_text())
+                    self.assertEqual(matrix, ci_owner_shards.shard_queue(tasks, cap))
+                    self.assertCountEqual([t for row in matrix["include"] for t in row["tasks"]],
+                                          tasks[:-1])
+                    self.assertIn(f"effective_owner_shard_cap={cap}", result.stdout)
+            for value in ("2", "5", "03", "3; exit 0", "4\n3", "unknown"):
+                with self.subTest(value=value):
+                    out = temp / "ordivon-owner-shards.json"
+                    out.unlink(missing_ok=True)
+                    result = subprocess.run(
+                        ["bash", "-euo", "pipefail", "-c",
+                         'tasks_file="$RUNNER_TEMP/tasks"\n' + script],
+                        cwd=root, env=dict(env, EVENT_NAME="workflow_dispatch", MANUAL_SHARD_CAP=value),
+                        capture_output=True, text=True, timeout=15,
+                    )
+                    self.assertEqual(result.returncode, 43, result.stderr)
+                    self.assertFalse(out.exists())
+
+
 if __name__ == "__main__":
     unittest.main()
