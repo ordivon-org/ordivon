@@ -1145,6 +1145,7 @@ pub(crate) fn wait_for_attempt_change(
 mod tests {
     use super::*;
 
+    #[cfg(unix)]
     #[test]
     fn contained_native_bind_source_rejects_symlink_leaf_ancestor_and_traversal() {
         let root = std::env::temp_dir().join(format!(
@@ -1235,6 +1236,7 @@ mod tests {
         fs::remove_dir_all(root).unwrap();
     }
 
+    #[cfg(unix)]
     #[test]
     fn executable_validation_rejects_proxy_invocation_outside_allowed_roots() {
         let root = std::env::temp_dir().join(format!(
