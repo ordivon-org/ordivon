@@ -75,6 +75,23 @@ def _require_exact_schema_one(value: dict[str, Any], label: str) -> None:
     if type(observed) is not int or observed != 1:
         raise ArchitectureDocsError(f"{label} schemaVersion must be exact integer 1")
 
+_SOURCE_ONLY_AUTHORITY_CLAIMS = frozenset({
+    "deletionAuthorized",
+    "effectAuthorized",
+    "promotionAuthorized",
+    "deploymentAuthorized",
+    "domainAccepted",
+    "proofReuseAdmissible",
+})
+
+def _reject_source_only_authority_claim(row: dict[str, Any], identity: str) -> None:
+    for claim in _SOURCE_ONLY_AUTHORITY_CLAIMS:
+        if claim in row and row[claim] is not False:
+            raise ArchitectureDocsError(
+                f"source-only LEGO {identity} cannot establish {claim} authority"
+            )
+
+
 def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
     """Check all Owner slices reference typed vertices, including unregistered ones.
 
@@ -101,6 +118,7 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
             raise ArchitectureDocsError("non-canonical LEGO node identity")
         if identity in identities:
             raise ArchitectureDocsError(f"duplicate LEGO node: {identity}")
+        _reject_source_only_authority_claim(node, identity)
         if not isinstance(node.get("kind"), str) or not node["kind"].strip():
             raise ArchitectureDocsError(f"LEGO node {identity} requires a type")
         identities.add(identity)
@@ -119,6 +137,7 @@ def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
             raise ArchitectureDocsError("non-canonical LEGO slice identity")
         if identity in slice_ids:
             raise ArchitectureDocsError(f"duplicate LEGO slice: {identity}")
+        _reject_source_only_authority_claim(slice_, identity)
         slice_ids.add(identity)
         refs = slice_.get("nodeIds")
         if not isinstance(refs, list) or not refs:
