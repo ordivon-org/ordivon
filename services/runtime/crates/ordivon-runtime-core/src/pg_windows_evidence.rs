@@ -4,7 +4,10 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 const MAX_EVIDENCE_BYTES: u64 = 2 * 1024 * 1024;
 const MAX_OUTPUT_BYTES: u64 = 4 * 1024 * 1024;
@@ -528,8 +531,6 @@ mod tests {
 
 #[path = "pg_windows_evidence/terminal.rs"]
 pub(crate) mod terminal;
-#[cfg(windows)]
-pub(crate) use terminal::reconcile_windows_native_terminal;
 
 /// Bind a Windows evidence read to an exact, admitted PostgreSQL Job snapshot.
 /// PostgreSQL qualification and ownership are checked in one read-only snapshot.
@@ -543,7 +544,31 @@ pub fn inspect_admitted_windows_pg_bundle(
     job_id: &str,
     store_root: &Path,
 ) -> Result<PgWindowsWitnessObservation, String> {
-    use crate::pg_admission::PgAdmissionStore;
+    let mut store = crate::pg_admission::PgAdmissionStore::connect(dsn, schema)
+        .map_err(|_| "PG schema unavailable or invalid".to_string())?;
+    let bound =
+        bind_admitted_windows_pg_bundle(&mut store, source_sha256, principal, job_id, store_root)?;
+    inspect_windows_pg_bundle(&bound.root, &bound.identity)
+}
+
+struct BoundWindowsPgBundle {
+    root: PathBuf,
+    identity: PgWindowsWitnessIdentity,
+    #[cfg(windows)]
+    attempt_row_version: i64,
+    #[cfg(windows)]
+    resolved: bool,
+}
+
+/// Shared trusted binding for readback and effectful reconciliation.
+/// Never accepts caller-provided Attempt, bundle, launcher or row-version identity.
+fn bind_admitted_windows_pg_bundle(
+    store: &mut crate::pg_admission::PgAdmissionStore,
+    source_sha256: &str,
+    principal: &str,
+    job_id: &str,
+    store_root: &Path,
+) -> Result<BoundWindowsPgBundle, String> {
     use crate::pg_readback::PgJobReadback;
     use postgres::IsolationLevel;
 
@@ -554,8 +579,6 @@ pub fn inspect_admitted_windows_pg_bundle(
     {
         return Err("invalid PG readback query identity".into());
     }
-    let mut store = PgAdmissionStore::connect(dsn, schema)
-        .map_err(|_| "PG schema unavailable or invalid".to_string())?;
     // The one qualified PG readback owns Writer Epoch, lifecycle, terminal
     // events and Reservation coherence. Do not reimplement those checks here.
     let qualified = match store
@@ -642,7 +665,40 @@ pub fn inspect_admitted_windows_pg_bundle(
         request_digest,
         launcher_image_digest: launcher_digest,
     };
-    inspect_windows_pg_bundle(&root, &identity)
+    Ok(BoundWindowsPgBundle {
+        root,
+        identity,
+        #[cfg(windows)]
+        attempt_row_version: qualified.attempt_row_version,
+        #[cfg(windows)]
+        resolved: qualified.resolution.is_some(),
+    })
+}
+
+/// Native PG service reconciliation entry: authenticated principal and Job only.
+/// The original PG writer/epoch and exact current Attempt supply the CAS key.
+/// Does not admit, dispatch, respawn, or select a historical Attempt for writing.
+/// Repeated observation of an already resolved Job is read-only.
+#[cfg(windows)]
+pub fn reconcile_admitted_windows_pg_terminal(
+    store: &mut crate::pg_admission::PgAdmissionStore,
+    source_sha256: &str,
+    principal: &str,
+    job_id: &str,
+    store_root: &Path,
+) -> Result<bool, String> {
+    let bound =
+        bind_admitted_windows_pg_bundle(store, source_sha256, principal, job_id, store_root)?;
+    if bound.resolved {
+        return Ok(false);
+    }
+    terminal::reconcile_windows_native_terminal(
+        store,
+        &bound.root,
+        &bound.identity,
+        source_sha256,
+        bound.attempt_row_version,
+    )
 }
 
 /// Read-only native Windows Job Object population, independent of target-writable
