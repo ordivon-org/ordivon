@@ -1924,24 +1924,24 @@ class PullRequestExecutionRangeTests(unittest.TestCase):
             parent = commit("advanced.txt", "main advanced")
             git("merge", "--no-ff", "--no-edit", head)
             cut = git("rev-parse", "HEAD")
-            self.assertEqual(ranges.resolve(repo, base, head, cut), (parent, cut))
+            self.assertEqual(ranges.qualify(repo, base, head, cut), (parent, cut))
             # The original Base can be stale but cannot be divergent.
             for b, h, c in ((head, head, cut), (base, parent, cut),
                             (base, head, head), (base, head, "HEAD"),
                             ("0" * 40, head, cut)):
                 with self.subTest(b=b, h=h, c=c), self.assertRaises(ValueError):
-                    ranges.resolve(repo, b, h, c)
+                    ranges.qualify(repo, b, h, c)
             # A merge resolution can change an additional path, invisible
             # in original PR diff. Both orders of parent must be conserved.
             (repo / "merge-only.txt").write_text("resolution")
             git("add", ".")
             git("commit", "--amend", "--no-edit", "-q")
             extra = git("rev-parse", "HEAD")
-            self.assertIsNone(ranges.resolve(repo, base, head, extra))
+            self.assertEqual(ranges.qualify(repo, base, head, extra), (parent, extra))
             # A different real merge cut, with valid parent identities,
             # must not be accepted as the current execution checkout.
             with self.assertRaisesRegex(ValueError, "checkout mismatch"):
-                ranges.resolve(repo, base, head, cut)
+                ranges.qualify(repo, base, head, cut)
             # Original PR change already present on new base: do not
             # silently shrink prior obligation even if merge is a no-op.
             git("switch", "--detach", "-q", base)
@@ -1949,17 +1949,18 @@ class PullRequestExecutionRangeTests(unittest.TestCase):
             # Distinguish coincident same-second commit identities.
             git("commit", "--amend", "-qm", "independent main copy")
             git("merge", "--no-ff", "--no-edit", head)
-            self.assertIsNone(ranges.resolve(repo, base, head, git("rev-parse", "HEAD")))
+            copy_cut = git("rev-parse", "HEAD")
+            self.assertEqual(ranges.qualify(repo, base, head, copy_cut), (git("rev-parse", "HEAD^1"), copy_cut))
             # Raw immutable parents remain authoritative despite replace refs.
             git("switch", "--detach", "-q", cut)
             git("replace", cut, extra)
             try:
-                self.assertEqual(ranges.resolve(repo, base, head, cut), (parent, cut))
+                self.assertEqual(ranges.qualify(repo, base, head, cut), (parent, cut))
             finally:
                 git("replace", "-d", cut)
 
 
-    def test_actual_workflow_uses_execution_cut_or_all_obligations(self):
+    def test_actual_workflow_conserves_both_native_ranges(self):
         source = Path(__file__).resolve().parents[2]
         with tempfile.TemporaryDirectory(prefix="ordivon-pr-execution-") as td:
             root = Path(td)
@@ -2003,24 +2004,80 @@ class PullRequestExecutionRangeTests(unittest.TestCase):
             result, outputs = invoke(cut)
             self.assertEqual(result.returncode, 0, result.stderr)
             plan = json.loads((root / "ordivon-convergence-plan.json").read_text())
-            self.assertEqual(plan["baseRevision"], parent)
-            self.assertEqual(plan["headRevision"], cut)
+            def native_plan(b, h):
+                return json.loads(subprocess.check_output(
+                    [sys.executable, "tools/repo/convergence_plan.py", "--base", b, "--head", h],
+                    cwd=repo, env=env, text=True, timeout=25,
+                ))
+            def check_union(p, c):
+                event = native_plan(base, head)
+                execution = native_plan(p, c)
+                actual = json.loads((root / "ordivon-convergence-plan.json").read_text())
+                self.assertEqual(actual["eventPlan"], event)
+                self.assertEqual(actual["executionPlan"], execution)
+                self.assertEqual(actual["selectionBasis"], "TWO_NATIVE_RANGE_PLANS")
+                self.assertEqual(actual["verificationOwners"], sorted(set(event["verificationOwners"]) | set(execution["verificationOwners"])))
+                self.assertEqual(set(actual["queueVerifyTasks"]), set(event["queueVerifyTasks"]) | set(execution["queueVerifyTasks"]))
+                self.assertEqual(set(actual["changedPaths"]), set(event["changedPaths"]) | set(execution["changedPaths"]))
+                return actual
+            plan = check_union(parent, cut)
             self.assertIn("game:verify", plan["queueVerifyTasks"])
-            # Deliberately leave the prior plan in place; fallback must
-            # clear it rather than silently reuse a stale exact-range plan.
-            (repo / "services/runtime/r5-ci-fixture.txt").write_text("merge-only")
+            # A merge-only path need not trigger an all-owner fallback.
+            (repo / "capabilities/preservation/r6-ci-fixture.txt").write_text("merge-only")
             git("add", ".")
             git("commit", "--amend", "--no-edit", "-q")
             extra = git("rev-parse", "HEAD")
             result, outputs = invoke(extra)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertFalse((root / "ordivon-convergence-plan.json").exists())
+            plan = check_union(parent, extra)
+            self.assertIn("game:verify", plan["queueVerifyTasks"])
+            self.assertIn("preservation:verify", plan["queueVerifyTasks"])
+            self.assertLess(len(plan["verificationOwners"]), len(MODULE.affected_owners.OWNERS))
+            # Mutate actual producer output, not the consumer validator.
+            forged = dict(plan, queueVerifyTasks=[t for t in plan["queueVerifyTasks"] if t != "game:verify"])
+            forged_file = root / "forged.json"
+            forged_file.write_text(json.dumps(forged))
+            fake = root / "python3"
+            fake.write_text('#!/bin/bash\nif [[ "$1" == tools/repo/ci_pr_execution_range.py ]]; then cat "$FORGED"; else exec "$REAL_PYTHON" "$@"; fi\n')
+            fake.chmod(0o755)
+            env.update(PATH=str(root)+os.pathsep+os.environ["PATH"], FORGED=str(forged_file), REAL_PYTHON=sys.executable)
+            result, outputs = invoke(extra)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(outputs, "")
+            self.assertIn("PR queue must conserve both exact native range obligations", result.stderr)
+            env["PATH"] = os.environ["PATH"]
+            # A PR change already on the advanced base retains event-only obligations.
+            git("switch", "--detach", "-q", base)
+            (repo / "domains/game/r5-ci-fixture.txt").write_text("feature")
+            git("add", ".")
+            git("commit", "-qm", "independent base copy")
+            copied_parent = git("rev-parse", "HEAD")
+            git("merge", "--no-ff", "--no-edit", head)
+            copied_cut = git("rev-parse", "HEAD")
+            result, outputs = invoke(copied_cut)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            plan = check_union(copied_parent, copied_cut)
+            self.assertEqual(plan["executionPlan"]["changedPaths"], [])
+            self.assertIn("game:verify", plan["queueVerifyTasks"])
+            # Known selector control drift must remain conservative.
+            git("switch", "--detach", "-q", base)
+            with (repo / "mise.toml").open("a") as f:
+                f.write("\n# control drift fixture\n")
+            git("add", ".")
+            git("commit", "-qm", "control drift")
+            git("merge", "--no-ff", "--no-edit", head)
+            drift_cut = git("rev-parse", "HEAD")
+            result, outputs = invoke(drift_cut)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            plan = json.loads((root / "ordivon-convergence-plan.json").read_text())
+            self.assertEqual(plan["selectionBasis"], "ALL_ON_CONTROL_DRIFT")
+            self.assertIn("mise.toml", plan["knownCrossCuttingDrift"])
             self.assertIn("formal=true", outputs)
-            tasks = (root / "ordivon-affected-tasks.txt").read_text().splitlines()
-            self.assertCountEqual(tasks, [owner.queue_task for owner in MODULE.affected_owners.OWNERS])
+            self.assertCountEqual(plan["queueVerifyTasks"], [o.queue_task for o in MODULE.affected_owners.OWNERS] + ["formal:verify"])
             result, outputs = invoke(cut)
             self.assertEqual(result.returncode, 43, result.stderr)
             self.assertEqual(outputs, "")
+
 
 
 class OwnerSelectorFailClosedRegression(unittest.TestCase):

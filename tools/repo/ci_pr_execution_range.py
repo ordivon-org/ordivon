@@ -53,14 +53,6 @@ def qualify(repo: Path, event_base: str, event_head: str, execution_cut: str) ->
     return parent, cut
 
 
-def resolve(repo: Path, event_base: str, event_head: str, execution_cut: str) -> tuple[str, str] | None:
-    """Legacy R5 qualification; kept for its regression oracle."""
-    parent, cut = qualify(repo, event_base, event_head, execution_cut)
-    event_paths = set(changed_paths(event_base, event_head, source_repo_root=repo))
-    execution_paths = set(changed_paths(parent, cut, source_repo_root=repo))
-    return (parent, cut) if event_paths == execution_paths else None
-
-
 def build_union(repo: Path, event_base: str, event_head: str, execution_cut: str) -> dict:
     """Compose two native plans under the currently qualified control inputs.
 
