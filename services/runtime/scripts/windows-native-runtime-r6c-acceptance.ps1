@@ -14,6 +14,8 @@ param(
     [ValidateRange(60, 300)]
     [int]$RecoveryTimeoutSeconds = 90,
     [string]$JobId = '',
+    [ValidateRange(1, 65535)]
+    [int]$ExpectedActiveUserSessionId = 1,
     [switch]$ApplyFault
 )
 
@@ -502,6 +504,8 @@ $id = [Security.Principal.WindowsIdentity]::GetCurrent()
 if ($null -eq $id.User) { throw "target user SID is missing" }
 [ordered]@{
     userSid = $id.User.Value
+    sessionId = [Diagnostics.Process]::GetCurrentProcess().SessionId
+    nativeCwd = [IO.Path]::GetFullPath([Environment]::CurrentDirectory)
     actualCwd = [IO.Path]::GetFullPath((Get-Location).ProviderPath)
 } | ConvertTo-Json -Compress
 '@
@@ -517,14 +521,54 @@ if ($null -eq $id.User) { throw "target user SID is missing" }
                 stdoutLimitBytes = 16384
                 stderrLimitBytes = 16384
             }
-            return Invoke-McpTool -Name 'workspace.exec' -Arguments @{
+            $request = @{
                 schemaVersion = 1
                 clientRequestId = ('r6c-cwd-' + $Authority + '-' + [Guid]::NewGuid().ToString('N'))
                 execution = $execution
                 waitMs = 30000
                 stdoutTailBytes = 16384
                 stderrTailBytes = 16384
+            }
+            $result = Invoke-McpTool -Name 'workspace.exec' -Arguments $request -Id $Id
+            if ($result.executionTerminal -eq $true -and $result.executionDisposition -eq 'succeeded') {
+                $replay = Invoke-McpTool -Name 'workspace.exec' -Arguments $request -Id ($Id + 100)
+                if ($replay.jobId -ne $result.jobId -or $replay.attemptId -ne $result.attemptId -or
+                    $replay.executionDisposition -ne 'succeeded') {
+                    throw 'exact Workspace CWD replay did not preserve the successful Job and Attempt.'
+                }
+            }
+            return $result
+        }
+
+        function Read-VerifiedCwdStdout($Observation, [int]$Id) {
+            $matches = @($Observation.artifacts | Where-Object { $_.kind -eq 'stdout' })
+            if ($matches.Count -ne 1 -or $matches[0].truncated -ne $false -or
+                $matches[0].retainedBytes -le 0 -or $matches[0].retainedBytes -gt 16384) {
+                throw 'Workspace CWD probe lacks a complete bounded stdout Artifact.'
+            }
+            $descriptor = $matches[0]
+            $read = Invoke-McpTool -Name 'artifact.read' -Arguments @{
+                schemaVersion = 1
+                jobId = [string]$Observation.jobId
+                artifactId = [string]$descriptor.artifactId
+                offset = 0
+                maxBytes = 16384
             } -Id $Id
+            $bytes = [Text.Encoding]::UTF8.GetBytes([string]$read.content)
+            $sha = [Security.Cryptography.SHA256]::Create()
+            try {
+                $digest = 'sha256:' + [BitConverter]::ToString($sha.ComputeHash($bytes)).Replace('-', '').ToLowerInvariant()
+            }
+            finally {
+                $sha.Dispose()
+            }
+            if ($read.jobId -ne $Observation.jobId -or $read.artifactId -ne $descriptor.artifactId -or
+                $read.offset -ne 0 -or $read.eof -ne $true -or
+                $read.nextOffset -ne $descriptor.retainedBytes -or $bytes.Length -ne $descriptor.retainedBytes -or
+                $read.digest -ne $descriptor.digest -or $digest -ne $descriptor.digest) {
+                throw 'Workspace CWD stdout Artifact identity, length or SHA-256 mismatch.'
+            }
+            return ([string]$read.content).Trim() | ConvertFrom-Json
         }
 
         $limited = Invoke-CwdIdentityJob -Authority 'limited' -Id 342
@@ -532,7 +576,7 @@ if ($null -eq $id.User) { throw "target user SID is missing" }
             $limited.executionDisposition -ne 'succeeded') {
             throw 'candidate limited Workspace CWD baseline did not succeed.'
         }
-        $baseline = ([string]$limited.stdoutTail).Trim() | ConvertFrom-Json
+        $baseline = Read-VerifiedCwdStdout $limited 542
         $expectedCwd = [IO.Path]::GetFullPath([string]$baseline.actualCwd).TrimEnd('\')
         if (-not $expectedCwd.EndsWith(('\' + $workspaceId), [StringComparison]::OrdinalIgnoreCase)) {
             throw 'candidate limited baseline does not end at the opened Workspace identity.'
@@ -547,8 +591,17 @@ if ($null -eq $id.User) { throw "target user SID is missing" }
                 [string]$active.executionDisposition + " jobId=" + [string]$active.jobId)
         }
 
-        $actual = ([string]$active.stdoutTail).Trim() | ConvertFrom-Json
+        $actual = Read-VerifiedCwdStdout $active 543
         $actualCwd = [IO.Path]::GetFullPath([string]$actual.actualCwd).TrimEnd('\')
+        if ([int]$baseline.sessionId -ne 0 -or [int]$actual.sessionId -ne $ExpectedActiveUserSessionId) {
+            throw 'Workspace execution does not preserve the expected service and interactive Session identities.'
+        }
+        foreach ($probeCwd in @($baseline.nativeCwd, $actual.nativeCwd)) {
+            if (-not [String]::Equals($expectedCwd, [IO.Path]::GetFullPath([string]$probeCwd).TrimEnd('\'),
+                    [StringComparison]::OrdinalIgnoreCase)) {
+                throw 'native process CWD differs from the bound Workspace.'
+            }
+        }
         if (-not [String]::Equals($expectedCwd, $actualCwd, [StringComparison]::OrdinalIgnoreCase)) {
             throw ("active-user target ran outside the bound Workspace: expectedCwd=" +
                 $expectedCwd + " actualCwd=" + $actualCwd)
@@ -567,6 +620,10 @@ if ($null -eq $id.User) { throw "target user SID is missing" }
             expectedCwd = $expectedCwd
             actualCwd = $actualCwd
             activeUserSid = [string]$actual.userSid
+            activeUserSessionId = [int]$actual.sessionId
+            activeUserAttemptId = [string]$active.attemptId
+            verifiedStdoutDigest = [string](@($active.artifacts | Where-Object { $_.kind -eq 'stdout' })[0].digest)
+            exactReplayVerified = $true
             passed = $true
         }
     }

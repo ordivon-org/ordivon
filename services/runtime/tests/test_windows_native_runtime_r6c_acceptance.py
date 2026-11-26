@@ -140,3 +140,18 @@ def test_native_workspace_cwd_acceptance_rejects_false_success_and_fences_retire
     assert "expectedSourceStateDigest" in fn
     assert "force = $false" in fn
     assert "jobId" in fn
+
+def test_session1_cutover_requires_native_and_shell_cwd_exact_replay_and_artifact():
+    text = SCRIPT.read_text(encoding="utf-8")
+    fn = text[text.index("function Invoke-WorkspaceCwdAdmission {"):text.index("function Invoke-ActiveJobRecovery {")]
+    assert "[int]$ExpectedActiveUserSessionId = 1" in text
+    assert "[Diagnostics.Process]::GetCurrentProcess().SessionId" in fn
+    assert "[Environment]::CurrentDirectory" in fn
+    assert "$actual.sessionId -ne $ExpectedActiveUserSessionId" in fn
+    assert "$replay.jobId -ne $result.jobId" in fn
+    assert "$replay.attemptId -ne $result.attemptId" in fn
+    assert "Invoke-McpTool -Name 'artifact.read'" in fn
+    assert "$digest -ne $descriptor.digest" in fn
+    assert "$bytes.Length -ne $descriptor.retainedBytes" in fn
+    assert "$actual = Read-VerifiedCwdStdout $active 543" in fn
+    assert "active-user target ran outside the bound Workspace" in fn
