@@ -1,5 +1,7 @@
 # Workstation v2 machine inventory
 
+Historical source-only toolchain/dependency census: [2026-11-15 repository observations](../docs/TOOLCHAIN_DEPENDENCY_CENSUS_20261115.md). The September 2026 substrate observations are likewise dated historical evidence, not live machine state. Consult the native sources below for current node-local decisions.
+
 Workstation v2 owns the **generic node-local inventory and realization-discovery boundary**, not a universal capability registry.
 
 The inventory answers bounded physical questions such as:
