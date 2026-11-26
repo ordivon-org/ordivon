@@ -13,11 +13,11 @@ from ...logic.host_tool_contracts import (
     HOST_READ_SELECTORS,
     HOST_READ_TOOLS,
     SOCIAL_WORK_HOST_TOOLS,
-    current_public_tool_call,
     host_read_transport_route,
     same_request_value,
 )
 from ...logic.owner_protocol import OwnerToolCaller
+from ...logic.public_tool_binding import current_public_tool_call
 
 
 class HostContinuityAdapter:

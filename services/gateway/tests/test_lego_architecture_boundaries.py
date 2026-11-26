@@ -16,6 +16,7 @@ from ordivon_gateway.capabilities.host.dispatch import HostContinuityAdapter
 from ordivon_gateway.logic.execution_refs import GatewayError
 from ordivon_gateway.logic.host_tool_contracts import SOCIAL_WORK_HOST_TOOLS
 from ordivon_gateway.logic.routing import default_routes
+from ordivon_gateway.service import GatewayService
 
 ROOT = Path(__file__).resolve().parents[1] / "src" / "ordivon_gateway"
 
@@ -29,6 +30,22 @@ def test_business_root_is_composition_and_public_schema_only() -> None:
     }
     assert (ROOT / "transport/http.py").exists()
     assert (ROOT / "transport/upstream.py").exists()
+
+
+def test_composition_root_exposes_capabilities_without_owner_effect() -> None:
+    """Check public behavior, not a frozen list of filenames in logic/."""
+
+    class NeverCalled:
+        def is_configured(self, _owner_id: str) -> bool:
+            return False
+
+        async def call_tool(self, *_args: Any) -> dict[str, Any]:
+            raise AssertionError("pure capability description must not call an Owner")
+
+    gateway = GatewayService(NeverCalled())  # type: ignore[arg-type]
+    described = gateway.system_describe()
+    assert "execution.linux" in described.capabilities
+    assert "continuity.external" in described.capabilities
 
 
 def test_logic_representation_never_imports_owner_adapters_or_security() -> None:

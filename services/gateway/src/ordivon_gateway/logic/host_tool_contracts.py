@@ -3,21 +3,13 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Iterator, Mapping
-from contextlib import contextmanager
-from contextvars import ContextVar
-from copy import deepcopy
 from typing import Annotated, Any
 
 from pydantic import Field
 
-# A request-local identity witness, NOT another authentication/authorization
-# authority. The already installed MCP Security middleware binds the public
-# Tool and its original args for precisely the duration of call_next(ctx).
-# Natural Host and Security continue to own domain effects and PDP decisions.
-_PUBLIC_TOOL_CALL: ContextVar[tuple[str, Mapping[str, Any]] | None] = ContextVar(
-    "ordivon_gateway_public_tool_call", default=None
-)
+# Stable compatibility exports for the request-local public call binding.
+from .public_tool_binding import bind_public_tool_call as bind_public_tool_call
+from .public_tool_binding import current_public_tool_call as current_public_tool_call
 
 
 def canonical_request_bytes(value: Any) -> bytes:
@@ -33,20 +25,6 @@ def same_request_value(left: Any, right: Any) -> bool:
         return canonical_request_bytes(left) == canonical_request_bytes(right)
     except TypeError, ValueError, OverflowError, RecursionError:
         return False
-
-
-@contextmanager
-def bind_public_tool_call(tool_name: str, arguments: Mapping[str, Any]) -> Iterator[None]:
-    token = _PUBLIC_TOOL_CALL.set((tool_name, deepcopy(dict(arguments))))
-    try:
-        yield
-    finally:
-        _PUBLIC_TOOL_CALL.reset(token)
-
-
-def current_public_tool_call() -> tuple[str, Mapping[str, Any]] | None:
-    # Never expose the mutable stored witness to downstream Tool code.
-    return deepcopy(_PUBLIC_TOOL_CALL.get())
 
 
 HostCollectionBytes = Annotated[int, Field(ge=16_384, le=4_194_304)]
