@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import importlib
 import json
+import os
 import subprocess
 import sys
 import tomllib
 from pathlib import Path
 
 import pytest
+from hypothesis import example, given, settings
+from hypothesis import strategies as st
 
 from ordivon_composition import (
     CircuitContractError,
@@ -21,6 +25,14 @@ from scripts.pacti_timeout_obligation_r1 import (
 
 COMPOSITION_ROOT = Path(__file__).resolve().parents[1]
 SPEC = COMPOSITION_ROOT / "tests" / "fixtures" / "pacti" / "pacti-timeout-obligation-spec-r2.json"
+
+
+def _require_pacti() -> None:
+    """An explicit provider qualification may not silently skip missing equipment."""
+    if os.environ.get("ORDIVON_REQUIRE_PACTI") == "1":
+        importlib.import_module("pacti")
+    else:
+        pytest.importorskip("pacti", reason="run the explicit owner pacti:verify task")
 
 
 def _spec() -> dict:
@@ -112,7 +124,7 @@ def test_owner_timeout_envelope_uses_real_pacti_and_scopes_live_claims() -> None
     # project/default CI dependency. Explicit provider runs must execute this
     # integration test; normal CI reports a visible SKIP rather than falsely
     # claiming the external algebra passed.
-    pytest.importorskip("pacti", reason="run explicitly with uv run --with pacti==0.3.1")
+    _require_pacti()
     from scripts.pacti_timeout_obligation_r1 import evaluate_owner_timeout_envelope
 
     grant = {
@@ -164,7 +176,7 @@ def test_pacti_algebra_mismatch_requires_actual_provider_exception_type(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A foreign exception named like Pacti must never satisfy a proof gate."""
-    pytest.importorskip("pacti", reason="explicit external Pacti test")
+    _require_pacti()
     import scripts.pacti_timeout_obligation_r1 as verifier
 
     spec = _spec()
@@ -196,7 +208,7 @@ def test_pacti_algebra_mismatch_requires_actual_provider_exception_type(
 def test_agent_cli_observes_actual_owner_contract_via_native_pacti(
     tmp_path: Path,
 ) -> None:
-    pytest.importorskip("pacti", reason="the owner CLI needs the real algebra provider")
+    _require_pacti()
     grant = tmp_path / "owner-grant.json"
     runtime = tmp_path / "runtime-status.json"
     grant.write_text(
@@ -242,7 +254,7 @@ def test_agent_cli_reports_real_pacti_incompatibility_and_boundary(
     max_ms: int,
     standing: str,
 ) -> None:
-    pytest.importorskip("pacti", reason="real Pacti algebra required")
+    _require_pacti()
     grant = tmp_path / "grant.json"
     status = tmp_path / "status.json"
     grant.write_text(
@@ -313,7 +325,7 @@ def test_agent_cli_refuses_unknown_owner_runtime_input(
 
 
 def test_agent_cli_keeps_existing_frozen_spec_entrypoint() -> None:
-    pytest.importorskip("pacti", reason="real Pacti algebra required")
+    _require_pacti()
     completed = subprocess.run(
         [
             sys.executable,
@@ -350,3 +362,59 @@ def test_agent_cli_rejects_partial_or_mixed_authority_inputs(args: list[str]) ->
     assert completed.returncode == 2
     assert "without spec" in completed.stderr
     assert completed.stdout == ""
+
+
+def test_provider_qualification_cannot_skip_missing_import(monkeypatch: pytest.MonkeyPatch) -> None:
+    def absent(name):
+        raise ModuleNotFoundError(name=name)
+
+    def forbidden_skip(*args, **kwargs):
+        raise AssertionError("strict qualification must not call importorskip")
+
+    monkeypatch.setattr(importlib, "import_module", absent)
+    monkeypatch.setattr(pytest, "importorskip", forbidden_skip)
+    monkeypatch.setenv("ORDIVON_REQUIRE_PACTI", "1")
+    with pytest.raises(ModuleNotFoundError):
+        _require_pacti()
+
+
+@st.composite
+def _timeout_pairs(draw):
+    grant = draw(st.integers(min_value=1, max_value=900_000))
+    runtime = draw(
+        st.one_of(
+            st.integers(min_value=1, max_value=2**64 - 1),
+            st.integers(min_value=max(1, grant - 2), max_value=grant + 2),
+        )
+    )
+    return grant, runtime
+
+
+@pytest.fixture(scope="module")
+def native_pacti() -> None:
+    _require_pacti()
+
+
+@settings(max_examples=30, deadline=None, derandomize=True)
+@given(pair=_timeout_pairs())
+@example(pair=(1, 1))
+@example(pair=(900_000, 899_999))
+@example(pair=(900_000, 900_000))
+@example(pair=(900_000, 2**64 - 1))
+def test_native_timeout_envelope_matches_integer_domain_oracle(native_pacti, pair):
+    from scripts.pacti_timeout_obligation_r1 import evaluate_owner_timeout_envelope
+
+    grant, runtime = pair
+    observed = evaluate_owner_timeout_envelope(
+        {
+            "schemaVersion": 1,
+            "kind": "ordivon.plugin-gateway-execution-grant",
+            "maxTimeoutMs": grant,
+        },
+        {"config": {"maxRuntimeMs": runtime}},
+    )
+    # For the declared identity chain, [1, grant] is contained in [1, runtime]
+    # iff grant <= runtime. Independent exact arithmetic, not Pacti internals.
+    assert observed["modelStanding"] == ("COMPATIBLE" if grant <= runtime else "INCOMPATIBLE")
+    assert (observed["grantMaxMs"], observed["runtimeMaxMs"]) == pair
+    assert "never grants" in observed["nonClaims"][-1]
