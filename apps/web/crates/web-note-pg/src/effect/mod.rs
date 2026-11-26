@@ -9,8 +9,9 @@ mod postconditions;
 mod rows;
 mod transaction;
 mod writes;
+pub use crate::OwnerError as EffectError;
 pub use authority::{ApprovalWrite, GrantRevocation, PendingOutcome};
-pub use domain::{EffectError, EffectOperation, EffectOutcome, EffectRequest, GrantFence};
+pub use domain::{EffectOperation, EffectOutcome, EffectRequest, GrantFence};
 pub use grant_identity::{GrantCreate, GrantObservation, GrantSnapshot, PreparedGrant};
 pub use rows::{EffectReceipt, PendingApproval};
 

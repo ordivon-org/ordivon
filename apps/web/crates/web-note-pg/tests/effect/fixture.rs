@@ -85,6 +85,10 @@ pub(super) async fn setup(name: &str) -> (PgNoteStore, Client) {
     import_initial(&mut client, "public", &snapshot)
         .await
         .unwrap();
+    client
+        .batch_execute(ordivon_web_note_pg::migration::LOGIN_COMPLETION_SCHEMA_V2)
+        .await
+        .unwrap();
     (
         PgNoteStore::local_bounded(
             &socket,

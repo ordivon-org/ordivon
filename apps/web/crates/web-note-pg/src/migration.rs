@@ -260,3 +260,6 @@ pub async fn import_initial(
     }
     tx.commit().await.map_err(ImportError::CommitUnknown)
 }
+
+/// Additive V2 login eligibility/completion state. Apply under exclusive owner migration.
+pub const LOGIN_COMPLETION_SCHEMA_V2: &str = include_str!("../schema/owner-v2-login.sql");

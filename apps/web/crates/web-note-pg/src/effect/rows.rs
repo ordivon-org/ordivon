@@ -89,10 +89,7 @@ impl EffectReceipt {
         Ok(())
     }
 }
-row_type! {pub(crate) struct AuditRow{
-    event_id:String,principal_id:Option<String>,event_type:String,object_type:Option<String>,
-    object_id:Option<String>,detail_json:String,created_at:i64
-}}
+pub(crate) use crate::owner_audit::AuditRow;
 
 row_type! {#[derive(Serialize)] #[serde(rename_all="camelCase")] pub struct PendingApproval{
     effect_id:String,effect_digest:String,principal_id:String,expires_at:i64,created_at:i64

@@ -10,6 +10,7 @@ import struct
 import subprocess
 import sys
 import threading
+from contextlib import ExitStack
 
 root = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(root / "experiments/pg-transaction-r1"))
@@ -117,9 +118,17 @@ if __name__ == "__main__":
     expected=discover(json.loads(discovery.stdout),targets)
     print("native discovery:", json.dumps({k:sorted(v) for k,v in expected.items()}),flush=True)
     cluster = Cluster()
-    fault = None
-    cancel_fault = None
     result = None
+    faults_by_target = {
+        "native": [
+            ("WEB_NOTE_TEST_ACK_PROXY", "ack-proxy", False),
+            ("WEB_NOTE_TEST_CANCEL_PROXY", "cancel-proxy", True),
+        ],
+        "effect": [
+            (f"WEB_{kind.upper()}_TEST_ACK_PROXY", f"{kind}-proxy", False)
+            for kind in ("effect", "grant", "revoke", "session", "login", "challenge", "dpop")
+        ],
+    }
     try:
         cluster.start()
         guard = secrets.token_hex(24)
@@ -127,61 +136,29 @@ if __name__ == "__main__":
             cluster.psql + ["-v", "ON_ERROR_STOP=1", "-c",
                             f"CREATE TABLE web_note_fixture_guard(token text); INSERT INTO web_note_fixture_guard VALUES ('{guard}')"],
             env=cluster.env, check=True, timeout=10)
-        if "native" in targets:
-            fault = CommitAckFault(cluster)
-            cancel_fault = CommitAckFault(cluster, hold=True)
         env = dict(env_base)
         env.update(WEB_NOTE_TEST_SOCKET=str(cluster.root), WEB_NOTE_TEST_USER=cluster.user,
                    WEB_NOTE_TEST_PORT="59439", WEB_NOTE_TEST_NODE=os.environ.get("NODE", "node"),
                    WEB_NOTE_TEST_GUARD=guard)
-        if fault is not None:
-            env.update(WEB_NOTE_TEST_ACK_PROXY=str(fault.root),
-                       WEB_NOTE_TEST_CANCEL_PROXY=str(cancel_fault.root))
-        # Nonoptional native targets. No global filtering or retry can
-        # silently turn a missing target into successful qualification.
         for target in targets:
-            effect_fault = CommitAckFault(cluster, name="effect-proxy") if target == "effect" else None
-            grant_fault = CommitAckFault(cluster, name="grant-proxy") if target == "effect" else None
-            revoke_fault = CommitAckFault(cluster, name="revoke-proxy") if target == "effect" else None
-            if effect_fault is not None:
-                env["WEB_EFFECT_TEST_ACK_PROXY"]=str(effect_fault.root)
-            if grant_fault is not None:
-                env["WEB_GRANT_TEST_ACK_PROXY"]=str(grant_fault.root)
-            if revoke_fault is not None:
-                env["WEB_REVOKE_TEST_ACK_PROXY"]=str(revoke_fault.root)
             report = manifest.parent / "target" / "nextest" / target / (target + ".xml")
             report.unlink(missing_ok=True)
             result = None
-            try:
+            target_env = dict(env)
+            with ExitStack() as stack:
+                for key, name, hold in faults_by_target.get(target, ()):
+                    fault = CommitAckFault(cluster, hold=hold, name=name)
+                    stack.callback(lambda f=fault: f.close(require_cut=result is not None and result.returncode == 0))
+                    target_env[key] = str(fault.root)
                 result = subprocess.run(base + ["run"] + build + ["--test", target,
-                "--profile", target, "--no-tests", "fail", "--retries", "0", "--test-threads", "1",
-                "--status-level", "pass", "--success-output", "final"],
-                    env=env, cwd=manifest.parent, check=False, timeout=180)
-            finally:
-                try:
-                    if effect_fault is not None:
-                        effect_fault.close(require_cut=result is not None and result.returncode == 0)
-                finally:
-                    try:
-                        if grant_fault is not None:
-                            grant_fault.close(require_cut=result is not None and result.returncode == 0)
-                    finally:
-                        if revoke_fault is not None:
-                            revoke_fault.close(require_cut=result is not None and result.returncode == 0)
+                    "--profile", target, "--no-tests", "fail", "--retries", "0", "--test-threads", "1",
+                    "--status-level", "pass", "--success-output", "final"],
+                    env=target_env, cwd=manifest.parent, check=False, timeout=180)
             if result.returncode != 0:
                 break
             print_report(report, expected[target])
-
     finally:
-        try:
-            if fault is not None:
-                fault.close(require_cut=result is not None and result.returncode == 0)
-        finally:
-            try:
-                if cancel_fault is not None:
-                    cancel_fault.close(require_cut=result is not None and result.returncode == 0)
-            finally:
-                cluster.close()
+        cluster.close()
     if result.returncode == 0:
         print(f"native qualification complete: scope={args.lane}; discovery/JUnit/fixture cleanup confirmed", flush=True)
     raise SystemExit(result.returncode)

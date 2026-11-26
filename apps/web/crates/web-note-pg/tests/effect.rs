@@ -12,3 +12,12 @@ mod support;
 
 #[path = "effect/grants.rs"]
 mod grants;
+
+#[path = "effect/identity.rs"]
+mod identity;
+
+#[path = "effect/replay.rs"]
+mod replay;
+
+#[path = "effect/login.rs"]
+mod login;

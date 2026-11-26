@@ -658,3 +658,142 @@ Next actual Principal/Credential, Session/Challenge/DPoP and authenticated
 Axum/Tower consumer; qualify durable prepared intents, authority receipts,
 root CI, full source freeze and single-writer production migration. Independent
 Security/Data/Verification review not yet received.
+
+
+## R19 — Native identity, replay and verified login composition
+
+Host Work@38, #33175 identity, #33194 replay, #33207 verified-login,
+#33246 verification handoff, #33252 refined V2 completion state.
+R18 ba568608 + fetched main 05a44835 composed 91e94e5e. Replace the
+legacy persistence facets, do not implement another WebAuthn/DPoP
+verifier, policy decision or public HTTP endpoint.
+
+| Logic | Thought | Capability |
+|---|---|---|
+| I01 Principal identity | representation/unique authority | native ensure/get/find, PK and username unique constraints |
+| I02 Credential | verified-state refinement | exact BYTEA/public metadata, checked u32 counter, trusted registration |
+| I03 Credential transition | optimistic concurrency | exact prior credential plus native row NOWAIT/CAS, final readback |
+| I04 Session creation | secret separation | OS entropy 32B, base64url, SHA256 hash only in PG, prepared identity |
+| I05 Session authentication | lifecycle | principal SHARE then fresh session NOWAIT, expiry and monotone touch |
+| I06 Revocation | coordinated writers | per-session and all-session native atomic revoke/audit |
+| I07 Challenge | one-shot identity | typed purpose, exact v1 producer JSON bytes and digest, bound consume/observe |
+| I08 DPoP | replay identity | namespaced advisory try-lock, expiry-aware unique-key upsert |
+| I09 expiry maintenance | logical/physical split | bounded SKIP LOCKED batch, exact returned identities and absence |
+| I10 verified login | trusted composition | consumed challenge + credential prestate + prepared session, atomic completion |
+| I11 terminality | state/evidence separation | additive V2 completion marker, PK/FK and paired fields, audit independent |
+| I12 owner substrate | reuse/low coupling | owner_write, OwnerError (EffectError alias), owner_audit |
+| I13 verification | independent falsification | SQLite differential, independent model, native contention, trigger/ACK, mutants |
+| I14 consumer | integration | real authenticated Axum/Tower and verifier composition remain next |
+
+Identity contracts: no new authorization or signature/counter policy.
+Credential caller holds exact verified prestate; u32 signCount, including
+zero, remains accepted only as allowed by external WebAuthn verifier.
+CAS also compares the full prior checked projection including public key,
+principal, last-used, transport/device metadata and revocation. Stale clock
+coordinates reject rather than overwrite state. Principal insertion uses
+unqualified ON CONFLICT DO NOTHING then actual identity comparison;
+a native same-ID concurrent test exposed 23505 on username unique
+constraint when only principal_id was arbiter. Corrected and expanded
+48 fresh two-call histories (same ID and differing IDs sharing username),
+no retry or raw unique error treated as success. Unknown principal and
+username conflict distinct. New creation exact unique audit and row
+after deferred fence; matching existing identity does not produce audit.
+
+Session: 256-bit OS random token, base64url without padding, SHA256
+hex compatible with Node, token never persisted or Debug/Serialize.
+PreparedSession retained before await; no token release from observation.
+Issue/refresh/individual revoke take principal SHARE then session row
+where applicable; all-session revoke takes principal NO KEY UPDATE
+then ordered session rows. This conflicts with session writers but not
+unrelated FK KEY SHARE. Authentication rechecks fresh binding/expiry/
+revocation after locks, idle expiry capped at absolute; stale clock
+rejected. Bulk exact set readback and audit; no claim of all-domain
+authorization atomicity across a later HTTP operation. Session issuance
+observation verifies immutable identity and unique audit/current view,
+not current authentication. Retain prepared identities safely outside
+database; durable cross-process secret handling remains consumer work.
+
+Challenge: retain exact v1 JSON.stringify producer bytes, digest SHA256
+over these bytes. No generic JS canonicalizer in Rust; malformed or
+nonmatching stored raw JSON fail closed (legacy noncanonical text which
+would reserialize to same JS digest can be rejected). Trusted producer
+must supply exact v1 representation. Bind principal+purpose, expiry and
+consumed state before one native update, exact readback; consumption is
+not verification. DPoP identity supplied by existing verifier; 1..256
+UTF8 bytes, positive safe TTL, trusted time. Logical replay denial is
+key-local under native transaction identity lock and row NOWAIT,
+expired same key may renew atomically. Physical expiry cleanup moved
+out of request path, bounded 1..10000 with ORDER BY expiry/hash and
+FOR UPDATE SKIP LOCKED, compare returned and absent IDs. No automatic
+retry or false admission from UNKNOWN. Maintenance must have real
+scheduled consumer, monitor retention and trusted clock; no throughput
+claim.
+
+Verified login: old consume-before-verify challenge burn retained.
+After external verification, atomic native counter advance + session
+insert + independent completion marker + session.created/login-completed
+audit. Lock order Principal SHARE -> consumed Challenge -> completion
+marker -> Credential -> Session insert; no reverse cooperating path.
+Exact prestate and principal/time/expiry binding, final readback after
+deferred constraints. Login completion state is NOT just an Audit row.
+Schema/owner-v2-login.sql adds one table webauthn_login_completions,
+challenge PK/FK, unique optional session FK, paired completed_at constraint.
+V1 original import stays exact; exclusive additive install before native
+auth writers. Only newly issued login Challenge receives eligibility in
+same transaction; all pre-V2 challenges lack it and cannot finalize.
+Duplicate zero-counter same-second completion denied; deleting Audit
+does not reopen marker, observation becomes mismatch. Do not delete
+completion state independently while Challenge may be used; explicit
+V2 export/restore/retention/upgrade and production writer freeze remain
+required. Existing read_snapshot intentionally covers V1 11 tables,
+not V2 marker table. No production data altered.
+
+R2.1 I=trusted identity/verified prestate/prepared intent or observation
+coordinate; O=typed exact current result/error/UNKNOWN; S=V1 schema+
+V2 completion extension+bounded PG pool; pre=trusted external verifier
+and time, explicit payload representation, all writers cooperate;
+post=acknowledged exact operation or coherent read-only evidence;
+inv=identity uniqueness, no terminal reopening, no automatic retry,
+no secret persisted, no false success on ACK loss, no history inferred
+from mutable state; eff=local PG only; c=key-local DPoP and bounded GC,
+native row locks and shared writer lifecycle; epsilon=no actual
+WebAuthn verification/HTTP auth, not hostile DDL/uncooperative writers,
+no complete all-domain linearizability, unknown credential/session
+touch etc requires consumer reconciliation; prov=Git/native JUnit;
+unfold=Principal/Credential -> Challenge -> verifier -> login -> Session.
+
+Test portfolio: 10 new named native tests (3 identity,3 login,4 replay)
+in existing strict effect lane. Actual old SQLite lifecycle with exact
+raw key, projections/audit, independent Node token hash. Five exact
+Challenge payload vectors and ten logical DPoP transitions (physical
+GC deliberately different). Independent generated DPoP model 40 fresh
+histories/510 commands with exact physical records, shrink-derived
+two-step expiry regression saved; final run also replays it. 48 fresh
+two-call Principal histories/96 calls added after actual unique-index
+race. 13 native trigger faults (6 identity/3 replay/4 login), real lock
+contention, disjoint progress, wrong binding, expiry and stale key
+rejection. Four new native wire ACK losses session/login/challenge/DPoP
+fail closed, explicit retained observation where possible. V2 upgrade
+preserves all 11 V1 facts, repeat DDL rejected, old login cannot finalize;
+audit removal cannot reopen marker. Five selected mutants killed:
+bulk lock downgrade, omitted full credential prestate, omitted
+Challenge digest, inclusive expiry boundary, omitted finalized-marker
+guard; no global mutation score. Native runner now declares fault
+proxies per lane, ExitStack closes all, mandatory exact discovery/JUnit,
+no retry/ignore. Test scripts initial missing source files/unused import
+and mutation classification/pattern corrections noted, no build/setup
+failure counted. Shared owner errors retain prior error code strings
+for compatibility; EffectError is an alias, Identity no dependency on
+Effect module. No JS lock/legacy source changes. getrandom and base64
+already in graph, direct compatible ranges, no new transitive packages.
+
+External references: W3C WebAuthn Level 3 REC
+https://www.w3.org/TR/2026/REC-webauthn-3-20260825/ ;
+RFC9449 https://www.rfc-editor.org/rfc/rfc9449.html ;
+PostgreSQL 18 https://www.postgresql.org/docs/18/explicit-locking.html
+https://www.postgresql.org/docs/18/sql-insert.html .
+Next actual authenticated Rust Axum/Tower composition using existing
+Security verifier and real WebAuthn consumers, distinct admission/
+persistence/response boundaries; complete V2 backup/restore retention,
+durable prepared intent, maintenance consumer, root CI and real source
+freeze/single writer. Independent peer review requested, not received.

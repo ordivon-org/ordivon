@@ -8,7 +8,7 @@ use super::{
     EffectError, EffectOperation, EffectOutcome, EffectReceipt, EffectRequest, GrantFence,
 };
 use crate::PgNoteStore;
-use tokio_postgres::{IsolationLevel, Transaction};
+use tokio_postgres::Transaction;
 
 impl PgNoteStore {
     /// Trusted caller must have verified the request and bound its content
@@ -32,42 +32,6 @@ impl PgNoteStore {
             async |tx| execute(tx, g, r, op, audit_id, now).await,
         )
         .await
-    }
-
-    pub(super) async fn owner_write<T, F>(
-        &self,
-        unknown: impl FnOnce(tokio_postgres::Error) -> EffectError,
-        action: F,
-    ) -> Result<T, EffectError>
-    where
-        F: for<'a, 'b> AsyncFnOnce(&'a Transaction<'b>) -> Result<T, EffectError>,
-    {
-        let mut lease = self.connect().await.map_err(EffectError::Pool)?;
-        let tx = lease
-            .client()
-            .build_transaction()
-            .isolation_level(IsolationLevel::ReadCommitted)
-            .start()
-            .await
-            .map_err(|e| db("begin", e))?;
-        let outcome = match action(&tx).await {
-            Ok(o) => o,
-            Err(cause) => {
-                return match tx.rollback().await {
-                    Ok(()) => {
-                        lease.reusable();
-                        Err(cause)
-                    }
-                    Err(rollback) => Err(EffectError::RollbackUnknown {
-                        cause: Box::new(cause),
-                        rollback,
-                    }),
-                };
-            }
-        };
-        tx.commit().await.map_err(unknown)?;
-        lease.reusable();
-        Ok(outcome)
     }
 
     /// Committed receipt observation only; absence is not proof of noncommit.
