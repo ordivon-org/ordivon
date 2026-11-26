@@ -802,6 +802,68 @@ class DeployReclaimTests(unittest.TestCase):
         self.assertLess(bind, maintenance)
         self.assertNotIn("reconcile_all()", source[:bind])
 
+    def test_prepare_streams_build_diagnostics_before_child_exit(self) -> None:
+        import selectors
+        import shlex
+        import time
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repo = root / "repo"
+            initialize_git_repository(repo, remote=False)
+            commit = add_release_operator_sources(repo, push=False)
+            cargo = fake_cargo_for_default_release(root)
+            gate = root / "finish-build"
+            # Keep the child alive until its parent observes the actual output.
+            # The finite loop also prevents an orphan if the observation fails.
+            write_executable(
+                cargo,
+                "#!/bin/sh\n"
+                'if [ "${1:-}" = --version ]; then printf "cargo 1.95.0 (test)\\nrelease: 1.95.0\\n"; exit 0; fi\n'
+                "printf 'native-build-stdout\\n'\n"
+                "printf 'native-build-stderr\\n' >&2\n"
+                f"gate={shlex.quote(str(gate))}\n"
+                'i=0; while [ ! -f "$gate" ] && [ "$i" -lt 100 ]; do sleep 0.1; i=$((i+1)); done\n'
+                "exit 37\n",
+            )
+            manifest = root / "candidate-manifest.json"
+            process = subprocess.Popen(
+                [
+                    sys.executable, "scripts/ordivon-runtime-deploy", "prepare",
+                    "--source-repo", str(repo), "--commit", commit,
+                    "--candidate-dir", str(repo / "target/release"),
+                    "--candidate-manifest", str(manifest), "--cargo", str(cargo),
+                ],
+                cwd=REPO, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            )
+            observed = bytearray()
+            try:
+                assert process.stderr is not None
+                with selectors.DefaultSelector() as selector:
+                    selector.register(process.stderr, selectors.EVENT_READ)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        if not selector.select(max(0, deadline - time.monotonic())):
+                            break
+                        block = os.read(process.stderr.fileno(), 4096)
+                        if not block:
+                            break
+                        observed.extend(block)
+                        if all(marker in observed for marker in
+                               (b"native-build-stdout", b"native-build-stderr")):
+                            break
+                self.assertIn(b"native-build-stdout", observed)
+                self.assertIn(b"native-build-stderr", observed)
+                self.assertIsNone(process.poll(), "build must still be running")
+                self.assertFalse(manifest.exists())
+            finally:
+                gate.touch()
+                stdout, stderr = process.communicate(timeout=15)
+            self.assertNotEqual(process.returncode, 0)
+            self.assertEqual(stdout, b"")
+            self.assertIn(b"37", stderr)
+            self.assertFalse(manifest.exists())
+
     def test_default_prepare_binds_complete_release_artifact_set(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
