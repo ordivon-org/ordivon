@@ -3537,7 +3537,10 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
     let inspection = call(&endpoint, "job.get", json!({"jobId":completed_job}));
     assert_ne!(inspection["isError"], true, "{inspection}");
     let attempt = &inspection["structuredContent"]["attempts"][0];
-    assert_eq!(attempt.get("startedAtMs"), started.map(|v| json!(v)).as_ref());
+    assert_eq!(
+        attempt.get("startedAtMs"),
+        started.map(|v| json!(v)).as_ref()
+    );
     assert_eq!(attempt["finishedAtMs"], finished);
     assert!(
         attempt.get("durationMs").is_none(),
@@ -4946,14 +4949,22 @@ fn resource_queue_owner_fairness_and_idle_borrowing() {
         let owner: Option<String> = row.get(1);
         let resources: Option<String> = row.get(2);
         let state: String = row.get(3);
-        assert!(resolution.is_none(), "idle borrower terminated before capacity witness: {resolution:?}");
+        assert!(
+            resolution.is_none(),
+            "idle borrower terminated before capacity witness: {resolution:?}"
+        );
         if let (Some(owner), Some(resources)) = (owner, resources) {
             assert_eq!(owner, "idle-owner");
-            assert_eq!(serde_json::from_str::<Value>(&resources).unwrap()["cpuMillis"], cpu);
+            assert_eq!(
+                serde_json::from_str::<Value>(&resources).unwrap()["cpuMillis"],
+                cpu
+            );
             break;
         }
-        assert!(Instant::now() < borrow_deadline,
-            "idle capacity did not converge under passive observation: attempt={state}");
+        assert!(
+            Instant::now() < borrow_deadline,
+            "idle capacity did not converge under passive observation: attempt={state}"
+        );
         thread::sleep(Duration::from_millis(50));
     }
     let a1 = submit("owner-a-first", "owner-a", cpu / 2, &release_owners);
