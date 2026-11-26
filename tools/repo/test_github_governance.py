@@ -2363,6 +2363,17 @@ class ParallelRootVerificationTests(unittest.TestCase):
         self.assertIn("git --no-replace-objects show HEAD:mise.toml",
                       runner["run"])
         self.assertIn("paper_postgres", owners["services"])
+        image = owners["services"]["paper_postgres"]["image"]
+        # Native matrix predicate is intentionally restricted to the two
+        # branches which consume the dynamically assigned service port.
+        condition, image_value = image.split(" && ", 1)
+        self.assertEqual(condition, "$" + "{{ (contains(matrix.tasks, 'capital:verify') || "
+                         "contains(matrix.tasks, 'harness:queue'))")
+        # Verify the selection contract rather than freeze a historical PG version.
+        self.assertRegex(image_value, r"^'postgres:[0-9][^'\s]*' \|\| '' \}\}$")
+        self.assertEqual(runner["env"]["PAPER_PG_PORT"],
+                         "$" + "{{ job.services.paper_postgres.ports['5432'] }}")
+        self.assertEqual(runner["run"].count("port=$PAPER_PG_PORT"), 4)
         self.assertNotIn("services", preflight)
         mechanics = jobs["repo-mechanics"]
         self.assertNotIn("needs", mechanics)
@@ -2371,6 +2382,81 @@ class ParallelRootVerificationTests(unittest.TestCase):
                       [step["name"] for step in mechanics["steps"]])
         self.assertNotIn("Repository mechanics",
                          [step["name"] for step in preflight["steps"]])
+
+    def test_owner_pg_service_port_is_required_only_by_its_consumers(self) -> None:
+        import os
+        import shutil
+        import yaml
+
+        jobs = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())["jobs"]
+        step = next(x for x in jobs["owner-verification"]["steps"]
+                    if x["name"] == "Verify affected owners")
+        script = step["run"].replace("$" + "{{ needs.root-preflight.outputs.formal }}", "false")
+        script = script.replace("$" + "{{ github.run_id }}", "12345")
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            repo = folder / "repo"
+            registry = repo / "tools/repo"
+            registry.mkdir(parents=True)
+            for name in ("affected_owners.py", "owners.toml", "ci_mise_source_witness.py"):
+                if (ROOT / "tools/repo" / name).exists():
+                    shutil.copy2(ROOT / "tools/repo" / name, registry / name)
+            (repo / "mise.toml").write_text('[tasks.verify]\nrun = "echo fixture"\n')
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(["git", "-C", str(repo), "-c", "user.name=Test",
+                            "-c", "user.email=test@local.invalid", "commit", "-qm", "fixture"],
+                           check=True)
+            binary = folder / "bin"
+            binary.mkdir()
+            native = shutil.which("mise")
+            self.assertIsNotNone(native)
+            mock = binary / "mise"
+            mock.write_text(
+                '#!/usr/bin/env bash\n'
+                'set -euo pipefail\n'
+                'if [[ "$1" == --cd && "$3" == config && "$4" == ls ]]; then '
+                'exec "$NATIVE_MISE" "$@"; fi\n'
+                'if [[ "$*" == "run capital:verify" ]]; then\n'
+                '  [[ "$ORDIVON_CAPITAL_PG_TEST_DSN" == *" port=45432 "* ]]\n'
+                '  [[ "$ORDIVON_CAPITAL_PAPER_PG_TEST_DSN" == *" port=45432 "* ]]\n'
+                'elif [[ "$*" == "--cd domains/capital run verify:nonlive:nautilus" ]]; then\n'
+                '  [[ "$ORDIVON_CAPITAL_PAPER_PG_TEST_DSN" == *" port=45432 "* ]]\n'
+                '  [[ "$ORDIVON_FINANCE_REQUIRE_PHYSICAL_PG" == 1 ]]\n'
+                'elif [[ "$*" == "run harness:queue" ]]; then\n'
+                '  [[ "$HARNESS_PG_TEST_DSN" == *" port=45432 "* ]]\n'
+                'fi\n'
+                'printf "%s\n" "$*" >> "$TRACE"\n')
+            mock.chmod(0o755)
+            trace = folder / "trace"
+            env = dict(os.environ, PATH=str(binary)+os.pathsep+os.environ["PATH"],
+                       RUNNER_TEMP=str(folder), NATIVE_MISE=native, TRACE=str(trace),
+                       MISE_TRUSTED_CONFIG_PATHS=str(repo))
+            env.pop("GITHUB_SHA", None)
+
+            def run(task, port):
+                trace.write_text("")
+                result = subprocess.run(
+                    ["/usr/bin/bash", "-c", script], cwd=repo,
+                    env=dict(env, OWNER_TASKS_JSON=json.dumps([task]), PAPER_PG_PORT=port),
+                    capture_output=True, text=True, timeout=15)
+                return result, trace.read_text().splitlines()
+
+            for task in ("capital:verify", "harness:queue"):
+                for invalid in ("", "0", "65536", "bad"):
+                    with self.subTest(task=task, port=invalid):
+                        result, calls = run(task, invalid)
+                        self.assertEqual(result.returncode, 44, result.stderr)
+                        self.assertEqual(calls, [])
+                result, calls = run(task, "45432")
+                self.assertEqual(result.returncode, 0, result.stderr)
+                expected = ["run " + task]
+                if task == "capital:verify":
+                    expected.append("--cd domains/capital run verify:nonlive:nautilus")
+                self.assertEqual(calls, expected)
+            result, calls = run("runtime:verify", "")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(calls, ["run runtime:verify"])
 
     def test_required_check_fails_on_any_failed_or_skipped_required_lane(self) -> None:
         import os
