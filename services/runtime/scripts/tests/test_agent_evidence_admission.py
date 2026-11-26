@@ -6,7 +6,9 @@ import importlib.util
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from types import SimpleNamespace
+import os
+import subprocess
+import tempfile
 
 SOURCE = Path(__file__).resolve().parents[1] / "agent_evidence_admission.py"
 spec = importlib.util.spec_from_file_location("runtime_agent_evidence_admission_test", SOURCE)
@@ -31,6 +33,52 @@ def check(name="root-verification", status="completed", conclusion="success", sh
 
 
 class EvidenceAdmissionTests(unittest.TestCase):
+    def test_native_git_repository_is_not_inherited_from_foreign_agent(self):
+        expected = module._git("rev-parse", "HEAD^{commit}")
+        with tempfile.TemporaryDirectory() as directory:
+            subprocess.run(["git", "init", "-q", directory], check=True)
+            subprocess.run(
+                ["git", "-C", directory, "-c", "user.name=Test", "-c",
+                 "user.email=test@example.invalid", "commit", "--allow-empty", "-qm", "foreign"],
+                check=True,
+            )
+            foreign = subprocess.check_output(
+                ["git", "-C", directory, "rev-parse", "HEAD"], text=True,
+            ).strip()
+            self.assertNotEqual(expected, foreign)
+            with patch.dict(os.environ, {"GIT_DIR": str(Path(directory) / ".git")}):
+                self.assertEqual(module._git("rev-parse", "HEAD^{commit}"), expected)
+                self.assertTrue(module._is_ancestor(expected, expected))
+
+    def test_target_rejects_peeled_noncommit_oid(self):
+        with patch.object(module, "_git", return_value=NEXT):
+            with self.assertRaisesRegex(ValueError, "literal Git commit"):
+                module._target_cut(SHA)
+
+    def test_projection_uses_explicit_repository_and_one_owner_snapshot(self):
+        owners = module.affected_owners.load_owners()
+        path = "services/runtime/README.md"
+        with (
+            patch.object(module.affected_owners, "changed_paths", return_value=(path,)) as delta,
+            patch.object(module.convergence_plan, "build_plan", return_value={"verificationOwners": ["runtime"]}) as plan,
+        ):
+            self.assertEqual(module._owner_projection(BASE, SHA, owners), ["runtime"])
+            delta.assert_called_once_with(BASE, SHA, source_repo_root=module.ROOT)
+            plan.assert_called_once_with(changed_files=(path,), owners=owners)
+
+    def test_commit_mode_reads_current_owner_manifest_not_import_snapshot(self):
+        from dataclasses import replace
+        owners = module.affected_owners.load_owners()
+        fresh = tuple(replace(o, name="fresh-runtime") if o.name == "runtime" else o for o in owners)
+        with (
+            patch.object(module.affected_owners, "load_owners", return_value=fresh),
+            patch.object(module, "_git", side_effect=self.fake_git),
+            patch.object(module, "_qualified_original_source_ci", return_value=("EXACT_CUT_SOURCE_CI_PASS", [], None)),
+        ):
+            self.assertEqual(module.assess_commit(commit=SHA, owner="fresh-runtime", target=SHA)["decision"], "EXACT_CUT_CI_OBSERVED")
+            with self.assertRaisesRegex(ValueError, "unknown natural"):
+                module.assess_commit(commit=SHA, owner="runtime", target=SHA)
+
     def test_valid_exact_commit_check_run_is_observable(self):
         state, jobs = module._official_ci_at_cut({"check_runs": [check()], "total_count": 1}, SHA)
         self.assertEqual(state, "EXACT_CUT_SOURCE_CI_PASS")
@@ -87,7 +135,7 @@ class EvidenceAdmissionTests(unittest.TestCase):
     @staticmethod
     def fake_git(*args):
         if args[0] == "rev-parse":
-            return SHA if args[1] == f"{SHA}^{{commit}}" else NEXT
+            return SHA if args[-1] == f"{SHA}^{{commit}}" else NEXT
         if args[0] == "cat-file":
             return "commit"
         raise AssertionError(args)
@@ -96,7 +144,7 @@ class EvidenceAdmissionTests(unittest.TestCase):
         with (
             patch.object(module, "_github", side_effect=self.fake_github),
             patch.object(module, "_git", side_effect=self.fake_git),
-            patch.object(module.convergence_plan, "build_plan", return_value={"verificationOwners": ["runtime"]}),
+            patch.object(module, "_owner_projection", return_value=["runtime"]),
         ):
             report = module.assess(pr=2177, owner="runtime", target=SHA)
         self.assertEqual(report["decision"], "EXACT_CUT_CI_OBSERVED")
@@ -114,7 +162,7 @@ class EvidenceAdmissionTests(unittest.TestCase):
                 ),
             ),
             patch.object(module, "_git", side_effect=self.fake_git),
-            patch.object(module.convergence_plan, "build_plan", return_value={"verificationOwners": ["runtime"]}),
+            patch.object(module, "_owner_projection", return_value=["runtime"]),
         ):
             report = module.assess(pr=2177, owner="runtime", target=SHA)
         self.assertEqual(report["decision"], "RECEIPT_UNKNOWN_OR_NOT_PASSED")
@@ -130,7 +178,7 @@ class EvidenceAdmissionTests(unittest.TestCase):
         with (
             patch.object(module, "_github", side_effect=wrong_workflow),
             patch.object(module, "_git", side_effect=self.fake_git),
-            patch.object(module.convergence_plan, "build_plan", return_value={"verificationOwners": ["runtime"]}),
+            patch.object(module, "_owner_projection", return_value=["runtime"]),
         ):
             report = module.assess(pr=2177, owner="runtime", target=SHA)
         self.assertEqual(report["originalReceipt"], "UNKNOWN_ROOT_WORKFLOW_IDENTITY")
@@ -141,16 +189,11 @@ class EvidenceAdmissionTests(unittest.TestCase):
         with (
             patch.object(module, "_github", side_effect=self.fake_github),
             patch.object(module, "_git", side_effect=self.fake_git),
-            patch.object(
-                module.convergence_plan,
-                "build_plan",
-                side_effect=[
-                    {"verificationOwners": ["runtime"]},
-                    {"verificationOwners": ["runtime"]},
-                ],
-            ),
+            patch.object(module, "_owner_projection", return_value=["runtime"]),
+            patch.object(module.convergence_plan, "build_plan", return_value={"verificationOwners": ["runtime"]}),
             patch.object(module.affected_owners, "changed_paths", return_value=("services/runtime/src/lib.rs",)),
-            patch.object(module.subprocess, "run", return_value=SimpleNamespace(returncode=0)),
+            patch.object(module, "_is_ancestor", return_value=True),
+            patch.object(module, "qualify_current_selector"),
         ):
             report = module.assess(pr=2177, owner="runtime", target=NEXT)
         self.assertEqual(report["decision"], "CHANGED_CONSUMER_INPUT")
@@ -160,27 +203,42 @@ class EvidenceAdmissionTests(unittest.TestCase):
         with (
             patch.object(module, "_github", side_effect=self.fake_github),
             patch.object(module, "_git", side_effect=self.fake_git),
-            patch.object(
-                module.convergence_plan,
-                "build_plan",
-                side_effect=[
-                    {"verificationOwners": ["runtime"]},
-                    {"verificationOwners": ["gateway", "harness"]},
-                ],
-            ),
+            patch.object(module, "_owner_projection", return_value=["runtime"]),
+            patch.object(module.convergence_plan, "build_plan", return_value={"verificationOwners": ["gateway", "harness"]}),
             patch.object(module.affected_owners, "changed_paths", return_value=("docs/architecture/EXAMPLE.md",)),
-            patch.object(module.subprocess, "run", return_value=SimpleNamespace(returncode=0)),
+            patch.object(module, "_is_ancestor", return_value=True),
+            patch.object(module, "qualify_current_selector"),
         ):
             report = module.assess(pr=2177, owner="runtime", target=NEXT)
         self.assertEqual(report["decision"], "SCOPED_SOURCE_NO_OWNER_RECHECK")
         self.assertFalse(report["proofReuseAdmissible"])
 
+    def test_drifted_policy_never_recommends_no_owner_recheck(self):
+        for paths in [(), ("docs/architecture/EXAMPLE.md",)]:
+            with (
+                self.subTest(paths=paths),
+                patch.object(module, "_github", side_effect=self.fake_github),
+                patch.object(module, "_git", side_effect=self.fake_git),
+                patch.object(module, "_owner_projection", return_value=["runtime"]),
+                patch.object(module, "_is_ancestor", return_value=True),
+                patch.object(module.affected_owners, "changed_paths", return_value=paths),
+                patch.object(module, "qualify_current_selector", side_effect=ValueError("wrong SourceCut")),
+                patch.object(module.convergence_plan, "build_plan") as plan,
+            ):
+                report = module.assess(pr=2177, owner="runtime", target=NEXT)
+                self.assertEqual(report["decision"], "UNKNOWN_SOURCE_RELATION")
+                self.assertEqual(report["sourceRelation"], "UNQUALIFIED_CURRENT_SELECTOR_POLICY")
+                self.assertEqual(report["originalReceipt"], "EXACT_CUT_SOURCE_CI_PASS")
+                self.assertIsNone(report["newOwnerAffected"])
+                self.assertFalse(report["proofReuseAdmissible"])
+                plan.assert_not_called()
+
     def test_unrelated_target_remains_unknown_not_auto_full_replay(self):
         with (
             patch.object(module, "_github", side_effect=self.fake_github),
             patch.object(module, "_git", side_effect=self.fake_git),
-            patch.object(module.convergence_plan, "build_plan", return_value={"verificationOwners": ["runtime"]}),
-            patch.object(module.subprocess, "run", return_value=SimpleNamespace(returncode=1)),
+            patch.object(module, "_owner_projection", return_value=["runtime"]),
+            patch.object(module, "_is_ancestor", return_value=False),
         ):
             report = module.assess(pr=2177, owner="runtime", target=NEXT)
         self.assertEqual(report["decision"], "UNKNOWN_SOURCE_RELATION")

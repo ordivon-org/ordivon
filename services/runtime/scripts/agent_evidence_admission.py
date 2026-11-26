@@ -20,19 +20,47 @@ REPOSITORY = "ordivon-org/ordivon"
 sys.path.insert(0, str(ROOT / "tools/repo"))
 import affected_owners  # noqa: E402
 import convergence_plan  # noqa: E402
+from evidence_source_policy import qualify_current_selector  # noqa: E402
+from source_history_legos import git as git_native  # noqa: E402
 
 _GIT_SHA = re.compile(r"^[a-f0-9]{40}$")
 
 
 def _git(*args: str) -> str:
-    result = subprocess.run(
-        ["git", "--no-replace-objects", *args],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    return result.stdout.strip()
+    # Reuse the native repository-bound, environment-isolated Git operator.
+    # --no-replace-objects alone does not isolate GIT_DIR or grafts.
+    return git_native(ROOT, "--no-replace-objects", *args).strip()
+
+
+def _is_ancestor(base: str, head: str) -> bool:
+    try:
+        _git("merge-base", "--is-ancestor", base, head)
+    except subprocess.CalledProcessError as exc:
+        if exc.returncode == 1:
+            return False
+        raise
+    return True
+
+
+def _target_cut(target: str) -> str:
+    if target != "HEAD" and _GIT_SHA.fullmatch(target) is None:
+        raise ValueError("target revision must be HEAD or an exact Git commit")
+    cut = _source_cut(_git("rev-parse", "--verify", f"{target}^{{commit}}"))
+    if target != "HEAD" and target != cut:
+        raise ValueError("target revision must identify a literal Git commit")
+    return cut
+
+
+def _owner_projection(
+    base: str, head: str, owners: tuple[affected_owners.Owner, ...],
+) -> list[str]:
+    # Compute the native delta in the same repository, not the caller's cwd.
+    paths = affected_owners.changed_paths(base, head, source_repo_root=ROOT)
+    if not paths:
+        return []
+    return convergence_plan.build_plan(
+        changed_files=paths, owners=owners,
+    )["verificationOwners"]
 
 
 def _github(path: str) -> dict[str, Any]:
@@ -225,12 +253,10 @@ def assess_commit(*, commit: str, owner: str, target: str = "HEAD") -> dict[str,
     This permits safe readout after squash/merge queue changes the commit ID.
     No source patch equivalence, consumer coverage or installed fact is assumed.
     """
-    if owner not in {item.name for item in affected_owners.OWNERS}:
+    if owner not in {item.name for item in affected_owners.load_owners()}:
         raise ValueError("unknown natural verification Owner")
     proof_cut = _source_cut(commit)
-    if target != "HEAD" and _GIT_SHA.fullmatch(target) is None:
-        raise ValueError("target revision must be HEAD or an exact Git commit")
-    target_cut = _source_cut(_git("rev-parse", f"{target}^{{commit}}"))
+    target_cut = _target_cut(target)
     if _git("cat-file", "-t", proof_cut) != "commit":
         raise ValueError("original commit unavailable in local Git source")
     receipt, jobs, root = _qualified_original_source_ci(proof_cut)
@@ -273,7 +299,8 @@ def assess_commit(*, commit: str, owner: str, target: str = "HEAD") -> dict[str,
 
 
 def assess(*, pr: int, owner: str, target: str = "HEAD") -> dict[str, Any]:
-    owner_names = {item.name for item in affected_owners.OWNERS}
+    owners = affected_owners.load_owners()
+    owner_names = {item.name for item in owners}
     if owner not in owner_names:
         raise ValueError("unknown natural verification Owner")
     if pr < 1:
@@ -287,9 +314,7 @@ def assess(*, pr: int, owner: str, target: str = "HEAD") -> dict[str, Any]:
     base_cut = _source_cut(base.get("sha"))
     if head.get("repo", {}).get("full_name") != REPOSITORY or base.get("repo", {}).get("full_name") != REPOSITORY:
         raise ValueError("source PR is not from the exact expected GitHub repository")
-    if target != "HEAD" and _GIT_SHA.fullmatch(target) is None:
-        raise ValueError("target revision must be HEAD or an exact Git commit")
-    target_cut = _source_cut(_git("rev-parse", f"{target}^{{commit}}"))
+    target_cut = _target_cut(target)
     for cut in (proof_cut, base_cut):
         if _git("cat-file", "-t", cut) != "commit":
             raise ValueError("original PR Git revision not available in local immutable source")
@@ -297,8 +322,7 @@ def assess(*, pr: int, owner: str, target: str = "HEAD") -> dict[str, Any]:
 
     # This is an existing canonical OWNER consumer selection projection,
     # not an authenticated record of every CI child Job's executed task list.
-    original = convergence_plan.build_plan(base=base_cut, head=proof_cut)
-    selection = owner in original["verificationOwners"]
+    selection = owner in _owner_projection(base_cut, proof_cut, owners)
     changed: list[str] = []
     new_owner_affected: bool | None = None
     source = "UNRELATED_OR_UNQUALIFIED_SOURCE_CUT"
@@ -306,21 +330,34 @@ def assess(*, pr: int, owner: str, target: str = "HEAD") -> dict[str, Any]:
         source = "EXACT_GIT_CUT"
         new_owner_affected = False
     else:
-        ancestor = subprocess.run(
-            ["git", "--no-replace-objects", "merge-base", "--is-ancestor", proof_cut, target_cut],
-            cwd=ROOT,
-            capture_output=True,
-            check=False,
-        )
-        if ancestor.returncode == 0:
-            changed = list(affected_owners.changed_paths(proof_cut, target_cut))
-            if changed:
-                impact = convergence_plan.build_plan(base=proof_cut, head=target_cut)
-                new_owner_affected = owner in impact["verificationOwners"]
-                source = "ANCESTOR_SOURCE_OWNER_IMPACT_PROJECTION"
+        if _is_ancestor(proof_cut, target_cut):
+            changed = list(affected_owners.changed_paths(
+                proof_cut, target_cut, source_repo_root=ROOT,
+            ))
+            # A historical receipt is independent of current selector policy.
+            # Never issue a no-recheck recommendation from a different or
+            # unqualified policy cut, even if the observed Git delta is empty.
+            try:
+                qualify_current_selector(ROOT, target_cut)
+                if owners != affected_owners.load_owners():
+                    raise ValueError("Owner policy changed during observation")
+                if changed:
+                    impact = convergence_plan.build_plan(changed_files=changed, owners=owners)
+                    affected = owner in impact["verificationOwners"]
+                    relation = "ANCESTOR_SOURCE_OWNER_IMPACT_PROJECTION"
+                else:
+                    affected = False
+                    relation = "UNCHANGED_GIT_CONTENT_AT_DESCENDANT"
+                qualify_current_selector(ROOT, target_cut)
+                if owners != affected_owners.load_owners():
+                    raise ValueError("Owner policy changed during observation")
+            except (ValueError, OSError, subprocess.SubprocessError):
+                # Keep the independently observed original receipt and paths.
+                # Missing source-policy applicability is not a negative hit.
+                source = "UNQUALIFIED_CURRENT_SELECTOR_POLICY"
             else:
-                new_owner_affected = False
-                source = "UNCHANGED_GIT_CONTENT_AT_DESCENDANT"
+                new_owner_affected = affected
+                source = relation
     if receipt not in {"EXACT_CUT_SOURCE_CI_PASS", "EXACT_CUT_REQUIRED_WORKFLOW_PASS"}:
         decision = "RECEIPT_UNKNOWN_OR_NOT_PASSED"
         action = "INSPECT_ORIGINAL_CI_RECEIPT_BEFORE_RUNNING_TESTS"
