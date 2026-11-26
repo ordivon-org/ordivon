@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
 from ordivon_security_v2.attestations import (
@@ -16,9 +19,74 @@ from ordivon_security_v2.attestations import (
 from ordivon_security_v2.evidence import verified_evidence_path
 
 
-def write_json(path: Path, value: object) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+def _json_bytes(value: object) -> bytes:
+    return (json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n").encode("utf-8")
+
+
+def _reference_generation_id(references: dict[str, bytes]) -> str:
+    # A canonical map of each filename to its content digest avoids ambiguous
+    # filename/content concatenation when deriving the generation identity.
+    values = {name: hashlib.sha256(content).hexdigest() for name, content in references.items()}
+    return hashlib.sha256(_json_bytes(values)).hexdigest()
+
+
+def _sync_directory(path: Path) -> None:
+    if os.name == "nt":
+        # Keep atomic os.replace semantics; directory fsync is POSIX-only.
+        return
+    fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def publish_attestations(output_dir: Path, references: dict[str, bytes], vsa: bytes) -> None:
+    """Make each VSA visible only after all its immutable references exist.
+
+    The VSA is the publication pointer. Interrupted generations are never
+    referenced by an existing VSA and may be garbage collected separately.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    generation_id = _reference_generation_id(references)
+    generation_root = output_dir / "reference-generations"
+    generation_root.mkdir(exist_ok=True)
+    generation_dir = generation_root / generation_id
+    temporary = Path(tempfile.mkdtemp(prefix=".vsa-stage-", dir=generation_root))
+    try:
+        for name, content in references.items():
+            with (temporary / name).open("xb") as stream:
+                stream.write(content)
+                stream.flush()
+                os.fsync(stream.fileno())
+        _sync_directory(temporary)
+        if generation_dir.exists():
+            if any(
+                not (generation_dir / name).is_file()
+                or (generation_dir / name).read_bytes() != data
+                for name, data in references.items()
+            ):
+                raise ValueError("attestation generation digest collision or inconsistent files")
+        else:
+            os.replace(temporary, generation_dir)
+            _sync_directory(generation_root)
+        # Only the final VSA path is externally mutable; its referenced files
+        # are content-addressed and remain unchanged across later issuances.
+        with tempfile.NamedTemporaryFile(
+            mode="wb", prefix=".vsa-final-", dir=output_dir, delete=False
+        ) as stream:
+            final_temp = Path(stream.name)
+            stream.write(vsa)
+            stream.flush()
+            os.fsync(stream.fileno())
+        try:
+            os.replace(final_temp, output_dir / "verification-summary.vsa.intoto.json")
+            _sync_directory(output_dir)
+        finally:
+            final_temp.unlink(missing_ok=True)
+    finally:
+        shutil.rmtree(temporary, ignore_errors=True)
+
 
 
 def verify_policy_decision(gate: dict[str, object], decision: dict[str, object], policy: Path) -> None:
@@ -83,7 +151,9 @@ def main() -> int:
         raise ValueError("provider receipt and gate results differ")
     verify_policy_decision(gate, decision, args.policy)
 
-    reference_descriptors: list[dict[str, object]] = []
+    # Compute all reference statements before writing any output. The
+    # generation identity is deterministic and part of each immutable URI.
+    reference_bytes: dict[str, bytes] = {}
     for index, (evidence, evidence_path) in enumerate(verified):
         statement = reference_statement(
             subject=subject,
@@ -93,15 +163,16 @@ def main() -> int:
         actual_digest = statement["predicate"]["references"][0]["digest"]["sha256"]
         if "sha256:" + actual_digest != evidence["sha256"]:
             raise ValueError(f"evidence changed during reference emission: {evidence['provider']}")
-        ref_path = args.output_dir / f"input-{index:02d}-{evidence['provider']}.reference.intoto.json"
-        write_json(ref_path, statement)
-        reference_descriptors.append(
-            {
-                "uri": ref_path.resolve().as_uri(),
-                "digest": {"sha256": sha256_file(ref_path)},
-            }
-        )
-
+        filename = f"input-{index:02d}-{evidence['provider']}.reference.intoto.json"
+        reference_bytes[filename] = _json_bytes(statement)
+    generation_id = _reference_generation_id(reference_bytes)
+    reference_descriptors = [
+        {
+            "uri": (args.output_dir.resolve() / "reference-generations" / generation_id / name).as_uri(),
+            "digest": {"sha256": hashlib.sha256(content).hexdigest()},
+        }
+        for name, content in sorted(reference_bytes.items())
+    ]
     versions = {
         "ordivon-security-v2": args.verifier_revision,
         "profile": provider_status.get("profile", "default"),
@@ -119,7 +190,7 @@ def main() -> int:
         input_attestations=reference_descriptors,
         passed=decision.get("standing") == "CURRENT" and decision.get("allow") is True,
     )
-    write_json(args.output_dir / "verification-summary.vsa.intoto.json", vsa)
+    publish_attestations(args.output_dir, reference_bytes, _json_bytes(vsa))
     return 0
 
 

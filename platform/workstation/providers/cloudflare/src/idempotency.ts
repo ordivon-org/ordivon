@@ -437,11 +437,15 @@ export async function commitReceipt(
         }
       }
     );
-  } catch (error) {
-    const current = await loadRequestState(
+  } catch {
+    const observation = await loadRequestState(
       options.bucket,
       options.lease.request_id
-    ).catch(() => null);
+    ).then(
+      (current) => ({ kind: "observed", current } as const),
+      () => ({ kind: "unavailable" } as const)
+    );
+    const current = observation.kind === "observed" ? observation.current : undefined;
     if (
       current?.state.state === "committed" &&
       receiptMatchesLease(current.state.receipt, options.lease)
@@ -453,16 +457,27 @@ export async function commitReceipt(
       );
       return current.state.receipt;
     }
-    await cleanupArtifacts(
-      options.bucket,
-      options.lease,
-      options.artifactKeys ?? [],
-      "receipt_commit_unavailable"
-    );
+    // A failed or negative observation cannot disprove an in-flight commit.
+    // Only a newer generation of the same intent fences this lease permanently.
+    // Do not enqueue cleanup for unresolved evidence: GC could delete a late
+    // committed receipt's Artifacts. The existing retention policy bounds it.
+    if (
+      current != null &&
+      current.state.request_digest === options.lease.request_digest &&
+      current.state.operation === options.lease.operation &&
+      current.state.execution.lease_generation > options.lease.lease_generation
+    ) {
+      await cleanupArtifacts(
+        options.bucket,
+        options.lease,
+        options.artifactKeys ?? [],
+        "receipt_commit_unavailable"
+      );
+    }
     throw new EdgeError(
       "receipt_commit_unavailable",
       503,
-      "The execution result could not be committed.",
+      "The commit outcome could not be confirmed. Reconcile the original request ID.",
       "failed"
     );
   }

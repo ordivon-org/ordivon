@@ -1,33 +1,10 @@
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 from typing import Any
 
-# Reuse the Production source boundary already consumed by the production
-# context action. Learning must not define a weaker path/JSON contract.
-from .production_context import _load_object, _relative_child
-
-
-def _digest(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _extract_learning(text: str) -> str | None:
-    lines = text.splitlines()
-    start: int | None = None
-    end = len(lines)
-    for index, line in enumerate(lines):
-        if line.strip().upper() == "## LEARNING":
-            start = index + 1
-            continue
-        if start is not None and line.startswith("## "):
-            end = index
-            break
-    if start is None:
-        return None
-    value = "\n".join(lines[start:end]).strip()
-    return value or None
+from .cognition_sections import extract_learning
+from .production_source_io import read_bound_bytes, read_bound_object, relative_child
 
 
 def _production_learning_records(root: Path) -> list[dict[str, Any]]:
@@ -37,15 +14,16 @@ def _production_learning_records(root: Path) -> list[dict[str, Any]]:
         return records
     for manifest_path in sorted(productions_root.glob("*/production.json")):
         production_root = manifest_path.parent
-        production = _load_object(manifest_path)
+        production, _ = read_bound_object(manifest_path)
         production_id = str(production.get("id") or production_root.name)
         sources = production.get("sources")
         if not isinstance(sources, dict) or not isinstance(sources.get("cognition"), str):
             continue
-        cognition_path = _relative_child(production_root, sources["cognition"])
+        cognition_path = relative_child(production_root, sources["cognition"])
         if not cognition_path.is_file():
             continue
-        learning = _extract_learning(cognition_path.read_text(encoding="utf-8"))
+        cognition_bytes, cognition_digest = read_bound_bytes(cognition_path)
+        learning = extract_learning(cognition_bytes.decode("utf-8"))
         if learning is None:
             continue
         outputs = production.get("outputs")
@@ -64,7 +42,7 @@ def _production_learning_records(root: Path) -> list[dict[str, Any]]:
             "learning": learning,
             "source": {
                 "path": str(cognition_path.relative_to(root)),
-                "digest": _digest(cognition_path),
+                "digest": cognition_digest,
             },
         })
     return records
@@ -73,7 +51,7 @@ def _production_learning_records(root: Path) -> list[dict[str, Any]]:
 def build_learning_context(root: Path, *, current_production_id: str | None = None) -> dict[str, Any]:
     root = root.resolve()
     expression_path = root / "research/expression/context.json"
-    expression = _load_object(expression_path)
+    expression, expression_digest = read_bound_object(expression_path)
     creative = expression.get("creativeSystem")
     if not isinstance(creative, dict):
         raise TypeError("expression context must contain creativeSystem")
@@ -103,7 +81,7 @@ def build_learning_context(root: Path, *, current_production_id: str | None = No
         "retainedLearning": records,
         "source": {
             "expressionContext": str(expression_path.relative_to(root)),
-            "expressionContextDigest": _digest(expression_path),
+            "expressionContextDigest": expression_digest,
         },
         "consumptionRule": (
             "Retained Production learning is scoped source evidence for the next Agent, not automatic universal taste authority. "

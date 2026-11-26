@@ -6,9 +6,10 @@ from dataclasses import dataclass
 
 from anc_canonical import JsonValue, canonical_digest
 
+from ..agent_tool_observation import HarnessToolObservation
 from ..protocol import HarnessToolStepIntent
 from .model import AgentToolCall
-from ..agent_tool_observation import HarnessToolObservation
+from .run_contract import RunBudget
 
 
 @dataclass(frozen=True, slots=True)
@@ -103,6 +104,54 @@ def _advance_turn_evidence(
         new_evidence=new_evidence,
         evidence_signatures=evidence_signatures,
         search_evidence=search_evidence,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class _TurnProgressDecision:
+    """Side-effect-free Run progress and observation-gate decision."""
+
+    evidence: _TurnEvidenceTransition
+    observation_only_turns: int
+    no_progress_turns: int
+    gate_reason: str | None
+
+
+def _decide_turn_progress(
+    calls: tuple[AgentToolCall, ...],
+    turn_observations: tuple[HarnessToolObservation, ...],
+    observation_only_tool_names: frozenset[str],
+    evidence_signatures: set[str],
+    search_evidence: dict[tuple[str, str], set[str]],
+    *,
+    prior_observation_only_turns: int,
+    prior_no_progress_turns: int,
+    budget: RunBudget,
+) -> _TurnProgressDecision:
+    """Derive progress from immutable inputs; Loop alone applies the decision."""
+    evidence = _advance_turn_evidence(
+        calls,
+        turn_observations,
+        observation_only_tool_names,
+        evidence_signatures,
+        search_evidence,
+    )
+    observation_only_turns = (
+        prior_observation_only_turns + 1 if evidence.observation_only else 0
+    )
+    no_progress_turns = (
+        0
+        if evidence.action_progress or evidence.new_evidence
+        else prior_no_progress_turns + 1
+    )
+    return _TurnProgressDecision(
+        evidence=evidence,
+        observation_only_turns=observation_only_turns,
+        no_progress_turns=no_progress_turns,
+        gate_reason=budget.observation_gate_reason(
+            no_progress_turns=no_progress_turns,
+            observation_only_turns=observation_only_turns,
+        ),
     )
 
 

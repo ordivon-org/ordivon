@@ -10,20 +10,84 @@ tasks:
       - python3 -c 'import ast; ast.parse(open("substrates/shared-egress/forward.py").read())'
       - grep -qx Alias=network-v2-shared-egress.target substrates/shared-egress/systemd/network-v2-browserless.target
 
+  substrate:shared-egress:classify:
+    desc: Separate proven shared-egress SourceCut DRIFT from MATCH and UNKNOWN before any host file writes
+    cmds:
+      - |
+        set -u
+        drift=0
+        unknown() { echo UNKNOWN >&2; exit 2; }
+        compare() {
+          source="$1"
+          installed="$2"
+          test -f "$source" && test -r "$source" || unknown
+          if test -L "$installed"; then unknown; fi
+          if ! test -e "$installed"; then
+            parent="$(dirname "$installed")"
+            test -d "$parent" && test -x "$parent" || unknown
+            drift=1
+            return 0
+          fi
+          test -f "$installed" && test -r "$installed" || unknown
+          if cmp -s "$source" "$installed"; then
+            return 0
+          else
+            comparison_rc="$?"
+            case "$comparison_rc" in 1) drift=1 ;; *) unknown ;; esac
+          fi
+        }
+        compare substrates/shared-egress/systemd/network-v2-browserless-netns.service /etc/systemd/system/network-v2-browserless-netns.service
+        compare substrates/shared-egress/systemd/network-v2-browserless-forward.service /etc/systemd/system/network-v2-browserless-forward.service
+        compare substrates/shared-egress/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
+        compare substrates/shared-egress/carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+        compare substrates/shared-egress/netns.py /usr/local/libexec/network-v2/shared-egress-netns
+        compare substrates/shared-egress/forward.py /usr/local/libexec/network-v2/shared-egress-forward
+        alias=/etc/systemd/system/network-v2-shared-egress.target
+        target=/etc/systemd/system/network-v2-browserless.target
+        if test -L "$alias"; then
+          # A foreign/malformed symlink is ambiguous authority, not permission
+          # to replace a live target during SourceCut convergence.
+          test "$alias" -ef "$target" || unknown
+        elif test ! -e "$alias"; then
+          test -d /etc/systemd/system && test -x /etc/systemd/system || unknown
+          drift=1
+        else
+          unknown
+        fi
+        for unit in network-v2-browserless-netns.service network-v2-browserless-forward.service network-v2-browserless.target; do
+          reload="$(systemctl show "$unit" --property=NeedDaemonReload --value)" || unknown
+          case "$reload" in
+            no) ;;
+            yes) drift=1 ;;
+            *) unknown ;;
+          esac
+        done
+        if test "$drift" -eq 0; then echo MATCH; else echo DRIFT; fi
+
+  substrate:shared-egress:sourcecut:
+    desc: Admit only proven shared-egress source/install/loaded MATCH; UNKNOWN and DRIFT reject
+    cmds:
+      - |
+        verdict="$(task --silent substrate:shared-egress:classify)" || exit 2
+        test "$verdict" = MATCH
+
   substrate:shared-egress:materialize:
     desc: Install the existing shared substrate source without restarting physical VPN
     deps: [substrate:shared-egress:validate]
     # Native Go Task skip; avoid daemon-reload when installed source already matches.
+    # Native Go Task Boolean status alone cannot distinguish DRIFT/UNKNOWN.
     status:
-      - cmp -s substrates/shared-egress/systemd/network-v2-browserless-netns.service /etc/systemd/system/network-v2-browserless-netns.service
-      - cmp -s substrates/shared-egress/systemd/network-v2-browserless-forward.service /etc/systemd/system/network-v2-browserless-forward.service
-      - cmp -s substrates/shared-egress/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
-      - cmp -s substrates/shared-egress/carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
-      - cmp -s substrates/shared-egress/netns.py /usr/local/libexec/network-v2/shared-egress-netns
-      - cmp -s substrates/shared-egress/forward.py /usr/local/libexec/network-v2/shared-egress-forward
-      - test -L /etc/systemd/system/network-v2-shared-egress.target
-      - test /etc/systemd/system/network-v2-shared-egress.target -ef /etc/systemd/system/network-v2-browserless.target
+      - task substrate:shared-egress:sourcecut
     cmds:
+      - |
+        verdict="$(task --silent substrate:shared-egress:classify)" || {
+          echo 'shared-egress SourceCut UNKNOWN: refusing materialization' >&2
+          exit 2
+        }
+        test "$verdict" = DRIFT || {
+          echo 'shared-egress SourceCut not provably DRIFT: refusing materialization' >&2
+          exit 2
+        }
       - install -d -m 0755 /usr/local/libexec/network-v2
       - install -m 0755 substrates/shared-egress/netns.py /usr/local/libexec/network-v2/shared-egress-netns
       - install -m 0755 substrates/shared-egress/forward.py /usr/local/libexec/network-v2/shared-egress-forward
@@ -113,3 +177,30 @@ tasks:
       - task: substrate:shared-egress:kernel:verify
       - systemctl is-active --quiet network-v2-browserless-forward.service
       - /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+
+
+  substrate:shared-egress:forward:idempotence:
+    desc: Verify forwarding rule reuse on the live kernel without restarting Provider, Namespace, Target or consumers
+    cmds:
+      - task: substrate:shared-egress:verify
+      - |
+        set -euo pipefail
+        test -e /etc/network-v2/gluetun/m4-owned-mode.selected
+        source /etc/network-v2/browserless/provider.env
+        test -n "$HOST_IF" && test -n "$HOST_ADDR" && test -n "$NS_ADDR" && test -n "$NS_CIDR"
+        generation() {
+          local unit pid
+          for unit in network-v2-gluetun-owned.service network-v2-gluetun-owned-adapter.service network-v2-mobile-tailnet-exit.service network-v2-finance-egress.service network-v2-codex-proxy.service; do
+            systemctl is-active --quiet "$unit"
+            pid=$(systemctl show --property=MainPID --value "$unit")
+            test "$pid" -gt 1
+            echo "$unit:$pid"
+          done
+        }
+        before=$(generation)
+        result=$(HOST_IF="$HOST_IF" HOST_ADDR="$HOST_ADDR" NS_ADDR="$NS_ADDR" NS_CIDR="$NS_CIDR" /usr/bin/python3 /usr/local/libexec/network-v2/shared-egress-forward ensure)
+        test "$result" = "SHARED_EGRESS_FORWARD_REUSED=PASS"
+        after=$(generation)
+        test "$before" = "$after"
+        echo "SHARED_EGRESS_FORWARD_IDEMPOTENCE_NO_RESTART=PASS"
+      - task: substrate:shared-egress:verify

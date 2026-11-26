@@ -13,7 +13,7 @@ audience:
   - operator
   - builder
   - agent
-updated: 2026-09-11
+updated: 2026-11-18
 summary: Canonical deployment, health, capacity, Workspace lifecycle, reclaim, rollback, and operational verification contract.
 evidence_status: verified
 readiness: READY
@@ -27,6 +27,12 @@ related:
 <!-- cspell:words aria2c hyperfine libexec nocapture nonselected rclone rsync toplevel -->
 
 # Runtime Operations
+
+## Installed backend selection (safety-critical)
+
+**Observed 2026-11-18:** the connected Linux `ordivon-runtime.service` runs the **PostgreSQL-native** `ordivon-runtime-pg` server; the native Windows R6 candidate remains independently qualified and is **not** an accepted PG-only Runtime Writer. Before applying any command in this document, verify the live `runtime.describe`, installed service `ExecStart`, actual Registry backend, deployed executable digest, and original consumer evidence. Commands below with `--database .../registry.sqlite3`, `transactional-runtime` or the legacy `ordivon-runtime-reclaim`/`ordivon-runtime-lifecycle` operators describe **SQLite-backed source/legacy installations**, not the current Linux PG deployment. Linux PG Workspace cleanup uses the installed `ordivon-runtime-pg-reclaim` contract and must retain its original owner/consumer safeguards.
+
+The source package's periodic timer is **not** proof of live automation. At this observation the Linux `ordivon-runtime-lifecycle.timer` was `disabled/inactive`, deliberately pending full original Harness Run / Workspace-claim release qualification. Never enable it or invoke a destructive sweep merely because this page describes packaged cadence or four-hour retention. Preserve dirty, ignored-output and unaccepted Artifact consumers. See the [operator guide](guides/operator-runtime.md) and [Agent consumer guide](guides/agent-runtime.md); Source, Installed, and Consumer acceptance are separate states.
 
 ## Scope
 
@@ -45,6 +51,48 @@ Treat unhealthy service state, unresolved Registry conditions, held reservations
 ## Recovery
 
 Recover through Runtime reconciliation, documented repair or quarantine paths, explicit Workspace close/reclaim operations, and receipt-bound Git rollback. Never delete live state or redispatch ambiguous work as a substitute for diagnosis.
+
+## PostgreSQL backup recovery: verified isolated consumer path
+
+Prefer the already installed **pgBackRest + PostgreSQL 18**, not a new backup
+registry or a repeated logical-`pg_restore` rebuild of every Host search GIN
+index. As of 2026-11-15, production stanza `ordivon` had seven retained full
+backups. A fresh, never-used `/var/tmp` target recovered with pgBackRest
+`--type=immediate` in 59.6 seconds, and the isolated PostgreSQL server reached
+read-only SQL in another 10.8 seconds. These are measured trial durations,
+**not an end-to-end failover RTO or current-data RPO**.
+
+For an operator-owned isolated drill: confirm an adequate free-space budget,
+create and chown a distinct empty PGDATA and private Unix-socket directory,
+and inspect `pgbackrest info` as the PostgreSQL service user. Run existing
+`pgbackrest --stanza=ordivon --pg1-path=/isolated/pgdata --type=immediate restore`. Start the restored server using its **restored**
+`postgresql.conf`, an isolated socket and unique port, and no TCP listener.
+Crucially, retain recovery-critical source settings: the initial drill
+failed because its `max_connections=12` was below the primary WAL's `100`.
+With `max_connections=100` the original native PostgreSQL 18 WAL archive
+restored to consistency, `pg_is_in_recovery()` returned true, and read-only SQL
+confirmed Host 21, Harness 6 and Linux Runtime 16 application tables.
+Never disable authentication or expose the drill's socket to other users.
+
+Use native `pg_ctl -w stop`, then remove **only the verified exact drill
+directory** after checking no postmaster remains. Preserve failure logs until
+classified. An `immediate` recovery pauses at the earliest consistent point.
+
+A separate **time-target PITR** drill (2026-11-15) reused pgBackRest with
+`--type=time --target="2026-11-15 12:00:00+08" --target-action=pause`
+on a fresh isolated PGDATA. PostgreSQL 18 stopped *before* a commit at
+12:00:00.537749+08 and confirmed `pg_is_wal_replay_paused()=true`; the last
+replayed transaction was at 11:59:51.582089+08. Read-only SQL confirmed the
+same Host 21, Harness 6, Linux Runtime 16 application tables. **Count all
+non-system schemas**, not just `public`, or Runtime/Harness may falsely appear
+empty. Restore and isolated boot took 59.58 and 10.69 seconds respectively,
+excluding target replay and SQL checks.
+
+These drills prove selected backup/WAL/SQL recovery only, **not** current-time
+RPO, writer promotion, application-level correctness, external Agent effects
+or a failover service switch. Those require separate real-consumer acceptance.
+Production PGDATA, original WAL repository, qualified Runtime epoch and other
+Agents' Workspaces are untouched.
 
 ## PostgreSQL Runtime recovery branch qualification (source candidate)
 
@@ -201,7 +249,7 @@ apply     lock, retain previous artifacts, install, restart, probe, receipt
 rollback  restore the exact previous artifact set from one receipt
 ```
 
-A normal production deployment is:
+For the **legacy SQLite Runtime only** (not the installed Linux PostgreSQL Runtime), the historical deployment command sequence is:
 
 ```bash
 owner=$(pwd -P)
@@ -305,7 +353,7 @@ The probe identifies itself as `ordivon-mcp-probe/1` instead of inheriting Pytho
 
 ## Runtime history archival inspection
 
-`scripts/ordivon-runtime-archive` is currently a **repository-owned read-only planning surface** for the append-oriented Runtime Registry and immutable Attempt bundles. It is deliberately not part of the stable schema-v2 installed release artifact set yet: adding an artifact to that set requires its own additive-install/rollback contract instead of weakening the current deployer's pre-install completeness check. The Python surface owns policy and report presentation only; Registry capability validation, classification, closure counts, and sample selection come from the Rust `ordivon-runtime-inspect registry-archive` projection. The inspector does not export an archive, delete hot rows, move bundles, VACUUM SQLite, or establish deletion authority. The default seven-day policy classifies only stable terminal Jobs (`succeeded`, `failed`, `timed_out`, `cancelled`) as candidates. `lost` and `orphaned` remain excluded because Runtime repair semantics can still strengthen those states; Jobs with Runtime release effects, active/held reservations, or residual supervisor ownership are also excluded. Historical Jobs whose `current_attempt_id` is null use the same latest-`attempt_number` fallback as Runtime Core rather than being misclassified as corrupt.
+`scripts/ordivon-runtime-archive` is currently a **repository-owned read-only planning surface** for the append-oriented Runtime Registry and immutable Attempt bundles. It is deliberately not part of the stable schema-v2 installed release artifact set yet: adding an artifact to that set requires its own additive-install/rollback contract instead of weakening the current deployer's pre-install completeness check. The Python surface owns policy and report presentation only; Registry capability validation, classification, closure counts, and sample selection come from the Rust `ordivon-runtime-inspect registry-archive` projection. The inspector does not export an archive, delete hot rows, move bundles, VACUUM SQLite, or establish deletion authority. The default seven-day policy classifies only stable terminal Jobs (`succeeded`, `failed`, `timed_out`, `cancelled`) as candidates. `lost` and `orphaned` remain excluded because Runtime repair semantics can still strengthen those states; Jobs with Runtime release effects, active/held reservations, or residual supervisor ownership are also excluded. Every Attempt must have exactly one recorded released reservation; missing, duplicate or unrecognized reservation evidence and null Attempt states exclude the Job from candidates. This is not consumer release or deletion authority. Historical Jobs whose `current_attempt_id` is null use the same latest-`attempt_number` fallback as Runtime Core rather than being misclassified as corrupt.
 
 ```bash
 scripts/ordivon-runtime-archive \
@@ -426,9 +474,9 @@ scripts/ordivon-runtime-lifecycle sweep \
   --confirm-policy APPLY_WORKSPACE_RETENTION_POLICY --pretty
 ```
 
-The packaged timer runs the Runtime lifecycle service hourly with a small randomized delay. Each run first applies the mature low-level reclaim path to clean `closable` Workspaces at 4 hours, then runs policy-driven lifecycle handling for the remaining classes, then runs cache maintenance. Clean and clean-but-unintegrated carriers become policy-eligible after 4 hours of inactivity; packaged dirty carriers are *not* automatically eligible at 48 hours, and hard lifetime cannot override their owner-disposition requirement. Active or held Jobs and explicitly pinned Workspaces remain protected. Clean-but-unintegrated closures use the Runtime `workspace.close` boundary after source preservation. A dirty close requires an explicit disposition outside the automatic packaged lifecycle; neither case permits direct filesystem deletion. `unknown` and `orphan_directory` identities are not blindly deleted because Runtime cannot prove the target identity; they continue through repair/quarantine. Lifecycle exit 1 is a service failure rather than an accepted systemd success; exit 2 remains the accepted partial-maintenance status.
+In the **legacy SQLite deployment only**, when its packaged timer is explicitly enabled, the Runtime lifecycle service runs hourly with a small randomized delay. Each run first applies the mature low-level reclaim path to clean `closable` Workspaces at 4 hours, then runs policy-driven lifecycle handling for the remaining classes, then runs cache maintenance. Clean and clean-but-unintegrated carriers become policy-eligible after 4 hours of inactivity; packaged dirty carriers are *not* automatically eligible at 48 hours, and hard lifetime cannot override their owner-disposition requirement. Active or held Jobs and explicitly pinned Workspaces remain protected. Clean-but-unintegrated closures use the Runtime `workspace.close` boundary after source preservation. A dirty close requires an explicit disposition outside the automatic packaged lifecycle; neither case permits direct filesystem deletion. `unknown` and `orphan_directory` identities are not blindly deleted because Runtime cannot prove the target identity; they continue through repair/quarantine. Lifecycle exit 1 is a service failure rather than an accepted systemd success; exit 2 remains the accepted partial-maintenance status.
 
-The low-level reclaim apply path also re-reads `workspace.get` immediately before deletion. The fresh `currentHeadRevision` must equal the revision classified during planning, the Workspace must still be clean, and the fresh `sourceStateDigest` is passed unchanged to `workspace.close(expectedSourceStateDigest=...)`. This makes the low-level clean/stale removal a compare-and-swap transition rather than a time-of-check/time-of-use guess. The subordinate reclaim receipt is linked from the lifecycle receipt. The same oneshot then runs cache pruning as a separate receipt domain; Workspace retention does not become cache authority. Packaged cache pruning reads `ORDIVON_CACHE_HIGH_WATERMARK_BYTES` and `ORDIVON_CACHE_LOW_WATERMARK_BYTES` from the same Runtime operator environment used by health/status. An explicit `ordivon-runtime-cache prune` invocation may override those values with CLI watermarks; without either an environment file or explicit values, the standalone command retains its 64 GiB / 48 GiB defaults.
+The **legacy SQLite** low-level reclaim apply path also re-reads `workspace.get` immediately before deletion. The fresh `currentHeadRevision` must equal the revision classified during planning, the Workspace must still be clean, and the fresh `sourceStateDigest` is passed unchanged to `workspace.close(expectedSourceStateDigest=...)`. This makes the low-level clean/stale removal a compare-and-swap transition rather than a time-of-check/time-of-use guess. The subordinate reclaim receipt is linked from the lifecycle receipt. The same oneshot then runs cache pruning as a separate receipt domain; Workspace retention does not become cache authority. Packaged cache pruning reads `ORDIVON_CACHE_HIGH_WATERMARK_BYTES` and `ORDIVON_CACHE_LOW_WATERMARK_BYTES` from the same Runtime operator environment used by health/status. An explicit `ordivon-runtime-cache prune` invocation may override those values with CLI watermarks; without either an environment file or explicit values, the standalone command retains its 64 GiB / 48 GiB defaults.
 
 The `--confirm-policy` / `--confirm-quarantine` phrases on these root-operated maintenance CLIs are human/operator anti-mistake ceremony, not semantic authority. The actual protection comes from classification, exact Workspace identity, active-Job checks, locks, before/after receipts, and preserved bytes. Future Agent-facing control surfaces should express deliberate intent and affected identities structurally rather than asking an Agent to echo a magic phrase.
 
@@ -462,7 +510,7 @@ cache/tmp/<workspaceId>/         Workspace temporary-file backing
 
 For `trusted_local`, Runtime keeps temporary bytes in the Workspace-owned `cache/tmp/<workspaceId>/` backing but presents `TMPDIR` through the fixed-length `/tmp/ordivon-t/<20hex>` symlink derived from the canonical physical Runtime store namespace plus Workspace identity. The bounded presentation prevents child tools that derive Unix-domain sockets below `TMPDIR` from inheriting arbitrary Runtime-store or Workspace-ID path length; it does not move temporary bytes into shared `/tmp`. The alias lives below a Runtime-owned mode-0700 presentation root, is disposable, verified against the exact backing, and removed by normal Workspace close and broken-Workspace quarantine. `contained_local` continues to receive the direct Workspace-private backing path.
 
-The committed execution environment sets explicit paths for Cargo, uv, pip, npm, pnpm/Corepack, Bun, and Go. Every Workspace still owns its own physical Cargo target backing under `cache/build/<workspaceId>/cargo`. For `trusted_local`, the Runner opens that backing and presents it at the stable compiler-visible `CARGO_TARGET_DIR=/proc/self/fd/198`; concurrent Jobs use the same pathname string but distinct inherited directory descriptors and therefore distinct mutable backings. This stable presentation exists to make content-addressed compiler wrappers such as sccache insensitive to otherwise-arbitrary Workspace target paths; Runtime does not share Cargo target bytes or operate a compiler-cache service. `contained_local` keeps the direct Workspace-private target path. Package-download caches remain global in trusted-local, while contained-local keeps its tooling/package cache Workspace-scoped.
+The committed execution environment sets explicit paths for Cargo, uv, pip, npm, pnpm/Corepack, Bun, and Go. Every Workspace still owns its own physical Cargo target backing under `cache/build/<workspaceId>/cargo`. For new `trusted_local` plans, the existing systemd transient Unit binds the Workspace-private Cargo directory to stable `CARGO_TARGET_DIR=/run/ordivon/cargo-target`. Each Unit owns its mount namespace: identical compiler-visible paths map to separate physical Workspace build backings. Ordinary nested subprocesses cannot invalidate that path merely by closing inherited descriptors. This preserves the goal of sccache-friendly stable target identity without sharing mutable Cargo bytes or installing another cache service. Previously committed `/proc/self/fd/198` plans continue to use the old Runner FD path, including its known nested-process limit. Cross-Workspace cache economics after changing the lexical target are a measured release qualification. Package-download caches remain global in trusted-local, while contained-local keeps its tooling/package cache Workspace-scoped.
 
 Inspect cache retention authority without mutation. The projection separates directly reclaimable candidates, idle-open Workspace build targets that require an admission-fenced eviction cut, still-protected Workspace caches, and package-manager-owned shared caches; it does not imply authority to delete every measured byte:
 
@@ -471,6 +519,50 @@ scripts/ordivon-runtime-cache inspect \
   --database /var/lib/ordivon/registry/registry.sqlite3 \
   --runtime-store-root /var/lib/ordivon/runtime --pretty
 ```
+
+### PostgreSQL-only rebuildable build-cache eviction
+
+The native PostgreSQL Runtime lifecycle reclaimer closes eligible Workspaces but does
+not invoke the SQLite Registry-backed `ordivon-runtime-cache prune`. Therefore
+open Workspace private Cargo targets can accumulate even after successful Jobs.
+The PG-only targeted operator adapter
+`scripts/ordivon-runtime-pg-buildcache-evict` reuses the mature cache operator's
+**detach under admission fence, unlink outside the fence** algorithm without
+opening SQLite or closing Git Workspaces. This adapter is a manual source
+capability unless separately installed into the operator's systemd lifecycle.
+
+Use the **effective** installed PG Runtime configuration, preserving systemd
+`EnvironmentFile=` precedence: later overlays override earlier definitions.
+A base env file alone is insufficient if the running PG Writer SourceCut came
+from a later overlay. Supply the actual `workspace.get` HEAD and
+`sourceStateDigest`; the adapter rechecks source cleanliness, native PG
+Workspace status, source qualification, no unresolved or held PG Job, a
+minimum four-hour quiet interval, and physical cache identity under the same
+PG advisory lock that serializes Job admission. Dry run is the default.
+`--apply` records a plan, atomically detaches only
+`cache/build/<workspaceId>/`, releases the PG fence, deletes detached bytes,
+and records the final result. Git source, untracked/ignored Workspace outputs,
+PG Job/Attempt, and Artifacts are not its deletion target. Interrupted
+post-detach cleanup leaves a named `.prune-detached` candidate and a
+recoverable plan receipt; do not assume the caller's error means no effects.
+
+Example (use the exact current values returned by `workspace.get`):
+
+```bash
+python3 scripts/ordivon-runtime-pg-buildcache-evict \
+  --env-file /etc/ordivon/ordivon-runtime-pg-only.env \
+  --env-overlay /etc/ordivon/runtime-resource-scheduler.env \
+  --env-overlay /etc/ordivon/runtime-pg-only-build.env \
+  --store-root /var/lib/ordivon/pg-candidate \
+  --workspace-id '<workspace-id>' \
+  --expected-head '<40-hex-current-HEAD>' \
+  --expected-source-state-digest 'sha256:<64-hex-source-digest>'
+```
+
+This is **not** a semantic consumer-release proof or an installed automatic
+GC policy. Reusing compiled outputs after cache eviction incurs rebuild costs,
+and external non-Runtime consumers require independent observation. Native
+successful source/PG evidence does not establish domain task completion.
 
 The former source-cache migration path is retired. Current execution never consumes `cache/build/sources/<sha256>/`; keeping an operator that moved Workspace build targets into that hierarchy would manufacture unused state. Existing source-scoped caches are therefore legacy reconstructible bytes and are eligible for ordinary capacity reclamation even when the same source repository still has an open Workspace.
 
@@ -569,6 +661,141 @@ The dashboard reports elapsed, output-idle, and progress-idle time as mechanical
 
 The JSON schema reports separate `health` and `maintenance` states. The deployment projection names the current `releaseEvent` and `releaseDisposition`; a successful explicit rollback supersedes the forward deployment for installed-artifact truth. Exit code `1` is reserved for operational health failures such as service, deployment, Registry, recovery, exact release-artifact inconsistency, or a rollback whose restored artifact set is known but whose coherent source Commit cannot be proven. Maintenance findings such as a stale dirty Workspace produce top-level `status=attention` but retain exit code `0`; automation must inspect `maintenanceAction` when maintenance policy should gate a workflow. Compatibility observations remain advisory deletion evidence: an unreadable or truncated trace, unknown rollback protocol, or incomplete observation window blocks deletion but does not create a health incident. Exit code `2` remains reserved for an invalid invocation or unreadable mandatory input.
 
+## Independent PostgreSQL ReleaseEffect handoff (opt-in, source-only)
+
+A running PostgreSQL Runtime's normal Runner MUST NOT execute a self-release.
+The native PG MCP adapter accepts a release only after both the qualified
+PostgreSQL release record and a running, configured
+ordivon-runtime-pg-release-dispatch.timer are observed. Without these
+conditions release.apply is absent from the actual PG MCP Tool catalog,
+and runtime.describe.structuredReleaseConfigured remains false.
+The existing release.get remains read-only throughout.
+
+The release request contains only clientRequestId, Workspace ID, exact Git
+owner commit, candidate manifest SHA-256 and expected MCP Tool count.
+Runtime validates the clean Workspace and its actual source identity, then
+commits the Job + ReleaseEffect in one PostgreSQL transaction. It never runs
+the release as a general-purpose Workspace command. Exact replay resolves
+the original intent BEFORE new candidate validation.
+
+The independent consumer scripts/ordivon-runtime-pg-release-dispatch
+is a privileged one-shot, driven by the standard native systemd timer
+and service in packaging/systemd/. It reads at most one pending release from
+qualified PostgreSQL, uses a root-owned Operator JSON configuration,
+and invokes the already-tested ordivon-runtime-pg-operator for that exact
+committed effect. PostgreSQL dispatch and immutable receipt semantics
+guard replay, unknown commit, restart recovery, rollback and readback.
+No additional Registry, workflow engine or scheduler is introduced.
+
+Production installation is NOT performed by checking in this source.
+The separately controlled Root release-operator bundle (dispatcher,
+its Python operator module, the existing ordivon-runtime-deploy helper and
+mcp_probe.py) is installed together under
+/usr/local/libexec/ordivon/pg-release-operator/, distinct from the released
+Server/Runner/Reclaimer payloads under /usr/local/libexec/ordivon/.
+The packaged dispatcher systemd unit must reference that *effective*
+Root-bundle path; check systemctl show ExecStart and the actual installed
+script hashes before deployment. The existing Runtime deployer also has a
+**read-only** Root-bundle currentness consumer (root-bundle-plan): provide
+its full, approved Git commit and independently recorded Runtime owner-tree
+OID using source-repo, commit, expected-owner-tree, require-ref
+and the actual install-dir options. Its five-entry output distinguishes
+current, drifted, missing and unsafe source-to-install byte identities;
+neither a GREEN plan nor five matching bytes grant permission to mutate
+the Root control plane. Treat the plan as an operator review input, not an
+installer, a signed authorization, or a live Service receipt.
+
+For a nested monorepo checkout, the `--source-repo` must be the actual
+Runtime **owner directory** (`<checkout>/services/runtime`), not the Git
+repository root. Bind `--expected-owner-tree` to the exact
+`git -C <checkout> rev-parse '<commit>:services/runtime'` object. A Git
+repository-root source and a Runtime-owner source have different tree
+identities; do not weaken the source authority if the plan rejects them.
+
+An isolated Root candidate may now be **staged but never installed** using
+the same existing deployer command with the root-bundle-stage subcommand and
+the plan's source-repo, commit, require-ref, expected-owner-tree and live
+install-dir inputs, plus a fresh absolute candidate-dir outside the live
+bundle. The command rejects an existing candidate directory, checks Git
+blob identity twice, preserves each original installed preimage digest only
+as a **read-only observation**, and writes a five-file candidate manifest.
+It never calls systemctl, changes release admission, copies over installed
+Root scripts, writes the operator config, or issues a PG ReleaseEffect.
+The resulting candidate directory belongs to the staging caller, **not**
+to Root's authorization or rollback domain; do not copy or trust it merely
+because its manifest reports correct bytes. The independent Root owner must
+revalidate the protected Git SourceCut and all five files, retain a root-owned
+durable preimage, fence new PG release admissions, quiesce the independent
+dispatcher timer/service across reboots, and attest installation and
+rollback under its existing Root credential before enabling a new release.
+The 2026-11-12 historical one-time first-install bootstraps covered only
+Server/Runner payloads, not the Root control plane and not those conditions.
+
+The existing deployer now contains a **private Linux filesystem exchange
+primitive** and conservative two-directory readback, intentionally without a
+Root install CLI or MCP endpoint. For a trusted Root-owned staging directory
+on the *same device and same parent* as the live Root bundle,
+renameat2(RENAME_EXCHANGE) switches the two nonempty directories at one
+namespace linearization point without changing the effective systemd
+ExecStart address. The old directory is retained at the staging path for
+rollback, rather than lost by successive per-file overwrites. The primitive
+uses O_DIRECTORY|O_NOFOLLOW for directory descriptors, synchronizes both
+directories before the exchange and the parent directory afterward, and
+returns RECONCILIATION_REQUIRED if a post-exchange durability/readback
+operation fails. The classifier returns PREPARED, EXCHANGED, or UNKNOWN
+from five old/new real file byte sets; identical old/new byte sets, wrong
+file modes, missing files, unexpected staged importable scripts / bytecode,
+or drift are always UNKNOWN, never an auto-approved retry. Only the five
+committed candidate files and its optional stage manifest may occupy the
+NEW Root directory before activation; the old directory can retain its
+separate historical artifacts as a protected rollback preimage. Python
+normally creates __pycache__ on first import: the packaged one-shot
+dispatcher therefore runs its interpreter with the native -B flag, so
+the future Root bundle stays a closed five-file import namespace. The
+physical Root owner must compare the **effective installed systemd ExecStart**
+to this package definition before applying/accepting a switch; changing
+the package source alone cannot update a running unit. On unsupported
+Linux filesystems there is **no non-atomic fallback**.
+
+**This primitive is not yet a production upgrader**. The natural Root
+operator must still journal exact candidate/preimage inode and SHA evidence
+outside the two mutable directories, bind approval to the protected Git
+commit and independent Root credential, revoke PostgreSQL Release admission
+under the existing shared advisory lock, verify all outstanding Release
+effects are settled, persistently stop the dispatcher timer and confirm its
+one-shot service is inactive. Only then may its own trusted process consume
+the internal directory switch, authenticate five new on-disk files and
+effective systemd imports, attest a Root-owned rollback/terminal receipt and
+restore Release admission/timer. Uncertain physical effects must be
+reconciled against that journal rather than reissued. Existing Agent
+Workspace staging output remains **untrusted** and must never be used as
+a Root-owned preimage or physical approval.
+Install the hash-locked Python venv, and
+set root-owned independent Operator env/config under /etc/ordivon/. The PG
+Operator DSN and allowed service list are never sent by an MCP caller.
+The Runtime app role must not be able to alter the qualification stage.
+A Git source merge or package Unit edit is not a Root-bundle upgrade:
+the trusted Root owner must qualify its own exact preimage, replacement,
+rollback and readback before enabling includePgReclaimer in the operator
+JSON. The ordinary PG ReleaseEffect then installs the three payloads under
+one exact manifest; do not manually copy binaries or enable the automatic
+Workspace GC timer while external PAUSED Run Finalizer remains unqualified.
+
+After the independent release stage is qualified and the systemd timer
+is installed and running, configure the actual PG Runtime service with:
+
+    ORDIVON_PG_RELEASE_SOURCE_REPO=/root/projects/ordivon/services/runtime
+    ORDIVON_PG_RELEASE_OPERATOR_BIN=/usr/local/libexec/ordivon/ordivon-runtime-pg-operator
+    ORDIVON_PG_RELEASE_RECEIPT_ROOT=/var/lib/ordivon/release-receipts
+    ORDIVON_PG_RELEASE_DISPATCH_TIMER=ordivon-runtime-pg-release-dispatch.timer
+
+These are sample values only, NOT proof of an installed service. Before
+activating a live node, perform disposable PG/systemd whole-chain tests:
+exact admission, durable dispatcher wake-up, native service replacement,
+separate HTTP MCP release.get, source/binary Tool digests, restart and
+rollback. The Windows R6 SQLite backend is NOT addressed by this Linux
+systemd release path.
+
 ## PostgreSQL-native operator release evidence (source, not production rollout)
 
 The PG ReleaseEffect reader, the atomic pre-dispatch admission and the
@@ -645,12 +872,26 @@ the unit and database. Failure tests also cover a forged result,
 Operator privilege and WAL-epoch revocation, unknown dispatch reply,
 partial file replace, systemd start failure and exact replay.
 
-**Production release gate remains closed:** no installed Linux PG node
-has been observed advertising structuredReleaseConfigured=true or a
-qualified release.apply. Tests of disposable service installation do not
-imply that a production Operator/Artifact/service has been installed.
-The PG transport must still connect MCP release.apply and the
-independent Operator invocation/restart acceptance before that claim.
+**Live release capability is not installed release evidence.** A Linux PG
+Runtime can report `structuredReleaseConfigured=true` and accept a
+`release.apply` as one durable ReleaseEffect while the independent Root
+dispatcher is configured, without replacing the live Server/Runner. The
+existing PostgreSQL admission transaction already cordons **new** Jobs
+while that Effect is pending; do not create a second cordon or hold its
+source/transaction lock while older Jobs need to terminalize. A release
+can still finish `not_committed` when previously admitted Agent Jobs
+exceed the Root Operator's finite `drainSeconds` budget.
+
+Before a fresh source-qualified release, read the actual Root operator
+configuration and effective systemd one-shot `TimeoutStartUSec`:
+`drainSeconds`, MCP `waitSeconds`, stop/start, physical preimage
+retention and possible rollback must fit a bounded, verified maintenance
+window. Never cancel unrelated Owner Jobs to obtain a green drain and
+never replay a terminal failed ReleaseEffect under the old identity.
+Only the original `release.get` result, immutable operator receipt,
+exact installed Server/Runner digests and live authenticated MCP
+readback can establish a completed installation; an accepted request,
+source merge, or successful disposable PostgreSQL test cannot.
 
 ### PostgreSQL serialization-abort admission (2026-11-08)
 
@@ -761,3 +1002,37 @@ Use the owner-native `cargo test -p ordivon-runtime-mcp --features postgres-runt
 `--test pg_vertical -- --ignored --test-threads=1` after building the native Runner
 for disposable PostgreSQL lifecycle verification. A transport repair does not
 import historical state or authorize a schema epoch transition.
+
+### PostgreSQL Artifact Job lookup index (additive R1)
+
+The fresh-epoch schema includes `idx_artifacts_job`, a non-unique B-tree
+on `artifacts(job_id)`. It is a derived query access path, not new execution,
+retention, or Artifact authority. The existing Attempt composite unique index
+continues to serve the reverse lookup.
+
+For an **existing, operator-approved active Runtime schema**, use
+`crates/ordivon-runtime-core/sql/pg_artifact_job_lookup_r1.sql` with native
+`psql -X -w -v ON_ERROR_STOP=1` in autocommit mode, explicitly supplying
+`search_path`, `ordivon.runtime_schema`, and `ordivon.source_sha256` as
+connection/session settings (for example via approved PGOPTIONS). Connect using the approved
+operator DSN through the normal secret handling; never place credentials
+in logs. Do not use `--single-transaction`. Set bounded lock/statement
+timeouts appropriate to the measured table size and active workload.
+Do not apply to a historical staging schema, restored unqualified epoch,
+public or Harness. The operator must separately exclude concurrent schema
+administration, source/epoch cutover and maintenance conflicts; the script's
+preflight is not a lock spanning concurrent index construction.
+
+The migration verifies current source and native physical epoch both before
+and after DDL, uses `CREATE INDEX CONCURRENTLY`, and accepts an existing
+same-name object only if PostgreSQL catalogs verify the exact usable
+index (default B-tree, one key, no predicate, expression or INCLUDE).
+No automatic DROP/REINDEX is performed. An interrupted build can leave an
+invalid index: inspect the native catalog and `pg_stat_progress_create_index`,
+resolve the incomplete object under the operator's own approved maintenance
+procedure, then rerun. A successful psql exit and native catalog readback
+are required; a matching name alone is not acceptance. Reverify the qualified
+epoch and actual consumer plans after the operation. Measure write overhead,
+index space and both read directions before claiming a performance win.
+Reverting this derived access path is a separate operator-approved
+`DROP INDEX CONCURRENTLY` of the exact qualified index, not data retirement.

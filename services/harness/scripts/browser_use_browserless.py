@@ -222,16 +222,11 @@ def _target_program(
     if expect_role not in ACTION_ROLES:
         raise ValueError("expect-role is not an actionable role")
     expect_name = _validate_text(expect_name, "expect-name")
-    if expect_backend_dom_node_id is not None and (
-        type(expect_backend_dom_node_id) is not int or expect_backend_dom_node_id <= 0
-    ):
-        raise ValueError("expect-backend-dom-node-id must be a positive integer")
+    if type(expect_backend_dom_node_id) is not int or expect_backend_dom_node_id <= 0:
+        raise ValueError("expect-backend-dom-node-id must be a positive integer from observation")
     identity = (
         f"_ordivon_require(row['backendDOMNodeId']=={expect_backend_dom_node_id}, "
         "{'error':'affordance-node-changed'})\n"
-        if expect_backend_dom_node_id is not None
-        else "_ordivon_require(sum(r['role']==row['role'] and r['name']==row['name'] for r in rows)==1, "
-        "{'error':'affordance-ambiguous-reobserve-and-bind-node'})\n"
     )
     return (
         "import json\n" + _affordance_prelude() + f"rows=_ordivon_affordances()\nidx={index}\n"
@@ -241,6 +236,13 @@ def _target_program(
         "{'error':'affordance-changed','observed':{'role':row['role'],'name':row['name']}})\n"
         "_ordivon_require(row['x'] is not None and row['y'] is not None, {'error':'affordance-has-no-box'})\n"
         + identity
+        # Reuse Chromium's current pointer hit-test before coordinate effects.
+        # Stable DOM identity alone cannot prove a target receives pointer events.
+        + 'node_object=cdp("DOM.resolveNode",backendNodeId=row["backendDOMNodeId"])["object"]["objectId"]\n'
+        + 'try:\n'
+        + '    hit=cdp("Runtime.callFunctionOn",objectId=node_object,functionDeclaration="function(x,y){const h=document.elementFromPoint(x,y);return !!h&&this.isConnected&&(h===this||this.contains(h));}",arguments=[{"value":row["x"]},{"value":row["y"]}],returnByValue=True)\n'
+        + 'finally:\n    cdp("Runtime.releaseObject",objectId=node_object)\n'
+        + '_ordivon_require(hit.get("result",{}).get("value") is True, {"error":"affordance-not-hit-target"})\n'
         + action_code
         + f'print(json.dumps({{"standing":{json.dumps(standing)},"target":{{"index":idx,"role":row["role"],"name":row["name"]}},"pageAfter":_ordivon_page_info()}},sort_keys=True,ensure_ascii=False))\n'
     )
@@ -354,12 +356,12 @@ def parser() -> argparse.ArgumentParser:
     click.add_argument("--index", type=int, required=True)
     click.add_argument("--expect-role", required=True)
     click.add_argument("--expect-name", required=True)
-    click.add_argument("--expect-backend-dom-node-id", type=int)
+    click.add_argument("--expect-backend-dom-node-id", type=int, required=True)
     inp = sub.add_parser("input")
     inp.add_argument("--index", type=int, required=True)
     inp.add_argument("--expect-role", required=True)
     inp.add_argument("--expect-name", required=True)
-    inp.add_argument("--expect-backend-dom-node-id", type=int)
+    inp.add_argument("--expect-backend-dom-node-id", type=int, required=True)
     inp.add_argument("--text", required=True)
     scr = sub.add_parser("scroll")
     scr.add_argument("--dy", type=int, required=True)

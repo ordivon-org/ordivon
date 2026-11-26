@@ -33,7 +33,7 @@ Provide a signed adapter for bounded remote Fetch and same-origin Browser snapsh
 
 ## Supported operations
 
-The supported surface is `fetch.v2`, `browser.snapshot.v2`, `receipt.v2`, authenticated Artifact retrieval, release, rollback, lifecycle configuration, and bounded garbage collection. The exact callable set is reported by the deployed capability endpoint and must match local policy and source identity.
+The supported surface is `fetch.v2`, `browser.snapshot.v2`, `receipt.v2`, authenticated Artifact retrieval, release, rollback, lifecycle configuration, and bounded cleanup-record auditing and native lifecycle expiration. The exact callable set is reported by the deployed capability endpoint and must match local policy and source identity.
 
 ## Authority boundary
 
@@ -51,7 +51,7 @@ A signed provider adapter for bounded remote Fetch and Browser work.
 - `browser.snapshot.v2` — same-origin Browser Rendering snapshot;
 - `receipt.v2` — pending state, fenced leases, exact Request ID/input binding, replay, and reconciliation;
 - private R2 Artifact retrieval with digest and byte verification;
-- versioned release, rollback, lifecycle, and garbage collection.
+- versioned release, rollback, native lifecycle, and cleanup-record auditing.
 
 The provider owns Cloudflare execution state and objects. It does not own Host Task meaning or completion.
 
@@ -67,11 +67,11 @@ ordivon-edge artifact-get <key> --output ./artifact.bin --sha256 <digest>
 
 sudo ordivon-edge-release release
 sudo ordivon-edge-release rollback
-sudo ordivon-edge-gc run
+sudo ordivon-edge-gc --limit 100
 ordivon-edge-lifecycle --check
 ```
 
-The canonical maintained source is `/root/projects/ordivon/platform/workstation/providers/cloudflare` inside the canonical monorepo Workstation owner. `ORDIVON_CLOUDFLARE_PROVIDER_ROOT` may override it explicitly; the historical `ORDIVON_WORLD_REPO` variable remains a compatibility fallback only. Operations owns maintenance/installation of these provider bytes; Cloudflare remains authoritative for provider-native remote state, and consumers retain their own task/semantic authority. Historical release and GC receipts remain private under `/root/backups/ordivon-world/` for continuity.
+The canonical maintained source is `/root/projects/ordivon/platform/workstation/providers/cloudflare` inside the canonical monorepo Workstation owner. `ORDIVON_CLOUDFLARE_PROVIDER_ROOT` may override it explicitly; the historical `ORDIVON_WORLD_REPO` variable remains a compatibility fallback only. Operations owns maintenance/installation of these provider bytes; Cloudflare remains authoritative for provider-native remote state, and consumers retain their own task/semantic authority. The GC command and timer audit legacy cleanup records without deleting remote objects; R2 lifecycle rules expire deferred objects. Historical release and GC receipts remain private under `/root/backups/ordivon-world/` for continuity.
 
 ## Release behavior
 

@@ -6,11 +6,10 @@ private TemporaryDirectory lifetime and removes the snapshot after verification.
 """
 from __future__ import annotations
 
-import hashlib
-import os
-import stat
 from dataclasses import dataclass
 from pathlib import Path
+
+from .file_stream import observe_stream, open_regular_file
 
 
 @dataclass(frozen=True)
@@ -35,27 +34,13 @@ def stage_verified_input(
     dest_dir.mkdir(mode=0o700)
     dest = dest_dir / source.name
 
-    # O_NONBLOCK prevents blocking on a FIFO before the fstat regular-file
-    # check; O_NOFOLLOW rejects a final symlink swapped into the source path.
-    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0)
-    flags |= getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOFOLLOW", 0)
-    handle = os.open(source, flags)
-    digest = hashlib.sha256()
-    size = 0
     try:
-        with os.fdopen(handle, "rb") as stream:
-            if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
-                raise ValueError(f"{role} is not a regular file")
-            with dest.open("xb") as frozen:
-                for block in iter(lambda: stream.read(1024 * 1024), b""):
-                    digest.update(block)
-                    size += len(block)
-                    frozen.write(block)
+        with open_regular_file(source, label=role) as stream, dest.open("xb") as frozen:
+            observed_sha256, size = observe_stream(stream, frozen)
     except BaseException:
         dest.unlink(missing_ok=True)
         raise
 
-    observed_sha256 = digest.hexdigest()
     if observed_sha256 != expected_sha256:
         dest.unlink(missing_ok=True)
         raise ValueError(f"{role} bytes differ from request digest")

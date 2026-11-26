@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
-# Existing Finance runner owns Python environment; this file only selects a consumer.
+# This read-only Portfolio projection uses only Python's standard library.
+# Do not bootstrap Finance research/test dependencies for a first-run example.
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
-exec "$root/scripts/run-capability-python" "$root/scripts/strategic_contribution_brief.py"
+mise_bin="${ORDIVON_CAPITAL_MISE:-$(command -v mise || true)}"
+if [[ -z "$mise_bin" || ! -x "$mise_bin" ]]; then
+  echo "mise unavailable; Ordivon Capital toolchain authority requires mise" >&2
+  exit 2
+fi
+cd "$root"
+export PYTHONPATH="$root/src${PYTHONPATH:+:$PYTHONPATH}"
+exec "$mise_bin" exec -- python "$root/scripts/strategic_contribution_brief.py" "$@"

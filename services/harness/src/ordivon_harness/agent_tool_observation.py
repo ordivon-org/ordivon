@@ -192,6 +192,48 @@ class HarnessToolObservation:
             )
             if len(canonical_bytes(candidate.to_dict())) > max_bytes:
                 del bounded_content[key]
+        # A bounded Gateway stdout/stderr prefix is often the only actionable
+        # feedback for the next model Turn. Preserve the already-observed text
+        # when it fits instead of discarding it with large owner metadata.
+        # The full, sealed original remains identified by originalContentDigest;
+        # this compact preview never claims Artifact kind/digest or full EOF.
+        previews = original_content.get("outputPreviews")
+        if isinstance(previews, dict):
+            compact: dict[str, JsonValue] = {}
+            bounded_content["outputPreviews"] = compact
+
+            def fits() -> bool:
+                candidate = HarnessToolObservation(
+                    tool_call_id=self.tool_call_id,
+                    tool_name=self.tool_name,
+                    status=self.status,
+                    structured_content=bounded_content,
+                    runtime_job_ref=self.runtime_job_ref,
+                    artifact_refs=self.artifact_refs,
+                    reconciled=self.reconciled,
+                )
+                return len(canonical_bytes(candidate.to_dict())) <= max_bytes
+
+            for stream in ("stdout", "stderr"):
+                raw = previews.get(stream)
+                if not isinstance(raw, dict) or not isinstance(raw.get("text"), str):
+                    continue
+                full_text = raw["text"]
+                compact[stream] = {"text": "", "truncated": True}
+                if not fits():
+                    del compact[stream]
+                    continue
+                lower, upper = 0, len(full_text)
+                while lower < upper:
+                    middle = (lower + upper + 1) // 2
+                    compact[stream] = {"text": full_text[:middle], "truncated": True}
+                    if fits():
+                        lower = middle
+                    else:
+                        upper = middle - 1
+                compact[stream] = {"text": full_text[:lower], "truncated": True}
+            if not compact:
+                del bounded_content["outputPreviews"]
         return HarnessToolObservation(
             tool_call_id=self.tool_call_id,
             tool_name=self.tool_name,

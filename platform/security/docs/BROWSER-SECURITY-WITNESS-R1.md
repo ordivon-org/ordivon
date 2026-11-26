@@ -250,6 +250,15 @@ PYTHONPATH=src:. python scripts/promote_browser_security_pool_lkg.py \
 
 Reseal is fail-closed. It rejects detector drift, any CF02-CF07 subject drift, challenge-standing drift, carrier-local infrastructure drift, Network-v2 authority drift, a stale old-index digest, candidate artifact digest mismatch, a candidate bundle that differs from Security-v2's own canonical rebuild, or disagreement between the Harness receipt and Security-v2's recomputed pool classification. A different Browserless/Chromium image may therefore become a new LKG only when the observable detector surface remains unchanged and the only shared infrastructure identity change is `browserBinary` and/or `controlLayer`.
 
+The reseal publisher now writes one immutable content-addressed generation directory
+under fixtures/browser-security/lkg-generations/ containing all three
+candidate manifests and bundles, syncs those files, and finally atomically
+replaces only the LKG pool index. Historical fixed-name carrier fixtures
+remain unchanged. Consumers must follow the current index's per-carrier paths,
+never assume fixed-name historical fixture files are the current LKG.
+An interrupted generation may be unreferenced but is never current; a changed
+index digest fails the compare-and-swap check at publication.
+
 The generated pool index retains the stable production pool identity and comparison law, but carries a `reseal` provenance object binding the previous index digest, source pool-run receipt digest, source Harness revision, pre-commit Security revision, observed standing, and explicitly allowed infrastructure-change set. The command intentionally stops at `LKG_RESEALED_PENDING_COMMIT`; Git review/commit remains a separate owner authority. It never deploys Browserless, changes Agent Automation admission, visits a protected provider challenge, or crosses SEND.
 
 

@@ -12,15 +12,18 @@ from contextlib import nullcontext
 from threading import Event
 from uuid import uuid4
 
+import psycopg
 import pytest
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
+from ordivon_host_v2.attention_delta_queries import AttentionDeltaQueries
 from ordivon_host_v2.attention_store import AttentionStore
+from ordivon_host_v2.canonical_json import canonical_bytes
 from ordivon_host_v2.collaboration_inputs import MessageInput, MessageKind, SpaceInput, TopicInput
+from ordivon_host_v2.references.actor_store import ActorReferenceStore
 from ordivon_host_v2.social_store import SocialStore
 from ordivon_host_v2.work_inputs import ActorKind, ActorRefInput
-from ordivon_host_v2.work_store import WorkStore
 
 DSN = os.environ.get("ORDIVON_HOST_V2_TEST_DSN")
 pytestmark = [
@@ -34,10 +37,9 @@ def _fixture() -> tuple[str, str, str, SocialStore]:
     token = uuid4().hex
     actor, author = (f"actor:agent:mvcc:{part}:{token}" for part in ("reader", "writer"))
     space, topic = f"space:mvcc:{token}", f"topic:mvcc:{token}"
-    work = WorkStore(DSN)
     social = SocialStore(DSN)
     for ref in (actor, author):
-        work.declare_actor(
+        ActorReferenceStore(DSN).declare_actor(
             ActorRefInput(actor_ref=ref, actor_kind=ActorKind.AGENT),
             client_request_id=f"declare:{ref}",
         )
@@ -65,23 +67,26 @@ def _fixture() -> tuple[str, str, str, SocialStore]:
 
 
 @pytest.mark.parametrize("pooled", [False, True])
-def test_reentry_keeps_delta_and_topic_cursor_in_one_repeatable_read_snapshot(pooled: bool) -> None:
+def test_reentry_keeps_delta_and_topic_cursor_in_one_repeatable_read_snapshot(pooled: bool, monkeypatch) -> None:
     assert DSN
     actor, topic, sequence, social = _fixture()
     after_delta = Event()
     ack_committed = Event()
 
-    class PauseBeforeTopicCursor(AttentionStore):
-        def _delta_in_tx(self, conn, actor_ref, *, after_sequence, limit, max_bytes):
-            result = super()._delta_in_tx(
-                conn, actor_ref, after_sequence=after_sequence,
-                limit=limit, max_bytes=max_bytes,
-            )
-            if not after_delta.is_set():
-                assert any(event["navigationRef"] == topic for event in result["events"])
-                after_delta.set()
-                assert ack_committed.wait(12), "concurrent Topic cursor ack never committed"
-            return result
+    original_delta = AttentionDeltaQueries._delta_in_tx
+
+    def pause_before_topic_cursor(self, conn, actor_ref, *, after_sequence, limit, max_bytes):
+        result = original_delta(self,
+            conn, actor_ref, after_sequence=after_sequence,
+            limit=limit, max_bytes=max_bytes,
+        )
+        if not after_delta.is_set():
+            assert any(event["navigationRef"] == topic for event in result["events"])
+            after_delta.set()
+            assert ack_committed.wait(12), "concurrent Topic cursor ack never committed"
+        return result
+
+    monkeypatch.setattr(AttentionDeltaQueries, "_delta_in_tx", pause_before_topic_cursor)
 
     pool_context = (
         ConnectionPool(
@@ -91,7 +96,7 @@ def test_reentry_keeps_delta_and_topic_cursor_in_one_repeatable_read_snapshot(po
         if pooled else nullcontext(None)
     )
     with pool_context as native_pool:
-        reader = PauseBeforeTopicCursor(DSN, pool=native_pool)
+        reader = AttentionStore(DSN, pool=native_pool)
         with ThreadPoolExecutor(max_workers=1) as worker:
             pending = worker.submit(reader.reentry, actor, after_sequence=0, limit=100)
             assert after_delta.wait(12), "re-entry did not reach delta projection"
@@ -136,3 +141,73 @@ def test_get_delta_and_reentry_each_use_one_database_checkout() -> None:
     assert reader.count == 2
     assert any(item["navigationRef"] == topic for item in reader.reentry(actor)["items"])
     assert reader.count == 3
+
+
+def test_reentry_byte_fit_does_not_rerun_delta_sql(monkeypatch) -> None:
+    """100 legal delta-shaped rows fit 16 KiB, but their grouped re-entry page does not."""
+    assert DSN
+    actor, _, _, _ = _fixture()
+    events = [
+        {
+            "changeSequence": i + 1,
+            "eventKind": "message",
+            "sourceRef": "m",
+            "contextRef": "t",
+            "reasons": ["mentioned"],
+            "navigationKind": "topic",
+            "navigationRef": f"t{i:03d}",
+        }
+        for i in range(100)
+    ]
+
+    calls = 0
+
+    def instrumented_delta(self, conn, actor_ref, *, after_sequence, limit, max_bytes):
+        nonlocal calls
+        calls += 1
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.host-attention-delta-r1",
+            "actorRef": actor_ref,
+            "afterSequence": after_sequence,
+            "snapshotHighSequence": 100,
+            "events": events,
+            "hasMore": False,
+            "nextAfterSequence": 100,
+            "rankingApplied": False,
+            "truthBoundary": "rebuildable navigation",
+        }
+
+    monkeypatch.setattr(AttentionDeltaQueries, "_delta_in_tx", instrumented_delta)
+    reader = AttentionStore(DSN)
+    result = reader.reentry(actor, after_sequence=0, limit=100, max_bytes=16_384)
+    assert calls == 1
+    assert 0 < result["rawEventCount"] < len(events)
+    assert result["hasMore"] is True
+    assert result["nextAfterSequence"] == result["rawEventCount"]
+    assert len(canonical_bytes(result)) <= 16_384
+
+
+def test_benchmark_sql_override_reaches_actual_store_queries(monkeypatch) -> None:
+    """Falsify a detached benchmark injection using real native SQL execution."""
+    assert DSN
+    actor, _, _, _ = _fixture()
+    from pathlib import Path
+
+    from ordivon_host_v2 import attention_delta_queries
+
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1] / "tools"))
+    from bench_attention_compare_r44 import extract
+
+    store = AttentionStore(DSN)
+    original = attention_delta_queries.ATTENTION_DELTA_SQL
+    # extract() must actually change the query that runs; a dead module
+    # attribute would silently yield a valid baseline page instead.
+    monkeypatch.setattr(attention_delta_queries, "ATTENTION_DELTA_SQL", original)
+    invalid = "SELECT * FROM host_benchmark_nonexistent_relation"
+    with pytest.raises(psycopg.errors.UndefinedTable):
+        extract(invalid, store, actor, after=0, limit=10)
+    with pytest.raises(psycopg.errors.UndefinedTable):
+        store.reentry(actor, after_sequence=0, limit=10)
+    assert extract(original, store, actor, after=0, limit=10)["events"]
+    assert store.reentry(actor, after_sequence=0, limit=10)["items"]

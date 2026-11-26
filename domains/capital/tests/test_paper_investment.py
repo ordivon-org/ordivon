@@ -247,3 +247,39 @@ def test_cli_rejects_duplicate_policy_keys(tmp_path: Path):
     )
     assert result.returncode == 2
     assert json.loads(result.stdout)["standing"] == "REJECTED"
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        SOURCE.replace(b"2025-01-04,,", b"2025-01-04"),
+        SOURCE.replace(b"2025-01-04,,", b"2025-01-04,"),
+        b"Date,SPY,SHY,OTHER\n2025-01-02,100,100,1\n2025-01-06,100,100\n",
+        b"Date,SPY,SHY,OTHER\n2025-01-02,100,100,1\n2025-01-06,100,100,\"1\"x\n",
+        SOURCE.replace(b"Date,SPY,SHY\n", b"Date,SPY,SHY\n2025-01-01\n"),
+    ],
+)
+def test_truncated_or_malformed_csv_is_not_an_explicit_unpriced_session(source):
+    with pytest.raises(PaperInvestmentError, match="CSV"):
+        run(source)
+
+
+def test_pit_capture_rejects_truncated_source_row_before_vintage_projection():
+    from datetime import UTC, date, datetime
+
+    from ordivon_capital.research.pit_joint_forecast import (
+        PointInTimeError,
+        market_capture_to_pit_vintages,
+    )
+
+    raw = SOURCE.replace(b"2025-01-04,,", b"2025-01-04")
+    with pytest.raises(PointInTimeError, match="Markets source admission failed"):
+        market_capture_to_pit_vintages(
+            raw_csv=raw,
+            expected_sha256=hashlib.sha256(raw).hexdigest(),
+            assets=("SPY", "SHY"),
+            first_session=date(2025, 1, 2),
+            last_session=date(2025, 1, 6),
+            captured_at=datetime(2025, 1, 7, 0, tzinfo=UTC),
+            last_session_close_at=datetime(2025, 1, 6, 21, tzinfo=UTC),
+        )

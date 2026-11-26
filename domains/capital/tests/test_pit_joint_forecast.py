@@ -212,6 +212,65 @@ class PITResearchContract(unittest.TestCase):
                 evaluation_as_of=datetime.fromisoformat("2026-08-31T20:00:00+00:00"),
             )
 
+    def test_prequential_realized_return_rejects_mixed_price_basis(self):
+        from dataclasses import replace
+
+        sessions, original = self.fixture()
+        decision = {sessions[2]: datetime(2026, 9, 30, 22, tzinfo=UTC)}
+        kwargs = {
+            "assets": ("A", "B"),
+            "valuation_sessions": sessions,
+            "decision_instants": decision,
+            "evaluation_as_of": datetime(2026, 10, 30, 23, tzinfo=UTC),
+        }
+        # A common evaluation-as-of timestamp does NOT make adjusted and
+        # unadjusted prices economically comparable across the two endpoints.
+        baseline = prequential_energy_evaluation(records=original, **kwargs)
+        self.assertEqual(len(baseline), 1)
+        contaminated = [
+            replace(row, price_basis="RAW_UNADJUSTED_ACTION_FREE_DECLARED")
+            if row.asset == "A" and row.session == sessions[3] else row
+            for row in original
+        ]
+        with self.assertRaisesRegex(PointInTimeError, "incompatible price basis"):
+            prequential_energy_evaluation(records=contaminated, **kwargs)
+
+    def test_evaluation_basis_revision_is_not_turned_into_a_fake_ratio(self):
+        from dataclasses import replace
+
+        sessions, original = self.fixture()
+        frozen_a = next(
+            row for row in original if row.asset == "A" and row.session == sessions[2]
+        )
+        revised = [
+            replace(row, price_basis="RAW_UNADJUSTED_ACTION_FREE_DECLARED")
+            if row.asset == "A" and row.session == sessions[3] else row
+            for row in original
+        ]
+        revised.append(replace(
+            frozen_a,
+            published_at=datetime(2026, 10, 5, 21, tzinfo=UTC),
+            adjusted_close=50.0,
+            price_basis="RAW_UNADJUSTED_ACTION_FREE_DECLARED",
+        ))
+        result = prequential_energy_evaluation(
+            records=revised, assets=("A", "B"), valuation_sessions=sessions,
+            decision_instants={sessions[2]: datetime(2026, 9, 30, 22, tzinfo=UTC)},
+            evaluation_as_of=datetime(2026, 10, 30, 23, tzinfo=UTC),
+        )
+        self.assertEqual(
+            result[0]["realized_price_basis"],
+            "EVALUATION_AS_OF_BOTH_ENDPOINTS_MATCHED_RAW_OR_MIXED_UNATTESTED",
+        )
+        evidence = result[0]["reference_revision_evidence"][0]
+        self.assertEqual(evidence["frozen_reference_price_basis"],
+                         "PROVIDER_ADJUSTED_CLOSE_UNATTESTED")
+        self.assertEqual(evidence["evaluation_reference_price_basis"],
+                         "RAW_UNADJUSTED_ACTION_FREE_DECLARED")
+        self.assertEqual(evidence["evaluation_outcome_price_basis"],
+                         "RAW_UNADJUSTED_ACTION_FREE_DECLARED")
+        self.assertIsNone(evidence["reference_revision_factor"])
+
     def test_json_evidence_separate_from_optimizer_input(self):
         sessions, rows = self.fixture()
         payload = {
@@ -504,7 +563,7 @@ class PITNativeOptimizerConsumer(unittest.TestCase):
         }
 
     def test_one_api_consumes_pit_joint_distribution_and_existing_solver(self):
-        from ordivon_capital.research.pit_joint_forecast import solve_pit_payload
+        from ordivon_capital.applications.pit_portfolio import solve_pit_payload
 
         payload = self.payload()
         out = solve_pit_payload(payload)
@@ -526,7 +585,7 @@ class PITNativeOptimizerConsumer(unittest.TestCase):
         self.assertNotIn("conditional_allocation", evidence)
 
     def test_future_released_revision_does_not_change_conditional_policy(self):
-        from ordivon_capital.research.pit_joint_forecast import solve_pit_payload
+        from ordivon_capital.applications.pit_portfolio import solve_pit_payload
 
         payload = self.payload()
         before = solve_pit_payload(payload)
@@ -564,7 +623,8 @@ class PITNativeOptimizerConsumer(unittest.TestCase):
             ]
             old = subprocess.run(command, capture_output=True, text=True, check=True, env=env)
             full = subprocess.run(
-                [*command, "--solve"], capture_output=True, text=True, check=True, env=env
+                [sys.executable, "-m", "ordivon_capital.applications.pit_portfolio", "--input", str(file)],
+                capture_output=True, text=True, check=True, env=env,
             )
         old_json, new_json = json.loads(old.stdout), json.loads(full.stdout)
         self.assertNotIn("conditional_allocation", old_json)
@@ -572,8 +632,38 @@ class PITNativeOptimizerConsumer(unittest.TestCase):
         self.assertEqual(old_json["input_sha256"], new_json["input_sha256"])
         self.assertEqual(new_json["effects"], "NONE_NO_TRADE_NO_ACCOUNTING")
 
+    def test_native_pit_consumers_reject_duplicate_economic_and_time_keys(self):
+        import json
+        import os
+        import subprocess
+        import tempfile
+
+        raw = json.dumps(self.payload())
+        cases = {
+            "future_publication": raw.replace(
+                '"published_at":', '"published_at": "2027-01-01T00:00:00+00:00", "published_at":', 1
+            ),
+            "economic_preference": raw.replace('"gamma": 2.0', '"gamma": -100, "gamma": 2.0', 1),
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            file = Path(temp) / "vintages.json"
+            for case, content in cases.items():
+                file.write_text(content, encoding="utf-8")
+                for module in (
+                    "ordivon_capital.research.pit_joint_forecast",
+                    "ordivon_capital.applications.pit_portfolio",
+                ):
+                    with self.subTest(case=case, module=module):
+                        result = subprocess.run(
+                            [sys.executable, "-m", module, "--input", str(file)],
+                            capture_output=True, text=True, check=False,
+                            env={**os.environ, "PYTHONPATH": str(ROOT)},
+                        )
+                        self.assertNotEqual(result.returncode, 0, result.stdout)
+                        self.assertEqual(result.stdout, "")
+
     def test_missing_economic_owner_terms_never_create_an_optimal_policy(self):
-        from ordivon_capital.research.pit_joint_forecast import solve_pit_payload
+        from ordivon_capital.applications.pit_portfolio import solve_pit_payload
 
         payload = self.payload()
         payload["economic_contract"].pop("gamma")
@@ -842,6 +932,42 @@ class MarketCapturedVintageAdmission(unittest.TestCase):
         key = ("A", date(2026, 10, 30))
         self.assertAlmostEqual(earlier[key].adjusted_close, 108.9)
         self.assertAlmostEqual(later[key].adjusted_close, 999)
+
+    def test_market_capture_rejects_caller_invented_exchange_clocks(self):
+        cases = [
+            (self.csv(), date(2026, 10, 30),
+             datetime(2026, 10, 30, 15, tzinfo=UTC),
+             datetime(2026, 10, 30, 16, tzinfo=UTC)),
+            (self.csv().replace(b"2026-10-30", b"2026-10-31"), date(2026, 10, 31),
+             datetime(2026, 10, 31, 20, tzinfo=UTC),
+             datetime(2026, 11, 1, 12, tzinfo=UTC)),
+            (self.csv().replace(b"2026-10-30", b"2026-11-27"), date(2026, 11, 27),
+             datetime(2026, 11, 27, 21, tzinfo=UTC),
+             datetime(2026, 11, 27, 22, tzinfo=UTC)),
+        ]
+        for raw, session, close, capture in cases:
+            with self.subTest(session=session, close=close):
+                with self.assertRaisesRegex(PointInTimeError, "XNYS"):
+                    self.admitted(raw, last_session=session,
+                                  last_session_close_at=close, captured_at=capture)
+
+    def test_market_capture_rejects_priced_non_session_inside_sparse_history(self):
+        for invalid in (b"2026-09-05", b"2026-09-07"):
+            with self.subTest(invalid=invalid):
+                raw = self.csv().replace(b"2026-09-30", invalid)
+                with self.assertRaisesRegex(PointInTimeError, "XNYS"):
+                    self.admitted(raw)
+
+    def test_market_capture_accepts_real_early_close_without_dense_history(self):
+        raw = self.csv().replace(b"2026-10-30", b"2026-11-27")
+        rows = self.admitted(
+            raw, last_session=date(2026, 11, 27),
+            last_session_close_at=datetime(2026, 11, 27, 18, tzinfo=UTC),
+            captured_at=datetime(2026, 11, 27, 18, tzinfo=UTC),
+        )
+        self.assertEqual(len(rows), 8)
+        self.assertTrue(all(r.published_at == datetime(2026, 11, 27, 18, tzinfo=UTC)
+                            for r in rows))
 
     def test_digest_missing_quotes_and_impossible_capture_are_rejected(self):
         raw = self.csv()

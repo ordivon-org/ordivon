@@ -28,7 +28,7 @@ class RestoreSmokeScratchSafetyTests(unittest.TestCase):
         self.log = Path("/tmp/" + self.root.name + ".log")
 
     def run_smoke(self, *, data: str | None = None, socket: str | None = None,
-                  log: str | None = None, workflow: str = "fixture-workflow") -> subprocess.CompletedProcess[str]:
+                  log: str | None = None, workflow: str = "fixture-workflow", port: str = "55439") -> subprocess.CompletedProcess[str]:
         env = os.environ.copy()
         env.update(
             RESTORE_ROOT=data if data is not None else str(self.root),
@@ -38,7 +38,7 @@ class RestoreSmokeScratchSafetyTests(unittest.TestCase):
             PATH=f"{self.shim}:/usr/bin:/bin",
         )
         return subprocess.run(
-            ["/bin/bash", str(SCRIPT), "nonexistent-fixture-backup", workflow, "55439"],
+            ["/bin/bash", str(SCRIPT), "nonexistent-fixture-backup", workflow, port],
             text=True, capture_output=True, env=env, timeout=8, check=False,
         )
 
@@ -65,6 +65,11 @@ class RestoreSmokeScratchSafetyTests(unittest.TestCase):
     def test_unowned_path_outside_is_rejected(self) -> None:
         result = self.run_smoke(data="/var/lib/ordivon/production")
         self.assert_preflight_refused(result, "must be a direct /tmp scratch path")
+
+    def test_unsafe_port_is_rejected_before_any_scratch_effect(self) -> None:
+        for port in ("0", "65536", "55439 -c listen_addresses=*", "055439"):
+            with self.subTest(port=port):
+                self.assert_preflight_refused(self.run_smoke(port=port), "unsafe restore port")
 
     def test_untrusted_workflow_identifier_is_rejected_before_shell_sql(self) -> None:
         result = self.run_smoke(data="/tmp/" + self.root.name + "-not-created",

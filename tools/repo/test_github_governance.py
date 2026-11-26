@@ -16,6 +16,24 @@ SCRIPT = ROOT / "tools/repo/check_github_governance.py"
 DEPENDABOT = ROOT / ".github/dependabot.yml"
 
 
+def effective_ci_steps(job: dict) -> list[dict]:
+    """Observe the setup action actually invoked by a native workflow lane."""
+    import yaml
+
+    expanded = []
+    for step in job["steps"]:
+        if step.get("uses") == "./.github/actions/setup-root-verification":
+            action = yaml.safe_load(
+                (ROOT / step["uses"] / "action.yml").read_text(encoding="utf-8")
+            )
+            if action["runs"]["using"] != "composite":
+                raise ValueError("root setup is not a native composite")
+            expanded.extend(action["runs"]["steps"])
+        else:
+            expanded.append(step)
+    return expanded
+
+
 def required_ci_steps(workflow: dict) -> list[dict]:
     """Current source-qualified preflight plus actual isolated Owner executor.
 
@@ -24,9 +42,9 @@ def required_ci_steps(workflow: dict) -> list[dict]:
     """
     jobs = workflow["jobs"]
     return [
-        *jobs["root-preflight"]["steps"],
-        *jobs["repo-mechanics"]["steps"],
-        *jobs["owner-verification"]["steps"],
+        *effective_ci_steps(jobs["root-preflight"]),
+        *effective_ci_steps(jobs["repo-mechanics"]),
+        *effective_ci_steps(jobs["owner-verification"]),
     ]
 
 
@@ -63,8 +81,10 @@ _FORMAL_PROBE_ORACLES = (
     ("Lean kernel qualified variation frame and countermodels", 0),
     ("Lean kernel Media processing admission model", 0),
     ("Lean kernel Media Creative Library Catalog acceptance", 0),
+    ("Lean kernel Media TimedText delivery precision", 0),
     ("Lean kernel Media Output byte identity", 0),
     ("Lean kernel Media dependency impact model", 0),
+    ("Lean kernel Media archive visual relation conservation", 0),
     ("Z3 IEEE-754 Media loudness profile model", 0),
     ("Lean rejects false theorem", 1),
     ("Z3: sat", 0), ("Z3: unsat", 0),
@@ -240,9 +260,9 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         jobs = workflow["jobs"]
         self.assertNotIn("needs", jobs["root-preflight"])
         self.assertNotIn("needs", jobs["repo-mechanics"])
-        preflight = [step["name"] for step in jobs["root-preflight"]["steps"]]
-        mechanics = [step["name"] for step in jobs["repo-mechanics"]["steps"]]
-        owner = [step["name"] for step in jobs["owner-verification"]["steps"]]
+        preflight = [step["name"] for step in effective_ci_steps(jobs["root-preflight"])]
+        mechanics = [step["name"] for step in effective_ci_steps(jobs["repo-mechanics"])]
+        owner = [step["name"] for step in effective_ci_steps(jobs["owner-verification"])]
         self.assertLess(preflight.index("Install root verification tools"),
                         preflight.index("Select affected owners"))
         self.assertNotIn("Repository mechanics", preflight)
@@ -250,21 +270,121 @@ class GovernanceAcceptanceTests(unittest.TestCase):
                         mechanics.index("Repository mechanics"))
         self.assertIn("Verify affected owners", owner)
 
+    def test_shared_ci_inputs_keep_cross_cutting_verification(self) -> None:
+        """Extracting a CI capability must not narrow its original consumer scope."""
+        from tools.repo import affected_owners
+
+        for relative in (
+            ".github/actions/setup-root-verification/action.yml",
+            "tools/repo/verify_authority_history.sh",
+            "tools/repo/pg_issuer_consumer.py",
+            "docs/architecture/structure-r2-transition-r1.json",
+        ):
+            with self.subTest(source=relative):
+                self.assertEqual(
+                    affected_owners.owners_for_paths([relative]),
+                    affected_owners.OWNERS,
+                )
+
+    def test_history_guard_preserves_event_contract_and_exit_status(self) -> None:
+        """Run the extracted script with a controlled native checker substitute."""
+        import os
+        import yaml
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        for lane in ("root-preflight", "repo-mechanics", "owner-verification"):
+            history = next(step for step in workflow["jobs"][lane]["steps"]
+                           if step["name"] == "Preserve Authority registration history across Git changes")
+            self.assertEqual(history["run"].strip(), "bash tools/repo/verify_authority_history.sh")
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            checker = folder / "python3"
+            checker.write_text(
+                '#!/bin/bash\n'
+                'printf "%s\\n" "$@" > "$RECORD"\n'
+                'exit "$CHECK_RC"\n',
+                encoding="utf-8",
+            )
+            checker.chmod(0o755)
+            record = folder / "calls"
+            common = {**os.environ, "PATH": str(folder) + os.pathsep + os.environ.get("PATH", ""),
+                      "RECORD": str(record), "PR_BASE": "a", "PR_HEAD": "b",
+                      "GROUP_BASE": "c", "GROUP_HEAD": "d", "PUSH_BEFORE": "e",
+                      "PUSH_HEAD": "f", "CHECK_RC": "0"}
+            for event, base, head in (("pull_request", "a", "b"),
+                                      ("merge_group", "c", "d"), ("push", "e", "f")):
+                with self.subTest(event=event):
+                    for code in ("0", "9"):
+                        result = subprocess.run(
+                            ["bash", "tools/repo/verify_authority_history.sh"],
+                            cwd=ROOT, env={**common, "EVENT_NAME": event, "CHECK_RC": code},
+                            capture_output=True, text=True, timeout=10, check=False,
+                        )
+                        self.assertEqual(result.returncode, int(code), result.stderr)
+                        self.assertEqual(record.read_text().splitlines(), [
+                            "catalogs/authorities/scripts/check_historical_registration.py",
+                            "--base", base, "--head", head,
+                        ])
+            for empty in ("", "0" * 40):
+                record.unlink(missing_ok=True)
+                result = subprocess.run(
+                    ["bash", "tools/repo/verify_authority_history.sh"],
+                    cwd=ROOT, env={**common, "EVENT_NAME": "push", "PUSH_BEFORE": empty},
+                    capture_output=True, text=True, timeout=10, check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertFalse(record.exists())
+
+    def test_repo_mechanics_runs_the_existing_retirement_guard(self) -> None:
+        """Archived-source protection is part of the actual protected root CI."""
+        import tomllib
+        import yaml
+
+        tasks = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))["tasks"]
+        script = tasks["repo:ci"]["run"]
+        commands = [line.strip() for line in script.splitlines()]
+        self.assertEqual(commands.count("mise run repo:retirement:verify"), 1)
+        retirement = tasks["repo:retirement:verify"]["run"]
+        self.assertIn("tools/repo/check_archived_source_boundary.py", retirement)
+        self.assertIn("tools/repo/test-check-archived-source-boundary.sh", retirement)
+        native_smoke = (ROOT / "tools/repo/test-check-archived-source-boundary.sh").read_text(encoding="utf-8")
+        self.assertIn('TMP="$(mktemp -d)"', native_smoke)
+        self.assertNotIn("/root/ordivon-migration-tmp", native_smoke)
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        mechanics = next(
+            step["run"]
+            for step in workflow["jobs"]["repo-mechanics"]["steps"]
+            if step.get("name") == "Repository mechanics"
+        )
+        self.assertIn("mise run repo:ci", mechanics)
+
     def test_root_mise_retry_runs_only_native_install_and_preserves_failures(self) -> None:
         """A finite upstream outage retries missing tools and never masks exhaustion."""
         import os
         import yaml
 
         workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
-        script = next(
-            step["run"] for step in workflow["jobs"]["repo-mechanics"]["steps"]
-            if step["name"] == "Install root verification tools"
-        )
-        for fail_until, expected_rc, expected_calls in ((1, 0, 2), (9, 1, 3)):
+        scripts = []
+        for job in ("root-preflight", "repo-mechanics", "owner-verification"):
+            matches = [
+                step["run"] for step in effective_ci_steps(workflow["jobs"][job])
+                if step["name"] == "Install root verification tools"
+            ]
+            self.assertEqual(len(matches), 1, job)
+            scripts.extend(matches)
+        self.assertEqual(len(set(scripts)), 1, "all three lanes must share the retry contract")
+        script = scripts[0]
+        for fail_until, expected_rc, expected_calls in (
+            (0, 0, 1), (1, 0, 2), (2, 0, 3), (9, 1, 3)
+        ):
             with self.subTest(fail_until=fail_until), tempfile.TemporaryDirectory() as tmp:
                 folder = Path(tmp)
                 tool = folder / "mise"
                 record = folder / "calls"
+                delays = folder / "delays"
+                fake_sleep = folder / "sleep"
+                fake_sleep.write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$*" >> "$DELAYS"\n')
+                fake_sleep.chmod(0o755)
                 tool.write_text(r"""#!/usr/bin/env bash
 if [[ "$#" != 1 || "$1" != install ]]; then exit 91; fi
 printf "%s,%s,%s\n" "$MISE_JOBS" "$MISE_HTTP_TIMEOUT" "$*" >> "$RECORD"
@@ -277,6 +397,7 @@ exit 0
                 env.update({
                     "PATH": str(folder) + os.pathsep + env.get("PATH", ""),
                     "RECORD": str(record),
+                    "DELAYS": str(delays),
                     "FAIL_UNTIL": str(fail_until),
                 })
                 observed = subprocess.run(
@@ -287,6 +408,14 @@ exit 0
                 self.assertEqual(
                     record.read_text().splitlines(),
                     ["2,30,install"] * expected_calls,
+                )
+                self.assertEqual(
+                    delays.read_text().splitlines() if delays.exists() else [],
+                    ["3", "6"][:expected_calls - 1],
+                )
+                self.assertEqual(
+                    "NETWORK_UPSTREAM_TOOL_DOWNLOAD_UNAVAILABLE" in observed.stderr,
+                    expected_rc != 0,
                 )
 
     def test_selected_owner_preinstall_is_native_scoped_and_bounded(self) -> None:
@@ -400,7 +529,7 @@ exit 0
         self.assertIn("sha256sum", function)
         self.assertIn("--max-time 55", function)
         cases = (
-            ("apt.postgresql.org", "download.postgresql.org"),
+            ("apt.postgresql.org", "apt-archive.postgresql.org"),
             ("github.com/osquery", "pkg.osquery.io"),
         )
         for primary, alternate in cases:
@@ -431,6 +560,7 @@ exit 0
                 )
                 env = os.environ.copy()
                 env.pop("ORDIVON_SQL_DIST_DIR", None)
+                env.pop("ORDIVON_SQL_DIST_CACHE_DIR", None)
                 env.update({
                     "PATH": str(folder) + os.pathsep + env.get("PATH", ""),
                     "RECORD": str(record),
@@ -462,6 +592,96 @@ exit 0
                 unavailable = invoke()
                 self.assertNotEqual(unavailable.returncode, 0)
                 self.assertEqual(len(record.read_text().splitlines()), 2)
+    def test_sql_distribution_cache_is_acceleration_not_authority(self) -> None:
+        import hashlib
+        import os
+
+        source = (ROOT / "tools/repo/install_sql_verifiers.sh").read_text()
+        function = "download() {" + source.split("download() {", 1)[1].split(
+            "\ndownload \\", 1
+        )[0]
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            cache = folder / "cache"
+            cache.mkdir()
+            record = folder / "calls"
+            destination = folder / "package.deb"
+            cached = cache / destination.name
+            payload = b"exact upstream test bytes"
+            curl = folder / "curl"
+            curl.write_text(
+                '#!/usr/bin/env bash\n'
+                'printf "network\\n" >> "$RECORD"\n'
+                'while [[ $# -gt 0 ]]; do if [[ "$1" == -o ]]; then shift; dst="$1"; fi; shift; done\n'
+                '[[ "$NETWORK_AVAILABLE" == 1 ]] || exit 28\n'
+                'printf "%s" "$PAYLOAD" > "$dst"\n',
+                encoding="utf-8",
+            )
+            curl.chmod(0o755)
+            script = "set -euo pipefail\n" + function + "\n" + (
+                'download https://publisher.invalid/p.deb "$DEST" "$EXPECTED"'
+            )
+            env = os.environ.copy()
+            env.pop("ORDIVON_SQL_DIST_DIR", None)
+            env.update({
+                "PATH": str(folder) + os.pathsep + env["PATH"],
+                "ORDIVON_SQL_DIST_CACHE_DIR": str(cache),
+                "RECORD": str(record), "DEST": str(destination),
+                "PAYLOAD": payload.decode(), "EXPECTED": hashlib.sha256(payload).hexdigest(),
+                "NETWORK_AVAILABLE": "1",
+            })
+            def invoke():
+                return subprocess.run(["/usr/bin/bash", "-c", script], env=env,
+                                      capture_output=True, text=True, timeout=15)
+
+            cold = invoke()
+            self.assertEqual(cold.returncode, 0, cold.stderr)
+            self.assertEqual(cached.read_bytes(), payload)
+            self.assertEqual(destination.read_bytes(), payload)
+            self.assertEqual(record.read_text().splitlines(), ["network"])
+            destination.unlink()
+            env["NETWORK_AVAILABLE"] = "0"
+            warm = invoke()
+            self.assertEqual(warm.returncode, 0, warm.stderr)
+            self.assertEqual(destination.read_bytes(), payload)
+            self.assertEqual(record.read_text().splitlines(), ["network"])
+
+            cached.write_bytes(b"corrupt")
+            destination.unlink()
+            bad = invoke()
+            self.assertNotEqual(bad.returncode, 0)
+            self.assertFalse(destination.exists() and destination.read_bytes() == payload)
+            self.assertEqual(cached.read_bytes(), b"corrupt")
+            env["NETWORK_AVAILABLE"] = "1"
+            repaired = invoke()
+            self.assertEqual(repaired.returncode, 0, repaired.stderr)
+            self.assertEqual(cached.read_bytes(), payload)
+
+            # Explicit offline input is a strict source, not a cache hint.
+            offline = folder / "offline"
+            offline.mkdir()
+            (offline / destination.name).write_bytes(b"wrong")
+            env["ORDIVON_SQL_DIST_DIR"] = str(offline)
+            calls = record.read_text()
+            rejected = invoke()
+            self.assertEqual(rejected.returncode, 7, rejected.stderr)
+            self.assertEqual(record.read_text(), calls)
+
+    def test_sql_cache_action_uses_exact_inputs_without_execution_bypass(self) -> None:
+        import yaml
+
+        action = yaml.safe_load((ROOT / ".github/actions/setup-root-verification/action.yml").read_text())
+        steps = action["runs"]["steps"]
+        restore = next(step for step in steps if step.get("name") == "Cache verified SQL distribution bytes")
+        install = next(step for step in steps if step.get("name") == "Install pinned SQL validation CLIs")
+        self.assertLess(steps.index(restore), steps.index(install))
+        self.assertRegex(restore["uses"], r"^actions/cache@[a-f0-9]{40}$")
+        self.assertIn("hashFiles('tools/repo/install_sql_verifiers.sh')", restore["with"]["key"])
+        self.assertNotIn("restore-keys", restore["with"])
+        self.assertEqual(restore["with"]["path"], install["env"]["ORDIVON_SQL_DIST_CACHE_DIR"])
+        self.assertNotIn("if", install)
+        self.assertIn("install_sql_verifiers.sh", install["run"])
+
     def test_root_mise_installs_get_scoped_native_github_token(self) -> None:
         """Keep bootstrap authenticated without exporting token to Owner code."""
         import yaml
@@ -473,7 +693,7 @@ exit 0
             job = workflow["jobs"][job_name]
             self.assertNotIn("env", job)
             matches = [
-                step for step in job["steps"]
+                step for step in effective_ci_steps(job)
                 if step.get("name") == "Install root verification tools"
             ]
             self.assertEqual(len(matches), 1, job_name)
@@ -667,6 +887,11 @@ exit 0
             forged_effect_frame = copy.deepcopy(full_report)
             forged_effect_frame["sourceFragmentRefinement"]["effectFrameObserved"] = "implementation_proven"
             invalid_receipts["forged-effect-frame-evidence"] = json.dumps(forged_effect_frame)
+            unqualified_guard = copy.deepcopy(full_report)
+            unqualified_guard["sourceFragmentRefinement"]["effectFrameObserved"] = (
+                "exact_post_projection_native_claim_guard_then_unqualified_dispatch"
+            )
+            invalid_receipts["unqualified-native-guard-frame"] = json.dumps(unqualified_guard)
             no_tools = copy.deepcopy(full_report)
             no_tools.pop("toolBinaries")
             invalid_receipts["no-eight-tool-witnesses"] = json.dumps(no_tools)
@@ -874,6 +1099,8 @@ exit 0
                          fixture_registry / "affected_owners.py")
             shutil.copy2(ROOT / "tools/repo/owners.toml",
                          fixture_registry / "owners.toml")
+            shutil.copy2(ROOT / "tools/repo/ci_mise_source_witness.py",
+                         fixture_registry / "ci_mise_source_witness.py")
             # The real verifier consumes a declared source readset; the disposable
             # Git fixture must contain the same declared source universe.
             for rel in _FORMAL_SOURCE_FILES:
@@ -1001,6 +1228,18 @@ exit 0
             self.assertEqual(record.read_text(), "")
             env.pop("GITHUB_SHA", None)
 
+            # The extracted verifier itself is an executable input.
+            witness = fixture_registry / "ci_mise_source_witness.py"
+            exact_witness = witness.read_bytes()
+            try:
+                witness.write_bytes(exact_witness + b"\n# changed witness\n")
+                denied_witness = invoke(queue_script)
+                self.assertEqual(denied_witness.returncode, 43, denied_witness.stderr)
+                self.assertIn("exact Git HEAD: witness", denied_witness.stderr)
+                self.assertEqual(record.read_text(), "")
+            finally:
+                witness.write_bytes(exact_witness)
+
             # Source-qualify nested Owner task manifests as well as root.
             nested_bytes = nested_game.read_bytes()
             try:
@@ -1118,8 +1357,12 @@ exit 0
         )
         selected_readset = (
             ".github/workflows/ci.yml",
+            "tools/repo/ci_owner_shards.py",
             "tools/repo/convergence_plan.py",
             "tools/repo/affected_owners.py",
+            "tools/repo/pg_issuer_consumer.py",
+            "tools/formal/verify.py",
+            "docs/architecture/structure-r2-transition-r1.json",
             "tools/repo/owners.toml",
             "tools/repo/dependency_contracts.toml",
             "mise.toml",
@@ -1174,6 +1417,28 @@ exit 0
                             "source selection producer differs from exact Git checkout",
                             altered.stderr,
                         )
+                    finally:
+                        source.write_bytes(original)
+
+            base = subprocess.check_output(
+                ["git", "-C", str(clone), "rev-parse", "HEAD^1"], text=True
+            ).strip()
+            env.update({"EVENT_NAME": "merge_group", "MERGE_GROUP_BASE": base,
+                        "MERGE_GROUP_HEAD": cut})
+            self.assertEqual(invoke().returncode, 0)
+            for relative in (
+                "tools/repo/pg_issuer_consumer.py",
+                "tools/formal/verify.py",
+                "docs/architecture/structure-r2-transition-r1.json",
+            ):
+                with self.subTest(event="merge_group", source=relative):
+                    source = clone / relative
+                    original = source.read_bytes()
+                    try:
+                        source.write_bytes(original + b"\n")
+                        altered = invoke()
+                        self.assertEqual(altered.returncode, 43, altered.stderr)
+                        self.assertIn("source selection producer differs", altered.stderr)
                     finally:
                         source.write_bytes(original)
 
@@ -1531,7 +1796,14 @@ exit 0
             policy = policies[0]
             self.assertLess(steps.index(installer), steps.index(policy))
             self.assertIn("set -euo pipefail", policy["run"])
-            self.assertIn("mise -C services/runtime exec -- cargo deny", policy["run"])
+            self.assertIn(
+                f"mise -C services/runtime exec rust@{toolchain} -- cargo deny",
+                policy["run"],
+            )
+            self.assertNotIn(
+                "mise -C services/runtime exec -- cargo deny",
+                policy["run"],
+            )
             self.assertIn("--config deny.toml check", policy["run"])
             self.assertIn("--manifest-path Cargo.toml", policy["run"])
             self.assertIn("--config deny.toml", policy["run"])
@@ -1574,6 +1846,81 @@ exit 0
         ]
         self.assertEqual(len(release_mise), 1)
         self.assertIs(release_mise[0]["with"]["cache"], False)
+
+    def test_runtime_tag_requires_reachable_protected_main_source(self) -> None:
+        """Execute the real tagged-release source gate against distinct Git DAGs.
+
+        A matching version/tag and a signed artifact do not establish that the
+        released commit passed protected-main integration.
+        """
+        import os
+        import yaml
+
+        release = yaml.safe_load(
+            (ROOT / ".github/workflows/runtime-release.yml").read_text()
+        )
+        steps = release["jobs"]["runtime-release"]["steps"]
+        name = "Require Runtime tag source to be reachable from protected main"
+        matches = [step for step in steps if step.get("name") == name]
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(matches[0]["shell"], "bash")
+        script = matches[0]["run"]
+        self.assertIn("set -euo pipefail", script)
+        self.assertIn("--no-replace-objects", script)
+
+        with tempfile.TemporaryDirectory() as directory:
+            cwd = Path(directory)
+            env = {k: v for k, v in os.environ.items()
+                   if not k.startswith("GIT_")}
+            env["GIT_GRAFT_FILE"] = os.devnull
+
+            def git(*args: str) -> str:
+                completed = subprocess.run(
+                    ["git", *args], cwd=cwd, env=env, text=True,
+                    capture_output=True, timeout=15, check=True,
+                )
+                return completed.stdout.strip()
+
+            git("init", "-q")
+            git("config", "user.name", "CI Source Fixture")
+            git("config", "user.email", "ci-source@example.invalid")
+            (cwd / "sample").write_text("base\n")
+            git("add", "sample")
+            git("commit", "-qm", "base")
+            base = git("rev-parse", "HEAD")
+            git("branch", "-M", "main")
+            (cwd / "sample").write_text("main accepted\n")
+            git("commit", "-qam", "accepted main")
+            accepted = git("rev-parse", "HEAD")
+            git("update-ref", "refs/remotes/origin/main", accepted)
+
+            git("switch", "-q", "--detach", base)
+            (cwd / "sample").write_text("unreviewed side branch\n")
+            git("commit", "-qam", "off main")
+            off_main = git("rev-parse", "HEAD")
+
+            def verify(source_cut: str) -> subprocess.CompletedProcess[str]:
+                git("switch", "-q", "--detach", source_cut)
+                return subprocess.run(
+                    ["bash", "-c", script], cwd=cwd, env={**env, "GITHUB_SHA": source_cut},
+                    text=True, capture_output=True, timeout=15, check=False,
+                )
+
+            admitted = verify(accepted)
+            self.assertEqual(admitted.returncode, 0, admitted.stdout + admitted.stderr)
+            self.assertEqual(verify(base).returncode, 0)
+            rejected = verify(off_main)
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertIn("RUNTIME_TAG_SOURCE_NOT_ON_PROTECTED_MAIN", rejected.stderr)
+            mismatch = subprocess.run(
+                ["bash", "-c", script], cwd=cwd,
+                env={**env, "GITHUB_SHA": accepted},
+                text=True, capture_output=True, timeout=15, check=False,
+            )
+            self.assertNotEqual(mismatch.returncode, 0)
+            self.assertIn("RUNTIME_TAG_SOURCE_NOT_CHECKED_OUT", mismatch.stderr)
+            git("update-ref", "-d", "refs/remotes/origin/main")
+            self.assertNotEqual(verify(accepted).returncode, 0)
 
     def test_runtime_release_subject_count_matches_native_deployer(self) -> None:
         """Tagged release must attest exactly the canonical native set.
@@ -1853,6 +2200,162 @@ exit 0
                 )
                 self.assertEqual(governance.main(), 0)
 
+    def test_mise_action_version_is_consumer_coherence_not_frozen_old_sha(self) -> None:
+        """A coherent immutable update is admissible; partial/floating updates are not."""
+        import importlib.util
+        import re
+        from unittest import mock
+
+        sys.path.insert(0, str(SCRIPT.parent))
+        spec = importlib.util.spec_from_file_location("governance_mise_pin_test", SCRIPT)
+        assert spec is not None and spec.loader is not None
+        governance = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(governance)
+        old_read = Path.read_text
+        setup = ROOT / ".github/actions/setup-root-verification/action.yml"
+        paths = [setup, *sorted((ROOT / ".github/workflows").glob("*.yml"))]
+        consumers = [path for path in paths if "jdx/mise-action@" in old_read(path)]
+        self.assertGreater(len(consumers), 1)
+        for label, targets, replacement, expected in (
+            ("all-pinned", consumers, "e" * 40, None),
+            ("partial-pinned", [setup], "e" * 40, "Mise action consumer pin drift"),
+            ("floating", consumers, "v5", "non-SHA action references"),
+        ):
+            with self.subTest(case=label):
+                def read(path, *args, **kwargs):
+                    text = old_read(path, *args, **kwargs)
+                    if path in targets:
+                        return re.sub(r"jdx/mise-action@[0-9a-f]{40}",
+                                      "jdx/mise-action@" + replacement, text)
+                    return text
+
+                with mock.patch.object(Path, "read_text", read):
+                    if expected is None:
+                        self.assertEqual(governance.main(), 0)
+                    else:
+                        with self.assertRaisesRegex(AssertionError, expected):
+                            governance.main()
+
+        # Exercise the natural updater coverage against a missing real manifest.
+        def uncovered(path, *args, **kwargs):
+            text = old_read(path, *args, **kwargs)
+            if path == ROOT / ".github/dependabot.yml":
+                return text.replace('      - "/.github/actions/setup-root-verification"\n', "")
+            return text
+
+        with mock.patch.object(Path, "read_text", uncovered):
+            with self.assertRaisesRegex(AssertionError, "GitHub Actions dependency coverage drift"):
+                governance.main()
+
+    def test_bash_source_cache_does_not_promote_target_or_unverified_bytes(self) -> None:
+        import hashlib
+        import os
+        import shutil
+
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            repo = folder / "repo"
+            tools = repo / "tools/repo"
+            tools.mkdir(parents=True)
+            script = tools / "install_latest_stable_bash.sh"
+            shutil.copyfile(ROOT / "tools/repo/install_latest_stable_bash.sh", script)
+            upstream = folder / "upstream"
+            upstream.mkdir()
+            names = ["bash-5.3.tar.gz", *(f"bash53-{i:03d}" for i in range(1, 21))]
+            manifest = []
+            for name in names:
+                content = ("exact input " + name).encode()
+                (upstream / name).write_bytes(content)
+                manifest.append(hashlib.sha256(content).hexdigest() + "  " + name)
+            (tools / "bash-5.3.20.sha256").write_text("\n".join(manifest) + "\n")
+            bin_dir = folder / "bin"
+            bin_dir.mkdir()
+            calls = folder / "curl-calls"
+            marker = folder / "extraction"
+            target_marker = folder / "unqualified-target-executed"
+            target = folder / "target"
+            (target / "bin").mkdir(parents=True)
+            fake = target / "bin/bash"
+            fake.write_text('#!/bin/sh\ntouch "$TARGET_MARKER"\nexit 0\n')
+            fake.chmod(0o755)
+            curl = bin_dir / "curl"
+            curl.write_text(
+                '#!/usr/bin/env bash\n'
+                'printf "network\\n" >> "$CALLS"\n'
+                '[[ "$NETWORK" == 1 ]] || exit 28\n'
+                'while [[ $# -gt 0 ]]; do if [[ "$1" == -o ]]; then shift; dst="$1"; fi; shift; done\n'
+                'cp "$UPSTREAM/$(basename "$dst")" "$dst"\n'
+            )
+            curl.chmod(0o755)
+            tar = bin_dir / "tar"
+            # Observe only the source-to-build boundary. The native build is
+            # qualified separately with genuine publisher bytes.
+            tar.write_text('#!/bin/sh\ntouch "$MARKER"\nexit 42\n')
+            tar.chmod(0o755)
+            cache = folder / "cache"
+            env = os.environ.copy()
+            env.pop("ORDIVON_BASH_DIST_DIR", None)
+            env.update({
+                "PATH": str(bin_dir) + os.pathsep + env["PATH"],
+                "ORDIVON_BASH_DIST_CACHE_DIR": str(cache),
+                "RUNNER_TEMP": str(folder), "UPSTREAM": str(upstream),
+                "CALLS": str(calls), "NETWORK": "1",
+                "MARKER": str(marker), "TARGET_MARKER": str(target_marker),
+            })
+            def invoke():
+                marker.unlink(missing_ok=True)
+                return subprocess.run(["/usr/bin/bash", str(script), str(target)],
+                                      env=env, capture_output=True, text=True, timeout=30)
+
+            cold = invoke()
+            self.assertEqual(cold.returncode, 42, cold.stderr)
+            self.assertTrue(marker.exists())
+            self.assertFalse(target_marker.exists())
+            self.assertEqual(len(calls.read_text().splitlines()), 21)
+            self.assertEqual({p.name for p in cache.iterdir()}, set(names))
+            env["NETWORK"] = "0"
+            warm = invoke()
+            self.assertEqual(warm.returncode, 42, warm.stderr)
+            self.assertTrue(marker.exists())
+            self.assertEqual(len(calls.read_text().splitlines()), 21)
+
+            (cache / names[-1]).write_bytes(b"wrong")
+            rejected = invoke()
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertFalse(marker.exists())
+            env["NETWORK"] = "1"
+            repaired = invoke()
+            self.assertEqual(repaired.returncode, 42, repaired.stderr)
+            self.assertEqual((cache / names[-1]).read_bytes(), (upstream / names[-1]).read_bytes())
+
+            # Explicit offline source overrides even a valid cache and may
+            # not fall through to official mirrors on invalid bytes.
+            offline = folder / "offline"
+            shutil.copytree(upstream, offline)
+            (offline / names[0]).write_bytes(b"wrong")
+            env["ORDIVON_BASH_DIST_DIR"] = str(offline)
+            count = calls.read_text()
+            bad_offline = invoke()
+            self.assertEqual(bad_offline.returncode, 7, bad_offline.stderr)
+            self.assertFalse(marker.exists())
+            self.assertEqual(calls.read_text(), count)
+            self.assertFalse(target_marker.exists())
+
+    def test_bash_source_cache_action_is_manifest_bound(self) -> None:
+        import yaml
+
+        steps = yaml.safe_load((ROOT / ".github/actions/setup-root-verification/action.yml")
+                               .read_text())["runs"]["steps"]
+        restore = next(step for step in steps if step.get("name") == "Cache verified GNU Bash source bytes")
+        install = next(step for step in steps if step.get("name") == "Install verified GNU Bash 5.3.20")
+        self.assertLess(steps.index(restore), steps.index(install))
+        self.assertRegex(restore["uses"], r"^actions/cache@[a-f0-9]{40}$")
+        self.assertIn("tools/repo/bash-5.3.20.sha256", restore["with"]["key"])
+        self.assertIn("tools/repo/install_latest_stable_bash.sh", restore["with"]["key"])
+        self.assertEqual(restore["with"]["path"], install["env"]["ORDIVON_BASH_DIST_CACHE_DIR"])
+        self.assertNotIn("restore-keys", restore["with"])
+        self.assertNotIn("if", install)
+
     def test_optimized_mode_refuses_assert_based_governance_verification(self) -> None:
         result = self.run_contract(invalid=False, optimized=True)
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -2060,6 +2563,17 @@ class ParallelRootVerificationTests(unittest.TestCase):
         self.assertIn("git --no-replace-objects show HEAD:mise.toml",
                       runner["run"])
         self.assertIn("paper_postgres", owners["services"])
+        image = owners["services"]["paper_postgres"]["image"]
+        # Native matrix predicate is intentionally restricted to the two
+        # branches which consume the dynamically assigned service port.
+        condition, image_value = image.split(" && ", 1)
+        self.assertEqual(condition, "$" + "{{ (contains(matrix.tasks, 'capital:verify') || "
+                         "contains(matrix.tasks, 'harness:queue'))")
+        # Verify the selection contract rather than freeze a historical PG version.
+        self.assertRegex(image_value, r"^'postgres:[0-9][^'\s]*' \|\| '' \}\}$")
+        self.assertEqual(runner["env"]["PAPER_PG_PORT"],
+                         "$" + "{{ job.services.paper_postgres.ports['5432'] }}")
+        self.assertEqual(runner["run"].count("port=$PAPER_PG_PORT"), 4)
         self.assertNotIn("services", preflight)
         mechanics = jobs["repo-mechanics"]
         self.assertNotIn("needs", mechanics)
@@ -2069,6 +2583,81 @@ class ParallelRootVerificationTests(unittest.TestCase):
         self.assertNotIn("Repository mechanics",
                          [step["name"] for step in preflight["steps"]])
 
+    def test_owner_pg_service_port_is_required_only_by_its_consumers(self) -> None:
+        import os
+        import shutil
+        import yaml
+
+        jobs = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())["jobs"]
+        step = next(x for x in jobs["owner-verification"]["steps"]
+                    if x["name"] == "Verify affected owners")
+        script = step["run"].replace("$" + "{{ needs.root-preflight.outputs.formal }}", "false")
+        script = script.replace("$" + "{{ github.run_id }}", "12345")
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            repo = folder / "repo"
+            registry = repo / "tools/repo"
+            registry.mkdir(parents=True)
+            for name in ("affected_owners.py", "owners.toml", "ci_mise_source_witness.py"):
+                if (ROOT / "tools/repo" / name).exists():
+                    shutil.copy2(ROOT / "tools/repo" / name, registry / name)
+            (repo / "mise.toml").write_text('[tasks.verify]\nrun = "echo fixture"\n')
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(["git", "-C", str(repo), "-c", "user.name=Test",
+                            "-c", "user.email=test@local.invalid", "commit", "-qm", "fixture"],
+                           check=True)
+            binary = folder / "bin"
+            binary.mkdir()
+            native = shutil.which("mise")
+            self.assertIsNotNone(native)
+            mock = binary / "mise"
+            mock.write_text(
+                '#!/usr/bin/env bash\n'
+                'set -euo pipefail\n'
+                'if [[ "$1" == --cd && "$3" == config && "$4" == ls ]]; then '
+                'exec "$NATIVE_MISE" "$@"; fi\n'
+                'if [[ "$*" == "run capital:verify" ]]; then\n'
+                '  [[ "$ORDIVON_CAPITAL_PG_TEST_DSN" == *" port=45432 "* ]]\n'
+                '  [[ "$ORDIVON_CAPITAL_PAPER_PG_TEST_DSN" == *" port=45432 "* ]]\n'
+                'elif [[ "$*" == "--cd domains/capital run verify:nonlive:nautilus" ]]; then\n'
+                '  [[ "$ORDIVON_CAPITAL_PAPER_PG_TEST_DSN" == *" port=45432 "* ]]\n'
+                '  [[ "$ORDIVON_FINANCE_REQUIRE_PHYSICAL_PG" == 1 ]]\n'
+                'elif [[ "$*" == "run harness:queue" ]]; then\n'
+                '  [[ "$HARNESS_PG_TEST_DSN" == *" port=45432 "* ]]\n'
+                'fi\n'
+                'printf "%s\n" "$*" >> "$TRACE"\n')
+            mock.chmod(0o755)
+            trace = folder / "trace"
+            env = dict(os.environ, PATH=str(binary)+os.pathsep+os.environ["PATH"],
+                       RUNNER_TEMP=str(folder), NATIVE_MISE=native, TRACE=str(trace),
+                       MISE_TRUSTED_CONFIG_PATHS=str(repo))
+            env.pop("GITHUB_SHA", None)
+
+            def run(task, port):
+                trace.write_text("")
+                result = subprocess.run(
+                    ["/usr/bin/bash", "-c", script], cwd=repo,
+                    env=dict(env, OWNER_TASKS_JSON=json.dumps([task]), PAPER_PG_PORT=port),
+                    capture_output=True, text=True, timeout=15)
+                return result, trace.read_text().splitlines()
+
+            for task in ("capital:verify", "harness:queue"):
+                for invalid in ("", "0", "65536", "bad"):
+                    with self.subTest(task=task, port=invalid):
+                        result, calls = run(task, invalid)
+                        self.assertEqual(result.returncode, 44, result.stderr)
+                        self.assertEqual(calls, [])
+                result, calls = run(task, "45432")
+                self.assertEqual(result.returncode, 0, result.stderr)
+                expected = ["run " + task]
+                if task == "capital:verify":
+                    expected.append("--cd domains/capital run verify:nonlive:nautilus")
+                self.assertEqual(calls, expected)
+            result, calls = run("runtime:verify", "")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(calls, ["run runtime:verify"])
+
     def test_required_check_fails_on_any_failed_or_skipped_required_lane(self) -> None:
         import os
         import yaml
@@ -2077,21 +2666,19 @@ class ParallelRootVerificationTests(unittest.TestCase):
             (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         )["jobs"]
         script = jobs["root-verification"]["steps"][0]["run"]
-        for before, mechanics, owner, selected, should_pass in (
-            ("success", "success", "success", "true", True),
-            ("success", "failure", "success", "true", False),
-            ("success", "cancelled", "success", "true", False),
-            ("success", "skipped", "success", "true", False),
-            ("success", "success", "failure", "true", False),
-            ("success", "success", "cancelled", "true", False),
-            ("success", "success", "skipped", "true", False),
-            ("success", "success", "skipped", "false", True),
-            ("success", "failure", "skipped", "false", False),
-            ("success", "success", "success", "false", False),
-            ("failure", "success", "skipped", "false", False),
-            ("cancelled", "success", "skipped", "false", False),
-            ("success", "success", "skipped", "", False),
+        from itertools import product
+
+        statuses = ("success", "failure", "cancelled", "skipped", "", "unknown")
+        selections = ("true", "false", "", "unknown")
+        for before, mechanics, owner, selected in product(
+            statuses, statuses, statuses, selections
         ):
+            # Specification: only two states admit integration. All missing
+            # or unrecognized values are non-admitting, not successful.
+            should_pass = (before, mechanics, owner, selected) in {
+                ("success", "success", "success", "true"),
+                ("success", "success", "skipped", "false"),
+            }
             with self.subTest(before=before, mechanics=mechanics, owner=owner, selected=selected):
                 completed = subprocess.run(
                     ["/usr/bin/bash", "-c", script],

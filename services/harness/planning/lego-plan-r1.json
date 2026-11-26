@@ -177,7 +177,9 @@
         "src/ordivon_harness/ordivon/runtime_lowering.py",
         "src/ordivon_harness/ordivon/runtime_bridge.py",
         "src/ordivon_harness/ordivon/adaptive_edit_bridge.py",
-        "tests/test_p0_execution_binding.py"
+        "tests/test_p0_execution_binding.py",
+        "src/ordivon_harness/plugin_gateway_effect.py",
+        "tests/test_plugin_gateway_effect.py"
       ],
       "dependencies": [
         "H01",

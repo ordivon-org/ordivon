@@ -265,22 +265,13 @@ def evaluate_risk_budget(
     exposure_ledger: Mapping[str, Any],
     budget: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """Bind normalized portfolio facts to the bounded deterministic risk-limit policy."""
-    from ordivon_capital.governance.policy_decision import (
-        PolicyDecisionError,
-        evaluate_risk_budget_policy,
-    )
+    """Compare normalized exposures against numeric limits without execution authority."""
+    from .risk_limit_evaluation import evaluate_risk_limits
 
-    repo = Path(__file__).resolve().parents[3]
-    try:
-        return evaluate_risk_budget_policy(
-            repo=repo,
-            config_path=repo / "config/execution_policy.json",
-            exposure_ledger=dict(exposure_ledger),
-            budget=dict(budget),
-        )
-    except PolicyDecisionError as exc:
-        raise PortfolioRiskError(str(exc)) from exc
+    return evaluate_risk_limits(
+        exposure_ledger=dict(exposure_ledger),
+        budget=dict(budget),
+    )
 
 
 def build_portfolio_risk_report(

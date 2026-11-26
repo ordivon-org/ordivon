@@ -64,8 +64,10 @@ It does not use host-execution, local-file, or SSH nodes. Those nodes are separa
 
 ## Run
 
+Set `PGHOST` (qualified local Unix socket directory) and `PGPORT` (observed port) before running convergence; see [N8N_SERVICE.md](N8N_SERVICE.md).
+
 ```bash
-sudo ./scripts/converge-n8n-integration-smoke.sh
+sudo env PGHOST="$PGHOST" PGPORT="$PGPORT" ./scripts/converge-n8n-integration-smoke.sh
 ./scripts/invoke-n8n-integration-smoke.py --pretty
 /root/.local/share/ordivon-workstation/temporal-agent-automation/.venv/bin/python \
   ./scripts/temporal-n8n-integration-smoke.py --address 127.0.0.1:17233

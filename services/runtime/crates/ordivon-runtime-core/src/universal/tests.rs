@@ -107,6 +107,339 @@ fn workspace_open_missing_revision_is_classified_before_creation() {
 }
 
 #[test]
+fn abandoned_git_worktree_without_workspace_identity_is_not_a_normal_duplicate() {
+    let sandbox = Sandbox::new("workspace-open-interrupted-after-git");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    config.ensure_store().unwrap();
+    let workspace_id = "workspace-open-interrupted";
+    let target = config.workspace_path(workspace_id);
+    let record = config.workspace_record_path(workspace_id);
+
+    // This is the real Git side effect performed by
+    // create_git_workspace_record BEFORE write_json_atomic(record).
+    run_git(
+        &source,
+        [
+            "worktree",
+            "add",
+            "--detach",
+            target.to_str().unwrap(),
+            "HEAD",
+        ],
+    );
+    assert!(target.is_dir());
+    assert!(!record.exists());
+
+    let open = create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap_err();
+    assert_eq!(open.code, UniversalExecErrorCode::MetadataCorrupt);
+    assert_eq!(open.field.as_deref(), Some("workspaceId"));
+    assert!(
+        !open.retryable,
+        "do not blindly reissue a physical Git effect"
+    );
+
+    let get = load_workspace_record(&config, workspace_id).unwrap_err();
+    assert_eq!(get.code, UniversalExecErrorCode::MetadataCorrupt);
+
+    let inventory = list_open_workspace_record_inventory(&config).unwrap();
+    let issue = inventory
+        .issues
+        .iter()
+        .find(|issue| issue.workspace_id == workspace_id)
+        .expect("physical worktree without an identity record must be surfaced");
+    assert_eq!(issue.error.code, UniversalExecErrorCode::MetadataCorrupt);
+    assert!(inventory
+        .records
+        .iter()
+        .all(|record| record.workspace_id != workspace_id));
+
+    let close = remove_git_workspace(
+        &config,
+        &WorkspaceCloseRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            force: false,
+            consumer_released: false,
+            expected_source_state_digest: None,
+        },
+    )
+    .unwrap_err();
+    assert_eq!(close.code, UniversalExecErrorCode::MetadataCorrupt);
+    assert!(
+        target.exists(),
+        "no automatic adoption or destructive cleanup"
+    );
+    run_git(
+        &source,
+        ["worktree", "remove", "--force", target.to_str().unwrap()],
+    );
+}
+
+#[test]
+fn interrupted_open_reuses_durable_intent_and_real_git_without_second_add() {
+    let sandbox = Sandbox::new("workspace-open-physical-replay");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    config.ensure_store().unwrap();
+    let workspace_id = "workspace-opening-reconcile";
+    let target = config.workspace_path(workspace_id);
+    let record = config.workspace_record_path(workspace_id);
+    let revision = std::process::Command::new("git")
+        .arg("-C")
+        .arg(&source)
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .unwrap();
+    assert!(revision.status.success());
+    let commit = String::from_utf8(revision.stdout)
+        .unwrap()
+        .trim()
+        .to_owned();
+    let request = GitWorkspaceCreateRequest {
+        schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+        workspace_id: workspace_id.to_string(),
+        source_repo: source.to_string_lossy().into_owned(),
+        source_revision: commit.clone(),
+    };
+    write_json_atomic(
+        &record,
+        &serde_json::json!({
+            "schemaVersion": UNIVERSAL_EXEC_SCHEMA_VERSION,
+            "state": "opening",
+            "sourceRepo": source.to_string_lossy(),
+            "sourceRevision": commit,
+            "requestedRevision": commit,
+            "createdUnixMs": 54321
+        }),
+    )
+    .unwrap();
+    // An actual Git worktree add happened before this process disappeared.
+    run_git(
+        &source,
+        [
+            "worktree",
+            "add",
+            "--detach",
+            target.to_str().unwrap(),
+            "HEAD",
+        ],
+    );
+    let before = fs::read(target.join(".git")).unwrap();
+    let opened = create_git_workspace(&config, &request).unwrap();
+    assert_eq!(opened.source_revision, commit);
+    assert_eq!(fs::read(target.join(".git")).unwrap(), before);
+    let recovered = load_workspace_record(&config, workspace_id).unwrap();
+    assert_eq!(recovered.created_unix_ms, 54321);
+    assert_eq!(recovered.source_revision, commit);
+    let duplicate = create_git_workspace(&config, &request).unwrap_err();
+    assert_eq!(duplicate.code, UniversalExecErrorCode::WorkspaceExists);
+}
+
+#[test]
+fn interrupted_open_intent_without_git_effect_can_finish_on_same_request() {
+    let sandbox = Sandbox::new("workspace-open-intent-only");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    config.ensure_store().unwrap();
+    let id = "workspace-open-intent-only";
+    let commit = std::process::Command::new("git")
+        .arg("-C")
+        .arg(&source)
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .unwrap();
+    let commit = String::from_utf8(commit.stdout).unwrap().trim().to_string();
+    write_json_atomic(
+        &config.workspace_record_path(id),
+        &serde_json::json!({
+            "schemaVersion": UNIVERSAL_EXEC_SCHEMA_VERSION,
+            "state": "opening",
+            "sourceRepo": source.to_string_lossy(),
+            "sourceRevision": commit,
+            "requestedRevision": commit,
+            "createdUnixMs": 99
+        }),
+    )
+    .unwrap();
+    create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: commit.clone(),
+        },
+    )
+    .unwrap();
+    assert!(config.workspace_path(id).is_dir());
+    assert_eq!(
+        load_workspace_record(&config, id).unwrap().created_unix_ms,
+        99
+    );
+}
+
+#[test]
+fn interrupted_open_wrong_source_or_dirty_git_is_not_adopted() {
+    let sandbox = Sandbox::new("workspace-open-reject-untrusted");
+    let source = sandbox.root.join("source");
+    let foreign = sandbox.root.join("foreign");
+    init_git_repo(&source);
+    init_git_repo(&foreign);
+    let config = sandbox.config();
+    config.ensure_store().unwrap();
+    let id = "workspace-open-reject-untrusted";
+    let target = config.workspace_path(id);
+    let commit = std::process::Command::new("git")
+        .arg("-C")
+        .arg(&source)
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .unwrap();
+    let commit = String::from_utf8(commit.stdout).unwrap().trim().to_string();
+    write_json_atomic(
+        &config.workspace_record_path(id),
+        &serde_json::json!({
+            "schemaVersion": UNIVERSAL_EXEC_SCHEMA_VERSION,
+            "state": "opening",
+            "sourceRepo": source.to_string_lossy(),
+            "sourceRevision": commit,
+            "requestedRevision": commit,
+            "createdUnixMs": 123
+        }),
+    )
+    .unwrap();
+    run_git(
+        &foreign,
+        [
+            "worktree",
+            "add",
+            "--detach",
+            target.to_str().unwrap(),
+            "HEAD",
+        ],
+    );
+    let request = GitWorkspaceCreateRequest {
+        schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+        workspace_id: id.to_string(),
+        source_repo: source.to_string_lossy().into_owned(),
+        source_revision: commit.clone(),
+    };
+    let error = create_git_workspace(&config, &request).unwrap_err();
+    assert_eq!(error.code, UniversalExecErrorCode::MetadataCorrupt);
+    assert!(target.exists());
+    assert!(config.workspace_record_path(id).exists());
+    run_git(
+        &foreign,
+        ["worktree", "remove", "--force", target.to_str().unwrap()],
+    );
+    run_git(
+        &source,
+        [
+            "worktree",
+            "add",
+            "--detach",
+            target.to_str().unwrap(),
+            "HEAD",
+        ],
+    );
+    fs::write(target.join("unexpected-untracked.txt"), b"unowned data").unwrap();
+    let error = create_git_workspace(&config, &request).unwrap_err();
+    assert_eq!(error.code, UniversalExecErrorCode::MetadataCorrupt);
+    assert!(target.join("unexpected-untracked.txt").exists());
+    // An altered request cannot reuse even a valid pre-recorded opening.
+    let mut other_request = request;
+    other_request.source_revision = "a different branch".to_string();
+    let error = create_git_workspace(&config, &other_request).unwrap_err();
+    assert!(matches!(
+        error.code,
+        UniversalExecErrorCode::RevisionNotFound | UniversalExecErrorCode::MetadataCorrupt
+    ));
+    assert!(target.is_dir());
+}
+
+#[test]
+fn interrupted_open_retains_original_head_even_after_source_branch_moves() {
+    let sandbox = Sandbox::new("workspace-open-head-moved");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    config.ensure_store().unwrap();
+    let id = "workspace-open-head-moved";
+    let old_head = std::process::Command::new("git")
+        .arg("-C")
+        .arg(&source)
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .unwrap();
+    let old_head = String::from_utf8(old_head.stdout)
+        .unwrap()
+        .trim()
+        .to_string();
+    write_json_atomic(
+        &config.workspace_record_path(id),
+        &serde_json::json!({
+            "schemaVersion": UNIVERSAL_EXEC_SCHEMA_VERSION,
+            "state": "opening",
+            "sourceRepo": source.to_string_lossy(),
+            "sourceRevision": old_head,
+            "requestedRevision": "HEAD",
+            "createdUnixMs": 41
+        }),
+    )
+    .unwrap();
+    let target = config.workspace_path(id);
+    run_git(
+        &source,
+        [
+            "worktree",
+            "add",
+            "--detach",
+            target.to_str().unwrap(),
+            "HEAD",
+        ],
+    );
+    // The caller lost the response. The source then advanced before retry.
+    fs::write(source.join("next.txt"), b"new source generation").unwrap();
+    run_git(&source, ["add", "next.txt"]);
+    run_git(&source, ["commit", "-qm", "move HEAD"]);
+    let new_head = std::process::Command::new("git")
+        .arg("-C")
+        .arg(&source)
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .unwrap();
+    assert_ne!(old_head, String::from_utf8(new_head.stdout).unwrap().trim());
+    let recovered = create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap();
+    assert_eq!(recovered.source_revision, old_head);
+    assert_eq!(
+        load_workspace_record(&config, id).unwrap().source_revision,
+        old_head
+    );
+}
+
+#[test]
 fn workspace_open_non_git_source_is_not_misclassified_as_revision() {
     let sandbox = Sandbox::new("workspace-non-git-source");
     let source = sandbox.root.join("source");
@@ -1579,6 +1912,7 @@ fn runner_rejects_workspace_source_drift_before_spawning_target() {
     fs::create_dir_all(&task_dir).unwrap();
     let executable = real_executable("/usr/bin/python3");
     let request = RunnerRequest {
+        issuer_spawn_fence: None,
         workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
@@ -1639,6 +1973,7 @@ fn runner_projects_private_build_target_through_stable_inherited_fd() {
     .unwrap();
     let executable = real_executable("/usr/bin/python3");
     let request = RunnerRequest {
+        issuer_spawn_fence: None,
         workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
@@ -1700,6 +2035,7 @@ fn runner_rejects_host_dependency_drift_before_spawning_target() {
     fs::create_dir_all(&task_dir).unwrap();
     let executable = real_executable("/usr/bin/python3");
     let request = RunnerRequest {
+        issuer_spawn_fence: None,
         workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
@@ -1768,6 +2104,7 @@ fn runner_fails_when_host_dependency_drifts_after_target_start() {
     fs::create_dir_all(&task_dir).unwrap();
     let executable = real_executable("/usr/bin/python3");
     let request = RunnerRequest {
+        issuer_spawn_fence: None,
         workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
@@ -1860,6 +2197,7 @@ fn runner_ignores_ancestor_metadata_event_when_host_dependency_identity_is_uncha
     let task_dir = sandbox.root.join("task-host-dependency-ancestor-metadata");
     fs::create_dir_all(&task_dir).unwrap();
     let request = RunnerRequest {
+        issuer_spawn_fence: None,
         workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
@@ -1949,6 +2287,7 @@ fn runner_ignores_ancestor_metadata_event_when_executable_identity_is_unchanged(
     let task_dir = sandbox.root.join("task-script-ancestor-metadata");
     fs::create_dir_all(&task_dir).unwrap();
     let request = RunnerRequest {
+        issuer_spawn_fence: None,
         workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
@@ -2039,6 +2378,7 @@ fn runner_fails_when_symlinked_executable_target_is_modified_in_place() {
     let task_dir = sandbox.root.join("task-symlink-target-runtime-modify");
     fs::create_dir_all(&task_dir).unwrap();
     let request = RunnerRequest {
+        issuer_spawn_fence: None,
         workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
@@ -2117,6 +2457,7 @@ fn runner_preserves_shebang_path_semantics_but_fails_on_runtime_executable_drift
     let task_dir = sandbox.root.join("task-script-runtime-drift");
     fs::create_dir_all(&task_dir).unwrap();
     let request = RunnerRequest {
+        issuer_spawn_fence: None,
         workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
@@ -2202,6 +2543,7 @@ fn runner_rejects_immutable_input_drift_before_spawning_target() {
     fs::create_dir_all(&task_dir).unwrap();
     let executable = real_executable("/usr/bin/python3");
     let request = RunnerRequest {
+        issuer_spawn_fence: None,
         workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
@@ -2270,6 +2612,7 @@ fn runner_rejects_undeclared_input_directory_before_spawning_target() {
     fs::create_dir_all(&task_dir).unwrap();
     let executable = real_executable("/usr/bin/python3");
     let request = RunnerRequest {
+        issuer_spawn_fence: None,
         workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
@@ -2315,6 +2658,79 @@ fn runner_rejects_undeclared_input_directory_before_spawning_target() {
         .as_deref()
         .is_some_and(|message| message.contains("undeclared-empty")));
     assert!(!workspace.join("effect-marker").exists());
+}
+
+#[test]
+fn workspace_close_force_false_preserves_gitignored_private_results() {
+    let sandbox = Sandbox::new("close-ignored-private-research");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    fs::write(source.join(".gitignore"), "ignored_results/\n*.secret\n").unwrap();
+    run_git(&source, ["add", ".gitignore"]);
+    run_git(
+        &source,
+        ["commit", "-qm", "gitignore reproducible-only outputs"],
+    );
+
+    let config = sandbox.config();
+    let id = "workspace-with-ignored-private-results";
+    create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap();
+    let worktree = config.workspace_path(id);
+    let private = worktree
+        .join("ignored_results")
+        .join("unique-research-data.txt");
+    fs::create_dir_all(private.parent().unwrap()).unwrap();
+    fs::write(&private, "DO_NOT_DELETE_PRIVATE_DATA").unwrap();
+    fs::write(worktree.join("key.secret"), "DO_NOT_DELETE_PRIVATE_KEY").unwrap();
+    assert_eq!(
+        git_text(
+            &worktree,
+            ["status", "--porcelain=v1", "--untracked-files=normal"]
+        ),
+        ""
+    );
+    let request = WorkspaceCloseRequest {
+        schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+        workspace_id: id.to_string(),
+        force: false,
+        consumer_released: true,
+        expected_source_state_digest: None,
+    };
+    let rejected = remove_git_workspace(&config, &request).unwrap_err();
+    assert_eq!(rejected.code, UniversalExecErrorCode::WorkspaceDirty);
+    assert!(
+        rejected.message.contains("ignored_results") || rejected.message.contains("key.secret"),
+        "native close must report the real excluded content: {}",
+        rejected.message
+    );
+    assert_eq!(
+        fs::read_to_string(&private).unwrap(),
+        "DO_NOT_DELETE_PRIVATE_DATA"
+    );
+    assert_eq!(
+        fs::read_to_string(worktree.join("key.secret")).unwrap(),
+        "DO_NOT_DELETE_PRIVATE_KEY"
+    );
+
+    let authorized = remove_git_workspace(
+        &config,
+        &WorkspaceCloseRequest {
+            force: true,
+            ..request
+        },
+    )
+    .unwrap();
+    assert!(authorized.removed);
+    assert!(!worktree.exists());
 }
 
 #[test]
@@ -2513,7 +2929,19 @@ fn clean_workspace_close_succeeds_without_force() {
     let tmp_presentation = config
         .workspace_tmp_presentation_path(workspace_id)
         .unwrap();
-    let _ = fs::remove_file(&tmp_presentation);
+    // PG-only tests do not run the legacy execution-environment setup that
+    // creates the short TMPDIR presentation root. Prepare this fixture
+    // independently of other tests and their execution order.
+    use std::os::unix::fs::DirBuilderExt;
+    let parent = tmp_presentation.parent().unwrap();
+    match fs::DirBuilder::new().mode(0o700).create(parent) {
+        Ok(()) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+        Err(error) => panic!("create temporary presentation fixture: {error}"),
+    }
+    assert!(fs::symlink_metadata(parent).unwrap().file_type().is_dir());
+    // The canonical store is unique to this Sandbox. Never unlink another
+    // presentation to manufacture the test precondition.
     std::os::unix::fs::symlink(
         config.canonical_workspace_tmp_path(workspace_id).unwrap(),
         &tmp_presentation,
@@ -3544,6 +3972,7 @@ fn runner_executes_model_authored_script_and_bounds_output() {
     .unwrap();
     let executable = real_executable("/usr/bin/python3");
     let request = RunnerRequest {
+        issuer_spawn_fence: None,
         workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
@@ -3609,6 +4038,7 @@ fn runner_shared_overall_deadline_is_independent_of_step_timeout_sum() {
         continue_on_error: false,
     };
     let fast = RunnerRequest {
+        issuer_spawn_fence: None,
         workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
@@ -3680,6 +4110,7 @@ fn runner_timeout_is_a_durable_failed_result() {
     fs::write(workspace.join("tool.py"), "import time\ntime.sleep(5)\n").unwrap();
     let executable = real_executable("/usr/bin/python3");
     let request = RunnerRequest {
+        issuer_spawn_fence: None,
         workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
@@ -3723,6 +4154,7 @@ fn runner_timeout_terminates_descendant_pipe_holders_before_result() {
     fs::create_dir_all(&task_dir).unwrap();
     let executable = real_executable("/usr/bin/bash");
     let request = RunnerRequest {
+        issuer_spawn_fence: None,
         workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
@@ -3847,6 +4279,188 @@ fn workspace_batch_mutation_preflights_before_writing() {
         fs::read_to_string(config.workspace_path("workspace-batch").join("tool.py")).unwrap(),
         "print('ok')\n"
     );
+}
+
+#[test]
+fn workspace_batch_crash_after_first_file_exact_replay_and_close_fence() {
+    let sandbox = Sandbox::new("batch-crash-after-first");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    let id = "workspace-batch-crash";
+    create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: 1,
+            workspace_id: id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap();
+    let before = "baseline\n";
+    let after = "baseline\naccepted\n";
+    let added = "print('committed once')\n";
+    let request = WorkspaceMutateRequest {
+        schema_version: 1,
+        workspace_id: id.to_string(),
+        mutations: vec![
+            WorkspaceMutation {
+                relative_path: "README.md".to_string(),
+                mode: WorkspaceMutationMode::Append,
+                content: "accepted\n".to_string(),
+                expected_digest: Some(sha256_bytes(before.as_bytes())),
+                expected_text: None,
+            },
+            WorkspaceMutation {
+                relative_path: "tool.py".to_string(),
+                mode: WorkspaceMutationMode::Write,
+                content: added.to_string(),
+                expected_digest: None,
+                expected_text: None,
+            },
+        ],
+    };
+    // Crash state is generated from the exact preflight intent schema: durable
+    // pending descriptor, first atomic file done, second file not created.
+    let journal = serde_json::json!({
+        "schemaVersion": 1,
+        "workspaceId": id,
+        "requestDigest": sha256_bytes(&serde_json::to_vec(&request).unwrap()),
+        "entries": [
+            {"relativePath":"README.md", "beforeContent":before,
+             "beforeDigest":sha256_bytes(before.as_bytes()),
+             "afterContent":after, "afterDigest":sha256_bytes(after.as_bytes())},
+            {"relativePath":"tool.py", "beforeContent":null,
+             "beforeDigest":null,
+             "afterContent":added, "afterDigest":sha256_bytes(added.as_bytes())}
+        ]
+    });
+    let intent = config
+        .workspace_cache_path(id)
+        .join("pending-mutation-v1.json");
+    write_json_atomic(&intent, &journal).unwrap();
+    fs::write(config.workspace_path(id).join("README.md"), after).unwrap();
+    assert!(!config.workspace_path(id).join("tool.py").exists());
+
+    let different = WorkspaceMutateRequest {
+        mutations: vec![WorkspaceMutation {
+            content: "NOT THE SAME REQUEST".to_string(),
+            ..request.mutations[0].clone()
+        }],
+        ..request.clone()
+    };
+    assert_eq!(
+        mutate_workspace(&config, &different).unwrap_err().code,
+        UniversalExecErrorCode::WorkspaceMutationIncomplete
+    );
+    assert_eq!(
+        remove_git_workspace(
+            &config,
+            &WorkspaceCloseRequest {
+                schema_version: 1,
+                workspace_id: id.to_string(),
+                expected_source_state_digest: None,
+                force: false,
+                consumer_released: true
+            }
+        )
+        .unwrap_err()
+        .code,
+        UniversalExecErrorCode::WorkspaceMutationIncomplete
+    );
+    assert!(!config.workspace_path(id).join("tool.py").exists());
+    assert!(intent.exists());
+
+    let recovered = mutate_workspace(&config, &request).unwrap();
+    assert_eq!(recovered.mutations.len(), 2);
+    assert_eq!(
+        recovered.mutations[0].after_digest,
+        sha256_bytes(after.as_bytes())
+    );
+    assert_eq!(
+        fs::read_to_string(config.workspace_path(id).join("README.md")).unwrap(),
+        after
+    );
+    assert_eq!(
+        fs::read_to_string(config.workspace_path(id).join("tool.py")).unwrap(),
+        added
+    );
+    assert!(!intent.exists(), "all-file readback clears durable intent");
+}
+
+#[test]
+fn workspace_batch_crash_external_drift_keeps_intent_and_preserves_bytes() {
+    let sandbox = Sandbox::new("batch-crash-drift");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    let id = "workspace-batch-drift";
+    create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: 1,
+            workspace_id: id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap();
+    let request = WorkspaceMutateRequest {
+        schema_version: 1,
+        workspace_id: id.to_string(),
+        mutations: vec![WorkspaceMutation {
+            relative_path: "README.md".to_string(),
+            mode: WorkspaceMutationMode::Append,
+            content: "intent\n".to_string(),
+            expected_digest: Some(sha256_bytes(b"baseline\n")),
+            expected_text: None,
+        }],
+    };
+    let after = "baseline\nintent\n";
+    let journal = serde_json::json!({
+        "schemaVersion":1,
+        "workspaceId":id,
+        "requestDigest":sha256_bytes(&serde_json::to_vec(&request).unwrap()),
+        "entries":[{
+            "relativePath":"README.md", "beforeContent":"baseline\n",
+            "beforeDigest":sha256_bytes(b"baseline\n"),
+            "afterContent":after, "afterDigest":sha256_bytes(after.as_bytes())
+        }]
+    });
+    let intent = config
+        .workspace_cache_path(id)
+        .join("pending-mutation-v1.json");
+    write_json_atomic(&intent, &journal).unwrap();
+    let drift = "foreign writer must not be overwritten\n";
+    fs::write(config.workspace_path(id).join("README.md"), drift).unwrap();
+
+    assert_eq!(
+        mutate_workspace(&config, &request).unwrap_err().code,
+        UniversalExecErrorCode::WorkspaceMutationIncomplete
+    );
+    assert_eq!(
+        fs::read_to_string(config.workspace_path(id).join("README.md")).unwrap(),
+        drift
+    );
+    assert!(intent.exists());
+    // External bytes cannot be adopted or destroyed in order to fake recovery.
+    assert_eq!(
+        remove_git_workspace(
+            &config,
+            &WorkspaceCloseRequest {
+                schema_version: 1,
+                workspace_id: id.to_string(),
+                expected_source_state_digest: None,
+                force: true,
+                consumer_released: true
+            }
+        )
+        .unwrap_err()
+        .code,
+        UniversalExecErrorCode::WorkspaceMutationIncomplete
+    );
+    assert!(config.workspace_path(id).exists());
 }
 
 #[test]
@@ -4125,6 +4739,7 @@ fn resource_receipt_writer_binds_attempt_identity_and_writes_separate_file() {
     .unwrap();
     let executable = real_executable("/usr/bin/true");
     let request = RunnerRequest {
+        issuer_spawn_fence: None,
         workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: Some("job-resource-receipt".to_string()),
@@ -4184,6 +4799,7 @@ fn runner_result_wire_shape_remains_legacy_with_best_effort_resource_observation
     fs::create_dir_all(&workspace).unwrap();
     let executable = real_executable("/usr/bin/true");
     let request = RunnerRequest {
+        issuer_spawn_fence: None,
         workspace_read_paths: None,
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: Some("job-separate-resource-receipt".to_string()),
@@ -4217,6 +4833,115 @@ fn runner_result_wire_shape_remains_legacy_with_best_effort_resource_observation
     let result_value: serde_json::Value =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
     assert!(result_value.get("resourceReceipt").is_none());
+}
+
+// Physical, root-owned PG Attempt control test. Not a PG issuer-revoke ACK:
+// the native Manager may still create a Unit after the marker, but the original
+// Runner must never start a new target after the marker wins its spawn fence.
+#[cfg(unix)]
+#[test]
+#[ignore = "requires native root-owned PG Attempt control directory"]
+fn pg_native_runner_cancel_wins_after_step_preparation_before_spawn() {
+    assert_eq!(unsafe { libc::geteuid() }, 0, "explicit native root test");
+    let sandbox = Sandbox::new("pg-native-late-spawn");
+    let task_dir = sandbox.root.join("task");
+    let workspace = sandbox.root.join("workspace");
+    fs::create_dir_all(&task_dir).unwrap();
+    fs::set_permissions(&task_dir, fs::Permissions::from_mode(0o700)).unwrap();
+    fs::create_dir_all(&workspace).unwrap();
+    let executable = real_executable("/usr/bin/python3");
+    let request = RunnerRequest {
+        issuer_spawn_fence: None,
+        workspace_read_paths: None,
+        schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+        job_id: Some("job-native-late-spawn".to_string()),
+        attempt_id: Some("attempt-native-late-spawn".to_string()),
+        launch_token: Some("launch-token-native-late-spawn".to_string()),
+        unit_name: Some("ordivon-native-late-spawn.service".to_owned()),
+        payload: None,
+        inherit_host_environment: true,
+        task_id: "attempt-native-late-spawn".to_string(),
+        workspace_id: "workspace-native-late-spawn".to_string(),
+        workspace_path: workspace.to_string_lossy().into_owned(),
+        workspace_source_digest: None,
+        build_target_backing: None,
+        input_presentation_root: None,
+        input_commitments: Vec::new(),
+        executable: executable.to_string_lossy().into_owned(),
+        executable_digest: sha256_file(&executable).unwrap(),
+        args: vec![
+            "-c".to_owned(),
+            "from pathlib import Path; Path('effect-marker').write_text('spawned')".to_owned(),
+        ],
+        cwd: workspace.to_string_lossy().into_owned(),
+        env: BTreeMap::new(),
+        steps: Vec::new(),
+        timeout_ms: 5_000,
+        stdout_limit_bytes: 1024,
+        stderr_limit_bytes: 1024,
+        host_dependencies: Vec::new(),
+    };
+    write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
+    // Positive control: the exact command really can produce its effect.
+    let positive_dir = sandbox.root.join("positive");
+    fs::create_dir_all(&positive_dir).unwrap();
+    fs::set_permissions(&positive_dir, fs::Permissions::from_mode(0o700)).unwrap();
+    write_json_atomic(&positive_dir.join("request.json"), &request).unwrap();
+    run_job_runner(&positive_dir).unwrap();
+    let positive: RunnerResult =
+        serde_json::from_slice(&fs::read(positive_dir.join("result.json")).unwrap()).unwrap();
+    assert_eq!(
+        positive.status,
+        RunnerTerminalStatus::Completed,
+        "positive native result: {positive:?}"
+    );
+    assert_eq!(
+        fs::read_to_string(workspace.join("effect-marker")).unwrap(),
+        "spawned"
+    );
+    fs::remove_file(workspace.join("effect-marker")).unwrap();
+
+    // Hold the exact original lock while the original Runner enters step
+    // preparation, then publish the marker before releasing the lock.
+    let fence = lock_attempt_spawn_fence(&task_dir).unwrap();
+    let runner_dir = task_dir.clone();
+    let runner = thread::spawn(move || run_job_runner(&runner_dir).unwrap());
+    let deadline = std::time::Instant::now() + Duration::from_secs(3);
+    let mut prepared = false;
+    while std::time::Instant::now() < deadline {
+        if let Ok(bytes) = fs::read(task_dir.join("progress.json")) {
+            if let Ok(value) = serde_json::from_slice::<serde_json::Value>(&bytes) {
+                if value.get("currentStepId").and_then(|v| v.as_str()) == Some("command") {
+                    prepared = true;
+                    break;
+                }
+            }
+        }
+        thread::sleep(Duration::from_millis(5));
+    }
+    // Always release the lock before joining or asserting, even on failure.
+    write_json_atomic(
+        &task_dir.join("cancel-requested.json"),
+        &serde_json::json!({"requestedAtMs":1}),
+    )
+    .unwrap();
+    drop(fence);
+    runner.join().unwrap();
+    assert!(
+        prepared,
+        "runner never entered the original step preparation boundary"
+    );
+    let result: RunnerResult =
+        serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
+    assert_eq!(result.status, RunnerTerminalStatus::Cancelled);
+    assert!(
+        result.steps.is_empty(),
+        "must not fabricate an executed child"
+    );
+    assert!(
+        !workspace.join("effect-marker").exists(),
+        "post-marker native payload spawned"
+    );
 }
 
 #[cfg(unix)]

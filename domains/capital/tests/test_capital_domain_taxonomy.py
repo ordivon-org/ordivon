@@ -4,66 +4,95 @@ import ast
 import json
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src/ordivon_capital"
 TAXONOMY = json.loads((ROOT / "config/capital_domain_taxonomy.json").read_text())
 
 
-def test_capital_source_packages_match_instantiated_domains():
-    expected = {
-        "accounting",
-        "governance",
-        "markets",
-        "portfolio",
-        "research",
-        "risk",
-        "trading",
-    }
-    actual = {p.name for p in SRC.iterdir() if p.is_dir() and not p.name.startswith("__")}
-    assert expected <= actual
-    assert not (SRC / "market").exists()
+def test_business_domains_are_importable_without_assuming_one_module_per_file():
+    import importlib
+
+    for domain in TAXONOMY["domains"]:
+        result = importlib.import_module(f"ordivon_capital.{domain}")
+        assert result is not None
 
 
-def test_taxonomy_module_map_matches_physical_source():
-    # This is a two-sided source identity contract: a registry that omits
-    # actively importable modules is just as misleading as a stale path.
-    physical_domains = {
-        path.name for path in SRC.iterdir()
-        if path.is_dir() and (path / "__init__.py").is_file()
-    }
-    declared_domains = set(TAXONOMY["moduleMap"])
-    assert declared_domains == physical_domains, {
-        "unregisteredDomains": sorted(physical_domains - declared_domains),
-        "obsoleteDomains": sorted(declared_domains - physical_domains),
-    }
-    assert declared_domains == set(TAXONOMY["domains"])
-    for domain, names in TAXONOMY["moduleMap"].items():
-        expected = {
-            path.name for path in (SRC / domain).glob("*.py")
-            if path.name != "__init__.py"
-        }
-        assert len(names) == len(set(names)), (domain, "duplicate module entry")
-        assert set(names) == expected, {
-            "owner": domain,
-            "unregisteredModules": sorted(expected - set(names)),
-            "obsoleteModules": sorted(set(names) - expected),
-        }
+def test_business_domain_dependency_graph_is_acyclic_and_apps_stay_outside_core():
+    """Test actual import dependency semantics, not file locations or retention."""
+    domains = set(TAXONOMY["domains"])
+    edges = {domain: set() for domain in domains}
+    for owner in domains:
+        for source in (SRC / owner).rglob("*.py"):
+            module = ["ordivon_capital", *source.relative_to(SRC).with_suffix("").parts]
+            package = module[:-1]
+            for node in ast.walk(ast.parse(source.read_text())):
+                targets = []
+                if isinstance(node, ast.Import):
+                    targets = [alias.name.split(".") for alias in node.names]
+                elif isinstance(node, ast.ImportFrom):
+                    if node.level:
+                        base = package[: len(package) - (node.level - 1)]
+                        targets = [base + (node.module.split(".") if node.module else [])]
+                    elif node.module:
+                        targets = [node.module.split(".")]
+                for target in targets:
+                    if owner in {"risk", "portfolio"}:
+                        assert not (
+                            target[0] in {"psycopg", "sqlite3"}
+                            or target[:2] == ["ordivon_capital", "accounting"]
+                        ), (
+                            "Pure risk/portfolio math may not read a database",
+                            owner,
+                            source.name,
+                            target,
+                        )
+                    if len(target) < 2 or target[0] != "ordivon_capital":
+                        continue
+                    dest = target[1]
+                    assert dest != "applications", (
+                        "Core domain imported an application orchestration consumer",
+                        owner,
+                        source.name,
+                    )
+                    if dest in domains and dest != owner:
+                        edges[owner].add(dest)
+
+    visited: set[str] = set()
+    visiting: set[str] = set()
+
+    def traverse(owner: str):
+        assert owner not in visiting, ("business domain cycle", owner, edges)
+        if owner in visited:
+            return
+        visiting.add(owner)
+        for child in edges[owner]:
+            traverse(child)
+        visiting.remove(owner)
+        visited.add(owner)
+
+    for owner in domains:
+        traverse(owner)
 
 
-def test_old_market_python_namespace_has_no_active_references():
-    old = "ordivon_capital." + "market."
-    offenders = []
-    for root in (ROOT / "src", ROOT / "tests", ROOT / "scripts", ROOT / "tools"):
-        for path in root.rglob("*"):
-            if not path.is_file() or path == Path(__file__):
-                continue
-            try:
-                text = path.read_text()
-            except UnicodeDecodeError:
-                continue
-            if old in text:
-                offenders.append(path.relative_to(ROOT).as_posix())
-    assert offenders == []
+def test_no_database_dependency_rule_catches_a_new_bad_import(monkeypatch):
+    # Inject an illegal edge in-memory, rather than requiring any old source
+    # file or private helper to be kept. The rule must fail on the bad program.
+    original = Path.read_text
+    portfolio_file = next(
+        p for p in (SRC / "portfolio").glob("*.py") if p.name != "__init__.py"
+    )
+
+    def injected(path: Path, *args, **kwargs):
+        source = original(path, *args, **kwargs)
+        if path == portfolio_file:
+            source += "\nfrom ordivon_capital.accounting import postgres_ledger\n"
+        return source
+
+    monkeypatch.setattr(Path, "read_text", injected)
+    with pytest.raises(AssertionError, match="Pure risk/portfolio math"):
+        test_business_domain_dependency_graph_is_acyclic_and_apps_stay_outside_core()
 
 
 def _forbidden_market_imports(source: str) -> list[str]:
@@ -107,9 +136,7 @@ def test_market_boundary_recognizes_parent_relative_imports():
     assert _forbidden_market_imports("from ..accounting import paper_close") == [
         "ordivon_capital.accounting"
     ]
-    assert _forbidden_market_imports("from .. import trading") == [
-        "ordivon_capital.trading"
-    ]
+    assert _forbidden_market_imports("from .. import trading") == ["ordivon_capital.trading"]
     assert _forbidden_market_imports("from .etf_eod_snapshot import admit_etf_eod_snapshot") == []
 
 

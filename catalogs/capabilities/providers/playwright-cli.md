@@ -27,7 +27,7 @@ Use thinner or different providers when:
 
 - public content is readable without browser interaction -> direct HTTP/fetch;
 - site-scale acquisition/normalization is the primary object -> Firecrawl when actually available;
-- the next browser action must be chosen adaptively from changing/unknown state -> Browser Use;
+- the next browser action must be chosen adaptively from changing/unknown state -> Agent reasoning over Playwright snapshots first; use Browser Use only as a qualified fallback;
 - interaction leaves browser semantics -> Computer Use.
 
 ## Authority boundary
