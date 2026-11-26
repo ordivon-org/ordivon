@@ -2142,6 +2142,115 @@ exit 0
             with self.assertRaisesRegex(AssertionError, "GitHub Actions dependency coverage drift"):
                 governance.main()
 
+    def test_bash_source_cache_does_not_promote_target_or_unverified_bytes(self) -> None:
+        import hashlib
+        import os
+        import shutil
+
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            repo = folder / "repo"
+            tools = repo / "tools/repo"
+            tools.mkdir(parents=True)
+            script = tools / "install_latest_stable_bash.sh"
+            shutil.copyfile(ROOT / "tools/repo/install_latest_stable_bash.sh", script)
+            upstream = folder / "upstream"
+            upstream.mkdir()
+            names = ["bash-5.3.tar.gz", *(f"bash53-{i:03d}" for i in range(1, 21))]
+            manifest = []
+            for name in names:
+                content = ("exact input " + name).encode()
+                (upstream / name).write_bytes(content)
+                manifest.append(hashlib.sha256(content).hexdigest() + "  " + name)
+            (tools / "bash-5.3.20.sha256").write_text("\n".join(manifest) + "\n")
+            bin_dir = folder / "bin"
+            bin_dir.mkdir()
+            calls = folder / "curl-calls"
+            marker = folder / "extraction"
+            target_marker = folder / "unqualified-target-executed"
+            target = folder / "target"
+            (target / "bin").mkdir(parents=True)
+            fake = target / "bin/bash"
+            fake.write_text('#!/bin/sh\ntouch "$TARGET_MARKER"\nexit 0\n')
+            fake.chmod(0o755)
+            curl = bin_dir / "curl"
+            curl.write_text(
+                '#!/usr/bin/env bash\n'
+                'printf "network\\n" >> "$CALLS"\n'
+                '[[ "$NETWORK" == 1 ]] || exit 28\n'
+                'while [[ $# -gt 0 ]]; do if [[ "$1" == -o ]]; then shift; dst="$1"; fi; shift; done\n'
+                'cp "$UPSTREAM/$(basename "$dst")" "$dst"\n'
+            )
+            curl.chmod(0o755)
+            tar = bin_dir / "tar"
+            # Observe only the source-to-build boundary. The native build is
+            # qualified separately with genuine publisher bytes.
+            tar.write_text('#!/bin/sh\ntouch "$MARKER"\nexit 42\n')
+            tar.chmod(0o755)
+            cache = folder / "cache"
+            env = os.environ.copy()
+            env.pop("ORDIVON_BASH_DIST_DIR", None)
+            env.update({
+                "PATH": str(bin_dir) + os.pathsep + env["PATH"],
+                "ORDIVON_BASH_DIST_CACHE_DIR": str(cache),
+                "RUNNER_TEMP": str(folder), "UPSTREAM": str(upstream),
+                "CALLS": str(calls), "NETWORK": "1",
+                "MARKER": str(marker), "TARGET_MARKER": str(target_marker),
+            })
+            def invoke():
+                marker.unlink(missing_ok=True)
+                return subprocess.run(["/usr/bin/bash", str(script), str(target)],
+                                      env=env, capture_output=True, text=True, timeout=30)
+
+            cold = invoke()
+            self.assertEqual(cold.returncode, 42, cold.stderr)
+            self.assertTrue(marker.exists())
+            self.assertFalse(target_marker.exists())
+            self.assertEqual(len(calls.read_text().splitlines()), 21)
+            self.assertEqual({p.name for p in cache.iterdir()}, set(names))
+            env["NETWORK"] = "0"
+            warm = invoke()
+            self.assertEqual(warm.returncode, 42, warm.stderr)
+            self.assertTrue(marker.exists())
+            self.assertEqual(len(calls.read_text().splitlines()), 21)
+
+            (cache / names[-1]).write_bytes(b"wrong")
+            rejected = invoke()
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertFalse(marker.exists())
+            env["NETWORK"] = "1"
+            repaired = invoke()
+            self.assertEqual(repaired.returncode, 42, repaired.stderr)
+            self.assertEqual((cache / names[-1]).read_bytes(), (upstream / names[-1]).read_bytes())
+
+            # Explicit offline source overrides even a valid cache and may
+            # not fall through to official mirrors on invalid bytes.
+            offline = folder / "offline"
+            shutil.copytree(upstream, offline)
+            (offline / names[0]).write_bytes(b"wrong")
+            env["ORDIVON_BASH_DIST_DIR"] = str(offline)
+            count = calls.read_text()
+            bad_offline = invoke()
+            self.assertEqual(bad_offline.returncode, 7, bad_offline.stderr)
+            self.assertFalse(marker.exists())
+            self.assertEqual(calls.read_text(), count)
+            self.assertFalse(target_marker.exists())
+
+    def test_bash_source_cache_action_is_manifest_bound(self) -> None:
+        import yaml
+
+        steps = yaml.safe_load((ROOT / ".github/actions/setup-root-verification/action.yml")
+                               .read_text())["runs"]["steps"]
+        restore = next(step for step in steps if step.get("name") == "Cache verified GNU Bash source bytes")
+        install = next(step for step in steps if step.get("name") == "Install verified GNU Bash 5.3.20")
+        self.assertLess(steps.index(restore), steps.index(install))
+        self.assertRegex(restore["uses"], r"^actions/cache@[a-f0-9]{40}$")
+        self.assertIn("tools/repo/bash-5.3.20.sha256", restore["with"]["key"])
+        self.assertIn("tools/repo/install_latest_stable_bash.sh", restore["with"]["key"])
+        self.assertEqual(restore["with"]["path"], install["env"]["ORDIVON_BASH_DIST_CACHE_DIR"])
+        self.assertNotIn("restore-keys", restore["with"])
+        self.assertNotIn("if", install)
+
     def test_optimized_mode_refuses_assert_based_governance_verification(self) -> None:
         result = self.run_contract(invalid=False, optimized=True)
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
