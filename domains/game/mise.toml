@@ -272,3 +272,14 @@ run = """
 set -eu
 python3 research/mechanic-search/build_pair.py --output "${GAME_STUDY_OUTPUT:?set absolute fresh output directory}"
 """
+
+[tasks."experiment:content-search"]
+description = "Enumerate bounded Room encounter compositions and validate native census"
+run = """
+set -eu
+receipt="$(mktemp)"
+trap 'rm -f -- "$receipt"' EXIT
+python3 research/content-search/run.py > "$receipt"
+python3 research/content-search/test_receipt.py "$receipt"
+cat "$receipt"
+"""

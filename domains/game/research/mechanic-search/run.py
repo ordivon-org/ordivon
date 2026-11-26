@@ -77,6 +77,7 @@ def main():
             p.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source / f, p)
         shutil.copyfile(PROBE, root / "room_search.gd")
+        shutil.copyfile(PROBE.with_name("native_search.gd"), root / "native_search.gd")
         shutil.copyfile(TREATMENT, root / "configs/trial_block2_hp53.tres")
         (root / "project.godot").write_text('config_version=5\n[application]\nconfig/name="Native mechanic search"\n')
         start = time.monotonic()
@@ -93,6 +94,7 @@ def main():
             "source changed")
     print(json.dumps(dict(scope="bounded_native_mechanic_search", godot=version,
                           source_sha256=hashes, treatment_sha256=hashlib.sha256(TREATMENT.read_bytes()).hexdigest(), probe_sha256=hashlib.sha256(PROBE.read_bytes()).hexdigest(),
+                          search_sha256=hashlib.sha256(PROBE.with_name("native_search.gd").read_bytes()).hexdigest(),
                           elapsed_seconds=elapsed, cases=rows), sort_keys=True))
 
 

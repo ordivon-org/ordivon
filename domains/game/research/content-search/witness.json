@@ -1,0 +1,50 @@
+{
+  "actions": [
+    "attack",
+    "attack",
+    "advance",
+    "guard",
+    "attack",
+    "attack",
+    "guard",
+    "attack",
+    "attack",
+    "advance",
+    "guard",
+    "attack",
+    "guard",
+    "guard",
+    "attack",
+    "attack",
+    "attack",
+    "advance",
+    "guard",
+    "attack",
+    "guard",
+    "attack",
+    "attack",
+    "guard",
+    "attack",
+    "guard",
+    "guard",
+    "attack",
+    "attack",
+    "advance"
+  ],
+  "health": 12,
+  "rooms": [
+    1,
+    2,
+    2,
+    3
+  ],
+  "source_sha256": {
+    "configs/default.tres": "9970b403fe3536a30fdfb774286ffe269fad8f67625dcbeca15d899c1ddb192e",
+    "configs/tactical_trial.tres": "fd36371249b938aa84551ca25223faa65b9e392325a76b75b0597e678b4784f7",
+    "encounter_rules.gd": "8fa1e58d739161802ea1240042337a3f83a143a29c8c4cf8197e555ff9dffdb5",
+    "encounter_tuning.gd": "efaa771741648f5c32dbcbfd7f0aabc054909190e27601e333923b6f6a06b32c",
+    "native_search.gd": "4df4f14889ed314e3b6068d828ec827e5a23419b112a52dc67f6cf8043f5e922",
+    "probe.gd": "4982eaafac01b8ad22ee7a095bde2f226169a1dd4546e8572d7d1f1611c4b75c"
+  },
+  "turns": 26
+}
