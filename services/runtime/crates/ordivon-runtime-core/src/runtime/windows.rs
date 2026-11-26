@@ -657,6 +657,108 @@ pub(crate) struct WindowsLauncherInvocationSpec<'a> {
     pub emit_launcher_start: bool,
 }
 
+/// PG consumer affordance projection. Only the configured original launcher
+/// and contexts supported by the selected product may be advertised. It is
+/// not a dispatch authorization or a physical terminal witness.
+#[cfg(windows)]
+pub(crate) fn windows_pg_execution_target(
+    config: &WindowsExecutionConfig,
+    configured_runner: &Path,
+    supported_contexts: &[super::WindowsExecutionContextRequest],
+) -> RuntimeResult<serde_json::Value> {
+    config.validate()?;
+    let io = |err: std::io::Error| {
+        RuntimeError::new(
+            RuntimeErrorCode::IoError,
+            format!("inspect Windows PG launcher: {err}"),
+            Some("executionProvider"),
+            false,
+        )
+    };
+    let launcher = fs::canonicalize(&config.launcher_path).map_err(io)?;
+    if fs::canonicalize(configured_runner).map_err(io)? != launcher {
+        return Err(RuntimeError::invalid(
+            "Windows PG launcher and configured runner differ",
+            "executionProvider",
+        ));
+    }
+    let digest = crate::universal::sha256_file(&launcher).map_err(|err| {
+        RuntimeError::new(
+            RuntimeErrorCode::IoError,
+            err.to_string(),
+            Some("executionProvider"),
+            false,
+        )
+    })?;
+    let contexts = supported_contexts
+        .iter()
+        .copied()
+        .filter(|context| snapshot_windows_runtime_context_for(config, *context).is_ok())
+        .collect::<Vec<_>>();
+    Ok(windows_pg_target_projection(
+        digest,
+        &contexts,
+        config.maintenance_lease_path.is_some(),
+    ))
+}
+
+#[cfg(any(windows, test))]
+fn windows_pg_target_projection(
+    digest: String,
+    contexts: &[super::WindowsExecutionContextRequest],
+    maintenance_fence_configured: bool,
+) -> serde_json::Value {
+    let authorities = contexts
+        .iter()
+        .filter_map(|context| context.legacy_authority())
+        .collect::<Vec<_>>();
+    serde_json::json!({
+        "target": "windows_native",
+        "configured": true,
+        "available": !contexts.is_empty(),
+        "executionProfiles": ["trusted_local"],
+        "structuredPlan": false,
+        "immutableInputs": false,
+        "hostDependencyCommitments": false,
+        "windowsContexts": contexts,
+        "windowsAuthorities": authorities,
+        "windowsMaintenanceFenceConfigured": maintenance_fence_configured,
+        "executionProvider": {"contract":"windows_native_launcher_v1","executableDigest":digest},
+        "availabilityIssue": if contexts.is_empty() {Some("WINDOWS_CONTEXT_UNAVAILABLE")} else {None}
+    })
+}
+
+#[cfg(test)]
+mod windows_pg_projection_tests {
+    use super::*;
+    #[test]
+    fn native_pg_projection_does_not_invent_contexts_or_linux_capability() {
+        use crate::runtime::{
+            WindowsExecutionContextRequest, WindowsExecutionIdentity, WindowsPayloadPrivilege,
+        };
+        let digest = format!("sha256:{}", "a".repeat(64));
+        let unavailable = windows_pg_target_projection(digest.clone(), &[], false);
+        assert_eq!(unavailable["available"], false);
+        assert_eq!(
+            unavailable["availabilityIssue"],
+            "WINDOWS_CONTEXT_UNAVAILABLE"
+        );
+        assert_eq!(unavailable["windowsContexts"], serde_json::json!([]));
+        let context = WindowsExecutionContextRequest::new(
+            WindowsExecutionIdentity::ActiveUser,
+            WindowsPayloadPrivilege::Limited,
+        );
+        let available = windows_pg_target_projection(digest.clone(), &[context], true);
+        assert_eq!(available["available"], true);
+        assert_eq!(available["target"], "windows_native");
+        assert_eq!(available["windowsContexts"], serde_json::json!([context]));
+        assert_eq!(available["executionProvider"]["executableDigest"], digest);
+        assert_eq!(available["immutableInputs"], false);
+        assert_eq!(available["structuredPlan"], false);
+        assert_eq!(available["hostDependencyCommitments"], false);
+    }
+}
+
 pub(crate) fn snapshot_windows_runtime_context_for(
     config: &WindowsExecutionConfig,
     context: super::WindowsExecutionContextRequest,
@@ -959,6 +1061,71 @@ pub(crate) fn validate_windows_exec_payload(
 /// this exact worktree in the Job, so only its active-user consumer may opt in
 /// to the existing Git command-scope safe.directory primitive. No gitconfig
 /// is written, no wildcard trust is granted, and service jobs are unaffected.
+#[cfg(all(windows, feature = "postgres-registry-admission"))]
+pub(crate) fn bind_pg_execution_context(
+    config: &WindowsExecutionConfig,
+    proposal: &super::JobRunProposal,
+    plan: &mut super::RuntimeExecutionPlan,
+) -> RuntimeResult<()> {
+    use super::types::{WindowsExecutionContext, WindowsTokenClass};
+    use super::{WindowsExecutionIdentity, WindowsPayloadPrivilege};
+    super::authority_contract::AuthorityContract::ordinary(proposal)?
+        .authorize_windows_elevation(&config.elevated_principals)?;
+    config.authorize_new_proposal(proposal)?;
+    let explicit = proposal.execution.windows_context;
+    let context =
+        explicit.unwrap_or_else(|| proposal.execution.windows_authority.canonical_context());
+    if explicit.is_some() && !context.compatible_with_legacy(proposal.execution.windows_authority) {
+        return Err(RuntimeError::invalid(
+            "windowsContext conflicts with windowsAuthority",
+            "execution.windowsContext",
+        ));
+    }
+    let snapshot = snapshot_windows_runtime_context_for(config, context)?;
+    let authority = context.transport_authority();
+    let privileged_broker_digest = if authority == WindowsAuthority::Limited {
+        None
+    } else {
+        config
+            .privileged_broker
+            .as_ref()
+            .map(|broker| broker.executable_digest())
+            .transpose()?
+    };
+    let (token_class, environment_source) = match (context.identity, context.privilege) {
+        (WindowsExecutionIdentity::ActiveUser, _) => (
+            WindowsTokenClass::ActiveUser,
+            "windows_active_user_profile_allowlist_v1",
+        ),
+        (WindowsExecutionIdentity::Service, WindowsPayloadPrivilege::Elevated) => (
+            WindowsTokenClass::Elevated,
+            "windows_privileged_broker_profile_allowlist_v1",
+        ),
+        _ => (
+            WindowsTokenClass::Limited,
+            "windows_user_machine_profile_allowlist_v1",
+        ),
+    };
+    plan.env = merge_windows_workspace_environment(
+        &snapshot.environment,
+        &proposal.execution.env,
+        context.identity == WindowsExecutionIdentity::ActiveUser,
+        Path::new(&plan.workspace_path),
+    )?;
+    plan.windows_authority = authority;
+    plan.windows_context = explicit;
+    plan.windows_execution_context = Some(WindowsExecutionContext {
+        token_class,
+        payload_identity: explicit.map(|context| context.identity),
+        payload_privilege: explicit.map(|context| context.privilege),
+        token_user_sid: snapshot.token_user_sid,
+        session_id: snapshot.session_id,
+        environment_source: environment_source.into(),
+        privileged_broker_digest,
+    });
+    Ok(())
+}
+
 pub(crate) fn merge_windows_workspace_environment(
     baseline: &BTreeMap<String, String>,
     overlay: &BTreeMap<String, String>,

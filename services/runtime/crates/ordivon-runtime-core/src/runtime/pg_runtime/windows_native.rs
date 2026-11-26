@@ -42,27 +42,7 @@ impl PgRuntime {
         proposal: &JobRunProposal,
         plan: &mut RuntimeExecutionPlan,
     ) -> RuntimeResult<()> {
-        let explicit = proposal.execution.windows_context;
-        let context =
-            explicit.unwrap_or_else(|| proposal.execution.windows_authority.canonical_context());
-        let snap = windows::snapshot_windows_runtime_context_for(&self.config.windows, context)?;
-        plan.env = windows::merge_windows_workspace_environment(
-            &snap.environment,
-            &proposal.execution.env,
-            false,
-            Path::new(&plan.workspace_path),
-        )?;
-        plan.windows_context = explicit;
-        plan.windows_execution_context = Some(WindowsExecutionContext {
-            token_class: WindowsTokenClass::Limited,
-            payload_identity: explicit.map(|x| x.identity),
-            payload_privilege: explicit.map(|x| x.privilege),
-            token_user_sid: snap.token_user_sid,
-            session_id: snap.session_id,
-            environment_source: "windows_user_machine_profile_allowlist_v1".into(),
-            privileged_broker_digest: None,
-        });
-        Ok(())
+        windows::bind_pg_execution_context(&self.config.windows, proposal, plan)
     }
 
     pub(in crate::runtime::pg_runtime) fn launch_native_windows_attempt(
