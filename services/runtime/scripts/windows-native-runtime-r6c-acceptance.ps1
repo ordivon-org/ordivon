@@ -16,6 +16,7 @@ param(
     [string]$JobId = '',
     [ValidateRange(1, 65535)]
     [int]$ExpectedActiveUserSessionId = 1,
+    [string]$ExpectedActiveUserSid = '',
     [string]$ExpectedAttemptId = '',
     [string]$ExpectedClientRequestId = '',
     [string]$ExpectedMarker = '',
@@ -484,6 +485,9 @@ function Invoke-WorkspaceCwdAdmission {
     # Selected PG qualification is an external authenticated consumer of a
     # prepared service-owned repository, not a second source owner.
     if (-not $RequireFreshPg) { Assert-CurrentTokenIsCandidateServiceIdentity }
+    if ($RequireFreshPg -and $ExpectedActiveUserSid -cnotmatch '^S-1-(5-21-(?:[0-9]+-){3}[0-9]+|12-1-(?:[0-9]+-){3}[0-9]+)$') {
+        throw 'Fresh PG requires the operator-bound interactive account SID.'
+    }
     $runtime = Get-RuntimeDescribe -Id 340
     $windowsNative = @($runtime.targets | Where-Object { $_.target -eq 'windows_native' })[0]
     if ($null -eq $windowsNative -or
@@ -618,10 +622,18 @@ if ($qualifyPrivateGit) {
                     throw 'exact Workspace CWD replay did not preserve the successful Job and Attempt.'
                 }
                 if ($RequireFreshPg) {
+                    if ($result.operationDigest -cnotmatch '^sha256:[0-9a-f]{64}$' -or
+                        $replay.operationDigest -cne $result.operationDigest) {
+                        throw 'Fresh PG exact replay operation digest differs.'
+                    }
                     $inspection = Invoke-McpTool -Name 'job.get' -Arguments @{
                         schemaVersion = 1; jobId = [string]$result.jobId; eventLimit = 200
                     } -Id ($Id + 200)
                     Assert-PgSession1Projection $inspection ([string]$result.jobId) ([string]$result.attemptId) ([string]$request.clientRequestId)
+                    if ($inspection.job.operationDigest -cne $result.operationDigest -or
+                        $inspection.job.workspaceId -cne $workspaceId -or $inspection.job.sourceRevision -cne $repo.revision) {
+                        throw 'Fresh PG inspection operation or Workspace source identity differs.'
+                    }
                 }
             }
             return $result
@@ -634,6 +646,10 @@ if ($qualifyPrivateGit) {
                 throw 'Workspace CWD probe lacks a complete bounded stdout Artifact.'
             }
             $descriptor = $matches[0]
+            if ($RequireFreshPg -and ($descriptor.attemptId -cne $Observation.attemptId -or
+                $descriptor.artifactId -cne ($Observation.attemptId + '.stdout'))) {
+                throw 'Fresh PG stdout descriptor belongs to a different Attempt.'
+            }
             $read = Invoke-McpTool -Name 'artifact.read' -Arguments @{
                 schemaVersion = 1
                 jobId = [string]$Observation.jobId
@@ -679,6 +695,7 @@ if ($qualifyPrivateGit) {
         }
 
         $actual = Read-VerifiedCwdStdout $active 543
+        if ($RequireFreshPg) { Assert-PgSession1ActiveIdentity $actual $ExpectedActiveUserSid $ExpectedActiveUserSessionId }
         $actualCwd = [IO.Path]::GetFullPath([string]$actual.actualCwd).TrimEnd('\')
         if ([int]$baseline.sessionId -ne 0 -or [int]$actual.sessionId -ne $ExpectedActiveUserSessionId) {
             throw 'Workspace execution does not preserve the expected service and interactive Session identities.'
@@ -872,6 +889,16 @@ function Invoke-ActiveJobRecovery {
 # preflight. Only a previously submitted, exact, successful Session 1 probe
 # can qualify this projection. Independent SQL/SCM writer evidence is still
 # required; migrationVersion is a provider discriminator, not database proof.
+function Assert-PgSession1ActiveIdentity {
+    param($Observation,[string]$ExpectedSid,[int]$ExpectedSession)
+    if ($ExpectedSid -cnotmatch '^S-1-(5-21-(?:[0-9]+-){3}[0-9]+|12-1-(?:[0-9]+-){3}[0-9]+)$' -or
+        $Observation.userSid -isnot [string] -or $Observation.userSid -cne $ExpectedSid -or
+        ($Observation.sessionId -isnot [int] -and $Observation.sessionId -isnot [long]) -or
+        $Observation.sessionId -ne $ExpectedSession) {
+        throw 'PG_SESSION1_OPERATOR_ACCOUNT_IDENTITY_MISMATCH'
+    }
+}
+
 function Assert-PgSession1Projection {
     param($Inspection, [string]$ExpectedJob, [string]$ExpectedAttempt, [string]$ExpectedRequest)
     if (($Inspection.schemaVersion -isnot [int] -and $Inspection.schemaVersion -isnot [long]) -or

@@ -79,19 +79,28 @@ function Assert-Commitment([string]$Path,[string]$Expected) {
 # Verify the exact hashed configuration bytes bind the carrier that SCM will
 # start. Individually valid file hashes do not establish a matching product.
 # RestoreLegacy must remain possible after a failed candidate configuration.
-function Assert-PgEnvironmentBindings {
+function Assert-PgEnvironmentBindings([switch]$PassInteractiveSid) {
     if ($Direction -ne 'Activate') { return }
     $item=Get-Item -LiteralPath $PgEnvironment
     if ($item.Length -gt 65536) { throw 'PG environment exceeds the native parser bound.' }
-    $bytes=[IO.File]::ReadAllBytes($PgEnvironment)
-    if ($bytes.Length -gt 65536) { throw 'PG environment exceeds the native parser bound.' }
-    $sha=[Security.Cryptography.SHA256]::Create()
-    try { $digest=([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-','') }
-    finally { $sha.Dispose() }
+    $stream=[IO.File]::Open($PgEnvironment,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
+    try {
+        $bytes=New-Object byte[] 65537
+        $count=0
+        while ($count -lt $bytes.Length) {
+            $n=$stream.Read($bytes,$count,$bytes.Length-$count)
+            if ($n -eq 0) { break }
+            $count+=$n
+        }
+        if ($count -gt 65536) { throw 'PG environment exceeds the native parser bound.' }
+        $sha=[Security.Cryptography.SHA256]::Create()
+        try { $digest=([BitConverter]::ToString($sha.ComputeHash($bytes,0,$count))).Replace('-','') }
+        finally { $sha.Dispose() }
+    } finally { $stream.Dispose() }
     if ($digest -ine $ExpectedEnvironmentSha256) { throw 'PG environment bytes changed during binding.' }
     $utf8=[Text.UTF8Encoding]::new($false,$true)
     $values=@{}
-    foreach ($rawLine in ($utf8.GetString($bytes) -split "\r?\n")) {
+    foreach ($rawLine in ($utf8.GetString($bytes,0,$count) -split "\r?\n")) {
         $line=$rawLine.Trim()
         if ($line.Length -eq 0 -or $line.StartsWith('#')) { continue }
         $separator=$line.IndexOf('=')
@@ -112,6 +121,15 @@ function Assert-PgEnvironmentBindings {
         if (-not $values.ContainsKey($key) -or $values[$key] -cne $expected[$key]) {
             throw ('PG environment does not bind the committed activation input: '+$key)
         }
+    }
+    if ($selectedQualification) {
+        $sid=[string]$values['ORDIVON_PG_INTERACTIVE_WORKSPACE_SID']
+        if ($sid -cnotmatch '^S-1-(5-21-(?:[0-9]+-){3}[0-9]+|12-1-(?:[0-9]+-){3}[0-9]+)$') {
+            throw 'Fresh PG requires one exact committed interactive account SID.'
+        }
+        if ($PassInteractiveSid) { return $sid }
+    } elseif ($PassInteractiveSid) {
+        throw 'Interactive SID readback requires selected fresh PG qualification.'
     }
 }
 function Assert-Commitments {
@@ -231,8 +249,8 @@ try {
         throw 'Prior SCM transition was interrupted; reconcile exact service state before another operation.'
     }
     if (-not $held) { throw 'Another operator SCM transition holds the mutex.' }
-    Assert-Commitments
     Assert-QualificationInputs
+    Assert-Commitments
     $legacy=Get-ExactService $LegacyService
     $pg=Get-ExactService $PgService
     Assert-Identity $legacy $LegacyImagePath $LegacyAccount
@@ -291,16 +309,19 @@ try {
             Assert-ListenerOwner $candidatePid $true
             Assert-Commitments
             Assert-QualificationInputs
+            $expectedInteractiveSid=Assert-PgEnvironmentBindings -PassInteractiveSid
             $acceptanceArgs=@{
                 Mode='WorkspaceCwdAdmission';RequireFreshPg=$true;ServiceName=$PgService
                 Endpoint=$PgEndpoint;ExpectedNodeId=$ExpectedNodeId;TokenFile=$TokenFile
                 PreparedSourceRepo=$PreparedSourceRepo;PreparedSourceRevision=$PreparedSourceRevision
                 AcceptanceRoot=$AcceptanceRoot;ExpectedActiveUserSessionId=$ExpectedActiveUserSessionId
+                ExpectedActiveUserSid=$expectedInteractiveSid
             }
             $consumerReceipt=(& $acceptance @acceptanceArgs) | ConvertFrom-Json
             if ($consumerReceipt.passed -ne $true -or $consumerReceipt.freshPgProjectionQualified -ne $true -or
                 $consumerReceipt.exactReplayVerified -ne $true -or $consumerReceipt.privateGitQualified -ne $true -or
-                $consumerReceipt.activeUserSessionId -ne $ExpectedActiveUserSessionId) {
+                $consumerReceipt.activeUserSessionId -ne $ExpectedActiveUserSessionId -or
+                $consumerReceipt.activeUserSid -cne $expectedInteractiveSid) {
                 throw 'Original fresh-PG Session1 consumer qualification failed.'
             }
             Assert-Commitments

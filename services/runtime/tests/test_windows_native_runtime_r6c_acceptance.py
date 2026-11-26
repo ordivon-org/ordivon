@@ -183,7 +183,7 @@ def test_single_scm_operator_cannot_auto_start_before_actual_fresh_pg_consumer()
     operator = ROOT / "packaging" / "windows" / "activate-ordivon-runtime-pg-service.ps1"
     text = operator.read_text(encoding="utf-8")
     assert "Automatic PG startup requires exact fresh-PG consumer qualification inputs." in text
-    assert "Assert-QualificationInputs\n    $legacy=Get-ExactService" in text
+    assert "Assert-QualificationInputs\n    Assert-Commitments\n    $legacy=Get-ExactService" in text
     assert "if ($Direction -eq 'Activate') {'Manual'}" in text
     assert "Mode='WorkspaceCwdAdmission';RequireFreshPg=$true" in text
     assert text.index("$consumerReceipt=(& $acceptance @acceptanceArgs)") < text.index("Set-Mode $to.name $targetMode")
@@ -209,3 +209,16 @@ def test_fresh_pg_automatic_start_requires_actual_private_git_consumer():
     assert "privateGitQualified = [bool]$RequireFreshPg" in fn
     operator = (ROOT / "packaging" / "windows" / "activate-ordivon-runtime-pg-service.ps1").read_text(encoding="utf-8")
     assert operator.index("$consumerReceipt.privateGitQualified -ne $true") < operator.index("Set-Mode $to.name $targetMode")
+
+
+def test_fresh_pg_reverse_gate_binds_operator_sid_and_attempt_artifact():
+    operator = ROOT / "packaging" / "windows" / "activate-ordivon-runtime-pg-service.ps1"
+    text = operator.read_text(encoding="utf-8")
+    assert "$expectedInteractiveSid=Assert-PgEnvironmentBindings -PassInteractiveSid" in text
+    assert "ExpectedActiveUserSid=$expectedInteractiveSid" in text
+    assert "$consumerReceipt.activeUserSid -cne $expectedInteractiveSid" in text
+    probe = SCRIPT.read_text(encoding="utf-8")
+    assert "Assert-PgSession1ActiveIdentity $actual $ExpectedActiveUserSid" in probe
+    assert "$descriptor.attemptId -cne $Observation.attemptId" in probe
+    assert "$descriptor.artifactId -cne ($Observation.attemptId + '.stdout')" in probe
+    assert "$replay.operationDigest -cne $result.operationDigest" in probe

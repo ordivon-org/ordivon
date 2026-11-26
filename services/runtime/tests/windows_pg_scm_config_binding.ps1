@@ -12,6 +12,12 @@ foreach ($name in @('Assert-Commitment','Assert-PgEnvironmentBindings','Assert-C
     if ($null -eq $fn) { throw "Missing original function $name" }
     . ([scriptblock]::Create($fn.Extent.Text))
 }
+$probe=Join-Path $PSScriptRoot '../scripts/windows-native-runtime-r6c-acceptance.ps1'
+$ast=[System.Management.Automation.Language.Parser]::ParseFile($probe,[ref]$tokens,[ref]$errors)
+if ($errors.Count) { throw ($errors|Out-String) }
+$fn=$ast.Find({param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Assert-PgSession1ActiveIdentity'},$true)
+if ($null -eq $fn) { throw 'Missing original consumer identity function' }
+. ([scriptblock]::Create($fn.Extent.Text))
 $fixture=Join-Path ([IO.Path]::GetTempPath()) ('ordivon-scm-config-'+[Guid]::NewGuid().ToString('N'))
 $null=New-Item -ItemType Directory -Path $fixture
 try {
@@ -26,8 +32,10 @@ try {
     $LegacyImagePath='"'+$LegacyBinary+'"'
     $Direction='Activate';$selectedQualification=$true
     $PgEndpoint='http://127.0.0.1:19001/mcp';$ExpectedNodeId='windows-pg-fixture'
+    $sid='S-1-5-21-111-222-333-1001'
+    $other='S-1-5-21-111-222-333-1002'
     $lines=@("ORDIVON_PG_RUNNER=$PgLauncher","ORDIVON_PG_BIND=127.0.0.1:19001",
-        "ORDIVON_NODE_ID=$ExpectedNodeId","ORDIVON_BEARER_TOKEN_FILE=$TokenFile")
+        "ORDIVON_NODE_ID=$ExpectedNodeId","ORDIVON_BEARER_TOKEN_FILE=$TokenFile","ORDIVON_PG_INTERACTIVE_WORKSPACE_SID=$sid")
     $utf8=[Text.UTF8Encoding]::new($false)
     function Write-Fixture([string[]]$body) {
         [IO.File]::WriteAllLines($PgEnvironment,$body,$utf8)
@@ -44,7 +52,31 @@ try {
     }
     $ExpectedEnvironmentSha256=Write-Fixture $lines
     Assert-Commitments
-    'PASS selected exact bindings'
+    if ((Assert-PgEnvironmentBindings -PassInteractiveSid) -cne $sid) { throw 'Committed interactive SID differs' }
+    Assert-PgSession1ActiveIdentity ([pscustomobject]@{userSid=$sid;sessionId=1}) $sid 1
+    'PASS exact selected bindings and interactive account'
+    foreach ($bad in @(@{userSid=$other;sessionId=1},@{userSid=$sid;sessionId=2},@{userSid=$sid;sessionId='1'})) {
+        $caught=$false
+        try { Assert-PgSession1ActiveIdentity ([pscustomobject]$bad) $sid 1 }
+        catch { if ($_.Exception.Message -notmatch 'OPERATOR_ACCOUNT_IDENTITY_MISMATCH') {throw}; $caught=$true }
+        if (-not $caught) { throw 'Incorrect interactive account/session accepted' }
+    }
+    'PASS wrong interactive account, session, and type refused'
+    $ExpectedEnvironmentSha256=Write-Fixture @($lines | Where-Object { -not $_.StartsWith('ORDIVON_PG_INTERACTIVE_WORKSPACE_SID=') })
+    Expect-Rejection 'missing interactive SID' 'one exact committed interactive account SID'
+    $ExpectedEnvironmentSha256=Write-Fixture @($lines | ForEach-Object { if ($_.StartsWith('ORDIVON_PG_INTERACTIVE_WORKSPACE_SID=')) {'ORDIVON_PG_INTERACTIVE_WORKSPACE_SID=S-1-5-18'} else {$_} })
+    Expect-Rejection 'system SID not interactive account' 'one exact committed interactive account SID'
+    $ExpectedEnvironmentSha256=Write-Fixture ($lines + $lines[-1])
+    Expect-Rejection 'duplicate interactive SID' 'duplicate'
+    $ExpectedEnvironmentSha256=Write-Fixture $lines
+    [IO.File]::AppendAllText($PgEnvironment,'# changed')
+    $caught=$false
+    try { Assert-PgEnvironmentBindings -PassInteractiveSid | Out-Null } catch {if ($_.Exception.Message -notmatch 'bytes changed') {throw};$caught=$true}
+    if (-not $caught) {throw 'Changed committed bytes accepted'}
+    'PASS changed identity carrier bytes refused'
+    $ExpectedEnvironmentSha256=Write-Fixture @('x'*65537)
+    Expect-Rejection 'oversized environment' 'parser bound'
+
     foreach ($key in @('ORDIVON_PG_RUNNER','ORDIVON_PG_BIND','ORDIVON_NODE_ID','ORDIVON_BEARER_TOKEN_FILE')) {
         $wrong=@($lines | ForEach-Object { if ($_.StartsWith($key+'=')) { $key+'=wrong' } else { $_ } })
         $ExpectedEnvironmentSha256=Write-Fixture $wrong
