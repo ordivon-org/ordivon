@@ -70,6 +70,20 @@ rather than a raw database deletion or a new custom lifecycle service.
    exact source | executed effect | acceptance | retired carrier | UNKNOWN`.
    Skip fields that do not affect the decision.
 
+*Host retirement example:* Treat similar titles, silence and age only as
+candidates. Require explicit supersession or completion evidence from the
+responsible owner/current writers; inspect the complete paginated Topic and
+known active consumers before acting. Discover current Work through `work.list`
+and verify exact identity with `work.get`; a historical `NOT_FOUND` is not
+proof of deletion, completion or current authority. Preserve UNKNOWN on an
+incomplete read or ambiguous successor. Close through `topic.state.set` using
+`expectedState` and `expectedHighSequence` from the complete current read;
+if either changes, reconcile rather than replay blindly. After closing, read back
+state and the original message identities/digests. Preserve all history and
+record evidence references in the existing collaboration Topic; rollback by
+reopening with fresh CAS. Logical closure is not resource release or authority
+transfer. Do not build a new index, automatic title-based closer or scheduler.
+
 *Runtime example:* A clean Workspace whose HEAD is in `origin/main`
 is not automatically released. Check current Job/Host consumers and exact
 `sourceStateDigest`; invoke the native `workspace.close` with
