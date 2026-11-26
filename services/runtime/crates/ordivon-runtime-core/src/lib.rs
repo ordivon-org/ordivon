@@ -117,8 +117,21 @@ pub use runtime::{
     RUNTIME_REPAIR_SCHEMA_VERSION,
 };
 
-#[cfg(all(feature = "postgres-registry-admission", target_os = "linux"))]
+#[cfg(all(
+    feature = "postgres-registry-admission",
+    any(target_os = "linux", windows)
+))]
 pub use runtime::pg_runtime::{
     PgRuntime, PgRuntimeConfig, WorkspaceClaimKeyRequest, WorkspaceClaimProjection,
     WorkspaceClaimReserveRequest,
+};
+
+#[cfg(all(
+    windows,
+    feature = "postgres-registry-admission",
+    not(feature = "transactional-runtime")
+))]
+pub use runtime::{
+    WindowsElevatedCommandProfile, WindowsElevatedExecutionProfile, WindowsExecutionConfig,
+    WindowsPrivilegedBrokerConfig,
 };

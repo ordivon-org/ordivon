@@ -20,6 +20,10 @@ use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct PgRuntimeConfig {
+    #[cfg(windows)]
+    pub windows: WindowsExecutionConfig,
+    #[cfg(windows)]
+    pub node_id: String,
     pub dsn: String,
     pub schema: String,
     pub source_sha256: String,
@@ -261,6 +265,8 @@ mod node_query;
 mod reconciliation;
 mod release;
 mod scheduling;
+#[cfg(windows)]
+mod windows_native;
 mod workspace;
 pub use claim::{WorkspaceClaimKeyRequest, WorkspaceClaimProjection, WorkspaceClaimReserveRequest};
 
@@ -269,6 +275,19 @@ impl PgRuntime {
         // Pure preflight first: an unqualified or unreachable PG writer must
         // never create Workspace/cache directories before source admission.
         config.executor.validate().map_err(io)?;
+        #[cfg(windows)]
+        {
+            config.windows.validate()?;
+            if config.node_id.trim().is_empty()
+                || config.harness_issuer_schema.is_some()
+                || config.harness_dispatch_issuer.is_some()
+                || config.executor.workspace_root.is_none()
+                || config.executor.runner_path.as_deref()
+                    != Some(config.windows.launcher_path.as_path())
+            {
+                return Err(error("Windows PG requires an exact native launcher, node identity and disjoint workspace root; issuer not qualified"));
+            }
+        }
         super::workspace_headroom::validate_workspace_headroom(&config.workspace_headroom)?;
         if config.source_sha256.len() != 64
             || !config.source_sha256.bytes().all(|b| b.is_ascii_hexdigit())

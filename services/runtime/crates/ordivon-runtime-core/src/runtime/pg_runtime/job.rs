@@ -562,6 +562,7 @@ impl PgRuntime {
             ));
         }
 
+        #[cfg(not(windows))]
         if e.execution_target != ExecutionTarget::LocalLinux
             || !matches!(
                 e.execution_profile,
@@ -575,6 +576,8 @@ impl PgRuntime {
                 "execution",
             ));
         }
+        #[cfg(windows)]
+        self.validate_native_windows_proposal(proposal)?;
         // A current Issuer must not authorize unrelated physical steps/budgets.
         if self.config.harness_issuer_schema.is_some()
             && (!e.steps.is_empty() || !e.host_dependencies.is_empty() || !e.budget.is_empty())
@@ -762,6 +765,8 @@ impl PgRuntime {
             credential_set_id: None,
             principal: proposal.principal.clone(),
         };
+        #[cfg(windows)]
+        self.bind_native_windows_plan(proposal, &mut plan)?;
         let mut contract = self.scheduling_contract(&plan)?;
         if e.budget.scheduling.is_none() {
             if let Some(max) = plan.budget.memory_max_bytes {
@@ -873,13 +878,17 @@ impl PgRuntime {
             operation_digest,
             workspace_id: e.workspace_id.clone(),
             workspace_snapshot_json: encode(
-                &json!({"workspace":record,"executionProvider":{"contract":"local_linux_runner_v1","executableDigest":universal::sha256_file(runner).map_err(io)?}}),
+                &json!({"workspace":record,"executionProvider":{"contract":if cfg!(windows) { "windows_native_launcher_v1" } else { "local_linux_runner_v1" },"executableDigest":universal::sha256_file(runner).map_err(io)?}}),
             )?,
             execution_plan_digest: plan_digest,
             execution_plan_json: plan_json,
             launch_token_digest: universal::sha256_bytes(token.as_bytes()),
             bundle_path: bundle.to_string_lossy().into_owned(),
-            unit_name: format!("ordivon-pg-{attempt}.service"),
+            unit_name: if cfg!(windows) {
+                format!("Ordivon.{attempt}")
+            } else {
+                format!("ordivon-pg-{attempt}.service")
+            },
             global_limit: 0,
             created_at_ms: now()?,
             expected_source_sha256: self.config.source_sha256.clone(),
@@ -1020,9 +1029,11 @@ impl PgRuntime {
                     .store_root
                     .join("pg-attempts")
                     .join(attempt_id);
+                #[cfg(not(windows))]
                 let start = fs::read(bundle.join("runner-start.json"))
                     .ok()
                     .and_then(|bytes| serde_json::from_slice::<RunnerStartEvidence>(&bytes).ok());
+                #[cfg(not(windows))]
                 super::platform::wait_for_attempt_change(
                     &bundle,
                     start
@@ -1030,6 +1041,14 @@ impl PgRuntime {
                         .map(|evidence| evidence.control_group.as_str()),
                     deadline.saturating_duration_since(Instant::now()),
                 );
+                #[cfg(windows)]
+                {
+                    let _ = bundle;
+                    thread::sleep(
+                        Duration::from_millis(50)
+                            .min(deadline.saturating_duration_since(Instant::now())),
+                    );
+                }
             } else {
                 thread::sleep(
                     Duration::from_millis(250)
