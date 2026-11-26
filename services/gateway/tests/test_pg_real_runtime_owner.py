@@ -238,7 +238,14 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
         # override, then exec the REAL systemd-run with unchanged arguments.
         # The native Runner binary, service Unit and PG evidence remain real.
         dispatch_gate = os.getenv("ORDIVON_GATEWAY_PG_E2E_DISPATCH_GATE") == "1"
+        reproduce_late_spawn = (
+            os.getenv("ORDIVON_GATEWAY_PG_E2E_REPRODUCE_LATE_SPAWN") == "1"
+        )
+        assert not reproduce_late_spawn or dispatch_gate
         if dispatch_gate:
+            assert issuer_isolated or reproduce_late_spawn, (
+                "inverse spawn acceptance requires the dedicated authenticated Harness route"
+            )
             assert os.getenv("ORDIVON_GATEWAY_PG_E2E_REAL_HARNESS_SOURCE") == "1", (
                 "dispatch gate must use the genuine PG Harness issuer source"
             )
@@ -1086,7 +1093,6 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                                 break
                         assert not observed.is_error, observed.structured_content
                         assert observed.structured_content["terminal"]
-                        assert observed.structured_content["exit_code"] == 0
                         observed_effect = False
                         for artifact_id in observed.structured_content["artifact_ids"]:
                             content = await agent.call_tool(
@@ -1099,7 +1105,23 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                             )
                             assert not content.is_error, content.structured_content
                             observed_effect |= late_output in content.structured_content["content"]
-                        assert observed_effect, "native effect must occur after source revocation"
+                        # Default is the inverse production acceptance oracle,
+                        # NOT the historical counterexample's expected success.
+                        # This controlled printf can only succeed by emitting its
+                        # unique marker. Absence alone is insufficient: require
+                        # terminal non-success and exact committed replay.
+                        if reproduce_late_spawn:
+                            assert observed.structured_content["exit_code"] == 0
+                            assert observed_effect, "historical late effect was not reproduced"
+                            print("R24_ISSUER_ON_SPAWN_CURRENT_COUNTEREXAMPLE_REPRODUCED")
+                        else:
+                            assert not observed_effect, "revoked issuer spawned native payload"
+                            assert observed.structured_content["exit_code"] != 0, (
+                                "revoked issuer must not report successful payload execution"
+                            )
+                        replay = await agent.call_tool("execution.submit", native_request(late))
+                        assert not replay.is_error, replay.structured_content
+                        assert replay.structured_content["native_id"] == late_job
                         assert (
                             psql(
                                 "SELECT count(*) FROM fresh.job_events "
@@ -1107,7 +1129,16 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                             ).strip()
                             == "1"
                         ), "source revocation cannot create a second dispatch"
-                        print("R24_ISSUER_ON_SPAWN_CURRENT_COUNTEREXAMPLE_REPRODUCED")
+                        assert (
+                            psql(
+                                "SELECT count(*) FROM fresh.jobs "
+                                "WHERE principal='harness-native-test' "
+                                f"AND client_request_id='{late['clientRequestId']}'"
+                            ).strip()
+                            == "1"
+                        )
+                        if not reproduce_late_spawn:
+                            print("R24_ISSUER_REVOKED_BEFORE_PAYLOAD_SPAWN_DENIED")
                 return
             request_id = "gateway-native-" + secrets.token_hex(6)
             output = "GATEWAY_NATIVE_PG_" + request_id
