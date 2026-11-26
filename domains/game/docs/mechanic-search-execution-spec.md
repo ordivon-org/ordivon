@@ -58,3 +58,19 @@ policy survival margin can worsen accessibility. No R7 study changes.
 Actual captured-receipt mutation checks reject seven selected corruptions.
 Optional invocation: mise run experiment:mechanic-search. No change to
 required verify or package; only execute when a design decision consumes it.
+
+## Follow-up matched-margin intervention
+
+After the first experiment, a fourth case sets guard_block=2 and initial HP=53
+in a disposable Trial Resource. This is a post-hoc, mechanically motivated
+matched attack-first terminal HP intervention, not a preregistered Human study.
+Actual native job-01a2154e-58cd-77d1-a58e-d5fd38b8ff6b exit0: attack-first
+28 actions/6 HP, forecast-aware 29/12, frontier (28,11),(29,12);
+three guards 53->51, no quotient cycle. Exact 29099 states/45781 transitions;
+reduced 7524 states/11956 transitions, identical frontier and native replay.
+All four cases exact 74392 vs reduced 16583 states; elapsed 5.871s combined
+eight searches plus policies and cycle observations. Receipt validator now
+binds the exact intervention and rejects eight selected corrupted observations.
+Matched one deterministic policy's residual health, not overall accessibility,
+skill, balance, or enjoyment. Preserve as candidate for the designer, no live
+tuning change, no automatic R7 candidate or Human claim.

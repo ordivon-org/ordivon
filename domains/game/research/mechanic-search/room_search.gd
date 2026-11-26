@@ -21,8 +21,10 @@ func apply_action(rules: Node, action: String) -> bool:
 func tuning_for(name: String) -> Resource:
     var t: Resource = load("res://configs/default.tres" if name == "classic" else
         "res://configs/tactical_trial.tres").duplicate(true)
-    if name == "trial_block2":
+    if name in ["trial_block2", "trial_block2_hp53"]:
         t.guard_block = 2
+    if name == "trial_block2_hp53":
+        t.player_health = 53
     return t
 
 func path_to(nodes: Array, index: int) -> Array:
@@ -140,7 +142,7 @@ func run() -> void:
     var rules: Node = preload("res://encounter_rules.gd").new()
     root.add_child(rules)
     var rows: Array = []
-    for name in ["classic", "trial", "trial_block2"]:
+    for name in ["classic", "trial", "trial_block2", "trial_block2_hp53"]:
         var tuning := tuning_for(name)
         var reduced := search(rules, tuning, MAX_DEPTH, false)
         var exact := search(rules, tuning, MAX_DEPTH, true)

@@ -17,7 +17,7 @@ class SearchReceipt(unittest.TestCase):
         validate(self.rows)
 
     def test_actual_observation_mutations(self):
-        for fault in ("missing_case", "quotient", "path", "turn", "cycle", "budget", "false_policy"):
+        for fault in ("missing_case", "quotient", "path", "turn", "cycle", "budget", "treatment", "false_policy"):
             with self.subTest(fault=fault):
                 rows = copy.deepcopy(self.rows)
                 trial = rows[1]
@@ -33,6 +33,8 @@ class SearchReceipt(unittest.TestCase):
                     trial["guard_cycle"]["same_quotient"] = not trial["guard_cycle"]["same_quotient"]
                 elif fault == "budget":
                     trial["exact"]["states"] = 100001
+                elif fault == "treatment":
+                    rows[3]["initial_health"] = 48
                 else:
                     trial["attack_first"]["health"] = trial["initial_health"]
                 with self.assertRaises(ValueError):

@@ -23,8 +23,12 @@ def require(test, message):
 
 
 def validate(rows):
-    require([r["case"] for r in rows] == ["classic", "trial", "trial_block2"], "case inventory")
+    require([r["case"] for r in rows] == ["classic", "trial", "trial_block2", "trial_block2_hp53"], "case inventory")
+    expected = {"classic": (14, 1, 2), "trial": (48, 3, 3),
+                "trial_block2": (48, 2, 3), "trial_block2_hp53": (53, 2, 3)}
     for r in rows:
+        require((r["initial_health"], r["guard_block"], r["enemy_damage"]) == expected[r["case"]],
+                "treatment identity")
         cycle = r["guard_cycle"]
         before, after = cycle["before"], cycle["after"]
         require(cycle["path"] == ["guard"] * 3 and before["turn"] == 0 and after["turn"] == 3,
