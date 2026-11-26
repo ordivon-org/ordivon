@@ -1,6 +1,8 @@
 """Cheap source-cut/treatment isolation contracts; actual exports are separate."""
 from pathlib import Path
 import tempfile
+import tarfile
+import zipfile
 import unittest
 from unittest.mock import patch
 
@@ -46,6 +48,31 @@ class PairSource(unittest.TestCase):
             with patch.object(pair, "TREATMENT", bad):
                 with self.assertRaisesRegex(ValueError, "exact two-parameter intervention"):
                     pair.stage_project(root / "stage", head, "B")
+
+
+class ArchiveInventory(unittest.TestCase):
+    def test_shared_archive_default_and_explicit_license_inventory(self):
+        for licenses in (pair.LICENSES, {"GODOT_LICENSES.json": "GODOT_LICENSES.json"}):
+            with self.subTest(licenses=licenses), tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp)
+                project=root/"project"; native=root/"native"; output=root/"output"
+                for d in (project,native,output):
+                    d.mkdir()
+                for name in ("room-encounter.x86_64","room-encounter.exe"):
+                    (native/name).write_bytes(name.encode())
+                for name,relative in licenses.items():
+                    p=project/relative;p.parent.mkdir(parents=True,exist_ok=True)
+                    p.write_bytes(name.encode())
+                kwargs={} if licenses is pair.LICENSES else {"licenses":licenses}
+                tar,z=pair.pack_native_archives(project,native,output,"test",**kwargs)
+                with tarfile.open(tar) as f:
+                    self.assertEqual(set(f.getnames()),{"room-encounter.x86_64",*licenses})
+                    for name in licenses:
+                        self.assertEqual(f.extractfile(name).read(),name.encode())
+                with zipfile.ZipFile(z) as f:
+                    self.assertEqual(set(f.namelist()),{"room-encounter.exe",*licenses})
+                    for name in licenses:
+                        self.assertEqual(f.read(name),name.encode())
 
 
 if __name__ == "__main__":
