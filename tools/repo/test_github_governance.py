@@ -704,7 +704,13 @@ exit 0
         self.assertIn("hashFiles('tools/repo/install_sql_verifiers.sh')", restore["with"]["key"])
         self.assertNotIn("restore-keys", restore["with"])
         self.assertEqual(restore["with"]["path"], install["env"]["ORDIVON_SQL_DIST_CACHE_DIR"])
-        self.assertNotIn("if", install)
+        # Qualification is consumer-scoped, never cache-hit-scoped. The
+        # default and exact callers are independently checked below.
+        self.assertEqual(action["inputs"]["sql-verifiers"]["default"], "true")
+        expected_scope = "inputs.sql-verifiers == 'true'"
+        for step in (restore, install):
+            self.assertEqual(step.get("if"), expected_scope)
+            self.assertNotIn("continue-on-error", step)
         self.assertIn("install_sql_verifiers.sh", install["run"])
 
     def test_root_mise_installs_get_scoped_native_github_token(self) -> None:
