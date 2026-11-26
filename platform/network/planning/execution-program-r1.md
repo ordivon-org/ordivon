@@ -317,3 +317,41 @@ epsilon no startup-race or runtime-retention proof, no production policy
 change or deployment; prov exact Runtime/Host receipts; unfold source
 -> native store -> pinned consumer -> pure representation -> existing
 native adapter. Keep native owner lock; no extra production dependency.
+
+
+## R19 — Native release identity/currentness evidence (2026-11-26)
+
+Host #33286; exact R18 donor. R17 PR2877 official 8/8 and native
+GraphQL mergeQueueEntry QUEUED position7 at observation, not merged;
+PR2867 remains independent. Runtime #33264/#33268 adopts Nix for
+normalized read-only trees, existing exact-mode exchange for legacy
+consumers, PG monotonic CAS plus native reader roots still pending.
+
+Existing native bundle verification compared file bytes and selected
+loaded-command/calendar substrings but did not qualify the manager's
+fragment, drop-ins, load state or reload-needed state. Six false accepts
+RED job-01a21566-74a6-710f-9dca-cac2a3d2234a. Separate pure source-side
+release_unit_evidence.py; require exactly one of each native systemd
+property (loaded, exact fragment, no drop-ins, no reload needed). No
+activation changes or new service dependency. Both actual units' native
+read-only property output passes job-01a21566-c910-75cc-b2be-12ae7d68f879;
+this is manager identity evidence only, not deployed candidate byte
+parity. Retain existing selected command/calendar checks, explicitly
+consumerExecutionProved=false. No full effective configuration proof or
+atomic observation across queries.
+
+Regression tests cover both units, missing/duplicate/foreign metadata,
+order invariance and actual native copy interruption at all 11 cuts of
+the ten-file payload (9 mixed middle cuts). Persist the prior isolated
+failure-cut demonstration as a reproducible regression; synthetic old
+bytes never executed, no live effects or power-loss claim. Focused
+33 PASS job-01a21567-1a43-753e-b3e9-618157b452be.
+R2.1 I declared native unit fragment and manager response; O qualified
+identity/currentness or explicit rejection; S none; pre stable trusted
+manager and source; post complete unique exact properties; inv
+installed bytes != loaded metadata != actual execution/consumption;
+eff read-only tests/source only; c linear response; epsilon no
+atomic observation, no deployment proof; prov actual Host/Runtime
+receipts; unfold native manager observation -> pure projection ->
+existing verification. Reuse native systemd, no replacement controller
+or registry. Preserve in-flight protected R17 queue head.

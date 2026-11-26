@@ -14,6 +14,8 @@ from pathlib import Path
 import subprocess
 import sys
 
+from release_unit_evidence import UNIT_PROPERTIES, require_loaded_identity
+
 SOURCE = Path(__file__).resolve().parent
 DEST = Path("/usr/local/libexec/network-v2/gluetun-native")
 SVC_NAME = "network-v2-gluetun-owned-reconcile.service"
@@ -123,6 +125,11 @@ def verify(*, dest: Path = DEST, verify_systemd: bool = True) -> dict[str, objec
     if verify_systemd:
         require_equal_bytes(SOURCE_SVC, INSTALLED_SVC)
         require_equal_bytes(SOURCE_TIMER, INSTALLED_TIMER)
+        for unit, fragment in ((SVC_NAME, INSTALLED_SVC), (TIMER_NAME, INSTALLED_TIMER)):
+            args = ["/usr/bin/systemctl", "show", unit, "--all"]
+            for prop in UNIT_PROPERTIES:
+                args.extend(("-p", prop))
+            require_loaded_identity(run(*args), fragment)
         loaded = run("/usr/bin/systemctl", "show", SVC_NAME, "-p", "ExecStartPost")
         if EFFECT not in loaded or "--recover" not in loaded:
             raise ValueError("New native recovery systemd unit not loaded")
@@ -131,7 +138,9 @@ def verify(*, dest: Path = DEST, verify_systemd: bool = True) -> dict[str, objec
             raise ValueError("Native recovery one-minute systemd timer not loaded")
     return {"standing": "NATIVE_BUNDLE_INSTALLED_SOURCE_MATCH",
             "nonsecretFileCount": len(FILES),
-            "loadedSystemd": verify_systemd}
+            "loadedSystemd": verify_systemd,
+            "loadedIdentityChecked": verify_systemd,
+            "consumerExecutionProved": False}
 
 
 def install() -> dict[str, object]:
