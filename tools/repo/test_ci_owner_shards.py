@@ -182,6 +182,34 @@ class ShardQueueTests(unittest.TestCase):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 cost_frontier(["data:verify"], {"data:verify": 100}, bad)
 
+    def test_native_cli_explicit_cap_preserves_selected_tasks(self) -> None:
+        root = Path(__file__).resolve().parents[2]
+        selected = [owner.queue_task for owner in affected_owners.OWNERS] + ["formal:verify"]
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td)/"tasks.txt"
+            path.write_text("\n".join(selected)+"\n")
+            cmd = [sys.executable, str(root/"tools/repo/ci_owner_shards.py"), str(path)]
+            def invoke(*args):
+                return subprocess.run(cmd+list(args),capture_output=True,text=True,timeout=10)
+            default = invoke()
+            self.assertEqual(default.returncode,0,default.stderr)
+            self.assertEqual(json.loads(default.stdout),ci_owner_shards.shard_queue(selected))
+            for cap in (1,2,3,4):
+                explicit = invoke("--max-shards",str(cap))
+                self.assertEqual(explicit.returncode,0,explicit.stderr)
+                rows = json.loads(explicit.stdout)["include"]
+                self.assertEqual(len(rows),cap)
+                self.assertCountEqual([t for row in rows for t in row["tasks"]],
+                                      selected[:-1])
+                self.assertEqual(json.loads(explicit.stdout),ci_owner_shards.shard_queue(selected,cap))
+            for bad in ("0","5","true","3.0","-1"):
+                result = invoke("--max-shards",bad)
+                self.assertNotEqual(result.returncode,0)
+                self.assertEqual(result.stdout,"")
+            path.write_text("formal:verify\n")
+            self.assertEqual(json.loads(invoke("--max-shards","3").stdout),
+                             {"include":[{"shard":0,"tasks":[]}]})
+
     def test_machine_json_roundtrip_and_max_parallel(self) -> None:
         tasks = [owner.queue_task for owner in affected_owners.OWNERS]
         for count in (1, 2, 3, 4):

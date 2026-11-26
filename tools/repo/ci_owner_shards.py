@@ -90,11 +90,15 @@ def shard_queue(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("tasks_file", type=Path)
+    parser.add_argument(
+        "--max-shards", type=int, choices=range(1, MAX_SHARDS + 1), default=MAX_SHARDS,
+        help="explicit experimental lane cap; omitted preserves the native default",
+    )
     args = parser.parse_args()
     items = args.tasks_file.read_text(encoding="utf-8").splitlines()
     if items == [""]:
         items = []
-    print(json.dumps(shard_queue(items), separators=(",", ":"), sort_keys=True))
+    print(json.dumps(shard_queue(items, args.max_shards), separators=(",", ":"), sort_keys=True))
 
 
 if __name__ == "__main__":
