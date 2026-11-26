@@ -4,7 +4,6 @@ import json
 import os
 import subprocess
 import tempfile
-import textwrap
 import sys
 import unittest
 from pathlib import Path
@@ -12,6 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import affected_owners
 import ci_owner_shards
+import ci_owner_toolroots
 
 
 class ShardQueueTests(unittest.TestCase):
@@ -21,11 +21,8 @@ class ShardQueueTests(unittest.TestCase):
         # without adding unrelated Owner tools to other shards.
         root = Path(__file__).resolve().parents[2]
         workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-        prefix = """python3 - "$selected_roots" <<'PYOWNERS'"""
+        prefix = 'python3 tools/repo/ci_owner_toolroots.py "$selected_roots"'
         self.assertEqual(workflow.count(prefix), 1)
-        source = textwrap.dedent(
-            workflow.split(prefix + "\n", 1)[1].split("\n          PYOWNERS", 1)[0]
-        )
         for selected, wanted in (
             (["gateway:verify"], 1),
             (["gateway:verify", "security:verify"], 1),
@@ -38,7 +35,7 @@ class ShardQueueTests(unittest.TestCase):
                 env = os.environ.copy()
                 env["OWNER_TASKS_JSON"] = json.dumps(selected)
                 observed = subprocess.run(
-                    [sys.executable, "-c", source, str(target)],
+                    [sys.executable, "tools/repo/ci_owner_toolroots.py", str(target)],
                     cwd=root,
                     env=env,
                     capture_output=True,
@@ -50,6 +47,72 @@ class ShardQueueTests(unittest.TestCase):
                 roots = target.read_text(encoding="utf-8").splitlines()
                 self.assertEqual(roots.count("platform/security"), wanted)
                 self.assertEqual(len(roots), len(set(roots)))
+
+    def test_toolroot_projection_contract(self) -> None:
+        by_task = {"a:verify": "a", "b:verify": "b", "gateway:verify": "gateway"}
+        manifests = {
+            "a": {"tasks": {"verify": {"run": ["echo hello", "cd ../../tools/formal"]}}},
+            "b": {"tasks": {"verify": {"run": "echo b"}}},
+            "tools/formal": {"tools": {"lean": "current"}},
+            "platform/security": {"tools": {"opa": "current"}},
+        }
+        read = manifests.get
+        for tasks, expected in (
+            ([], []),
+            (["b:verify"], ["b"]),
+            (["a:verify", "b:verify"], ["a", "tools/formal", "b"]),
+            (["gateway:verify"], ["platform/security"]),
+            (["gateway:verify", "a:verify"], ["a", "tools/formal", "platform/security"]),
+        ):
+            with self.subTest(tasks=tasks):
+                self.assertEqual(ci_owner_toolroots.project(tasks, by_task, read), expected)
+        for tasks in ({}, ["a:verify", "a:verify"], ["unknown"], [True]):
+            with self.subTest(tasks=tasks), self.assertRaises(ValueError):
+                ci_owner_toolroots.project(tasks, by_task, read)
+        for root, task in (("tools/formal", "a:verify"), ("platform/security", "gateway:verify")):
+            missing = dict(manifests)
+            del missing[root]
+            with self.subTest(root=root), self.assertRaises(ValueError):
+                ci_owner_toolroots.project([task], by_task, missing.get)
+        for opa in ("", None, []):
+            bad = dict(manifests, **{"platform/security": {"tools": {"opa": opa}}})
+            with self.subTest(opa=opa), self.assertRaises(ValueError):
+                ci_owner_toolroots.project(["gateway:verify"], by_task, bad.get)
+
+    def test_toolroot_actual_git_source_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td)
+            (repo / "a").mkdir()
+            manifest = repo / "a/mise.toml"
+            original = b'[tools]\npython = "current"\n'
+            manifest.write_bytes(original)
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(["git", "-C", str(repo), "-c", "user.name=Test",
+                            "-c", "user.email=test@local.invalid", "commit", "-qm", "fixture"],
+                           check=True)
+            head = subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip()
+            tracked = {"a/mise.toml"}
+            read = lambda root: ci_owner_toolroots.read_at_checkout(repo, head, tracked, root)
+            self.assertEqual(read("a"), {"tools": {"python": "current"}})
+            self.assertIsNone(read("missing"))
+            for variant in ("dirty", "missing", "symlink", "untracked"):
+                with self.subTest(variant=variant):
+                    if manifest.exists() or manifest.is_symlink():
+                        manifest.unlink()
+                    if variant == "dirty":
+                        manifest.write_bytes(original + b"# drift")
+                    elif variant == "symlink":
+                        target = repo / "original.toml"
+                        target.write_bytes(original)
+                        manifest.symlink_to(target)
+                    elif variant == "untracked":
+                        manifest.write_bytes(original)
+                    with self.assertRaises(ValueError):
+                        if variant == "untracked":
+                            ci_owner_toolroots.read_at_checkout(repo, head, set(), "a")
+                        else:
+                            read("a")
 
     def test_full_owner_closure_is_exactly_preserved(self) -> None:
         selected = [owner.queue_task for owner in affected_owners.OWNERS]
