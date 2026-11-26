@@ -608,3 +608,48 @@ def test_native_get_malformed_response_returns_unknown_receipt(monkeypatch, caps
                         lambda *a:SimpleNamespace(open=lambda *a,**kw:Response()))
     assert switch.internal_http("GET") != 0
     assert json.loads(capsys.readouterr().out)["standing"] == "NATIVE_API_UNKNOWN"
+
+
+def _consumer_receipt(qualified=True):
+    return {
+        "kind":"ordivon.network.gluetun-active-qualification",
+        "standing":"QUALIFIED_ACTIVE_SAMPLE" if qualified else "NOT_QUALIFIED",
+        "observedAtUtc":"2026-11-26T01:30:00+00:00",
+        "currentCatalogCountry":"Japan",
+        "currentPublicExitCountryCode":"JP",
+        "actualEndpointStableDuringSample":True,
+        "providerStatus":"running",
+        "business":{
+            "ordinary_https":{"httpTlsAndConnect":True,"totalMs":200},
+            "github_https":{"httpTlsAndConnect":qualified,"totalMs":300},
+        },
+        "qualifiedStandbyCount":0,
+    }
+
+
+@pytest.mark.parametrize("code,change", [
+    (1, {}), (-9, {}), (0, {"kind":"unrelated"}),
+    (0, {"business":{}}), (0, {"actualEndpointStableDuringSample":False}),
+    (0, {"providerStatus":"stopped"}), (0, {"observedAtUtc":"bad"}),
+    (0, {"qualifiedStandbyCount":1}), (0, {"currentCatalogCountry":None}),
+    (0, {"business":{"ordinary_https":{"httpTlsAndConnect":True,"totalMs":200},
+                     "github_https":{"httpTlsAndConnect":1,"totalMs":300}}}),
+    (1, {"standing":"NOT_QUALIFIED"}),
+])
+def test_observer_receipt_contradictions_are_unknown(monkeypatch, code, change):
+    import json
+    import subprocess
+    raw = _consumer_receipt() | change
+    monkeypatch.setattr(switch.subprocess, "run", lambda *a, **kw:
+        subprocess.CompletedProcess(a, code, json.dumps(raw), ""))
+    assert switch.bounded_consumer_observe()["standing"] == "UNKNOWN_BOUNDED_CONSUMER_OBSERVATION"
+
+
+@pytest.mark.parametrize("qualified,code", [(True,0),(False,1)])
+def test_observer_receipt_accepts_coherent_producer_contract(monkeypatch, qualified, code):
+    import json
+    import subprocess
+    raw = _consumer_receipt(qualified)
+    monkeypatch.setattr(switch.subprocess, "run", lambda *a, **kw:
+        subprocess.CompletedProcess(a, code, json.dumps(raw), ""))
+    assert switch.bounded_consumer_observe() == raw

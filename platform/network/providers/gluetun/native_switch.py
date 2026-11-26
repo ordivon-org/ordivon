@@ -27,7 +27,7 @@ SOURCE_DIR = SOURCE_SCRIPT.parent
 import native_profile as native
 from native_selection import country_patch, project_settings, selected_snapshot
 import quality_history as quality
-import observe_active as observer
+from active_observation import receive_observation
 
 AUTH = Path("/var/lib/network-v2/gluetun/auth/config.toml")
 API_URL = "http://127.0.0.1:8000/v1/vpn/settings"
@@ -169,10 +169,7 @@ def bounded_consumer_observe(seconds: int = 25) -> dict[str, object]:
             ["/usr/bin/python3", str(SOURCE_DIR/"observe_active.py")],
             capture_output=True, text=True, timeout=seconds,
         )
-        data = json.loads(receipt.stdout)
-        if not isinstance(data, dict) or not isinstance(data.get("standing"), str):
-            raise ValueError("Unrecognized native consumer observation")
-        return data
+        return receive_observation(receipt.stdout, receipt.returncode)
     except (OSError, ValueError, subprocess.SubprocessError, json.JSONDecodeError):
         return {"standing": "UNKNOWN_BOUNDED_CONSUMER_OBSERVATION"}
 

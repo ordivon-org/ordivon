@@ -28,6 +28,7 @@ INSTALLED_TIMER = Path("/etc/systemd/system") / TIMER_NAME
 FILES = (
     "native_profile.py",
     "observe_active.py",
+    "active_observation.py",
     "quality_history.py",
     "historical_observation.py",
     "native_switch.py",

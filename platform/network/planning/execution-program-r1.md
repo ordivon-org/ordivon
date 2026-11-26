@@ -384,3 +384,41 @@ concurrent change or startup proof; prov exact jobs; unfold native manager
 recompose R18-R20 once actual merge is observed.
 Reference https://www.freedesktop.org/software/systemd/man/262/org.freedesktop.systemd1.html
 and https://www.freedesktop.org/software/systemd/man/262/busctl.html.
+
+
+## R21 — Active observation receipt refinement (2026-11-26)
+
+Host #33402; exact R20 donor e8690babd3cb521c7e41dc60f0da62e94efd481f.
+R17 PR2877 native GraphQL position2 AWAITING_CHECKS; do not reset
+the protected queue. Runtime #33387 reports actual PG/Nix target CAS
+prototype and producer/reader composition, not production ABI.
+
+The parent previously consumed any stdout object containing standing
+string, even after child exit failure or signal. Eleven false accepts RED
+job-01a2157f-e879-7337-95cc-93f8fdaecb17. Extract pure
+active_observation.py: shared producer kind/exit mapping, existing
+standing/curl parser, strict receiving relation. Success requires exit0
+plus matching kind, UTC-shaped coordinate, stable/running observation,
+two exact business roles and true typed receipts, zero claimed standby;
+NOT_QUALIFIED requires exit1 and coherent false business evidence.
+Other existing explicit UNKNOWN/rejected standings retain exit1
+semantics, malformed/contradictory observations map to UNKNOWN in the
+parent. Reject duplicate/nonfinite JSON and nonfinite/negative timing;
+no new geographic policy or operational effect. Native bundle eleven
+nonsecret files; durable copy-fault tests now cover all 12 cuts.
+Actual synthetic Python child writes success stdout then exits0/1 or
+SIGKILL; receiver distinguishes native terminal and evidence. Generated
+truth-table oracle, explicit negatives; 109 focused PASS
+job-01a21580-b82f-7125-9cf3-c0dbbbad024c. Source-only; no provider calls.
+
+R2.1 I child terminal code and JSON bytes, O bounded observation or
+UNKNOWN, S none, pre trusted retained source generation; post exact
+terminal/shape consistency, inv stdout != execution != consumer success;
+eff pure and read-only tests; c linear JSON, epsilon no freshness,
+origin authentication, complete effect or native endpoint proof from
+structure alone; prov actual Runtime jobs; unfold producer -> native
+terminal -> receiver -> existing orchestrator. No new production
+dependency or scheduler. Further decomposition of orchestration,
+freshness identity and full effect receipt remains distinct. Reference
+https://docs.python.org/3/library/subprocess.html and
+https://hypothesis.readthedocs.io/en/latest/tutorial/introduction.html.
