@@ -5,7 +5,9 @@ import ast
 import fnmatch
 import subprocess
 import tomllib
+from collections.abc import Callable
 from dataclasses import dataclass
+from functools import cache
 from pathlib import Path
 
 import pg_issuer_consumer
@@ -118,7 +120,16 @@ def _matches_source_glob(path: str, pattern: str) -> bool:
     )
 
 
-def _source_matches_registered_consumer(finding: Finding, seam: Seam) -> bool:
+def _locate_issuer_source() -> str | None:
+    try:
+        return pg_issuer_consumer.locate_original_harness_issuer_source(ROOT)
+    except ValueError:
+        return None
+
+
+def _source_matches_registered_consumer(
+    finding: Finding, seam: Seam, locate_issuer: Callable[[], str | None] = _locate_issuer_source,
+) -> bool:
     """Resolve the sole PG18 Harness publisher by behavior, not source filename.
 
     Directory-wide exceptions are forbidden: this special test-only Source
@@ -139,24 +150,21 @@ def _source_matches_registered_consumer(finding: Finding, seam: Seam) -> bool:
             }
         ):
             return False
-        try:
-            exact_source = pg_issuer_consumer.locate_original_harness_issuer_source(ROOT)
-        except ValueError:
-            return False
-        return finding.source_path == exact_source
+        return finding.source_path == locate_issuer()
     return _matches_source_glob(finding.source_path, seam.source_glob)
 
 
 def _matching_seams(
     finding: Finding,
     seams: tuple[Seam, ...],
+    locate_issuer: Callable[[], str | None] = _locate_issuer_source,
 ) -> tuple[Seam, ...]:
     """Bind each exception to one exact source/consumer literal."""
     return tuple(
         seam for seam in seams
         if seam.from_owner == finding.from_owner
         and seam.to_owner == finding.to_owner
-        and _source_matches_registered_consumer(finding, seam)
+        and _source_matches_registered_consumer(finding, seam, locate_issuer)
         and (
             seam.allowed_fragment == finding.import_module
             if finding.import_module is not None
@@ -172,22 +180,44 @@ def _allowed(finding: Finding, seams: tuple[Seam, ...]) -> bool:
 def validate_consumed_seams(
     seams: tuple[Seam, ...],
     findings: tuple[Finding, ...],
+    *,
+    reject_unregistered: bool = False,
 ) -> dict[Seam, tuple[tuple[str, int], ...]]:
     """Reject ghost or overlapping Owner permissions via the existing policy.
 
     This establishes exact source-text use only, not runtime calls or
     consumer-domain safety; a referenced line may be dead/commented code.
     """
+    # The source-only witness is scoped to this validation invocation, never
+    # retained across a checkout or another call. Resolve lazily at most once.
+    locate_issuer = cache(_locate_issuer_source)
     observations: dict[Seam, list[tuple[str, int]]] = {seam: [] for seam in seams}
+    violations: list[Finding] = []
+    first_ambiguous: Finding | None = None
     for finding in findings:
-        matches = _matching_seams(finding, seams)
-        if len(matches) > 1:
-            raise AssertionError(
-                "ambiguous dependency seam: multiple exceptions match "
-                f"{finding.source_path}:{finding.line}"
-            )
-        if matches:
+        matches = _matching_seams(finding, seams, locate_issuer)
+        if not matches:
+            if reject_unregistered:
+                violations.append(finding)
+        elif len(matches) > 1:
+            if first_ambiguous is None:
+                first_ambiguous = finding
+        else:
             observations[matches[0]].append((finding.source_path, finding.line))
+    if violations:
+        rendered = "\n".join(
+            f"{item.source_path}:{item.line}: "
+            f"{item.from_owner}->{item.to_owner}: {item.text}"
+            for item in violations
+        )
+        raise AssertionError(
+            "undeclared active cross-owner source references detected:\n" + rendered
+        )
+    if first_ambiguous is not None:
+        raise AssertionError(
+            "ambiguous dependency seam: multiple exceptions match "
+            f"{first_ambiguous.source_path}:{first_ambiguous.line}"
+        )
     stale = [seam for seam, uses in observations.items() if not uses]
     if stale:
         rendered = ", ".join(
@@ -317,7 +347,6 @@ def main() -> int:
             raise AssertionError(f"dependency seam contract_ref missing: {seam.contract_ref}")
 
     all_findings: list[Finding] = []
-    violations: list[Finding] = []
     active_paths = tracked_active_files()
     packages = python_package_owners(active_paths, owners)
     for source_path in active_paths:
@@ -329,25 +358,11 @@ def main() -> int:
             *findings_for_text(source_path, text, owners),
             *python_import_findings_for_text(source_path, text, owners, packages),
         )
-        for finding in findings:
-            all_findings.append(finding)
-            if not _allowed(finding, seams):
-                violations.append(finding)
+        all_findings.extend(findings)
 
-    if violations:
-        rendered = "\n".join(
-            f"{item.source_path}:{item.line}: "
-            f"{item.from_owner}->{item.to_owner}: {item.text}"
-            for item in violations
-        )
-        raise AssertionError(
-            "undeclared active cross-owner source references detected:\n" + rendered
-        )
-
-    # A declared source/consumer permission is admitted only by the same
-    # exact typed matcher used to permit it. Pair+glob alone is insufficient:
-    # it can let obsolete or shadow permissions survive indefinitely.
-    witnessed = validate_consumed_seams(seams, tuple(all_findings))
+    # Check both directions of the source/consumer relation in one pass.
+    # Unregistered, ambiguous and obsolete seams remain distinct failures.
+    witnessed = validate_consumed_seams(seams, tuple(all_findings), reject_unregistered=True)
     kinds: dict[str, int] = {}
     for seam, uses in witnessed.items():
         kinds[seam.kind] = kinds.get(seam.kind, 0) + len(uses)

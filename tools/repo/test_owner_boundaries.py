@@ -96,6 +96,29 @@ class OwnerBoundaryTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "ambiguous dependency seam"):
             MODULE.validate_consumed_seams((real, alias), (observed,))
 
+    def test_strict_validation_preserves_failure_precedence_and_negative_control(self) -> None:
+        from itertools import permutations
+
+        real = next(s for s in SEAMS if s.source_glob == "apps/web/src/security-agent-verifier.ts")
+        allowed = self.finding(real.source_glob, real.allowed_fragment)
+        missing = self.finding(real.source_glob, "platform/security/retired-private-api/")
+        alias = MODULE.Seam(
+            real.from_owner, real.to_owner, real.source_glob,
+            "platform/security/contracts", real.kind, real.contract_ref,
+        )
+        # The legacy selective witness API still ignores unrelated findings.
+        self.assertEqual(set(MODULE.validate_consumed_seams((real,), (allowed, missing))), {real})
+        # The production gate never loses unregistered errors, even when a
+        # separate finding is ambiguous and observation order changes.
+        for findings in permutations((allowed, missing)):
+            with self.subTest(findings=findings):
+                with self.assertRaisesRegex(AssertionError, "undeclared active cross-owner"):
+                    MODULE.validate_consumed_seams((real, alias), findings, reject_unregistered=True)
+        with self.assertRaisesRegex(AssertionError, "ambiguous dependency seam"):
+            MODULE.validate_consumed_seams((real, alias), (allowed,), reject_unregistered=True)
+        with self.assertRaisesRegex(AssertionError, "stale dependency seam"):
+            MODULE.validate_consumed_seams((real,), (), reject_unregistered=True)
+
     def test_sibling_prefix_does_not_create_cross_owner_dependency(self) -> None:
         source = "platform/security/mise.toml"
         for path in (
@@ -223,7 +246,14 @@ class OwnerBoundaryTests(unittest.TestCase):
             findings.extend(
                 MODULE.python_import_findings_for_text(path, source, OWNERS, packages)
             )
-        witnessed = MODULE.validate_consumed_seams(SEAMS, tuple(findings))
+        from unittest.mock import patch
+
+        with patch.object(
+            MODULE.pg_issuer_consumer, "locate_original_harness_issuer_source",
+            wraps=MODULE.pg_issuer_consumer.locate_original_harness_issuer_source,
+        ) as locate:
+            witnessed = MODULE.validate_consumed_seams(SEAMS, tuple(findings))
+        self.assertEqual(locate.call_count, 1)
         self.assertEqual(set(witnessed), set(SEAMS))
         self.assertTrue(all(witnessed.values()))
 
