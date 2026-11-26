@@ -64,6 +64,15 @@ class SearchSamplingOperatorTest(unittest.TestCase):
                 self.assertEqual(calibration._winner_stat_for_replay(mode, 32, "x"),
                                  max(x[3] for x in scalar_samples(mode, "x", 32)))
 
+    def test_static_replay_does_not_materialize_trial_metadata(self):
+        # The visible search still consumes the identical canonical draw stream.
+        for budget in (1, 2, 31, 128, 1024):
+            expected = max(x[3] for x in scalar_samples("static", "metadata-free", budget))
+            with patch("ordivon_studio.research.search_sampling.TrialSample",
+                       side_effect=AssertionError("unconsumed trial metadata")):
+                self.assertEqual(calibration._winner_stat_for_replay(
+                    "static", budget, "metadata-free"), expected)
+
     def test_rank_partition_matches_inclusive_linear_oracle(self):
         for n in range(1, 6):
             for reference in product((-1., 0., 1.), repeat=n):

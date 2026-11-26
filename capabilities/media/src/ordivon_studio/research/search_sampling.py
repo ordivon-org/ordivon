@@ -30,6 +30,13 @@ def adaptive_family_count(budget: int) -> int:
     return min(16, max(2, budget // 8))
 
 
+def static_search_values(seed: str, budget: int) -> Iterator[float]:
+    """Canonical static draw stream, without unused trial metadata."""
+    rng = _rng(seed, "static-visible-search")
+    for _ in range(budget):
+        yield rng.gauss(0.0, 1.0)
+
+
 def search_samples(mode: str, seed: str, budget: int) -> Iterator[TrialSample]:
     """One sampling policy for registered search and null replay.
 
@@ -37,9 +44,8 @@ def search_samples(mode: str, seed: str, budget: int) -> Iterator[TrialSample]:
     running-mean arithmetic are part of the historical protocol.
     """
     if mode == "static":
-        rng = _rng(seed, "static-visible-search")
-        for sequence in range(1, budget + 1):
-            yield TrialSample(sequence, None, sequence, rng.gauss(0.0, 1.0), None)
+        for sequence, z in enumerate(static_search_values(seed, budget), start=1):
+            yield TrialSample(sequence, None, sequence, z, None)
         return
     if mode != "adaptive":
         raise ValueError(mode)
