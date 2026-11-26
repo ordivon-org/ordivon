@@ -21,5 +21,5 @@ git ls-files -z -- '*.sh' | xargs -0 -r shellcheck
 run = """
 set -euo pipefail
 test -n "${ORDIVON_MEDIA_TRIAL_TEST_DSN:-}" || { echo 'PG test DSN required; skipped tests do not qualify' >&2; exit 2; }
-.venv/bin/python -m unittest discover -s tests -p 'test_research_validity.py' -v
+.venv/bin/python scripts/run-unittest.py tests --pattern 'test_research_validity.py' --strict
 """

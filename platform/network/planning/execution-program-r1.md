@@ -281,3 +281,144 @@ source -> byte readback -> native verification -> release consumer.
 Consolidate the four original Network drafts and R15/R16 into one review
 candidate for official CI; retain original branch history and natural
 owner review. Do not merge by bypassing protected checks.
+
+
+## R18 — Native generation consumer and pure response boundary (2026-11-26)
+
+Host #33243, Runtime Nix private-store qualification #33210, consumer
+witness #33251. Retain existing R17 consolidation PR2877. Adopt Nix native
+immutable store/profile/GC roots as preferred release substrate candidate,
+not an additional Network-specific installer. Runtime must supply
+serialized preimage CAS, root acquisition before physical launch, retained
+generation path through native terminal, durable receipt and reconciliation;
+systemd unit writes/reload are separately qualified effects.
+
+Actual native_switch child path calls re-resolved the active link after
+module load; RED job-01a21553-7996-7481-9c53-6f6642ff9f84 (one path and five
+malformed selection cases). Resolve source once before sibling imports
+and reuse for three child edges. This pins those paths only; a physical
+generation launch and retention fence are mandatory to avoid startup races.
+Extract pure native_selection.py: typed selected snapshot, canonical
+existing selection semantics, strict nested shapes and redacted read-only
+projection. Malformed GET response now UNKNOWN rather than AttributeError
+(three RED job-01a21554-ee26-717f-b180-7ec87018cc41). No new policy or
+provider effect. Existing bundle ten declared nonsecret files. Private
+native Nix actual ten-byte-exact/read-only payload and both generation
+CLI imports/help PASS job-01a21554-161b-718e-b10f-ce596a1f0bae; second
+generation synthetic marker, no provider execution. Generated independent
+schema/field projection tests 350 configured examples, native regression
+51 PASS and existing Z3 model job-01a21555-5414-713b-9b4d-5894862e768e.
+R2.1 I raw JSON shape, current pinned path, source manifest; O canonical
+snapshot or explicit rejection, stable child path; S immutable per-process
+identity; pre physical generation retained by Runtime; post no per-child
+re-resolution, no arbitrary nested payload projection; inv observation !=
+effect authorization; eff isolated tests only; c linear schema projection;
+epsilon no startup-race or runtime-retention proof, no production policy
+change or deployment; prov exact Runtime/Host receipts; unfold source
+-> native store -> pinned consumer -> pure representation -> existing
+native adapter. Keep native owner lock; no extra production dependency.
+
+
+## R19 — Native release identity/currentness evidence (2026-11-26)
+
+Host #33286; exact R18 donor. R17 PR2877 official 8/8 and native
+GraphQL mergeQueueEntry QUEUED position7 at observation, not merged;
+PR2867 remains independent. Runtime #33264/#33268 adopts Nix for
+normalized read-only trees, existing exact-mode exchange for legacy
+consumers, PG monotonic CAS plus native reader roots still pending.
+
+Existing native bundle verification compared file bytes and selected
+loaded-command/calendar substrings but did not qualify the manager's
+fragment, drop-ins, load state or reload-needed state. Six false accepts
+RED job-01a21566-74a6-710f-9dca-cac2a3d2234a. Separate pure source-side
+release_unit_evidence.py; require exactly one of each native systemd
+property (loaded, exact fragment, no drop-ins, no reload needed). No
+activation changes or new service dependency. Both actual units' native
+read-only property output passes job-01a21566-c910-75cc-b2be-12ae7d68f879;
+this is manager identity evidence only, not deployed candidate byte
+parity. Retain existing selected command/calendar checks, explicitly
+consumerExecutionProved=false. No full effective configuration proof or
+atomic observation across queries.
+
+Regression tests cover both units, missing/duplicate/foreign metadata,
+order invariance and actual native copy interruption at all 11 cuts of
+the ten-file payload (9 mixed middle cuts). Persist the prior isolated
+failure-cut demonstration as a reproducible regression; synthetic old
+bytes never executed, no live effects or power-loss claim. Focused
+33 PASS job-01a21567-1a43-753e-b3e9-618157b452be.
+R2.1 I declared native unit fragment and manager response; O qualified
+identity/currentness or explicit rejection; S none; pre stable trusted
+manager and source; post complete unique exact properties; inv
+installed bytes != loaded metadata != actual execution/consumption;
+eff read-only tests/source only; c linear response; epsilon no
+atomic observation, no deployment proof; prov actual Host/Runtime
+receipts; unfold native manager observation -> pure projection ->
+existing verification. Reuse native systemd, no replacement controller
+or registry. Preserve in-flight protected R17 queue head.
+
+
+## R20 — Native typed loaded configuration (2026-11-26)
+
+Host #33332, R19 donor c32a630cdd; R17 #2877 native protected queue
+position5 at observation, not merged. Runtime #33321 receipt snapshot
+and reader-lifetime proof remain distinct from per-resource activation CAS.
+Replace display-text substring acceptance with existing systemd D-Bus
+native JSON property projection (busctl GetUnit, get-property only).
+Require exact declared command tuple and exact single calendar rule,
+native signatures and numeric coordinate shapes; runtime coordinates do
+not prove execution. R19 native identity/currentness checks remain.
+RED six synthetic false accepts job-01a2156f-7a62-76f6-bae0-31f41f575b6a;
+native systemd 262.2 actual typed property 2/2 read-only PASS
+job-01a2156f-d380-76d6-b61d-dee1cf51805f. No new production dependency
+(the existing systemd distribution supplies busctl), no changed operational
+policy, no activation, no new runtime registry. Separate GetUnit and
+property reads do not prove atomic snapshots; exact selected command and
+calendar are not full effective unit configuration.
+R2.1 I declared expected tuple, native JSON; O qualified bounded configuration
+projection or rejection; S none; pre trusted stable manager; post exact
+signature, row count, selected static fields and coordinate types;
+inv configuration != execution != consumer; eff read-only tests;
+c bounded linear parsing; epsilon no whole-unit, live deployment,
+concurrent change or startup proof; prov exact jobs; unfold native manager
+-> pure projection -> existing verifier. Preserve pending R17 queue;
+recompose R18-R20 once actual merge is observed.
+Reference https://www.freedesktop.org/software/systemd/man/262/org.freedesktop.systemd1.html
+and https://www.freedesktop.org/software/systemd/man/262/busctl.html.
+
+
+## R21 — Active observation receipt refinement (2026-11-26)
+
+Host #33402; exact R20 donor e8690babd3cb521c7e41dc60f0da62e94efd481f.
+R17 PR2877 native GraphQL position2 AWAITING_CHECKS; do not reset
+the protected queue. Runtime #33387 reports actual PG/Nix target CAS
+prototype and producer/reader composition, not production ABI.
+
+The parent previously consumed any stdout object containing standing
+string, even after child exit failure or signal. Eleven false accepts RED
+job-01a2157f-e879-7337-95cc-93f8fdaecb17. Extract pure
+active_observation.py: shared producer kind/exit mapping, existing
+standing/curl parser, strict receiving relation. Success requires exit0
+plus matching kind, UTC-shaped coordinate, stable/running observation,
+two exact business roles and true typed receipts, zero claimed standby;
+NOT_QUALIFIED requires exit1 and coherent false business evidence.
+Other existing explicit UNKNOWN/rejected standings retain exit1
+semantics, malformed/contradictory observations map to UNKNOWN in the
+parent. Reject duplicate/nonfinite JSON and nonfinite/negative timing;
+no new geographic policy or operational effect. Native bundle eleven
+nonsecret files; durable copy-fault tests now cover all 12 cuts.
+Actual synthetic Python child writes success stdout then exits0/1 or
+SIGKILL; receiver distinguishes native terminal and evidence. Generated
+truth-table oracle, explicit negatives; 109 focused PASS
+job-01a21580-b82f-7125-9cf3-c0dbbbad024c. Source-only; no provider calls.
+
+R2.1 I child terminal code and JSON bytes, O bounded observation or
+UNKNOWN, S none, pre trusted retained source generation; post exact
+terminal/shape consistency, inv stdout != execution != consumer success;
+eff pure and read-only tests; c linear JSON, epsilon no freshness,
+origin authentication, complete effect or native endpoint proof from
+structure alone; prov actual Runtime jobs; unfold producer -> native
+terminal -> receiver -> existing orchestrator. No new production
+dependency or scheduler. Further decomposition of orchestration,
+freshness identity and full effect receipt remains distinct. Reference
+https://docs.python.org/3/library/subprocess.html and
+https://hypothesis.readthedocs.io/en/latest/tutorial/introduction.html.
