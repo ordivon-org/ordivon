@@ -75,7 +75,7 @@ WITH classified AS (
             WHEN EXISTS(
                 SELECT 1 FROM attempts a
                 WHERE a.job_id=j.job_id
-                  AND a.state NOT IN ('succeeded','failed','timed_out','cancelled')
+                  AND (a.state IS NULL OR a.state NOT IN ('succeeded','failed','timed_out','cancelled'))
             ) THEN 'attempt_not_stable_terminal'
             WHEN /* recovery_guard */ THEN 'recovery_required_or_unknown'
             WHEN EXISTS(
@@ -85,6 +85,14 @@ WITH classified AS (
                 WHERE a.job_id=j.job_id
                   AND r.state IN ('active','held_orphaned')
             ) THEN 'active_or_held_reservation'
+            WHEN EXISTS(
+                SELECT 1 FROM attempts a
+                WHERE a.job_id=j.job_id
+                  AND NOT (
+                    SELECT COUNT(*)=1 AND COUNT(*) FILTER (WHERE r.state='released')=1
+                    FROM concurrency_reservations r WHERE r.attempt_id=a.attempt_id
+                  )
+            ) THEN 'reservation_missing_or_unknown'
             WHEN EXISTS(
                 SELECT 1
                 FROM attempts a
@@ -99,12 +107,14 @@ WITH classified AS (
 
 // Recovery state moved from attempt_conditions to attempts in schema 5.
 // Missing markers are normal for settled historical attempts; they do not
-// certify consumer release. Explicit non-false markers must not be eligible.
+// certify consumer release. An incomplete migrated tuple is evidence of an
+// unknown obligation, not absence; only an entirely absent or fully recorded
+// explicit false tuple is clear for this mechanical classification.
 fn archive_classification_sql(migration_version: i64) -> String {
     let recovery_guard = if migration_version < CONDITION_RETIREMENT_MIGRATION_VERSION {
         "EXISTS(SELECT 1 FROM attempts a JOIN attempt_conditions c ON c.attempt_id=a.attempt_id WHERE a.job_id=j.job_id AND c.condition_type='recovery_required' AND c.status IS NOT 'false')"
     } else {
-        "EXISTS(SELECT 1 FROM attempts a WHERE a.job_id=j.job_id AND a.recovery_required IS NOT NULL AND a.recovery_required <> 0)"
+        "EXISTS(SELECT 1 FROM attempts a WHERE a.job_id=j.job_id AND NOT ((a.recovery_required IS NULL AND a.recovery_reason_code IS NULL AND a.recovery_evidence_digest IS NULL AND a.recovery_observed_at_ms IS NULL) OR (a.recovery_required IS 0 AND a.recovery_reason_code IS NOT NULL AND a.recovery_evidence_digest IS NOT NULL AND a.recovery_observed_at_ms IS NOT NULL)))"
     };
     ARCHIVE_CLASSIFICATION_SQL.replace("/* recovery_guard */", recovery_guard)
 }
@@ -229,10 +239,18 @@ fn validate_archive_registry_capabilities(
             }
         }
     }
-    if migration_version >= CONDITION_RETIREMENT_MIGRATION_VERSION
-        && !registry_table_columns(connection, "attempts")?.contains("recovery_required")
-    {
-        missing.push("column:attempts.recovery_required".to_string());
+    if migration_version >= CONDITION_RETIREMENT_MIGRATION_VERSION {
+        let present = registry_table_columns(connection, "attempts")?;
+        for column in [
+            "recovery_required",
+            "recovery_reason_code",
+            "recovery_evidence_digest",
+            "recovery_observed_at_ms",
+        ] {
+            if !present.contains(column) {
+                missing.push(format!("column:attempts.{column}"));
+            }
+        }
     }
     if !missing.is_empty() {
         return Err(RuntimeError::new(

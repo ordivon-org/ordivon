@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import math
+import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -112,8 +114,10 @@ def validate_video_probe(
     return errors
 
 
-def measure_loudness(path: Path, ffmpeg: str = "/usr/bin/ffmpeg") -> dict[str, float]:
-    """Measure the first audio programme with FFmpeg's BS.1770-family loudnorm filter.
+def measure_loudness(
+    path: Path, ffmpeg: str = "/usr/bin/ffmpeg", *, audio_stream_index: int = 0,
+) -> dict[str, float]:
+    """Measure the selected audio programme with FFmpeg's BS.1770-family loudnorm filter.
 
     This performs analysis only. The fixed filter target is used to obtain the filter's
     input measurement fields; acceptance targets remain caller/profile-owned and are
@@ -121,35 +125,32 @@ def measure_loudness(path: Path, ffmpeg: str = "/usr/bin/ffmpeg") -> dict[str, f
     """
     if not path.is_file():
         raise FileNotFoundError(path)
-    result = subprocess.run(
-        [
-            ffmpeg,
-            "-hide_banner",
-            "-nostats",
-            "-i",
-            str(path),
-            "-map",
-            "0:a:0",
-            "-af",
-            "loudnorm=I=-23:LRA=7:TP=-1:print_format=json",
-            "-f",
-            "null",
-            "-",
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr.strip() or f"ffmpeg exited {result.returncode}")
-    start = result.stderr.rfind("{")
-    end = result.stderr.rfind("}")
-    if start < 0 or end < start:
-        raise RuntimeError("ffmpeg loudnorm output did not contain a JSON measurement")
-    try:
-        raw = json.loads(result.stderr[start : end + 1])
-    except json.JSONDecodeError as error:
-        raise RuntimeError("ffmpeg loudnorm JSON measurement could not be parsed") from error
+    if type(audio_stream_index) is not int or audio_stream_index < 0:
+        raise ValueError("audio stream index must be a non-negative integer")
+    executable = shutil.which(ffmpeg)
+    if executable is None:
+        raise FileNotFoundError(ffmpeg)
+    # The input/executable identities are resolved before entering the isolated
+    # stats directory. A fixed basename never interpolates filter metacharacters.
+    with tempfile.TemporaryDirectory(prefix="ordivon-loudnorm-") as temp:
+        result = subprocess.run(
+            [
+                str(Path(executable).resolve()),
+                "-hide_banner", "-nostats", "-i", str(path.resolve()),
+                "-map", f"0:a:{audio_stream_index}",
+                "-af", "loudnorm=I=-23:LRA=7:TP=-1:print_format=json:stats_file=loudness.json",
+                "-f", "null", "-",
+            ],
+            cwd=temp, check=False, capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip() or f"ffmpeg exited {result.returncode}")
+        try:
+            raw = json.loads((Path(temp) / "loudness.json").read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise RuntimeError("ffmpeg native loudnorm statistics unavailable or invalid") from error
+        if not isinstance(raw, dict):
+            raise RuntimeError("ffmpeg native loudnorm statistics must be an object")
 
     fields = {
         "integratedLoudnessLufs": "input_i",
