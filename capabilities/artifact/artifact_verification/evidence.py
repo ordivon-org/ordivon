@@ -46,11 +46,14 @@ def write_gate_receipt(
     admitted: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Bind one raw verification result to one unsigned local VSA receipt."""
+    if raw.get("status") in ("NOT_RUN", "NOT_EVALUATED", "UNKNOWN") or raw.get("observationStanding") == "UNKNOWN":
+        return write_unqualified_gate_receipt(output_dir, gate, raw)
     output_dir.mkdir(parents=True, exist_ok=True)
     raw_path = output_dir / f"{gate}.raw.json"
     _write_json(raw_path, raw)
 
     def rejected(issues: list[str]) -> dict[str, Any]:
+        (output_dir / f"{gate}.vsa.json").unlink(missing_ok=True)
         return {
             "gate": gate, "status": "FAIL", "verificationResult": "NOT_EVALUATED",
             "rawEvidence": file_fact(raw_path),
@@ -105,4 +108,21 @@ def write_gate_receipt(
         "rawEvidence": file_fact(raw_path),
         "vsa": file_fact(statement_path),
         "vsaValidation": checked,
+    }
+
+
+def write_unqualified_gate_receipt(
+    output_dir: Path, gate: str, raw: dict[str, Any]
+) -> dict[str, Any]:
+    """Retain an observation without issuing a binary VSA for unknown truth."""
+    raw_path = output_dir / f"{gate}.raw.json"
+    _write_json(raw_path, raw)
+    # A reused evidence directory must not expose a previous decisive VSA.
+    (output_dir / f"{gate}.vsa.json").unlink(missing_ok=True)
+    return {
+        "gate": gate,
+        "status": "FAIL",
+        "verificationResult": "NOT_EVALUATED",
+        "observationStanding": "UNKNOWN",
+        "rawEvidence": file_fact(raw_path),
     }

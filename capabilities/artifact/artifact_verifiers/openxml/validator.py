@@ -20,27 +20,54 @@ def verify_openxml_artifact(path: Path) -> dict[str, Any]:
             "error": "DocumentFormat.OpenXml validator runtime is unavailable",
         }
 
-    proc = subprocess.run(
-        [str(validator), str(path)],
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-        timeout=60,
-    )
-    parsed: dict[str, Any] | None = None
-    parse_error: str | None = None
+    try:
+        proc = subprocess.run(
+            [str(validator), str(path)],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=60,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return {"status": "NOT_RUN", "artifact": artifact, "error": str(error)}
+
+    parsed = None
+    parse_error = None
+    standing = "NOT_RUN"
     try:
         parsed = json.loads(proc.stdout)
-    except Exception as error:
+        if not isinstance(parsed, dict):
+            raise ValueError("OpenXML report must be an object")
+        subject = parsed.get("artifact")
+        authority = parsed.get("validator")
+        errors = parsed.get("validationErrors")
+        count = parsed.get("validationErrorCount")
+        if (
+            not isinstance(subject, dict)
+            or subject.get("sha256") != artifact["digest"]["sha256"]
+            or not isinstance(authority, dict)
+            or authority.get("implementation") != "DocumentFormat.OpenXml"
+            or authority.get("api") != "OpenXmlValidator"
+            or not isinstance(errors, list)
+            or type(count) is not int
+            or count != len(errors)
+            or any(
+                not isinstance(item, dict) or not isinstance(item.get("id"), str) for item in errors
+            )
+        ):
+            raise ValueError("OpenXML report identity or validation error shape is unqualified")
+        if proc.returncode == 0 and parsed.get("status") == "PASS" and count == 0:
+            standing = "PASS"
+        elif proc.returncode == 1 and parsed.get("status") == "FAIL" and count > 0:
+            standing = "FAIL"
+        else:
+            raise ValueError("OpenXML report status, errors and exit code disagree")
+    except (ValueError, TypeError) as error:
         parse_error = str(error)
 
     return {
-        "status": (
-            "PASS"
-            if proc.returncode == 0 and parsed and parsed.get("status") == "PASS"
-            else "FAIL"
-        ),
+        "status": standing,
         "artifact": artifact,
         "validatorOutput": parsed,
         "exitCode": proc.returncode,
