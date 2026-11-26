@@ -11,6 +11,7 @@ use thiserror::Error;
 use tokio_postgres::{types::Json, Client, IsolationLevel, Transaction};
 
 pub mod engagement;
+mod receipt;
 
 #[derive(Debug, Error)]
 pub enum WorkError {
@@ -287,12 +288,12 @@ async fn get_work_in_tx(
     }))
 }
 
-async fn claim_receipt(
+async fn try_claim_receipt(
     tx: &Transaction<'_>,
     client_request_id: &str,
     operation: &str,
     request_digest: &str,
-) -> Result<Option<Value>, WorkError> {
+) -> Result<bool, WorkError> {
     let new_claim = tx
         .query_opt(
             "INSERT INTO command_receipts(client_request_id,operation,request_digest,response) \
@@ -300,17 +301,14 @@ async fn claim_receipt(
             &[&client_request_id, &operation, &request_digest],
         )
         .await?;
-    if new_claim.is_some() {
-        return Ok(None);
-    }
+    Ok(new_claim.is_some())
+}
 
-    let row = tx
-        .query_opt(
-            "SELECT operation,request_digest,response FROM command_receipts WHERE client_request_id=$1",
-            &[&client_request_id],
-        )
-        .await?
-        .ok_or_else(|| WorkError::Integrity("idempotency claim disappeared".into()))?;
+fn validate_receipt_replay(
+    row: &tokio_postgres::Row,
+    operation: &str,
+    request_digest: &str,
+) -> Result<Value, WorkError> {
     let prior_operation: String = row.try_get("operation")?;
     let prior_digest: String = row.try_get("request_digest")?;
     if prior_operation != operation || prior_digest != request_digest {
@@ -328,7 +326,30 @@ async fn claim_receipt(
         ));
     }
     result["admission"] = json!("existing");
-    Ok(Some(result))
+    Ok(result)
+}
+
+async fn claim_receipt(
+    tx: &Transaction<'_>,
+    client_request_id: &str,
+    operation: &str,
+    request_digest: &str,
+) -> Result<Option<Value>, WorkError> {
+    if try_claim_receipt(tx, client_request_id, operation, request_digest).await? {
+        return Ok(None);
+    }
+    let row = tx
+        .query_opt(
+            "SELECT operation,request_digest,response FROM command_receipts WHERE client_request_id=$1",
+            &[&client_request_id],
+        )
+        .await?
+        .ok_or_else(|| WorkError::Integrity("idempotency claim disappeared".into()))?;
+    Ok(Some(validate_receipt_replay(
+        &row,
+        operation,
+        request_digest,
+    )?))
 }
 
 async fn record_receipt(
@@ -526,8 +547,17 @@ pub async fn create_work(client: &mut Client, command: &CreateWork) -> Result<Va
     });
     let request_digest = canonical_digest(&request)?;
     let tx = client.transaction().await?;
-    if let Some(previous) =
-        claim_receipt(&tx, &command.client_request_id, operation, &request_digest).await?
+    if let Some(previous) = receipt::claim(
+        &tx,
+        &command.client_request_id,
+        operation,
+        &request_digest,
+        receipt::Request::Create {
+            work_ref: &command.work_ref,
+            work_kind: &command.kind,
+        },
+    )
+    .await?
     {
         tx.commit().await?;
         return Ok(previous);
@@ -769,8 +799,20 @@ pub async fn commit_snapshot(
     let request_digest = canonical_digest(&request)?;
     let tx = client.transaction().await?;
 
-    if let Some(previous) =
-        claim_receipt(&tx, &command.client_request_id, operation, &request_digest).await?
+    if let Some(previous) = receipt::claim(
+        &tx,
+        &command.client_request_id,
+        operation,
+        &request_digest,
+        receipt::Request::Commit {
+            work_ref: &command.work_ref,
+            revision: command.expected_revision + 1,
+            snapshot_digest: &snapshot_digest,
+            actor_ref: &command.actor_ref,
+            state: command.state.as_str(),
+        },
+    )
+    .await?
     {
         tx.commit().await?;
         return Ok(previous);
