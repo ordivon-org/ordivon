@@ -78,7 +78,7 @@ def build_union(repo: Path, event_base: str, event_head: str, execution_cut: str
     drift = sorted(
         (set(changed_paths(event_base, parent, source_repo_root=repo))
          | set(changed_paths(event_head, cut, source_repo_root=repo)))
-        & affected_owners.CROSS_CUTTING_PATHS
+        & (affected_owners.CROSS_CUTTING_PATHS | {"tools/formal/verify.py"})
     )
     owners = sorted(canonical if drift else
                     set(event["verificationOwners"]) | set(execution["verificationOwners"]))

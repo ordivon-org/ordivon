@@ -1658,12 +1658,13 @@ class ConvergencePlanTests(unittest.TestCase):
         workflow = (root / ".github/workflows/ci.yml").read_text()
         marker = (
             '          python3 - "$owners_file" "$tasks_file" '
-            '"$RUNNER_TEMP/ordivon-convergence-plan.json" <<' + "'PY'"
+            '"$RUNNER_TEMP/ordivon-convergence-plan.json" "${base:-}" "${head:-}" <<' + "'PY'"
         )
         self.assertEqual(workflow.count(marker), 1)
         body = workflow.split(marker, 1)[1].split("          PY", 1)[0]
         code = "\n".join(line[10:] for line in body.splitlines() if line.strip())
         self.assertIn("convergence_plan.validate_queue_task_selection(", code)
+        self.assertIn("ci_pr_execution_range.validate_union(", code)
         self.assertNotIn(
             "Selected verification owners and executable tasks disagree", workflow
         )
@@ -1714,27 +1715,30 @@ class ConvergencePlanTests(unittest.TestCase):
                 ([], [], changed, False),
             )
         self.assertEqual(len(examples) - original_cases, 2 * len(cohorts))
+        # These bounded cohorts have declared paths, not an immutable
+        # event range. Exercise the native validator directly; the real
+        # workflow must now reject a plan without exact range coordinates.
+        for owners, tasks, changed, accepted in examples:
+            with self.subTest(owners=owners, tasks=tasks, changed=changed):
+                try:
+                    MODULE.validate_queue_task_selection(owners, tasks, changed)
+                    observed = True
+                except ValueError:
+                    observed = False
+                self.assertEqual(observed, accepted)
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
-            owners_path = folder / "owners.txt"
-            tasks_path = folder / "tasks.txt"
-            plan_path = folder / "plan.json"
-            for owners, tasks, changed, accepted in examples:
-                with self.subTest(owners=owners, tasks=tasks, changed=changed):
-                    owners_path.write_text("\n".join(owners) + "\n")
-                    tasks_path.write_text("\n".join(tasks) + "\n")
-                    plan_path.write_text(__import__("json").dumps({
-                        "changedPaths": changed,
-                    }))
-                    result = subprocess.run(
-                        [sys.executable, "-c", code,
-                         str(owners_path), str(tasks_path), str(plan_path)],
-                        cwd=root, capture_output=True, text=True, timeout=20,
-                    )
-                    self.assertEqual(
-                        result.returncode == 0, accepted,
-                        result.stdout + result.stderr,
-                    )
+            owners_path, tasks_path, plan_path = (folder / name for name in ("owners", "tasks", "plan"))
+            owners_path.write_text("")
+            tasks_path.write_text("formal:verify\n")
+            plan_path.write_text(json.dumps({"changedPaths": ["tools/formal/Proof.qnt"]}))
+            result = subprocess.run(
+                [sys.executable, "-c", code, str(owners_path), str(tasks_path), str(plan_path), "", ""],
+                cwd=root, env=dict(os.environ, EVENT_NAME="merge_group"), capture_output=True, text=True, timeout=20,
+            )
+            self.assertNotEqual(result.returncode, 0, result.stderr)
+            self.assertIn("both exact queue source cuts required", result.stderr)
+
 
     def test_explicit_owner_universe_is_used_for_direct_selection(self) -> None:
         # Scoped owner sets must not leak global owner identities into plans.
@@ -2033,6 +2037,12 @@ class PullRequestExecutionRangeTests(unittest.TestCase):
             self.assertIn("game:verify", plan["queueVerifyTasks"])
             self.assertIn("preservation:verify", plan["queueVerifyTasks"])
             self.assertLess(len(plan["verificationOwners"]), len(MODULE.affected_owners.OWNERS))
+            env.update(EVENT_NAME="merge_group", MERGE_GROUP_BASE=parent, MERGE_GROUP_HEAD=extra)
+            result, outputs = invoke(extra)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads((root / "ordivon-convergence-plan.json").read_text()),
+                             native_plan(parent, extra))
+            env["EVENT_NAME"] = "pull_request"
             # Mutate actual producer output, not the consumer validator.
             forged = dict(plan, queueVerifyTasks=[t for t in plan["queueVerifyTasks"] if t != "game:verify"])
             forged_file = root / "forged.json"
