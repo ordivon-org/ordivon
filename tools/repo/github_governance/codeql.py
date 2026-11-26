@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 import yaml
 
 
@@ -29,20 +31,24 @@ def validate_monorepo_codeql(source: str) -> None:
     steps = job.get("steps")
     if not isinstance(steps, list) or any(not isinstance(step, dict) for step in steps):
         raise AssertionError("CodeQL missing valid steps")
-    action_sha = "1c5b675653bb5c22dbe9b12b556ec555138e09fd"
-    expected = {
-        f"github/codeql-action/init@{action_sha}",
-        f"github/codeql-action/analyze@{action_sha}",
-    }
-    actual = {
-        step.get("uses")
-        for step in steps
+    # Pin the release family, not a historical release. Init writes state
+    # consumed by analyze, so both must use the same immutable commit.
+    codeql_steps = [
+        step for step in steps
         if str(step.get("uses", "")).startswith("github/codeql-action/")
-    }
-    if actual != expected:
+    ]
+    matches = [
+        re.fullmatch(r"github/codeql-action/(init|analyze)@([0-9a-f]{40})", step["uses"])
+        for step in codeql_steps
+    ]
+    if (
+        len(matches) != 2
+        or any(match is None for match in matches)
+        or [match.group(1) for match in matches] != ["init", "analyze"]
+        or matches[0].group(2) != matches[1].group(2)
+    ):
         raise AssertionError("CodeQL init/analyze SHA actions missing or drifting")
-    init = next(step for step in steps if step.get("uses", "").endswith("/init@" + action_sha))
-    analyze = next(step for step in steps if step.get("uses", "").endswith("/analyze@" + action_sha))
+    init, analyze = codeql_steps
     matrix_value = "$" + "{{ matrix.language }}"
     if init.get("with", {}).get("languages") != matrix_value:
         raise AssertionError("CodeQL does not bind each matrix language")
