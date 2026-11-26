@@ -130,3 +130,52 @@ def test_sharding_is_a_lossless_order_independent_partition(tasks, count, formal
     assert len({row["shard"] for row in rows}) == len(rows)
     assert Counter(task for row in rows for task in row["tasks"]) == Counter(tasks)
     assert rows == ci_owner_shards.shard_queue(list(reversed(selected)), count)["include"]
+
+
+def test_root_pytest_lane_uses_native_execution_under_ambient_controls(tmp_path):
+    """Exercise the actual declared invocation with an independent execution marker."""
+    import os
+    import shlex
+    import subprocess
+    import tomllib
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    command = tomllib.loads((root / "mise.toml").read_text())["tasks"]["repo:ci"]["run"]
+    lanes = [shlex.split(line) for line in command.splitlines()
+             if "python -m pytest" in line]
+    assert len(lanes) == 1
+    lane = lanes[0]
+    # Keep the native executable/flags as declared; substitute only the test
+    # operand for a disposable independent oracle, not the runner itself.
+    assert "tools/repo/test_verification_properties.py" in lane
+    # The R1 lane can place other explicit test files before this file.
+    first_test = min(i for i, arg in enumerate(lane) if arg.startswith("tools/repo/test_"))
+    assert all(arg.endswith(".py") or arg == "studies/data-lifecycle/tests"
+               for arg in lane[first_test:])
+    prefix = lane[:first_test]
+    marker = tmp_path / "executed"
+    fixture = tmp_path / "test_independent_oracle.py"
+    fixture.write_text(
+        "from pathlib import Path\n"
+        "from hypothesis import given, strategies as st\n"
+        "@given(st.integers(min_value=0, max_value=1))\n"
+        "def test_actual_execution(value):\n"
+        "    Path(" + repr(str(marker)) + ").write_text('executed')\n"
+        "    assert value in (0, 1)\n"
+    )
+    hostile = {**os.environ, "PYTEST_ADDOPTS": "--collect-only",
+               "PYTEST_PLUGINS": "nonexistent_ordivon_ambient_plugin",
+               "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1"}
+    good = subprocess.run(prefix + [str(fixture)], cwd=root, env=hostile,
+                          capture_output=True, text=True, timeout=90)
+    assert good.returncode == 0, good.stdout + good.stderr
+    assert marker.read_text() == "executed"
+    marker.unlink()
+    with fixture.open("a") as out:
+        out.write("\ndef test_independent_failing_sentinel():\n    assert False\n")
+    bad = subprocess.run(prefix + [str(fixture)], cwd=root, env=hostile,
+                         capture_output=True, text=True, timeout=90)
+    assert bad.returncode == 1, bad.stdout + bad.stderr
+    assert "test_independent_failing_sentinel" in bad.stdout
+    assert marker.read_text() == "executed"
