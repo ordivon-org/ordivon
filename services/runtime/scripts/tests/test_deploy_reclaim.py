@@ -8,6 +8,7 @@ import json
 import os
 import re
 import runpy
+import shlex
 import shutil
 import sqlite3
 import subprocess
@@ -366,6 +367,29 @@ def add_release_operator_sources(path: Path, *, push: bool) -> str:
     ).stdout.strip()
 
 
+def cargo_fixture_target_setup(root: Path) -> str:
+    # Cargo test doubles must never turn a missing target into /release.
+    # Bind writes to the caller's disposable test root, not the host CWD.
+    fixture_root = shlex.quote(str(root.resolve()))
+    return (
+        f"fixture_root={fixture_root}\n"
+        "target=''\n"
+        "while [ $# -gt 0 ]; do\n"
+        '  if [ "$1" = --target-dir ]; then\n'
+        '    [ "$#" -ge 2 ] && [ -n "$2" ] || exit 64\n'
+        '    [ -z "$target" ] || exit 64\n'
+        '    target=$2; shift 2\n'
+        "  else shift; fi\n"
+        "done\n"
+        'case "$target" in /*) ;; *) exit 64;; esac\n'
+        'target=$(realpath -m -- "$target") || exit 64\n'
+        'case "$target" in "$fixture_root"/*) ;; *) exit 64;; esac\n'
+        'release=$(realpath -m -- "$target/release") || exit 64\n'
+        'case "$release" in "$target"/release) ;; *) exit 64;; esac\n'
+        'mkdir -p -- "$release" || exit 64\n'
+    )
+
+
 def fake_cargo_for_default_release(root: Path) -> Path:
     write_executable(
         root / "rustc",
@@ -386,11 +410,7 @@ def fake_cargo_for_default_release(root: Path) -> Path:
         cargo,
         "#!/bin/sh\n"
         'if [ "${1:-}" = --version ]; then printf "cargo 1.95.0 (test)\\nrelease: 1.95.0\\n"; exit 0; fi\n'
-        "target=''\n"
-        "while [ $# -gt 0 ]; do\n"
-        '  if [ "$1" = --target-dir ]; then target=$2; shift 2; else shift; fi\n'
-        "done\n"
-        'mkdir -p "$target/release"\n'
+        + cargo_fixture_target_setup(root)
         + binary_commands,
     )
     return cargo
@@ -470,6 +490,61 @@ def fake_systemctl(root: Path) -> Path:
 
 
 class DeployReclaimTests(unittest.TestCase):
+    def test_cargo_fixture_accepts_only_disposable_target(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cargo = fake_cargo_for_default_release(root)
+            target = root / "nested" / "target"
+            result = subprocess.run(
+                [str(cargo), "build", "--target-dir", str(target)],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(
+                (target / "release" / "ordivon-runtime").read_text(),
+                "ordivon-runtime-candidate\n",
+            )
+
+    @unittest.skipUnless(shutil.which("bwrap"), "requires native mount isolation")
+    def test_cargo_fixture_rejects_unbound_or_escaping_target(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            scratch = Path(directory)
+            root = scratch / "fixture"
+            root.mkdir()
+            outside = scratch / "outside"
+            outside.mkdir()
+            cargo = fake_cargo_for_default_release(root)
+            (root / "escape").symlink_to(outside, target_is_directory=True)
+            (root / "target").mkdir()
+            (root / "target" / "release").symlink_to(outside, target_is_directory=True)
+            prefix = [
+                "bwrap", "--ro-bind", "/", "/", "--bind", str(scratch),
+                str(scratch), "--dev", "/dev", "--proc", "/proc", "--",
+            ]
+            probe = subprocess.run(prefix + ["/usr/bin/true"], capture_output=True)
+            if probe.returncode:
+                self.skipTest("native mount namespace unavailable")
+            cases = [
+                [], ["--target-dir"], ["--target-dir", ""],
+                ["--target-dir", "relative"], ["--target-dir", "/"],
+                ["--target-dir", str(outside)],
+                ["--target-dir", str(root / "escape")],
+                ["--target-dir", str(root / "target")],
+                ["--target-dir", str(root / "one"), "--target-dir", str(root / "two")],
+            ]
+            for args in cases:
+                with self.subTest(args=args):
+                    result = subprocess.run(
+                        prefix + [str(cargo), "build", *args],
+                        capture_output=True,
+                        text=True,
+                    )
+                    self.assertEqual(result.returncode, 64, result.stderr)
+                    self.assertEqual(list(outside.iterdir()), [])
+                    self.assertFalse((root / "one").exists())
+                    self.assertFalse((root / "two").exists())
+
     def test_installed_baseline_drift_exposes_exact_lossless_file_differences(self) -> None:
         scripts_path = str(REPO / "scripts")
         sys.path.insert(0, scripts_path)
@@ -906,12 +981,8 @@ class DeployReclaimTests(unittest.TestCase):
                 cargo,
                 "#!/bin/sh\n"
                 'if [ "${1:-}" = --version ]; then printf "cargo 1.95.0 (test)\\nrelease: 1.95.0\\n"; exit 0; fi\n'
-                "target=''\n"
-                "while [ $# -gt 0 ]; do\n"
-                '  if [ "$1" = --target-dir ]; then target=$2; shift 2; else shift; fi\n'
-                "done\n"
-                'mkdir -p "$target/release"\n'
-                "printf 'candidate\\n' > \"$target/release/runtime\"\n"
+                + cargo_fixture_target_setup(root)
+                + "printf 'candidate\\n' > \"$target/release/runtime\"\n"
                 'chmod 755 "$target/release/runtime"\n',
             )
             prepared = subprocess.run(
@@ -2682,12 +2753,8 @@ class DeployReclaimTests(unittest.TestCase):
                 cargo,
                 "#!/bin/sh\n"
                 'if [ "${1:-}" = --version ]; then printf "cargo 1.95.0 (test)\nrelease: 1.95.0\n"; exit 0; fi\n'
-                "target=''\n"
-                "while [ $# -gt 0 ]; do\n"
-                '  if [ "$1" = --target-dir ]; then target=$2; shift 2; else shift; fi\n'
-                "done\n"
-                'mkdir -p "$target/release"\n'
-                "printf '%s\\n' \"$RUSTC\" > \"$target/release/RUSTC_USED\"\n"
+                + cargo_fixture_target_setup(root)
+                + "printf '%s\\n' \"$RUSTC\" > \"$target/release/RUSTC_USED\"\n"
                 "printf '%s\\n' \"${PATH%%:*}\" > \"$target/release/PATH_HEAD\"\n"
                 "printf 'built-from-commit\\n' > \"$target/release/runtime\"\n"
                 'chmod 755 "$target/release/runtime"\n',
@@ -2740,12 +2807,8 @@ class DeployReclaimTests(unittest.TestCase):
                 'if [ "$tool" = rustc ]; then printf "rustc 1.95.0 (test)\\nbinary: rustc\\nhost: x86_64-unknown-linux-gnu\\n"; exit 0; fi\n'
                 'if [ "$tool" = cargo ] && [ "${1:-}" = --version ]; then printf "cargo 1.95.0 (test)\\nrelease: 1.95.0\\n"; exit 0; fi\n'
                 'if [ "$tool" != cargo ]; then exit 2; fi\n'
-                "target=''\n"
-                "while [ $# -gt 0 ]; do\n"
-                '  if [ "$1" = --target-dir ]; then target=$2; shift 2; else shift; fi\n'
-                "done\n"
-                'mkdir -p "$target/release"\n'
-                'printf "%s\\n" "$RUSTC" > "$target/release/RUSTC_USED"\n'
+                + cargo_fixture_target_setup(root)
+                + 'printf "%s\\n" "$RUSTC" > "$target/release/RUSTC_USED"\n'
                 'printf "%s\\n" "$RUSTDOC" > "$target/release/RUSTDOC_USED"\n'
                 'printf "built-from-proxy\\n" > "$target/release/runtime"\n'
                 'chmod 755 "$target/release/runtime"\n',
@@ -2832,12 +2895,8 @@ class DeployReclaimTests(unittest.TestCase):
                 cargo,
                 "#!/bin/sh\n"
                 'if [ "${1:-}" = --version ]; then printf "cargo 1.95.0 (test)\\nrelease: 1.95.0\\n"; exit 0; fi\n'
-                "target=''\n"
-                "while [ $# -gt 0 ]; do\n"
-                '  if [ "$1" = --target-dir ]; then target=$2; shift 2; else shift; fi\n'
-                "done\n"
-                'mkdir -p "$target/release"\n'
-                'cat SOURCE.txt > "$target/release/runtime"\n'
+                + cargo_fixture_target_setup(root)
+                + 'cat SOURCE.txt > "$target/release/runtime"\n'
                 'chmod 755 "$target/release/runtime"\n',
             )
             completed = subprocess.run(
@@ -2885,12 +2944,8 @@ class DeployReclaimTests(unittest.TestCase):
                 cargo,
                 "#!/bin/sh\n"
                 'if [ "${1:-}" = --version ]; then printf "cargo 1.95.0 (test)\nrelease: 1.95.0\n"; exit 0; fi\n'
-                "target=''\n"
-                "while [ $# -gt 0 ]; do\n"
-                '  if [ "$1" = --target-dir ]; then target=$2; shift 2; else shift; fi\n'
-                "done\n"
-                'mkdir -p "$target/release"\n'
-                "printf 'built\n' > \"$target/release/runtime\"\n"
+                + cargo_fixture_target_setup(root)
+                + "printf 'built\n' > \"$target/release/runtime\"\n"
                 'chmod 755 "$target/release/runtime"\n'
                 "printf 'changed\n' > README.md\n",
             )
@@ -4023,12 +4078,8 @@ else:
                 cargo,
                 "#!/bin/sh\n"
                 'if [ "${1:-}" = --version ]; then printf "cargo 1.95.0 (test)\\nrelease: 1.95.0\\n"; exit 0; fi\n'
-                "target=''\n"
-                "while [ $# -gt 0 ]; do\n"
-                '  if [ "$1" = --target-dir ]; then target=$2; shift 2; else shift; fi\n'
-                "done\n"
-                'mkdir -p "$target/release"\n'
-                "printf 'candidate\n' > \"$target/release/runtime\"\n"
+                + cargo_fixture_target_setup(root)
+                + "printf 'candidate\n' > \"$target/release/runtime\"\n"
                 'chmod 755 "$target/release/runtime"\n',
             )
             prepared = subprocess.run(
