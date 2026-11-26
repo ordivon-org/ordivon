@@ -14,7 +14,7 @@ from ordivon_composition.effect_reconciliation_r1 import (
     qualify_execution_effect_frontier,
 )
 
-OP = "ordivon-exec:v1:external.pull:operation-one"
+OP = "ordivon-exec:v1:runtime.windows:operation-one"
 EFFECT = f"effect:{OP}"
 
 
@@ -29,7 +29,7 @@ def gateway_observation(
         "schema_version": 1,
         "kind": "ordivon.gateway-execution-observation",
         "operation_ref": OP,
-        "owner_id": "external.pull",
+        "owner_id": "runtime.windows",
         "native_id": "operation-one",
         "capability": "muse.shell.echo",
         "state": state,
@@ -116,6 +116,53 @@ def test_c04_to_c06_plan_consumer_binding_matches_real_import_and_call():
     assert "formal/EffectReplayFence.tla" in c06["evidence"]
     assert "tests/test_effect_reconciliation_r1.py" in c06["evidence"]
     assert "MODEL" in c06["qualification"] and "INSTALLED_EFFECT_UNKNOWN" in c06["qualification"]
+
+
+@pytest.mark.parametrize(
+    "owner", ["runtime.linux", "runtime.windows", "runtime.harness", "external.pull"]
+)
+def test_native_owner_retirement_contract(owner, tmp_path):
+    """Current route admission, not authentication of a historical record."""
+    op = f"ordivon-exec:v1:{owner}:operation-one"
+    obs = {**gateway_observation(), "owner_id": owner, "operation_ref": op}
+    g = graph()
+    g["authorityRefs"][0] = f"effect:{op}"
+    g["obligations"][0]["dependsOn"] = [f"effect:{op}"]
+    ob, gr = tmp_path / "ob.json", tmp_path / "gr.json"
+    ob.write_text(json.dumps(obs))
+    gr.write_text(json.dumps(g))
+    cmd = [
+        sys.executable,
+        "-m",
+        "ordivon_composition.effect_reconciliation_r1",
+        str(ob),
+        str(gr),
+        "--expected-operation-ref",
+        op,
+    ]
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if owner == "external.pull":
+        assert proc.returncode != 0
+        assert "identity mismatch" in proc.stderr and not proc.stdout
+        with pytest.raises(CircuitContractError, match="identity mismatch"):
+            qualify_execution_effect_frontier(
+                observation=obs, expected_operation_ref=op, proof_graph=g
+            )
+    else:
+        assert proc.returncode == 0, proc.stderr
+        result = qualify_execution_effect_frontier(
+            observation=obs, expected_operation_ref=op, proof_graph=g
+        )
+        assert json.loads(proc.stdout) == result
+        assert result["recommendedNextRead"] == "RECONCILE_ORIGINAL_OPERATION"
+        assert result["automaticRetryAdmissible"] is False
+        assert result["providerEffectEstablished"] is False
+        assert result["proofReuseAdmissible"] is False
+        assert standings(result) == {
+            "proof:write": "UNKNOWN",
+            "proof:consumer": "UNKNOWN",
+            "proof:media": "REUSE_CANDIDATE",
+        }
 
 
 def test_expired_started_attempt_reconciles_exact_operation_and_fences_replay():

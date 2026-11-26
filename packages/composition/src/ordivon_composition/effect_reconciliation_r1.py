@@ -17,10 +17,9 @@ from typing import Any
 from .cognitive_circuit_r1 import CircuitContractError, _load_json
 from .verification_obligation_r1 import select_impacted_obligations
 
-# Gateway accepts runtime.harness alongside Linux/Windows. Keep the existing
-# external.pull synthetic/legacy shape until its consumers can be retired with
-# owner evidence; only the Runtime owners below are live Gateway executions.
-OWNERS = frozenset({"runtime.linux", "runtime.windows", "runtime.harness", "external.pull"})
+# Match the live Gateway execution-reference owner universe. Historical
+# external.pull observations are not current execution routes.
+OWNERS = frozenset({"runtime.linux", "runtime.windows", "runtime.harness"})
 # Must match the actual Runtime/Gateway northbound delivery vocabulary. An
 # uncertain completion with reconciliation_required is an actionable *read*
 # of the original operation, not a protocol error and never retry authority.
