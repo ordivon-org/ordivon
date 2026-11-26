@@ -631,12 +631,19 @@ class DeployReclaimTests(unittest.TestCase):
             subprocess.run(
                 [
                     "git", "-c", "protocol.file.allow=always", "clone", "-q",
-                    "--filter=blob:none", bare.as_uri(), str(source),
+                    "--filter=blob:none", "--depth=1", bare.as_uri(), str(source),
                 ],
                 check=True,
             )
             old_head = subprocess.check_output(
                 ["git", "-C", str(source), "rev-parse", "HEAD"], text=True
+            ).strip()
+            owner_file.write_text("intermediate-never-checked-out\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(seed), "add", "-A"], check=True)
+            subprocess.run(["git", "-C", str(seed), "commit", "-qm", "intermediate"], check=True)
+            historical_blob = subprocess.check_output(
+                ["git", "-C", str(seed), "rev-parse", "HEAD:services/runtime/owner.txt"],
+                text=True,
             ).strip()
             owner_file.write_text("new\n", encoding="utf-8")
             subprocess.run(["git", "-C", str(seed), "add", "-A"], check=True)
@@ -662,10 +669,41 @@ class DeployReclaimTests(unittest.TestCase):
                 ).strip(),
                 "true",
             )
-            with checkout_source(source / "services/runtime", target) as materialized:
-                self.assertEqual(
-                    (materialized / "owner.txt").read_text(encoding="utf-8"), "new\n"
-                )
+            self.assertEqual(subprocess.check_output(
+                ["git", "-C", str(source), "rev-parse", "--is-shallow-repository"],
+                text=True,
+            ).strip(), "true")
+            with patch.dict(os.environ, {"GIT_NO_LAZY_FETCH": "1"}):
+                with self.assertRaisesRegex(RuntimeError, "cannot materialize exact release source"):
+                    with checkout_source(source / "services/runtime", target):
+                        self.fail("missing required blob must not produce a checkout")
+            # Materialize only the requested tree; unrelated historical blobs
+            # remain promised. Release checkout must not negotiate full history.
+            subprocess.run(
+                ["git", "-C", str(source), "archive", "--format=tar", target],
+                stdout=subprocess.DEVNULL, check=True,
+            )
+            offline = {**os.environ, "GIT_NO_LAZY_FETCH": "1"}
+            missing = subprocess.run(
+                ["git", "-C", str(source), "cat-file", "-e", historical_blob],
+                env=offline, capture_output=True,
+            )
+            self.assertNotEqual(missing.returncode, 0)
+            with patch.dict(os.environ, {"GIT_NO_LAZY_FETCH": "1"}):
+                with checkout_source(source / "services/runtime", target) as materialized:
+                    self.assertEqual(
+                        (materialized / "owner.txt").read_text(encoding="utf-8"), "new\n"
+                    )
+                    self.assertEqual(
+                        subprocess.check_output(
+                            ["git", "-C", str(materialized), "rev-parse", "HEAD"], text=True,
+                        ).strip(),
+                        target,
+                    )
+            self.assertNotEqual(subprocess.run(
+                ["git", "-C", str(source), "cat-file", "-e", historical_blob],
+                env=offline, capture_output=True,
+            ).returncode, 0)
 
     def test_release_source_owner_revision_ignores_sibling_monorepo_commits(self) -> None:
         scripts_path = str(REPO / "scripts")
@@ -763,6 +801,68 @@ class DeployReclaimTests(unittest.TestCase):
         maintenance = source.index("runtime.reconcile_maintenance_batch(reconcile_batch_size)")
         self.assertLess(bind, maintenance)
         self.assertNotIn("reconcile_all()", source[:bind])
+
+    def test_prepare_streams_build_diagnostics_before_child_exit(self) -> None:
+        import selectors
+        import shlex
+        import time
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repo = root / "repo"
+            initialize_git_repository(repo, remote=False)
+            commit = add_release_operator_sources(repo, push=False)
+            cargo = fake_cargo_for_default_release(root)
+            gate = root / "finish-build"
+            # Keep the child alive until its parent observes the actual output.
+            # The finite loop also prevents an orphan if the observation fails.
+            write_executable(
+                cargo,
+                "#!/bin/sh\n"
+                'if [ "${1:-}" = --version ]; then printf "cargo 1.95.0 (test)\\nrelease: 1.95.0\\n"; exit 0; fi\n'
+                "printf 'native-build-stdout\\n'\n"
+                "printf 'native-build-stderr\\n' >&2\n"
+                f"gate={shlex.quote(str(gate))}\n"
+                'i=0; while [ ! -f "$gate" ] && [ "$i" -lt 100 ]; do sleep 0.1; i=$((i+1)); done\n'
+                "exit 37\n",
+            )
+            manifest = root / "candidate-manifest.json"
+            process = subprocess.Popen(
+                [
+                    sys.executable, "scripts/ordivon-runtime-deploy", "prepare",
+                    "--source-repo", str(repo), "--commit", commit,
+                    "--candidate-dir", str(repo / "target/release"),
+                    "--candidate-manifest", str(manifest), "--cargo", str(cargo),
+                ],
+                cwd=REPO, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            )
+            observed = bytearray()
+            try:
+                assert process.stderr is not None
+                with selectors.DefaultSelector() as selector:
+                    selector.register(process.stderr, selectors.EVENT_READ)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        if not selector.select(max(0, deadline - time.monotonic())):
+                            break
+                        block = os.read(process.stderr.fileno(), 4096)
+                        if not block:
+                            break
+                        observed.extend(block)
+                        if all(marker in observed for marker in
+                               (b"native-build-stdout", b"native-build-stderr")):
+                            break
+                self.assertIn(b"native-build-stdout", observed)
+                self.assertIn(b"native-build-stderr", observed)
+                self.assertIsNone(process.poll(), "build must still be running")
+                self.assertFalse(manifest.exists())
+            finally:
+                gate.touch()
+                stdout, stderr = process.communicate(timeout=15)
+            self.assertNotEqual(process.returncode, 0)
+            self.assertEqual(stdout, b"")
+            self.assertIn(b"37", stderr)
+            self.assertFalse(manifest.exists())
 
     def test_default_prepare_binds_complete_release_artifact_set(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
