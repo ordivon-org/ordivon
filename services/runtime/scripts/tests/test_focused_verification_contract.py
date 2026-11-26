@@ -106,6 +106,7 @@ class FocusedVerificationContractTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, combined)
         self.assertIn("Runtime focused feature: operator-tools", combined)
         self.assertIn("QUALIFIED_FOCUSED_PASS", combined)
+        self.assertIn('"archiveSha256"', combined)
         for name in ("migrated_unknown_recovery_cannot_become_absent",
                      "real_migration_archive_refinement"):
             self.assertIn(name, combined)

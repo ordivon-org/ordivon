@@ -126,11 +126,18 @@ import sys
 root = Path(sys.argv[1]).resolve()
 (root / "store.toml").write_text("[store]\\ndir = " + json.dumps((root / "store").as_posix()) + "\\n", encoding="utf-8")
 PY_NEXTTEST_STORE
-selection=(--locked "${target[@]}" -p ordivon-runtime-core --no-default-features --features "$feature" -P ci -E "${RUNTIME_TEST_EXPR:-$default_selector}" --user-config-file none --tool-config-file "ordivon-evidence:$evidence/store.toml")
+build=(--locked "${target[@]}" -p ordivon-runtime-core --no-default-features --features "$feature")
+configuration=(-P ci --user-config-file none --tool-config-file "ordivon-evidence:$evidence/store.toml")
+# Archive once using Nextest itself. Discovery and execution consume the
+# same private build carrier even if a later Cargo build replaces a binary.
+archive="$evidence/tests.tar.zst"
+mise exec -- cargo nextest archive "${build[@]}" "${configuration[@]}" --archive-file "$archive" --zstd-level -3
+archive_sha=$(python3 scripts/qualify_focused_evidence.py --digest "$archive")
+selection=(--archive-file "$archive" "${configuration[@]}" -E "${RUNTIME_TEST_EXPR:-$default_selector}")
 mise exec -- cargo nextest list "${selection[@]}" --message-format json --run-ignored all > "$evidence/list.json"
 python3 scripts/qualify_focused_evidence.py "$evidence/list.json"
 mise exec -- cargo nextest run "${selection[@]}" --no-tests fail --retries 0 --status-level pass
-python3 scripts/qualify_focused_evidence.py "$evidence/list.json" "$evidence/store/ci/junit.xml"
+python3 scripts/qualify_focused_evidence.py "$evidence/list.json" "$evidence/store/ci/junit.xml" "$archive" "$archive_sha"
 """
 
 

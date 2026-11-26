@@ -4,11 +4,12 @@ import copy
 import json
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from qualify_focused_evidence import qualified_report, selected_tests, unique_object  # noqa: E402
+from qualify_focused_evidence import digest, qualified_report, qualify_carrier, selected_tests, unique_object  # noqa: E402
 
 
 def inventory():
@@ -27,6 +28,16 @@ def report():
 
 
 class FocusedEvidenceTests(unittest.TestCase):
+    def test_changed_build_carrier_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            carrier = Path(directory) / "tests.tar.zst"
+            carrier.write_bytes(b"original")
+            original = digest(carrier)
+            self.assertEqual(qualify_carrier(carrier, original), original)
+            carrier.write_bytes(b"replaced")
+            with self.assertRaisesRegex(ValueError, "carrier changed"):
+                qualify_carrier(carrier, original)
+
     def test_exact_native_identity(self):
         self.assertEqual(qualified_report(selected_tests(inventory()), report()),
                          "1deda4b7-8a89-4301-a31f-c6ef43e2586e")

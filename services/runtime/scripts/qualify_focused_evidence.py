@@ -74,22 +74,37 @@ def check_counts(element, count):
 
 
 def digest(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    with path.open("rb") as source:
+        return hashlib.file_digest(source, "sha256").hexdigest()
+
+
+def qualify_carrier(path, expected_digest):
+    actual = digest(path)
+    if actual != expected_digest:
+        raise ValueError("native build carrier changed")
+    return actual
 
 
 def main():
-    if len(sys.argv) not in (2, 3):
-        raise SystemExit("usage: qualify_focused_evidence.py INVENTORY [JUNIT]")
     try:
+        if len(sys.argv) == 3 and sys.argv[1] == "--digest":
+            print(digest(Path(sys.argv[2])))
+            return
+        if len(sys.argv) not in (2, 5):
+            raise SystemExit("usage: qualify_focused_evidence.py INVENTORY [JUNIT ARCHIVE ARCHIVE_SHA256]")
         inventory = Path(sys.argv[1])
         selected = selected_tests(json.loads(inventory.read_text(encoding="utf-8"), object_pairs_hook=unique_object))
         if len(sys.argv) == 2:
             print(f"Native selected test identities: {len(selected)}")
             return
         report = Path(sys.argv[2])
+        carrier = Path(sys.argv[3])
         run_id = qualified_report(selected, ET.parse(report).getroot())
+        carrier_digest = qualify_carrier(carrier, sys.argv[4])
         print(json.dumps({
             "standing": "QUALIFIED_FOCUSED_PASS",
+            "archiveSha256": carrier_digest,
+            "archiveBytes": carrier.stat().st_size,
             "runId": run_id,
             "tests": len(selected),
             "inventorySha256": digest(inventory),
