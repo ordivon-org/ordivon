@@ -11,12 +11,15 @@ mod cancellation;
 mod contract_tests;
 #[path = "pg_dispatch.rs"]
 mod dispatch;
+pub(crate) use dispatch::PgIssuedHarnessSpawn;
 mod input_contract;
 #[path = "pg_issuer_guard.rs"]
 mod issuer;
-// Windows native drain is consumed by the native writer and PG falsification.
+#[cfg(target_os = "linux")]
+pub use issuer::read_private_spawn_dsn;
 #[cfg(all(test, feature = "postgres-registry-admission"))]
 mod live_pg_tests;
+// Windows native drain is consumed by the native writer and PG falsification.
 #[cfg(any(windows, test))]
 #[path = "pg_admission_native_windows_drain.rs"]
 mod native_windows_drain;

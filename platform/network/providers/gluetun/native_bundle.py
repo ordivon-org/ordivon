@@ -14,6 +14,9 @@ from pathlib import Path
 import subprocess
 import sys
 
+from release_unit_evidence import (UNIT_PROPERTIES, require_calendar,
+                                   require_command, require_loaded_identity)
+
 SOURCE = Path(__file__).resolve().parent
 DEST = Path("/usr/local/libexec/network-v2/gluetun-native")
 SVC_NAME = "network-v2-gluetun-owned-reconcile.service"
@@ -25,9 +28,11 @@ INSTALLED_TIMER = Path("/etc/systemd/system") / TIMER_NAME
 FILES = (
     "native_profile.py",
     "observe_active.py",
+    "active_observation.py",
     "quality_history.py",
     "historical_observation.py",
     "native_switch.py",
+    "native_selection.py",
     "auth_profile.py",
     "config/exit-allowlist.json",
     "config/exit-selector.json",
@@ -40,6 +45,21 @@ def run(*args: str, timeout: int = 25) -> str:
     return subprocess.run(
         list(args), check=True, capture_output=True, text=True, timeout=timeout,
     ).stdout.strip()
+
+
+def read_unit_property(unit: str, interface: str, prop: str) -> object:
+    """Read an already-loaded unit through the native typed D-Bus interface."""
+    service = "org.freedesktop.systemd1"
+    base = ("/usr/bin/busctl", "--system", "--json=short")
+    result = json.loads(run(*base, "call", service, "/org/freedesktop/systemd1",
+                            service + ".Manager", "GetUnit", "s", unit))
+    if (not isinstance(result, dict) or set(result) != {"type", "data"}
+            or result["type"] != "o" or not isinstance(result["data"], list)
+            or len(result["data"]) != 1 or not isinstance(result["data"][0], str)
+            or not result["data"][0].startswith("/org/freedesktop/systemd1/unit/")):
+        raise ValueError("No unique native loaded unit identity")
+    return json.loads(run(*base, "get-property", service, result["data"][0],
+                          service + "." + interface, prop))
 
 
 def payload_file(root: Path, relative: str) -> Path:
@@ -122,15 +142,20 @@ def verify(*, dest: Path = DEST, verify_systemd: bool = True) -> dict[str, objec
     if verify_systemd:
         require_equal_bytes(SOURCE_SVC, INSTALLED_SVC)
         require_equal_bytes(SOURCE_TIMER, INSTALLED_TIMER)
-        loaded = run("/usr/bin/systemctl", "show", SVC_NAME, "-p", "ExecStartPost")
-        if EFFECT not in loaded or "--recover" not in loaded:
-            raise ValueError("New native recovery systemd unit not loaded")
-        calendar = run("/usr/bin/systemctl", "show", TIMER_NAME, "-p", "TimersCalendar")
-        if "OnCalendar=*-*-* *:*:00" not in calendar:
-            raise ValueError("Native recovery one-minute systemd timer not loaded")
+        for unit, fragment in ((SVC_NAME, INSTALLED_SVC), (TIMER_NAME, INSTALLED_TIMER)):
+            args = ["/usr/bin/systemctl", "show", unit, "--all"]
+            for prop in UNIT_PROPERTIES:
+                args.extend(("-p", prop))
+            require_loaded_identity(run(*args), fragment)
+        require_command(read_unit_property(SVC_NAME, "Service", "ExecStartPost"),
+                        ["/usr/bin/python3", EFFECT, "--recover"])
+        require_calendar(read_unit_property(TIMER_NAME, "Timer", "TimersCalendar"),
+                         "*-*-* *:*:00")
     return {"standing": "NATIVE_BUNDLE_INSTALLED_SOURCE_MATCH",
             "nonsecretFileCount": len(FILES),
-            "loadedSystemd": verify_systemd}
+            "loadedSystemd": verify_systemd,
+            "loadedIdentityChecked": verify_systemd,
+            "consumerExecutionProved": False}
 
 
 def install() -> dict[str, object]:
