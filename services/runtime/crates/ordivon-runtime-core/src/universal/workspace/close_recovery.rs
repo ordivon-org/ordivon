@@ -638,14 +638,14 @@ fn reconcile_closing_workspace(
 /// content which exists ONLY in the unprivileged independent Git store.
 /// This includes an empty Git commit (outer worktree clean), extra refs, or
 /// a staged-only change. An ambiguous private repository is held, not GC'd.
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 fn workspace_private_git_has_outputs(
     private: &Path,
     original_sha: &str,
 ) -> Result<bool, UniversalExecError> {
     let meta = fs::symlink_metadata(private)
         .map_err(|e| io_error(private, "inspect private Git", e))?;
-    if !meta.is_dir() || meta.file_type().is_symlink() {
+    if !meta.is_dir() || private_git_reparse(&meta) {
         return Ok(true);
     }
     let head = fs::read_to_string(private.join("HEAD"))
@@ -656,7 +656,7 @@ fn workspace_private_git_has_outputs(
     let ref_path = private.join("refs/heads/agent-work");
     let ref_meta = fs::symlink_metadata(&ref_path)
         .map_err(|_| unfinished_open_error("private Git original ref missing"))?;
-    if !ref_meta.is_file() || ref_meta.file_type().is_symlink() {
+    if !ref_meta.is_file() || private_git_reparse(&ref_meta) {
         return Ok(true);
     }
     let base = fs::read_to_string(&ref_path)
@@ -690,7 +690,7 @@ fn workspace_private_git_has_outputs(
     }
 }
 
-#[cfg(not(unix))]
+#[cfg(not(any(unix, windows)))]
 fn workspace_private_git_has_outputs(
     _private: &Path, _original_sha: &str,
 ) -> Result<bool, UniversalExecError> {
@@ -701,11 +701,22 @@ fn require_no_unreceived_private_git_candidate(
     config: &UniversalExecutorConfig,
     workspace_id: &str,
 ) -> Result<(), UniversalExecError> {
-    let private = config.workspace_cache_path(workspace_id).join("agent-git");
+    let private = config.workspace_private_git_path(workspace_id);
     match fs::symlink_metadata(&private) {
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            #[cfg(windows)]
+            if config.workspace_root.is_some() && config.workspace_path(workspace_id).exists() {
+                let bytes = read_workspace_record_bytes(&config.workspace_record_path(workspace_id))?;
+                let record: serde_json::Value = serde_json::from_slice(&bytes)
+                    .map_err(|_| unfinished_open_error("private Git record authority unavailable"))?;
+                if record.get("state").and_then(serde_json::Value::as_str) != Some("closing") {
+                    return Err(unfinished_open_error("admitted Windows private Git carrier missing"));
+                }
+            }
+            return Ok(());
+        },
         Err(error) => return Err(io_error(&private, "inspect private Git", error)),
-        Ok(meta) if meta.is_dir() && !meta.file_type().is_symlink() => {}
+        Ok(meta) if meta.is_dir() && !private_git_reparse(&meta) => {}
         Ok(_) => return Err(unfinished_open_error("private Git metadata replaced")),
     }
     let bytes = read_workspace_record_bytes(&config.workspace_record_path(workspace_id))?;
@@ -1057,6 +1068,17 @@ fn cleanup_workspace_caches(
                 "inspect Workspace temporary presentation",
                 error,
             ));
+        }
+    }
+    #[cfg(windows)]
+    if config.workspace_root.is_some() {
+        let private = config.workspace_private_git_path(workspace_id);
+        match fs::symlink_metadata(&private) {
+            Ok(meta) if meta.is_dir() && !private_git_reparse(&meta) => {
+                fs::remove_dir_all(&private).map_err(|e| io_error(&private, "remove qualified private Git", e))?;
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            _ => return Err(unfinished_open_error("private Git cleanup identity changed")),
         }
     }
     for path in [
