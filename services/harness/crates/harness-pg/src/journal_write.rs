@@ -12,6 +12,79 @@ use postgres::{Client, Transaction};
 use std::{collections::BTreeSet, fmt};
 
 const EVENT_PAYLOAD_KIND: &str = "ordivon.harness-run-event-payload";
+
+// Match the original PostgreSQL Python writer's typed Provider/Tool edge
+// admission law. Historical exact replay is reconciled before this check.
+fn invalid_typed_effect_reference(event: &EventWrite) -> Option<&'static str> {
+    let (required, optional): (&[(&str, &str)], &[(&str, &str)]) = match event.event_kind.as_str() {
+        "harness.provider-call-claimed"
+        | "harness.provider-call-superseded"
+        | "harness.provider-call-dispatching"
+        | "harness.provider-call-completed"
+        | "harness.provider-call-failed"
+        | "harness.provider-call-unknown" => (
+            &[
+                (
+                    "providerCallRecordObjectDigest",
+                    "harness-provider-call-record",
+                ),
+                ("stateObjectDigest", "harness-run-state"),
+            ],
+            &[
+                ("requestObjectDigest", "agent-turn-request"),
+                ("resultObjectDigest", "agent-turn-result"),
+                ("failureObjectDigest", "harness-provider-call-failure"),
+            ],
+        ),
+        "harness.tool-step-prepared" => (
+            &[
+                ("toolStepIntentObjectDigest", "harness-tool-step-intent"),
+                ("snapshotObjectDigest", "harness-run-snapshot"),
+                ("stateObjectDigest", "harness-run-state"),
+            ],
+            &[("dispatchFenceObjectDigest", "harness-dispatch-fence")],
+        ),
+        "harness.tool-step-recorded"
+        | "harness.tool-step-unknown"
+        | "harness.tool-step-reconciled" => (
+            &[
+                ("toolStepIntentObjectDigest", "harness-tool-step-intent"),
+                ("receiptObjectDigest", "harness-tool-step-receipt"),
+            ],
+            &[
+                ("dispatchFenceObjectDigest", "harness-dispatch-fence"),
+                ("previousReceiptObjectDigest", "harness-tool-step-receipt"),
+                ("observationObjectDigest", "harness-tool-observation"),
+            ],
+        ),
+        _ => return None,
+    };
+    let valid = |field: &str, kind: &str| {
+        event
+            .data
+            .field(field)
+            .and_then(|v| v.as_str())
+            .is_some_and(|digest| {
+                event
+                    .referenced_objects
+                    .iter()
+                    .any(|r| r.digest == digest && r.kind == kind)
+            })
+    };
+    required
+        .iter()
+        .find(|(field, kind)| !valid(field, kind))
+        .map(|(field, _)| *field)
+        .or_else(|| {
+            optional
+                .iter()
+                .find(|(field, kind)| {
+                    event.data.field(field).is_some_and(|v| !v.is_null()) && !valid(field, kind)
+                })
+                .map(|(field, _)| *field)
+        })
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Admission {
     Created,
@@ -386,6 +459,11 @@ pub fn append_events(
     let mut preceding = BTreeSet::new();
     for (i, p) in prepared.iter().enumerate() {
         let e = p.source;
+        if let Some(field) = invalid_typed_effect_reference(e) {
+            return Err(WriteError::Conflict(format!(
+                "missing or mismatched typed effect reference: {field}"
+            )));
+        }
         if matches!(status, "completed" | "failed" | "stopped") || terminal.is_some() {
             return Err(WriteError::Terminal);
         }

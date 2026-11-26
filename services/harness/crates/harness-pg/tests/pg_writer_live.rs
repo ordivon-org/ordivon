@@ -51,13 +51,16 @@ fn event(
         referenced_objects: refs,
     }
 }
-fn ref_object(v: &serde_json::Value) -> StoredRef {
-    let item = &v["rust_writer_fixture"]["referenced"];
+fn fixture_ref(v: &serde_json::Value, key: &str) -> StoredRef {
+    let item = &v["rust_writer_fixture"][key];
     StoredRef {
         digest: item["digest"].as_str().unwrap().to_owned(),
         kind: item["kind"].as_str().unwrap().to_owned(),
         byte_length: item["byteLength"].as_i64().unwrap(),
     }
+}
+fn ref_object(v: &serde_json::Value) -> StoredRef {
+    fixture_ref(v, "referenced")
 }
 fn trace(id: &str, at: i64) -> EventWrite {
     event(
@@ -85,6 +88,8 @@ fn native_writer_exact_batch_replay_and_cas() {
     let lease =
         acquire_run_lease(&mut db, &schema, id, "rust:journal", 4000, 1500, Some(1)).unwrap();
     assert_eq!(lease.expires_at_ms(), 5500);
+    let intent = fixture_ref(&data, "intent");
+    let receipt = fixture_ref(&data, "receipt");
     let batch = vec![
         event(
             "event:rust-native-writer-unknown",
@@ -92,10 +97,12 @@ fn native_writer_exact_batch_replay_and_cas() {
             obj(vec![
                 ("reason", Doc::string("unknown-effect")),
                 ("attempt", number("1")),
+                ("toolStepIntentObjectDigest", Doc::string(&intent.digest)),
+                ("receiptObjectDigest", Doc::string(&receipt.digest)),
             ]),
             1700,
             None,
-            vec![],
+            vec![intent, receipt],
         ),
         event(
             "event:rust-native-writer-trace",
@@ -109,6 +116,17 @@ fn native_writer_exact_batch_replay_and_cas() {
             vec![ref_object(&data)],
         ),
     ];
+    // Missing original typed edge must fail atomically, despite valid CAS payload.
+    let mut missing = batch.clone();
+    missing[0].referenced_objects.clear();
+    assert!(
+        matches!(
+            append_events(&mut db, &schema, id, &missing, 1, &lease, 1600),
+            Err(WriteError::Conflict(_))
+        ),
+        "native writer accepted missing mandatory typed references"
+    );
+    assert_eq!(revision(&mut db, &schema, id), 1);
     assert_eq!(
         append_events(&mut db, &schema, id, &batch, 1, &lease, 1600).unwrap(),
         Admission::Created

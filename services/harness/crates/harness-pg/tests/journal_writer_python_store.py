@@ -41,7 +41,11 @@ if action == "prepare":
             {"artifact": "source-owned", "visible": False},
             kind="test-source-artifact",
         )
+        intent = store.put_object({"fixture": "tool-intent"}, kind="harness-tool-step-intent")
+        receipt = store.put_object({"fixture": "unknown-tool-receipt"}, kind="harness-tool-step-receipt")
         manifest["rust_writer_fixture"] = {
+            "intent": intent.to_dict(),
+            "receipt": receipt.to_dict(),
             "runs": runs,
             "referenced": obj.to_dict(),
             "foreignEventId": store.list_run_events(manifest["valid"])[0].event_id,
@@ -55,6 +59,13 @@ else:
     artifact = StoredHarnessObject(
         source_ref["digest"], source_ref["byteLength"], source_ref["kind"]
     )
+    intent, receipt = (
+        StoredHarnessObject(entries[key]["digest"], entries[key]["byteLength"], entries[key]["kind"])
+        for key in ("intent", "receipt")
+    )
+    unknown_data = {"reason": "unknown-effect", "attempt": 1,
+                    "toolStepIntentObjectDigest": intent.digest,
+                    "receiptObjectDigest": receipt.digest}
     with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
         store.validate_run_history(runs["rust"])
         live = store.load_run(runs["rust"])
@@ -63,7 +74,7 @@ else:
         assert [e.event_kind for e in events] == [
             "harness.run-created", "harness.tool-step-unknown", "harness.trace-recorded"
         ]
-        assert events[1].data == {"reason": "unknown-effect", "attempt": 1}
+        assert events[1].data == unknown_data
         assert events[2].caused_by_event_id == events[1].event_id
         assert events[2].data == {"consumer": "python-source", "recoverable": True}
         assert store.get_object(artifact.digest, expected_kind=artifact.kind) == {
@@ -79,7 +90,7 @@ else:
             events=(
                 HarnessEventWrite(
                     "event:rust-native-writer-unknown", "harness.tool-step-unknown",
-                    {"reason": "unknown-effect", "attempt": 1}, 1700
+                    unknown_data, 1700, referenced_objects=(intent, receipt)
                 ),
                 HarnessEventWrite(
                     "event:rust-native-writer-trace", "harness.trace-recorded",

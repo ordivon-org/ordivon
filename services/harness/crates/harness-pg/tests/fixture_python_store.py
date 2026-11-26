@@ -46,28 +46,50 @@ def new_contract(suffix: str) -> HarnessRunContract:
 dsn = os.environ["HARNESS_RUST_TEST_PG_DSN"]
 schema = os.environ.get("HARNESS_RUST_TEST_SCHEMA", "hpg_rust_" + uuid.uuid4().hex[:16])
 assert schema.startswith("hpg_rust_")
-valid, corrupt, bad_revision, bad_edge, deep = (new_contract(suffix) for suffix in ("valid", "corrupt", "badrev", "badedge", "deep996"))
+valid, corrupt, bad_revision, bad_edge, deep, unknown = (new_contract(suffix) for suffix in ("valid", "corrupt", "badrev", "badedge", "deep996", "unknown"))
 
 with PostgresHarnessStore(dsn, schema=schema, initialize=True) as store:
-    for contract in [valid, corrupt, bad_revision, bad_edge, deep]:
+    for contract in [valid, corrupt, bad_revision, bad_edge, deep, unknown]:
         assert store.create_run(contract).value == "created"
     # Exercise real Python PG append_events and its exact lease/revision path.
     lease = store.acquire_run_lease(
-        valid.harness_run_id, owner_id="rust-pg-readonly-fixture",
+        unknown.harness_run_id, owner_id="rust-pg-readonly-fixture",
         ttl_ms=100000, now_ms=1200, expected_run_revision=1,
     )
+    # This fixture tests Journal edge semantics, not a real Provider dispatch.
+    provider_ref = store.put_object({"fixture": "unknown-provider-record"}, kind="harness-provider-call-record")
+    state_ref = store.put_object({"fixture": "unknown-run-state"}, kind="harness-run-state")
     assert store.append_events(
-        harness_run_id=valid.harness_run_id,
+        harness_run_id=unknown.harness_run_id,
         expected_revision=1,
         events=(
             HarnessEventWrite("event:rust-test-provider-unknown", "harness.provider-call-unknown",
-                              {"providerCallId": "provider-call:unknown", "state": "unknown"}, 1200),
-            HarnessEventWrite("event:rust-test-run-completed", "harness.run-completed",
-                              {"conclusionRef": "test:conclusion", "reason": "fixture"}, 1300,
+                              {"providerCallId": "provider-call:unknown", "state": "unknown",
+                               "providerCallRecordObjectDigest": provider_ref.digest,
+                               "stateObjectDigest": state_ref.digest}, 1200,
+                              referenced_objects=(provider_ref, state_ref)),
+            HarnessEventWrite("event:rust-test-trace-after-unknown", "harness.trace-recorded",
+                              {"reason": "fixture retains unresolved evidence"}, 1300,
                               caused_by_event_id="event:rust-test-provider-unknown"),
         ),
         lease=lease,
         lease_checked_at_ms=1250,
+    ).value == "created"
+    store.validate_run_history(unknown.harness_run_id)
+    lease = store.acquire_run_lease(
+        valid.harness_run_id, owner_id="rust-pg-terminal-fixture",
+        ttl_ms=100000, now_ms=1200, expected_run_revision=1,
+    )
+    assert store.append_events(
+        harness_run_id=valid.harness_run_id, expected_revision=1,
+        events=(
+            HarnessEventWrite("event:rust-test-trace", "harness.trace-recorded",
+                              {"reason": "no external effect"}, 1200),
+            HarnessEventWrite("event:rust-test-run-completed", "harness.run-completed",
+                              {"conclusionRef": "test:conclusion", "reason": "fixture"}, 1300,
+                              caused_by_event_id="event:rust-test-trace"),
+        ),
+        lease=lease, lease_checked_at_ms=1250,
     ).value == "created"
     store.validate_run_history(valid.harness_run_id)
     store.validate_run_history(corrupt.harness_run_id)
@@ -120,7 +142,7 @@ with psycopg.connect(dsn, autocommit=True) as conn:
 
 out = Path(os.environ.get("HARNESS_RUST_TEST_FIXTURE_PATH", "/tmp/harness-rust-pg-fixture.json"))
 out.write_text(json.dumps({
-    "schema": schema, "valid": valid.harness_run_id,
+    "schema": schema, "valid": valid.harness_run_id, "unknown": unknown.harness_run_id,
     "corrupt": corrupt.harness_run_id,
     "bad_revision": bad_revision.harness_run_id,
     "bad_edge": bad_edge.harness_run_id,

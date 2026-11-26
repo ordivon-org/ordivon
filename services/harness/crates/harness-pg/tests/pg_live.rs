@@ -25,8 +25,12 @@ fn read_real_python_pg_store_journal_without_writes() {
     assert_eq!(readback.events[0].event_kind, "harness.run-created");
     // UNKNOWN must remain an observable event, never collapsed to a failure
     // or a false semantic completion.
+    let unknown_id = std::env::var("HARNESS_RUST_TEST_UNKNOWN_RUN_ID").expect("unknown fixture");
+    let unknown =
+        read_run_readonly(&mut connection, &schema, &unknown_id).expect("active UNKNOWN Journal");
+    assert_eq!(unknown.projection.status, "active");
     assert_eq!(
-        readback.events[1].event_kind,
+        unknown.events[1].event_kind,
         "harness.provider-call-unknown"
     );
     assert_eq!(
