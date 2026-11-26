@@ -602,6 +602,23 @@ def pg_mcp_readiness(
     return {**probe, "activeRuntimeImage": image}
 
 
+def require_release_preimage(
+    root: Path, specs: list[dict[str, Any]], baseline: list[dict[str, Any]],
+) -> None:
+    """Do not overwrite or restart an unqualified previous generation."""
+    try:
+        actual = [
+            DEPLOY["artifact_description"](
+                root / str(spec["name"]), spec, enforce_mode=False,
+            )
+            for spec in specs
+        ]
+        if release_artifact_identity(actual) != release_artifact_identity(baseline):
+            raise RuntimeError("release preimage changed")
+    except (OSError, RuntimeError) as error:
+        raise RuntimeError("release preimage cannot be qualified") from error
+
+
 def operator_fenced_install(
     conn: psycopg.Connection,
     args: argparse.Namespace,
@@ -665,6 +682,7 @@ def operator_fenced_install(
             source_epoch = epoch["source_sha256"] if epoch else None
             if active_executions(conn, row["job_id"]):
                 raise RuntimeError("new PG Job appeared before release cutover")
+            require_release_preimage(args.install_dir, specs, baseline)
             DEPLOY["run"]([str(args.systemctl), "stop", args.service])
             stopped = True
             if active_executions(conn, row["job_id"]):
@@ -687,6 +705,7 @@ def operator_fenced_install(
             ]
             if release_artifact_identity(staged) != expected:
                 raise RuntimeError("staged artifacts differ from committed candidate manifest")
+            require_release_preimage(args.install_dir, specs, baseline)
             # Once the first rename is attempted, a partial physical cutover
             # is possible. The rollback path must cover failures *inside*
             # this loop, not only failures after the last rename.
@@ -730,6 +749,7 @@ def operator_fenced_install(
                 ).fetchone()
                 if not current or current["source_sha256"] != source_epoch:
                     raise RuntimeError("PG epoch changed; binary rollback unsafe")
+                require_release_preimage(previous, specs, baseline)
                 rollback = DEPLOY["restore_previous"](
                     previous, args.install_dir, baseline, args.systemctl,
                     args.service,args.env_file,args.wait_seconds,
@@ -743,6 +763,7 @@ def operator_fenced_install(
                 rollback = {"error":str(restore_failure),"suppressed":True}
         elif stopped:
             try:
+                require_release_preimage(args.install_dir, specs, baseline)
                 DEPLOY["run"]([str(args.systemctl),"start",args.service])
             except Exception as resume_error:
                 status = "reconciliation_required"

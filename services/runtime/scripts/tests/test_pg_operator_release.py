@@ -790,6 +790,41 @@ class NativePgReleaseOperator(unittest.TestCase):
         self.assertEqual(result["pgTerminal"], "succeeded")
         self.assertEqual((self.install / "ordivon-runtime-pg").read_bytes(), b"new-pg-runtime")
 
+    def test_drain_preimage_drift_never_stops_or_overwrites_service(self) -> None:
+        original_active = op.active_executions
+        name = "ordivon-runtime-pg"
+        def drift(conn, job_id):
+            (self.install / name).write_bytes(b"external-new-preimage")
+            return original_active(conn, job_id)
+        with patch.object(op, "active_executions", side_effect=drift), patch.dict(
+            op.DEPLOY, {"run": lambda cmd: self.calls.append(tuple(cmd))},
+        ), patch.object(op, "pg_mcp_readiness", return_value={
+            "toolCount": 20, "toolCatalogDigest": "sha256:" + "f" * 64,
+        }), patch.object(op, "verified_release_consumer"):
+            with self.assertRaisesRegex(RuntimeError, "preimage"):
+                op.apply_release(self.args)
+        self.assertEqual(self.calls, [])
+        self.assertEqual((self.install / name).read_bytes(), b"external-new-preimage")
+
+    def test_post_stop_preimage_drift_holds_without_unqualified_restart(self) -> None:
+        name = "ordivon-runtime-pg"
+        def run(cmd):
+            self.calls.append(tuple(cmd))
+            if cmd[-2:] == ["stop", self.args.service]:
+                (self.install / name).write_bytes(b"external-post-stop")
+        with patch.dict(op.DEPLOY, {"run": run}), patch.object(
+            op, "pg_mcp_readiness", return_value={
+                "toolCount": 20, "toolCatalogDigest": "sha256:" + "f" * 64,
+            },
+        ), patch.object(op, "verified_release_consumer"):
+            with self.assertRaisesRegex(RuntimeError, "reconciliation_required"):
+                op.apply_release(self.args)
+        self.assertEqual([cmd[-2] for cmd in self.calls], ["stop"])
+        self.assertEqual((self.install / name).read_bytes(), b"external-post-stop")
+        self.assertIsNone(self.db.execute(
+            "SELECT resolution FROM jobs WHERE job_id=%s", (self.job_id,),
+        ).fetchone()["resolution"])
+
     def test_systemd_start_failure_restores_preimage_and_terminal_failure(self) -> None:
         calls=[]
         def failed_start(cmd):
