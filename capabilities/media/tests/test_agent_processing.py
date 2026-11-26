@@ -23,6 +23,7 @@ def copy_decoder(root: Path) -> None:
     helper = root / "processing/bin/native-input.sh"
     helper.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(ROOT / "processing/bin/native-input.sh", helper)
+    shutil.copyfile(ROOT / "src/ordivon_studio/qc_numeric.py", root / "src/ordivon_studio/qc_numeric.py")
 
 
 class ProcessingDiscoveryTests(unittest.TestCase):
@@ -243,7 +244,7 @@ class ProcessingDiscoveryTests(unittest.TestCase):
             plan = processing_probe_plan(root, **arguments)
             execution = plan["execution"]
             self.assertEqual(execution["args"][1], str(selected_file.resolve()))
-            self.assertEqual(len(execution["hostDependencies"]), 5)
+            self.assertEqual(len(execution["hostDependencies"]), 6)
             self.assertEqual(
                 {entry["path"]: entry["expectedDigest"] for entry in execution["hostDependencies"]},
                 {
@@ -252,6 +253,7 @@ class ProcessingDiscoveryTests(unittest.TestCase):
                     str((adapters / "probe-av.sh").resolve()): row["adapterDigest"],
                     str((root / DECODER).resolve()): "sha256:" + hashlib.sha256((root / DECODER).read_bytes()).hexdigest(),
                     str((adapters / "native-input.sh").resolve()): "sha256:" + hashlib.sha256((adapters / "native-input.sh").read_bytes()).hexdigest(),
+                    str((root / "src/ordivon_studio/qc_numeric.py").resolve()): "sha256:" + hashlib.sha256((root / "src/ordivon_studio/qc_numeric.py").read_bytes()).hexdigest(),
                 },
             )
             self.assertEqual(plan["inputByteBinding"]["status"], "proposed-not-executed")

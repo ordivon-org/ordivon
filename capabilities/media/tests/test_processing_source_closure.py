@@ -23,6 +23,7 @@ class ProcessingSourceClosureTests(unittest.TestCase):
         decoder = self.root / "src/ordivon_studio/strict_json.py"
         decoder.parent.mkdir(parents=True)
         shutil.copyfile(ROOT / "src/ordivon_studio/strict_json.py", decoder)
+        shutil.copyfile(ROOT / "src/ordivon_studio/qc_numeric.py", decoder.with_name("qc_numeric.py"))
         for name in ("mise.toml", ".python-version"):
             shutil.copyfile(ROOT / name, self.root / name)
         self.input = self.root / "input.ttml"
@@ -97,7 +98,7 @@ class ProcessingSourceClosureTests(unittest.TestCase):
         self.assertNotIn("inputByteBinding", source_only)
 
     def test_closure_is_relocatable_and_scope_is_specific(self):
-        for kind, count in (("av", 4), ("audio", 4), ("otio", 5), ("timed-text", 7)):
+        for kind, count in (("av", 5), ("audio", 4), ("otio", 5), ("timed-text", 7)):
             with self.subTest(kind=kind):
                 row = self.discover(kind)
                 original = next(p for p in processing_profiles(ROOT)["profiles"]

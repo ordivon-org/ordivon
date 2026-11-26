@@ -69,7 +69,9 @@ profile_sha="sha256:$(sha256sum "$profile" | awk '{print $1}')"
 probe_sha="sha256:$(sha256sum "$probe" | awk '{print $1}')"
 ffprobe_version=$(ffprobe -version | head -n1)
 
+rate_check=$(python3 -I "$root/src/ordivon_studio/qc_numeric.py" "$profile" "$probe")
 jq -n \
+  --argjson rateCheck "$rate_check" \
   --slurpfile p "$profile" \
   --slurpfile f "$probe" '
   $p[0] as $p |
@@ -82,7 +84,7 @@ jq -n \
     {name:"video.codec", expected:$p.video.codec, actual:$v.codec_name, ok:($v.codec_name == $p.video.codec)},
     {name:"video.width", expected:$p.video.width, actual:$v.width, ok:($v.width == $p.video.width)},
     {name:"video.height", expected:$p.video.height, actual:$v.height, ok:($v.height == $p.video.height)},
-    {name:"video.frameRate", expected:$p.video.frameRate, actual:($v.avg_frame_rate // $v.r_frame_rate), ok:(($v.avg_frame_rate // $v.r_frame_rate) == $p.video.frameRate)},
+    $rateCheck,
     {name:"video.pixelFormat", expected:$p.video.pixelFormat, actual:$v.pix_fmt, ok:($v.pix_fmt == $p.video.pixelFormat)},
     {name:"video.colorPrimaries", expected:$p.video.colorPrimaries, actual:$v.color_primaries, ok:($v.color_primaries == $p.video.colorPrimaries)},
     {name:"video.colorTransfer", expected:$p.video.colorTransfer, actual:$v.color_transfer, ok:($v.color_transfer == $p.video.colorTransfer)},
