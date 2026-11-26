@@ -46,16 +46,6 @@ class DisposablePg18Contract(unittest.TestCase):
             finally:
                 os.close(fd)
 
-    def test_single_case_selection_reuses_native_cargo_profile(self) -> None:
-        stage = module.single_case_args(module.STAGE_CASE)
-        self.assertEqual(
-            stage,
-            tuple(module.STAGE_CASE if arg == "pg18_" else arg for arg in module.CARGO_ARGS),
-        )
-        self.assertIn("--lib", stage)
-        self.assertIn("--ignored", stage)
-        self.assertIn("--test-threads=1", stage)
-
     def test_pg18_extended_owner_inventory_is_not_a_stale_literal_count(self) -> None:
         names = [
             *[f"pg_admission::live_pg_tests::pg18_case_{i}" for i in range(22)],
@@ -115,12 +105,18 @@ class DisposablePg18Contract(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         module.listed_single_case(invalid, identity)
 
-    def test_inventory_rejects_empty_duplicate_and_unscoped_test(self) -> None:
-        fixture = "pg_admission::live_pg_tests::pg18_existing"
+    def test_inventory_admits_renamed_and_new_native_cases_but_separates_other_lanes(self) -> None:
+        original = "pg_admission::live_pg_tests::pg18_existing"
+        renamed = "runtime::recovery::native_postgres_current_identity"
+        new = "new_module::native_claim_consumer"
+        excluded = [f"moved_module::{name}" for name in module.SEPARATE_LANES]
+        listing = "\n".join(f"{name}: test" for name in [original, renamed, new, *excluded])
+        self.assertEqual(module.listed_pg18_tests(listing), {original, renamed, new})
         for source in (
             "0 tests, 0 benchmarks\n",
-            f"{fixture}: test\n{fixture}: test\n",
-            f"{fixture}: test\nother_unscoped_test: test\n",
+            f"{original}: test\n{original}: test\n",
+            "\n".join(f"{name}: test" for name in excluded),
+            listing + f"\nother::{module.STAGE_CASE}: test",
         ):
             with self.subTest(source=source):
                 with self.assertRaises(ValueError):

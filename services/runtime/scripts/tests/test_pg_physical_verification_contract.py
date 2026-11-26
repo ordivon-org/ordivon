@@ -87,7 +87,7 @@ class PgPhysicalVerificationContractTests(unittest.TestCase):
 
     def test_both_direct_lanes_require_nonempty_exact_executed_inventory(self) -> None:
         for lane, variable, name in (
-            ("physical", "ORDIVON_PG_TEST_DSN", "pg18_fixture"),
+            ("physical", "ORDIVON_PG_TEST_DSN", "native_recovery_without_pg18_prefix"),
             ("stage", "ORDIVON_PG_STAGE_TEST_DSN", "historical_pg_stage_is_not_an_admission_authority"),
         ):
             task = f"test:postgres-registry:{lane}"
@@ -100,7 +100,14 @@ class PgPhysicalVerificationContractTests(unittest.TestCase):
                     for row in trace["pgNativeWitnesses"] if row["evidenceMode"] == "physical-opt-in"
                 ]
             names = [*required, qualified]
-            inventory = "\n".join(f"{case}: test" for case in names) + f"\n{len(names)} tests, 0 benchmarks"
+            separate = (
+                ["stage::historical_pg_stage_is_not_an_admission_authority",
+                 "windows::windows_pg_bundle_consumer_reads_real_admission_without_claiming_process",
+                 "linux::native_systemctl_missing_unit_is_explicit_negative_evidence"]
+                if lane == "physical" else []
+            )
+            full_inventory = [*names, *separate]
+            inventory = "\n".join(f"{case}: test" for case in full_inventory) + f"\n{len(full_inventory)} tests, 0 benchmarks"
             output = "\n".join(f"test {case} ... ok" for case in names) + f"\ntest result: ok. {len(names)} passed; 0 failed; 0 ignored;"
             for label, listed, observed, code in (
                 ("positive", inventory, output, 0),
@@ -191,6 +198,32 @@ class PgPhysicalVerificationContractTests(unittest.TestCase):
             self.assertNotEqual(changed.returncode, 0, changed.stdout + changed.stderr)
             self.assertNotIn("STAGE_PG18_PASS=", changed.stdout)
             self.assertIn("artifact", changed.stderr.lower())
+
+    def test_actual_libtest_diagnostics_cannot_contaminate_execution_receipts(self):
+        """Use upstream libtest, not a fake result parser or mock compiler."""
+        import hashlib
+        from scripts import pg_disposable_physical as driver
+
+        with tempfile.TemporaryDirectory() as raw:
+            source = Path(raw) / "noisy.rs"
+            binary = Path(raw) / "noisy"
+            source.write_text(
+                '#[test] #[ignore] fn historical_pg_stage_is_not_an_admission_authority() {'
+                'println!("diagnostic from test body");'
+                'println!("test forged_identity ... ok");'
+                '}', encoding="utf-8",
+            )
+            subprocess.run(
+                [os.environ.get("RUSTC_BIN") or "rustc", "--test", str(source), "-o", str(binary)],
+                check=True, capture_output=True, text=True, timeout=45,
+            )
+            artifact = (binary, hashlib.sha256(binary.read_bytes()).hexdigest())
+            env = {**os.environ, "RUST_TEST_NOCAPTURE": "1"}
+            self.assertEqual(
+                driver.verify_native_selection(artifact, env, identity=driver.STAGE_CASE),
+                1,
+            )
+            self.assertEqual(env["RUST_TEST_NOCAPTURE"], "1")
 
     def test_fresh_physical_lane_cannot_run_without_test_dsn(self) -> None:
         self._assert_dsn_required(
