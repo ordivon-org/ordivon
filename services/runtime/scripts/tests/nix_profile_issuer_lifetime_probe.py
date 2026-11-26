@@ -131,6 +131,48 @@ class NativeNixIssuerLifetimeProbe(NativeNixGenerationProbe):
                     poll.poll(3000)
                 os.close(child_pidfd)
 
+    def test_resolved_path_is_not_a_gc_root(self) -> None:
+        # Merely resolving the current profile is not an acquisition.
+        pinned = self.selected()[1]
+        self.assertEqual(pinned, self.a)
+        self.switch(self.b)
+        self.nix("nix-env", "--profile", str(self.profile), "--delete-generations", "1")
+        self.nix("nix-store", "--gc")
+        self.assertFalse(self.physical(pinned).exists())
+        root = self.nix_root / "too-late-reader-root"
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.nix("nix-store", "--add-root", str(root), "--indirect", "--realise", pinned)
+        self.assertFalse(self.physical(pinned).exists())
+        self.assert_complete(self.b, "B")
+        print("STALE_PATH_NOT_ROOT: old bytes collected; late native acquisition rejected",
+              flush=True)
+
+    def test_fenced_reader_root_precedes_generation_retirement(self) -> None:
+        # A cooperating profile writer cannot switch/delete while the
+        # reader selects the current store path and registers its root.
+        root = self.nix_root / "fenced-reader-root"
+        with op.DEPLOY["exclusive_lock"](self.args.lock_file):
+            pinned = self.selected()[1]
+            competing = subprocess.run(
+                ["/usr/bin/flock", "--exclusive", "--nonblock",
+                 str(self.args.lock_file), "/usr/bin/true"],
+                capture_output=True, timeout=5,
+            )
+            self.assertEqual(competing.returncode, 1)
+            self.nix("nix-store", "--add-root", str(root), "--indirect", "--realise", pinned)
+            self.assertIn(str(root), self.nix("nix-store", "--gc", "--print-roots"))
+        with op.DEPLOY["exclusive_lock"](self.args.lock_file):
+            self.switch(self.b)
+            self.nix("nix-env", "--profile", str(self.profile), "--delete-generations", "1")
+        self.nix("nix-store", "--gc")
+        self.assertEqual((self.physical(pinned) / "helper").read_text(), "A-helper")
+        self.assert_complete(self.b, "B")
+        root.unlink()
+        self.nix("nix-store", "--gc")
+        self.assertFalse(self.physical(pinned).exists())
+        print("FENCED_ROOT_BEFORE_RETIREMENT: exact old bytes survived until release",
+              flush=True)
+
     def test_issuer_only_lock_is_not_native_no_future_effect(self) -> None:
         self.pending_activation(child_owns_lock=False)
 
@@ -142,6 +184,8 @@ if __name__ == "__main__":
     names = (
         "test_issuer_only_lock_is_not_native_no_future_effect",
         "test_native_child_lock_survives_issuer_crash",
+        "test_resolved_path_is_not_a_gc_root",
+        "test_fenced_reader_root_precedes_generation_retirement",
     )
     suite = unittest.TestSuite(NativeNixIssuerLifetimeProbe(name) for name in names)
     result = unittest.TextTestRunner(verbosity=2).run(suite)
