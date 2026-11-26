@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -184,16 +185,40 @@ class MonorepoCodeQLTests(unittest.TestCase):
             source.replace("python, javascript-typescript, rust", "python, javascript-typescript", 1),
             source.replace("  merge_group:\n", "  skipped_merge_group:\n", 1),
             source.replace("security-events: write", "security-events: read", 1),
-            source.replace(
-                "github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd",
-                "github/codeql-action/analyze@v4", 1
-            ),
+            re.sub(r"github/codeql-action/analyze@[0-9a-f]{40}",
+                   "github/codeql-action/analyze@v4", source, count=1),
         )
         for corrupt in corruptions:
             self.assertNotEqual(corrupt, source)
             with self.subTest(mutant=corrupt[:120]):
                 with self.assertRaises(AssertionError):
                     module.validate_monorepo_codeql(corrupt)
+
+
+    def test_codeql_release_family_is_coherent_not_frozen(self) -> None:
+        from tools.repo.github_governance.codeql import validate_monorepo_codeql
+
+        source = (ROOT / ".github/workflows/codeql.yml").read_text(encoding="utf-8")
+        pins = re.findall(r"github/codeql-action/(?:init|analyze)@([0-9a-f]{40})", source)
+        self.assertEqual(len(pins), 2)
+        self.assertEqual(len(set(pins)), 1)
+        alternative = "a" * 40 if pins[0] != "a" * 40 else "b" * 40
+        updated = source.replace(pins[0], alternative)
+        validate_monorepo_codeql(updated)
+        for mutant in (
+            source.replace(pins[0], alternative, 1),
+            updated.replace(alternative, "v4", 1),
+            updated.replace(alternative, alternative[:-1], 1),
+            source.replace(
+                "      - name: Analyze code",
+                "      - name: Duplicate init\n        uses: github/codeql-action/init@"
+                + pins[0] + "\n      - name: Analyze code",
+                1,
+            ),
+        ):
+            with self.subTest(mutant=mutant):
+                with self.assertRaisesRegex(AssertionError, "CodeQL init/analyze SHA"):
+                    validate_monorepo_codeql(mutant)
 
 
 class GovernanceAcceptanceTests(unittest.TestCase):
@@ -2246,6 +2271,38 @@ exit 0
         with mock.patch.object(Path, "read_text", uncovered):
             with self.assertRaisesRegex(AssertionError, "GitHub Actions dependency coverage drift"):
                 governance.main()
+
+    def test_codeql_dependency_group_is_atomic(self) -> None:
+        import importlib.util
+        from unittest import mock
+
+        sys.path.insert(0, str(SCRIPT.parent))
+        spec = importlib.util.spec_from_file_location("governance_codeql_group_test", SCRIPT)
+        assert spec is not None and spec.loader is not None
+        governance = importlib.util.module_from_spec(spec)
+        try:
+            spec.loader.exec_module(governance)
+        finally:
+            sys.path.pop(0)
+        old_read = Path.read_text
+        group = '      codeql-release:\n        patterns: ["github/codeql-action/*"]\n'
+        catchall = '      same-dependency:\n        patterns: ["*"]\n        group-by: dependency-name\n'
+        for label, replacement in (
+            ("missing", catchall),
+            ("late", catchall + group),
+            ("split", group + "        group-by: dependency-name\n" + catchall),
+        ):
+            with self.subTest(case=label):
+                def read(path, *args, **kwargs):
+                    text = old_read(path, *args, **kwargs)
+                    if path == DEPENDABOT:
+                        self.assertIn(group + catchall, text)
+                        return text.replace(group + catchall, replacement, 1)
+                    return text
+
+                with mock.patch.object(Path, "read_text", read):
+                    with self.assertRaisesRegex(AssertionError, "CodeQL release family"):
+                        governance.main()
 
     def test_bash_source_cache_does_not_promote_target_or_unverified_bytes(self) -> None:
         import hashlib

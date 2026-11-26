@@ -7,6 +7,9 @@ updates:
     schedule:
       interval: weekly
     groups:
+      # CodeQL init/analyze share release-specific persisted state.
+      codeql-release:
+        patterns: ["github/codeql-action/*"]
       same-dependency:
         patterns: ["*"]
         group-by: dependency-name
