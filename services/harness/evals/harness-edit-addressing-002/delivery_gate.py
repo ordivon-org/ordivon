@@ -79,6 +79,277 @@ def _path_in_commit(value: str, *, target_filename: str = "feature_flags.py") ->
     return value
 
 
+def _git_path_set(root: Path, *args: str) -> set[str]:
+    """NUL-safe Git inventory, with bounded discovery and no path guessing."""
+    raw = _git(root, *args)
+    if not raw:
+        return set()
+    if len(raw) > 1024 * 1024:
+        raise DeliveryGateError("original output path inventory exceeds safe bound")
+    paths = raw.split(b"\0")
+    if paths[-1] != b"":
+        raise DeliveryGateError("original Git path inventory was truncated")
+    result: set[str] = set()
+    for value in paths[:-1]:
+        try:
+            path = value.decode("utf-8", errors="strict")
+        except UnicodeDecodeError as exc:
+            raise DeliveryGateError("non-UTF8 original path requires source review") from exc
+        posix = PurePosixPath(path)
+        if (
+            not path or "\0" in path or "\\" in path or posix.is_absolute()
+            or path != posix.as_posix() or any(part in (".", "..") for part in posix.parts)
+        ):
+            raise DeliveryGateError("invalid original Git path")
+        result.add(path)
+    if len(result) > 2048:
+        raise DeliveryGateError("original output scope exceeds bounded qualification")
+    return result
+
+
+def qualify_original_git_output_scope(
+    original_repo: Path,
+    original_base_commit: str,
+    consumer_repo: Path,
+    consumer_commit: str,
+) -> dict[str, Any]:
+    """Compare *every* Git-worktree delta with independent immutable Git bytes.
+
+    This is a bounded worktree/Git-scope verifier, not a trusted Run-wide
+    output manifest, original recipient authorization, or Native OS drain.
+    Unknown ignored/deleted outputs fail closed. The caller-selected original
+    workspace, baseline and destination are not independently authenticated.
+    """
+    if not (
+        isinstance(original_base_commit, str)
+        and COMMIT_RE.fullmatch(original_base_commit)
+        and isinstance(consumer_commit, str)
+        and COMMIT_RE.fullmatch(consumer_commit)
+    ):
+        raise DeliveryGateError("original/consumer baselines require immutable full Git IDs")
+    if original_repo.is_symlink() or consumer_repo.is_symlink():
+        raise DeliveryGateError("original and recipient Git roots must be directories")
+    origin = original_repo.resolve(strict=True)
+    receiver = consumer_repo.resolve(strict=True)
+    if origin == receiver or origin in receiver.parents or receiver in origin.parents:
+        raise DeliveryGateError("original and consumer Git roots must be independent")
+    for repo in (origin, receiver):
+        git_root = Path(_git(repo, "rev-parse", "--show-toplevel").decode().strip()).resolve()
+        if git_root != repo:
+            raise DeliveryGateError("expected exact original or consumer Git root")
+    source_base = _git(
+        origin, "rev-parse", "--verify", original_base_commit + "^{commit}",
+    ).decode().strip()
+    if source_base != original_base_commit:
+        raise DeliveryGateError("original baseline changed during verification")
+    receiver_commit = _git(
+        receiver, "rev-parse", "--verify", consumer_commit + "^{commit}",
+    ).decode().strip()
+    if receiver_commit != consumer_commit:
+        raise DeliveryGateError("consumer immutable commit identity changed")
+    # Enumerate both staged/committed modifications since the original
+    # baseline and still-untracked outputs. Git -z retains spaces/newlines.
+    removed = _git_path_set(
+        origin, "diff", "--no-renames", "--name-only", "-z",
+        "--diff-filter=D", original_base_commit, "--",
+    )
+    if removed:
+        raise DeliveryGateError("deleted original source needs explicit Domain decision")
+    ignored = _git_path_set(
+        origin, "ls-files", "--others", "--ignored", "--exclude-standard", "-z",
+    )
+    if ignored:
+        raise DeliveryGateError("ignored original outputs require Domain retention decision: UNKNOWN")
+    changed = _git_path_set(
+        origin, "diff", "--no-renames", "--name-only", "-z",
+        "--diff-filter=ACMRT", original_base_commit, "--",
+    )
+    untracked = _git_path_set(origin, "ls-files", "--others", "--exclude-standard", "-z")
+    scoped = sorted(changed | untracked)
+    if not scoped:
+        raise DeliveryGateError("empty original Git output scope requires explicit Domain decision")
+    digests: dict[str, str] = {}
+    for relative in scoped:
+        original = origin / relative
+        if original.is_symlink() or not original.is_file() or origin not in original.resolve().parents:
+            raise DeliveryGateError("original output must be ordinary in-root file, not symlink")
+        if original.stat().st_size > 64 * 1024 * 1024:
+            raise DeliveryGateError("large original file requires streaming Artifact recipient")
+        source_bytes = original.read_bytes()
+        entry = _git(receiver, "ls-tree", consumer_commit, "--", relative).decode().strip()
+        if not (entry.startswith("100644 blob ") or entry.startswith("100755 blob ")):
+            raise DeliveryGateError("consumer omitted original output or stored non-file Git object")
+        received = _git(receiver, "show", consumer_commit + ":" + relative)
+        if received != source_bytes:
+            raise DeliveryGateError("original/consumer Git output bytes mismatch")
+        if original.read_bytes() != source_bytes:
+            raise DeliveryGateError("original output changed during consumer verification")
+        digests[relative] = "sha256:" + hashlib.sha256(source_bytes).hexdigest()
+    # Consumer blobs are immutable under this exact commit. Verify source
+    # membership did not change while reading; native Run Epoch fencing is
+    # still independently required before a real protected Finalizer.
+    if removed != _git_path_set(
+        origin, "diff", "--no-renames", "--name-only", "-z",
+        "--diff-filter=D", original_base_commit, "--",
+    ) or changed != _git_path_set(
+        origin, "diff", "--no-renames", "--name-only", "-z",
+        "--diff-filter=ACMRT", original_base_commit, "--",
+    ) or untracked != _git_path_set(
+        origin, "ls-files", "--others", "--exclude-standard", "-z",
+    ) or ignored != _git_path_set(
+        origin, "ls-files", "--others", "--ignored", "--exclude-standard", "-z",
+    ):
+        raise DeliveryGateError("original output scope changed during verification")
+    return {
+        "originalOutputSetStanding": "verified_test_scope",
+        "completeOriginalOutputSetReadbackQualified": True,
+        "originalOutputPaths": scoped,
+        "originalOutputDigests": digests,
+        "originalBaseCommit": original_base_commit,
+        "consumerCommit": consumer_commit,
+        "sourceScope": "git-worktree-delta-and-untracked-only",
+        "scopeAuthority": "caller-supplied-original-and-consumer-not-authenticated",
+        "originalRunFullOutputCoverage": "UNKNOWN",
+        "workspaceSourceFenced": False,
+        "finalUserDeliveryProven": False,
+        "userAcknowledgement": "UNKNOWN",
+        "productionFinalizerEligible": False,
+    }
+
+
+def qualify_original_native_job_artifact_git_scope(
+    native_client: Any,
+    native_job_id: str,
+    consumer_repo: Path,
+    consumer_commit: str,
+) -> dict[str, Any]:
+    """Read ALL registered original NativePG Job Artifact bytes into immutable Git.
+
+    This test-scoped reader reuses original PG Job observation/artifact.read,
+    not a new Artifact registry. The supplied Job/client are NOT by themselves
+    bound to an authenticated original Harness Run, Domain recipient or
+    retention contract, so this does NOT authorize production Claim release.
+    """
+    if (
+        not isinstance(native_job_id, str)
+        or not native_job_id
+        or len(native_job_id) > 256
+        or not isinstance(consumer_commit, str)
+        or not COMMIT_RE.fullmatch(consumer_commit)
+    ):
+        raise DeliveryGateError("original native Job and immutable receiver commit required")
+    if not hasattr(native_client, "call_tool"):
+        raise DeliveryGateError("original NativePG Artifact reader unavailable")
+
+    def native(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+        try:
+            is_error, response = native_client.call_tool(name, arguments)
+        except Exception as exc:
+            raise DeliveryGateError("original NativePG Artifact read UNKNOWN") from exc
+        if type(is_error) is not bool or is_error or not isinstance(response, dict):
+            raise DeliveryGateError("original NativePG Artifact read unavailable or rejected")
+        return response
+
+    def original_job() -> dict[str, Any]:
+        result = native("job.get", {"schemaVersion": 1, "jobId": native_job_id})
+        job = result.get("job")
+        inventory = result.get("artifacts")
+        if (
+            not isinstance(job, dict) or job.get("jobId") != native_job_id
+            or job.get("resolution") != "succeeded"
+            or job.get("mechanicallyConverged") is not True
+            or not isinstance(inventory, dict)
+            or type(inventory.get("count")) is not int
+            or inventory["count"] < 1 or inventory["count"] > 32
+        ):
+            raise DeliveryGateError("original native Job or Artifact inventory not settled")
+        return result
+
+    first = original_job()
+    owner = native("job.observe", {
+        "schemaVersion": 1, "jobId": native_job_id, "waitMs": 0,
+        "stdoutTailBytes": 0, "stderrTailBytes": 0,
+    })
+    descriptors = owner.get("artifacts")
+    if (
+        owner.get("jobId") != native_job_id
+        or owner.get("executionTerminal") is not True
+        or owner.get("executionDisposition") != "succeeded"
+        or owner.get("deliveryDisposition") != "committed"
+        or owner.get("recoveryRequired") is not False
+        or not isinstance(descriptors, list)
+        or len(descriptors) != first["artifacts"]["count"]
+    ):
+        raise DeliveryGateError("original NativePG Artifact inventory incomplete or unstable")
+
+    digest_by_artifact: dict[str, str] = {}
+    repo = consumer_repo.resolve(strict=True)
+    if Path(_git(repo, "rev-parse", "--show-toplevel").decode().strip()).resolve() != repo:
+        raise DeliveryGateError("Native Artifact consumer must be exact Git root")
+    if _git(repo, "rev-parse", "--verify", consumer_commit + "^{commit}").decode().strip() != consumer_commit:
+        raise DeliveryGateError("Native Artifact recipient immutable commit changed")
+    for descriptor in descriptors:
+        if not isinstance(descriptor, dict):
+            raise DeliveryGateError("original Native Artifact descriptor invalid")
+        artifact_id = descriptor.get("artifactId")
+        digest = descriptor.get("digest")
+        count = descriptor.get("retainedBytes")
+        if (
+            not isinstance(artifact_id, str) or len(artifact_id) > 180
+            or not artifact_id or artifact_id in {".", ".."}
+            or any(x in artifact_id for x in ("/", "\\", "\x00"))
+            or artifact_id in digest_by_artifact
+            or not isinstance(digest, str)
+            or not re.fullmatch(r"sha256:[0-9a-f]{64}", digest)
+            or type(count) is not int or count < 0 or count > 1024 * 1024
+            or descriptor.get("truncated") is not False
+            or descriptor.get("droppedBytes", 0) not in (None, 0)
+        ):
+            raise DeliveryGateError("original Native Artifact scope malformed, truncated or too large")
+        original = native("artifact.read", {
+            "schemaVersion": 1, "jobId": native_job_id,
+            "artifactId": artifact_id, "offset": 0,
+            "maxBytes": 1024 * 1024,
+        })
+        value = original.get("content")
+        if (
+            original.get("jobId") != native_job_id
+            or original.get("artifactId") != artifact_id
+            or not isinstance(value, str)
+            or original.get("offset") != 0
+            or original.get("eof") is not True
+            or original.get("digest") != digest
+        ):
+            raise DeliveryGateError("original Native Artifact identity/readback incomplete")
+        data = value.encode("utf-8")
+        if (
+            original.get("nextOffset") != len(data)
+            or len(data) != count
+            or "sha256:" + hashlib.sha256(data).hexdigest() != digest
+        ):
+            raise DeliveryGateError("original Native Artifact digest or byteLength mismatch")
+        consumer_path = "artifacts/" + artifact_id
+        entry = _git(repo, "ls-tree", consumer_commit, "--", consumer_path).decode().strip()
+        if not (entry.startswith("100644 blob ") or entry.startswith("100755 blob ")):
+            raise DeliveryGateError("consumer omitted original Native Artifact Git blob")
+        if _git(repo, "show", consumer_commit + ":" + consumer_path) != data:
+            raise DeliveryGateError("original Native Artifact and consumer Git bytes mismatch")
+        digest_by_artifact[artifact_id] = digest
+
+    if original_job()["artifacts"]["count"] != len(digest_by_artifact):
+        raise DeliveryGateError("original Native Artifact set changed during verification")
+    return {
+        "nativeJobArtifactSetReadbackQualified": True,
+        "nativeJobArtifactCount": len(digest_by_artifact),
+        "nativeJobArtifactDigests": digest_by_artifact,
+        "nativeJobId": native_job_id,
+        "nativeArtifactScopeAuthority": "caller-supplied-job-client-not-original-run-authenticated",
+        "nativeJobArtifactScopeStanding": "verified_test_scope",
+        "originalRunFullOutputCoverage": "UNKNOWN",
+        "productionFinalizerEligible": False,
+    }
+
+
 def qualify(
     candidate_path: Path,
     consumer_repo: Path,
@@ -86,6 +357,10 @@ def qualify(
     delivered_path: str | None = None,
     *,
     task_id: str = TASK_ID,
+    original_workspace_repo: Path | None = None,
+    original_base_commit: str | None = None,
+    original_native_job_id: str | None = None,
+    original_native_client: Any | None = None,
 ) -> dict[str, Any]:
     """Require hidden DomainQA and exact bytes read from an independent Git commit.
 
@@ -150,7 +425,38 @@ def qualify(
     if delivered != source_bytes:
         raise DeliveryGateError("consumer Git blob does not match the independently QA-passed candidate")
     source_sha = "sha256:" + hashlib.sha256(source_bytes).hexdigest()
+    if (original_workspace_repo is None) != (original_base_commit is None):
+        raise DeliveryGateError("original workspace and immutable baseline must both be supplied")
+    scope: dict[str, Any] = (
+        qualify_original_git_output_scope(
+            original_workspace_repo, original_base_commit, repo, consumer_commit,
+        )
+        if original_workspace_repo is not None and original_base_commit is not None
+        else {
+            "originalOutputSetStanding": "UNKNOWN",
+            "completeOriginalOutputSetReadbackQualified": False,
+            "originalRunFullOutputCoverage": "UNKNOWN",
+            "workspaceSourceFenced": False,
+            "productionFinalizerEligible": False,
+        }
+    )
+    if (original_native_job_id is None) != (original_native_client is None):
+        raise DeliveryGateError("original Native Job and reader must both be provided")
+    if original_native_job_id is not None and original_workspace_repo is None:
+        raise DeliveryGateError("original Git baseline required alongside Native Job Artifacts")
+    native_scope = (
+        qualify_original_native_job_artifact_git_scope(
+            original_native_client, original_native_job_id, repo, consumer_commit,
+        )
+        if original_native_job_id is not None
+        else {"nativeJobArtifactSetReadbackQualified": False,
+              "nativeJobArtifactScopeStanding": "UNKNOWN",
+              "originalRunFullOutputCoverage": "UNKNOWN",
+              "productionFinalizerEligible": False}
+    )
     return {
+        **scope,
+        **native_scope,
         "schemaVersion": 1,
         "kind": "ordivon.harness-coding-consumer-delivery-qualification",
         "taskId": task_id,
@@ -179,6 +485,8 @@ def main() -> int:
     parser.add_argument("--consumer-commit", required=True)
     parser.add_argument("--consumer-path", default=None)
     parser.add_argument("--task-id", choices=tuple(TASK_TARGETS), default=TASK_ID)
+    parser.add_argument("--original-workspace-repo", type=Path, default=None)
+    parser.add_argument("--original-base-commit", default=None)
     args = parser.parse_args()
     try:
         value = qualify(
@@ -187,6 +495,8 @@ def main() -> int:
             args.consumer_commit,
             delivered_path=args.consumer_path,
             task_id=args.task_id,
+            original_workspace_repo=args.original_workspace_repo,
+            original_base_commit=args.original_base_commit,
         )
     except (DeliveryGateError, FileNotFoundError, OSError, subprocess.TimeoutExpired) as error:
         print(json.dumps({

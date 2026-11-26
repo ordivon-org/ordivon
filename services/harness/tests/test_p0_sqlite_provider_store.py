@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
-from pathlib import Path
-import tempfile
 import time
 import unittest
 
@@ -34,7 +32,9 @@ from ordivon_harness.protocol import (
     HarnessProviderCallStatus,
 )
 from ordivon_harness.run_state import HarnessRunState, state_from_dict
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from ordivon_harness.postgres_store import PostgresHarnessStore
+from ordivon_harness.store_errors import HarnessObjectMissing
+from tests.pg_fixture import PgTestSchema, pg_test_schema
 
 DIGEST_A = "sha256:" + "a" * 64
 DIGEST_B = "sha256:" + "b" * 64
@@ -203,10 +203,10 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
 
     def prepare(
         self,
-        root: Path,
+        database: PgTestSchema,
         clock: MutableClock,
-    ) -> tuple[SQLiteHarnessStore, EventSourcedRunContinuity]:
-        store = SQLiteHarnessStore.initialize(root)
+    ) -> tuple[PostgresHarnessStore, EventSourcedRunContinuity]:
+        store = database.open(initialize=True)
         value = contract()
         store.create_run(value)
         provider = EventSourcedRunContinuity(
@@ -233,10 +233,9 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
         )
 
     def test_claim_dispatch_complete_reopens_from_independent_history(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = MutableClock()
-            store, provider = self.prepare(root, clock)
+            store, provider = self.prepare(database, clock)
             claimed = self.claim(provider)
             self.assertIsInstance(claimed.record, HarnessProviderCallRecordV4)
             self.assertEqual(claimed.record.status, HarnessProviderCallStatus.CLAIMED)
@@ -258,7 +257,7 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
             revision = provider.caller_revision
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened:
+            with database.connect() as reopened:
                 fresh = EventSourcedRunContinuity(
                     reopened,
                     contract(),
@@ -286,10 +285,9 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
                 self.assertTrue(reopened.doctor(full=True)["healthy"])
 
     def test_live_claim_excludes_other_holder_and_expiry_allows_reclaim(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = MutableClock()
-            store, first = self.prepare(root, clock)
+            store, first = self.prepare(database, clock)
             claimed = self.claim(first)
             second = EventSourcedRunContinuity(
                 store,
@@ -307,10 +305,9 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
             store.close()
 
     def test_dispatching_call_requires_recovery_instead_of_redispatch(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = MutableClock()
-            store, first = self.prepare(root, clock)
+            store, first = self.prepare(database, clock)
             claimed = self.claim(first)
             first.mark_provider_call_dispatching(claimed)
             fresh = EventSourcedRunContinuity(
@@ -324,10 +321,9 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
             store.close()
 
     def test_dispatching_replay_does_not_take_run_lease_from_outcome_owner(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = MutableClock()
-            store, winner = self.prepare(root, clock)
+            store, winner = self.prepare(database, clock)
             claimed = self.claim(winner)
             dispatching = winner.mark_provider_call_dispatching(claimed)
             contender = EventSourcedRunContinuity(
@@ -357,15 +353,14 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
             store.close()
 
     def test_dispatched_outcome_waits_for_transient_run_lease(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = MutableClock()
-            store, winner = self.prepare(root, clock)
+            store, winner = self.prepare(database, clock)
             claimed = self.claim(winner)
             dispatching = winner.mark_provider_call_dispatching(claimed)
             store.close()
 
-            blocker_store = SQLiteHarnessStore(root)
+            blocker_store = database.open()
             blocking_lease = blocker_store.acquire_run_lease(
                 contract().harness_run_id,
                 owner_id="test:transient-contender",
@@ -374,7 +369,7 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
             )
 
             def commit_outcome():
-                with SQLiteHarnessStore(root) as outcome_store:
+                with database.connect() as outcome_store:
                     outcome = EventSourcedRunContinuity(
                         outcome_store,
                         contract(),
@@ -399,10 +394,9 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
                 blocker_store.close()
 
     def test_safe_claim_failure_can_retry_only_after_budget_consumption(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = MutableClock()
-            store, provider = self.prepare(root, clock)
+            store, provider = self.prepare(database, clock)
             claimed = self.claim(provider)
             safe = failure(
                 claimed.record.provider_call_id,
@@ -435,10 +429,9 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
             store.close()
 
     def test_ambiguous_dispatched_failure_becomes_unknown(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = MutableClock()
-            store, provider = self.prepare(root, clock)
+            store, provider = self.prepare(database, clock)
             claimed = self.claim(provider)
             dispatching = provider.mark_provider_call_dispatching(claimed)
             ambiguous = failure(
@@ -464,10 +457,9 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
             store.close()
 
     def test_stale_completion_loser_does_not_write_result_object(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = MutableClock()
-            store, winner = self.prepare(root, clock)
+            store, winner = self.prepare(database, clock)
             claimed = self.claim(winner)
             dispatching = winner.mark_provider_call_dispatching(claimed)
             loser = EventSourcedRunContinuity(
@@ -486,17 +478,11 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
 
             loser._require_current_provider_call = interleave
             losing_result = result("loser")
-            envelope_digest = canonical_digest(
-                {
-                    "schemaVersion": 1,
-                    "kind": "agent-turn-result",
-                    "payload": losing_result.to_dict(),
-                }
-            )
-            object_path = root / "objects" / f"{envelope_digest[7:]}.json"
+            losing_digest = canonical_digest(losing_result.to_dict())
             with self.assertRaises(HarnessProviderCallRequestMismatch):
                 loser.complete_provider_call(dispatching, losing_result)
-            self.assertFalse(object_path.exists())
+            with self.assertRaises(HarnessObjectMissing):
+                store.get_object(losing_digest, expected_kind="agent-turn-result")
             retained = winner.load_current_provider_call()
             self.assertIsInstance(retained.record, HarnessProviderCallRecordV4)
             self.assertEqual(retained.record.result_digest, result("winner").digest)
@@ -505,10 +491,9 @@ class SQLiteHarnessRunContinuityProviderTests(unittest.TestCase):
             store.close()
 
     def test_provider_identity_rejects_different_request(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = MutableClock()
-            store, provider = self.prepare(root, clock)
+            store, provider = self.prepare(database, clock)
             self.claim(provider)
             source = provider.assignment_provider_source()
             with self.assertRaises(HarnessProviderCallRequestMismatch):

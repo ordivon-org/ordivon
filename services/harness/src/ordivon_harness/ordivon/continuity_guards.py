@@ -17,7 +17,7 @@ from ..protocol import (
 from ..run_state import HarnessRunState
 from ..store import HarnessRunEventRecord, HarnessStore
 from .continuity_records import HarnessDispatchFenceV2
-from .run_store_port import HarnessRunStoreBinding, StoredHarnessProviderCall
+from .run_store_port import HarnessRunStoreBinding, HarnessSuperseded, StoredHarnessProviderCall
 
 # Read-only contract and Tool Event validation; Store transactions belong to the caller.
 
@@ -110,7 +110,7 @@ def validate_tool_event(
     harness_run_id: str,
     binding: HarnessRunStoreBinding,
     allow_tool_content: bool,
-) -> None:
+) -> HarnessToolStepIntent:
     data = event.data
     intent_object_digest = required_event_digest(data, "toolStepIntentObjectDigest")
     raw_intent = store.get_object(
@@ -154,7 +154,7 @@ def validate_tool_event(
     if receipt_object_digest is None:
         if observation_object_digest is not None:
             raise ValueError("Harness Tool Observation event lacks its Receipt")
-        return
+        return intent
     if not isinstance(receipt_object_digest, str):
         raise ValueError("Harness Tool Step Receipt event reference is invalid")
     raw_receipt = store.get_object(
@@ -181,6 +181,7 @@ def validate_tool_event(
         raise ValueError(
             "Harness Tool Observation content was authorized but its event object is missing"
         )
+    return intent
 
 def inspect_all_unsettled_effect_sources(
     events: tuple[HarnessRunEventRecord, ...],
@@ -190,6 +191,7 @@ def inspect_all_unsettled_effect_sources(
     binding: HarnessRunStoreBinding,
     allow_tool_content: bool,
     provider_record_reader: Callable[[HarnessRunEventRecord], StoredHarnessProviderCall],
+    new_tool_client_request_id: str | None = None,
 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Read all source-owned effect heads; never certify external release.
 
@@ -217,7 +219,7 @@ def inspect_all_unsettled_effect_sources(
                 raise ValueError("finalization Provider record belongs to another Run")
             providers[record.provider_call_id] = record.status
         elif event.event_kind in _TOOL_EVENT_KINDS:
-            validate_tool_event(
+            intent = validate_tool_event(
                 event,
                 store=store,
                 harness_run_id=harness_run_id,
@@ -226,6 +228,16 @@ def inspect_all_unsettled_effect_sources(
             )
             intent_digest = required_event_digest(event.data, "toolStepIntentDigest")
             if event.event_kind == "harness.tool-step-prepared":
+                # A NEW Intent must have a fresh Runtime request identity.
+                # Original replay/reconciliation never enters this admission
+                # check; legacy histories remain readable for owner recovery.
+                if (
+                    new_tool_client_request_id is not None
+                    and intent.client_request_id == new_tool_client_request_id
+                ):
+                    raise HarnessSuperseded(
+                        "new Tool Intent cannot reuse a clientRequestId from original history"
+                    )
                 if intent_digest in tools or event.data.get("receiptObjectDigest") is not None:
                     raise ValueError("finalization Tool Intent was prepared twice or with Receipt")
                 tools[intent_digest] = None

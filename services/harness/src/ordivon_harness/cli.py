@@ -71,6 +71,10 @@ def _add_gateway_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--gateway-max-timeout-ms", type=int, default=300_000)
     parser.add_argument("--gateway-context")
     parser.add_argument("--gateway-bearer-token-file", type=Path)
+    parser.add_argument(
+        "--runtime-claim-url", help="independent local Runtime Claim Finalizer at /harness/mcp"
+    )
+    parser.add_argument("--runtime-claim-bearer-token-file", type=Path)
 
 
 def main(argv: Sequence[str] | None = None) -> int:

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-import tempfile
 import unittest
 
 from ordivon_harness.ordivon.loop import OrdivonAgentLoop, RunStopCode
@@ -9,7 +7,7 @@ from ordivon_harness.ordivon.model import ScriptedTurnAdapter
 from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from tests.pg_fixture import PgTestSchema, pg_test_schema
 from ordivon_harness.working_view import (
     AgentWorkingSetTransitionProposal,
     HarnessWorkingSetPin,
@@ -70,7 +68,7 @@ class ForgedCallerIngressRuntimeBridge(HarnessRuntimeBridge):
 class CallerCognitionIngressTests(unittest.TestCase):
     @staticmethod
     def initialize(
-        root: Path,
+        database: PgTestSchema,
         suffix: str,
         *,
         max_model_calls: int = 6,
@@ -83,7 +81,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
             max_model_calls=max_model_calls,
             max_tool_calls=max_tool_calls,
         )
-        store = SQLiteHarnessStore.initialize(root)
+        store = database.open(initialize=True)
         store.create_run(run_contract)
         clock = FixedClock()
         continuity = EventSourcedRunContinuity(
@@ -198,7 +196,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
         return adapter, continuity.load_current_snapshot()
 
     def test_projected_resume_caller_input_is_visible_and_reopens_soft_gate(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             (
                 store,
                 clock,
@@ -211,7 +209,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
                 _source_b,
                 _pin_a,
                 _pin_b,
-            ) = self.initialize(Path(directory) / "state", "visible-soft-gate")
+            ) = self.initialize(database, "visible-soft-gate")
             first_adapter, retained = self.pause_after_search(
                 run_contract=run_contract,
                 continuity=continuity,
@@ -269,7 +267,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
             store.close()
 
     def test_caller_ingress_survives_agent_working_set_transition(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             (
                 store,
                 clock,
@@ -282,7 +280,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
                 _source_b,
                 pin_a,
                 pin_b,
-            ) = self.initialize(Path(directory) / "state", "survive-transition")
+            ) = self.initialize(database, "survive-transition")
             pause_adapter = ScriptedTurnAdapter(
                 (
                     needs_input_turn(
@@ -353,8 +351,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
             store.close()
 
     def test_next_needs_input_consumes_old_ingress_and_admits_only_new_reply(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             (
                 store,
                 clock,
@@ -367,7 +364,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
                 _source_b,
                 _pin_a,
                 _pin_b,
-            ) = self.initialize(root, "consume-at-pause")
+            ) = self.initialize(database, "consume-at-pause")
             first_pause = ScriptedTurnAdapter(
                 (needs_input_turn("pc110-consume-pause-1", "first caller reply required"),)
             )
@@ -415,7 +412,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
             second_snapshot = continuity.load_current_snapshot()
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.open() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
@@ -453,8 +450,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
                 self.assertTrue(reopened.doctor()["healthy"])
 
     def test_caller_ingress_reconstructs_after_tool_snapshot_and_process_loss(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             (
                 store,
                 clock,
@@ -467,7 +463,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
                 _source_b,
                 _pin_a,
                 _pin_b,
-            ) = self.initialize(root, "cross-process")
+            ) = self.initialize(database, "cross-process")
             first_pause_adapter = ScriptedTurnAdapter(
                 (needs_input_turn("pc110-cross-pause", "caller reply required"),)
             )
@@ -521,7 +517,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
             retained_after_crash = continuity.load_current_snapshot()
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.open() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
@@ -564,7 +560,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
                 self.assertTrue(reopened.doctor()["healthy"])
 
     def test_projected_resume_rejects_non_user_cognition_ingress(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             (
                 store,
                 clock,
@@ -577,7 +573,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
                 _source_b,
                 _pin_a,
                 _pin_b,
-            ) = self.initialize(Path(directory) / "state", "reject-role")
+            ) = self.initialize(database, "reject-role")
             adapter = ScriptedTurnAdapter(
                 (needs_input_turn("pc110-reject-pause", "caller reply required"),)
             )
@@ -627,8 +623,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
 
 
     def test_forged_caller_ingress_is_rejected_before_provider_dispatch(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             (
                 store,
                 clock,
@@ -641,7 +636,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
                 _source_b,
                 _pin_a,
                 _pin_b,
-            ) = self.initialize(root, "forged-ingress")
+            ) = self.initialize(database, "forged-ingress")
             pause_adapter = ScriptedTurnAdapter(
                 (needs_input_turn("pc110-forged-pause", "caller reply required"),)
             )
@@ -693,8 +688,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
             store.close()
 
     def test_caller_ingress_provider_response_loss_replays_without_resend(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             (
                 store,
                 clock,
@@ -707,7 +701,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
                 _source_b,
                 _pin_a,
                 _pin_b,
-            ) = self.initialize(root, "provider-response-loss")
+            ) = self.initialize(database, "provider-response-loss")
             _pause_adapter, retained = self.pause_after_search(
                 run_contract=run_contract,
                 continuity=continuity,
@@ -755,7 +749,7 @@ class CallerCognitionIngressTests(unittest.TestCase):
             retained_source = continuity.load_current_snapshot()
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.open() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
@@ -794,11 +788,10 @@ class CallerCognitionIngressTests(unittest.TestCase):
 
 
     def test_caller_ingress_needs_model_content_but_not_tool_content_authority(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = cognition_contract("pc110-model-only-caller")
-            store = SQLiteHarnessStore.initialize(root)
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(
                 store,

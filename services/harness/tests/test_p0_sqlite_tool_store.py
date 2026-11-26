@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from pathlib import Path
-import tempfile
 import unittest
 
 from anc_canonical import canonical_digest
@@ -22,7 +20,7 @@ from ordivon_harness.protocol import (
     HarnessToolStepReceipt,
     HarnessToolStepStatus,
 )
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from tests.pg_fixture import PgTestSchema, pg_test_schema
 
 from tests.test_p0_sqlite_provider_store import MutableClock, contract, state
 
@@ -50,8 +48,8 @@ def private_tool_contract():
 
 
 class SQLiteHarnessRunContinuityToolTests(unittest.TestCase):
-    def prepare(self, root: Path, clock: MutableClock, run_contract=None):
-        store = SQLiteHarnessStore.initialize(root)
+    def prepare(self, database: PgTestSchema, clock: MutableClock, run_contract=None):
+        store = database.open(initialize=True)
         run_contract = contract() if run_contract is None else run_contract
         store.create_run(run_contract)
         continuity = EventSourcedRunContinuity(
@@ -80,10 +78,9 @@ class SQLiteHarnessRunContinuityToolTests(unittest.TestCase):
         return store, continuity, intent
 
     def test_unknown_recovery_consequence_is_rejected(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = MutableClock()
-            store, _continuity, intent = self.prepare(root, clock)
+            store, _continuity, intent = self.prepare(database, clock)
             encoded = intent.to_dict()
             encoded["recoveryConsequence"] = "unknown"
             with self.assertRaisesRegex(
@@ -93,9 +90,9 @@ class SQLiteHarnessRunContinuityToolTests(unittest.TestCase):
             store.close()
 
     def test_direct_intent_requires_typed_recovery_consequence(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             store, _continuity, intent = self.prepare(
-                Path(directory) / "state", MutableClock()
+                database, MutableClock()
             )
             try:
                 with self.assertRaisesRegex(
@@ -159,10 +156,9 @@ class SQLiteHarnessRunContinuityToolTests(unittest.TestCase):
         }
 
     def test_prepare_persists_v2_fence_and_runtime_authority_claim(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = MutableClock()
-            store, continuity, intent = self.prepare(root, clock)
+            store, continuity, intent = self.prepare(database, clock)
             retained = continuity.prepare_tool_step(intent)
             step = continuity.load_current_tool_step()
             self.assertEqual(step.intent, intent)
@@ -197,11 +193,10 @@ class SQLiteHarnessRunContinuityToolTests(unittest.TestCase):
             store.close()
 
     def test_terminal_receipt_is_idempotent_and_fences_old_dispatch(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = MutableClock()
             run_contract = private_tool_contract()
-            store, continuity, intent = self.prepare(root, clock, run_contract)
+            store, continuity, intent = self.prepare(database, clock, run_contract)
             continuity.prepare_tool_step(intent)
             step = continuity.load_current_tool_step()
             assert step.fence is not None
@@ -228,7 +223,7 @@ class SQLiteHarnessRunContinuityToolTests(unittest.TestCase):
                 continuity.assert_dispatch_fence_current(step.fence)
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.connect() as reopened_store:
                 reopened = EventSourcedRunContinuity(
                     reopened_store,
                     run_contract,
@@ -241,11 +236,10 @@ class SQLiteHarnessRunContinuityToolTests(unittest.TestCase):
                 self.assertEqual(report["snapshots"], 1)
 
     def test_nonterminal_receipt_chains_to_reconciled_terminal_receipt(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = MutableClock()
             store, continuity, intent = self.prepare(
-                root, clock, private_tool_contract()
+                database, clock, private_tool_contract()
             )
             continuity.prepare_tool_step(intent)
             first_observation = self.observation("cancel-requested")
@@ -285,10 +279,10 @@ class SQLiteHarnessRunContinuityToolTests(unittest.TestCase):
             store.close()
 
     def test_unknown_receipt_may_gain_one_reconciled_owner_result_not_redelivery(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             clock = MutableClock()
             store, continuity, intent = self.prepare(
-                Path(directory) / "state", clock, private_tool_contract()
+                database, clock, private_tool_contract()
             )
             continuity.prepare_tool_step(intent)
             unknown_observation = self.observation("unknown")
@@ -346,10 +340,9 @@ class SQLiteHarnessRunContinuityToolTests(unittest.TestCase):
             store.close()
 
     def test_metadata_only_receipt_retains_observation_digest_not_content(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = MutableClock()
-            store, continuity, intent = self.prepare(root, clock)
+            store, continuity, intent = self.prepare(database, clock)
             continuity.prepare_tool_step(intent)
             observation = {
                 **self.observation(),
@@ -380,11 +373,10 @@ class SQLiteHarnessRunContinuityToolTests(unittest.TestCase):
             store.close()
 
     def test_pause_snapshot_reopens_and_supersedes_contract_source(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = MutableClock()
             run_contract = private_contract()
-            store, continuity, _ = self.prepare(root, clock, run_contract)
+            store, continuity, _ = self.prepare(database, clock, run_contract)
             initial_source = continuity.assignment_provider_source()
             clock.advance()
             paused = continuity.record_pause(HarnessRunPauseReason.NEEDS_INPUT)
@@ -421,7 +413,7 @@ class SQLiteHarnessRunContinuityToolTests(unittest.TestCase):
             self.assertEqual(claimed.record.source_kind.value, "snapshot")
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.connect() as reopened_store:
                 reopened = EventSourcedRunContinuity(
                     reopened_store,
                     run_contract,
@@ -440,10 +432,9 @@ class SQLiteHarnessRunContinuityToolTests(unittest.TestCase):
                 self.assertEqual(replay, state())
 
     def test_intent_from_another_binding_is_rejected(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = MutableClock()
-            store, continuity, intent = self.prepare(root, clock)
+            store, continuity, intent = self.prepare(database, clock)
             wrong = HarnessToolStepIntent(
                 intent_id="harness-tool-step-intent:p0-sqlite-tool-wrong",
                 harness_run_id=intent.harness_run_id,

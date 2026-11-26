@@ -18,6 +18,7 @@ from ordivon_harness.cli import build_parser
 from ordivon_harness import independent_cli
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.postgres_store import PostgresHarnessStore
+from tests.pg_test_support import FakeNativeWorkspaceClaimClient
 from tests.test_plugin_gateway_effect import (
     GatewayExecutionFixture,
     FixedClock,
@@ -106,6 +107,8 @@ def test_gateway_cli_existing_run_retains_owner_tool_receipt_in_original_pg(
     contract_file = tmp_path / "gateway-run.json"
     contract_file.write_text(json.dumps(source.to_dict()), encoding="utf-8")
     monkeypatch.setattr(independent_cli, "configured_postgres", lambda: pg_schema)
+    native_claim = FakeNativeWorkspaceClaimClient()
+    monkeypatch.setattr(independent_cli, "_native_claim_client", lambda *_: native_claim)
     monkeypatch.setattr(
         independent_cli, "OfficialMcpClient", lambda *args, **kwargs: client, raising=False
     )
@@ -255,6 +258,8 @@ def test_gateway_cli_runs_real_bounded_local_process_after_original_pg_intent(
     contract_file = tmp_path / "source-run.json"
     contract_file.write_text(json.dumps(source.to_dict()), encoding="utf-8")
     monkeypatch.setattr(independent_cli, "configured_postgres", lambda: pg_schema)
+    native_claim = FakeNativeWorkspaceClaimClient()
+    monkeypatch.setattr(independent_cli, "_native_claim_client", lambda *_: native_claim)
     monkeypatch.setattr(
         independent_cli,
         "OfficialMcpClient",
@@ -365,6 +370,8 @@ def test_gateway_cli_resume_after_unknown_owner_response_without_redispatch(
     contract_file = tmp_path / "source-resume.json"
     contract_file.write_text(json.dumps(source.to_dict()), encoding="utf-8")
     monkeypatch.setattr(independent_cli, "configured_postgres", lambda: pg_schema)
+    native_claim = FakeNativeWorkspaceClaimClient()
+    monkeypatch.setattr(independent_cli, "_native_claim_client", lambda *_: native_claim)
     monkeypatch.setattr(independent_cli, "OfficialMcpClient", lambda *args, **kwargs: client)
     adapter_calls = {"value": 0}
 

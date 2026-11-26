@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from dataclasses import replace
 import json
-from pathlib import Path
-import tempfile
 import unittest
 
 from anc_canonical import JsonValue, canonical_digest
@@ -26,7 +24,9 @@ from ordivon_harness.ordivon.run_store_port import HarnessProviderCallRequestMis
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
 from ordivon_harness.run_state import HarnessRunState
-from ordivon_harness.sqlite_store import HarnessObjectMissing, SQLiteHarnessStore
+from ordivon_harness.store_errors import HarnessObjectMissing
+from ordivon_harness.postgres_store import PostgresHarnessStore
+from tests.pg_fixture import pg_test_schema
 from ordivon_harness.working_view import (
     AgentWorkingSetTransitionProposal,
     HarnessWorkingSetPin,
@@ -310,7 +310,7 @@ class CandidateOverlayProjector:
 
     def __init__(
         self,
-        store: SQLiteHarnessStore,
+        store: PostgresHarnessStore,
         continuity: EventSourcedRunContinuity,
         bridge: DiscoveryOverlayRuntimeBridge,
     ) -> None:
@@ -326,7 +326,7 @@ class ArbitraryAppendingProjector:
 
     def __init__(
         self,
-        store: SQLiteHarnessStore,
+        store: PostgresHarnessStore,
         continuity: EventSourcedRunContinuity,
     ) -> None:
         self.base = WorkingSetViewProjector(store, continuity)
@@ -343,7 +343,7 @@ class ReplacingProjector:
 
     def __init__(
         self,
-        store: SQLiteHarnessStore,
+        store: PostgresHarnessStore,
         continuity: EventSourcedRunContinuity,
     ) -> None:
         self.base = WorkingSetViewProjector(store, continuity)
@@ -420,11 +420,10 @@ class CandidateDiscoveryOverlayTests(unittest.TestCase):
         return committed_a, pin_b, pin_c, source_a, source_b, source_c
 
     def run_discovery_case(self, mode: str) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_discovery_contract(f"pc14-{mode}")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -543,11 +542,10 @@ class CandidateDiscoveryOverlayTests(unittest.TestCase):
                     self.assertIn("task.observe", [name for name, _ in runtime.calls])
 
     def test_raw_discovery_is_materialized_by_domain_before_agent_selection(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_discovery_contract("pc14-raw-materialization")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -591,20 +589,8 @@ class CandidateDiscoveryOverlayTests(unittest.TestCase):
                 continuity.record_working_set(committed_a)
 
                 # B/C are genuine domain data but are not Harness cognition objects yet.
-                expected_b_cas = canonical_digest(
-                    {
-                        "schemaVersion": 1,
-                        "kind": "harness-working-view-source",
-                        "payload": source_b.to_dict(),
-                    }
-                )
-                expected_c_cas = canonical_digest(
-                    {
-                        "schemaVersion": 1,
-                        "kind": "harness-working-view-source",
-                        "payload": source_c.to_dict(),
-                    }
-                )
+                expected_b_cas = canonical_digest(source_b.to_dict())
+                expected_c_cas = canonical_digest(source_c.to_dict())
                 with self.assertRaises(HarnessObjectMissing):
                     store.get_object(
                         expected_b_cas,
@@ -704,11 +690,10 @@ class CandidateDiscoveryOverlayTests(unittest.TestCase):
         self.run_discovery_case("loss")
 
     def test_doctor_rejects_low_level_provider_overlay_without_observation_provenance(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_discovery_contract("pc14-forged-overlay-history")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -830,11 +815,10 @@ class CandidateDiscoveryOverlayTests(unittest.TestCase):
                     continuity.doctor()
 
     def test_unbound_append_overlay_is_rejected_before_provider_dispatch(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_discovery_contract("pc14-unbound-overlay")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -874,11 +858,10 @@ class CandidateDiscoveryOverlayTests(unittest.TestCase):
                 self.assertEqual(runtime.workspace_exec_count, 0)
 
     def test_replacing_overlay_is_rejected_before_provider_dispatch(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_discovery_contract("pc14-replace-rejected")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -916,11 +899,10 @@ class CandidateDiscoveryOverlayTests(unittest.TestCase):
                 self.assertEqual(runtime.workspace_exec_count, 0)
 
     def test_overlay_digest_cannot_be_used_without_provider_evidence(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_discovery_contract("pc14-no-provider")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock

@@ -8,7 +8,8 @@ usage: scripts/local-acceptance check|run
 check  validate the current independent Harness acceptance contract
 run    execute deterministic regression, repository gates, scale smoke and isolated wheel proof
 
-Real Provider credentials are deliberately outside this portable gate. Run live Provider
+Set HARNESS_PG_TEST_DSN to a dedicated PostgreSQL test database before run.
+Real Provider credentials are deliberately outside this gate. Run live Provider
 acceptance explicitly when release evidence requires it.
 EOF
 }
@@ -41,6 +42,10 @@ case "$mode" in
     printf '%s\n' 'local acceptance contract: present' 'run with: scripts/local-acceptance run'
     ;;
   run)
+    if [[ -z "${HARNESS_PG_TEST_DSN:-}" ]]; then
+      echo 'HARNESS_PG_TEST_DSN dedicated test database is required for local acceptance' >&2
+      exit 2
+    fi
     ORDIVON_OWNER_ENV_DIR="$env_dir" "$owner_environment" bootstrap
     uv_bin=$(cd "$repo" && "${MISE_BIN:-mise}" which uv)
     ORDIVON_OWNER_ENV_DIR="$env_dir" "$owner_environment" doctor

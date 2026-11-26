@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-import tempfile
 import unittest
 
 from anc_canonical import canonical_digest
@@ -20,7 +18,7 @@ from ordivon_harness.ordivon.agent_bridge import (
     HarnessAgentBridge,
 )
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from tests.pg_fixture import pg_test_schema
 
 DIGEST_A = "sha256:" + "a" * 64
 DIGEST_B = "sha256:" + "b" * 64
@@ -105,9 +103,8 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             max_tool_corrections=0,
             max_conclusion_corrections=1,
         )
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            store = SQLiteHarnessStore.initialize(root)
+        with pg_test_schema() as database:
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(store, run_contract)
             bridge = HarnessAgentBridge(run_contract, continuity)
@@ -169,9 +166,8 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             max_tool_corrections=0,
             max_conclusion_corrections=1,
         )
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            store = SQLiteHarnessStore.initialize(root)
+        with pg_test_schema() as database:
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(store, run_contract)
             result = OrdivonAgentLoop(
@@ -233,9 +229,8 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             max_tool_corrections=0,
             max_conclusion_corrections=1,
         )
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            store = SQLiteHarnessStore.initialize(root)
+        with pg_test_schema() as database:
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(store, run_contract)
             result = OrdivonAgentLoop(
@@ -287,9 +282,8 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             max_tool_corrections=1,
             max_conclusion_corrections=1,
         )
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            store = SQLiteHarnessStore.initialize(root)
+        with pg_test_schema() as database:
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(store, run_contract)
             result = OrdivonAgentLoop(
@@ -355,9 +349,8 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             max_tool_corrections=1,
             max_conclusion_corrections=1,
         )
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            store = SQLiteHarnessStore.initialize(root)
+        with pg_test_schema() as database:
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(store, run_contract)
             result = OrdivonAgentLoop(
@@ -418,9 +411,8 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             max_tool_corrections=1,
             max_conclusion_corrections=1,
         )
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            store = SQLiteHarnessStore.initialize(root)
+        with pg_test_schema() as database:
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(store, run_contract)
             result = OrdivonAgentLoop(
@@ -474,9 +466,8 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             max_tool_corrections=0,
             max_conclusion_corrections=1,
         )
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            store = SQLiteHarnessStore.initialize(root)
+        with pg_test_schema() as database:
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(store, run_contract)
             result = OrdivonAgentLoop(

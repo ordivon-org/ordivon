@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from dataclasses import replace
 import json
-from pathlib import Path
-import tempfile
 import unittest
 
 from anc_canonical import canonical_bytes, canonical_digest
@@ -20,7 +18,7 @@ from ordivon_harness.ordivon.model import (
 )
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from tests.pg_fixture import PgTestSchema, pg_test_schema
 from ordivon_harness.working_view import (
     HarnessWorkingSetPin,
     HarnessWorkingSetSpec,
@@ -235,7 +233,7 @@ class EpistemicControlTests(unittest.TestCase):
 
     def initialize(
         self,
-        root: Path,
+        database: PgTestSchema,
         suffix: str,
         *,
         max_model_calls: int,
@@ -247,7 +245,7 @@ class EpistemicControlTests(unittest.TestCase):
             max_model_calls=max_model_calls,
             max_tool_calls=max_tool_calls,
         )
-        store = SQLiteHarnessStore.initialize(root)
+        store = database.open(initialize=True)
         store.create_run(run_contract)
         clock = FixedClock()
         continuity = EventSourcedRunContinuity(
@@ -288,7 +286,7 @@ class EpistemicControlTests(unittest.TestCase):
         return store, clock, run_contract, continuity, bridge, projector, source
 
     def test_multi_tool_exchange_is_complete_on_next_projected_turn(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = FakeRuntime("direct")
             (
                 store,
@@ -299,7 +297,7 @@ class EpistemicControlTests(unittest.TestCase):
                 projector,
                 source,
             ) = self.initialize(
-                Path(directory) / "state",
+                database,
                 "multi-exchange",
                 max_model_calls=2,
                 max_tool_calls=2,
@@ -353,7 +351,7 @@ class EpistemicControlTests(unittest.TestCase):
             store.close()
 
     def test_soft_observation_gate_gives_agent_closure_turn(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = FakeRuntime("direct")
             (
                 store,
@@ -364,7 +362,7 @@ class EpistemicControlTests(unittest.TestCase):
                 projector,
                 _,
             ) = self.initialize(
-                Path(directory) / "state",
+                database,
                 "soft-gate",
                 max_model_calls=2,
                 max_tool_calls=2,
@@ -409,7 +407,7 @@ class EpistemicControlTests(unittest.TestCase):
             store.close()
 
     def test_hard_tool_gate_corrects_historical_tool_without_redispatch(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = FakeRuntime("direct")
             (
                 store,
@@ -420,7 +418,7 @@ class EpistemicControlTests(unittest.TestCase):
                 projector,
                 _,
             ) = self.initialize(
-                Path(directory) / "state",
+                database,
                 "hard-gate",
                 max_model_calls=3,
                 max_tool_calls=1,

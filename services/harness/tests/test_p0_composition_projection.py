@@ -6,7 +6,7 @@ from pathlib import Path
 
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
 
-from tests.pg_test_support import PostgresAgentRunCase
+from tests.pg_test_support import PostgresAgentRunCase, FakeNativeWorkspaceClaimClient
 
 from tests.test_r3_supported_agent_run import (
     FakeRuntime,
@@ -51,6 +51,7 @@ class ProcessCompositionExplainTests(PostgresAgentRunCase, unittest.TestCase):
                 lambda _contract: ScriptedTurnAdapter((needs_input("model-call:p0-runtime"),)),
                 execution_binding=execution_binding(value),
                 runtime=FakeRuntime(),
+                workspace_claim_client=FakeNativeWorkspaceClaimClient(),
             )
             explanation = run.explain()
             process = explanation["processLocal"]

@@ -172,7 +172,7 @@ A backup contains an online SQLite snapshot, every object referenced by `object_
 
 Single-Event `append_event()` uses the same path, so batching does not introduce a second admission semantics. The batch is a storage optimization for already ordered Harness-owned Events, not a parallel Tool scheduler, distributed transaction, or permission to hide intermediate causal records.
 
-The repository-owned `scripts/harness_p0_scale_acceptance.py` constructs the accepted 1,000-Run / 100,000-Event workload, reopens the Store, runs full Doctor reconstruction, samples current Run inspection, and emits an integrity-bound receipt. `scripts/local-acceptance run` includes a small deterministic smoke; the full scale receipt remains a deliberate release/closeout action.
+The current PostgreSQL-only `scripts/harness_p0_scale_acceptance.py` (requires dedicated `HARNESS_PG_TEST_DSN`; historical SQLite receipt bytes are retained) constructs the accepted 1,000-Run / 100,000-Event workload, reopens the Store, runs full Doctor reconstruction, samples current Run inspection, and emits an integrity-bound receipt. `scripts/local-acceptance run` includes a small deterministic smoke; the full scale receipt remains a deliberate release/closeout action.
 
 ## Admission semantics
 

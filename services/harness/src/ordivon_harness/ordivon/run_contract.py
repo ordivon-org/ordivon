@@ -7,7 +7,7 @@ real consumers transition to the natural contract boundary.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
 
@@ -230,3 +230,126 @@ class AgentLoopResult:
     @property
     def candidate_completed(self) -> bool:
         return self.stop_code is RunStopCode.CANDIDATE_COMPLETED
+
+
+def _usage_total_tokens(usage: dict[str, JsonValue]) -> int | None:
+    """Conservatively reconcile complete, nonnegative Provider counters.
+
+    A contradictory reported total must not override larger, independently
+    reported input/output counts and silently weaken the Token budget. Cache
+    and reasoning counters are subsets of input/output, not extra totals.
+    Partial or missing counters remain unknown rather than invented zeros.
+    """
+
+    def valid_counts(names: tuple[str, ...]) -> list[int]:
+        values: list[int] = []
+        for name in names:
+            value = usage.get(name)
+            if type(value) is int and value >= 0:
+                values.append(value)
+        return values
+
+    candidates = valid_counts(("total_tokens", "totalTokens"))
+    for input_names, output_names in (
+        (("prompt_tokens", "promptTokens"), ("completion_tokens", "completionTokens")),
+        (("input_tokens", "inputTokens"), ("output_tokens", "outputTokens")),
+    ):
+        inputs = valid_counts(input_names)
+        outputs = valid_counts(output_names)
+        if inputs and outputs:
+            candidates.append(max(inputs) + max(outputs))
+    return max(candidates) if candidates else None
+
+
+@dataclass(frozen=True, slots=True)
+class RestoredRunBudget:
+    """Process-local counters derived from an existing durable Run budget.
+
+    A value, not a new state authority or a second persistence format.
+    """
+
+    model_calls: int
+    tool_calls: int
+    observation_bytes: int
+    prior_elapsed_ms: int
+    total_tokens: int
+    model_retries: int
+    tool_corrections: int
+    conclusion_corrections: int
+    observation_only_turns: int
+    no_progress_turns: int
+    provider_attempts: int
+    remaining_wall_time_ms: int
+
+
+def restore_run_budget(
+    budget: RunBudget,
+    remaining: Mapping[str, JsonValue],
+    *,
+    active_elapsed_ms: int | None,
+    provider_usage: Sequence[dict[str, JsonValue]],
+    reset_progress: bool,
+) -> RestoredRunBudget:
+    """Reconstruct usage without a clock, Provider, Store or mutable input.
+
+    Reconcile recorded Provider counters before another effect; a new caller
+    message may reset only the two progress counters, not spent resources.
+    """
+    required = {"modelCalls", "toolCalls", "observationBytes", "wallTimeMs"}
+    optional = {
+        "totalTokens", "modelRetries", "toolCorrections", "conclusionCorrections",
+        "observationOnlyTurns", "noProgressTurns",
+    }
+    if (
+        not required.issubset(remaining)
+        or not set(remaining).issubset(required | optional)
+        or any(type(value) is not int or value < 0 for value in remaining.values())
+    ):
+        raise ValueError("Harness Run resume budget is invalid")
+
+    model_calls = budget.max_model_calls - int(remaining["modelCalls"])
+    tool_calls = budget.max_tool_calls - int(remaining["toolCalls"])
+    observation_bytes = budget.max_observation_bytes - int(remaining["observationBytes"])
+    wall = int(remaining["wallTimeMs"])
+    prior_elapsed_ms = (
+        budget.max_wall_time_ms - wall if active_elapsed_ms is None else active_elapsed_ms
+    )
+    if active_elapsed_ms is not None and wall != max(0, budget.max_wall_time_ms - prior_elapsed_ms):
+        raise ValueError("Harness Run active elapsed time differs from its wall budget")
+    total_tokens = budget.max_total_tokens - int(remaining.get("totalTokens", budget.max_total_tokens))
+    model_retries = budget.max_model_retries - int(remaining.get("modelRetries", budget.max_model_retries))
+    tool_corrections = budget.max_tool_corrections - int(remaining.get("toolCorrections", budget.max_tool_corrections))
+    conclusion_corrections = budget.max_conclusion_corrections - int(
+        remaining.get("conclusionCorrections", budget.max_conclusion_corrections)
+    )
+    observation_only_turns = budget.max_observation_only_turns - int(
+        remaining.get("observationOnlyTurns", budget.max_observation_only_turns)
+    )
+    no_progress_turns = budget.max_no_progress_turns - int(
+        remaining.get("noProgressTurns", budget.max_no_progress_turns)
+    )
+    if min(
+        model_calls, tool_calls, observation_bytes, prior_elapsed_ms, total_tokens,
+        model_retries, tool_corrections, conclusion_corrections, observation_only_turns,
+        no_progress_turns,
+    ) < 0:
+        raise ValueError("Harness Run resume budget exceeds configured limits")
+
+    reported_history_tokens = sum(
+        count for usage in provider_usage
+        if (count := _usage_total_tokens(usage)) is not None
+    )
+    return RestoredRunBudget(
+        model_calls=model_calls,
+        tool_calls=tool_calls,
+        observation_bytes=observation_bytes,
+        prior_elapsed_ms=prior_elapsed_ms,
+        total_tokens=max(total_tokens, reported_history_tokens),
+        model_retries=model_retries,
+        tool_corrections=tool_corrections,
+        conclusion_corrections=conclusion_corrections,
+        observation_only_turns=0 if reset_progress else observation_only_turns,
+        no_progress_turns=0 if reset_progress else no_progress_turns,
+        provider_attempts=model_calls + model_retries,
+        remaining_wall_time_ms=wall,
+    )

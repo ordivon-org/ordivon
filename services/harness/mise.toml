@@ -78,6 +78,10 @@ uv run python scripts/check_wheel.py "$wheel"
 [tasks.queue]
 run = """
 set -euo pipefail
+if [[ -z "${HARNESS_PG_TEST_DSN:-}" ]]; then
+  echo 'HARNESS_PG_TEST_DSN dedicated test database is required for Harness queue' >&2
+  exit 2
+fi
 uv sync --locked
 uv lock --check
 mise run formal:source-refinement
@@ -111,8 +115,8 @@ uv run python scripts/check_wheel.py "$wheel"
 
 # Exact local-node qualification. This is intentionally not a GitHub merge-group
 # prerequisite because it consumes materialized machine/provider authority.
-# Actual PostgreSQL integration is an owner-native, opt-in node qualification.
-# A DSN is required: the portable merge queue must never fabricate PG liveness.
+# Additional focused PostgreSQL qualification; the normal queue also requires
+# a dedicated test DSN so migrated behavioral tests cannot be silently skipped.
 # The test suite creates only bounded, isolated temporary schemas and removes
 # those schemas afterwards; Host/Runtime databases and schemas are untouched.
 [tasks."pg:verify"]
@@ -208,7 +212,7 @@ fi
   java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config ToolUnknownRecoveryR1.cfg ToolUnknownRecoveryR1.tla
   recovery_probe="$(mktemp)"
   trap 'rm -f "$recovery_probe"' EXIT
-  for spec in "retry:AtMostOneOriginalOwnerSubmit" "resume:RecoveredOriginalOwnerIsUnreachable" "pre-admission:LostBeforeAdmissionIsUnreachable" "physical:PhysicalCallIsUnreachable";do
+  for spec in "retry:AtMostOneOriginalOwnerSubmit" "resume:RecoveredOriginalOwnerIsUnreachable" "pre-admission:LostBeforeAdmissionIsUnreachable" "physical:PhysicalCallIsUnreachable" "request-key:NoReusedRequestIdentity" "fresh-key:FreshNextIsUnreachable";do
     IFS=: read -r label predicate <<< "$spec"
     if java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config "ToolUnknownRecoveryR1.$label-probe.cfg" ToolUnknownRecoveryR1.tla >"$recovery_probe" 2>&1;then
       echo "R45 $label counterexample unexpectedly absent" >&2
@@ -220,6 +224,49 @@ fi
       exit 1
     fi
     echo "R45 $label counterexample: PASS"
+  done
+)
+
+# R38: original source coverage and non-vacuous acceptance via the same TLC.
+(
+  cd formal
+  java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tla2sany.SANY OriginalSourceCutR1.tla
+  java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config OriginalSourceCutR1.cfg OriginalSourceCutR1.tla
+  source_probe="$(mktemp)"
+  trap 'rm -f "$source_probe"' EXIT
+  for spec in "tail:NoMissingOriginalRevision" "accept:AcceptanceIsUnreachable" "terminal-omit:TerminalHasNoPending" "terminal-accept:TerminalIsUnreachable" "reread:UsesVerifiedContent" "consume:SourceConsumptionIsUnreachable" "admission-omit:NewEffectHasNoPending" "admission-accept:NewEffectIsUnreachable"; do
+    IFS=: read -r label predicate <<< "$spec"
+    if java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config "OriginalSourceCutR1.$label-probe.cfg" OriginalSourceCutR1.tla > "$source_probe" 2>&1; then
+      echo "R38 $label counterexample unexpectedly absent" >&2
+      exit 1
+    fi
+    if ! grep -Fq "Error: Invariant $predicate is violated." "$source_probe"; then
+      cat "$source_probe" >&2
+      exit 1
+    fi
+    echo "R38 $label counterexample: PASS"
+  done
+)
+
+
+# R41: global Doctor snapshot qualification uses the same native TLC gate.
+(
+  cd formal
+  java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tla2sany.SANY DoctorSnapshotR1.tla
+  java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config DoctorSnapshotR1.cfg DoctorSnapshotR1.tla
+  snapshot_probe="$(mktemp)"
+  trap 'rm -f "$snapshot_probe"' EXIT
+  for spec in "weak:CoherentReport" "concurrent:ConcurrentHealthyIsUnreachable"; do
+    IFS=: read -r label predicate <<< "$spec"
+    if java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config "DoctorSnapshotR1.$label-probe.cfg" DoctorSnapshotR1.tla > "$snapshot_probe" 2>&1; then
+      echo "R41 $label counterexample unexpectedly absent" >&2
+      exit 1
+    fi
+    if ! grep -Fq "Error: Invariant $predicate is violated." "$snapshot_probe"; then
+      cat "$snapshot_probe" >&2
+      exit 1
+    fi
+    echo "R41 $label counterexample: PASS"
   done
 )
 

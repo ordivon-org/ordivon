@@ -31,7 +31,9 @@ from .model import (
     AgentTurnFailureCode,
 )
 from .provider_lifecycle import ProviderCallLifecycle, ProviderLifecycleError
-from .run_contract import AgentLoopResult, RunBudget, RunStopCode
+from .run_contract import (
+    AgentLoopResult, RunBudget, RunStopCode, _usage_total_tokens, restore_run_budget,
+)
 from .run_recovery import (
     _decide_turn_progress,
     _observation_evidence_signature,
@@ -268,103 +270,32 @@ class OrdivonAgentLoop:
                 or state.requested_model_id != self.adapter.model_id
             ):
                 raise ValueError("Harness Run resume identities differ")
-            remaining = state.remaining_budget
-            required_budget_fields = {
-                "modelCalls",
-                "toolCalls",
-                "observationBytes",
-                "wallTimeMs",
-            }
-            optional_budget_fields = {
-                "totalTokens",
-                "modelRetries",
-                "toolCorrections",
-                "conclusionCorrections",
-                "observationOnlyTurns",
-                "noProgressTurns",
-            }
-            if (
-                not required_budget_fields.issubset(remaining)
-                or not set(remaining).issubset(required_budget_fields | optional_budget_fields)
-                or any(
-                    type(remaining[field]) is not int or remaining[field] < 0 for field in remaining
-                )
-            ):
-                raise ValueError("Harness Run resume budget is invalid")
-            model_calls = self.budget.max_model_calls - int(remaining["modelCalls"])
-            tool_calls = self.budget.max_tool_calls - int(remaining["toolCalls"])
-            observation_bytes = self.budget.max_observation_bytes - int(
-                remaining["observationBytes"]
+            restored_budget = restore_run_budget(
+                self.budget,
+                state.remaining_budget,
+                active_elapsed_ms=state.active_elapsed_ms,
+                provider_usage=state.provider_usage,
+                reset_progress=bool(
+                    (initial_messages and self.working_view_projector is None)
+                    or projected_caller_input
+                ),
             )
-            retained_wall_time_ms = int(remaining["wallTimeMs"])
-            if state.active_elapsed_ms is None:
-                prior_elapsed_ms = self.budget.max_wall_time_ms - retained_wall_time_ms
-            else:
-                prior_elapsed_ms = state.active_elapsed_ms
-                expected_wall_time_ms = max(
-                    0,
-                    self.budget.max_wall_time_ms - prior_elapsed_ms,
-                )
-                if retained_wall_time_ms != expected_wall_time_ms:
-                    raise ValueError("Harness Run active elapsed time differs from its wall budget")
-            total_tokens = self.budget.max_total_tokens - int(
-                remaining.get("totalTokens", self.budget.max_total_tokens)
-            )
-            model_retries = self.budget.max_model_retries - int(
-                remaining.get("modelRetries", self.budget.max_model_retries)
-            )
-            tool_corrections = self.budget.max_tool_corrections - int(
-                remaining.get("toolCorrections", self.budget.max_tool_corrections)
-            )
-            conclusion_corrections = self.budget.max_conclusion_corrections - int(
-                remaining.get("conclusionCorrections", self.budget.max_conclusion_corrections)
-            )
-            observation_only_turns = self.budget.max_observation_only_turns - int(
-                remaining.get(
-                    "observationOnlyTurns",
-                    self.budget.max_observation_only_turns,
-                )
-            )
-            no_progress_turns = self.budget.max_no_progress_turns - int(
-                remaining.get(
-                    "noProgressTurns",
-                    self.budget.max_no_progress_turns,
-                )
-            )
-            if (initial_messages and self.working_view_projector is None) or projected_caller_input:
-                observation_only_turns = 0
-                no_progress_turns = 0
-            provider_attempts = model_calls + model_retries
-            if (
-                min(
-                    model_calls,
-                    tool_calls,
-                    observation_bytes,
-                    prior_elapsed_ms,
-                    total_tokens,
-                    model_retries,
-                    tool_corrections,
-                    conclusion_corrections,
-                    observation_only_turns,
-                    no_progress_turns,
-                )
-                < 0
-            ):
-                raise ValueError("Harness Run resume budget exceeds configured limits")
-            remaining_wall_time_ms = retained_wall_time_ms
+            model_calls = restored_budget.model_calls
+            tool_calls = restored_budget.tool_calls
+            observation_bytes = restored_budget.observation_bytes
+            prior_elapsed_ms = restored_budget.prior_elapsed_ms
+            total_tokens = restored_budget.total_tokens
+            model_retries = restored_budget.model_retries
+            tool_corrections = restored_budget.tool_corrections
+            conclusion_corrections = restored_budget.conclusion_corrections
+            observation_only_turns = restored_budget.observation_only_turns
+            no_progress_turns = restored_budget.no_progress_turns
+            provider_attempts = restored_budget.provider_attempts
+            remaining_wall_time_ms = restored_budget.remaining_wall_time_ms
             messages = [dict(message) for message in state.messages]
             messages.extend(dict(message) for message in initial_messages)
             observations = [HarnessToolObservation.from_dict(item) for item in state.observations]
             provider_usage = [dict(item) for item in state.provider_usage]
-            # An older PAUSED snapshot may have undercharged contradictory
-            # Provider totals. Reconcile the immutable reported history before
-            # admitting another model call; never reduce an existing debit.
-            reported_history_tokens = sum(
-                count
-                for raw_usage in provider_usage
-                if (count := _usage_total_tokens(raw_usage)) is not None
-            )
-            total_tokens = max(total_tokens, reported_history_tokens)
             effective_models = list(state.effective_model_ids)
             if not effective_models and state.effective_model_id is not None:
                 effective_models.append(state.effective_model_id)
@@ -2255,35 +2186,6 @@ class OrdivonAgentLoop:
             )
             if stopped is not None:
                 return stopped
-
-
-def _usage_total_tokens(usage: dict[str, JsonValue]) -> int | None:
-    """Conservatively reconcile complete, nonnegative Provider counters.
-
-    A contradictory reported total must not override larger, independently
-    reported input/output counts and silently weaken the Token budget. Cache
-    and reasoning counters are subsets of input/output, not extra totals.
-    Partial or missing counters remain unknown rather than invented zeros.
-    """
-
-    def valid_counts(names: tuple[str, ...]) -> list[int]:
-        values: list[int] = []
-        for name in names:
-            value = usage.get(name)
-            if type(value) is int and value >= 0:
-                values.append(value)
-        return values
-
-    candidates = valid_counts(("total_tokens", "totalTokens"))
-    for input_names, output_names in (
-        (("prompt_tokens", "promptTokens"), ("completion_tokens", "completionTokens")),
-        (("input_tokens", "inputTokens"), ("output_tokens", "outputTokens")),
-    ):
-        inputs = valid_counts(input_names)
-        outputs = valid_counts(output_names)
-        if inputs and outputs:
-            candidates.append(max(inputs) + max(outputs))
-    return max(candidates) if candidates else None
 
 
 def _provider_token_counter_coverage(

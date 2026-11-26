@@ -15,7 +15,7 @@ from ordivon_harness.ordivon.run_recovery import _search_evidence
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
 from ordivon_harness.ordivon.tool_errors import ToolBridgeError
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from tests.pg_fixture import PgTestSchema, pg_test_schema
 from tests.test_p0_sqlite_runtime_bridge import (
     FakeRuntime,
     FixedClock,
@@ -213,9 +213,9 @@ class SearchWorkspaceBatchTests(unittest.TestCase):
             "A shared query/outcome must retain the same evidence under batching",
         )
 
-    def initialize(self, root: Path, suffix: str, runtime: FakeRuntime):
+    def initialize(self, database: PgTestSchema, suffix: str, runtime: FakeRuntime):
         run_contract = contract(suffix)
-        store = SQLiteHarnessStore.initialize(root)
+        store = database.open(initialize=True)
         store.create_run(run_contract)
         clock = FixedClock()
         continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
@@ -237,9 +237,9 @@ class SearchWorkspaceBatchTests(unittest.TestCase):
         return store, clock, run_contract, continuity, bridge
 
     def test_batch_search_uses_one_runtime_job_and_preserves_query_results(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = BatchRuntime()
-            store, _, _, _, bridge = self.initialize(Path(directory) / "state", "batch-direct", runtime)
+            store, _, _, _, bridge = self.initialize(database, "batch-direct", runtime)
             try:
                 observation = bridge.execute(batch_call(), step_id="turn-1-batch")
                 self.assertEqual(runtime.workspace_exec_count, 1)
@@ -259,9 +259,9 @@ class SearchWorkspaceBatchTests(unittest.TestCase):
                 store.close()
 
     def test_batch_search_hard_error_remains_observed_per_query_error(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = BatchRuntime(hard_error=True)
-            store, _, _, _, bridge = self.initialize(Path(directory) / "state", "batch-error", runtime)
+            store, _, _, _, bridge = self.initialize(database, "batch-error", runtime)
             try:
                 observation = bridge.execute(batch_call("hard"), step_id="turn-1-hard")
                 self.assertEqual(observation.status, "observed")
@@ -274,9 +274,9 @@ class SearchWorkspaceBatchTests(unittest.TestCase):
                 store.close()
 
     def test_batch_response_loss_reconciles_without_redispatch(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = BatchRuntime("loss")
-            store, _, _, continuity, bridge = self.initialize(Path(directory) / "state", "batch-loss", runtime)
+            store, _, _, continuity, bridge = self.initialize(database, "batch-loss", runtime)
             try:
                 observation = bridge.execute(batch_call("loss"), step_id="turn-1-loss")
                 self.assertTrue(observation.reconciled)
@@ -292,10 +292,9 @@ class SearchWorkspaceBatchTests(unittest.TestCase):
                 store.close()
 
     def test_exact_recovered_call_restores_batch_metadata_after_process_loss(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             runtime = CrashOnceBatchRuntime()
-            store, clock, run_contract, continuity, bridge = self.initialize(root, "batch-restart", runtime)
+            store, clock, run_contract, continuity, bridge = self.initialize(database, "batch-restart", runtime)
             call = batch_call("restart")
             try:
                 with self.assertRaises(KeyboardInterrupt):
@@ -306,7 +305,7 @@ class SearchWorkspaceBatchTests(unittest.TestCase):
             finally:
                 store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.connect() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store, run_contract.harness_run_id, clock_ms=clock
                 )
@@ -328,10 +327,10 @@ class SearchWorkspaceBatchTests(unittest.TestCase):
 
     @pytest.mark.node_qualification
     def test_batch_physical_wrapper_globally_caps_each_query_output(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database, tempfile.TemporaryDirectory() as directory:
             runtime = BatchRuntime()
             store, _, _, _, bridge = self.initialize(
-                Path(directory) / "state", "batch-cap", runtime
+                database, "batch-cap", runtime
             )
             call = AgentToolCall(
                 tool_call_id="tool-call:cap",
@@ -394,10 +393,10 @@ class SearchWorkspaceBatchTests(unittest.TestCase):
                 )
                 return value
 
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = TruncatedBatchRuntime()
             store, _, _, _, bridge = self.initialize(
-                Path(directory) / "state", "batch-truncated", runtime
+                database, "batch-truncated", runtime
             )
             try:
                 observation = bridge.execute(
@@ -424,10 +423,10 @@ class SearchWorkspaceBatchTests(unittest.TestCase):
                 )
                 return value
 
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = IncompleteBatchRuntime()
             store, _, _, _, bridge = self.initialize(
-                Path(directory) / "state", "batch-incomplete", runtime
+                database, "batch-incomplete", runtime
             )
             try:
                 observation = bridge.execute(
@@ -452,10 +451,10 @@ class SearchWorkspaceBatchTests(unittest.TestCase):
             {"queries": ["one"], "maxMatchesPerQuery": 26},
         )
         for index, arguments in enumerate(cases):
-            with self.subTest(index=index), tempfile.TemporaryDirectory() as directory:
+            with self.subTest(index=index), pg_test_schema() as database:
                 runtime = BatchRuntime()
                 store, _, _, _, bridge = self.initialize(
-                    Path(directory) / "state", f"batch-invalid-{index}", runtime
+                    database, f"batch-invalid-{index}", runtime
                 )
                 try:
                     call = AgentToolCall(

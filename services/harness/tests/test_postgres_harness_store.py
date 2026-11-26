@@ -155,6 +155,40 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             self.assertEqual(reopened.get_object(obj.digest), raw)
             self.assertEqual(reopened.create_run(run), HarnessEventAdmission.EXISTING)
 
+    def test_admitted_contract_replay_survives_caller_and_export_mutation(self) -> None:
+        """The original PG journal binds bytes, not caller-owned container aliases."""
+        from ordivon_harness.core_contracts import HarnessRunContract
+
+        base = contract()
+        wire = base.to_dict()
+        wire["completionContract"] = {
+            "mode": "structured-result-v1",
+            "resultKind": "choice",
+            "resultSchema": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {"choice": {"type": "string", "enum": ["a"]}},
+                "required": ["choice"],
+            },
+        }
+        source = HarnessRunContract.from_dict(wire)
+        original_refs = list(source.context_refs)
+        admitted = replace(source, context_refs=original_refs)  # type: ignore[arg-type]
+        exact_wire = admitted.to_dict()
+        exact_digest = canonical_digest(exact_wire)
+        self.assertEqual(self.store.create_run(admitted), HarnessEventAdmission.CREATED)
+        original_refs.clear()
+        wire["completionContract"]["resultSchema"]["properties"]["choice"]["enum"].append("b")
+        exported = admitted.to_dict()
+        exported["completionContract"]["resultSchema"]["required"].clear()
+        self.assertEqual(admitted.digest, exact_digest)
+        self.assertEqual(admitted.to_dict(), exact_wire)
+        with PostgresHarnessStore(self.dsn, schema=self.schema) as reopened:
+            self.assertEqual(reopened.create_run(replace(admitted)), HarnessEventAdmission.EXISTING)
+            self.assertEqual(reopened.create_run(HarnessRunContract.from_dict(exact_wire)),
+                             HarnessEventAdmission.EXISTING)
+            self.assertTrue(reopened.doctor()["healthy"])
+
     def test_event_read_avoids_n_plus_one_queries_without_losing_cas_checks(self) -> None:
         run = contract()
         self.store.create_run(run)
@@ -652,6 +686,86 @@ class PostgresHarnessStoreTests(unittest.TestCase):
                         ).fetchall(),
                         [],
                     )
+
+                    # The original current issuer SQL must not certify a
+                    # prepared event with a detached required reference, even
+                    # if its CAS bytes and Run revision still exist.
+                    prepared = self.store.list_run_events(run.harness_run_id)[-1]
+                    edge_cases = (
+                        ("payload", prepared.payload_digest),
+                        ("reference", prepared.data["snapshotObjectDigest"]),
+                        ("reference", prepared.data["stateObjectDigest"]),
+                        ("reference", prepared.data["toolStepIntentObjectDigest"]),
+                        ("reference", prepared.data["dispatchFenceObjectDigest"]),
+                    )
+                    for edge_role, digest in edge_cases:
+                        with self.subTest(edge_role=edge_role, digest=digest):
+                            self.assertEqual(self.store.connection.execute(
+                                "DELETE FROM run_object_refs WHERE event_id=%s AND digest=%s AND role=%s",
+                                (prepared.event_id, digest, edge_role),
+                            ).rowcount, 1)
+                            try:
+                                self.assertEqual(runtime.execute(
+                                    query, (run.harness_run_id, fence.run_revision, fence.digest)
+                                ).fetchall(), [])
+                            finally:
+                                self.store.connection.execute(
+                                    "INSERT INTO run_object_refs(harness_run_id,event_id,digest,role) VALUES (%s,%s,%s,%s)",
+                                    (run.harness_run_id, prepared.event_id, digest, edge_role),
+                                )
+                    foreign = replace(
+                        run, harness_run_id="harness-run:foreign-issuer-edge",
+                        caller_run_ref="caller-run:foreign-issuer-edge",
+                    )
+                    self.store.create_run(foreign)
+                    for edge_role, digest in edge_cases:
+                        with self.subTest(foreign_edge_role=edge_role, digest=digest):
+                            self.assertEqual(self.store.connection.execute(
+                                "UPDATE run_object_refs SET harness_run_id=%s WHERE event_id=%s AND digest=%s AND role=%s",
+                                (foreign.harness_run_id, prepared.event_id, digest, edge_role),
+                            ).rowcount, 1)
+                            try:
+                                self.assertEqual(runtime.execute(
+                                    query, (run.harness_run_id, fence.run_revision, fence.digest)
+                                ).fetchall(), [])
+                            finally:
+                                self.store.connection.execute(
+                                    "UPDATE run_object_refs SET harness_run_id=%s WHERE event_id=%s AND digest=%s AND role=%s",
+                                    (run.harness_run_id, prepared.event_id, digest, edge_role),
+                                )
+                    # Exhaust the finite current-edge standing domain:
+                    # intact, absent, or foreign for each required edge.
+                    # One and only one of the 3**5 combinations may admit.
+                    from itertools import product
+                    accepted_cuts = 0
+                    for standings in product(("intact", "absent", "foreign"), repeat=len(edge_cases)):
+                        with self.store.connection.transaction():
+                            for (edge_role, digest), standing in zip(edge_cases, standings, strict=True):
+                                self.store.connection.execute(
+                                    "DELETE FROM run_object_refs WHERE event_id=%s AND digest=%s AND role=%s",
+                                    (prepared.event_id, digest, edge_role),
+                                )
+                                if standing != "absent":
+                                    owner = run.harness_run_id if standing == "intact" else foreign.harness_run_id
+                                    self.store.connection.execute(
+                                        "INSERT INTO run_object_refs(harness_run_id,event_id,digest,role) VALUES (%s,%s,%s,%s)",
+                                        (owner, prepared.event_id, digest, edge_role),
+                                    )
+                        count = len(runtime.execute(
+                            query, (run.harness_run_id, fence.run_revision, fence.digest)
+                        ).fetchall())
+                        self.assertEqual(count, int(all(standing == "intact" for standing in standings)), standings)
+                        accepted_cuts += count
+                    self.assertEqual(accepted_cuts, 1)
+                    with self.store.connection.transaction():
+                        for edge_role, digest in edge_cases:
+                            self.store.connection.execute(
+                                "UPDATE run_object_refs SET harness_run_id=%s WHERE event_id=%s AND digest=%s AND role=%s",
+                                (run.harness_run_id, prepared.event_id, digest, edge_role),
+                            )
+                    self.assertEqual(len(runtime.execute(
+                        query, (run.harness_run_id, fence.run_revision, fence.digest)
+                    ).fetchall()), 1)
 
                     # The admission transaction has committed here. An
                     # issued, delayed native launch is NOT fenced by this
@@ -1160,6 +1274,37 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             self.assertEqual(reopened.load_run(run.harness_run_id).revision, after.revision)
             reopened.validate_run_history(run.harness_run_id)
 
+    def test_terminal_admission_rejects_detached_original_payload_edge(self) -> None:
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+
+        run = contract()
+        self.store.create_run(run)
+        original = self.store.load_run(run.harness_run_id)
+        now = original.updated_at_ms + 1
+        lease = self.store.acquire_run_lease(
+            run.harness_run_id, owner_id="worker:terminal-detached",
+            ttl_ms=10_000, now_ms=now,
+        )
+        created = self.store.list_run_events(run.harness_run_id)[0]
+        self.store.connection.execute(
+            "DELETE FROM run_object_refs WHERE event_id=%s AND role='payload'",
+            (created.event_id,),
+        )
+        terminal = HarnessEventWrite(
+            event_id="event:terminal-detached-source",
+            event_kind="harness.run-completed",
+            data={"stopReason": "completed"},
+            recorded_at_ms=now + 1,
+        )
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.append_events(
+                harness_run_id=run.harness_run_id, events=(terminal,),
+                expected_revision=lease.run_revision, lease=lease,
+                lease_checked_at_ms=now,
+            )
+        self.assertEqual(self.store.load_run(run.harness_run_id), original)
+        self.assertTrue(self.store.release_run_lease(lease))
+
     def test_original_pg_terminal_writer_rejects_pending_provider(self) -> None:
         """A model Provider CLAIMED is a real unresolved external effect."""
         from ordivon_harness.store_errors import HarnessTerminalConflict
@@ -1265,6 +1410,25 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             continuity.inspect_unsettled_tool_sources()["unsettledIntents"][0]["intentDigest"],
             intent.digest,
         )
+        # A partial projection must not convert unresolved history to
+        # "no effects". Inject loss of the actual persisted pending Tool
+        # event at the original Store admission boundary, not the facade.
+        from unittest.mock import patch
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+
+        full = self.store.list_run_events(run.harness_run_id)
+        partial = tuple(e for e in full if e.event_kind != "harness.tool-step-prepared")
+        self.assertLess(len(partial), len(full))
+        with patch.object(self.store, "list_run_events", return_value=partial):
+            with self.assertRaises((HarnessJournalCorruption, HarnessRevisionConflict, HarnessTerminalConflict)):
+                self.store.append_events(
+                    harness_run_id=run.harness_run_id, events=(terminal,),
+                    expected_revision=lease.run_revision, lease=lease,
+                    lease_checked_at_ms=now,
+                )
+        self.assertEqual(self.store.load_run(run.harness_run_id).revision, before.revision)
+        self.assertFalse(self.store.load_run(run.harness_run_id).status.terminal)
+        self.assertEqual(self.store.doctor()["leases"], 1)
         self.assertTrue(self.store.release_run_lease(lease))
         # A separate experimental Writer might bypass the Python admission
         # and commit a structurally contiguous completed Run. Doctor must use
@@ -1929,6 +2093,138 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         self.assertEqual(public_source["issuedIntents"], issued["issuedIntents"])
         self.assertFalse(public_source["safeToAcknowledgeNoFutureSpawn"])
 
+    def test_source_inspection_rejects_a_rebound_contract_and_same_revision_drift(self) -> None:
+        """Original PG cut identity is more than a matching revision counter."""
+        from unittest.mock import patch
+        from ordivon_harness.store_errors import HarnessRevisionConflict
+
+        run = contract()
+        self.store.create_run(run)
+        continuity = EventSourcedRunContinuity(self.store, run)
+        original = self.store.load_run(run.harness_run_id)
+        issued = continuity.inspect_issued_tool_sources()
+        self.assertEqual(issued["contractDigest"], original.contract_digest)
+        self.assertEqual(issued["originalRunIssuedCount"], 0)
+        # An already-created internal observer must not certify a newly bound
+        # caller contract against the unchanged original PG journal.
+        with patch.object(continuity, "contract", replace(run, tool_grant_digest="sha256:" + "f" * 64)):
+            for observe in (continuity.inspect_issued_tool_sources,
+                            continuity.inspect_unsettled_tool_sources,
+                            continuity.inspect_finalization_source):
+                with self.subTest(observer=observe.__name__), self.assertRaises(ValueError):
+                    observe()
+        # Independent substitution of a later read projection, not actual
+        # corruption of PG: same counter but different immutable metadata.
+        verified = self.store.validate_run_history(run.harness_run_id)
+        drifted = replace(original, caller_run_ref="caller:foreign-cut")
+        with patch.object(self.store, "validate_run_history", return_value=verified):
+            with patch.object(self.store, "load_run", return_value=drifted):
+                for observe in (continuity.inspect_issued_tool_sources,
+                                continuity.inspect_unsettled_tool_sources,
+                                continuity.inspect_finalization_source):
+                    with self.subTest(drift=observe.__name__), self.assertRaises(HarnessRevisionConflict):
+                        observe()
+
+    def test_effect_source_inspection_rejects_missing_original_history(self) -> None:
+        """An intact latest revision cannot certify a truncated older Tool history."""
+        from unittest.mock import patch
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+
+        run = tool_fixture.private_tool_contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        continuity.bind_state(state())
+        binding = continuity.binding
+        intent = HarnessToolStepIntent(
+            intent_id="harness-tool-step-intent:source-cut-old",
+            harness_run_id=run.harness_run_id,
+            assignment_id=binding.assignment_id,
+            assignment_generation=binding.assignment_generation,
+            assignment_digest=binding.assignment_digest,
+            turn_id="turn:source-cut-old",
+            tool_call_id="tool-call:source-cut-old",
+            tool_name="workspace.read",
+            tool_call_digest=canonical_digest({"tool": "source-cut"}),
+            runtime_operation="workspace.read",
+            runtime_arguments_digest=canonical_digest({"path": "README.md"}),
+            client_request_id="request:source-cut-old",
+            recovery_consequence=HarnessRecoveryConsequence.OBSERVATION_ONLY,
+            created_at_ms=clock(),
+        )
+        continuity.prepare_tool_step(intent)
+        observation = {"schemaVersion": 1, "kind": "pg.test-observation", "status": "observed"}
+        clock.advance()
+        receipt = HarnessToolStepReceipt(
+            receipt_id="harness-tool-step-receipt:source-cut-old",
+            intent_digest=intent.digest, harness_run_id=run.harness_run_id,
+            tool_call_id=intent.tool_call_id, status=HarnessToolStepStatus.OBSERVED,
+            runtime_job_ref="runtime-job:source-cut-old",
+            observation_digest=canonical_digest(observation),
+            reconciled=False, created_at_ms=clock(),
+        )
+        continuity.record_tool_step_receipt(receipt, observation)
+        lease = self.store.acquire_run_lease(
+            run.harness_run_id, owner_id="worker:source-cut", ttl_ms=10000, now_ms=clock(),
+        )
+        self.store.append_event(
+            event_id="event:source-cut-tail", harness_run_id=run.harness_run_id,
+            event_kind="harness.trace-recorded", data={"trace": "tail"},
+            expected_revision=lease.run_revision, recorded_at_ms=clock(),
+            lease=lease, lease_checked_at_ms=clock(),
+        )
+        self.assertEqual(continuity.inspect_issued_tool_sources()["originalRunIssuedCount"], 1)
+        history = self.store.list_run_events(run.harness_run_id)
+        truncated = tuple(e for e in history if e.data.get("toolStepIntentDigest") != intent.digest)
+        self.assertLess(len(truncated), len(history))
+        self.assertEqual(truncated[-1], history[-1])
+        # The real PG original is unchanged. Simulate a partial read projection
+        # which loses the whole settled Intent/Receipt pair, but not its tail.
+        with patch.object(self.store, "list_run_events", return_value=truncated):
+            with self.assertRaises((HarnessJournalCorruption, HarnessRevisionConflict)):
+                continuity.inspect_issued_tool_sources()
+            with self.assertRaises((HarnessJournalCorruption, HarnessRevisionConflict)):
+                continuity.inspect_unsettled_tool_sources()
+        # A second read with the same revisions can still substitute event
+        # content. Use the exact first validated cut rather than rereading it.
+        substituted = tuple(
+            replace(event, event_kind="harness.trace-recorded", data={"trace": "substituted"})
+            if event.data.get("toolStepIntentDigest") == intent.digest else event
+            for event in history
+        )
+        self.assertEqual(len(substituted), len(history))
+        self.assertEqual([event.run_revision for event in substituted],
+                         [event.run_revision for event in history])
+        with patch.object(self.store, "list_run_events", side_effect=(history, substituted)) as reader:
+            source = continuity.inspect_issued_tool_sources()
+            self.assertEqual(source["originalRunIssuedCount"], 1)
+            self.assertEqual(reader.call_count, 1)
+        # The same missing source must block new admission, not only the
+        # later diagnostic. A fresh request key is intentionally legitimate.
+        later = replace(
+            intent, intent_id="harness-tool-step-intent:source-cut-next",
+            turn_id="turn:source-cut-next", tool_call_id="tool-call:source-cut-next",
+            tool_call_digest=canonical_digest({"tool": "source-cut-next"}),
+            client_request_id="request:source-cut-next", created_at_ms=clock(),
+        )
+        before = self.store.load_run(run.harness_run_id).revision
+        with patch.object(self.store, "list_run_events", return_value=truncated):
+            with self.assertRaises((HarnessJournalCorruption, HarnessRevisionConflict, HarnessSuperseded)):
+                continuity.prepare_tool_step(later)
+        self.assertEqual(self.store.load_run(run.harness_run_id).revision, before)
+        # Real PG corruption: remove only the persisted payload reference,
+        # leaving the Event and CAS object readable.
+        prepared = next(e for e in history if e.event_kind == "harness.tool-step-prepared")
+        self.store.connection.execute(
+            "DELETE FROM run_object_refs WHERE event_id=%s AND role='payload'",
+            (prepared.event_id,),
+        )
+        for inspect in (continuity.inspect_issued_tool_sources,
+                        continuity.inspect_unsettled_tool_sources,
+                        continuity.inspect_finalization_source):
+            with self.assertRaises(HarnessJournalCorruption):
+                inspect()
+
     def test_issued_epoch_rejects_reused_runtime_client_request_id(self) -> None:
         """A second prepared Intent cannot reuse the first Runtime Job key."""
         run = tool_fixture.private_tool_contract()
@@ -1981,10 +2277,50 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             runtime_arguments_digest=canonical_digest({"path": "second"}),
             created_at_ms=clock(),
         )
-        continuity.prepare_tool_step(second)
+        before = self.store.load_run(run.harness_run_id).revision
+        with self.assertRaisesRegex(HarnessSuperseded, "reuse a clientRequestId"):
+            continuity.prepare_tool_step(second)
+        self.assertEqual(self.store.load_run(run.harness_run_id).revision, before)
+        self.assertEqual(continuity.inspect_issued_tool_sources()["originalRunIssuedCount"], 1)
+        self.assertEqual(continuity.inspect_unsettled_tool_sources()["unsettledIntents"], [])
+        # A distinct legitimate request still proceeds; denial is not a
+        # blanket prohibition on subsequent Tool calls.
+        distinct = replace(second, client_request_id="request:distinct-runtime-epoch")
+        continuity.prepare_tool_step(distinct)
+        self.assertEqual(continuity.inspect_issued_tool_sources()["originalRunIssuedCount"], 2)
+        self.assertEqual(continuity.load_current_tool_step().intent, distinct)
+
+        # Retain the original legacy-corruption read test with a real PG
+        # Journal. Emulate only the old writer's missing identity guard.
+        from inspect import getmodule
+        from unittest.mock import patch
+
+        clock.advance()
+        continuity.record_tool_step_receipt(
+            replace(
+                receipt, receipt_id="harness-tool-step-receipt:distinct-observed",
+                intent_digest=distinct.digest, tool_call_id=distinct.tool_call_id,
+                runtime_job_ref="runtime-job:distinct", created_at_ms=clock(),
+            ),
+            observed,
+        )
+        legacy = replace(
+            second, intent_id="harness-tool-step-intent:legacy-reused-key",
+            tool_call_id="tool-call:legacy-reused-key",
+            turn_id="turn:legacy-reused-key", created_at_ms=clock(),
+        )
+        admission_module = getmodule(continuity.prepare_tool_step)
+        current_scan = admission_module.inspect_all_unsettled_effect_sources
+
+        def legacy_scan(*args, **kwargs):
+            kwargs.pop("new_tool_client_request_id", None)
+            return current_scan(*args, **kwargs)
+
+        with patch.object(admission_module, "inspect_all_unsettled_effect_sources", legacy_scan):
+            continuity.prepare_tool_step(legacy)
         self.assertEqual(
             continuity.inspect_unsettled_tool_sources()["unsettledIntents"][0]["clientRequestId"],
-            second.client_request_id,
+            first.client_request_id,
         )
         with self.assertRaisesRegex(ValueError, "reuse a clientRequestId"):
             continuity.inspect_issued_tool_sources()
@@ -2094,6 +2430,48 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         )
         continuity.prepare_tool_step(intent)
         self.assertEqual(continuity.load_current_tool_step().intent.digest, intent.digest)
+        # Both real original effects settle. Terminal and Doctor must use
+        # immutable evidence, not construct an executing Run command facade.
+        from unittest.mock import patch
+
+        observation = {"schemaVersion": 1, "kind": "pg.observed", "status": "observed"}
+        clock.advance()
+        continuity.record_tool_step_receipt(
+            HarnessToolStepReceipt(
+                receipt_id="harness-tool-step-receipt:pg-read-only-terminal",
+                intent_digest=intent.digest, harness_run_id=run.harness_run_id,
+                tool_call_id=intent.tool_call_id, status=HarnessToolStepStatus.OBSERVED,
+                runtime_job_ref="runtime-job:pg-read-only-terminal",
+                observation_digest=canonical_digest(observation), reconciled=False,
+                created_at_ms=clock(),
+            ), observation,
+        )
+        before = self.store.load_run(run.harness_run_id)
+        now = before.updated_at_ms + 1
+        lease = self.store.acquire_run_lease(
+            run.harness_run_id, owner_id="worker:read-only-terminal",
+            ttl_ms=10_000, now_ms=now,
+        )
+        with patch.object(
+            EventSourcedRunContinuity, "open",
+            side_effect=AssertionError("read-only integrity must not open command facade"),
+        ):
+            self.assertEqual(
+                self.store.append_events(
+                    harness_run_id=run.harness_run_id,
+                    events=(HarnessEventWrite(
+                        event_id="event:pg-read-only-terminal",
+                        event_kind="harness.run-completed",
+                        data={"stopReason": "completed"}, recorded_at_ms=now + 1,
+                    ),),
+                    expected_revision=lease.run_revision, lease=lease,
+                    lease_checked_at_ms=now,
+                ), HarnessEventAdmission.CREATED,
+            )
+            doctor = self.store.doctor()
+        self.assertTrue(doctor["healthy"])
+        self.assertEqual(doctor["leases"], 0)
+        self.assertTrue(self.store.load_run(run.harness_run_id).status.terminal)
 
     def test_pending_tool_cannot_admit_new_provider_claim(self) -> None:
         """Provider may not dispatch while an older Tool effect is pending."""
@@ -2135,6 +2513,29 @@ class PostgresHarnessStoreTests(unittest.TestCase):
                 holder_id="holder:pg-after-pending-tool",
                 ttl_ms=10_000,
             )
+        self.assertEqual(self.store.load_run(run.harness_run_id).revision, revision)
+        # A same-revision partial read cannot erase the original pending
+        # Tool from a NEW Provider Claim; the cached Snapshot remains real.
+        from unittest.mock import patch
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+        original_events = self.store.list_run_events
+        def omitted(run_id: str, *, after_sequence: int = 0):
+            return tuple(event for event in original_events(run_id, after_sequence=after_sequence)
+                         if event.data.get("toolStepIntentDigest") != intent.digest)
+        with patch.object(self.store, "list_run_events", side_effect=omitted):
+            with self.assertRaises((HarnessJournalCorruption, HarnessRevisionConflict,
+                                    HarnessProviderCallRecoveryRequired)):
+                continuity.claim_provider_call(
+                    source=continuity.snapshot_provider_source(pending_snapshot),
+                    turn_id="turn:pg-after-pending-tool",
+                    turn_sequence=1,
+                    request_digest=canonical_digest({"request": "after-tool"}),
+                    provider_request_digest=canonical_digest({"wire": "after-tool"}),
+                    adapter_id=run.adapter_id,
+                    requested_model_id=run.requested_model_id,
+                    holder_id="holder:pg-after-pending-tool",
+                    ttl_ms=10_000,
+                )
         self.assertEqual(self.store.load_run(run.harness_run_id).revision, revision)
         # A real settled original Tool permits the same legitimate Snapshot
         # Provider source; the guard must not turn safe recovery into deadlock.
@@ -2206,8 +2607,11 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         )
         # Simulate only an old admission policy. The real original PostgreSQL
         # Writer persists the original B claim and A is still unreceipted.
-        with patch(
-            "ordivon_harness.ordivon.run_continuity.inspect_all_unsettled_effect_sources",
+        from inspect import getmodule
+
+        with patch.object(
+            getmodule(legacy.claim_provider_call),
+            "inspect_all_unsettled_effect_sources",
             return_value=((), ()),
         ):
             claimed = legacy.claim_provider_call(**claim_args)
@@ -2265,10 +2669,13 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         legacy.prepare_tool_step(first)
         # Legacy admission allowed B despite unresolved A. The real original
         # PostgreSQL Journal persists both effects, including B's receipt.
+        from inspect import getmodule
+
         with (
             patch.object(legacy, "load_current_tool_step", side_effect=KeyError),
-            patch(
-                "ordivon_harness.ordivon.run_continuity.inspect_all_unsettled_effect_sources",
+            patch.object(
+                getmodule(legacy.prepare_tool_step),
+                "inspect_all_unsettled_effect_sources",
                 return_value=((), ()),
             ),
         ):
@@ -2326,6 +2733,18 @@ class PostgresHarnessStoreTests(unittest.TestCase):
             current.bind_state(state())
             with self.assertRaisesRegex(HarnessSuperseded, "unresolved Tool"):
                 current.prepare_tool_step(third)
+            self.assertEqual(reopened.load_run(run.harness_run_id).revision, revision)
+            # Actual old PG history remains intact. Inject a partial read
+            # which hides A, while the current B head and revision remain.
+            from ordivon_harness.store_errors import HarnessJournalCorruption
+
+            read_events = reopened.list_run_events
+            def partial_read(run_id: str, *, after_sequence: int = 0):
+                return tuple(event for event in read_events(run_id, after_sequence=after_sequence)
+                             if event.data.get("toolStepIntentDigest") != first.digest)
+            with patch.object(reopened, "list_run_events", side_effect=partial_read):
+                with self.assertRaises((HarnessJournalCorruption, HarnessRevisionConflict, HarnessSuperseded)):
+                    current.prepare_tool_step(third)
             self.assertEqual(reopened.load_run(run.harness_run_id).revision, revision)
             # Old Tool A remains unresolved even after Tool B is OBSERVED.
             # The terminal guard scans ALL historical effects, not only B.
@@ -2542,12 +2961,227 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         self.assertEqual(self.store.doctor()["events"], 2)
 
     def test_nested_writable_caller_transaction_doctor_remains_consistent(self) -> None:
-        """Existing caller-owned PG transactions still work without SET TRANSACTION."""
+        """A per-Run lock remains usable; global Doctor needs stable isolation."""
         run = contract()
         self.store.create_run(run)
         with self.store.connection.transaction():
+            self.store.validate_run_history(run.harness_run_id)
+            with self.assertRaisesRegex(HarnessRevisionConflict, "stable caller snapshot"):
+                self.store.doctor()
+            self.assertEqual(self.store.load_run(run.harness_run_id).revision, 1)
+        with self.store.connection.transaction():
+            self.store.connection.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
             self.store.validate_run_history(run.harness_run_id)
             doctor = self.store.doctor()
             self.assertTrue(doctor["healthy"])
             self.assertEqual(doctor["runs"], 1)
             self.assertEqual(doctor["events"], 1)
+
+    def test_nested_read_committed_global_doctor_never_certifies_mixed_run_counts(self) -> None:
+        """Existing-row locks cannot fence new original Runs in READ COMMITTED."""
+        from unittest.mock import patch
+
+        first = contract()
+        second = replace(first, harness_run_id="harness-run:global-doctor-phantom",
+                         caller_run_ref="caller-run:global-doctor-phantom")
+        self.store.create_run(first)
+        list_original = self.store.list_runs
+        created = False
+
+        def list_before_new_run():
+            nonlocal created
+            runs = list_original()
+            if not created:
+                created = True
+                with PostgresHarnessStore(self.dsn, schema=self.schema) as rival:
+                    rival.create_run(second)
+            return runs
+
+        with self.store.connection.transaction():
+            with patch.object(self.store, "list_runs", side_effect=list_before_new_run):
+                with self.assertRaises(HarnessRevisionConflict):
+                    self.store.doctor()
+        self.assertFalse(created)
+        with self.store.connection.transaction():
+            self.store.connection.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+            with patch.object(self.store, "list_runs", side_effect=list_before_new_run):
+                doctor = self.store.doctor()
+            self.assertTrue(doctor["healthy"])
+            self.assertEqual((doctor["runs"], doctor["events"], doctor["objects"]), (1, 1, 2))
+        self.assertTrue(created)
+        self.assertEqual(self.store.doctor()["runs"], 2)
+
+    def test_nested_read_uncommitted_is_not_a_stable_global_snapshot(self) -> None:
+        run = contract()
+        self.store.create_run(run)
+        with self.store.connection.transaction():
+            self.store.connection.execute("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED")
+            self.store.validate_run_history(run.harness_run_id)
+            with self.assertRaisesRegex(HarnessRevisionConflict, "stable caller snapshot"):
+                self.store.doctor()
+
+    def test_original_typed_effect_reference_edges_are_required_even_if_cas_bytes_exist(self) -> None:
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+
+        run = tool_fixture.private_tool_contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        continuity.bind_state(state())
+        b = continuity.binding
+        intent = HarnessToolStepIntent(
+            intent_id="harness-tool-step-intent:typed-edge-required",
+            harness_run_id=run.harness_run_id,
+            assignment_id=b.assignment_id,
+            assignment_generation=b.assignment_generation,
+            assignment_digest=b.assignment_digest,
+            turn_id="turn:typed-edge-required",
+            tool_call_id="tool-call:typed-edge-required",
+            tool_name="workspace.read",
+            tool_call_digest=canonical_digest({"tool": "typed-edge"}),
+            runtime_operation="workspace.read",
+            runtime_arguments_digest=canonical_digest({"path": "README.md"}),
+            client_request_id="request:typed-edge-required",
+            recovery_consequence=HarnessRecoveryConsequence.OBSERVATION_ONLY,
+            created_at_ms=clock(),
+        )
+        continuity.prepare_tool_step(intent)
+        prepared = self.store.list_run_events(run.harness_run_id)[-1]
+        digest = prepared.data["toolStepIntentObjectDigest"]
+        original_bytes = self.store.get_object(digest, expected_kind="harness-tool-step-intent")
+        self.assertEqual(continuity.inspect_issued_tool_sources()["originalRunIssuedCount"], 1)
+        self.assertTrue(self.store.doctor()["healthy"])
+        # Content digest alone does not prove the required object type:
+        # R43's issuer SQL already checks Snapshot/State kinds, so the
+        # original source validation must agree with the same evidence.
+        snapshot_digest = prepared.data["snapshotObjectDigest"]
+        self.store.connection.execute(
+            "UPDATE objects SET kind='wrong-snapshot-kind' WHERE digest=%s",
+            (snapshot_digest,),
+        )
+        try:
+            with self.assertRaisesRegex(HarnessJournalCorruption, "snapshotObjectDigest"):
+                self.store.validate_run_history(run.harness_run_id)
+            with self.assertRaises(HarnessJournalCorruption):
+                continuity.inspect_issued_tool_sources()
+            with self.assertRaises(HarnessJournalCorruption):
+                self.store.doctor()
+        finally:
+            self.store.connection.execute(
+                "UPDATE objects SET kind='harness-run-snapshot' WHERE digest=%s",
+                (snapshot_digest,),
+            )
+        self.assertTrue(self.store.doctor()["healthy"])
+        before = self.store.load_run(run.harness_run_id)
+        now = before.updated_at_ms + 1
+        lease = self.store.acquire_run_lease(
+            run.harness_run_id, owner_id="worker:typed-edge-admission", ttl_ms=10000, now_ms=now
+        )
+        self.store.connection.execute(
+            "UPDATE objects SET kind='wrong-snapshot-kind' WHERE digest=%s",
+            (snapshot_digest,),
+        )
+        try:
+            wrong_kind = tuple(
+                self.store.inspect_object(row["digest"])
+                for row in self.store.connection.execute(
+                    "SELECT digest FROM run_object_refs WHERE event_id=%s AND role='reference'",
+                    (prepared.event_id,),
+                )
+            )
+            with self.assertRaisesRegex(HarnessEventConflict, "snapshotObjectDigest"):
+                self.store.append_events(
+                    harness_run_id=run.harness_run_id,
+                    events=(HarnessEventWrite(
+                        event_id="event:typed-edge-admission-wrong-kind",
+                        event_kind=prepared.event_kind, data=prepared.data,
+                        recorded_at_ms=now + 1, referenced_objects=wrong_kind,
+                    ),),
+                    expected_revision=lease.run_revision, lease=lease, lease_checked_at_ms=now,
+                )
+            self.assertEqual(self.store.load_run(run.harness_run_id), before)
+        finally:
+            self.store.connection.execute(
+                "UPDATE objects SET kind='harness-run-snapshot' WHERE digest=%s",
+                (snapshot_digest,),
+            )
+        self.assertEqual(self.store.doctor()["leases"], 1)
+        incomplete = tuple(
+            self.store.inspect_object(row["digest"])
+            for row in self.store.connection.execute(
+                "SELECT digest FROM run_object_refs WHERE event_id=%s AND role='reference' AND digest<>%s",
+                (prepared.event_id, digest),
+            )
+        )
+        with self.assertRaisesRegex(HarnessEventConflict, "toolStepIntentObjectDigest"):
+            self.store.append_events(
+                harness_run_id=run.harness_run_id,
+                events=(HarnessEventWrite(
+                    event_id="event:typed-edge-admission-missing",
+                    event_kind=prepared.event_kind, data=prepared.data,
+                    recorded_at_ms=now + 1, referenced_objects=incomplete,
+                ),),
+                expected_revision=lease.run_revision, lease=lease, lease_checked_at_ms=now,
+            )
+        self.assertEqual(self.store.load_run(run.harness_run_id), before)
+        self.assertEqual(self.store.doctor()["leases"], 1)
+        self.assertTrue(self.store.release_run_lease(lease))
+        deleted = self.store.connection.execute(
+            "DELETE FROM run_object_refs WHERE event_id=%s AND digest=%s AND role='reference'",
+            (prepared.event_id, digest),
+        ).rowcount
+        self.assertEqual(deleted, 1)
+        self.assertEqual(self.store.get_object(digest, expected_kind="harness-tool-step-intent"), original_bytes)
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.validate_run_history(run.harness_run_id)
+        with self.assertRaises(HarnessJournalCorruption):
+            continuity.inspect_issued_tool_sources()
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.doctor()
+
+    def test_original_provider_record_reference_requires_its_own_edge(self) -> None:
+        from ordivon_harness.store_errors import HarnessJournalCorruption
+
+        run = contract()
+        self.store.create_run(run)
+        clock = MutableClock()
+        continuity = EventSourcedRunContinuity(self.store, run, clock_ms=clock)
+        continuity.bind_state(state())
+        continuity.claim_provider_call(
+            source=continuity.assignment_provider_source(),
+            turn_id="turn:typed-provider-edge", turn_sequence=1,
+            request_digest=canonical_digest({"request": "typed-edge"}),
+            provider_request_digest=canonical_digest({"wire": "typed-edge"}),
+            adapter_id=run.adapter_id, requested_model_id=run.requested_model_id,
+            holder_id="holder:typed-provider-edge", ttl_ms=10000,
+        )
+        event = self.store.list_run_events(run.harness_run_id)[-1]
+        digest = event.data["providerCallRecordObjectDigest"]
+        self.assertTrue(self.store.doctor()["healthy"])
+        self.assertEqual(self.store.connection.execute(
+            "DELETE FROM run_object_refs WHERE event_id=%s AND digest=%s AND role='reference'",
+            (event.event_id, digest),
+        ).rowcount, 1)
+        self.assertIsNotNone(self.store.get_object(digest, expected_kind="harness-provider-call-record"))
+        with self.assertRaisesRegex(HarnessJournalCorruption, "providerCallRecordObjectDigest"):
+            self.store.validate_run_history(run.harness_run_id)
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.doctor()
+
+    def test_opaque_trace_object_like_field_does_not_invent_reference(self) -> None:
+        run = contract()
+        self.store.create_run(run)
+        now = self.store.load_run(run.harness_run_id).updated_at_ms + 1
+        lease = self.store.acquire_run_lease(
+            run.harness_run_id, owner_id="worker:opaque-trace-edge", ttl_ms=10000, now_ms=now
+        )
+        self.store.append_events(
+            harness_run_id=run.harness_run_id,
+            events=(HarnessEventWrite(
+                event_id="event:opaque-trace-edge", event_kind="harness.trace-recorded",
+                data={"trace": "opaque", "toolStepIntentObjectDigest": "opaque-domain-label"},
+                recorded_at_ms=now + 1,
+            ),),
+            expected_revision=lease.run_revision, lease=lease, lease_checked_at_ms=now,
+        )
+        self.assertTrue(self.store.doctor()["healthy"])

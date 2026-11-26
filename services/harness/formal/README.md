@@ -113,3 +113,84 @@ or arbitrary Provider behavior. Concrete consumers remain the scratch
 PostgreSQL18 `test_gateway_cli_consumer.py` plus the explicitly opt-in
 `test_live_gateway_unknown_recovery.py` real Gateway/Runtime Owner test.
 Any mismatch requires explicit independent falsification and refinement.
+
+## R38 original source coverage — bounded refinement (2026-11-24)
+
+`OriginalSourceCutR1.tla` models all bounded revision sequences of length
+0..N, including omissions, duplicates, permutations and an independent
+integrity verdict. The old last-revision-only guard has a concrete omitted
+revision counterexample. The exact-cut guard requires every position and
+integrity; the positive model checks coverage independently, and a deliberate
+acceptance reachability counterexample rules out vacuous rejection of all reads.
+The existing Runtime-owned SHA-pinned TLC gate checks all three configs.
+The integrity verdict is a premise, not an implementation proof of PostgreSQL,
+CAS or native Runtime drain. Concrete tests in
+`tests/test_postgres_harness_store.py` retain the partial projection and actual
+detached PG payload-edge counterexamples. No claim release follows from this
+model alone.
+
+### R39 second Tool admission refinement
+
+The existing `ToolUnknownRecoveryR1` model now reaches a second prepared
+Intent after the first is observed. It distinguishes a fresh key from reuse
+of the first key. The unsafe old admission probe reaches key reuse, and the
+fresh-key probe reaches legitimate second admission. This is a two-Intent
+bounded source rule, not proof of arbitrary SQL execution, cross-Run
+principal-level keys, physical second execution, or native drain.
+The real PG consumer is
+`test_issued_epoch_rejects_reused_runtime_client_request_id`; the test retains
+an old-writer fault to demonstrate that historical duplicates still block
+complete source enumeration. All older Tool UNKNOWN probes remain.
+
+### R40 original Store terminal source refinement
+
+The existing SourceCut model includes an original pending revision, visibility
+in the read cut, and normal terminal acceptance. The unsafe tail-only model
+can omit the pending revision and terminal incorrectly; the exact cut model
+checks that no normal terminal has an outstanding source and the independent
+positive probe reaches a clean terminal. UNKNOWN quarantine remains separate.
+The real PG writer now validates the exact original events it uses under its
+existing Run row lock before normal terminal admission. This reuses the
+original Doctor history/edge validator and does not prove OS or Domain release.
+
+### R41 global Doctor snapshot qualification
+
+`DoctorSnapshotR1` models two Runs with one creation Event each and a
+concurrent new Run insertion after the initial count. Its weak snapshot
+probe reaches a mixed healthy report; its positive probe reaches a
+coherent older snapshot despite concurrent creation. The positive model
+requires a stable snapshot for a healthy global report. It intentionally
+does not model arbitrary SQL histories, CAS contents, or physical effects.
+The real PG test drives the original Doctor and a second live Store
+connection and retains the valid per-Run nested row-lock path.
+
+### R41 continuation: verified source consumption
+
+OriginalSourceCutR1 now distinguishes original validated content from a
+substituted second read with the same revision positions. The reread probe
+reaches a substituted consumption after valid acceptance; the positive probe
+reaches actual consumption of the original cut. This abstracts content
+identity, not a proof of database cryptographic integrity.
+
+### R42 new distinct effect admission
+
+OriginalSourceCutR1 extends its existing exact-cut model to admission of a
+new distinct effect, with a weak partial-cut omission counterexample and a
+positive clean-admission reachability probe. The original Provider same-ID
+replay/supersession remains a separate state machine; this bounded model
+does not qualify native external effects.
+
+R42 also strengthens the actual original PG validation behind the
+existing `integrity` premise: known typed Provider/Tool object fields
+must retain their original reference edges even when CAS bytes exist.
+The real PG mutation/admission regressions test this refinement; the
+abstract model does not claim an SQL-level proof.
+
+R43 refines the actual current issuer SQL admission boundary. The local
+finite typed-edge contract is: a returned prepared cut implies that all
+five original required edges are present and owned by that Run/Event.
+Real PG restricted-role tests exhaust all 243 combinations of intact,
+missing and foreign-owned references; exactly one combination admits.
+This is a bounded concrete implementation witness, not a proof of
+complete SQL semantics or native NoFutureSpawn. The existing original
+SourceCut model's broader history integrity premise is unchanged.

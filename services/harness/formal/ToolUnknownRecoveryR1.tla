@@ -16,10 +16,12 @@ PauseReasons == {"none", "effect-dispatch-pending"}
 OwnerJobs == {"none", "original"}
 
 VARIABLES phase, receipt, pauseReason, ownerJob, submissions,
-          ownerReachable, reconciled
+          ownerReachable, reconciled, nextKey
 
 vars == <<phase, receipt, pauseReason, ownerJob, submissions,
-          ownerReachable, reconciled>>
+          ownerReachable, reconciled, nextKey>>
+
+firstVars == <<phase, receipt, pauseReason, ownerJob, submissions, ownerReachable, reconciled>>
 
 TypeOK ==
     /\ phase \in Phases
@@ -29,6 +31,7 @@ TypeOK ==
     /\ submissions \in 0..2
     /\ ownerReachable \in BOOLEAN
     /\ reconciled \in BOOLEAN
+    /\ nextKey \in {"none", "fresh", "reused"}
 
 Init ==
     /\ phase = "new"
@@ -38,6 +41,7 @@ Init ==
     /\ submissions = 0
     /\ ownerReachable = FALSE
     /\ reconciled = FALSE
+    /\ nextKey = "none"
 
 FreezeOriginalPgIntent ==
     /\ phase = "new"
@@ -117,9 +121,9 @@ CompleteBoundedRun ==
 QuiesceWithoutNewOwnerEffect ==
     /\ (phase = "completed"
         \/ (phase = "paused" /\ ownerReachable /\ ownerJob = "none"))
-    /\ UNCHANGED vars
+    /\ UNCHANGED firstVars
 
-Next ==
+FirstNext ==
     \/ FreezeOriginalPgIntent
     \/ SubmitOriginalOwner
     \/ LoseBeforeOwnerAdmission
@@ -131,7 +135,38 @@ Next ==
     \/ CompleteBoundedRun
     \/ QuiesceWithoutNewOwnerEffect
 
+(* R39: first observed Tool remains a source identity after settlement.
+   Model stops at a second prepared Intent; no claim of its physical effect. *)
+PrepareFreshNext ==
+    /\ phase = "observed"
+    /\ nextKey = "none"
+    /\ nextKey' = "fresh"
+    /\ UNCHANGED firstVars
+
+QuiesceAtNextAdmission ==
+    /\ nextKey # "none"
+    /\ UNCHANGED vars
+
+Next ==
+    \/ /\ nextKey = "none"
+       /\ FirstNext
+       /\ UNCHANGED nextKey
+    \/ PrepareFreshNext
+    \/ QuiesceAtNextAdmission
+
 Spec == Init /\ [][Next]_vars
+
+NoReusedRequestIdentity == nextKey # "reused"
+FreshNextIsUnreachable == nextKey # "fresh"
+
+UnsafePrepareReusedNext ==
+    /\ phase = "observed"
+    /\ nextKey = "none"
+    /\ nextKey' = "reused"
+    /\ UNCHANGED firstVars
+
+BadKeyNext == Next \/ UnsafePrepareReusedNext
+BadKeySpec == Init /\ [][BadKeyNext]_vars
 
 AtMostOneOriginalOwnerSubmit == submissions <= 1
 NoObservationWithoutOriginalOwner ==
@@ -165,7 +200,7 @@ UnsafeRetryAfterUnknown ==
     /\ pauseReason' = "none"
     /\ UNCHANGED <<ownerJob, ownerReachable, reconciled>>
 
-BadNext == Next \/ UnsafeRetryAfterUnknown
+BadNext == Next \/ (/\ nextKey = "none" /\ UnsafeRetryAfterUnknown /\ UNCHANGED nextKey)
 BadSpec == Init /\ [][BadNext]_vars
 
 (* Deliberately FALSE reachability predicates for independent controls. *)

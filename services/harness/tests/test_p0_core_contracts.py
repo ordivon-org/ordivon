@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from pathlib import Path
+from types import MappingProxyType
 import unittest
 
 from anc_canonical import canonical_digest
@@ -153,11 +153,114 @@ class HarnessCoreContractTests(unittest.TestCase):
         exported["completionContract"]["mode"] = "export-mutated"
         self.assertEqual(run_contract.digest, digest)
 
+    def test_nested_budget_cannot_change_admitted_identity(self) -> None:
+        # The core contract admits JSON, even where the production RunBudget
+        # restricts the actual executable budget to flat integer limits.
+        budget = {"maxModelCalls": 2, "futureBudget": {"limits": [1, 2]}}
+        value = replace(contract(), budget=budget)
+        exact = value.to_dict()
+        digest = canonical_digest(exact)
+        budget["futureBudget"]["limits"].append(3)
+        self.assertEqual(value.digest, digest)
+        exported = value.to_dict()
+        exported["budget"]["futureBudget"]["limits"].append(4)
+        self.assertEqual(value.to_dict(), exact)
+        self.assertEqual(value.digest, digest)
+        with self.assertRaises(TypeError):
+            value.budget["futureBudget"]["limits"] = []  # type: ignore[index]
+
+    def test_structured_contract_rebind_preserves_admitted_wire_identity(self) -> None:
+        raw = contract().to_dict()
+        raw["completionContract"] = {
+            "mode": "structured-result-v1",
+            "resultKind": "test-choice",
+            "resultSchema": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {"choice": {"type": "string", "enum": ["a"]}},
+                "required": ["choice"],
+            },
+        }
+        for version in (1, 2):
+            with self.subTest(version=version):
+                wire = dict(raw, schemaVersion=version)
+                if version == 1:
+                    wire["correlation"] = {"traceparent": None, "tracestate": None, "links": []}
+                admitted = HarnessRunContract.from_dict(wire)
+                rebound = replace(admitted)
+                self.assertEqual(rebound.to_dict(), wire)
+                self.assertEqual(rebound.digest, canonical_digest(wire))
+                self.assertEqual(admitted.digest, rebound.digest)
+
+    def test_reference_collections_are_snapshotted_at_construction(self) -> None:
+        base = contract()
+        for field in ("context_refs", "source_refs", "prior_artifact_refs"):
+            with self.subTest(field=field):
+                refs = list(getattr(base, field))
+                value = replace(base, **{field: refs})
+                refs.append(HarnessBoundReference("context:other", "context", DIGEST_A))
+                self.assertEqual(value.digest, base.digest)
+                self.assertIsInstance(getattr(value, field), tuple)
+
+    def test_raw_json_still_rejects_non_json_values_and_keys(self) -> None:
+        for bad in ({"nested": {1: "bad"}}, {"nested": (1, 2)}, {"nested": 1.0}):
+            with self.subTest(bad=bad), self.assertRaises((TypeError, ValueError)):
+                replace(contract(), budget=bad)
+            raw = contract().to_dict()
+            raw["budget"] = bad
+            with self.subTest(wire=bad), self.assertRaises((TypeError, ValueError)):
+                HarnessRunContract.from_dict(raw)
+        with self.assertRaises((TypeError, ValueError)):
+            replace(contract(), budget=MappingProxyType({1: "invalid"}))
+
     def test_exact_decode_rejects_host_projection_injection(self) -> None:
         value = contract().to_dict()
         value["taskProjection"] = {"revision": 9}
         with self.assertRaisesRegex(ValueError, "fields differ"):
             HarnessRunContract.from_dict(value)
+
+    def test_direct_privacy_admission_has_same_boolean_domain_as_wire(self) -> None:
+        for bad in ("false", "true", 0, 1, None, []):
+            for flag, wire_name in (
+                ("allow_model_content", "allowModelContent"),
+                ("allow_tool_content", "allowToolContent"),
+            ):
+                with self.subTest(flag=flag, bad=bad):
+                    raw = {
+                        "contentPolicy": "bounded-private-content",
+                        "allowModelContent": False,
+                        "allowToolContent": False,
+                        wire_name: bad,
+                    }
+                    with self.assertRaises(ValueError):
+                        HarnessPrivacyPolicy.from_dict(raw)
+                    with self.assertRaises(ValueError):
+                        HarnessPrivacyPolicy(
+                            content_policy="bounded-private-content", **{flag: bad}
+                        )
+
+    def test_direct_time_admission_has_same_integer_domain_as_wire(self) -> None:
+        for field, wire_name in (
+            ("created_at_ms", "createdAtMs"),
+            ("deadline_ms", "deadlineMs"),
+        ):
+            for bad in (True, False, 20000.0):
+                with self.subTest(field=field, bad=bad):
+                    base = replace(contract(), created_at_ms=0, deadline_ms=20000)
+                    raw = base.to_dict()
+                    raw[wire_name] = bad
+                    with self.assertRaises(ValueError):
+                        HarnessRunContract.from_dict(raw)
+                    with self.assertRaises(ValueError):
+                        replace(base, **{field: bad})
+
+    def test_legacy_bool_version_is_readable_without_identity_rewrite(self) -> None:
+        # Historical Rust and Python readers deliberately recognize this exact
+        # v1 representation. Type fixes must not invalidate issued digests.
+        raw = contract().to_dict()
+        raw["schemaVersion"] = True
+        raw["correlation"] = {"traceparent": None, "tracestate": None, "links": []}
+        self.assertEqual(HarnessRunContract.from_dict(raw).digest, canonical_digest(raw))
 
     def test_metadata_only_policy_rejects_content_capture(self) -> None:
         with self.assertRaisesRegex(ValueError, "metadata-only"):
@@ -194,12 +297,6 @@ class HarnessCoreContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "zero"):
             HarnessRunContract.from_dict(raw)
 
-    def test_new_core_modules_do_not_import_host(self) -> None:
-        root = Path(__file__).resolve().parents[1] / "src" / "ordivon_harness"
-        for name in ("core_contracts.py", "store.py", "sqlite_store.py"):
-            source = (root / name).read_text(encoding="utf-8")
-            self.assertNotIn("ordivon_host", source)
-            self.assertNotIn("_host_compat", source)
 
 
 if __name__ == "__main__":

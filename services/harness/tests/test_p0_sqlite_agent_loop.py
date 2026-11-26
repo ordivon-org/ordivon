@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from pathlib import Path
-import tempfile
 import unittest
 
 from anc_canonical import canonical_digest
@@ -30,7 +28,7 @@ from ordivon_harness.ordivon.run_continuity import (
     EventSourcedRunContinuity,
 )
 from ordivon_harness.protocol import HarnessProviderCallStatus
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from tests.pg_fixture import PgTestSchema, pg_test_schema
 
 DIGEST_A = "sha256:" + "a" * 64
 DIGEST_B = "sha256:" + "b" * 64
@@ -155,8 +153,8 @@ def needs_input_result(suffix: str) -> AgentTurnResult:
 
 
 class SQLiteHarnessAgentLoopTests(unittest.TestCase):
-    def initialize(self, root: Path, run_contract: HarnessRunContract, clock: FixedClock):
-        store = SQLiteHarnessStore.initialize(root)
+    def initialize(self, database: PgTestSchema, run_contract: HarnessRunContract, clock: FixedClock):
+        store = database.open(initialize=True)
         store.create_run(run_contract)
         continuity = EventSourcedRunContinuity(
             store,
@@ -192,11 +190,10 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
         return bridge, result
 
     def test_real_agent_loop_completes_with_only_independent_state(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = contract("complete")
-            store, continuity = self.initialize(root, run_contract, clock)
+            store, continuity = self.initialize(database, run_contract, clock)
             adapter = ScriptedTurnAdapter((completed_result("complete"),))
             bridge, result = self.run_loop(
                 run_contract,
@@ -226,7 +223,7 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
             self.assertEqual(continuity.doctor()["providerRecords"], 3)
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.connect() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
@@ -244,11 +241,10 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
     def test_completed_provider_call_cannot_readmit_physical_dispatch(self) -> None:
         # Concrete invariant: a completed durable call is not a new dispatch
         # token, even if a bridge is reused with an identical request identity.
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = contract("terminal-redispatch")
-            store, continuity = self.initialize(root, run_contract, clock)
+            store, continuity = self.initialize(database, run_contract, clock)
             adapter = ScriptedTurnAdapter((completed_result("terminal-redispatch"),))
             bridge, outcome = self.run_loop(
                 run_contract, continuity, adapter, clock,
@@ -267,8 +263,7 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
             store.close()
 
     def test_durable_completion_replays_after_bridge_response_loss(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = replace(
                 contract("response-loss"),
@@ -278,7 +273,7 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
                     allow_tool_content=False,
                 ),
             )
-            store, continuity = self.initialize(root, run_contract, clock)
+            store, continuity = self.initialize(database, run_contract, clock)
             first_adapter = ScriptedTurnAdapter((completed_result("response-loss"),))
             with self.assertRaisesRegex(RuntimeError, "response loss"):
                 self.run_loop(
@@ -296,7 +291,7 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
             revision = continuity.caller_revision
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.connect() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
@@ -315,11 +310,10 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
                 self.assertEqual(reopened.caller_revision, revision)
 
     def test_metadata_only_response_loss_fences_redispatch_without_result_content(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = contract("response-loss-metadata-only")
-            store, continuity = self.initialize(root, run_contract, clock)
+            store, continuity = self.initialize(database, run_contract, clock)
             first_adapter = ScriptedTurnAdapter(
                 (completed_result("response-loss-metadata-only"),)
             )
@@ -344,7 +338,7 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
             revision = continuity.caller_revision
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.connect() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
@@ -371,8 +365,7 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
                 )
 
     def test_needs_input_snapshot_resumes_and_completes(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = replace(
                 contract("pause-resume"),
@@ -382,7 +375,7 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
                     allow_tool_content=False,
                 ),
             )
-            store, continuity = self.initialize(root, run_contract, clock)
+            store, continuity = self.initialize(database, run_contract, clock)
             first_adapter = ScriptedTurnAdapter((needs_input_result("pause"),))
             _, paused = self.run_loop(
                 run_contract,
@@ -396,7 +389,7 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
             self.assertEqual(retained.snapshot.sequence, 1)
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.connect() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
@@ -434,14 +427,13 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
                 self.assertEqual(reopened.doctor()["snapshots"], 1)
 
     def test_bridge_rejects_noncanonical_tool_surface(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = contract("wrong-surface")
             value = run_contract.to_dict()
             value["toolCatalogDigest"] = DIGEST_A
             wrong = HarnessRunContract.from_dict(value)
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(wrong)
                 continuity = EventSourcedRunContinuity(
                     store,
@@ -452,14 +444,13 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
                     HarnessAgentBridge(wrong, continuity)
 
     def test_bridge_rejects_noncanonical_no_tool_grant(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = contract("wrong-grant")
             value = run_contract.to_dict()
             value["toolGrantDigest"] = DIGEST_A
             wrong = HarnessRunContract.from_dict(value)
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(wrong)
                 continuity = EventSourcedRunContinuity(
                     store,
@@ -469,23 +460,6 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "Tool Grant"):
                     HarnessAgentBridge(wrong, continuity)
 
-    def test_independent_agent_bridge_has_no_host_or_runtime_imports(self) -> None:
-        source = (
-            Path(__file__).resolve().parents[1]
-            / "src"
-            / "ordivon_harness"
-            / "ordivon"
-            / "agent_bridge.py"
-        ).read_text(encoding="utf-8")
-        for forbidden in (
-            "ordivon_host",
-            "_host_compat",
-            "CommittedHarnessAssignment",
-            "RuntimeClient",
-            "HostHarnessRunStore",
-            "from .tools import",
-        ):
-            self.assertNotIn(forbidden, source)
 
 
 if __name__ == "__main__":

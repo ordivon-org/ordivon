@@ -3,6 +3,32 @@
 //! This is intentionally NOT RFC 8785/JCS. The authoritative legacy encoder is
 //! services/harness/src/anc_canonical/canonical.py. Keep the byte format stable
 //! until a versioned consumer migration has been proven.
+//!
+//! # Executable identity contract
+//!
+//! This codec is a Harness-local identity profile, not a universal wire codec.
+//! Canonicalization commits the admitted value, not its semantic truth or the
+//! authority of its issuer. A new public interface must name its identity profile;
+//! it must not silently reinterpret previously issued digests.
+//!
+//! ```
+//! use ordivon_harness_core::{canonical_bytes_from_json, canonical_digest_from_json};
+//! let first = r#"{"b":1,"a":9007199254740993}"#;
+//! let reordered = r#"{"a":9007199254740993,"b":1}"#;
+//! assert_eq!(canonical_bytes_from_json(first).unwrap(),
+//!            reordered.as_bytes());
+//! assert_eq!(canonical_digest_from_json(first).unwrap(),
+//!            canonical_digest_from_json(reordered).unwrap());
+//! assert_ne!(canonical_digest_from_json(first).unwrap(),
+//!            canonical_digest_from_json(r#"{"a":9007199254740992,"b":1}"#).unwrap());
+//! assert!(canonical_bytes_from_json(r#"{"a":1,"a":2}"#).is_err());
+//! assert!(canonical_bytes_from_json(r#"{"a":1.0}"#).is_err());
+//! ```
+//!
+//! Unicode key ordering, integer bounds and negative cases beyond this example
+//! are covered by the independent Python-produced parity corpus in
+//! `tests/python_canonical_parity.rs`. Rustdoc is a navigation and executable
+//! usage projection; the independent source corpus remains a separate oracle.
 #![forbid(unsafe_code)]
 
 use sha2::{Digest, Sha256};

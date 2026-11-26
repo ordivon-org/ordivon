@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from pathlib import Path
-import tempfile
 import unittest
 
 from ordivon_harness.core_contracts import HarnessPrivacyPolicy
@@ -10,7 +8,7 @@ from ordivon_harness.ordivon.loop import OrdivonAgentLoop, RunStopCode
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from tests.pg_fixture import pg_test_schema
 from ordivon_harness.working_view import (
     AgentWorkingSetTransitionProposal,
     HarnessWorkingSetPin,
@@ -137,15 +135,14 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
         return source, pin
 
     def test_agent_promotion_survives_attempt_and_process_until_agent_drops_it(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_contract(
                 "pc17-promote-drop",
                 max_model_calls=6,
                 max_tool_calls=1,
             )
-            store = SQLiteHarnessStore.initialize(root)
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(
                 store,
@@ -211,7 +208,7 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
             retained_b = continuity.load_current_snapshot()
             store.close()
 
-            with SQLiteHarnessStore(root) as second_store:
+            with database.connect() as second_store:
                 second = EventSourcedRunContinuity.open(
                     second_store,
                     run_contract.harness_run_id,
@@ -261,7 +258,7 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
                 self.assertEqual(second.load_current_working_set().pins, (pin_a,))
                 retained_c = second.load_current_snapshot()
 
-            with SQLiteHarnessStore(root) as third_store:
+            with database.connect() as third_store:
                 third = EventSourcedRunContinuity.open(
                     third_store,
                     run_contract.harness_run_id,
@@ -310,15 +307,14 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
                 self.assertTrue(third.doctor()["healthy"])
 
     def test_materialized_but_unselected_source_never_becomes_later_cognition(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_contract(
                 "pc17-unselected",
                 max_model_calls=4,
                 max_tool_calls=1,
             )
-            store = SQLiteHarnessStore.initialize(root)
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(
                 store,
@@ -373,7 +369,7 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
             retained = continuity.load_current_snapshot()
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.connect() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
@@ -427,15 +423,14 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
 
 
     def test_transient_knowledge_survives_clean_pause_within_attempt_then_expires_at_successor(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = private_contract(
                 "pc17-attempt-local",
                 max_model_calls=4,
                 max_tool_calls=1,
             )
-            store = SQLiteHarnessStore.initialize(root)
+            store = database.open(initialize=True)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(
                 store,
@@ -492,7 +487,7 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
             self.assertEqual(retained.snapshot.active_tool_step_intent_digests, ())
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with database.connect() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
@@ -553,8 +548,7 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
                 self.assertTrue(reopened.doctor()["healthy"])
 
     def test_model_only_privacy_rejects_structured_tool_channel_but_not_semantic_taint(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             clock = FixedClock()
             run_contract = replace(
                 private_contract(
@@ -568,7 +562,7 @@ class DurableKnowledgePromotionTests(unittest.TestCase):
                     allow_tool_content=False,
                 ),
             )
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store,

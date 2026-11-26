@@ -14,7 +14,7 @@ audience:
   - operator
   - researcher
   - agent
-updated: 2026-09-18
+updated: 2026-11-21
 summary: Claim classes, evidence strength, historical evidence interpretation and current release gates.
 evidence_status: verified
 readiness: READY
@@ -43,15 +43,55 @@ No implementation-bound evidence should be cited without its Harness/implementat
 
 The supported Agent Run Python API and installed-wheel Host-free
 create/reopen/inspect smoke require a fresh PostgreSQL test authority, not
-SQLite. An Owner PostgreSQL qualification shard can supply HARNESS_PG_TEST_DSN
-from a dedicated disposable test service. Tests create isolated unique schemas
-and drop only those schemas. The portable queue/release wheel gate validates
-metadata, isolated installation, imports and CLI even without this authority,
-but explicitly reports the Host-free PostgreSQL smoke as NOT_RUN. Supplying
-HARNESS_PG_TEST_DSN makes that smoke mandatory and fail-closed. Local real
+SQLite. The existing Owner queue requires HARNESS_PG_TEST_DSN from a dedicated
+disposable test service before running its gates; the CI already supplies it.
+Tests create isolated unique schemas and drop only those schemas. A separately
+invoked wheel metadata check without PG authority still reports the Host-free
+PostgreSQL smoke as NOT_RUN; it cannot qualify the formal queue. Local real
 PostgreSQL qualification must use an equivalent test-only DSN; no old SQLite
-Run data are migrated or replayed. Missing PG authority is SKIPPED or NOT_RUN,
-never a PASS receipt.
+Run data are migrated or replayed. Individual pure tests may run without PG,
+but missing PG authority is SKIPPED or NOT_RUN, never a PASS receipt.
+
+## Test quality: stable behavior before file layout (R37)
+
+A test is a **business or mechanism contract**, not an obstacle to retiring a
+Python file. Moving a class, renaming a private helper, splitting a large
+module or deleting an unused historical implementation must not fail a test
+when its actual documented consumer behavior stays identical.
+
+- **Normal behavior**: create real Agent/domain entrypoints and assert their
+  visible Tool definitions, Run stop reason, observations and output.
+- **Denial behavior**: supply unknown, duplicate and ungranted Tools and verify
+  rejection **before** a Domain/Runtime effect. Exercise empty Tool grants as
+  cognition-only, not as wildcard authority or a fatal error.
+- **Identity and concurrency**: test one immutable original Grant/Run across
+  adversarial W1→W2 mutations by invoking the supported Factory/Run behavior.
+  Do not monkeypatch a variable in a particular implementation source file.
+- **Physical truth**: tests using fake MCP clients are contract tests only.
+  Workspace loss, native job spawning, cancellation, output-byte delivery and
+  Finalizer release require isolated real PG18/Runtime/OS consumers and
+  immutable independent readback; an empty test fixture cannot certify them.
+- **Boundary and provenance**: architecture-wide imports may be checked as a
+  package dependency property, and published API/tool/CLI contracts may be
+  checked for stability. A test must **not** prohibit arbitrary retired
+  filenames, hardcode the module containing a class, or require obsolete
+  planning node IDs. A historical file path is test data only where the exact
+  external artifact is itself the user-visible contract.
+- **Refactoring verification**: maintain a bounded pre-change negative where
+  a business defect is repaired, run affected original consumer regressions,
+  the complete isolated PG18 suite, source imports, Ruff, docs, evidence and
+  installed Wheel checks. Record skipped and unknown physical proof honestly.
+- **Test retirement**: replace a source-location assertion with the mechanism
+  it was meant to protect. If that behavior is already covered in an
+  independent whole-package or end-to-end test, retire the duplicate rather
+  than force a historical file to exist. Formal properties constrain
+  state/effect transitions, not directory names.
+
+These rules permit finer Agent-facing modules without reducing the strength
+of authorization or physical delivery evidence. The R37 module split keeps
+`domain_tools` and `plugin_gateway_effect` as stable consumer entrypoints;
+tests assert real grants, no-effect cognition, Gateway source identity and
+same-Run exact execution rather than the old file that defined a helper.
 
 ## Current portable gate
 
@@ -83,7 +123,7 @@ A `verified` entry is current only while no later invalidating implementation pa
 
 ## P0 scale acceptance
 
-The full P0 persistence closeout uses:
+The full P0 persistence closeout uses an explicitly provided dedicated PostgreSQL test database (set `HARNESS_PG_TEST_DSN` first; never use the production DSN):
 
 ```bash
 uv run python scripts/harness_p0_scale_acceptance.py \
@@ -93,7 +133,7 @@ uv run python scripts/harness_p0_scale_acceptance.py \
   --output evidence/hho-p0-scale-1000x100-<revision>.json
 ```
 
-The receipt must bind the exact implementation revision and prove 1,000 Runs, 100,000 Events, a healthy full-history Doctor after reopen, exact object-reference/file agreement, and sampled current-Run inspection below the recorded one-second gate. Thresholds and machine measurements remain in the receipt rather than becoming timeless prose.
+The receipt must bind the exact implementation revision and prove 1,000 Runs, 100,000 Events, a healthy full-history Doctor after reopen, exact original PostgreSQL object and event-edge cardinality, no orphan objects or outstanding leases, and sampled current-Run inspection below the recorded one-second gate. Each trace payload has a distinct Run/Event identity so CAS deduplication cannot mask the measured workload. Persistent output requires a clean, commit-bound source; dirty-tree smoke output is explicitly unqualified. Thresholds and machine measurements remain in the receipt rather than becoming timeless prose.
 
 ## Historical live receipts
 
@@ -185,3 +225,153 @@ Promotion verification is split across authority owners. Harness verifies exact 
 After reseal is reviewed and committed, Harness finalize requires: the promotion gate is still closed, MCP is still stopped, the worker remains active, no Workflow/browser session is active, the Security-v2 revision differs from the pre-reseal revision, the pool-index digest differs from the pre-reseal digest, and a fresh live pool against that new index returns `NO_OBSERVED_DRIFT`. Any failure preserves the closed gate; image-mutation failures additionally restore the pre-attempt Quadlet and carriers.
 
 A current-image live read-only plan on 2026-09-18 returned `NOOP_ALREADY_CURRENT`, with rendered source Quadlet SHA-256 exactly equal to the installed Quadlet and every active carrier on the same control image; sleeping carriers are represented explicitly instead of forcing residency. MCP/worker remained healthy and admission stayed open. No real different-image `--apply` has been executed as part of this acceptance.
+
+### R38 original effect source coverage (2026-11-24)
+
+Original Run recovery and finalization reads must reject missing historical
+revision pairs and missing persisted PG event payload edges, even when the
+last revision matches and the CAS object still exists. The existing
+`test_postgres_harness_store.py` includes the real-PG fixture with a
+truncated-read fault and a detached-edge fault; the latter changes only the
+disposable PostgreSQL schema. The supported source-read APIs are unchanged.
+The native formal gate uses `OriginalSourceCutR1` with a safety check, an
+expected old-tail-only counterexample and an expected positive-acceptance
+reachability witness. Bounded model PASS does not imply SQL implementation,
+all native Attempts, OS no-future-spawn or real recipient delivery.
+
+R38 candidate validation: isolated original PostgreSQL test environment,
+1746 passed, 74 skipped, 5 deselected and 406 passing subtests. The first
+invocation without a workspace-local environment exposed four legitimate
+owner-environment tests; the original locked offline environment was
+materialized and the unmodified tests reran green. Formal gate, dependency
+boundary tests, Ruff, documentation and evidence-contract checks passed.
+Production install and real Domain/OS finalization remain distinct.
+
+### R39 request identity and pure budget recovery
+
+The original Run prepare path must reject a new Intent with an already used
+Runtime clientRequestId without advancing the original PG revision. A new
+distinct key is accepted; deliberately persisted legacy conflicts still fail
+the full issued-source inspection. Fault injection follows the actual
+public continuity method, not a retired source filename.
+The original TLC ToolUnknownRecoveryR1 model includes key-reuse and
+fresh-next-admission probes. Runtime cross-principal and physical effect
+qualification remain separate. Budget reconstruction tests check retained
+usage, conservative provider accounting and caller-progress reset without
+resetting resource debits or hiding invalid retained limits.
+
+### R40 original Store terminal coverage
+
+Direct normal PG terminal admission must refuse a partial original history
+that hides a pending Tool, and a detached original payload edge, without
+advancing the Run or consuming its lease. The original consistent Doctor
+validator is reused on the exact cut inside the original locked transaction.
+The SourceCut bounded model adds a terminal safety check and unsafe omission
+and legitimate acceptance probes; actual SQL and OS/Domain release remain
+separate evidence obligations.
+
+### R41 PostgreSQL Store source responsibilities and snapshot
+
+The PG Store facade retains the single original connection and atomic
+Writer. Source-level facets isolate schema, pure codecs, immutable objects,
+queries, leases and integrity; public behavior remains on the original
+Store, with the intentional global Doctor snapshot correction. Verify the
+real concurrent new-Run counterexample, the stable caller snapshot
+positive, the standalone Doctor and nested single-Run validation. The
+`DoctorSnapshotR1` bounded model uses the existing TLC gate with weak
+snapshot and nonvacuous concurrent stable-snapshot probes.
+
+The actual normal terminal consumer with settled original Provider and Tool
+effects and its Doctor must succeed without opening a Run command facade.
+The shared original immutable Provider reader preserves the same identity,
+state, request, result and failure checks; the negative pending-effect
+regressions remain in the same real PostgreSQL suite.
+
+Source inspection consumes the exact original history cut returned by the
+existing validation port. The real PG fixture substitutes a second
+same-revision read after successful validation: the original code loses
+the issued Tool, the new consumer uses exactly one Journal read and retains
+the original identity. Concurrent append and actual missing-edge regressions
+remain enforced; the original SourceCut formal gate adds a reread and
+positive consumption probe.
+
+### R42 verified new effect admission and PG experiment consumers
+
+Real PostgreSQL fixtures retain pending Tool A and exercise both new Tool
+and Provider admission with an injected partial read. The original writer
+accepted each new effect before the correction; both must reject without
+advancing Run revision now, with positive settled/replay paths retained.
+The original SourceCut model covers distinct new-effect admission and
+nonvacuity using the same TLC gate.
+
+Adaptive Edit and Scale share the existing disposable test PG schema
+lifecycle. A deterministic Provider fixture executes an actual in-memory
+read/edit sequence and checks visible/hidden verifiers, oracle bytes, PG
+Doctor, failure cleanup, and pre-existing schema collision safety. This is
+not paid model performance or physical Runtime qualification.
+
+For typed original Provider/Tool events, actual PG tests delete the
+Intent or Provider record reference edge while its CAS bytes remain.
+Original validation and Doctor must reject, and source inspection must
+not certify the detached Tool. New original Writer admission rejects
+missing typed references as an input conflict, preserving Run revision
+and the existing Lease; an opaque Trace field with the same name still
+does not invent a reference. This strengthens the existing model's
+integrity premise, not a new registry, GC rule or physical release proof.
+
+Four existing production behavioral test consumers now run against the
+original PostgreSQL Store rather than SQLite: Run continuity port,
+Provider recovery signal fencing, structured result carrier persistence,
+and no-progress completion. The shared disposable test schema helper
+requires the explicit dedicated HARNESS_PG_TEST_DSN. Pure interface and
+carrier assertions still run without a database; PG behaviors are not
+silently represented as SQLite success. The existing queue supplies a
+disposable PG DSN. Historical SQLite storage tests remain until their
+real consumers are independently migrated or retired.
+
+### R43 production behavior consumer migration (candidate)
+
+Sixteen existing SQLite-backed behavior files now exercise original PG
+connections and one explicitly owned disposable schema per case. The
+fixture distinguishes managed connection lifetime from explicit close
+and reopen, including independent thread connections. Behavioral assertions
+for provider/tool recovery, cognition promotion, working-set selection,
+concurrency, and Adaptive Edit are preserved. The materialization test
+uses the original PG CAS contract (canonical payload bytes, kind stored
+as row metadata), not the historical SQLite envelope digest. Legacy
+storage and privacy-specific tests remain until separately qualified.
+
+R43 current issuer cut: under the actual least-privilege Runtime SQL
+role, delete each of the five mandatory current prepared Event edges or
+transfer its Run ownership to a different actual Run. The original
+SQL returned a cut when payload, Snapshot, or State edges were absent.
+The corrected predicate denies each invalid case. A bounded exhaustive
+real PG witness traverses all 3**5 standing combinations (intact, absent,
+foreign) and accepts only the all-intact state. Positive restoration,
+stale revision and wrong fence rejection, and original UNKNOWN behavior
+remain covered. Existing installed issuer function qualification is a
+separate operator action from source qualification.
+
+Eight more existing behavioral test modules migrate to native PG:
+privacy, multi-turn projection, Agent Loop, Tool/Provider Store, Runtime
+Bridge, Standalone, and Search Batch. Privacy tests inspect every logical
+table cell in a dedicated PG schema under a repeatable-read read-only
+snapshot, with a positive persisted sentinel control. This does not
+prove privacy of WAL, logs, backups or physical pages. Native concurrent
+threads use explicit independent original PG connections. Historical
+SQLite-specific Store tests remain, as does a legacy Research Temporal
+pilot with retired imports pending its owner/consumer decision.
+
+The existing AgentRun test support now reuses the same owned-schema fixture
+as the migrated behavior tests. A real forced name collision must raise
+DuplicateSchema before opening a pre-existing schema, and preserve both
+pre-existing sentinel tables. The existing queue rejects absent test DSN
+before tool execution; this is not a new verification service or workflow.
+
+The R43 typed-effect reference contract also binds expected object kind.
+A real PG corruption fixture changes only the Snapshot CAS kind, preserving
+its content/digest and original reference edge. Original history and issued
+source/Doctor must reject. The original Writer rejects a newly supplied
+wrong-kind typed reference as input conflict and preserves Run revision and
+Lease. This uses the same shared predicate and one existing reference query
+with a kind join, not a new reader or storage authority.

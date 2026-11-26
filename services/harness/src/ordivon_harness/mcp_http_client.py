@@ -38,6 +38,42 @@ class HarnessMcpClient(Protocol):
     ) -> tuple[bool, dict[str, JsonValue]]: ...
 
 
+def _require_exact_loopback_path(url: str, *, path: str) -> None:
+    parsed = urlsplit(url)
+    if (
+        parsed.scheme != "http"
+        or parsed.hostname != "127.0.0.1"
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.fragment
+        or parsed.path != path
+        or parsed.query
+        or parsed.port is None
+    ):
+        raise ValueError(
+            f"internal MCP endpoint must be exact loopback HTTP http://127.0.0.1:<port>{path}"
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class LoopbackClaimFinalizerEndpoint:
+    """Original Run's authenticated native Claim owner; not a Tool executor.
+
+    Deliberately accepts neither normal /mcp nor remote HTTPS. Credential
+    authority remains the operator-owned independent bearer file; the
+    endpoint's URL alone is never authorization or Domain completion.
+    """
+
+    url: str
+    name: str = "ordivon-runtime-claim-finalizer"
+
+    def to_dict(self) -> dict[str, str]:
+        return {"name": self.name, "type": "streamable-http", "url": self.url}
+
+    def __post_init__(self) -> None:
+        _require_exact_loopback_path(self.url, path="/harness/mcp")
+
+
 @dataclass(frozen=True, slots=True)
 class LoopbackMcpEndpoint:
     url: str
@@ -47,20 +83,7 @@ class LoopbackMcpEndpoint:
         return {"name": self.name, "type": "streamable-http", "url": self.url}
 
     def __post_init__(self) -> None:
-        parsed = urlsplit(self.url)
-        if (
-            parsed.scheme != "http"
-            or parsed.hostname != "127.0.0.1"
-            or parsed.username is not None
-            or parsed.password is not None
-            or parsed.fragment
-            or parsed.path != "/mcp"
-            or parsed.query
-            or parsed.port is None
-        ):
-            raise ValueError(
-                "internal MCP endpoint must be exact loopback HTTP http://127.0.0.1:<port>/mcp"
-            )
+        _require_exact_loopback_path(self.url, path="/mcp")
 
 
 @dataclass(slots=True)
@@ -223,6 +246,7 @@ class OfficialMcpClient:
 __all__ = [
     "HarnessMcpClient",
     "LoopbackMcpEndpoint",
+    "LoopbackClaimFinalizerEndpoint",
     "McpHttpEndpoint",
     "OfficialMcpClient",
 ]

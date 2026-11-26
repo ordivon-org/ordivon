@@ -13,7 +13,7 @@ import psycopg
 
 from anc_canonical import canonical_digest
 
-from tests.pg_test_support import PostgresAgentRunCase
+from tests.pg_test_support import PostgresAgentRunCase, FakeNativeWorkspaceClaimClient
 
 from ordivon_harness.api import (
     AgentTurnResult,
@@ -332,6 +332,7 @@ class R3SupportedAgentRunTests(PostgresAgentRunCase, unittest.TestCase):
                 monotonic_ms=clock,
                 execution_binding=execution_binding(value),
                 runtime=FakeRuntime(),
+                workspace_claim_client=FakeNativeWorkspaceClaimClient(),
             )
             result = run.run(({"role": "user", "content": "search"},))
             self.assertEqual(result.loop_result.stop_code.value, "candidate_completed")

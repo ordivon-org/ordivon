@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Callable, Protocol, TypeAlias
+from typing import Callable, TypeAlias
 
 from anc_canonical import JsonValue, validate_json_value
 
@@ -15,14 +15,17 @@ from .ordivon.agent_bridge import (
     NO_TOOL_AGENT_SURFACE_DIGEST,
     HarnessAgentBridge,
 )
-from .ordivon.run_store_port import HarnessRunContinuityStore
 from .ordivon.run_continuity import EventSourcedRunContinuity
 from .ordivon.runtime_bridge import (
     INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST,
     INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST,
     HarnessRuntimeBridge,
 )
-from .runtime_port import HarnessRuntimeClient
+from .runtime_port import HarnessRuntimeClient, HarnessWorkspaceAdmissionUnavailable
+from .workspace_claim import NativeWorkspaceClaimClient, WorkspaceRunClaim
+from .run_authority import (
+    HarnessAgentRunCompositionError, HarnessToolBridgeFactory, RunCompositionPolicy,
+)
 from .postgres_store import PostgresHarnessStore
 from .standalone import (
     HarnessAgentExecution,
@@ -37,23 +40,6 @@ from .ordivon.tool_bridge import ToolBridge
 
 
 HarnessAgentAdapterFactory: TypeAlias = Callable[[HarnessRunContract], AgentTurnAdapter]
-
-
-class HarnessToolBridgeFactory(Protocol):
-    catalog_digest: str
-    grant_digest: str
-
-    def build(
-        self,
-        contract: HarnessRunContract,
-        continuity: HarnessRunContinuityStore,
-        *,
-        provider_source=None,
-    ) -> ToolBridge: ...
-
-
-class HarnessAgentRunCompositionError(ValueError):
-    """The exact Run Contract cannot be composed by this supported surface."""
 
 
 @dataclass(slots=True)
@@ -75,6 +61,7 @@ class HarnessAgentRun:
     runtime: HarnessRuntimeClient | None = None
     tool_bridge: ToolBridge | None = None
     tool_bridge_factory: HarnessToolBridgeFactory | None = None
+    workspace_claim: WorkspaceRunClaim | None = None
 
     @classmethod
     def create(
@@ -89,6 +76,8 @@ class HarnessAgentRun:
         runtime: HarnessRuntimeClient | None = None,
         tool_bridge: ToolBridge | None = None,
         tool_bridge_factory: HarnessToolBridgeFactory | None = None,
+        workspace_claim_client: NativeWorkspaceClaimClient | None = None,
+        workspace_claim_workspace_id: str | None = None,
         clock_ms: Callable[[], int] | None = None,
         monotonic_ms: Callable[[], int] | None = None,
     ) -> HarnessAgentRun:
@@ -96,7 +85,7 @@ class HarnessAgentRun:
 
         No SQLite state root, implicit schema creation, or dual writes.
         """
-        cls._validate_structure(
+        RunCompositionPolicy.validate(
             contract, cognition_profile=cognition_profile,
             execution_binding=execution_binding, runtime=runtime,
             tool_bridge=tool_bridge, tool_bridge_factory=tool_bridge_factory,
@@ -104,22 +93,55 @@ class HarnessAgentRun:
         adapter = cls._resolve_adapter(contract, adapter_factory)
         def factory() -> PostgresHarnessStore:
             return PostgresHarnessStore(dsn, schema=schema)
+
+        # Source authority may predate this process. Reject a conflicting
+        # original Run BEFORE any native reservation with caller-selected
+        # workspace input.
         with factory() as store:
             try:
                 projection = store.load_run(contract.harness_run_id)
             except KeyError:
-                store.create_run(contract)
+                projection = None
             else:
-                if (projection.contract_digest != contract.digest
+                if (
+                    projection.contract_digest != contract.digest
                     or projection.caller_id != contract.caller_id
-                    or projection.caller_run_ref != contract.caller_run_ref):
+                    or projection.caller_run_ref != contract.caller_run_ref
+                ):
                     raise HarnessAgentRunCompositionError(
                         "existing Harness PG Run differs from supplied Contract"
                     )
+
+        claim = RunCompositionPolicy.select_workspace_claim(
+            contract,
+            execution_binding=execution_binding,
+            tool_bridge=tool_bridge,
+            tool_bridge_factory=tool_bridge_factory,
+            workspace_claim_workspace_id=workspace_claim_workspace_id,
+            workspace_claim_client=workspace_claim_client,
+        )
+
+        if projection is None:
+            # Physical pin FIRST, PG Run birth SECOND. A native outage cannot
+            # leave a newly created PG Run that has never been protected by a
+            # Workspace Claim. A lost native reserve reply is recovered with
+            # its original idempotency key before any PG Run is committed.
+            if claim is not None:
+                claim.reserve_or_recover()
+            with factory() as store:
+                store.create_run(contract)
+            if claim is not None:
+                claim.require_held()
+        elif claim is not None and not projection.status.terminal:
+            # An existing Run has no trustworthy historical Workspace
+            # origin in a mutable caller ExecutionBinding. It may only
+            # re-enter with a previously issued, exact native HELD Claim.
+            claim.require_held()
         return cls._bind(
             contract, adapter, cognition_profile=cognition_profile,
             execution_binding=execution_binding, runtime=runtime,
             tool_bridge=tool_bridge, tool_bridge_factory=tool_bridge_factory,
+            workspace_claim=claim,
             clock_ms=clock_ms, monotonic_ms=monotonic_ms,
             store_factory=factory,
         )
@@ -137,26 +159,48 @@ class HarnessAgentRun:
         runtime: HarnessRuntimeClient | None = None,
         tool_bridge: ToolBridge | None = None,
         tool_bridge_factory: HarnessToolBridgeFactory | None = None,
+        workspace_claim_client: NativeWorkspaceClaimClient | None = None,
+        workspace_claim_workspace_id: str | None = None,
         clock_ms: Callable[[], int] | None = None,
         monotonic_ms: Callable[[], int] | None = None,
     ) -> HarnessAgentRun:
-        """Reopen from the authoritative PostgreSQL Journal after process loss."""
+        """Reopen an existing PostgreSQL Run only under its original native Claim.
+
+        Legacy unclaimed Workspace-bearing Runs need independently verified
+        native adoption before reentry; this public method cannot infer their
+        physical Workspace provenance from a caller's supplied reference.
+        """
         def factory() -> PostgresHarnessStore:
             return PostgresHarnessStore(dsn, schema=schema)
         with factory() as store:
             contract = EventSourcedRunContinuity.open(
                 store, harness_run_id, clock_ms=clock_ms
             ).contract
-        cls._validate_structure(
+            projection_status_terminal = store.load_run(harness_run_id).status.terminal
+        RunCompositionPolicy.validate(
             contract, cognition_profile=cognition_profile,
             execution_binding=execution_binding, runtime=runtime,
             tool_bridge=tool_bridge, tool_bridge_factory=tool_bridge_factory,
         )
         adapter = cls._resolve_adapter(contract, adapter_factory)
+        claim = RunCompositionPolicy.select_workspace_claim(
+            contract,
+            execution_binding=execution_binding,
+            tool_bridge=tool_bridge,
+            tool_bridge_factory=tool_bridge_factory,
+            workspace_claim_workspace_id=workspace_claim_workspace_id,
+            workspace_claim_client=workspace_claim_client,
+        )
+        if claim is not None and not projection_status_terminal:
+            # The immutable PG Run predates this process. Only a native
+            # HELD Claim for its original Run+Workspace may authorize reentry;
+            # never create a new pin from the caller's mutable binding.
+            claim.require_held()
         return cls._bind(
             contract, adapter, cognition_profile=cognition_profile,
             execution_binding=execution_binding, runtime=runtime,
             tool_bridge=tool_bridge, tool_bridge_factory=tool_bridge_factory,
+            workspace_claim=claim,
             clock_ms=clock_ms, monotonic_ms=monotonic_ms,
             store_factory=factory,
         )
@@ -172,6 +216,7 @@ class HarnessAgentRun:
         runtime: HarnessRuntimeClient | None,
         tool_bridge: ToolBridge | None,
         tool_bridge_factory: HarnessToolBridgeFactory | None,
+        workspace_claim: WorkspaceRunClaim | None,
         clock_ms: Callable[[], int] | None,
         monotonic_ms: Callable[[], int] | None,
         store_factory: Callable[[], HarnessStore],
@@ -188,9 +233,31 @@ class HarnessAgentRun:
             runtime=runtime,
             tool_bridge=tool_bridge,
             tool_bridge_factory=tool_bridge_factory,
+            workspace_claim=workspace_claim,
             store_factory=store_factory,
         )
         return value
+
+    def release_workspace_after_delivery(
+        self,
+        *,
+        recipient_ack: dict[str, JsonValue],
+        verify_delivered_and_drained: Callable[[dict[str, JsonValue], dict[str, JsonValue]], bool],
+    ) -> dict[str, JsonValue] | None:
+        """Fail closed: caller ACK/callback is not an independent release authority.
+
+        Kept for compatibility only. An ordinary Run cannot decide the fate
+        of its unique Workspace bytes, even when it is COMPLETED. The real
+        trusted Finalizer must verify a natural Domain receiver and native
+        OS no-future-spawn under a separate authority, then release the
+        original Claim itself. Neither authority is currently provided here.
+        """
+        if self.workspace_claim is None:
+            return None
+        raise HarnessWorkspaceAdmissionUnavailable(
+            "original Workspace Claim remains HELD: caller-supplied recipient "
+            "ACK/verifier cannot qualify independent Domain and native OS drain"
+        )
 
     @property
     def harness_run_id(self) -> str:
@@ -343,6 +410,8 @@ class HarnessAgentRun:
         cancellation: CancellationToken | None = None,
         cognition_seed: HarnessCognitionSeed | None = None,
     ) -> HarnessAgentExecution:
+        if self.workspace_claim is not None:
+            self.workspace_claim.require_held()
         with self._open_store() as store:
             projection = store.load_run(self.harness_run_id)
             if projection.status is HarnessRunStatus.PAUSED:
@@ -359,6 +428,8 @@ class HarnessAgentRun:
         additional_messages: tuple[dict[str, JsonValue], ...] = (),
         cancellation: CancellationToken | None = None,
     ) -> HarnessAgentExecution:
+        if self.workspace_claim is not None:
+            self.workspace_claim.require_held()
         with self._open_store() as store:
             continuity = self._continuity(store)
             retained = continuity.load_current_snapshot()
@@ -484,120 +555,6 @@ class HarnessAgentRun:
             )
         return adapter
 
-    @staticmethod
-    def _validate_structure(
-        contract: HarnessRunContract,
-        *,
-        cognition_profile: HarnessCognitionProfile | None,
-        execution_binding: HarnessExecutionBinding | None,
-        runtime: HarnessRuntimeClient | None,
-        tool_bridge: ToolBridge | None,
-        tool_bridge_factory: HarnessToolBridgeFactory | None,
-    ) -> None:
-        """Admit every supported composition fact provable before state creation.
-
-        This does not probe Provider or Runtime availability. It only rejects exact
-        caller inputs that cannot lawfully compose the persisted Contract.
-        """
-
-        RunBudget.from_contract_dict(contract.budget)
-        if cognition_profile is not None:
-            if not contract.privacy.allow_model_content:
-                raise HarnessAgentRunCompositionError(
-                    "Harness cognition requires Contract permission to retain model content"
-                )
-            if cognition_profile.working_set_history and not contract.privacy.allow_tool_content:
-                raise HarnessAgentRunCompositionError(
-                    "Harness cognition history requires Tool-content authority"
-                )
-
-        if tool_bridge is not None and tool_bridge_factory is not None:
-            raise HarnessAgentRunCompositionError(
-                "Harness Agent Run accepts either a Tool bridge or a Tool bridge factory, not both"
-            )
-        custom_bridge = tool_bridge if tool_bridge is not None else tool_bridge_factory
-
-        no_tool = (
-            contract.tool_catalog_digest == NO_TOOL_AGENT_SURFACE_DIGEST
-            and contract.tool_grant_digest == NO_TOOL_AGENT_GRANT_DIGEST
-        )
-        runtime_search = (
-            contract.tool_catalog_digest == INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST
-            and contract.tool_grant_digest == INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST
-        )
-        if no_tool:
-            if execution_binding is not None or runtime is not None or custom_bridge is not None:
-                raise HarnessAgentRunCompositionError(
-                    "no-Tool Harness Agent Run must not receive Tool or Runtime authority"
-                )
-            return
-        if runtime_search:
-            if custom_bridge is not None:
-                raise HarnessAgentRunCompositionError(
-                    "built-in Runtime Tool surface must not be replaced by a custom Tool bridge"
-                )
-            if execution_binding is None or runtime is None:
-                raise HarnessAgentRunCompositionError(
-                    "Runtime Tool Harness Agent Run requires exact execution binding and Runtime client"
-                )
-            HarnessAgentRun._validate_execution_binding(contract, execution_binding)
-            return
-        if execution_binding is not None or runtime is not None:
-            raise HarnessAgentRunCompositionError(
-                "custom Tool bridge surface must not receive Runtime execution binding"
-            )
-        if custom_bridge is None:
-            raise HarnessAgentRunCompositionError(
-                "Harness Agent Run does not implement this exact Tool surface without an explicit custom Tool bridge"
-            )
-        if custom_bridge.catalog_digest != contract.tool_catalog_digest:
-            raise HarnessAgentRunCompositionError(
-                "custom Tool bridge catalog differs from the Run Contract"
-            )
-        bridge_grant_digest = getattr(custom_bridge, "grant_digest", None)
-        if bridge_grant_digest != contract.tool_grant_digest:
-            raise HarnessAgentRunCompositionError(
-                "custom Tool bridge grant differs from the Run Contract"
-            )
-        return
-
-    @staticmethod
-    def _validate_execution_binding(
-        contract: HarnessRunContract,
-        execution_binding: HarnessExecutionBinding,
-    ) -> None:
-        if execution_binding.harness_run_id != contract.harness_run_id:
-            raise HarnessAgentRunCompositionError(
-                "Harness Execution Binding differs from the independent Run binding"
-            )
-        references = execution_binding.runtime_references
-        if not references:
-            raise HarnessAgentRunCompositionError(
-                "independent Runtime execution requires foreign references"
-            )
-        if any(reference["namespace"] != "ordivon.harness" for reference in references):
-            raise HarnessAgentRunCompositionError(
-                "independent Runtime execution may reference only ordivon.harness authority"
-            )
-        run_refs = [reference for reference in references if reference["type"] == "harness_run"]
-        if len(run_refs) != 1 or run_refs[0]["id"] != contract.harness_run_id:
-            raise HarnessAgentRunCompositionError("Harness Execution Binding Run reference differs")
-        contract_refs = [
-            reference for reference in references if reference["type"] == "run_contract"
-        ]
-        if len(contract_refs) != 1 or contract_refs[0].get("digest") != contract.digest:
-            raise HarnessAgentRunCompositionError(
-                "Harness Execution Binding Contract reference differs"
-            )
-        grant_refs = [reference for reference in references if reference["type"] == "tool_grant"]
-        if (
-            len(grant_refs) != 1
-            or grant_refs[0].get("digest") != INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST
-            or contract.tool_grant_digest != INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST
-        ):
-            raise HarnessAgentRunCompositionError(
-                "Harness Execution Binding Tool Grant reference differs"
-            )
 
 
 __all__ = [

@@ -3,7 +3,6 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from pathlib import Path
-import tempfile
 import threading
 import unittest
 
@@ -37,7 +36,7 @@ from ordivon_harness.runtime_port import (
     HarnessRuntimeErrorDetail,
     HarnessRuntimeToolRejected,
 )
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from tests.pg_fixture import PgTestSchema, pg_test_schema
 
 DIGEST_A = "sha256:" + "a" * 64
 DIGEST_B = "sha256:" + "b" * 64
@@ -333,9 +332,9 @@ def patch_call(suffix: str) -> AgentToolCall:
     )
 
 
-def patch_bridge(root: Path, suffix: str, runtime: FakePatchRuntime, *, change_consequence=True):
+def patch_bridge(database: PgTestSchema, suffix: str, runtime: FakePatchRuntime, *, change_consequence=True):
     run_contract = patch_contract(suffix)
-    store = SQLiteHarnessStore.initialize(root)
+    store = database.open(initialize=True)
     store.create_run(run_contract)
     clock = FixedClock()
     continuity = EventSourcedRunContinuity(store, run_contract, clock_ms=clock)
@@ -467,10 +466,10 @@ def bound_state() -> HarnessRunState:
 
 class HarnessRuntimeBridgeTests(unittest.TestCase):
     def test_workspace_patch_requires_explicit_workspace_change_consequence(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = FakePatchRuntime("direct")
             store, _, bridge = patch_bridge(
-                Path(directory) / "state",
+                database,
                 "patch-wrong-consequence",
                 runtime,
                 change_consequence=False,
@@ -486,10 +485,10 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
             store.close()
 
     def test_patch_grant_callback_cannot_change_durable_intent_or_runtime_payload(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = FakePatchRuntime("direct")
             store, continuity, bridge = patch_bridge(
-                Path(directory) / "state", "patch-grant-mutation", runtime
+                database, "patch-grant-mutation", runtime
             )
             call = patch_call("patch-grant-mutation")
             admitted_digest = call.digest
@@ -518,10 +517,10 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
             store.close()
 
     def test_workspace_patch_commits_through_existing_durable_tool_lifecycle(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = FakePatchRuntime("direct")
             store, continuity, bridge = patch_bridge(
-                Path(directory) / "state", "patch-direct", runtime
+                database, "patch-direct", runtime
             )
             observation = bridge.execute(
                 patch_call("patch-direct"),
@@ -540,10 +539,10 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
             store.close()
 
     def test_workspace_patch_response_loss_uses_patch_get_not_redispatch(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = FakePatchRuntime("loss_committed")
             store, continuity, bridge = patch_bridge(
-                Path(directory) / "state", "patch-loss", runtime
+                database, "patch-loss", runtime
             )
             observation = bridge.execute(
                 patch_call("patch-loss"),
@@ -566,10 +565,10 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
             ("loss_prepared", "rejected", True),
             ("loss_unknown", "unknown", False),
         ):
-            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+            with self.subTest(mode=mode), pg_test_schema() as database:
                 runtime = FakePatchRuntime(mode)
                 store, continuity, bridge = patch_bridge(
-                    Path(directory) / "state", mode, runtime
+                    database, mode, runtime
                 )
                 observation = bridge.execute(
                     patch_call(mode),
@@ -720,9 +719,9 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
                                 self.assertEqual(standing, "reconcile")
         self.assertEqual(checked, 224)
 
-    def initialize(self, root: Path, suffix: str, runtime: FakeRuntime):
+    def initialize(self, database: PgTestSchema, suffix: str, runtime: FakeRuntime):
         run_contract = contract(suffix)
-        store = SQLiteHarnessStore.initialize(root)
+        store = database.open(initialize=True)
         store.create_run(run_contract)
         clock = FixedClock()
         continuity = EventSourcedRunContinuity(
@@ -739,10 +738,9 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
         return store, clock, run_contract, continuity, bridge
 
     def test_concurrent_workers_dispatch_one_physical_runtime_call(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_schema() as database:
             run_contract = contract("tool-race")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with database.connect(initialize=True) as store:
                 store.create_run(run_contract)
 
             class CountingRuntime(FakeRuntime):
@@ -762,7 +760,7 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
 
             def execute(worker: int) -> str:
                 try:
-                    with SQLiteHarnessStore(root) as store:
+                    with database.connect() as store:
                         clock = FixedClock()
                         continuity = EventSourcedRunContinuity.open(
                             store, run_contract.harness_run_id, clock_ms=clock
@@ -796,7 +794,7 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
 
             self.assertEqual(runtime.workspace_exec_count, 1)
             self.assertEqual(outcomes.count("ok"), 1)
-            with SQLiteHarnessStore(root) as store:
+            with database.connect() as store:
                 report = store.doctor(full=True)
                 event_kinds = [
                     event.event_kind
@@ -807,10 +805,10 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
                 self.assertEqual(event_kinds.count("harness.tool-step-recorded"), 1)
 
     def test_real_agent_loop_searches_runtime_and_completes(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = FakeRuntime("direct")
             store, clock, run_contract, continuity, bridge = self.initialize(
-                Path(directory) / "state",
+                database,
                 "direct",
                 runtime,
             )
@@ -850,11 +848,11 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
             store.close()
 
     def test_succeeded_status_continues_observing_until_delivery_converges(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = FakeRuntime("direct")
             runtime.recovery_observations_remaining = 1
             store, _, _, continuity, bridge = self.initialize(
-                Path(directory) / "state",
+                database,
                 "recovery-required",
                 runtime,
             )
@@ -888,10 +886,10 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
             store.close()
 
     def test_transport_response_loss_reconciles_without_redispatch(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = FakeRuntime("loss")
             store, clock, run_contract, continuity, bridge = self.initialize(
-                Path(directory) / "state",
+                database,
                 "loss",
                 runtime,
             )
@@ -930,10 +928,10 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
                     response["jobs"][0]["workspaceId"] = "ws-foreign"
                 return response
 
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = WrongWorkspaceRuntime("loss")
             store, _, _, continuity, bridge = self.initialize(
-                Path(directory) / "state", "loss", runtime
+                database, "loss", runtime
             )
             value = bound_state()
             bridge.bind_run_state(
@@ -965,10 +963,10 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
                     result["jobId"] = "job:unrelated-observation"
                 return result
 
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = WrongObservedRuntime("loss")
             store, _, _, continuity, bridge = self.initialize(
-                Path(directory) / "state", "loss", runtime
+                database, "loss", runtime
             )
             state = bound_state()
             bridge.bind_run_state(
@@ -995,10 +993,10 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
 
     def test_zero_or_multiple_reconciliation_matches_are_unknown(self) -> None:
         for mode in ("zero", "multiple"):
-            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+            with self.subTest(mode=mode), pg_test_schema() as database:
                 runtime = FakeRuntime(mode)
                 store, _, _, continuity, bridge = self.initialize(
-                    Path(directory) / "state",
+                    database,
                     mode,
                     runtime,
                 )
@@ -1052,10 +1050,10 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
                     return {**result, "jobs": []}
                 return super().call_tool(name, arguments)
 
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = DelayedOwner("loss")
             store, clock, _, continuity, bridge = self.initialize(
-                Path(directory) / "state", "delayed-owner", runtime
+                database, "delayed-owner", runtime
             )
             state = bound_state()
             bridge.bind_run_state(
@@ -1099,7 +1097,7 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
             self.assertEqual(now.receipt.status, HarnessToolStepStatus.OBSERVED)
             self.assertEqual(now.receipt.previous_receipt_digest, original.digest)
             self.assertTrue(now.receipt.reconciled)
-            with SQLiteHarnessStore(Path(directory) / "state") as reopened_store:
+            with database.connect() as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store, continuity.harness_run_id, clock_ms=clock
                 )
@@ -1111,10 +1109,10 @@ class HarnessRuntimeBridgeTests(unittest.TestCase):
             store.close()
 
     def test_precommit_runtime_rejection_is_model_correctable_observation(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with pg_test_schema() as database:
             runtime = FakeRuntime("reject")
             store, _, _, continuity, bridge = self.initialize(
-                Path(directory) / "state",
+                database,
                 "reject",
                 runtime,
             )

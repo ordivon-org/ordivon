@@ -733,9 +733,11 @@ class SQLiteHarnessStore:
                     f"Harness object metadata differs from Journal: {row['digest']}"
                 )
 
-    def validate_run_history(self, harness_run_id: str) -> None:
-        """Fail closed on the semantic history of one Run before execution resumes."""
-        self._validate_run_history(harness_run_id)
+    def validate_run_history(
+        self, harness_run_id: str
+    ) -> tuple[HarnessRunProjection, tuple[HarnessRunEventRecord, ...]]:
+        """Return the existing validated legacy cut, not production PG qualification."""
+        return self._validate_run_history(harness_run_id)
 
     def doctor(self, *, full: bool = True) -> dict[str, JsonValue]:
         quick = tuple(str(row[0]) for row in self.connection.execute("PRAGMA quick_check"))
@@ -819,7 +821,9 @@ class SQLiteHarnessStore:
                 f"Harness Journal schema tables are missing: {sorted(missing)}"
             )
 
-    def _validate_run_history(self, harness_run_id: str) -> None:
+    def _validate_run_history(
+        self, harness_run_id: str
+    ) -> tuple[HarnessRunProjection, tuple[HarnessRunEventRecord, ...]]:
         projection = self.load_run(harness_run_id)
         events = self.list_run_events(harness_run_id)
         if not events or events[0].event_kind != "harness.run-created":
@@ -873,6 +877,8 @@ class SQLiteHarnessStore:
             raise HarnessJournalCorruption(
                 f"Harness Run Contract differs from projection: {harness_run_id}"
             )
+
+        return projection, events
 
     def _event_payload(
         self, *, event_kind: str, data: dict[str, JsonValue]

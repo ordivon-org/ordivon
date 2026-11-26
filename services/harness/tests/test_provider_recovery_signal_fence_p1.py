@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-import tempfile
 import unittest
 
 from ordivon_harness.ordivon.loop import OrdivonAgentLoop
@@ -14,7 +12,7 @@ from ordivon_harness.ordivon.model import (
 from ordivon_harness.ordivon.run_store_port import HarnessProviderCallRecoveryRequired
 from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from tests.pg_fixture import pg_test_store
 from tests.test_p0_sqlite_agent_loop import FixedClock, budget, contract
 
 
@@ -70,11 +68,9 @@ class RecoveryAfterDurableFailureBridge(HarnessAgentBridge):
 
 class ProviderRecoverySignalFenceP1Tests(unittest.TestCase):
     def test_recovery_signal_after_durable_failure_is_not_reclassified_as_provider_unknown(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with pg_test_store() as store:
             clock = FixedClock()
             run_contract = contract("p1-provider-recovery-signal")
-            store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(
                 store,
@@ -91,26 +87,23 @@ class ProviderRecoverySignalFenceP1Tests(unittest.TestCase):
                 monotonic_ms=clock,
                 assignment_deadline_ms=run_contract.deadline_ms,
             )
-            try:
-                with self.assertRaisesRegex(
-                    HarnessProviderCallRecoveryRequired,
-                    "explicit resume",
-                ):
-                    loop.run(
-                        harness_run_id=run_contract.harness_run_id,
-                        assignment_id=continuity.binding.assignment_id,
-                        context_digest=run_contract.context_refs[0].digest,
-                        initial_messages=(
-                            {"role": "user", "content": "exercise Provider recovery fencing"},
-                        ),
-                    )
-                self.assertEqual(bridge.fail_calls, 1)
-                self.assertEqual(len(adapter.requests), 1)
-                self.assertEqual(adapter.handle.cancel_calls, 1)
-                retained = continuity.load_current_provider_call()
-                self.assertIsNotNone(retained.failure)
-            finally:
-                store.close()
+            with self.assertRaisesRegex(
+                HarnessProviderCallRecoveryRequired,
+                "explicit resume",
+            ):
+                loop.run(
+                    harness_run_id=run_contract.harness_run_id,
+                    assignment_id=continuity.binding.assignment_id,
+                    context_digest=run_contract.context_refs[0].digest,
+                    initial_messages=(
+                        {"role": "user", "content": "exercise Provider recovery fencing"},
+                    ),
+                )
+            self.assertEqual(bridge.fail_calls, 1)
+            self.assertEqual(len(adapter.requests), 1)
+            self.assertEqual(adapter.handle.cancel_calls, 1)
+            retained = continuity.load_current_provider_call()
+            self.assertIsNotNone(retained.failure)
 
 
 if __name__ == "__main__":

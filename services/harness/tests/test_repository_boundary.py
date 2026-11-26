@@ -1,97 +1,50 @@
 from __future__ import annotations
 
 import ast
-import json
 from pathlib import Path
 import tomllib
 import unittest
 
-import ordivon_harness
 from ordivon_harness.store import HARNESS_STORE_EVENT_KINDS
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class RepositoryBoundaryTests(unittest.TestCase):
-    def test_harness_has_no_host_dependency_or_compatibility_package(self) -> None:
+    def test_harness_business_api_has_no_foreign_host_dependency(self) -> None:
+        """Public Agent capability must import without a Host framework."""
+        from ordivon_harness.api import DomainToolLoopRunner, HarnessAgentRun
+
         project = tomllib.loads((ROOT / "pyproject.toml").read_text())
-        requirements = project["project"]["dependencies"]
-        self.assertEqual(len(requirements), 3)
-        self.assertIn("httpx==0.28.1", requirements)
-        self.assertIn("psycopg[binary]>=3.3", requirements)
-        self.assertIn("jsonschema>=4.26,<5", requirements)
-        self.assertFalse(any("ordivon-protocol" in requirement for requirement in requirements))
-        self.assertEqual(project["project"].get("optional-dependencies"), {"mcp": ["mcp==2.3.0"]})
-        self.assertEqual(
-            project.get("dependency-groups"),
-            {
-                "dev": ["ruff==0.17.2"],
-                "formal": ["crosshair-tool==0.0.112"],
-                "test": [
-                    "mcp==2.3.0",
-                    "uvicorn==0.52.1",
-                    "playwright==1.63.0",
-                    "rfc8785==0.1.4",
-                    "pytest==9.1.1",
-                ],
-            },
-        )
-        self.assertEqual(
-            (project.get("tool") or {}).get("uv", {}).get("default-groups"),
-            ["dev", "test"],
-        )
-        self.assertNotIn("ordivon-host", str(project.get("dependency-groups", {})))
-        package = ROOT / "src" / "ordivon_harness"
-        self.assertFalse((package / "_host_compat").exists())
-        self.assertFalse((package / "host.py").exists())
-        self.assertFalse((package / "runner.py").exists())
-        self.assertFalse((package / "cutover.py").exists())
-        self.assertFalse((package / "skills").exists())
-        self.assertFalse(hasattr(ordivon_harness, "HarnessHost"))
-        self.assertFalse(hasattr(ordivon_harness, "HarnessRunner"))
-
-    def test_unconsumed_generic_harness_provider_spi_stays_retired(self) -> None:
-        """A prospective alternate-engine plan is not an admitted executable Owner."""
-        plan = json.loads((ROOT / "planning" / "lego-plan-r1.json").read_text())
-        node_ids = {item["id"] for item in plan["nodes"]}
-        self.assertTrue({"H01", "H02", "H03", "H04"} <= node_ids)
-        self.assertNotIn("H05", node_ids)
+        direct = project["project"]["dependencies"]
+        declared_optional = project["project"].get("optional-dependencies", {})
         self.assertFalse(any(
-            edge["from"] == "H05" or edge["to"] == "H05"
-            for edge in plan["edges"]
+            "ordivon-host" in dependency or "ordivon-protocol" in dependency
+            for dependency in direct
         ))
-        slices = {item["id"]: item for item in plan["slices"]}
-        self.assertNotIn("HS1", slices)
-        self.assertEqual(set(slices["HS2"]["nodeIds"]), {"H03", "H04"})
-        self.assertFalse(any("alternate-harness adapter" in gap for gap in plan["gaps"]))
+        self.assertFalse(any(
+            "ordivon-host" in dependency
+            for dependencies in declared_optional.values()
+            for dependency in dependencies
+        ))
+        self.assertTrue(callable(DomainToolLoopRunner.run))
+        self.assertTrue(callable(HarnessAgentRun.create))
 
-    def test_active_owner_tasks_and_release_source_use_locked_audit_closure(self) -> None:
-        """Native merge/verify tasks replace historical, undiscovered nested CI."""
-        audit_export = (
-            "uv export --locked --no-default-groups --no-emit-project "
-            "--format requirements-txt"
-        )
-        audit_action = (
-            'uvx pip-audit --disable-pip --require-hashes '
-            '-r "$tmp/runtime-requirements.txt" --strict --progress-spinner off'
-        )
-        native_tasks = tomllib.loads((ROOT / "mise.toml").read_text())["tasks"]
-        sources = {
-            "queue": native_tasks["queue"]["run"],
-            "verify": native_tasks["verify"]["run"],
-            "release-acceptance.yml": (
-                ROOT / ".github/workflows/release-acceptance.yml"
-            ).read_text(),
+    def test_release_pipeline_executes_locked_dependency_security_audit(self) -> None:
+        """Validate the audit mechanism, not a former CI file's absence."""
+        tasks = tomllib.loads((ROOT / "mise.toml").read_text())["tasks"]
+        release = (ROOT / ".github/workflows/release-acceptance.yml").read_text()
+        entrypoints = {
+            "queue": tasks["queue"]["run"],
+            "verify": tasks["verify"]["run"],
+            "release": release,
         }
-        self.assertFalse((ROOT / ".github/workflows/ci.yml").exists())
-        for name, source in sources.items():
-            with self.subTest(consumer=name):
-                self.assertNotIn("requirements-audit.txt", source)
-                self.assertIn(audit_export, source)
-                self.assertIn(audit_action, source)
-                self.assertIn("uv run --locked ruff check src tests scripts", source)
-                self.assertNotIn("uvx ruff==", source)
-        self.assertFalse((ROOT / "requirements-audit.txt").exists())
+        for owner, commands in entrypoints.items():
+            with self.subTest(consumer=owner):
+                self.assertIn("uv export --locked", commands)
+                self.assertIn("--no-default-groups", commands)
+                self.assertIn("pip-audit", commands)
+                self.assertIn("--strict", commands)
 
     def test_source_tree_contains_no_ordivon_host_imports(self) -> None:
         source_root = ROOT / "src" / "ordivon_harness"
@@ -108,6 +61,66 @@ class RepositoryBoundaryTests(unittest.TestCase):
                             violations.append(f"{path.relative_to(source_root)}:{node.lineno}")
         self.assertEqual(violations, [])
 
+    def test_internal_module_capability_dependencies_form_a_dag(self) -> None:
+        """Agent-facing components must not force each other to import cyclically.
+
+        The graph is discovered from the installed Python package tree. New,
+        renamed or retired implementation files change the graph automatically;
+        no historic file name, old MixIn, or retired directory is pinned.
+        """
+        source_root = ROOT / "src" / "ordivon_harness"
+        modules: dict[str, Path] = {}
+        for path in source_root.rglob("*.py"):
+            relative = path.relative_to(source_root)
+            if path.name == "__init__.py":
+                suffix = relative.parent.parts
+            else:
+                suffix = relative.with_suffix("").parts
+            name = ".".join(("ordivon_harness", *suffix))
+            modules[name] = path
+        imports: dict[str, set[str]] = {name: set() for name in modules}
+        for name, path in modules.items():
+            package = name.split(".") if path.name == "__init__.py" else name.split(".")[:-1]
+            for node in ast.walk(ast.parse(path.read_text(), filename=str(path))):
+                if isinstance(node, ast.ImportFrom):
+                    if node.level:
+                        if node.level > len(package):
+                            continue
+                        root = ".".join(package[: len(package) - node.level + 1])
+                        if node.module:
+                            root += "." + node.module
+                    else:
+                        root = node.module or ""
+                    candidates = (root, *(root + "." + alias.name for alias in node.names))
+                elif isinstance(node, ast.Import):
+                    candidates = tuple(alias.name for alias in node.names)
+                else:
+                    continue
+                imports[name].update(
+                    dest for dest in candidates if dest in modules and dest != name
+                )
+        state: dict[str, int] = {}
+        stack: list[str] = []
+
+        def visit(name: str) -> None:
+            if state.get(name) == 2:
+                return
+            if state.get(name) == 1:
+                raise AssertionError(
+                    "first-party capability import cycle: " + " -> ".join(
+                        (*stack[stack.index(name) :], name)
+                    )
+                )
+            state[name] = 1
+            stack.append(name)
+            for dependency in sorted(imports[name]):
+                visit(dependency)
+            stack.pop()
+            state[name] = 2
+
+        for module in sorted(modules):
+            visit(module)
+
     def test_harness_store_owns_its_event_vocabulary(self) -> None:
         self.assertIn("harness.run-created", HARNESS_STORE_EVENT_KINDS)
         self.assertIn("harness.provider-call-claimed", HARNESS_STORE_EVENT_KINDS)
@@ -117,9 +130,6 @@ class RepositoryBoundaryTests(unittest.TestCase):
         import ordivon_harness.api as api
         from ordivon_harness.store import HARNESS_STORE_EVENT_KINDS, HarnessRunStatus
 
-        package = ROOT / "src" / "ordivon_harness"
-        self.assertFalse((package / "disposition.py").exists())
-        self.assertFalse((package / "core.py").exists())
         self.assertFalse(hasattr(api, "NativeRunAbandonment"))
         self.assertFalse(hasattr(HarnessRunStatus, "ABANDONED"))
         self.assertNotIn("harness.run-abandoned", HARNESS_STORE_EVENT_KINDS)

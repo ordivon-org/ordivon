@@ -13,7 +13,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-11-16
+updated: 2026-11-21
 summary: Canonical world model for Harness as the durable cognitive execution substrate of an Agent, including cognition, control, effects, continuity and caller/Runtime/Host boundaries.
 evidence_status: verified
 readiness: READY
@@ -30,6 +30,54 @@ related:
 Ordivon Harness is the **durable cognitive execution substrate of an Agent** and the independent authority for one bounded Agent Run. A caller supplies immutable semantic/execution authority in a `HarnessRunContract`; the Agent owns semantic reasoning, cognition selection and action choice; Harness turns those choices into exact, provenance-bound, recoverable state transitions and effect intents.
 
 Harness does not build the Agent's world model for it. It preserves the structural truth required for an Agent to build, revise, inspect and act from its own world model without conflating history, cognition, observation, control or physical effects.
+
+## Proposed architecture refinement (2026-11-25; design only)
+
+This section records a candidate direction for review, not installed behavior or
+approval to change the existing writer. Preserve the responsibility boundary
+above while changing the mechanism. A provider-native goal/loop is preferable
+where its admitted identity, budget, cancellation, recovery and result contract
+can be demonstrated. Harness retains the semantic contract and journal; a
+workflow engine may schedule or wake it, but neither engine nor Host owns its
+journal or external effect. Runtime owns physical execution; the domain
+consumer owns acceptance. A leaf task need not have a workflow.
+
+The normative obligations are independent of implementation language:
+
+- Admission binds the immutable Run contract, source identity and grant. A
+  journal append uses the exact predecessor revision and current lease/fence;
+  exact replay does not create another physical effect. Unknown commitment
+  requires reconciliation with the original owner, not a fresh dispatch.
+- Cancellation and completion are separate: no future launch and settlement
+  of all issued effects require original physical evidence. A candidate
+  conclusion, receipt-shaped result or successful process is not independent
+  domain acceptance. Workspace retention is not inferred from zero active jobs.
+- Preserve previously issued canonical bytes. New cross-owner wire coordinates
+  need a named, versioned codec with independent cross-language vectors; never
+  silently reinterpret the owner-local integer JSON profile as RFC 8785.
+- Scope durable cognition by exact references; skill discovery or resource read
+  is not authority or automatic retention. A paginated immutable manifest
+  must either preserve its exact enumeration or explicitly invalidate a cursor.
+
+Implementation navigation (not an additional module registry): the existing
+`core_contracts.py`, `store.py`, `run_state.py`,
+`ordivon/run_continuity.py`, `ordivon/provider_lifecycle.py`,
+`ordivon/run_recovery.py`, and `independent_result.py` under
+`src/ordivon_harness/` are the current semantic reference. The existing
+`crates/harness-core` and `crates/harness-pg` are the Rust candidate seams;
+no second production writer. Prefer a typed pure semantic kernel, explicit
+ports and independently verified PG/effect adapters over a line-by-line port.
+Provider/Temporal/Restate/DBOS replacement remains a matched experiment,
+not a decision by name.
+
+Code is the reference for signatures, fields, supported operations and
+mechanical behavior. Put executable examples and local invariants beside the
+public types and derive API navigation from source. Keep only independent
+intent/invariants, cross-owner compatibility, nonlocal failure assumptions,
+migration/recovery decisions and durable evidence outside the code. Do not
+replace independent specifications or negative controls with generated prose
+or tests derived solely from the implementation. Existing historical records
+are retained until a separate consumer/retention review; no blanket deletion.
 
 ## Harness world model
 
@@ -133,6 +181,57 @@ Harness does not own caller Task state, domain commitments, final acceptance, or
 
 > **Run terminality is not epistemic closure.** `candidate_completed` means the bounded Run formed a candidate result; it may retain explicit unresolved unknowns for caller/domain judgment.
 
+## R37: Agent-readable logic and capability boundaries (source candidate)
+
+The original public imports remain `ordivon_harness.domain_tools` and
+`ordivon_harness.plugin_gateway_effect`. These modules are stable entrypoints,
+not large implementation owners. A caller or another Agent can learn *what
+a module does* without learning the entire Provider/Runtime pipeline.
+
+| Logic contract | Natural capability module | May depend on | Does not own |
+| --- | --- | --- | --- |
+| Domain Tool catalog, admitted subset, domain Loop plan | `domain_tool_contracts.py` | model Tool definitions, Run budget, canonical digest | Provider invocation, effects, Runtime |
+| Domain Tool authorization and Provider composition | `domain_tool_execution.py` | contracts and the existing Agent Loop | Domain Task truth, new IAM or Tool Registry |
+| Gateway wire observation and source-field consistency | `gateway_mcp_wire.py` | canonical JSON and wire errors | physical Job or authorization |
+| Gateway original remote execution/recovery | `gateway_mcp_runtime.py` | wire decoder and original Gateway/Runtime admission | new OS Runner, Run Journal |
+| Gateway admitted Tool/Runtime translation | `gateway_execution_bridge.py` | original execution policy and runtime adapter | new grant, independent result Store |
+| Gateway immutable original source factory | `gateway_execution_factory.py` | the bridge and original grant/source identity | separate issuer or Domain finalization |
+
+The dependency direction is **contracts → authorized execution** for Domain
+Tools and **wire → Runtime MCP adapter → Harness bridge → Factory** for Gateway.
+Stable facades import these capabilities, never the reverse. The original
+Host-free public API and cross-language behavior consumers remain unchanged.
+This refactor does **not** qualify the missing original Run→all issued Native
+OS Job→independent Domain receiver→Finalizer chain. Source tests being green
+are not production installation, Domain ACK or NoFutureSpawn evidence.
+
+A Tool catalog must contain well-formed unique Tool definitions; the **admitted
+subset may be empty**. That lets an Agent use the normal bounded Provider
+loop for cognition-only turns without pretending to own or run a Tool. Every
+ungranted Tool effect is still denied before the Domain bridge executes it.
+
+The original terminal-evidence import cycle is now removed. The former
+`independent_result` ↔ `ordivon/run_continuity` ↔
+`ordivon/run_source_inspection` source SCC mixed terminal receipt reading,
+original PG recovery commands and Doctor. It is now a directed composition:
+
+- `independent_result_contracts.py`: wire-stable immutable receipt,
+  completion proposal and stored-result records
+- `independent_result_reader.py`: only terminal/Trace read and Doctor,
+  with original PG Run/Contract identity checks and no Journal writer
+- `independent_result.py`: original compatible public
+  `IndependentRunRecorder` writer and terminal-conflict reconciliation
+  using the existing continuity owner
+- `ordivon/run_continuity.py` and
+  `ordivon/run_source_inspection.py`: consume the independent reader
+  directly, not the full writer
+
+Source AST import-graph verification now checks **all first-party modules
+automatically** for SCCs without naming any original implementation file.
+The refactored package has no detected import cycles. This is a dependency
+mechanism and an Agent-composability guarantee, not a claim that all external
+OS effects or Domain output receivers are settled.
+
 ## Source layout and retention boundaries
 
 The following describes the current *source responsibilities*, not a certificate
@@ -149,6 +248,376 @@ and evaluation fixtures are not authoritative execution entrypoints.
 | `planning/`, `schemas/`, `config/` | Existing LEGO graph, machine-readable input contracts and deployment/benchmark configuration | Update evidence paths and exact consumer contracts with source retirement, never create a second registry |
 | `docs/`, `research/`, `evidence/` | Current owner guidance, prior experiments and provenance | Keep the source-of-truth distinction explicit: historical results are not automatically current deployment claims |
 | `systemd/`, `containers/`, `.github/` | Service units, containers, native release automation | Verify installed revision and live consumer independently of a Git or CI result |
+
+### Thought → Logic → Capability: current source map
+
+Thought LEGO are reusable methods, not owners or a runtime permission layer:
+construct forward from the caller's objective; work backward from loss,
+duplicate effect, stale authority, ambiguous output, and incorrect completion.
+A logic LEGO expresses each problem as state, preconditions, invariants, failure
+partitions and falsification obligations. A capability LEGO is the source
+implementation behind the existing Store, Provider, Tool and Runtime ports.
+
+| Logical problem | Current capability-bearing source | Non-negotiable boundary |
+| --- | --- | --- |
+| Contract/Run composition | `core_contracts.py`, `agent_run.py`, `run_authority.py` | One immutable Contract; Run composition must not select external task outcomes |
+| Current cognition vs history | `working_view.py`, `ordivon/turn_projection.py`, `ordivon/run_continuity.py` | Retained evidence is not automatic model-visible relevance |
+| Provider turn and retry | `ordivon/loop.py`, `ordivon/provider_lifecycle.py` | Provider reply/transport result is not domain completion |
+| Durable continuity | `postgres_store.py`, `ordivon/run_continuity.py`, `crates/harness-pg/` | Existing Harness PG writer is the only Run journal authority |
+| Tool effect and current permission | `gateway_execution_policy.py`, `plugin_gateway_effect.py`, `ordivon/runtime_bridge.py`, `runtime_port.py` | Caller grant, native admission and physical receipt are different facts |
+| Workspace lifecycle | `workspace_claim.py`, `run_authority.py`, `agent_run.py` | Run ACTIVE without active Jobs must still protect its Workspace |
+| Recovery/finalization | `ordivon/run_continuity.py`, `ordivon/runtime_bridge.py`, `agent_run.py` | UNKNOWN is partitioned by issuer/OS/recipient observations; release requires independent acceptance |
+| Formal verification | `formal/`, `tests/`, `crates/harness-core/` | Source proof, PostgreSQL test, installed native effect, domain receipt are separate claims |
+
+The Gateway permission kernel `gateway_execution_policy.py` is independent of
+Run composition; `plugin_gateway_effect.py` imports it directly, while
+`run_authority.py` re-exports historical names without owning duplicate
+policies. This is a source-only modularization; it does not install a new
+Harness or grant Runtime issuer privileges.
+
+**Source-certified decomposition of the existing boundaries (2026-11-19):**
+
+| Existing facade | Delegated module | Exact single responsibility |
+| --- | --- | --- |
+| `ordivon/run_continuity.py` | `ordivon/run_source_inspection.py` | Revision-fenced original Tool-source identities and Run finalization source assessment; a query is never a release certificate |
+| `ordivon/runtime_bridge.py` | `ordivon/runtime_effect_policy.py` | Pure original Intent/Fence-to-physical-request validation and Runtime delivery-state interpretation |
+| `ordivon/runtime_bridge.py` | `ordivon/runtime_job_lookup.py` | Bounded Runtime read-only Job recovery lookup by exact original request and Workspace, with strict cursor and returned-identity validation |
+| `ordivon/loop.py` | existing `ordivon/run_contract.py` | Reconcile Provider token-count projections within the existing RunBudget contract, without a second counter model |
+
+All public `EventSourcedRunContinuity` methods continue on the one original
+Run API through an inspection mixin. The Runtime Bridge continues exposing
+its historical functions as aliases to the extracted modules; there is only
+one implementation. No new PostgreSQL Writer, Runtime schedule, effect issuer,
+tool registry or extra state authority was introduced.
+
+**R38 source-boundary refinement (2026-11-24, candidate):**
+The three explicit original-effect source reads (all issued, unsettled,
+finalization) reuse the original Store history validator. A matching last
+revision alone does not establish a complete Journal. The source cut checks
+contiguous Run revisions, exact Run identity and current revision again
+after scanning; a concurrent append invalidates the cut. The PostgreSQL
+validator supplies its existing consistent-snapshot Event/CAS-edge checks.
+This is a read-only source assertion, not a Runtime/OS or Domain certificate.
+No new writer, ledger, registry or authority is introduced.
+
+| Existing composition | Delegated responsibility | New source module |
+| --- | --- | --- |
+| Run continuity | Working Set admission and transition | `ordivon/working_set_commands.py` |
+| Run continuity | Caller ingress and durable promotion | `ordivon/caller_ingress.py` |
+| Run continuity | Working View provenance / Provider request validation | `ordivon/working_view_validation.py` |
+| Runtime Bridge | Search tool contract and ripgrep result projection | `ordivon/workspace_search.py` |
+
+The three continuity components still share the original facade's Store and
+lease; extraction is not independent replacement or a second PG Writer.
+Run composition depends on the search contract rather than the physical
+Runtime bridge. Existing tool digests, public API, source read schemas and
+actual consumer behavior remain the acceptance surface; no fixed filename
+requirement is added. Source inspection remains deliberately distinct from
+trusted native all-attempts/NoFutureSpawn and original recipient delivery.
+
+**R39 source refinement (2026-11-24, candidate):**
+New Tool admission rejects reuse of an original Run's Runtime request key
+before a new Intent is persisted. The existing complete effect scanner
+returns the already validated Tool Intent identity and the original Run
+revision CAS fences concurrent writers. Historical conflicting identities
+remain readable for recovery but cannot establish a complete issued set.
+This is scoped to normal Run admission, not a cross-principal Runtime proof.
+
+| Existing facade | Delegated responsibility |
+| --- | --- |
+| Run continuity | `provider_continuity.py`: claim, dispatch, outcome, retry |
+| Run continuity | `provider_record_io.py`: source/record/replay-state binding |
+| Run continuity | `tool_continuity.py`: Intent, dispatch fence, Receipt |
+| Agent Loop | existing `run_contract.py`: pure retained budget restoration |
+
+All continuity facets still compose one Run instance, original Store and
+lease discipline. They are source seams, not independent Writers or new
+services. The budget restoration returns process-local immutable counters;
+caller input resets only progress counters, after validating persisted
+bounds. Provider usage is conservatively reconciled before another effect.
+No new persisted schema or interface is introduced.
+
+**R40 source refinement (2026-11-24, candidate):**
+Normal PG terminal admission validates the exact original history cut under
+its existing locked Run row before scanning prospective effects. The same
+original history/edge validator serves the consistent Doctor read path.
+A truncated history or detached original payload edge cannot become a
+normal terminal with a false empty pending set. UNKNOWN quarantine stays
+distinct and no native or recipient release is certified.
+
+The local persistence scale consumer now uses only the original PostgreSQL
+Store, an explicit dedicated test DSN, a fresh owned disposable schema and
+distinct trace CAS payloads; existing historical SQLite receipts are
+unchanged. A clean revision is required for persistent benchmark evidence.
+
+**R43 source refinement (2026-11-24, candidate):**
+The existing current issuer SQL cut now requires the five typed prepared
+Event reference edges (payload, Intent, Fence, Snapshot, State) to belong
+to that original Run/Event; its fence identity must equal the payload's
+fence object commitment. No new SQL interface or grants. The current
+cut is not a global history validator, native stop receipt, or delivery
+acknowledgment. Existing installed schema qualification must explicitly
+verify the function body; changing the Python release pointer alone does
+not replace an already-installed SQL function.
+
+PG CAS digests bind canonical content, not separate kind metadata. The
+existing original typed-effect reference predicate now validates expected
+kind as well as same-Run/Event edge ownership. Writer and history validation
+share the predicate; the history query joins metadata in the existing
+reference read, without a per-reference query loop.
+
+Twenty-four additional direct SQLite behavior test consumers now use the
+original PG Store; logical privacy checks scan durable test-schema table
+cells with a positive persisted-content witness, not physical WAL/backup
+or filesystem privacy claims. Old storage-format tests and the historical
+Research Temporal pilot remain separately reachable pending retirement
+evidence.
+
+**R42 source refinement (2026-11-24, candidate):**
+New Tool and Provider claim admission now consumes the original Store's
+exact verified Run cut, rather than an unqualified event list. Existing
+revision/lease fencing still applies; exact same-Provider recovery replay
+does not acquire a new external-effect identity. The old partial-read
+failure can no longer hide a pending original effect from these consumers.
+This does not certify Runtime physical quiescence or Domain delivery.
+
+Known original Tool and Provider event object fields must have their
+own persisted reference edges, even when CAS bytes remain readable.
+One pure field/edge predicate serves new original Writer admission
+(input Event conflict) and history validation (Journal corruption).
+Unknown opaque Trace fields are not interpreted as references, and null
+privacy-redacted/legacy optional objects remain admissible. Exact old
+replay remains an identity check; no second reference registry or GC.
+
+The actual Adaptive Edit experiment and scale acceptance consumers share
+one disposable PostgreSQL schema lifecycle in a dedicated test database.
+The experiment no longer constructs SQLite storage, does not infer a
+production DSN, and records its Journal Doctor standing and actual report
+date. Historical experimental evidence is unchanged.
+
+**R41 source refinement (2026-11-24, candidate):**
+The PG Store still owns one connection and the original atomic
+Run/Event/Lease admission transaction. Its existing responsibility seams
+are now separate source facets: schema/issuer definition, pure row codecs,
+CAS objects, Run/Journal queries, leases and history integrity. The public
+`PostgresHarnessStore` remains the composition and sole Journal Writer.
+Object reads and inspection share the same immutable CAS decoder.
+Normal terminal admission and Doctor now consume the same verified original
+Contract/history and a read-only Provider evidence reader directly. They
+no longer instantiate the Run command facade or allocate an execution
+identity merely to inspect effects. The binding factory is shared by the
+original command facade and reader, and no extra state owner is introduced.
+
+The original `validate_run_history` port returns the exact projection and
+events verified by the Store. Issued/unsettled/finalization source consumers
+reuse that cut rather than rereading merely equal revisions; the existing
+post-read current-revision fence remains. Legacy SQLite returns its existing
+validated cut only for its remaining consumers, not PG qualification.
+
+Global Doctor requires a stable native PG snapshot; locking existing Run
+rows cannot fence new Run creation or global CAS phantoms. Standalone
+Doctor uses its original read-only REPEATABLE READ transaction. Caller
+owned REPEATABLE READ/SERIALIZABLE works; nested READ COMMITTED or READ
+UNCOMMITTED must run global Doctor separately. Single-Run validation
+retains the existing writable transaction row-lock path. An unqualified
+global snapshot raises a revision conflict, not a corruption finding.
+
+**Original Run birth and legacy adoption are distinct operations.**
+For NEW Workspace-bearing Runs, the supported `HarnessAgentRun.create`
+first obtains the native HELD Workspace Claim, then commits the original Run
+birth to the existing Harness PostgreSQL Journal. An unconfirmed native
+reservation means **no newly born PG Run**; a lost reserve reply that did
+commit is recovered by the exact stable native request key before PG birth.
+An orphan HELD Claim after a later PG failure is protected and requires
+explicit original-owner reconciliation; it is not auto-released by a TTL.
+
+For EXISTING PostgreSQL Runs, both `HarnessAgentRun.open` and idempotent
+`create` must read the same original Native Claim and prove HELD before
+any Provider/Tool execution. They **never** reserve a new Workspace Claim
+using the current caller's mutable Workspace reference. No-tool Runs are
+unaffected. Native NOT_COMMITTED claim absence is distinguished from
+transport UNKNOWN; neither allows dispatch or automatic re-pinning.
+
+The real-PG18 `tests/test_workspace_claim_run_birth.py` and
+`tests/test_legacy_workspace_claim_reentry_pg.py` prove the two
+operations, lost reply, error and race-recovery boundaries with a Fake
+Native transport. They are source/isolated PG evidence, **not** physical
+proof for old production Runs. A caller-supplied WorkspaceRef, original
+RunContract/sourceRef hash or successful PG reopen cannot establish an
+unclaimed historical Run's physical Workspace provenance. A natural
+authenticated Runtime Owner must first verify original physical identity,
+source and effect history, then pin it in Runtime under the original
+Run identity; only afterwards can normal `open` resume it. A deleted
+original Workspace cannot be repaired by claiming another one. Do not
+auto-migrate old Runs or enable global Workspace GC.
+
+**R29 Native Claim-only client; source, delivery and deletion remain separate.**
+Current Rust Runtime's `ClaimFinalizerOnly` profile uses a separate authenticated
+`/harness/mcp` Principal and exposes only `workspace.get`,
+`workspace.claim.reserve/get/release`. It does NOT require the original
+Harness JobIssuer SQL function in the Runtime database. Harness PG and Runtime
+PG may remain distinct databases; an original Run can obtain and retain the
+exact native HELD Claim across those databases without moving any Harness
+table, Registry or scheduling controller.
+
+The independent CLI for a NEW Workspace-bearing Run accepts only an explicit
+dedicated `--runtime-claim-url http://127.0.0.1:<port>/harness/mcp`
+(and private `--runtime-claim-bearer-token-file`). It does not downgrade
+to ordinary `/mcp`; that route cannot release its own Claims once the
+ordinary native release-denial source is installed. Existing normal Gateway
+execution continues using ordinary `/mcp` and a different Bearer. No Run,
+User message or Tool grant contains the Native Claim credential.
+
+**Not a certified Finalizer yet.** A separate token and a strong normal-route
+DENY prevent accidental ordinary release; they do not prevent the *privileged*
+Claim-only caller from issuing `workspace.claim.release` while original
+Harness PG still reports CREATED, no recipient byte has been accepted and
+normal nonforce Close must still be protected. R29 reproduced that physical
+RED with a disposable original Run against the exact native Claim-only
+Runtime candidate; it does not affect a real user Workspace. **R34 removal of false Finalizer certification.** Earlier original
+`release_workspace_after_delivery` checked Run status and caller-supplied
+`accepted=true` plus a caller-owned verifier callback. The disposable
+NativePG18 test proved that a completed Run with NO downstream recipient
+could still physically release its Claim through `lambda: True`, and its
+normal nonforce close could destroy its unique Workspace. The same lack of
+proof remains at the *privileged raw Native Claim-only route*.
+
+The normal `HarnessAgentRun.release_workspace_after_delivery` compatibility
+entry now rejects ANY Workspace-bearing caller ACK or callback and preserves
+the original HELD Claim; a Run without a Workspace Claim still returns None.
+The source-only `RunCompositionPolicy.require_release_ready` and
+`WorkspaceRunClaim.release_after_verified_delivery` convenience methods
+were removed, not replaced by a second receipt registry or boolean gate.
+The normal Run-facing object offers Claim reserve/recover/get, not a fake
+independent-release promise. Two unconsumed historical opt-in scripts that
+implicitly promoted a caller ACK were retired (preserved in Git history).
+The original Gateway integration still consumes
+`real_pg_native_claim_release.py`; that legacy disposable script now asserts
+Run-level self-certification is rejected before using its explicitly marked
+test-only privileged raw action. Neither it nor the main
+`live_claimonly_cross_db_pg18.py` raw release experiment qualifies a
+production Finalizer.
+
+**This is deliberate fail-closed functionality reduction, not the delivery
+completion.** A true Finalizer still needs the existing Runtime-controlled
+original Claim authority, separately authenticated original Domain receipt
+for ALL meaningful outputs, a trusted Native OS all-issued/no-future-spawn
+and drain witness, and protected release-to-close coordination. The private
+Harness current installation remains old until actual production receiver
+and OS safety are independently qualified.
+
+Qualify a true Finalizer only after its current authenticated original Run,
+recipient's original output bytes/receipt, all actually issued native Attempts
+and no-future-spawn/drain have been independently verified, and its Bearer is
+inaccessible to ordinary executors. A root `trusted_local` execution that
+can read the same protected file is not isolated by chmod 0600 alone.
+Do not install Claim-only credentials, release historical claims or enable
+global GC based only on source tests or simulated ACKs.
+
+**R31 independent Coding durable handoff is not final user satisfaction.**
+The existing `evals/harness-edit-addressing-002/delivery_gate.py` performs
+hidden task QA, immutable Git commit/path verification and exact-byte readback
+from a separate consumer repository; it explicitly returns
+`finalUserDeliveryProven=false` and `userAcknowledgement=UNKNOWN`.
+The opt-in real PostgreSQL 18 + Rust Native MCP Claim-only consumer at
+`rust-migration/consumer-acceptance/live_claimonly_cross_db_pg18.py`
+now drives a real OS Job that edits Coding source and a second unique file.
+A stale/incorrect independent Git commit fails verification while the native
+Claim remains HELD. A second, more subtle test commits QA-correct Coding source
+but omits the other unique original output: Domain QA passes, yet the Native
+Claim must remain HELD because the scoped output consumer graph is incomplete.
+After the same test-controlled downstream Git repository actually stores and
+reads back both original outputs, three hidden QA trials pass and scoped
+nonforce Workspace close leaves both Git blobs intact.
+
+This demonstrates a *durable downstream copy* can end a test Workspace's
+unique-byte dependency **without proving the final user has received or
+accepted the result**. It does not qualify production Claim release:
+that disposable Git repository and callback are owned by the test process;
+there is no independently authenticated production recipient, no trusted
+all-issued Native manager handoff/no-future-spawn attestation, and ordinary
+root `trusted_local` still must not gain the real Finalizer Bearer. A passing
+QA result, caller-provided Git path/commit, self-reported ACK or OS Job exit
+must not be promoted to trusted Finalizer authority. A real Coding/Research
+Domain owner must identify an independent durable recipient with its own
+retention and access policy before any real resource relinquishment.
+
+**R33 concrete Coding Git-worktree scope qualification (not a new Registry).**
+The original task-specific `evals/harness-edit-addressing-002/delivery_gate.py`
+keeps its established hidden QA and exact consumer `git show` verification.
+Without a trusted original Workspace and immutable base Git Commit it now
+explicitly returns `completeOriginalOutputSetReadbackQualified=false` and
+`originalOutputSetStanding=UNKNOWN`, even if the single selected Coding
+file passes QA. Its optional `--original-workspace-repo` and
+`--original-base-commit` reuse ordinary `git diff -z` and
+`git ls-files -z` to discover all changed/staged/committed and untracked
+Git-worktree outputs, then compare every one against an exact immutable
+recipient Git Commit and original bytes. Missing/stale bytes or deleted,
+ignored, symlink, oversized or ambiguous source content fail closed rather
+than silently discard unique values. Ignore-rule discoveries are not
+classified disposable simply because Git ignores them: a Domain retention
+policy or proper Artifact handling must first resolve them. This catches the
+R31 physical scenario where Coding QA passed but another original unique
+file never reached the recipient.
+
+The successful optional result is intentionally ONLY
+`originalOutputSetStanding=verified_test_scope` with
+`originalRunFullOutputCoverage=UNKNOWN`,
+`workspaceSourceFenced=false` and `productionFinalizerEligible=false`.
+Git worktree delta is not the whole Harness Run's native Artifact set,
+original Tool provenance, true recipient AuthN/retention, or systemd
+NoFutureSpawn. The caller may pass its own repo path and base SHA; those
+inputs are NOT trusted production authority. Do not promote this QA result
+alone into `workspace.claim.release` or a real user ACK.
+
+**R35 original NativePG registered Artifact-set consumer closure (scoped).**
+The existing Coding evaluator now optionally composes its R33 original Git
+worktree scope with the original *one* NativePG Job's complete registered
+Artifact descriptor set. It reuses existing authenticated NativePG
+`job.get` + terminal `job.observe` and bounded `artifact.read`:
+every Artifact ID, PG-registered digest, retained byte length, complete
+UTF-8 bytes and original Runtime Job identity must match its corresponding
+immutable downstream Git `artifacts/<artifactId>` blob. Incomplete lists,
+missing/changed blobs, tampered digest, truncated or over-limit Artifacts,
+nonterminal/unknown Job observations and mutable Git refs fail closed. This
+uses the original Runtime PG Artifact registry and original Git objects;
+there is no shadow Artifact registry or another control-plane service.
+
+The opt-in real NativePG18/two-database/OS/Git consumer now proves the new
+hard negative: Coding hidden QA and ALL scoped original Git-worktree files
+are green, but any unreceived Native Job Artifact makes the same original
+Coding Gate refuse handoff while native Claim remains HELD. Exact original
+Native Artifact registered bytes are copied into an immutable independent
+consumer Git commit; after the test-only privileged release and nonforce
+Workspace deletion, ALL these Artifact Git blobs remain independently
+readable with matching length+SHA-256. This is a test-owned recipient,
+not proof of a genuine original Coding/Research recipient's AuthN, retention
+or original Run Tool-to-Job binding. The newly supplied Native Job ID and
+reader are *caller-provided test inputs*; `originalRunFullOutputCoverage`
+remains `UNKNOWN`, `productionFinalizerEligible=false` and no true
+user ACK or Native all-issued NoFutureSpawn can be inferred. R34 normal
+Run release remains fail closed; raw dedicated Native release is still
+unqualified and must not be installed for ordinary model execution.
+
+**Next structural cuts are consumer-driven, not directory-driven.**
+The remaining `ordivon/run_continuity.py` still couples working-set mutation,
+Provider dispatch, and Tool receipts; they must retain one PG writer and
+atomic Run CAS when extracted. The `ordivon/loop.py` function `_run`
+contains nested `execute_tool_calls`, `evaluate_turn_progress`, and
+`restore_projected_cognition_overlay` with shared mutable locals: do not
+move those closures behind an invented second state machine. Extract a
+single explicit per-attempt state contract only after proving restore/replay
+parity, exact budgets and cancellation. Runtime Bridge's remaining physical
+`_execute` and reconciliation methods must retain frozen request identity,
+original Tool Intent, externally owned Job truth and reachable UNKNOWN.
+
+**Falsification checklist:** negative cross-Workspace Job, reused cursor,
+boolean/u64 cursor, changed clientRequestId, stale Run revision, unresolved
+physical Tool, incomplete external recipient ACK and loss between Owner
+admission and reply. Negative checks verify local code boundaries; neither
+source verification nor a terminal Job proves physically fenced future spawn
+or domain completion.
+
 
 `sqlite_store.py` and `scripts/sqlite_*` are still separately reachable legacy
 implementations or migration inputs; their existence does not authorize them as
@@ -448,6 +917,36 @@ preferred composition points. Actual acceptance must reproduce the failing
 cross-PG native close, then prove its safe rejection, safe legal release,
 multi-Run sharing, editing during HELD, and independent domain TaskSolved.
 See `docs/VERIFICATION.md` and `docs/OPERATIONS.md`.
+
+### Run authority as a separate module (source candidate, R22)
+
+The file-by-file audit separates **permission decisions** from **business work**.
+This is a source boundary; merged code and physical installation are different
+facts. It does not introduce a new permission registry, owner approval chain,
+shared transaction across Harness/Runtime databases, or replacement MCP API.
+
+| Actual file | Sole responsibility after extraction | Forbidden responsibility |
+| --- | --- | --- |
+| `src/ordivon_harness/run_authority.py` | Validate Run composition, caller Tool grant/executable/env/timeout, exact Workspace selection, immutable Gateway effect sources, current Runtime issuer Port and post-delivery release prerequisites | Execute physical Jobs, persist a second Run/Claim registry, infer user/domain success from Job completion |
+| `src/ordivon_harness/agent_run.py` | Run creation/reopen, PG Journal/Continuity, turn scheduling, reporting output; call authority decisions, not implement them | Invent policy/identity booleans, infer native HELD from an active Run |
+| `src/ordivon_harness/workspace_claim.py` | Idempotent native Runtime `workspace.claim.reserve/get/release` using one original Run/contract request key, physical HELD readback, lost-response reconciliation | Decide permissions or grant Tool invocation based on a claim alone |
+| `src/ordivon_harness/plugin_gateway_effect.py` | Gateway execution lowering/dispatch/resolve/receipt, consume the authority decision before first send and original-effect replay | Reimplement allowlist or issuer checks in each execution branch |
+| `src/ordivon_harness/runtime_port.py` | Existing structural Protocols, typed Runtime errors | Duplicate a physical Runtime Claim backend |
+| `src/ordivon_harness/execution_binding.py` | Immutable Run/Workspace/foreign reference identities and request ID construction | Authorize effects or own their physical state |
+| `src/ordivon_harness/mcp_http_client.py` | Existing authenticated SDK transport and private bearer-file validation | Choose Run lifecycle or domain delivery |
+| `src/ordivon_harness/cli.py` and `independent_cli.py` | Compose configured Gateway/native clients and Run commands; no silent unprotected fallback for Workspace Run | Interpret transport identity as Runtime issuer privilege |
+
+No-Tool Runs and custom Tools without a Runtime Workspace do **not** pay a
+native Claim requirement. Any workspace-bearing original Run must receive
+native HELD readback before its handle can run; a lost Runtime reserve response
+is reconciled with the exact same request key. `CREATED` in Harness PG after
+native timeout is not an executable Run. A terminal Run must not trigger
+automatic physical release: verified recipient delivery and native drain are
+separate inputs, and actual Runtime close still applies its own source/Job
+checks. Dedicated high-risk NoFutureSpawn guarantees remain unqualified until
+native OS/issuer owner evidence exists. The file-level test double only proves
+policy wiring; native physical close acceptance requires a separate real Runtime
+PG/Git/Job test and installed readback.
 
 ## Pause, resume and recovery
 

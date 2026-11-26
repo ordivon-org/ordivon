@@ -171,6 +171,61 @@ class DomainToolBridgeTests(unittest.TestCase):
             runner.run(self._plan(allowed_tools=("missing_tool",)))
         self.assertEqual(adapter.requests, [])
 
+    def test_no_granted_tool_runs_normal_cognition_without_any_effect(self) -> None:
+        """A valid domain catalog does not force an Agent to execute a Tool."""
+        bridge = _SecurityPlanBridge()
+        adapter = ScriptedTurnAdapter((
+            _result(
+                "cognition-only",
+                conclusion=AgentRunConclusion(
+                    "candidate_completed",
+                    "Summarized the observation without requiring a Tool.",
+                ),
+            ),
+        ))
+        plan = self._plan(allowed_tools=())
+        from dataclasses import replace
+        plan = replace(plan, budget=RunBudget(3, 0, 4096, 60_000))
+        runner = DomainToolLoopRunner(adapter, bridge)
+
+        result = runner.run(plan)
+
+        self.assertIs(result.stop_code, RunStopCode.CANDIDATE_COMPLETED)
+        self.assertEqual(result.tool_calls, 0)
+        self.assertEqual(bridge.calls, [])
+        self.assertEqual(len(adapter.requests), 1)
+        self.assertEqual(tuple(adapter.requests[0].tools), ())
+        identity = runner.execution_identity(plan)
+        self.assertEqual(identity["domain"]["allowedTools"], [])
+        self.assertEqual(
+            identity["domain"]["grantedCatalogDigest"],
+            bridge.catalog._granted_digest(()),
+        )
+
+    def test_no_granted_tool_cannot_execute_catalogued_effect(self) -> None:
+        """The empty grant is legitimate cognition, not wildcard authority."""
+        bridge = _SecurityPlanBridge()
+        denied = domain_tools._GrantedDomainToolBridge(bridge, ())
+        from ordivon_harness.ordivon.tool_errors import ToolBridgeErrorKind
+        from ordivon_harness.ordivon.tool_errors import ToolBridgeError
+        with self.assertRaises(ToolBridgeError) as observed:
+            denied.execute(
+                AgentToolCall("tool-call:zero-grant:denied", "select_team_plan", {"plan": "sleep"}),
+                step_id="step:domain:no-tool",
+            )
+        self.assertEqual(observed.exception.kind, ToolBridgeErrorKind.AUTHORITY_DENIED)
+        self.assertEqual(bridge.calls, [])
+        self.assertEqual(denied.definitions(), ())
+
+    def test_duplicate_and_unknown_grants_stay_denied(self) -> None:
+        catalog = _SecurityPlanBridge.catalog
+        with self.assertRaisesRegex(ValueError, "unique"):
+            catalog._select(("select_team_plan", "select_team_plan"))
+        with self.assertRaisesRegex(ValueError, "unknown Tools"):
+            catalog._select(("unregistered_tool",))
+        with self.assertRaisesRegex(ValueError, "non-empty"):
+            DomainToolCatalog("domain:no-tools", "r1", ())
+
     def test_catalog_digest_binds_revision_and_tool_shape(self) -> None:
         first = _SecurityPlanBridge.catalog
         second = DomainToolCatalog(
@@ -179,8 +234,14 @@ class DomainToolBridgeTests(unittest.TestCase):
             tools=first.tools,
         )
         self.assertNotEqual(first.digest, second.digest)
-        self.assertFalse(hasattr(first, "select"))
-        self.assertFalse(hasattr(first, "granted_digest"))
+        self.assertNotEqual(
+            first._granted_digest(("select_team_plan",)),
+            second._granted_digest(("select_team_plan",)),
+        )
+        self.assertEqual(
+            first._granted_digest(("select_team_plan",)),
+            first._granted_digest(("select_team_plan",)),
+        )
 
 
 if __name__ == "__main__":

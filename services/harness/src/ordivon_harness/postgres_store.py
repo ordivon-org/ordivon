@@ -10,26 +10,30 @@ This owner-local Store does not grant Runtime effects or domain completion.
 
 from __future__ import annotations
 
-import re
-import os
-from collections.abc import Iterator
-from contextlib import contextmanager
 from types import TracebackType
 
-from anc_canonical import JsonValue, canonical_bytes, canonical_digest, loads_strict
+from anc_canonical import JsonValue, canonical_digest
 import psycopg
 from psycopg import sql
 from psycopg.rows import dict_row
-from psycopg.pq import TransactionStatus
 
 from .core_contracts import HarnessRunContract
+from .pg_store_schema import (
+    _SCHEMA, _SCHEMA_NAME, _ISSUER_ADMISSION_FUNCTION,
+    configured_postgres as configured_postgres,
+)
+from .pg_store_codec import (
+    _EVENT_PAYLOAD_KIND, _CONTRACT_OBJECT_KIND, _MAX_EVENT_BATCH,
+    event_payload, run_projection,
+)
+from .pg_store_objects import PostgresObjects
+from .pg_store_queries import PostgresQueries
+from .pg_store_leases import PostgresLeases
+from .pg_store_integrity import PostgresIntegrity, invalid_typed_effect_reference_fields
 from .store_errors import (
     HarnessEventConflict,
     HarnessJournalCorruption,
     HarnessLeaseConflict,
-    HarnessLeaseHeld,
-    HarnessObjectCorrupt,
-    HarnessObjectMissing,
     HarnessRevisionConflict,
     HarnessTerminalConflict,
 )
@@ -39,155 +43,14 @@ from .store import (
     HarnessEventWrite,
     HarnessRunEventRecord,
     HarnessRunLease,
-    HarnessRunProjection,
     HarnessRunStatus,
     StoredHarnessObject,
     harness_run_status_after_event,
     validate_harness_event_identity,
 )
 
-_SCHEMA = """
-CREATE TABLE IF NOT EXISTS schema_info (key text PRIMARY KEY, value text NOT NULL);
-INSERT INTO schema_info(key,value) VALUES ('schema_version','1') ON CONFLICT DO NOTHING;
-CREATE TABLE IF NOT EXISTS objects (
- digest text PRIMARY KEY, kind text NOT NULL, byte_length bigint NOT NULL CHECK (byte_length >= 0),
- content bytea NOT NULL, first_seen_at_ms bigint NOT NULL CHECK (first_seen_at_ms >= 0)
-);
-CREATE TABLE IF NOT EXISTS runs (
- harness_run_id text PRIMARY KEY,
- contract_digest text NOT NULL UNIQUE,
- contract_object_digest text NOT NULL REFERENCES objects(digest),
- caller_id text NOT NULL, caller_run_ref text NOT NULL,
- status text NOT NULL, revision bigint NOT NULL CHECK (revision >= 1),
- created_at_ms bigint NOT NULL CHECK (created_at_ms >= 0),
- updated_at_ms bigint NOT NULL CHECK (updated_at_ms >= created_at_ms),
- terminal_event_id text,
- UNIQUE(caller_id, caller_run_ref)
-);
-CREATE TABLE IF NOT EXISTS run_events (
- sequence bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
- event_id text NOT NULL UNIQUE,
- harness_run_id text NOT NULL REFERENCES runs(harness_run_id) ON DELETE CASCADE,
- run_revision bigint NOT NULL CHECK (run_revision >= 1),
- event_kind text NOT NULL, payload_digest text NOT NULL REFERENCES objects(digest),
- caused_by_event_id text REFERENCES run_events(event_id),
- recorded_at_ms bigint NOT NULL CHECK (recorded_at_ms >= 0),
- UNIQUE(harness_run_id,run_revision)
-);
-CREATE TABLE IF NOT EXISTS run_object_refs (
- harness_run_id text NOT NULL REFERENCES runs(harness_run_id) ON DELETE CASCADE,
- event_id text NOT NULL REFERENCES run_events(event_id) ON DELETE CASCADE,
- digest text NOT NULL REFERENCES objects(digest),
- role text NOT NULL CHECK (role IN ('payload','reference')),
- PRIMARY KEY(event_id,digest)
-);
-CREATE UNIQUE INDEX IF NOT EXISTS run_object_refs_one_payload
- ON run_object_refs(event_id) WHERE role='payload';
-CREATE TABLE IF NOT EXISTS run_leases (
- harness_run_id text PRIMARY KEY REFERENCES runs(harness_run_id) ON DELETE CASCADE,
- owner_id text NOT NULL, lease_revision bigint NOT NULL CHECK (lease_revision >= 1),
- run_revision bigint NOT NULL CHECK (run_revision >= 1),
- expires_at_ms bigint NOT NULL CHECK (expires_at_ms >= 0)
-);
-"""
-_EVENT_PAYLOAD_KIND = "ordivon.harness-run-event-payload"
-_CONTRACT_OBJECT_KIND = "harness-run-contract"
-_MAX_EVENT_BATCH = 256
-_SCHEMA_NAME = re.compile(r"[a-z][a-z0-9_]{0,62}\Z")
 
-
-# Issuer-owned PostgreSQL SECURITY DEFINER predicate. It only exports the
-# current Tool-prepared Event payload and associated Fence CAS bytes, while
-# holding runs FOR SHARE until the caller's Job transaction COMMIT. The
-# Runtime service SQL role needs EXECUTE, NOT issuer table SELECT or UPDATE.
-_ISSUER_ADMISSION_FUNCTION = """
-CREATE OR REPLACE FUNCTION {schema}.harness_current_dispatch_cut(
-    p_run_id text, p_revision bigint, p_fence_digest text
-)
-RETURNS TABLE(
-    event_kind text, payload_digest text, payload_kind text,
-    payload_len bigint, payload_content bytea,
-    fence_kind text, fence_len bigint, fence_content bytea,
-    intent_digest text, intent_kind text, intent_len bigint, intent_content bytea
-)
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog
-AS $source$
-DECLARE
-    locked_status text;
-    locked_revision bigint;
-BEGIN
-    SELECT r.status,r.revision INTO locked_status,locked_revision
-      FROM {schema}.runs r WHERE r.harness_run_id=p_run_id FOR SHARE;
-    IF NOT FOUND OR locked_status != 'active'
-       OR locked_revision != p_revision THEN
-        RETURN;
-    END IF;
-    RETURN QUERY
-    SELECT e.event_kind,e.payload_digest,p.kind,p.byte_length,p.content,
-           f.kind,f.byte_length,f.content,
-           i.digest,i.kind,i.byte_length,i.content
-      FROM {schema}.run_events e
-      JOIN {schema}.objects p ON p.digest=e.payload_digest
-      JOIN {schema}.run_object_refs refs
-        ON refs.event_id=e.event_id AND refs.role='reference'
-      JOIN {schema}.objects f ON f.digest=refs.digest
-      JOIN {schema}.objects i ON i.digest=(
-        convert_from(p.content,'UTF8')::jsonb
-        #>> '{{data,toolStepIntentObjectDigest}}'
-      )
-     WHERE e.harness_run_id=p_run_id AND e.run_revision=p_revision
-       AND e.event_kind='harness.tool-step-prepared'
-       AND f.digest=p_fence_digest
-       AND f.kind='harness-dispatch-fence'
-       AND i.kind='harness-tool-step-intent'
-       AND EXISTS (
-         SELECT 1 FROM {schema}.run_object_refs link
-          WHERE link.event_id=e.event_id AND link.role='reference'
-            AND link.digest=i.digest
-       );
-END
-$source$;
-REVOKE ALL ON FUNCTION {schema}.harness_current_dispatch_cut(text,bigint,text)
-FROM PUBLIC;
-"""
-
-
-def configured_postgres() -> tuple[str, str]:
-    """The owner default is PG-only. No SQLite state-root or import fallback."""
-    # Preserve the already-published Harness PG CLI authority while retiring
-    # SQLite entirely: the explicit marker is advisory and cannot select SQLite.
-    dsn = (os.environ.get("ORDIVON_HARNESS_PG_DSN") or os.environ.get("HARNESS_PG_DSN", "")).strip()
-    if not dsn:
-        raise RuntimeError(
-            "HARNESS_PG_DSN required (or ORDIVON_HARNESS_PG_DSN); SQLite fallback prohibited"
-        )
-    schema = os.environ.get("ORDIVON_HARNESS_PG_SCHEMA") or os.environ.get(
-        "HARNESS_PG_SCHEMA", "harness"
-    )
-    if not _SCHEMA_NAME.fullmatch(schema):
-        raise ValueError("HARNESS_PG_SCHEMA must be one plain SQL identifier")
-    return dsn, schema
-
-
-def _projection(harness_run_id: str, row: dict) -> HarnessRunProjection:
-    try:
-        return HarnessRunProjection(
-            harness_run_id=harness_run_id,
-            contract_digest=row["contract_digest"],
-            contract_object_digest=row["contract_object_digest"],
-            caller_id=row["caller_id"],
-            caller_run_ref=row["caller_run_ref"],
-            status=HarnessRunStatus(row["status"]),
-            revision=int(row["revision"]),
-            created_at_ms=int(row["created_at_ms"]),
-            updated_at_ms=int(row["updated_at_ms"]),
-            terminal_event_id=row["terminal_event_id"],
-        )
-    except (KeyError, TypeError, ValueError) as error:
-        raise HarnessJournalCorruption("Harness PostgreSQL Run projection is invalid") from error
-
-
-class PostgresHarnessStore:
+class PostgresHarnessStore(PostgresObjects, PostgresQueries, PostgresLeases, PostgresIntegrity):
     """PG-backed implementation of the established HarnessStore behavioral port.
 
     `initialize=True` creates only the explicitly named Harness schema; false
@@ -240,123 +103,6 @@ class PostgresHarnessStore:
         self.connection.close()
 
 
-    @contextmanager
-    def _history_snapshot(self, *, harness_run_id: str | None = None) -> Iterator[None]:
-        """Read one self-consistent original PostgreSQL history without a second Store.
-
-        The normal autocommit Store uses a fresh read-only REPEATABLE READ
-        snapshot. If invoked inside an existing caller-owned transaction, it
-        cannot silently change the caller's isolation: either the caller already
-        has a stable snapshot, or a writable READ COMMITTED transaction fences
-        original writers using their existing Run-row FOR UPDATE discipline.
-        """
-        standalone = self.connection.info.transaction_status is TransactionStatus.IDLE
-        with self.connection.transaction():
-            if standalone:
-                self.connection.execute(
-                    "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY"
-                )
-            else:
-                level = self.connection.execute(
-                    "SHOW transaction_isolation"
-                ).fetchone()["transaction_isolation"]
-                if level == "read committed":
-                    read_only = self.connection.execute(
-                        "SHOW transaction_read_only"
-                    ).fetchone()["transaction_read_only"]
-                    if read_only == "on":
-                        raise HarnessJournalCorruption(
-                            "read-only caller transaction has no stable history snapshot"
-                        )
-                    if harness_run_id is None:
-                        self.connection.execute(
-                            "SELECT harness_run_id FROM runs ORDER BY harness_run_id FOR SHARE"
-                        ).fetchall()
-                    else:
-                        self.connection.execute(
-                            "SELECT harness_run_id FROM runs "
-                            "WHERE harness_run_id=%s FOR SHARE",
-                            (harness_run_id,),
-                        ).fetchall()
-            yield
-
-    def _object(self, value: JsonValue, kind: str, *, now_ms: int = 0) -> StoredHarnessObject:
-        if not isinstance(kind, str) or not kind or kind != kind.strip():
-            raise ValueError("Harness object kind must be non-empty and trimmed")
-        raw = canonical_bytes(value)
-        digest = canonical_digest(value)
-        metadata = StoredHarnessObject(digest, len(raw), kind)
-        self.connection.execute(
-            "INSERT INTO objects(digest,kind,byte_length,content,first_seen_at_ms) "
-            "VALUES (%s,%s,%s,%s,%s) ON CONFLICT(digest) DO NOTHING",
-            (digest, kind, len(raw), raw, now_ms),
-        )
-        self._require_object(metadata)
-        return metadata
-
-    def _require_object(self, item: StoredHarnessObject) -> None:
-        actual = self.inspect_object(item.digest)
-        if actual != item:
-            raise HarnessObjectCorrupt("Harness object metadata differs from committed digest")
-
-    def put_object(self, value: JsonValue, *, kind: str) -> StoredHarnessObject:
-        return self._object(value, kind)
-
-    @staticmethod
-    def _decode_object_row(
-        digest: str, row: dict | None, *, expected_kind: str | None = None
-    ) -> JsonValue:
-        """Verify one already-fetched CAS object without another SQL round trip."""
-        if row is None:
-            raise HarnessObjectMissing(f"Harness PostgreSQL object missing: {digest}")
-        if expected_kind is not None and row["kind"] != expected_kind:
-            raise HarnessObjectCorrupt("Harness PostgreSQL object kind differs")
-        raw = bytes(row["content"])
-        try:
-            value = loads_strict(raw)
-        except ValueError as error:
-            raise HarnessObjectCorrupt("Harness PostgreSQL object is invalid JSON") from error
-        if (
-            len(raw) != int(row["byte_length"])
-            or canonical_digest(value) != digest
-            or canonical_bytes(value) != raw
-        ):
-            raise HarnessObjectCorrupt("Harness PostgreSQL object hash/size differs")
-        return value
-
-    def get_object(self, digest: str, *, expected_kind: str | None = None) -> JsonValue:
-        row = self.connection.execute(
-            "SELECT kind,byte_length,content FROM objects WHERE digest=%s", (digest,)
-        ).fetchone()
-        return self._decode_object_row(digest, row, expected_kind=expected_kind)
-
-    def inspect_object(self, digest: str) -> StoredHarnessObject:
-        row = self.connection.execute(
-            "SELECT kind,byte_length,content FROM objects WHERE digest=%s", (digest,)
-        ).fetchone()
-        if row is None:
-            raise HarnessObjectMissing(f"Harness PostgreSQL object missing: {digest}")
-        raw = bytes(row["content"])
-        if len(raw) != int(row["byte_length"]):
-            raise HarnessObjectCorrupt("Harness PostgreSQL object size differs")
-        try:
-            value = loads_strict(raw)
-            if canonical_digest(value) != digest or canonical_bytes(value) != raw:
-                raise HarnessObjectCorrupt("Harness PostgreSQL object hash differs")
-        except ValueError as error:
-            raise HarnessObjectCorrupt("Harness PostgreSQL object content invalid") from error
-        return StoredHarnessObject(digest, int(row["byte_length"]), row["kind"])
-
-    def _payload(self, event_kind: str, data: dict[str, JsonValue]) -> dict[str, JsonValue]:
-        if event_kind not in HARNESS_STORE_EVENT_KINDS:
-            raise ValueError("unsupported Harness store event kind")
-        return {
-            "schemaVersion": 1,
-            "kind": _EVENT_PAYLOAD_KIND,
-            "eventKind": event_kind,
-            "data": data,
-        }
-
     def create_run(self, contract: HarnessRunContract) -> HarnessEventAdmission:
         event_id = (
             "event:harness-run-created:"
@@ -375,7 +121,7 @@ class PostgresHarnessStore:
                 "callerRunRef": contract.caller_run_ref,
             }
             payload = self._object(
-                self._payload("harness.run-created", data),
+                event_payload("harness.run-created", data),
                 _EVENT_PAYLOAD_KIND,
                 now_ms=contract.created_at_ms,
             )
@@ -383,7 +129,7 @@ class PostgresHarnessStore:
                 "SELECT * FROM runs WHERE harness_run_id=%s FOR UPDATE", (contract.harness_run_id,)
             ).fetchone()
             if row is not None:
-                projection = _projection(contract.harness_run_id, row)
+                projection = run_projection(contract.harness_run_id, row)
                 if (
                     projection.contract_digest,
                     projection.contract_object_digest,
@@ -442,20 +188,6 @@ class PostgresHarnessStore:
             )
         return HarnessEventAdmission.CREATED
 
-    def load_run(self, harness_run_id: str) -> HarnessRunProjection:
-        row = self.connection.execute(
-            "SELECT * FROM runs WHERE harness_run_id=%s", (harness_run_id,)
-        ).fetchone()
-        if row is None:
-            raise KeyError(f"Harness Run does not exist: {harness_run_id}")
-        return _projection(harness_run_id, row)
-
-    def list_runs(self) -> tuple[HarnessRunProjection, ...]:
-        rows = self.connection.execute(
-            "SELECT * FROM runs ORDER BY created_at_ms,harness_run_id"
-        ).fetchall()
-        return tuple(_projection(row["harness_run_id"], row) for row in rows)
-
     def append_event(
         self,
         *,
@@ -487,51 +219,6 @@ class PostgresHarnessStore:
             lease_checked_at_ms=lease_checked_at_ms,
         )
 
-    def _require_original_unknown_stop_receipt(
-        self,
-        *,
-        harness_run_id: str,
-        contract_digest: str,
-        data: dict[str, JsonValue],
-        referenced_receipt_digests: set[str],
-    ) -> None:
-        """One original typed UNKNOWN receipt rule for Writer and Doctor.
-
-        The stopped projection cannot prove this by its stopCode alone.
-        Only the original immutable typed receipt with an Event reference and
-        exact Contract/Run binding can justify UNKNOWN audit quarantine. It
-        never authorizes physical resource release.
-        """
-        from .independent_result import IndependentHarnessRunReceipt
-
-        receipt_object_digest = data.get("runReceiptObjectDigest")
-        receipt_digest = data.get("runReceiptDigest")
-        if (
-            not isinstance(receipt_object_digest, str)
-            or not isinstance(receipt_digest, str)
-            or receipt_object_digest not in referenced_receipt_digests
-        ):
-            raise HarnessTerminalConflict(
-                "UNKNOWN fault requires its original typed immutable Run Receipt"
-            )
-        raw = self.get_object(
-            receipt_object_digest,
-            expected_kind="independent-harness-run-receipt",
-        )
-        if not isinstance(raw, dict):
-            raise HarnessTerminalConflict("UNKNOWN fault Run Receipt is not an object")
-        receipt = IndependentHarnessRunReceipt.from_dict(raw)
-        if (
-            receipt.digest != receipt_digest
-            or receipt.harness_run_id != harness_run_id
-            or receipt.contract_digest != contract_digest
-            or receipt.termination_code != data.get("stopCode")
-            or receipt.stop_reason != "unknown"
-        ):
-            raise HarnessTerminalConflict(
-                "UNKNOWN fault Run Receipt differs from original Run identity"
-            )
-
     def append_events(
         self,
         *,
@@ -560,7 +247,7 @@ class PostgresHarnessStore:
                 if e.recorded_at_ms < 0:
                     raise ValueError("negative Harness event time")
                 payload = self._object(
-                    self._payload(e.event_kind, e.data),
+                    event_payload(e.event_kind, e.data),
                     _EVENT_PAYLOAD_KIND,
                     now_ms=e.recorded_at_ms,
                 )
@@ -594,7 +281,7 @@ class PostgresHarnessStore:
                         e.referenced_objects,
                     )
                 return HarnessEventAdmission.EXISTING
-            current = _projection(harness_run_id, row)
+            current = run_projection(harness_run_id, row)
             if current.revision != expected_revision:
                 raise HarnessRevisionConflict("Harness Run revision changed")
             if current.status.terminal:
@@ -607,6 +294,13 @@ class PostgresHarnessStore:
             terminal_id = None
             preceding: set[str] = set()
             for idx, (e, _) in enumerate(prepared):
+                invalid = invalid_typed_effect_reference_fields(
+                    e.event_kind, e.data, {ref.digest: ref.kind for ref in e.referenced_objects}
+                )
+                if invalid:
+                    raise HarnessEventConflict(
+                        "New typed effect Event has missing or mismatched object references: " + ", ".join(invalid)
+                    )
                 if status.terminal:
                     raise HarnessTerminalConflict("terminal Event followed by another Event")
                 if e.recorded_at_ms < when:
@@ -663,6 +357,11 @@ class PostgresHarnessStore:
                 # terminal update. Inspect the entire *prospective* Journal,
                 # including any earlier effects settled in this very batch.
                 original_events = self.list_run_events(harness_run_id)
+                # The same original Store validates exactly the read used
+                # for terminal admission. The Run row is already locked;
+                # an omitted pending Intent or detached persisted edge
+                # cannot turn incomplete evidence into "no effects".
+                original_contract = self._validate_original_run_history(current, original_events)
                 proposed_events = tuple(
                     HarnessRunEventRecord(
                         sequence=-(offset),
@@ -685,19 +384,10 @@ class PostgresHarnessStore:
                     # Use the existing verified immutable-CAS continuity
                     # scanner, rather than a parallel Pending table, ledger,
                     # registry, or a check in a separate transaction.
-                    from .ordivon.continuity_guards import (
-                        inspect_all_unsettled_effect_sources,
-                    )
-                    from .ordivon.run_continuity import EventSourcedRunContinuity
+                    from .ordivon.provider_record_reader import inspect_original_effect_sources
 
-                    continuity = EventSourcedRunContinuity.open(self, harness_run_id)
-                    provider_ids, tool_digests = inspect_all_unsettled_effect_sources(
-                        prospective,
-                        store=self,
-                        harness_run_id=harness_run_id,
-                        binding=continuity.binding,
-                        allow_tool_content=continuity.contract.privacy.allow_tool_content,
-                        provider_record_reader=continuity._load_provider_from_event,
+                    provider_ids, tool_digests = inspect_original_effect_sources(
+                        self, original_contract, prospective
                     )
                     if provider_ids or tool_digests:
                         raise HarnessTerminalConflict(
@@ -792,427 +482,3 @@ class PostgresHarnessStore:
         }
         if expected != actual:
             raise HarnessEventConflict("Harness Event references differ from committed content")
-
-    def list_run_events(
-        self, harness_run_id: str, *, after_sequence: int = 0
-    ) -> tuple[HarnessRunEventRecord, ...]:
-        if after_sequence < 0:
-            raise ValueError("negative event cursor")
-        self.load_run(harness_run_id)
-        # Fetch CAS payloads alongside events. A left join preserves the
-        # missing-object error; all content digest and kind checks still run.
-        rows = self.connection.execute(
-            "SELECT e.*, o.kind AS object_kind, o.byte_length AS object_byte_length, "
-            "o.content AS object_content FROM run_events e "
-            "LEFT JOIN objects o ON o.digest=e.payload_digest "
-            "WHERE e.harness_run_id=%s AND e.sequence>%s ORDER BY e.sequence",
-            (harness_run_id, after_sequence),
-        ).fetchall()
-        return self._decode_event_rows(rows)
-
-    def list_committed_working_set_events(
-        self, harness_run_id: str, *, before_sequence: int, limit: int
-    ) -> tuple[HarnessRunEventRecord, ...]:
-        """Latest committed Working Sets in descending order; at most limit+1 rows.
-
-        This is a read-only PG specialization of the existing journal port.
-        Content is still decoded and CAS checked by the same event decoder.
-        """
-        if before_sequence < 0 or limit < 1:
-            raise ValueError("invalid Working Set page bounds")
-        self.load_run(harness_run_id)
-        rows = self.connection.execute(
-            "SELECT e.*, o.kind AS object_kind, o.byte_length AS object_byte_length, "
-            "o.content AS object_content FROM run_events e "
-            "LEFT JOIN objects o ON o.digest=e.payload_digest "
-            "WHERE e.harness_run_id=%s AND e.event_kind='harness.working-set-recorded' "
-            "AND e.sequence<%s AND "
-            # PostgreSQL can reorder OR operands. A CASE forces the CAS
-            # integrity guards before UTF8/JSON parsing, allowing a corrupt
-            # candidate to reach the original HarnessObjectCorrupt decoder.
-            "CASE WHEN o.digest IS NULL THEN true "
-            "WHEN o.kind != 'ordivon.harness-run-event-payload' THEN true "
-            "WHEN o.byte_length != octet_length(o.content) THEN true "
-            "WHEN o.digest != ('sha256:' || encode(sha256(o.content),'hex')) THEN true "
-            "ELSE convert_from(o.content,'UTF8')::jsonb "
-            "#> '{data,committed}' = 'true'::jsonb END "
-            "ORDER BY e.sequence DESC LIMIT %s",
-            (harness_run_id, before_sequence, limit + 1),
-        ).fetchall()
-        return self._decode_event_rows(rows)
-
-    def find_working_set_event_sequence(
-        self, harness_run_id: str, *, working_set_digest: str
-    ) -> int:
-        """Resolve the unique Journal identity without a full Run scan."""
-        self.load_run(harness_run_id)
-        rows = self.connection.execute(
-            "SELECT e.*, o.kind AS object_kind, o.byte_length AS object_byte_length, "
-            "o.content AS object_content FROM run_events e "
-            "LEFT JOIN objects o ON o.digest=e.payload_digest "
-            "WHERE e.harness_run_id=%s AND e.event_kind='harness.working-set-recorded' "
-            # The current head identity lookup must share the same CASE
-            # guard; otherwise one older corrupt Working Set throws raw PG
-            # JSON/encoding errors before the source CAS decoder runs.
-            "AND CASE WHEN o.digest IS NULL THEN true "
-            "WHEN o.kind != 'ordivon.harness-run-event-payload' THEN true "
-            "WHEN o.byte_length != octet_length(o.content) THEN true "
-            "WHEN o.digest != ('sha256:' || encode(sha256(o.content),'hex')) THEN true "
-            "ELSE convert_from(o.content,'UTF8')::jsonb "
-            "#>> '{data,workingSetDigest}'=%s END "
-            "ORDER BY e.sequence DESC LIMIT 2",
-            (harness_run_id, working_set_digest),
-        ).fetchall()
-        matches = self._decode_event_rows(rows)
-        if len(matches) != 1:
-            raise ValueError("Harness Working Set must have exactly one durable Journal event")
-        return matches[0].sequence
-
-    def _decode_event_rows(self, rows: list[dict]) -> tuple[HarnessRunEventRecord, ...]:
-        result = []
-        for row in rows:
-            payload = self._decode_object_row(
-                row["payload_digest"],
-                None
-                if row["object_kind"] is None
-                else {
-                    "kind": row["object_kind"],
-                    "byte_length": row["object_byte_length"],
-                    "content": row["object_content"],
-                },
-                expected_kind=_EVENT_PAYLOAD_KIND,
-            )
-            if (
-                not isinstance(payload, dict)
-                or set(payload) != {"schemaVersion", "kind", "eventKind", "data"}
-                or payload["schemaVersion"] != 1
-                or payload["kind"] != _EVENT_PAYLOAD_KIND
-                or payload["eventKind"] != row["event_kind"]
-                or not isinstance(payload["data"], dict)
-            ):
-                raise HarnessJournalCorruption("Harness event payload differs from metadata")
-            result.append(
-                HarnessRunEventRecord(
-                    sequence=int(row["sequence"]),
-                    event_id=row["event_id"],
-                    harness_run_id=row["harness_run_id"],
-                    run_revision=int(row["run_revision"]),
-                    event_kind=row["event_kind"],
-                    payload_digest=row["payload_digest"],
-                    data=dict(payload["data"]),
-                    caused_by_event_id=row["caused_by_event_id"],
-                    recorded_at_ms=int(row["recorded_at_ms"]),
-                )
-            )
-        return tuple(result)
-
-    def acquire_run_lease(
-        self,
-        harness_run_id: str,
-        *,
-        owner_id: str,
-        ttl_ms: int,
-        now_ms: int,
-        expected_run_revision: int | None = None,
-    ) -> HarnessRunLease:
-        if not owner_id or owner_id != owner_id.strip() or ttl_ms < 1 or now_ms < 0:
-            raise ValueError("Harness lease identity, TTL or clock is invalid")
-        with self.connection.transaction():
-            row = self.connection.execute(
-                "SELECT * FROM runs WHERE harness_run_id=%s FOR UPDATE", (harness_run_id,)
-            ).fetchone()
-            if row is None:
-                raise KeyError(f"Harness Run does not exist: {harness_run_id}")
-            run = _projection(harness_run_id, row)
-            if expected_run_revision is not None and run.revision != expected_run_revision:
-                raise HarnessRevisionConflict("Run revision changed before lease admission")
-            if run.status.terminal:
-                raise HarnessTerminalConflict("terminal Run cannot be leased")
-            current = self.connection.execute(
-                "SELECT * FROM run_leases WHERE harness_run_id=%s FOR UPDATE", (harness_run_id,)
-            ).fetchone()
-            revision = 1
-            if current is not None:
-                if current["expires_at_ms"] > now_ms:
-                    if current["owner_id"] == owner_id and current["run_revision"] == run.revision:
-                        return HarnessRunLease(
-                            harness_run_id,
-                            owner_id,
-                            int(current["lease_revision"]),
-                            run.revision,
-                            int(current["expires_at_ms"]),
-                        )
-                    raise HarnessLeaseHeld("Harness Run leased by other execution")
-                revision = int(current["lease_revision"]) + 1
-            expires = now_ms + ttl_ms
-            self.connection.execute(
-                "INSERT INTO run_leases(harness_run_id,owner_id,lease_revision,run_revision,expires_at_ms) "
-                "VALUES(%s,%s,%s,%s,%s) ON CONFLICT(harness_run_id) DO UPDATE SET "
-                "owner_id=EXCLUDED.owner_id,lease_revision=EXCLUDED.lease_revision,"
-                "run_revision=EXCLUDED.run_revision,expires_at_ms=EXCLUDED.expires_at_ms",
-                (harness_run_id, owner_id, revision, run.revision, expires),
-            )
-            return HarnessRunLease(harness_run_id, owner_id, revision, run.revision, expires)
-
-    def release_run_lease(self, lease: HarnessRunLease) -> bool:
-        with self.connection.transaction():
-            changed = self.connection.execute(
-                "DELETE FROM run_leases WHERE harness_run_id=%s AND owner_id=%s "
-                "AND lease_revision=%s AND run_revision=%s AND expires_at_ms=%s",
-                (
-                    lease.harness_run_id,
-                    lease.owner_id,
-                    lease.lease_revision,
-                    lease.run_revision,
-                    lease.expires_at_ms,
-                ),
-            ).rowcount
-        return changed == 1
-
-    def _require_lease(self, lease: HarnessRunLease, at: int) -> None:
-        row = self.connection.execute(
-            "SELECT * FROM run_leases WHERE harness_run_id=%s FOR UPDATE", (lease.harness_run_id,)
-        ).fetchone()
-        if (
-            row is None
-            or (row["owner_id"], row["lease_revision"], row["run_revision"], row["expires_at_ms"])
-            != (lease.owner_id, lease.lease_revision, lease.run_revision, lease.expires_at_ms)
-            or row["expires_at_ms"] <= at
-        ):
-            raise HarnessLeaseConflict("Harness Run lease expired or superseded")
-
-    def _consume_lease(self, lease: HarnessRunLease) -> None:
-        changed = self.connection.execute(
-            "DELETE FROM run_leases WHERE harness_run_id=%s AND owner_id=%s "
-            "AND lease_revision=%s AND run_revision=%s AND expires_at_ms=%s",
-            (
-                lease.harness_run_id,
-                lease.owner_id,
-                lease.lease_revision,
-                lease.run_revision,
-                lease.expires_at_ms,
-            ),
-        ).rowcount
-        if changed != 1:
-            raise HarnessLeaseConflict("Harness Run lease changed during batch")
-
-
-    def _validate_event_edges(
-        self,
-        harness_run_id: str,
-        events: tuple[HarnessRunEventRecord, ...],
-        *,
-        contract_object_digest: str,
-    ) -> None:
-        """Verify mandatory original Event edges without inventing optional refs.
-
-        The durable Event row is authoritative for its payload digest, and the
-        Run projection is authoritative for the creation Contract digest. Other
-        optional reference edges may not be reconstructed from an opaque event
-        payload; this check does NOT certify their completeness.
-        """
-        rows = self.connection.execute(
-            "SELECT e.event_id, e.payload_digest, e.event_kind, "
-            "r.digest AS reference_digest, r.role AS reference_role, "
-            "r.harness_run_id AS reference_run_id "
-            "FROM run_events e "
-            "LEFT JOIN run_object_refs r ON r.event_id=e.event_id "
-            "WHERE e.harness_run_id=%s ORDER BY e.run_revision",
-            (harness_run_id,),
-        ).fetchall()
-        refs: dict[str, set[tuple[str, str]]] = {}
-        for row in rows:
-            event_id = row["event_id"]
-            ref_digest = row["reference_digest"]
-            if ref_digest is None or row["reference_run_id"] != harness_run_id:
-                raise HarnessJournalCorruption(
-                    "Original Run Event has missing or foreign-owned object references"
-                )
-            refs.setdefault(event_id, set()).add(
-                (row["reference_role"], ref_digest)
-            )
-        if set(refs) != {event.event_id for event in events}:
-            raise HarnessJournalCorruption("Original Run Event reference graph differs")
-        for event in events:
-            edges = refs[event.event_id]
-            payload_edges = {digest for role, digest in edges if role == "payload"}
-            if payload_edges != {event.payload_digest}:
-                raise HarnessJournalCorruption(
-                    "Original Run Event payload reference differs from Journal"
-                )
-            if event.event_kind == "harness.run-created":
-                expected = {
-                    ("payload", event.payload_digest),
-                    ("reference", contract_object_digest),
-                }
-                if edges != expected:
-                    raise HarnessJournalCorruption(
-                        "Original Run creation Contract reference differs"
-                    )
-
-    def validate_run_history(self, harness_run_id: str) -> None:
-        with self._history_snapshot(harness_run_id=harness_run_id):
-            self._validate_run_history_snapshot(harness_run_id)
-
-    def _validate_run_history_snapshot(self, harness_run_id: str) -> None:
-        projection = self.load_run(harness_run_id)
-        events = self.list_run_events(harness_run_id)
-        if not events or events[0].event_kind != "harness.run-created":
-            raise HarnessJournalCorruption("Run has no creation Event")
-        status = HarnessRunStatus.CREATED
-        when = -1
-        terminal = None
-        for revision, event in enumerate(events, 1):
-            if (
-                event.run_revision != revision
-                or event.recorded_at_ms < when
-                or terminal is not None
-            ):
-                raise HarnessJournalCorruption(
-                    "Run Event chain violates revision/time/terminal law"
-                )
-            status = harness_run_status_after_event(event.event_kind, status)
-            if status.terminal:
-                terminal = event.event_id
-            when = event.recorded_at_ms
-        if (
-            projection.revision != len(events)
-            or projection.status is not status
-            or projection.terminal_event_id != terminal
-            or projection.updated_at_ms != when
-        ):
-            raise HarnessJournalCorruption("Run projection diverges from Journal")
-        contract = self.get_object(
-            projection.contract_object_digest, expected_kind=_CONTRACT_OBJECT_KIND
-        )
-        if not isinstance(contract, dict):
-            raise HarnessObjectCorrupt("Harness Run contract object must be dict")
-        self._validate_event_edges(
-            harness_run_id, events,
-            contract_object_digest=projection.contract_object_digest,
-        )
-        try:
-            restored = HarnessRunContract.from_dict(contract)
-        except ValueError as error:
-            raise HarnessObjectCorrupt("Harness Run contract object invalid") from error
-        if (
-            restored.harness_run_id != harness_run_id
-            or restored.digest != projection.contract_digest
-            or restored.caller_id != projection.caller_id
-            or restored.caller_run_ref != projection.caller_run_ref
-        ):
-            raise HarnessJournalCorruption("Run contract metadata differs from Journal")
-        if (
-            status is HarnessRunStatus.STOPPED
-            and events[-1].event_kind == "harness.run-stopped"
-            and events[-1].data.get("stopCode") in {
-                "provider_state_unknown",
-                "runtime_unknown",
-                "cancel_unknown",
-            }
-        ):
-            # Legacy/foreign Writers may have bypassed the typed admission
-            # fence. Doctor must not certify a raw stopCode as healthy history.
-            # Reuse Writer's *same* original receipt rule, not a parallel
-            # approximation or another pending-state registry.
-            references = {
-                row["digest"]
-                for row in self.connection.execute(
-                    "SELECT digest FROM run_object_refs "
-                    "WHERE event_id=%s AND role='reference'",
-                    (events[-1].event_id,),
-                )
-            }
-            try:
-                self._require_original_unknown_stop_receipt(
-                    harness_run_id=harness_run_id,
-                    contract_digest=projection.contract_digest,
-                    data=events[-1].data,
-                    referenced_receipt_digests=references,
-                )
-            except (HarnessTerminalConflict, HarnessObjectMissing,
-                    HarnessObjectCorrupt, ValueError, TypeError) as error:
-                raise HarnessJournalCorruption(
-                    "UNKNOWN terminal lacks its qualified original Run Receipt"
-                ) from error
-
-    def doctor(self, *, full: bool = True) -> dict[str, JsonValue]:
-        with self._history_snapshot():
-            return self._doctor_consistent(full=full)
-
-    def _doctor_consistent(self, *, full: bool = True) -> dict[str, JsonValue]:
-        objects = self.connection.execute("SELECT digest FROM objects").fetchall()
-        for row in objects:
-            self.inspect_object(row["digest"])
-        runs = self.list_runs()
-        for run in runs:
-            self._validate_run_history_snapshot(run.harness_run_id)
-            if not run.status.terminal:
-                continue
-            history = self.list_run_events(run.harness_run_id)
-            if not any(
-                event.event_kind.startswith(
-                    ("harness.provider-call-", "harness.tool-step-")
-                )
-                for event in history
-            ):
-                continue
-            if (
-                run.status is HarnessRunStatus.STOPPED
-                and history[-1].data.get("stopCode") in {
-                    "provider_state_unknown",
-                    "runtime_unknown",
-                    "cancel_unknown",
-                }
-            ):
-                # The original typed UNKNOWN terminal was verified above.
-                # Pending external effects belong to QUARANTINED_HELD, not a
-                # healthy normal terminal, so do not require them settled.
-                continue
-            from .ordivon.continuity_guards import inspect_all_unsettled_effect_sources
-            from .ordivon.run_continuity import EventSourcedRunContinuity
-
-            # Reuse the Writer's original typed complete-history scanner and
-            # CAS Provider reader. This is a pure read; neither a second
-            # Pending registry nor a Domain/Runtime release certification.
-            try:
-                continuity = EventSourcedRunContinuity.open(
-                    self, run.harness_run_id
-                )
-                pending_provider, pending_tool = inspect_all_unsettled_effect_sources(
-                    history,
-                    store=self,
-                    harness_run_id=run.harness_run_id,
-                    binding=continuity.binding,
-                    allow_tool_content=continuity.contract.privacy.allow_tool_content,
-                    provider_record_reader=continuity._load_provider_from_event,
-                )
-            except (ValueError, TypeError, KeyError) as error:
-                raise HarnessJournalCorruption(
-                    "terminal Run has invalid original Provider/Tool evidence"
-                ) from error
-            if pending_provider or pending_tool:
-                raise HarnessJournalCorruption(
-                    "normal terminal Run retains unsettled original Provider/Tool effects"
-                )
-        events = self.connection.execute("SELECT count(*) AS n FROM run_events").fetchone()["n"]
-        leases = self.connection.execute("SELECT count(*) AS n FROM run_leases").fetchone()["n"]
-        return {
-            "schemaVersion": 1,
-            "kind": "ordivon.harness-store-doctor",
-            "healthy": True,
-            "full": full,
-            "runs": len(runs),
-            "events": events,
-            "objects": len(objects),
-            "leases": leases,
-            "storageBackend": "postgresql",
-            "integrityChecks": [
-                "canonical-object-sha256",
-                "contiguous-run-journal",
-                "contract-binding",
-                "mandatory-event-reference-graph",
-                "single-pg-snapshot",
-            ],
-            "quickCheck": ["not-applicable-postgresql"],
-        }
