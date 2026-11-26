@@ -78,14 +78,14 @@ impl PgRuntime {
                 } else {
                     None
                 };
+            let (issuer_schema, issuer_principal) =
+                if let Some((principal, schema)) = &self.config.harness_dispatch_issuer {
+                    (Some(schema.as_str()), Some(principal.as_str()))
+                } else {
+                    (self.config.harness_issuer_schema.as_deref(), None)
+                };
             #[cfg(target_os = "linux")]
             let issuer_spawn_fence = {
-                let (issuer_schema, issuer_principal) =
-                    if let Some((principal, schema)) = &self.config.harness_dispatch_issuer {
-                        (Some(schema.as_str()), Some(principal.as_str()))
-                    } else {
-                        (self.config.harness_issuer_schema.as_deref(), None)
-                    };
                 if let Some(schema) = issuer_schema {
                     let principal: String = db
                         .client
