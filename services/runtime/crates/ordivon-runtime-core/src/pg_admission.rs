@@ -14,10 +14,9 @@ mod dispatch;
 mod input_contract;
 #[path = "pg_issuer_guard.rs"]
 mod issuer;
-// Windows native drain is consumed by the native writer and PG falsification.
 #[cfg(all(test, feature = "postgres-registry-admission"))]
 mod live_pg_tests;
-#[cfg(any(windows, test))]
+// Win32 journal writer is platform-specific; terminal validation is shared.
 #[path = "pg_admission_native_windows_drain.rs"]
 mod native_windows_drain;
 mod readback;

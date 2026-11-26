@@ -526,6 +526,11 @@ mod tests {
     }
 }
 
+#[path = "pg_windows_evidence/terminal.rs"]
+pub(crate) mod terminal;
+#[cfg(windows)]
+pub(crate) use terminal::reconcile_windows_native_terminal;
+
 /// Bind a Windows evidence read to an exact, admitted PostgreSQL Job snapshot.
 /// PostgreSQL qualification and ownership are checked in one read-only snapshot.
 /// This must NOT be used to declare terminal before independent OS owner death
@@ -929,6 +934,25 @@ pub mod native_terminal_gate {
             return Err(
                 "PG terminal original Job Object lacks positive kernel Empty observation".into(),
             );
+        }
+        // Two-way issuer confirmation. The original Launcher first checks
+        // GetNamedPipeClientProcessId against the admission-frozen parent PID
+        // and only then writes 'R'. An arbitrary PG client must not persist
+        // a supposed issuer-owned drain event before this issuer confirmation.
+        // A rejected/closed pipe is UNKNOWN, never an authorized journal.
+        let mut ready = [0u8; 1];
+        let mut count = 0u32;
+        let accepted = unsafe {
+            windows_sys::Win32::Storage::FileSystem::ReadFile(
+                gate.pipe,
+                ready.as_mut_ptr(),
+                1,
+                &mut count,
+                std::ptr::null_mut(),
+            )
+        };
+        if accepted == 0 || count != 1 || ready[0] != b'R' {
+            return Err("PG native drain original Launcher did not confirm client identity".into());
         }
         // Return with the connection HELD. Dropping it without PG CAS does
         // not send ACK; original Launcher times out and closes its Job handle.

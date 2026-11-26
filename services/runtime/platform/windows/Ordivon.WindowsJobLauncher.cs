@@ -1049,9 +1049,8 @@ internal static class OrdivonWindowsJobLauncher
         {
             throw new InvalidOperationException("working directory does not exist: " + options.WorkingDirectory);
         }
-        if (options.PgTerminalPeerProcessId.HasValue
-            && (!options.RuntimeMode || !options.EmitLauncherStartEvidence))
-            throw new InvalidOperationException("PG terminal peer requires Runtime mode and launcher identity evidence");
+        if (options.PgTerminalPeerProcessId.HasValue && !options.RuntimeMode)
+            throw new InvalidOperationException("PG terminal peer requires Runtime mode");
         if (options.RuntimeMode)
         {
             options.RuntimeBundle = NormalizeLauncherPath(options.RuntimeBundle);
@@ -2151,10 +2150,14 @@ internal static class OrdivonWindowsJobLauncher
             // after CloseHandle is not evidence of an empty object: Windows
             // destroys the named object when its last handle disappears.
             // Ordinary legacy execution keeps its existing result contract.
-            if (options.EmitLauncherStartEvidence)
+            // A native PG parent publishes launcher-start from its original
+            // CreateProcess handle; do not make it race a launcher-authored
+            // start receipt merely to request a native positive drain.
+            if (options.EmitLauncherStartEvidence || options.PgTerminalPeerProcessId.HasValue)
             {
                 JobObjectBasicAccountingInformation drained = WaitForNativeJobDrain(job);
-                WriteWindowsJobDrainEvidence(options, pi, drained);
+                if (options.EmitLauncherStartEvidence)
+                    WriteWindowsJobDrainEvidence(options, pi, drained);
             }
             // PG-only explicit opt-in: retain the REAL Job Object handle
             // until the qualified PG consumer has queried this exact live
@@ -2346,6 +2349,12 @@ internal static class OrdivonWindowsJobLauncher
             if (nativePeer != options.PgTerminalPeerProcessId.Value)
                 throw new InvalidOperationException(
                     "PG terminal pipe peer is not the admission-frozen Runtime process");
+            // The Launcher has authenticated the caller from the OS pipe
+            // endpoint. Only NOW may the caller record native-drain in the
+            // PG Journal. Without this Ready byte, a caller could journal an
+            // event while the real Launcher rejects that mismatched caller.
+            pipe.WriteByte((byte)'R');
+            pipe.Flush();
             // ACK is deliberately one byte, only sent after qualified PG
             // native witness journal commit. Untrusted early EOF/incorrect byte never releases the
             // owner as a *qualified success*; finally still reclaims the handle.
