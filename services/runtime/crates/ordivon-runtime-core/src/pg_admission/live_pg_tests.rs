@@ -122,3 +122,5 @@ mod issuer_cases;
 mod terminal_cases;
 
 mod stateful_model_cases;
+
+mod windows_drain_cases;
