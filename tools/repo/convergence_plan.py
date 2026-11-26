@@ -432,9 +432,12 @@ def build_plan(
         )
 
     affected_owners.require_registered_execution_paths(paths, owners=owners)
-    direct = affected_owners.owners_for_paths(paths, owners=owners)
+    # Preserve original changedPaths for provenance, but use the same
+    # canonical representation for every selection rule.
+    normalized_paths = tuple(affected_owners._normalize(path) for path in paths)
+    direct = affected_owners.owners_for_paths(normalized_paths, owners=owners)
     direct_names = tuple(owner.name for owner in direct)
-    cross_cutting = _is_cross_cutting(paths)
+    cross_cutting = _is_cross_cutting(normalized_paths)
     test_only_consumers: list[tuple[str, str, str, str]] = []
     graph = load_dependency_graph(
         owners=owners, path=dependency_path, test_only_consumers=test_only_consumers,
@@ -453,7 +456,7 @@ def build_plan(
                     or any(
                         path == fragment
                         or (fragment.endswith("/") and path.startswith(fragment))
-                        for path in paths
+                        for path in normalized_paths
                     )
                 )
             }
@@ -485,7 +488,7 @@ def build_plan(
     # invented domain Owner. A changed proof/checker source must still route to
     # the already declared root mise formal:verify consumer task.
     formal_source_changed = affected_owners.requires_core_formal_verification(
-        paths
+        normalized_paths
     )
     formal_tasks = ("formal:verify",) if formal_source_changed else ()
     verify_tasks = (

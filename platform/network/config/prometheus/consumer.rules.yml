@@ -1,6 +1,17 @@
 groups:
   - name: network-v2-vpn-consumer
     rules:
+      # Exactly one raw series per expected role, with fresh binary evidence.
+      # Reject duplicates before filtering by freshness; never treat an old or
+      # nonbinary sample as an independent observation. Same-group evaluation
+      # keeps the consumers below on the current recording-rule evaluation.
+      - record: network:probe_success:unique_fresh
+        expr: >-
+          sum by(job) (
+            ((probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api|blackbox-http-ipv4|blackbox-http-ipv4-alternate"} == 0) or (probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api|blackbox-http-ipv4|blackbox-http-ipv4-alternate"} == 1))
+            and (time() - timestamp(probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api|blackbox-http-ipv4|blackbox-http-ipv4-alternate"}) < 90)
+            and on(job) (count by(job) (probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api|blackbox-http-ipv4|blackbox-http-ipv4-alternate"}) == 1)
+          )
       # An active HTTP listener is not proof of a usable Gluetun VPN.
       # Report only a sampled application failure; missing evidence is a separate alert.
       - alert: NetworkVPNPyPIUnavailable
@@ -112,9 +123,9 @@ groups:
       # reported separately by NetworkConsumerEvidenceMissing (not an outage).
       - alert: NetworkCorrelatedConsumerOutage
         expr: >-
-          (sum(probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api"}) == 0)
-          and (count(probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api"}) == 3)
-          and (count((time() - timestamp(probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api"})) < 90) == 3)
+          (sum(network:probe_success:unique_fresh{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api"}) == 0)
+          and (count(network:probe_success:unique_fresh{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api"}) == 3)
+          and (count(timestamp(network:probe_success:unique_fresh{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api"}) == time()) == 3)
         for: 2m
         labels:
           severity: warning
@@ -128,9 +139,9 @@ groups:
       # In particular, a shared outage must never authorize a Gluetun PUT.
       - alert: NetworkSharedUnderlaySuspected
         expr: >-
-          (sum(probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api|blackbox-http-ipv4|blackbox-http-ipv4-alternate"}) == 0)
-          and (count(probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api|blackbox-http-ipv4|blackbox-http-ipv4-alternate"}) == 5)
-          and (count((time() - timestamp(probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api|blackbox-http-ipv4|blackbox-http-ipv4-alternate"})) < 90) == 5)
+          (sum(network:probe_success:unique_fresh{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api|blackbox-http-ipv4|blackbox-http-ipv4-alternate"}) == 0)
+          and (count(network:probe_success:unique_fresh{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api|blackbox-http-ipv4|blackbox-http-ipv4-alternate"}) == 5)
+          and (count(timestamp(network:probe_success:unique_fresh{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api|blackbox-http-ipv4|blackbox-http-ipv4-alternate"}) == time()) == 5)
         for: 2m
         labels:
           severity: warning
@@ -142,12 +153,12 @@ groups:
       # a scoped proxy, or a destination service is specifically responsible.
       - alert: NetworkVPNPathFailureWithDirectHealthy
         expr: >-
-          (sum(probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api"}) == 0)
-          and (count(probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api"}) == 3)
-          and (count((time() - timestamp(probe_success{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api"})) < 90) == 3)
-          and (sum(probe_success{job=~"blackbox-http-ipv4|blackbox-http-ipv4-alternate"}) == 2)
-          and (count(probe_success{job=~"blackbox-http-ipv4|blackbox-http-ipv4-alternate"}) == 2)
-          and (count((time() - timestamp(probe_success{job=~"blackbox-http-ipv4|blackbox-http-ipv4-alternate"})) < 90) == 2)
+          (sum(network:probe_success:unique_fresh{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api"}) == 0)
+          and (count(network:probe_success:unique_fresh{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api"}) == 3)
+          and (count(timestamp(network:probe_success:unique_fresh{job=~"blackbox-vpn-pypi|blackbox-scoped-codex-mcp|blackbox-scoped-claude-api"}) == time()) == 3)
+          and (sum(network:probe_success:unique_fresh{job=~"blackbox-http-ipv4|blackbox-http-ipv4-alternate"}) == 2)
+          and (count(network:probe_success:unique_fresh{job=~"blackbox-http-ipv4|blackbox-http-ipv4-alternate"}) == 2)
+          and (count(timestamp(network:probe_success:unique_fresh{job=~"blackbox-http-ipv4|blackbox-http-ipv4-alternate"}) == time()) == 2)
         for: 2m
         labels:
           severity: warning

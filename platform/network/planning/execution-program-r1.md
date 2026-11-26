@@ -121,3 +121,163 @@ PR #1507: natural Owner Taskfile (95 task API names); PR #1548: 7 owner-private 
 ## Explicit live UNKNOWN
 
 NS2 source graph still PROPOSED; all-consumer indirect egress bypass and independent no-forwarding are unproved. Historical Gluetun DoH partial failure remains unclosed. Current Windows/WSL full cold boot, old desktop Codex process route, and both iOS devices' selected Tailscale exit + ipinfo public IP are unproved. Do not upgrade any of these from source-only or current service ACTIVE to READY.
+
+## R12 refinement — identity-bound native evidence and protocol adoption (2026-11-26)
+
+Inherit Host Network Work@5, R11 #32719/#32730, N01–N10/NS2 and existing
+natural owners. Host proposal #32755 is coordination, not release authority.
+RFC 3386/8001/9912 shared risk groups motivate physical independence; RFC
+9298/9484 motivate standards-based transport candidates. Two interfaces
+sharing the same modem are not two independent physical failure domains.
+
+| Scope | Change | Acceptance / remaining boundary |
+| --- | --- | --- |
+| P0 evidence | Replace global raw sample counting for the three correlated alerts with native per-job unique fresh binary recording and current evaluation checks | promtool positive, duplicate-role negative, missing/stale and invalid binary negative; preserve alert labels; no physical-cause assertion |
+| P0 underlay | Measure independently provisioned physical WANs before claiming redundancy | independent origin observations and shared-risk inventory; no second WAN currently established |
+| P0 recovery | Keep one physical provider and native lifecycle; health cannot authorize release | observed drift, bounded recovery, exact independent consumer; no automatic protocol cutover |
+| P0 device | Issue #2105 per-device exit/DNS observation | physical device receipt, not server READY |
+| P1 verification | R11 uv/mise native lock; source-bound promtool tests, independent consumer and fault injection | no new scheduler or custom monitoring engine; source != installed |
+| P2 transport | compare mature standard HTTP/QUIC/MASQUE implementations in authorized isolated reference workloads | measured consumer compatibility, goodput, latency, resource cost; no provider or production selection from novelty |
+
+R2.1 evidence LEGO: I raw per-job probe_success and evaluation clock;
+O per-role unique fresh binary observation and existing alert states;
+S native Prometheus group; pre source-declared five jobs and raw samples;
+post each admitted role has exactly one raw series and a binary sample aged
+under 90 seconds; alert aggregation requires every role and current recording
+evaluation; inv missing/duplicate/stale/invalid is UNKNOWN, not failed or
+healthy; eff source rules only; c native PromQL role aggregation (not a
+measured runtime improvement); epsilon neither physical independence nor
+causal root cause, monitoring classification is not mutation authority;
+prov native RED job-01a214af-47de-73ed-974f-6df38b18e49c and original fixtures;
+unfold role identity -> sample qualification -> recording -> group alert.
+Source PR/CI, installed bytes, loaded rules and independent consumers remain
+separate acceptance steps. No service restart or network effect in this work.
+
+## R14 testing reform — native differential and combinatorial verification
+
+Host proposal #32915 extends the R12 candidate PR #2831 and is independent of
+R13 history parsing. Existing global TESTING_UPSTREAM_ADOPTION_R1 and Work@5
+remain authoritative for task semantics. Reference: NIST SP 800-142 and native
+Prometheus rule testing (https://prometheus.io/docs/prometheus/latest/configuration/unit_testing_rules/).
+
+| Priority | Logic | Native capability and closure |
+| --- | --- | --- |
+| P0 | Finite independent rule oracle | 243 exhaustive ternary states plus 5-state pair interactions in two contexts, 475 deduplicated vectors, 1425 alert checks; native promtool, not a second evaluator |
+| P0 | Mutation evidence | actual old raw count, removed role uniqueness, wrong direct threshold; detect semantic mismatches, not just syntax/exit failures |
+| P1 | Temporal and lifecycle model | preserve native stale/recovery regression; Hypothesis stateful/Z3 for unbounded trace inputs where useful |
+| P1 | Test cost and retirement | changed property/readset selection, measured runtime, retain independent negative controls and consumer evidence; no count-based deletion |
+| P1 | Reproducible carrier | reuse R11 uv/mise, keep native promtool mandatory in core:validate; generic CI native installation and exact protected CI remain separately qualified |
+| P2 | Independent fault and consumer acceptance | native isolated netem/Toxiproxy and real OS/application witness; no live disruption or causal claim from model tests |
+
+R2.1: I five named roles, five synthetic observation states and exact rules;
+O independent expected/observed three-alert agreement; S temporary native test
+fixture/TSDB; pre real promtool; post 243 ternary states and all pair projections
+covered; inv missing/duplicate cannot impersonate distinct roles; eff isolated
+test only; c measured 19.67s for 475 vectors (not a universal runtime SLA);
+epsilon higher-order duplicate combinations and variable temporal traces not
+exhausted, production not observed; prov matrix Job
+job-01a214e3-6cd3-72f9-af54-0388db11aaaa and mutant Job
+job-01a214e4-140a-7473-bd78-bd7537a698b9; unfold specification -> generated fixture
+-> native engine -> comparison. Keep existing temporal fixtures. No new runtime
+dependency, registry or verification service.
+
+
+## R15 — Joint qualification and native test execution identity (2026-11-26)
+
+Host #33060/#33067. Join existing R11–R14 exact candidates, retain both
+native Task validation calls and the existing uv lock. RED: native
+`PYTEST_ADDOPTS=--collect-only mise run ci` reports 543 collected but exits
+zero (job-01a21506-4005-7711-ad46-6105aeabbc29). All four owner pytest
+entrypoints now remove ambient pytest options/plugins, disable automatic
+plugin discovery, and explicitly load the new test-only Hypothesis plugin
+from the same locked dev dependency group. Interactive focused testing
+remains available through direct uv/pytest invocations, not the qualification gate.
+
+Use Hypothesis rule-based stateful testing for the 19-source-role graph,
+with bounded deterministic sequences of omission, duplication, corruption,
+repair, pool loss and reordering. Independent multiset oracle, native
+API-shaped implementation input, no native network mutations. Shared
+test-only fixture inputs extracted from the example tests; no new runner
+or production dependency. R2.1 I source roles and generated operation
+sequences; O native test outcomes or rejection; S bounded test state; pre
+locked source and declared pytest plugins; post native selected obligations
+executed without ambient selector suppression; inv independent role
+multiplicity and identity, collection != execution; eff isolated testing;
+c bounded examples and steps; epsilon no universal proof, no protection
+against malicious source/environment outside the scoped selectors, no
+production acceptance; prov exact job receipts; unfold locked uv -> native
+pytest -> stateful oracle -> test evidence. The conflicting shared package
+node-exporter lifecycle remains a cross-owner source contract, not an
+authorization to change the active unit.
+
+
+## R16 — Temporal coverage and historical evidence representation (2026-11-26)
+
+Host #33104, inherits exact R15 joint candidate. RED native pipeline
+accepted 32 correctly paired scrapes concentrated in 15.5 minutes as
+evidence for a 116-minute window (job-01a2153d-8348-7056-9c7e-dfd7f1a060d5).
+Extract pure `historical_observation.py`: full source labels, exact paired
+timestamps, immutable paired values, per-role leading/trailing and
+inter-sample gap checks, separate successful and failed latency summaries.
+At least 12 paired samples and no silence over 45 seconds within the
+eligible window (30s declared cadence) are required; this is a conservative
+coverage policy, not an availability estimate or proof of independence.
+Historical qualification becomes UNKNOWN for inadequate coverage;
+existing success floor uses unrounded ratio. Existing legacy all-probe
+latency ranking remains unchanged; stratified statistics are diagnostic.
+No new runtime dependency; native bundle source inventory includes the
+new module (9 files); no deployment or group-atomic install claim.
+Native local API witness 3 roles x 60 paired samples with 30s max gap
+job-01a2153f-6ff0-7383-ac92-e4e0c97241b3. Generated regular-grid missing
+slot oracle and latency partition oracle use locked Hypothesis.
+R2.1 I exact per-role series and time bounds; O paired evidence, coverage,
+diagnostic summaries, historical standing or UNKNOWN; S ephemeral typed
+samples; pre source cadence, labels, matching original coordinates;
+post exact pairs and bounded gaps; inv no implied current consumer health,
+causality or effect authority; eff read-only source/verification; c sorted
+pairing O(n log n), linear gap scan; epsilon historical stationarity and
+physical availability unproved; prov native job receipts; unfold native
+raw -> identity/time pair -> coverage -> diagnostics -> existing advisory
+consumer. Cross-owner exporter correction remains PR2867, reviewed
+separately without live effects.
+
+
+## R17 — Release consumer identity and integration convergence (2026-11-26)
+
+Host #33182; Runtime release consumer specification #33163 and GitHub
+owner finding #33171. Official #2822 owner shard passes; repository
+mechanics fails on a historical uv version literal in the current owner
+test. Preserve registration evidence and scope; verify the native task
+route rather than a historical version string. Current source verification
+must not reinterpret a historical proof as a toolchain constraint.
+
+The recovery payload contains nine nonsecret files in one directory.
+Existing native install sequentially writes these files, then separately
+writes two systemd unit files, reloads systemd and restarts the timer.
+Observed native-copy fault cuts 1..8 all produce mixed payloads; 0 and 9
+are unmixed. This is a temporary-directory injected-command-failure witness,
+not a real filesystem power-loss or live service experiment. Fresh byte
+readback rejects all incomplete cuts, same-size/same-mtime corruption and
+linked payload paths. It does not make publication atomic.
+
+Target reusable release interface (Runtime/Artifact ownership, pending):
+immutable staged generation + exact byte/mode manifest + retained roots;
+serialized preimage CAS and one durable activation pointer; consumer pins
+the generation before resolving sibling imports/config; independent readback
+of actual generation consumption; rollback as a new fenced effect. Systemd
+unit writes, reload, timer scheduling and actual process effects are separate
+obligations and cannot be declared atomic with the pointer. No Network
+installer or daemon replacement until a qualified upstream release consumer
+contract exists. Reference Nix profiles and OSTree atomic generations.
+
+R2.1 I declared payload and historical/current source coordinates; O
+byte/path readback and native route evidence; S bounded temporary test
+workspace; pre stable authorized source and declared directories; post
+no metadata-cache false match and no linked payload; inv installed bytes
+!= loaded generation != consumer acceptance; eff no live changes; c linear
+bytes; epsilon no race-free filesystem proof, power-loss durability or
+multi-file transaction claim; prov exact Host/Runtime receipts; unfold
+source -> byte readback -> native verification -> release consumer.
+Consolidate the four original Network drafts and R15/R16 into one review
+candidate for official CI; retain original branch history and natural
+owner review. Do not merge by bypassing protected checks.
