@@ -469,6 +469,87 @@ class OriginalNativeManagerHandoffTests(unittest.TestCase):
         os.environ.get("ORDIVON_RUN_NATIVE_DBUS_WITNESS_TEST") == "1",
         "explicit Gio/GLib system D-Bus witness opt-in",
     )
+    def test_direct_manager_issue_retains_fast_job_identity_after_collection(self):
+        """Native positive control for replacing CLI-only handoff observation.
+
+        This is a real Manager method reply and signal, not a durable PG
+        receipt. Loss of the private connection before persistence remains
+        an unresolved handoff and cannot be retried as a new effect.
+        """
+        if os.geteuid() != 0:
+            self.skipTest("requires root to control private systemd transient Jobs")
+        from gi.repository import Gio, GLib
+
+        identity = uuid.uuid4().hex[:12]
+        unit = f"ordivon-issuer-handoff-direct-{identity}.service"
+        with tempfile.TemporaryDirectory(prefix=f"ordivon-issuer-direct-{identity}-", dir="/var/tmp") as scratch:
+            marker = Path(scratch, "executed")
+            bus_name = "org.freedesktop.DBus"
+            bus_path = "/org/freedesktop/DBus"
+            manager = "org.freedesktop.systemd1"
+            manager_path = "/org/freedesktop/systemd1"
+            interface = f"{manager}.Manager"
+
+            try:
+                # Register exact owned name and Subscribe before the method,
+                # including the race where JobRemoved arrives before reply.
+                with self.manager_job_removed_subscription((unit,)) as (connection, events, _, drain):
+                    def bus_call(method, args=None):
+                        return connection.call_sync(
+                            bus_name, bus_path, bus_name, method, args,
+                            GLib.VariantType.new("(s)"), Gio.DBusCallFlags.NONE, 5000, None,
+                        ).unpack()[0]
+
+                    def coordinate():
+                        return (
+                            Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
+                            bus_call("GetId"),
+                            bus_call("GetNameOwner", GLib.Variant("(s)", (manager,))),
+                        )
+
+                    epoch = coordinate()
+                    self.assertTrue(all(epoch))
+                    self.assertTrue(epoch[2].startswith(":"))
+                    props = [
+                        ("Description", GLib.Variant("s", "Disposable Runtime direct Manager probe")),
+                        ("Type", GLib.Variant("s", "oneshot")),
+                        ("ExecStart", GLib.Variant("a(sasb)", [
+                            ("/usr/bin/touch", ["/usr/bin/touch", str(marker)], False)
+                        ])),
+                        ("TimeoutStartUSec", GLib.Variant("t", 10_000_000)),
+                    ]
+                    args = GLib.Variant("(ssa(sv)a(sa(sv)))", (unit, "fail", props, []))
+                    reply = connection.call_sync(
+                        epoch[2], manager_path, interface, "StartTransientUnit", args,
+                        GLib.VariantType.new("(o)"), Gio.DBusCallFlags.NONE, 5000, None,
+                    )
+                    job_path = reply.unpack()[0]
+                    self.assertTrue(job_path.startswith(manager_path + "/job/"), job_path)
+                    native_id = int(job_path.rsplit("/", 1)[1])
+                    self.assertGreater(native_id, 0)
+                    exact = (native_id, job_path, unit)
+                    self.wait_manager_job_removed(events, drain, (*exact, "done"))
+                    self.assertTrue(marker.is_file())
+                    self.assertEqual(coordinate(), epoch, "manager/bus identity changed")
+                    # The exact original job has been removed: a later
+                    # GetJob cannot recreate the completion signal/receipt.
+                    with self.assertRaises(GLib.Error) as missing:
+                        connection.call_sync(
+                            epoch[2], manager_path, interface, "GetJob",
+                            GLib.Variant("(u)", (native_id,)), GLib.VariantType.new("(o)"),
+                            Gio.DBusCallFlags.NONE, 5000, None,
+                        )
+                    self.assertIn("NoSuchJob", str(missing.exception))
+                    print("ISSUER_NATIVE_DIRECT_MANAGER_FAST_JOB_IDENTITY_PASS "
+                          f"job={exact} observer_epoch_stable=true", flush=True)
+            finally:
+                systemctl("stop", unit)
+                systemctl("reset-failed", unit)
+
+    @unittest.skipUnless(
+        os.environ.get("ORDIVON_RUN_NATIVE_DBUS_WITNESS_TEST") == "1",
+        "explicit Gio/GLib system D-Bus witness opt-in",
+    )
     def test_job_removed_correlates_exact_cancelled_and_completed_manager_jobs(self):
         if os.geteuid() != 0:
             self.skipTest("requires root to control private systemd transient Jobs")
