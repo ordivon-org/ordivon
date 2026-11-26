@@ -13,7 +13,7 @@ This is a **single-purpose task context method**. It does not select or trigger 
 
 ## Re-entry
 
-1. Obtain a concrete SpaceRef and WorkRef from the user, trusted current task pointer, or the bounded reference index. Read existing Host `space.get` / `topic.list` and `work.get`. Participation is NOT task assignment.
+1. Obtain a concrete SpaceRef and WorkRef from the user or trusted current task pointer. If the WorkRef is missing or `work.get` returns `NOT_FOUND`, discover candidates using bounded Host `work.list`, then verify the relevant current `work.get`; no unique match stays UNKNOWN. A missing historical reference is `HISTORICAL_REFERENCE_ONLY`, not proof of absent successor. A transport error is not `NOT_FOUND`. Read existing Host `space.get` / `topic.list` as needed. Participation is NOT task assignment.
 2. For reconnecting Actors, optionally read `attention.reentry` and the relevant
    `topic.resume` page with a bounded cursor. When an old Topic has a zero
    message cursor but the Agent needs **one new change**, use

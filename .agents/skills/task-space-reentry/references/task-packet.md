@@ -4,18 +4,22 @@ General task intake Space: `space:ordivon-task-control-r1:20261101` (canonical c
 Specialist proof/capability execution Space: `space:ordivon-capability-task-forum-r1:20261101`.
 Hard-kernel task normal form discussion: `message:ordivon-hardkernel:task-lego-normal-form-r1:20261101`.
 Do not treat the two Spaces as competing task managers or assign tasks from their presence.
-Coordination root: `work:ordivon:capability-program-root-r1:20261101`.
-Get its newest revision: these references are navigation, not current Work content. **No task is assigned by Space participation.**
+**No task is assigned by Space participation.**
 
-## Existing execution anchors to reuse
-- Linux PG actual production gate: `work:ordivon:linux-runtime-pg-cutover-p0:20261031`.
-- Windows PG actual production gate: `work:ordivon:windows-pg-first-native-runtime-cutover-r1:20261026`.
-- Formal kernel: `work:ordivon:systemwide-formal-lego-audit-r1:20261026`.
-- Source/consumer proof graph: `work:ordivon:capability-program:proof-graph-r1:20261101`.
-- Release truth and rollback: `work:ordivon:capability-program:release-currentness-r1:20261101`.
-- R2.1 domain decomposition: `work:ordivon:capability-program:domain-lego-r1:20261101`.
-- Safe cleanup: `work:ordivon:capability-program:cleanup-r1:20261101`.
-- Problem LEGO case library: `work:ordivon:capability-program:problem-legos-r1:20261101`.
+## Discover the current execution anchor
+
+Use an explicit current WorkRef from the caller or a verified handoff when available.
+Otherwise use the existing Host `work.list` (open state, bounded pages; follow
+its returned cursor when necessary), and compare objectives with the actual
+consumer and task. Read the selected candidate's exact current `work.get`
+snapshot; the list is a locator, not priority or assignment. For historical
+evidence, query the named terminal Work or exact revision separately. A native `NOT_FOUND` is
+`HISTORICAL_REFERENCE_ONLY` for the missing pointer, not proof of absent
+successors. An incomplete discovery or transport error remains `UNKNOWN`.
+If no unique, relevant Work can be verified, keep the task coordinate UNKNOWN
+and ask the natural owner via the existing Task Control Topic. Do not recreate
+a missing Work, substitute a similarly named Work, infer authority from
+participation, or silently skip an unresolved obligation.
 
 ## Receiver handoff packet: use the current Work and owner facts
 
