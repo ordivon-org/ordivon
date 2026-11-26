@@ -3395,6 +3395,37 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
     let finished: i64 = times.get::<_, Option<i64>>(1).expect("terminal witness");
     let inspection = call(&endpoint, "job.get", json!({"jobId":completed_job}));
     assert_ne!(inspection["isError"], true, "{inspection}");
+    // The public MCP projection must agree with the real native Job journal,
+    // independently of how many timeline events the caller requests.
+    let dispatch_count: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&completed_job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(dispatch_count, 1);
+    for event_limit in [0, 1, 100] {
+        let projected = call(
+            &endpoint,
+            "job.get",
+            json!({"jobId":completed_job,"eventLimit":event_limit}),
+        );
+        assert_ne!(projected["isError"], true, "{projected}");
+        let body = &projected["structuredContent"];
+        assert_eq!(body["episodes"]["dispatches"], dispatch_count);
+        assert_eq!(body["episodes"]["duplicateDispatches"], 0);
+        let events = body["timeline"].as_array().unwrap();
+        assert!(events.len() <= event_limit as usize);
+        if event_limit == 100 {
+            let issued = events
+                .iter()
+                .find(|e| e["eventType"] == "DISPATCH_ISSUED")
+                .unwrap();
+            assert_eq!(issued["attemptId"], body["attempts"][0]["attemptId"]);
+        }
+    }
     let attempt = &inspection["structuredContent"]["attempts"][0];
     assert_eq!(attempt["startedAtMs"], started);
     assert_eq!(attempt["finishedAtMs"], finished);

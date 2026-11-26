@@ -2,6 +2,7 @@
 //! Physical cancellation is an independent use-case in job/cancellation.rs.
 use super::*;
 mod cancellation;
+mod event_projection;
 
 // Direct PostgreSQL Client reads must not erase SQLSTATE through io(Display).
 // Keep the one shared PgAdmissionError taxonomy used by Recovery and admission.
@@ -1077,31 +1078,9 @@ impl PgRuntime {
         {
             by_kind.insert(row.get(0), row.get::<_, i64>(1) as u64);
         }
-        let events=db.client.query("SELECT event_sequence,event_type,origin,previous_state,new_state,reason_code,observed_at_ms FROM job_events WHERE job_id=$1 ORDER BY event_sequence LIMIT $2",&[&job,&(i64::from(event_limit)+1)]).map_err(pg_read_error)?;
         let created = j.get::<_, i64>(1) as u64;
-        let mut previous = created;
-        let timeline = events
-            .iter()
-            .take(event_limit as usize)
-            .map(|r| {
-                let at = r.get::<_, i64>(6) as u64;
-                let delta = at.saturating_sub(previous);
-                previous = at;
-                RuntimeInspectionEvent {
-                    sequence: r.get::<_, i64>(0) as u64,
-                    attempt_id: Some(a.attempt_id.clone()),
-                    event_type: r.get(1),
-                    origin: r.get(2),
-                    previous_state: r.get(3),
-                    new_state: r.get(4),
-                    reason_code: r.get(5),
-                    observed_at_ms: at,
-                    elapsed_ms: at.saturating_sub(created),
-                    delta_ms: delta,
-                    detail: None,
-                }
-            })
-            .collect();
+        let (episodes, timeline, events_truncated) =
+            event_projection::read_job_events(&mut db.client, job, created, event_limit)?;
         let terminal = snapshot.resolution.is_some();
         let exit = db
             .client
@@ -1164,9 +1143,9 @@ impl PgRuntime {
                 truncated: counts.get::<_, i64>(2) as u64,
                 by_kind,
             },
-            episodes: RuntimeInspectionEpisodes::default(),
+            episodes,
             timeline,
-            events_truncated: events.len() > event_limit as usize,
+            events_truncated,
         })
     }
 }
