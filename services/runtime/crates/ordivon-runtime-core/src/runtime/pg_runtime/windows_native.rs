@@ -146,6 +146,27 @@ impl PgRuntime {
         if a.termination_intent == AttemptTerminationIntent::StopRequested {
             self.publish_native_windows_stop(a)?;
         }
+        if a.state == AttemptState::Starting
+            && a.termination_intent == AttemptTerminationIntent::Natural
+        {
+            crate::pg_windows_evidence::reconcile_admitted_windows_pg_running(
+                db,
+                &self.config.source_sha256,
+                &plan.principal,
+                &a.job_id,
+                &self.config.executor.store_root,
+            )
+            .map_err(|e| {
+                RuntimeError::new(
+                    RuntimeErrorCode::ReconciliationRequired,
+                    e,
+                    Some("jobId"),
+                    false,
+                )
+                .with_operation_id(&a.job_id)
+            })?;
+        }
+        // Terminal reconciliation rebinds the PG row after RUNNER_BOUND.
         crate::pg_windows_evidence::reconcile_admitted_windows_pg_terminal(
             db,
             &self.config.source_sha256,

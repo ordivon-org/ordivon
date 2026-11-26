@@ -113,6 +113,15 @@ pub fn inspect_windows_pg_bundle(
     dir: &Path,
     expected: &PgWindowsWitnessIdentity,
 ) -> Result<PgWindowsWitnessObservation, String> {
+    inspect_windows_pg_bundle_with_start(dir, expected).map(|(witness, _)| witness)
+}
+
+// Return the digest of the SAME validated start bytes, never re-read the
+// mutable carrier to manufacture a different RUNNER_BOUND commitment.
+fn inspect_windows_pg_bundle_with_start(
+    dir: &Path,
+    expected: &PgWindowsWitnessIdentity,
+) -> Result<(PgWindowsWitnessObservation, Option<String>), String> {
     if expected.job_id.is_empty()
         || expected.attempt_id.is_empty()
         || !expected.launch_token_digest.starts_with("sha256:")
@@ -138,7 +147,7 @@ pub fn inspect_windows_pg_bundle(
         if target.is_some() || result.is_some() {
             return Err("target/result without independently bound launcher identity".into());
         }
-        return Ok(output);
+        return Ok((output, None));
     };
     identity(&launch, expected)?;
     exact_text(&launch, "requestDigest", &expected.request_digest)?;
@@ -158,11 +167,11 @@ pub fn inspect_windows_pg_bundle(
     output.phase = PgWindowsWitnessPhase::LauncherWitness;
     output.launcher_process_id = Some(pid);
     output.launcher_creation_file_time = Some(birth);
-    let Some((start, _)) = target else {
+    let Some((start, start_bytes)) = target else {
         if result.is_some() {
             return Err("result without bound target-start identity".into());
         }
-        return Ok(output);
+        return Ok((output, None));
     };
     identity(&start, expected)?;
     exact_text(&start, "requestDigest", &expected.request_digest)?;
@@ -186,7 +195,7 @@ pub fn inspect_windows_pg_bundle(
     positive_u64(&start, "observedUnixMs")?;
     output.phase = PgWindowsWitnessPhase::TargetWitness;
     let Some((complete, bytes)) = result else {
-        return Ok(output);
+        return Ok((output, Some(sha256(&start_bytes))));
     };
     identity(&complete, expected)?;
     exact_text(&complete, "taskId", &expected.attempt_id)?;
@@ -226,7 +235,7 @@ pub fn inspect_windows_pg_bundle(
     }
     output.phase = PgWindowsWitnessPhase::ResultWitnessPendingOsReconciliation;
     output.result_digest = Some(sha256(&bytes));
-    Ok(output)
+    Ok((output, Some(sha256(&start_bytes))))
 }
 /// Missing receipt is UNKNOWN. A matching carrier receipt is NOT a trusted
 /// native drain and never substitutes for independent owner/provenance checks.
@@ -333,6 +342,28 @@ mod tests {
         fs::write(dir.join("stderr.log"), []).unwrap();
         write(dir, "result.json", result(id));
         inspect_windows_pg_bundle(dir, id).unwrap()
+    }
+
+    #[test]
+    fn validated_start_digest_is_exact_and_missing_or_foreign_is_not_a_binding() {
+        let (d, i) = fixtures();
+        let (empty, digest) = inspect_windows_pg_bundle_with_start(d.path(), &i).unwrap();
+        assert_eq!(empty.phase, PgWindowsWitnessPhase::NoLauncherWitness);
+        assert_eq!(digest, None);
+        write(d.path(), "windows-launcher-start.json", launcher(&i));
+        let (only_launcher, digest) = inspect_windows_pg_bundle_with_start(d.path(), &i).unwrap();
+        assert_eq!(only_launcher.phase, PgWindowsWitnessPhase::LauncherWitness);
+        assert_eq!(digest, None);
+        let bytes = serde_json::to_vec_pretty(&target(&i)).unwrap();
+        fs::write(d.path().join("windows-start.json"), &bytes).unwrap();
+        let (start, digest) = inspect_windows_pg_bundle_with_start(d.path(), &i).unwrap();
+        assert_eq!(start.phase, PgWindowsWitnessPhase::TargetWitness);
+        assert_eq!(digest, Some(sha256(&bytes)));
+        assert!(!start.terminal_proven);
+        let mut foreign = target(&i);
+        foreign["launcherProcessId"] = json!(999);
+        write(d.path(), "windows-start.json", foreign);
+        assert!(inspect_windows_pg_bundle_with_start(d.path(), &i).is_err());
     }
 
     fn native_drain(id: &PgWindowsWitnessIdentity) -> Value {
@@ -558,6 +589,10 @@ struct BoundWindowsPgBundle {
     attempt_row_version: i64,
     #[cfg(windows)]
     resolved: bool,
+    #[cfg(windows)]
+    starting_natural: bool,
+    #[cfg(windows)]
+    runner_bound_start_digest: Option<String>,
 }
 
 /// Shared trusted binding for readback and effectful reconciliation.
@@ -646,6 +681,49 @@ fn bind_admitted_windows_pg_bundle(
         return Err("PG attempt does not bind the Windows native Job Object".into());
     }
     let launcher_digest = launcher_digest.to_owned();
+    // A previously observed supervisor binding is part of terminal evidence.
+    // Fast Jobs may finish before RUNNER_BOUND; do not require a fabricated
+    // start. If it exists, preserve its exact original carrier bytes.
+    #[cfg(windows)]
+    let runner_bound_start_digest = {
+        let event = tx
+            .query_opt(
+                "SELECT origin,reason_code,detail_json,detail_digest FROM job_events \
+             WHERE job_id=$1 AND attempt_id=$2 AND event_type='RUNNER_BOUND'",
+                &[&job_id, &attempt_id],
+            )
+            .map_err(|_| "PG native supervisor event unavailable or ambiguous".to_string())?;
+        match (qualified.started_at_ms, event) {
+            (None, None) => None,
+            (Some(_), Some(row)) => {
+                let origin: String = row.get(0);
+                let reason: String = row.get(1);
+                let detail: String = row.get(2);
+                let digest: String = row.get(3);
+                let value: Value = serde_json::from_str(&detail)
+                    .map_err(|_| "PG native supervisor event invalid".to_string())?;
+                let start = value["runnerStartDigest"]
+                    .as_str()
+                    .filter(|v| {
+                        v.len() == 71
+                            && v.starts_with("sha256:")
+                            && v[7..].bytes().all(|b| b.is_ascii_hexdigit())
+                    })
+                    .ok_or("PG native supervisor start digest invalid")?;
+                if origin != "SYSTEM_OBSERVED"
+                    || reason != "SUPERVISOR_OWNER_MATCHED"
+                    || digest != sha256(detail.as_bytes())
+                    || !value["invocationId"]
+                        .as_str()
+                        .is_some_and(|v| v.starts_with("windows-launcher:"))
+                {
+                    return Err("PG native supervisor event identity mismatch".into());
+                }
+                Some(start.to_owned())
+            }
+            _ => return Err("PG native supervisor timestamp/event mismatch".into()),
+        }
+    };
     tx.commit()
         .map_err(|_| "PG read-only snapshot commit failed".to_string())?;
 
@@ -672,7 +750,60 @@ fn bind_admitted_windows_pg_bundle(
         attempt_row_version: qualified.attempt_row_version,
         #[cfg(windows)]
         resolved: qualified.resolution.is_some(),
+        #[cfg(windows)]
+        starting_natural: qualified.resolution.is_none()
+            && qualified.attempt_state == "starting"
+            && qualified.termination_intent == "natural"
+            && qualified.desired_state == "run",
+        #[cfg(windows)]
+        runner_bound_start_digest,
     })
+}
+
+#[cfg(windows)]
+#[path = "pg_windows_evidence/running.rs"]
+mod running;
+
+/// Positive native supervisor binding. The existing RUNNER_BOUND event means
+/// observed custody, NOT proof of resumed user instructions or domain success.
+#[cfg(windows)]
+pub(crate) fn reconcile_admitted_windows_pg_running(
+    store: &mut crate::pg_admission::PgAdmissionStore,
+    source_sha256: &str,
+    principal: &str,
+    job_id: &str,
+    store_root: &Path,
+) -> Result<bool, String> {
+    let bound =
+        bind_admitted_windows_pg_bundle(store, source_sha256, principal, job_id, store_root)?;
+    if !bound.starting_natural {
+        return Ok(false);
+    }
+    let (witness, start_digest) =
+        inspect_windows_pg_bundle_with_start(&bound.root, &bound.identity)?;
+    let Some(start_digest) = start_digest else {
+        return Ok(false);
+    };
+    let observed_at_ms = crate::universal::now_unix_ms().map_err(|e| e.to_string())? as i64;
+    let Some(invocation) = running::observe_owned_target(&bound.identity, &witness) else {
+        return Ok(false);
+    };
+    // The existing CAS arbitrates concurrent cancel/terminal/other observer.
+    // Neither a conflict nor an unknown commit permits a new launch.
+    let input = crate::pg_admission::PgRunnerBound {
+        attempt_id: bound.identity.attempt_id,
+        expected_row_version: bound.attempt_row_version,
+        expected_bundle_digest: bound.identity.request_digest,
+        runner_start_digest: start_digest,
+        native_invocation_id: invocation,
+        observed_at_ms,
+        expected_source_sha256: source_sha256.to_owned(),
+    };
+    match store.mark_runner_bound_pg(&input) {
+        Ok(_) => Ok(true),
+        Err(crate::pg_admission::PgAdmissionError::Blocked) => Ok(false),
+        Err(e) => Err(format!("Windows native supervisor binding: {e:?}")),
+    }
 }
 
 /// Native PG service reconciliation entry: authenticated principal and Job only.
@@ -698,6 +829,7 @@ pub fn reconcile_admitted_windows_pg_terminal(
         &bound.identity,
         source_sha256,
         bound.attempt_row_version,
+        bound.runner_bound_start_digest.as_deref(),
     )
 }
 

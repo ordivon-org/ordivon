@@ -589,6 +589,87 @@ fn run_winpg_native_real_attempt(force_wrong_peer: bool, cancel_after_start: boo
         assert!(std::fs::read_to_string(bundle.join("stdout.log"))
             .unwrap()
             .contains("WINPG_TRUE_SINGLE_JOB_R50"));
+        // Physical target stdout is already observed. Bind the original
+        // live Launcher/target Job Object using the production reconciler.
+        use crate::pg_windows_evidence::reconcile_admitted_windows_pg_running;
+        let start_path = bundle.join("windows-start.json");
+        let exact_start = std::fs::read(&start_path).unwrap();
+        let mut forged: serde_json::Value = serde_json::from_slice(&exact_start).unwrap();
+        let real_birth = forged["processCreationTimeFileTime"].as_u64().unwrap();
+        forged["processCreationTimeFileTime"] = serde_json::json!(real_birth + 1);
+        std::fs::write(&start_path, serde_json::to_vec(&forged).unwrap()).unwrap();
+        let rejected = reconcile_admitted_windows_pg_running(
+            &mut db,
+            &source,
+            &input.principal,
+            &job,
+            store_root.path(),
+        );
+        std::fs::write(&start_path, &exact_start).unwrap();
+        assert!(!rejected.unwrap(), "wrong target birth must remain unbound");
+        assert!(matches!(
+            db.observe_job_readonly(&job, &source).unwrap(),
+            PgJobReadback::Observed(snapshot) if snapshot.attempt_state == "starting"
+        ));
+        assert!(reconcile_admitted_windows_pg_running(
+            &mut db,
+            &source,
+            &input.principal,
+            &job,
+            store_root.path(),
+        )
+        .unwrap());
+        assert!(
+            !reconcile_admitted_windows_pg_running(
+                &mut db,
+                &source,
+                &input.principal,
+                &job,
+                store_root.path(),
+            )
+            .unwrap(),
+            "exact replay must not append a second RUNNER_BOUND"
+        );
+        assert!(matches!(
+            db.observe_job_readonly(&job, &source).unwrap(),
+            PgJobReadback::Observed(snapshot) if snapshot.attempt_state == "running"
+                && snapshot.resolution.is_none() && snapshot.reservation_state == "active"
+                && snapshot.started_at_ms.is_some()
+        ));
+        let bound_events = db
+            .client
+            .query(
+                "SELECT detail_json FROM job_events WHERE job_id=$1 AND event_type='RUNNER_BOUND'",
+                &[&job],
+            )
+            .unwrap();
+        assert_eq!(bound_events.len(), 1);
+        let detail: serde_json::Value =
+            serde_json::from_str(&bound_events[0].get::<_, String>(0)).unwrap();
+        assert_eq!(
+            detail["runnerStartDigest"],
+            serde_json::json!(format!(
+                "sha256:{}",
+                hex::encode(Sha256::digest(&exact_start))
+            ))
+        );
+        // Same logical JSON, different bytes: the durable RUNNER_BOUND
+        // commitment must not be replaced during terminal reconciliation.
+        let mut changed_start = exact_start.clone();
+        changed_start.push(b' ');
+        std::fs::write(&start_path, &changed_start).unwrap();
+        let terminal = reconcile_admitted_windows_pg_terminal(
+            &mut db,
+            &source,
+            &input.principal,
+            &job,
+            store_root.path(),
+        );
+        std::fs::write(&start_path, &exact_start).unwrap();
+        assert!(terminal
+            .unwrap_err()
+            .contains("start changed after RUNNER_BOUND"));
+        println!("WINPG_REAL_OS_RUNNING_BINDING_EXACT_REPLAY_WRONG_BIRTH=PASS");
         let cancel = PgCancelIntent {
             job_id: job.clone(),
             observed_at_ms: crate::universal::now_unix_ms().unwrap() as i64,

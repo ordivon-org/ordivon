@@ -151,13 +151,17 @@ pub(crate) fn reconcile_windows_native_terminal(
     id: &PgWindowsWitnessIdentity,
     source_sha256: &str,
     expected_row_version: i64,
+    runner_bound_start_digest: Option<&str>,
 ) -> Result<bool, String> {
     use super::{
         inspect_windows_pg_job_object, inspect_windows_pg_os_owner, native_terminal_gate,
         PgWindowsJobObjectState, PgWindowsOwnerState,
     };
     use crate::pg_admission::PgNativeWindowsDrainInput;
-    let witness = inspect_windows_pg_bundle(dir, id)?;
+    let (witness, start_digest) = super::inspect_windows_pg_bundle_with_start(dir, id)?;
+    if runner_bound_start_digest.is_some() && runner_bound_start_digest != start_digest.as_deref() {
+        return Err("Windows native start changed after RUNNER_BOUND".into());
+    }
     if witness.phase != PgWindowsWitnessPhase::ResultWitnessPendingOsReconciliation {
         return Ok(false);
     }
