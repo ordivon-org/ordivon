@@ -2377,8 +2377,10 @@ internal static class OrdivonWindowsJobLauncher
             {
                 using (WindowsIdentity peer = new WindowsIdentity(token))
                 {
-                    if (!sid.Equals(peer.User) || WaitForSingleObject(handle, 0) != WaitTimeout)
-                        throw new InvalidOperationException("PG terminal peer SID or lifetime differs");
+                    if (!sid.Equals(peer.User))
+                        throw new InvalidOperationException("PG terminal peer SID differs");
+                    if (WaitForSingleObject(handle, 0) != WaitTimeout)
+                        throw new InvalidOperationException("PG terminal peer is no longer live");
                 }
             }
             finally { CloseHandle(token); }

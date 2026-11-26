@@ -353,12 +353,17 @@ internal static class OrdivonWindowsPrivilegedBroker
             List<string> launcherArgs = GetStringList(request, "launcherArgs");
             string launcherStderrPath = GetString(request, "launcherStderrPath");
             launcherStderrPath = ValidateSpawnArgs(options, launcherArgs, launcherStderrPath);
-            if (Contains(launcherArgs, "--pg-terminal-peer-user-sid"))
+            // Keep broker-authored control metadata on the launcher side
+            // of the "--" boundary. Target arguments cannot select this SID.
+            int controlEnd = launcherArgs.IndexOf("--");
+            if (controlEnd < 0) controlEnd = launcherArgs.Count;
+            List<string> controlArgs = launcherArgs.GetRange(0, controlEnd);
+            if (Contains(controlArgs, "--pg-terminal-peer-user-sid"))
                 throw new InvalidOperationException("PG terminal peer SID is bound by the broker");
-            if (Contains(launcherArgs, "--pg-terminal-peer-process-id"))
+            if (Contains(controlArgs, "--pg-terminal-peer-process-id"))
             {
-                launcherArgs.Add("--pg-terminal-peer-user-sid");
-                launcherArgs.Add(options.AllowedClientSid);
+                launcherArgs.Insert(controlEnd, "--pg-terminal-peer-user-sid");
+                launcherArgs.Insert(controlEnd + 1, options.AllowedClientSid);
             }
             Process child = StartLauncher(options.LauncherPath, launcherArgs, false, true);
             ulong creation = ProcessCreationTimeFileTime(child);
