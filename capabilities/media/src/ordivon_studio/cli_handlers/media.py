@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -102,26 +103,39 @@ def _command_qc_video(args: argparse.Namespace) -> int:
         audio_stream_index=args.audio_stream_index,
     )
     loudness = None
+    loudness_standing = None
     loudness_requested = args.loudness_target_lufs is not None or args.max_true_peak_dbtp is not None
     if loudness_requested:
         streams = probe.get("streams", [])
-        has_audio = isinstance(streams, list) and any(
-            isinstance(stream, dict) and stream.get("codec_type") == "audio" for stream in streams
-        )
+        audio_streams = [
+            stream for stream in streams
+            if isinstance(stream, dict) and stream.get("codec_type") == "audio"
+        ] if isinstance(streams, list) else []
         if not args.expect_audio:
             errors.append("loudness expectations require --expect-audio")
-        elif not has_audio:
+        elif not audio_streams:
             errors.append("loudness measurement requires an audio stream")
+        elif not 0 <= args.audio_stream_index < len(audio_streams):
+            errors.append(f"loudness audio stream index {args.audio_stream_index} is unavailable")
         else:
-            loudness = measure_loudness(path, args.ffmpeg)
+            measured = measure_loudness(path, args.ffmpeg, audio_stream_index=args.audio_stream_index)
             errors.extend(
                 validate_loudness(
-                    loudness,
+                    measured,
                     target_lufs=args.loudness_target_lufs,
                     tolerance_lu=args.loudness_tolerance_lu,
                     max_true_peak_dbtp=args.max_true_peak_dbtp,
                 )
             )
+            # JSON has no Infinity or NaN. Preserve observation standing separately.
+            loudness = {name: value if math.isfinite(value) else None for name, value in measured.items()}
+            loudness_standing = {
+                name: (
+                    "finite" if math.isfinite(value) else "not-a-number" if math.isnan(value)
+                    else "negative-infinity" if value < 0 else "positive-infinity"
+                )
+                for name, value in measured.items()
+            }
     _write_json(
         {
             "ok": not errors,
@@ -146,6 +160,7 @@ def _command_qc_video(args: argparse.Namespace) -> int:
                 "maxTruePeakDbtp": args.max_true_peak_dbtp,
             },
             "loudness": loudness,
+            "loudnessStanding": loudness_standing,
             "errors": errors,
         }
     )

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -10,6 +11,15 @@ from pathlib import Path
 
 from ordivon_studio.agent_processing import processing_profiles
 from ordivon_studio.agent_surface import execute_surface_action, surface_projection
+
+ROOT = Path(__file__).resolve().parents[1]
+DECODER = "src/ordivon_studio/strict_json.py"
+
+
+def copy_decoder(root: Path) -> None:
+    target = root / DECODER
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(ROOT / DECODER, target)
 
 
 class ProcessingDiscoveryTests(unittest.TestCase):
@@ -51,6 +61,7 @@ class ProcessingDiscoveryTests(unittest.TestCase):
             adapters = root / "processing/bin"
             profiles.mkdir(parents=True)
             adapters.mkdir(parents=True)
+            copy_decoder(root)
             data = {
                 "schemaVersion": 1,
                 "kind": "ordivon.media.v2.av-profile",
@@ -126,22 +137,23 @@ class ProcessingDiscoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "profile digest changed"):
             execute_surface_action("studio_processing_probe_plan", args, root=root)
 
-    def test_otio_plan_requires_attempt_specific_native_evidence_directory(self) -> None:
+    def test_all_native_plans_require_attempt_specific_evidence_directory(self) -> None:
         root = Path(__file__).resolve().parents[1]
         profiles = execute_surface_action("studio_processing_profiles", {}, root=root)["profiles"]
-        profile = next(item for item in profiles
-                       if item["profileKind"] == "ordivon.media.v2.otio-profile")
-        result = execute_surface_action("studio_processing_probe_plan", {
-            "profileId": profile["id"],
-            "expectedProfileDigest": profile["profileDigest"],
-            "expectedAdapterDigest": profile["adapterDigest"],
-            "inputPath": "selected.otio",
-            "evidenceDirectory": "out/attempt-specific/evidence",
-        }, root=root)
-        self.assertEqual(result["expectedReceipt"], "out/attempt-specific/evidence/evidence.json")
-        self.assertEqual(result["execution"]["args"][-1], "out/attempt-specific/evidence")
-        self.assertEqual(result["evidenceDirectoryPolicy"]["mode"], "new-directory-per-attempt")
-        self.assertEqual(result["evidenceDirectoryPolicy"]["onExisting"], "reject-preserve-prior-evidence")
+        self.assertEqual(len(profiles), 4)
+        for profile in profiles:
+            with self.subTest(profile=profile["id"]):
+                result = execute_surface_action("studio_processing_probe_plan", {
+                    "profileId": profile["id"],
+                    "expectedProfileDigest": profile["profileDigest"],
+                    "expectedAdapterDigest": profile["adapterDigest"],
+                    "inputPath": "selected-input",
+                    "evidenceDirectory": "out/attempt-specific/evidence",
+                }, root=root)
+                self.assertEqual(result["expectedReceipt"], "out/attempt-specific/evidence/evidence.json")
+                self.assertEqual(result["execution"]["args"][-1], "out/attempt-specific/evidence")
+                self.assertEqual(result["evidenceDirectoryPolicy"]["mode"], "new-directory-per-attempt")
+                self.assertEqual(result["evidenceDirectoryPolicy"]["onExisting"], "reject-preserve-prior-evidence")
 
     def test_source_byte_drift_rebinds_both_profile_and_adapter(self) -> None:
         """One real compiler-consumer trace, not a claim of mathematical code refinement."""
@@ -153,6 +165,7 @@ class ProcessingDiscoveryTests(unittest.TestCase):
             adapter = root / "processing/bin/probe-av.sh"
             profile.parent.mkdir(parents=True)
             adapter.parent.mkdir(parents=True)
+            copy_decoder(root)
             value = {
                 "schemaVersion": 1,
                 "kind": "ordivon.media.v2.av-profile",
@@ -206,6 +219,7 @@ class ProcessingDiscoveryTests(unittest.TestCase):
             adapters = root / "processing/bin"
             profiles.mkdir(parents=True)
             adapters.mkdir(parents=True)
+            copy_decoder(root)
             (profiles / "av.json").write_text(json.dumps({
                 "schemaVersion": 1, "kind": "ordivon.media.v2.av-profile",
                 "id": "bound-av",
@@ -226,13 +240,14 @@ class ProcessingDiscoveryTests(unittest.TestCase):
             plan = processing_probe_plan(root, **arguments)
             execution = plan["execution"]
             self.assertEqual(execution["args"][1], str(selected_file.resolve()))
-            self.assertEqual(len(execution["hostDependencies"]), 3)
+            self.assertEqual(len(execution["hostDependencies"]), 4)
             self.assertEqual(
                 {entry["path"]: entry["expectedDigest"] for entry in execution["hostDependencies"]},
                 {
                     str(selected_file.resolve()): digest,
                     str((profiles / "av.json").resolve()): row["profileDigest"],
                     str((adapters / "probe-av.sh").resolve()): row["adapterDigest"],
+                    str((root / DECODER).resolve()): "sha256:" + hashlib.sha256((root / DECODER).read_bytes()).hexdigest(),
                 },
             )
             self.assertEqual(plan["inputByteBinding"]["status"], "proposed-not-executed")

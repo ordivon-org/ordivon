@@ -10,11 +10,46 @@ artifact=$(realpath "$1")
 profile=$(realpath "$2")
 out=$3
 
+# Reserve exactly one execution destination without overwriting prior evidence.
+mkdir -p -- "$(dirname -- "$out")"
+if ! mkdir -- "$out"; then
+  echo "evidence directory must be new: $out" >&2
+  exit 3
+fi
+out=$(realpath -- "$out")
+root=$(cd "$(dirname "$0")/../.." && pwd)
+
 [[ -f "$artifact" ]] || { echo "artifact not found: $artifact" >&2; exit 66; }
 [[ -f "$profile" ]] || { echo "profile not found: $profile" >&2; exit 66; }
 command -v ffprobe >/dev/null
 command -v jq >/dev/null
 command -v sha256sum >/dev/null
+command -v python3 >/dev/null
+
+# Retain the single admitted profile byte stream. Native validation,
+# execution policy and receipt digest all consume this attempt-owned copy.
+profile_source=$profile
+profile="$out/profile.json"
+python3 -I "$root/src/ordivon_studio/strict_json.py" "$profile_source" "$profile"
+
+
+# Validate the declared policy before native observation; invalid is not optional.
+jq -es '
+  def text: type == "string" and (length > 0);
+  def integer: type == "number" and isfinite and (floor == .);
+  def positive_integer: integer and . > 0;
+  length == 1 and (.[0] |
+    type == "object" and .schemaVersion == 1 and
+    (.id | text) and
+    .kind == "ordivon.media.v2.av-profile" and
+    (.video | type == "object") and (.audio | type == "object") and
+    (.video | (.streamCount | positive_integer) and
+      (.width | positive_integer) and (.height | positive_integer) and
+      (.frameRate | type == "string" and test("^[1-9][0-9]*/[1-9][0-9]*$")) and
+      ([.codec,.pixelFormat,.colorPrimaries,.colorTransfer,.colorSpace,.colorRange]
+       | all(.[]; text))) and
+    (.audio.presence | . == "forbidden" or . == "required" or . == "optional"))
+' "$profile" >/dev/null || { echo "invalid av profile" >&2; exit 65; }
 
 mkdir -p "$out/raw"
 probe="$out/raw/ffprobe.json"
@@ -60,7 +95,8 @@ jq -n \
   --arg artifact "$artifact" \
   --arg artifactDigest "$artifact_sha" \
   --argjson artifactBytes "$artifact_bytes" \
-  --arg profile "$profile" \
+  --arg evidenceDirectory "$out" \
+  --arg profile "$profile_source" \
   --arg profileDigest "$profile_sha" \
   --arg ffprobeVersion "$ffprobe_version" \
   --arg rawProbeDigest "$probe_sha" \
@@ -68,10 +104,11 @@ jq -n \
   --argjson ok "$ok" '
   {
     schemaVersion:1,
+    evidenceDirectory:$evidenceDirectory,
     kind:"ordivon.media.v2.external-qc-evidence",
     truthRole:"mechanical-profile-evidence-not-semantic-or-aesthetic-approval",
     artifact:{path:$artifact,digest:$artifactDigest,sizeBytes:$artifactBytes},
-    profile:{path:$profile,digest:$profileDigest},
+    profile:{path:$profile,digest:$profileDigest,snapshotPath:"profile.json"},
     tools:{ffprobe:{version:$ffprobeVersion}},
     evidence:{rawProbeDigest:$rawProbeDigest,assertionsDigest:$assertionsDigest},
     technicalQc:{ok:$ok},
@@ -79,7 +116,8 @@ jq -n \
     aestheticQuality:"not-evaluated",
     publicationStanding:"not-evaluated"
   }
-' > "$evidence"
+' > "$evidence.tmp"
+mv -T -- "$evidence.tmp" "$evidence"
 
 if [[ "$ok" != "true" ]]; then
   jq -r '.checks[] | select(.ok == false) | "FAIL \(.name): expected=\(.expected|tojson) actual=\(.actual|tojson)"' "$assertions" >&2

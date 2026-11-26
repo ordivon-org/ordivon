@@ -12,7 +12,7 @@ from scripts import artifact_verify as service
 
 
 def make_request(root: Path) -> tuple[Path, Path, Path, str]:
-    profile_id = "design-3d-glb-static-mesh-r1"
+    profile_id = "design-3d-glb-material-scene-r1"
     profile = service.PROFILE_REGISTRY.resolve(profile_id).canonical_path
     assert not service.BINDING_REGISTRY.resolve(profile_id, "verify").snapshot_inputs
     subject = root / "asset.glb"

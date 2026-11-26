@@ -9,6 +9,14 @@ fi
 input=$(realpath "$1")
 profile=$(realpath "$2")
 out=$3
+
+# Reserve exactly one execution destination without overwriting prior evidence.
+mkdir -p -- "$(dirname -- "$out")"
+if ! mkdir -- "$out"; then
+  echo "evidence directory must be new: $out" >&2
+  exit 3
+fi
+out=$(realpath -- "$out")
 root=$(cd "$(dirname "$0")/../.." && pwd)
 ttconv="$root/processing/bin/ttconv-pinned.sh"
 
@@ -17,12 +25,24 @@ ttconv="$root/processing/bin/ttconv-pinned.sh"
 command -v ffprobe >/dev/null
 command -v jq >/dev/null
 command -v sha256sum >/dev/null
+command -v python3 >/dev/null
+
+# Retain the single admitted profile byte stream. Native validation,
+# execution policy and receipt digest all consume this attempt-owned copy.
+profile_source=$profile
+profile="$out/profile.json"
+python3 -I "$root/src/ordivon_studio/strict_json.py" "$profile_source" "$profile"
+
 
 # jq's alternative operator treats false as absent. Validate explicit
 # optional boolean controls before invoking native conversion.
 jq -e '
   type == "object" and .schemaVersion == 1 and
   .kind == "ordivon.media.v2.timed-text-profile" and
+  (.format | . == "ttml" or . == "vtt") and
+  (.expectedCueCount | type == "number" and isfinite and floor == . and . >= 0) and
+  (.maxEndSeconds | type == "number" and isfinite and . >= 0) and
+  (if has("expectedLanguage") then (.expectedLanguage | . == null or (type == "string" and length > 0)) else true end) and
   (if has("requirePositiveDurations") then (.requirePositiveDurations | type) == "boolean" else true end) and
   (if has("requireNonemptyPackets") then (.requireNonemptyPackets | type) == "boolean" else true end)
 ' "$profile" >/dev/null || { echo "invalid timed-text profile" >&2; exit 65; }
@@ -99,7 +119,8 @@ jq -n \
   --arg input "$input" \
   --arg inputDigest "$input_sha" \
   --argjson inputBytes "$input_bytes" \
-  --arg profile "$profile" \
+  --arg evidenceDirectory "$out" \
+  --arg profile "$profile_source" \
   --arg profileDigest "$profile_sha" \
   --arg normalizedDigest "$normalized_sha" \
   --arg packetEvidenceDigest "$packets_sha" \
@@ -109,10 +130,11 @@ jq -n \
   --argjson ok "$ok" '
   {
     schemaVersion:1,
+    evidenceDirectory:$evidenceDirectory,
     kind:"ordivon.media.v2.external-timed-text-evidence",
     truthRole:"mechanical-timed-text-delivery-evidence-not-semantic-caption-completeness-or-imsc-conformance",
     input:{path:$input,digest:$inputDigest,sizeBytes:$inputBytes},
-    profile:{path:$profile,digest:$profileDigest},
+    profile:{path:$profile,digest:$profileDigest,snapshotPath:"profile.json"},
     tools:{ttconv:{version:"1.2.3",role:"format-conversion"},ffprobe:{version:$ffprobeVersion,role:"subtitle-packet-timing"},xmllint:{role:"xml-well-formedness-and-language-when-ttml"}},
     evidence:{normalizedVttDigest:$normalizedDigest,packetEvidenceDigest:$packetEvidenceDigest,assertionsDigest:$assertionsDigest},
     normalizedFacts:$a[0].normalizedFacts,
@@ -122,7 +144,8 @@ jq -n \
     imscConformance:"not-claimed",
     publicationStanding:"not-evaluated"
   }
-' > "$evidence"
+' > "$evidence.tmp"
+mv -T -- "$evidence.tmp" "$evidence"
 
 if [[ "$ok" != "true" ]]; then
   jq -r '.checks[] | select(.ok == false) | "FAIL \(.name): expected=\(.expected|tojson) actual=\(.actual|tojson)"' "$assertions" >&2

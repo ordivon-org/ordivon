@@ -152,3 +152,64 @@ def test_recipe_and_materialization_are_independent(tmp_path):
     (gen / "source" / "Program.cs").write_bytes(b"drift")
     with pytest.raises(RuntimeError, match="provenance mismatch"):
         m.qualify_materialization(tmp_path, gen, spec)
+
+
+@pytest.mark.integration
+def test_native_materialization_independent_of_enclosing_git_context(tmp_path):
+    """The declared copied-source recipe does not include an ambient Git HEAD."""
+    import subprocess
+
+    lock = m.load_lock()
+    rows = m.nuget_sources(lock)
+    dotnet = m.nix_dotnet_status(lock, out_link=tmp_path / "sdk")
+    observations = []
+    for marker in ("one", "two"):
+        repo = tmp_path / marker
+        repo.mkdir()
+        subprocess.run(["git", "init", "-q", str(repo)], check=True)
+        (repo / "marker").write_text(marker)
+        subprocess.run(["git", "-C", str(repo), "add", "marker"], check=True)
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repo),
+                "-c",
+                "user.name=Fixture",
+                "-c",
+                "user.email=fixture@example.invalid",
+                "commit",
+                "-qm",
+                marker,
+            ],
+            check=True,
+        )
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repo),
+                "remote",
+                "add",
+                "origin",
+                "https://github.com/ordivon-org/ordivon.git",
+            ],
+            check=True,
+        )
+        revision = subprocess.check_output(
+            ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+        ).strip()
+        base = repo / "carrier"
+        gid, final, binding = m.build_generation(base, lock, dotnet, rows)
+        m.qualify_materialization(base, final, m.generation_spec(lock, dotnet, rows))
+        corpus = m.verify_external_evidence(final / "bin/validate-openxml")
+        files = {p.name: m.sha(p) for p in (final / "validator").iterdir() if p.is_file()}
+        for name in ("ArtifactOpenXmlValidator.dll", "ArtifactOpenXmlValidator.pdb"):
+            data = (final / "validator" / name).read_bytes()
+            assert revision.encode() not in data
+            assert str(repo).encode() not in data
+        observations.append(
+            (revision, gid, binding["validatorTreeDigest"], files, corpus["corpusResultDigest"])
+        )
+    assert observations[0][0] != observations[1][0]
+    assert observations[0][1:] == observations[1][1:]

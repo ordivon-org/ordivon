@@ -138,8 +138,10 @@ For installation and receipted deployment, follow [`docs/quickstart.md`](docs/qu
 `mise install` now obtains official
 [cargo-nextest](https://github.com/nextest-rs/nextest) **0.9.152** using the
 upstream [mise HTTP backend](https://mise.jdx.dev/dev-tools/backends/http.html)
-and a GitHub Release mirror. This Runtime-local Linux x64 install pins the
-official GitHub release-asset SHA-256, so the mirror is only a transport.
+and direct official GitHub Releases. The Runtime-local Linux and Windows x64
+tool declarations bind their respective official asset SHA-256 and byte size.
+The Windows asset supports native tool resolution; the focused task below
+still uses the repository's POSIX shell entrypoint.
 The optional `mise run test:focused` task calls this pinned version with the
 PostgreSQL-only feature profile (the Linux production core) by default and
 emits its native JUnit report under the Cargo target directory

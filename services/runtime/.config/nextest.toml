@@ -2,3 +2,15 @@
 # https://nexte.st/docs/machine-readable/junit/
 [profile.ci.junit]
 path = "junit.xml"
+
+# Each physical PG fixture owns a disposable cluster or schema; avoid
+# multiplying native PG/Runner pressure inside one nextest invocation.
+# This is not a cross-process or cross-Agent lock. Portable tests are
+# deliberately outside this group; ignored physical tests stay opt-in.
+[test-groups.native-pg]
+max-threads = 1
+
+[[profile.default.overrides]]
+filter = 'binary(=pg_vertical) | test(/^pg_admission::live_pg_tests::/) | test(/^pg_windows_evidence::qualified_pg18_preflight_tests::/) | test(/(^|::)(pg18_|native_pg_|native_postgres_)/) | test(runtime_owned_pin_prevents_close_and_rejects_postclose_birth)'
+test-group = "native-pg"
+retries = 0
