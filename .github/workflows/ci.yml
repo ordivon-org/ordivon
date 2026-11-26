@@ -764,72 +764,16 @@ jobs:
           # Owner selection was admitted by the source-qualified preflight.
           # Only resolve native tool manifests for the exact selected tasks.
           selected_roots="$RUNNER_TEMP/ordivon-selected-owner-toolroots.txt"
-          python3 - "$selected_roots" <<'PYOWNERS'
-          import json
-          import os
-          import sys
-          import tomllib
-          from pathlib import Path
-
-          sys.path.insert(0, "tools/repo")
-          from affected_owners import OWNERS
-
-          tasks = json.loads(os.environ["OWNER_TASKS_JSON"])
-          if not isinstance(tasks, list) or not all(isinstance(t, str) for t in tasks):
-              raise SystemExit("invalid selected Owner task list")
-          if len(tasks) != len(set(tasks)):
-              raise SystemExit("duplicate selected Owner task")
-          by_task = {owner.queue_task: owner.root.rstrip("/") for owner in OWNERS}
-          if any(task not in by_task for task in tasks):
-              raise SystemExit("unregistered selected Owner task")
-          roots = []
-          for task in tasks:
-              root = by_task[task]
-              # Some Owners use a root-managed task rather than an adjacent
-              # native mise.toml. Those do not gain an invented manifest.
-              manifest = Path(root) / "mise.toml"
-              if not manifest.is_file():
-                  continue
-              if root not in roots:
-                  roots.append(root)
-              # Read existing native task commands, not an invented Owner
-              # graph: a selected task may invoke a second scoped Mise
-              # manifest. Capital invokes mise exec in tools/formal; that
-              # auto-installer caps release metadata timeouts to 3 seconds.
-              # An explicit native mise install here uses normal HTTP retry,
-              # exact pinned versions and this scoped read-only GH token.
-              native_tasks = tomllib.loads(manifest.read_text(encoding="utf-8")).get("tasks", {})
-              if any(
-                  isinstance(row, dict)
-                  and isinstance(row.get("run"), str)
-                  and "tools/formal" in row["run"]
-                  for row in native_tasks.values()
-              ):
-                  if not (Path("tools/formal") / "mise.toml").is_file():
-                      raise SystemExit("selected nested tools/formal source missing")
-                  if "tools/formal" not in roots:
-                      roots.append("tools/formal")
-          # The Gateway test suite has an existing, governed test-only seam
-          # to Security's OPA policy and exact version in platform/security/mise.toml.
-          # A Gateway-only merge group otherwise omits that Owner toolchain:
-          # "mise where opa@<Security pin>" fails though the test is valid.
-          # Preinstall the existing provider when that consumer is selected;
-          # never hard-code an alternate OPA pin or weaken the test.
-          if "gateway:verify" in tasks:
-              security_manifest = Path("platform/security/mise.toml")
-              if not security_manifest.is_file():
-                  raise SystemExit("Gateway OPA test needs Security Owner toolchain")
-              tools = tomllib.loads(
-                  security_manifest.read_text(encoding="utf-8")
-              ).get("tools", {})
-              if not isinstance(tools.get("opa"), str):
-                  raise SystemExit("Gateway OPA test needs Security-pinned OPA")
-              if "platform/security" not in roots:
-                  roots.append("platform/security")
-          Path(sys.argv[1]).write_text(
-              "".join(root + "\n" for root in roots), encoding="utf-8"
-          )
-          PYOWNERS
+          # Source-qualify the selector before using it for native installs.
+          for source in tools/repo/ci_owner_toolroots.py tools/repo/affected_owners.py tools/repo/owners.toml; do
+            if [[ ! -f "$source" || -L "$source" ]] ||
+               ! git --no-replace-objects ls-tree HEAD -- "$source" | grep -Eq '^100(644|755) blob [[:xdigit:]]{40,64}[[:space:]]' ||
+               ! git --no-replace-objects show "HEAD:$source" | cmp -s - "$source"; then
+              echo "ERROR: selected Owner toolroot source differs from exact Git HEAD: $source" >&2
+              exit 43
+            fi
+          done
+          python3 tools/repo/ci_owner_toolroots.py "$selected_roots"
           while IFS= read -r root || [[ -n "$root" ]]; do
             [[ -z "$root" ]] && continue
             # mise install is idempotent: a retry visits only missing pinned
