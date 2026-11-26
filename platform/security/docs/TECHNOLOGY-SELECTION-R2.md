@@ -811,3 +811,42 @@ authorization, or provider qualification. No new dependencies.
 References:
 - https://testing.googleblog.com/2025/10/simplify-your-code-functional-core.html
 - https://hypothesis.readthedocs.io/
+
+### R24 — isolate the existing deterministic JSON representation profile
+
+L14/L23/T02/T03/T04: distinguish semantic model qualification, deterministic
+representation, byte identity and consumer interpretation. Extract only
+the existing JSON encoding and digest functions from the witness module
+into a leaf json_identity module, retaining the original import names and
+exact encoding/error behavior. Do not change model qualification,
+observation policy, classification or public interfaces. The encoding is
+a Python-specific existing profile, not an RFC 8785 conformance claim.
+Do not replace the encoder or change historic digest identity without a
+consumer migration and independent byte-level qualification.
+
+Reuse stdlib JSON and SHA-256; no new dependency or generic serializer
+framework. Extend the existing native import-layer contract to ensure the
+identity leaf cannot depend on its consumers. The original file combines
+models, qualification, content identity and construction; this slice
+separates identity only, not a complete model refactor.
+
+Independent literal byte vectors cover Unicode, arrays, booleans, null,
+decimal representation, empty objects/arrays and negative zero. A
+restricted synthetic metadata property directly constructs expected sorted
+UTF-8 bytes and independently computes SHA-256 for 100 generated integer
+maps, including order permutation. Nonfinite numeric rejection remains
+unchanged. Three new tests and three static contracts passed (job
+job-01a21542-f549-7594-b1e0-384dd1516787), 17 files and 18 dependencies.
+No throughput, cross-language equivalence, live observation or authenticity
+claim follows from this refactor.
+
+Observed #2808 R22 head remains Draft, official preflight failed, CodeQL
+and repo-mechanics passed, root queued; main
+69c49da14a80b72ec469ad262ad56323b9127d4c (job
+job-01a21542-5564-738a-9a69-9df21ab7d86e). Preserve existing gates and
+do not infer independent release standing. Gateway natural-provider
+qualification proposal #33102 acknowledged in Host #33139; no approval
+or peer source modification inferred.
+
+References: https://docs.python.org/3/library/json.html and
+https://www.rfc-editor.org/rfc/rfc8785 .

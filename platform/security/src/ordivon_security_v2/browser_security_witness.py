@@ -5,9 +5,10 @@ This module only constructs/validates evidence; it does not classify subject dri
 
 from __future__ import annotations
 
-import hashlib
-import json
 from dataclasses import dataclass
+
+from .json_identity import canonical_json_bytes as _canonical_json_bytes
+from .json_identity import canonical_json_digest as canonical_json_digest
 
 DETECTOR_FAMILIES = frozenset({"CF02", "CF03", "CF04", "CF05", "CF06", "CF07", "CF08"})
 
@@ -144,23 +145,6 @@ _SENSITIVE_PUBLIC_KEYS = frozenset(
         "clientsecret",
     }
 )
-
-
-def _canonical_json_bytes(value: object) -> bytes:
-    try:
-        return json.dumps(
-            value,
-            sort_keys=True,
-            separators=(",", ":"),
-            ensure_ascii=False,
-            allow_nan=False,
-        ).encode("utf-8")
-    except (TypeError, ValueError) as error:
-        raise ValueError("browser-security observation must be canonical JSON data") from error
-
-
-def canonical_json_digest(value: object) -> str:
-    return "sha256:" + hashlib.sha256(_canonical_json_bytes(value)).hexdigest()
 
 
 def _normalized_key(value: str) -> str:

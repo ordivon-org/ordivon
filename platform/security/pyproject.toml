@@ -88,4 +88,5 @@ layers = [
   "browser_security_pool",
   "browser_security_comparison",
   "browser_security_observation | browser_security_witness | change_partition",
+  "json_identity",
 ]
