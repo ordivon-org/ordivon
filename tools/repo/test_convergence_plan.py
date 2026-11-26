@@ -1985,6 +1985,7 @@ class PullRequestExecutionRangeTests(unittest.TestCase):
             git("merge", "--no-ff", "--no-edit", head)
             cut = git("rev-parse", "HEAD")
             env = dict(os.environ, EVENT_NAME="pull_request", PR_BASE=base, PR_HEAD=head,
+                       MISE_TRUSTED_CONFIG_PATHS=str(repo),
                        RUNNER_TEMP=str(root), GITHUB_OUTPUT=str(root / "output"),
                        GITHUB_STEP_SUMMARY=str(root / "summary"))
             def invoke(c):
