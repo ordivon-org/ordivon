@@ -84,6 +84,14 @@ try {
     Assert-State $legacy 'Running' 'Manual';Assert-State $pg 'Stopped' 'Disabled'
     'PASS_PREVIEW_NO_SCM_MUTATION'
     Expect-Reject { & $Operator @params -Apply } 'Operator must establish'
+    $wrong=@{}+$params;$wrong.PgStartMode='Automatic'
+    Expect-Reject { & $Operator @wrong -Apply -IngressQuiesced -OriginalConsumerQualified -OriginalWriterDrained } 'Automatic PG startup requires'
+    $wrong=@{}+$params;$wrong.PgEndpoint='http://127.0.0.1:19001/mcp'
+    Expect-Reject { & $Operator @wrong -Apply -IngressQuiesced -OriginalConsumerQualified -OriginalWriterDrained } 'inputs must be supplied together'
+    Assert-State $legacy 'Running' 'Manual';Assert-State $pg 'Stopped' 'Disabled'
+    if ((Get-WriterPid $legacy) -ne $oldPid) {throw 'preflight changed original writer process'}
+    'PASS_AUTOMATIC_AND_PARTIAL_QUALIFICATION_REFUSED_BEFORE_EFFECT'
+
     $wrong=@{}+$params;$wrong.ExpectedWriterPid=$oldPid+1
     Expect-Reject { & $Operator @wrong -Apply -IngressQuiesced -OriginalConsumerQualified -OriginalWriterDrained } 'preimage changed'
     $wrong=@{}+$params;$wrong.ExpectedPgSha256='0'*64
@@ -91,7 +99,7 @@ try {
     Assert-State $legacy 'Running' 'Manual';Assert-State $pg 'Stopped' 'Disabled'
     'PASS_UNQUALIFIED_STALE_PID_HASH_REJECT_BEFORE_EFFECT'
     $receipt=(& $Operator @params -Apply -IngressQuiesced -OriginalConsumerQualified -OriginalWriterDrained|ConvertFrom-Json)
-    if (-not $receipt.scmTransitionObserved -or $receipt.consumerQualificationEvaluated -or $receipt.pgWriterUniquenessEvaluated) {throw 'incorrect truth boundary'}
+    if (-not $receipt.scmTransitionObserved -or $receipt.consumerQualificationEvaluated -or $receipt.freshPgSessionQualified -or $receipt.fullCutoverAccepted -or $receipt.pgWriterUniquenessEvaluated) {throw 'incorrect truth boundary'}
     Assert-State $legacy 'Stopped' 'Disabled';Assert-State $pg 'Running' 'Manual'
     if (Get-Process -Id $oldPid -ErrorAction SilentlyContinue){throw 'legacy PID present'}
     'PASS_REAL_SCM_ACTIVATE_EXCLUSIVE'

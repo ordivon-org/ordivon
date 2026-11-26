@@ -27,6 +27,14 @@ param(
     [Parameter(Mandatory=$true)][string]$PgEnvironment,
     [Parameter(Mandatory=$true)][string]$ExpectedEnvironmentSha256,
     [ValidateRange(5,120)][int]$TimeoutSeconds=30,
+    [string]$PgEndpoint='',
+    [string]$ExpectedNodeId='',
+    [string]$TokenFile='',
+    [string]$PreparedSourceRepo='',
+    [string]$PreparedSourceRevision='',
+    [string]$AcceptanceRoot='',
+    [string]$ExpectedAcceptanceSha256='',
+    [ValidateRange(1,65535)][int]$ExpectedActiveUserSessionId=1,
     [switch]$IngressQuiesced,
     [switch]$OriginalConsumerQualified,
     [switch]$OriginalWriterDrained,
@@ -74,11 +82,21 @@ function Assert-Commitments {
     Assert-Commitment $PgLauncher $ExpectedLauncherSha256
     Assert-Commitment $PgEnvironment $ExpectedEnvironmentSha256
     # Bind the operator's file commitments to the exact installed image paths.
-    $expectedPg='"{0}" --windows-service --env-file "{1}"' -f $PgBinary,$PgEnvironment
-    if ($PgImagePath -cne $expectedPg) { throw 'PG SCM image does not bind committed binary and environment.' }
-    if (-not ($LegacyImagePath.StartsWith(('"{0}"' -f $LegacyBinary),[StringComparison]::OrdinalIgnoreCase))) {
-        throw 'Legacy SCM image does not bind committed binary.'
-    }
+    # Native SCM can omit quotes on whitespace-free paths.
+    $exeArgs=@(('"{0}"' -f $PgBinary))
+    $envArgs=@(('"{0}"' -f $PgEnvironment))
+    if ($PgBinary -notmatch '[\s"]') { $exeArgs += $PgBinary }
+    if ($PgEnvironment -notmatch '[\s"]') { $envArgs += $PgEnvironment }
+    $images=@(foreach ($exeArg in $exeArgs) {
+        foreach ($envArg in $envArgs) { "$exeArg --windows-service --env-file $envArg" }
+    })
+    if ($PgImagePath -cnotin $images) { throw 'PG SCM image does not bind committed binary and environment.' }
+    $legacyArgs=@(('"{0}"' -f $LegacyBinary))
+    if ($LegacyBinary -notmatch '[\s"]') { $legacyArgs += $LegacyBinary }
+    $legacyMatches=@($legacyArgs | Where-Object {
+        $LegacyImagePath -ieq $_ -or $LegacyImagePath.StartsWith(($_+' '),[StringComparison]::OrdinalIgnoreCase)
+    })
+    if ($legacyMatches.Count -eq 0) { throw 'Legacy SCM image does not bind committed binary.' }
 }
 function Set-Mode([string]$Name,[string]$Mode) {
     $native=@{Automatic='auto';Manual='demand';DelayedAutomatic='delayed-auto';Disabled='disabled'}[$Mode]
@@ -110,6 +128,60 @@ function Assert-StoppedDisabled($State) {
         throw "Destination is not stopped and disabled: $($State.name)"
     }
 }
+# Explicit Manual without inputs is only a staged start under fenced ingress.
+# Automatic startup requires the existing actual PG consumer gate.
+$qualificationInputs=@($PgEndpoint,$ExpectedNodeId,$TokenFile,$PreparedSourceRepo,
+    $PreparedSourceRevision,$AcceptanceRoot,$ExpectedAcceptanceSha256)
+$selectedQualification=@($qualificationInputs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count -gt 0
+$acceptance=Join-Path $PSScriptRoot '..\..\scripts\windows-native-runtime-r6c-acceptance.ps1'
+function Assert-QualificationInputs {
+    if ($Direction -ne 'Activate') { return }
+    if (-not $selectedQualification) {
+        if ($PgStartMode -ne 'Manual') { throw 'Automatic PG startup requires exact fresh-PG consumer qualification inputs.' }
+        return
+    }
+    if (@($qualificationInputs | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count -ne 0) {
+        throw 'Fresh-PG consumer qualification inputs must be supplied together.'
+    }
+    if ($PgService -notmatch 'Candidate' -or $PgService -ieq 'OrdivonRuntime' -or
+        $PgAccount -ine ("NT SERVICE\" + $PgService) -or
+        $PgEndpoint -notmatch '^http://127\.0\.0\.1:[0-9]{1,5}/mcp$' -or
+        $PgEndpoint -match ':8897/mcp$' -or $ExpectedNodeId -ieq 'windows-main') {
+        throw 'Fresh-PG qualification must use the original candidate boundary and virtual service identity.'
+    }
+    $null=[Uri]$PgEndpoint
+    Assert-Commitment (Resolve-Path -LiteralPath $acceptance).Path $ExpectedAcceptanceSha256
+    if (-not [IO.Path]::IsPathRooted($TokenFile) -or -not [IO.File]::Exists($TokenFile) -or
+        -not [IO.Path]::IsPathRooted($PreparedSourceRepo) -or -not [IO.Directory]::Exists($PreparedSourceRepo) -or
+        -not [IO.Path]::IsPathRooted($AcceptanceRoot) -or $PreparedSourceRevision -notmatch '^[0-9a-f]{40}$') {
+        throw 'Fresh-PG qualification fixture or token path is invalid.'
+    }
+    $root=[IO.Path]::GetFullPath($AcceptanceRoot).TrimEnd('\')
+    $repo=[IO.Path]::GetFullPath($PreparedSourceRepo).TrimEnd('\')
+    if (-not ($repo+'\').StartsWith($root+'\',[StringComparison]::OrdinalIgnoreCase)) {
+        throw 'Prepared fixture must remain under AcceptanceRoot.'
+    }
+    $owner=(Get-Acl -LiteralPath $repo).Owner
+    $sid=[Security.Principal.NTAccount]::new($owner).Translate([Security.Principal.SecurityIdentifier]).Value
+    $expected=[Security.Principal.NTAccount]::new($PgAccount).Translate([Security.Principal.SecurityIdentifier]).Value
+    if ($sid -ne $expected) { throw 'Prepared fixture owner differs from the candidate service.' }
+}
+function Assert-ListenerOwner([uint32]$ExpectedPid,[bool]$Wait) {
+    $port=([Uri]$PgEndpoint).Port
+    $deadline=[DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+    do {
+        $listeners=@(Get-NetTCPConnection -State Listen -LocalAddress '127.0.0.1' -LocalPort $port -ErrorAction SilentlyContinue)
+        $state=Get-ExactService $PgService
+        if ($state.state -ne 'Running' -or $state.pid -ne $ExpectedPid) {
+            throw 'Candidate SCM process changed during consumer qualification.'
+        }
+        if ($listeners.Count -eq 1 -and $listeners[0].OwningProcess -eq $ExpectedPid) { return }
+        if (-not $Wait -or [DateTime]::UtcNow -ge $deadline) {
+            throw 'Candidate SCM process does not own the exact MCP listener.'
+        }
+        Start-Sleep -Milliseconds 250
+    } while ($true)
+}
 $mutex=[Threading.Mutex]::new($false,'Global\Ordivon.Runtime.WindowsPgCutover')
 $held=$false
 try {
@@ -121,6 +193,7 @@ try {
     }
     if (-not $held) { throw 'Another operator SCM transition holds the mutex.' }
     Assert-Commitments
+    Assert-QualificationInputs
     $legacy=Get-ExactService $LegacyService
     $pg=Get-ExactService $PgService
     Assert-Identity $legacy $LegacyImagePath $LegacyAccount
@@ -133,7 +206,7 @@ try {
         }
     } else {
         $from=$pg; $to=$legacy; $targetMode=$LegacyStartMode
-        $running=($from.state -eq 'Running' -and $from.mode -eq $PgStartMode -and
+        $running=($from.state -eq 'Running' -and $from.mode -in @($PgStartMode,'Manual') -and
             $ExpectedWriterPid -gt 0 -and $from.pid -eq $ExpectedWriterPid)
         $alreadyStopped=($from.state -eq 'Stopped' -and $from.mode -eq 'Disabled' -and
             $ExpectedWriterPid -eq 0 -and $from.pid -eq 0)
@@ -161,16 +234,45 @@ try {
     Assert-StoppedDisabled $current
     Assert-Identity $current $to.image $to.account
     Assert-StoppedDisabled (Get-ExactService $from.name)
+    $consumerReceipt=$null
+    $initialMode=if ($Direction -eq 'Activate') {'Manual'} else {$targetMode}
     try {
-        Set-Mode $to.name $targetMode
+        Set-Mode $to.name $initialMode
         Assert-StoppedDisabled (Get-ExactService $from.name)
         Start-Service -Name $to.name -ErrorAction Stop
         (Get-Service -Name $to.name).WaitForStatus('Running',[TimeSpan]::FromSeconds($TimeoutSeconds))
         $current=Get-ExactService $to.name
         Assert-Identity $current $to.image $to.account
         Assert-StoppedDisabled (Get-ExactService $from.name)
-        if ($current.state -ne 'Running' -or $current.mode -ne $targetMode -or $current.pid -eq 0) {
+        if ($current.state -ne 'Running' -or $current.mode -ne $initialMode -or $current.pid -eq 0) {
             throw 'Destination start readback differs.'
+        }
+        if ($Direction -eq 'Activate' -and $selectedQualification) {
+            $candidatePid=$current.pid
+            Assert-ListenerOwner $candidatePid $true
+            Assert-Commitments
+            Assert-QualificationInputs
+            $acceptanceArgs=@{
+                Mode='WorkspaceCwdAdmission';RequireFreshPg=$true;ServiceName=$PgService
+                Endpoint=$PgEndpoint;ExpectedNodeId=$ExpectedNodeId;TokenFile=$TokenFile
+                PreparedSourceRepo=$PreparedSourceRepo;PreparedSourceRevision=$PreparedSourceRevision
+                AcceptanceRoot=$AcceptanceRoot;ExpectedActiveUserSessionId=$ExpectedActiveUserSessionId
+            }
+            $consumerReceipt=(& $acceptance @acceptanceArgs) | ConvertFrom-Json
+            if ($consumerReceipt.passed -ne $true -or $consumerReceipt.freshPgProjectionQualified -ne $true -or
+                $consumerReceipt.exactReplayVerified -ne $true -or
+                $consumerReceipt.activeUserSessionId -ne $ExpectedActiveUserSessionId) {
+                throw 'Original fresh-PG Session1 consumer qualification failed.'
+            }
+            Assert-Commitments
+            Assert-QualificationInputs
+            Assert-StoppedDisabled (Get-ExactService $from.name)
+            Assert-ListenerOwner $candidatePid $false
+            Set-Mode $to.name $targetMode
+            $current=Get-ExactService $to.name
+            Assert-Identity $current $to.image $to.account
+            Assert-ListenerOwner $candidatePid $false
+            Assert-StoppedDisabled (Get-ExactService $from.name)
         }
     } catch {
         # A start error may have admitted effects; never restart the old
@@ -187,8 +289,9 @@ try {
     [ordered]@{schemaVersion=1;kind='ordivon.windows-pg-scm-transition';
         direction=$Direction;from=$stopped.name;fromState=$stopped.state;fromMode=$stopped.mode;
         to=$current.name;toState=$current.state;toMode=$current.mode;toPid=$current.pid;
-        scmTransitionObserved=$true;consumerQualificationEvaluated=$false;
-        pgWriterUniquenessEvaluated=$false;ingressReopened=$false} | ConvertTo-Json
+        scmTransitionObserved=$true;consumerQualificationEvaluated=($null -ne $consumerReceipt);
+        freshPgSessionQualified=($null -ne $consumerReceipt);consumerReceipt=$consumerReceipt;
+        pgWriterUniquenessEvaluated=$false;ingressReopened=$false;fullCutoverAccepted=$false} | ConvertTo-Json -Depth 12
 } finally {
     if ($held) { $mutex.ReleaseMutex() }
     $mutex.Dispose()

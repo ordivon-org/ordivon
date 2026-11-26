@@ -19,7 +19,8 @@ param(
     [string]$ExpectedAttemptId = '',
     [string]$ExpectedClientRequestId = '',
     [string]$ExpectedMarker = '',
-    [switch]$ApplyFault
+    [switch]$ApplyFault,
+    [switch]$RequireFreshPg
 )
 
 $ErrorActionPreference = 'Stop'
@@ -480,7 +481,9 @@ $rid = [int](($integrity.Sid -split '-')[-1])
 # launcher-local deny preflight. A succeeded Job is not a successful Workspace
 # operation if the target was silently started in another working directory.
 function Invoke-WorkspaceCwdAdmission {
-    Assert-CurrentTokenIsCandidateServiceIdentity
+    # Selected PG qualification is an external authenticated consumer of a
+    # prepared service-owned repository, not a second source owner.
+    if (-not $RequireFreshPg) { Assert-CurrentTokenIsCandidateServiceIdentity }
     $runtime = Get-RuntimeDescribe -Id 340
     $windowsNative = @($runtime.targets | Where-Object { $_.target -eq 'windows_native' })[0]
     if ($null -eq $windowsNative -or
@@ -488,7 +491,7 @@ function Invoke-WorkspaceCwdAdmission {
         throw 'candidate has no active_user Windows execution capability.'
     }
 
-    $repo = Ensure-TestRepository
+    $repo = if ($RequireFreshPg) { Resolve-PreparedTestRepository } else { Ensure-TestRepository }
     $workspaceId = ('ws-r6c-cwd-identity-' + [Guid]::NewGuid().ToString('N').Substring(0, 14))
     $opened = Invoke-McpTool -Name 'workspace.open' -Arguments @{
         schemaVersion = 1
@@ -500,6 +503,7 @@ function Invoke-WorkspaceCwdAdmission {
         throw 'candidate returned a different Workspace identity.'
     }
 
+    $qualified = $false
     try {
         $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
         $probe = @'
@@ -538,6 +542,12 @@ if ($null -eq $id.User) { throw "target user SID is missing" }
                 if ($replay.jobId -ne $result.jobId -or $replay.attemptId -ne $result.attemptId -or
                     $replay.executionDisposition -ne 'succeeded') {
                     throw 'exact Workspace CWD replay did not preserve the successful Job and Attempt.'
+                }
+                if ($RequireFreshPg) {
+                    $inspection = Invoke-McpTool -Name 'job.get' -Arguments @{
+                        schemaVersion = 1; jobId = [string]$result.jobId; eventLimit = 200
+                    } -Id ($Id + 200)
+                    Assert-PgSession1Projection $inspection ([string]$result.jobId) ([string]$result.attemptId) ([string]$request.clientRequestId)
                 }
             }
             return $result
@@ -614,6 +624,7 @@ if ($null -eq $id.User) { throw "target user SID is missing" }
             throw 'active-user Workspace job reused the service principal unexpectedly.'
         }
 
+        $qualified = $true
         return [ordered]@{
             schemaVersion = 1
             mode = 'WorkspaceCwdAdmission'
@@ -627,24 +638,30 @@ if ($null -eq $id.User) { throw "target user SID is missing" }
             activeUserAttemptId = [string]$active.attemptId
             verifiedStdoutDigest = [string](@($active.artifacts | Where-Object { $_.kind -eq 'stdout' })[0].digest)
             exactReplayVerified = $true
+            freshPgProjectionQualified = [bool]$RequireFreshPg
             passed = $true
         }
     }
     finally {
-        # Source-digest CAS, active-Job fence and consumer checks remain Runtime
-        # authority; never force-delete a possibly changed physical Workspace.
-        $state = Invoke-McpTool -Name 'workspace.get' -Arguments @{
-            schemaVersion = 1
-            workspaceId = $workspaceId
-        } -Id 344
-        $closed = Invoke-McpTool -Name 'workspace.close' -Arguments @{
-            schemaVersion = 1
-            workspaceId = $workspaceId
-            expectedSourceStateDigest = [string]$state.sourceStateDigest
-            force = $false
-        } -Id 345
-        if ($closed.closureDisposition -notin @('removed', 'already_closed')) {
-            throw 'candidate test Workspace did not close with an exact source digest.'
+        # A failed fresh-PG probe is retained for original Job reconciliation.
+        if (-not $RequireFreshPg -or $qualified) {
+            # Source-digest CAS, active-Job fence and consumer checks remain Runtime
+            # authority; never force-delete a possibly changed physical Workspace.
+            $state = Invoke-McpTool -Name 'workspace.get' -Arguments @{
+                schemaVersion = 1
+                workspaceId = $workspaceId
+            } -Id 344
+            $closeRequest = @{
+                schemaVersion = 1
+                workspaceId = $workspaceId
+                expectedSourceStateDigest = [string]$state.sourceStateDigest
+                force = $false
+            }
+            if ($RequireFreshPg) { $closeRequest.consumerReleased = $true }
+            $closed = Invoke-McpTool -Name 'workspace.close' -Arguments $closeRequest -Id 345
+            if ($closed.closureDisposition -notin @('removed', 'already_closed')) {
+                throw 'candidate test Workspace did not close with an exact source digest.'
+            }
         }
     }
 }
@@ -839,6 +856,9 @@ function Invoke-PgSession1Readback {
 }
 
 Assert-CandidateBoundary
+if ($RequireFreshPg -and $Mode -ne 'WorkspaceCwdAdmission') {
+    throw 'RequireFreshPg is only valid for WorkspaceCwdAdmission.'
+}
 if ($Mode -ne 'PrepareFixture') {
     $script:BearerToken = Read-BearerToken
 }

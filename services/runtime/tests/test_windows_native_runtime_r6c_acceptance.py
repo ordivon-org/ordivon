@@ -166,3 +166,26 @@ def test_pg_session1_readback_discriminates_legacy_success_and_reuses_exact_arti
     assert "ComputeHash($bytes)" in gate and "$body.sessionId -ne 1" in gate
     assert "uniqueWriterQualified = $false; cutoverAccepted = $false" in gate
     assert "workspace.exec" not in gate and "job.cancel" not in gate
+
+
+def test_fresh_pg_uses_prepared_source_not_fixture_recreation_and_releases_only_on_acceptance():
+    text = SCRIPT.read_text(encoding="utf-8")
+    fn = text[text.index("function Invoke-WorkspaceCwdAdmission {"):text.index("function Invoke-ActiveJobRecovery {")]
+    assert "if (-not $RequireFreshPg) { Assert-CurrentTokenIsCandidateServiceIdentity }" in fn
+    assert "$repo = if ($RequireFreshPg) { Resolve-PreparedTestRepository } else { Ensure-TestRepository }" in fn
+    assert "Assert-PgSession1Projection $inspection" in fn
+    assert "$qualified = $true" in fn
+    assert "if (-not $RequireFreshPg -or $qualified)" in fn
+    assert "$closeRequest.consumerReleased = $true" in fn
+
+
+def test_single_scm_operator_cannot_auto_start_before_actual_fresh_pg_consumer():
+    operator = ROOT / "packaging" / "windows" / "activate-ordivon-runtime-pg-service.ps1"
+    text = operator.read_text(encoding="utf-8")
+    assert "Automatic PG startup requires exact fresh-PG consumer qualification inputs." in text
+    assert "Assert-QualificationInputs\n    $legacy=Get-ExactService" in text
+    assert "if ($Direction -eq 'Activate') {'Manual'}" in text
+    assert "Mode='WorkspaceCwdAdmission';RequireFreshPg=$true" in text
+    assert text.index("$consumerReceipt=(& $acceptance @acceptanceArgs)") < text.index("Set-Mode $to.name $targetMode")
+    assert text.count("Assert-ListenerOwner $candidatePid $false") == 2
+    assert "fullCutoverAccepted=$false" in text
