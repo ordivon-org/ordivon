@@ -9,6 +9,19 @@ Source and production truth remain with the owning domain; Workstation owns inst
 tool identities and Runtime owns process execution. A technical PASS is never a claim
 about narrative meaning, edit quality, rights, accessibility acceptance or publication.
 
+
+### Verification standing
+
+The owner lightweight `pnpm check` does not qualify native provider or live
+PostgreSQL behavior. Its unittest result reports executed, skipped and expected
+failure counts; zero tests fails. For full qualification, supply an explicit
+disposable PostgreSQL `ORDIVON_MEDIA_TRIAL_TEST_DSN` and run `pnpm check:all`
+through the owner toolchain after frozen dependency materialization. The full
+entry rejects missing PG before work, and both core and native discovery reject
+zero tests, skips, expected failures, assertion errors and unexpected successes.
+This is a strict test-result policy over standard unittest, not a separate
+scheduler or a production approval. A lightweight green CI is not full qualification.
+
 ## Current native tools
 
 | Profile | Primary native tool | Smoke verification |
@@ -150,15 +163,3 @@ the existing adapter digest remains the execution commitment.
 `pnpm check:all` exercises all four native providers and the native concurrent
 attempt-custody regression tests. The lightweight core gate remains available
 for environments without the external media tools.
-
-### Verification standing
-
-The owner lightweight `pnpm check` does not qualify native provider or live
-PostgreSQL behavior. Its unittest result reports executed, skipped and expected
-failure counts; zero tests fails. For full qualification, supply an explicit
-disposable PostgreSQL `ORDIVON_MEDIA_TRIAL_TEST_DSN` and run `pnpm check:all`
-through the owner toolchain after frozen dependency materialization. The full
-entry rejects missing PG before work, and both core and native discovery reject
-zero tests, skips, expected failures, assertion errors and unexpected successes.
-This is a strict test-result policy over standard unittest, not a separate
-scheduler or a production approval. A lightweight green CI is not full qualification.
