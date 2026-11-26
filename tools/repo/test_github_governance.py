@@ -1008,6 +1008,8 @@ exit 0
                          fixture_registry / "affected_owners.py")
             shutil.copy2(ROOT / "tools/repo/owners.toml",
                          fixture_registry / "owners.toml")
+            shutil.copy2(ROOT / "tools/repo/ci_mise_source_witness.py",
+                         fixture_registry / "ci_mise_source_witness.py")
             # The real verifier consumes a declared source readset; the disposable
             # Git fixture must contain the same declared source universe.
             for rel in _FORMAL_SOURCE_FILES:
@@ -1134,6 +1136,18 @@ exit 0
             self.assertIn("root task checkout differs from provider GITHUB_SHA", refused.stderr)
             self.assertEqual(record.read_text(), "")
             env.pop("GITHUB_SHA", None)
+
+            # The extracted verifier itself is an executable input.
+            witness = fixture_registry / "ci_mise_source_witness.py"
+            exact_witness = witness.read_bytes()
+            try:
+                witness.write_bytes(exact_witness + b"\n# changed witness\n")
+                denied_witness = invoke(queue_script)
+                self.assertEqual(denied_witness.returncode, 43, denied_witness.stderr)
+                self.assertIn("exact Git HEAD: witness", denied_witness.stderr)
+                self.assertEqual(record.read_text(), "")
+            finally:
+                witness.write_bytes(exact_witness)
 
             # Source-qualify nested Owner task manifests as well as root.
             nested_bytes = nested_game.read_bytes()
