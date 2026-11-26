@@ -150,6 +150,62 @@ class PythonPathClosureTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "non-regular"):
                 git_manifests(repo, git("rev-parse", "HEAD").decode().strip())
 
+    def test_missing_promisor_blob_does_not_attempt_remote_fetch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = root / "project"
+            remote = root / "remote"
+
+            def git(*args, env=None):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args],
+                    env=env,
+                    stderr=subprocess.DEVNULL,
+                    timeout=5,
+                )
+
+            repo.mkdir()
+            git("init", "-q")
+            git("config", "user.email", "fixture@example.invalid")
+            git("config", "user.name", "fixture")
+            (repo / "pyproject.toml").write_bytes(manifest("fixture"))
+            git("add", ".")
+            git("commit", "-qm", "initial")
+            commit = git("rev-parse", "HEAD").decode().strip()
+            blob = git("rev-parse", "HEAD:pyproject.toml").decode().strip()
+            git("init", "-q", "--bare", str(remote))
+            git("remote", "add", "origin", str(remote))
+            git("config", "remote.origin.promisor", "true")
+            git("config", "remote.origin.partialclonefilter", "blob:none")
+            git("config", "extensions.partialClone", "origin")
+            git("config", "core.repositoryformatversion", "1")
+            probe = root / "upload-pack"
+            marker = root / "attempt"
+            probe.write_text(
+                '#!/bin/sh\nprintf attempt > "' + str(marker) + '"\nexit 1\n'
+            )
+            probe.chmod(0o700)
+            git("config", "remote.origin.uploadpack", str(probe))
+            (repo / ".git/objects" / blob[:2] / blob[2:]).unlink()
+            # Positive control: actual Git tries the local promisor transport.
+            with self.assertRaises(subprocess.CalledProcessError):
+                git(
+                    "cat-file",
+                    "blob",
+                    blob,
+                    env={**os.environ, "GIT_NO_LAZY_FETCH": "0"},
+                )
+            self.assertTrue(marker.is_file())
+            marker.unlink()
+            with (
+                patch.dict(os.environ, {"GIT_NO_LAZY_FETCH": "0"}),
+                self.assertRaises(subprocess.CalledProcessError),
+            ):
+                git_manifests(repo, commit)
+            self.assertFalse(
+                marker.exists(), "qualification invoked a remote transport"
+            )
+
     def test_actual_tracked_source_projects(self):
         repo = Path(__file__).resolve().parents[2]
         commit = (

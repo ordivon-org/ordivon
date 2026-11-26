@@ -225,10 +225,11 @@ def _manifest_blobs(repo: Path, commit: str) -> tuple[tuple[str, bytes], ...]:
 def path_consumer_owners(
     paths: Iterable[str], direct: tuple[Owner, ...], *,
     owners: tuple[Owner, ...] = OWNERS,
-    repo: Path = SOURCE_REPO_ROOT,
+    repo: Path | None = None,
     before: str | None = None, after: str | None = None,
 ) -> tuple[Owner, ...]:
     """Project-directory dependency impact, not semantic Owner authority."""
+    repo = (SOURCE_REPO_ROOT if repo is None else repo).resolve()
     if before is None and after is None:
         after = subprocess.check_output(
             ["git", "-C", str(repo), "--no-replace-objects", "rev-parse", "--verify", "HEAD^{commit}"],
@@ -402,7 +403,8 @@ def main() -> int:
         require_registered_execution_paths(paths)
         direct = owners_for_paths(paths)
         selected = path_consumer_owners(
-            paths, direct, before=source_cut["diffBase"] if source_cut else None,
+            paths, direct, repo=SOURCE_REPO_ROOT,
+            before=source_cut["diffBase"] if source_cut else None,
             after=source_cut["head"] if source_cut else None,
         )
 

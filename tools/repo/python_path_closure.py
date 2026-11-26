@@ -148,6 +148,8 @@ def git_manifests(repo: Path, commit: str) -> dict[str, bytes]:
         raise ValueError("exact full commit ID required")
     env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     env["GIT_GRAFT_FILE"] = os.devnull
+    # A verification read must not silently download missing Git objects.
+    env["GIT_NO_LAZY_FETCH"] = "1"
     argv = ["git", "-C", str(repo.resolve()), "--no-replace-objects"]
 
     def read(*args: str) -> bytes:
