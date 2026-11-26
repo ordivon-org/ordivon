@@ -4835,6 +4835,115 @@ fn runner_result_wire_shape_remains_legacy_with_best_effort_resource_observation
     assert!(result_value.get("resourceReceipt").is_none());
 }
 
+// Physical, root-owned PG Attempt control test. Not a PG issuer-revoke ACK:
+// the native Manager may still create a Unit after the marker, but the original
+// Runner must never start a new target after the marker wins its spawn fence.
+#[cfg(unix)]
+#[test]
+#[ignore = "requires native root-owned PG Attempt control directory"]
+fn pg_native_runner_cancel_wins_after_step_preparation_before_spawn() {
+    assert_eq!(unsafe { libc::geteuid() }, 0, "explicit native root test");
+    let sandbox = Sandbox::new("pg-native-late-spawn");
+    let task_dir = sandbox.root.join("task");
+    let workspace = sandbox.root.join("workspace");
+    fs::create_dir_all(&task_dir).unwrap();
+    fs::set_permissions(&task_dir, fs::Permissions::from_mode(0o700)).unwrap();
+    fs::create_dir_all(&workspace).unwrap();
+    let executable = real_executable("/usr/bin/python3");
+    let request = RunnerRequest {
+        issuer_spawn_fence: None,
+        workspace_read_paths: None,
+        schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+        job_id: Some("job-native-late-spawn".to_string()),
+        attempt_id: Some("attempt-native-late-spawn".to_string()),
+        launch_token: Some("launch-token-native-late-spawn".to_string()),
+        unit_name: Some("ordivon-native-late-spawn.service".to_owned()),
+        payload: None,
+        inherit_host_environment: true,
+        task_id: "attempt-native-late-spawn".to_string(),
+        workspace_id: "workspace-native-late-spawn".to_string(),
+        workspace_path: workspace.to_string_lossy().into_owned(),
+        workspace_source_digest: None,
+        build_target_backing: None,
+        input_presentation_root: None,
+        input_commitments: Vec::new(),
+        executable: executable.to_string_lossy().into_owned(),
+        executable_digest: sha256_file(&executable).unwrap(),
+        args: vec![
+            "-c".to_owned(),
+            "from pathlib import Path; Path('effect-marker').write_text('spawned')".to_owned(),
+        ],
+        cwd: workspace.to_string_lossy().into_owned(),
+        env: BTreeMap::new(),
+        steps: Vec::new(),
+        timeout_ms: 5_000,
+        stdout_limit_bytes: 1024,
+        stderr_limit_bytes: 1024,
+        host_dependencies: Vec::new(),
+    };
+    write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
+    // Positive control: the exact command really can produce its effect.
+    let positive_dir = sandbox.root.join("positive");
+    fs::create_dir_all(&positive_dir).unwrap();
+    fs::set_permissions(&positive_dir, fs::Permissions::from_mode(0o700)).unwrap();
+    write_json_atomic(&positive_dir.join("request.json"), &request).unwrap();
+    run_job_runner(&positive_dir).unwrap();
+    let positive: RunnerResult =
+        serde_json::from_slice(&fs::read(positive_dir.join("result.json")).unwrap()).unwrap();
+    assert_eq!(
+        positive.status,
+        RunnerTerminalStatus::Completed,
+        "positive native result: {positive:?}"
+    );
+    assert_eq!(
+        fs::read_to_string(workspace.join("effect-marker")).unwrap(),
+        "spawned"
+    );
+    fs::remove_file(workspace.join("effect-marker")).unwrap();
+
+    // Hold the exact original lock while the original Runner enters step
+    // preparation, then publish the marker before releasing the lock.
+    let fence = lock_attempt_spawn_fence(&task_dir).unwrap();
+    let runner_dir = task_dir.clone();
+    let runner = thread::spawn(move || run_job_runner(&runner_dir).unwrap());
+    let deadline = std::time::Instant::now() + Duration::from_secs(3);
+    let mut prepared = false;
+    while std::time::Instant::now() < deadline {
+        if let Ok(bytes) = fs::read(task_dir.join("progress.json")) {
+            if let Ok(value) = serde_json::from_slice::<serde_json::Value>(&bytes) {
+                if value.get("currentStepId").and_then(|v| v.as_str()) == Some("command") {
+                    prepared = true;
+                    break;
+                }
+            }
+        }
+        thread::sleep(Duration::from_millis(5));
+    }
+    // Always release the lock before joining or asserting, even on failure.
+    write_json_atomic(
+        &task_dir.join("cancel-requested.json"),
+        &serde_json::json!({"requestedAtMs":1}),
+    )
+    .unwrap();
+    drop(fence);
+    runner.join().unwrap();
+    assert!(
+        prepared,
+        "runner never entered the original step preparation boundary"
+    );
+    let result: RunnerResult =
+        serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
+    assert_eq!(result.status, RunnerTerminalStatus::Cancelled);
+    assert!(
+        result.steps.is_empty(),
+        "must not fabricate an executed child"
+    );
+    assert!(
+        !workspace.join("effect-marker").exists(),
+        "post-marker native payload spawned"
+    );
+}
+
 #[cfg(unix)]
 #[test]
 fn workspace_write_and_mutation_preflight_reject_dangling_symlink_targets() {
