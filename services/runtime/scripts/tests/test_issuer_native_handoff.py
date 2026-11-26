@@ -310,6 +310,83 @@ class OriginalNativeManagerHandoffTests(unittest.TestCase):
                 self.assertEqual(after_stop.get("Job"), "", after_stop)
 
 
+    @unittest.skipUnless(
+        os.environ.get("ORDIVON_RUN_NATIVE_DBUS_WITNESS_TEST") == "1",
+        "explicit Gio/GLib system D-Bus witness opt-in",
+    )
+    def test_cancelled_stop_job_does_not_certify_deactivating_unit_quiet(self):
+        if os.geteuid() != 0:
+            self.skipTest("requires root to control private systemd transient Units")
+        identity = uuid.uuid4().hex[:12]
+        unit = f"ordivon-issuer-handoff-stop-{identity}.service"
+        with tempfile.TemporaryDirectory(prefix=f"ordivon-issuer-stop-{identity}-", dir="/var/tmp") as scratch:
+            marker = Path(scratch, "stop-entered")
+            release = Path(scratch, "stop-release")
+            completed = Path(scratch, "stop-completed")
+
+            def properties():
+                result = systemctl(
+                    "show", unit,
+                    "--property=LoadState,ActiveState,SubState,Job,MainPID,ControlPID,InvocationID,ControlGroup",
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                return dict(line.split("=", 1) for line in result.stdout.splitlines() if "=" in line)
+
+            try:
+                with self.manager_job_removed_subscription() as (_, events, path, drain):
+                    started = subprocess.run(
+                        [
+                            "/usr/bin/systemd-run", f"--unit={unit}",
+                            "--property=Type=oneshot", "--property=RemainAfterExit=yes",
+                            "--property=TimeoutStopSec=15s",
+                            "--property=KillMode=control-group",
+                            f"--property=ExecStop=/usr/bin/bash -c 'touch {marker}; while test ! -f {release}; do sleep 0.05; done; touch {completed}'",
+                            "/usr/bin/true",
+                        ], text=True, capture_output=True, timeout=10,
+                    )
+                    self.assertEqual(started.returncode, 0, started.stderr)
+                    self.assertEqual(properties()["ActiveState"], "active")
+                    stopped = systemctl("--no-block", "stop", unit)
+                    self.assertEqual(stopped.returncode, 0, stopped.stderr)
+                    deadline = time.monotonic() + 5
+                    while not marker.exists() and time.monotonic() < deadline:
+                        time.sleep(0.02)
+                    self.assertTrue(marker.exists(), "actual ExecStop did not start")
+                    before = properties()
+                    self.assertEqual(before["ActiveState"], "deactivating", before)
+                    self.assertGreater(int(before["ControlPID"]), 0, before)
+                    self.assertTrue(before["Job"].isdecimal(), before)
+                    self.assertEqual(before["MainPID"], "0", before)
+                    stop_id = (int(before["Job"]), path(before["Job"], unit), unit)
+                    cancelled = systemctl("cancel", before["Job"])
+                    self.assertEqual(cancelled.returncode, 0, cancelled.stderr)
+                    self.wait_manager_job_removed(events, drain, (*stop_id, "canceled"))
+                    after = properties()
+                    self.assertEqual(after["Job"], "", after)
+                    self.assertEqual(after["ActiveState"], "deactivating", after)
+                    self.assertEqual(after["InvocationID"], before["InvocationID"], after)
+                    self.assertEqual(after["ControlPID"], before["ControlPID"], after)
+                    self.assertEqual(after["MainPID"], "0", after)
+                    cgroup = Path("/sys/fs/cgroup") / after["ControlGroup"].lstrip("/")
+                    self.assertIn("populated 1", (cgroup / "cgroup.events").read_text().splitlines())
+                    self.assertFalse(completed.exists())
+                    release.touch()
+                    deadline = time.monotonic() + 5
+                    while not completed.exists() and time.monotonic() < deadline:
+                        time.sleep(0.02)
+                    self.assertTrue(completed.exists(), "cancelled stop job did not stop actual ExecStop")
+                    print("ISSUER_NATIVE_STOP_JOB_CANCEL_IS_NOT_QUIET_PASS "
+                          f"stop_job={stop_id} control_pid={after['ControlPID']}", flush=True)
+            finally:
+                release.touch(exist_ok=True)
+                systemctl("stop", unit)
+                systemctl("reset-failed", unit)
+                after = properties()
+                self.assertIn(after["ActiveState"], {"inactive", "failed"}, after)
+                self.assertEqual(after["MainPID"], "0", after)
+                self.assertEqual(after["ControlPID"], "0", after)
+                self.assertEqual(after["Job"], "", after)
+
     @contextmanager
     def manager_job_removed_subscription(self, previously_owned_units=()):
         """Use the existing mature GLib D-Bus client; one private connection.
