@@ -123,6 +123,44 @@ fn workspace_git_command() -> Command {
     command
 }
 
+// Git for Windows does not accept the Win32 extended-length drive prefix
+// as a repository/worktree argument. Keep canonical paths in durable identity
+// and native filesystem operations; change only the Git subprocess carrier.
+fn git_cli_path(path: &Path) -> PathBuf {
+    #[cfg(windows)]
+    {
+        use std::path::{Component, Prefix};
+        if matches!(path.components().next(), Some(Component::Prefix(p))
+            if matches!(p.kind(), Prefix::VerbatimDisk(_)))
+        {
+            if let Some(text) = path.to_str().and_then(|s| s.strip_prefix(r"\\?\")) {
+                // Verbatim-only filenames are not ordinary Win32 aliases.
+                // Leave them unconverted rather than target a different path.
+                if path.components().all(|c| match c {
+                    Component::Normal(n) => n.to_str().is_some_and(|n| !n.ends_with(['.', ' '])),
+                    _ => true,
+                }) {
+                    return PathBuf::from(text);
+                }
+            }
+        }
+    }
+    path.to_path_buf()
+}
+
+fn git_registered_path_matches(raw: &[u8], expected: &Path) -> bool {
+    #[cfg(windows)]
+    {
+        // Git porcelain uses forward separators and ordinary drive paths.
+        // A lexical match is required even for absent worktrees; the caller
+        // separately qualifies canonical filesystem identity when present.
+        return std::str::from_utf8(raw).ok()
+            .is_some_and(|value| git_cli_path(Path::new(value)) == git_cli_path(expected));
+    }
+    #[cfg(not(windows))]
+    { raw == expected.as_os_str().as_encoded_bytes() }
+}
+
 include!("workspace/records.rs");
 include!("workspace/file_io.rs");
 include!("workspace/changes.rs");

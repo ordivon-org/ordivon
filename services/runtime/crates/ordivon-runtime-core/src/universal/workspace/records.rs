@@ -56,7 +56,7 @@ fn verified_interrupted_open(
         let mut unsafe_registration = false;
         for line in item.iter().copied() {
             if let Some(path) = line.strip_prefix(b"worktree ") {
-                location = path == actual.as_os_str().as_encoded_bytes();
+                location = git_registered_path_matches(path, &actual);
             } else if let Some(commit) = line.strip_prefix(b"HEAD ") {
                 head = commit == revision.as_bytes();
             } else if line == b"detached" {
@@ -152,22 +152,22 @@ fn create_workspace_private_git_snapshot(
     match fs::symlink_metadata(&private) {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
             let mut init = workspace_git_command();
-            init.args(["init", "--quiet", "--bare"]).arg(&private);
+            init.args(["init", "--quiet", "--bare"]).arg(git_cli_path(&private));
             run("init", init)?;
             let mut fetch = workspace_git_command();
-            fetch.arg("--git-dir").arg(&private).args(["fetch", "--no-tags", "--depth=1"])
-                .arg(source).arg(revision);
+            fetch.arg("--git-dir").arg(git_cli_path(&private)).args(["fetch", "--no-tags", "--depth=1"])
+                .arg(git_cli_path(&source)).arg(revision);
             run("shallow exact revision", fetch)?;
             let mut ref_update = workspace_git_command();
-            ref_update.arg("--git-dir").arg(&private)
+            ref_update.arg("--git-dir").arg(git_cli_path(&private))
                 .args(["update-ref", "refs/heads/agent-work", revision]);
             run("private ref", ref_update)?;
             let mut head = workspace_git_command();
-            head.arg("--git-dir").arg(&private)
+            head.arg("--git-dir").arg(git_cli_path(&private))
                 .args(["symbolic-ref", "HEAD", "refs/heads/agent-work"]);
             run("private HEAD", head)?;
             let mut index = workspace_git_command();
-            index.arg("--git-dir").arg(&private).arg("--work-tree").arg(workspace)
+            index.arg("--git-dir").arg(git_cli_path(&private)).arg("--work-tree").arg(git_cli_path(&workspace))
                 .args(["read-tree", "HEAD"]);
             run("private index", index)?;
             if workspace_private_git_has_outputs(&private, revision)? {
@@ -269,16 +269,16 @@ pub(crate) fn create_git_workspace_record(
             let inventory = git_output_bytes(&source_repo, ["worktree", "list", "--porcelain", "-z"])?;
             let physical_target = managed_physical_target(&target)?;
             if inventory.split(|b| *b == 0).any(|line| {
-                line.strip_prefix(b"worktree ") == Some(physical_target.as_os_str().as_encoded_bytes())
+                line.strip_prefix(b"worktree ").is_some_and(|raw| git_registered_path_matches(raw, &physical_target))
             }) {
                 return Err(unfinished_open_error("Git still registers an absent worktree"));
             }
         }
         let output = workspace_git_command()
             .arg("-C")
-            .arg(&source_repo)
+            .arg(git_cli_path(&source_repo))
             .args(["worktree", "add", "--detach"])
-            .arg(&target)
+            .arg(git_cli_path(&target))
             .arg(&revision)
             .output()
             .map_err(|error| tool_unavailable("git worktree add", error))?;
@@ -771,7 +771,7 @@ pub(crate) fn workspace_cleanup_dependents(
 mod windows_pg_private_git_tests {
     use super::*;
     fn git(cwd: &Path, args: &[&str]) -> String {
-        let output=workspace_git_command().arg("-C").arg(cwd).args(args).output().unwrap();
+        let output=workspace_git_command().arg("-C").arg(git_cli_path(&cwd)).args(args).output().unwrap();
         assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
         String::from_utf8(output.stdout).unwrap().trim().to_string()
     }
@@ -798,7 +798,7 @@ mod windows_pg_private_git_tests {
         fs::create_dir(&config.store_root).unwrap();
         let id="winpg-private-git";
         let target=config.workspace_path(id);
-        let output=workspace_git_command().arg("-C").arg(&src).args(["worktree","add","--detach"]).arg(&target).arg(&rev).output().unwrap();
+        let output=workspace_git_command().arg("-C").arg(git_cli_path(&src)).args(["worktree","add","--detach"]).arg(git_cli_path(&target)).arg(&rev).output().unwrap();
         assert!(output.status.success(), "{}",String::from_utf8_lossy(&output.stderr));
         create_workspace_private_git_snapshot(&config,id,&src,&rev,&target).unwrap();
         let private=config.workspace_private_git_path(id);
@@ -807,17 +807,17 @@ mod windows_pg_private_git_tests {
         assert!(!workspace_private_git_has_outputs(&private,&rev).unwrap());
         // A private-only empty commit is undelivered even though worktree bytes
         // are clean and the original source is still at the opening revision.
-        let output=workspace_git_command().arg("--git-dir").arg(&private).arg("--work-tree").arg(&target)
+        let output=workspace_git_command().arg("--git-dir").arg(git_cli_path(&private)).arg("--work-tree").arg(git_cli_path(&target))
             .args(["-c","user.name=Workspace witness","-c","user.email=workspace@example.invalid","commit","--allow-empty","-qm","private-only"]).output().unwrap();
         assert!(output.status.success(), "{}",String::from_utf8_lossy(&output.stderr));
         assert!(workspace_private_git_has_outputs(&private,&rev).unwrap());
         assert_eq!(git(&src,&["rev-parse","HEAD"]),rev);
         assert_eq!(git(&target,&["rev-parse","HEAD"]),rev);
-        let candidate=workspace_git_command().arg("--git-dir").arg(&private).args(["rev-parse","HEAD"]).output().unwrap();
+        let candidate=workspace_git_command().arg("--git-dir").arg(git_cli_path(&private)).args(["rev-parse","HEAD"]).output().unwrap();
         assert!(candidate.status.success());
         assert_ne!(String::from_utf8(candidate.stdout).unwrap().trim(),rev);
         // Returning to the admitted base permits cleanup; do not mutate shared Git.
-        let output=workspace_git_command().arg("--git-dir").arg(&private).args(["update-ref","refs/heads/agent-work",&rev]).output().unwrap();
+        let output=workspace_git_command().arg("--git-dir").arg(git_cli_path(&private)).args(["update-ref","refs/heads/agent-work",&rev]).output().unwrap();
         assert!(output.status.success());
         assert!(!workspace_private_git_has_outputs(&private,&rev).unwrap());
         // Isolated sibling must remain untouched by private leaf cleanup.

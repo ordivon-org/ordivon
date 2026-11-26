@@ -529,7 +529,7 @@ fn reconcile_closing_workspace(
     let expected_commit = format!("{}^{{commit}}", closing.final_head);
     let verified_commit = workspace_git_command()
         .arg("-C")
-        .arg(source_repo)
+        .arg(git_cli_path(&source_repo))
         .args(["cat-file", "-e", &expected_commit])
         .output()
         .map_err(|error| tool_unavailable("git cat-file closing HEAD", error))?;
@@ -679,7 +679,7 @@ fn workspace_private_git_has_outputs(
     // original root-owned linked Worktree's file digest is unchanged.
     let result = workspace_git_command()
         .arg("--git-dir")
-        .arg(private)
+        .arg(git_cli_path(&private))
         .args(["-c", "core.fsmonitor=false", "diff-index", "--cached", "--quiet", "HEAD", "--"])
         .output()
         .map_err(|e| tool_unavailable("git", e))?;
@@ -1222,7 +1222,7 @@ fn remove_registered_workspace_with_broken_metadata(
 
     let output = workspace_git_command()
         .arg("-C")
-        .arg(source_repo)
+        .arg(git_cli_path(&source_repo))
         .args(["worktree", "prune", "--expire", "now"])
         .output()
         .map_err(|error| tool_unavailable("git worktree prune", error))?;
@@ -1249,7 +1249,7 @@ fn registered_workspace_head(
     }
     let output = workspace_git_command()
         .arg("-C")
-        .arg(source_repo)
+        .arg(git_cli_path(&source_repo))
         .args(["worktree", "list", "--porcelain"])
         .output()
         .map_err(|error| tool_unavailable("git worktree list", error))?;
@@ -1268,7 +1268,7 @@ fn registered_workspace_head(
     let mut matched = false;
     for line in text.lines() {
         if let Some(path) = line.strip_prefix("worktree ") {
-            matched = Path::new(path) == wanted;
+            matched = git_registered_path_matches(path.as_bytes(), wanted);
         } else if matched {
             if let Some(head) = line.strip_prefix("HEAD ") {
                 return Ok(Some(head.to_string()));
@@ -1291,7 +1291,7 @@ fn recover_missing_workspace_head(
     let rescue_ref = format!("refs/ordivon/closed/{}", record.workspace_id);
     let rescued = workspace_git_command()
         .arg("-C")
-        .arg(source_repo)
+        .arg(git_cli_path(&source_repo))
         .args(["rev-parse", "--verify", "--quiet", &rescue_ref])
         .output()
         .map_err(|error| tool_unavailable("git rev-parse rescue ref", error))?;
@@ -1309,7 +1309,7 @@ fn recover_missing_workspace_head(
     }
     let output = workspace_git_command()
         .arg("-C")
-        .arg(source_repo)
+        .arg(git_cli_path(&source_repo))
         .args(["worktree", "list", "--porcelain"])
         .output()
         .map_err(|error| tool_unavailable("git worktree list", error))?;
@@ -1328,7 +1328,7 @@ fn recover_missing_workspace_head(
     let mut matched = false;
     for line in text.lines() {
         if let Some(path) = line.strip_prefix("worktree ") {
-            matched = Path::new(path) == wanted;
+            matched = git_registered_path_matches(path.as_bytes(), wanted);
         } else if matched {
             if let Some(head) = line.strip_prefix("HEAD ") {
                 return Ok(Some(head.to_string()));
@@ -1353,13 +1353,13 @@ fn remove_git_worktree_from_workspace(
     let mut command = workspace_git_command();
     command
         .arg("--git-dir")
-        .arg(common_dir)
+        .arg(git_cli_path(&common_dir))
         .args(["worktree", "remove"]);
     if force {
         command.arg("--force");
     }
     let output = command
-        .arg(workspace)
+        .arg(git_cli_path(&workspace))
         .output()
         .map_err(|error| tool_unavailable("git worktree remove", error))?;
     if output.status.success() {
@@ -1376,7 +1376,7 @@ mod rescue_ref_atomicity_tests {
     fn git(root: &Path, args: &[&str]) -> String {
         let output = workspace_git_command()
             .arg("-C")
-            .arg(root)
+            .arg(git_cli_path(&root))
             .args(args)
             .output()
             .expect("native Git must run");
@@ -1738,7 +1738,7 @@ mod durable_closing_intent_tests {
     fn git(root: &Path, args: &[&str]) -> String {
         let output = workspace_git_command()
             .arg("-C")
-            .arg(root)
+            .arg(git_cli_path(&root))
             .args(args)
             .output()
             .expect("Git must execute in isolated disposable repo");

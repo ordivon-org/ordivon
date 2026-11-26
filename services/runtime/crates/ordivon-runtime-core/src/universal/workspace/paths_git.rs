@@ -175,7 +175,7 @@ fn resolve_git_commit(repo: &Path, source_revision: &str) -> Result<String, Univ
     let output = workspace_git_command()
         .arg("--no-optional-locks")
         .arg("-C")
-        .arg(repo)
+        .arg(git_cli_path(&repo))
         .args(["rev-parse", "--verify", "--end-of-options"])
         .arg(&revision_spec)
         .output()
@@ -184,7 +184,7 @@ fn resolve_git_commit(repo: &Path, source_revision: &str) -> Result<String, Univ
         let repository_probe = workspace_git_command()
             .arg("--no-optional-locks")
             .arg("-C")
-            .arg(repo)
+            .arg(git_cli_path(&repo))
             .args(["rev-parse", "--git-dir"])
             .output()
             .map_err(|error| tool_unavailable("git", error))?;
@@ -225,7 +225,7 @@ fn git_output<'a>(
     let output = workspace_git_command()
         .arg("--no-optional-locks")
         .arg("-C")
-        .arg(repo)
+        .arg(git_cli_path(&repo))
         .args(args)
         .output()
         .map_err(|error| tool_unavailable("git", error))?;
@@ -294,7 +294,7 @@ fn git_output_bytes<'a>(
     let output = workspace_git_command()
         .arg("--no-optional-locks")
         .arg("-C")
-        .arg(repo)
+        .arg(git_cli_path(&repo))
         .args(args)
         .output()
         .map_err(|error| tool_unavailable("git", error))?;
@@ -313,13 +313,13 @@ fn remove_git_worktree(
     let mut command = workspace_git_command();
     command
         .arg("-C")
-        .arg(source_repo)
+        .arg(git_cli_path(&source_repo))
         .args(["worktree", "remove"]);
     if force {
         command.arg("--force");
     }
     let output = command
-        .arg(workspace)
+        .arg(git_cli_path(&workspace))
         .output()
         .map_err(|error| tool_unavailable("git worktree remove", error))?;
     if output.status.success() {
