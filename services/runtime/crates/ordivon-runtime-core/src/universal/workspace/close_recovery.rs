@@ -664,16 +664,22 @@ fn workspace_private_git_has_outputs(
     if base.trim() != original_sha || private.join("packed-refs").exists() {
         return Ok(true);
     }
-    for dir in [private.join("refs/heads"), private.join("refs/tags")] {
-        for entry in fs::read_dir(&dir)
-            .map_err(|e| io_error(&dir, "read private Git refs", e))?
-        {
-            let entry = entry.map_err(|e| io_error(&dir, "inspect private Git ref", e))?;
-            if dir.ends_with("heads") && entry.file_name() == "agent-work" {
-                continue;
-            }
-            return Ok(true);
-        }
+    // Native Git is the authority for the complete ref namespace, not
+    // a filesystem scan of only branches/tags. Stash, notes, remote and
+    // custom refs can retain a unique candidate while agent-work is clean.
+    // At most two records are sufficient to disprove the exact-one claim.
+    let refs = workspace_git_command()
+        .arg("--git-dir")
+        .arg(git_cli_path(&private))
+        .args(["for-each-ref", "--count=2", "--format=%(refname)%00%(objectname)"])
+        .output()
+        .map_err(|e| tool_unavailable("git for-each-ref", e))?;
+    if !refs.status.success() || !refs.stderr.is_empty() {
+        return Err(unfinished_open_error("cannot prove complete private Git ref inventory"));
+    }
+    let expected = format!("refs/heads/agent-work\0{original_sha}\n");
+    if refs.stdout != expected.as_bytes() {
+        return Ok(true);
     }
     // A staged-only candidate changes this private Git index even if the
     // original root-owned linked Worktree's file digest is unchanged.
@@ -1752,6 +1758,75 @@ mod durable_closing_intent_tests {
             .expect("test Git output")
             .trim()
             .to_string()
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn private_git_close_holds_all_native_ref_namespaces() {
+        // Ordinary close must not delete unique private Git outputs just
+        // because the original linked worktree is clean. Reuse real Git
+        // to construct objects/refs outside heads and tags.
+        for namespace in [
+            "refs/stash",
+            "refs/notes/agent",
+            "refs/remotes/local/candidate",
+            "refs/ordivon/candidate",
+        ] {
+            for force in [false, true] {
+                let (_tmp, cfg, record, digest) = source_workspace("ws-private-ref-retention");
+                let source = Path::new(&record.source_repo);
+                let workspace = Path::new(&record.workspace_path);
+                let private = cfg.workspace_private_git_path(&record.workspace_id);
+                fs::create_dir_all(private.parent().unwrap()).unwrap();
+                let run = |args: &[&str]| {
+                    let output = workspace_git_command()
+                        .arg("--git-dir")
+                        .arg(&private)
+                        .arg("--work-tree")
+                        .arg(workspace)
+                        .args(args)
+                        .output()
+                        .unwrap();
+                    assert!(output.status.success(), "{args:?}: {}", String::from_utf8_lossy(&output.stderr));
+                    String::from_utf8(output.stdout).unwrap().trim().to_owned()
+                };
+                let output = workspace_git_command().args(["init", "--quiet", "--bare"])
+                    .arg(&private).output().unwrap();
+                assert!(output.status.success());
+                run(&["fetch", "--no-tags", "--depth=1", source.to_str().unwrap(), &record.source_revision]);
+                run(&["update-ref", "refs/heads/agent-work", &record.source_revision]);
+                run(&["symbolic-ref", "HEAD", "refs/heads/agent-work"]);
+                run(&["read-tree", "HEAD"]);
+                assert!(!workspace_private_git_has_outputs(&private, &record.source_revision).unwrap());
+                run(&["-c", "user.name=Private Witness", "-c", "user.email=witness@example.invalid",
+                    "commit", "--allow-empty", "-qm", "private witness"]);
+                let candidate = run(&["rev-parse", "HEAD"]);
+                assert_ne!(candidate, record.source_revision);
+                run(&["update-ref", namespace, &candidate]);
+                run(&["update-ref", "refs/heads/agent-work", &record.source_revision]);
+                assert_eq!(git(workspace, &["rev-parse", "HEAD"]), record.source_revision);
+                assert_eq!(workspace_source_state_digest_at(workspace).unwrap(), digest);
+                let request = WorkspaceCloseRequest {
+                    schema_version: 1,
+                    workspace_id: record.workspace_id.clone(),
+                    expected_source_state_digest: Some(digest.clone()),
+                    force,
+                    consumer_released: true,
+                };
+                let result = remove_git_workspace(&cfg, &request);
+                assert_eq!(
+                    result.unwrap_err().code, UniversalExecErrorCode::WorkspaceDirty,
+                    "{namespace} (force={force}) must protect the only private candidate",
+                );
+                assert_eq!(run(&["rev-parse", namespace]), candidate);
+                assert!(workspace.is_dir());
+                run(&["update-ref", "-d", namespace]);
+                assert!(!workspace_private_git_has_outputs(&private, &record.source_revision).unwrap());
+                assert!(remove_git_workspace(&cfg, &request).unwrap().removed);
+                assert!(!private.exists());
+                assert_eq!(git(source, &["rev-parse", "HEAD"]), record.source_revision);
+            }
+        }
     }
 
     fn source_workspace(
