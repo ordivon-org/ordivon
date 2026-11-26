@@ -2341,6 +2341,36 @@ exit 0
             self.assertEqual(calls.read_text(), count)
             self.assertFalse(target_marker.exists())
 
+    def test_mise_signed_pair_cache_is_source_bound_and_reverified(self) -> None:
+        import yaml
+
+        steps = yaml.safe_load((ROOT / ".github/actions/setup-root-verification/action.yml")
+                               .read_text())["runs"]["steps"]
+        cache = next(step for step in steps if step.get("name") == "Cache signed mise release material")
+        install = next(step for step in steps if step.get("name") ==
+                       "Network - acquire verified mise via official GitHub API")
+        toolchain = next(step for step in steps if step.get("name") == "Install monorepo toolchain")
+        self.assertLess(steps.index(cache), steps.index(install))
+        self.assertLess(steps.index(install), steps.index(toolchain))
+        self.assertRegex(cache["uses"], r"^actions/cache@[a-f0-9]{40}$")
+        self.assertIn("hashFiles('platform/network/consumers/developer-egress/github_release_mise.py')",
+                      cache["with"]["key"])
+        self.assertNotIn("restore-keys", cache["with"])
+        self.assertEqual(cache["with"]["path"],
+                         install["env"]["ORDIVON_MISE_SIGNED_PAIR_CACHE_DIR"])
+        self.assertNotIn("if", install)
+        self.assertNotIn("continue-on-error", install)
+        self.assertIn("github_release_mise.py", install["run"])
+
+        # A tagged publishing consumer still performs signed acquisition from
+        # official upstream; it must not restore PR-writable caches.
+        release = yaml.safe_load((ROOT / ".github/workflows/runtime-release.yml")
+                                 .read_text())["jobs"]["runtime-release"]["steps"]
+        release_install = next(step for step in release if step.get("name") ==
+                               "Network - acquire verified mise via official GitHub API")
+        self.assertNotIn("ORDIVON_MISE_SIGNED_PAIR_CACHE_DIR", release_install["env"])
+        self.assertFalse(any("actions/cache@" in step.get("uses", "") for step in release))
+
     def test_bash_source_cache_action_is_manifest_bound(self) -> None:
         import yaml
 
