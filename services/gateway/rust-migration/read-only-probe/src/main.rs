@@ -1,3 +1,4 @@
+mod artifact_inventory;
 mod logic;
 mod matching;
 mod native_discovery;
@@ -114,6 +115,10 @@ fn eval(v: Value) -> Value {
             });
             json!(coords.map(|v| principal_binding::namespace(v[0], v[1], v[2], v[3])))
         }
+        Some("artifact_inventory") => json!(artifact_inventory::project(
+            &input["payload"],
+            &input["count"]
+        )),
         Some("resolve_page") => json!(owner_resolution::project(
             &input["page"],
             input["requestId"].as_str().unwrap_or_default()

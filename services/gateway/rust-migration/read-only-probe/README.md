@@ -301,3 +301,26 @@ Production verified ingress and actual protected natural Owner standing
 remain unqualified. No production secret, public ABI change or new auth
 system. Next qualify actual producer and ingress, then typed receipts,
 Host errors and versioned ABI. Do not automatically resubmit on absence.
+
+
+## Independent R18 Artifact inventory receiver (Host #33141 / #33152)
+
+The pure Rust receiver refines the existing Python execution observation's
+identity coverage, without calling an Owner or modifying the public MCP ABI.
+It preserves order and duplicates, rejects malformed/blank rows for complete
+coverage, and distinguishes unknown count from known false. Only an explicit
+nonnegative native u64 count can qualify; an out-of-range Python integer is
+UNKNOWN. Explicit empty inventory plus count zero qualifies, absent inventory
+does not. A count and unique identity match is not physical readiness, typed
+Artifact metadata, byte verification, domain completion, or dispatch authority.
+
+The existing qualifier includes 2,076 source-oracle cases, extracting only the
+existing Python nested pure functions, including Unicode whitespace, malformed
+rows, duplicates, zero and out-of-range integers. Rust proptest uses an
+independent fixed-domain bitset/cardinality oracle (512 generated cases).
+No new dependencies. Actual natural Runtime receipt and Harness metadata
+consumer remain separate acceptance gates. In particular execution.get may
+call job.observe and trigger reconciliation/dispatch; it must not be silently
+replaced by job.get. The next native contract needs exact Owner descriptor
+kind/digest/retainedBytes, separate from IDs-only coverage, with real Harness
+compatibility and versioned public ABI qualification. No production promotion.
