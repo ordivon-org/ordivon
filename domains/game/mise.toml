@@ -254,3 +254,14 @@ cd scripts
 python3 -m unittest -v test_hosted_product_acceptance test_x11_interaction_acceptance test_mixed_audio_acceptance test_windows_render_acceptance test_hosted_runner_acceptance
 uv run --no-project --with hypothesis python test_consumer_properties.py
 """
+
+[tasks."experiment:mechanic-search"]
+description = "Explore bounded native Room mechanic alternatives and validate actual receipt; not a player-quality gate"
+run = """
+set -eu
+receipt="$(mktemp)"
+trap 'rm -f -- "$receipt"' EXIT
+python3 research/mechanic-search/run.py > "$receipt"
+python3 research/mechanic-search/test_receipt.py "$receipt"
+cat "$receipt"
+"""
