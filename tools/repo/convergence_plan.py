@@ -448,6 +448,8 @@ def build_plan(
         )
 
     affected_owners.require_registered_execution_paths(paths, owners=owners)
+    # Preserve original changedPaths for provenance, but use the same
+    # canonical representation for every selection rule.
     normalized_paths = tuple(affected_owners._normalize(path) for path in paths)
     direct = affected_owners.owners_for_paths(normalized_paths, owners=owners)
     direct_names = tuple(owner.name for owner in direct)
