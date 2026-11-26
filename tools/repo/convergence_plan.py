@@ -309,17 +309,14 @@ def validate_queue_task_selection(
     The only source-only verification task is the existing formal:verify. It
     is never a fake Owner or a substitute for another Owner's queue gate.
     """
-    canonical = {
-        owner.name: owner.queue_task for owner in affected_owners.OWNERS
-    }
     # The queue consumes the already projected source impact, not merely the
     # producer's asserted Owner list. Otherwise a consistently empty/partial
     # (verificationOwners, queueVerifyTasks) pair would pass and silently
     # skip a real Runtime consumer or a cross-cutting Owner verification.
     #
-    # This compares the caller's changedPaths to the existing native
-    # dependency/consumer closure. It DOES NOT prove changedPaths matches Git
-    # bytes, installed effects, complete dynamic consumers or formal proof.
+    # For an exact range, rederive changedPaths and the consumer closure.
+    # Caller-declared paths are diagnostic only; neither mode proves installed
+    # effects, complete dynamic consumers or formal proof.
     if base is not None or head is not None:
         if not base or not head:
             raise ValueError("both exact queue source cuts required")
@@ -330,6 +327,26 @@ def validate_queue_task_selection(
         impact = build_plan(changed_files=changed_paths)
     else:
         impact = None
+    _require_queue_selection_matches_impact(
+        selected_owners, requested_tasks, impact,
+        affected_owners.requires_core_formal_verification(changed_paths),
+    )
+    _require_native_queue_tasks(requested_tasks)
+
+
+def _require_queue_selection_matches_impact(
+    selected_owners: list[str],
+    requested_tasks: list[str],
+    impact: dict[str, object] | None,
+    formal_source_changed: bool,
+) -> None:
+    """Pure selection contract; not admission without a freshly derived impact.
+
+    The public validator alone binds the real source and native task checks.
+    """
+    canonical = {
+        owner.name: owner.queue_task for owner in affected_owners.OWNERS
+    }
     if impact is not None:
         if selected_owners != impact["verificationOwners"]:
             raise ValueError(
@@ -345,9 +362,6 @@ def validate_queue_task_selection(
         raise ValueError("selected verification owner identities are duplicated")
     if any(owner not in canonical for owner in selected_owners):
         raise ValueError("selected verification owner identity is unknown")
-    formal_source_changed = affected_owners.requires_core_formal_verification(
-        changed_paths
-    )
     expected = [canonical[owner] for owner in selected_owners]
     if formal_source_changed:
         expected.append("formal:verify")
@@ -357,6 +371,9 @@ def validate_queue_task_selection(
             "the scoped Formal-source verification task"
         )
 
+
+def _require_native_queue_tasks(requested_tasks: list[str]) -> None:
+    """Qualify the selected tasks using the current native Mise configuration."""
     # The queue invokes these exact task names through mise run.
     # Name/Owner agreement alone is not a runnable contract: the root task
     # can be removed or renamed independently of the source selector.

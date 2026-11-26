@@ -530,7 +530,10 @@ class ConvergencePlanTests(unittest.TestCase):
                 plan["verificationOwners"], plan["queueVerifyTasks"], [source]
             )
 
-        # All ordered two-Owner source changes preserve both closures.
+        # Exhaust the ordered source-pair selection law. Native task-language
+        # admission depends on the canonical task signature, not pair order.
+        # Exercise the complete public wrapper for one real pair per signature.
+        native_signatures = set()
         for left in native_owners:
             for right in native_owners:
                 paths = [actual_paths[left.name], actual_paths[right.name]]
@@ -540,9 +543,16 @@ class ConvergencePlanTests(unittest.TestCase):
                     | set(plans[right.name]["queueVerifyTasks"])
                 )
                 self.assertLessEqual(expected, set(plan["queueVerifyTasks"]))
-                MODULE.validate_queue_task_selection(
-                    plan["verificationOwners"], plan["queueVerifyTasks"], paths
+                MODULE._require_queue_selection_matches_impact(
+                    plan["verificationOwners"], plan["queueVerifyTasks"], plan,
+                    MODULE.affected_owners.requires_core_formal_verification(paths),
                 )
+                signature = (tuple(plan["verificationOwners"]), tuple(plan["queueVerifyTasks"]))
+                if signature not in native_signatures:
+                    MODULE.validate_queue_task_selection(
+                        plan["verificationOwners"], plan["queueVerifyTasks"], paths
+                    )
+                    native_signatures.add(signature)
 
         # The separately real Formal task must survive any Owner change.
         for owner in native_owners:
@@ -1379,6 +1389,7 @@ class ConvergencePlanTests(unittest.TestCase):
         groups = [(name,) for name in samples] + list(combinations(samples, 2))
         self.assertEqual(len(groups), owner_count + owner_count * (owner_count - 1) // 2)
         checks = 0
+        native_signatures = set()
         multi_task_groups = 0
         for group in groups:
             changed = [samples[name] for name in group]
@@ -1386,8 +1397,13 @@ class ConvergencePlanTests(unittest.TestCase):
             owners = plan["verificationOwners"]
             tasks = plan["queueVerifyTasks"]
             self.assertTrue(tasks, f"no native task selected for real consumer {group}")
+            formal = MODULE.affected_owners.requires_core_formal_verification(changed)
             with self.subTest(owner_group=group, case="exact-required"):
-                MODULE.validate_queue_task_selection(owners, tasks, changed)
+                MODULE._require_queue_selection_matches_impact(owners, tasks, plan, formal)
+                signature = (tuple(owners), tuple(tasks))
+                if signature not in native_signatures:
+                    MODULE.validate_queue_task_selection(owners, tasks, changed)
+                    native_signatures.add(signature)
             checks += 1
             invalid = {
                 "omit-first-task": (owners, tasks[1:]),
@@ -1402,8 +1418,8 @@ class ConvergencePlanTests(unittest.TestCase):
             for case, (selected, requested) in invalid.items():
                 with self.subTest(owner_group=group, case=case):
                     with self.assertRaises(ValueError):
-                        MODULE.validate_queue_task_selection(
-                            selected, requested, changed
+                        MODULE._require_queue_selection_matches_impact(
+                            selected, requested, plan, formal
                         )
                 checks += 1
         # One exact positive and five mandatory negative controls per actual
