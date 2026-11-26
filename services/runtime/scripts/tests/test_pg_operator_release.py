@@ -685,6 +685,9 @@ class NativePgReleaseOperator(unittest.TestCase):
             result=op.apply_release(self.args)
             self.assertEqual(result["status"],"deployed")
             self.assertEqual(result["pgTerminal"],"succeeded")
+            path=self.args.receipt_root/f"effect-{self.args.effect_id}"/"result.json"
+            self.assertEqual(result["resultDigest"],op.digest(path.read_bytes()))
+            self.assertNotIn("replayed",result)
             self.assertEqual((self.install/"ordivon-runtime-pg").read_bytes(),b"new-pg-runtime")
             self.assertEqual(len(self.calls),2)
             replay=op.apply_release(self.args)
@@ -877,6 +880,58 @@ class NativePgReleaseOperator(unittest.TestCase):
              f"effect-{self.args.effect_id}"/"result.json").read_text())
         self.assertNotEqual(result["status"],"not_committed",
                             "rename attempt is already a physical effect boundary")
+
+    def test_receipt_substitution_during_readiness_holds_pg_resolution(self) -> None:
+        receipt=self.args.receipt_root/f"effect-{self.args.effect_id}"/"result.json"
+        ready={"toolCount":20,"toolCatalogDigest":"sha256:"+"f"*64}
+
+        def readiness(_args):
+            if receipt.is_file():
+                changed=json.loads(receipt.read_text())
+                changed["status"]="rolled_back"
+                op.DEPLOY["write_json_atomic"](receipt,changed)
+            return ready
+
+        with patch.object(op,"pg_mcp_readiness",side_effect=readiness), \
+             patch.dict(op.DEPLOY,{"run":lambda _command:None}), \
+             patch.object(op,"verified_release_consumer") as consumer:
+            with self.assertRaisesRegex(RuntimeError,"RECONCILIATION_REQUIRED"):
+                op.apply_release(self.args)
+            consumer.assert_not_called()
+        self.assertIsNone(self.db.execute(
+            "SELECT resolution FROM jobs WHERE job_id=%s",(self.job_id,)
+        ).fetchone()["resolution"])
+        self.assertEqual(self.db.execute(
+            "SELECT state FROM concurrency_reservations WHERE attempt_id=%s",
+            (self.attempt_id,)
+        ).fetchone()["state"],"active")
+
+    def test_consumer_cannot_replace_settled_result_digest_with_current_path(self) -> None:
+        receipt=self.args.receipt_root/f"effect-{self.args.effect_id}"
+        receipt.mkdir()
+        path=receipt/"result.json"
+        op.DEPLOY["write_json_atomic"](path,{"status":"deployed"})
+        settled=op.digest(path.read_bytes())
+        op.DEPLOY["write_json_atomic"](path,{"status":"deployed","changed":True})
+        projection={
+            "effectId":self.args.effect_id,
+            "clientRequestId":self.args.client_request_id,
+            "commit":self.args.commit,
+            "candidateManifestDigest":self.args.candidate_manifest_digest,
+            "expectedToolCount":20,"effectDisposition":"deployed",
+            "executionDisposition":"succeeded",
+            "receiptDigest":op.digest(path.read_bytes()),
+            "effectTerminal":True,"executionTerminal":True,
+            "receiptAvailable":True,"recoveryRequired":False,
+            "semanticCompletionEvaluated":False,"deployedToolCount":20,
+        }
+        terminal={"status":"deployed","pgTerminal":"succeeded","resultDigest":settled}
+        environment={"ORDIVON_PG_BIND":"127.0.0.1:65500","ORDIVON_PG_TOKEN":"p"*32}
+        with patch.dict(op.DEPLOY,{"load_environment_file":lambda _path:environment}), \
+             patch.object(op,"McpClient") as client:
+            client.return_value.call_tool.return_value=projection
+            with self.assertRaisesRegex(RuntimeError,"RECONCILIATION_REQUIRED"):
+                op.verified_release_consumer(self.args,terminal)
 
     def test_forged_terminal_receipt_cannot_finalize_pg_success(self) -> None:
         with op.pg_connection(self.dsn,"fresh") as conn:

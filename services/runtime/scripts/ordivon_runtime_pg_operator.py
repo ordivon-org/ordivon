@@ -789,9 +789,10 @@ def finalize_receipted_release(
     """Reconcile an existing terminal installer receipt, never rerun an install."""
     require_complete_native_release(args)
     receipt_dir = args.receipt_root / f"effect-{args.effect_id}"
-    result = DEPLOY["existing_structured_release_result"](receipt_dir, request)
-    if result is None:
+    snapshot = DEPLOY["structured_release_result_snapshot"](receipt_dir, request)
+    if snapshot is None:
         raise RuntimeError("RECONCILIATION_REQUIRED: operator receipt is missing")
+    result, receipt_bytes = snapshot
     # The Runtime reader is still the independent receipt verifier. We
     # serialize ONLY the authenticated operator's committed effect outcome.
     status = result.get("status")
@@ -832,7 +833,9 @@ def finalize_receipted_release(
         raise RuntimeError(
             "RECONCILIATION_REQUIRED: unsafe/unknown installer result cannot release PG reservation"
         )
-    receipt_bytes = (receipt_dir / "result.json").read_bytes()
+    # Commit the bytes that were actually parsed and qualified, not a second
+    # independently chosen result. The operator lock serializes our writers;
+    # a detected out-of-band mutation is reconciliation, never a new receipt.
     result_digest = digest(receipt_bytes)
     observed = int(time.time() * 1000)
     conn.isolation_level = psycopg.IsolationLevel.SERIALIZABLE
@@ -844,6 +847,9 @@ def finalize_receipted_release(
             candidate_manifest_digest=args.candidate_manifest_digest,
             receipt_root=args.receipt_root,
         )
+        current = DEPLOY["structured_release_result_snapshot"](receipt_dir, request)
+        if current is None or current[1] != receipt_bytes:
+            raise RuntimeError("RECONCILIATION_REQUIRED: operator receipt changed before settlement")
         issued = conn.execute(
             "SELECT count(*) AS n FROM job_events WHERE job_id=%s AND event_type=%s",
             (row["job_id"], DISPATCH_EVENT),
@@ -955,6 +961,9 @@ def verified_release_consumer(
         raise RuntimeError(
             "RECONCILIATION_REQUIRED: operator receipt changed during readback"
         ) from error
+    settled_digest = result.get("resultDigest")
+    if not isinstance(settled_digest, str) or not DIGEST.fullmatch(settled_digest) or receipt_digest != settled_digest:
+        raise RuntimeError("RECONCILIATION_REQUIRED: current receipt differs from settled result")
     required = {
         "effectId": args.effect_id,
         "clientRequestId": args.client_request_id,
@@ -963,7 +972,7 @@ def verified_release_consumer(
         "expectedToolCount": args.expected_tool_count,
         "effectDisposition": expected[1],
         "executionDisposition": terminal,
-        "receiptDigest": receipt_digest,
+        "receiptDigest": settled_digest,
         "effectTerminal": True,
         "executionTerminal": True,
         "receiptAvailable": True,
@@ -1043,7 +1052,7 @@ def apply_release(args: argparse.Namespace) -> dict[str, Any]:
             receipt.mkdir(parents=True,exist_ok=False)
             DEPLOY["write_json_atomic"](receipt / "effect-request.json",request)
             try:
-                result = operator_fenced_install(conn,args,row,bound,request)
+                operator_fenced_install(conn,args,row,bound,request)
             except RuntimeError:
                 if (receipt / "result.json").is_file():
                     try:
@@ -1056,7 +1065,9 @@ def apply_release(args: argparse.Namespace) -> dict[str, Any]:
             # Physical systemd receipt precedes PG terminal commit, and only
             # the canonical native release.get consumer can certify Standing.
             final = finalize_receipted_release(conn,args,request)
-            delivered = {**result,"pgTerminal":final["pgTerminal"]}
+            # Return the exact projection settled and checked above, not the
+            # earlier in-memory installer result. This is the initial delivery.
+            delivered = {key: value for key, value in final.items() if key != "replayed"}
             verified_release_consumer(args, delivered)
             return delivered
 
