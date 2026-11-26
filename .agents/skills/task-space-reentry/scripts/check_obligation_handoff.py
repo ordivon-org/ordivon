@@ -9,9 +9,10 @@ import json
 import sys
 from collections.abc import Mapping
 
-# Host work.get revision is a positive PostgreSQL bigint, not an arbitrary
-# Python integer. This is the consumer's native wire admission boundary.
-_MAX_HOST_REVISION = 2**63 - 1
+# Host work.get uses HOST_WIRE_INT_MAX: the JSON-safe subset of BIGINT.
+# Keep this standalone Skill dependency-free; the consumer test checks parity
+# with the authoritative Host wire contract (RFC 8259 / I-JSON).
+_MAX_HOST_REVISION = 2**53 - 1
 
 
 def _unique_members(pairs):
