@@ -265,3 +265,10 @@ python3 research/mechanic-search/run.py > "$receipt"
 python3 research/mechanic-search/test_receipt.py "$receipt"
 cat "$receipt"
 """
+
+[tasks."factory:study:room-pair"]
+description = "Build a private source-bound Room A/B study pair, distinct from READY and production release"
+run = """
+set -eu
+python3 research/mechanic-search/build_pair.py --output "${GAME_STUDY_OUTPUT:?set absolute fresh output directory}"
+"""
