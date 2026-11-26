@@ -32,12 +32,16 @@ def qualify_tree_listing(
         raise ValueError("Git root tree identity mismatch")
     if not raw.endswith(b"\0"):
         raise ValueError("incomplete Git tree listing")
-    entries = raw.split(b"\0")
-    entries.pop()
     tree_paths = {b"": root_oid}
     children: dict[bytes, dict[bytes, tuple[bytes, bytes, bytes]]] = {}
     products: list[tuple[str, str]] = []
-    for entry in entries:
+    # Consume one native NUL-delimited row at a time. Invalid early rows
+    # must not cause a list allocation proportional to the unexamined tail.
+    start = 0
+    while start < len(raw):
+        end = raw.find(b"\0", start)
+        entry = raw[start:end]
+        start = end + 1
         metadata, separator, path = entry.partition(b"\t")
         if not separator or not metadata or not path:
             raise ValueError("incomplete Git tree listing")
