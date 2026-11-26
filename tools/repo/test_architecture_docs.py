@@ -1184,8 +1184,14 @@ def test_git01_network_uv_nonmerge_uses_current_native_route_consumer() -> None:
     assert selection["evidenceScope"] == "NATIVE_CONSUMER_PASS"
     assert selection["sourceQualification"]["branchDeletionAllowed"] is False
     owner = tomllib.loads((ROOT / "platform/network/mise.toml").read_text())
-    assert owner["tools"]["uv"] == "0.13.5"
-    assert "ci" in owner["tasks"] and "behavior" in owner["tasks"]
+    # Historical evidence belongs to evaluatedRemoteMain, not today's
+    # tool version. Require the current native consumer route, leaving
+    # version selection and execution to the Network owner.
+    assert isinstance(owner["tools"].get("uv"), str) and owner["tools"]["uv"].strip()
+    for task in ("ci", "behavior"):
+        run = owner["tasks"][task]["run"]
+        assert "uv run" in run and "python -m pytest" in run
+    assert "tests/test_egress_routing_behavior.py" in owner["tasks"]["behavior"]["run"]
     module.validate_formal_issue_census(census, plans)
 
 
