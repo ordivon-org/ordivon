@@ -112,7 +112,8 @@ def test_source_readset_namespace_membership_is_explicit_and_selective():
     assert result["proofReuseAdmissible"] is False
 
 
-def test_native_git_membership_add_and_delete_recheck_only_enumerator(tmp_path, monkeypatch):
+@pytest.mark.parametrize("directory", ["source", "source space", "模块", "source%20"])
+def test_native_git_membership_add_and_delete_recheck_only_enumerator(tmp_path, monkeypatch, directory):
     """Actual Git objects: newly appearing/disappearing members are dependencies."""
     import subprocess
     from pathlib import Path
@@ -127,7 +128,8 @@ def test_native_git_membership_add_and_delete_recheck_only_enumerator(tmp_path, 
     git("init", "-q")
     git("config", "user.name", "Ordivon graph-test")
     git("config", "user.email", "source-graph@example.invalid")
-    scope = tmp_path / "source"
+    prefix = directory + "/"
+    scope = tmp_path / directory
     scope.mkdir()
     (scope / "existing.txt").write_text("unchanged\n", encoding="utf-8")
     git("add", ".")
@@ -135,23 +137,23 @@ def test_native_git_membership_add_and_delete_recheck_only_enumerator(tmp_path, 
     first = git("rev-parse", "HEAD")
 
     def select(old, new):
-        delta = source_membership_delta(tmp_path, old, new, "source/")
+        delta = source_membership_delta(tmp_path, old, new, prefix)
         proof = {
             "kind": "ordivon.source-readset-evidence",
             "sourceCut": new,
-            "scopePrefix": "source/",
+            "scopePrefix": prefix,
             "dependencyQualification": "TASK_LOCAL_GIT_EXAMPLE_ONLY",
             "proofReuseAdmissible": False,
             "items": [
                 {
                     "id": "proof:consumer:namespace",
-                    "sourcePaths": ["source/existing.txt"],
+                    "sourcePaths": [prefix + "existing.txt"],
                     "dependsOnScopeMembership": True,
                     "dependenciesComplete": True,
                 },
                 {
                     "id": "proof:consumer:single-file",
-                    "sourcePaths": ["source/existing.txt"],
+                    "sourcePaths": [prefix + "existing.txt"],
                     "dependenciesComplete": True,
                 },
             ],
@@ -159,6 +161,17 @@ def test_native_git_membership_add_and_delete_recheck_only_enumerator(tmp_path, 
         selected = select_source_readset_impacts(
             git_source_delta=delta, source_readset_evidence=proof
         )
+        assert selected["proofReuseAdmissible"] is False
+        assert selected["proofAcceptanceEstablished"] is False
+        raw_member = delta["sourceScopeRef"] + ":members:" + prefix
+        if raw_member != delta["membershipRef"]:
+            # A raw/alias identity must not be admitted just because it appears
+            # in the caller's authority list.
+            forged = copy.deepcopy(delta)
+            forged["membershipRef"] = raw_member
+            forged["authorityRefs"].append(raw_member)
+            with pytest.raises(CircuitContractError, match="exact native Git scope"):
+                select_source_readset_impacts(git_source_delta=forged, source_readset_evidence=proof)
         return delta, {
             row["id"]: row["standing"] for row in selected["selection"]["standingByObligation"]
         }
@@ -168,7 +181,7 @@ def test_native_git_membership_add_and_delete_recheck_only_enumerator(tmp_path, 
     git("commit", "-qm", "add member")
     second = git("rev-parse", "HEAD")
     delta, statuses = select(first, second)
-    assert delta["addedPaths"] == ["source/new.txt"]
+    assert delta["addedPaths"] == [prefix + "new.txt"]
     assert delta["membershipChanged"] is True
     assert statuses == {
         "proof:consumer:namespace": "RECHECK_REQUIRED",
@@ -180,7 +193,7 @@ def test_native_git_membership_add_and_delete_recheck_only_enumerator(tmp_path, 
     git("commit", "-qm", "remove member")
     third = git("rev-parse", "HEAD")
     delta, statuses = select(second, third)
-    assert delta["removedPaths"] == ["source/new.txt"]
+    assert delta["removedPaths"] == [prefix + "new.txt"]
     assert delta["membershipChanged"] is True
     assert statuses == {
         "proof:consumer:namespace": "RECHECK_REQUIRED",
@@ -227,8 +240,8 @@ def test_source_readset_impact_fails_closed_on_unqualified_bridge(mutation):
         )
 
 
-@pytest.mark.parametrize("bad_path", [{"unexpected": "object"}, ["nested", "array"]])
-def test_source_readset_impact_rejects_nonstring_unhashable_paths(bad_path):
+@pytest.mark.parametrize("bad_path", [{"unexpected": "object"}, ["nested", "array"], "owner/\ud800.py"])
+def test_source_readset_impact_rejects_invalid_paths(bad_path):
     delta, evidence = _source_readset_fixture()
     evidence["items"][0]["sourcePaths"] = [bad_path]
     with pytest.raises(CircuitContractError):

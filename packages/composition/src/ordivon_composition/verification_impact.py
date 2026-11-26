@@ -242,6 +242,16 @@ def select_source_readset_impacts(
         raise CircuitContractError("source readset evidence must bind the exact current Git scope")
 
     authority = set(git_source_delta["authorityRefs"])
+
+    def source_ref(kind: str, name: str) -> str:
+        # Match Git's native byte-preserving identity for both path and
+        # membership edges. An already encoded percent sign is literal input.
+        try:
+            encoded = quote_from_bytes(name.encode("utf-8", "surrogateescape"), safe="/")
+        except UnicodeEncodeError as exc:
+            raise CircuitContractError("source readset name is not a Git byte path") from exc
+        return f"{git_source_delta['sourceScopeRef']}:{kind}:{encoded}"
+
     # An enumerating consumer depends on the *set* of source members, not
     # merely the bytes of the files that happened to exist at the prior cut.
     # Reuse the native Git delta's existing members: ref; no second graph.
@@ -279,17 +289,14 @@ def select_source_readset_impacts(
                 or any(part in {"", ".", ".."} for part in path.split("/"))
             ):
                 raise CircuitContractError("source readset path escapes qualified Git scope")
-            encoded = quote_from_bytes(path.encode("utf-8", "surrogateescape"), safe="/")
-            ref = f"{git_source_delta['sourceScopeRef']}:path:{encoded}"
+            ref = source_ref("path", path)
             if ref not in authority:
                 raise CircuitContractError(
                     "source readset path is absent from exact Git authority refs"
                 )
             refs.append(ref)
         if item.get("dependsOnScopeMembership", False):
-            expected = (
-                f"{git_source_delta['sourceScopeRef']}:members:{git_source_delta['queryPrefix']}"
-            )
+            expected = source_ref("members", git_source_delta["queryPrefix"])
             if membership_ref != expected or membership_ref not in authority:
                 raise CircuitContractError(
                     "scope membership edge requires the exact native Git scope reference"
