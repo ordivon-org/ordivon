@@ -167,3 +167,18 @@ outer verdict is emitted on stdout even when compiler stderr is capped.
 An additional real failed transient Unit challenger verifies that loaded
 failure is not absence and only test-owned, dead, identity-bound Unit
 retirement enables release.
+
+## R22 adoption counterexamples
+
+The current-main requalification initially had 41/43 native cases pass,
+two real failures retained with their private scopes. The short printf
+Job completed once without an independently committed RUNNER_BOUND;
+its nullable started_at_ms and zero RUNNER_BOUND events are consistent.
+Keep exact terminal and nullable get/list projection checks; the separate
+held long-running Job still requires an actual RUNNING and one RUNNER_BOUND.
+The idle borrowing test read allocation immediately after zero-wait
+admission; the retained PG had one accepted Attempt and zero dispatches.
+Require passive bounded convergence while the blocker remains held, exact
+full CPU allocation and owner, not active observation or another submit.
+Retain the original failures; do not infer scheduler correctness from
+admission alone or suppress the actual fairness checks.
