@@ -492,6 +492,59 @@ fn sync_rename_parents(source: &Path, destination: &Path) -> Result<(), Universa
     Ok(())
 }
 
+/// Normalize DOS paths before crossing the raw Win32 rename boundary.
+/// Rust's file APIs already accept long paths; MoveFileExW requires an
+/// explicit verbatim carrier when the staging name exceeds MAX_PATH.
+#[cfg(windows)]
+fn windows_rename_path(path: &Path) -> std::io::Result<Vec<u16>> {
+    use std::ffi::OsString;
+    use std::path::Prefix;
+
+    let absolute = std::path::absolute(path)?;
+    let extended = match absolute.components().next() {
+        Some(Component::Prefix(prefix)) => match prefix.kind() {
+            Prefix::Disk(_) => {
+                let mut value = OsString::from(r"\\?\");
+                value.push(absolute.as_os_str());
+                value
+            }
+            Prefix::UNC(_, _) => {
+                let mut value = OsString::from(r"\\?\UNC\");
+                let tail: OsString = std::os::windows::ffi::OsStringExt::from_wide(
+                    &absolute
+                        .as_os_str()
+                        .encode_wide()
+                        .skip(2)
+                        .collect::<Vec<_>>(),
+                );
+                value.push(tail);
+                value
+            }
+            Prefix::VerbatimDisk(_) | Prefix::VerbatimUNC(_, _) => absolute.into_os_string(),
+            _ => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "rename requires a filesystem drive or UNC path",
+                ));
+            }
+        },
+        _ => {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "rename requires an absolute Windows filesystem path",
+            ));
+        }
+    };
+    // NUL must never truncate the native authority path.
+    if extended.encode_wide().any(|unit| unit == 0) {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "rename path contains NUL",
+        ));
+    }
+    Ok(extended.encode_wide().chain(std::iter::once(0)).collect())
+}
+
 fn rename_path_native(
     source: &Path,
     destination: &Path,
@@ -502,16 +555,8 @@ fn rename_path_native(
         use windows_sys::Win32::Storage::FileSystem::{
             MoveFileExW, MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH,
         };
-        let source_wide = source
-            .as_os_str()
-            .encode_wide()
-            .chain(std::iter::once(0))
-            .collect::<Vec<_>>();
-        let destination_wide = destination
-            .as_os_str()
-            .encode_wide()
-            .chain(std::iter::once(0))
-            .collect::<Vec<_>>();
+        let source_wide = windows_rename_path(source)?;
+        let destination_wide = windows_rename_path(destination)?;
         let mut flags = MOVEFILE_WRITE_THROUGH;
         if replace_existing {
             flags |= MOVEFILE_REPLACE_EXISTING;
@@ -661,6 +706,24 @@ mod durable_publication_tests {
         write_bytes_atomic(&target, b"old").unwrap();
         write_bytes_atomic(&target, b"new").unwrap();
         assert_eq!(fs::read(target).unwrap(), b"new");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn long_path_atomic_publication_preserves_no_replace_and_explicit_replace() {
+        let root = tempfile::tempdir().unwrap();
+        let mut parent = root.path().to_path_buf();
+        while parent.as_os_str().encode_wide().count() < 270 {
+            parent.push("nested-long-path-0123456789");
+        }
+        fs::create_dir_all(&parent).unwrap();
+        let target = parent.join("cancel-requested.json");
+        assert!(write_bytes_atomic_if_absent(&target, b"first").unwrap());
+        assert!(!write_bytes_atomic_if_absent(&target, b"loser").unwrap());
+        assert_eq!(fs::read(&target).unwrap(), b"first");
+        write_bytes_atomic(&target, b"replacement").unwrap();
+        assert_eq!(fs::read(&target).unwrap(), b"replacement");
+        assert_eq!(fs::read_dir(&parent).unwrap().count(), 1);
     }
 
     #[test]
