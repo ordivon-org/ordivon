@@ -729,6 +729,56 @@ exit 0
         self.assertIn("mise run formal:verify", formal["run"])
         self.assertNotIn("GITHUB_TOKEN", steps["Verify affected owners"].get("env", {}))
 
+
+    def test_gateway_formal_source_gate_uses_actual_workflow_selection(self) -> None:
+        import os
+        import yaml
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = {step["name"]: step for step in required_ci_steps(workflow)}
+        select = steps["Select affected owners"]["run"]
+        start = select.index("gateway_formal=true")
+        end = select.index('>> "$GITHUB_OUTPUT"', select.index("printf 'gateway_formal=", start))
+        selection = select[start:end + len('>> "$GITHUB_OUTPUT"')]
+        step = steps["Verify changed Gateway Formal source"]
+        self.assertEqual(step["if"], "steps.affected.outputs.gateway_formal == 'true'")
+        self.assertEqual(step["run"].count("mise run gateway:formal:verify"), 1)
+        self.assertIn("scripts/tla-formal bootstrap", step["run"])
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            plan = folder / "ordivon-convergence-plan.json"
+            output = folder / "output"
+            cases = (
+                ("pull_request", ["services/gateway/formal/GatewayHostCutoverR1.cfg"], "true"),
+                ("merge_group", ["services/runtime/formal/toolchain.lock.json"], "true"),
+                ("push", ["services/gateway/src/ordivon_gateway/service.py"], "false"),
+                ("pull_request", [], "false"),
+                ("workflow_dispatch", [], "true"),
+                ("schedule", [], "true"),
+                ("pull_request", None, "true"),
+                ("pull_request", "malformed", None),
+                ("pull_request", [123], None),
+                ("pull_request", ["../escape"], None),
+            )
+            for event, paths, expected in cases:
+                with self.subTest(event=event, paths=paths):
+                    plan.unlink(missing_ok=True)
+                    output.unlink(missing_ok=True)
+                    if paths is not None:
+                        plan.write_text(json.dumps({"changedPaths": paths}))
+                    run = subprocess.run(
+                        ["bash", "-euo", "pipefail", "-c", selection],
+                        cwd=ROOT, text=True, capture_output=True, check=False,
+                        env={**os.environ, "EVENT_NAME": event, "RUNNER_TEMP": directory,
+                             "GITHUB_OUTPUT": str(output)},
+                    )
+                    if expected is None:
+                        self.assertNotEqual(run.returncode, 0)
+                        self.assertFalse(output.exists())
+                    else:
+                        self.assertEqual(run.returncode, 0, run.stderr)
+                        self.assertEqual(output.read_text().strip(), "gateway_formal=" + expected)
+
     def test_selected_formal_has_one_isolated_real_invocation_and_owner_failures_propagate(self) -> None:
         """Execute the real GitHub queue shell and dedicated Formal step."""
         import os

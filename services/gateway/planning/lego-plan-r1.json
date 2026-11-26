@@ -92,7 +92,8 @@
         "src/ordivon_gateway/service.py",
         "tests/test_gateway_service.py",
         "tests/test_research_capability_resolution.py",
-        "src/ordivon_gateway/capabilities/discovery.py"
+        "src/ordivon_gateway/capabilities/discovery.py",
+        "formal/verify.sh"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/service.py",
@@ -132,7 +133,8 @@
         "tests/test_projection_concurrency.py",
         "src/ordivon_gateway/capabilities/discovery.py",
         "src/ordivon_gateway/logic/capability_projection.py",
-        "src/ordivon_gateway/logic/owner_protocol.py"
+        "src/ordivon_gateway/logic/owner_protocol.py",
+        "formal/verify.sh"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/mcp_server.py",
@@ -180,7 +182,8 @@
         "formal/GatewayAgentWorkspaceBindingR1.tla",
         "formal/GatewayAgentWorkspaceBindingR1.cfg",
         "formal/GatewayAgentWorkspaceBindingR1.reachability.cfg",
-        "formal/GatewayAgentWorkspaceBindingR1.unsafe.cfg"
+        "formal/GatewayAgentWorkspaceBindingR1.unsafe.cfg",
+        "formal/verify.sh"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/mcp_server.py",
@@ -273,7 +276,8 @@
         "src/ordivon_gateway/service.py",
         "src/ordivon_gateway/contracts.py",
         "tests/test_gateway_service.py",
-        "tests/test_host_byte_budget_tool_contract.py"
+        "tests/test_host_byte_budget_tool_contract.py",
+        "formal/verify.sh"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/mcp_server.py"
@@ -312,7 +316,8 @@
         "src/ordivon_gateway/security/authzen_authorizer.py",
         "tests/test_capability_authz_middleware.py",
         "tests/test_authzen_authorizer.py",
-        "src/ordivon_gateway/logic/execution_refs.py"
+        "src/ordivon_gateway/logic/execution_refs.py",
+        "formal/verify.sh"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/mcp_server.py",

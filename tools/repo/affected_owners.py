@@ -257,6 +257,32 @@ def requires_core_formal_verification(paths: Iterable[str]) -> bool:
         for path in paths
     )
 
+def requires_gateway_formal_verification(paths: Iterable[str]) -> bool:
+    """Select the Gateway-owned TLC gate, not a second Runtime owner.
+
+    The public pinned checker and invocation controls are explicit inputs.
+    Unrelated Gateway Python changes retain the ordinary native owner gate.
+    """
+    normalized = tuple(_normalize(path) for path in paths)
+    controls = {
+        "mise.toml",
+        ".github/workflows/ci.yml",
+        "tools/repo/affected_owners.py",
+        "tools/repo/convergence_plan.py",
+        "tools/repo/dependency_contracts.toml",
+        "tools/repo/owners.toml",
+        "services/runtime/formal/toolchain.lock.json",
+        "services/runtime/scripts/tla-formal",
+        "services/runtime/mise.toml",
+        "services/gateway/formal/verify.sh",
+    }
+    return any(
+        path in controls
+        or (path.startswith("services/gateway/formal/") and path.endswith((".tla", ".cfg")))
+        for path in normalized
+    )
+
+
 def _source_git_env() -> dict[str, str]:
     """Use this repository's Git DAG, not a caller's foreign Git namespace."""
     return {
