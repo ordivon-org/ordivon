@@ -6,11 +6,12 @@ scheduler or semantic verifier.
 from __future__ import annotations
 
 import hashlib
-import re
 from pathlib import Path
 from typing import Any
 
+from .agent_processing import required_source_paths
 from .assets import UnstableBlobError, hash_file
+from .processing_plan_identity import canonical_relative_path, is_digest, validate_selected_closure
 from .strict_json import decode_object
 
 _PREFIX = "ordivon.media.v2."
@@ -32,10 +33,6 @@ _CONTRACTS = {
         "packetEvidenceDigest": "raw/ffprobe-subtitle-packets.json",
     }),
 }
-
-
-def _digest(value: object) -> bool:
-    return isinstance(value, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", value) is not None
 
 
 def _bytes_digest(raw: bytes) -> str:
@@ -65,7 +62,7 @@ def _carrier(directory: Path, relative: str) -> Path:
 
 def _bound_object(path: Path, expected: object) -> dict[str, Any]:
     raw = path.read_bytes()
-    if not _digest(expected) or _bytes_digest(raw) != expected:
+    if not is_digest(expected) or _bytes_digest(raw) != expected:
         raise ValueError(f"selected evidence digest mismatch: {path.name}")
     return decode_object(raw)
 
@@ -94,7 +91,7 @@ def qualify_processing_receipt(
     if exit_code not in (0, 2):
         result["reason"] = "native-exit-outside-receipt-contract"
         return result
-    if not _digest(expected_receipt_digest):
+    if not is_digest(expected_receipt_digest):
         raise ValueError("expected receipt digest must be SHA-256")
     if type(plan.get("schemaVersion")) is not int or plan["schemaVersion"] != 1 or (
         plan.get("kind") != "ordivon.studio-native-processing-probe-plan"
@@ -110,19 +107,26 @@ def qualify_processing_receipt(
         or execution.get("cwdRelative") != "capabilities/media"
         or not isinstance(args, list) or len(args) != 4
         or closure.get("status") != "caller-selected"
-        or not _digest(closure.get("digest"))
-        or not _digest(binding.get("expectedDigest"))
-        or not _digest(plan.get("profileDigest"))
+        or not is_digest(closure.get("digest"))
+        or not is_digest(binding.get("expectedDigest"))
+        or not is_digest(plan.get("profileDigest"))
     ):
         raise ValueError("fully selected local processing plan required")
     kind = next((key for key in _CONTRACTS if args[0] == f"processing/bin/probe-{key}.sh"), None)
     if kind is None:
         raise ValueError("unsupported selected native adapter")
+    selected_profile = canonical_relative_path(args[2])
+    if not selected_profile.startswith("processing/profiles/"):
+        raise ValueError("invalid selected profile location")
+    validate_selected_closure(
+        root, plan, profile_path=selected_profile, adapter_path=args[0],
+        required_paths=required_source_paths(_PREFIX + kind + "-profile"),
+    )
     receipt_kind, input_key, gate_key, assertions_kind, raw_files = _CONTRACTS[kind]
     input_path = _path(root, args[1])
     profile_path = _path(root, args[2])
     directory = _path(root, args[3])
-    if _path(root, binding.get("inputPath")) != input_path or (
+    if args[1] != binding.get("inputPath") or str(input_path) != args[1] or (
         _path(root, plan.get("expectedReceipt")) != directory / "evidence.json"
     ):
         raise ValueError("selected plan path mismatch")
@@ -168,7 +172,7 @@ def qualify_processing_receipt(
         ]
         for field, relative in raw_files.items():
             actual = hash_file(_carrier(directory, relative)).digest
-            if not _digest(evidence.get(field)) or actual != evidence[field]:
+            if not is_digest(evidence.get(field)) or actual != evidence[field]:
                 raise ValueError(f"raw evidence digest mismatch: {relative}")
             verified.append({"path": relative, "digest": actual})
         result.update(standing="QUALIFIED", mechanicalOk=verdict, verifiedFiles=verified)
