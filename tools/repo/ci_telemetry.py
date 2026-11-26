@@ -19,6 +19,7 @@ from github_workflow_observation import (
 )
 
 from ci_economic_annotation import ECONOMIC_OUTCOMES, bind_annotation
+from ci_owner_phase_observation import observe_owner_shard_phases
 
 
 @dataclass(frozen=True)
@@ -168,6 +169,7 @@ def normalize(
                 "runId": run.get("id"),
                 "workflowId": run.get("workflow_id"),
                 "workflowName": run.get("name"),
+                "workflowPath": run.get("path"),
                 "event": run.get("event"),
                 "headSha": run.get("head_sha"),
                 "headBranch": run.get("head_branch"),
@@ -261,6 +263,7 @@ def extract_metrics(normalized: dict[str, Any]) -> dict[str, Any]:
         "rootVerificationRunnerWaitSeconds": summary(
             job.get("runnerWaitSeconds") for job in root_jobs
         ),
+        "ownerShardPhaseObservation": observe_owner_shard_phases(runs),
         "stepSecondsByName": {
             name: summary(values) for name, values in sorted(steps_by_name.items())
         },

@@ -2819,3 +2819,138 @@ def test_pressure_actual_projection_matches_existing_schema():
     import jsonschema
     schema = json.loads((SCHEMA_DIR / "convergence-pressure-assessment-v1.schema.json").read_text())
     jsonschema.validate(pressure_module.assess({}), schema)
+
+
+def phase_fixture():
+    snapshot = ci_fixture()
+    snapshot.runs[0]["path"] = ".github/workflows/ci.yml"
+    job = {
+        "id": 1003, "run_id": 101, "run_attempt": 1,
+        "name": "owner-shard-0", "status": "completed", "conclusion": "success",
+        "created_at": "2026-09-23T00:00:00Z",
+        "started_at": "2026-09-23T00:00:10Z",
+        "completed_at": "2026-09-23T00:01:10Z",
+        "steps": [],
+    }
+    for number, name, start, end in (
+        (3, "Setup root verification", "00:00:15", "00:00:30"),
+        (5, "Preinstall selected Owner tools with native mise", "00:00:30", "00:00:35"),
+        (7, "Verify affected owners", "00:00:40", "00:01:00"),
+    ):
+        job["steps"].append({"number": number, "name": name, "status": "completed",
+            "conclusion": "success", "started_at": "2026-09-23T" + start + "Z",
+            "completed_at": "2026-09-23T" + end + "Z"})
+    snapshot.jobs["101"].append(job)
+    return snapshot, job
+
+
+def phase_result(snapshot):
+    projection = ci_module.project(ci_module.normalize(snapshot))
+    return projection["metrics"]["ownerShardPhaseObservation"]
+
+
+def test_owner_phase_native_interval_partition_and_scope():
+    snapshot, job = phase_fixture()
+    result = phase_result(snapshot)
+    assert result["observedJobs"] == 1
+    assert result["qualifiedJobs"] == 1
+    row = result["rows"][0]
+    assert (row["runId"], row["runAttempt"], row["jobId"]) == (101, 1, 1003)
+    assert row["standing"] == "QUALIFIED_NAMED_INTERVALS"
+    assert row["runnerWaitSeconds"] == 10
+    assert row["jobSeconds"] == 60
+    assert row["beforeVerifySeconds"] == 30
+    assert row["verifyStepSeconds"] == 20
+    assert row["afterVerifySeconds"] == 10
+    assert row["rootSetupSeconds"] == 15
+    assert row["ownerToolInstallSeconds"] == 5
+    assert result["summary"]["verifyStepSeconds"]["mean"] == 20
+    assert result["summary"]["verifyStepSeconds"]["count"] == 1
+    job["steps"].reverse()
+    assert phase_result(snapshot) == result
+    # Name lookalikes in a different workflow cannot enter the cohort.
+    snapshot.runs[0]["path"] = ".github/workflows/unrelated.yml"
+    assert phase_result(snapshot)["observedJobs"] == 0
+
+
+@pytest.mark.parametrize("fault", ["missing", "duplicate", "overlap", "outside",
+    "reverse", "naive", "skipped", "pending", "step-alias", "nonterminal",
+    "wrong-order", "missing-number"])
+def test_owner_phase_invalid_anchors_preserve_unknown(fault):
+    snapshot, job = phase_fixture()
+    root, install, verify = job["steps"]
+    if fault == "missing":
+        job["steps"].pop()
+    elif fault == "duplicate":
+        job["steps"].append({**verify, "number": 9})
+    elif fault == "overlap":
+        install["completed_at"] = "2026-09-23T00:00:45Z"
+    elif fault == "outside":
+        verify["completed_at"] = "2026-09-23T00:01:11Z"
+    elif fault == "reverse":
+        verify["completed_at"] = "2026-09-23T00:00:39Z"
+    elif fault == "naive":
+        verify["started_at"] = "2026-09-23T00:00:40"
+    elif fault == "skipped":
+        verify["conclusion"] = "skipped"
+    elif fault == "pending":
+        verify["status"] = "in_progress"
+    elif fault == "step-alias":
+        verify["number"] = True
+    elif fault == "nonterminal":
+        job["status"] = "in_progress"
+    elif fault == "wrong-order":
+        root["number"] = 8
+    elif fault == "missing-number":
+        install.pop("number")
+    result = phase_result(snapshot)
+    assert result["observedJobs"] == 1
+    assert result["qualifiedJobs"] == 0
+    row = result["rows"][0]
+    assert row["standing"] == "UNKNOWN"
+    assert all(row[k] is None for k in ("beforeVerifySeconds", "verifyStepSeconds",
+        "afterVerifySeconds", "rootSetupSeconds", "ownerToolInstallSeconds"))
+    assert result["summary"]["verifyStepSeconds"]["count"] == 0
+
+
+def test_owner_phase_zero_and_timezone_equivalent_intervals():
+    snapshot, job = phase_fixture()
+    verify = job["steps"][-1]
+    verify["completed_at"] = "2026-09-23T08:00:40+08:00"
+    row = phase_result(snapshot)["rows"][0]
+    assert row["standing"] == "QUALIFIED_NAMED_INTERVALS"
+    assert row["verifyStepSeconds"] == 0
+    assert row["beforeVerifySeconds"] + row["verifyStepSeconds"] + row["afterVerifySeconds"] == row["jobSeconds"]
+
+
+def test_owner_phase_finite_interval_grid_conserves_all_costs():
+    from datetime import datetime, timedelta, timezone
+    from itertools import product
+    import jsonschema
+
+    # Exhaustive small boundary grid, not a claim of unbounded proof.
+    origin = datetime(2026, 9, 23, tzinfo=timezone.utc)
+    def stamp(offset, zone=timezone.utc):
+        return (origin + timedelta(seconds=offset)).astimezone(zone).isoformat()
+    zones = (timezone.utc, timezone(timedelta(hours=8)))
+    for setup, install, verify, gap in product((0, 1, 9), repeat=4):
+        snapshot, job = phase_fixture()
+        root, tools, body = job["steps"]
+        endpoints = [(0, setup), (setup+gap, setup+gap+install),
+                     (setup+install+2*gap, setup+install+2*gap+verify)]
+        for step, (start, end) in zip((root, tools, body), endpoints):
+            step["started_at"] = stamp(start, zones[0])
+            step["completed_at"] = stamp(end, zones[1])
+        job["created_at"] = stamp(-1)
+        job["started_at"] = stamp(0)
+        job["completed_at"] = stamp(endpoints[-1][1]+gap)
+        row = phase_result(snapshot)["rows"][0]
+        assert row["standing"] == "QUALIFIED_NAMED_INTERVALS"
+        assert (row["rootSetupSeconds"], row["ownerToolInstallSeconds"],
+                row["verifyStepSeconds"]) == (setup, install, verify)
+        assert row["beforeVerifySeconds"] == setup+install+2*gap
+        assert row["afterVerifySeconds"] == gap
+        assert row["jobSeconds"] == setup+install+verify+3*gap
+        assert row["runnerWaitSeconds"] == 1
+    schema = json.loads((SCHEMA_DIR / "convergence-ci-observation-v1.schema.json").read_text())
+    jsonschema.validate(ci_module.project(ci_module.normalize(snapshot)), schema)
