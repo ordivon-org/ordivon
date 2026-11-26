@@ -135,6 +135,29 @@ class PgOnlyReleaseBuildContract(unittest.TestCase):
                 return _deploy["validate_candidate_manifest"](args, candidate)[1]
 
             self.assertEqual(blockers(manifest), [])
+            # A validation receipt must hash the exact bytes it parsed.
+            from unittest.mock import patch
+
+            original = json.dumps(manifest).encode()
+            replacement = json.dumps({**manifest, "commit": "0" * 40}).encode()
+            args.candidate_manifest.write_bytes(original)
+            args.candidate_manifest_digest = (
+                "sha256:" + hashlib.sha256(replacement).hexdigest()
+            )
+            validate = _deploy["validate_candidate_manifest"]
+            layout = validate.__globals__["release_source_layout"]
+
+            def replace_after_parse(*layout_args):
+                result = layout(*layout_args)
+                args.candidate_manifest.write_bytes(replacement)
+                return result
+
+            with patch.dict(validate.__globals__, {"release_source_layout": replace_after_parse}):
+                summary, errors = validate(args, candidate)
+            self.assertEqual(summary["digest"], "sha256:" + hashlib.sha256(original).hexdigest())
+            self.assertIn("candidate manifest digest does not match structured release request", errors)
+            del args.candidate_manifest_digest
+
             for case in ("duplicate_artifact", "shadowed_artifact", "nonrecord_artifact",
                          "duplicate_binary", "shadowed_binary", "nonrecord_binary",
                          "inconsistent_binary"):

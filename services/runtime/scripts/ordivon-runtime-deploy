@@ -1510,7 +1510,8 @@ def prepare_candidate(args: argparse.Namespace) -> dict[str, object]:
 def validate_candidate_manifest(
     args: argparse.Namespace, candidate: list[dict[str, object]]
 ) -> tuple[dict[str, object], list[str]]:
-    manifest = json.loads(args.candidate_manifest.read_text(encoding="utf-8"))
+    manifest_bytes = args.candidate_manifest.read_bytes()
+    manifest = json.loads(manifest_bytes.decode("utf-8"))
     blockers: list[str] = []
     if manifest.get("schemaVersion") != SCHEMA_VERSION:
         blockers.append("candidate manifest schemaVersion is unsupported")
@@ -1605,7 +1606,7 @@ def validate_candidate_manifest(
             blockers.append(str(error))
     elif manifest.get("runtimePolicy") is not None:
         blockers.append("binary-subset candidate manifest must not carry Runtime policy")
-    observed_manifest_digest = sha256(args.candidate_manifest)
+    observed_manifest_digest = "sha256:" + hashlib.sha256(manifest_bytes).hexdigest()
     expected_manifest_digest = getattr(args, "candidate_manifest_digest", None)
     if expected_manifest_digest is not None and observed_manifest_digest != expected_manifest_digest:
         blockers.append("candidate manifest digest does not match structured release request")
