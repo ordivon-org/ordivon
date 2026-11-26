@@ -28,11 +28,24 @@ REQUIRED_NODE_KEYS = {
 def _nonempty_string(value: Any, *, field: str, node_id: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise CompositionArchitectureError(f"{node_id}: {field} must be a non-empty string")
-    return value.strip()
+    return value
+
+
+def _canonical_id(value: Any, *, field: str, node_id: str) -> str:
+    identity = _nonempty_string(value, field=field, node_id=node_id)
+    if identity != identity.strip():
+        raise CompositionArchitectureError(f"{node_id}: {field} must be an exact unpadded identity")
+    return identity
+
+
+def _plan_refs(value: Any, *, field: str) -> list[str]:
+    if not isinstance(value, list) or not value:
+        raise CompositionArchitectureError(f"{field} must be a non-empty list")
+    return [_canonical_id(item, field=field, node_id="<plan>") for item in value]
 
 
 def validate_graph(value: dict[str, Any]) -> None:
-    if value.get("schemaVersion") != 1:
+    if type(value.get("schemaVersion")) is not int or value["schemaVersion"] != 1:
         raise CompositionArchitectureError("schemaVersion must be 1")
     if value.get("kind") != "ordivon.composition-architecture-lego-plan":
         raise CompositionArchitectureError("unexpected graph kind")
@@ -48,7 +61,7 @@ def validate_graph(value: dict[str, Any]) -> None:
         missing = REQUIRED_NODE_KEYS - set(raw)
         if missing:
             raise CompositionArchitectureError(f"node missing keys: {sorted(missing)}")
-        node_id = _nonempty_string(raw["id"], field="id", node_id="<unknown>")
+        node_id = _canonical_id(raw["id"], field="id", node_id="<unknown>")
         if node_id in by_id:
             raise CompositionArchitectureError(f"duplicate node id: {node_id}")
         for field in ("wave", "owner", "kind", "responsibility", "authorityBoundary"):
@@ -61,8 +74,11 @@ def validate_graph(value: dict[str, Any]) -> None:
                 raise CompositionArchitectureError(f"{node_id}: {field} must be non-empty")
             if not all(isinstance(item, str) and item.strip() for item in rows):
                 raise CompositionArchitectureError(f"{node_id}: {field} entries must be strings")
-            if field == "dependsOn" and len(rows) != len(set(rows)):
-                raise CompositionArchitectureError(f"{node_id}: duplicate dependencies")
+            if field == "dependsOn":
+                for dependency in rows:
+                    _canonical_id(dependency, field=field, node_id=node_id)
+                if len(rows) != len(set(rows)):
+                    raise CompositionArchitectureError(f"{node_id}: duplicate dependencies")
         if raw["owner"] == "gateway":
             boundary = raw["authorityBoundary"].lower()
             if "non-authoritative" not in boundary:
@@ -93,9 +109,7 @@ def validate_graph(value: dict[str, Any]) -> None:
             f"dependency cycle includes {witness}"
         ) from exc
 
-    critical = value.get("criticalPath")
-    if not isinstance(critical, list) or not critical:
-        raise CompositionArchitectureError("criticalPath must be a non-empty list")
+    critical = _plan_refs(value.get("criticalPath"), field="criticalPath")
     if len(critical) != len(set(critical)):
         raise CompositionArchitectureError("criticalPath must not contain duplicates")
     unknown_critical = sorted(set(critical) - known)
@@ -125,9 +139,7 @@ def validate_graph(value: dict[str, Any]) -> None:
             seen.add(dependency)
             pending.extend(by_id[dependency]["dependsOn"])
 
-    parallel = value.get("initialParallelSet")
-    if not isinstance(parallel, list) or not parallel:
-        raise CompositionArchitectureError("initialParallelSet must be a non-empty list")
+    parallel = _plan_refs(value.get("initialParallelSet"), field="initialParallelSet")
     parallel_set = set(parallel)
     if len(parallel_set) != len(parallel):
         raise CompositionArchitectureError("duplicate initialParallelSet node")

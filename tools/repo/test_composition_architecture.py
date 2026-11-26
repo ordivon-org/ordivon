@@ -161,3 +161,27 @@ def test_lego21_critical_path_rejects_transitive_noncritical_prerequisite() -> N
     critical[a], critical[b] = critical[b], critical[a]
     with pytest.raises(module.CompositionArchitectureError, match="criticalPath dependency order"):
         module.validate_graph(value)
+
+
+@pytest.mark.parametrize("version", [True, 1.0, "1"])
+def test_schema_version_is_exact_integer(version: object) -> None:
+    value = load_graph()
+    value["schemaVersion"] = version
+    with pytest.raises(module.CompositionArchitectureError, match="schemaVersion"):
+        module.validate_graph(value)
+
+
+@pytest.mark.parametrize("field", ["criticalPath", "initialParallelSet"])
+@pytest.mark.parametrize("bad", [{}, [], True, 1, "", " G01 "])
+def test_plan_reference_has_canonical_identity(field: str, bad: object) -> None:
+    value = load_graph()
+    value[field][0] = bad
+    with pytest.raises(module.CompositionArchitectureError, match=field):
+        module.validate_graph(value)
+
+
+def test_node_identity_is_not_silently_normalized() -> None:
+    value = load_graph()
+    value["nodes"][0]["id"] = " " + value["nodes"][0]["id"] + " "
+    with pytest.raises(module.CompositionArchitectureError, match="id"):
+        module.validate_graph(value)
