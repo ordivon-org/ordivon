@@ -655,6 +655,124 @@ class SourceHistoryLegosTests(unittest.TestCase):
                     record["consumerQualification"], "UNKNOWN_REQUIRES_OWNER_CDC"
                 )
 
+    def test_native_patch_identity_uses_literal_gitlink_and_binary_changes(self):
+        """Path visibility and patch equivalence are separately qualified."""
+        import itertools
+
+        with tempfile.TemporaryDirectory(prefix="ordivon-literal-patch-id-") as temp:
+            root = Path(temp)
+            git(root, "init", "-q", "-b", "main")
+            git(root, "config", "user.name", "Patch oracle")
+            git(root, "config", "user.email", "patch-oracle@example.invalid")
+
+            def native(*args, data=None):
+                return subprocess.check_output(
+                    ["git", "-C", str(root), *args], input=data,
+                    stderr=subprocess.PIPE,
+                )
+
+            def put(mode, oid, path):
+                git(root, "update-index", "--add", "--cacheinfo",
+                    f"{mode},{oid},{path}")
+
+            def file(path, data):
+                oid = native("hash-object", "-w", "--stdin", data=data).decode().strip()
+                put("100644", oid, path)
+
+            def commit(message, *parents):
+                return git(root, "commit-tree", git(root, "write-tree"),
+                           *[arg for parent in parents for arg in ("-p", parent)],
+                           "-m", message)
+
+            file("tools/repo/owners.toml", (
+                CANONICAL_OWNER_HEADER
+                + '[[owners]]\nname = "runtime"\nroot = "services/runtime/"\n'
+                + 'verify_task = "runtime:verify"\n'
+            ).encode())
+            file("README", b"a")
+            a = commit("nested a")
+            file("README", b"b")
+            b = commit("nested b", a)
+            file("README", b"c")
+            c = commit("nested c", b)
+            prefix = "services/runtime/"
+            link = prefix + "vendor/lib"
+            ordinary = prefix + "ordinary.txt"
+            binary = prefix + "binary.bin"
+            odd = os.fsdecode(b"services/runtime/raw" + bytes([255, 10]) + b".txt")
+            # A per-submodule setting also reaches Git's internal cherry
+            # classification, even with the displayed diff explicitly enabled.
+            config = ('[submodule "vendor"]\n\tpath = ' + link
+                      + '\n\turl = ../lib\n\tignore = all\n').encode()
+            file(".gitmodules", config)
+            (root / ".gitmodules").write_bytes(config)
+            put("160000", a, link)
+            file(ordinary, b"old\n")
+            file(binary, b"\x00old\xff")
+            file(odd, b"old odd\n")
+            fork = commit("fork", c)
+
+            def variant(message, target, binary_data=b"\x00new\xff"):
+                git(root, "read-tree", fork)
+                put("160000", target, link)
+                file(ordinary, b"new\n")
+                file(binary, binary_data)
+                file(odd, b"new odd\n")
+                return commit(message, fork)
+
+            left = variant("left", b)
+            same = variant("same literal patch", b)
+            different = variant("different gitlink", c)
+            different_binary = variant("different binary", b, b"\x00different\xff")
+            git(root, "read-tree", left)
+            empty = commit("empty", left)
+            git(root, "update-ref", "refs/heads/main", same)
+
+            def reference(oid):
+                parent = git(root, "rev-parse", oid + "^")
+                patch = native(
+                    "diff-tree", "-r", "--no-commit-id", "-p",
+                    "--ignore-submodules=none", "--submodule=short",
+                    "--no-renames", "--no-ext-diff", "--no-textconv", "--no-relative",
+                    "--binary", "--full-index", parent, oid,
+                )
+                result = native("patch-id", "--stable", data=patch).split()
+                return result[0] if result else None
+
+            self.assertEqual(reference(left), reference(same))
+            self.assertNotEqual(reference(left), reference(different))
+            self.assertNotEqual(reference(left), reference(different_binary))
+            self.assertIsNone(reference(empty))
+            git(root, "config", "diff.relative", "true")
+            git(root, "config", "diff.renames", "true")
+            for ignore, local_ignore in itertools.product(
+                ("none", "untracked", "dirty", "all"), ("none", "all"),
+            ):
+                git(root, "config", "diff.ignoreSubmodules", ignore)
+                git(root, "config", "submodule.vendor.ignore", local_ignore)
+                for tip, equivalent in ((same, True), (different, False),
+                                        (different_binary, False)):
+                    with self.subTest(ignore=ignore, local=local_ignore, tip=tip):
+                        report = history(root, empty, tip)
+                        records = {item["commit"]: item for item in report["commits"]}
+                        self.assertEqual(set(records), {empty, left, tip})
+                        expected = ("PATCH_ID_EQUIVALENT" if equivalent
+                                    else "PATCH_DISTINCT_UNQUALIFIED")
+                        for oid in (left, tip):
+                            self.assertEqual(records[oid]["patchRelation"], expected)
+                            self.assertEqual(set(records[oid]["changedPaths"]),
+                                             {link, ordinary, binary, odd})
+                            self.assertEqual(records[oid]["consumerQualification"],
+                                             "UNKNOWN_REQUIRES_OWNER_CDC")
+                        self.assertEqual(records[empty]["changedPaths"], [])
+                        self.assertEqual(records[empty]["patchRelation"],
+                                         "PATCH_DISTINCT_UNQUALIFIED")
+            # An omitted nonempty commit is not a valid successful identity map.
+            with self.assertRaisesRegex(ValueError, "unqualified|coverage"):
+                source_history_legos.literal_patch_ids(
+                    root, empty + "..." + same, {left},
+                )
+
     def test_gitlink_patch_and_merge_frontiers_ignore_display_preferences(self):
         """Native tree entries, not presentation, determine historical owner demand."""
         with tempfile.TemporaryDirectory(prefix="ordivon-history-gitlink-") as temp:
