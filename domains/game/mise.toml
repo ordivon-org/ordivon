@@ -290,3 +290,21 @@ run = """
 set -eu
 python3 research/content-search/build_preview.py --output "${GAME_CONTENT_OUTPUT:?set absolute fresh output directory}"
 """
+
+[tasks."experiment:route-fork"]
+description = "Search both native route frontiers and replay fork scene"
+run = """
+set -eu
+receipt="$(mktemp)"
+trap 'rm -f -- "$receipt"' EXIT
+python3 research/route-choice/run.py > "$receipt"
+python3 research/route-choice/test_receipt.py "$receipt"
+cat "$receipt"
+"""
+
+[tasks."factory:content:route-fork"]
+description = "Build private Route Fork prototype, verify both complete native Linux input paths"
+run = """
+set -eu
+python3 research/route-choice/build_preview.py --output "${GAME_ROUTE_OUTPUT:?set absolute fresh output directory}"
+"""
