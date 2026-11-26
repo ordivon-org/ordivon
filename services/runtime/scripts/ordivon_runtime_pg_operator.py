@@ -493,8 +493,15 @@ def active_executions(conn: psycopg.Connection, release_job_id: str) -> list[str
     return [row["job_id"] for row in rows]
 
 
-def pg_mcp_readiness(args: argparse.Namespace) -> dict[str, Any]:
-    """Reuse the mature MCP catalog probe with native PG configuration."""
+def pg_mcp_readiness(
+    args: argparse.Namespace, *, previous_image: bool = False,
+    probe_wait_seconds: float | None = None,
+) -> dict[str, Any]:
+    """Use PG-native MCP and provider evidence for new or restored binaries.
+
+    A rollback may restore an older, valid tool catalog: the *new* candidate
+    tool count is not a requirement for the original installed preimage.
+    """
     require_complete_native_release(args)
     environment = DEPLOY["load_environment_file"](args.env_file)
     bind = environment.get("ORDIVON_PG_BIND")
@@ -503,16 +510,23 @@ def pg_mcp_readiness(args: argparse.Namespace) -> dict[str, Any]:
         raise RuntimeError("native PG MCP bind/token missing from operator service")
     if not DEPLOY["service_active"](args.systemctl,args.service):
         raise RuntimeError("qualified PG Runtime service is not active")
+    wait_seconds = args.wait_seconds if probe_wait_seconds is None else probe_wait_seconds
     probe = DEPLOY["probe_catalog"](
         f"http://{bind}/mcp",
         token,
         client_name="ordivon-runtime-pg-operator",
-        expected_tool_count=args.expected_tool_count,
-        required_tools=tuple(args.required_tools),
-        wait_seconds=args.wait_seconds,
+        expected_tool_count=None if previous_image else args.expected_tool_count,
+        required_tools=() if previous_image else tuple(args.required_tools),
+        wait_seconds=wait_seconds,
         require_modern=True,
         allow_legacy_fallback=False,
     )
+    if previous_image and (
+        not isinstance(probe, dict)
+        or type(probe.get("toolCount")) is not int
+        or probe["toolCount"] < 1
+    ):
+        raise RuntimeError("restored PG MCP catalog has no qualified tools")
     # Catalog/HTTP readiness proves a service responds, not which image or
     # actual Runner its execution provider consumes. Use existing OS and
     # authenticated native Runtime consumers, not a second config parser.
@@ -522,7 +536,7 @@ def pg_mcp_readiness(args: argparse.Namespace) -> dict[str, Any]:
         described = McpClient(
             f"http://{bind}/mcp", token,
             "ordivon-runtime-pg-operator-runner-witness",
-            timeout=min(15.0, max(1.0, args.wait_seconds)),
+            timeout=min(15.0, max(0.05, wait_seconds)),
         ).call_tool("runtime.describe", {"schemaVersion": 1})
         targets = described.get("targets")
         if not isinstance(targets, list) or len(targets) != 1:
@@ -581,11 +595,22 @@ def operator_fenced_install(
     stopped = False
     source_epoch = None
     try:
-        # This is an independent PostgreSQL connection/transaction from the
-        # already COMMITTED operator-dispatch event. Keep the source row
-        # FOR UPDATE until the actual systemd cutover is complete, fencing
-        # ordinary PG admissions while preserving the immutable issue record.
+        # An Agent's terminal PG writer may need the same source row as
+        # admission. Never hold that row (or the shared admission lock)
+        # while waiting for existing Jobs to finish: that blocks the very
+        # convergence whose absence the drain loop is waiting for.
         conn.isolation_level = psycopg.IsolationLevel.READ_COMMITTED
+        deadline = time.monotonic() + args.drain_seconds
+        while True:
+            active = active_executions(conn, row["job_id"])
+            if not active:
+                break
+            if time.monotonic() >= deadline:
+                raise RuntimeError("PG execution drain timed out: " + ", ".join(active))
+            time.sleep(0.1)
+        # Recheck after acquiring the EXISTING PG admission/source fence.
+        # A new Job racing the wait is a fail-closed release, not permission
+        # to stop a Runtime that owns active work.
         with conn.transaction():
             conn.execute("SELECT pg_advisory_xact_lock(%s)", (ADMISSION_LOCK,))
             qualified_operator(conn, args.source_sha256, lock=True)
@@ -593,16 +618,8 @@ def operator_fenced_install(
                 "SELECT source_sha256 FROM _stage_control WHERE id='epoch'"
             ).fetchone()
             source_epoch = epoch["source_sha256"] if epoch else None
-            deadline = time.monotonic() + args.drain_seconds
-            while True:
-                active = active_executions(conn, row["job_id"])
-                if not active:
-                    break
-                if time.monotonic() >= deadline:
-                    raise RuntimeError("PG execution drain timed out: " + ", ".join(active))
-                time.sleep(0.1)
-            # All ordinary Jobs are drained; new admission is blocked by
-            # the PostgreSQL source row lock, not a local SQLite file.
+            if active_executions(conn, row["job_id"]):
+                raise RuntimeError("new PG Job appeared before release cutover")
             DEPLOY["run"]([str(args.systemctl), "stop", args.service])
             stopped = True
             if active_executions(conn, row["job_id"]):
@@ -666,6 +683,9 @@ def operator_fenced_install(
                 rollback = DEPLOY["restore_previous"](
                     previous, args.install_dir, baseline, args.systemctl,
                     args.service,args.env_file,args.wait_seconds,
+                    readiness_probe=lambda slice_seconds: pg_mcp_readiness(
+                        args, previous_image=True, probe_wait_seconds=slice_seconds,
+                    ),
                 )
                 status = "rolled_back"
             except Exception as restore_failure:
@@ -1008,6 +1028,7 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--service",required=True)
     parser.add_argument("--required-tool",action="append",dest="required_tools",default=[])
     parser.add_argument("--binary",action="append",dest="binaries",required=True)
+    parser.add_argument("--include-pg-reclaimer",action="store_true")
     parser.add_argument("--require-ref",default="origin/main")
     parser.add_argument("--drain-seconds",type=float,default=30.0)
     parser.add_argument("--wait-seconds",type=float,default=60.0)

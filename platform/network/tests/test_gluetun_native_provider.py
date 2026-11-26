@@ -188,7 +188,9 @@ def test_candidate_pool_is_independent_of_geographic_permissions():
 
 def test_split_source_preserves_loaded_legacy_vpn_selector_bytes(tmp_path):
     import json
-    real = native.read_selector_policy()
+    legacy = tmp_path / "legacy.json"
+    legacy.write_text('{"regions":[],"selectedCountries":"allAllowed"}')
+    real = native.read_selector_policy(legacy)
     allowed = native.parse_allowed_policy(native.ALLOW_POLICY.read_text())
     assert real["selectedCountries"] == allowed["allowedCountries"]
     assert real["excludedCountries"] == ["Hong Kong"]
@@ -199,7 +201,7 @@ def test_split_source_preserves_loaded_legacy_vpn_selector_bytes(tmp_path):
     assert narrowed["excludedCountries"] == ["Hong Kong"]
     generated = native.generate_env(
         native.parse_env("VPN_SERVICE_PROVIDER=custom\nVPN_TYPE=wireguard\n"),
-        "10.64.200.9/16",
+        "10.64.200.9/16", real,
     )
     baseline = native.generate_env(
         native.parse_env("VPN_SERVICE_PROVIDER=custom\nVPN_TYPE=wireguard\n"),
@@ -216,17 +218,13 @@ def test_country_selector_policy_is_one_authority_for_selected_and_excluded():
     policy = native.read_selector_policy()
     assert policy["regions"] == []
     assert policy["excludedCountries"] == ["Hong Kong"]
-    assert len(policy["selectedCountries"]) == 99
-    assert len(set(policy["selectedCountries"])) == 99
-    assert "Hong Kong" not in policy["selectedCountries"]
-    assert {"Singapore", "Japan", "South Korea", "Germany", "United States"} <= set(policy["selectedCountries"])
+    assert policy["selectedCountries"] == ["Singapore", "Japan", "Malaysia"]
     env_actual = native.generate_env(
         native.parse_env("VPN_SERVICE_PROVIDER=custom\nVPN_TYPE=wireguard\n"),
         "10.64.200.9/16",
     )
     country_line = next(line for line in env_actual.splitlines() if line.startswith("SERVER_COUNTRIES="))
-    assert "Hong Kong" not in country_line
-    assert len(country_line.removeprefix("SERVER_COUNTRIES=").split(",")) == 99
+    assert country_line == "SERVER_COUNTRIES=Singapore,Japan,Malaysia"
     with pytest.raises(ValueError, match="requires a positive Gluetun"):
         native.parse_selector_policy(__import__("json").dumps({
             "regions": [], "selectedCountries": [], "excludedCountries": ["Hong Kong"],
@@ -345,3 +343,22 @@ def test_gluetun_dot_upstream_observes_actual_provider_namespace_and_certificate
     assert 'VPN_NAMESPACE_DOT_UPSTREAM_DEGRADED' in t
     assert 'VPN_NAMESPACE_DOT_UPSTREAMS_UNAVAILABLE_OR_UNKNOWN' in t
     assert 'grep -Eq' in t and 'healthy=$((healthy + 1))' in t
+
+
+def test_native_provider_verify_includes_official_gluetun_health_sample():
+    """A healthy HTTPS carrier must not conceal a native Gluetun 500.
+
+    This is the 2026-11-15 real production counterexample: Carrier READY,
+    while mobile Exit Node returned PROVIDER_HEALTH_NOT_READY until restart.
+    """
+    taskfile = (
+        Path(__file__).resolve().parents[1]
+        / "providers/gluetun/Taskfile.yml"
+    ).read_text(encoding="utf-8")
+    verify = taskfile.split("  provider:gluetun:verify:\n", 1)[1].split(
+        "\n  provider:gluetun:", 1
+    )[0]
+    assert (
+        "/usr/bin/podman exec network-v2-gluetun-owned-r1 "
+        "/gluetun-entrypoint healthcheck"
+    ) in verify

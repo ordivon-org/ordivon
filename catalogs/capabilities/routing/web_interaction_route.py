@@ -110,21 +110,18 @@ def resolve(
                 "direct_http", True, "no interactive browser semantics are required"
             )
     elif selected is None:
-        if needs.deterministic_browser_flow:
-            selected = consider(
-                "playwright", True, "browser flow is known/deterministic"
-            )
-        elif needs.adaptive_browser_reasoning or not needs.deterministic_browser_flow:
-            selected = consider(
-                "browser_use",
-                True,
-                "browser action choice must adapt to current page state",
-            )
-        if selected is None and needs.deterministic_browser_flow:
+        selected = consider(
+            "playwright",
+            True,
+            "browser flow is known/deterministic"
+            if needs.deterministic_browser_flow
+            else "agent reasons from snapshots; Playwright executes bounded actions",
+        )
+        if selected is None:
             selected = consider(
                 "browser_use",
                 True,
-                "generic deterministic browser adapter is unavailable; adaptive browser provider can still execute the flow",
+                "Playwright unavailable; fallback must advertise required action identity",
             )
 
     standing = "ROUTED" if selected is not None else "NO_ADMITTED_PROVIDER"

@@ -302,8 +302,7 @@
         "src/ordivon_capital/accounting/durable.py",
         "src/ordivon_capital/accounting/postgres_ledger.py",
         "src/ordivon_capital/accounting/paper_close.py",
-        "src/ordivon_capital/accounting/postgres_paper_close.py",
-        "src/ordivon_capital/accounting/paper_simulation_run.py"
+        "src/ordivon_capital/accounting/postgres_paper_close.py"
       ],
       "ownerClasses": [
         "IMPLEMENTATION_OWNER",
@@ -501,7 +500,7 @@
     {
       "id": "governance-execution-policy",
       "sourcePatterns": [
-        "src/ordivon_capital/governance/policy_decision.py"
+        "src/ordivon_capital/governance/*.py"
       ],
       "ownerClasses": [
         "ORDIVON_GLUE"
@@ -510,13 +509,12 @@
         "Open Policy Agent 1.20.2 historical challenger only"
       ],
       "localStanding": "BOUNDED_LOCAL_DETERMINISTIC_IMPLEMENTATION_PREFERRED",
-      "localResponsibility": "evaluate the frozen bounded execution/live-test/risk-budget/counterfactual policy rules directly in canonical Python; fail closed; do not grow a generic policy framework"
+      "localResponsibility": "execute bounded NON_LIVE/external-write authorization and LIVE test-account qualification; Risk owns numeric limits, Portfolio owns scenario evidence completeness; fail closed for actual effects"
     },
     {
       "id": "trading-execution-reconciliation",
       "sourcePatterns": [
         "src/ordivon_capital/trading/execution_reconciliation.py",
-        "src/ordivon_capital/trading/nautilus_paper_bridge.py",
         "tools/nautilus_rc4/nonlive_effect_qualification.py"
       ],
       "ownerClasses": [
@@ -767,7 +765,8 @@
         "src/ordivon_capital/research/experiment_protocol.py",
         "src/ordivon_capital/research/unit_r_dca.py",
         "src/ordivon_capital/research/pit_joint_forecast.py",
-        "src/ordivon_capital/research/independent_policy_replay.py"
+        "src/ordivon_capital/research/independent_policy_replay.py",
+        "src/ordivon_capital/research/etf_distribution_label_audit.py"
       ],
       "ownerClasses": [
         "IMPLEMENTATION_OWNER",
@@ -823,7 +822,7 @@
     {
       "id": "trading-paper-fill-calendar",
       "sourcePatterns": [
-        "src/ordivon_capital/trading/paper_fill_calendar.py"
+        "src/ordivon_capital/accounting/paper_fill_calendar.py"
       ],
       "ownerClasses": [
         "ORDIVON_GLUE"
@@ -859,7 +858,8 @@
     {
       "id": "portfolio-strategic-contribution-only",
       "sourcePatterns": [
-        "src/ordivon_capital/portfolio/strategic_contribution.py"
+        "src/ordivon_capital/portfolio/strategic_contribution.py",
+        "src/ordivon_capital/portfolio/paper_contribution_plan.py"
       ],
       "ownerClasses": [
         "ORDIVON_GLUE"
@@ -869,7 +869,7 @@
         "QuantConnect or NautilusTrader only if an actual future execution contract is qualified"
       ],
       "localStanding": "RETAINED_IRREDUCIBLE_READONLY_GLUE",
-      "localResponsibility": "Conserve caller-specified contribution cents while preserving an explicit cash reserve; allocate without sale, prediction, advice or execution effects. Own only the exact cross-asset caller mandate composition, not optimization or a broker."
+      "localResponsibility": "Conserve caller-specified contribution cents while preserving an explicit cash reserve; allocate without sale, prediction, advice or execution effects. The actual Paper account consumer obtains a committed Accounting head, applies an operator-bound Markets snapshot and reuses Risk available cash before the same no-sell Portfolio projection; unsettled receivables and existing payables are not investable. Own only the exact cross-asset caller mandate composition, not optimization or a broker."
     },
     {
       "id": "markets-github-historical-close-byte-admission",
@@ -892,6 +892,48 @@
       ],
       "localDependencies": [
         "Caller-supplied SHA-256 of separately fetched pinned GitHub blob; original provider licensing and history remain unverified"
+      ]
+    },
+    {
+      "id": "markets-xnys-public-equity-session-grid",
+      "sourcePatterns": [
+        "src/ordivon_capital/markets/equity_session_calendar.py"
+      ],
+      "ownerClasses": [
+        "IMPLEMENTATION_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "exchange_calendars 4.13.2 historical XNYS session rules; original listing exchange remains authoritative"
+      ],
+      "localStanding": "RETAINED_BOUNDED_READONLY_CALENDAR_ADAPTER",
+      "localResponsibility": "Reject invented, missing, duplicate, unordered and non-midnight session dates in caller-captured US stock and ETF historical research, before source data enters Qlib/TimeAdjuster or Riskfolio; alignment proves only the exchange calendar shape, never price, historical PIT, source rights, total return or trading authority.",
+      "admittedMechanicsOwners": [
+        "exchange_calendars 4.13.2 XNYS; pandas 3.1.1 explicit datetime/date indexing"
+      ],
+      "localDependencies": [
+        "Client-supplied provider-captured date labels, no publisher authentication or market-time vintage proof"
+      ]
+    },
+    {
+      "id": "markets-equity-ohlcv-bar-shape-before-hilo",
+      "sourcePatterns": [
+        "src/ordivon_capital/markets/equity_ohlcv_shape.py"
+      ],
+      "ownerClasses": [
+        "PROVIDER_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "OpenBB Cboe and primary original market venues remain the publishers of historical price fields; pandas and numpy own columnar comparison semantics"
+      ],
+      "localStanding": "RETAINED_BOUNDED_READONLY_SOURCE_QUALITY_GATE",
+      "localResponsibility": "Reject internally impossible OHLCV prices before high-low-derived native Qlib features enter historical training or evaluation; do not auto-repair any vendor bar, certify source price accuracy/adjustment/PIT, or duplicate training, risk, or portfolio logic.",
+      "admittedMechanicsOwners": [
+        "pandas 3.1.1 and numpy 2.5.3, both already pinned for native Qlib Research and Capital"
+      ],
+      "localDependencies": [
+        "Existing exact-hash source replay + Markets XNYS session date qualification + existing native Qlib HILO feature"
       ]
     },
     {

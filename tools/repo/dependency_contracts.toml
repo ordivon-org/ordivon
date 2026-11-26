@@ -104,7 +104,7 @@ from_owner = "workstation"
 to_owner = "game"
 source_glob = "platform/workstation/tests/test_workstation_consequences.py"
 allowed_fragment = "domains/game"
-kind = "TEST_ONLY_ENVIRONMENT_BINDING"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
 contract_ref = "platform/workstation/README.md"
 
 [[seams]]
@@ -112,7 +112,7 @@ from_owner = "workstation"
 to_owner = "media"
 source_glob = "platform/workstation/tests/test_workstation_consequences.py"
 allowed_fragment = "capabilities/media"
-kind = "TEST_ONLY_ENVIRONMENT_BINDING"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
 contract_ref = "platform/workstation/README.md"
 
 [[seams]]
@@ -168,10 +168,7 @@ allowed_fragment = "../../services/runtime"
 kind = "PUBLIC_PINNED_FORMAL_TOOLCHAIN"
 contract_ref = "services/runtime/formal/README.md"
 
-# Gateway's original TLC verification script consumes Runtime's existing
-# SHA-verified upstream TLA+ JAR, not Runtime Job/Attempt or Workspace state.
-# Extracting that script from root mise to its natural Gateway Owner makes the
-# pre-existing public read dependency explicit; keep it narrow and consumable.
+# Gateway's model consumes Runtime's public pinned checker, not Runtime state.
 [[seams]]
 from_owner = "gateway"
 to_owner = "runtime"
@@ -188,14 +185,13 @@ allowed_fragment = "services/runtime/formal/toolchain.lock.json"
 kind = "PUBLIC_PINNED_FORMAL_TOOLCHAIN"
 contract_ref = "services/runtime/formal/README.md"
 
+# Actual Gateway owner test consumes the exact public lock, not Runtime state.
 [[seams]]
 from_owner = "gateway"
 to_owner = "runtime"
 source_glob = "services/gateway/tests/test_formal_task_owner.py"
 allowed_fragment = "services/runtime/formal/toolchain.lock.json"
 kind = "TEST_ONLY_SOURCE_CONTRACT"
-# This test reads only the pinned upstream lock; unrelated Runtime source
-# changes must not spill into Gateway's business verification component.
 selection_scope = "PATH"
 contract_ref = "services/runtime/formal/README.md"
 
@@ -338,3 +334,104 @@ allowed_fragment = "domains/capital/src/ordivon_capital/research/experiment_prot
 kind = "TEST_ONLY_SOURCE_CONTRACT"
 selection_scope = "PATH"
 contract_ref = "packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md"
+
+
+# Security's own native OPA/HTTP consumer checks the Gateway PUBLIC read
+# surface as a test-only source contract. This grants no runtime API, policy
+# authority or private Python dependency to Security.
+[[seams]]
+from_owner = "security"
+to_owner = "gateway"
+source_glob = "platform/security/services/gateway-authzen/tests/test_gateway_host_delegation.py"
+allowed_fragment = "services/gateway/enforcement-surface.json"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "PATH"
+contract_ref = "services/gateway/enforcement-surface.json"
+
+
+# Gateway's existing Host PEP integration test runs Security's actual OPA
+# policy through its test-owned Starlette adapter. This test-only source seam
+# does not install/import Security as a Gateway production dependency, grant
+# cross-Owner policy authority, or move credentials between service units.
+[[seams]]
+from_owner = "gateway"
+to_owner = "security"
+source_glob = "services/gateway/tests/test_host_read_authorization.py"
+allowed_fragment = "platform/security/services/gateway-authzen"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "OWNER"
+contract_ref = "platform/security/services/gateway-authzen/README.md"
+
+# The Gateway's test-owned OPA consumer resolves the Security Owner's
+# existing pinned native toolchain, not a mutable default mise shim.
+[[seams]]
+from_owner = "gateway"
+to_owner = "security"
+source_glob = "services/gateway/tests/test_host_read_authorization.py"
+allowed_fragment = "platform/security/mise.toml"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "PATH"
+contract_ref = "platform/security/mise.toml"
+
+# Original Harness -> Runtime native PG issuer acceptance: exact TEST-ONLY
+# two Rust test files consume one real Source-owned fixture; no production
+# dependency, issuer authority, database access or privileged role transfer.
+
+[[seams]]
+from_owner = "runtime"
+to_owner = "harness"
+source_glob = "services/runtime/crates/ordivon-runtime-core/src/pg_admission/"
+allowed_fragment = "root.join(\"services/harness/tests/original_pg_issuer_native_fixture.py\")"
+kind = "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+contract_ref = "services/harness/tests/original_pg_issuer_native_fixture.py"
+
+[[seams]]
+from_owner = "runtime"
+to_owner = "harness"
+source_glob = "services/runtime/crates/ordivon-runtime-core/src/pg_admission/"
+allowed_fragment = "root.join(\"services/harness/src\")"
+kind = "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+contract_ref = "services/harness/tests/original_pg_issuer_native_fixture.py"
+
+[[seams]]
+from_owner = "runtime"
+to_owner = "harness"
+source_glob = "services/runtime/crates/ordivon-runtime-core/src/pg_admission/"
+allowed_fragment = "root.join(\"services/harness\")"
+kind = "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+contract_ref = "services/harness/tests/original_pg_issuer_native_fixture.py"
+
+[[seams]]
+from_owner = "runtime"
+to_owner = "harness"
+source_glob = "services/runtime/crates/ordivon-runtime-mcp/tests/pg_vertical.rs"
+allowed_fragment = "repo_root.join(\"services/harness/tests/original_pg_issuer_native_fixture.py\")"
+kind = "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+contract_ref = "services/harness/tests/original_pg_issuer_native_fixture.py"
+
+[[seams]]
+from_owner = "runtime"
+to_owner = "harness"
+source_glob = "services/runtime/crates/ordivon-runtime-mcp/tests/pg_vertical.rs"
+allowed_fragment = "repo_root.join(\"services/harness/src\")"
+kind = "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+contract_ref = "services/harness/tests/original_pg_issuer_native_fixture.py"
+
+[[seams]]
+from_owner = "runtime"
+to_owner = "harness"
+source_glob = "services/runtime/crates/ordivon-runtime-mcp/tests/pg_vertical.rs"
+allowed_fragment = "repo_root.join(\"services/harness\")"
+kind = "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+contract_ref = "services/harness/tests/original_pg_issuer_native_fixture.py"
+
+# Media's native equipment-binding compatibility test invokes precisely one
+# Workstation provider source, not a production owner dependency.
+[[seams]]
+from_owner = "media"
+to_owner = "workstation"
+source_glob = "capabilities/media/tests/test_equipment_binding_admission.py"
+allowed_fragment = "platform/workstation/workstation/equipment_binding.py"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "PATH"
+contract_ref = "capabilities/media/planning/media-equipment-binding-admission-r18.md"

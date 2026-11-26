@@ -267,3 +267,25 @@ def test_real_replay_cli_reads_frozen_solver_pair(tmp_path) -> None:
     )
     assert rejected.returncode != 0
     assert "terminalR" in rejected.stderr
+
+
+@pytest.mark.parametrize("field", ["duplicate_obligation", "duplicate_solution", "integer_terminal"])
+def test_independent_replay_rejects_ambiguous_source_bytes(tmp_path, field):
+    payload = _payload(_two_months_with_liabilities())
+    if field == "integer_terminal":
+        payload["problem"]["nodes"][-1]["terminal"] = 1
+    raw = json.dumps(payload)
+    if field == "duplicate_obligation":
+        raw = raw.replace('"up_exit": 0.4', '"up_exit": 100, "up_exit": 0.4')
+    elif field == "duplicate_solution":
+        raw = raw.replace('"root_cash_r":', '"root_cash_r": 100, "root_cash_r":')
+    pair = tmp_path / "ambiguous.json"
+    pair.write_text(raw, encoding="utf-8")
+    result = subprocess.run(
+        [sys.executable, "-m", "ordivon_capital.research.independent_policy_replay",
+         "--input", str(pair)],
+        capture_output=True, text=True, check=False,
+        env={**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1] / "src")},
+    )
+    assert result.returncode != 0, result.stdout
+    assert not result.stdout

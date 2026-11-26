@@ -1,5 +1,80 @@
 # Ordivon Finance 目录与 Owner 审计 R1（2026-11-07 历史快照；当前变更见下）
 
+## 2026-11-14 Finance R3 Paper 收盘日历 Consumer 扩展
+
+严格收盘时间之真实消费者图：
+Markets exchange_calendars XNYS → Markets etf_eod_snapshot
+(来源/权利/PIT声明与 EOD 收盘日校验)
+→ Accounting PostgresPaperClose (重复同一日期事实、不可伪造类形状)
+→ Risk paper_close_risk (相同快照与已提交日结账一致)
+→ Portfolio paper_close_performance (净值/现金流匹配报告)。
+
+本轮进一步复用原有 formal:pit-capture Z3 任务，加入
+MarketsEodPaperCalendarR1.smt2 对 EOD 的 abstract qualified
+market date/精确 UTC 收盘/PG入账前必需资格进行 3 个 UNSAT
+不可达证明，并提供 2 个 SAT 反例（旧 operator 自报有效
+及真提前收盘允许）。这是模型层数学合同校验，而不是
+exchange_calendars Python 代码、复权、来源发布时间或
+实际 PostgreSQL ACID 的实现精化证明；具体层必须继续
+运行真实 native tests 和 PostgreSQL 测试。
+此图不把 issuer source / historical PIT / adjusted total return
+视为已认证。PostgresPaperClose 对纯历史 CALLER_SUPPLIED_MARKS
+依然保留模拟效果但不产生市场来源证明；
+正式终端前不实施真实交易授权。反证测试以节假日、
+2025-11-28 提前收盘，以及 2026-04-02 夏令时误报为样本。
+测试的独立 PG 是本轮新建的 127.0.0.1:55581 数据库，
+数据库目录已在服务退出后删除，未动生产 PostgreSQL。
+另增加完整一次 Markets → PostgresPaperClose → 本地 PG
+read_committed_paper_close → Risk review_paper_close_risk →
+Portfolio summarize_paper_period 真实消费者测试。
+合成一份 SPY 买入和两日日结：1000000 USD cents 初始
+账户，900000 保护金，最后 1000100 cents NAV，扣除
+测试费用后期间增量 100 cents。它不是现实交易或真实报价。
+测试要求 PG 物理 data_directory + 连接身份完全符合
+caller-bound disposable 测试集群；未提供独立 sandbox
+环境时自动跳过，不接触生产 PG。
+同时旧核心导入第一次真正需要市场日历才加载 pandas 和
+exchange_calendars，避免普通 PG imports 被研究库拖慢。
+独立 CPython 3.15 进程一次性测量导入
+ordivon_capital.accounting.postgres_paper_close：
+改前 652.8 ms / 131576 KiB peak RSS，
+改后 98.0 ms / 39780 KiB；无需市场日历的普通
+Accounting 调用不再预加载 pandas/numpy。
+这种单次进程峰值不能代表稳定的生产尾延迟、长期内存泄漏
+或并发压力，正式性能测试仍需消费实际 Runtime 预算。
+两类证据来自具体 native 测试和内存/启动延迟观测，
+不是对未来负载、历史市场权利或 alpha 的证明。
+
+## 2026-11-14 Markets 日期资格与真实 Research 消费者修补
+
+本节是新证据，不重算下方 2026-11-07 历史快照的静态目录数量；
+它不创建 Owner Agent、第二份市场时钟平台或新的投资引擎。
+
+- External producer Cboe/OpenBB 的历史日线可能含虚假 XNYS
+  2025-05-26 交易日；Windows 私有历史 SPY/QQQ/IWM 原始捕获
+  SHA 与原 R3 实验源清单相同。对应真实消费者分别为
+  adoption/r3_native/etf_qlib_consumer.py (Qlib TimeAdjuster/label)
+  和 adoption/r3_native/riskfolio/etf_riskfolio_native.py
+  (历史收益估计和 CVaR/方差)。
+- Markets 自然 Owner 新增只读、有界的
+  src/ordivon_capital/markets/equity_session_calendar.py，直接组合
+  upstream exchange_calendars 4.13.2 XNYS，不自建节假日规则或时钟数据库。
+  消费者必须在读取原始数据后、构造标签和风险收益前进行校验。
+- Consumer graph: original publisher/byte receipt → Markets 日期轴
+  → Qlib/TimeAdjuster 或 Riskfolio → Portfolio 只读模拟。
+  日期形态正确只是一条必要条件，不产生额外 PIT、复权、
+  外部授权或 Paper PG 财务能力。
+- 当前实证：同版本五种 Qlib 持仓口径，原始 962 行 vs
+  删除仅一个假交易日后的 961 行，模型/Portfolio 输出均相同，
+  数据集摘要却不同；Riskfolio last-252-day 权重亦相同。
+  另一个更早 Qlib 源码版本的 H1 预测曾改变，
+  两者不能混成单个受控实验。
+- 工程验收：同一自然 Owner 的 Source moduleMap / census
+  同步登记；test_market_xnys_source_session_calendar.py
+  覆盖假节假日、缺失及时间顺序等负控，默认 Capital CI 消费。
+  真 Windows native 原始数据拒绝/校正后通过需与原生 SourceCut
+  和正式 GitHub CI 分开确认。
+
 ## 2026-11-10 存量减法重审（Git 主线 ef17d6879d12faa61fff3bb762b0d500d73c9113）
 
 此前 R1 的目录/行数与历史工具 KEEP 结论只代表 2026-11-07 SourceCut，不再是当前文件基线。全仓 5,002 文件结构清单及跨 Owner 评估在 `docs/architecture/audits/2026-11-10-brownfield/`；Finance 原始本轮基线为 399 文件。自然 Owner 七类仍不变。

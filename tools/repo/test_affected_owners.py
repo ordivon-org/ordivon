@@ -79,31 +79,6 @@ class AffectedOwnersTests(unittest.TestCase):
         self.assertTrue(MODULE.requires_core_formal_verification(["mise.toml"]))
         self.assertFalse(MODULE.requires_core_formal_verification(["docs/mise.toml"]))
 
-    def test_gateway_formal_models_get_actual_scoped_tlc_gate(self) -> None:
-        select = MODULE.requires_gateway_formal_verification
-        for path in (
-            "mise.toml",
-            ".github/workflows/ci.yml",
-            "services/gateway/formal/GatewayRoutingR1.tla",
-            "services/gateway/formal/GatewayAgentWorkspaceBindingR1.unsafe.cfg",
-            "services/gateway/formal/verify.sh",
-            "services/runtime/formal/toolchain.lock.json",
-            "services/runtime/scripts/tla-formal",
-            "services/runtime/mise.toml",
-            "tools/repo/affected_owners.py",
-        ):
-            self.assertTrue(select([path]), path)
-        for path in (
-            "services/gateway/src/ordivon_gateway/service.py",
-            "services/gateway/README.md",
-            "services/runtime/crates/ordivon-runtime-core/src/lib.rs",
-            "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
-            "docs/architecture/example.md",
-        ):
-            self.assertFalse(select([path]), path)
-        with self.assertRaisesRegex(ValueError, "noncanonical"):
-            select(["services/gateway/formal/../test.yaml"])
-
     def test_core_formal_source_requires_real_proof_task_without_new_owner(self) -> None:
         verify = MODULE.requires_core_formal_verification
         self.assertTrue(verify(("tools/formal/Proof.rs",)))
@@ -121,6 +96,35 @@ class AffectedOwnersTests(unittest.TestCase):
         self.assertEqual(
             self.queue_tasks("tools/formal/RecursiveLegoRefinement.lean"), []
         )
+
+
+    def test_gateway_formal_only_model_and_invocation_inputs(self) -> None:
+        select = MODULE.requires_gateway_formal_verification
+        for path in (
+            "services/gateway/formal/GatewayHostCutoverR1.tla",
+            "services/gateway/formal/GatewayCapabilityAuthzR1.unsafe-obligation.cfg",
+            "services/gateway/formal/verify.sh",
+            "services/runtime/formal/toolchain.lock.json",
+            "services/runtime/scripts/tla-formal",
+            "services/runtime/mise.toml",
+            "mise.toml",
+            ".github/workflows/ci.yml",
+            "tools/repo/convergence_plan.py",
+        ):
+            with self.subTest(path=path):
+                self.assertTrue(select([path]))
+        for path in (
+            "services/gateway/src/ordivon_gateway/service.py",
+            "services/gateway/formal/check_routing_conformance.py",
+            "services/gateway/formal/README.md",
+            "services/runtime/src/lib.rs",
+            "services/host/formal/Other.tla",
+        ):
+            with self.subTest(path=path):
+                self.assertFalse(select([path]))
+        self.assertFalse(select([]))
+        with self.assertRaises(ValueError):
+            select(["mise.toml", "../outside"])
 
     def test_harness_timeout_proof_input_selects_existing_formal_task(self) -> None:
         # The native Formal source readset consumes this exact Harness adapter.
@@ -338,6 +342,7 @@ class AffectedOwnersTests(unittest.TestCase):
     def test_git_cross_owner_move_selects_both_endpoints(self) -> None:
         import os
         import subprocess
+        from unittest.mock import patch
 
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -359,7 +364,8 @@ class AffectedOwnersTests(unittest.TestCase):
             previous = Path.cwd()
             try:
                 os.chdir(root)
-                paths = MODULE.changed_paths(before, after)
+                with patch.object(MODULE, "SOURCE_REPO_ROOT", root):
+                    paths = MODULE.changed_paths(before, after)
             finally:
                 os.chdir(previous)
             self.assertEqual(
@@ -405,14 +411,17 @@ class AffectedOwnersTests(unittest.TestCase):
             previous = Path.cwd()
             try:
                 os.chdir(local)
-                self.assertEqual(MODULE.changed_paths(before, after), expected)
+                with patch.object(MODULE, "SOURCE_REPO_ROOT", local):
+                    self.assertEqual(MODULE.changed_paths(before, after), expected)
                 for env in (
                     {"GIT_DIR": str(foreign / ".git")},
                     {"GIT_OBJECT_DIRECTORY": str(foreign / ".git" / "objects")},
                     {"GIT_ALTERNATE_OBJECT_DIRECTORIES": str(foreign / ".git" / "objects")},
                 ):
                     with self.subTest(env=tuple(env)):
-                        with patch.dict(os.environ, env):
+                        with patch.dict(os.environ, env), patch.object(
+                            MODULE, "SOURCE_REPO_ROOT", local
+                        ):
                             self.assertEqual(
                                 MODULE.changed_paths(before, after), expected
                             )
@@ -503,7 +512,9 @@ verify_task = "y:verify"
             previous = Path.cwd()
             try:
                 os.chdir(folder)
-                with patch.dict(os.environ, {"GIT_DIR": str(root / "wrong-repo.git")}):
+                with patch.dict(os.environ, {"GIT_DIR": str(root / "wrong-repo.git")}), patch.object(
+                    MODULE, "SOURCE_REPO_ROOT", root
+                ):
                     with patch.object(sys, "argv", ["affected_owners.py", "--base", "HEAD~1", "--head", "HEAD"]):
                         buf = io.StringIO()
                         with contextlib.redirect_stdout(buf):
@@ -560,7 +571,7 @@ verify_task = "y:verify"
             previous = Path.cwd()
             try:
                 os.chdir(folder)
-                with patch.object(sys, "argv", [
+                with patch.object(MODULE, "SOURCE_REPO_ROOT", root), patch.object(sys, "argv", [
                     "affected_owners.py", "--base", base, "--head", head,
                 ]):
                     buf = io.StringIO()
@@ -591,6 +602,71 @@ verify_task = "y:verify"
                 value = json.loads(output.getvalue())
                 self.assertEqual(value["selectionBasis"], basis)
                 self.assertIsNone(value["sourceCut"])
+
+
+    def test_git_sourcecut_cannot_be_spoofed_by_foreign_cwd(self) -> None:
+        """Repository-owned owner mapping must use the same Git object namespace."""
+        import contextlib
+        import io
+        import os
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory(prefix="ordivon-sourcecut-root-") as folder:
+            root = Path(folder)
+            source = root / "project"
+            foreign = root / "foreign"
+            source.mkdir()
+            foreign.mkdir()
+
+            def two_commits(repo: Path, name: str) -> tuple[str, str]:
+                def git(*args: str) -> str:
+                    return subprocess.check_output(
+                        ["git", "-C", str(repo), *args], text=True
+                    ).strip()
+
+                git("init", "-q", "-b", "main")
+                git("config", "user.name", "SourceCut boundary test")
+                git("config", "user.email", "sourcecut-test@example.invalid")
+                target = repo / name
+                target.parent.mkdir(parents=True)
+                target.write_text("VALUE = 0\n")
+                git("add", ".")
+                git("commit", "-qm", "initial")
+                base = git("rev-parse", "HEAD")
+                target.write_text("VALUE = 1\n")
+                git("commit", "-qam", "change")
+                return base, git("rev-parse", "HEAD")
+
+            base, head = two_commits(source, "services/runtime/src/right.py")
+            two_commits(foreign, "platform/network/src/wrong.py")
+
+            previous = Path.cwd()
+            try:
+                os.chdir(foreign)
+                with patch.object(MODULE, "SOURCE_REPO_ROOT", source), patch.object(
+                    sys, "argv", ["affected_owners.py", "--base", "HEAD~1", "--head", "HEAD"]
+                ):
+                    output = io.StringIO()
+                    with contextlib.redirect_stdout(output):
+                        self.assertEqual(MODULE.main(), 0)
+            finally:
+                os.chdir(previous)
+
+            observed = json.loads(output.getvalue())
+            self.assertEqual(observed["sourceCut"], {
+                "base": base, "head": head, "diffBase": base,
+            })
+            self.assertEqual(
+                observed["changedPaths"], ["services/runtime/src/right.py"]
+            )
+            self.assertIn("runtime", [owner["name"] for owner in observed["owners"]])
+            # A second legitimate consumer uses its own explicitly selected
+            # source repository. Neither selector reads the foreign CWD.
+            with patch.object(MODULE, "SOURCE_REPO_ROOT", foreign):
+                self.assertEqual(
+                    MODULE.changed_paths(base, head, source_repo_root=source),
+                    ("services/runtime/src/right.py",),
+                )
 
 
 if __name__ == "__main__":

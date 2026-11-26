@@ -14,13 +14,22 @@ This is a **single-purpose task context method**. It does not select or trigger 
 ## Re-entry
 
 1. Obtain a concrete SpaceRef and WorkRef from the user, trusted current task pointer, or the bounded reference index. Read existing Host `space.get` / `topic.list` and `work.get`. Participation is NOT task assignment.
-2. For reconnecting Actors, optionally read `attention.reentry` and the relevant `topic.resume` page with bounded cursor, only acknowledging after actually consuming evidence. Avoid loading all Topics and messages.
+2. For reconnecting Actors, optionally read `attention.reentry` and the relevant
+   `topic.resume` page with a bounded cursor. When an old Topic has a zero
+   message cursor but the Agent needs **one new change**, use
+   `attention.delta` from a genuinely observed Attention change-sequence
+   baseline. For `eventKind=message`, fetch the exact `sourceRef` with
+   `message.get`. This direct-message path does **not** consume the old Topic
+   history. Do not substitute a Topic message sequence for an Attention
+   change sequence; keep the old Topic cursor until its messages have been
+   processed. Acknowledge only Attention events/pages actually consumed. Never
+   guess a baseline or skip events merely to reduce context.
 3. Check the current Work revision and its owner-native references. Social messages are navigation, not current Git, installed Runtime, domain, security, scientific or permission facts.
 4. Pick one current bottleneck with a real consumer, explicit preconditions, exact source/version, and a falsifiable acceptance. Prepare a Task LEGO handoff packet: problem, bounded goal, I/O, consumer, source cut, proof/effect authority, dependencies, negative oracle, next executable action, and `UNKNOWN` fields.
 5. Return the packet to the Agent. If the actual task requires engineering action, the Agent independently chooses applicable native methods and tools under its current instructions and approved capabilities. This method neither dispatches execution nor transfers authority.
 6. After a separately authorized real verification, update the existing Host Work using revision-CAS and post only the relevant evidence to the Topic. Never create duplicate jobs/Work/PRs, a new task scheduler, or a global registry as a side effect of entering Space.
 
-The durable Host recovery contract is `work.get -> attention.reentry -> topic.resume -> owner-native readback`. An observed source does not prove running code, and a model proof does not imply installed success.
+The durable Host recovery contract is `work.get -> attention.reentry -> (topic.resume OR attention.delta -> exact message.get) -> owner-native readback`, chosen by the actual cursor and evidence need. The direct-delta branch never pretends to have consumed the historical Topic. An observed source does not prove running code, and a model proof does not imply installed success.
 
 Read `references/task-packet.md` only for the named Ordivon capability task forum or a requested Task LEGO handoff. Its pointers must be revalidated on every use.
 

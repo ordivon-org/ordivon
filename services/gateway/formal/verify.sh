@@ -47,7 +47,7 @@ printf '%s
 ' "$positive" | grep -F 'Model checking completed. No error has been found.'
 printf '%s
 ' "$positive" | grep -E '^[0-9]+ states generated, [0-9]+ distinct states found, 0 states left on queue'
-for check in 'GatewayCapabilityAuthzR1.reachability.cfg:ForwardUnreachable'              'GatewayCapabilityAuthzR1.unsafe.cfg:ForwardImpliesBinding'; do
+for check in 'GatewayCapabilityAuthzR1.reachability.cfg:ForwardUnreachable'              'GatewayCapabilityAuthzR1.unsafe.cfg:ForwardImpliesBinding'              'GatewayCapabilityAuthzR1.unsafe-obligation.cfg:NoUnfulfilledV3Obligations'; do
   config="${check%%:*}"
   invariant="${check#*:}"
   set +e
@@ -60,6 +60,24 @@ for check in 'GatewayCapabilityAuthzR1.reachability.cfg:ForwardUnreachable'     
 ' "$output" | grep -Fx "Error: Invariant $invariant is violated."
   printf '%s
 ' "$output" | grep -Eq '^State [1-9][0-9]*:'
+done
+
+# Bounded Host/Gateway authentication cutover order; live consumers still
+# require independent Security and physical network acceptance.
+java -cp "$jar" tla2sany.SANY GatewayHostCutoverR1.tla
+cutover_positive=$(java -cp "$jar" tlc2.TLC -workers 1 -config GatewayHostCutoverR1.cfg GatewayHostCutoverR1.tla)
+printf '%s
+' "$cutover_positive" | grep -F 'Model checking completed. No error has been found.'
+for check in 'GatewayHostCutoverR1.reachability.cfg:NeverFinished' 'GatewayHostCutoverR1.unsafe.cfg:HostProtectedNeedsQualifiedConsumers' 'GatewayHostCutoverR1.bearer-unsafe.cfg:GatewayPepNeedsVerifiedOwnerBearer'; do
+  config=$(printf '%s' "$check" | cut -d: -f1)
+  invariant=$(printf '%s' "$check" | cut -d: -f2)
+  set +e
+  output=$(java -cp "$jar" tlc2.TLC -workers 1 -config "$config" GatewayHostCutoverR1.tla 2>&1)
+  result=$?
+  set -e
+  test "$result" -ne 0
+  printf '%s
+' "$output" | grep -Fx "Error: Invariant $invariant is violated."
 done
 
 # One bounded Agent consumer boundary, distinct from physical Runtime close.

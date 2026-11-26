@@ -14,8 +14,8 @@ Do not classify by keywords alone. Infer the task's actual interaction needs, th
 1. If an already-connected native connector/API/MCP tool directly satisfies the task, prefer it.
 2. If the task only needs readable public content, prefer direct HTTP/fetch.
 3. If the primary workload is web search/scrape/map/crawl/normalization at site scale, prefer Firecrawl **only when a real Firecrawl provider is currently available**.
-4. If browser interaction is required and the flow/selectors/assertions are known, prefer an admitted Playwright/deterministic browser adapter.
-5. If current page state must determine the next action, use Browser Use.
+4. For local browser interaction, prefer admitted Playwright for both known flows and Agent-directed observe-act-reobserve flows.
+5. If Playwright is unavailable, consider isolated Browser Use only when the installed adapter advertises the required DOM identity action contract. A healthy lane or CLI help is not physical effect qualification.
 6. Use Computer Use only when required interaction crosses outside browser semantics.
 
 Run from the current monorepo root so the route script resolves on the actual checkout, then inspect this node's provider census before relying on a local provider:
@@ -55,7 +55,7 @@ When the decision selects `playwright`, do not invent a custom runner. Materiali
 
 Read the returned `commandPrefix` and `environment`, then invoke Microsoft `@playwright/cli` directly. The `open` command receives `--config /tmp/ordivon-playwright-cli.json`; subsequent commands use the same `-s=<session>` and upstream commands such as `snapshot`, `click`, `fill`, `find`, `screenshot`, `requests`, and `close`. Do not hard-code the browser executable or CLI version; the binding owns those node-local facts.
 
-Playwright is the default for **known deterministic browser flows**. It is not the adaptive browser-reasoning provider; if the next action genuinely depends on interpreting unknown/changing UI state, route to Browser Use instead.
+Playwright is the default executor for **both deterministic and Agent-directed adaptive browser flows**. The Agent reasons from fresh snapshots, executes one bounded action, and re-observes. Do not assume a snapshot reference remains valid after state changes.
 
 ## Local Browser Use path
 
@@ -64,6 +64,8 @@ When the decision selects `browser_use` on this node, use the structured isolate
 ```text
 /opt/ordivon/agent-automation/current/scripts/browser_use_browserless.py
 ```
+
+Before consequential effects, require actual installed-provider positive and negative evidence (including overlay interception and stale references); a required CLI argument alone is insufficient. If that evidence is absent, hold or use a qualified alternative.
 
 Keep one stable `--session-id` for the bounded task. Use `open -> observe -> click/input/scroll/back/tabs -> observe -> close`. Bind click/input to the observed index, role, accessible name, and `backendDOMNodeId` using `--expect-backend-dom-node-id`. Without a bound node ID, identical role/name targets are rejected rather than guessed. Re-observe after meaningful state changes and any ambiguous or stale-target error; do not retry a potentially effected action without checking domain state. `browser-agent-*` is the generic pool; never consume `chatgpt-carrier-11/12/13` for ordinary web tasks.
 

@@ -5,6 +5,18 @@ extends VBoxContainer
 var _prior_view_state: Dictionary = {}
 var _current_view_state: Dictionary = {}
 
+# Native inherited presentations can intentionally own a different title.
+# This is View configuration, not another mode authority.
+@export var dynamic_mode_title: bool = true
+
+func render_mode_title(is_trial: bool) -> void:
+    if not dynamic_mode_title:
+        return
+    $Title.text = (
+        "TACTICAL TRIAL | READ THE NEXT STRIKE BEFORE COMMITTING"
+        if is_trial else "ORIGINAL GRAYBOX | ROOM ENCOUNTER"
+    )
+
 func reset_action_feedback() -> void:
     if $Outcome.visible:
         $Outcome.text = "AFTER YOUR MOVE: This panel will show the actual result."

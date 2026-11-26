@@ -78,6 +78,11 @@ def replay_multistage_json(
         raise EconomicReplayMismatch("nonempty information nodes required")
     if not all(isinstance(n, dict) for n in raw_nodes):
         raise EconomicReplayMismatch("information node must be a JSON object")
+    if any(
+        type(node.get("t")) is not int or type(node.get("terminal", False)) is not bool
+        for node in raw_nodes
+    ):
+        raise EconomicReplayMismatch("month index and terminal flag require exact types")
     ordered = sorted(raw_nodes, key=lambda node: (node["t"], node["id"]))
     by_id = {node["id"]: node for node in ordered}
     if len(by_id) != len(ordered):
@@ -271,11 +276,19 @@ def replay_multistage_json(
 
 
 def main() -> int:
+    def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise EconomicReplayMismatch(f"duplicate JSON input key: {key}")
+            result[key] = value
+        return result
+
     parser = argparse.ArgumentParser(description="Independent Capital cashflow replay")
     parser.add_argument("--input", type=Path, required=True)
     args = parser.parse_args()
     try:
-        payload = json.loads(args.input.read_text(encoding="utf-8"))
+        payload = json.loads(args.input.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
         result = replay_multistage_json(payload["problem"], payload["solution"])
     except (ValueError, KeyError, TypeError, OverflowError) as exc:
         parser.error(str(exc))

@@ -17,12 +17,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from ordivon_gateway.execution_refs import (  # noqa: E402
+from ordivon_gateway.logic.execution_refs import (  # noqa: E402
     GatewayError,
     format_execution_ref,
     parse_execution_ref,
 )
-from ordivon_gateway.routing import CapabilityRoute, default_routes  # noqa: E402
+from ordivon_gateway.logic.routing import CapabilityRoute, default_routes  # noqa: E402
 from ordivon_gateway.service import GatewayService  # noqa: E402
 
 

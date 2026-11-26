@@ -3,12 +3,16 @@ from __future__ import annotations
 
 import json
 import re
-import subprocess
+import tomllib
 from pathlib import Path
 
-import tomllib
 import yaml
 from affected_owners import load_owners
+from github_governance.codeowners import active_rooted_codeowners
+from github_governance.codeql import validate_monorepo_codeql
+from github_governance.dependency_coverage import configured_dirs, update_for
+from github_governance.git_paths import dirs_for_lock as _dirs_for_lock
+from github_governance.git_paths import tracked as _tracked
 
 ROOT = Path(__file__).resolve().parents[2]
 DEPENDABOT = ROOT / ".github" / "dependabot.yml"
@@ -17,151 +21,14 @@ RUNTIME_RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "runtime-release.yml
 CODEOWNERS = ROOT / ".github" / "CODEOWNERS"
 CODEQL_WORKFLOW = ROOT / ".github" / "workflows" / "codeql.yml"
 
+
 def tracked(pattern: str) -> tuple[str, ...]:
-    # Git paths are byte sequences and may contain LF, quotes, or non-UTF-8
-    # bytes. Its default human-readable quoting cannot certify file identity.
-    # Use Git's native NUL-delimited representation, preserving lossless
-    # filesystem byte round-tripping through Python's surrogateescape.
-    output = subprocess.check_output(
-        ["git", "-C", str(ROOT), "ls-files", "-z", "--", pattern],
-    )
-    return tuple(
-        part.decode("utf-8", errors="surrogateescape")
-        for part in output.split(b"\0")
-        if part
-    )
+    """Compatibility adapter: the source repository belongs to this entrypoint."""
+    return _tracked(ROOT, pattern)
+
 
 def dirs_for_lock(pattern: str, filename: str) -> set[str]:
-    result: set[str] = set()
-    for path in tracked(pattern):
-        p = Path(path)
-        if p.name != filename:
-            continue
-        result.add("/" + p.parent.as_posix())
-    return result
-
-def update_for(config: dict, ecosystem: str) -> dict:
-    matches = [
-        row
-        for row in config.get("updates", [])
-        if row.get("package-ecosystem") == ecosystem
-    ]
-    if len(matches) != 1:
-        raise AssertionError(f"{ecosystem}: expected exactly one root update entry, got {len(matches)}")
-    return matches[0]
-
-def configured_dirs(row: dict) -> set[str]:
-    if "directories" in row:
-        return set(row["directories"])
-    if "directory" in row:
-        return {row["directory"]}
-    return set()
-
-def active_rooted_codeowners(source: str) -> dict[str, tuple[str, ...]]:
-    """The repository's literal-root CODEOWNERS profile, not string mentions.
-
-    GitHub treats comments as inert and the LAST matching rule as effective.
-    The root-governance contract accepts only a default '*' rule first and
-    later exact, rooted paths with assigned owners. A new wildcard/pattern
-    grammar requires a source-bound owner test, not a guessed parser.
-    """
-    explicit: dict[str, tuple[str, ...]] = {}
-    for lineno, line in enumerate(source.splitlines(), start=1):
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        fields = line.split()
-        pattern = fields[0]
-        owners = tuple(field for field in fields[1:] if not field.startswith("#"))
-        if not owners or any(
-            not (
-                owner.startswith("@")
-                and len(owner) > 1
-                or "@" in owner
-                and not owner.startswith("@")
-            )
-            for owner in owners
-        ):
-            raise AssertionError(f"CODEOWNERS line {lineno} has no valid owner")
-        if pattern == "*":
-            if explicit:
-                raise AssertionError(
-                    "CODEOWNERS catch-all after explicit roots overrides them"
-                )
-            continue
-        if (
-            not pattern.startswith("/")
-            or any(token in pattern for token in "*?[]!\\")
-            or any(
-                segment in (".", "..", "") for segment in pattern.strip("/").split("/")
-            )
-            or pattern in explicit
-        ):
-            raise AssertionError(
-                f"CODEOWNERS unsupported, ambiguous or duplicate root rule: {pattern}"
-            )
-        # A later broad root may override ownership of an earlier narrower
-        # root. This existing contract forbids ambiguous explicit overlaps;
-        # it does not attempt to reimplement GitHub's complete glob engine.
-        if any(
-            pattern.startswith(existing) or existing.startswith(pattern)
-            for existing in explicit
-            if existing.endswith("/")
-        ):
-            raise AssertionError(
-                f"CODEOWNERS overlapping explicit root rule: {pattern}"
-            )
-        explicit[pattern] = owners
-    return explicit
-
-
-def validate_monorepo_codeql(source: str) -> None:
-    """Ensure all three source languages get a real root-loaded CodeQL workflow."""
-    workflow = yaml.safe_load(source)
-    if not isinstance(workflow, dict):
-        raise AssertionError("CodeQL workflow is not a YAML mapping")
-    triggers = workflow.get("on", workflow.get(True))
-    if not isinstance(triggers, dict):
-        raise AssertionError("CodeQL is missing event triggers")
-    for event in ("pull_request", "merge_group", "push", "workflow_dispatch", "schedule"):
-        if event not in triggers:
-            raise AssertionError(f"CodeQL missing active {event} event")
-    if workflow.get("permissions", {}).get("security-events") != "write":
-        raise AssertionError("CodeQL cannot upload security results")
-    jobs = workflow.get("jobs", {})
-    if not isinstance(jobs, dict) or set(jobs) != {"analyze"}:
-        raise AssertionError("CodeQL requires exactly one bounded analysis job")
-    job = jobs["analyze"]
-    matrix = job.get("strategy", {}).get("matrix", {})
-    languages = matrix.get("language")
-    if not isinstance(languages, list) or set(languages) != {
-        "python", "javascript-typescript", "rust"
-    } or len(languages) != 3:
-        raise AssertionError("CodeQL matrix lost a supported Monorepo language")
-    steps = job.get("steps")
-    if not isinstance(steps, list) or any(not isinstance(step, dict) for step in steps):
-        raise AssertionError("CodeQL missing valid steps")
-    action_sha = "1c5b675653bb5c22dbe9b12b556ec555138e09fd"
-    expected = {
-        f"github/codeql-action/init@{action_sha}",
-        f"github/codeql-action/analyze@{action_sha}",
-    }
-    actual = {
-        step.get("uses")
-        for step in steps
-        if str(step.get("uses", "")).startswith("github/codeql-action/")
-    }
-    if actual != expected:
-        raise AssertionError("CodeQL init/analyze SHA actions missing or drifting")
-    init = next(step for step in steps if step.get("uses", "").endswith("/init@" + action_sha))
-    analyze = next(step for step in steps if step.get("uses", "").endswith("/analyze@" + action_sha))
-    matrix_value = "$" + "{{ matrix.language }}"
-    if init.get("with", {}).get("languages") != matrix_value:
-        raise AssertionError("CodeQL does not bind each matrix language")
-    if init.get("with", {}).get("build-mode") != "none":
-        raise AssertionError("CodeQL Rust extraction cannot be qualified as no-build")
-    if analyze.get("with", {}).get("category") != "/language:" + matrix_value:
-        raise AssertionError("CodeQL language and result category are not bound")
+    return _dirs_for_lock(ROOT, pattern, filename)
 
 
 def main() -> int:
@@ -179,7 +46,17 @@ def main() -> int:
     assert config["version"] == 2
 
     github_actions = update_for(config, "github-actions")
-    assert configured_dirs(github_actions) == {"/"}
+    # The root native updater scans workflows, not nested composite action
+    # manifests. Derive the additional update locations from tracked sources.
+    action_manifests = (
+        *tracked(".github/actions/**/action.yml"),
+        *tracked(".github/actions/**/action.yaml"),
+    )
+    action_dirs = {"/", *("/" + Path(path).parent.as_posix() for path in action_manifests)}
+    assert configured_dirs(github_actions) == action_dirs, "GitHub Actions dependency coverage drift"
+    assert github_actions.get("groups", {}).get("same-dependency") == {
+        "patterns": ["*"], "group-by": "dependency-name",
+    }, "GitHub Actions shared dependency updates must use native grouping"
 
     # Renovate PEP 621 is the single Python manifest + uv.lock update owner.
     # Keep this check against the actual tracked consumers, not a duplicate list.
@@ -282,10 +159,34 @@ def main() -> int:
     ]
     assert not floating, f"root workflows contain non-SHA action references: {floating}"
     assert "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" in workflow
-    # Exact upstream v5.2.2 commit (verified against the immutable GitHub tag).
-    # Keep this review gate: Dependabot must not silently change action code.
-    mise_action_pin = "jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550"
-    assert mise_action_pin in workflow
+    # Root composite is a real consumer, not a duplicate historical version
+    # registry. Keep full-SHA and cross-consumer coherence; a synchronized
+    # reviewed native update can change the actual dependency.
+    jobs = yaml.safe_load(workflow)["jobs"]
+    setup_ref = "./.github/actions/setup-root-verification"
+    setup = yaml.safe_load((ROOT / setup_ref / "action.yml").read_text(encoding="utf-8"))
+    assert setup["runs"]["using"] == "composite"
+    mise_pins = [
+        step["uses"] for step in setup["runs"]["steps"]
+        if isinstance(step.get("uses"), str) and step["uses"].startswith("jdx/mise-action@")
+    ]
+    assert len(mise_pins) == 1 and re.fullmatch(r"jdx/mise-action@[0-9a-f]{40}", mise_pins[0]), (
+        "root verification must use one SHA-pinned mise action"
+    )
+    mise_action_pin = mise_pins[0]
+    mismatched_mise = [
+        (path, ref) for path, ref in action_refs
+        if ref.startswith("jdx/mise-action@") and ref != mise_action_pin
+    ]
+    assert not mismatched_mise, f"Mise action consumer pin drift: {mismatched_mise}"
+    for job_name in ("root-preflight", "repo-mechanics", "owner-verification"):
+        steps = jobs[job_name]["steps"]
+        callers = [i for i, step in enumerate(steps) if step.get("uses") == setup_ref]
+        assert len(callers) == 1, f"{job_name}: missing or duplicated setup consumer"
+        assert not steps[callers[0]].get("if"), f"{job_name}: root setup must not be conditional"
+        assert not steps[callers[0]].get("continue-on-error"), f"{job_name}: root setup failure must propagate"
+        assert any(step.get("uses", "").startswith("actions/checkout@")
+                   for step in steps[:callers[0]]), f"{job_name}: setup must follow checkout"
     assert "gitleaks/gitleaks-action@" not in workflow
     assert "run: mise run repo:secrets:verify" in workflow
     assert "run: tools/repo/check_tracked_secrets.sh" in workflow
@@ -294,7 +195,9 @@ def main() -> int:
     assert "gitleaks dir --no-banner --redact=100 --timeout 120 ." in snapshot_scan
 
     runtime_release = RUNTIME_RELEASE_WORKFLOW.read_text(encoding="utf-8")
-    assert mise_action_pin in runtime_release
+    assert (RUNTIME_RELEASE_WORKFLOW.name, mise_action_pin) in action_refs, (
+        "Runtime release must consume the same SHA-pinned mise action"
+    )
     for required in (
         'runtime-v*',
         'artifact-metadata: write',

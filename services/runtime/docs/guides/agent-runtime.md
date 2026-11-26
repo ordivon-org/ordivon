@@ -185,10 +185,28 @@ original **exact commit**, the repo's native SourceCut/Owner closure
 # Do not call Runtime Job replay, TLC, or a physical canary as a substitute.
 python3 services/runtime/scripts/agent_evidence_admission.py --pr 2177 --owner runtime --target cc294b72700c9aa02c067f9962fab47359836af6
 
+# A squash/Merge Queue may change commit identity. Query the new main
+# commit's OWN CI instead of transferring the old pull-request HEAD status.
+python3 services/runtime/scripts/agent_evidence_admission.py --commit cc294b72700c9aa02c067f9962fab47359836af6 --owner runtime --target cc294b72700c9aa02c067f9962fab47359836af6
+
 # The Agent/Harness consumer queries the independent Harness authority.
 # Runtime must not execute or import the higher-level Harness implementation.
 python3 services/harness/scripts/check_evidence.py --query-claim harness.runtime-correlation.h2
 ```
+
+Commit and PR queries use the same original CI identity checks.
+The commit mode does not invent the missing PR base/Owner task selection,
+and never inherits PASS across different Git cuts merely because they
+result from a squash merge; the new commit needs its own official receipt.
+
+When Merge Queue and subsequent push produce duplicate Check Run names at
+the same Git SHA, the query binds a completed Monorepo Required Workflow Run
+by its original GitHub Job/Run identity. A later in-progress push does not
+erase the earlier completed workflow's positive SOURCE observation. A
+conflicting completed required workflow or incomplete same-run jobs remains
+UNKNOWN; a successful root workflow does not promote independent CodeQL
+or physical effect checks. No blanket replay is triggered by duplicate job
+names in the GitHub flat check-runs list.
 
 The Runtime query calls `gh api` read-only, requires official GitHub
 `root-verification` and exact-commit successful checks, then delegates
@@ -210,3 +228,14 @@ is only a source-level Owner policy projection.
 This is on-demand Agent-consumable capability, **not yet wired automatically**
 into the Harness Run scheduling lifecycle. No second evidence registry,
 verifier service, or background monitoring job is introduced.
+
+### 2026-11-14 R5 native PG lost-result consumer regression
+
+A real disposable PG18/systemd native test now compares the same `lost` Job's
+`job.observe` and `job.list` northbound delivery: `unknown`,
+`resultAvailable=false`, single physical dispatch, and released reservation.
+Both existing `pg_vertical` tests for a failed retained Unit and for normal
+Runner success/cancel/replay were actually executed and passed on the tested
+main source `a31fe9e3882c6f912060954c0e9bc51c64fa5eb6`. These source
+consumer receipts do **not** establish that the installed Runtime executable
+has changed; use the native release receipt and post-install MCP readback.

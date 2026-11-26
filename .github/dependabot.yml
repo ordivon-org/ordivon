@@ -1,15 +1,22 @@
 version: 2
 updates:
   - package-ecosystem: github-actions
-    directory: "/"
+    directories:
+      - "/"
+      - "/.github/actions/setup-root-verification"
     schedule:
       interval: weekly
+    groups:
+      same-dependency:
+        patterns: ["*"]
+        group-by: dependency-name
 
   # Renovate PEP 621 owns Python manifests and uv.lock together.
   # Avoid issuing duplicate update PRs for the same Python consumer.
 
   - package-ecosystem: npm
     directories:
+      - "/apps/web/experiments/grant-render-benchmark"
       - "/apps/web"
       - "/capabilities/artifact/artifact-delivery/node"
       - "/capabilities/media"
@@ -27,7 +34,6 @@ updates:
 
   - package-ecosystem: cargo
     directories:
-      - "/domains/game/examples/orbit-collector"
       - "/services/harness"
       - "/services/runtime"
     schedule:

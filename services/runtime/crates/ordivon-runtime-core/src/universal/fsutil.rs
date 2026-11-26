@@ -7,7 +7,7 @@ use std::io::{Read, Write};
 #[cfg(unix)]
 use std::os::fd::{AsRawFd, FromRawFd};
 #[cfg(unix)]
-use std::os::unix::fs::OpenOptionsExt;
+use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
 #[cfg(windows)]
 use std::os::windows::ffi::OsStrExt as WindowsOsStrExt;
 use std::path::{Component, Path, PathBuf};
@@ -35,6 +35,54 @@ const RESOLVE_NO_MAGICLINKS: u64 = 0x02;
 const RESOLVE_NO_SYMLINKS: u64 = 0x04;
 #[cfg(unix)]
 const RESOLVE_BENEATH: u64 = 0x08;
+
+/// Serialize the trusted PG Attempt's cancellation marker publication with
+/// the native Runner's last cancel check and user Command::spawn.
+#[cfg(unix)]
+pub(crate) fn lock_attempt_spawn_fence(task_dir: &Path) -> Result<File, UniversalExecError> {
+    let control_root =
+        fs::symlink_metadata(task_dir).map_err(|error| io_error(task_dir, "stat", error))?;
+    // A lock inode is stable only if the payload cannot replace its parent
+    // directory entry. The PG issuer owns the root-only control directory.
+    if !control_root.is_dir() || control_root.uid() != 0 || control_root.mode() & 0o077 != 0 {
+        return Err(UniversalExecError::new(
+            UniversalExecErrorCode::MetadataCorrupt,
+            "PG Attempt spawn fence requires a root-owned private control directory",
+            Some("taskDir"),
+            false,
+        ));
+    }
+    let path = task_dir.join(".spawn-fence.lock");
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .mode(0o600)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
+        .open(&path)
+        .map_err(|error| io_error(&path, "open", error))?;
+    let metadata = file
+        .metadata()
+        .map_err(|error| io_error(&path, "stat", error))?;
+    // The PG control root is UID0-owned and 0700; contained child is
+    // independently nonroot. Never follow or accept a replaceable lock inode.
+    if !metadata.is_file()
+        || metadata.uid() != 0
+        || metadata.mode() & 0o077 != 0
+        || metadata.nlink() != 1
+    {
+        return Err(UniversalExecError::new(
+            UniversalExecErrorCode::MetadataCorrupt,
+            "PG Attempt spawn fence must be a single-link root-owned private file",
+            Some("taskDir"),
+            false,
+        ));
+    }
+    file.lock()
+        .map_err(|error| io_error(&path, "lock", error))?;
+    Ok(file)
+}
 
 #[cfg(unix)]
 pub(crate) fn open_directory_nofollow(path: &Path) -> std::io::Result<File> {
@@ -411,6 +459,23 @@ pub(crate) fn write_json_atomic(
 }
 
 pub(crate) fn write_bytes_atomic(path: &Path, bytes: &[u8]) -> Result<(), UniversalExecError> {
+    write_bytes_atomic_mode(path, bytes, true).map(|_| ())
+}
+
+/// Publish an immutable, newly staged file without replacing an existing name.
+/// False means another publisher already owns the name, not that its bytes match.
+pub(crate) fn write_bytes_atomic_if_absent(
+    path: &Path,
+    bytes: &[u8],
+) -> Result<bool, UniversalExecError> {
+    write_bytes_atomic_mode(path, bytes, false)
+}
+
+fn write_bytes_atomic_mode(
+    path: &Path,
+    bytes: &[u8],
+    replace_existing: bool,
+) -> Result<bool, UniversalExecError> {
     let parent = path
         .parent()
         .ok_or_else(|| invalid("path has no parent", "path"))?;
@@ -427,10 +492,28 @@ pub(crate) fn write_bytes_atomic(path: &Path, bytes: &[u8]) -> Result<(), Univer
         .write(true)
         .open(&temp)
         .map_err(|error| io_error(&temp, "create", error))?;
-    file.write_all(bytes)
-        .and_then(|_| file.sync_all())
-        .map_err(|error| io_error(&temp, "write", error))?;
-    rename_path_durable(&temp, path, true, "publish atomic file")
+    let staged = file.write_all(bytes).and_then(|_| file.sync_all());
+    drop(file);
+    if let Err(error) = staged {
+        let _ = fs::remove_file(&temp);
+        return Err(io_error(&temp, "write", error));
+    }
+    match rename_path_native(&temp, path, replace_existing) {
+        Ok(()) => {
+            sync_rename_parents(&temp, path)?;
+            Ok(true)
+        }
+        Err(error) if !replace_existing && error.kind() == std::io::ErrorKind::AlreadyExists => {
+            fs::remove_file(&temp)
+                .map_err(|error| io_error(&temp, "remove losing stage", error))?;
+            sync_directory(parent)?;
+            Ok(false)
+        }
+        Err(error) => {
+            let _ = fs::remove_file(&temp);
+            Err(io_error(path, "publish atomic file", error))
+        }
+    }
 }
 
 pub(crate) fn rename_path_durable(
@@ -439,12 +522,34 @@ pub(crate) fn rename_path_durable(
     replace_existing: bool,
     operation: &str,
 ) -> Result<(), UniversalExecError> {
+    rename_path_native(source, destination, replace_existing)
+        .map_err(|error| io_error(destination, operation, error))?;
+    sync_rename_parents(source, destination)
+}
+
+fn sync_rename_parents(source: &Path, destination: &Path) -> Result<(), UniversalExecError> {
+    if let Some(parent) = destination.parent() {
+        sync_directory(parent)?;
+    }
+    if let (Some(source_parent), Some(destination_parent)) = (source.parent(), destination.parent())
+    {
+        if source_parent != destination_parent {
+            sync_directory(source_parent)?;
+        }
+    }
+    Ok(())
+}
+
+fn rename_path_native(
+    source: &Path,
+    destination: &Path,
+    replace_existing: bool,
+) -> std::io::Result<()> {
     #[cfg(windows)]
     {
         use windows_sys::Win32::Storage::FileSystem::{
             MoveFileExW, MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH,
         };
-
         let source_wide = source
             .as_os_str()
             .encode_wide()
@@ -461,34 +566,52 @@ pub(crate) fn rename_path_durable(
         }
         let moved = unsafe { MoveFileExW(source_wide.as_ptr(), destination_wide.as_ptr(), flags) };
         if moved == 0 {
-            return Err(io_error(
-                destination,
-                operation,
-                std::io::Error::last_os_error(),
-            ));
+            Err(std::io::Error::last_os_error())
+        } else {
+            Ok(())
         }
-        return Ok(());
     }
 
     #[cfg(not(windows))]
     {
-        let _ = replace_existing;
-        fs::rename(source, destination).map_err(|error| io_error(destination, operation, error))?;
-
-        #[cfg(unix)]
+        if replace_existing {
+            return fs::rename(source, destination);
+        }
+        #[cfg(target_os = "linux")]
         {
-            if let Some(destination_parent) = destination.parent() {
-                sync_directory(destination_parent)?;
-            }
-            if let (Some(source_parent), Some(destination_parent)) =
-                (source.parent(), destination.parent())
-            {
-                if source_parent != destination_parent {
-                    sync_directory(source_parent)?;
-                }
+            let path = |p: &Path| {
+                CString::new(p.as_os_str().as_encoded_bytes()).map_err(|_| {
+                    std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        "rename path contains NUL",
+                    )
+                })
+            };
+            let source = path(source)?;
+            let destination = path(destination)?;
+            // Native atomic no-clobber rename handles both files and directories.
+            // SAFETY: both C strings live for the syscall, with valid AT_FDCWD handles.
+            let moved = unsafe {
+                libc::syscall(
+                    libc::SYS_renameat2,
+                    libc::AT_FDCWD,
+                    source.as_ptr(),
+                    libc::AT_FDCWD,
+                    destination.as_ptr(),
+                    libc::RENAME_NOREPLACE,
+                )
+            };
+            if moved == 0 {
+                Ok(())
+            } else {
+                Err(std::io::Error::last_os_error())
             }
         }
-        Ok(())
+        #[cfg(not(target_os = "linux"))]
+        Err(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "atomic no-replace rename unavailable",
+        ))
     }
 }
 
@@ -552,5 +675,163 @@ mod sha256_wire_contract_tests {
             Some(wire[7..].to_owned())
         );
         assert_eq!(parse_sha256_digest(&wire.to_uppercase()), None);
+    }
+}
+
+#[cfg(test)]
+mod durable_publication_tests {
+    use super::*;
+
+    #[test]
+    fn no_replace_preserves_first_publication_and_losing_source() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("stage");
+        let destination = dir.path().join("sealed");
+        fs::write(&source, b"loser").unwrap();
+        fs::write(&destination, b"winner").unwrap();
+        assert!(rename_path_durable(&source, &destination, false, "publish").is_err());
+        assert_eq!(fs::read(&destination).unwrap(), b"winner");
+        assert_eq!(fs::read(&source).unwrap(), b"loser");
+    }
+    #[test]
+    fn no_replace_preserves_existing_directory_and_replace_remains_explicit() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("source");
+        let destination = dir.path().join("destination");
+        fs::create_dir(&source).unwrap();
+        fs::create_dir(&destination).unwrap();
+        fs::write(source.join("marker"), b"new").unwrap();
+        assert!(rename_path_durable(&source, &destination, false, "publish").is_err());
+        assert!(source.join("marker").is_file());
+        assert!(destination.is_dir());
+        assert!(!destination.join("marker").exists());
+        let target = dir.path().join("mutable");
+        write_bytes_atomic(&target, b"old").unwrap();
+        write_bytes_atomic(&target, b"new").unwrap();
+        assert_eq!(fs::read(target).unwrap(), b"new");
+    }
+
+    #[test]
+    fn exclusive_publication_has_one_winner_and_cleans_losing_stages() {
+        use std::sync::{Arc, Barrier};
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("sealed");
+        let barrier = Arc::new(Barrier::new(8));
+        let results = std::thread::scope(|scope| {
+            let handles: Vec<_> = (0u8..8)
+                .map(|value| {
+                    let barrier = barrier.clone();
+                    let target = &target;
+                    scope.spawn(move || {
+                        barrier.wait();
+                        (
+                            value,
+                            write_bytes_atomic_if_absent(target, &[value]).unwrap(),
+                        )
+                    })
+                })
+                .collect();
+            handles
+                .into_iter()
+                .map(|h| h.join().unwrap())
+                .collect::<Vec<_>>()
+        });
+        let winners: Vec<_> = results.iter().filter(|(_, won)| *won).collect();
+        assert_eq!(winners.len(), 1);
+        assert_eq!(fs::read(&target).unwrap(), [winners[0].0]);
+        assert!(!write_bytes_atomic_if_absent(&target, &[winners[0].0]).unwrap());
+        assert!(!write_bytes_atomic_if_absent(&target, b"different").unwrap());
+        assert_eq!(fs::read(&target).unwrap(), [winners[0].0]);
+        assert_eq!(fs::read_dir(dir.path()).unwrap().count(), 1);
+    }
+}
+
+#[cfg(all(test, unix))]
+mod native_attempt_spawn_fence_tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+    use std::sync::mpsc;
+    use std::thread;
+    use std::time::Duration;
+
+    #[test]
+    fn cancellation_marker_publication_waits_for_step_spawn_fence() {
+        let dir =
+            std::env::temp_dir().join(format!("ordivon-native-spawn-fence-{}", Uuid::now_v7()));
+        fs::create_dir(&dir).unwrap();
+        if unsafe { libc::geteuid() } == 0 {
+            fs::set_permissions(&dir, fs::Permissions::from_mode(0o700)).unwrap();
+        }
+        if unsafe { libc::geteuid() } != 0 {
+            // Unprivileged CI cannot manufacture an authentic UID0 PG
+            // Attempt control directory. Reject the unowned substitute.
+            assert!(lock_attempt_spawn_fence(&dir).is_err());
+            fs::remove_dir_all(&dir).unwrap();
+            return;
+        }
+        let running_spawn = lock_attempt_spawn_fence(&dir).unwrap();
+        let lock_path = dir.join(".spawn-fence.lock");
+        let competing = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&lock_path)
+            .unwrap();
+        assert!(matches!(
+            competing.try_lock(),
+            Err(std::fs::TryLockError::WouldBlock)
+        ));
+        drop(competing);
+        let (started_tx, started_rx) = mpsc::channel();
+        let (committed_tx, committed_rx) = mpsc::channel();
+        let child_dir = dir.clone();
+        let cancel = thread::spawn(move || {
+            started_tx.send(()).unwrap();
+            let _cancel_fence = lock_attempt_spawn_fence(&child_dir).unwrap();
+            fs::write(child_dir.join("cancel-requested.json"), b"{}").unwrap();
+            committed_tx.send(()).unwrap();
+        });
+        started_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        assert!(matches!(
+            committed_rx.recv_timeout(Duration::from_millis(70)),
+            Err(mpsc::RecvTimeoutError::Timeout)
+        ));
+        assert!(!dir.join("cancel-requested.json").exists());
+        drop(running_spawn);
+        committed_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        cancel.join().unwrap();
+        // A newly started Runner must observe the marker while holding
+        // the SAME root-controlled lock; it cannot start another step.
+        let _next_spawn_fence = lock_attempt_spawn_fence(&dir).unwrap();
+        assert!(dir.join("cancel-requested.json").is_file());
+        drop(_next_spawn_fence);
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn attempt_spawn_fence_rejects_world_writable_or_symlinked_inodes() {
+        let dir =
+            std::env::temp_dir().join(format!("ordivon-native-spawn-inode-{}", Uuid::now_v7()));
+        fs::create_dir(&dir).unwrap();
+        if unsafe { libc::geteuid() } == 0 {
+            fs::set_permissions(&dir, fs::Permissions::from_mode(0o700)).unwrap();
+        }
+        if unsafe { libc::geteuid() } != 0 {
+            assert!(lock_attempt_spawn_fence(&dir).is_err());
+        } else {
+            let owned = lock_attempt_spawn_fence(&dir).unwrap();
+            drop(owned);
+            fs::set_permissions(&dir, fs::Permissions::from_mode(0o755)).unwrap();
+            assert!(lock_attempt_spawn_fence(&dir).is_err());
+            fs::set_permissions(&dir, fs::Permissions::from_mode(0o700)).unwrap();
+            let path = dir.join(".spawn-fence.lock");
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o666)).unwrap();
+            assert!(lock_attempt_spawn_fence(&dir).is_err());
+            fs::remove_file(&path).unwrap();
+            let innocent = dir.join("ordinary-file");
+            fs::write(&innocent, b"synthetic").unwrap();
+            std::os::unix::fs::symlink(&innocent, &path).unwrap();
+            assert!(lock_attempt_spawn_fence(&dir).is_err());
+        }
+        fs::remove_dir_all(&dir).unwrap();
     }
 }

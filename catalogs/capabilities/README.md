@@ -51,7 +51,9 @@ provider state or an executable/formal LEGO registry.
 
 For a real consumer, see the [Human review guide](docs/HUMAN_EXTERNAL_LEGO_REVIEW_R1.md), [Agent Owner instructions](AGENTS.md), and [architecture/contract](docs/EXTERNAL_CAPABILITY_EVALUATION_R1.md). The reusable Agent Skill is under .agents/skills/external-capability-evaluation/SKILL.md.
 
-Catalog records discovery and evidence, not live provider status, installation, R2.1 admission, or Owner promotion.\r\n\r\n## Tool discovery facets (not another tool registry)
+Catalog records discovery and evidence, not live provider status, installation, R2.1 admission, or Owner promotion.
+
+## Tool discovery facets (not another tool registry)
 
 For an Agent requesting a tool, retain these separate observations instead of
 flattening them into a single `available=true` classification:

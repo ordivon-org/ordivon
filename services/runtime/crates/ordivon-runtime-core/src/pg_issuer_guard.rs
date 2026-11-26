@@ -1,9 +1,12 @@
-//! One existing PostgreSQL cluster, one source Run serialization cut, and
-//! one Runtime Job admission transaction. No new Store/authority table.
+//! One existing PostgreSQL cluster and the original Harness Run SQL
+//! serialization cut, reused in BOTH new-Job admission and later PG Dispatch.
+//! The sole Scheduler carries the operator-bound dedicated principal/schema;
+//! ordinary Jobs do not acquire a foreign Harness admission requirement.
 //!
-//! This is an OPTIONAL admission-current policy. It neither authenticates
-//! arbitrary foreignReferences without an issuer PG read nor claims that
-//! source authority remains current at a later systemd-run spawn.
+//! This checks source currentness only at each committed PG transaction cut.
+//! It is NOT an authorization lease across PG-commit -> native Launcher
+//! in-flight -> systemd Unit birth, nor a strict NoFutureSpawn or Domain ACK.
+//! No new Registry, authority table, or scheduler is introduced.
 use super::{PgAdmissionError, PgAdmissionInput};
 use postgres::Transaction;
 use serde_json::Value;
@@ -34,13 +37,29 @@ pub(super) fn require_current_harness_issuer_for_new_job(
     i: &PgAdmissionInput,
     issuer_schema: &str,
 ) -> Result<(), PgAdmissionError> {
+    require_current_harness_issuer_for_plan(
+        tx,
+        &i.execution_plan_json,
+        &i.client_request_id,
+        issuer_schema,
+    )
+}
+
+/// Reuse the same PG source-owned Run cut at later dispatch, using the
+/// original immutable admitted Job plan and clientRequestId.
+pub(super) fn require_current_harness_issuer_for_plan(
+    tx: &mut Transaction<'_>,
+    execution_plan_json: &str,
+    client_request_id: &str,
+    issuer_schema: &str,
+) -> Result<(), PgAdmissionError> {
     // The caller cannot choose this schema. The configured service endpoint
     // uses its existing SAME-PG connection and operator-qualified SQL role.
     // The query identifier has already passed exact_schema.
     if !super::exact_schema(issuer_schema) {
         return Err(stale());
     }
-    let plan: Value = serde_json::from_str(&i.execution_plan_json).map_err(|_| stale())?;
+    let plan: Value = serde_json::from_str(execution_plan_json).map_err(|_| stale())?;
     let refs = plan
         .get("foreignReferences")
         .and_then(Value::as_array)
@@ -127,15 +146,19 @@ pub(super) fn require_current_harness_issuer_for_new_job(
             .get("dispatchFenceObjectDigest")
             .and_then(Value::as_str)
             != Some(fence_digest)
+        // Harness Intent.digest and its canonical CAS object digest name
+        // the same bytes. Do not accept two separately valid identities:
+        // an unrelated Intent must not satisfy the original Fence.
         || data.get("toolStepIntentDigest").and_then(Value::as_str)
-            != fence.get("intentDigest").and_then(Value::as_str)
+            != Some(intent_object_digest.as_str())
+        || fence.get("intentDigest").and_then(Value::as_str)
+            != Some(intent_object_digest.as_str())
         || fence.get("schemaVersion").and_then(Value::as_i64) != Some(2)
         || fence.get("kind").and_then(Value::as_str) != Some("ordivon.harness-dispatch-fence")
         || fence.get("fenceId").and_then(Value::as_str) != Some(fence_id)
         || fence.get("harnessRunId").and_then(Value::as_str) != Some(run_id)
         || fence.get("runRevision").and_then(Value::as_i64) != Some(generation)
-        || fence.get("clientRequestId").and_then(Value::as_str)
-            != Some(i.client_request_id.as_str())
+        || fence.get("clientRequestId").and_then(Value::as_str) != Some(client_request_id)
         || fence.get("runtimeOperation").and_then(Value::as_str) != Some("workspace.exec")
         || data
             .get("toolStepIntentObjectDigest")
@@ -149,8 +172,7 @@ pub(super) fn require_current_harness_issuer_for_new_job(
             .get("runtimeArgumentsDigest")
             .and_then(Value::as_str)
             .is_none_or(|v| !v.starts_with("sha256:") || v.len() != 71)
-        || intent.get("clientRequestId").and_then(Value::as_str)
-            != Some(i.client_request_id.as_str())
+        || intent.get("clientRequestId").and_then(Value::as_str) != Some(client_request_id)
     {
         return Err(stale());
     }
@@ -232,4 +254,38 @@ pub(super) fn require_current_harness_issuer_for_new_job(
         return Err(stale());
     }
     Ok(())
+}
+
+/// Read the one operator-owned Runtime DSN for both service and native
+/// receiver. No symlink traversal, group/world access or oversized file.
+/// Only the path is materialized into the private Attempt request.
+#[cfg(target_os = "linux")]
+pub fn read_private_spawn_dsn(path: &std::path::Path) -> std::io::Result<String> {
+    use std::io::{Error, ErrorKind, Read};
+    use std::os::unix::fs::MetadataExt;
+    let invalid = || {
+        Error::new(
+            ErrorKind::PermissionDenied,
+            "PG issuer spawn DSN requires an owner-private regular file",
+        )
+    };
+    let relative = path.strip_prefix("/").map_err(|_| invalid())?;
+    let parent = path.parent().ok_or_else(invalid)?;
+    let parent_meta = std::fs::symlink_metadata(parent)?;
+    let uid = unsafe { libc::geteuid() };
+    if !parent_meta.is_dir() || parent_meta.uid() != uid || parent_meta.mode() & 0o022 != 0 {
+        return Err(invalid());
+    }
+    let root = crate::universal::open_directory_nofollow(std::path::Path::new("/"))?;
+    let file = crate::universal::open_regular_file_beneath(&root, relative, true)?;
+    let meta = file.metadata()?;
+    if meta.uid() != uid || meta.mode() & 0o077 != 0 || meta.len() > 8192 {
+        return Err(invalid());
+    }
+    let mut dsn = String::new();
+    file.take(8193).read_to_string(&mut dsn)?;
+    if dsn.trim().is_empty() || dsn.len() > 8192 {
+        return Err(invalid());
+    }
+    Ok(dsn.trim().to_owned())
 }

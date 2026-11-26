@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -27,6 +28,7 @@ from .cognitive_circuit_r1 import (
     canonical_digest,
     compile_manifest,
 )
+from .verification_impact import _compare_validated_gate_source_scopes
 from .verification_impact import (
     _cyclic_proof_members as _cyclic_proof_members,
 )
@@ -80,6 +82,10 @@ def _immutable_git_manifest(
             "source-bound impact needs an exact Git cut and canonical relative path"
         )
 
+    # A caller's inherited GIT_DIR / GIT_OBJECT_DIRECTORY can redirect -C
+    # to a foreign repository. Read only the explicitly supplied Git owner.
+    git_env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+
     def git(*argv: str) -> bytes:
         try:
             # Exact SourceCut addresses Git's original objects, not any
@@ -87,6 +93,7 @@ def _immutable_git_manifest(
             return subprocess.check_output(
                 ["git", "--no-replace-objects", "-C", str(repo), *argv],
                 stderr=subprocess.PIPE,
+                env=git_env,
             )
         except (OSError, subprocess.CalledProcessError) as exc:
             raise CircuitContractError("Git source cut or regular blob unavailable") from exc
@@ -171,9 +178,16 @@ def compile_verification_obligations(manifest: dict[str, Any]) -> dict[str, Any]
     """Compile R1 Composition Gates into exact task-local verification obligations."""
 
     compiled = compile_manifest(manifest)
+    return _project_validated_obligations(manifest, compiled["manifestDigest"])
+
+
+def _project_validated_obligations(
+    manifest: dict[str, Any], manifest_digest: str
+) -> dict[str, Any]:
+    """Project the manifest validated in the same synchronous call."""
     circuit_ref = {
         "id": manifest["circuitId"],
-        "digest": compiled["manifestDigest"],
+        "digest": manifest_digest,
     }
     obligations = [
         _obligation_from_gate(circuit_ref=circuit_ref, gate=gate)
@@ -341,8 +355,12 @@ def select_manifest_gate_impacts(
     currentness, or verifier assumptions outside those manifests. Unchanged
     gate proofs therefore remain UNKNOWN, never proof-reuse qualified.
     """
-    previous = compile_verification_obligations(previous_manifest)
-    current = compile_verification_obligations(current_manifest)
+    previous_compiled = compile_manifest(previous_manifest)
+    previous_digest = previous_compiled["manifestDigest"]
+    previous = _project_validated_obligations(previous_manifest, previous_digest)
+    current_compiled = compile_manifest(current_manifest)
+    current_digest = current_compiled["manifestDigest"]
+    current = _project_validated_obligations(current_manifest, current_digest)
     if previous_manifest["circuitId"] != current_manifest["circuitId"]:
         raise CircuitContractError("cannot compare different circuit identities")
 
@@ -350,7 +368,9 @@ def select_manifest_gate_impacts(
     # closure already understands producer/consumer stages, incoming edges,
     # method/capability bindings and other premises of the same consumer.
     # Computing another all-non-Gate hash would invalidate unrelated branches.
-    scoped = compare_gate_source_scopes(previous_manifest, current_manifest)
+    scoped = _compare_validated_gate_source_scopes(
+        previous_manifest, current_manifest, previous_digest, current_digest
+    )
     all_current = {item["gateId"] for item in current["obligations"]}
     added = scoped["addedGateIds"]
     removed = scoped["removedGateIds"]

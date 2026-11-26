@@ -40,7 +40,8 @@
               "HIGH_QUEUE_DEPTH",
               "CI_WASTE",
               "LONG_TAIL_OWNER",
-              "PREDICTOR_DATA"
+              "PREDICTOR_DATA",
+              "PR_SOURCE_DUPLICATION"
             ]
           },
           "status": {

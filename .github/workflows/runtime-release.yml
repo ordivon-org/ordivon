@@ -29,6 +29,30 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Tag identity is not release admission. Only a commit already in the
+      # protected main history can be used as a Runtime release source.
+      # fetch-depth: 0 on checkout supplies the protected main ref without
+      # granting write access or depending on a fresh API request.
+      - name: Require Runtime tag source to be reachable from protected main
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GIT_GRAFT_FILE=/dev/null GIT_NO_REPLACE_OBJECTS=1
+          commit="$(git --no-replace-objects rev-parse --verify "${GITHUB_SHA}^{commit}")"
+          checkout="$(git --no-replace-objects rev-parse --verify 'HEAD^{commit}')"
+          if [[ "$commit" != "$checkout" ]]; then
+            echo "RUNTIME_TAG_SOURCE_NOT_CHECKED_OUT" >&2
+            exit 42
+          fi
+          if ! main="$(git --no-replace-objects rev-parse --verify 'refs/remotes/origin/main^{commit}')"; then
+            echo "RUNTIME_PROTECTED_MAIN_REF_MISSING" >&2
+            exit 42
+          fi
+          if ! git --no-replace-objects merge-base --is-ancestor "$commit" "$main"; then
+            echo "RUNTIME_TAG_SOURCE_NOT_ON_PROTECTED_MAIN" >&2
+            exit 42
+          fi
+
       - name: Network - acquire verified Python via official GitHub API
         shell: bash
         env:
@@ -42,7 +66,7 @@ jobs:
         run: python3 platform/network/consumers/developer-egress/github_release_mise.py
 
       - name: Install monorepo toolchain
-        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
         with:
           version: 2026.9.12
           sha256: e79ae57945034903aee8aa2ea66b4c7ca9cd4f4edd5a8a78a589cbae6d0f428a

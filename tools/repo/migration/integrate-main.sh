@@ -12,7 +12,8 @@ EXPECTED_MAIN="${3:-}"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 CHECKER="$SCRIPT_DIR/check-primary-main.sh"
 
-git -C "$REPO" rev-parse --is-inside-work-tree >/dev/null
+source "$SCRIPT_DIR/primary-git-context.sh"
+qualify_primary_git_context "$REPO"
 COMMON_DIR="$(git -C "$REPO" rev-parse --git-common-dir)"
 case "$COMMON_DIR" in
   /*) ;;

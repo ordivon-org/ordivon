@@ -2,9 +2,7 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/../.." && pwd)
-work="$root/.tmp/processing-otio-smoke"
-rm -rf "$work"
-mkdir -p "$work"
+work=$(mktemp -d "${TMPDIR:-/tmp}/ordivon-media-otio-smoke.XXXXXX")
 trap 'rm -rf "$work"' EXIT
 
 probe="$root/processing/bin/probe-otio.sh"
@@ -65,5 +63,6 @@ if bash "$probe" "$work/malformed.otio" "$work/profile.json" "$work/malformed-ev
   echo "malformed OTIO unexpectedly passed" >&2
   exit 1
 fi
+
 
 echo 'processing OTIO smoke: PASS (official OTIO inspection accepted good timeline; range/count/malformed negatives rejected)'

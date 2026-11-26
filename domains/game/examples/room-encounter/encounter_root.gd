@@ -7,27 +7,23 @@ extends Control
 @onready var gate_dialogue: VBoxContainer = $GateDialogue
 var view: VBoxContainer
 const TACTICAL_TRIAL: Resource = preload("res://configs/tactical_trial.tres")
-var tactical_mode: bool = false
 
 func start_tactical_trial() -> bool:
-    if not rules.reset_run(TACTICAL_TRIAL):
-        return false
-    tactical_mode = true
-    view.get_node("Title").text = "TACTICAL TRIAL | READ THE NEXT STRIKE BEFORE COMMITTING"
-    return true
+    return rules.reset_run(TACTICAL_TRIAL)
 
 func start_classic_run() -> bool:
-    if not rules.reset_run():
-        return false
-    tactical_mode = false
-    view.get_node("Title").text = "ORIGINAL GRAYBOX | ROOM ENCOUNTER"
-    return true
+    return rules.reset_run()
+
+func _project_mode_title(_state: Dictionary) -> void:
+    # Mode title is a disposable projection of the admitted Rule Resource.
+    # Direct Rule Resource substitution, Restart and restore all use this one
+    # signal path, rather than maintaining a second mode/UI state ledger.
+    view.render_mode_title(rules.is_tactical_trial())
 
 func restart_run() -> void:
-    if tactical_mode:
-        rules.reset_run(TACTICAL_TRIAL)
-    else:
-        rules.reset_run()
+    # Rules owns the admitted tuning Resource. Do not shadow its mode in
+    # the presentation/input adapter; a selected variant survives Restart.
+    rules.restart_run()
 
 func _ready() -> void:
     view = view_scene.instantiate()
@@ -46,6 +42,7 @@ func _ready() -> void:
     view.get_node("Actions/Save").pressed.connect(save_run)
     view.get_node("Actions/Load").pressed.connect(load_run)
     rules.state_changed.connect(view.render_state)
+    rules.state_changed.connect(_project_mode_title)
     # Strictly post-resolution UI feedback; Rule still owns the outcome.
     rules.action_accepted.connect(view.render_combat_result)
     feedback.bind_rules(rules)
@@ -86,7 +83,9 @@ func load_run() -> void:
     view.get_node("Storage").text = "Run resumed." if loaded else "No compatible save."
 
 func request_door() -> void:
-    if gate_dialogue.visible:
-        gate_dialogue.show_line("start")
-    else:
-        rules.advance()
+    # Hidden/delayed dialogue is never authority to bypass native Unlock.
+    # The semantic Dialogue Manager response alone drives the passage effect.
+    if rules.snapshot()["phase"] != "cleared":
+        return
+    gate_dialogue.show()
+    gate_dialogue.show_line("start")

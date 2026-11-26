@@ -82,3 +82,32 @@ class ProvenanceTests(unittest.TestCase):
     def test_no_self_asserted_builder_authority(self):
         with self.assertRaisesRegex(ValueError, "expected builder and build type"):
             self.verify(statement(self.artifact), expected_builder_id="")
+
+    def test_claimed_signature_or_complete_inputs_cannot_promote_content_binding(self):
+        value = statement(self.artifact)
+        value["authenticated"] = True
+        value["signature"] = "caller-claimed-signature"
+        value["predicate"]["buildDefinition"]["completeInputs"] = True
+        result = self.verify(value)
+        self.assertEqual(result["standing"], "PROVENANCE_CONTENT_BOUND")
+        self.assertIs(result["authenticated"], False)
+        self.assertNotIn("completeInputs", result)
+
+    def test_duplicate_matching_source_dependency_is_ambiguous(self):
+        value = statement(self.artifact)
+        dependencies = value["predicate"]["buildDefinition"]["resolvedDependencies"]
+        dependencies.append(dict(dependencies[0]))
+        with self.assertRaisesRegex(ValueError, "not uniquely bound"):
+            self.verify(value)
+
+    def test_source_only_statement_does_not_establish_closed_inputs(self):
+        # This is a valid content-bound statement even if the actual build read
+        # an additional, undeclared file. This checker has no build readset.
+        undeclared = self.artifact.parent / "unrecorded-input"
+        undeclared.write_bytes(b"not represented in resolvedDependencies")
+        # A tiny real build reads the undeclared input and emits the artifact.
+        self.artifact.write_bytes(undeclared.read_bytes())
+        result = self.verify(statement(self.artifact))
+        self.assertEqual(result["sourceRevision"], "a" * 40)
+        self.assertIs(result["authenticated"], False)
+        self.assertNotIn("inputClosureVerified", result)

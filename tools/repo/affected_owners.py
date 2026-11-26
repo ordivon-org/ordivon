@@ -12,6 +12,7 @@ from pathlib import Path, PurePosixPath
 from typing import Iterable
 
 MANIFEST_PATH = Path(__file__).with_name("owners.toml")
+SOURCE_REPO_ROOT = MANIFEST_PATH.resolve().parents[2]
 
 
 @dataclass(frozen=True)
@@ -78,11 +79,15 @@ CROSS_CUTTING_PATHS = frozenset(
     {
         "mise.toml",
         ".github/workflows/ci.yml",
+        ".github/actions/setup-root-verification/action.yml",
+        "tools/repo/verify_authority_history.sh",
         "tools/repo/owners.toml",
         "tools/repo/affected_owners.py",
         "tools/repo/test_affected_owners.py",
         "tools/repo/convergence_plan.py",
         "tools/repo/ci_owner_shards.py",
+        "tools/repo/pg_issuer_consumer.py",
+        "docs/architecture/structure-r2-transition-r1.json",
         "tools/repo/test_convergence_plan.py",
         "tools/repo/check_github_governance.py",
         "tools/repo/dependency_contracts.toml",
@@ -253,22 +258,28 @@ def requires_core_formal_verification(paths: Iterable[str]) -> bool:
     )
 
 def requires_gateway_formal_verification(paths: Iterable[str]) -> bool:
-    """Qualify only actual Gateway TLC model/runner/tool inputs.
+    """Select the Gateway-owned TLC gate, not a second Runtime owner.
 
-    CI already obtains changed paths from the immutable Git SourceCut via
-    convergence_plan. This is an EXTRA native verifier admission, never a
-    substitute for the existing Owner closure or a proof-reuse claim.
+    The public pinned checker and invocation controls are explicit inputs.
+    Unrelated Gateway Python changes retain the ordinary native owner gate.
     """
+    normalized = tuple(_normalize(path) for path in paths)
+    controls = {
+        "mise.toml",
+        ".github/workflows/ci.yml",
+        "tools/repo/affected_owners.py",
+        "tools/repo/convergence_plan.py",
+        "tools/repo/dependency_contracts.toml",
+        "tools/repo/owners.toml",
+        "services/runtime/formal/toolchain.lock.json",
+        "services/runtime/scripts/tla-formal",
+        "services/runtime/mise.toml",
+        "services/gateway/formal/verify.sh",
+    }
     return any(
-        (path := _normalize(raw)) in {
-            "mise.toml",
-            ".github/workflows/ci.yml",
-            "services/runtime/formal/toolchain.lock.json",
-            "services/runtime/scripts/tla-formal",
-            "services/runtime/mise.toml",
-            "tools/repo/affected_owners.py",
-        } or path.startswith("services/gateway/formal/")
-        for raw in paths
+        path in controls
+        or (path.startswith("services/gateway/formal/") and path.endswith((".tla", ".cfg")))
+        for path in normalized
     )
 
 
@@ -284,7 +295,7 @@ def _source_git_env() -> dict[str, str]:
 def _resolve_source_commit(ref: str) -> str:
     """Pin a moving Git ref to the immutable commit used for the source witness."""
     return subprocess.check_output(
-        ["git", "--no-replace-objects", "rev-parse", "--verify",
+        ["git", "-C", str(SOURCE_REPO_ROOT), "--no-replace-objects", "rev-parse", "--verify",
          "--end-of-options", f"{ref}^{{commit}}"],
         env=_source_git_env(),
         text=True,
@@ -299,7 +310,7 @@ def _source_diff_base(base: str, head: str) -> str:
     Multiple best merge-bases are ambiguous and cannot certify one readset.
     """
     merge_bases = subprocess.check_output(
-        ["git", "--no-replace-objects", "merge-base", "--all", base, head],
+        ["git", "-C", str(SOURCE_REPO_ROOT), "--no-replace-objects", "merge-base", "--all", base, head],
         env=_source_git_env(),
         text=True,
     ).splitlines()
@@ -308,7 +319,13 @@ def _source_diff_base(base: str, head: str) -> str:
     return merge_bases[0]
 
 
-def changed_paths(base: str, head: str) -> tuple[str, ...]:
+def changed_paths(
+    base: str, head: str, *, source_repo_root: Path | None = None
+) -> tuple[str, ...]:
+    # The default is this manifest's repository. A compositional caller may
+    # explicitly select a *different* Git source used by its own native
+    # SourceCut reader; neither path silently inherits subprocess CWD.
+    repo = SOURCE_REPO_ROOT if source_repo_root is None else Path(source_repo_root).resolve()
     # Preserve both sides of a cross-owner move, rather than allowing Git's
     # similarity detection to hide the source owner from verification.
     proc = subprocess.run(
@@ -316,7 +333,7 @@ def changed_paths(base: str, head: str) -> tuple[str, ...]:
             # SourceCut membership must be the actual immutable Git DAG, not
             # a locally installed refs/replace overlay. A replacement commit
             # could otherwise omit a changed Formal verifier source.
-            "git", "--no-replace-objects", "diff", "--name-only", "--no-renames", "-z",
+            "git", "-C", str(repo), "--no-replace-objects", "diff", "--name-only", "--no-renames", "-z",
             "--diff-filter=ACDMRTUXB", f"{base}...{head}",
         ],
         # Object replacement and the separate legacy graft file can each

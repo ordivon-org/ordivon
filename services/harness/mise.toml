@@ -200,4 +200,27 @@ fi
     echo "H04 $label counterexample: PASS"
   done
 )
+# R45 Tool UNKNOWN recovery uses the same Runtime-owned, SHA-pinned TLC.
+# One bounded safety abstraction, not a second Journal or production proof.
+(
+  cd formal
+  java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tla2sany.SANY ToolUnknownRecoveryR1.tla
+  java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config ToolUnknownRecoveryR1.cfg ToolUnknownRecoveryR1.tla
+  recovery_probe="$(mktemp)"
+  trap 'rm -f "$recovery_probe"' EXIT
+  for spec in "retry:AtMostOneOriginalOwnerSubmit" "resume:RecoveredOriginalOwnerIsUnreachable" "pre-admission:LostBeforeAdmissionIsUnreachable" "physical:PhysicalCallIsUnreachable";do
+    IFS=: read -r label predicate <<< "$spec"
+    if java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tlc2.TLC -workers 1 -config "ToolUnknownRecoveryR1.$label-probe.cfg" ToolUnknownRecoveryR1.tla >"$recovery_probe" 2>&1;then
+      echo "R45 $label counterexample unexpectedly absent" >&2
+      exit 1
+    fi
+    if ! grep -Fq "Error: Invariant $predicate is violated." "$recovery_probe";then
+      cat "$recovery_probe" >&2
+      echo "R45 $label probe lacked exact expected invariant violation" >&2
+      exit 1
+    fi
+    echo "R45 $label counterexample: PASS"
+  done
+)
+
 """

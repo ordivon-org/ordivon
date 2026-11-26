@@ -319,7 +319,7 @@
     },
     {
       "id": "risk-limit-evaluator",
-      "implementation": "src/ordivon_capital/governance/policy_decision.py::evaluate_risk_budget_policy",
+      "implementation": "src/ordivon_capital/risk/risk_limit_evaluation.py::evaluate_risk_limits",
       "classification": "CONTROL",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",
@@ -382,7 +382,7 @@
     },
     {
       "id": "pre-trade-evidence-control",
-      "implementation": "src/ordivon_capital/governance/policy_decision.py::evaluate_counterfactual_gate_policy",
+      "implementation": "src/ordivon_capital/portfolio/scenario_evidence.py::evaluate_scenario_evidence",
       "classification": "CONTROL",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",

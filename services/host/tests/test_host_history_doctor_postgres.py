@@ -9,6 +9,7 @@ import psycopg
 import pytest
 
 from ordivon_host_v2.errors import ConflictError
+from ordivon_host_v2.references.actor_store import ActorReferenceStore
 from ordivon_host_v2.service import HostV2
 from ordivon_host_v2.work_inputs import (
     ActorKind,
@@ -31,7 +32,7 @@ def test_missing_historical_revisions_do_not_break_healthy_current_work() -> Non
     actor_ref = f"actor:agent:history-diagnostic:{token}"
     work_ref = f"work:history-diagnostic:{token}"
     store = WorkStore(DSN)
-    store.declare_actor(
+    ActorReferenceStore(DSN).declare_actor(
         ActorRefInput(actor_ref=actor_ref, actor_kind=ActorKind.AGENT),
         client_request_id=f"actor:{token}",
     )
@@ -78,13 +79,14 @@ def test_missing_historical_revisions_do_not_break_healthy_current_work() -> Non
             connection.execute("DELETE FROM actor_refs WHERE actor_ref=%s", (actor_ref,))
 
 
-def test_current_snapshot_payload_corruption_is_a_doctor_failure() -> None:
+@pytest.mark.parametrize("corrupt_value", ['"changed-without-digest"', "9007199254740992"])
+def test_current_snapshot_payload_corruption_is_a_doctor_failure(corrupt_value) -> None:
     assert DSN is not None
     token = uuid4().hex
     actor_ref = f"actor:agent:current-diagnostic:{token}"
     work_ref = f"work:current-diagnostic:{token}"
     store = WorkStore(DSN)
-    store.declare_actor(
+    ActorReferenceStore(DSN).declare_actor(
         ActorRefInput(actor_ref=actor_ref, actor_kind=ActorKind.AGENT),
         client_request_id=f"actor:{token}",
     )
@@ -101,8 +103,8 @@ def test_current_snapshot_payload_corruption_is_a_doctor_failure() -> None:
         with psycopg.connect(DSN) as connection:
             connection.execute(
                 "UPDATE work_snapshots SET payload=jsonb_set(payload,'{frontier}',"
-                "'\"changed-without-digest\"'::jsonb) WHERE work_ref=%s AND revision=1",
-                (work_ref,),
+                "%s::jsonb) WHERE work_ref=%s AND revision=1",
+                (corrupt_value, work_ref),
             )
         for detail in ("integrity", "history"):
             doctor = HostV2(DSN).status(detail=detail)["doctor"]

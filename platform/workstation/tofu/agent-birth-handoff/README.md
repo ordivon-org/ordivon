@@ -58,3 +58,36 @@ build for this Linux owner node.
 
 Do not add token parsing, raw token files, cookie extraction, or another Cloudflare API controller
 to this root. Cloudflare authentication remains owned by the existing provider credential carrier.
+
+## Production Gateway DNS standing (2026-11-15)
+
+The original Cloudflare **Account API Token** is obtained through the private
+`/root/.config/ordivon/secrets/cloudflare.json` alias; the alias resolves to
+the private active Account API credential, not the historical backup, Tunnel runtime
+`TUNNEL_TOKEN` or Access Service Token pair. Official Cloudflare account
+Token Verify returned `active` and a matching `ordivon.com` Zone. Never print
+or copy token values, or infer Token identity from filename alone.
+
+A read-only Cloudflare DNS API GET proved the **live** `gateway-mcp.ordivon.com`
+CNAME is proxied and targets the `ordivon-wsl` production Tunnel. The
+existing OpenTofu stored State referred to the very same record ID, but
+retained a stale `ordivon-native-canary` target. Independently, native
+Windows Runtime observed **no** listener and an unreachable MCP endpoint
+at `127.0.0.1:19000`, the native Tunnel's currently declared Gateway origin.
+
+The source of truth for the **currently serving primary** is therefore
+`local.production_tunnel_id` until the Windows native ingress actually
+passes MCP/Agent consumer canaries. Both production and native remote Tunnel
+rules remain separate, and no Host direct connector or Access identity is
+modified by aligning this DNS declaration.
+
+Do **not** apply an old reviewed plan that targets the unqualified Native
+Tunnel; existing plans are source-commit/digest-bound and need new review.
+The original native script must explicitly check the desired production
+Tunnel CNAME in the planned Gateway record before any apply. Refreshing
+OpenTofu State without updating this declaration would permit the next
+ordinary plan to switch the functioning public Gateway to a missing origin.
+
+A Native cutover is a separate intentional change after Windows `:19000`
+actually listens, a real MCP Gateway endpoint and authorized Agent readback
+succeed, and the official DNS binding + whole-configuration plan are verified.
