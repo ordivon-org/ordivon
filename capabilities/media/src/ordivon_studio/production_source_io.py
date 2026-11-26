@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from pathlib import Path
 from typing import Any
+
+from .strict_json import decode_object
 
 
 def read_bound_bytes(path: Path) -> tuple[bytes, str]:
@@ -14,10 +15,7 @@ def read_bound_bytes(path: Path) -> tuple[bytes, str]:
 
 def read_bound_object(path: Path) -> tuple[dict[str, Any], str]:
     data, digest = read_bound_bytes(path)
-    value = json.loads(data)
-    if not isinstance(value, dict):
-        raise TypeError(f"{path} must contain one JSON object")
-    return value, digest
+    return decode_object(data), digest
 
 
 def relative_child(root: Path, relative: str) -> Path:

@@ -11,8 +11,9 @@ import argparse
 import json
 import subprocess
 import urllib.request
-from urllib.parse import parse_qs, urlsplit
 from pathlib import Path
+
+from monitoring_graph import prometheus_projection as _prometheus_projection, verify_active_targets
 
 CONFIGS = ("blackbox/blackbox.yml", "prometheus/prometheus.yml", "prometheus/consumer.rules.yml")
 SCRAPE_GLOB = "consumers/*.yml"  # Prometheus' native optional-owner fragment contract
@@ -81,52 +82,6 @@ def _read_owner_yaml(path: Path) -> dict:
     return parsed
 
 
-def _prometheus_projection(config: dict, base: Path) -> dict:
-    """Compare consumer routing fields, not Prometheus-injected YAML defaults."""
-    jobs: dict[str, dict] = {}
-    for job in config.get("scrape_configs", []):
-        if not isinstance(job, dict) or not isinstance(job.get("job_name"), str):
-            raise ValueError("invalid loaded Prometheus scrape job")
-        name = job["job_name"]
-        if name in jobs:
-            raise ValueError(f"duplicate Prometheus job name: {name}")
-        relabels = []
-        for rule in job.get("relabel_configs") or []:
-            if not isinstance(rule, dict):
-                raise ValueError(f"invalid Prometheus relabel rule: {name}")
-            defaults = {
-                "source_labels": [], "target_label": "",
-                "replacement": "$1", "action": "replace", "separator": ";",
-            }
-            relabels.append({**defaults, **rule})
-        jobs[name] = {
-            "metrics_path": job.get("metrics_path", "/metrics"),
-            "scheme": job.get("scheme", "http"),
-            "proxy_url": job.get("proxy_url") or "",
-            "params": job.get("params") or {},
-            "static_configs": job.get("static_configs") or [],
-            "relabel_configs": relabels,
-        }
-    rule_paths = config.get("rule_files") or []
-    if not isinstance(rule_paths, list):
-        raise ValueError("invalid Prometheus rule_files")
-    rules = sorted(str((base / path).resolve()) for path in rule_paths)
-    native_files = config.get("scrape_config_files") or []
-    if not isinstance(native_files, list):
-        raise ValueError("invalid Prometheus scrape_config_files")
-    native_paths = sorted(str((base / path).resolve()) for path in native_files)
-    alerting = config.get("alerting") or {}
-    if not isinstance(alerting, dict):
-        raise ValueError("invalid Prometheus alerting config")
-    return {
-        "jobs": jobs,
-        "rule_files": rules,
-        "scrape_config_files": native_paths,
-        "alertmanagers": alerting.get("alertmanagers") or [],
-        "remote_write": config.get("remote_write") or [],
-    }
-
-
 def verify_loaded_prometheus(live: Path, loaded: dict) -> int:
     """Read-only consumer-edge seam, not complete process or notification proof."""
     disk = _read_owner_yaml(live / CONFIGS[1])
@@ -143,54 +98,13 @@ def verify_loaded_prometheus(live: Path, loaded: dict) -> int:
 
 
 def verify_loaded_active_targets(live: Path, pool_data: dict, target_data: dict) -> int:
-    """Independent process projection: include jobs must actually be active."""
-    expected = _all_scrape_jobs(live)
-    names = {job["job_name"] for job in expected}
-    loaded_pools = pool_data.get("data", {}).get("scrapePools")
-    if not isinstance(loaded_pools, list) or set(loaded_pools) != names or len(loaded_pools) != len(names):
-        raise ValueError("loaded Prometheus scrape pools differ from native fragment graph")
-    targets = target_data.get("data", {}).get("activeTargets")
-    if not isinstance(targets, list):
-        raise ValueError("Prometheus active target API omitted target graph")
-    indexed: dict[str, list] = {}
-    for target in targets:
-        name = (target.get("labels") or {}).get("job")
-        indexed.setdefault(name, []).append(target)
-    if set(indexed) != names:
-        raise ValueError("active target job set differs from declared source")
-    for job in expected:
-        name = job["job_name"]
-        declared_targets = [
-            target for group in job.get("static_configs", [])
-            for target in group.get("targets", [])
-        ]
-        observed = indexed[name]
-        if len(declared_targets) != 1 or len(observed) != 1:
-            raise ValueError(f"ambiguous Prometheus target cardinality: {name}")
-        target = observed[0]
-        parsed = urlsplit(target.get("scrapeUrl") or "")
-        if target.get("scrapePool") != name:
-            raise ValueError(f"wrong loaded scrape pool: {name}")
-        if job.get("metrics_path") == "/probe":
-            params = parse_qs(parsed.query)
-            module = (job.get("params") or {}).get("module")
-            actual = (target.get("discoveredLabels") or {}).get("__param_module")
-            if (not isinstance(module, list) or len(module) != 1 or
-                    params.get("module") != module or actual != module[0] or
-                    params.get("target") != declared_targets):
-                raise ValueError(f"loaded Blackbox module/target differs: {name}")
-            exporter = next(
-                (r.get("replacement") for r in job.get("relabel_configs", [])
-                 if r.get("target_label") == "__address__"), None)
-            if parsed.netloc != exporter or parsed.path != "/probe":
-                raise ValueError(f"loaded Blackbox exporter binding differs: {name}")
-        elif parsed.netloc != declared_targets[0] or parsed.path != "/metrics":
-            raise ValueError(f"loaded direct scrape differs: {name}")
-    return len(names)
+    return verify_active_targets(_all_scrape_jobs(live), pool_data, target_data)
 
 
 def _api_payload(path: str) -> dict:
-    with urllib.request.urlopen(f"http://127.0.0.1:29090{path}", timeout=8) as response:
+    # A local observation must not inherit a developer-shell HTTP proxy.
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    with opener.open(f"http://127.0.0.1:29090{path}", timeout=8) as response:
         value = json.load(response, object_pairs_hook=_no_duplicate_keys)
     if value.get("status") != "success":
         raise ValueError(f"Prometheus native API unsuccessful: {path}")

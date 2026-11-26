@@ -171,3 +171,6 @@ proptest! {
         observe(&facts)?;
     }
 }
+
+#[path = "archive_migration_properties/stateful.rs"]
+mod stateful;

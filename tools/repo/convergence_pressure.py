@@ -13,6 +13,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from ci_economic_annotation import bind_annotation
+
 STATUSES = {"INSUFFICIENT_EVIDENCE", "NOT_PROVEN", "PROVEN", "REGRESSED"}
 
 
@@ -52,45 +54,47 @@ def owner_cost_rows(payloads: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return rows
 
 
-def _ci_waste_has_run_witness(
-    projection: dict[str, Any], *, runs: int, explicit_waste: int,
-    unclassified: int,
-) -> bool:
-    """A summary cannot establish control eligibility without its source runs.
-
-    This is an evidence-integrity check, not independent GitHub attestation.
-    The CI provider remains authoritative; this read-only projection never is.
-    """
+def _declared_waste_attempts(
+    projection: dict[str, Any], *, runs: int, explicit_waste: int, unclassified: int,
+) -> list[dict[str, Any]] | None:
+    """Qualify declarations without pretending to verify their referenced evidence."""
     observed = projection.get("runs")
     if not isinstance(observed, list) or len(observed) != runs:
-        return False
-    identities: set[tuple[int | str, int | None]] = set()
-    waste = unknown = 0
+        return None
+    identities: set[tuple[int, int]] = set()
+    declared = []
+    unknown = 0
     for row in observed:
         if not isinstance(row, dict):
-            return False
+            return None
         run_id, attempt = row.get("runId"), row.get("runAttempt")
-        if not isinstance(run_id, (str, int)) or isinstance(run_id, bool):
-            return False
-        if attempt is not None and (type(attempt) is not int or attempt < 1):
-            return False
+        if type(run_id) is not int or run_id < 1 or type(attempt) is not int or attempt < 1:
+            return None
         identity = (run_id, attempt)
         if identity in identities:
-            return False
+            return None
         identities.add(identity)
-        outcome = row.get("economicOutcome")
-        status = row.get("status")
+        outcome, status = row.get("economicOutcome"), row.get("status")
         if status == "completed" and outcome == "UNCLASSIFIED":
             unknown += 1
-        if outcome in {"AVOIDABLE_WASTE", "DUPLICATED"}:
-            if (
-                status != "completed"
-                or not isinstance(row.get("economicReason"), str)
-                or not row["economicReason"].strip()
-            ):
-                return False
-            waste += 1
-    return waste == explicit_waste and unknown == unclassified
+        if outcome in ("AVOIDABLE_WASTE", "DUPLICATED"):
+            if status != "completed":
+                return None
+            try:
+                annotation = bind_annotation(row.get("economicAnnotation"), {
+                    "runId": run_id, "attempt": attempt, "headSha": row.get("headSha"),
+                    "event": row.get("event"), "providerConclusion": row.get("conclusion"),
+                }, status=status)
+            except ValueError:
+                return None
+            if annotation["economicOutcome"] != outcome or annotation["reason"] != row.get("economicReason"):
+                return None
+            declared.append({"runId": run_id, "runAttempt": attempt,
+                             "headSha": annotation["headSha"],
+                             "evidenceRefs": annotation["evidenceRefs"]})
+    if len(declared) != explicit_waste or unknown != unclassified:
+        return None
+    return sorted(declared, key=lambda item: (item["runId"], item["runAttempt"]))
 
 
 def pr_source_duplication_gate(snapshot: dict[str, Any] | None) -> dict[str, Any]:
@@ -272,40 +276,23 @@ def assess(
         explicit_waste = int(cmetrics.get("explicitAvoidableWasteRuns") or 0)
         unclassified = int(cmetrics.get("unclassifiedTerminalRuns") or 0)
         runs = int(cmetrics.get("runs") or 0)
-        if explicit_waste > 0 and not _ci_waste_has_run_witness(
-            ci_projection,
-            runs=runs,
-            explicit_waste=explicit_waste,
-            unclassified=unclassified,
-        ):
+        if explicit_waste > 0:
+            declared = _declared_waste_attempts(
+                ci_projection, runs=runs, explicit_waste=explicit_waste,
+                unclassified=unclassified,
+            )
             ci_waste = gate(
-                "CI_WASTE",
-                "INSUFFICIENT_EVIDENCE",
-                "claimed waste lacks matching terminal, unique source-run evidence",
+                "CI_WASTE", "INSUFFICIENT_EVIDENCE",
+                "source-bound declarations require independent causal evidence"
+                if declared is not None else "claimed waste lacks matching source-bound declarations",
                 {
                     "runs": runs,
                     "explicitAvoidableWasteRuns": explicit_waste,
                     "unclassifiedTerminalRuns": unclassified,
+                    "declaredWasteAttempts": declared or [],
+                    "causalEvidenceStanding": "DECLARED_NOT_VERIFIED" if declared else "UNKNOWN",
                 },
             )
-        elif explicit_waste > 0:
-            ci_waste = gate(
-                "CI_WASTE",
-                "PROVEN",
-                "at least one run has explicit evidence-backed avoidable-waste classification",
-                {
-                    "runs": runs,
-                    "explicitAvoidableWasteRuns": explicit_waste,
-                    "explicitAvoidableWasteExecutionSeconds": cmetrics.get(
-                        "explicitAvoidableWasteExecutionSeconds"
-                    ),
-                    "unclassifiedTerminalRuns": unclassified,
-                },
-            )
-            ci_waste["allowedExperiments"] = [
-                "ci-deduplication",
-                "cancellation-optimization",
-            ]
         elif unclassified > 0:
             ci_waste = gate(
                 "CI_WASTE",

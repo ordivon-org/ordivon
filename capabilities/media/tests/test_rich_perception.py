@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+import random
 import shutil
 import statistics
 import subprocess
@@ -206,6 +208,74 @@ class RichPerceptionTest(unittest.TestCase):
             self.assertEqual(structural_distance(audio_features, audio_features), 0.0)
             self.assertTrue(canonical_digest({"a": 1}).startswith("sha256:"))
 
+
+def _scalar_cue_reference(audio, timed, width):
+    rms = audio["profiles"]["rmsAmplitude"]
+    step = audio["technical"]["durationSeconds"] / len(rms)
+    ticks = timed["timeBase"]["ticksPerSecond"]
+    boundaries = sorted({float(cue["startTick"]) / ticks for cue in timed["cues"][1:]})
+    matched = [
+        float(sample)
+        for boundary in boundaries
+        for index, sample in enumerate(rms)
+        if abs((index + 0.5) * step - boundary) <= width
+    ]
+    mean = statistics.fmean(rms)
+    local = statistics.fmean(matched) if matched else 0.0
+    return {
+        "boundaryCount": float(len(boundaries)),
+        "globalMeanRmsAmplitude": mean,
+        "boundaryMeanRmsAmplitude": local,
+        "boundarySilenceContrastZ": (mean - local) / (statistics.pstdev(rms) or 1.0),
+    }
+
+
+def _cue_inputs(duration, rms, ticks, boundaries):
+    return (
+        {"technical": {"durationSeconds": duration}, "profiles": {"rmsAmplitude": rms}},
+        {"timeBase": {"ticksPerSecond": ticks},
+         "cues": [{"startTick": value} for value in [0, *boundaries]]},
+    )
+
+
+class CueWindowOperatorTest(unittest.TestCase):
+    def test_seeded_scalar_differential(self):
+        rng = random.Random(32526)
+        for case in range(240):
+            count = rng.randrange(1, 180)
+            duration = rng.choice([0.125, 1.0, 9.3, 200.0])
+            ticks = rng.choice([1, 3, 1000, 90000])
+            rms = [rng.uniform(-1, 1) for _ in range(count)]
+            boundaries = [rng.randrange(-ticks, int((duration + 1) * ticks))
+                          for _ in range(rng.randrange(0, 40))]
+            audio, timed = _cue_inputs(duration, rms, ticks, boundaries + boundaries[:3])
+            width = rng.choice([0.0, 0.35, 1.0, duration, -1.0, float("nan"), float("inf")])
+            with self.subTest(case=case):
+                self.assertEqual(cue_boundary_silence_score(audio, timed, window_seconds=width),
+                                 _scalar_cue_reference(audio, timed, width))
+
+    def test_inclusive_and_ulp_adjacent_windows(self):
+        for duration, rms, ticks, boundaries in [
+            (4.0, [1.0, 3.0, 7.0, 11.0], 2, [1, 3, 3, 5, -1, 9]),
+            (1.0, [1.0, 3.0, 7.0], 10, [1, 3, 8]),
+            (2e-320, [1.0, 3.0, 7.0], 1, [0, 1]),
+            (1e308, [1.0, 3.0, 7.0], 1, [0, 1]),
+        ]:
+            audio, timed = _cue_inputs(duration, rms, ticks, boundaries)
+            for index in range(len(rms)):
+                for tick in boundaries:
+                    edge = abs((index + 0.5) * (duration / len(rms)) - float(tick) / ticks)
+                    for width in [math.nextafter(edge, 0.0), edge, math.nextafter(edge, math.inf)]:
+                        self.assertEqual(cue_boundary_silence_score(audio, timed, window_seconds=width),
+                                         _scalar_cue_reference(audio, timed, width))
+
+    def test_overlap_counts_and_empty_window(self):
+        audio, timed = _cue_inputs(4.0, [1.0, 2.0, 8.0, 16.0], 2, [1, 2, 3, 3])
+        result = cue_boundary_silence_score(audio, timed, window_seconds=0.5)
+        self.assertEqual(result["boundaryCount"], 3.0)
+        self.assertEqual(result["boundaryMeanRmsAmplitude"], 1.5)
+        self.assertEqual(cue_boundary_silence_score(audio, timed, window_seconds=-1.0),
+                         _scalar_cue_reference(audio, timed, -1.0))
 
 if __name__ == "__main__":
     unittest.main()

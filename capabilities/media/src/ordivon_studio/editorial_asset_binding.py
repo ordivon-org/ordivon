@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from .assets import hash_file
+from .strict_json import decode_object
 
 SCHEMA = Path(__file__).resolve().parents[2] / "schemas/asset.schema.json"
 PREFIX = "ordivon-asset://"
@@ -21,15 +22,6 @@ PREFIX = "ordivon-asset://"
 
 def _digest(raw: bytes) -> str:
     return "sha256:" + hashlib.sha256(raw).hexdigest()
-
-
-def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError(f"ambiguous duplicate manifest key: {key}")
-        result[key] = value
-    return result
 
 
 def _time_value(value: Any) -> dict[str, float] | None:
@@ -63,7 +55,7 @@ def verify_editorial_assets(
     ):
         if expected is not None and actual != expected:
             raise ValueError(f"{label} digest does not match caller commitment")
-    manifest = json.loads(manifest_raw, object_pairs_hook=_unique_object)
+    manifest = decode_object(manifest_raw)
     Draft202012Validator(json.loads(SCHEMA.read_bytes())).validate(manifest)
     if manifest["productionId"] != production_id:
         raise ValueError("asset manifest productionId does not match selected Production")
