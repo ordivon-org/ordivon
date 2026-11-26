@@ -115,7 +115,8 @@ class PgOnlyReleaseBuildContract(unittest.TestCase):
             )
             for spec in _deploy["release_artifact_specs"](args):
                 path = target / str(spec["name"])
-                path.write_bytes(str(spec["name"]).encode())
+                path.write_bytes(b"x" if spec["name"] == args.binaries[0]
+                                 else str(spec["name"]).encode())
                 path.chmod(0o755)
             candidate = _deploy["candidate_artifacts"](args)
             tool = {"version": "test", "resolvedPath": "/test",
@@ -157,6 +158,30 @@ class PgOnlyReleaseBuildContract(unittest.TestCase):
             self.assertEqual(summary["digest"], "sha256:" + hashlib.sha256(original).hexdigest())
             self.assertIn("candidate manifest digest does not match structured release request", errors)
             del args.candidate_manifest_digest
+
+            # Wire-level duplicate object members and nonfinite numbers
+            # cannot be recovered after a permissive JSON-to-dict projection.
+            wire = original.decode()
+            for raw in (
+                wire.replace('"commit":', '"commit":"wrong", "commit":', 1),
+                wire.replace('"digest":', '"digest":"wrong", "digest":', 1),
+                wire[:-1] + ', "extra": NaN}',
+                wire[:-1] + ', "extra": 1e400}',
+            ):
+                with self.subTest(raw=raw[:120]):
+                    args.candidate_manifest.write_text(raw)
+                    with self.assertRaisesRegex(RuntimeError, "invalid candidate manifest representation"):
+                        validate(args, candidate)
+            for case in ("schema_float", "artifact_bytes_bool", "binary_mode_float"):
+                with self.subTest(case=case):
+                    value = json.loads(wire)
+                    if case == "schema_float":
+                        value["schemaVersion"] = float(value["schemaVersion"])
+                    elif case == "artifact_bytes_bool":
+                        value["artifacts"][0]["bytes"] = True
+                    else:
+                        value["binaries"][0]["mode"] = float(value["binaries"][0]["mode"])
+                    self.assertTrue(blockers(value), case)
 
             for case in ("duplicate_artifact", "shadowed_artifact", "nonrecord_artifact",
                          "duplicate_binary", "shadowed_binary", "nonrecord_binary",

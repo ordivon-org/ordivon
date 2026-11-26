@@ -1507,13 +1507,42 @@ def prepare_candidate(args: argparse.Namespace) -> dict[str, object]:
     write_json_atomic(args.candidate_manifest, manifest)
     return {**manifest, "candidateManifest": str(args.candidate_manifest.resolve())}
 
+def decode_release_record(raw: str | bytes) -> object:
+    """Decode without collapsing duplicate members or accepting nonfinite numbers."""
+    def unique_object(pairs: list[tuple[str, object]]) -> dict:
+        value = {}
+        for name, item in pairs:
+            if name in value:
+                raise ValueError("duplicate_record_member")
+            value[name] = item
+        return value
+
+    def reject_constant(value: str) -> object:
+        raise ValueError("nonfinite_record_number")
+
+    def finite_float(value: str) -> float:
+        import math
+        result = float(value)
+        if not math.isfinite(result):
+            raise ValueError("nonfinite_record_number")
+        return result
+
+    return json.loads(raw, object_pairs_hook=unique_object,
+                      parse_constant=reject_constant, parse_float=finite_float)
+
+
 def validate_candidate_manifest(
     args: argparse.Namespace, candidate: list[dict[str, object]]
 ) -> tuple[dict[str, object], list[str]]:
     manifest_bytes = args.candidate_manifest.read_bytes()
-    manifest = json.loads(manifest_bytes.decode("utf-8"))
+    try:
+        manifest = decode_release_record(manifest_bytes.decode("utf-8"))
+    except ValueError as error:
+        raise RuntimeError(f"invalid candidate manifest representation: {error}") from error
+    if not isinstance(manifest, dict):
+        raise RuntimeError("invalid candidate manifest representation: expected object")
     blockers: list[str] = []
-    if manifest.get("schemaVersion") != SCHEMA_VERSION:
+    if type(manifest.get("schemaVersion")) is not int or manifest["schemaVersion"] != SCHEMA_VERSION:
         blockers.append("candidate manifest schemaVersion is unsupported")
     if manifest.get("commit") != args.commit:
         blockers.append("candidate manifest commit does not match requested commit")
@@ -1572,7 +1601,8 @@ def validate_candidate_manifest(
             blockers.append(f"candidate manifest lacks release artifact {name}")
             continue
         for field in ("digest", "bytes", "mode", "kind"):
-            if recorded.get(field) != item.get(field):
+            if (type(recorded.get(field)) is not type(item.get(field))
+                    or recorded.get(field) != item.get(field)):
                 blockers.append(f"candidate release artifact does not match manifest: {name}")
                 break
     candidate_names = {str(item["name"]) for item in candidate}
@@ -1589,7 +1619,8 @@ def validate_candidate_manifest(
         artifact = manifest_by_name.get(name)
         binary = manifest_binaries[name]
         if artifact is None or any(
-            binary.get(field) != artifact.get(field)
+            type(binary.get(field)) is not type(artifact.get(field))
+            or binary.get(field) != artifact.get(field)
             for field in ("digest", "bytes", "mode", "kind")
         ):
             blockers.append(f"candidate manifest binary record conflicts with artifact: {name}")
@@ -2127,24 +2158,6 @@ def read_retention_record(path: Path) -> tuple[bytes, object]:
         return (info.st_dev, info.st_ino, info.st_mode, info.st_size,
                 info.st_mtime_ns, info.st_ctime_ns)
 
-    def unique_object(pairs: list[tuple[str, object]]) -> dict:
-        value = {}
-        for name, item in pairs:
-            if name in value:
-                raise ValueError("duplicate_record_member")
-            value[name] = item
-        return value
-
-    def reject_constant(value: str) -> object:
-        raise ValueError("nonfinite_record_number")
-
-    def finite_float(value: str) -> float:
-        import math
-        result = float(value)
-        if not math.isfinite(result):
-            raise ValueError("nonfinite_record_number")
-        return result
-
     limit = 2 * 1024 * 1024
     if path.resolve() != path:
         raise ValueError("noncanonical_record")
@@ -2163,8 +2176,7 @@ def read_retention_record(path: Path) -> tuple[bytes, object]:
             raise ValueError("record_changed_during_read")
     finally:
         os.close(fd)
-    return raw, json.loads(raw, object_pairs_hook=unique_object,
-                           parse_constant=reject_constant, parse_float=finite_float)
+    return raw, decode_release_record(raw)
 
 
 def retention_history(deployment_root: Path, current_commit: str, keep: int) -> dict:
