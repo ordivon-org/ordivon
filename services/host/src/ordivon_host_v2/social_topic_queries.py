@@ -7,25 +7,34 @@ row validation; it does not introduce separate persistence or route policy.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from typing import Any
+
+import psycopg
 
 from .collection_pagination import (
     DEFAULT_COLLECTION_MAX_BYTES,
     DEFAULT_MESSAGE_COLLECTION_MAX_BYTES,
     MIN_MESSAGE_COLLECTION_MAX_BYTES,
-    bounded_prefix,
+    bounded_page,
     validate_max_bytes,
 )
 from .postgres_bounds import HOST_WIRE_INT_MAX
+from .references.actor_refs import ActorReferenceLookup
+from .references.record_refs import RecordReferenceLookup
 from .social_errors import TopicResumeCursorAhead
-from .social_message_records import verify_message_content_digest
+from .social_message_records import verified_message_wire
 from .topic_cursor_records import get_topic_cursor_in_tx, topic_high_sequence_in_tx
 
 
 class SocialTopicReadQueries:
     """Read-only PostgreSQL projections; SocialStore remains the sole write authority."""
 
-    dsn: str
+    def __init__(
+        self, connect: Callable[[], AbstractContextManager[psycopg.Connection[dict[str, Any]]]]
+    ) -> None:
+        self._connect = connect
 
     def list_topics(
         self,
@@ -43,7 +52,7 @@ class SocialTopicReadQueries:
             raise ValueError("include_archived must be a boolean")
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
-            self._require_space(conn, space_ref)
+            RecordReferenceLookup._require_space(conn, space_ref)
             rows = conn.execute(
                 "SELECT topic_ref,title,state,created_by_actor_ref,created_at,updated_at FROM topics "
                 "WHERE space_ref=%s AND (%s OR state <> 'archived') "
@@ -64,30 +73,26 @@ class SocialTopicReadQueries:
                 for row in rows[:limit]
             ]
 
-            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+            def envelope(last: dict[str, Any] | None, has_more: bool) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-topic-list",
                     "spaceRef": space_ref,
-                    "topics": page,
-                    "hasMore": True,
-                    "nextAfterTopicRef": None if not page else page[-1]["topicRef"],
+                    "hasMore": has_more,
+                    "nextAfterTopicRef": last["topicRef"]
+                    if has_more and last is not None
+                    else None,
                     "rankingApplied": False,
                     "truthBoundary": "conversation-axis inventory only; not Work lifecycle or priority",
                 }
 
-            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
-            has_more = sql_more or byte_more
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-topic-list",
-                "spaceRef": space_ref,
-                "topics": page,
-                "hasMore": has_more,
-                "nextAfterTopicRef": page[-1]["topicRef"] if has_more and page else None,
-                "rankingApplied": False,
-                "truthBoundary": "conversation-axis inventory only; not Work lifecycle or priority",
-            }
+            return bounded_page(
+                candidates,
+                max_bytes=max_bytes,
+                collection_key="topics",
+                envelope=envelope,
+                source_has_more=sql_more,
+            )
 
     def resume_topic(
         self,
@@ -104,7 +109,7 @@ class SocialTopicReadQueries:
         validate_max_bytes(max_bytes, minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES)
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
-            topic = self._require_topic(conn, topic_ref)
+            topic = RecordReferenceLookup._require_topic(conn, topic_ref)
             # A cursor from Attention's global change clock (or a different
             # Topic) can be numerically ahead of this Topic's message horizon.
             # Returning an empty hasMore=false page would conceal that mistake.
@@ -120,21 +125,7 @@ class SocialTopicReadQueries:
                 (topic_ref, after_sequence, limit + 1),
             ).fetchall()
             sql_more = len(rows) > limit
-            for row in rows[:limit]:
-                verify_message_content_digest(row)
-            candidates = [
-                {
-                    "sequence": int(row["sequence"]),
-                    "messageRef": row["message_ref"],
-                    "authorActorRef": row["author_actor_ref"],
-                    "messageKind": row["message_kind"],
-                    "body": row["body"],
-                    "messageDigest": row["message_digest"],
-                    "recordedAtMs": int(row["recorded_at_ms"]),
-                    "createdAt": row["created_at"].isoformat(),
-                }
-                for row in rows[:limit]
-            ]
+            candidates = [verified_message_wire(row, include_scope=False) for row in rows[:limit]]
             topic_wire = {
                 "topicRef": topic["topic_ref"],
                 "spaceRef": topic["space_ref"],
@@ -142,37 +133,28 @@ class SocialTopicReadQueries:
                 "state": topic["state"],
             }
 
-            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+            def envelope(last: dict[str, Any] | None, has_more: bool) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-topic-resume",
                     "topic": topic_wire,
-                    "messages": page,
-                    "hasMore": True,
-                    "nextAfterSequence": after_sequence if not page else int(page[-1]["sequence"]),
+                    "hasMore": has_more,
+                    "nextAfterSequence": after_sequence if last is None else int(last["sequence"]),
                     "truthBoundary": "bounded topic conversation only; message claims require owner-native verification",
                 }
 
-            page, byte_more = bounded_prefix(
+            return bounded_page(
                 candidates,
                 max_bytes=max_bytes,
+                collection_key="messages",
                 envelope=envelope,
                 minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES,
+                source_has_more=sql_more,
             )
-            has_more = sql_more or byte_more
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-topic-resume",
-                "topic": topic_wire,
-                "messages": page,
-                "hasMore": has_more,
-                "nextAfterSequence": after_sequence if not page else int(page[-1]["sequence"]),
-                "truthBoundary": "bounded topic conversation only; message claims require owner-native verification",
-            }
 
     def get_topic_cursor(self, *, actor_ref: str, topic_ref: str) -> dict[str, Any]:
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
-            self._require_actor(conn, actor_ref)
-            self._require_topic(conn, topic_ref)
+            ActorReferenceLookup._require_actor(conn, actor_ref)
+            RecordReferenceLookup._require_topic(conn, topic_ref)
             return get_topic_cursor_in_tx(conn, actor_ref=actor_ref, topic_ref=topic_ref)

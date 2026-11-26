@@ -49,13 +49,34 @@ impl PgAdmissionStore {
             return Ok(PgJobReadback::Inconclusive);
         };
         let Some(attempt) = tx.query_opt(
-            "SELECT attempt_id, state, termination_intent, result_digest, finished_at_ms, row_version \
+            "SELECT attempt_id, state, termination_intent, result_digest, finished_at_ms, row_version, started_at_ms \
              FROM attempts WHERE job_id=$1 ORDER BY attempt_number DESC LIMIT 1",
             &[&job_id],
         )? else {
             return Ok(PgJobReadback::Inconclusive);
         };
         let attempt_id: String = attempt.get(0);
+        // The selected Attempt cannot certify the whole Job while an older
+        // Attempt still has an unresolved lifecycle or capacity reservation.
+        // Scheduler allocations are separate from admission reservations:
+        // a terminal writer releases both, while a never-dispatched Attempt
+        // may have no allocation. Check the original PG history in one snapshot.
+        let terminal_job = job.get::<_, Option<String>>(1).is_some();
+        let unsettled_history: bool = tx
+            .query_one(
+                "SELECT EXISTS(SELECT 1 FROM attempts a \
+                 LEFT JOIN concurrency_reservations c ON c.attempt_id=a.attempt_id \
+                 LEFT JOIN job_allocations x ON x.attempt_id=a.attempt_id \
+                 WHERE a.job_id=$1 AND (\
+                   (a.attempt_id<>$2 AND (a.state NOT IN ('succeeded','failed','timed_out','cancelled','lost') \
+                    OR c.state IS DISTINCT FROM 'released')) \
+                   OR (x.state='active' AND (a.attempt_id<>$2 OR $3::boolean))))",
+                &[&job_id, &attempt_id, &terminal_job],
+            )?
+            .get(0);
+        if unsettled_history {
+            return Ok(PgJobReadback::Inconclusive);
+        }
         let Some(reservation) = tx.query_opt(
             "SELECT state FROM concurrency_reservations WHERE attempt_id=$1",
             &[&attempt_id],
@@ -73,6 +94,7 @@ impl PgAdmissionStore {
             attempt_state: attempt.get(1),
             termination_intent: attempt.get(2),
             result_digest: attempt.get(3),
+            started_at_ms: attempt.get(6),
             finished_at_ms: attempt.get(4),
             attempt_row_version: attempt.get(5),
             reservation_state: reservation.get(0),

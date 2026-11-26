@@ -45,6 +45,23 @@ def _browser_use_health() -> dict[str, Any]:
             "reason": f"Browser Use config invalid: {type(exc).__name__}",
         }
     try:
+        # A healthy transport is not enough: reject legacy action adapters
+        # that cannot require the observed DOM identity for both effects.
+        # CLI usage is a necessary compatibility check, not effect evidence.
+        for command in ("click", "input"):
+            help_result = subprocess.run(
+                ["/usr/bin/python3", str(BROWSER_USE_ACTION), "--session-id",
+                 "route-census", command, "--help"],
+                capture_output=True, text=True, timeout=5, check=False,
+            )
+            usage = help_result.stdout.split("\n\n", 1)[0]
+            option = "--expect-backend-dom-node-id"
+            if (help_result.returncode != 0 or option not in usage
+                    or "[" + option in usage):
+                return {
+                    "state": "unavailable",
+                    "reason": f"Browser Use {command} lacks required DOM identity contract",
+                }
         proc = subprocess.run(
             [
                 "/usr/bin/python3",
@@ -72,7 +89,8 @@ def _browser_use_health() -> dict[str, Any]:
             }
         return {
             "state": "available",
-            "reason": "isolated Browser Use lane healthy",
+            "reason": "isolated Browser Use lane healthy; required identity argument advertised",
+            "effectSafetyVerified": False,
             "actionAdapter": str(BROWSER_USE_ACTION),
             "endpointId": doctor.get("browserlessEndpointId"),
             "credentialsExposed": bool(doctor.get("credentialsExposed", True)),

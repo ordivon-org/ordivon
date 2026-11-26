@@ -14,11 +14,11 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use super::{
-    canonical_directory, now_unix_ms, sha256_file, workspace_source_readset_digest_at,
-    workspace_source_state_digest_at, write_json_atomic, write_resource_receipt_from_cgroup_root,
-    CapturedOutput, RunnerExecutionStep, RunnerProgress, RunnerRequest, RunnerResult,
-    RunnerStartEvidence, RunnerStepResult, RunnerTerminalStatus, UniversalExecError,
-    UniversalExecErrorCode, UNIVERSAL_EXEC_SCHEMA_VERSION,
+    canonical_directory, lock_attempt_spawn_fence, now_unix_ms, sha256_file,
+    workspace_source_readset_digest_at, workspace_source_state_digest_at, write_json_atomic,
+    write_resource_receipt_from_cgroup_root, CapturedOutput, RunnerExecutionStep, RunnerProgress,
+    RunnerRequest, RunnerResult, RunnerStartEvidence, RunnerStepResult, RunnerTerminalStatus,
+    UniversalExecError, UniversalExecErrorCode, UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
 
 const REQUEST_FILE: &str = "request.json";
@@ -567,6 +567,12 @@ fn execute_request(
                 host_dependency_watch: host_dependency_watch.as_deref_mut(),
             },
         )?;
+        // A stop committed during Step preparation won the final native
+        // spawn fence: do not manufacture a failed child that never existed.
+        let Some(outcome) = outcome else {
+            cancelled = true;
+            break;
+        };
         stdout_retained = stdout_retained.saturating_add(outcome.stdout_retained);
         stderr_retained = stderr_retained.saturating_add(outcome.stderr_retained);
         stdout_dropped = stdout_dropped.saturating_add(outcome.stdout_dropped);
@@ -730,7 +736,7 @@ fn execute_step(
     workspace: &Path,
     step: &RunnerExecutionStep,
     mut context: StepExecutionContext<'_>,
-) -> Result<StepOutcome, UniversalExecError> {
+) -> Result<Option<StepOutcome>, UniversalExecError> {
     let cwd_text = if let Some(payload) = &request.payload {
         let relative = Path::new(&step.cwd)
             .strip_prefix(&request.workspace_path)
@@ -798,6 +804,28 @@ fn execute_step(
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    // The first loop-level check precedes executable realization and can
+    // race with a separately committed cancellation. One original PG Attempt
+    // lock makes the LAST marker read and Command::spawn indivisible with
+    // cancellation marker publication, without holding PG row locks or
+    // delaying cancellation throughout the entire user command lifetime.
+    let spawn_guard = if request.job_id.is_some() {
+        Some(lock_attempt_spawn_fence(task_dir)?)
+    } else {
+        None
+    };
+    if spawn_guard.is_some() {
+        match fs::symlink_metadata(task_dir.join(CANCEL_FILE)) {
+            Ok(metadata) if metadata.is_file() => return Ok(None),
+            Ok(_) => return Err(runner_error("PG cancellation marker is not a regular file")),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => {
+                return Err(runner_error(format!(
+                    "cannot check PG cancellation marker before spawn: {error}"
+                )))
+            }
+        }
+    }
     let mut child = command.spawn().map_err(|error| {
         UniversalExecError::new(
             UniversalExecErrorCode::ToolFailed,
@@ -806,6 +834,7 @@ fn execute_step(
             false,
         )
     })?;
+    drop(spawn_guard);
     let stdout = child
         .stdout
         .take()
@@ -917,14 +946,14 @@ fn execute_step(
     if let Some(error) = runtime_drift {
         return Err(error);
     }
-    Ok(StepOutcome {
+    Ok(Some(StepOutcome {
         status,
         timed_out,
         stdout_retained,
         stderr_retained,
         stdout_dropped,
         stderr_dropped,
-    })
+    }))
 }
 
 fn terminate_process_group(pid: u32, step_id: &str) -> Result<(), UniversalExecError> {

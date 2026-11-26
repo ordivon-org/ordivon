@@ -29,6 +29,23 @@ All endpoints are loopback-only during green acceptance:
 
 No public ingress, TLS termination, or multi-node membership is claimed by this slice.
 
+## Native backup recovery smoke
+
+Use `scripts/temporal_pgbackrest_restore_smoke.sh BACKUP_LABEL WORKFLOW_ID`
+from an authorized local operator session. The workflow must have a completed
+historical execution in the selected backup. Defaults use new disk-backed
+`/var/tmp` scratch paths, not a potentially undersized memory-backed `/tmp`.
+The smoke requires sufficient disk space and never reuses existing paths.
+It restores with native pgBackRest, does not reuse recovered server
+configuration or external tablespaces, binds a private Unix socket only,
+and disables archive push. It waits for promotion, reads back both schema
+versions and a completed workflow, then stops the isolated postmaster and
+cleans its owned scratch before emitting PASS. Unknown stop outcomes retain
+scratch for operator reconciliation.
+
+A PASS is bounded historical database recovery, not independent-fault-domain
+backup, a live Temporal worker outcome, or recovery of external Artifact bytes.
+
 ## Cutover gate
 
 Do not point Agent Birth, Artifact, or Host migration workflows at the green cluster until all of the following are independently true: schema versions exact, service stable, cluster health passes, namespace exists, real Workflow execution passes, PostgreSQL backup/recovery is proven, and the old cluster's active workflows have an explicit drain/bootstrap disposition.

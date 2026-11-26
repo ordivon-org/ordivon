@@ -85,6 +85,8 @@ class _AttentionConnection:
         return self
 
     def execute(self, query, params=None):
+        if query == "SELECT 1 FROM actor_refs WHERE actor_ref=%s":
+            return _Result(one={"?column?": 1})
         if query.startswith("SET TRANSACTION"):
             return _Result()
         if "SELECT value FROM swf_change_clock" in query:
@@ -121,7 +123,6 @@ def test_attention_cursor_is_monotonic_and_horizon_bounded(monkeypatch) -> None:
 
     db = _AttentionConnection()
     monkeypatch.setattr(AttentionStore, "_connect", lambda self: db)
-    monkeypatch.setattr(AttentionStore, "_require_actor", staticmethod(lambda _db, _actor: None))
     monkeypatch.setattr(module, "claim_command_receipt", lambda *_: None)
     monkeypatch.setattr(module, "record_command_receipt", lambda *_: None)
     store = AttentionStore("postgresql://unused.invalid/host")
@@ -139,7 +140,6 @@ def test_attention_cursor_is_monotonic_and_horizon_bounded(monkeypatch) -> None:
 def test_attention_never_ranks(monkeypatch) -> None:
     db = _AttentionConnection()
     monkeypatch.setattr(AttentionStore, "_connect", lambda self: db)
-    monkeypatch.setattr(AttentionStore, "_require_actor", staticmethod(lambda _db, _actor: None))
     projection = AttentionStore("postgresql://unused.invalid/host").delta(
         "actor:agent:test", after_sequence=7
     )

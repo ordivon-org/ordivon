@@ -17,9 +17,9 @@ Runtime 拥有 Workspace、Job/Attempt 与机械执行真相；Harness 拥有 Ag
 | --- | --- | --- |
 | src/ordivon_host_v2/work_inputs.py、work_store.py、work_queries.py | Work 契约、版本 CAS、查询 | 保留：单一 PG 写入真相、查询分离，事务内 read_work_in_tx(conn,...) 显式读回 |
 | src/ordivon_host_v2/social_space_*、social_topic_*、social_message_*、social_message_records.py | 社会化协作对象读写；MCP tools | 保留：按对象拆分、写与读分开 |
-| src/ordivon_host_v2/social_store.py、social_read_queries.py | 复用协作能力的轻聚合，不持有第二份数据 | 保留；重命名含混查询聚合文件 |
+| src/ordivon_host_v2/social_store.py | 显式组合三个读取能力；保留写入事务、现有连接和引用检查 | 删除无独立语义的读取继承聚合 |
 | src/ordivon_host_v2/coordination_inputs.py、coordination_intent_commands.py | Coordination Intent 及其数据库写入；Attention SQL 消费；PG 测试 | 保留实际消费者，统一命名；不误称已发布 MCP 工具 |
-| src/ordivon_host_v2/attention_store.py、attention_projections.py、attention_sql.py | 订阅/游标、变更派生投影、SQL | 保留；将只有 SQL 的文件改为明确名称 |
+| src/ordivon_host_v2/attention_store.py、attention_delta_queries.py、attention_reentry_queries.py、attention_subscription_queries.py、attention_sql.py | 订阅/游标、变更派生投影、SQL | 保留；将只有 SQL 的文件改为明确名称 |
 | src/ordivon_host_v2/mcp_server.py、mcp_tool_registration.py、mcp_*_tools.py | 官方 MCP SDK 服务和工具适配 | 保留；规范注册文件命名，外部工具名未变 |
 | src/ordivon_host_v2/*contracts.py、canonical_json.py、command_receipts.py、collection_pagination.py、postgres_bounds.py | 类型契约、RFC 8785、幂等、界限 | 保留小型共用能力，不重复造库 |
 | migrations/、alembic.ini | schema 0001–0014 迁移链；当前源 Schema14 归档能力、现役生产独立核验 | 保留迁移链；旧编号不等于垃圾 |
@@ -60,7 +60,7 @@ Runtime 拥有 Workspace、Job/Attempt 与机械执行真相；Harness 拥有 Ag
 
 ## 4. Human 操作指南
 
-1. 在线查看：host.status(detail=summary) 观察 Host 自身统计；host.status(detail=integrity) 检查已覆盖的 PG 一致性。不要把 Host 健康等同于 Runtime、Git 或业务验收。 当前 integrity 模式必须检查每个 Work 的当前 Snapshot 指针与 payload 摘要；旧修订不要求连续也不应因为被裁剪而判定 Host 不健康。history 模式可额外复核仍然保留的 Snapshot，但缺失的历史版本不得伪造；历史读回可以返回缺失。此规则不宣称生产已实施历史裁剪。
+1. 在线查看：host.status(detail=summary) 观察 Host 自身统计；host.status(detail=integrity) 检查已覆盖的 PG 一致性。不要把 Host 健康等同于 Runtime、Git 或业务验收。 当前 integrity 模式必须检查每个 Work 的当前 Snapshot 指针与 payload 摘要；旧修订不要求连续也不应因为被裁剪而判定 Host 不健康。history 模式可额外复核仍然保留的 Snapshot，但缺失的历史版本不得伪造；历史读回可以返回缺失。此规则不宣称生产已实施历史裁剪。 History 模式还校验留存的 reply_to 顺序（目标 sequence 严格小于来源）及引用式 Work 回执的精确历史版本、摘要与响应；普通引用不要求无环。旧完整 Work 回执自带重放载荷，引用式回执则依赖被引用的不可变版本，历史裁剪必须保留其可验证载体。当前只扩展读取兼容，仍写旧完整回执；启用新写入格式前须验证全部实际读取者、回滚路径和精确历史根的保留规则。
 2. 接手工作：work.get 读取版本化 WorkSnapshot；topic.resume 恢复讨论；work.list、space.list、message.search 使用数量与字节预算分页。
 3. 研发变更：进入 services/host 执行 mise run verify；存在独立 Docker 环境时运行 mise run test:postgres:disposable；运行 mise run formal:reply-source 检查源码级纯函数契约。PG 集成 SKIP 不可算成 PASS。
 4. 发布：校验准确 Git SourceCut、不可变安装目录、mcp-surface.json 与真实注册工具一致，再进行已安装服务和 PG 验证。
@@ -280,6 +280,15 @@ locale-dependent byte reinterpretations. The new index is built CONCURRENTLY
 before retiring only the known obsolete 0012 index. PG GIN array_ops, not
 a second search engine, remains the sole derived index authority.
 
+Schema 0016 keeps the old expression index during reader transition and adds
+host_cjk_sparse_ngrams3_v1 with a separate concurrent GIN build. It generates
+only windows containing at least one codepoint in U+3400..U+9FFF, matching the
+existing query eligibility. An exact substring preserves this restricted
+candidate set by inclusion; the exact strpos predicate, ordering and byte
+budget remain unchanged. Other queries keep native FTS or short CJK strpos.
+Do not replace an indexed function in place or retire the original index
+before independent installed-reader parity and physical benchmark evidence.
+
 Human: run the disposable PostgreSQL consumer tests and compare production
 EXPLAIN with the same bound query before and after release, including
 physical index validity and Host integrity. Agent: use public message.search
@@ -475,3 +484,123 @@ loopback TCP to the postgres superuser while retaining OS-postgres Unix
 socket administration; the remaining roles require staged real-client
 credential migration. No workload machine bearer establishes signed
 Agent Principal authorization.
+
+### Work receipt retention — schema 0017 preparation
+
+The existing Work receipt and snapshot tables own the retention relation.
+A compact receipt binds its exact historical (workRef, revision) through a
+nullable pair and a native MATCH FULL foreign key. Full legacy receipts and
+unfinalized claims have no root pin. The CHECK binds the compact tag, operation
+and typed identity; the replay codec still validates payload and response
+digests. No separate retention registry or ordinary request-time graph scan.
+
+0017 installs the validated legacy-only format fence. The service continues
+to write full receipts; do not enable compact writers during this deployment.
+Quiesce old serving readers, qualify the new installed generation and verify
+the current schema, all consumers, backup and rollback first. The FK protects
+existence, not content mutation or deliberate privileged deletion of receipts.
+
+Before a future downgrade after compact writes, use the existing operator's
+authorized maintenance transaction with bounded lock/statement timeouts and
+call work_receipt_retention.expand_work_receipts_and_fence on its Psycopg
+dict-row connection. It takes an exclusive lock, reconstructs the exact old
+response and restores the legacy-only fence atomically. Any failure must
+roll back the operation. A native savepoint prevents partial expansion even
+if the caller catches a domain failure; the caller still owns final commit.
+An already validated exact fence with zero roots returns zero newly expanded
+rows, not the previous operation's count. Independently check the validated
+fence and zero pins before
+alembic downgrade; the migration rejects missing/weaker fences or surviving
+compact roots. On ambiguous commit, inspect actual native state before retry.
+Do not treat this source contract as production activation authority.
+
+### Receipt-root audit: native set association
+
+Schema 0017 history audit streams the existing typed receipt-to-snapshot
+association through one native LEFT JOIN (128 rows per cursor batch).
+The read-only caller owns the repeatable-read cut. The shared codec still
+validates the exact envelope, native coordinates, writer, snapshot digest
+and reconstructed response digest. The ordinary request replay retains
+its exact single lookup; the history audit must not hide a missing target,
+a malformed Work receipt or a pin inconsistent with its operation.
+Unpinned legacy full receipts remain self-contained. A history diagnostic
+without typed schema roots is explicitly unavailable, not an absence proof.
+No retirement or writer activation is implied by successful read-only audit.
+
+### Receipt maintenance: bounded native expansion
+
+The maintenance operator reuses the native root projection and exact
+hydration contract of the history audit; its candidate set is specifically
+typed pins or the compact format tag. Unpinned legacy data is not rewritten.
+Under the existing exclusive receipt lock and caller-owned savepoint, it
+stages at most 128 responses or 4 MiB of canonical response bytes per update
+batch, with a single larger response handled independently. This is a
+transport batching target, not a new business payload limit or an absolute
+memory/wire bound. The server cursor retains its bounded row fetch.
+
+Native UPDATE FROM UNNEST consumes exact keys and JSON text converted back
+to JSONB. The returned key set must equal the staged key set; counts alone
+cannot qualify expansion. Any invalid coordinate, digest, missing target,
+operation, or incomplete/relabelled update rolls back the whole maintenance
+operation, even if its caller catches the error. Only after every batch is
+qualified does the existing legacy-only fence become active. The caller
+still controls the outer transaction and timeouts.
+
+### Dual-mode Work receipt writer (source candidate; default unchanged)
+
+The existing MCP process composition accepts a strict
+`ORDIVON_HOST_V2_COMPACT_WORK_RECEIPTS` option (0 by default, 1 requests
+compact writes). This option does not authorize a migration or remove the
+native legacy-only constraint. When the option is disabled the original
+full-receipt write path incurs no extra database statements. When enabled,
+the existing idempotency claim already holds ROW EXCLUSIVE until commit:
+the writer observes the native fence inside that transaction, never caches
+the mode, and writes full receipts when the validated fence is present.
+An absent fence alone is insufficient: compact writes require the exact
+validated and enforced schema-17 shape and root FK contracts, with the
+PG18 deparsed definitions serving as independent qualification oracles.
+A weak/unrecognized contract fails closed. Exact replay is validated before
+atomically finalizing the tag and native pin in the same claim transaction.
+
+Rollback takes the existing exclusive lock, expands all exact roots in a
+savepoint and restores the validated legacy-only fence. Waiting opted-in
+READ COMMITTED writers reobserve the fence after claim admission and fall
+back to full receipts; no restart is required for that fallback.
+The source option is not a production activation procedure. Before any
+activation, qualify the installed schema, real consumer/rollback reader
+fleet, recovery cut and release admission. No automatic DDL or historical
+deletion is introduced.
+
+Native root qualification also observes the four internal PostgreSQL FK
+triggers (insert/update checks and target delete/update restrictions).
+The ordinary origin session must see all four exact native signatures
+enabled for origin or always. Catalog constraint definitions alone do
+not prove active enforcement. This is a qualification of the observed
+schema under the existing transaction, not a claim that a privileged
+administrator cannot subsequently change database configuration.
+
+### Point replay observes the persisted root
+
+The Work command path reuses the generic idempotency claim arbiter and
+conflict validation, then observes the stored receipt row and schema
+version in a single SQL statement. A legacy response must have no native
+pin; a compact response must have the exact persisted native work/revision
+identity, agreeing with the requested context and immutable envelope.
+The shared codec verifies the exact indexed historical target. The
+ordinary two-statement legacy replay and three-statement compact replay
+(including the claim) are preserved, without an extra schema query.
+A whole-row projection also preserves the explicitly tested schema-16
+rollback compatibility; missing pin columns under schema >=17 are errors.
+Bulk audit/maintenance retains its set-oriented root projection.
+
+The batch expansion effect is qualified independently of UPDATE RETURNING.
+For each bounded batch, a subsequent native set readback checks the exact
+identity set, JSONB response, original operation and request digest, and
+both cleared pin coordinates. Only identifiers and qualification booleans
+are returned to the application; the expected encoded responses are sent
+once for the update and again for the comparison. This catches ordinary
+BEFORE and AFTER trigger rewrites of the batch's rows; it does not claim
+protection against arbitrary later privileged DDL or unrelated trigger
+side effects. The original exclusive lock and whole-operation savepoint
+remain in force. No new payload admission limit or storage authority is
+introduced.

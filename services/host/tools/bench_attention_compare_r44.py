@@ -18,7 +18,7 @@ import psycopg
 from bench_attention_incremental_r44 import node_metrics, percentile, seed
 from psycopg.rows import dict_row
 
-import ordivon_host_v2.attention_projections as projections
+import ordivon_host_v2.attention_delta_queries as projections
 from ordivon_host_v2.attention_sql import ATTENTION_DELTA_SQL
 from ordivon_host_v2.attention_store import AttentionStore
 from ordivon_host_v2.canonical_json import canonical_digest

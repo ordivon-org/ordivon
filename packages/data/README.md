@@ -71,6 +71,14 @@ python3 packages/data/scripts/inspect_federation.py --verify-local --allow-root 
 mise run data:verify
 ```
 
+Start with the final business question, source owner, observation time, allowed
+uses and exact product/port version. Separate event time, observation time,
+ingestion time, source revision and known-as-of vintage. Discovery is not
+publication or a license grant. For whole-catalog admission, exit 0 means
+all required distributions were verified, exit 2 denotes a digest conflict
+or invalid structure, and exit 3 denotes insufficient evidence (including
+an empty catalog). Discovery-mode exit 0 alone is not integrity admission.
+
 The CLI reads the existing compact DCAT JSON-LD projection; it does **not**
 implement RDF/JSON-LD schema validation, register data, or materialize data.
 Only exact SHA-256-bound, readable local file distributions inside explicitly
@@ -91,6 +99,23 @@ component is `studies`. The CLI deliberately treats that as an unsupported
 file URI rather than silently rewriting the frozen evidence. The source owner
 should emit canonical URIs in a **new** versioned DCAT projection, preserving
 the historical R2 acceptance.
+
+## Committed metadata SourceCut
+
+For a reproducible discovery view, run:
+
+```sh
+python3 packages/data/scripts/project_owned_products.py --at-commit HEAD
+```
+
+The reader resolves the revision once and consumes regular ODPS blobs from
+that committed tree, not the mutable index or working directory. The Git
+reader is bound to the explicit checkout root and ignores inherited Git
+repository overrides from other Agent workspaces. The exact
+commit is emitted on stderr; the DCAT projection is still bound to the
+individual metadata byte digests. `--product` is a separate explicit live
+input mode. A committed metadata SourceCut does not freeze independently
+bound local data bytes or establish their retention, quality or rights.
 
 ## Current producer-owned ODPS discovery (no new registry)
 
@@ -176,14 +201,23 @@ Never persist this ephemeral local URI as the canonical cross-host identity.
 
 ## Verification and user instructions
 
-- Native: `mise run data:verify` (Owner's CLI and exact existing study contracts).
-- [Human workflow](docs/HUMAN.md)
-- [Agent workflow](docs/AGENT.md)
-- [Capability and thought LEGO inventory](docs/LEGO_CENSUS.md)
-- [Property-first formal verification / test disposition](docs/FORMAL_VERIFICATION.md)
-- Opt-in kernel/symbolic check: `mise run data:formal:verify` (Lean DataProduct/DataPublication + CrossHair/Z3). The publication state model proves abstract safety; it does **not** implement atomic PostgreSQL commits or automatic data deletion.
+- Human/operator workflow: this README; begin at the actual final consumer.
+- Agent workflow: [AGENTS.md](AGENTS.md), the closest scoped instructions.
+- Native: `mise run data:verify` (Owner CLI and actual study consumers).
+- [Formal contract and implementation/consumer boundary](docs/FORMAL_VERIFICATION.md).
+- Formal: `mise run data:formal:verify` (Lean models and bounded CrossHair/Z3).
 
-**Data product standard version law:** ODPS 1.1 is consumed by current historical
-products; ODPS 4.2 (released 2026-10-26) has a different document root and
-access model. It is a migration **candidate**, not a compatible in-place bump.
-Maintain consumer parity and native conformance evidence before moving a product.
+The capability table is a bounded observed/candidate inventory, not a registry
+or a claim that every named tool is installed. Skills are advisory methods,
+not executable deployment or permission evidence. Separate data quality and
+domain truth from format validity; measure actual usefulness to the consumer.
+
+**Retention and recovery:** a same-machine archival master and replica do
+not establish independent disaster protection. A committed database version
+or a valid hash cannot prove that a separate physical Artifact is recoverable.
+See the formal map for the two-generation reader and retirement invariants;
+never authorize physical deletion from a model or a timestamp alone.
+
+**Standard compatibility:** current producer contracts use Bitol ODPS 1.1.
+A different version or schema family is not an automatic compatible upgrade.
+Require a new qualified producer version and actual consumer parity.

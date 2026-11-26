@@ -43,7 +43,7 @@ Responsibility split: Game specifies domain properties and its native test entry
 
 ## 4. Effective R2.1 contract — G11 cold-start refinement
 
-This is a **task-local proposed refinement with explicit proof duties against existing G11**, not new LEGO G12. Source carrier: `planning/lego-plan-r1.json` G11 `recursiveLegoR21`; actual implementation `examples/room-encounter/agent_episode_acceptance.py` and `mise.toml`.
+This is a **task-local proposed refinement with explicit proof duties against existing G11**, not new LEGO G12. Source carrier: `planning/lego-plan-r1.json` G11 `recursiveLegoR21`; actual implementation `scripts/agent_episode_acceptance.py` and `mise.toml`.
 
 | Coordinate | Task-local realization |
 | --- | --- |

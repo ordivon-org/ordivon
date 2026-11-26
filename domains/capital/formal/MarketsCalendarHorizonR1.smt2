@@ -106,3 +106,37 @@
 (assert (>= last-readable-train valid-start))
 (check-sat)
 (pop 1)
+
+; Sparse PIT capture: genuine endpoints and ordered distinct priced observations
+; are required, but unobserved intervening sessions are allowed. This abstract
+; membership model assumes the external session oracle is correct.
+(define-fun sparse-request-subset () Bool
+  (and (= observed-first requested-first)
+       (= observed-last requested-last)
+       (>= internal-missing 0)
+       (= invented-extra 0)
+       (= duplicated 0)
+       (= observed-unordered 0)
+       (<= requested-first requested-last)))
+
+; 9: a sparse capture still cannot invent an exchange session.
+(push 1)
+(assert sparse-request-subset)
+(assert (> invented-extra 0))
+(check-sat)
+(pop 1)
+
+; 10: the complete request is a refinement of the sparse request.
+(push 1)
+(assert exact-request-grid)
+(assert (not sparse-request-subset))
+(check-sat)
+(pop 1)
+
+; 11: sparse acceptance is not a proof of complete daily coverage.
+(push 1)
+(assert sparse-request-subset)
+(assert (> internal-missing 0))
+(assert (not exact-request-grid))
+(check-sat)
+(pop 1)

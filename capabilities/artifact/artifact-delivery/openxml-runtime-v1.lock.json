@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "kind": "artifact-openxml-runtime-lock",
   "methodId": "artifact.openxml.conformance.v1",
-  "targetFramework": "net8.0",
+  "targetFramework": "net10.0",
   "dotnetPolicy": {
-    "sdkMajorMinor": "8.0",
+    "sdkMajorMinor": "10.0",
     "exactGenerationBindingRequired": true
   },
   "nugetPackages": [
@@ -20,8 +20,8 @@
     },
     {
       "id": "System.IO.Packaging",
-      "version": "8.0.1",
-      "nupkgSha256": "c5fd0101fa90bc84e89a906cbdfa7188bb6cffab11404cdd8cd0377ffabfbd8e"
+      "version": "10.0.15",
+      "nupkgSha256": "7cf4686d5ec7db4c6b81e908970e1174e206b61b7af698a008772c2b6c58577a"
     }
   ],
   "sourceProject": "artifact-delivery/openxml-validator/ArtifactOpenXmlValidator.csproj",
@@ -37,14 +37,14 @@
   "sdkRestoreSupportPackages": [
     {
       "id": "Microsoft.AspNetCore.App.Ref",
-      "version": "8.0.30",
-      "nupkgSha256": "f90fc703f81364b00e1db8b47d77b83b85de5901ff8d4582d1344213886ec931",
+      "version": "10.0.15",
+      "nupkgSha256": "ed66582a4c429d1af4b573cf769128d51774d079d1705e2f83a90d8915bfb7b4",
       "reason": "exact offline restore support retained for bounded feed compatibility; not part of the OpenXML validator package claim"
     }
   ],
   "nixDotnet": {
     "flake": "artifact-delivery/openxml-nix",
     "package": "dotnet-sdk",
-    "expectedSdkVersion": "8.0.426"
+    "expectedSdkVersion": "10.0.404"
   }
 }

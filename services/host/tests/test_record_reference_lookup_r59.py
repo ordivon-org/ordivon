@@ -6,13 +6,11 @@ from typing import Any
 
 import pytest
 
-from ordivon_host_v2.attention_store import AttentionStore
 from ordivon_host_v2.errors import WorkNotFound
-from ordivon_host_v2.references.actor_refs import ActorReferenceLookup, ActorReferenceRegistry
+from ordivon_host_v2.references.actor_refs import ActorReferenceRegistry
 from ordivon_host_v2.references.actor_store import ActorReferenceStore
 from ordivon_host_v2.references.record_refs import RecordReferenceLookup
 from ordivon_host_v2.social_errors import SpaceNotFound, TopicNotFound
-from ordivon_host_v2.social_store import SocialStore
 from ordivon_host_v2.work_store import WorkStore
 
 
@@ -93,11 +91,5 @@ def test_unknown_attention_target_cannot_construct_sql() -> None:
 
 
 def test_shared_record_lookup_preserves_r58_actorref_and_public_facades() -> None:
-    assert WorkStore._require_work is SocialStore._require_work
-    assert SocialStore._require_topic is RecordReferenceLookup._require_topic
-    assert AttentionStore._require_target is RecordReferenceLookup._require_target
-    assert WorkStore._require_actor is ActorReferenceLookup._require_actor
-    assert SocialStore._require_actor is ActorReferenceLookup._require_actor
-    assert AttentionStore._require_actor is ActorReferenceLookup._require_actor
     assert ActorReferenceStore.declare_actor is ActorReferenceRegistry.declare_actor
     assert not hasattr(WorkStore, "declare_actor")

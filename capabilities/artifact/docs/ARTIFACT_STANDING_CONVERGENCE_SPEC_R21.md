@@ -49,9 +49,24 @@ Safety law, under well-formed inputs: `complete => all_required_supported_by_non
 
 - v1 stage `status=PASS` may mean all *executed* gates passed while `profileVerificationComplete=false`; preserve this distinction until consumer migration, never promote missing gates.
 - v2 native `status=PASS` may be legacy compatible while `profileVerificationComplete=false`; preserve existing consumers and add scoped Standing, never reinterpret as full acceptance.
-- FLAC/WAVE/PNG claim-complete routes require explicit claimResults/native status pointers; do not weaken.
+- FLAC/WAVE/PNG claim-complete routes require explicit claimResults/native status pointers; do not weaken. All declared pointers for one required PASS/FAIL claim must resolve to claim-specific observations with the same status; a valid sibling cannot mask a malformed, unrelated, self-witnessing, or contradictory pointer. This is a conjunctive witness list, not a list of alternatives.
 - v1 and v2 profile definitions are NOT globally equivalent. Prove each common axis or mark UNKNOWN.
 - No full snapshot guarantee for sidecar formats until dependency closure is bound.
+- T4 descriptor boundary: `artifact_core/file_stream.py` shares one native
+  regular-file descriptor open and one digest/length observation between
+  FileCommitment and private InputSnapshot. Initial aliases may be resolved
+  by the caller; a final replacement alias at the committed path is rejected
+  where O_NOFOLLOW is supported. O_NONBLOCK prevents FIFO admission from
+  waiting for a writer. No parent-directory or process-readset continuity
+  guarantee is inferred.
+- T4 v2 input binding: `artifact_verification/request_inputs.py` owns typed
+  profile/subject/contract bindings and their caller-owned snapshot lifetime.
+  Legacy admission paths have before/after digest checks; observed drift or
+  unavailable input prevents service PASS and leaves Standing UNKNOWN,
+  retaining the actual native report after execution. Matching checks do not
+  establish ABA freedom, sidecar closure or native-tool honesty. Legacy
+  `ADMISSION_DIGEST_ONLY` remains wire-compatible.
+
 - Negative cases: absent claim, NOT_EVALUATED claim, explicit FAIL, conflicting native pointer, missing required gate, mismatched native identity, tool identity drift, source rebind, fake consumer success.
 - Keep old API/schema working while expand–migrate–contract is in progress.
 
@@ -82,6 +97,8 @@ Use existing public entrypoints `execute_verify_stage` (through DirectPython pro
 | T6 Retire old logic and glue | T3,T5 | One Standing authority, with duplicate branch paths removed | source graph + owner tests + actual caller checks |
 | T7 Owner-level work handoff | T5,T6 | Task reports separate execution from consumer success | existing Host/Runtime/Harness contracts; no new registry |
 | T8 Independent release and cleanup | T6,T7 | verified merged source, installed readback where relevant, obsolete history removed | CI, Code Review, consumer evidence |
+
+V1 stage admission and receipt digest comparisons reject observed Subject/Profile drift; this is not a frozen read set, a proof against transient ABA replacement, or a complete sidecar dependency closure.
 
 ## Delivery gates and stop conditions
 
@@ -269,3 +286,91 @@ Building another Runtime/Host/Harness, universal file taxonomy, custom CAS, seco
 - Matt Pocock `skills/engineering/to-spec`, `to-tickets`, `implement`, `tdd`, `code-review`.
 - obra/superpowers `writing-plans`, `test-driven-development`, `verification-before-completion`, `using-git-worktrees`.
 - affaan-m/ECC `hooks`, `rules`, `skills`: selective reuse of quality gate semantics, without wholesale installation.
+
+
+### T4 narrow qualification: bounded TMJ object maps
+
+The existing Tiled R1 route is qualified for exact subject/contract snapshots
+only within its finite orthogonal object-layer-only subset. Map, layer and
+object properties must have explicit supported scalar types; file, custom
+class/project type and non-scalar properties are rejected before native
+invocation, along with the existing template/tileset/unsupported layer
+rejections. Duplicate input JSON keys and malformed IDs fail admission.
+The pure `artifact_verifiers/tiled_map.py` owns bounded map facts and
+admission diagnostics; the existing Tiled driver owns process execution,
+native evidence and format/raster roundtrips. No new registry or workflow.
+
+I: parsed exact TMJ/contract objects; O: bounded facts plus issues; S: Unit;
+pre: unique-key JSON; post: no declared file/template/tileset/class resource
+accepted within this subset; inv: failures prevent native invocation; eff:
+none for map admission; c: linear scan of declared layers/objects/properties
+plus canonical serialization/sorting; epsilon: deterministic declared-field
+scope only, not arbitrary future Tiled extensions or full process readset;
+prov: original request digests, private snapshot and native reports; unfold:
+map/property diagnostics then existing native observations. The legacy
+aggregate status and incomplete required-claim coverage remain unchanged.
+The v2 service snapshot protects original-path replacement/ABA for the two
+bound files. Direct native CLI callers retain their existing path semantics;
+same-principal scratch mutation, imported Python/native dependencies, Tiled
+global configuration, and external target acceptance are not claimed.
+
+The historical Game TMJ receipt retains its original bytes and digest. All four Artifact authority digests match the retained monorepo source cut `e2757345aae3e4d38330d0f07c8eef45bbdf998f`; the historical receipt test reads that exact Git witness rather than constraining the current driver. This is not the original external repository revision.
+### T4 narrow GLB core-resource boundary
+
+Current GLB profiles explicitly exclude textures. Read only the GLB container
+header, JSON chunk and optional BIN chunk header for resource admission;
+seek past BIN without a second bulk read. The general native checker remains
+the conformance authority. Reject external buffer URIs (including embedded
+data URIs outside the core BIN subset), image/texture declarations, unqualified
+extensions, ambiguous JSON, and unknown/inconsistent chunks before import.
+A rejection is a bounded input-policy failure, not a fabricated Khronos
+observation. The static mesh route uses existing exact subject/contract
+snapshots; material and skinned-animation routes remain legacy until actual
+consumer qualification. Historical Game receipts retain their original exact
+authority hashes, read from retained monorepo cut e2757345.
+
+I: GLB descriptor + exact length and declared JSON; O: bounded resource
+facts/issues; S: Unit; pre: bounded core profile; post: no admitted core
+external resource declarations; inv: a failed admission cannot cause native
+import; eff: bounded read/seek, no external effects; c: O(JSON size + its
+declared graph), full byte commitment remains separate O(file size); epsilon:
+no complete native process readset, global configuration, extension/extra
+consumer semantics or domain acceptance claim. Direct CLI callers retain
+original-path semantics; only the qualified service snapshot prevents
+source-path ABA for subject/contract.
+
+### T8 Python generation publication refinement
+
+Readiness of a retained generation is distinct from matching the current
+desired release. Reuse of a generation requires exact desired spec, generation
+namespace, wrapper and retained uv provenance identity, plus a native wrapper
+probe. A single owner-local advisory lock serializes pointer publications;
+qualification occurs before changing current. Failed post-publication readback
+restores the exact previous symlink when the publisher still owns its target.
+No arbitrary-process exclusion, crash-atomic cross-service deployment,
+full interpreter shared-library closure or worker acceptance is claimed.
+
+### T2 Web browser evidence projection
+
+Separate browser invocation from pure policy projection. The latter requires
+a subject-bound native report, successful transport, unambiguous engine
+names and exact report shape before admitting observations. Required engine
+launch/load absence or operational failure is UNKNOWN, never native content
+falsification. A qualified axe violation is decisive scoped negative evidence.
+Legacy stage FAIL still blocks publication when a required observation is
+unavailable; raw evidence is retained, but no binary VSA is produced for
+UNKNOWN, including when a previous VSA exists in the output directory.
+This does not waive any required renderer, nor claim a complete native
+dependency readset, arbitrary HTML execution safety or external acceptance.
+
+
+The shared V1 receipt writer also preserves explicit NOT_RUN, NOT_EVALUATED
+and UNKNOWN observations for every existing gate; it rejects a binary VSA
+even when a Boolean override was supplied. Rejected identity readback removes
+stale VSA files. OpenXML requires a subject-bound report and a consistent
+native status, exit code and error array/count. Process launch failure,
+timeout, malformed report or ambiguous exit does not prove document
+nonconformance. qpdf absent/unlaunchable/unknown exits likewise remain
+unobserved; the established qpdf structural policy for exits 2 and 3 is
+unchanged. This does not classify every possible exception inside a native
+validator, nor claim full native process input continuity.

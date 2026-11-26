@@ -1,4 +1,4 @@
-"""Gateway-owned execution reference grammar, independent of service dispatch.
+"""Gateway-owned execution reference and local input grammar, independent of dispatch.
 
 This is a source-local, pure wire-reference contract. It does not establish
 Runtime ownership, admission, execution, or Security authorization.
@@ -27,3 +27,18 @@ def parse_execution_ref(value: str) -> tuple[str, str]:
     if owner_id not in {"runtime.linux", "runtime.windows", "runtime.harness"} or not native_id:
         raise GatewayError("unsupported execution operationRef owner")
     return owner_id, native_id
+
+
+def validate_observation_wait(wait_ms: int) -> None:
+    if type(wait_ms) is not int or not 0 <= wait_ms <= 30_000:
+        raise GatewayError("waitMs must be an integer between 0 and 30000")
+
+
+def validate_artifact_cursor(offset: int, max_bytes: int) -> None:
+    if (
+        type(offset) is not int
+        or offset < 0
+        or type(max_bytes) is not int
+        or not 1 <= max_bytes <= 1_048_576
+    ):
+        raise GatewayError("artifact read requested an invalid range/cursor")

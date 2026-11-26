@@ -9,6 +9,7 @@ import pytest
 from ordivon_capital.markets.equity_session_calendar import (
     MarketSessionQualificationError,
     require_xnys_session_grid,
+    require_xnys_session_subset,
 )
 
 REQUEST_START = "2025-05-20"
@@ -98,3 +99,22 @@ def test_one_day_source_rejected(source_sessions):
 def test_missing_invalid_or_reversed_requested_window_rejected(source_sessions, start, end):
     with pytest.raises(MarketSessionQualificationError, match="request bounds"):
         admit(source_sessions, start=start, end=end)
+
+
+def test_sparse_qualification_does_not_weaken_dense_calendar_contract(source_sessions):
+    sparse = source_sessions[[0, 3, -1]]
+    report = require_xnys_session_subset(
+        sparse, symbol="SPY", requested_start=REQUEST_START, requested_end=REQUEST_END
+    )
+    assert report["kind"] == "ordivon.capital.markets.xnys-session-subset"
+    assert report["dateStanding"] == "EXCHANGE_SESSION_SUBSET_ALIGNED_SOURCE_UNVERIFIED"
+    assert report["sessions"] == 3
+    assert report["historicalPITVerified"] is False
+    assert report["capitalAuthority"] is False
+    with pytest.raises(MarketSessionQualificationError, match="missing="):
+        admit(sparse)
+    with pytest.raises(MarketSessionQualificationError, match="XNYS_SESSION_GRID_MISMATCH"):
+        require_xnys_session_subset(
+            sparse.append(pd.DatetimeIndex(["2025-05-26"])).sort_values(),
+            symbol="SPY", requested_start=REQUEST_START, requested_end=REQUEST_END,
+        )
