@@ -37,6 +37,13 @@ internal static class OrdivonWindowsJobLauncher
     private const int ErrorInsufficientBuffer = 122;
     private const uint DaclSecurityInformation = 0x00000004;
     private const int JobObjectQuery = 0x0004;
+    private const uint ScManagerConnect = 0x0001;
+    private const uint ServiceQueryStatus = 0x0004;
+    private const uint ServiceWin32OwnProcess = 0x0010;
+    private const uint ServiceRunning = 4;
+    private const int ErrorServiceDoesNotExist = 1060;
+    private const int ErrorServiceMarkedForDelete = 1072;
+    private const uint PgRuntimeOwnerLostExit = 126;
     private const uint TimedOutExit = 124;
     private const uint CancelledExit = 125;
     private const int StdInputHandle = -10;
@@ -501,7 +508,38 @@ internal static class OrdivonWindowsJobLauncher
     private static extern uint WaitForSingleObject(IntPtr handle, uint milliseconds);
 
     [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern uint WaitForMultipleObjects(
+        uint count, IntPtr[] handles, bool waitAll, uint milliseconds);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
     private static extern IntPtr OpenProcess(uint desiredAccess, bool inheritHandle, uint processId);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ServiceStatusProcess
+    {
+        public uint ServiceType;
+        public uint CurrentState;
+        public uint ControlsAccepted;
+        public uint Win32ExitCode;
+        public uint ServiceSpecificExitCode;
+        public uint CheckPoint;
+        public uint WaitHint;
+        public uint ProcessId;
+        public uint ServiceFlags;
+    }
+
+    [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr OpenSCManager(string machine, string database, uint access);
+
+    [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr OpenService(IntPtr manager, string name, uint access);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool QueryServiceStatusEx(IntPtr service, int infoLevel,
+        out ServiceStatusProcess status, uint size, out uint bytesNeeded);
+
+    [DllImport("advapi32.dll")]
+    private static extern bool CloseServiceHandle(IntPtr handle);
 
     [DllImport("advapi32.dll", SetLastError = true)]
     private static extern bool GetKernelObjectSecurity(
@@ -1979,6 +2017,7 @@ internal static class OrdivonWindowsJobLauncher
         IntPtr job = IntPtr.Zero;
         IntPtr pgPeerProcess = IntPtr.Zero;
         SecurityIdentifier pgPeerSid = null;
+        string pgRecoveryService = null;
         IntPtr environment = IntPtr.Zero;
         IntPtr executionToken = IntPtr.Zero;
         TokenEvidence tokenEvidence = null;
@@ -2000,7 +2039,10 @@ internal static class OrdivonWindowsJobLauncher
         {
             VerifyRuntimeRequestDigest(options);
             if (options.PgTerminalPeerProcessId.HasValue)
+            {
                 pgPeerProcess = OpenQualifiedPgPeer(options, out pgPeerSid);
+                pgRecoveryService = BindPgRecoveryService(pgPeerSid, options.PgTerminalPeerProcessId.Value);
+            }
             job = CreateJobObject(IntPtr.Zero, options.JobName);
             int jobCreationError = Marshal.GetLastWin32Error();
             if (job == IntPtr.Zero)
@@ -2122,7 +2164,13 @@ internal static class OrdivonWindowsJobLauncher
                     Environment.ProcessorCount);
             }
 
-            if (File.Exists(Path.Combine(options.RuntimeBundle, "cancel-requested.json")))
+            bool runtimeOwnerLost = pgPeerProcess != IntPtr.Zero
+                && !ProcessHandleIsRunning(pgPeerProcess, "WaitForSingleObject(PG Runtime owner)");
+            if (runtimeOwnerLost)
+            {
+                TerminateWholeJob(job, PgRuntimeOwnerLostExit);
+            }
+            else if (File.Exists(Path.Combine(options.RuntimeBundle, "cancel-requested.json")))
             {
                 cancelled = true;
                 TerminateWholeJob(job, CancelledExit);
@@ -2137,10 +2185,26 @@ internal static class OrdivonWindowsJobLauncher
                 resumed = true;
             }
 
+            // The original Runtime handle is pinned even if SCM recycles its PID.
+            // Observe its death alongside the target instead of allowing an orphan
+            // to finish a write while the new service process is reconciling.
+            IntPtr[] owners = pgPeerProcess == IntPtr.Zero || runtimeOwnerLost
+                ? null : new IntPtr[] { pgPeerProcess, pi.hProcess };
             while (true)
             {
-                uint wait = WaitForSingleObject(pi.hProcess, 20);
-                if (wait == 0)
+                uint wait = owners == null
+                    ? WaitForSingleObject(pi.hProcess, 20)
+                    : WaitForMultipleObjects(2, owners, false, 20);
+                if (owners != null && wait == 0)
+                {
+                    // A target already exited can retain its actual result. The
+                    // whole Job is still explicitly terminated below.
+                    runtimeOwnerLost = ProcessHandleIsRunning(pi.hProcess, "WaitForSingleObject(target)");
+                    if (runtimeOwnerLost)
+                        TerminateWholeJob(job, PgRuntimeOwnerLostExit);
+                    break;
+                }
+                if (wait == (owners == null ? 0U : 1U))
                 {
                     break;
                 }
@@ -2174,6 +2238,13 @@ internal static class OrdivonWindowsJobLauncher
             if (!GetExitCodeProcess(pi.hProcess, out exitCode))
             {
                 ThrowWin32("GetExitCodeProcess");
+            }
+            if (runtimeOwnerLost)
+            {
+                // The target can exit normally between the liveness check and
+                // TerminateJobObject. Preserve the kernel's actual exit code.
+                runtimeOwnerLost = exitCode == PgRuntimeOwnerLostExit;
+                cancelled = File.Exists(Path.Combine(options.RuntimeBundle, "cancel-requested.json"));
             }
 
             // A diagnostic or foreign reader may still retain a named Job Object handle.
@@ -2228,6 +2299,7 @@ internal static class OrdivonWindowsJobLauncher
                 signedExitCode,
                 timedOut,
                 cancelled,
+                runtimeOwnerLost,
                 startedUnixMs,
                 UnixTimeMilliseconds(),
                 stdout,
@@ -2240,7 +2312,7 @@ internal static class OrdivonWindowsJobLauncher
                 // independently checks the kernel object, then ACKs only
                 // AFTER its PostgreSQL durable native drain witness COMMIT.
                 // The actual terminal/Artifact CAS follows Launcher exit.
-                WaitForQualifiedPgTerminalConsumer(options, pgPeerProcess, pgPeerSid);
+                WaitForQualifiedPgTerminalConsumer(options, pgPeerProcess, pgPeerSid, pgRecoveryService);
                 CloseHandle(job);
                 job = IntPtr.Zero;
             }
@@ -2393,6 +2465,72 @@ internal static class OrdivonWindowsJobLauncher
         }
     }
 
+    private static string BindPgRecoveryService(SecurityIdentifier sid, uint originalPid)
+    {
+        const string prefix = @"NT SERVICE";
+        string account;
+        try { account = sid.Translate(typeof(NTAccount)).Value; }
+        catch (IdentityNotMappedException) { return null; }
+        if (!account.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            return null;
+        string service = account.Substring(prefix.Length);
+        bool removed;
+        return PgScmProcessId(service, out removed) == originalPid ? service : null;
+    }
+
+    private static uint PgScmProcessId(string name, out bool removed)
+    {
+        removed = false;
+        IntPtr manager = OpenSCManager(null, null, ScManagerConnect);
+        if (manager == IntPtr.Zero) return 0;
+        try
+        {
+            IntPtr service = OpenService(manager, name, ServiceQueryStatus);
+            if (service == IntPtr.Zero)
+            {
+                int error = Marshal.GetLastWin32Error();
+                removed = error == ErrorServiceDoesNotExist || error == ErrorServiceMarkedForDelete;
+                return 0;
+            }
+            try
+            {
+                ServiceStatusProcess status;
+                uint needed;
+                if (!QueryServiceStatusEx(service, 0, out status,
+                    (uint)Marshal.SizeOf(typeof(ServiceStatusProcess)), out needed))
+                    return 0;
+                return (status.ServiceType & ServiceWin32OwnProcess) != 0
+                    && status.CurrentState == ServiceRunning ? status.ProcessId : 0;
+            }
+            finally { CloseServiceHandle(service); }
+        }
+        finally { CloseServiceHandle(manager); }
+    }
+
+    private static IntPtr OpenPgRecoveryPeer(string service, SecurityIdentifier sid, out uint pid,
+        out bool removed)
+    {
+        pid = PgScmProcessId(service, out removed);
+        if (pid == 0) return IntPtr.Zero;
+        IntPtr process = OpenProcess(ProcessQueryLimitedInformation | Synchronize, false, pid);
+        if (process == IntPtr.Zero) return IntPtr.Zero;
+        bool matched = false;
+        try
+        {
+            IntPtr token;
+            if (!OpenProcessToken(process, TokenQuery, out token)) return IntPtr.Zero;
+            try
+            {
+                using (WindowsIdentity identity = new WindowsIdentity(token))
+                    matched = sid.Equals(identity.User) && PgScmProcessId(service, out removed) == pid
+                        && ProcessHandleIsRunning(process, "WaitForSingleObject(SCM Runtime owner)");
+            }
+            finally { CloseHandle(token); }
+            return matched ? process : IntPtr.Zero;
+        }
+        finally { if (!matched) CloseHandle(process); }
+    }
+
     private static void GrantPgObservation(IntPtr handle, SecurityIdentifier sid, int rights)
     {
         uint length;
@@ -2413,7 +2551,7 @@ internal static class OrdivonWindowsJobLauncher
     }
 
     private static void WaitForQualifiedPgTerminalConsumer(
-        Options options, IntPtr pgPeerProcess, SecurityIdentifier pgPeerSid)
+        Options options, IntPtr pgPeerProcess, SecurityIdentifier pgPeerSid, string pgRecoveryService)
     {
         string attempt = options.RuntimeAttemptId;
         if (String.IsNullOrEmpty(attempt) || attempt.Length > 96)
@@ -2438,37 +2576,88 @@ internal static class OrdivonWindowsJobLauncher
             PipeAccessRights.ReadData | PipeAccessRights.WriteData |
                 PipeAccessRights.ReadAttributes | PipeAccessRights.Synchronize,
             AccessControlType.Allow));
-        using (NamedPipeServerStream pipe = new NamedPipeServerStream(
-            name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
-            PipeOptions.Asynchronous, 0, 0, security))
+        Stopwatch standaloneDeadline = Stopwatch.StartNew();
+        while (true)
         {
-            IAsyncResult pending = pipe.BeginWaitForConnection(null, null);
-            if (!pending.AsyncWaitHandle.WaitOne(30000))
-                throw new InvalidOperationException("qualified PG terminal consumer did not connect");
-            pipe.EndWaitForConnection(pending);
-            uint nativePeer;
-            if (!GetNamedPipeClientProcessId(
-                    pipe.SafePipeHandle.DangerousGetHandle(), out nativePeer))
-                ThrowWin32("GetNamedPipeClientProcessId(PG terminal)");
-            if (nativePeer != options.PgTerminalPeerProcessId.Value ||
-                WaitForSingleObject(pgPeerProcess, 0) != WaitTimeout)
-                throw new InvalidOperationException(
-                    "PG terminal pipe peer is not the admission-frozen Runtime process");
-            // The Launcher has authenticated the caller from the OS pipe
-            // endpoint. Only NOW may the caller record native-drain in the
-            // PG Journal. Without this Ready byte, a caller could journal an
-            // event while the real Launcher rejects that mismatched caller.
-            pipe.WriteByte((byte)'R');
-            pipe.Flush();
-            // ACK is deliberately one byte, only sent after qualified PG
-            // native witness journal commit. Untrusted early EOF/incorrect byte never releases the
-            // owner as a *qualified success*; finally still reclaims the handle.
-            byte[] ack = new byte[1];
-            IAsyncResult receipt = pipe.BeginRead(ack, 0, 1, null, null);
-            if (!receipt.AsyncWaitHandle.WaitOne(30000))
-                throw new InvalidOperationException("PG native witness acknowledgement timed out");
-            if (pipe.EndRead(receipt) != 1 || ack[0] != (byte)'T')
-                throw new InvalidOperationException("PG native witness acknowledgement missing");
+            using (NamedPipeServerStream pipe = new NamedPipeServerStream(
+                name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
+                PipeOptions.Asynchronous, 0, 0, security))
+            {
+                uint expectedPid = options.PgTerminalPeerProcessId.Value;
+                IntPtr owner = pgPeerProcess;
+                bool recovering = !ProcessHandleIsRunning(owner, "WaitForSingleObject(original PG peer)");
+                if (recovering && pgRecoveryService != null)
+                {
+                    bool removed;
+                    owner = OpenPgRecoveryPeer(pgRecoveryService, pgPeerSid, out expectedPid, out removed);
+                    if (removed)
+                        throw new InvalidOperationException("qualified PG Runtime service was removed");
+                }
+                if (pgRecoveryService == null && standaloneDeadline.ElapsedMilliseconds >= 30000)
+                    throw new InvalidOperationException("qualified PG terminal consumer did not acknowledge");
+                try
+                {
+                    // Keep the original Job handle across a stopped service and
+                    // reconnect, but never equate the service SID with the service process.
+                    IAsyncResult connection = pipe.BeginWaitForConnection(null, null);
+                    using (WaitHandle connected = connection.AsyncWaitHandle)
+                    {
+                        while (!connected.WaitOne(250))
+                        {
+                            if (pgRecoveryService == null && standaloneDeadline.ElapsedMilliseconds >= 30000)
+                                throw new InvalidOperationException("qualified PG terminal consumer did not connect");
+                            if (pgRecoveryService != null && owner == IntPtr.Zero)
+                            {
+                                bool removed;
+                                owner = OpenPgRecoveryPeer(pgRecoveryService, pgPeerSid, out expectedPid, out removed);
+                                if (removed)
+                                    throw new InvalidOperationException("qualified PG Runtime service was removed");
+                            }
+                            else if (pgRecoveryService != null
+                                && !ProcessHandleIsRunning(owner, "WaitForSingleObject(PG terminal owner)"))
+                            {
+                                if (recovering) CloseHandle(owner);
+                                recovering = true;
+                                owner = IntPtr.Zero;
+                            }
+                        }
+                        pipe.EndWaitForConnection(connection);
+                    }
+                    if (owner == IntPtr.Zero)
+                    {
+                        // SCM may have restarted between the poll and pipe connect.
+                        // Reject this unauthenticated connection and rebind on retry.
+                        continue;
+                    }
+                    uint nativePeer;
+                    if (!GetNamedPipeClientProcessId(pipe.SafePipeHandle.DangerousGetHandle(), out nativePeer))
+                        ThrowWin32("GetNamedPipeClientProcessId(PG terminal)");
+                    if (nativePeer != expectedPid
+                        || !ProcessHandleIsRunning(owner, "WaitForSingleObject(PG pipe client)"))
+                        continue;
+                    // A Ready byte authorizes the observer to journal the native
+                    // drain. Release the Job handle only on its post-COMMIT ACK.
+                    pipe.WriteByte((byte)'R');
+                    byte[] ack = new byte[1];
+                    IAsyncResult receipt = pipe.BeginRead(ack, 0, 1, null, null);
+                    using (WaitHandle read = receipt.AsyncWaitHandle)
+                    {
+                        if (read.WaitOne(30000) && pipe.EndRead(receipt) == 1 && ack[0] == (byte)'T')
+                            return;
+                    }
+                }
+                catch (IOException)
+                {
+                    if (pgRecoveryService == null) throw;
+                    // Runtime may exit after Ready or after COMMIT. A new
+                    // connection can replay the same durable drain event.
+                }
+                finally
+                {
+                    if (recovering && owner != IntPtr.Zero && owner != pgPeerProcess)
+                        CloseHandle(owner);
+                }
+            }
         }
     }
 
@@ -2755,6 +2944,7 @@ internal static class OrdivonWindowsJobLauncher
         int exitCode,
         bool timedOut,
         bool cancelled,
+        bool runtimeOwnerLost,
         long startedUnixMs,
         long finishedUnixMs,
         CapturedOutputInfo stdout,
@@ -2768,6 +2958,7 @@ internal static class OrdivonWindowsJobLauncher
             "\"index\":0," +
             "\"status\":" + JsonString(stepStatus) + "," +
             "\"exitCode\":" + exitCode.ToString(CultureInfo.InvariantCulture) + "," +
+            (runtimeOwnerLost ? "\"runtimeOwnerLost\":true," : "") +
             "\"timedOut\":" + (timedOut ? "true" : "false") + "," +
             "\"continued\":false," +
             "\"startedUnixMs\":" + startedUnixMs.ToString(CultureInfo.InvariantCulture) + "," +

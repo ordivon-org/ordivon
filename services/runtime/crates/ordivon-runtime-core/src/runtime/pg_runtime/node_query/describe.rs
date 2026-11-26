@@ -67,25 +67,38 @@ impl PgRuntime {
             .runner_path
             .as_deref()
             .ok_or_else(|| error("native runner missing"))?;
-        let mut supported = vec![WindowsExecutionContextRequest::new(
-            WindowsExecutionIdentity::Service,
+        let mut supported = Vec::new();
+        for privilege in [
             WindowsPayloadPrivilege::Limited,
-        )];
-        let active = WindowsExecutionContextRequest::new(
-            WindowsExecutionIdentity::ActiveUser,
-            WindowsPayloadPrivilege::Limited,
-        );
-        if self.config.interactive_workspace_sid.is_some()
-            && crate::runtime::windows::snapshot_windows_runtime_context_for(
-                &self.config.windows,
-                active,
-            )
-            .is_ok_and(|snap| {
-                self.require_interactive_context(&snap.token_user_sid, snap.session_id)
-                    .is_ok()
-            })
-        {
-            supported.push(active);
+            WindowsPayloadPrivilege::Elevated,
+        ] {
+            if privilege == WindowsPayloadPrivilege::Elevated
+                && (self.config.windows.elevated_principals.is_empty()
+                    || self.config.windows.elevated_profiles.is_empty())
+            {
+                continue;
+            }
+            for identity in [
+                WindowsExecutionIdentity::Service,
+                WindowsExecutionIdentity::ActiveUser,
+            ] {
+                let request = WindowsExecutionContextRequest::new(identity, privilege);
+                if crate::runtime::windows::snapshot_windows_runtime_context_for(
+                    &self.config.windows,
+                    request,
+                )
+                .is_ok_and(|snapshot| {
+                    identity == WindowsExecutionIdentity::Service
+                        || self
+                            .require_interactive_context(
+                                &snapshot.token_user_sid,
+                                snapshot.session_id,
+                            )
+                            .is_ok()
+                }) {
+                    supported.push(request);
+                }
+            }
         }
         let target = crate::runtime::windows::windows_pg_execution_target(
             &self.config.windows,

@@ -691,14 +691,9 @@ pub(crate) fn windows_pg_execution_target(
             false,
         )
     })?;
-    let contexts = supported_contexts
-        .iter()
-        .copied()
-        .filter(|context| snapshot_windows_runtime_context_for(config, *context).is_ok())
-        .collect::<Vec<_>>();
     Ok(windows_pg_target_projection(
         digest,
-        &contexts,
+        supported_contexts,
         config.maintenance_lease_path.is_some(),
     ))
 }

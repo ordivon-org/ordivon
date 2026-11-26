@@ -1179,8 +1179,8 @@ pub mod native_terminal_gate {
             );
         }
         // Two-way issuer confirmation. The original Launcher first checks
-        // GetNamedPipeClientProcessId against the admission-frozen parent PID
-        // and only then writes 'R'. An arbitrary PG client must not persist
+        // GetNamedPipeClientProcessId against the original Runtime or its
+        // verified SCM replacement and only then writes 'R'. A client cannot persist
         // a supposed issuer-owned drain event before this issuer confirmation.
         // A rejected/closed pipe is UNKNOWN, never an authorized journal.
         let mut ready = [0u8; 1];

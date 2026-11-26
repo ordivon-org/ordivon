@@ -15,7 +15,6 @@ impl PgRuntime {
         // Only the configured desktop identity can receive an active-user
         // context; the existing native launcher still verifies SID/session.
         if !super::job::supports_native_pg_execution(e, true)
-            || context.privilege != WindowsPayloadPrivilege::Limited
             || (context.identity == WindowsExecutionIdentity::ActiveUser
                 && self.config.interactive_workspace_sid.is_none())
             || e.windows_context
@@ -27,7 +26,7 @@ impl PgRuntime {
             })
         {
             return Err(RuntimeError::invalid(
-                "native Windows PG supports single-command limited service or operator-bound active_user trusted_local only",
+                "native Windows PG supports single-command service or operator-bound active_user trusted_local only",
                 "execution",
             ));
         }
@@ -146,13 +145,12 @@ impl PgRuntime {
         request_digest: &str,
         expected_launcher_digest: &str,
     ) -> RuntimeResult<()> {
+        let payload = plan
+            .windows_context
+            .unwrap_or_else(|| plan.windows_authority.canonical_context());
         if plan.execution_target != ExecutionTarget::WindowsNative
-            || !matches!(
-                plan.windows_authority,
-                WindowsAuthority::Limited | WindowsAuthority::ActiveUser
-            )
+            || payload.transport_authority() != plan.windows_authority
             || a.unit_name != format!("Ordivon.{}", a.attempt_id)
-            || plan.windows_execution_context.is_none()
         {
             return Err(error("invalid frozen Windows native provider identity")
                 .with_operation_id(&a.job_id));
@@ -172,7 +170,7 @@ impl PgRuntime {
             .windows_execution_context
             .as_ref()
             .ok_or_else(|| error("frozen native context absent"))?;
-        let active_user = plan.windows_authority == WindowsAuthority::ActiveUser;
+        let active_user = payload.identity == WindowsExecutionIdentity::ActiveUser;
         if active_user {
             self.require_interactive_context(&context.token_user_sid, context.session_id)?;
         }
@@ -192,7 +190,7 @@ impl PgRuntime {
             launch_token_digest: &a.launch_token_digest,
             request_digest,
             authority: plan.windows_authority,
-            payload_privilege: WindowsPayloadPrivilege::Limited,
+            payload_privilege: payload.privilege,
             expected_privileged_broker_digest: context.privileged_broker_digest.as_deref(),
             expected_user_sid: active_user.then_some(context.token_user_sid.as_str()),
             expected_session_id: if active_user {

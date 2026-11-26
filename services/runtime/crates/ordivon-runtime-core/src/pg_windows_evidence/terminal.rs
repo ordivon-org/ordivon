@@ -83,9 +83,26 @@ pub(crate) fn prepare_windows_terminal(
         .map(i32::try_from)
         .transpose()
         .map_err(|_| "Windows exit code out of bounds")?;
+    let runtime_owner_lost = raw
+        .get("runtimeOwnerLost")
+        .map(|value| {
+            value
+                .as_bool()
+                .ok_or("invalid Windows Runtime owner-loss flag")
+        })
+        .transpose()?
+        .unwrap_or(false);
+    if runtime_owner_lost
+        && (timed_out || !matches!(status, "FAILED" | "CANCELLED") || exit_code != Some(126))
+    {
+        return Err("contradictory Windows Runtime owner-loss result".into());
+    }
     let (terminal, reason) = match (status, timed_out, exit_code) {
         ("COMPLETED", false, Some(0)) => ("succeeded", "WINDOWS_NATIVE_TARGET_SUCCEEDED"),
         ("FAILED", true, _) => ("timed_out", "WINDOWS_NATIVE_TARGET_TIMED_OUT"),
+        ("FAILED", false, Some(_)) if runtime_owner_lost => {
+            ("failed", "WINDOWS_NATIVE_RUNTIME_OWNER_LOST")
+        }
         ("FAILED", false, Some(_)) => ("failed", "WINDOWS_NATIVE_TARGET_FAILED"),
         ("CANCELLED", false, _) => ("cancelled", "WINDOWS_NATIVE_CANCELLED"),
         _ => return Err("contradictory Windows result status/timing/exit".into()),
@@ -343,6 +360,27 @@ mod tests {
         id.stderr_limit_bytes -= 1;
         assert!(inspect_windows_pg_bundle(d.path(), &id).is_err());
         assert!(prepare_windows_terminal(d.path(), &id, &witness, &"d".repeat(64), 2).is_err());
+    }
+
+    #[test]
+    fn runtime_owner_loss_is_a_distinct_failed_attempt() {
+        let (dir, id, _) = fixtures();
+        let path = dir.path().join("result.json");
+        let mut raw: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        raw["status"] = json!("FAILED");
+        raw["exitCode"] = json!(126);
+        raw["runtimeOwnerLost"] = json!(true);
+        std::fs::write(&path, serde_json::to_vec(&raw).unwrap()).unwrap();
+        let witness = inspect_windows_pg_bundle(dir.path(), &id).unwrap();
+        let (terminal, _) =
+            prepare_windows_terminal(dir.path(), &id, &witness, &"d".repeat(64), 2).unwrap();
+        assert_eq!(terminal.terminal_state, "failed");
+        assert_eq!(terminal.reason_code, "WINDOWS_NATIVE_RUNTIME_OWNER_LOST");
+
+        raw["exitCode"] = json!(99);
+        std::fs::write(&path, serde_json::to_vec(&raw).unwrap()).unwrap();
+        let witness = inspect_windows_pg_bundle(dir.path(), &id).unwrap();
+        assert!(prepare_windows_terminal(dir.path(), &id, &witness, &"d".repeat(64), 2).is_err());
     }
 
     #[test]
