@@ -1,7 +1,6 @@
 """The pinned upstream OWASP schema must fail closed on tampering without HTTP."""
 from __future__ import annotations
 
-import copy
 import hashlib
 import json
 import shutil
@@ -9,6 +8,8 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+
+from tmbom_metadata_corpus import metadata_corpus
 
 ROOT = Path(__file__).resolve().parents[1]
 UPSTREAM_SCHEMA = ROOT / "schemas/owasp-threat-model-v1.0.2.schema.json"
@@ -38,41 +39,7 @@ class TMBOmSchemaTests(unittest.TestCase):
 
 
     def test_native_metadata_schema_corpus(self):
-        # Synthetic structural document only; this is not a threat assessment.
-        base = {
-            "version": "1.0",
-            "scope": {
-                "title": "Synthetic document",
-                "description": "Metadata only",
-                "business_criticality": "low",
-                "data_sensitivity": [],
-                "exposure": "internal",
-                "tier": "non_critical",
-            },
-            "trust_zones": [], "trust_boundaries": [], "actors": [],
-            "components": [], "data_stores": [], "data_sets": [], "data_flows": [],
-        }
-        fixtures = [("valid", base, True)]
-        for name, keys, value, valid in (
-            ("version-number", ("version",), 1, False),
-            ("version-suffix", ("version",), "1.beta", False),
-            ("version-three", ("version",), "1.2.3", True),
-            ("title-unicode", ("scope", "title"), "文档 é", True),
-            ("description-array", ("scope", "description"), [], False),
-            ("description-empty", ("scope", "description"), "", True),
-            ("frozen-boolean", ("frozen",), True, True),
-            ("frozen-string", ("frozen",), "true", False),
-        ):
-            model = copy.deepcopy(base)
-            parent = model
-            for key in keys[:-1]:
-                parent = parent[key]
-            parent[keys[-1]] = value
-            fixtures.append((name, model, valid))
-        for key in ("version", "scope"):
-            model = copy.deepcopy(base)
-            del model[key]
-            fixtures.append(("missing-" + key, model, False))
+        fixtures = metadata_corpus()
 
         with tempfile.TemporaryDirectory() as directory:
             tmp = Path(directory)

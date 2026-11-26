@@ -886,3 +886,45 @@ or development dependencies, no new provider or scheduler.
 References:
 - https://testing.googleblog.com/2025/10/simplify-your-code-functional-core.html
 - https://docs.python.org/3/library/struct.html
+
+### R26 — independent Draft 2020-12 engine qualification
+
+T02/T06/T07/T12: separate the authority schema, independent expected
+outcomes, native validation engine, invocation profile, and consumer
+decision. R22 compared two CLI versions sharing the same underlying
+engine; R25 attempted Ajv but did not reach validator execution. Reuse
+the Rust jsonschema family already present in Harness (its source
+dependency is 0.61.1, not the qualified version).
+
+In a disposable existing CPython 3.14.7 environment, jsonschema 4.26.0
+and jsonschema-rs 0.63.1 validate the exact same captured OWASP TM-BOM
+Draft 2020-12 schema with format checks enabled. Both accept the actual
+model; 11 independent metadata fixtures and 120 deterministic abstract
+metadata coordinates yield 262/262 expected engine outcomes plus the
+actual model 2/2. Jobs job-01a21566-fd92-7779-89d3-4128a9fd9c8a and
+job-01a21567-7522-74c1-b068-c779e5bfede2. These are independent engines,
+not complete dialect conformance, performance or semantic qualification.
+
+Extract the existing metadata fixtures into a shared test-only corpus;
+ordinary native CLI tests retain all 11 fixtures, exact digest pin and
+tamper negative control. The opt-in companion tests/qualify_tmbom_engines.py
+reuses this corpus and the separate deterministic matrix. It verifies
+the authority schema digest and dialect before running both engines.
+No production code or normal dependency group is changed. The Rust
+binding publicly supports CPython 3.10–3.14; do not downgrade the
+Owner's Python 3.15 environment or add an incompatible binding.
+
+To reproduce the bounded historical experiment, use an isolated
+supported Python 3.14 virtual environment, install binary wheels
+jsonschema==4.26.0 and jsonschema-rs==0.63.1, and execute the companion.
+These exact versions identify the experiment, not a new permanent
+dependency lock. Future upgrades require the same expected-outcome
+corpus. The official JSON Schema Test Suite and Bowtie are reference
+carriers for broader conformance if required; do not infer that this
+bounded corpus covers every dialect feature. No new custom schema,
+validator, production gate or redundant framework is introduced.
+
+References:
+- https://github.com/json-schema-org/JSON-Schema-Test-Suite
+- https://bowtie.report/
+- https://pypi.org/project/jsonschema-rs/0.63.1/
