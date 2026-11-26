@@ -7,9 +7,12 @@ import json
 import os
 import subprocess
 import tomllib
+from functools import lru_cache
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Iterable
+
+from python_path_closure import affected_projects, git_manifests
 
 MANIFEST_PATH = Path(__file__).with_name("owners.toml")
 SOURCE_REPO_ROOT = MANIFEST_PATH.resolve().parents[2]
@@ -83,6 +86,8 @@ CROSS_CUTTING_PATHS = frozenset(
         "tools/repo/verify_authority_history.sh",
         "tools/repo/owners.toml",
         "tools/repo/affected_owners.py",
+        "tools/repo/python_path_closure.py",
+        "tools/repo/test_python_path_closure.py",
         "tools/repo/test_affected_owners.py",
         "tools/repo/ci_pr_execution_range.py",
         "tools/repo/convergence_plan.py",
@@ -210,6 +215,41 @@ def owners_for_paths(
         ):
             selected.append(owner)
     return tuple(selected)
+
+
+@lru_cache(maxsize=8)
+def _manifest_blobs(repo: Path, commit: str) -> tuple[tuple[str, bytes], ...]:
+    # Immutable Git objects only, never working-tree state or moving refs.
+    return tuple(sorted(git_manifests(repo, commit).items()))
+
+
+def path_consumer_owners(
+    paths: Iterable[str], direct: tuple[Owner, ...], *,
+    owners: tuple[Owner, ...] = OWNERS,
+    repo: Path | None = None,
+    before: str | None = None, after: str | None = None,
+) -> tuple[Owner, ...]:
+    """Project-directory dependency impact, not semantic Owner authority."""
+    repo = (SOURCE_REPO_ROOT if repo is None else repo).resolve()
+    if before is None and after is None:
+        after = subprocess.check_output(
+            ["git", "-C", str(repo), "--no-replace-objects", "rev-parse", "--verify", "HEAD^{commit}"],
+            env=_source_git_env(), text=True,
+        ).strip()
+        before = after
+    if before is None or after is None:
+        raise ValueError("both dependency source cuts are required")
+    roots = affected_projects(
+        (*(_normalize(path) for path in paths), *(owner.root.rstrip("/") for owner in direct)),
+        dict(_manifest_blobs(repo, before)), dict(_manifest_blobs(repo, after)),
+    )
+    selected = set(direct)
+    for root in roots:
+        matches = [owner for owner in owners if root == owner.root.rstrip("/") or root.startswith(owner.root)]
+        if len(matches) != 1:
+            raise ValueError(f"affected Python project has no unique native task: {root}")
+        selected.add(matches[0])
+    return tuple(owner for owner in owners if owner in selected)
 
 
 def _formal_source_files() -> frozenset[str]:
@@ -362,7 +402,12 @@ def main() -> int:
             paths = changed_paths(diff_base, head)
             source_cut = {"base": base, "head": head, "diffBase": diff_base}
         require_registered_execution_paths(paths)
-        selected = owners_for_paths(paths)
+        direct = owners_for_paths(paths)
+        selected = path_consumer_owners(
+            paths, direct, repo=SOURCE_REPO_ROOT,
+            before=source_cut["diffBase"] if source_cut else None,
+            after=source_cut["head"] if source_cut else None,
+        )
 
     if args.format == "names":
         for owner in selected:

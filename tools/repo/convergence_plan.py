@@ -302,6 +302,7 @@ def validate_queue_task_selection(
     selected_owners: list[str],
     requested_tasks: list[str],
     changed_paths: list[str] | tuple[str, ...] = (),
+    *, base: str | None = None, head: str | None = None,
 ) -> None:
     """Fail closed on the *real* queue consumer's owner and source-task contract.
 
@@ -319,8 +320,17 @@ def validate_queue_task_selection(
     # This compares the caller's changedPaths to the existing native
     # dependency/consumer closure. It DOES NOT prove changedPaths matches Git
     # bytes, installed effects, complete dynamic consumers or formal proof.
-    if changed_paths:
+    if base is not None or head is not None:
+        if not base or not head:
+            raise ValueError("both exact queue source cuts required")
+        impact = build_plan(base=base, head=head)
+        if list(changed_paths) != impact["changedPaths"]:
+            raise ValueError("queue changed paths disagree with exact Git range")
+    elif changed_paths:
         impact = build_plan(changed_files=changed_paths)
+    else:
+        impact = None
+    if impact is not None:
         if selected_owners != impact["verificationOwners"]:
             raise ValueError(
                 "queue source impact must include the exact canonical "
@@ -418,6 +428,8 @@ def build_plan(
         base_revision = None
         head_revision = None
         head_tree = None
+        diff_base = None
+        repo = affected_owners.SOURCE_REPO_ROOT
     else:
         if not base or not head:
             raise ValueError("base and head are required when changed_files is empty")
@@ -427,14 +439,21 @@ def build_plan(
         # Bind this consumer's actual Git-selected repository to the same
         # immutable object namespace as its own _git SourceCut reads.
         repo = Path(_git("rev-parse", "--show-toplevel"))
+        bases = _git("merge-base", "--all", base_revision, head_revision).splitlines()
+        if len(bases) != 1:
+            raise ValueError("exact source cut requires one unambiguous merge-base")
+        diff_base = bases[0]
         paths = affected_owners.changed_paths(
-            base_revision, head_revision, source_repo_root=repo
+            diff_base, head_revision, source_repo_root=repo
         )
 
     affected_owners.require_registered_execution_paths(paths, owners=owners)
-    direct = affected_owners.owners_for_paths(paths, owners=owners)
+    # Preserve original changedPaths for provenance, but use the same
+    # canonical representation for every selection rule.
+    normalized_paths = tuple(affected_owners._normalize(path) for path in paths)
+    direct = affected_owners.owners_for_paths(normalized_paths, owners=owners)
     direct_names = tuple(owner.name for owner in direct)
-    cross_cutting = _is_cross_cutting(paths)
+    cross_cutting = _is_cross_cutting(normalized_paths)
     test_only_consumers: list[tuple[str, str, str, str]] = []
     graph = load_dependency_graph(
         owners=owners, path=dependency_path, test_only_consumers=test_only_consumers,
@@ -453,24 +472,29 @@ def build_plan(
                     or any(
                         path == fragment
                         or (fragment.endswith("/") and path.startswith(fragment))
-                        for path in paths
+                        for path in normalized_paths
                     )
                 )
             }
         )
     )
 
+    path_consumers = affected_owners.path_consumer_owners(
+        normalized_paths, direct, owners=owners, repo=repo, before=diff_base, after=head_revision,
+    ) if not cross_cutting else direct
+    impact_names = tuple(owner.name for owner in path_consumers)
+
     if cross_cutting:
         verification_names = tuple(sorted(owner.name for owner in owners))
         scope_ids = ("owner-component:ALL",)
         queue_class = "CROSS_CUTTING"
-    elif direct_names:
-        verification_names = tuple(sorted(set(connected_closure(direct_names, graph)) | set(supplemental)))
+    elif impact_names:
+        verification_names = tuple(sorted(set(connected_closure(impact_names, graph)) | set(supplemental)))
         scope_ids = tuple(
             sorted(
                 {
                     component_id(connected_closure((name,), graph))
-                    for name in direct_names
+                    for name in impact_names
                 }
             )
         )
@@ -485,7 +509,7 @@ def build_plan(
     # invented domain Owner. A changed proof/checker source must still route to
     # the already declared root mise formal:verify consumer task.
     formal_source_changed = affected_owners.requires_core_formal_verification(
-        paths
+        normalized_paths
     )
     formal_tasks = ("formal:verify",) if formal_source_changed else ()
     verify_tasks = (
@@ -513,6 +537,8 @@ def build_plan(
         "baseRevision": base_revision,
         "headRevision": head_revision,
         "headTree": head_tree,
+        "diffBase": diff_base,
+        "pythonPathConsumers": list(impact_names),
         "changedPaths": list(paths),
         "directOwners": list(direct_names),
         "verificationOwners": list(verification_names),

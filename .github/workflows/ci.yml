@@ -78,7 +78,7 @@ jobs:
                [[ "$(git --no-replace-objects rev-parse HEAD)" != "$GITHUB_SHA" ]]; then
               return 1
             fi
-            for rel in .github/workflows/ci.yml tools/repo/ci_owner_shards.py tools/repo/ci_pr_execution_range.py tools/repo/convergence_plan.py tools/repo/affected_owners.py tools/repo/pg_issuer_consumer.py tools/repo/owners.toml tools/repo/dependency_contracts.toml tools/formal/verify.py docs/architecture/structure-r2-transition-r1.json mise.toml; do
+            for rel in .github/workflows/ci.yml tools/repo/ci_owner_shards.py tools/repo/ci_pr_execution_range.py tools/repo/convergence_plan.py tools/repo/affected_owners.py tools/repo/python_path_closure.py tools/repo/pg_issuer_consumer.py tools/repo/owners.toml tools/repo/dependency_contracts.toml tools/formal/verify.py docs/architecture/structure-r2-transition-r1.json mise.toml; do
               [[ -f "$rel" && ! -L "$rel" ]] || return 1
               entry="$(git --no-replace-objects ls-tree HEAD -- "$rel")" || return 1
               [[ "$entry" =~ ^100(644|755)\ blob\ [[:xdigit:]]{40,64}[[:space:]] ]] || return 1
@@ -136,7 +136,7 @@ jobs:
           # exact Formal source, the source-bound Harness adapter, or root
           # Formal task wiring can append formal:verify.
           # Reuse the same native validator as the repository regression tests.
-          python3 - "$owners_file" "$tasks_file" "$RUNNER_TEMP/ordivon-convergence-plan.json" <<'PY'
+          python3 - "$owners_file" "$tasks_file" "$RUNNER_TEMP/ordivon-convergence-plan.json" "${base:-}" "${head:-}" <<'PY'
           import json
           import sys
           from pathlib import Path
@@ -151,13 +151,12 @@ jobs:
           selected = read_selection(sys.argv[1])
           requested = read_selection(sys.argv[2])
           plan_path = Path(sys.argv[3])
-          changed_paths = (
-              json.loads(plan_path.read_text(encoding="utf-8"))["changedPaths"]
-              if plan_path.is_file() else []
-          )
+          plan = json.loads(plan_path.read_text(encoding="utf-8")) if plan_path.is_file() else {}
+          changed_paths = plan.get("changedPaths", [])
           try:
               convergence_plan.validate_queue_task_selection(
-                  selected, requested, changed_paths
+                  selected, requested, changed_paths,
+                  base=sys.argv[4] if plan else None, head=sys.argv[5] if plan else None,
               )
           except ValueError as exc:
               raise SystemExit(str(exc)) from exc

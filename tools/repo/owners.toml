@@ -110,6 +110,12 @@ name = "chaoxing-autosign"
 root = "apps/chaoxing-autosign/"
 verify_task = "chaoxing:verify"
 
+# Repository-managed Study: mechanical task routing only, no domain authority.
+[[owners]]
+name = "experimental-episodes"
+root = "studies/experimental-episodes/episode-store/"
+verify_task = "experimental-episodes:verify"
+
 # Mechanical source navigation only; not a semantic Owner or proof authority.
 [[source_regions]]
 name = "formal-verification-source"

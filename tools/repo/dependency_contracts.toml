@@ -397,3 +397,37 @@ source_glob = "services/runtime/crates/ordivon-runtime-mcp/tests/pg_vertical.rs"
 allowed_fragment = "repo_root.join(\"services/harness\")"
 kind = "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
 contract_ref = "services/harness/tests/original_pg_issuer_native_fixture.py"
+
+# Existing Study consumes the public Composition package. These are exact
+# source permissions for already existing imports, not semantic authority.
+[[seams]]
+from_owner = "experimental-episodes"
+to_owner = "composition"
+source_glob = "studies/experimental-episodes/episode-store/pyproject.toml"
+allowed_fragment = "../../../packages/composition"
+kind = "PUBLIC_SOURCE_CONTRACT"
+contract_ref = "studies/experimental-episodes/episode-store/README.md"
+
+[[seams]]
+from_owner = "experimental-episodes"
+to_owner = "composition"
+source_glob = "studies/experimental-episodes/episode-store/src/ordivon_experimental_episode_store/r5c_backfill.py"
+allowed_fragment = "ordivon_composition"
+kind = "PUBLIC_PYTHON_IMPORT"
+contract_ref = "studies/experimental-episodes/episode-store/README.md"
+
+[[seams]]
+from_owner = "experimental-episodes"
+to_owner = "composition"
+source_glob = "studies/experimental-episodes/episode-store/src/ordivon_experimental_episode_store/r5c_projection.py"
+allowed_fragment = "ordivon_composition"
+kind = "PUBLIC_PYTHON_IMPORT"
+contract_ref = "studies/experimental-episodes/episode-store/README.md"
+
+[[seams]]
+from_owner = "experimental-episodes"
+to_owner = "composition"
+source_glob = "studies/experimental-episodes/episode-store/tests/test_data_product_contract.py"
+allowed_fragment = "ordivon_composition.cross_domain_binding_r3"
+kind = "TEST_ONLY_PUBLIC_PYTHON_IMPORT"
+contract_ref = "studies/experimental-episodes/episode-store/README.md"
