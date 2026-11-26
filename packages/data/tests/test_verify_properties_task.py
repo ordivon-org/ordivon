@@ -53,6 +53,15 @@ class PropertyTaskQualificationTests(unittest.TestCase):
                 "PYTEST_DISABLE_PLUGIN_AUTOLOAD",
             ):
                 env.pop(key, None)
+            # Resolve the real tool in the source owner before leaving the
+            # repository's mise configuration. CI may expose only a shim.
+            uv = Path(
+                subprocess.check_output(
+                    ["mise", "which", "uv"], cwd=OWNER, text=True
+                ).strip()
+            )
+            self.assertTrue(uv.is_file() and uv.is_absolute(), uv)
+            env["PATH"] = str(uv.parent) + os.pathsep + env["PATH"]
             # Trust only the disposable copy for this subprocess.
             env["MISE_TRUSTED_CONFIG_PATHS"] = str(root)
             for name, options, expected in (
