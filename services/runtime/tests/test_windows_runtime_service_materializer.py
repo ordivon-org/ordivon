@@ -205,3 +205,15 @@ def test_pg_materializer_requires_disabled_stopped_native_scm_until_all_acl_effe
     assert apply.index("Assert-PgServiceStagingFence $ServiceName $false") < apply.index("[IO.Directory]::CreateDirectory")
     assert apply.index("Assert-PgServiceStagingFence $ServiceName ($null -ne $service)") < apply.index("'create', $ServiceName")
     assert apply.rindex("Assert-PgServiceStagingFence $ServiceName $true") > apply.index("Set-ExactPrivateAcl $file $serviceSid $readOnly")
+
+
+def test_windows_pg_workspace_root_is_disjoint_and_operator_scoped():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "ORDIVON_PG_WORKSPACE_ROOT = $workspaceRoot" in text
+    assert "must be disjoint from the entire private ProgramData root" in text
+    assert "must not traverse files or reparse points" in text
+    assert "must be empty for cold materialization" in text
+    assert "[IO.Directory]::CreateDirectory($workspaceRoot, $workspaceAcl)" in text
+    assert "[Security.AccessControl.FileSystemRights]::ReadAttributes -bor" in text
+    assert "[Security.AccessControl.FileSystemRights]::Traverse -bor" in text
+    assert "[Security.AccessControl.InheritanceFlags]::None" in text

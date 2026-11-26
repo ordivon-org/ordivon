@@ -20,6 +20,9 @@ param(
     # PG candidate uses an operator-provisioned private env file at its final
     # path. This script never generates a DSN or migrates the old Registry.
     [string]$PostgresEnvironmentFile = '',
+    # Optional exact operator-selected interactive user SID. The provider owns
+    # per-Workspace grants; never grant this identity inherited store access.
+    [string]$InteractiveWorkspaceSid = '',
     [string]$ExpectedRuntimeSha256 = '',
     [string]$ExpectedLauncherSha256 = '',
     [string]$ExpectedPostgresEnvironmentSha256 = '',
@@ -218,6 +221,47 @@ function Set-ExactPrivateAcl(
     }
 }
 
+function Assert-PgWorkspaceRoot([string]$Path, [string]$PrivateRoot) {
+    if ($Path -notmatch '^[A-Za-z]:\\[^\\]' -or $Path.Contains('/')) {
+        throw 'PG Workspace root must be an absolute local drive directory.'
+    }
+    $full = [IO.Path]::GetFullPath($Path).TrimEnd('\')
+    if ($full -cne $Path -or $full -match '[ .]($|\\)' -or
+        $full.Substring(2).Contains(':')) {
+        throw 'PG Workspace root must use its normalized directory path.'
+    }
+    $privateFull = [IO.Path]::GetFullPath($PrivateRoot).TrimEnd('\')
+    $comparison = [StringComparison]::OrdinalIgnoreCase
+    if ($full.Equals($privateFull, $comparison) -or
+        $full.StartsWith($privateFull+'\', $comparison) -or
+        $privateFull.StartsWith($full+'\', $comparison)) {
+        throw 'PG Workspace root must be disjoint from the entire private ProgramData root.'
+    }
+    $parent = Split-Path -Path $full -Parent
+    if (-not [IO.Directory]::Exists($parent)) {
+        throw 'PG Workspace root requires an existing operator-owned parent.'
+    }
+    # Check the complete existing path, not just the leaf, before staging.
+    $cursor = $full
+    while (-not [string]::IsNullOrEmpty($cursor)) {
+        if (Test-Path -LiteralPath $cursor) {
+            $entry = Get-Item -LiteralPath $cursor -Force
+            if (-not $entry.PSIsContainer -or
+                ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+                throw 'PG Workspace root must not traverse files or reparse points.'
+            }
+        }
+        $next = Split-Path -Path $cursor -Parent
+        if ($next -eq $cursor) { break }
+        $cursor = $next
+    }
+    if ([IO.Directory]::Exists($full) -and
+        [IO.Directory]::GetFileSystemEntries($full).Length -ne 0) {
+        throw 'PG Workspace root must be empty for cold materialization.'
+    }
+    return $full
+}
+
 $runtimeSource = Resolve-ExistingFile $RuntimeBinary 'RuntimeBinary'
 $launcherSource = Resolve-ExistingFile $WindowsJobLauncher 'WindowsJobLauncher'
 $tokenSourceResolved = Resolve-ExistingFile $TokenSource 'TokenSource'
@@ -229,6 +273,9 @@ $storeRoot = Join-Path $ProgramDataRoot 'store'
 $registryRoot = Join-Path $ProgramDataRoot 'registry'
 $serviceHome = Join-Path $ProgramDataRoot 'service-home'
 $postgres = -not [string]::IsNullOrWhiteSpace($PostgresEnvironmentFile)
+$workspaceRoot = $null
+$workspaceUser = $null
+if (-not $postgres -and $InteractiveWorkspaceSid) { throw 'InteractiveWorkspaceSid requires the PG profile.' }
 $runtimeTarget = Join-Path $binRoot 'ordivon-runtime.exe'
 if ($postgres) {
     $runtimeTarget = Join-Path $binRoot 'ordivon-runtime-pg.exe'
@@ -294,7 +341,7 @@ if ($postgres) {
         $pgValues[$key] = $line.Substring($separator + 1).Trim()
     }
     foreach ($key in @('ORDIVON_PG_DSN','ORDIVON_PG_SCHEMA','ORDIVON_PG_SOURCE_SHA256',
-            'ORDIVON_PG_PRINCIPAL','ORDIVON_PG_EXECUTABLE_ROOTS_JSON')) {
+            'ORDIVON_PG_PRINCIPAL','ORDIVON_PG_EXECUTABLE_ROOTS_JSON','ORDIVON_PG_WORKSPACE_ROOT')) {
         if (-not $pgValues.ContainsKey($key) -or [string]::IsNullOrWhiteSpace($pgValues[$key])) {
             throw ('Required PG environment key missing: ' + $key)
         }
@@ -306,10 +353,18 @@ if ($postgres) {
     if ($pgValues['ORDIVON_PG_SOURCE_SHA256'] -cnotmatch '^[0-9a-f]{64}$') {
         throw 'PG source identity must be lowercase SHA-256.'
     }
+    $workspaceRoot = Assert-PgWorkspaceRoot $pgValues['ORDIVON_PG_WORKSPACE_ROOT'] $ProgramDataRoot
+    if ($InteractiveWorkspaceSid) {
+        if ($InteractiveWorkspaceSid -notmatch '^S-1-(5-21-(?:[0-9]+-){3}[0-9]+|12-1-(?:[0-9]+-){3}[0-9]+)$') {
+            throw 'InteractiveWorkspaceSid must identify one explicit account SID.'
+        }
+        $workspaceUser = [Security.Principal.SecurityIdentifier]::new($InteractiveWorkspaceSid)
+    }
     $expectedBindings = @{
         ORDIVON_PG_BIND = $Bind
         ORDIVON_NODE_ID = $NodeId
         ORDIVON_PG_STORE_ROOT = $storeRoot
+        ORDIVON_PG_WORKSPACE_ROOT = $workspaceRoot
         ORDIVON_PG_RUNNER = $launcherTarget
         ORDIVON_BEARER_TOKEN_FILE = $tokenTarget
     }
@@ -332,6 +387,8 @@ $plan = [ordered]@{
     schemaVersion = 1
     applyRequested = [bool]$Apply
     programDataRoot = $ProgramDataRoot
+    workspacePresentationRoot = $workspaceRoot
+    interactiveWorkspaceMetadataGrant = ($null -ne $workspaceUser)
     bind = $Bind
     nodeId = $NodeId
     registryBackend = $(if ($postgres) { 'postgresql' } else { 'sqlite' })
@@ -413,6 +470,7 @@ if ($null -ne $service -and $service.Status -ne [ServiceProcess.ServiceControlle
 
 if ($postgres) {
     Assert-PgCandidateCommitments
+    $null = Assert-PgWorkspaceRoot $workspaceRoot $ProgramDataRoot
 }
 $stateDirectories = @($storeRoot, $serviceHome)
 if (-not $postgres) { $stateDirectories += $registryRoot }
@@ -526,6 +584,28 @@ foreach ($directory in @($ProgramDataRoot, $binRoot, $configRoot, $secretRoot)) 
 }
 foreach ($directory in $stateDirectories) {
     Set-ExactPrivateAcl $directory $serviceSid $fullControl
+}
+if ($postgres) {
+    # The new root is distinct from all private state. Keep it empty until
+    # actual provider admission creates a Workspace and owns the leaf grant.
+    $null = Assert-PgWorkspaceRoot $workspaceRoot $ProgramDataRoot
+    $workspaceAcl = New-PrivateDirectorySecurity $serviceSid $fullControl
+    if ($null -ne $workspaceUser) {
+        $workspaceAcl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new(
+            $workspaceUser,
+            [Security.AccessControl.FileSystemRights]::ReadAttributes -bor
+                [Security.AccessControl.FileSystemRights]::Traverse -bor
+                [Security.AccessControl.FileSystemRights]::Synchronize,
+            [Security.AccessControl.InheritanceFlags]::None,
+            [Security.AccessControl.PropagationFlags]::None,
+            [Security.AccessControl.AccessControlType]::Allow))
+    }
+    if (-not [IO.Directory]::Exists($workspaceRoot)) {
+        [IO.Directory]::CreateDirectory($workspaceRoot, $workspaceAcl) | Out-Null
+    } else {
+        [IO.Directory]::SetAccessControl($workspaceRoot, $workspaceAcl)
+    }
+    $null = Assert-PgWorkspaceRoot $workspaceRoot $ProgramDataRoot
 }
 foreach ($file in @($runtimeTarget, $launcherTarget)) {
     Set-ExactPrivateAcl $file $serviceSid $readExecute

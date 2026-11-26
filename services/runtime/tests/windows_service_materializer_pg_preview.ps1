@@ -2,7 +2,8 @@
 [CmdletBinding()]
 param(
     [string]$Materializer = (Join-Path $PSScriptRoot '..\packaging\windows\materialize-ordivon-runtime-service.ps1'),
-    [switch]$NativeScm
+    [switch]$NativeScm,
+    [string]$InteractiveWorkspaceSid = ''
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -11,6 +12,7 @@ $fixture = Join-Path ([IO.Path]::GetTempPath()) ('ordivon-pg-materializer-' + [G
 [IO.Directory]::CreateDirectory($fixture) | Out-Null
 try {
     $root = Join-Path $fixture 'candidate'
+    $workspaceRoot = Join-Path $fixture 'workspaces'
     $cfg = Join-Path $root 'config\ordivon-runtime-pg.env'
     $runtime = Join-Path $fixture 'fixture-runtime.exe'
     $launcher = Join-Path $fixture 'fixture-launcher.exe'
@@ -33,13 +35,14 @@ try {
         "ORDIVON_PG_BIND=$bind",
         "ORDIVON_NODE_ID=$node",
         ('ORDIVON_PG_STORE_ROOT=' + (Join-Path $root 'pg-store')),
+        ('ORDIVON_PG_WORKSPACE_ROOT=' + $workspaceRoot),
         ('ORDIVON_PG_RUNNER=' + (Join-Path $root 'bin\ordivon-windows-pg-job-launcher.exe')),
         "ORDIVON_BEARER_TOKEN_FILE=$token"
     )
     $options = @{
         RuntimeBinary=$runtime; WindowsJobLauncher=$launcher; TokenSource=$token;
         ServiceName=$serviceName; ProgramDataRoot=$root; Bind=$bind; NodeId=$node;
-        PostgresEnvironmentFile=$cfg;
+        PostgresEnvironmentFile=$cfg; InteractiveWorkspaceSid=$InteractiveWorkspaceSid;
         ExpectedRuntimeSha256=(Get-FileHash -LiteralPath $runtime -Algorithm SHA256).Hash;
         ExpectedLauncherSha256=(Get-FileHash -LiteralPath $launcher -Algorithm SHA256).Hash;
         ExpectedPostgresEnvironmentSha256='';
@@ -62,7 +65,7 @@ try {
     $original=(Get-FileHash -LiteralPath $cfg).Hash
     $p=(& $Materializer @options | ConvertFrom-Json)
     if ($p.registryBackend -ne 'postgresql' -or $p.service.start -ne 'disabled' -or
-        $p.executionReady -ne $false -or $p.files.runtimeTarget -notlike '*ordivon-runtime-pg.exe' -or
+        $p.executionReady -ne $false -or $p.workspacePresentationRoot -ne $workspaceRoot -or $p.files.runtimeTarget -notlike '*ordivon-runtime-pg.exe' -or
         $p.files.launcherTarget -notlike '*ordivon-windows-pg-job-launcher.exe' -or
         $p.files.tokenTarget -notlike '*runtime-pg-mcp.token') { throw 'wrong PG plan' }
     if ((Get-FileHash -LiteralPath $cfg).Hash -ne $original) { throw 'preview changed env' }
@@ -83,6 +86,17 @@ try {
     $bad=@($lines | ForEach-Object { if ($_ -like 'ORDIVON_PG_STORE_ROOT=*') { 'ORDIVON_PG_STORE_ROOT=C:\wrong' } else { $_ } })
     Set-FixtureConfig $bad
     Assert-Rejected 'wrong PG store refused' 'PG environment does not bind the planned service'
+    Set-FixtureConfig @($lines | Where-Object { $_ -notlike 'ORDIVON_PG_WORKSPACE_ROOT=*' })
+    Assert-Rejected 'missing separate Workspace root refused' 'Required PG environment key missing'
+    foreach ($badRoot in @((Join-Path $root 'pg-store\workspaces'),$root,$fixture)) {
+        Set-FixtureConfig @($lines | ForEach-Object { if ($_ -like 'ORDIVON_PG_WORKSPACE_ROOT=*') { "ORDIVON_PG_WORKSPACE_ROOT=$badRoot" } else { $_ } })
+        Assert-Rejected 'private nested or ancestor Workspace root refused' 'must be disjoint'
+    }
+    Set-FixtureConfig $lines
+    [IO.Directory]::CreateDirectory($workspaceRoot) | Out-Null
+    [IO.File]::WriteAllText((Join-Path $workspaceRoot 'foreign.txt'),'fixture')
+    Assert-Rejected 'nonempty Workspace root refused' 'must be empty'
+    Remove-Item -LiteralPath $workspaceRoot -Recurse -Force
     Set-FixtureConfig $lines
     $options.TokenSource=$runtime
     Assert-Rejected 'wrong token path refused' 'PG TokenSource must be pre-provisioned'
@@ -91,9 +105,26 @@ try {
     foreach ($path in @('bin','registry','pg-store','service-home')) {
         if (Test-Path (Join-Path $root $path)) { throw "Preview mutated $path" }
     }
+    if (Test-Path -LiteralPath $workspaceRoot) { throw 'preview created Workspace root' }
     if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) { throw 'preview created service' }
     Write-Output 'PASS final no SCM/SQLite/file install side effect'
     if ($NativeScm) {
+        # Actual NTFS junction negative; the materializer must reject before
+        # applying any ACL or SCM effect. The destination is our own fixture.
+        $alias = Join-Path $fixture 'workspace-alias'
+        $aliasTarget = Join-Path $fixture 'alias-target'
+        [IO.Directory]::CreateDirectory($aliasTarget) | Out-Null
+        New-Item -ItemType Junction -Path $alias -Target $aliasTarget | Out-Null
+        try {
+            foreach ($badRoot in @($alias,(Join-Path $alias 'child'))) {
+                Set-FixtureConfig @($lines | ForEach-Object { if ($_ -like 'ORDIVON_PG_WORKSPACE_ROOT=*') { "ORDIVON_PG_WORKSPACE_ROOT=$badRoot" } else { $_ } })
+                Assert-Rejected 'Workspace junction or junction ancestor refused' 'must not traverse files or reparse points'
+            }
+        } finally {
+            [IO.Directory]::Delete($alias)
+            [IO.Directory]::Delete($aliasTarget)
+            Set-FixtureConfig $lines
+        }
         # Explicit opt-in: a disposable service, invalid fixture executables,
         # no production credentials or service identity. Never enable/start
         # the candidate except to check native refusal while disabled.
@@ -107,6 +138,21 @@ try {
                 throw 'SCM staging not disabled/stopped'
             }
             Write-Output 'PASS native SCM applied disabled/stopped'
+            if (-not [IO.Directory]::Exists($workspaceRoot)) { throw 'separate Workspace root absent' }
+            $acl = Get-Acl -LiteralPath $workspaceRoot
+            if (-not $acl.AreAccessRulesProtected) { throw 'Workspace root inherits uncontrolled ACL' }
+            if ($InteractiveWorkspaceSid) {
+                $sid = [Security.Principal.SecurityIdentifier]::new($InteractiveWorkspaceSid)
+                $rules = @($acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]) | Where-Object { $_.IdentityReference -eq $sid })
+                $expected = [Security.AccessControl.FileSystemRights]::ReadAttributes -bor [Security.AccessControl.FileSystemRights]::Traverse -bor [Security.AccessControl.FileSystemRights]::Synchronize
+                if ($rules.Count -ne 1 -or $rules[0].FileSystemRights -ne $expected -or $rules[0].InheritanceFlags -ne 'None') {
+                    throw 'interactive Workspace metadata-only ACL differs'
+                }
+                $privateRules = @((Get-Acl -LiteralPath (Join-Path $root 'pg-store')).GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]) | Where-Object { $_.IdentityReference -eq $sid })
+                if ($privateRules.Count -ne 0) { throw 'interactive SID appeared in private PG store ACL' }
+                Write-Output 'PASS exact metadata-only Workspace root ACL; private PG store unchanged'
+            }
+
             $startOutput = & $sc start $serviceName 2>&1 | Out-String
             if ($LASTEXITCODE -ne 1058) { throw "Expected native disabled start refusal 1058, got $LASTEXITCODE" }
             Write-Output 'PASS native SCM refused start (1058)'
