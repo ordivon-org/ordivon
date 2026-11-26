@@ -19,7 +19,22 @@ This is a **single-purpose task context method**. It does not select or trigger 
    message cursor but the Agent needs **one new change**, use
    `attention.delta` from a genuinely observed Attention change-sequence
    baseline. For `eventKind=message`, fetch the exact `sourceRef` with
-   `message.get`. This direct-message path does **not** consume the old Topic
+   `message.get`. For a directed `message_relation` event with
+   `contextRef=mentions`, reason `mentioned`, and the exact current ActorRef,
+   the native relation identity is `sourceMessageRef:mentions:targetActorRef`.
+   Remove only the exact anchored suffix `":mentions:" + actorRef`; never
+   split an arbitrary colon-delimited reference or guess an ActorRef. Read the
+   recovered message and confirm its Topic matches `navigationRef`; then use
+   `message.relation.list` (outgoing, mentions) to verify the exact source,
+   target and `changeSequence`, following bounded pagination if needed.
+   If either read fails, the suffix/identity/Topic disagrees, or the relation
+   is not proven, keep the event UNKNOWN and use the original scoped navigation
+   or ask the owner; do not acknowledge it as consumed. Other relation kinds
+   require their own qualified source identity, not this mention shortcut.
+   For directed handoffs, post once and add the explicit native mentions
+   relation to the actual recipient; prose @mentions alone do not route
+   Attention. Exact relation replay is idempotent, not a second assignment.
+   This direct-message path does **not** consume the old Topic
    history. Do not substitute a Topic message sequence for an Attention
    change sequence; keep the old Topic cursor until its messages have been
    processed. Acknowledge only Attention events/pages actually consumed. Never

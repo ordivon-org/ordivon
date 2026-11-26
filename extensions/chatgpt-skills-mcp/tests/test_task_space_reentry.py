@@ -36,6 +36,8 @@ def test_task_space_reentry_materializes_bounded_fenced_guidance():
     for clause in (
         "work.get", "topic.resume", "attention.reentry", "UNKNOWN",
         "authority", "not automatic", "source",
+        "message_relation", "contextRef=mentions", "exact anchored suffix",
+        "message.relation.list", "changeSequence", "do not acknowledge",
     ):
         assert clause.lower() in skill.lower(), clause
     ref = catalog.read_text(
