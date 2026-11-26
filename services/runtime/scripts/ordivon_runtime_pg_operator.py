@@ -380,6 +380,44 @@ def verified_live_service_executable(args: argparse.Namespace) -> dict[str, Any]
     return image
 
 
+def release_artifact_identity(records: object) -> dict[str, tuple[str, int, int, str]]:
+    """Exact path-independent identity; duplicate records never collapse into a set."""
+    if not isinstance(records, list):
+        raise RuntimeError("release artifact inventory is not a list")
+    result = {}
+    for entry in records:
+        if not isinstance(entry, dict):
+            raise RuntimeError("invalid release artifact record")
+        name, kind = entry.get("name"), entry.get("kind")
+        mode, size, checksum = entry.get("mode"), entry.get("bytes"), entry.get("digest")
+        if (not isinstance(name, str) or not name or name in result
+                or not isinstance(kind, str) or type(mode) is not int
+                or type(size) is not int or size < 0
+                or not isinstance(checksum, str) or not DIGEST.fullmatch(checksum)):
+            raise RuntimeError("invalid or duplicate release artifact identity")
+        result[name] = (kind, mode, size, checksum)
+    return result
+
+
+def committed_candidate_identity(
+    args: argparse.Namespace, manifest_digest: str,
+) -> dict[str, tuple[str, int, int, str]]:
+    """Derive expected bytes from the same manifest buffer whose digest is approved."""
+    raw = args.candidate_manifest.read_bytes()
+    if digest(raw) != manifest_digest:
+        raise RuntimeError("committed candidate manifest digest changed")
+    manifest = json.loads(raw)
+    identity = release_artifact_identity(manifest.get("artifacts"))
+    specs = DEPLOY["release_artifact_specs"](args)
+    if set(identity) != {str(spec["name"]) for spec in specs}:
+        raise RuntimeError("committed candidate artifact inventory changed")
+    for spec in specs:
+        kind, mode, _, _ = identity[str(spec["name"])]
+        if kind != spec["kind"] or mode != int(spec["mode"]):
+            raise RuntimeError("committed candidate artifact profile changed")
+    return identity
+
+
 def physical_preflight(args: argparse.Namespace, effect: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     require_complete_native_release(args)
     # Full candidate manifest/ref/installed binary checks are the SAME
@@ -573,6 +611,7 @@ def operator_fenced_install(
 ) -> dict[str, Any]:
     """One immutable physical install under PG admission and OS locks."""
     specs, candidate_summary = physical_preflight(args, bound)
+    expected = committed_candidate_identity(args, bound["candidateManifestDigest"])
     receipt = args.receipt_root / f"effect-{args.effect_id}"
     previous = receipt / "previous"
     previous.mkdir(parents=True, exist_ok=False)
@@ -640,6 +679,14 @@ def operator_fenced_install(
                     args.install_dir / f"{name}.next",
                     mode=int(spec["mode"]),
                 )
+            staged = [
+                DEPLOY["artifact_description"](
+                    args.install_dir / (str(spec["name"]) + ".next"), spec,
+                )
+                for spec in specs
+            ]
+            if release_artifact_identity(staged) != expected:
+                raise RuntimeError("staged artifacts differ from committed candidate manifest")
             # Once the first rename is attempted, a partial physical cutover
             # is possible. The rollback path must cover failures *inside*
             # this loop, not only failures after the last rename.
@@ -653,10 +700,7 @@ def operator_fenced_install(
                 DEPLOY["artifact_description"](args.install_dir / str(spec["name"]), spec)
                 for spec in specs
             ]
-            observed = {(item["name"],item["digest"]) for item in installed}
-            expected = {(item["name"],item["digest"]) for item in
-                        DEPLOY["candidate_artifacts"](args)}
-            if observed != expected:
+            if release_artifact_identity(installed) != expected:
                 raise RuntimeError("installed artifacts differ from immutable candidate")
             result = {
                 "schemaVersion": 2,
@@ -744,28 +788,14 @@ def finalize_receipted_release(
             or not DIGEST.fullmatch(probe["toolCatalogDigest"])
         ):
             raise RuntimeError("RECONCILIATION_REQUIRED: no qualified deployed MCP receipt")
-        expected = {
-            (item["name"],item["digest"])
-            for item in DEPLOY["candidate_artifacts"](args)
-        }
-        installed = result.get("installed")
-        if not isinstance(installed,list) or not all(
-            isinstance(entry,dict)
-            and isinstance(entry.get("name"),str)
-            and isinstance(entry.get("digest"),str)
-            for entry in installed
-        ):
-            raise RuntimeError("RECONCILIATION_REQUIRED: installed artifact attestation absent")
-        attested={(entry["name"],entry["digest"]) for entry in installed}
-        actual={
-            (item["name"],item["digest"])
-            for item in [
-                DEPLOY["artifact_description"](
-                    args.install_dir / spec["name"],spec
-                )
-                for spec in DEPLOY["release_artifact_specs"](args)
-            ]
-        }
+        expected = committed_candidate_identity(args, request["candidateManifestDigest"])
+        attested = release_artifact_identity(result.get("installed"))
+        actual = release_artifact_identity([
+            DEPLOY["artifact_description"](
+                args.install_dir / spec["name"], spec,
+            )
+            for spec in DEPLOY["release_artifact_specs"](args)
+        ])
         if expected != attested or expected != actual:
             raise RuntimeError("RECONCILIATION_REQUIRED: installed bytes or receipt differ from candidate")
         live=pg_mcp_readiness(args)
