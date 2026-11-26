@@ -66,6 +66,17 @@ def initialize_registry(database: Path) -> None:
         )
 
 
+def add_recovery_tuple_columns(connection: sqlite3.Connection) -> None:
+    """Permissive fixture for partial or malformed historical evidence."""
+    for column, sql_type in (
+        ("recovery_required", "INTEGER"),
+        ("recovery_reason_code", "TEXT"),
+        ("recovery_evidence_digest", "TEXT"),
+        ("recovery_observed_at_ms", "INTEGER"),
+    ):
+        connection.execute(f"ALTER TABLE attempts ADD COLUMN {column} {sql_type}")
+
+
 def add_job(
     connection: sqlite3.Connection,
     job_id: str,
@@ -280,8 +291,8 @@ class RuntimeArchiveInspectTests(unittest.TestCase):
             initialize_registry(database)
             with closing(sqlite3.connect(database)) as connection:
                 add_job(connection, "job:v5")
-                connection.execute("ALTER TABLE attempts ADD COLUMN recovery_required INTEGER")
-                connection.execute("UPDATE attempts SET recovery_required=0")
+                add_recovery_tuple_columns(connection)
+                connection.execute("UPDATE attempts SET recovery_required=0,recovery_reason_code='fixture',recovery_evidence_digest='digest',recovery_observed_at_ms=0")
                 connection.execute("DROP TABLE attempt_conditions")
                 connection.execute("UPDATE schema_migrations SET version=5")
                 connection.commit()
@@ -308,11 +319,11 @@ class RuntimeArchiveInspectTests(unittest.TestCase):
                                 ("attempt:job:" + suffix, "recovery_required", status, "fixture", "sha256:" + "a" * 64),
                             )
                     else:
-                        connection.execute("ALTER TABLE attempts ADD COLUMN recovery_required INTEGER")
+                        add_recovery_tuple_columns(connection)
                         connection.execute("UPDATE attempts SET recovery_required=1 WHERE job_id='job:required'")
                         # Capability inspection can encounter malformed historical files.
                         connection.execute("UPDATE attempts SET recovery_required=2 WHERE job_id='job:unknown'")
-                        connection.execute("UPDATE attempts SET recovery_required=0 WHERE job_id='job:clear'")
+                        connection.execute("UPDATE attempts SET recovery_required=0,recovery_reason_code='fixture',recovery_evidence_digest='digest',recovery_observed_at_ms=0 WHERE job_id='job:clear'")
                         connection.execute("DROP TABLE attempt_conditions")
                     connection.execute("UPDATE schema_migrations SET version=?", (migration,))
                     connection.commit()
@@ -349,7 +360,7 @@ class RuntimeArchiveInspectTests(unittest.TestCase):
                             ("attempt:older", "recovery_required", "true", "fixture", "sha256:" + "a" * 64),
                         )
                     else:
-                        connection.execute("ALTER TABLE attempts ADD COLUMN recovery_required INTEGER")
+                        add_recovery_tuple_columns(connection)
                         connection.execute("UPDATE attempts SET recovery_required=1 WHERE attempt_id='attempt:older'")
                         connection.execute("DROP TABLE attempt_conditions")
                     connection.execute("UPDATE schema_migrations SET version=?", (migration,))
@@ -361,6 +372,50 @@ class RuntimeArchiveInspectTests(unittest.TestCase):
                 self.assertEqual(report["summary"]["eligibleClosure"]["jobs"], 0)
                 self.assertEqual(report["summary"]["eligibleClosure"]["attempts"], 0)
                 self.assertEqual(report["eligibleSample"], [])
+
+    def test_partial_recovery_tuple_is_not_clear(self) -> None:
+        for migration in (5, 6):
+            with self.subTest(migration=migration), tempfile.TemporaryDirectory() as directory:
+                database = Path(directory) / "registry.sqlite3"
+                initialize_registry(database)
+                with closing(sqlite3.connect(database)) as connection:
+                    add_job(connection, "job:null-flag")
+                    add_job(connection, "job:partial-false")
+                    add_job(connection, "job:absent")
+                    add_recovery_tuple_columns(connection)
+                    connection.execute(
+                        "UPDATE attempts SET recovery_reason_code='fixture' "
+                        "WHERE job_id='job:null-flag'"
+                    )
+                    connection.execute(
+                        "UPDATE attempts SET recovery_required=0 "
+                        "WHERE job_id='job:partial-false'"
+                    )
+                    connection.execute("DROP TABLE attempt_conditions")
+                    connection.execute("UPDATE schema_migrations SET version=?", (migration,))
+                    connection.commit()
+                completed = self.run_archive(database)
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+                report = json.loads(completed.stdout)
+                self.assertEqual(self.classifications(report), {
+                    "eligible": 1, "recovery_required_or_unknown": 2,
+                })
+                self.assertEqual([row["jobId"] for row in report["eligibleSample"]], ["job:absent"])
+
+    def test_retired_condition_schema_requires_complete_tuple_capability(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "registry.sqlite3"
+            initialize_registry(database)
+            with closing(sqlite3.connect(database)) as connection:
+                add_job(connection, "job:missing-evidence")
+                connection.execute("ALTER TABLE attempts ADD COLUMN recovery_required INTEGER")
+                connection.execute("DROP TABLE attempt_conditions")
+                connection.execute("UPDATE schema_migrations SET version=5")
+                connection.commit()
+            completed = self.run_archive(database)
+            self.assertEqual(completed.returncode, 1)
+            for column in ("recovery_reason_code", "recovery_evidence_digest", "recovery_observed_at_ms"):
+                self.assertIn("column:attempts." + column, completed.stderr)
 
     def test_retired_condition_schema_requires_recovery_column(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

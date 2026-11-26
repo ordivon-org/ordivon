@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from artifact_core.contracts import FileCommitment
+from artifact_core.json_validation import load_json
 
 Producer = Callable[[Path], tuple[dict[str, str], dict[str, Any]]]
 
@@ -24,9 +25,7 @@ def expected_file(value: dict[str, Any], label: str) -> Path:
     unknown = set(value) - {"path", "sha256", "name", "size"}
     if unknown:
         raise RuntimeError(f"{label} contains unsupported fields: {sorted(unknown)}")
-    if not isinstance(value.get("path"), str) or not isinstance(
-        value.get("sha256"), str
-    ):
+    if not isinstance(value.get("path"), str) or not isinstance(value.get("sha256"), str):
         raise RuntimeError(f"{label}.path and sha256 are required")
     path = Path(value["path"]).resolve()
     actual = operation_file_fact(path)
@@ -37,6 +36,21 @@ def expected_file(value: dict[str, Any], label: str) -> Path:
     if value.get("size") is not None and value["size"] != actual["size"]:
         raise RuntimeError(f"{label} size drift")
     return path
+
+
+def _same_json_value(left: object, right: object) -> bool:
+    """Type-sensitive JSON identity; object member order is not semantic."""
+    if type(left) is not type(right):
+        return False
+    if isinstance(left, dict):
+        return left.keys() == right.keys() and all(
+            _same_json_value(value, right[key]) for key, value in left.items()
+        )
+    if isinstance(left, list):
+        return len(left) == len(right) and all(
+            _same_json_value(a, b) for a, b in zip(left, right, strict=True)
+        )
+    return left == right
 
 
 def operation_key(operation_kind: str, operation_id: str) -> str:
@@ -97,35 +111,35 @@ class ReceiptFence:
         inputs: dict[str, Any],
     ) -> None:
         if (
-            receipt.get("operationKind") != operation_kind
+            not isinstance(receipt, dict)
+            or type(receipt.get("schemaVersion")) is not int
+            or receipt["schemaVersion"] != 1
+            or receipt.get("kind") != "ordivon.artifact-operation-receipt"
+            or receipt.get("operationKind") != operation_kind
             or receipt.get("operationId") != operation_id
         ):
             raise RuntimeError("committed operation receipt identity mismatch")
-        if receipt.get("inputs") != inputs:
-            raise RuntimeError(
-                "operationId reuse attempted with different immutable inputs"
-            )
+        if not _same_json_value(receipt.get("inputs"), inputs):
+            raise RuntimeError("operationId reuse attempted with different immutable inputs")
         outputs = receipt.get("outputs")
         roles = receipt.get("roles")
         if not isinstance(outputs, dict) or not outputs:
             raise RuntimeError("committed operation receipt has no outputs")
         if not isinstance(roles, dict) or not roles:
             raise RuntimeError("committed operation receipt has no roles")
-        if (
-            any(not isinstance(role, str) or not role for role in roles)
-            or set(roles.values()) != set(outputs)
-        ):
+        if any(not isinstance(role, str) or not role for role in roles) or set(
+            roles.values()
+        ) != set(outputs):
             raise RuntimeError("committed receipt role/output binding mismatch")
         for role, relative in roles.items():
             _committed_output_path(opdir, relative, f"receipt role {role}")
         for relative, expected in outputs.items():
             if not isinstance(expected, dict):
                 raise RuntimeError("committed receipt output is not a file fact")
-            actual = operation_file_fact(
-                _committed_output_path(opdir, relative, "receipt output")
-            )
+            actual = operation_file_fact(_committed_output_path(opdir, relative, "receipt output"))
             if (
                 actual["sha256"] != expected.get("sha256")
+                or type(expected.get("size")) is not int
                 or actual["size"] != expected.get("size")
             ):
                 raise RuntimeError(f"committed operation output drift: {relative}")
@@ -147,10 +161,11 @@ class ReceiptFence:
             fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
             receipt_path = final / "activity-receipt.json"
             if receipt_path.is_file():
-                receipt = json.loads(receipt_path.read_text())
-                self._verify_receipt(
-                    final, receipt, operation_kind, operation_id, inputs
-                )
+                try:
+                    receipt = load_json(receipt_path)
+                except (ValueError, UnicodeError, OSError) as error:
+                    raise RuntimeError("committed operation receipt unreadable") from error
+                self._verify_receipt(final, receipt, operation_kind, operation_id, inputs)
                 return self._receipt_view(final, receipt, replayed=True)
 
             if final.exists():
@@ -162,9 +177,7 @@ class ReceiptFence:
                 normalized_roles: dict[str, str] = {}
                 for role, relative in roles.items():
                     if not isinstance(role, str) or not role:
-                        raise RuntimeError(
-                            "operation output role must be a non-empty string"
-                        )
+                        raise RuntimeError("operation output role must be a non-empty string")
                     output_path = _committed_output_path(
                         final, relative, f"operation output role {role}"
                     )
@@ -189,7 +202,7 @@ class ReceiptFence:
                 temporary = final / ".activity-receipt.json.tmp"
                 with temporary.open("w") as handle:
                     handle.write(
-                        json.dumps(receipt, indent=2, sort_keys=True) + "\n"
+                        json.dumps(receipt, indent=2, sort_keys=True, allow_nan=False) + "\n"
                     )
                     handle.flush()
                     os.fsync(handle.fileno())
