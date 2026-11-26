@@ -1829,6 +1829,100 @@ mod durable_closing_intent_tests {
         }
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn private_git_independent_recipient_survives_exact_normal_close() {
+        let (tmp, cfg, record, original_digest) = source_workspace("ws-private-recipient");
+        let source = Path::new(&record.source_repo);
+        let workspace = Path::new(&record.workspace_path);
+        let private = cfg.workspace_private_git_path(&record.workspace_id);
+        fs::create_dir_all(private.parent().unwrap()).unwrap();
+        let private_git = |args: &[&str]| {
+            workspace_git_command()
+                .arg("--git-dir")
+                .arg(&private)
+                .arg("--work-tree")
+                .arg(workspace)
+                .args(args)
+                .output()
+                .unwrap()
+        };
+        let run = |args: &[&str]| {
+            let result = private_git(args);
+            assert!(result.status.success(), "{args:?}: {}", String::from_utf8_lossy(&result.stderr));
+            String::from_utf8(result.stdout).unwrap().trim().to_owned()
+        };
+        assert!(workspace_git_command().args(["init", "--quiet", "--bare"])
+            .arg(&private).status().unwrap().success());
+        run(&["fetch", "--no-tags", "--depth=1", source.to_str().unwrap(), &record.source_revision]);
+        run(&["update-ref", "refs/heads/agent-work", &record.source_revision]);
+        run(&["symbolic-ref", "HEAD", "refs/heads/agent-work"]);
+        run(&["read-tree", "HEAD"]);
+        let payload = b"independent recipient proof\nunique committed bytes\n";
+        fs::write(workspace.join("tracked.txt"), payload).unwrap();
+        run(&["add", "tracked.txt"]);
+        run(&["-c", "user.name=Private Witness", "-c", "user.email=witness@example.invalid",
+            "commit", "-qm", "unique content"]);
+        let candidate = run(&["rev-parse", "HEAD"]);
+        let tree = run(&["rev-parse", "HEAD^{tree}"]);
+        assert_ne!(candidate, record.source_revision);
+        let changed_digest = workspace_source_state_digest_at(workspace).unwrap();
+        assert_ne!(changed_digest, original_digest);
+        let mut request = WorkspaceCloseRequest {
+            schema_version: 1,
+            workspace_id: record.workspace_id.clone(),
+            expected_source_state_digest: Some(changed_digest.clone()),
+            force: true,
+            consumer_released: true,
+        };
+        // A caller's consumerReleased assertion and a valid linked-source CAS
+        // are NOT independent proof that a private-only commit was delivered.
+        assert_eq!(remove_git_workspace(&cfg, &request).unwrap_err().code,
+            UniversalExecErrorCode::WorkspaceDirty);
+
+        // A different Git object store is the actual recipient. Fetch by exact
+        // admitted branch into its own ref; never give it an alternate store.
+        let recipient = tmp.path().join("independent-recipient");
+        fs::create_dir(&recipient).unwrap();
+        git(&recipient, &["init", "--bare", "-q"]);
+        git(&recipient, &["fetch", "--no-tags", "--update-shallow",
+            private.to_str().unwrap(), "refs/heads/agent-work:refs/heads/delivered"]);
+        let readback = || {
+            assert_eq!(git(&recipient, &["rev-parse", "refs/heads/delivered"]), candidate);
+            assert_eq!(git(&recipient, &["rev-parse", "refs/heads/delivered^{tree}"]), tree);
+            let blob = workspace_git_command().arg("-C").arg(&recipient)
+                .args(["cat-file", "blob", "refs/heads/delivered:tracked.txt"]).output().unwrap();
+            assert!(blob.status.success());
+            assert_eq!(blob.stdout, payload);
+            assert!(!recipient.join("objects/info/alternates").exists());
+        };
+        readback();
+        // Delivery itself is not a destructive release authorization.
+        assert_eq!(remove_git_workspace(&cfg, &request).unwrap_err().code,
+            UniversalExecErrorCode::WorkspaceDirty);
+        assert!(!private_git(&["update-ref", "refs/heads/agent-work",
+            &record.source_revision, &record.source_revision]).status.success());
+        assert_eq!(run(&["rev-parse", "HEAD"]), candidate);
+
+        // In this disposable fixture only, the owner explicitly disposes the
+        // exact accepted candidate after independent readback. Production
+        // callers must obtain their own independent recipient and disposition.
+        run(&["update-ref", "refs/heads/agent-work", &record.source_revision, &candidate]);
+        run(&["read-tree", "--reset", "-u", "HEAD"]);
+        assert_eq!(workspace_source_state_digest_at(workspace).unwrap(), original_digest);
+        assert!(!workspace_private_git_has_outputs(&private, &record.source_revision).unwrap());
+        request.force = false;
+        assert_eq!(remove_git_workspace(&cfg, &request).unwrap_err().code,
+            UniversalExecErrorCode::RevisionMismatch);
+        request.expected_source_state_digest = Some(original_digest);
+        assert!(remove_git_workspace(&cfg, &request).unwrap().removed);
+        assert!(!private.exists());
+        assert!(!workspace.exists());
+        assert_eq!(git(source, &["rev-parse", "HEAD"]), record.source_revision);
+        // Independent recipient must actually remain readable AFTER deletion.
+        readback();
+    }
+
     fn source_workspace(
         id: &str,
     ) -> (tempfile::TempDir, UniversalExecutorConfig, WorkspaceRecord, String) {
