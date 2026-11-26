@@ -563,13 +563,15 @@ def test_windows_explicit_empty_canonical_contexts_never_resurrect_legacy_author
             owner_response={
                 "schemaVersion": 1,
                 "node": {"nodeId": "windows-pg", "platform": "windows", "native": True},
-                "targets": [{
-                    "target": "windows_native",
-                    "configured": True,
-                    "available": available,
-                    "windowsContexts": [],
-                    "windowsAuthorities": ["active_user"],
-                }],
+                "targets": [
+                    {
+                        "target": "windows_native",
+                        "configured": True,
+                        "available": available,
+                        "windowsContexts": [],
+                        "windowsAuthorities": ["active_user"],
+                    }
+                ],
             },
         )
         assert descriptor.contexts == []
@@ -587,15 +589,47 @@ def test_windows_malformed_canonical_contexts_are_unknown_not_legacy_fallback():
             owner_response={
                 "schemaVersion": 1,
                 "node": {"nodeId": "windows-pg", "platform": "windows", "native": True},
-                "targets": [{
-                    "target": "windows_native",
-                    "configured": True,
-                    "available": True,
-                    "windowsContexts": contexts,
-                    "windowsAuthorities": ["limited", "active_user"],
-                }],
+                "targets": [
+                    {
+                        "target": "windows_native",
+                        "configured": True,
+                        "available": True,
+                        "windowsContexts": contexts,
+                        "windowsAuthorities": ["limited", "active_user"],
+                    }
+                ],
             },
         )
         assert descriptor.contexts == []
         assert descriptor.available is False
         assert descriptor.readiness_state == "unknown"
+
+
+def test_windows_canonical_context_is_independent_of_legacy_alias_values():
+    # Change only the compatibility DP; the canonical Owner observation,
+    # node and readiness must remain identical across the selected domain.
+    route = default_routes()["execution.windows"]
+    context = {"identity": "service", "privilege": "limited"}
+    for canonical, available in (([context], True), ([], False), ([], True)):
+        target = {
+            "target": "windows_native",
+            "configured": True,
+            "available": available,
+            "windowsContexts": canonical,
+        }
+        response = {
+            "schemaVersion": 1,
+            "node": {"nodeId": "windows-pg", "platform": "windows", "native": True},
+            "targets": [target],
+        }
+        reference = project_execution_capability(
+            route, configured_at_gateway=True, owner_response=response
+        )
+        for aliases in ([], ["limited"], ["active_user"], ["elevated", "active_user"]):
+            changed = {**response, "targets": [{**target, "windowsAuthorities": aliases}]}
+            observed = project_execution_capability(
+                route, configured_at_gateway=True, owner_response=changed
+            )
+            assert observed == reference
+        # Explicit absence is a separate legacy representation domain.
+        assert reference.contexts == canonical
