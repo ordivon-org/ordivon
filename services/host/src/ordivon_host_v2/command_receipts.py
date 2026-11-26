@@ -10,23 +10,24 @@ from .errors import ConflictError
 # Caller-owned Host PostgreSQL transaction; no independent connection or writer.
 
 
-def claim_command_receipt(
+def try_claim_command_receipt(
     conn: psycopg.Connection[dict[str, Any]],
     client_request_id: str,
     operation: str,
     request_digest: str,
-) -> dict[str, Any] | None:
+) -> bool:
+    """One native admission arbiter, shared by all receipt representations."""
     claimed = conn.execute(
         "INSERT INTO command_receipts(client_request_id,operation,request_digest,response) "
         "VALUES (%s,%s,%s,NULL) ON CONFLICT (client_request_id) DO NOTHING RETURNING client_request_id",
         (client_request_id, operation, request_digest),
     ).fetchone()
-    if claimed is not None:
-        return None
-    row = conn.execute(
-        "SELECT operation,request_digest,response FROM command_receipts WHERE client_request_id=%s",
-        (client_request_id,),
-    ).fetchone()
+    return claimed is not None
+
+
+def validate_command_receipt_replay(
+    row: dict[str, Any] | None, operation: str, request_digest: str
+) -> dict[str, Any]:
     if row is None:
         raise RuntimeError("idempotency claim disappeared")
     if row["operation"] != operation or row["request_digest"] != request_digest:
@@ -36,9 +37,22 @@ def claim_command_receipt(
         raise RuntimeError("committed idempotency claim is missing its response")
     if not isinstance(response, dict):
         raise RuntimeError("idempotency response is not a PostgreSQL jsonb object")
-    replay = dict(response)
-    replay["admission"] = "existing"
-    return replay
+    return {**response, "admission": "existing"}
+
+
+def claim_command_receipt(
+    conn: psycopg.Connection[dict[str, Any]],
+    client_request_id: str,
+    operation: str,
+    request_digest: str,
+) -> dict[str, Any] | None:
+    if try_claim_command_receipt(conn, client_request_id, operation, request_digest):
+        return None
+    row = conn.execute(
+        "SELECT operation,request_digest,response FROM command_receipts WHERE client_request_id=%s",
+        (client_request_id,),
+    ).fetchone()
+    return validate_command_receipt_replay(row, operation, request_digest)
 
 
 def record_command_receipt(

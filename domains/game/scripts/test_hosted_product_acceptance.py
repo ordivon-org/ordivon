@@ -23,13 +23,15 @@ class ArtifactContract(unittest.TestCase):
         self.output.mkdir()
 
     def fixture(self, *, bad_source=False, bad_manifest=False, extra=False,
-                link=False, traversal=False, missing_template=False, duplicate=False):
+                link=False, traversal=False, missing_template=False, duplicate=False,
+                fields_override=None, native_name=None, payload=b"fixture", reverse=False,
+                substituted_payload=None, windows_payload=b"fixture-windows"):
         native = io.BytesIO()
         with tarfile.open(fileobj=native, mode="w:gz") as t:
             for name in ("room-encounter.x86_64", "DIALOGUE_MANAGER_LICENSE.txt",
                          "KENNEY_ASSETS_LICENSE.txt"):
-                data = b"fixture"
-                item = tarfile.TarInfo(name)
+                data = payload if name.endswith("x86_64") else b"fixture"
+                item = tarfile.TarInfo(native_name if native_name is not None and name.endswith("x86_64") else name)
                 item.size = len(data)
                 if link and name.endswith("x86_64"):
                     item.type, item.linkname, item.size = tarfile.SYMTYPE, "/tmp/other", 0
@@ -45,7 +47,8 @@ class ArtifactContract(unittest.TestCase):
                       WINDOWS_SCOPE="export_only")
         if missing_template:
             del fields["TEMPLATE_WINDOWS_SHA256"]
-        entries = {linux: native.getvalue(), windows: b"fixture-windows",
+        fields.update(fields_override or {})
+        entries = {linux: native.getvalue(), windows: windows_payload,
                    receipt: "".join(f"{k}={v}\n" for k,v in fields.items()).encode()}
         sums = "".join(f"{hashlib.sha256(data).hexdigest()}  {name}\n" for name,data in entries.items())
         if bad_manifest:
@@ -53,11 +56,13 @@ class ArtifactContract(unittest.TestCase):
         if duplicate:
             sums += sums.splitlines()[0] + "\n"
         entries[manifest] = sums.encode()
+        if substituted_payload is not None:
+            entries[windows] = substituted_payload
         entries[ready] = f"COMPLETE_SOURCE_COMMIT={'f'*40 if bad_source else SOURCE}\n".encode()
         if extra:
             entries["../outside"] = b"unexpected"
         with zipfile.ZipFile(self.zip, "w") as z:
-            for name,data in entries.items():
+            for name,data in (reversed(list(entries.items())) if reverse else entries.items()):
                 z.writestr(name,data)
 
     def verify(self, sha=None):
