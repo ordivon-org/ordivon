@@ -7,6 +7,7 @@ from typing import Any
 import psycopg
 
 from .canonical_json import canonical_bytes
+from .work_receipt_fence import legacy_receipt_fence_present
 from .work_receipt_roots import (
     ROOT_BATCH_SIZE,
     hydrate_native_work_receipt,
@@ -39,16 +40,7 @@ def expand_work_receipts_and_fence(
 
 
 def _expand_locked(conn: psycopg.Connection[dict[str, Any]]) -> int:
-    guard = conn.execute(
-        "SELECT contype='c' AND convalidated AND pg_get_expr(conbin,conrelid) = "
-        "'((response ->> ''kind''::text) IS DISTINCT FROM "
-        "''ordivon.host-work-receipt-ref-v1''::text)' AS valid "
-        "FROM pg_constraint WHERE conrelid='command_receipts'::regclass "
-        "AND conname='command_receipt_legacy_only'"
-    ).fetchone()
-    if guard is not None:
-        if guard["valid"] is not True:
-            raise RuntimeError("existing legacy-only receipt fence differs")
+    if legacy_receipt_fence_present(conn):
         remaining = conn.execute(
             "SELECT EXISTS (SELECT 1 FROM command_receipts "
             "WHERE receipt_work_ref IS NOT NULL OR receipt_work_revision IS NOT NULL "
@@ -61,6 +53,8 @@ def _expand_locked(conn: psycopg.Connection[dict[str, Any]]) -> int:
     count = 0
     keys: list[str] = []
     responses: list[str] = []
+    operations: list[str] = []
+    digests: list[str] = []
     payload_bytes = 0
     with native_work_receipt_rows(conn, audit=False) as cursor:
         for row in cursor:
@@ -70,13 +64,15 @@ def _expand_locked(conn: psycopg.Connection[dict[str, Any]]) -> int:
             if keys and (
                 len(keys) >= ROOT_BATCH_SIZE or payload_bytes + len(payload) > _UPDATE_BATCH_BYTES
             ):
-                count += _update_batch(conn, keys, responses)
-                keys, responses, payload_bytes = [], [], 0
+                count += _update_batch(conn, keys, responses, operations, digests)
+                keys, responses, operations, digests, payload_bytes = [], [], [], [], 0
             keys.append(row["client_request_id"])
             responses.append(payload.decode("utf-8"))
+            operations.append(row["operation"])
+            digests.append(row["request_digest"])
             payload_bytes += len(payload)
         if keys:
-            count += _update_batch(conn, keys, responses)
+            count += _update_batch(conn, keys, responses, operations, digests)
     conn.execute(
         "ALTER TABLE command_receipts ADD CONSTRAINT command_receipt_legacy_only "
         "CHECK (response->>'kind' IS DISTINCT FROM 'ordivon.host-work-receipt-ref-v1')"
@@ -85,7 +81,11 @@ def _expand_locked(conn: psycopg.Connection[dict[str, Any]]) -> int:
 
 
 def _update_batch(
-    conn: psycopg.Connection[dict[str, Any]], keys: list[str], responses: list[str]
+    conn: psycopg.Connection[dict[str, Any]],
+    keys: list[str],
+    responses: list[str],
+    operations: list[str],
+    digests: list[str],
 ) -> int:
     # Text arrays avoid reserializing canonical JSON; native JSONB is the
     # existing storage representation. Verify the exact updated ID set.
@@ -99,4 +99,25 @@ def _update_batch(
     ).fetchall()
     if len(changed) != len(keys) or {r["client_request_id"] for r in changed} != set(keys):
         raise RuntimeError("compact Work receipt root disappeared")
+    # RETURNING proves the updated identity set, not final row semantics.
+    # Read back after the UPDATE statement (including ordinary AFTER triggers)
+    # under the same exclusive lock. Compare on the server; never return the
+    # entire reconstructed payload or execute a statement per historical row.
+    checked = conn.execute(
+        "SELECT v.client_request_id, (r.client_request_id IS NOT NULL "
+        "AND r.response IS NOT DISTINCT FROM v.response::jsonb "
+        "AND r.operation IS NOT DISTINCT FROM v.operation "
+        "AND r.request_digest IS NOT DISTINCT FROM v.request_digest "
+        "AND r.receipt_work_ref IS NULL AND r.receipt_work_revision IS NULL) AS exact "
+        "FROM unnest(%s::text[],%s::text[],%s::text[],%s::text[]) "
+        "AS v(client_request_id,response,operation,request_digest) "
+        "LEFT JOIN command_receipts r ON r.client_request_id=v.client_request_id",
+        (keys, responses, operations, digests),
+    ).fetchall()
+    if (
+        len(checked) != len(keys)
+        or {r["client_request_id"] for r in checked} != set(keys)
+        or any(r["exact"] is not True for r in checked)
+    ):
+        raise RuntimeError("restored Work receipt differs from expected effect")
     return len(keys)
