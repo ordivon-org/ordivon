@@ -21,3 +21,8 @@ mod replay;
 
 #[path = "effect/login.rs"]
 mod login;
+
+#[path = "effect/consumer.rs"]
+mod consumer;
+#[path = "effect/v2.rs"]
+mod v2;

@@ -797,3 +797,59 @@ Security verifier and real WebAuthn consumers, distinct admission/
 persistence/response boundaries; complete V2 backup/restore retention,
 durable prepared intent, maintenance consumer, root CI and real source
 freeze/single writer. Independent peer review requested, not received.
+
+## R20 — authenticated native read consumer, V2 recovery, bounded maintenance
+
+Host R19 handoff #33275, R20 proposal #33281. This is the first Rust HTTP
+consumer of actual native identity state, not a deployment or a second
+authentication authority. External patterns: Axum 0.8/Tower 0.5 router,
+state middleware, OWASP Session Management and PostgreSQL MVCC/row locks.
+References:
+- https://docs.rs/axum/latest/axum/middleware/fn.from_fn_with_state.html
+- https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html
+- https://www.postgresql.org/docs/18/sql-select.html
+- https://www.postgresql.org/docs/18/backup-dump.html
+
+| Logic / thought LEGO | Capability | Contract and status |
+|---|---|---|
+| H01 request boundary | http/boundary.rs | Exact opaque __Host-session token, duplicate rejection, conservative Fetch Metadata; never read identity from URL/header hints |
+| H02 authentication | http/mod.rs | Existing PG session authenticate/touch; GET only, HEAD rejected; errors sanitized, unknown not accepted |
+| H03 representation | http/views.rs | GET /api/me, /api/security/sessions, /api/security/passkeys, /api/security/agents/grants; principal derived from authenticated context, omit token hash and credential key |
+| H04 response boundary | Axum middleware | no-store, Vary Cookie, nosniff, restrictive CSP, no-referrer |
+| H05 exact version | migration.rs | V2 12-table inventory; explicit source schema, no temporary schema, REPEATABLE READ READ ONLY; typed rows, reject unexpected table and broken login completion binding |
+| H06 restoration | import_v2 | Empty exact schema, native binary COPY, deferred constraints and full readback before commit; V1 importer retained |
+| H07 maintenance | maintenance.rs | Batch cap 1..10000, number of batches 1..100, explicit time, short batch not exhaustion, report only confirmed batches |
+| H08 process consumer | web-replay-maintenance | Explicit local socket/port/user/db/budget, one-shot system clock, sanitized report/exit status; external scheduler, no automatic retry |
+| H09 strict verification | consumer.rs, v2.rs | Real Tower service and HTTP1 loopback socket, restore terminal behavior, locked cleanup and real executable |
+| H10 integration gates | root CI/Security/Data | No production bind, source freeze, durable prepared secrets or actual WebAuthn/Agent ingress; independent review and CI provisioning remain |
+
+R2.1: I=opaque existing session / explicit snapshot / maintenance budget;
+O=principal-scoped HTTP projection, exact restored facts, bounded confirmed
+report or typed failure; S=R19 PG V2 + mature Router/Service; pre=trusted
+local owner coordinates, real session issued by trusted external verifier,
+known source schema and exclusive DDL/cutover for import; post=read-only
+domain projection (session idle touch is a write), no success on unknown,
+all 12 facts exact on restore, no live proof deleted; inv=no foreign
+principal or key/token output, no re-open completed login, no implicit retry,
+no global cleanup on request path; eff=local PG / explicit loopback tests;
+epsilon=not public ingress, no TLS/rate limiting/login/CSRF/Agent mutation,
+authentication touch and domain read separate (no whole-request
+linearizability), no claim of hostile schema tamper detection, full snapshot
+in memory, maintenance clock trust and scheduler activation external;
+prov=Git, native Nextest JUnit and actual loopback/process; unfold=H01->H02
+->H03/H04; H05->H06->native terminal consumer; H07->H08.
+
+Intentional compatibility refinements: duplicate cookie and cross-site /
+same-site fetch metadata rejected before touch; missing metadata allowed
+for legacy/nonbrowser clients; only actual GET admitted, no automatic HEAD
+touch. All routes candidate-only. Session expiry/revocation semantics
+inherited, not invented. Tests use trusted seeded sessions, not a verified
+WebAuthn ceremony. V2 restoration includes eligible pending and finalized
+markers and verifies the latter remains terminal. Native fixture uses
+disposable PG; no existing production data read or modified. One-shot GC
+has no scheduler registration; retain marker while challenge may be used.
+Use the existing scheduler and source freeze/single writer, not custom daemon.
+Next: real Security verifier/CSRF + trusted WebAuthn composition, CI owner
+provisioning for PG18/Nextest/Chromium, durable prepared secret handling,
+V2 physical backup/retention and production source freeze, installed
+ingress/time boundaries. No peer approval inferred from a handoff.

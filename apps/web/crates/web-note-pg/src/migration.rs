@@ -62,11 +62,22 @@ struct Table(&'static str, &'static [Column]);
 // FK-topological order, static identifiers only.
 include!("migration_schema.rs");
 
-fn validate(snapshot: &Snapshot) -> Result<(), ImportError> {
-    if snapshot.len() != TABLES.len() {
+fn inventory(v2: bool) -> impl Iterator<Item = &'static Table> {
+    TABLES.iter().chain(v2.then_some(&LOGIN_TABLE))
+}
+const LOGIN_TABLE: Table = Table(
+    "webauthn_login_completions",
+    &[
+        col!("challenge_id", T),
+        col!("session_id", T, nullable),
+        col!("completed_at", I, nullable),
+    ],
+);
+fn validate(snapshot: &Snapshot, v2: bool) -> Result<(), ImportError> {
+    if snapshot.len() != TABLES.len() + usize::from(v2) {
         return Err(ImportError::Invalid("table inventory".into()));
     }
-    for Table(name, columns) in TABLES {
+    for Table(name, columns) in inventory(v2) {
         let table = snapshot
             .get(*name)
             .ok_or_else(|| ImportError::Invalid((*name).into()))?;
@@ -126,6 +137,7 @@ async fn install(
     tx: &Transaction<'_>,
     target_schema: &str,
     snapshot: &Snapshot,
+    v2: bool,
 ) -> Result<(), ImportError> {
     let ready: bool = tx.query_one(
         "SELECT current_setting('server_encoding')='UTF8' AND current_schema()=$1 AND pg_my_temp_schema()=0 AND NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=current_schema())",
@@ -148,7 +160,12 @@ async fn install(
     tx.batch_execute(OWNER_SCHEMA_V1)
         .await
         .map_err(ImportError::Database)?;
-    for Table(name, cols) in TABLES {
+    if v2 {
+        tx.batch_execute(LOGIN_COMPLETION_SCHEMA_V2)
+            .await
+            .map_err(ImportError::Database)?;
+    }
+    for Table(name, cols) in inventory(v2) {
         let names = cols.iter().map(|c| c.0).collect::<Vec<_>>().join(",");
         let types = cols
             .iter()
@@ -191,15 +208,24 @@ async fn install(
     tx.batch_execute("SET CONSTRAINTS ALL IMMEDIATE")
         .await
         .map_err(ImportError::Database)?;
-    if read_snapshot(tx).await? != *snapshot {
+    if read_version(tx, v2).await? != *snapshot {
         return Err(ImportError::ReadbackMismatch);
     }
     Ok(())
 }
 /// Read typed row facts from one caller-owned consistent snapshot.
 pub async fn read_snapshot(tx: &Transaction<'_>) -> Result<Snapshot, ImportError> {
+    read_version(tx, false).await
+}
+async fn read_version(tx: &Transaction<'_>, v2: bool) -> Result<Snapshot, ImportError> {
+    if v2 {
+        let valid:bool=tx.query_one("SELECT NOT EXISTS(SELECT 1 FROM webauthn_login_completions m JOIN webauthn_challenges c USING(challenge_id) LEFT JOIN sessions s USING(session_id) WHERE c.purpose<>'login' OR (m.session_id IS NOT NULL AND (c.consumed_at IS NULL OR c.consumed_at>m.completed_at OR c.expires_at<=m.completed_at OR s.principal_id<>c.principal_id OR s.created_at<>m.completed_at)))",&[]).await.map_err(ImportError::Database)?.get(0);
+        if !valid {
+            return Err(ImportError::Invalid("V2 login completion binding".into()));
+        }
+    }
     let mut out = Snapshot::new();
-    for Table(name, cols) in TABLES {
+    for Table(name, cols) in inventory(v2) {
         let names = cols.iter().map(|c| c.0).collect::<Vec<_>>();
         let query = format!(
             "SELECT {} FROM {name} ORDER BY {} COLLATE \"C\"",
@@ -244,12 +270,56 @@ pub async fn import_initial(
     target_schema: &str,
     snapshot: &Snapshot,
 ) -> Result<(), ImportError> {
+    import_version(client, target_schema, snapshot, false).await
+}
+/// Restore the entire V2 owner into an explicitly empty isolated schema.
+pub async fn import_v2(
+    client: &mut Client,
+    target_schema: &str,
+    snapshot: &Snapshot,
+) -> Result<(), ImportError> {
+    import_version(client, target_schema, snapshot, true).await
+}
+/// Caller owns this connection and its explicit owner search_path. Start
+/// one coherent read-only transaction; V1 snapshots are not V2 backups.
+pub async fn export_v2(client: &mut Client, source_schema: &str) -> Result<Snapshot, ImportError> {
+    if source_schema.is_empty() || source_schema.contains('\0') {
+        return Err(ImportError::Invalid("source schema identity".into()));
+    }
+    let tx = client
+        .build_transaction()
+        .isolation_level(tokio_postgres::IsolationLevel::RepeatableRead)
+        .read_only(true)
+        .start()
+        .await
+        .map_err(ImportError::Database)?;
+    let result=async {
+        let ready:bool=tx.query_one("SELECT current_setting('server_encoding')='UTF8' AND current_schema()=$1 AND pg_my_temp_schema()=0",&[&source_schema]).await.map_err(ImportError::Database)?.get(0);
+        if !ready{return Err(ImportError::Invalid("source schema coordinate".into()))}
+        tx.query_one("SELECT set_config('search_path',quote_ident($1)||', pg_catalog, pg_temp',true)",&[&source_schema]).await.map_err(ImportError::Database)?;
+        let mut actual:Vec<String>=tx.query("SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=$1 AND c.relkind IN ('r','p','f','v','m')",&[&source_schema]).await.map_err(ImportError::Database)?.iter().map(|r|r.get(0)).collect();
+        let mut expected:Vec<String>=inventory(true).map(|t|t.0.to_owned()).collect();
+        actual.sort_unstable();expected.sort_unstable();
+        if actual!=expected{return Err(ImportError::Invalid("V2 source table inventory".into()))}
+        read_version(&tx,true).await
+    }.await;
+    tx.rollback().await.map_err(ImportError::Database)?;
+    let snapshot = result?;
+    validate(&snapshot, true)?;
+    Ok(snapshot)
+}
+async fn import_version(
+    client: &mut Client,
+    target_schema: &str,
+    snapshot: &Snapshot,
+    v2: bool,
+) -> Result<(), ImportError> {
     if target_schema.is_empty() || target_schema.contains('\0') {
         return Err(ImportError::Invalid("target schema identity".into()));
     }
-    validate(snapshot)?;
+    validate(snapshot, v2)?;
     let tx = client.transaction().await.map_err(ImportError::Database)?;
-    if let Err(cause) = install(&tx, target_schema, snapshot).await {
+    if let Err(cause) = install(&tx, target_schema, snapshot, v2).await {
         return match tx.rollback().await {
             Ok(()) => Err(cause),
             Err(rollback) => Err(ImportError::RollbackUnknown {

@@ -374,7 +374,15 @@
         "src/config.ts",
         "test/app.test.ts",
         "test/agent-authority.test.ts",
-        "src/agent-canary-routes.ts"
+        "src/agent-canary-routes.ts",
+        "crates/web-note-pg/src/http/mod.rs",
+        "crates/web-note-pg/src/http/boundary.rs",
+        "crates/web-note-pg/src/http/views.rs",
+        "crates/web-note-pg/src/migration.rs",
+        "crates/web-note-pg/src/maintenance.rs",
+        "crates/web-note-pg/src/bin/web-replay-maintenance.rs",
+        "crates/web-note-pg/tests/effect/consumer.rs",
+        "crates/web-note-pg/tests/effect/v2.rs"
       ],
       "dependencies": [
         "W01",
@@ -395,7 +403,8 @@
       ],
       "acceptance": [
         "Owner source bootstrap calls createWebApp; native browser and agent tests exercise HTTP route boundaries.",
-        "SOURCE/virtual browser evidence is not public production deployment readiness."
+        "SOURCE/virtual browser evidence is not public production deployment readiness.",
+        "R20 candidate native Axum/Tower browser read composition exercises four real owner routes and actual HTTP/1.1 socket, scoped by opaque PG session, with V2 restore and bounded maintenance consumer; production/real verifier gates remain."
       ],
       "formalObligations": [
         "Cross-owner installed Security/Browser/PG state qualifications UNKNOWN."
