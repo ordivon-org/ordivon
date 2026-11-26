@@ -160,6 +160,31 @@ def _formal_declared_files(repo: Path, sha: str) -> tuple[str, ...]:
     return paths
 
 
+def _formal_member_delta(
+    repo: Path, prior_sha: str, current_sha: str
+) -> tuple[tuple[str, ...], tuple[str, ...], list[str]]:
+    """Compare declared members, not unrelated entries in the containing trees."""
+    old = _formal_declared_files(repo, prior_sha)
+    new = _formal_declared_files(repo, current_sha)
+    old_tree = current_tree(repo, prior_sha)
+    new_tree = current_tree(repo, current_sha)
+    old_members = {path: old_tree.get(path) for path in old}
+    new_members = {path: new_tree.get(path) for path in new}
+    if any(
+        value is None or not value.startswith(("100644:blob:", "100755:blob:"))
+        for members in (old_members, new_members)
+        for value in members.values()
+    ):
+        raise ValueError(
+            "Formal source comparison contains unqualified Git member (missing/non-regular)"
+        )
+    changed = [
+        path for path in sorted(old_members.keys() | new_members.keys())
+        if old_members.get(path) != new_members.get(path)
+    ]
+    return old, new, changed
+
+
 def declared_formal_source_delta(
     *,
     repo: Path,
@@ -175,20 +200,7 @@ def declared_formal_source_delta(
     prior_sha = _exact_commit(prior_sha)
     current_sha = _exact_commit(current_sha)
     require_ancestral_source_cuts(repo, prior_sha, current_sha)
-    old = _formal_declared_files(repo, prior_sha)
-    new = _formal_declared_files(repo, current_sha)
-    prior_tree = current_tree(repo, prior_sha)
-    current = current_tree(repo, current_sha)
-    all_paths = sorted(set(old) | set(new))
-    if any(
-        not prior_tree.get(path, "").startswith(("100644:blob:", "100755:blob:"))
-        for path in old
-    ) or any(
-        not current.get(path, "").startswith(("100644:blob:", "100755:blob:"))
-        for path in new
-    ):
-        raise ValueError("formal declared readset has missing/non-regular Git members")
-    changed = [path for path in all_paths if prior_tree.get(path) != current.get(path)]
+    old, new, changed = _formal_member_delta(repo, prior_sha, current_sha)
     return {
         "schemaVersion": 1,
         "kind": "ordivon.formal-declared-git-readset-delta",
@@ -368,26 +380,9 @@ def compare_formal_execution_inputs_to_candidate(
     """
     execution_sha = _exact_commit(execution_sha)
     candidate_sha = _exact_commit(candidate_sha)
-    original = _formal_declared_files(repo, execution_sha)
-    current = _formal_declared_files(repo, candidate_sha)
-    old_tree = current_tree(repo, execution_sha)
-    new_tree = current_tree(repo, candidate_sha)
-    if any(
-        not old_tree.get(path, "").startswith(("100644:blob:", "100755:blob:"))
-        for path in original
-    ) or any(
-        not new_tree.get(path, "").startswith(("100644:blob:", "100755:blob:"))
-        for path in current
-    ):
-        raise ValueError("Formal source comparison contains unqualified Git member")
-    old_set = set(original)
-    new_set = set(current)
-    changed = [
-        path
-        for path in sorted(old_set | new_set)
-        if (old_tree[path] if path in old_set else None)
-        != (new_tree[path] if path in new_set else None)
-    ]
+    original, current, changed = _formal_member_delta(
+        repo, execution_sha, candidate_sha
+    )
     return {
         "schemaVersion": 1,
         "kind": "ordivon.formal-execution-inputs-vs-candidate",

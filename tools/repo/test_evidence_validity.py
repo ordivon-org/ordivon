@@ -845,8 +845,89 @@ def test_formal_source_delta_exact_change_and_declaration_change(monkeypatch):
     )
     assert result["standing"] == "CHANGED_DECLARED_SOURCE_INPUTS"
     assert result["declarationChanged"]
-    assert result["changedDeclaredPaths"] == ["a/source.lean", "tools/formal/verify.py"]
+    assert result["changedDeclaredPaths"] == [
+        "a/source.lean", "new/model.lean", "tools/formal/verify.py"
+    ]
     assert result["proofReuseAdmissible"] is False
+
+
+def test_declared_membership_changes_even_when_git_bytes_do_not(tmp_path):
+    import subprocess
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    def git(*args):
+        return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Formal fixture")
+    git("config", "user.email", "fixture@example.invalid")
+    (repo / "tools/formal").mkdir(parents=True)
+    verifier = repo / "tools/formal/verify.py"
+    for name in ("old.lean", "new.lean"):
+        (repo / name).write_text("def identity (n : Nat) := n\n")
+    verifier.write_text("SOURCE_FILES = ('tools/formal/verify.py', 'old.lean')\n")
+    git("add", ".")
+    git("commit", "-qm", "old membership")
+    old = git("rev-parse", "HEAD")
+    verifier.write_text("SOURCE_FILES = ('tools/formal/verify.py', 'new.lean')\n")
+    git("add", ".")
+    git("commit", "-qm", "new membership")
+    new = git("rev-parse", "HEAD")
+    for name in ("old.lean", "new.lean"):
+        assert git("rev-parse", f"{old}:{name}") == git("rev-parse", f"{new}:{name}")
+    temporal = module.declared_formal_source_delta(
+        repo=repo, prior_sha=old, current_sha=new)
+    snapshot = module.compare_formal_execution_inputs_to_candidate(
+        repo=repo, execution_sha=old, candidate_sha=new)
+    expected = ["new.lean", "old.lean", "tools/formal/verify.py"]
+    assert snapshot["changedDeclaredPaths"] == expected
+    assert temporal["changedDeclaredPaths"] == expected
+    assert not temporal["proofReuseAdmissible"]
+    assert not snapshot["proofReuseAdmissible"]
+
+
+def test_formal_member_projection_exhaustive_two_path_oracle(monkeypatch):
+    # State: absent, present undeclared (two blobs), declared (two blobs
+    # and one executable-mode change). The separate oracle ignores bytes
+    # outside the declaration; it compares membership before identity.
+    states = (None, (False, "100644:blob:" + "1"*40),
+              (False, "100644:blob:" + "2"*40),
+              (True, "100644:blob:" + "1"*40),
+              (True, "100644:blob:" + "2"*40),
+              (True, "100755:blob:" + "1"*40))
+    names = ("a.lean", "b.lean")
+    verifier = "tools/formal/verify.py"
+    cuts = {}
+
+    def declared(sha):
+        return (verifier,) + tuple(name for name, state in zip(names, cuts[sha])
+                                   if state is not None and state[0])
+
+    def tree(sha):
+        return {verifier: "100644:blob:" + "f"*40,
+                **{name: state[1] for name, state in zip(names, cuts[sha])
+                   if state is not None}}
+
+    monkeypatch.setattr(module, "_formal_declared_files", lambda repo, sha: declared(sha))
+    monkeypatch.setattr(module, "current_tree", lambda repo, sha: tree(sha))
+    cases = 0
+    for before, after in itertools.product(itertools.product(states, repeat=2), repeat=2):
+        cuts.update({PREVIOUS: before, CURRENT: after})
+        expected = []
+        for name, a, b in zip(names, before, after):
+            a_member = a is not None and a[0]
+            b_member = b is not None and b[0]
+            if a_member != b_member or (a_member and b_member and a[1] != b[1]):
+                expected.append(name)
+        temporal = module.declared_formal_source_delta(
+            repo=Path("/unused"), prior_sha=PREVIOUS, current_sha=CURRENT)
+        snapshot = module.compare_formal_execution_inputs_to_candidate(
+            repo=Path("/unused"), execution_sha=PREVIOUS, candidate_sha=CURRENT)
+        assert temporal["changedDeclaredPaths"] == snapshot["changedDeclaredPaths"] == expected
+        assert not temporal["proofReuseAdmissible"] and not snapshot["proofReuseAdmissible"]
+        cases += 1
+    assert cases == 1296
 
 
 def test_formal_declaration_refuses_arbitrary_dynamic_code(monkeypatch):
