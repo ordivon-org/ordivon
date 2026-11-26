@@ -11,6 +11,8 @@ mod workspace;
 
 pub use config::{UniversalExecutorConfig, MAX_WORKSPACE_IO_BYTES, UNIVERSAL_EXEC_SCHEMA_VERSION};
 pub use error::{UniversalExecError, UniversalExecErrorCode};
+#[cfg(unix)]
+pub(crate) use fsutil::lock_attempt_spawn_fence;
 pub use fsutil::{
     ENVIRONMENT_VARIABLE_NAME_PATTERN, WORKSPACE_ID_MAX_LENGTH, WORKSPACE_ID_MIN_LENGTH,
     WORKSPACE_ID_PATTERN,
