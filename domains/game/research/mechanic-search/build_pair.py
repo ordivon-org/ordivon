@@ -103,18 +103,18 @@ def decode_save(root, raw):
                            "res://read_checkpoint.gd","--",str(save)), "STUDY_CHECKPOINT=")
 
 
-def pack_native_archives(project, native, output, stem):
+def pack_native_archives(project, native, output, stem, *, licenses=LICENSES):
     linux = native / "room-encounter.x86_64"
     windows = native / "room-encounter.exe"
-    for name, relative in LICENSES.items():
+    for name, relative in licenses.items():
         shutil.copyfile(project / relative, native / name)
     tar = output / f"{stem}-linux.tar.gz"
     win = output / f"{stem}-windows.zip"
     with tarfile.open(tar, "w:gz") as f:
-        for name in (linux.name, *LICENSES):
+        for name in (linux.name, *licenses):
             f.add(native/name, arcname=name, recursive=False)
     with zipfile.ZipFile(win, "w", compression=zipfile.ZIP_DEFLATED) as f:
-        for name in (windows.name, *LICENSES):
+        for name in (windows.name, *licenses):
             f.write(native/name, arcname=name)
     return tar, win
 
