@@ -1,8 +1,24 @@
 name: Setup root verification
 description: Acquire verified tools and install the root CI toolchain only.
+inputs:
+  sql-verifiers:
+    description: Install isolated SQL validation CLIs; false is reserved for root preflight.
+    required: false
+    default: 'true'
 runs:
   using: composite
   steps:
+    - name: Validate SQL tool scope
+      shell: bash
+      env:
+        SQL_VERIFIERS: ${{ inputs.sql-verifiers }}
+      run: |
+        set -euo pipefail
+        case "$SQL_VERIFIERS" in
+          true|false) ;;
+          *) echo "Invalid SQL verifier setup scope" >&2; exit 2 ;;
+        esac
+
     - name: Network - acquire verified Python via official GitHub API
       shell: bash
       env:
@@ -56,12 +72,14 @@ runs:
         echo "$RUNNER_TEMP/ordivon-bash-5.3.20/bin" >> "$GITHUB_PATH"
 
     - name: Cache verified SQL distribution bytes
+      if: inputs.sql-verifiers == 'true'
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ runner.temp }}/ordivon-sql-distributions
         key: sql-distributions-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/repo/install_sql_verifiers.sh') }}
 
     - name: Install pinned SQL validation CLIs
+      if: inputs.sql-verifiers == 'true'
       env:
         ORDIVON_SQL_DIST_CACHE_DIR: ${{ runner.temp }}/ordivon-sql-distributions
       shell: bash
