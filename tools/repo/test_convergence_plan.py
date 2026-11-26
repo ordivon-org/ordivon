@@ -1938,6 +1938,10 @@ class PullRequestExecutionRangeTests(unittest.TestCase):
             git("commit", "--amend", "--no-edit", "-q")
             extra = git("rev-parse", "HEAD")
             self.assertIsNone(ranges.resolve(repo, base, head, extra))
+            # A different real merge cut, with valid parent identities,
+            # must not be accepted as the current execution checkout.
+            with self.assertRaisesRegex(ValueError, "checkout mismatch"):
+                ranges.resolve(repo, base, head, cut)
             # Original PR change already present on new base: do not
             # silently shrink prior obligation even if merge is a no-op.
             git("switch", "--detach", "-q", base)
