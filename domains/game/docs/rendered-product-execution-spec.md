@@ -204,3 +204,39 @@ renderer, frame hashes and existing FFmpeg decoder; unfold: Python
 zipfile, Runtime native launch, .NET ProcessStartInfo, Movie Maker
 (https://docs.godotengine.org/en/stable/tutorials/animation/creating_movies.html),
 existing verify_rasters. No READY expansion or new required CI job.
+
+## R18 — independently qualified hosted runner, not a second factory
+
+Host #33093 / global test blackboard #33105. #2868's existing native PR
+gate succeeds; that does not establish display-backed hosted consumption.
+Use existing GitHub Actions workflow_dispatch (default workflow already
+exists; explicit ref), native runner images and artifact REST metadata.
+References: https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow ;
+https://docs.github.com/en/rest/actions/artifacts ;
+https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md .
+
+Thought: consumer-first, exact finite obligations, provenance, capability
+qualification; no substitute rebuild or parallel scheduler. L11 selects
+a completed successful same-repository main push of the exact Game
+workflow and its two unexpired artifacts. L12 consumes each downloaded
+original ZIP with the existing hosted_product_acceptance, not its receipt.
+Native runner preflight checks Xvfb/Xauth/XTEST/FFmpeg, software GL; actual
+render/interaction/PCM is the decisive qualification, not installed tools.
+
+I: explicitly selected positive source run ID; actual workflow/API metadata.
+O: one aggregate receipt only after both exact products PASS.
+S: exclusive runner scratch; metadata and immutable outer ZIPs.
+pre: same-repository head and run identity, main push success, exact
+workflow path, exact product names/run/source/repo bindings, bounded sizes
+and SHA-256. post: both native consumers complete, hashes and scopes bound.
+inv: no fork/PR/failed/expired/substituted artifact, no missing obligation
+promoted to PASS; no token in native execution step; no re-export, no
+release publication. eff: read API, local downloads, private X11 effects;
+c: one bounded manual hosted job, max 256 MiB per archive, timeouts.
+epsilon: only selected successful source cut and actual hosted software
+renderer; no physical peripherals, Human or Windows execution implied.
+prov: source run and artifact metadata, checkout consumer SHA, hosted
+run/attempt, runner label and child evidence. Unfold: existing workflow,
+GitHub CLI, Python stdlib, existing consumers. Optional dispatch input
+consumer_run_id excludes producer matrix; empty preserves existing behavior.
+No new required CI gate or READY expansion until actual qualification.
