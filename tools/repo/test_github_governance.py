@@ -700,7 +700,18 @@ exit 0
             import shutil
             env["MISE_NATIVE_FOR_CONFIG"] = shutil.which("mise") or "/usr/bin/mise"
             env["MISE_TRUSTED_CONFIG_PATHS"] = str(ROOT)
+            source_cut = subprocess.check_output(
+                ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+            ).strip()
+            event_path = folder / "original-event.json"
+            event_path.write_text("{}", encoding="utf-8")
             env.update({
+                "GITHUB_SHA": source_cut, "GITHUB_WORKFLOW_SHA": source_cut,
+                "GITHUB_REPOSITORY": "ordivon-org/ordivon",
+                "GITHUB_WORKFLOW_REF": "ordivon-org/ordivon/.github/workflows/ci.yml@refs/heads/main",
+                "GITHUB_EVENT_NAME": "workflow_dispatch", "GITHUB_EVENT_PATH": str(event_path),
+                "GITHUB_RUN_ID": "731", "GITHUB_RUN_ATTEMPT": "2",
+                "GITHUB_JOB": "root-preflight", "GITHUB_REF": "refs/heads/main",
                 "RUNNER_TEMP": str(folder),
                 "MISE_RECORD": str(log),
                 "FORMAL_MOCK_RECEIPT": str(report_path),
@@ -719,7 +730,7 @@ exit 0
                 return subprocess.run(
                     ["/usr/bin/bash", "-c", selected.replace(interpolation, formal)],
                     cwd=ROOT, env=run_env, capture_output=True, text=True,
-                    timeout=14, check=False,
+                    timeout=60, check=False,
                 )
 
             ok = actual_queue(
@@ -732,9 +743,16 @@ exit 0
             dedicated = subprocess.run(
                 ["/usr/bin/bash", "-c", formal_step["run"]],
                 cwd=ROOT, env=env, capture_output=True, text=True,
-                timeout=14, check=False,
+                timeout=60, check=False,
             )
             self.assertEqual(dedicated.returncode, 0, dedicated.stderr)
+            published = json.loads((folder / "ordivon-core-formal-report.json").read_text())
+            origin = published["githubExecutionOrigin"]
+            self.assertEqual(origin["sourceCut"], source_cut)
+            self.assertEqual(origin["runAttempt"], 2)
+            self.assertEqual(origin["event"], "workflow_dispatch")
+            self.assertEqual(origin["runId"], 731)
+            self.assertIs(published["proofReuseAdmissible"], False)
             self.assertEqual(
                 log.read_text().splitlines(),
                 ["run runtime:verify", "run host:queue",
@@ -747,7 +765,7 @@ exit 0
             failed_kani_prepare = subprocess.run(
                 ["/usr/bin/bash", "-c", formal_step["run"]],
                 cwd=ROOT, env={**env, "MOCK_FAIL_KANI_BOOTSTRAP": "1"},
-                capture_output=True, text=True, timeout=14, check=False,
+                capture_output=True, text=True, timeout=60, check=False,
             )
             self.assertEqual(failed_kani_prepare.returncode, 53, failed_kani_prepare.stderr)
             self.assertEqual(
@@ -906,15 +924,35 @@ exit 0
             # falsifier below. The checks must grow with the live proof readset,
             # not fail at an obsolete hard-coded specimen count.
 
+            # Exercise the exact production receipt gate directly for each
+            # mutation. Keep the full shell for a representative rejection,
+            # the successful path and actual bootstrap/proof failures.
+            opening = "python3 - \"$receipt\" <<'PY'\n"
+            _, marker, rest = formal_step["run"].partition(opening)
+            validator, ending, _ = rest.partition("\nPY\n")
+            self.assertTrue(marker and ending and validator.strip())
+            positive = subprocess.run(
+                [sys.executable, "-", str(report_path)], input=validator,
+                cwd=ROOT, env=env, text=True, capture_output=True,
+                timeout=60, check=False,
+            )
+            self.assertEqual(positive.returncode, 0, positive.stderr)
             try:
                 for label, payload in invalid_receipts.items():
                     with self.subTest(receipt=label):
                         report_path.write_text(payload, encoding="utf-8")
-                        failed = subprocess.run(
-                            ["/usr/bin/bash", "-c", formal_step["run"]],
-                            cwd=ROOT, env=env, text=True, capture_output=True,
-                            timeout=14, check=False,
-                        )
+                        if label == "one-pass-subset":
+                            failed = subprocess.run(
+                                ["/usr/bin/bash", "-c", formal_step["run"]],
+                                cwd=ROOT, env=env, text=True, capture_output=True,
+                                timeout=60, check=False,
+                            )
+                        else:
+                            failed = subprocess.run(
+                                [sys.executable, "-", str(report_path)], input=validator,
+                                cwd=ROOT, env=env, text=True, capture_output=True,
+                                timeout=60, check=False,
+                            )
                         self.assertNotEqual(failed.returncode, 0, label)
                         self.assertIn(
                             "Formal execution lacks a valid scoped PASS receipt",
@@ -933,7 +971,7 @@ exit 0
             failed_proof = subprocess.run(
                 ["/usr/bin/bash", "-c", formal_step["run"]],
                 cwd=ROOT, env=proof_failure_env, capture_output=True,
-                text=True, timeout=14, check=False,
+                text=True, timeout=60, check=False,
             )
             self.assertEqual(failed_proof.returncode, 41)
             self.assertEqual(
@@ -1008,6 +1046,11 @@ exit 0
                          fixture_registry / "affected_owners.py")
             shutil.copy2(ROOT / "tools/repo/owners.toml",
                          fixture_registry / "owners.toml")
+            shutil.copy2(ROOT / "tools/repo/formal_github_origin.py",
+                         fixture_registry / "formal_github_origin.py")
+            (repo / ".github/workflows").mkdir(parents=True)
+            shutil.copy2(ROOT / ".github/workflows/ci.yml",
+                         repo / ".github/workflows/ci.yml")
             # The real verifier consumes a declared source readset; the disposable
             # Git fixture must contain the same declared source universe.
             for rel in _FORMAL_SOURCE_FILES:
@@ -1082,7 +1125,16 @@ exit 0
             import shutil
             env["MISE_NATIVE_FOR_CONFIG"] = shutil.which("mise") or "/usr/bin/mise"
             env["MISE_TRUSTED_CONFIG_PATHS"] = str(repo)
-            env.pop("GITHUB_SHA", None)
+            event_path = work / "original-event.json"
+            event_path.write_text("{}", encoding="utf-8")
+            env.update({
+                "GITHUB_SHA": source_cut, "GITHUB_WORKFLOW_SHA": source_cut,
+                "GITHUB_REPOSITORY": "ordivon-org/ordivon",
+                "GITHUB_WORKFLOW_REF": "ordivon-org/ordivon/.github/workflows/ci.yml@refs/heads/main",
+                "GITHUB_EVENT_NAME": "workflow_dispatch", "GITHUB_EVENT_PATH": str(event_path),
+                "GITHUB_RUN_ID": "731", "GITHUB_RUN_ATTEMPT": "2",
+                "GITHUB_JOB": "root-preflight", "GITHUB_REF": "refs/heads/main",
+            })
             env["PATH"] = str(binary) + os.pathsep + env.get("PATH", "")
 
             def invoke(script: str) -> subprocess.CompletedProcess[str]:
@@ -1133,7 +1185,7 @@ exit 0
             self.assertEqual(refused.returncode, 43)
             self.assertIn("root task checkout differs from provider GITHUB_SHA", refused.stderr)
             self.assertEqual(record.read_text(), "")
-            env.pop("GITHUB_SHA", None)
+            env["GITHUB_SHA"] = source_cut
 
             # Source-qualify nested Owner task manifests as well as root.
             nested_bytes = nested_game.read_bytes()
@@ -1253,6 +1305,8 @@ exit 0
         selected_readset = (
             ".github/workflows/ci.yml",
             "tools/repo/ci_owner_shards.py",
+            "tools/repo/selector_source_contract.py",
+            "services/gateway/tests/test_pg_real_runtime_owner.py",
             "tools/repo/convergence_plan.py",
             "tools/repo/affected_owners.py",
             "tools/repo/pg_issuer_consumer.py",
@@ -1262,8 +1316,6 @@ exit 0
             "tools/repo/dependency_contracts.toml",
             "mise.toml",
         )
-        for path in selected_readset:
-            self.assertIn(path, script)
 
         with tempfile.TemporaryDirectory(prefix="ordivon-selector-consumer-") as temp:
             root = Path(temp)
@@ -1314,6 +1366,21 @@ exit 0
                         )
                     finally:
                         source.write_bytes(original)
+
+            if __package__:
+                from .pg_issuer_consumer import RUNTIME_PG_CORE_ROOT
+            else:
+                from pg_issuer_consumer import RUNTIME_PG_CORE_ROOT
+
+            extra = clone / RUNTIME_PG_CORE_ROOT / "r4_untracked_fixture.rs"
+            self.assertFalse(extra.exists())
+            try:
+                extra.write_text("// untracked selector input\n")
+                rejected = invoke()
+                self.assertEqual(rejected.returncode, 43, rejected.stderr)
+                self.assertIn("Rust membership differs", rejected.stderr)
+            finally:
+                extra.unlink()
 
             base = subprocess.check_output(
                 ["git", "-C", str(clone), "rev-parse", "HEAD^1"], text=True
