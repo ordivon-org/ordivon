@@ -70,6 +70,15 @@ class NativePerceptionGeometryTests(unittest.TestCase):
             self.assertLess(max(pixel(20, 135)), 15)
             self.assertGreater(min(pixel(240, 135)), 235)
             self.assertLess(max(pixel(460, 135)), 15)
+            for invalid in (99, True, 0.5):
+                bad = root / f"invalid-{invalid}"
+                with self.subTest(invalid=invalid), self.assertRaisesRegex(ValueError, "frame identity"):
+                    build_video_review_packet(
+                        production_root=production, video_path=source, source_paths=[],
+                        output_directory=bad, repository_root=root, frames=[invalid],
+                    )
+                self.assertFalse((bad / "review.json").exists())
+                self.assertFalse((bad / "frames").exists())
 
     def test_multiple_tiles_preserve_distinct_order_and_fit(self):
         with tempfile.TemporaryDirectory() as directory:

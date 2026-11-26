@@ -110,7 +110,7 @@ def build_video_review_packet(
             video_path=snapshot,
             probe=probe,
             output_directory=output_directory,
-            requested_frames=list(dict.fromkeys(int(frame) for frame in frames)),
+            requested_frames=frames,
             ffmpeg=ffmpeg,
             ffprobe=ffprobe,
         )
