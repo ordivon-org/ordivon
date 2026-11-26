@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import shutil
+import textwrap
 import tempfile
 import sys
 import unittest
@@ -117,6 +119,62 @@ class ShardQueueTests(unittest.TestCase):
                             ci_owner_toolroots.read_at_checkout(repo, head, {}, "a")
                         else:
                             read("a")
+
+    def test_actual_preinstall_rejects_drift_before_native_install(self) -> None:
+        root = Path(__file__).resolve().parents[2]
+        workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        section = workflow.split("      - name: Preinstall selected Owner tools with native mise\n", 1)[1]
+        script = textwrap.dedent(section.split("        run: |\n", 1)[1].split(
+            "\n      - name: Verify affected owners", 1
+        )[0])
+        with tempfile.TemporaryDirectory() as td:
+            temp = Path(td)
+            repo = temp / "repo"
+            registry = repo / "tools/repo"
+            registry.mkdir(parents=True)
+            for name in ("ci_owner_toolroots.py", "affected_owners.py", "owners.toml"):
+                shutil.copy2(root / "tools/repo" / name, registry / name)
+            runtime = repo / "services/runtime/mise.toml"
+            runtime.parent.mkdir(parents=True)
+            runtime.write_text('[tools]\npython = "current"\n')
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(["git", "-C", str(repo), "-c", "user.name=Test",
+                            "-c", "user.email=test@local.invalid", "commit", "-qm", "fixture"],
+                           check=True)
+            binary = temp / "bin"
+            binary.mkdir()
+            mock = binary / "mise"
+            mock.write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$*" >> "$TRACE"\n')
+            mock.chmod(0o755)
+            trace = temp / "trace"
+            env = dict(os.environ, PATH=str(binary) + os.pathsep + os.environ["PATH"],
+                       RUNNER_TEMP=str(temp), TRACE=str(trace),
+                       OWNER_TASKS_JSON=json.dumps(["runtime:verify"]))
+            env.pop("GITHUB_SHA", None)
+            def invoke():
+                trace.write_text("")
+                result = subprocess.run(["bash", "-c", script], cwd=repo, env=env,
+                                        capture_output=True, text=True, timeout=12)
+                return result, trace.read_text().splitlines()
+            result, calls = invoke()
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(calls, ["--cd services/runtime install"])
+            for path in (runtime, registry / "ci_owner_toolroots.py",
+                         registry / "affected_owners.py", registry / "owners.toml"):
+                with self.subTest(path=path.name):
+                    original = path.read_bytes()
+                    try:
+                        path.write_bytes(original + b"\n# source drift\n")
+                        result, calls = invoke()
+                        self.assertEqual(result.returncode, 43, result.stderr)
+                        self.assertEqual(calls, [])
+                    finally:
+                        path.write_bytes(original)
+            env["GITHUB_SHA"] = "0" * 40
+            result, calls = invoke()
+            self.assertEqual(result.returncode, 43, result.stderr)
+            self.assertEqual(calls, [])
 
     def test_full_owner_closure_is_exactly_preserved(self) -> None:
         selected = [owner.queue_task for owner in affected_owners.OWNERS]
