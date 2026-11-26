@@ -65,6 +65,23 @@ def _canonical(relative: object) -> str:
     return value
 
 
+class SelectorManifestShapeError(ValueError):
+    """Parsed manifest bytes do not have the required source-witness shape."""
+
+
+def _object_rows(document: object, field: str) -> list[dict[str, object]]:
+    """Validate container shape before selecting exact declared witnesses."""
+    if not isinstance(document, dict):
+        raise SelectorManifestShapeError(f"selector manifest containing {field} must be an object")
+    rows = document.get(field, [])
+    if not isinstance(rows, list):
+        raise SelectorManifestShapeError(f"selector manifest {field} must be a list")
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            raise SelectorManifestShapeError(f"selector manifest {field} row {index} must be an object")
+    return rows
+
+
 def qualify_selector_source(repo: Path, source_cut: str, *, scope: str) -> None:
     """Reject a mixed checkout before/after a known selector operation."""
     repo = repo.resolve()
@@ -119,7 +136,7 @@ def qualify_selector_source(repo: Path, source_cut: str, *, scope: str) -> None:
         repo, "show", f"{source_cut}:tools/repo/dependency_contracts.toml"
     ).decode("utf-8"))
     scanned: set[str] = set()
-    for seam in contracts.get("seams", []):
+    for seam in _object_rows(contracts, "seams"):
         kind = seam.get("kind")
         if kind not in ("TEST_ONLY_SOURCE_CONTRACT", "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"):
             continue
@@ -159,7 +176,7 @@ def qualify_selector_source(repo: Path, source_cut: str, *, scope: str) -> None:
     relocation = json.loads(_native(
         repo, "show", f"{source_cut}:docs/architecture/structure-r2-transition-r1.json"
     ))
-    for row in relocation.get("mappings", []):
+    for row in _object_rows(relocation, "mappings"):
         old, new = row.get("sourcePaths"), row.get("targetPaths")
         if (row.get("mode") == "move" and row.get("standing") == "DEPLOYED"
                 and isinstance(old, list) and isinstance(new, list)

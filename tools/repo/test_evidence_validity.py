@@ -2495,3 +2495,74 @@ def test_explicit_repository_does_not_run_cwd_bound_selector(
             repo=module.DEFAULT_REPOSITORY, current_sha="0" * len(current),
             github=object(), git_repo=repo,
         )
+
+
+@pytest.mark.parametrize(
+    "relative,contents,diagnostic",
+    [
+        ("tools/repo/dependency_contracts.toml", "seams = 1\n", "seams must be a list"),
+        ("tools/repo/dependency_contracts.toml", 'seams = ["invalid"]\n', "seams row 0"),
+        ("docs/architecture/structure-r2-transition-r1.json", "[]", "must be an object"),
+        ("docs/architecture/structure-r2-transition-r1.json", '{"mappings":1}', "mappings must be a list"),
+        ("docs/architecture/structure-r2-transition-r1.json", '{"mappings":["invalid"]}', "mappings row 0"),
+    ],
+)
+def test_exact_invalid_manifest_shape_is_typed_unknown(
+    monkeypatch, tmp_path, relative, contents, diagnostic
+):
+    """Exact bytes can describe invalid data; no untyped source qualification failure."""
+    import subprocess
+
+    import evidence_source_policy as policy
+    import evidence_validity as native
+    from selector_source_contract import control_inputs, qualify_selector_source
+
+    repo = tmp_path.resolve()
+    scopes = ("evidence", "ci", "projection")
+
+    def git(*args):
+        return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+
+    def write(name, value):
+        path = repo / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(value)
+
+    git("init", "-q")
+    git("config", "user.name", "Manifest shape test")
+    git("config", "user.email", "manifest-shape@example.invalid")
+    for name in sorted({p for scope in scopes for p in control_inputs(scope)}):
+        write(name, "bounded fixture source\n")
+    write("tools/repo/dependency_contracts.toml", "seams = []\n")
+    write("docs/architecture/structure-r2-transition-r1.json", '{"mappings":[]}')
+    git("add", ".")
+    git("commit", "-qm", "exact valid source")
+    prior = git("rev-parse", "HEAD")
+    for scope in scopes:
+        qualify_selector_source(repo, prior, scope=scope)
+
+    write(relative, contents)
+    git("add", ".")
+    git("commit", "-qm", "exact invalid representation")
+    current = git("rev-parse", "HEAD")
+    for scope in scopes:
+        with pytest.raises(ValueError, match=diagnostic):
+            qualify_selector_source(repo, current, scope=scope)
+
+    # Only the provider observations and the unreachable plan are fixtures.
+    # Native Git, ancestry, and the real source qualifier execute.
+    monkeypatch.chdir(repo)
+    monkeypatch.setattr(policy, "__file__", str(repo / "tools/repo/evidence_source_policy.py"))
+    plan = Mock(side_effect=AssertionError("invalid shape must not reach domain selector"))
+    monkeypatch.setattr(native.convergence_plan, "build_plan", plan)
+    observed = native.decide(
+        repo=native.DEFAULT_REPOSITORY,
+        current_sha=current,
+        prior_sha=prior,
+        github=FixtureGh({prior: [dict(GOOD, head_sha=prior)]}),
+        git_repo=repo,
+    )
+    assert observed["disposition"] == "UNKNOWN_SOURCE_RELATION"
+    assert observed["sourceImpact"] is None
+    assert not observed["proofReuseAdmissible"]
+    plan.assert_not_called()
