@@ -317,7 +317,7 @@ def test_execution_descriptor_is_pure_and_preserves_owner_observation() -> None:
                 "target": "windows_native",
                 "configured": True,
                 "available": True,
-                "windowsContexts": [{"identity": "active_user", "privilege": "limited"}, "invalid"],
+                "windowsContexts": [{"identity": "active_user", "privilege": "limited"}],
                 "windowsAuthorities": ["limited"],
             }
         ],
@@ -552,3 +552,84 @@ def test_execution_projection_malformed_contexts_are_unknown_not_global_discover
         assert descriptor.available is False
         assert descriptor.readiness_state == "unknown"
         assert descriptor.observation_error
+
+
+def test_windows_explicit_empty_canonical_contexts_never_resurrect_legacy_authority():
+    route = default_routes()["execution.windows"]
+    for available in (False, True):
+        descriptor = project_execution_capability(
+            route,
+            configured_at_gateway=True,
+            owner_response={
+                "schemaVersion": 1,
+                "node": {"nodeId": "windows-pg", "platform": "windows", "native": True},
+                "targets": [
+                    {
+                        "target": "windows_native",
+                        "configured": True,
+                        "available": available,
+                        "windowsContexts": [],
+                        "windowsAuthorities": ["active_user"],
+                    }
+                ],
+            },
+        )
+        assert descriptor.contexts == []
+        assert descriptor.available is False
+        assert descriptor.readiness_state == ("unknown" if available else "not_ready")
+
+
+def test_windows_malformed_canonical_contexts_are_unknown_not_legacy_fallback():
+    route = default_routes()["execution.windows"]
+    valid = {"identity": "service", "privilege": "limited"}
+    for contexts in ([valid, "invalid"], [{}], [valid, valid]):
+        descriptor = project_execution_capability(
+            route,
+            configured_at_gateway=True,
+            owner_response={
+                "schemaVersion": 1,
+                "node": {"nodeId": "windows-pg", "platform": "windows", "native": True},
+                "targets": [
+                    {
+                        "target": "windows_native",
+                        "configured": True,
+                        "available": True,
+                        "windowsContexts": contexts,
+                        "windowsAuthorities": ["limited", "active_user"],
+                    }
+                ],
+            },
+        )
+        assert descriptor.contexts == []
+        assert descriptor.available is False
+        assert descriptor.readiness_state == "unknown"
+
+
+def test_windows_canonical_context_is_independent_of_legacy_alias_values():
+    # Change only the compatibility DP; the canonical Owner observation,
+    # node and readiness must remain identical across the selected domain.
+    route = default_routes()["execution.windows"]
+    context = {"identity": "service", "privilege": "limited"}
+    for canonical, available in (([context], True), ([], False), ([], True)):
+        target = {
+            "target": "windows_native",
+            "configured": True,
+            "available": available,
+            "windowsContexts": canonical,
+        }
+        response = {
+            "schemaVersion": 1,
+            "node": {"nodeId": "windows-pg", "platform": "windows", "native": True},
+            "targets": [target],
+        }
+        reference = project_execution_capability(
+            route, configured_at_gateway=True, owner_response=response
+        )
+        for aliases in ([], ["limited"], ["active_user"], ["elevated", "active_user"]):
+            changed = {**response, "targets": [{**target, "windowsAuthorities": aliases}]}
+            observed = project_execution_capability(
+                route, configured_at_gateway=True, owner_response=changed
+            )
+            assert observed == reference
+        # Explicit absence is a separate legacy representation domain.
+        assert reference.contexts == canonical

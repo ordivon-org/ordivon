@@ -33,6 +33,38 @@ fi
 ORDIVON_HOST_QUEUE_LOCAL_DISPOSABLE=1 bash tools/host_queue_verify.sh
 """
 
+[tasks."test:postgres19:disposable"]
+description = "Host isolated PostgreSQL 19 qualification candidate; never production DSN"
+run = """
+set -euo pipefail
+if printenv ORDIVON_HOST_V2_TEST_DSN >/dev/null; then
+  echo "HOST_DISPOSABLE_REJECTS_INHERITED_DSN: use an isolated fresh test database" >&2
+  exit 2
+fi
+ORDIVON_HOST_QUEUE_LOCAL_DISPOSABLE=1 bash tools/host_queue_verify.sh --postgres-major=19
+"""
+
+[tasks."test:postgres19:upgrade"]
+description = "Actual local PG18 to PG19 copy upgrade and pre-cutover restore; explicit native binaries"
+run = """
+set -euo pipefail
+uv run --locked python tools/host_pg19_upgrade_verify.py --old-bin "${HOST_PG18_BIN:?explicit PG18 bin required}" --new-bin "${HOST_PG19_BIN:?explicit PG19 bin required}"
+"""
+
+[tasks."test:postgres19:search-upgrade"]
+description = "Native PG18 to PG19 ICU+C search index refinement with independent scan oracle"
+run = """
+set -euo pipefail
+uv run --locked python tools/host_pg19_upgrade_verify.py --icu-search --old-bin "${HOST_PG18_BIN:?explicit PG18 bin required}" --new-bin "${HOST_PG19_BIN:?explicit PG19 bin required}"
+"""
+
+[tasks."test:postgres19:pitr"]
+description = "Native isolated PG19 pgBackRest point-in-time recovery and consumer replay"
+run = """
+set -euo pipefail
+uv run --locked python tools/host_pg19_pitr_verify.py --pg-bin "${HOST_PG19_BIN:?explicit PG19 bin required}" --pgbackrest "${HOST_PGBACKREST_BIN:?explicit pgBackRest binary required}"
+"""
+
 [tasks.queue]
 run = """
 set -euo pipefail

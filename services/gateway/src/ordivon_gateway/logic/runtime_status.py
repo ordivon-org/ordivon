@@ -53,3 +53,27 @@ def runtime_ready_target_observed(response: object) -> bool:
     if not valid_runtime_target_inventory(targets):
         return False
     return any(row["configured"] is True and row["available"] is True for row in targets)
+
+
+def valid_runtime_execution_context_inventory(target: dict, target_name: str | None) -> bool:
+    """Canonical Windows inventory is authoritative when present, even when empty.
+
+    Do not infer executable authority from legacy compatibility fields when the
+    Owner explicitly reports a canonical inventory. Context values remain
+    provider-defined; this validates their representation, not authorization.
+    """
+    fields = (
+        ("windowsContexts", "windowsAuthorities")
+        if target_name == "windows_native"
+        else ("executionProfiles",)
+    )
+    if any(field in target and not isinstance(target[field], list) for field in fields):
+        return False
+    if target_name != "windows_native" or "windowsContexts" not in target:
+        return True
+    contexts = target["windowsContexts"]
+    if any(not isinstance(value, dict) or not value for value in contexts):
+        return False
+    if any(value in contexts[:index] for index, value in enumerate(contexts)):
+        return False
+    return bool(contexts) or target.get("available") is not True

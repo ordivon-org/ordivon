@@ -7,12 +7,13 @@ rust = { version = "1.99.1", components = "clippy,rustfmt" }
 # Upstream prebuilt Nextest, fetched directly from its official GitHub release.
 # Do not make root CI depend on an extra third-party release proxy.
 # Keep the official release SHA-256 and byte-size verification.
-# Only linux-x64 is admitted until the other platforms' exact assets are qualified.
+# Admit only the verified official Linux and Windows x64 release assets.
 [tools."http:cargo-nextest"]
 version = "0.9.152"
 
 [tools."http:cargo-nextest".platforms]
 linux-x64 = { url = "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.152/cargo-nextest-0.9.152-x86_64-unknown-linux-gnu.tar.gz", checksum = "sha256:d039b43c3e0958441b6ad0a39c8884d018b3d2e8fb9928f209074b1100b5e17a", size = 12393262 }
+windows-x64 = { url = "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.152/cargo-nextest-0.9.152-x86_64-pc-windows-msvc.zip", checksum = "sha256:cc6bf4b6a7ac18e462cd6c9bae67e26921b888249c2988c6acabf3df387ed9d6", size = 7966280 }
 
 [tasks."formal:kani:verify"]
 description = "Verify actual Rust PostgreSQL terminal and Attempt lifecycle properties with upstream Kani"
@@ -73,20 +74,27 @@ mise run formal:verify
 """
 
 [tasks."test:focused"]
-description = "Focused cargo-nextest, PG by default; explicit legacy profile (RUNTIME_TEST_EXPR)"
+description = "Focused cargo-nextest, PG by default; explicit legacy and archive profiles (RUNTIME_TEST_EXPR)"
 run = """
 set -euo pipefail
 case "${RUNTIME_TEST_PROFILE:-pg}" in
   pg)
     feature=postgres-registry-admission
+    target=(--lib)
     default_selector='test(nonterminal_native_transition_requires_reconciliation)'
     ;;
   legacy)
     feature=transactional-runtime
+    target=(--lib)
     default_selector='test(public_requests_reject_unknown_fields_and_path_escape)'
     ;;
+  archive)
+    feature=operator-tools
+    target=(--test archive_migration_properties)
+    default_selector='all()'
+    ;;
   *)
-    echo "Invalid RUNTIME_TEST_PROFILE: expected pg or legacy" >&2
+    echo "Invalid RUNTIME_TEST_PROFILE: expected pg, legacy or archive" >&2
     exit 2
     ;;
 esac
@@ -107,7 +115,29 @@ if [[ "$actual_nextest" != "$expected_nextest" ]]; then
   exit 1
 fi
 echo "qualified cargo-nextest $actual_nextest"
-mise exec -- cargo nextest run --locked --lib -p ordivon-runtime-core --no-default-features --features "$feature" --no-tests fail --retries 0 --status-level pass -P ci -E "${RUNTIME_TEST_EXPR:-$default_selector}"
+# Native Nextest owns both discovery and execution. Use a fresh per-run store,
+# not the shared ci/junit.xml, and list ignored tests without executing them.
+evidence=$(mktemp -d)
+trap 'rm -rf "$evidence"' EXIT
+python3 - "$evidence" <<'PY_NEXTTEST_STORE'
+import json
+from pathlib import Path
+import sys
+root = Path(sys.argv[1]).resolve()
+(root / "store.toml").write_text("[store]\\ndir = " + json.dumps((root / "store").as_posix()) + "\\n", encoding="utf-8")
+PY_NEXTTEST_STORE
+build=(--locked "${target[@]}" -p ordivon-runtime-core --no-default-features --features "$feature")
+configuration=(-P ci --user-config-file none --tool-config-file "ordivon-evidence:$evidence/store.toml")
+# Archive once using Nextest itself. Discovery and execution consume the
+# same private build carrier even if a later Cargo build replaces a binary.
+archive="$evidence/tests.tar.zst"
+mise exec -- cargo nextest archive "${build[@]}" "${configuration[@]}" --archive-file "$archive" --zstd-level -3
+archive_sha=$(python3 scripts/qualify_focused_evidence.py --digest "$archive")
+selection=(--archive-file "$archive" "${configuration[@]}" -E "${RUNTIME_TEST_EXPR:-$default_selector}")
+mise exec -- cargo nextest list "${selection[@]}" --message-format json --run-ignored all > "$evidence/list.json"
+python3 scripts/qualify_focused_evidence.py "$evidence/list.json"
+mise exec -- cargo nextest run "${selection[@]}" --no-tests fail --retries 0 --status-level pass
+python3 scripts/qualify_focused_evidence.py "$evidence/list.json" "$evidence/store/ci/junit.xml" "$archive" "$archive_sha"
 """
 
 

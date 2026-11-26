@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from ..contracts import ReadinessCheck, ReadinessFact
 from .readiness_evidence import OwnerConfiguration, OwnerObservation, _check, _fact
-from .runtime_status import valid_runtime_status_envelope, valid_runtime_target_inventory
+from .runtime_status import (
+    valid_runtime_execution_context_inventory,
+    valid_runtime_status_envelope,
+    valid_runtime_target_inventory,
+)
 
 
 def append_runtime_facts(
@@ -164,19 +168,11 @@ def append_runtime_facts(
                 )
             )
             unresolved.append(f"{owner_id}: reported available=True with configured=False")
-        contexts = (
-            ("windowsContexts", "windowsAuthorities")
-            if target_name == "windows_native"
-            else ("executionProfiles",)
-        )
-        for field in contexts:
-            if field in target and not isinstance(target[field], list):
-                facts.append(
-                    _fact(
-                        owner_id, f"owner.context_inventory:{field}", "invalid", "runtime.describe"
-                    )
-                )
-                unresolved.append(f"{owner_id}: invalid context inventory {field}")
+        if not valid_runtime_execution_context_inventory(target, label):
+            facts.append(
+                _fact(owner_id, f"owner.context_inventory:{label}", "invalid", "runtime.describe")
+            )
+            unresolved.append(f"{owner_id}: invalid context inventory {label}")
 
     if len(matches) > 16:
         unresolved.append(f"{owner_id}: additional target rows omitted from bounded inquiry")

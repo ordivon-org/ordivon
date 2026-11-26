@@ -48,14 +48,30 @@ runs:
           sleep $((attempt * 3))
         done
 
+    - name: Cache verified GNU Bash source bytes
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/ordivon-bash-distribution
+        key: bash-distribution-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/repo/bash-5.3.20.sha256', 'tools/repo/install_latest_stable_bash.sh') }}
+
     - name: Install verified GNU Bash 5.3.20
+      env:
+        ORDIVON_BASH_DIST_CACHE_DIR: ${{ runner.temp }}/ordivon-bash-distribution
       shell: bash
       run: |
         set -euo pipefail
         tools/repo/install_latest_stable_bash.sh "$RUNNER_TEMP/ordivon-bash-5.3.20"
         echo "$RUNNER_TEMP/ordivon-bash-5.3.20/bin" >> "$GITHUB_PATH"
 
+    - name: Cache verified SQL distribution bytes
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/ordivon-sql-distributions
+        key: sql-distributions-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/repo/install_sql_verifiers.sh') }}
+
     - name: Install pinned SQL validation CLIs
+      env:
+        ORDIVON_SQL_DIST_CACHE_DIR: ${{ runner.temp }}/ordivon-sql-distributions
       shell: bash
       run: |
         set -euo pipefail

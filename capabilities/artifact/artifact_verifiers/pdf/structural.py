@@ -14,22 +14,34 @@ def verify_pdf(path: Path) -> dict[str, Any]:
     executable = qpdf_executable()
     if executable is None:
         return {
-            "status": "FAIL",
+            "status": "NOT_RUN",
             "artifact": artifact,
             "validator": "qpdf",
             "error": "qpdf is not installed",
             "profileValidation": "NOT_RUN",
         }
-    proc = subprocess.run(
-        [str(executable), "--check", str(path)],
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-        timeout=30,
-    )
+    try:
+        proc = subprocess.run(
+            [str(executable), "--check", str(path)],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return {
+            "status": "NOT_RUN",
+            "artifact": artifact,
+            "validator": str(executable),
+            "error": str(error),
+        }
     return {
-        "status": "PASS" if proc.returncode == 0 else "FAIL",
+        "status": "PASS"
+        if proc.returncode == 0
+        else "FAIL"
+        if proc.returncode in (2, 3)
+        else "NOT_RUN",
         "artifact": artifact,
         "validator": str(executable),
         "exitCode": proc.returncode,

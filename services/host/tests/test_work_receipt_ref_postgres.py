@@ -2,21 +2,27 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 import subprocess
 import sys
 import time
 import unittest
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from pathlib import Path
 from queue import Queue
+from unittest.mock import patch
 from uuid import uuid4
 
 import psycopg
+from mcp import Client, StdioServerParameters
+from psycopg import sql
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from ordivon_host_v2.canonical_json import canonical_digest
+from ordivon_host_v2.canonical_json import canonical_bytes, canonical_digest
+from ordivon_host_v2.command_receipts import claim_command_receipt
 from ordivon_host_v2.errors import ConflictError
 from ordivon_host_v2.health.receipt_roots import count_invalid_work_receipt_roots
 from ordivon_host_v2.references.actor_store import ActorReferenceStore
@@ -29,6 +35,7 @@ from ordivon_host_v2.work_inputs import (
     WorkState,
 )
 from ordivon_host_v2.work_receipt_retention import expand_work_receipts_and_fence
+from ordivon_host_v2.work_receipt_writer import record_work_receipt
 from ordivon_host_v2.work_receipts import replay_work_receipt
 from ordivon_host_v2.work_store import WorkStore
 
@@ -627,6 +634,698 @@ class WorkReceiptTest(unittest.TestCase):
             self.assertEqual(count_invalid_work_receipt_roots(conn), baseline)
         self.assert_replay(self.create(), first)
         self.assert_replay(self.commit("second", 1), second)
+
+    def test_public_replay_rejects_wrong_or_missing_persisted_root(self):
+        first = self.create()
+        second = self.commit("second", 1)
+        self.tag("create", first)
+        self.tag("second", second)
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+
+            class BoundStore(WorkStore):
+                @contextmanager
+                def _connect(self):
+                    yield conn
+
+            self.store = BoundStore(DSN)
+            for label, suffix, assignment, params in [
+                ("wrong create revision", "create", "receipt_work_revision=2", ()),
+                (
+                    "missing create pin",
+                    "create",
+                    "receipt_work_ref=NULL,receipt_work_revision=NULL",
+                    (),
+                ),
+                ("legacy carrying pin", "create", "response=%s", (Jsonb(first),)),
+                ("wrong commit revision", "second", "receipt_work_revision=1", ()),
+            ]:
+                with self.subTest(label=label), conn.transaction(force_rollback=True):
+                    conn.execute(
+                        "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_work_root_shape"
+                    )
+                    conn.execute(
+                        "UPDATE command_receipts SET " + assignment + " WHERE client_request_id=%s",
+                        (*params, self.key(suffix)),
+                    )
+                    with self.assertRaisesRegex(
+                        RuntimeError, "native Work receipt root|reference differs"
+                    ):
+                        if suffix == "create":
+                            self.create()
+                        else:
+                            self.commit("second", 1)
+            self.assert_replay(self.create(), first)
+            self.assert_replay(self.commit("second", 1), second)
+
+    def test_native_point_replay_retains_bounded_query_count(self):
+        first = self.create()
+        second = self.commit("second", 1)
+        self.tag("second", second)
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            statements = []
+
+            class CountedConnection:
+                def __getattr__(self, name):
+                    return getattr(conn, name)
+
+                def execute(self, query, params=None):
+                    statements.append(query)
+                    return conn.execute(query, params)
+
+            class BoundStore(WorkStore):
+                @contextmanager
+                def _connect(self):
+                    yield CountedConnection()
+
+            self.store = BoundStore(DSN)
+            self.assert_replay(self.create(), first)
+            self.assertEqual(len(statements), 2)
+            self.assertFalse(any("FROM work_snapshots" in q for q in statements))
+            statements.clear()
+            self.assert_replay(self.commit("second", 1), second)
+            self.assertEqual(len(statements), 3)
+            self.assertEqual(sum("FROM work_snapshots" in q for q in statements), 1)
+
+    def test_maintenance_refuses_corrupt_native_pin_before_expansion(self):
+        first = self.create()
+        self.commit("second", 1)
+        self.tag("create", first)
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            conn.execute("SELECT 1")
+            for label, sql, params in [
+                ("wrong revision", "receipt_work_revision=2", ()),
+                ("absent pin", "receipt_work_ref=NULL,receipt_work_revision=NULL", ()),
+                ("foreign operation", "operation='message.post'", ()),
+                ("legacy with pin", "response=%s", (Jsonb(first),)),
+            ]:
+                with self.subTest(label=label), conn.transaction(force_rollback=True):
+                    # A native negative control, only in this isolated transaction.
+                    conn.execute(
+                        "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_work_root_shape"
+                    )
+                    conn.execute(
+                        "UPDATE command_receipts SET " + sql + " WHERE client_request_id=%s",
+                        (*params, self.key("create")),
+                    )
+
+                    def read_row():
+                        return conn.execute(
+                            "SELECT response,operation,receipt_work_ref,receipt_work_revision "
+                            "FROM command_receipts WHERE client_request_id=%s",
+                            (self.key("create"),),
+                        ).fetchone()
+
+                    before = read_row()
+                    with self.assertRaises(RuntimeError):
+                        expand_work_receipts_and_fence(conn)
+                    self.assertEqual(read_row(), before)
+                    self.assertEqual(
+                        conn.execute(
+                            "SELECT count(*) AS n FROM pg_constraint "
+                            "WHERE conrelid='command_receipts'::regclass "
+                            "AND conname='command_receipt_legacy_only'"
+                        ).fetchone()["n"],
+                        0,
+                    )
+        self.assert_replay(self.create(), first)
+
+    def test_maintenance_late_batch_corruption_rolls_back_all_expansions(self):
+        first = self.create()
+        tag = self.tag("create", first)
+        prefix = self.key("batch:")
+        last = prefix + "0260"
+        with psycopg.connect(DSN) as conn:
+            conn.execute(
+                "INSERT INTO command_receipts(client_request_id,operation,request_digest,"
+                "response,receipt_work_ref,receipt_work_revision) "
+                "SELECT %s||lpad(g::text,4,'0'),operation,request_digest,response,"
+                "receipt_work_ref,receipt_work_revision FROM command_receipts "
+                "CROSS JOIN generate_series(1,260) g WHERE client_request_id=%s",
+                (prefix, self.key("create")),
+            )
+            conn.execute(
+                "UPDATE command_receipts SET response=%s WHERE client_request_id=%s",
+                (Jsonb({**tag, "responseDigest": "sha256:" + "0" * 64}), last),
+            )
+
+        def rows(conn):
+            return conn.execute(
+                "SELECT client_request_id,response,receipt_work_ref,receipt_work_revision "
+                "FROM command_receipts WHERE client_request_id LIKE %s "
+                "OR client_request_id=%s ORDER BY client_request_id",
+                (prefix + "%", self.key("create")),
+            ).fetchall()
+
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            before = rows(conn)
+            self.assertEqual(len(before), 261)
+            with self.assertRaisesRegex(RuntimeError, "response digest differs"):
+                expand_work_receipts_and_fence(conn)
+            self.assertEqual(rows(conn), before)
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            self.assertEqual(rows(conn), before)
+            conn.execute(
+                "UPDATE command_receipts SET response=%s WHERE client_request_id=%s",
+                (Jsonb(tag), last),
+            )
+
+            class CountingConnection:
+                def __init__(self, native):
+                    self.native = native
+                    self.statements = 0
+                    self.updates = []
+
+                def __getattr__(self, name):
+                    return getattr(self.native, name)
+
+                def execute(self, query, params=None):
+                    self.statements += 1
+                    if query.startswith("UPDATE command_receipts AS r"):
+                        self.updates.append(tuple(len(v.encode("utf-8")) for v in params[1]))
+                    return self.native.execute(query, params)
+
+            counted = CountingConnection(conn)
+            self.assertEqual(expand_work_receipts_and_fence(counted), 261)
+            self.assertLessEqual(counted.statements, 12)  # No per-row SQL regression.
+            self.assertEqual(sum(map(len, counted.updates)), 261)
+            self.assertTrue(all(0 < len(batch) <= 128 for batch in counted.updates))
+            after = rows(conn)
+            self.assertEqual(
+                [r["client_request_id"] for r in after], [r["client_request_id"] for r in before]
+            )
+            for row in after:
+                self.assertEqual(row["response"], {**first, "admission": "existing"})
+                self.assertIsNone(row["receipt_work_ref"])
+                self.assertIsNone(row["receipt_work_revision"])
+            self.assertEqual(expand_work_receipts_and_fence(conn), 0)
+        self.gate_open = False
+        self.assert_replay(self.create(), first)
+
+    def test_maintenance_byte_budget_and_oversized_singleton(self):
+        first = self.create()
+        tag = self.tag("create", first)
+        # A test-specific budget exercises the same branch without allocating
+        # megabytes or imposing a new limit on historical business payloads.
+        norm = {**first, "admission": "existing"}
+        one_size = len(canonical_bytes(norm))
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            conn.execute(
+                "INSERT INTO command_receipts(client_request_id,operation,request_digest,"
+                "response,receipt_work_ref,receipt_work_revision) "
+                "SELECT %s||g::text,operation,request_digest,response,receipt_work_ref,"
+                "receipt_work_revision FROM command_receipts CROSS JOIN generate_series(1,2) g "
+                "WHERE client_request_id=%s",
+                (self.key("byte:"), self.key("create")),
+            )
+            original = conn.execute(
+                "SELECT client_request_id,response FROM command_receipts "
+                "WHERE receipt_work_ref=%s ORDER BY client_request_id",
+                (self.work,),
+            ).fetchall()
+            self.assertEqual(len(original), 3)
+
+            class ObservedConnection:
+                def __init__(self, native):
+                    self.native = native
+                    self.update_sizes = []
+
+                def __getattr__(self, name):
+                    return getattr(self.native, name)
+
+                def execute(self, query, params=None):
+                    if query.startswith("UPDATE command_receipts AS r"):
+                        self.update_sizes.append([len(item.encode("utf-8")) for item in params[1]])
+                    return self.native.execute(query, params)
+
+            # Two rows fit the first budget; one row exceeds the second.
+            # Force rollback of the first independent execution, including DDL.
+            with conn.transaction(force_rollback=True):
+                observed = ObservedConnection(conn)
+                with patch(
+                    "ordivon_host_v2.work_receipt_retention._UPDATE_BATCH_BYTES", 2 * one_size
+                ):
+                    self.assertEqual(expand_work_receipts_and_fence(observed), 3)
+                self.assertEqual([len(b) for b in observed.update_sizes], [2, 1])
+            observed = ObservedConnection(conn)
+            with patch("ordivon_host_v2.work_receipt_retention._UPDATE_BATCH_BYTES", one_size - 1):
+                self.assertEqual(expand_work_receipts_and_fence(observed), 3)
+            self.assertEqual(observed.update_sizes, [[one_size], [one_size], [one_size]])
+            restored = conn.execute(
+                "SELECT response FROM command_receipts WHERE client_request_id=ANY(%s)",
+                ([row["client_request_id"] for row in original],),
+            ).fetchall()
+            self.assertEqual([row["response"] for row in restored], [norm] * 3)
+            self.assertEqual(tag["responseDigest"], canonical_digest(norm))
+        self.gate_open = False
+        self.assert_replay(self.create(), first)
+
+    def test_maintenance_rejects_missing_or_relabelled_update_identity(self):
+        first = self.create()
+        second = self.commit("second", 1)
+        self.tag("create", first)
+        self.tag("second", second)
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+
+            def rows():
+                return conn.execute(
+                    "SELECT client_request_id,response,receipt_work_ref,receipt_work_revision "
+                    "FROM command_receipts WHERE receipt_work_ref=%s "
+                    "OR client_request_id LIKE %s ORDER BY client_request_id",
+                    (self.work, self.prefix + ":%"),
+                ).fetchall()
+
+            before = rows()
+            for label, effect in [
+                ("suppress", "RETURN NULL;"),
+                (
+                    "relabel",
+                    "NEW.client_request_id := NEW.client_request_id || ':relabeled'; RETURN NEW;",
+                ),
+            ]:
+                with self.subTest(label=label), conn.transaction(force_rollback=True):
+                    # Exercise the real UPDATE/RETURNING contract, not a mock
+                    # result. The trigger and all changes are private/rolled back.
+                    conn.execute(
+                        "CREATE FUNCTION pg_temp.receipt_update_control() RETURNS trigger "
+                        "LANGUAGE plpgsql AS $$ BEGIN " + effect + " END; $$"
+                    )
+                    conn.execute(
+                        sql.SQL(
+                            "CREATE TRIGGER receipt_update_control BEFORE UPDATE ON command_receipts "
+                            "FOR EACH ROW WHEN (OLD.client_request_id={}) "
+                            "EXECUTE FUNCTION pg_temp.receipt_update_control()"
+                        ).format(sql.Literal(self.key("second")))
+                    )
+                    with self.assertRaisesRegex(RuntimeError, "root disappeared"):
+                        expand_work_receipts_and_fence(conn)
+                    self.assertEqual(rows(), before)
+                    self.assertEqual(
+                        conn.execute(
+                            "SELECT count(*) AS n FROM pg_constraint "
+                            "WHERE conrelid='command_receipts'::regclass "
+                            "AND conname='command_receipt_legacy_only'"
+                        ).fetchone()["n"],
+                        0,
+                    )
+            self.assertEqual(rows(), before)
+            self.assertEqual(expand_work_receipts_and_fence(conn), 2)
+        self.gate_open = False
+        self.assert_replay(self.create(), first)
+        self.assert_replay(self.commit("second", 1), second)
+
+    def test_maintenance_rejects_rewritten_payload_and_request_identity(self):
+        first = self.create()
+        second = self.commit("second", 1)
+        self.tag("create", first)
+        self.tag("second", second)
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+
+            def rows():
+                return conn.execute(
+                    "SELECT client_request_id,operation,request_digest,response,"
+                    "receipt_work_ref,receipt_work_revision FROM command_receipts "
+                    "WHERE client_request_id LIKE %s ORDER BY client_request_id",
+                    (self.prefix + ":%",),
+                ).fetchall()
+
+            before = rows()
+            for label, timing, effect in [
+                (
+                    "response",
+                    "BEFORE",
+                    "NEW.response := jsonb_set(NEW.response,'{snapshot,frontier}',"
+                    "to_jsonb('corrupt'::text)); RETURN NEW;",
+                ),
+                ("operation", "BEFORE", "NEW.operation := 'work.create'; RETURN NEW;"),
+                (
+                    "request_digest",
+                    "BEFORE",
+                    "NEW.request_digest := 'sha256:' || repeat('0',64); RETURN NEW;",
+                ),
+                (
+                    "after_response",
+                    "AFTER",
+                    "UPDATE command_receipts SET response=jsonb_set(response,"
+                    "'{snapshot,frontier}',to_jsonb('corrupt'::text)) "
+                    "WHERE client_request_id=NEW.client_request_id; RETURN NULL;",
+                ),
+            ]:
+                with self.subTest(label=label), conn.transaction(force_rollback=True):
+                    conn.execute(
+                        "CREATE FUNCTION pg_temp.receipt_effect_control() RETURNS trigger "
+                        "LANGUAGE plpgsql AS $$ BEGIN " + effect + " END; $$"
+                    )
+                    conn.execute(
+                        sql.SQL(
+                            "CREATE TRIGGER receipt_effect_control {} UPDATE ON command_receipts "
+                            "FOR EACH ROW WHEN (OLD.receipt_work_ref IS NOT NULL "
+                            "AND OLD.client_request_id={}) "
+                            "EXECUTE FUNCTION pg_temp.receipt_effect_control()"
+                        ).format(sql.SQL(timing), sql.Literal(self.key("second")))
+                    )
+                    with self.assertRaisesRegex(RuntimeError, "restored Work receipt differs"):
+                        expand_work_receipts_and_fence(conn)
+                    self.assertEqual(rows(), before)
+                    self.assertEqual(
+                        conn.execute(
+                            "SELECT count(*) AS n FROM pg_constraint "
+                            "WHERE conrelid='command_receipts'::regclass "
+                            "AND conname='command_receipt_legacy_only'"
+                        ).fetchone()["n"],
+                        0,
+                    )
+            self.assertEqual(rows(), before)
+            self.assertEqual(expand_work_receipts_and_fence(conn), 2)
+        self.gate_open = False
+        self.assert_replay(self.create(), first)
+        self.assert_replay(self.commit("second", 1), second)
+
+    def test_opt_in_writer_modes_and_exact_historical_replay(self):
+        self.store = WorkStore(DSN, compact_work_receipts=True)
+        first = self.create()
+        self.assertEqual(self.stored("create")["kind"], "ordivon.host-work")
+        with psycopg.connect(DSN) as conn:
+            conn.execute("ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_legacy_only")
+        self.gate_open = True
+        # The original default writer remains legacy even without the fence.
+        self.store = WorkStore(DSN)
+        second = self.commit("legacy_second", 1)
+        self.assertEqual(self.stored("legacy_second")["kind"], "ordivon.host-work")
+        self.store = WorkStore(DSN, compact_work_receipts=True)
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            responses = list(pool.map(lambda _: self.commit("compact_third", 2), range(4)))
+        self.assertEqual(sum(r["admission"] == "committed" for r in responses), 1)
+        third = responses[0]
+        for item in responses:
+            self.assert_replay({**item, "admission": "existing"}, third)
+        # A distinct create key can bind a later head, not necessarily revision one.
+        later = self.create("later_create")
+        self.assertEqual(later["revision"], 3)
+        duplicate = self.commit("distinct_commit", 2)
+        self.assertEqual(duplicate["revision"], 3)
+        self.assertEqual(duplicate["admission"], "existing")
+        self.commit("fourth", 3)
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            rows = conn.execute(
+                "SELECT response,receipt_work_ref,receipt_work_revision FROM command_receipts "
+                "WHERE client_request_id=ANY(%s)",
+                ([self.key(x) for x in ("compact_third", "later_create", "distinct_commit")],),
+            ).fetchall()
+            self.assertEqual(len(rows), 3)
+            for row in rows:
+                self.assertEqual(row["response"]["kind"], "ordivon.host-work-receipt-ref-v1")
+                self.assertNotIn("snapshot", row["response"]["envelope"])
+                self.assertEqual(row["receipt_work_ref"], self.work)
+                self.assertEqual(row["receipt_work_revision"], 3)
+            self.assertEqual(expand_work_receipts_and_fence(conn), 4)
+        self.gate_open = False
+        self.assert_replay(self.create(), first)
+        self.assert_replay(self.commit("legacy_second", 1), second)
+        self.assert_replay(self.commit("compact_third", 2), third)
+        self.assert_replay(self.create("later_create"), later)
+        self.assert_replay(self.commit("distinct_commit", 2), duplicate)
+        # Same opted-in process sees the restored fence, without restart.
+        self.commit("fifth", 4)
+        self.assertEqual(self.stored("fifth")["kind"], "ordivon.host-work")
+
+    def test_opt_in_writer_waiting_on_rollback_reobserves_native_fence(self):
+        self.store = WorkStore(DSN, compact_work_receipts=True)
+        first = self.create()
+        self.tag("create", first)
+        second = self.commit("second", 1)
+        self.assertEqual(self.stored("second")["kind"], "ordivon.host-work-receipt-ref-v1")
+        pids = Queue()
+        parent = self
+
+        class ObservedStore(WorkStore):
+            @contextmanager
+            def _connect(self):
+                with psycopg.connect(DSN, row_factory=dict_row) as conn:
+                    conn.execute("SET LOCAL lock_timeout='8s'")
+                    pids.put(conn.info.backend_pid)
+                    yield conn
+
+        writer = ObservedStore(DSN, compact_work_receipts=True)
+
+        def write():
+            return writer.commit_snapshot(
+                parent.work,
+                expected_revision=2,
+                snapshot=WorkSnapshotInput(
+                    objective="synthetic", frontier="r3", established=["a", "a", "b"]
+                ),
+                actor_ref=parent.actor,
+                client_request_id=parent.key("waiting"),
+            )
+
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            with psycopg.connect(DSN, row_factory=dict_row) as holder:
+                self.assertEqual(expand_work_receipts_and_fence(holder), 2)
+                future = pool.submit(write)
+                pid = pids.get(timeout=5)
+                with psycopg.connect(DSN, autocommit=True) as observer:
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        if observer.execute(
+                            "SELECT %s=ANY(pg_blocking_pids(%s))",
+                            (holder.info.backend_pid, pid),
+                        ).fetchone()[0]:
+                            break
+                        time.sleep(0.01)
+                    else:
+                        self.fail("writer did not block on rollback fence holder")
+            self.assertEqual(future.result(timeout=10)["admission"], "committed")
+        self.gate_open = False
+        self.assertEqual(self.stored("waiting")["kind"], "ordivon.host-work")
+        self.assert_replay(self.create(), first)
+        self.assert_replay(self.commit("second", 1), second)
+
+    def test_opt_in_writer_refuses_weak_or_missing_native_contract(self):
+        first = self.create()
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            conn.execute("SELECT 1")
+            for label, ddl, message in [
+                (
+                    "weak fence",
+                    [
+                        "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_legacy_only",
+                        "ALTER TABLE command_receipts ADD CONSTRAINT command_receipt_legacy_only CHECK (true)",
+                    ],
+                    "legacy-only receipt fence differs",
+                ),
+                (
+                    "missing FK",
+                    [
+                        "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_legacy_only",
+                        "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_work_root_fk",
+                    ],
+                    "native Work receipt roots unqualified",
+                ),
+                (
+                    "weak shape",
+                    [
+                        "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_legacy_only",
+                        "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_work_root_shape",
+                        "ALTER TABLE command_receipts ADD CONSTRAINT command_receipt_work_root_shape CHECK (true)",
+                    ],
+                    "native Work receipt roots unqualified",
+                ),
+            ]:
+                with self.subTest(label=label), conn.transaction(force_rollback=True):
+                    for statement in ddl:
+                        conn.execute(statement)
+                    key = self.key("unqualified")
+                    digest = canonical_digest({"request": key})
+                    self.assertIsNone(claim_command_receipt(conn, key, "work.create", digest))
+                    with self.assertRaisesRegex(RuntimeError, message):
+                        record_work_receipt(
+                            conn, key, "work.create", digest, first, compact_requested=True
+                        )
+                    row = conn.execute(
+                        "SELECT response,receipt_work_ref,receipt_work_revision FROM command_receipts "
+                        "WHERE client_request_id=%s",
+                        (key,),
+                    ).fetchone()
+                    self.assertEqual(
+                        row,
+                        {"response": None, "receipt_work_ref": None, "receipt_work_revision": None},
+                    )
+        self.assert_replay(self.create(), first)
+
+    def test_opt_in_writer_rejects_disabled_native_root_enforcement(self):
+        first = self.create()
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            for target in ("command_receipts", "work_snapshots"):
+                with self.subTest(target=target), conn.transaction(force_rollback=True):
+                    conn.execute(
+                        "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_legacy_only"
+                    )
+                    triggers = conn.execute(
+                        "SELECT t.tgname FROM pg_trigger t JOIN pg_constraint c "
+                        "ON t.tgconstraint=c.oid "
+                        "WHERE c.conrelid='command_receipts'::regclass "
+                        "AND c.conname='command_receipt_work_root_fk' "
+                        "AND t.tgrelid=%s::regclass ORDER BY t.tgname",
+                        (target,),
+                    ).fetchall()
+                    self.assertEqual(len(triggers), 2)
+                    conn.execute(
+                        sql.SQL("ALTER TABLE {} DISABLE TRIGGER {}").format(
+                            sql.Identifier(target), sql.Identifier(triggers[0]["tgname"])
+                        )
+                    )
+                    key = self.key("disabled")
+                    digest = canonical_digest({"request": key})
+                    self.assertIsNone(claim_command_receipt(conn, key, "work.create", digest))
+                    with self.assertRaisesRegex(
+                        RuntimeError, "native Work receipt roots unqualified"
+                    ):
+                        record_work_receipt(
+                            conn, key, "work.create", digest, first, compact_requested=True
+                        )
+        self.assert_replay(self.create(), first)
+
+    def test_opt_in_writer_accepts_native_always_enabled_root_trigger(self):
+        first = self.create()
+        with psycopg.connect(DSN, row_factory=dict_row) as conn:
+            with conn.transaction(force_rollback=True):
+                conn.execute(
+                    "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_legacy_only"
+                )
+                row = conn.execute(
+                    "SELECT t.tgname FROM pg_trigger t JOIN pg_constraint c "
+                    "ON t.tgconstraint=c.oid "
+                    "WHERE c.conname='command_receipt_work_root_fk' "
+                    "AND c.conrelid='command_receipts'::regclass "
+                    "AND t.tgrelid='command_receipts'::regclass ORDER BY t.tgname LIMIT 1"
+                ).fetchone()
+                conn.execute(
+                    sql.SQL("ALTER TABLE command_receipts ENABLE ALWAYS TRIGGER {}").format(
+                        sql.Identifier(row["tgname"])
+                    )
+                )
+                key = self.key("always")
+                digest = canonical_digest({"request": key})
+                self.assertIsNone(claim_command_receipt(conn, key, "work.create", digest))
+                record_work_receipt(conn, key, "work.create", digest, first, compact_requested=True)
+                row = conn.execute(
+                    "SELECT receipt_work_ref,receipt_work_revision FROM command_receipts "
+                    "WHERE client_request_id=%s",
+                    (key,),
+                ).fetchone()
+                self.assertEqual(row, {"receipt_work_ref": self.work, "receipt_work_revision": 1})
+        self.assert_replay(self.create(), first)
+
+    def test_native_mcp_process_opt_in_and_rollback_without_restart(self):
+        # Existing public SDK surface, real stdio process and private DB only.
+        env = {k: v for k, v in os.environ.items() if not k.startswith("ORDIVON_HOST_V2_")}
+        env.update(
+            ORDIVON_HOST_V2_DSN=DSN,
+            ORDIVON_HOST_V2_TRANSPORT="stdio",
+            ORDIVON_HOST_V2_PG_POOL_MAX_SIZE="2",
+            ORDIVON_HOST_V2_COMPACT_WORK_RECEIPTS="1",
+        )
+        command = ["-c", "from ordivon_host_v2.mcp_server import main; main()"]
+        create_args = {
+            "workRef": self.work,
+            "workKind": "test",
+            "actorRef": self.actor,
+            "initialSnapshot": {"objective": "synthetic MCP", "frontier": "r1"},
+        }
+        commit_args = {
+            "workRef": self.work,
+            "expectedRevision": 1,
+            "actorRef": self.actor,
+            "snapshot": {"objective": "synthetic MCP", "frontier": "r2"},
+        }
+
+        def storage(revision):
+            with psycopg.connect(DSN, row_factory=dict_row) as conn:
+                rows = conn.execute(
+                    "SELECT response,receipt_work_ref,receipt_work_revision FROM command_receipts "
+                    "WHERE operation IN ('work.create','work.snapshot.commit') AND "
+                    "(receipt_work_ref=%s OR response->>'workRef'=%s)",
+                    (self.work, self.work),
+                ).fetchall()
+            matches = [
+                row
+                for row in rows
+                if row["receipt_work_revision"] == revision
+                or row["response"].get("revision") == revision
+            ]
+            self.assertEqual(len(matches), 1)
+            return matches[0]
+
+        async def scenario():
+            async with Client(
+                StdioServerParameters(command=sys.executable, args=command, env=env),
+                raise_exceptions=True,
+                read_timeout_seconds=12,
+            ) as client:
+                self.assertEqual(len((await client.list_tools()).tools), 31)
+                first = (await client.call_tool("work.create", create_args)).structured_content
+                self.assertEqual(first["admission"], "committed")
+                self.assertEqual(storage(1)["response"]["kind"], "ordivon.host-work")
+                with psycopg.connect(DSN) as conn:
+                    conn.execute(
+                        "ALTER TABLE command_receipts DROP CONSTRAINT command_receipt_legacy_only"
+                    )
+                self.gate_open = True
+                second = (
+                    await client.call_tool("work.snapshot.commit", commit_args)
+                ).structured_content
+                self.assertEqual(second["admission"], "committed")
+                stored = storage(2)
+                self.assertEqual(stored["response"]["kind"], "ordivon.host-work-receipt-ref-v1")
+                self.assertEqual(stored["receipt_work_ref"], self.work)
+                replay = (
+                    await client.call_tool("work.snapshot.commit", commit_args)
+                ).structured_content
+                self.assert_replay(replay, second)
+                with psycopg.connect(DSN, row_factory=dict_row) as conn:
+                    self.assertEqual(expand_work_receipts_and_fence(conn), 1)
+                self.gate_open = False
+                self.assertEqual(storage(2)["response"]["kind"], "ordivon.host-work")
+                self.assert_replay(
+                    (
+                        await client.call_tool("work.snapshot.commit", commit_args)
+                    ).structured_content,
+                    second,
+                )
+                third_args = {
+                    **commit_args,
+                    "expectedRevision": 2,
+                    "snapshot": {"objective": "synthetic MCP", "frontier": "r3"},
+                }
+                third = (
+                    await client.call_tool("work.snapshot.commit", third_args)
+                ).structured_content
+                self.assertEqual(third["revision"], 3)
+                self.assertEqual(storage(3)["response"]["kind"], "ordivon.host-work")
+
+        try:
+            asyncio.run(scenario())
+        finally:
+            # SDK request IDs are canonical hashes rather than fixture prefixes.
+            with psycopg.connect(DSN) as conn:
+                conn.execute(
+                    "DELETE FROM command_receipts WHERE operation IN ('work.create','work.snapshot.commit') "
+                    "AND (receipt_work_ref=%s OR response->>'workRef'=%s)",
+                    (self.work, self.work),
+                )
+
+        invalid = subprocess.run(
+            [sys.executable, *command],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            env={**env, "ORDIVON_HOST_V2_COMPACT_WORK_RECEIPTS": "true"},
+            timeout=8,
+            check=False,
+        )
+        self.assertNotEqual(invalid.returncode, 0)
+        self.assertIn("ORDIVON_HOST_V2_COMPACT_WORK_RECEIPTS must be 0 or 1", invalid.stderr)
+        self.assertFalse(invalid.stdout)
 
     def tearDown(self):
         with psycopg.connect(DSN) as conn:

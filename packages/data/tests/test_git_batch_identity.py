@@ -86,3 +86,37 @@ class GitBatchIdentityTests(unittest.TestCase):
                 verify_object_batch(
                     data, plan, algorithm, commit=commit, root_tree="0" * len(tree)
                 )
+
+    def test_combined_blob_budget_and_zero_length_rejected_at_header_admission(self):
+        for algorithm in ("sha1", "sha256"):
+            _commit, tree, expected, checks, _ = fixture(algorithm)
+            width = len(tree)
+            for size in (0, 2 * 1024 * 1024 + 1):
+                oid = "a" * width
+                with (
+                    self.subTest(algorithm=algorithm, size=size),
+                    self.assertRaisesRegex(ValueError, "bounded input size"),
+                ):
+                    qualify_batch_sizes(
+                        checks + f"{oid} blob {size}\n".encode(),
+                        expected + [(oid, "blob")],
+                        algorithm,
+                    )
+            blobs = [(f"{i:0{width}x}", "blob") for i in range(1, 33)]
+            headers = b"".join(
+                f"{oid} blob {2 * 1024 * 1024}\n".encode() for oid, _ in blobs
+            )
+            # 32 maximal Blobs plus protocol framing exceed 64 MiB.
+            qualify_batch_sizes(
+                checks + b"".join(headers.splitlines(keepends=True)[:-1]),
+                expected + blobs[:-1],
+                algorithm,
+            )
+            with self.assertRaisesRegex(ValueError, "bounded object bytes"):
+                qualify_batch_sizes(checks + headers, expected + blobs, algorithm)
+            with self.assertRaisesRegex(ValueError, "bounded batch bytes"):
+                qualify_batch_sizes(
+                    checks + f"{'f' * width} tree {8 * 1024 * 1024}\n".encode(),
+                    expected + [("f" * width, "tree")],
+                    algorithm,
+                )

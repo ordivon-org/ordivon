@@ -21,6 +21,7 @@ use uuid::Uuid;
 #[derive(Clone)]
 pub struct PgRuntimeConfig {
     pub dsn: String,
+    pub harness_spawn_dsn_file: Option<PathBuf>,
     pub schema: String,
     pub source_sha256: String,
     /// Optional SAME-PG issuer currentness guard, not foreignRef authentication.
@@ -269,6 +270,17 @@ impl PgRuntime {
         // Pure preflight first: an unqualified or unreachable PG writer must
         // never create Workspace/cache directories before source admission.
         config.executor.validate().map_err(io)?;
+        if config.harness_issuer_schema.is_some() || config.harness_dispatch_issuer.is_some() {
+            let path = config
+                .harness_spawn_dsn_file
+                .as_deref()
+                .ok_or_else(|| error("issuer-fenced Runtime requires owner-private PG DSN file"))?;
+            if crate::pg_admission::read_private_spawn_dsn(path).map_err(io)? != config.dsn {
+                return Err(error(
+                    "issuer receiver and Runtime must use the same PG DSN",
+                ));
+            }
+        }
         super::workspace_headroom::validate_workspace_headroom(&config.workspace_headroom)?;
         if config.source_sha256.len() != 64
             || !config.source_sha256.bytes().all(|b| b.is_ascii_hexdigit())

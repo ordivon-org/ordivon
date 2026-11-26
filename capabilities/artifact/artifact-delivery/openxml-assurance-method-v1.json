@@ -21,7 +21,7 @@
     "package": "DocumentFormat.OpenXml",
     "version": "3.5.1",
     "api": "OpenXmlValidator",
-    "targetFramework": "net8.0"
+    "targetFramework": "net10.0"
   },
   "supportedArtifactTypes": [
     "pptx",

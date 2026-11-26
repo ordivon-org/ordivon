@@ -48,10 +48,26 @@ def locate_original_harness_issuer_source(repo: Path) -> str:
                 and re.search(r"#\[ignore\s*=", annotations)
             ):
                 continue
-            # Preserve the genuine Harness publisher + Python module lookup
-            # inside this one issuer behavior, not a coincidental import in
-            # another Rust test file.
-            body = source[match.start():].split("\n#[test]", 1)[0]
+            # The native test may delegate to the one original same-file
+            # fixture helper when sharing setup with the receiver regression.
+            # Bind the exact wrapper call, not an unrelated later function.
+            # This is a bounded rustfmt-shaped source locator, not a Rust parser
+            # or proof that the fixture executes; native libtest remains required.
+            body = source[match.start():].split("\n}", 1)[0]
+            delegated = re.fullmatch(
+                r"\s*fn\s+" + re.escape(ORIGINAL_HARNESS_PG_ISSUER_TEST)
+                + r"\s*\(\s*\)\s*\{\s*"
+                + r"original_harness_store_issuer_revoke\(false\);\s*",
+                body,
+            )
+            if delegated:
+                helpers = list(re.finditer(
+                    r"(?m)^fn original_harness_store_issuer_revoke\(receiver: bool\) \{",
+                    source,
+                ))
+                if len(helpers) != 1:
+                    continue
+                body = source[helpers[0].start():].split("\n}", 1)[0]
             if all(
                 fragment in body
                 for fragment in (
