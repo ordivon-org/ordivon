@@ -31,7 +31,12 @@ HISTORICAL_SECONDS = {
 DEFAULT_SECONDS = 12
 
 
-def shard_queue(tasks: list[str], count: int = MAX_SHARDS) -> dict[str, object]:
+def shard_queue(
+    tasks: list[str],
+    count: int = MAX_SHARDS,
+    *,
+    task_weights: dict[str, int] | None = None,
+) -> dict[str, object]:
     if not 1 <= count <= MAX_SHARDS:
         raise ValueError("invalid CI shard count")
     canonical = {owner.queue_task for owner in affected_owners.OWNERS}
@@ -42,6 +47,18 @@ def shard_queue(tasks: list[str], count: int = MAX_SHARDS) -> dict[str, object]:
     # Formal is already executed by the source-qualified dedicated step in
     # the root preflight job: it must never silently run a second time.
     owners = [task for task in tasks if task != "formal:verify"]
+    # The production caller continues to use the historical placement hints.
+    # An explicit scenario is complete and exact; never impute missing costs.
+    if task_weights is None:
+        weights = {task: HISTORICAL_SECONDS.get(task, DEFAULT_SECONDS) for task in owners}
+    else:
+        if (
+            not isinstance(task_weights, dict)
+            or set(task_weights) != set(owners)
+            or any(type(v) is not int or v <= 0 for v in task_weights.values())
+        ):
+            raise ValueError("explicit task weights must exactly cover selected Owners with positive integers")
+        weights = task_weights
     # Classic Longest Processing Time (LPT) greedy bin packing: the few
     # measured slow owners start independently, while light owners fill
     # lower-load runners. This changes placement ONLY, not task selection.
@@ -50,13 +67,13 @@ def shard_queue(tasks: list[str], count: int = MAX_SHARDS) -> dict[str, object]:
     for task in sorted(
         owners,
         key=lambda candidate: (
-            -HISTORICAL_SECONDS.get(candidate, DEFAULT_SECONDS),
+            -weights[candidate],
             candidate,
         ),
     ):
         index = min(range(count), key=lambda lane: (loads[lane], lane))
         lanes[index].append(task)
-        loads[index] += HISTORICAL_SECONDS.get(task, DEFAULT_SECONDS)
+        loads[index] += weights[task]
     included = [
         {"shard": index, "tasks": lane} for index, lane in enumerate(lanes) if lane
     ]
@@ -73,11 +90,15 @@ def shard_queue(tasks: list[str], count: int = MAX_SHARDS) -> dict[str, object]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("tasks_file", type=Path)
+    parser.add_argument(
+        "--max-shards", type=int, choices=range(1, MAX_SHARDS + 1), default=MAX_SHARDS,
+        help="explicit experimental lane cap; omitted preserves the native default",
+    )
     args = parser.parse_args()
     items = args.tasks_file.read_text(encoding="utf-8").splitlines()
     if items == [""]:
         items = []
-    print(json.dumps(shard_queue(items), separators=(",", ":"), sort_keys=True))
+    print(json.dumps(shard_queue(items, args.max_shards), separators=(",", ":"), sort_keys=True))
 
 
 if __name__ == "__main__":
