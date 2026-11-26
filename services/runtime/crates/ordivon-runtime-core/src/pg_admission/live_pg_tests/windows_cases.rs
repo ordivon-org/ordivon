@@ -1,8 +1,6 @@
 //! Windows native PG consumer cases ported from the original stacked donor.
 use super::*;
 
-}
-
 /// Full DB/Artifact *consumer* test, with synthetic Win32 prerequisite.
 /// Native original JobObject/pipe evidence is tested on Windows separately:
 /// this verifies that the existing PG Writer never substitutes an event
@@ -492,3 +490,4 @@ fn run_winpg_native_real_attempt(force_wrong_peer: bool) {
         .unwrap()
         .contains("WINPG_TRUE_SINGLE_JOB_R50"));
     println!("WINPG_REAL_OS_SAME_PG_ATTEMPT_TERMINAL_ARTIFACT=PASS");
+}
