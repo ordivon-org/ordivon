@@ -45,3 +45,15 @@ encounter-count scheduling, not spatial map PCG. No Human session.
 ResourceSaver roundtrip checks native checkpoint tuning; generated textual
 resource IDs need not be byte-reproducible. Tracked witness binds exact
 source files and the observed native frontier.
+
+## Full scene refinement
+
+Initial generated full scene at 19a9370b97a6b382c149ec2d7a1e5d45702bd13c
+completed all four native dialogue unlocks and won with 12 HP, but the
+visible Outcome retained the previous "find the passage choice" prompt
+after victory. This is a real player-facing projection counterexample,
+not a Rule defect. Keep Rules/Resource unchanged; render terminal victory
+feedback through the existing View reset seam, including reset after load.
+Add original Trial native regression and generated full-scene visible
+terminal obligation. Retire first local preview rather than deliver it
+as the refined product.

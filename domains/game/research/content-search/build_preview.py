@@ -51,7 +51,9 @@ def verify_scene(project,w):
             ("won",w["health"],w["turns"],4),"full scene terminal differs")
     v=play("player")
     require("VICTORY" in v["final"]["encounter"] and "ROOM 4/4" in v["final"]["status"]
-            and "HP 12" in v["final"]["status"],"visible victory differs")
+            and "HP 12" in v["final"]["status"] and
+            v["final"]["outcome"] == "EXPEDITION COMPLETE: All rooms cleared.",
+            "visible victory differs")
     return {"initial":first,"gate_count":len(gates),"room_foes":[first["foes"],*[s["after"]["foes"] for s in gates[:-1]]],
             "final":final,"visible_final":v["final"]}
 

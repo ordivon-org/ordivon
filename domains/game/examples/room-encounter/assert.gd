@@ -264,6 +264,11 @@ func run_acceptance() -> void:
     var tactical_final_hp: int = rules.snapshot()["player_health"]
     expect(rules.snapshot()["phase"] == "won",
         "telegraph-aware tactical policy can win the entire native Trial")
+    expect(outcome_label.text == "EXPEDITION COMPLETE: All rooms cleared.",
+        "victory replaces stale passage prompt")
+    view.reset_action_feedback()
+    expect(outcome_label.text == "EXPEDITION COMPLETE: All rooms cleared.",
+        "terminal feedback reset preserves victory semantics")
     expect(tactical_guards >= 3 and tactical_attacks >= 8,
         "Trial creates nontrivial attack/guard choices")
     expect(saw_parry_feedback, "native Trial demonstrates at least one visible charged parry")

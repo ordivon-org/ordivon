@@ -19,7 +19,11 @@ func render_mode_title(is_trial: bool) -> void:
 
 func reset_action_feedback() -> void:
     if $Outcome.visible:
-        $Outcome.text = "AFTER YOUR MOVE: This panel will show the actual result."
+        $Outcome.text = (
+            "EXPEDITION COMPLETE: All rooms cleared."
+            if _current_view_state.get("phase") == "won"
+            else "AFTER YOUR MOVE: This panel will show the actual result."
+        )
     else:
         $Outcome.text = ""
 
@@ -63,6 +67,7 @@ func render_state(state: Dictionary) -> void:
         _prior_view_state.has("forecast") and state["phase"] in ["cleared", "lost"]
     ))
     if $Outcome.visible and (
+        state["phase"] == "won" or
         int(state["turn"]) == 0 or
         (not _prior_view_state.is_empty() and state["room"] != _prior_view_state["room"])
     ):
