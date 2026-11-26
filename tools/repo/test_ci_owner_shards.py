@@ -92,10 +92,14 @@ class ShardQueueTests(unittest.TestCase):
                             "-c", "user.email=test@local.invalid", "commit", "-qm", "fixture"],
                            check=True)
             head = subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip()
-            tracked = {"a/mise.toml"}
+            tracked = {"a/mise.toml": b"100644"}
             read = lambda root: ci_owner_toolroots.read_at_checkout(repo, head, tracked, root)
             self.assertEqual(read("a"), {"tools": {"python": "current"}})
             self.assertIsNone(read("missing"))
+            with self.assertRaises(ValueError):
+                ci_owner_toolroots.read_at_checkout(
+                    repo, head, {"a/mise.toml": b"120000"}, "a"
+                )
             for variant in ("dirty", "missing", "symlink", "untracked"):
                 with self.subTest(variant=variant):
                     if manifest.exists() or manifest.is_symlink():
@@ -110,7 +114,7 @@ class ShardQueueTests(unittest.TestCase):
                         manifest.write_bytes(original)
                     with self.assertRaises(ValueError):
                         if variant == "untracked":
-                            ci_owner_toolroots.read_at_checkout(repo, head, set(), "a")
+                            ci_owner_toolroots.read_at_checkout(repo, head, {}, "a")
                         else:
                             read("a")
 

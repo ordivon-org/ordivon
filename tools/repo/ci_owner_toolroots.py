@@ -68,13 +68,15 @@ def project(tasks: object, by_task: dict[str, str], read: ManifestReader) -> lis
     return list(roots)
 
 
-def read_at_checkout(repo: Path, head: str, tracked: set[str], root: str) -> dict | None:
+def read_at_checkout(repo: Path, head: str, tracked: dict[str, bytes], root: str) -> dict | None:
     relative = root + "/mise.toml"
     path = repo / relative
     if relative not in tracked:
         if path.exists() or path.is_symlink():
             raise ValueError("untracked native tool manifest: " + relative)
         return None
+    if tracked[relative] not in (b"100644", b"100755"):
+        raise ValueError("nonregular Git native tool manifest: " + relative)
     if not path.is_file() or path.is_symlink() or path.resolve() != path:
         raise ValueError("nonregular native tool manifest: " + relative)
     source = subprocess.check_output(
@@ -96,10 +98,14 @@ def main() -> int:
         if os.environ.get("GITHUB_SHA", head) != head:
             raise ValueError("checkout differs from provider GITHUB_SHA")
         tree = subprocess.check_output(
-            ["git", "--no-replace-objects", "ls-tree", "-r", "-z", "--name-only", head],
+            ["git", "--no-replace-objects", "ls-tree", "-r", "-z", "--full-tree", head],
             cwd=repo, timeout=15,
         )
-        tracked = {os.fsdecode(name) for name in tree.split(b"\0") if name}
+        tracked = {}
+        for entry in tree.split(b"\0"):
+            if entry:
+                meta, name = entry.split(b"\t", 1)
+                tracked[os.fsdecode(name)] = meta.split()[0]
         from affected_owners import OWNERS
         tasks = json.loads(os.environ["OWNER_TASKS_JSON"])
         by_task = {owner.queue_task: owner.root.rstrip("/") for owner in OWNERS}
