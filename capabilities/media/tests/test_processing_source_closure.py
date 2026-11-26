@@ -51,15 +51,15 @@ class ProcessingSourceClosureTests(unittest.TestCase):
         expected_paths = {
             "processing/bin/probe-timed-text.sh", "processing/bin/ttconv-pinned.sh",
             "processing/profiles/timed-text-runtime-introduction-en.json", "mise.toml", ".python-version",
-            "src/ordivon_studio/strict_json.py",
+            "src/ordivon_studio/strict_json.py", "processing/bin/native-input.sh",
         }
         self.assertEqual({item["path"] for item in row["sourceDependencies"]}, expected_paths)
         native = {item["path"]: item["expectedDigest"] for item in initial["execution"]["hostDependencies"]}
-        self.assertEqual(len(native), 7)
+        self.assertEqual(len(native), 8)
         for item in row["sourceDependencies"]:
             path = self.root / item["path"]
             self.assertEqual(native[str(path.resolve())], "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest())
-        for relative in ("processing/bin/ttconv-pinned.sh", "mise.toml", ".python-version", "src/ordivon_studio/strict_json.py"):
+        for relative in ("processing/bin/ttconv-pinned.sh", "mise.toml", ".python-version", "src/ordivon_studio/strict_json.py", "processing/bin/native-input.sh"):
             with self.subTest(relative=relative):
                 old = self.discover()
                 path = self.root / relative
@@ -89,15 +89,15 @@ class ProcessingSourceClosureTests(unittest.TestCase):
         row = self.discover()
         old = self.compile(row, select=False)
         self.assertEqual(old["sourceClosureBinding"]["status"], "observed-at-compilation")
-        self.assertEqual(len(old["execution"]["hostDependencies"]), 7)
+        self.assertEqual(len(old["execution"]["hostDependencies"]), 8)
         unbound = self.compile(row, select=False, bind_input=False)
         self.assertNotIn("hostDependencies", unbound["execution"])
         source_only = self.compile(row, bind_input=False)
-        self.assertEqual(len(source_only["execution"]["hostDependencies"]), 6)
+        self.assertEqual(len(source_only["execution"]["hostDependencies"]), 7)
         self.assertNotIn("inputByteBinding", source_only)
 
     def test_closure_is_relocatable_and_scope_is_specific(self):
-        for kind, count in (("av", 3), ("audio", 3), ("otio", 5), ("timed-text", 6)):
+        for kind, count in (("av", 4), ("audio", 4), ("otio", 5), ("timed-text", 7)):
             with self.subTest(kind=kind):
                 row = self.discover(kind)
                 original = next(p for p in processing_profiles(ROOT)["profiles"]

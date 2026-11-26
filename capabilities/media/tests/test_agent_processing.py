@@ -20,6 +20,9 @@ def copy_decoder(root: Path) -> None:
     target = root / DECODER
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(ROOT / DECODER, target)
+    helper = root / "processing/bin/native-input.sh"
+    helper.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(ROOT / "processing/bin/native-input.sh", helper)
 
 
 class ProcessingDiscoveryTests(unittest.TestCase):
@@ -240,7 +243,7 @@ class ProcessingDiscoveryTests(unittest.TestCase):
             plan = processing_probe_plan(root, **arguments)
             execution = plan["execution"]
             self.assertEqual(execution["args"][1], str(selected_file.resolve()))
-            self.assertEqual(len(execution["hostDependencies"]), 4)
+            self.assertEqual(len(execution["hostDependencies"]), 5)
             self.assertEqual(
                 {entry["path"]: entry["expectedDigest"] for entry in execution["hostDependencies"]},
                 {
@@ -248,6 +251,7 @@ class ProcessingDiscoveryTests(unittest.TestCase):
                     str((profiles / "av.json").resolve()): row["profileDigest"],
                     str((adapters / "probe-av.sh").resolve()): row["adapterDigest"],
                     str((root / DECODER).resolve()): "sha256:" + hashlib.sha256((root / DECODER).read_bytes()).hexdigest(),
+                    str((adapters / "native-input.sh").resolve()): "sha256:" + hashlib.sha256((adapters / "native-input.sh").read_bytes()).hexdigest(),
                 },
             )
             self.assertEqual(plan["inputByteBinding"]["status"], "proposed-not-executed")
