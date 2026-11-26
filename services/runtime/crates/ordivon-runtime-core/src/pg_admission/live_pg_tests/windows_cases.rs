@@ -151,10 +151,12 @@ fn windows_pg_native_journal_and_result_reach_one_verified_terminal_with_artifac
     // Actual R8 donor carried a Linux ".service" unit_name despite a
     // Windows-native executionProvider. Even with a genuine event, this
     // shape must fail closed before source promotion.
-    db.client.execute(
-        "UPDATE attempts SET unit_name='ordivon-pg-wrong-native.service' WHERE attempt_id=$1",
-        &[&id.attempt_id],
-    ).unwrap();
+    db.client
+        .execute(
+            "UPDATE attempts SET unit_name='ordivon-pg-wrong-native.service' WHERE attempt_id=$1",
+            &[&id.attempt_id],
+        )
+        .unwrap();
     assert!(matches!(
         db.commit_terminal_with_artifacts(&terminal, &artifacts),
         Err(PgAdmissionError::Blocked)
@@ -225,7 +227,7 @@ fn winpg_native_wrong_peer_cannot_journal_or_terminal() {
 fn run_winpg_native_real_attempt(force_wrong_peer: bool) {
     use crate::pg_readback::PgJobReadback;
     use crate::pg_windows_evidence::{
-        reconcile_windows_native_terminal, PgWindowsWitnessIdentity,
+        reconcile_admitted_windows_pg_terminal, PgWindowsWitnessIdentity,
     };
     use std::{
         path::PathBuf,
@@ -247,14 +249,15 @@ fn run_winpg_native_real_attempt(force_wrong_peer: bool) {
     );
     assert!(launcher.is_file());
     assert!(private_root.is_dir());
-    let image =
-        crate::universal::sha256_file(&launcher).expect("exact original binary SHA-256");
+    let image = crate::universal::sha256_file(&launcher).expect("exact original binary SHA-256");
     let mut scratch = Scratch::new(&dsn);
     scratch.qualify();
-    let bundle = tempfile::tempdir_in(private_root).expect("isolated native Attempt bundle");
+    let store_root = tempfile::tempdir_in(private_root).expect("isolated native PG store");
     let unique = Uuid::now_v7().simple();
     let job = format!("job-winpg-native-real-{unique}");
     let attempt = format!("attempt-winpg-native-real-{unique}");
+    let bundle = store_root.path().join("pg-attempts").join(&attempt);
+    std::fs::create_dir_all(&bundle).unwrap();
     let mut input = payload(
         &format!("winpg-{unique}"),
         &job,
@@ -264,10 +267,10 @@ fn run_winpg_native_real_attempt(force_wrong_peer: bool) {
     input.attempt_id = attempt.clone();
     input.reservation_id = format!("reservation-winpg-{unique}");
     input.launch_token_digest = format!("sha256:{}", "a".repeat(64));
-    input.bundle_path = bundle.path().to_string_lossy().into_owned();
+    input.bundle_path = bundle.to_string_lossy().into_owned();
     input.unit_name = format!("Ordivon.{attempt}");
     let request = b"{}";
-    std::fs::write(bundle.path().join("request.json"), request)
+    std::fs::write(bundle.join("request.json"), request)
         .expect("immutable synthetic launch request bytes");
     let request_digest = format!("sha256:{}", hex::encode(Sha256::digest(request)));
     let source = "a".repeat(64);
@@ -278,6 +281,11 @@ fn run_winpg_native_real_attempt(force_wrong_peer: bool) {
         request_digest: request_digest.clone(),
         launcher_image_digest: image,
     };
+    input.workspace_snapshot_json = serde_json::json!({
+        "executionProvider":{"contract":"windows_native_launcher_v1",
+            "executableDigest":id.launcher_image_digest}
+    })
+    .to_string();
     let mut db = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
     assert!(matches!(
         db.admit(&input).unwrap(),
@@ -309,13 +317,28 @@ fn run_winpg_native_real_attempt(force_wrong_peer: bool) {
         .unwrap(),
         2
     );
-    let exe =
-        PathBuf::from(std::env::var("SystemRoot").unwrap_or_else(|_| "C:\\Windows".into()))
-            .join("System32")
-            .join("cmd.exe");
+    assert!(reconcile_admitted_windows_pg_terminal(
+        &mut db,
+        &source,
+        "wrong-principal",
+        &job,
+        store_root.path()
+    )
+    .is_err());
+    assert!(!reconcile_admitted_windows_pg_terminal(
+        &mut db,
+        &source,
+        &input.principal,
+        &job,
+        store_root.path()
+    )
+    .unwrap());
+    let exe = PathBuf::from(std::env::var("SystemRoot").unwrap_or_else(|_| "C:\\Windows".into()))
+        .join("System32")
+        .join("cmd.exe");
     assert!(exe.is_file());
-    let stdout = bundle.path().join("launcher-piped-stdout.txt");
-    let stderr = bundle.path().join("launcher-piped-stderr.txt");
+    let stdout = bundle.join("launcher-piped-stdout.txt");
+    let stderr = bundle.join("launcher-piped-stderr.txt");
     let argv = vec![
         "--runtime-bundle".into(),
         input.bundle_path.clone(),
@@ -394,7 +417,7 @@ fn run_winpg_native_real_attempt(force_wrong_peer: bool) {
         "observedUnixMs":now
     });
     std::fs::write(
-        bundle.path().join("windows-launcher-start.json"),
+        bundle.join("windows-launcher-start.json"),
         serde_json::to_vec(&parent).unwrap(),
     )
     .unwrap();
@@ -402,7 +425,13 @@ fn run_winpg_native_real_attempt(force_wrong_peer: bool) {
     let mut committed = false;
     let mut rejected_peer = false;
     while Instant::now() < deadline {
-        match reconcile_windows_native_terminal(&mut db, bundle.path(), &id, &source, 2) {
+        match reconcile_admitted_windows_pg_terminal(
+            &mut db,
+            &source,
+            &input.principal,
+            &job,
+            store_root.path(),
+        ) {
             Ok(true) => {
                 committed = true;
                 break;
@@ -442,10 +471,10 @@ fn run_winpg_native_real_attempt(force_wrong_peer: bool) {
             ),
             "wrong peer may not terminalize Job or release reservation"
         );
-        let launcher_error = std::fs::read_to_string(bundle.path().join("launcher-error.json"))
+        let launcher_error = std::fs::read_to_string(bundle.join("launcher-error.json"))
             .expect("original launcher rejection receipt");
         assert!(launcher_error.contains("peer is not the admission-frozen Runtime process"));
-        assert!(std::fs::read_to_string(bundle.path().join("stdout.log"))
+        assert!(std::fs::read_to_string(bundle.join("stdout.log"))
             .unwrap()
             .contains("WINPG_TRUE_SINGLE_JOB_R50"));
         println!("WINPG_REAL_OS_WRONG_PEER_NO_PG_JOURNAL_TERMINAL=PASS");
@@ -479,14 +508,14 @@ fn run_winpg_native_real_attempt(force_wrong_peer: bool) {
         let path: String = row.get(1);
         let expected_digest: String = row.get(2);
         let length: i64 = row.get(3);
-        let contents = std::fs::read(bundle.path().join(&path)).unwrap();
+        let contents = std::fs::read(bundle.join(&path)).unwrap();
         assert_eq!(contents.len() as i64, length);
         assert_eq!(
             format!("sha256:{}", hex::encode(Sha256::digest(&contents))),
             expected_digest
         );
     }
-    assert!(std::fs::read_to_string(bundle.path().join("stdout.log"))
+    assert!(std::fs::read_to_string(bundle.join("stdout.log"))
         .unwrap()
         .contains("WINPG_TRUE_SINGLE_JOB_R50"));
     println!("WINPG_REAL_OS_SAME_PG_ATTEMPT_TERMINAL_ARTIFACT=PASS");
