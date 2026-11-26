@@ -373,3 +373,30 @@ The existing strict public ExecutionObservation model rejects additive new
 fields; a native schema migration needs explicit version/consumer qualification.
 A malformed synthetic same-length reply accepted by the old Python source is
 not evidence of corrupt real Runtime artifacts. No public ABI change.
+
+
+## Independent R21 ordered Artifact stream (Host #33282 / #33283)
+
+A typed descriptor is decoded once. The native incremental SHA256 state retains no
+prior content. Each qualified window must start at the previous exact nextOffset;
+only contiguous EOF at the declared retained length with matching accumulated hash
+establishes Verified. Incomplete and Rejected are distinct; rejection is sticky,
+and any window after EOF invalidates a batch witness. The private fixture imposes
+64 MiB total, 4096 windows maximum, 4..128 KiB per read and one five-second
+whole-session deadline. These are qualification fixture bounds, not public policy.
+Reuse one rmcp client lifecycle, no redirects/retry/reinit, one fixed artifact.read
+request at a time, verified local fixture credential. Output contains evidence only,
+not content or credentials. Budget exhaustion is incomplete, not complete. The
+existing v1 public surface is unchanged; opaque typed kind rather than suffix and
+stream evidence need an explicitly qualified new consumer contract. No domain or
+untruncated-output assertion. Python concatenation+hashlib oracle and actual
+Harness source method counterexamples support independent consumer checking.
+
+Explicit actual native producer gate: build the Gateway probe, then run
+`uv run --locked --project services/gateway python services/gateway/rust-migration/read-only-probe/qualify_pg_stream.py`
+on an authorized Linux test Runner. This reuses the existing Runtime `pg_vertical.rs`
+Fixture in an exclusively-created generated test file and removes that exact copy;
+never edit tracked Runtime source or use production database/credentials. It tests
+native execution, five protected windows, incomplete budget, wrong test bearer,
+actual registered-byte corruption and one durable Job. Native toolchain/systemd
+availability is an explicit precondition; this expensive gate is not a unit test.

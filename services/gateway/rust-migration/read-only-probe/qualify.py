@@ -22,6 +22,7 @@ from qualify_receipt import add_receipt_cases
 from qualify_resolution import qualify_resolution
 from qualify_semantics import add_descriptor_cases, add_error_cases, qualify_error_transport
 from qualify_stateful import qualify_stateful
+from qualify_stream import add_stream_cases, qualify_harness_source, qualify_stream_transport
 
 from ordivon_gateway.logic.execution_refs import GatewayError, parse_execution_ref
 from ordivon_gateway.logic.routing import default_routes
@@ -347,6 +348,7 @@ async def main():
     add_error_cases(add)
     add_receipt_cases(add)
     add_chunk_cases(add)
+    add_stream_cases(add)
     data = "".join(json.dumps(case, ensure_ascii=False) + "\n" for case, _ in cases)
     proc = subprocess.run(
         [BINARY, "eval"], input=data, encoding="utf-8", capture_output=True, check=True
@@ -369,6 +371,7 @@ async def main():
             "owner_error",
             "owner_receipt",
             "artifact_chunk",
+            "artifact_stream",
         )
     }
     print("PURE_DIFFERENTIAL_PASS", len(cases), counts, flush=True)
@@ -428,6 +431,8 @@ if __name__ == "__main__":
     asyncio.run(qualify_owner(BINARY))
     asyncio.run(qualify_error_transport(BINARY))
     asyncio.run(qualify_legacy_abi())
+    qualify_harness_source()
+    asyncio.run(qualify_stream_transport(BINARY))
     asyncio.run(qualify_stateful(BINARY))
     asyncio.run(qualify_resolution(BINARY))
     asyncio.run(qualify_principal(BINARY))

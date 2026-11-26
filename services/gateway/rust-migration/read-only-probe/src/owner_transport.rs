@@ -2,8 +2,9 @@
 use crate::owner_credential::read_fixture_bearer;
 use crate::owner_error::{self, QualifiedError};
 use rmcp::{
-    ClientLifecycleMode, ClientServiceExt,
+    ClientLifecycleMode, ClientServiceExt, RoleClient,
     model::{CallToolRequestParams, ClientConfig, ProtocolVersion},
+    service::RunningService,
     transport::streamable_http_client::{
         StreamableHttpClientTransport, StreamableHttpClientTransportConfig,
     },
@@ -14,7 +15,15 @@ use std::{path::Path, time::Duration};
 
 pub(crate) enum ReadRequest<'a> {
     Describe,
-    Resolve { request_id: &'a str },
+    Resolve {
+        request_id: &'a str,
+    },
+    Artifact {
+        job_id: &'a str,
+        artifact_id: &'a str,
+        offset: u64,
+        max_bytes: u64,
+    },
 }
 
 impl ReadRequest<'_> {
@@ -22,11 +31,21 @@ impl ReadRequest<'_> {
         match self {
             Self::Describe => "runtime.describe",
             Self::Resolve { .. } => "job.list",
+            Self::Artifact { .. } => "artifact.read",
         }
     }
     fn params(self) -> CallToolRequestParams {
         let (name, args) = match self {
             Self::Describe => ("runtime.describe", json!({"schemaVersion":1})),
+            Self::Artifact {
+                job_id,
+                artifact_id,
+                offset,
+                max_bytes,
+            } => (
+                "artifact.read",
+                json!({"schemaVersion":1,"jobId":job_id,"artifactId":artifact_id,"offset":offset,"maxBytes":max_bytes}),
+            ),
             Self::Resolve { request_id } => {
                 ("job.list", json!({"limit":2,"clientRequestId":request_id}))
             }
@@ -98,59 +117,76 @@ pub(crate) async fn read_endpoint_typed(
     bearer: Option<String>,
     request: ReadRequest<'_>,
 ) -> Result<Value, ReadFailure> {
-    let tool = request.tool();
     let observed = tokio::time::timeout(budget, async {
-        let Ok(http) = reqwest::Client::builder()
-            .no_proxy()
-            .redirect(reqwest::redirect::Policy::none())
-            .retry(reqwest::retry::never())
-            .timeout(budget)
-            .build()
-        else {
-            return Err(unknown("client_configuration"));
-        };
-        let mut config = StreamableHttpClientTransportConfig::with_uri(url.as_str());
-        if let Some(token) = bearer {
-            config = config.auth_header(token);
-        }
-        config.max_json_response_size = 1024 * 1024;
-        config.max_sse_event_size = 1024 * 1024;
-        config.max_error_response_size = 0;
-        config.reinit_on_expired_session = false;
-        config.max_concurrent_requests = 1;
-        let transport = StreamableHttpClientTransport::with_client(http, config);
-        let Ok(client) = ClientConfig::default()
-            .serve_with_lifecycle(
-                transport,
-                if legacy {
-                    ClientLifecycleMode::Initialize
-                } else {
-                    ClientLifecycleMode::Auto {
-                        preferred_versions: vec![ProtocolVersion::V_2026_07_28],
-                        legacy_version: Some(ProtocolVersion::V_2025_11_25),
-                    }
-                },
-            )
-            .await
-        else {
-            return Err(unknown("negotiation_failed"));
-        };
-        let response = client.call_tool(request.params()).await;
-        let outcome = match response {
-            Ok(result) if result.is_error == Some(true) => {
-                let evidence = serde_json::to_value(&result)
-                    .ok()
-                    .and_then(|v| owner_error::decode(&v, "runtime.linux", tool));
-                Err(ReadFailure::Tool { evidence })
-            }
-            Ok(result) => result
-                .structured_content
-                .ok_or_else(|| unknown("structured_result_absent")),
-            Err(_) => Err(unknown("protocol_or_transport_failed")),
-        };
+        let client = connect(url, budget, legacy, bearer).await?;
+        let outcome = call_read(&client, request).await;
         let _ = client.cancel().await;
         outcome
     })
     .await;
     observed.unwrap_or_else(|_| Err(unknown("observation_deadline")))
+}
+
+pub(crate) async fn connect(
+    url: reqwest::Url,
+    budget: Duration,
+    legacy: bool,
+    bearer: Option<String>,
+) -> Result<RunningService<RoleClient, ClientConfig>, ReadFailure> {
+    let Ok(http) = reqwest::Client::builder()
+        .no_proxy()
+        .redirect(reqwest::redirect::Policy::none())
+        .retry(reqwest::retry::never())
+        .timeout(budget)
+        .build()
+    else {
+        return Err(unknown("client_configuration"));
+    };
+    let mut config = StreamableHttpClientTransportConfig::with_uri(url.as_str());
+    if let Some(token) = bearer {
+        config = config.auth_header(token);
+    }
+    config.max_json_response_size = 1024 * 1024;
+    config.max_sse_event_size = 1024 * 1024;
+    config.max_error_response_size = 0;
+    config.reinit_on_expired_session = false;
+    config.max_concurrent_requests = 1;
+    let transport = StreamableHttpClientTransport::with_client(http, config);
+    let Ok(client) = ClientConfig::default()
+        .serve_with_lifecycle(
+            transport,
+            if legacy {
+                ClientLifecycleMode::Initialize
+            } else {
+                ClientLifecycleMode::Auto {
+                    preferred_versions: vec![ProtocolVersion::V_2026_07_28],
+                    legacy_version: Some(ProtocolVersion::V_2025_11_25),
+                }
+            },
+        )
+        .await
+    else {
+        return Err(unknown("negotiation_failed"));
+    };
+
+    Ok(client)
+}
+pub(crate) async fn call_read(
+    client: &RunningService<RoleClient, ClientConfig>,
+    request: ReadRequest<'_>,
+) -> Result<Value, ReadFailure> {
+    let tool = request.tool();
+    let response = client.call_tool(request.params()).await;
+    match response {
+        Ok(result) if result.is_error == Some(true) => {
+            let evidence = serde_json::to_value(&result)
+                .ok()
+                .and_then(|v| owner_error::decode(&v, "runtime.linux", tool));
+            Err(ReadFailure::Tool { evidence })
+        }
+        Ok(result) => result
+            .structured_content
+            .ok_or_else(|| unknown("structured_result_absent")),
+        Err(_) => Err(unknown("protocol_or_transport_failed")),
+    }
 }

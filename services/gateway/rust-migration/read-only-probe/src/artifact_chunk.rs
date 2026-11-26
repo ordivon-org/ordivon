@@ -50,11 +50,23 @@ pub(crate) fn qualify<'a>(
     request: &'a Value,
     response: &'a Value,
 ) -> Window<'a> {
-    let Some((owner, native_id)) = parse_execution_ref(reference) else {
+    if parse_execution_ref(reference).is_none() {
         return unknown("invalid_operation_ref");
-    };
+    }
     let Some(d) = artifact_descriptor::decode(descriptor) else {
         return unknown("unqualified_descriptor");
+    };
+    qualify_bound(reference, &d, request, response)
+}
+
+pub(crate) fn qualify_bound<'a>(
+    reference: &'a str,
+    d: &artifact_descriptor::Descriptor,
+    request: &'a Value,
+    response: &'a Value,
+) -> Window<'a> {
+    let Some((owner, native_id)) = parse_execution_ref(reference) else {
+        return unknown("invalid_operation_ref");
     };
     let Ok(r) = Request::deserialize(request) else {
         return unknown("invalid_request");
