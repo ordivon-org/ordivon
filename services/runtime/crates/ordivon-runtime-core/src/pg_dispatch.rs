@@ -453,6 +453,76 @@ impl PgAdmissionStore {
 }
 
 impl PgAdmissionStore {
+    /// The native receiver owns the original issuer row lock until the
+    /// physical spawn call returns. This is not a retryable transaction and
+    /// not a whole-Run NoFutureSpawn certificate (connection loss and
+    /// already-issued Manager work require independent settlement).
+    pub(crate) fn with_current_issued_harness_spawn<T>(
+        &mut self,
+        job_id: &str,
+        attempt_id: &str,
+        principal: &str,
+        bundle_digest: &str,
+        launch_token_digest: &str,
+        source_sha256: &str,
+        issuer_schema: &str,
+        spawn: impl FnOnce() -> T,
+    ) -> Result<T, PgAdmissionError> {
+        validate(attempt_id, 0, bundle_digest, 0, source_sha256)?;
+        if !sha256_id(launch_token_digest) || job_id.is_empty() || principal.is_empty() {
+            return Err(PgAdmissionError::InvalidInput);
+        }
+        let mut tx = self
+            .client
+            .build_transaction()
+            .isolation_level(IsolationLevel::Serializable)
+            .start()?;
+        // No unbounded SQL wait while the native process owns the effect.
+        tx.batch_execute("SET LOCAL lock_timeout='3s'; SET LOCAL statement_timeout='5s'")?;
+        require_qualified_writer(&mut tx, source_sha256)?;
+        let row = tx
+            .query_opt(
+                "SELECT j.principal,j.client_request_id,j.execution_plan_json
+               FROM attempts a JOIN jobs j ON j.job_id=a.job_id
+               JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id
+              WHERE j.job_id=$1 AND a.attempt_id=$2
+                AND j.current_attempt_id=a.attempt_id AND j.desired_state='run'
+                AND j.resolution IS NULL AND a.state IN ('starting','running')
+                AND a.termination_intent='natural' AND r.state='active'
+                AND a.bundle_digest=$3 AND a.launch_token_digest=$4
+              FOR UPDATE OF j,a,r",
+                &[&job_id, &attempt_id, &bundle_digest, &launch_token_digest],
+            )?
+            .ok_or(PgAdmissionError::Blocked)?;
+        if row.get::<_, String>(0) != principal {
+            return Err(PgAdmissionError::Blocked);
+        }
+        let issued: i64 = tx
+            .query_one(
+                "SELECT count(*) FROM job_events WHERE job_id=$1 AND attempt_id=$2
+             AND event_type='DISPATCH_ISSUED'",
+                &[&job_id, &attempt_id],
+            )?
+            .get(0);
+        if issued != 1 {
+            return Err(PgAdmissionError::Blocked);
+        }
+        super::issuer::require_current_harness_issuer_for_plan(
+            &mut tx,
+            &row.get::<_, String>(2),
+            &row.get::<_, String>(1),
+            issuer_schema,
+        )?;
+        // Keep the *same transaction* alive across the native call, not a
+        // standalone currentness SELECT. The caller must never retry spawn
+        // on a lost transaction acknowledgement.
+        let result = spawn();
+        drop(tx);
+        Ok(result)
+    }
+}
+
+impl PgAdmissionStore {
     /// Used ONLY by the unique in-memory issuer between committing its
     /// DISPATCH_ISSUED fence and invoking systemd-run. A post-crash observer
     /// must NEVER call this: PG state alone cannot prove whether the original

@@ -486,6 +486,17 @@ fn pg18_original_harness_dispatch_current_two_connections() {
 #[test]
 #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
 fn pg18_original_harness_store_real_issuer_same_job_late_revoke() {
+    original_harness_store_issuer_revoke(false);
+}
+
+#[test]
+#[ignore = "requires explicit disposable PostgreSQL qualification and native Unix process"]
+#[cfg(unix)]
+fn pg18_original_harness_issuer_receiver_spawn_after_revoke_is_denied() {
+    original_harness_store_issuer_revoke(true);
+}
+
+fn original_harness_store_issuer_revoke(receiver: bool) {
     use std::{path::PathBuf, process::Command};
     let dsn = physical_pg_test_dsn();
     let mut scratch = Scratch::new(&dsn);
@@ -590,6 +601,9 @@ fn pg18_original_harness_store_real_issuer_same_job_late_revoke() {
     original_job.workspace_id = workspace_id.clone();
     original_job.client_request_id = original["clientRequestId"].as_str().unwrap().into();
     original_job.execution_plan_json = serde_json::to_string(&plan).unwrap();
+    if receiver {
+        original_job.launch_token_digest = format!("sha256:{}", "c".repeat(64));
+    }
     // The actual PG source gate requires the same immutable ClientRequestId,
     // original Physical Execution and Fence on admission AND later dispatch.
     let mut runtime = PgAdmissionStore::connect(&limited_dsn, &scratch.name).unwrap();
@@ -610,6 +624,75 @@ fn pg18_original_harness_store_real_issuer_same_job_late_revoke() {
             expected_source_sha256: original_job.expected_source_sha256.clone(),
         })
         .unwrap();
+    if receiver {
+        let issued = PgDispatchIssued {
+            attempt_id: original_job.attempt_id.clone(),
+            expected_row_version: 1,
+            expected_bundle_digest: bundle.clone(),
+            observed_at_ms: original_job.created_at_ms + 2,
+            expected_source_sha256: original_job.expected_source_sha256.clone(),
+        };
+        runtime
+            .mark_dispatch_issued_pg(&issued, Some(&issuer_schema), Some(&original_job.principal))
+            .unwrap();
+        // Actual native process while the original source is current;
+        // this is the positive control for the receiver-side gate.
+        let marker = tempfile::tempdir().unwrap();
+        let output = marker.path().join("effect");
+        let result = runtime
+            .with_current_issued_harness_spawn(
+                &original_job.job_id,
+                &original_job.attempt_id,
+                &original_job.principal,
+                &bundle,
+                &original_job.launch_token_digest,
+                &original_job.expected_source_sha256,
+                &issuer_schema,
+                || Command::new("/usr/bin/touch").arg(&output).spawn(),
+            )
+            .unwrap()
+            .unwrap()
+            .wait()
+            .unwrap();
+        assert!(result.success() && output.exists());
+        std::fs::remove_file(&output).unwrap();
+        // Durable original Harness revoke while a native receiver is delayed.
+        let revoked = invoke("revoke");
+        assert_eq!(revoked["revision"], 3);
+        let mut called = false;
+        let denied = runtime.with_current_issued_harness_spawn(
+            &original_job.job_id,
+            &original_job.attempt_id,
+            &original_job.principal,
+            &bundle,
+            &original_job.launch_token_digest,
+            &original_job.expected_source_sha256,
+            &issuer_schema,
+            || {
+                called = true;
+                Command::new("/usr/bin/touch").arg(&output).spawn()
+            },
+        );
+        assert!(matches!(denied, Err(PgAdmissionError::IssuerNotCurrent)));
+        assert!(
+            !called && !output.exists(),
+            "revoked receiver may not start a native effect"
+        );
+        let dispatches: i64 = scratch
+            .admin
+            .query_one(
+                "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+                &[&original_job.job_id],
+            )
+            .unwrap()
+            .get(0);
+        assert_eq!(dispatches, 1);
+        scratch
+            .admin
+            .batch_execute(&format!("DROP SCHEMA \"{issuer_schema}\" CASCADE;"))
+            .unwrap();
+        return;
+    }
     // The *real* original Harness Store emits the UNKNOWN receipt after
     // a valid new-Job admission. This invalidates its source Run revision.
     let revoked = invoke("revoke");
