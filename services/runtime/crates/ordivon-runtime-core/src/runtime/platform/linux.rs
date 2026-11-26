@@ -1212,6 +1212,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn executable_validation_preserves_absolute_proxy_invocation_path() {
         let root =
             std::env::temp_dir().join(format!("ordivon-executable-proxy-{}", std::process::id()));
