@@ -20,6 +20,8 @@ use terminal_observation::await_terminal;
 #[path = "pg_vertical/fixture_lifecycle.rs"]
 mod fixture_lifecycle;
 use fixture_lifecycle::{new_root, verify_units_absent, PgProcess};
+#[path = "pg_vertical/fixture_crash_challenger.rs"]
+mod fixture_crash_challenger;
 
 // A native PostgreSQL disposable cluster, Unix socket only. No production DSN is accepted.
 struct Fixture {

@@ -83,7 +83,7 @@ class NativeEvidence(unittest.TestCase):
                                     "ORDIVON_PG_TEST_DSN": "prod", "ORDIVON_PG_STAGE_TEST_DSN": "stage",
                                     "NEXTEST_RETRIES": "5", "NEXTEST_FILTERSET": "none()",
                                     "HARNESS_PG_PYTHON": "/unqualified/python", "UV_PROJECT_ENVIRONMENT": "/foreign/venv",
-                                    "VIRTUAL_ENV": "/foreign", "PYTHONPATH": "/foreign/src", FIXTURE_SCOPE_ENV: "/foreign"})
+                                    "VIRTUAL_ENV": "/foreign", "PYTHONPATH": "/foreign/src", FIXTURE_SCOPE_ENV: "/foreign", "ORDIVON_NATIVE_FIXTURE_KILL_CHILD": "/foreign/ready.json"})
         self.assertEqual(env, {"PATH": "/bin"})
 
     def test_native_scope_release_requires_actual_empty_directory(self):

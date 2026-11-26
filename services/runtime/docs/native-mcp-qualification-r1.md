@@ -167,3 +167,19 @@ outer verdict is emitted on stdout even when compiler stderr is capped.
 An additional real failed transient Unit challenger verifies that loaded
 failure is not absence and only test-owned, dead, identity-bound Unit
 retirement enables release.
+
+## R22: actual killed Fixture child and native private PG recovery
+
+The crash challenger is deliberately separate from the adoption candidate
+and from production Runtime reconciliation. It starts the same native
+Fixture in a single owned test child; a private one-use handshake binds
+the child PID, exact PG data directory, PID/start identity and native PG
+system identifier. After actual SIGKILL and child wait status, verify
+the private PG is still running (pg_ctl status 0) and the same cluster
+has no registered Attempts or external Runner. Then use native fast
+shutdown, require pg_ctl status 3 and absent PID file/socket, release
+only the two exact owned directories. Clear inherited challenger role
+from strict gate, require the exact native witness in discovery. No
+generic reaper, arbitrary PID signal, production change or concurrent
+ownership proof. The native recovery is bounded to this no-writer,
+PG-only fixture; arbitrary live Runner/systemd recovery remains open.

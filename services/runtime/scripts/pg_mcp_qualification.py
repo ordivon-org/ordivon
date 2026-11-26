@@ -35,6 +35,7 @@ REQUIRED = frozenset({
     "fixture_lifecycle::tests::exact_fixture_binding_rejects_foreign_or_traversal",
     "native_pg_fixture_panic_preserves_root_after_owned_postmaster_stop",
     "native_pg_fixture_refuses_failed_registered_unit_until_native_absence",
+    "fixture_crash_challenger::native_pg_fixture_sigkill_recovers_exact_private_postmaster",
 })
 SELECTION = (
     "--locked", "-p", PACKAGE, "--features", "postgres-runtime",
@@ -90,7 +91,7 @@ def consumer_environment(original: dict[str, str]) -> dict[str, str]:
     for name in list(env):
         if name.startswith(("PG", "NEXTEST_")) or name in {
             "ORDIVON_PG_TEST_DSN", "ORDIVON_PG_STAGE_TEST_DSN",
-            FIXTURE_SCOPE_ENV,
+            FIXTURE_SCOPE_ENV, "ORDIVON_NATIVE_FIXTURE_KILL_CHILD",
             "HARNESS_PG_PYTHON", "VIRTUAL_ENV", "PYTHONHOME", "PYTHONPATH",
             "UV_PROJECT_ENVIRONMENT", "UV_PROJECT", "UV_PYTHON", "UV_NO_SYNC",
             "UV_NO_DEFAULT_GROUPS", "UV_NO_DEV", "UV_FROZEN", "UV_NO_EDITABLE",
