@@ -78,7 +78,7 @@ jobs:
                [[ "$(git --no-replace-objects rev-parse HEAD)" != "$GITHUB_SHA" ]]; then
               return 1
             fi
-            for rel in .github/workflows/ci.yml tools/repo/ci_owner_shards.py tools/repo/convergence_plan.py tools/repo/affected_owners.py tools/repo/pg_issuer_consumer.py tools/repo/owners.toml tools/repo/dependency_contracts.toml tools/formal/verify.py docs/architecture/structure-r2-transition-r1.json mise.toml; do
+            for rel in .github/workflows/ci.yml tools/repo/ci_owner_shards.py tools/repo/convergence_plan.py tools/repo/affected_owners.py tools/repo/python_path_closure.py tools/repo/pg_issuer_consumer.py tools/repo/owners.toml tools/repo/dependency_contracts.toml tools/formal/verify.py docs/architecture/structure-r2-transition-r1.json mise.toml; do
               [[ -f "$rel" && ! -L "$rel" ]] || return 1
               entry="$(git --no-replace-objects ls-tree HEAD -- "$rel")" || return 1
               [[ "$entry" =~ ^100(644|755)\ blob\ [[:xdigit:]]{40,64}[[:space:]] ]] || return 1

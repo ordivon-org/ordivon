@@ -1006,6 +1006,8 @@ exit 0
             fixture_registry.mkdir(parents=True, exist_ok=True)
             shutil.copy2(ROOT / "tools/repo/affected_owners.py",
                          fixture_registry / "affected_owners.py")
+            shutil.copy2(ROOT / "tools/repo/python_path_closure.py",
+                         fixture_registry / "python_path_closure.py")
             shutil.copy2(ROOT / "tools/repo/owners.toml",
                          fixture_registry / "owners.toml")
             # The real verifier consumes a declared source readset; the disposable
@@ -1255,6 +1257,7 @@ exit 0
             "tools/repo/ci_owner_shards.py",
             "tools/repo/convergence_plan.py",
             "tools/repo/affected_owners.py",
+            "tools/repo/python_path_closure.py",
             "tools/repo/pg_issuer_consumer.py",
             "tools/formal/verify.py",
             "docs/architecture/structure-r2-transition-r1.json",
