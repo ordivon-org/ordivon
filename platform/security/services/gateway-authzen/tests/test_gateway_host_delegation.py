@@ -717,3 +717,38 @@ def test_security_read_selector_surface_matches_gateway_source_inventory() -> No
     required = json.loads(required_result.stdout)["result"][0]["expressions"][0]["value"]
     assert all(set(fields).issubset(actual[tool]) for tool, fields in required.items())
     assert required["message.get"] == ["messageRef"]
+
+
+def test_effective_standing_real_host_predicate_and_revocation(policy_endpoint):
+    client, token, data = policy_endpoint
+
+    def observe(request):
+        request_id = str(uuid.uuid4())
+        response = client.post(
+            "/access/v1/evaluation",
+            json=request,
+            headers={
+                "Authorization": "Bearer " + token,
+                "X-Request-ID": request_id,
+                "X-Ordivon-Policy-Standing": "v1",
+            },
+        )
+        assert response.status_code == 200
+        body = response.json()
+        witness = body["context"]["ordivonPolicyStanding"]
+        assert witness["requestId"] == request_id
+        return body["decision"], witness
+
+    allowed, positive = observe(legacy_payload())
+    denied, negative = observe(legacy_payload(ref="work:other:outside"))
+    assert allowed is True and denied is False
+    assert positive["policyDataCommitment"] == negative["policyDataCommitment"]
+    assert positive["instanceId"] == negative["instanceId"]
+    assert positive["inputSha256"] != negative["inputSha256"]
+    grant = policy_grant()
+    grant["active"] = False
+    data.write_text(json.dumps(grant_data([grant])))
+    revoked, after = observe(legacy_payload())
+    assert revoked is False
+    assert after["policyDataCommitment"] != positive["policyDataCommitment"]
+    assert after["inputSha256"] == positive["inputSha256"]
