@@ -8,6 +8,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from ci_telemetry import Gh
+from github_workflow_observation import complete_page_geometry
 
 MAX_CHECK_ROWS = 2000
 MAX_REFERENCE_SUITES = 1000
@@ -45,8 +46,10 @@ def bounded_provider_rows(
             expected_count = count
         elif count != expected_count:
             raise ValueError(f"{label} listing changed during pagination")
-        if not 0 <= count <= max_rows or len(batch) > 100:
+        if not 0 <= count <= max_rows:
             raise ValueError(f"{label} exceeds bounded complete query")
+        if not complete_page_geometry(count, len(rows), len(batch)):
+            raise ValueError(f"{label} page geometry is truncated or inconsistent")
         if not all(isinstance(row, dict) for row in batch):
             raise ValueError(f"malformed provider {label} row")
         rows.extend(batch)

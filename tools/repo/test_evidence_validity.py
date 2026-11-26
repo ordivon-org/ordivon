@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import importlib.util
 import itertools
+import json
+import os
+import subprocess
 import re
 from pathlib import Path
 from unittest.mock import Mock
 
 import evidence_github_checks as github_checks
 import pytest
+from github_workflow_observation import GitHubObservationTimeout, GitHubWorkflowReader
 
 SOURCE = Path(__file__).with_name("evidence_validity.py")
 SPEC = importlib.util.spec_from_file_location("evidence_validity", SOURCE)
@@ -1981,3 +1985,73 @@ def test_fake_tool_mismatch_with_wrong_cut_does_not_create_spurious_obligation(
     )
     assert assessed["decision"] == "UNKNOWN_UNCLOSED_PROOF_ASSUMPTIONS"
     assert not assessed["proofReuseAdmissible"]
+
+
+def _native_gh(tmp_path, monkeypatch, script):
+    cli = tmp_path / "gh"
+    cli.write_text("#!/bin/sh\n" + script + "\n")
+    cli.chmod(0o700)
+    monkeypatch.setenv("PATH", str(tmp_path) + os.pathsep + os.environ["PATH"])
+
+
+def test_native_timeout_never_accepts_partial_json(tmp_path, monkeypatch):
+    _native_gh(tmp_path, monkeypatch, "printf '{\"ok\":true}'; exec /usr/bin/sleep 4")
+    with pytest.raises(GitHubObservationTimeout, match="timed out"):
+        GitHubWorkflowReader("fixture/repo", request_timeout_seconds=0.15).api("fixture")
+
+
+def test_native_success_and_failure_keep_distinct(tmp_path, monkeypatch):
+    _native_gh(tmp_path, monkeypatch, "printf '{\"ok\":true}'")
+    reader = GitHubWorkflowReader("fixture/repo", request_timeout_seconds=2)
+    assert reader.api("fixture") == {"ok": True}
+    _native_gh(tmp_path, monkeypatch, "printf '{\"ok\":true}'; exit 9")
+    with pytest.raises(subprocess.CalledProcessError):
+        reader.api("fixture")
+    _native_gh(tmp_path, monkeypatch, "printf '{'")
+    with pytest.raises(json.JSONDecodeError):
+        reader.api("fixture")
+
+
+@pytest.mark.parametrize("deadline", [0, -1, float("inf"), float("nan"), True])
+def test_invalid_deadline_rejected(deadline):
+    with pytest.raises(ValueError, match="finite positive"):
+        GitHubWorkflowReader("fixture/repo", request_timeout_seconds=deadline)
+
+
+class _Pages:
+    def __init__(self, *batches):
+        self.batches = iter(batches)
+
+    def api(self, endpoint):
+        return {"total_count": 101, "rows": next(self.batches)}
+
+
+def test_short_nonfinal_page_rejected_even_if_total_later_matches():
+    first = [{"id": 1}]
+    second = [{"id": i} for i in range(2, 102)]
+    with pytest.raises(ValueError, match="page geometry"):
+        github_checks.bounded_provider_rows(_Pages(first, second), "fixture", key="rows", label="fixture")
+
+
+def test_full_page_and_final_remainder_accepted():
+    first = [{"id": i} for i in range(1, 101)]
+    last = [{"id": 101}]
+    assert github_checks.bounded_provider_rows(_Pages(first, last), "fixture", key="rows", label="fixture") == first + last
+
+
+def test_evidence_consumer_timeout_stays_unknown_without_retry(tmp_path, monkeypatch, native_provider_protocol):
+    monkeypatch.chdir(Path(__file__).resolve().parents[2])
+    sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    marker = tmp_path / "calls"
+    monkeypatch.setenv("FIXTURE_CALLS", str(marker))
+    _native_gh(tmp_path, monkeypatch, 'printf x >> "$FIXTURE_CALLS"; exec /usr/bin/sleep 4')
+    result = module.decide_with_optional_formal_source_delta(
+        repo=module.DEFAULT_REPOSITORY, current_sha=sha, prior_sha=None,
+        check_name="root-verification", include_formal_source_delta=False,
+        github=GitHubWorkflowReader(module.DEFAULT_REPOSITORY, request_timeout_seconds=0.15),
+    )
+    assert result["disposition"] == "UNKNOWN_CURRENT_CHECK_PROVIDER"
+    assert result["errorType"] == "GitHubObservationTimeout"
+    assert result["existingCheckReceiptReusable"] is False
+    assert result["proofReuseAdmissible"] is False
+    assert marker.read_text() == "x"

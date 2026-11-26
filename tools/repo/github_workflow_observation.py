@@ -74,13 +74,42 @@ def validate_attempt_jobs(
         seen.add(job_id)
 
 
+DEFAULT_REQUEST_TIMEOUT_SECONDS = 20
+MAX_REQUEST_TIMEOUT_SECONDS = 300
+
+
+class GitHubObservationTimeout(ValueError):
+    """An incomplete provider observation, not a failed workflow result."""
+
+
+def complete_page_geometry(total: int, observed: int, batch_size: int) -> bool:
+    """Qualify the existing per_page=100 native pagination geometry."""
+    return 0 <= observed <= total and batch_size == min(100, total - observed)
+
+
 class GitHubWorkflowReader:
-    def __init__(self, repo: str):
+    def __init__(
+        self, repo: str, *, request_timeout_seconds: float = DEFAULT_REQUEST_TIMEOUT_SECONDS
+    ):
+        if (
+            type(request_timeout_seconds) not in (int, float)
+            or not 0 < request_timeout_seconds <= MAX_REQUEST_TIMEOUT_SECONDS
+        ):
+            raise ValueError("request timeout must be finite positive and at most 300 seconds")
         self.repo = repo
+        self.request_timeout_seconds = request_timeout_seconds
 
     def api(self, endpoint: str) -> Any:
         cmd = ["gh", "api", "-H", "Accept: application/vnd.github+json", endpoint]
-        out = subprocess.run(cmd, check=True, text=True, capture_output=True).stdout
+        try:
+            out = subprocess.run(
+                cmd, check=True, text=True, capture_output=True,
+                timeout=self.request_timeout_seconds,
+            ).stdout
+        except subprocess.TimeoutExpired:
+            # Never parse partial output or automatically retry. This is a
+            # per-request deadline, not a bound on the complete paged query.
+            raise GitHubObservationTimeout("GitHub provider observation timed out") from None
         return json.loads(out)
 
     def collect_attempt_jobs(self, run_id: int, attempt: int) -> list[dict[str, Any]]:
@@ -103,7 +132,7 @@ class GitHubWorkflowReader:
                 raise ValueError("unqualified workflow attempt job count or rows")
             if total is None:
                 total = count
-            if total != count or len(batch) != min(100, max(0, count - len(rows))):
+            if total != count or not complete_page_geometry(count, len(rows), len(batch)):
                 raise ValueError("incomplete or changing workflow attempt job pages")
             validate_attempt_jobs(batch, run_id, attempt, seen)
             rows.extend(batch)
