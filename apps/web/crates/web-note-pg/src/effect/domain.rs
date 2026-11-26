@@ -78,7 +78,7 @@ pub(crate) fn valid_input(
         && g.revision >= 1
         && op.valid()
 }
-fn canonical(s: &str) -> bool {
+pub(super) fn canonical(s: &str) -> bool {
     s.starts_with('/')
         && !s.contains("//")
         && !s
@@ -136,6 +136,14 @@ pub enum EffectError {
         #[source]
         source: tokio_postgres::Error,
     },
+    #[error("grant not found")]
+    GrantNotFound,
+    #[error("grant unavailable")]
+    GrantUnavailable,
+    #[error("multiple matching grants")]
+    GrantAmbiguous,
+    #[error("invalid grant scope")]
+    InvalidGrantScope,
     #[error("stored projection invalid")]
     Corrupt,
     #[error("expected one write: {0}")]
@@ -179,6 +187,10 @@ impl EffectError {
             Self::ApprovalBinding => "effect-approval-binding-invalid",
             Self::ApprovalClosed => "effect-approval-closed",
             Self::AuthorityCommitUnknown { .. } => "authority-commit-unknown",
+            Self::GrantNotFound => "agent-grant-not-found",
+            Self::GrantUnavailable => "agent-grant-unavailable",
+            Self::GrantAmbiguous => "agent-grant-ambiguous",
+            Self::InvalidGrantScope => "invalid-agent-grant-scope",
             Self::Corrupt => "effect-corrupt",
             Self::Write(_) => "effect-write-not-applied",
             Self::Mismatch(_) => "effect-postcondition-mismatch",

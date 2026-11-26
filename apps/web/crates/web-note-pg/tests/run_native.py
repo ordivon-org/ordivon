@@ -141,8 +141,14 @@ if __name__ == "__main__":
         # silently turn a missing target into successful qualification.
         for target in targets:
             effect_fault = CommitAckFault(cluster, name="effect-proxy") if target == "effect" else None
+            grant_fault = CommitAckFault(cluster, name="grant-proxy") if target == "effect" else None
+            revoke_fault = CommitAckFault(cluster, name="revoke-proxy") if target == "effect" else None
             if effect_fault is not None:
                 env["WEB_EFFECT_TEST_ACK_PROXY"]=str(effect_fault.root)
+            if grant_fault is not None:
+                env["WEB_GRANT_TEST_ACK_PROXY"]=str(grant_fault.root)
+            if revoke_fault is not None:
+                env["WEB_REVOKE_TEST_ACK_PROXY"]=str(revoke_fault.root)
             report = manifest.parent / "target" / "nextest" / target / (target + ".xml")
             report.unlink(missing_ok=True)
             result = None
@@ -152,8 +158,16 @@ if __name__ == "__main__":
                 "--status-level", "pass", "--success-output", "final"],
                     env=env, cwd=manifest.parent, check=False, timeout=180)
             finally:
-                if effect_fault is not None:
-                    effect_fault.close(require_cut=result is not None and result.returncode == 0)
+                try:
+                    if effect_fault is not None:
+                        effect_fault.close(require_cut=result is not None and result.returncode == 0)
+                finally:
+                    try:
+                        if grant_fault is not None:
+                            grant_fault.close(require_cut=result is not None and result.returncode == 0)
+                    finally:
+                        if revoke_fault is not None:
+                            revoke_fault.close(require_cut=result is not None and result.returncode == 0)
             if result.returncode != 0:
                 break
             print_report(report, expected[target])

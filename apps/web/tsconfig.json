@@ -13,5 +13,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "test/**/*.ts", "experiments/pg-transaction-r1/sqlite-reference.ts", "crates/web-note-pg/tests/sqlite-reference.ts", "crates/web-note-pg/tests/sqlite-migration-reference.ts", "crates/web-note-pg/tests/effect-reference.ts", "crates/web-note-pg/migration/**/*.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "experiments/pg-transaction-r1/sqlite-reference.ts", "crates/web-note-pg/tests/sqlite-reference.ts", "crates/web-note-pg/tests/sqlite-migration-reference.ts", "crates/web-note-pg/tests/effect-reference.ts", "crates/web-note-pg/tests/grant-reference.ts", "crates/web-note-pg/migration/**/*.ts"]
 }

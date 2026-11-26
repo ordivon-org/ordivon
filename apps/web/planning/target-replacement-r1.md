@@ -576,3 +576,85 @@ composition; native session/challenge/DPoP and credential consumers;
 root CI/native prerequisites, real migration freeze/single writer, and
 independent natural-owner review before production. No root CI or
 production cutover claim.
+
+
+## R18 — Grant identity, lifecycle and coherent authority observation
+
+Host Work@37 #33098; verification handoff #33113. R17 a8a9f3a1
+plus fetched main ca1b34e6, composed 950e8373. No legacy repair or new
+authorization authority.
+
+| Logic | Thought | Capability |
+|---|---|---|
+| G01 Grant identity | representation-first | GrantCreate / PreparedGrant; fixed v1 field order, SHA256, UTF16 normalize |
+| G02 issuance | atomicity | native insert and exact issuance audit under shared owner_write |
+| G03 projection | typed refinement | GrantRow checked decoding, GrantSnapshot and fence |
+| G04 selection | natural owner | principal listing, candidate scope match, explicit ambiguity, no risk decision |
+| G05 issuance observation | historical evidence | RR snapshot, original immutable fields and exact audit, current mutable projection |
+| G06 revocation observation | recovery first | retained audit UUID/binding/time, exact audit and currently inactive Grant |
+| G07 authority view | coherent observation | pending/approval/receipt in one read-only RR snapshot |
+| G08 verification | independent falsification | actual SQLite vectors, native writer races/trigger/ACK and forced interleaving |
+| G09 integration | consumer-driven | actual R17 Effect consumes newly issued Grant |
+| G10 next | security boundary | Principal/Credential/Session/Challenge/DPoP, authenticated HTTP, durable operation receipts |
+
+Preserve legacy v1 ordered JSON serialization, not RFC8785 object-key
+sorting. Precompute UTF16 keys once per list element, sort/dedup and
+serialize with serde_json, use existing sha2 0.11 graph as direct dep.
+No custom cryptographic algorithm. Grant digest excludes mutable quota,
+revision and active, so it is NOT a digest of current authority. Reject
+nonrepresentable values; Rust UTF8 has no lone JS surrogates, NUL in
+identity text/actions rejected, integer safe range, canonical resource
+prefix and recognized risk class. Caller owns admission/digest context.
+No extra risk policy or new public API. Selection deliberately includes
+exhausted matching grants when deciding ambiguity, as original does;
+a later commit enforces quota under row lock. Decode all candidates before
+scope selection, even corrupt nonmatching candidates must not disappear.
+
+Grant issuance exact postconditions after deferred constraints; duplicate
+identity is a native conflict, not hidden replay. Caller holds prepared
+row+audit UUID before await. Observation checks original immutable raw
+projection and exactly one matching issuance audit (including wrong audit
+coordinate and duplicate evidence). Once revision advances, original
+quota cannot be reconstructed by the legacy audit/digest. Revocation
+checks exact original event identity/fields and inactive matching grant
+with current revision greater than supplied fence; no reconstructed
+historical revision. Missing audit is UNOBSERVED, not proven failure.
+Pending/approval are refreshable; coherent current view never asserts
+an individual historical write committed. Receipt validation uses existing
+R17 actor/digest/action/resource binding and principal, not authentication.
+
+R2.1 I=trusted Grant request/prepared identity or retained observation
+coordinate; O=exact snapshot/typed result/error/UNKNOWN; S=R16 full schema
+R13 pool R17 writer; pre=trusted authenticated caller, representability,
+all writers cooperate; post=acknowledged exact new grant/audit or read-only
+coherent evidence; inv=no hidden retry, no duplicate issuance, no
+current-state-to-history inference, no silent corrupt candidate removal;
+eff=local PG; c=precomputed UTF16 sort, native indexes and snapshot,
+issuance audit duplicate lookup may need dedicated partial index after
+real workload census, no production perf claim; epsilon=not cryptographic
+admission, not all JS strings, no historical original quota or historical
+revocation revision proof after later writes, pending/approval have no
+immutable operation receipt, no arbitrary hostile writer/DDL; prov=Git
+and native JUnit; unfold=identity->issue->select->effect->revoke->observe.
+
+Six added named native tests in the existing effect lane: 32 actual old
+SQLite reference vectors with Unicode astral/BMP order, combining
+characters, control escape and safe JS integers; exact normalized JSON,
+SHA256, audit bytes and projections; actual newly issued Grant consumed
+by Effect/revoke; 4 native trigger faults rollback, competing Grant ID
+one winner, duplicate audit mismatch; native issuance and revoke ACK loss
+via separate one-shot native wire proxies; coherent authority view and
+foreign principal rejection. Forced native table lock proves second read
+waiting while peer commits pending and approval atomically: old complete
+snapshot, then fresh new complete snapshot. Five targeted mutants
+(UTF8 instead of UTF16, skip issuance row readback, skip issuance audit
+readback, skip revocation audit match, RC instead of RR observation)
+killed by actual native assertions. No global mutation score.
+
+Reference: https://www.rfc-editor.org/rfc/rfc8785.html
+https://www.postgresql.org/docs/18/transaction-iso.html
+https://www.postgresql.org/docs/18/sql-set-transaction.html .
+Next actual Principal/Credential, Session/Challenge/DPoP and authenticated
+Axum/Tower consumer; qualify durable prepared intents, authority receipts,
+root CI, full source freeze and single-writer production migration. Independent
+Security/Data/Verification review not yet received.
