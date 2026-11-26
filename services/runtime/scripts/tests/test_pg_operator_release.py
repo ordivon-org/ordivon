@@ -1080,6 +1080,40 @@ class NativePgReleaseOperator(unittest.TestCase):
             self.assertEqual(observed_release["deployedToolCount"],native_tool_count)
             self.assertEqual(observed_release["semanticCompletionEvaluated"],False)
             self.assertEqual(observed_release["commit"],self.args.commit)
+            # Direct consumer readback must bind the *same* qualified PG
+            # Attempt digest, even when no Python release operator is called.
+            # These mutations are confined to the disposable native receipt.
+            from mcp_probe import McpToolError
+            receipt=self.args.receipt_root/f"effect-{self.args.effect_id}"
+            result_path=receipt/"result.json"
+            original_bytes=result_path.read_bytes()
+            self.assertEqual(observed_release["receiptDigest"],op.digest(original_bytes))
+            for variant in ("different_bytes_same_status","uncommitted_rollback"):
+                with self.subTest(receipt_mutation=variant):
+                    auxiliary=receipt/"rollback-result.json"
+                    try:
+                        if variant=="different_bytes_same_status":
+                            result=json.loads(original_bytes)
+                            result["uncommittedObservation"]="not-the-settled-bytes"
+                            op.DEPLOY["write_json_atomic"](result_path,result)
+                            self.assertNotEqual(op.digest(result_path.read_bytes()),
+                                                observed_release["receiptDigest"])
+                        else:
+                            op.DEPLOY["write_json_atomic"](auxiliary,
+                                                          {"status":"restored_previous"})
+                            self.assertEqual(result_path.read_bytes(),original_bytes)
+                        with self.assertRaisesRegex(McpToolError,"RECONCILIATION_REQUIRED"):
+                            client.call_tool("release.get",{
+                                "clientRequestId":self.args.client_request_id})
+                    finally:
+                        result_path.write_bytes(original_bytes)
+                        auxiliary.unlink(missing_ok=True)
+                    restored=client.call_tool("release.get",{
+                        "clientRequestId":self.args.client_request_id})
+                    self.assertEqual(restored,observed_release)
+                    self.assertEqual(self.db.execute(
+                        "SELECT resolution FROM jobs WHERE job_id=%s",(self.job_id,)
+                    ).fetchone()["resolution"],"succeeded")
             # After a valid deployment, drift only the effective systemd
             # ExecStart. A release replay MUST NOT turn a matching MCP catalog
             # and disk copy into proof that a different process was installed.

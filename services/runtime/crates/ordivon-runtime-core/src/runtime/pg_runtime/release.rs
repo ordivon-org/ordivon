@@ -102,7 +102,7 @@ impl PgRuntime {
             ));
         }
 
-        let observation = self.project(
+        let (observation, snapshot) = self.project_with_verified_snapshot(
             &mut db,
             &JobObserveRequest {
                 schema_version: 1,
@@ -120,6 +120,34 @@ impl PgRuntime {
             observation.execution_disposition,
             observation.attempt_state,
         )?;
+        // A receipt can exist before PG settlement. For a settled Job,
+        // however, an independently read filesystem result must match the
+        // exact bytes and disposition that its verified PG terminal events
+        // committed. The legacy auxiliary rollback file is not a PG release
+        // settlement witness and cannot revise that historical standing.
+        if observation.execution_terminal && receipt.terminal {
+            let consistent = matches!(
+                (snapshot.resolution.as_deref(), receipt.disposition),
+                (Some("succeeded"), RuntimeReleaseDisposition::Deployed)
+                    | (
+                        Some("failed"),
+                        RuntimeReleaseDisposition::NotCommitted
+                            | RuntimeReleaseDisposition::RolledBack
+                    )
+            );
+            if !consistent
+                || receipt.rollback_status.is_some()
+                || receipt.digest.as_deref() != snapshot.result_digest.as_deref()
+            {
+                return Err(RuntimeError::new(
+                    RuntimeErrorCode::ReconciliationRequired,
+                    "release receipt disagrees with verified PG terminal evidence",
+                    Some("clientRequestId"),
+                    false,
+                )
+                .with_operation_id(&job_id));
+            }
+        }
         Ok(RuntimeReleaseProjection {
             contract: binding.contract,
             effect_id: binding.effect_id,
