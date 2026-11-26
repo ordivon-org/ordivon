@@ -14,6 +14,11 @@ import re
 import sys
 from pathlib import Path
 
+# Python -B in the packaged systemd unit is the regular consumer; this
+# additionally protects direct operator invocation outside that unit.
+if __name__ == "__main__":
+    sys.dont_write_bytecode = True
+
 import ordivon_runtime_pg_operator as operator
 
 _SAFE_SERVICE = re.compile(r"^ordivon-[A-Za-z0-9-]+[.]service$")

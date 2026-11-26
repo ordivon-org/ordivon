@@ -685,6 +685,9 @@ class NativePgReleaseOperator(unittest.TestCase):
             result=op.apply_release(self.args)
             self.assertEqual(result["status"],"deployed")
             self.assertEqual(result["pgTerminal"],"succeeded")
+            path=self.args.receipt_root/f"effect-{self.args.effect_id}"/"result.json"
+            self.assertEqual(result["resultDigest"],op.digest(path.read_bytes()))
+            self.assertNotIn("replayed",result)
             self.assertEqual((self.install/"ordivon-runtime-pg").read_bytes(),b"new-pg-runtime")
             self.assertEqual(len(self.calls),2)
             replay=op.apply_release(self.args)
@@ -725,6 +728,105 @@ class NativePgReleaseOperator(unittest.TestCase):
             self.db.execute("SELECT count(*) AS n FROM job_events WHERE job_id=%s "
                             "AND event_type=%s",(self.job_id,op.DISPATCH_EVENT)
                             ).fetchone()["n"],1)
+
+    def test_candidate_drift_during_staging_never_publishes_unapproved_bytes(self) -> None:
+        copy = op.DEPLOY["atomic_copy"]
+        name = "ordivon-runtime-pg"
+        def drift(source, destination, *, mode=0o755):
+            if destination == self.install / (name + ".next"):
+                source.write_bytes(b"unapproved-drift")
+            return copy(source, destination, mode=mode)
+        with patch.dict(op.DEPLOY, {"atomic_copy": drift, "run": lambda cmd: None}), patch.object(
+            op, "pg_mcp_readiness", return_value={
+                "toolCount": 20, "toolCatalogDigest": "sha256:" + "f" * 64,
+            },
+        ), patch.object(op, "verified_release_consumer"):
+            with self.assertRaises(RuntimeError):
+                op.apply_release(self.args)
+        self.assertEqual((self.install / name).read_bytes(), b"old-pg-runtime")
+        self.assertNotEqual(self.db.execute(
+            "SELECT resolution FROM jobs WHERE job_id=%s", (self.job_id,),
+        ).fetchone()["resolution"], "succeeded")
+
+    def test_settlement_rejects_matching_drifted_files_and_receipt(self) -> None:
+        with op.pg_connection(self.dsn, "fresh") as conn:
+            _, bound = op.dispatch_claim(conn, self.args)
+        request = op.effect_request(self.args, bound)
+        receipt = self.args.receipt_root / f"effect-{self.args.effect_id}"
+        receipt.mkdir()
+        for spec in op.DEPLOY["release_artifact_specs"](self.args):
+            name = spec["name"]
+            (self.candidate / name).write_bytes(b"unapproved-" + name.encode())
+            op.DEPLOY["atomic_copy"](
+                self.candidate / name, self.install / name, mode=spec["mode"],
+            )
+        op.DEPLOY["write_json_atomic"](receipt / "effect-request.json", request)
+        op.DEPLOY["write_json_atomic"](receipt / "result.json", {
+            "schemaVersion": 2, "status": "deployed", "commit": self.args.commit,
+            "serviceActive": True,
+            "probe": {"toolCount": 20, "toolCatalogDigest": "sha256:" + "f" * 64},
+            "installed": [
+                op.DEPLOY["artifact_description"](self.install / spec["name"], spec)
+                for spec in op.DEPLOY["release_artifact_specs"](self.args)
+            ],
+            "releaseEffect": request,
+        })
+        with patch.object(op, "pg_mcp_readiness", return_value={
+            "toolCount": 20, "toolCatalogDigest": "sha256:" + "f" * 64,
+        }), patch.object(op, "verified_release_consumer"):
+            with self.assertRaisesRegex(RuntimeError, "differ from candidate"):
+                op.apply_release(self.args)
+        self.assertIsNone(self.db.execute(
+            "SELECT resolution FROM jobs WHERE job_id=%s", (self.job_id,),
+        ).fetchone()["resolution"])
+
+    def test_late_candidate_drift_does_not_invalidate_correct_installed_bytes(self) -> None:
+        def run(cmd):
+            if cmd[-2:] == ["start", self.args.service]:
+                (self.candidate / "ordivon-runtime-pg").write_bytes(b"late-drift")
+        with patch.dict(op.DEPLOY, {"run": run}), patch.object(
+            op, "pg_mcp_readiness", return_value={
+                "toolCount": 20, "toolCatalogDigest": "sha256:" + "f" * 64,
+            },
+        ), patch.object(op, "verified_release_consumer"):
+            result = op.apply_release(self.args)
+        self.assertEqual(result["pgTerminal"], "succeeded")
+        self.assertEqual((self.install / "ordivon-runtime-pg").read_bytes(), b"new-pg-runtime")
+
+    def test_drain_preimage_drift_never_stops_or_overwrites_service(self) -> None:
+        original_active = op.active_executions
+        name = "ordivon-runtime-pg"
+        def drift(conn, job_id):
+            (self.install / name).write_bytes(b"external-new-preimage")
+            return original_active(conn, job_id)
+        with patch.object(op, "active_executions", side_effect=drift), patch.dict(
+            op.DEPLOY, {"run": lambda cmd: self.calls.append(tuple(cmd))},
+        ), patch.object(op, "pg_mcp_readiness", return_value={
+            "toolCount": 20, "toolCatalogDigest": "sha256:" + "f" * 64,
+        }), patch.object(op, "verified_release_consumer"):
+            with self.assertRaisesRegex(RuntimeError, "preimage"):
+                op.apply_release(self.args)
+        self.assertEqual(self.calls, [])
+        self.assertEqual((self.install / name).read_bytes(), b"external-new-preimage")
+
+    def test_post_stop_preimage_drift_holds_without_unqualified_restart(self) -> None:
+        name = "ordivon-runtime-pg"
+        def run(cmd):
+            self.calls.append(tuple(cmd))
+            if cmd[-2:] == ["stop", self.args.service]:
+                (self.install / name).write_bytes(b"external-post-stop")
+        with patch.dict(op.DEPLOY, {"run": run}), patch.object(
+            op, "pg_mcp_readiness", return_value={
+                "toolCount": 20, "toolCatalogDigest": "sha256:" + "f" * 64,
+            },
+        ), patch.object(op, "verified_release_consumer"):
+            with self.assertRaisesRegex(RuntimeError, "reconciliation_required"):
+                op.apply_release(self.args)
+        self.assertEqual([cmd[-2] for cmd in self.calls], ["stop"])
+        self.assertEqual((self.install / name).read_bytes(), b"external-post-stop")
+        self.assertIsNone(self.db.execute(
+            "SELECT resolution FROM jobs WHERE job_id=%s", (self.job_id,),
+        ).fetchone()["resolution"])
 
     def test_systemd_start_failure_restores_preimage_and_terminal_failure(self) -> None:
         calls=[]
@@ -778,6 +880,58 @@ class NativePgReleaseOperator(unittest.TestCase):
              f"effect-{self.args.effect_id}"/"result.json").read_text())
         self.assertNotEqual(result["status"],"not_committed",
                             "rename attempt is already a physical effect boundary")
+
+    def test_receipt_substitution_during_readiness_holds_pg_resolution(self) -> None:
+        receipt=self.args.receipt_root/f"effect-{self.args.effect_id}"/"result.json"
+        ready={"toolCount":20,"toolCatalogDigest":"sha256:"+"f"*64}
+
+        def readiness(_args):
+            if receipt.is_file():
+                changed=json.loads(receipt.read_text())
+                changed["status"]="rolled_back"
+                op.DEPLOY["write_json_atomic"](receipt,changed)
+            return ready
+
+        with patch.object(op,"pg_mcp_readiness",side_effect=readiness), \
+             patch.dict(op.DEPLOY,{"run":lambda _command:None}), \
+             patch.object(op,"verified_release_consumer") as consumer:
+            with self.assertRaisesRegex(RuntimeError,"RECONCILIATION_REQUIRED"):
+                op.apply_release(self.args)
+            consumer.assert_not_called()
+        self.assertIsNone(self.db.execute(
+            "SELECT resolution FROM jobs WHERE job_id=%s",(self.job_id,)
+        ).fetchone()["resolution"])
+        self.assertEqual(self.db.execute(
+            "SELECT state FROM concurrency_reservations WHERE attempt_id=%s",
+            (self.attempt_id,)
+        ).fetchone()["state"],"active")
+
+    def test_consumer_cannot_replace_settled_result_digest_with_current_path(self) -> None:
+        receipt=self.args.receipt_root/f"effect-{self.args.effect_id}"
+        receipt.mkdir()
+        path=receipt/"result.json"
+        op.DEPLOY["write_json_atomic"](path,{"status":"deployed"})
+        settled=op.digest(path.read_bytes())
+        op.DEPLOY["write_json_atomic"](path,{"status":"deployed","changed":True})
+        projection={
+            "effectId":self.args.effect_id,
+            "clientRequestId":self.args.client_request_id,
+            "commit":self.args.commit,
+            "candidateManifestDigest":self.args.candidate_manifest_digest,
+            "expectedToolCount":20,"effectDisposition":"deployed",
+            "executionDisposition":"succeeded",
+            "receiptDigest":op.digest(path.read_bytes()),
+            "effectTerminal":True,"executionTerminal":True,
+            "receiptAvailable":True,"recoveryRequired":False,
+            "semanticCompletionEvaluated":False,"deployedToolCount":20,
+        }
+        terminal={"status":"deployed","pgTerminal":"succeeded","resultDigest":settled}
+        environment={"ORDIVON_PG_BIND":"127.0.0.1:65500","ORDIVON_PG_TOKEN":"p"*32}
+        with patch.dict(op.DEPLOY,{"load_environment_file":lambda _path:environment}), \
+             patch.object(op,"McpClient") as client:
+            client.return_value.call_tool.return_value=projection
+            with self.assertRaisesRegex(RuntimeError,"RECONCILIATION_REQUIRED"):
+                op.verified_release_consumer(self.args,terminal)
 
     def test_forged_terminal_receipt_cannot_finalize_pg_success(self) -> None:
         with op.pg_connection(self.dsn,"fresh") as conn:

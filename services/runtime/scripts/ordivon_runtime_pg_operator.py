@@ -25,6 +25,12 @@ from typing import Any
 import psycopg
 from psycopg import sql
 from psycopg.rows import dict_row
+
+# This implementation is also a direct executable module, not only an import
+# from the bundled wrapper/dispatcher. Never write unqualified local pyc.
+if __name__ == "__main__":
+    sys.dont_write_bytecode = True
+
 from mcp_probe import McpClient
 
 _RELEASE_SCRIPT = Path(__file__).with_name("ordivon-runtime-deploy")
@@ -374,6 +380,44 @@ def verified_live_service_executable(args: argparse.Namespace) -> dict[str, Any]
     return image
 
 
+def release_artifact_identity(records: object) -> dict[str, tuple[str, int, int, str]]:
+    """Exact path-independent identity; duplicate records never collapse into a set."""
+    if not isinstance(records, list):
+        raise RuntimeError("release artifact inventory is not a list")
+    result = {}
+    for entry in records:
+        if not isinstance(entry, dict):
+            raise RuntimeError("invalid release artifact record")
+        name, kind = entry.get("name"), entry.get("kind")
+        mode, size, checksum = entry.get("mode"), entry.get("bytes"), entry.get("digest")
+        if (not isinstance(name, str) or not name or name in result
+                or not isinstance(kind, str) or type(mode) is not int
+                or type(size) is not int or size < 0
+                or not isinstance(checksum, str) or not DIGEST.fullmatch(checksum)):
+            raise RuntimeError("invalid or duplicate release artifact identity")
+        result[name] = (kind, mode, size, checksum)
+    return result
+
+
+def committed_candidate_identity(
+    args: argparse.Namespace, manifest_digest: str,
+) -> dict[str, tuple[str, int, int, str]]:
+    """Derive expected bytes from the same manifest buffer whose digest is approved."""
+    raw = args.candidate_manifest.read_bytes()
+    if digest(raw) != manifest_digest:
+        raise RuntimeError("committed candidate manifest digest changed")
+    manifest = json.loads(raw)
+    identity = release_artifact_identity(manifest.get("artifacts"))
+    specs = DEPLOY["release_artifact_specs"](args)
+    if set(identity) != {str(spec["name"]) for spec in specs}:
+        raise RuntimeError("committed candidate artifact inventory changed")
+    for spec in specs:
+        kind, mode, _, _ = identity[str(spec["name"])]
+        if kind != spec["kind"] or mode != int(spec["mode"]):
+            raise RuntimeError("committed candidate artifact profile changed")
+    return identity
+
+
 def physical_preflight(args: argparse.Namespace, effect: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     require_complete_native_release(args)
     # Full candidate manifest/ref/installed binary checks are the SAME
@@ -558,6 +602,23 @@ def pg_mcp_readiness(
     return {**probe, "activeRuntimeImage": image}
 
 
+def require_release_preimage(
+    root: Path, specs: list[dict[str, Any]], baseline: list[dict[str, Any]],
+) -> None:
+    """Do not overwrite or restart an unqualified previous generation."""
+    try:
+        actual = [
+            DEPLOY["artifact_description"](
+                root / str(spec["name"]), spec, enforce_mode=False,
+            )
+            for spec in specs
+        ]
+        if release_artifact_identity(actual) != release_artifact_identity(baseline):
+            raise RuntimeError("release preimage changed")
+    except (OSError, RuntimeError) as error:
+        raise RuntimeError("release preimage cannot be qualified") from error
+
+
 def operator_fenced_install(
     conn: psycopg.Connection,
     args: argparse.Namespace,
@@ -567,6 +628,7 @@ def operator_fenced_install(
 ) -> dict[str, Any]:
     """One immutable physical install under PG admission and OS locks."""
     specs, candidate_summary = physical_preflight(args, bound)
+    expected = committed_candidate_identity(args, bound["candidateManifestDigest"])
     receipt = args.receipt_root / f"effect-{args.effect_id}"
     previous = receipt / "previous"
     previous.mkdir(parents=True, exist_ok=False)
@@ -620,6 +682,7 @@ def operator_fenced_install(
             source_epoch = epoch["source_sha256"] if epoch else None
             if active_executions(conn, row["job_id"]):
                 raise RuntimeError("new PG Job appeared before release cutover")
+            require_release_preimage(args.install_dir, specs, baseline)
             DEPLOY["run"]([str(args.systemctl), "stop", args.service])
             stopped = True
             if active_executions(conn, row["job_id"]):
@@ -634,6 +697,15 @@ def operator_fenced_install(
                     args.install_dir / f"{name}.next",
                     mode=int(spec["mode"]),
                 )
+            staged = [
+                DEPLOY["artifact_description"](
+                    args.install_dir / (str(spec["name"]) + ".next"), spec,
+                )
+                for spec in specs
+            ]
+            if release_artifact_identity(staged) != expected:
+                raise RuntimeError("staged artifacts differ from committed candidate manifest")
+            require_release_preimage(args.install_dir, specs, baseline)
             # Once the first rename is attempted, a partial physical cutover
             # is possible. The rollback path must cover failures *inside*
             # this loop, not only failures after the last rename.
@@ -647,10 +719,7 @@ def operator_fenced_install(
                 DEPLOY["artifact_description"](args.install_dir / str(spec["name"]), spec)
                 for spec in specs
             ]
-            observed = {(item["name"],item["digest"]) for item in installed}
-            expected = {(item["name"],item["digest"]) for item in
-                        DEPLOY["candidate_artifacts"](args)}
-            if observed != expected:
+            if release_artifact_identity(installed) != expected:
                 raise RuntimeError("installed artifacts differ from immutable candidate")
             result = {
                 "schemaVersion": 2,
@@ -680,6 +749,7 @@ def operator_fenced_install(
                 ).fetchone()
                 if not current or current["source_sha256"] != source_epoch:
                     raise RuntimeError("PG epoch changed; binary rollback unsafe")
+                require_release_preimage(previous, specs, baseline)
                 rollback = DEPLOY["restore_previous"](
                     previous, args.install_dir, baseline, args.systemctl,
                     args.service,args.env_file,args.wait_seconds,
@@ -693,6 +763,7 @@ def operator_fenced_install(
                 rollback = {"error":str(restore_failure),"suppressed":True}
         elif stopped:
             try:
+                require_release_preimage(args.install_dir, specs, baseline)
                 DEPLOY["run"]([str(args.systemctl),"start",args.service])
             except Exception as resume_error:
                 status = "reconciliation_required"
@@ -718,9 +789,10 @@ def finalize_receipted_release(
     """Reconcile an existing terminal installer receipt, never rerun an install."""
     require_complete_native_release(args)
     receipt_dir = args.receipt_root / f"effect-{args.effect_id}"
-    result = DEPLOY["existing_structured_release_result"](receipt_dir, request)
-    if result is None:
+    snapshot = DEPLOY["structured_release_result_snapshot"](receipt_dir, request)
+    if snapshot is None:
         raise RuntimeError("RECONCILIATION_REQUIRED: operator receipt is missing")
+    result, receipt_bytes = snapshot
     # The Runtime reader is still the independent receipt verifier. We
     # serialize ONLY the authenticated operator's committed effect outcome.
     status = result.get("status")
@@ -738,28 +810,14 @@ def finalize_receipted_release(
             or not DIGEST.fullmatch(probe["toolCatalogDigest"])
         ):
             raise RuntimeError("RECONCILIATION_REQUIRED: no qualified deployed MCP receipt")
-        expected = {
-            (item["name"],item["digest"])
-            for item in DEPLOY["candidate_artifacts"](args)
-        }
-        installed = result.get("installed")
-        if not isinstance(installed,list) or not all(
-            isinstance(entry,dict)
-            and isinstance(entry.get("name"),str)
-            and isinstance(entry.get("digest"),str)
-            for entry in installed
-        ):
-            raise RuntimeError("RECONCILIATION_REQUIRED: installed artifact attestation absent")
-        attested={(entry["name"],entry["digest"]) for entry in installed}
-        actual={
-            (item["name"],item["digest"])
-            for item in [
-                DEPLOY["artifact_description"](
-                    args.install_dir / spec["name"],spec
-                )
-                for spec in DEPLOY["release_artifact_specs"](args)
-            ]
-        }
+        expected = committed_candidate_identity(args, request["candidateManifestDigest"])
+        attested = release_artifact_identity(result.get("installed"))
+        actual = release_artifact_identity([
+            DEPLOY["artifact_description"](
+                args.install_dir / spec["name"], spec,
+            )
+            for spec in DEPLOY["release_artifact_specs"](args)
+        ])
         if expected != attested or expected != actual:
             raise RuntimeError("RECONCILIATION_REQUIRED: installed bytes or receipt differ from candidate")
         live=pg_mcp_readiness(args)
@@ -775,7 +833,9 @@ def finalize_receipted_release(
         raise RuntimeError(
             "RECONCILIATION_REQUIRED: unsafe/unknown installer result cannot release PG reservation"
         )
-    receipt_bytes = (receipt_dir / "result.json").read_bytes()
+    # Commit the bytes that were actually parsed and qualified, not a second
+    # independently chosen result. The operator lock serializes our writers;
+    # a detected out-of-band mutation is reconciliation, never a new receipt.
     result_digest = digest(receipt_bytes)
     observed = int(time.time() * 1000)
     conn.isolation_level = psycopg.IsolationLevel.SERIALIZABLE
@@ -787,6 +847,9 @@ def finalize_receipted_release(
             candidate_manifest_digest=args.candidate_manifest_digest,
             receipt_root=args.receipt_root,
         )
+        current = DEPLOY["structured_release_result_snapshot"](receipt_dir, request)
+        if current is None or current[1] != receipt_bytes:
+            raise RuntimeError("RECONCILIATION_REQUIRED: operator receipt changed before settlement")
         issued = conn.execute(
             "SELECT count(*) AS n FROM job_events WHERE job_id=%s AND event_type=%s",
             (row["job_id"], DISPATCH_EVENT),
@@ -898,6 +961,9 @@ def verified_release_consumer(
         raise RuntimeError(
             "RECONCILIATION_REQUIRED: operator receipt changed during readback"
         ) from error
+    settled_digest = result.get("resultDigest")
+    if not isinstance(settled_digest, str) or not DIGEST.fullmatch(settled_digest) or receipt_digest != settled_digest:
+        raise RuntimeError("RECONCILIATION_REQUIRED: current receipt differs from settled result")
     required = {
         "effectId": args.effect_id,
         "clientRequestId": args.client_request_id,
@@ -906,7 +972,7 @@ def verified_release_consumer(
         "expectedToolCount": args.expected_tool_count,
         "effectDisposition": expected[1],
         "executionDisposition": terminal,
-        "receiptDigest": receipt_digest,
+        "receiptDigest": settled_digest,
         "effectTerminal": True,
         "executionTerminal": True,
         "receiptAvailable": True,
@@ -986,7 +1052,7 @@ def apply_release(args: argparse.Namespace) -> dict[str, Any]:
             receipt.mkdir(parents=True,exist_ok=False)
             DEPLOY["write_json_atomic"](receipt / "effect-request.json",request)
             try:
-                result = operator_fenced_install(conn,args,row,bound,request)
+                operator_fenced_install(conn,args,row,bound,request)
             except RuntimeError:
                 if (receipt / "result.json").is_file():
                     try:
@@ -999,7 +1065,9 @@ def apply_release(args: argparse.Namespace) -> dict[str, Any]:
             # Physical systemd receipt precedes PG terminal commit, and only
             # the canonical native release.get consumer can certify Standing.
             final = finalize_receipted_release(conn,args,request)
-            delivered = {**result,"pgTerminal":final["pgTerminal"]}
+            # Return the exact projection settled and checked above, not the
+            # earlier in-memory installer result. This is the initial delivery.
+            delivered = {key: value for key, value in final.items() if key != "replayed"}
             verified_release_consumer(args, delivered)
             return delivered
 

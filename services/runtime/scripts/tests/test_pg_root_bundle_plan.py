@@ -245,6 +245,44 @@ class RootOperatorBundlePlanTests(unittest.TestCase):
         }
         return self.temp / "staged", old, new
 
+    def test_all_direct_root_python_entrypoints_keep_five_file_import_namespace_closed(
+        self,
+    ) -> None:
+        # A standalone operator command may not run through the -B systemd
+        # unit. Use real Python --help and remove inherited Runner cache
+        # redirection (otherwise a false negative would hide Root pyc writes).
+        bundle = self.temp / "actual-entrypoints"
+        bundle.mkdir()
+        for name, mode in deploy.ROOT_OPERATOR_BUNDLE:
+            path = bundle / name
+            shutil.copyfile(SCRIPTS / name, path)
+            path.chmod(mode)
+        environment = {
+            key: value for key, value in os.environ.items()
+            if key not in (
+                "PYTHONPYCACHEPREFIX", "PYTHONDONTWRITEBYTECODE", "PYTHONPATH"
+            )
+        }
+        for name in (
+            "ordivon-runtime-deploy",
+            "ordivon-runtime-pg-operator",
+            "ordivon-runtime-pg-release-dispatch",
+            "ordivon_runtime_pg_operator.py",
+        ):
+            with self.subTest(name=name):
+                result = subprocess.run(
+                    [sys.executable, str(bundle / name), "--help"],
+                    capture_output=True,
+                    text=True,
+                    timeout=20,
+                    env=environment,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertFalse(
+                    (bundle / "__pycache__").exists(),
+                    name + " wrote unqualified Python cache in Root bundle",
+                )
+
     def test_packaged_dispatcher_consumes_root_bundle_without_new_bytecode(self) -> None:
         unit=(SCRIPTS.parent/"packaging/systemd"/
               "ordivon-runtime-pg-release-dispatch.service").read_text()
