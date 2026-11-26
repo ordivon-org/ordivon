@@ -641,13 +641,15 @@ fn original_harness_store_issuer_revoke(receiver: bool) {
         let output = marker.path().join("effect");
         let result = runtime
             .with_current_issued_harness_spawn(
-                &original_job.job_id,
-                &original_job.attempt_id,
-                &original_job.principal,
-                &bundle,
-                &original_job.launch_token_digest,
-                &original_job.expected_source_sha256,
-                &issuer_schema,
+                PgIssuedHarnessSpawn {
+                    job_id: &original_job.job_id,
+                    attempt_id: &original_job.attempt_id,
+                    principal: &original_job.principal,
+                    bundle_digest: &bundle,
+                    launch_token_digest: &original_job.launch_token_digest,
+                    source_sha256: &original_job.expected_source_sha256,
+                    issuer_schema: &issuer_schema,
+                },
                 || Command::new("/usr/bin/touch").arg(&output).spawn(),
             )
             .unwrap()
@@ -661,13 +663,15 @@ fn original_harness_store_issuer_revoke(receiver: bool) {
         assert_eq!(revoked["revision"], 3);
         let mut called = false;
         let denied = runtime.with_current_issued_harness_spawn(
-            &original_job.job_id,
-            &original_job.attempt_id,
-            &original_job.principal,
-            &bundle,
-            &original_job.launch_token_digest,
-            &original_job.expected_source_sha256,
-            &issuer_schema,
+            PgIssuedHarnessSpawn {
+                job_id: &original_job.job_id,
+                attempt_id: &original_job.attempt_id,
+                principal: &original_job.principal,
+                bundle_digest: &bundle,
+                launch_token_digest: &original_job.launch_token_digest,
+                source_sha256: &original_job.expected_source_sha256,
+                issuer_schema: &issuer_schema,
+            },
             || {
                 called = true;
                 Command::new("/usr/bin/touch").arg(&output).spawn()

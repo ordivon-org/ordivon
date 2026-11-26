@@ -751,7 +751,9 @@ fn spawn_at_issuer_cut(
     }
     #[cfg(all(feature = "postgres-registry-admission", target_os = "linux"))]
     {
-        use crate::pg_admission::{read_private_spawn_dsn, PgAdmissionError, PgAdmissionStore};
+        use crate::pg_admission::{
+            read_private_spawn_dsn, PgAdmissionError, PgAdmissionStore, PgIssuedHarnessSpawn,
+        };
         let denied = || runner_error("native Harness issuer receiver not qualified");
         let dsn = read_private_spawn_dsn(Path::new(&fence.dsn_file)).map_err(|_| denied())?;
         let mut store =
@@ -761,13 +763,15 @@ fn spawn_at_issuer_cut(
         let token = request.launch_token.as_deref().ok_or_else(denied)?;
         store
             .with_current_issued_harness_spawn(
-                job,
-                attempt,
-                &fence.principal,
-                bundle_digest,
-                &sha256_text(token),
-                &fence.source_sha256,
-                &fence.issuer_schema,
+                PgIssuedHarnessSpawn {
+                    job_id: job,
+                    attempt_id: attempt,
+                    principal: &fence.principal,
+                    bundle_digest,
+                    launch_token_digest: &sha256_text(token),
+                    source_sha256: &fence.source_sha256,
+                    issuer_schema: &fence.issuer_schema,
+                },
                 || command.spawn(),
             )
             .map_err(|error| match error {

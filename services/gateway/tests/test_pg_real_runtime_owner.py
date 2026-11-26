@@ -1105,7 +1105,9 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                             )
                             assert not content.is_error, content.structured_content
                             observed_effect |= late_output in content.structured_content["content"]
-                        assert not observed_effect, "revoked native receiver must not produce payload effect"
+                        assert not observed_effect, (
+                            "revoked native receiver must not produce payload effect"
+                        )
                         assert (
                             psql(
                                 "SELECT count(*) FROM fresh.job_events "

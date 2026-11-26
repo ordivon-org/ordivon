@@ -11,6 +11,7 @@ mod cancellation;
 mod contract_tests;
 #[path = "pg_dispatch.rs"]
 mod dispatch;
+pub(crate) use dispatch::PgIssuedHarnessSpawn;
 mod input_contract;
 #[path = "pg_issuer_guard.rs"]
 mod issuer;

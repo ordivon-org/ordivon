@@ -452,6 +452,19 @@ impl PgAdmissionStore {
     }
 }
 
+/// Immutable identity of the single issued native payload, borrowed for
+/// the duration of the receiver transaction. No authority is granted by
+/// constructing this value; all fields are checked at the effect boundary.
+pub(crate) struct PgIssuedHarnessSpawn<'a> {
+    pub job_id: &'a str,
+    pub attempt_id: &'a str,
+    pub principal: &'a str,
+    pub bundle_digest: &'a str,
+    pub launch_token_digest: &'a str,
+    pub source_sha256: &'a str,
+    pub issuer_schema: &'a str,
+}
+
 impl PgAdmissionStore {
     /// The native receiver owns the original issuer row lock until the
     /// physical spawn call returns. This is not a retryable transaction and
@@ -459,15 +472,18 @@ impl PgAdmissionStore {
     /// already-issued Manager work require independent settlement).
     pub(crate) fn with_current_issued_harness_spawn<T>(
         &mut self,
-        job_id: &str,
-        attempt_id: &str,
-        principal: &str,
-        bundle_digest: &str,
-        launch_token_digest: &str,
-        source_sha256: &str,
-        issuer_schema: &str,
+        identity: PgIssuedHarnessSpawn<'_>,
         spawn: impl FnOnce() -> T,
     ) -> Result<T, PgAdmissionError> {
+        let PgIssuedHarnessSpawn {
+            job_id,
+            attempt_id,
+            principal,
+            bundle_digest,
+            launch_token_digest,
+            source_sha256,
+            issuer_schema,
+        } = identity;
         validate(attempt_id, 0, bundle_digest, 0, source_sha256)?;
         if !sha256_id(launch_token_digest) || job_id.is_empty() || principal.is_empty() {
             return Err(PgAdmissionError::InvalidInput);
