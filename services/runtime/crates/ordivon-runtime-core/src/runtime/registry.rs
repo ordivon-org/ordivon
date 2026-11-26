@@ -346,44 +346,12 @@ fn capacity_holders(
 }
 
 include!("registry/storage.rs");
+include!("registry/migrations.rs");
 include!("registry/admission.rs");
 include!("registry/query.rs");
 include!("registry/lifecycle.rs");
 include!("registry/recovery.rs");
 include!("registry/reconciliation.rs");
-fn validate_migration_checksum(
-    connection: &Connection,
-    version: i64,
-    expected: &str,
-    label: &str,
-) -> RuntimeResult<()> {
-    let checksum: String = connection
-        .query_row(
-            "SELECT checksum FROM schema_migrations WHERE version=?1",
-            [version],
-            |row| row.get(0),
-        )
-        .optional()
-        .map_err(|error| RuntimeError::from_sql(error, "cannot read migration checksum"))?
-        .ok_or_else(|| {
-            RuntimeError::new(
-                RuntimeErrorCode::RegistryCorrupt,
-                format!("required {label} is missing"),
-                None,
-                false,
-            )
-        })?;
-    if checksum != expected {
-        return Err(RuntimeError::new(
-            RuntimeErrorCode::MigrationChecksumMismatch,
-            format!("{label} checksum does not match the compiled migration"),
-            None,
-            false,
-        ));
-    }
-    Ok(())
-}
-
 fn safe_same_request_sql_error(error: rusqlite::Error, context: &str) -> RuntimeError {
     let mut mapped = RuntimeError::from_sql(error, context);
     if matches!(
@@ -1554,3 +1522,7 @@ fn set_private_file(path: &Path) -> RuntimeResult<()> {
         )
     })
 }
+
+#[cfg(test)]
+#[path = "registry/migration_tests.rs"]
+mod migration_tests;
