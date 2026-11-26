@@ -1,3 +1,6 @@
+import os
+import subprocess
+import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -141,3 +144,54 @@ def test_windows_service_materializer_keeps_privileged_policy_opt_in():
     assert "$privilegedPolicyConfiguredCount -ne 0 -and $privilegedPolicyConfiguredCount -ne 3" in text
     assert "$privilegedPolicyConfigured = $privilegedPolicyConfiguredCount -eq 3" in text
     assert "if ($privilegedPolicyConfigured)" in text
+
+
+def test_windows_cold_materialization_checks_stopped_service_before_any_mutation():
+    text = SCRIPT.read_text(encoding="utf-8")
+    apply = text.split("if (-not $Apply)", 1)[1]
+    guard = apply.index("$service.Status -ne [ServiceProcess.ServiceControllerStatus]::Stopped")
+    for effect in ("[IO.Directory]::CreateDirectory", "Copy-UnlessSameFile $runtimeSource $runtimeTarget", "[IO.File]::WriteAllText("):
+        assert guard < apply.index(effect), effect
+
+
+def test_pg_service_materializer_is_explicit_digest_bound_manual_start_without_sqlite_registry():
+    text = SCRIPT.read_text(encoding="utf-8")
+    for fragment in (
+        "[string]$PostgresEnvironmentFile = ''",
+        "ordivon-runtime-pg.exe",
+        "ordivon-runtime-pg.env",
+        "ordivon-windows-pg-job-launcher.exe",
+        "runtime-pg-mcp.token",
+        "PG TokenSource must be pre-provisioned",
+        "pg-store",
+        "$ExpectedRuntimeSha256",
+        "$ExpectedLauncherSha256",
+        "$ExpectedPostgresEnvironmentSha256",
+        "Assert-PgCandidateCommitments",
+        "Get-FileHash",
+        "ORDIVON_PG_DSN",
+        "ORDIVON_PG_STORE_ROOT",
+        "ORDIVON_PG_RUNNER",
+        "ORDIVON_BEARER_TOKEN_FILE",
+        "if (-not $postgres) { $stateDirectories += $registryRoot }",
+        "start = $startMode",
+        "if ($postgres) { 'demand' } else { 'auto' }",
+        "executionReady = $false",
+    ):
+        assert fragment in text, fragment
+    assert "Start-Service" not in text
+    assert "ORDIVON_REGISTRY_ROOT','ORDIVON_BIND','ORDIVON_BEARER_TOKEN'" in text
+    assert "PG environment does not bind the planned service" in text
+
+
+@unittest.skipUnless(os.name == "nt", "native Windows PowerShell 5.1 acceptance")
+def test_native_pg_service_materializer_preview():
+    script = ROOT / "tests" / "windows_service_materializer_pg_preview.ps1"
+    subprocess.run(
+        [
+            "powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy",
+            "Bypass", "-File", str(script),
+        ],
+        check=True,
+        timeout=60,
+    )
