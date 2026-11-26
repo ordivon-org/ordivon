@@ -556,12 +556,19 @@ class DeployReclaimTests(unittest.TestCase):
             subprocess.run(
                 [
                     "git", "-c", "protocol.file.allow=always", "clone", "-q",
-                    "--filter=blob:none", bare.as_uri(), str(source),
+                    "--filter=blob:none", "--depth=1", bare.as_uri(), str(source),
                 ],
                 check=True,
             )
             old_head = subprocess.check_output(
                 ["git", "-C", str(source), "rev-parse", "HEAD"], text=True
+            ).strip()
+            owner_file.write_text("intermediate-never-checked-out\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(seed), "add", "-A"], check=True)
+            subprocess.run(["git", "-C", str(seed), "commit", "-qm", "intermediate"], check=True)
+            historical_blob = subprocess.check_output(
+                ["git", "-C", str(seed), "rev-parse", "HEAD:services/runtime/owner.txt"],
+                text=True,
             ).strip()
             owner_file.write_text("new\n", encoding="utf-8")
             subprocess.run(["git", "-C", str(seed), "add", "-A"], check=True)
@@ -587,10 +594,41 @@ class DeployReclaimTests(unittest.TestCase):
                 ).strip(),
                 "true",
             )
-            with checkout_source(source / "services/runtime", target) as materialized:
-                self.assertEqual(
-                    (materialized / "owner.txt").read_text(encoding="utf-8"), "new\n"
-                )
+            self.assertEqual(subprocess.check_output(
+                ["git", "-C", str(source), "rev-parse", "--is-shallow-repository"],
+                text=True,
+            ).strip(), "true")
+            with patch.dict(os.environ, {"GIT_NO_LAZY_FETCH": "1"}):
+                with self.assertRaisesRegex(RuntimeError, "cannot materialize exact release source"):
+                    with checkout_source(source / "services/runtime", target):
+                        self.fail("missing required blob must not produce a checkout")
+            # Materialize only the requested tree; unrelated historical blobs
+            # remain promised. Release checkout must not negotiate full history.
+            subprocess.run(
+                ["git", "-C", str(source), "archive", "--format=tar", target],
+                stdout=subprocess.DEVNULL, check=True,
+            )
+            offline = {**os.environ, "GIT_NO_LAZY_FETCH": "1"}
+            missing = subprocess.run(
+                ["git", "-C", str(source), "cat-file", "-e", historical_blob],
+                env=offline, capture_output=True,
+            )
+            self.assertNotEqual(missing.returncode, 0)
+            with patch.dict(os.environ, {"GIT_NO_LAZY_FETCH": "1"}):
+                with checkout_source(source / "services/runtime", target) as materialized:
+                    self.assertEqual(
+                        (materialized / "owner.txt").read_text(encoding="utf-8"), "new\n"
+                    )
+                    self.assertEqual(
+                        subprocess.check_output(
+                            ["git", "-C", str(materialized), "rev-parse", "HEAD"], text=True,
+                        ).strip(),
+                        target,
+                    )
+            self.assertNotEqual(subprocess.run(
+                ["git", "-C", str(source), "cat-file", "-e", historical_blob],
+                env=offline, capture_output=True,
+            ).returncode, 0)
 
     def test_release_source_owner_revision_ignores_sibling_monorepo_commits(self) -> None:
         scripts_path = str(REPO / "scripts")
