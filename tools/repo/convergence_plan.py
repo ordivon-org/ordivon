@@ -538,50 +538,10 @@ def build_plan(
     }
 
 
-def explain_source_impacts(
-    plan: dict[str, object], *, source_cut: str, repo: Path | None = None,
-) -> dict[str, object]:
-    """Compose EXISTING SourceCut, ProblemRefs, AST hints and real queue tasks.
-
-    This is a bounded, on-demand agent-facing *read* interface, not a new
-    authority, a full call graph or permission to skip/expand verification.
-    """
+def _qualify_source_impact_policy(repo: Path, source_cut: str) -> str:
+    """Qualify existing selector inputs before parsing current policy."""
     import exhaustive_coverage as source_tools
 
-    if repo is None:
-        repo = Path(__file__).resolve().parents[2]
-    declared_head = plan.get("headRevision")
-    if declared_head is not None and source_cut != declared_head:
-        raise ValueError("SourceCut mismatch with change plan headRevision")
-    changed = plan.get("changedPaths")
-    if not isinstance(changed, list) or len(changed) > 32:
-        raise ValueError("bounded source impact requires at most 32 changed paths")
-    paths = [affected_owners._normalize(path) for path in changed]
-    if len(paths) != len(set(paths)):
-        raise ValueError("duplicate changed source path")
-    verify_owners = plan.get("verificationOwners")
-    queue_tasks = plan.get("queueVerifyTasks")
-    if not isinstance(verify_owners, list) or not isinstance(queue_tasks, list):
-        raise ValueError("missing verification-owner/task contract")
-    validate_queue_task_selection(verify_owners, queue_tasks, paths)
-    # Queue allowlisting alone proves each *provided* task is legitimate,
-    # not that every affected consumer was selected. Recompute the complete
-    # existing native impact plan rather than trusting a caller's subset.
-    # The empty set is an actual SourceCut change frontier, not an excuse
-    # to omit producer/policy readset qualification. Reuse the same canonical
-    # plan at the identical immutable cut instead of rejecting empty input.
-    canonical = (
-        build_plan(changed_files=paths) if paths
-        else build_plan(base=source_cut, head=source_cut)
-    )
-    for name in (
-        "queueClass", "directOwners", "verificationOwners", "verifyTasks",
-        "queueVerifyTasks", "scopeIds", "crossCutting",
-        "taskLocalTestConsumers", "dependencyStanding",
-        "ownerManifestDigest", "dependencyContractDigest",
-    ):
-        if plan.get(name) != canonical[name]:
-            raise ValueError("noncanonical source impact: changed-path verification selection")
     cut = source_tools.exact_commit(repo, source_cut)
     if cut != _git("rev-parse", "HEAD"):
         raise ValueError("SourceCut mismatch with active native verification contract")
@@ -613,6 +573,54 @@ def explain_source_impacts(
             raise ValueError("executed producer source is not a regular Git file")
         if producer.read_bytes() != source_tools.git(repo, "show", f"{cut}:{relative}"):
             raise ValueError("executed producer source differs from exact Git SourceCut")
+    return cut
+
+
+def explain_source_impacts(
+    plan: dict[str, object], *, source_cut: str, repo: Path | None = None,
+) -> dict[str, object]:
+    """Compose EXISTING SourceCut, ProblemRefs, AST hints and real queue tasks.
+
+    This is a bounded, on-demand agent-facing *read* interface, not a new
+    authority, a full call graph or permission to skip/expand verification.
+    """
+    import exhaustive_coverage as source_tools
+
+    if repo is None:
+        repo = Path(__file__).resolve().parents[2]
+    declared_head = plan.get("headRevision")
+    if declared_head is not None and source_cut != declared_head:
+        raise ValueError("SourceCut mismatch with change plan headRevision")
+    changed = plan.get("changedPaths")
+    if not isinstance(changed, list) or len(changed) > 32:
+        raise ValueError("bounded source impact requires at most 32 changed paths")
+    paths = [affected_owners._normalize(path) for path in changed]
+    if len(paths) != len(set(paths)):
+        raise ValueError("duplicate changed source path")
+    verify_owners = plan.get("verificationOwners")
+    queue_tasks = plan.get("queueVerifyTasks")
+    if not isinstance(verify_owners, list) or not isinstance(queue_tasks, list):
+        raise ValueError("missing verification-owner/task contract")
+    cut = _qualify_source_impact_policy(repo, source_cut)
+    validate_queue_task_selection(verify_owners, queue_tasks, paths)
+    # Queue allowlisting alone proves each *provided* task is legitimate,
+    # not that every affected consumer was selected. Recompute the complete
+    # existing native impact plan rather than trusting a caller's subset.
+    # The empty set is an actual SourceCut change frontier, not an excuse
+    # to omit producer/policy readset qualification. Reuse the same canonical
+    # plan at the identical immutable cut instead of rejecting empty input.
+    canonical = (
+        build_plan(changed_files=paths) if paths
+        else build_plan(base=source_cut, head=source_cut)
+    )
+    for name in (
+        "queueClass", "directOwners", "verificationOwners", "verifyTasks",
+        "queueVerifyTasks", "scopeIds", "crossCutting",
+        "taskLocalTestConsumers", "dependencyStanding",
+        "ownerManifestDigest", "dependencyContractDigest",
+    ):
+        if plan.get(name) != canonical[name]:
+            raise ValueError("noncanonical source impact: changed-path verification selection")
     inventory = source_tools.classification(repo, cut)
     problems = source_tools.derived_problem_legos(inventory, repo=repo)
     imports = source_tools.static_python_import_frontier(repo, cut)
@@ -712,6 +720,7 @@ def build_qualified_temporal_impact(
     current = source.exact_commit(repo, _git("rev-parse", "HEAD"))
     if head != current:
         raise ValueError("temporal impact requires exact current HEAD SourceCut")
+    _qualify_source_impact_policy(repo, head)
     # Each selector has a distinct input contract; no caller-provided changed
     # path overrides these immutable Git membership observations.
     slices = []
