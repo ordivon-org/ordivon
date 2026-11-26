@@ -1,6 +1,5 @@
 //! Native business tests retained under semantic Workspace API; test source file name is not a contract.
 use super::effect_tx::WORKSPACE_EFFECT_ISOLATION;
-use super::*;
 use std::sync::mpsc;
 
 /// Reproduce the actual PostgreSQL advisory-lock MVCC order, not an
