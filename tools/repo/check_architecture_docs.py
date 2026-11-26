@@ -82,6 +82,14 @@ EXPECTED_HOST_NORTHBOUND_TOOLS = {
 }
 
 
+# Use the same repository-bound environment as the native source-history
+# reader. Explicit -C does not override inherited GIT_DIR/GIT_OBJECT_DIRECTORY.
+if __package__:
+    from .source_history_legos import _source_git_env
+else:
+    from source_history_legos import _source_git_env
+
+
 class ArchitectureDocsError(ValueError):
     pass
 
@@ -613,7 +621,7 @@ def project_owner_lego_source_graph(
         try:
             actual = subprocess.check_output(
                 ["git", "--no-replace-objects", "-C", str(root), "rev-parse", "--verify", source_revision + "^{commit}"],
-                stderr=subprocess.PIPE,
+                stderr=subprocess.PIPE, env=_source_git_env(),
             ).decode("ascii").strip()
             if actual != source_revision:
                 raise ArchitectureDocsError("Git commit source identity mismatch")
@@ -644,7 +652,7 @@ def project_owner_lego_source_graph(
         try:
             registration_source = subprocess.check_output(
                 ["git", "--no-replace-objects", "-C", str(root),
-                 "cat-file", "blob", oid], stderr=subprocess.PIPE,
+                 "cat-file", "blob", oid], stderr=subprocess.PIPE, env=_source_git_env(),
             )
             historical_tree = ast.parse(registration_source, filename=registry_path)
             declarations = [
@@ -689,7 +697,7 @@ def project_owner_lego_source_graph(
                 raise ArchitectureDocsError(f"Owner plan absent/nonregular in Git SourceCut: {relative}")
             try:
                 before = subprocess.check_output(
-                    ["git", "--no-replace-objects", "-C", str(root), "cat-file", "blob", oid], stderr=subprocess.PIPE,
+                    ["git", "--no-replace-objects", "-C", str(root), "cat-file", "blob", oid], stderr=subprocess.PIPE, env=_source_git_env(),
                 )
             except subprocess.CalledProcessError as exc:
                 raise ArchitectureDocsError(f"cannot read Git SourceCut plan: {relative}") from exc
@@ -810,7 +818,7 @@ def inspect_owner_lego_contract(
         source_bytes = subprocess.check_output(
             ["git", "--no-replace-objects", "-C", str(root),
              "show", f"{source_revision}:{plan_path}"],
-            stderr=subprocess.PIPE,
+            stderr=subprocess.PIPE, env=_source_git_env(),
         )
     except subprocess.CalledProcessError as exc:
         raise ArchitectureDocsError("node plan Git source cannot be read") from exc
@@ -891,7 +899,7 @@ def _project_native_json_schema_source(
             return subprocess.check_output(
                 ["git", "--no-replace-objects", "-C", str(root),
                  "cat-file", *args],
-                stderr=subprocess.PIPE,
+                stderr=subprocess.PIPE, env=_source_git_env(),
             )
         except (OSError, subprocess.CalledProcessError) as exc:
             raise ArchitectureDocsError(
@@ -1048,9 +1056,14 @@ def project_owner_lego_source_change(
     raw = subprocess.check_output(
         ["git", "--no-replace-objects", "-C", str(root), "diff", "--no-renames",
          "--name-only", "-z", before_revision, after_revision, "--"],
-        stderr=subprocess.PIPE,
+        stderr=subprocess.PIPE, env=_source_git_env(),
     )
-    changed_paths = {path.decode("utf-8") for path in raw.split(b"\x00") if path}
+    # Match current_tree's reversible native Git byte-path representation.
+    # An unindexed non-UTF-8 path is still a change, never a dropped path.
+    changed_paths = {
+        path.decode("utf-8", errors="surrogateescape")
+        for path in raw.split(b"\x00") if path
+    }
     old_nodes = {row["ref"]: row for row in before["vertices"]}
     new_nodes = {row["ref"]: row for row in after["vertices"]}
     old_edges = {
@@ -1204,7 +1217,7 @@ def project_node_python_import_syntax(
             raise ArchitectureDocsError("nonregular Git Python importer")
         return subprocess.check_output(
             ["git", "--no-replace-objects", "-C", str(root), "cat-file", "blob", oid],
-            stderr=subprocess.PIPE,
+            stderr=subprocess.PIPE, env=_source_git_env(),
         ).decode("utf-8")
 
     # Finite, task-local static upstream SOURCE overapproximation.

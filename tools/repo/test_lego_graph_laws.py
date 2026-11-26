@@ -2735,3 +2735,69 @@ def test_host_r3_semantic_alignment_fails_closed(mutation: str, tmp_path: Path) 
         module.validate_host_r3_semantic_alignment(
             tmp_path, json.loads(r3_path.read_text())
         )
+
+
+
+def test_exact_graph_read_ignores_foreign_git_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The explicit repository is the authority, not the caller Git environment."""
+    import subprocess
+
+    source = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    expected = module.project_owner_lego_source_graph(ROOT, source_revision=source)
+    foreign = tmp_path / "foreign"
+    foreign.mkdir()
+    subprocess.run(["git", "init", "-q", str(foreign)], check=True)
+    monkeypatch.setenv("GIT_DIR", str(foreign / ".git"))
+    assert module.project_owner_lego_source_graph(ROOT, source_revision=source) == expected
+    node_ref = expected["vertices"][0]["ref"]
+    assert module.inspect_owner_lego_contract(
+        root=ROOT, source_revision=source, node_ref=node_ref,
+    )
+
+
+def test_graph_delta_preserves_native_non_utf8_path_and_unknown(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import os
+    import subprocess
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-C", str(tmp_path), *args], text=True,
+        ).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Graph test")
+    git("config", "user.email", "graph@example.invalid")
+    git("commit", "--allow-empty", "-qm", "before")
+    before = git("rev-parse", "HEAD")
+    owner = tmp_path / "example"
+    owner.mkdir()
+    raw_path = b"example/non-utf8-\xff"
+    with open(os.fsencode(tmp_path) + b"/" + raw_path, "wb") as stream:
+        stream.write(b"new")
+    git("add", ".")
+    git("commit", "-qm", "after")
+    after = git("rev-parse", "HEAD")
+    ref = "example/planning/lego-plan-r1.json#A"
+    monkeypatch.setattr(
+        module, "project_owner_lego_source_graph",
+        lambda root, *, source_revision: {
+            "sourcePlans": [], "relations": [],
+            "vertices": [{"ref": ref, "sourceAnchors": []}],
+        },
+    )
+    result = module.project_owner_lego_source_change(
+        root=tmp_path, before_revision=before, after_revision=after,
+    )
+    assert [os.fsencode(path) for path in result["changedGitPaths"]] == [raw_path]
+    assert result["unindexedChangedPaths"] == result["changedGitPaths"]
+    assert result["standingByDeclaredNode"] == [
+        {"ref": ref, "sourceImpactStanding": "UNKNOWN"},
+    ]
+    assert result["proofReuseAdmissible"] is False
+    assert json.loads(json.dumps(result)) == result
