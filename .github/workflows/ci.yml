@@ -55,6 +55,10 @@ jobs:
 
       - name: Setup root verification
         uses: ./.github/actions/setup-root-verification
+        with:
+          # Preflight selects and checks source/formal/supply-chain obligations.
+          # SQL dialect verification remains in independent repo-mechanics.
+          sql-verifiers: 'false'
 
       - name: Select affected owners
         id: affected

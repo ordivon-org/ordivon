@@ -2612,6 +2612,54 @@ exit 0
 
 
 
+class RootSetupConsumerScopeTests(unittest.TestCase):
+    """Native setup resource scope is not permission to omit verification."""
+
+    def test_sql_tools_only_preflight_can_explicitly_opt_out(self) -> None:
+        import os
+        import yaml
+
+        action = yaml.safe_load(
+            (ROOT / ".github/actions/setup-root-verification/action.yml").read_text()
+        )
+        self.assertEqual(action["inputs"]["sql-verifiers"]["default"], "true")
+        steps = action["runs"]["steps"]
+        guard = next(s for s in steps if s["name"] == "Validate SQL tool scope")
+        self.assertEqual(guard["env"]["SQL_VERIFIERS"], "$" + "{{ inputs.sql-verifiers }}")
+        self.assertNotIn("if", guard)
+        self.assertNotIn("continue-on-error", guard)
+        for value, expected in (("true", 0), ("false", 0), ("", 2),
+                                ("False", 2), ("typo", 2), ("true; exit 0", 2)):
+            with self.subTest(value=value):
+                result = subprocess.run(
+                    ["bash", "-c", guard["run"]],
+                    env=dict(os.environ, SQL_VERIFIERS=value),
+                    capture_output=True, text=True, timeout=5,
+                )
+                self.assertEqual(result.returncode, expected, result.stderr)
+        sql_steps = [s for s in steps if s["name"] in (
+            "Cache verified SQL distribution bytes", "Install pinned SQL validation CLIs")]
+        self.assertEqual(len(sql_steps), 2)
+        for step in sql_steps:
+            self.assertEqual(step["if"], "inputs.sql-verifiers == 'true'")
+            self.assertLess(steps.index(guard), steps.index(step))
+        jobs = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())["jobs"]
+        for name in ("root-preflight", "repo-mechanics", "owner-verification"):
+            caller = next(s for s in jobs[name]["steps"]
+                          if s.get("uses") == "./.github/actions/setup-root-verification")
+            with self.subTest(job=name):
+                self.assertNotIn("if", caller)
+                self.assertEqual(caller.get("with", {}).get("sql-verifiers", "true"),
+                                 "false" if name == "root-preflight" else "true")
+        # The independent repository mechanics job still runs its original
+        # real SQL oracle as part of repo:ci; do not turn a setup opt-out into
+        # a test opt-out.
+        self.assertIn("mise run repo:ci", next(s["run"] for s in jobs["repo-mechanics"]["steps"]
+                         if s.get("name") == "Repository mechanics"))
+        self.assertIn("python tools/repo/check_sql_dialects.py",
+                      (ROOT / "mise.toml").read_text())
+
+
 class ParallelRootVerificationTests(unittest.TestCase):
     """Protect the real GitHub required check and native task partition."""
 
