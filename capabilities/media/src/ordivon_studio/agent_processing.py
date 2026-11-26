@@ -12,6 +12,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .strict_json import decode_profile
+
 # Profile kinds retain current wire contracts despite the stable processing directory.
 # The native script and its required first argument form one Profile-kind contract.
 # OTIO is editorial metadata and TTML is timed text, not video/audio bytes.
@@ -42,7 +44,7 @@ def _source_closure(root: Path, kind: str, profile_path: str, profile_digest: st
     if adapter_path is None:
         return [], None
     entries = {profile_path: profile_digest, adapter_path: adapter_digest}
-    for relative in _SOURCE_DEPENDENCIES.get(kind, ()):
+    for relative in ("src/ordivon_studio/strict_json.py", *_SOURCE_DEPENDENCIES.get(kind, ())):
         path = root / relative
         try:
             entries[relative] = _byte_digest(path.read_bytes()) if path.is_file() else None
@@ -66,15 +68,10 @@ def processing_profiles(root: Path) -> dict[str, Any]:
     seen: set[str] = set()
     for path in sorted(directory.glob("*.json")):
         raw = path.read_bytes()
-        value = json.loads(raw)
-        if (
-            not isinstance(value, dict)
-            or value.get("schemaVersion") != 1
-            or not isinstance(value.get("kind"), str)
-            or not isinstance(value.get("id"), str)
-            or not value["id"].strip()
-        ):
-            raise ValueError(f"invalid Media processing profile: {path.name}")
+        try:
+            value = decode_profile(raw)
+        except (ValueError, TypeError) as exc:
+            raise ValueError(f"invalid Media processing profile: {path.name}: {exc}") from exc
         if value["id"] in seen:
             raise ValueError(f"duplicate Media processing profile id: {value['id']}")
         seen.add(value["id"])

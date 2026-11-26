@@ -7,10 +7,11 @@ It never promotes a source snapshot to current owner intent or edits assets.
 
 from __future__ import annotations
 
-import hashlib
 import subprocess
 from pathlib import Path
 from typing import Any
+
+from .production_output_identity import declared_source_files, observe_output_blob
 
 ROOT = Path(__file__).resolve().parents[2]
 COGNITION_SECTIONS = ("FRAME", "BIND", "EXPRESS", "RENDER", "AUDIT", "DECIDE", "LEARNING")
@@ -130,69 +131,43 @@ def _validate_production_semantics(
 
     sources = production.get("sources", {})
     if isinstance(sources, dict):
-        source_paths: list[str] = []
-        for value in sources.values():
-            if isinstance(value, str):
-                source_paths.append(value)
-            elif isinstance(value, list):
-                source_paths.extend(item for item in value if isinstance(item, str))
-        for source_path in source_paths:
+        source_paths = declared_source_files(sources)
+        for source_path in sorted(source_paths):
             resolved = (production_path.parent / source_path).resolve()
             if not resolved.is_relative_to(ROOT.resolve()):
                 errors.append(f"{prefix}: source escapes repository: {source_path}")
             elif not resolved.exists():
                 errors.append(f"{prefix}: declared source does not exist: {source_path}")
 
-        # One owner-native, opt-in exact-byte seam. JSON Schema can check only a
-        # digest's shape; a real source-carrier witness must inspect the bytes.
-        # Derived article chapters and encoded media outputs must not be forced
-        # to equal an unrelated source artifact.
+        # Same observed byte relation as the actual Production context.
+        # Validation policy differs by role: a sourceCarrier is a required
+        # exact-byte assertion; a missing/unstable outputCarrier is UNKNOWN.
         for output in production.get("outputs", []):
             if not isinstance(output, dict):
                 continue
-            output_id = output.get("id")
-            source_carrier = output.get("sourceCarrier")
-            output_carrier = output.get("outputCarrier")
-            if source_carrier is None and output_carrier is None:
+            role = "sourceCarrier" if output.get("sourceCarrier") is not None else "outputCarrier"
+            if output.get(role) is None:
                 continue
-            if source_carrier is not None and output_carrier is not None:
-                errors.append(f"{prefix}: output {output_id!r} has multiple carrier types")
-                continue
-            if source_carrier is not None:
-                if not isinstance(source_carrier, str) or source_carrier not in source_paths:
-                    errors.append(f"{prefix}: output {output_id!r} sourceCarrier is not a declared source")
-                    continue
-                carrier = source_carrier
-                role = "sourceCarrier"
-            else:
-                if not isinstance(output_carrier, str) or not _is_repository_path(output_carrier):
-                    errors.append(f"{prefix}: output {output_id!r} invalid outputCarrier path")
-                    continue
-                carrier = output_carrier
-                role = "outputCarrier"
-            path = (production_path.parent / carrier).resolve()
-            if not path.is_relative_to(production_path.parent.resolve()):
-                errors.append(f"{prefix}: output {output_id!r} {role} escapes Production root")
-                continue
-            expected_digest = output.get("blobDigest")
-            if not isinstance(expected_digest, str):
-                errors.append(f"{prefix}: output {output_id!r} {role} requires blobDigest")
-                continue
-            if not path.is_file():
-                # Retained output locations are historical physical hints.
-                # An absent file is UNKNOWN for consumers, not a failed work.
-                if role == "sourceCarrier":
-                    errors.append(f"{prefix}: output {output_id!r} sourceCarrier is not an accessible repository file")
-                continue
-            try:
-                with path.open("rb") as source_file:
-                    actual_digest = "sha256:" + hashlib.file_digest(source_file, "sha256").hexdigest()
-            except OSError as exc:
-                if role == "sourceCarrier":
-                    errors.append(f"{prefix}: output {output_id!r} sourceCarrier unreadable: {exc}")
-                continue
-            if actual_digest != expected_digest:
-                errors.append(f"{prefix}: output {output_id!r} {role} digest mismatch")
+            row = observe_output_blob(
+                production_path.parent, output,
+                declared_source_files=source_paths, selected_file=None,
+            )
+            relation = row["relation"]
+            label = f"{prefix}: output {output.get('id')!r}"
+            messages = {
+                "INVALID_MULTIPLE_CARRIERS": "has multiple carrier types",
+                "INVALID_UNDECLARED_SOURCE_CARRIER": "sourceCarrier is not a declared source",
+                "INVALID_SOURCE_CARRIER_PATH": "invalid sourceCarrier path",
+                "INVALID_OUTPUT_CARRIER": "invalid outputCarrier path",
+                "INVALID_ESCAPING_SOURCE_CARRIER": "sourceCarrier escapes Production root",
+                "INVALID_ESCAPING_OUTPUT_CARRIER": "outputCarrier escapes Production root",
+                "UNKNOWN_NO_VALID_DECLARED_DIGEST": f"{role} requires blobDigest",
+                "DIFFERS_FROM_DECLARED_DIGEST": f"{role} digest mismatch",
+            }
+            if relation in messages:
+                errors.append(f"{label} {messages[relation]}")
+            elif role == "sourceCarrier" and relation != "MATCHES_DECLARED_DIGEST":
+                errors.append(f"{label} sourceCarrier lacks stable byte evidence: {relation}")
     return errors
 
 

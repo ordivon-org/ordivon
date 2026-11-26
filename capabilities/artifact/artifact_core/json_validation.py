@@ -17,8 +17,16 @@ def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _reject_non_json_constant(token: str) -> Any:
+    raise ValueError(f"non-JSON numeric constant: {token}")
+
+
 def decode_json(text: str) -> Any:
-    return json.loads(text, object_pairs_hook=_unique_json_object)
+    return json.loads(
+        text,
+        object_pairs_hook=_unique_json_object,
+        parse_constant=_reject_non_json_constant,
+    )
 
 
 def load_json(path: Path) -> Any:
