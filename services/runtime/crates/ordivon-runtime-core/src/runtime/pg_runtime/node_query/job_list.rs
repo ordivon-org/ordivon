@@ -12,6 +12,19 @@ impl PgRuntime {
         if request.limit == 0 || request.limit > 100 {
             return Err(RuntimeError::invalid("limit must be 1..100", "limit"));
         }
+        // Cursor wire values must be representable in the PG bigint ordering.
+        let cursor_at = request
+            .cursor
+            .as_ref()
+            .map(|c| {
+                i64::try_from(c.created_at_ms).map_err(|_| {
+                    RuntimeError::invalid(
+                        "cursor createdAtMs exceeds PostgreSQL bigint range",
+                        "cursor.createdAtMs",
+                    )
+                })
+            })
+            .transpose()?;
         let mut db = self.store()?;
         // This is a projection of CURRENT Runtime truth, not an archival SQL
         // browser. Read stage, physical PG epoch and rows from one consistent
@@ -35,7 +48,6 @@ impl PgRuntime {
         }
         crate::pg_admission::require_pg_writer_epoch(&mut tx, &self.config.source_sha256, false)
             .map_err(pg)?;
-        let cursor_at = request.cursor.as_ref().map(|c| c.created_at_ms as i64);
         let cursor_id = request.cursor.as_ref().map(|c| c.job_id.clone());
         let limit = i64::from(request.limit) + 1;
         // Job-wide Artifact inventory is useful for discovery, but result
