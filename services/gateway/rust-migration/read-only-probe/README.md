@@ -356,3 +356,20 @@ only count evidence; descriptors are independently qualified. No job.observe is
 called by this pure operator; no public ABI, deployment, grant or domain success.
 Independent Python source/refinement oracles, generated tests and real TCP SDK
 fixture qualify bounded behavior; native actual protected route remains a separate gate.
+
+
+## Independent R20 Artifact byte window (Host #33272)
+
+The pure native receiver composes the existing typed descriptor with the exact
+operation reference, requested artifact ID, bounded offset/maxBytes and strict
+Runtime v1 read result. Identity/digest and retained length are bound before
+byte-window qualification. Checked u64 addition, exact UTF-8 byte length,
+progress and EOF equivalence protect consumers from skipped, repeated or
+contradictory windows. An offset-zero complete window is independently hashed
+with the existing SHA256 primitive; partial windows leave full_digest_verified
+unknown, never false or true. This does not qualify a multiwindow stream or
+replace the natural Runtime's own digest-verified reader, nor authorize reading.
+The existing strict public ExecutionObservation model rejects additive new
+fields; a native schema migration needs explicit version/consumer qualification.
+A malformed synthetic same-length reply accepted by the old Python source is
+not evidence of corrupt real Runtime artifacts. No public ABI change.

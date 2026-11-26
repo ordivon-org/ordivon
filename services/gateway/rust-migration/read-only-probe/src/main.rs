@@ -1,3 +1,4 @@
+mod artifact_chunk;
 mod artifact_descriptor;
 mod artifact_inventory;
 mod logic;
@@ -127,6 +128,12 @@ fn eval(v: Value) -> Value {
             &input["result"],
             input["owner"].as_str().unwrap_or_default(),
             input["tool"].as_str().unwrap_or_default()
+        )),
+        Some("artifact_chunk") => json!(artifact_chunk::qualify(
+            input["operationRef"].as_str().unwrap_or_default(),
+            &input["descriptor"],
+            &input["request"],
+            &input["response"]
         )),
         Some("artifact_descriptor") => json!(artifact_descriptor::qualify(
             &input["payload"],

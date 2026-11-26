@@ -5,7 +5,7 @@ use serde_json::Value;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct Descriptor {
+pub(crate) struct Descriptor {
     artifact_id: String,
     attempt_id: String,
     kind: String,
@@ -14,6 +14,18 @@ struct Descriptor {
     #[serde(skip_serializing_if = "Option::is_none")]
     dropped_bytes: Option<u64>,
     truncated: bool,
+}
+
+impl Descriptor {
+    pub(crate) fn artifact_id(&self) -> &str {
+        &self.artifact_id
+    }
+    pub(crate) fn digest(&self) -> &str {
+        &self.digest
+    }
+    pub(crate) fn retained_bytes(&self) -> u64 {
+        self.retained_bytes
+    }
 }
 
 fn trimmed(s: &str) -> bool {
@@ -29,7 +41,7 @@ fn digest(s: &str) -> bool {
     })
 }
 
-fn decode(row: &Value) -> Option<Descriptor> {
+pub(crate) fn decode(row: &Value) -> Option<Descriptor> {
     // The natural producer omits absent droppedBytes; explicit null is not its wire contract.
     if row.get("droppedBytes").is_some_and(|v| !v.is_u64()) {
         return None;
