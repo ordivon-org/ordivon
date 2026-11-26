@@ -127,7 +127,7 @@ jobs:
           # exact Formal source, the source-bound Harness adapter, or root
           # Formal task wiring can append formal:verify.
           # Reuse the same native validator as the repository regression tests.
-          python3 - "$owners_file" "$tasks_file" "$RUNNER_TEMP/ordivon-convergence-plan.json" <<'PY'
+          python3 - "$owners_file" "$tasks_file" "$RUNNER_TEMP/ordivon-convergence-plan.json" "${base:-}" "${head:-}" <<'PY'
           import json
           import sys
           from pathlib import Path
@@ -142,13 +142,12 @@ jobs:
           selected = read_selection(sys.argv[1])
           requested = read_selection(sys.argv[2])
           plan_path = Path(sys.argv[3])
-          changed_paths = (
-              json.loads(plan_path.read_text(encoding="utf-8"))["changedPaths"]
-              if plan_path.is_file() else []
-          )
+          plan = json.loads(plan_path.read_text(encoding="utf-8")) if plan_path.is_file() else {}
+          changed_paths = plan.get("changedPaths", [])
           try:
               convergence_plan.validate_queue_task_selection(
-                  selected, requested, changed_paths
+                  selected, requested, changed_paths,
+                  base=sys.argv[4] if plan else None, head=sys.argv[5] if plan else None,
               )
           except ValueError as exc:
               raise SystemExit(str(exc)) from exc
