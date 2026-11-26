@@ -804,6 +804,22 @@ exit 0
                         self.assertEqual(run.returncode, 0, run.stderr)
                         self.assertEqual(output.read_text().strip(), "gateway_formal=" + expected)
 
+    def test_native_selector_regression_executes_exact_yaml_step(self) -> None:
+        import yaml
+        from tools.repo.test_convergence_plan import OwnerSelectorFailClosedRegression
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = [
+            step for step in required_ci_steps(workflow)
+            if step.get("id") == "affected"
+        ]
+        self.assertEqual(len(steps), 1)
+        self.assertEqual(steps[0]["name"], "Select affected owners")
+        self.assertEqual(
+            OwnerSelectorFailClosedRegression.selection_shell().rstrip("\n"),
+            steps[0]["run"].rstrip("\n"),
+        )
+
     def test_gateway_formal_guard_rejects_unqualified_effective_input(self) -> None:
         import os
         import yaml

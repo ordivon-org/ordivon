@@ -1958,23 +1958,29 @@ class OwnerSelectorFailClosedRegression(unittest.TestCase):
 
     @staticmethod
     def selection_shell():
-        import textwrap
+        # This direct unittest entry has no YAML dependency. Bind to the
+        # unique step and its own indentation boundary, not its successor's
+        # name. The YAML-enabled governance suite independently checks parity.
         path = Path(__file__).resolve().parents[2] / ".github/workflows/ci.yml"
         workflow = path.read_text(encoding="utf-8")
-        start = workflow.index("      - name: Select affected owners\n")
-        end = workflow.index("      - name: Verify changed core Formal source\n", start)
-        section = workflow[start:end]
+        marker = "      - name: Select affected owners\n"
+        assert workflow.count(marker) == 1
+        start = workflow.index(marker)
+        end = workflow.find("\n      - ", start + len(marker))
+        section = workflow[start:end if end >= 0 else len(workflow)]
+        assert section.count("        id: affected\n") == 1
         assert section.count("        run: |\n") == 1
-        return textwrap.dedent(section.split("        run: |\n", 1)[1])
+        body = textwrap.dedent(section.split("        run: |\n", 1)[1])
+        assert body.strip()
+        return body
 
     def run_selection(self, event, program):
-        import os
-        import subprocess
         with tempfile.TemporaryDirectory() as scratch:
             folder = Path(scratch)
             fake = folder / "python3"
             fake.write_text("#!/bin/sh\n" + program, encoding="utf-8")
             fake.chmod(0o755)
+            root = Path(__file__).resolve().parents[2]
             env = {
                 **os.environ,
                 "PATH": str(folder) + os.pathsep + os.environ["PATH"],
@@ -1984,39 +1990,70 @@ class OwnerSelectorFailClosedRegression(unittest.TestCase):
                 "RUNNER_TEMP": str(folder),
                 "GITHUB_OUTPUT": str(folder / "output"),
                 "GITHUB_STEP_SUMMARY": str(folder / "summary"),
+                "GITHUB_SHA": subprocess.check_output(
+                    ["git", "rev-parse", "HEAD"], cwd=root, text=True
+                ).strip(),
             }
-            return subprocess.run(
+            result = subprocess.run(
                 ["/usr/bin/bash", "-c", self.selection_shell()],
-                cwd=Path(__file__).resolve().parents[2],
+                cwd=root,
                 env=env,
                 capture_output=True,
                 text=True,
-                timeout=12,
+                timeout=20,
             )
+            output = folder / "output"
+            return result, output.read_text() if output.is_file() else ""
 
     def test_failing_owner_selector_never_becomes_empty_green_scope(self):
         stub = (
             'if [ "$1" = "tools/repo/convergence_plan.py" ]; then\n'
-            '  echo \'{"verificationOwners":["runtime"],"queueVerifyTasks":["runtime:verify"]}\'\n'
+            '  echo \'{"verificationOwners":["runtime"],"queueVerifyTasks":["runtime:verify"],"changedPaths":[]}\'\n'
             '  exit 0\n'
             'fi\n'
             'exit 29\n'
         )
         for event in ("workflow_dispatch", "pull_request"):
             with self.subTest(event=event):
-                outcome = self.run_selection(event, stub)
-                self.assertNotEqual(outcome.returncode, 0, outcome.stdout+outcome.stderr)
+                outcome, output = self.run_selection(event, stub)
+                self.assertEqual(outcome.returncode, 29, outcome.stdout + outcome.stderr)
+                self.assertNotIn("has_owner_tasks=", output)
 
     def test_selected_owner_without_executable_queue_task_is_rejected(self):
+        import shlex
+
         stub = (
             'if [ "$1" = "tools/repo/convergence_plan.py" ]; then\n'
-            '  echo \'{"verificationOwners":["runtime"],"queueVerifyTasks":[]}\'\n'
+            '  echo \'{"verificationOwners":["runtime"],"queueVerifyTasks":[],"changedPaths":[]}\'\n'
             '  exit 0\n'
             'fi\n'
-            'exec /usr/bin/python3 "$@"\n'
+            f'exec {shlex.quote(sys.executable)} "$@"\n'
         )
-        result = self.run_selection("pull_request", stub)
+        result, output = self.run_selection("pull_request", stub)
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("queue task selection must match canonical owner tasks", result.stderr)
+        self.assertNotIn("has_owner_tasks=", output)
+
+    def test_valid_owner_selection_reaches_native_output(self):
+        import shlex
+
+        plan = MODULE.build_plan(
+            changed_files=["services/runtime/crates/ordivon-runtime-core/src/runtime/pg_runtime/job.rs"]
+        )
+        self.assertIn("runtime", plan["verificationOwners"])
+        stub = (
+            'if [ "$1" = "tools/repo/convergence_plan.py" ]; then\n'
+            f"  printf '%s\\n' {shlex.quote(json.dumps(plan))}\n"
+            '  exit 0\n'
+            'fi\n'
+            f'exec {shlex.quote(sys.executable)} "$@"\n'
+        )
+        result, output = self.run_selection("pull_request", stub)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("owners=" + ",".join(plan["verificationOwners"]) + "\n", output)
+        self.assertIn("has_owner_tasks=true\n", output)
+        self.assertIn("gateway_formal=false\n", output)
+        self.assertIn("shards=", output)
 
 
 
