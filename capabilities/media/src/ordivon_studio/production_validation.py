@@ -11,10 +11,10 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from .cognition_sections import COGNITION_SECTIONS, cognition_sections
 from .production_output_identity import declared_source_files, observe_output_blob
 
 ROOT = Path(__file__).resolve().parents[2]
-COGNITION_SECTIONS = ("FRAME", "BIND", "EXPRESS", "RENDER", "AUDIT", "DECIDE", "LEARNING")
 
 
 def _duplicates(values: list[str]) -> set[str]:
@@ -176,14 +176,13 @@ def _validate_cognition_record(path: Path) -> list[str]:
         return [f"{path}: cognition record does not exist"]
     text = path.read_text(encoding="utf-8")
     errors: list[str] = []
-    positions: list[int] = []
+    observed = [section.title for section in cognition_sections(text) if section.title in COGNITION_SECTIONS]
     for section in COGNITION_SECTIONS:
-        marker = f"## {section}"
-        position = text.find(marker)
-        if position < 0:
+        count = observed.count(section)
+        if not count:
             errors.append(f"{path}: missing cognition section {section}")
-        else:
-            positions.append(position)
-    if not errors and positions != sorted(positions):
+        elif count > 1:
+            errors.append(f"{path}: duplicate cognition section {section}")
+    if not errors and tuple(observed) != COGNITION_SECTIONS:
         errors.append(f"{path}: cognition sections are out of protocol order")
     return errors

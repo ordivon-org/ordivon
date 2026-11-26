@@ -10,6 +10,24 @@ mkdir -p "$scratch/pg" "$scratch/osquery" "$target/bin"
 
 download() {
   local url="$1" dst="$2" expected="$3" official_alternate="${4:-}"
+  local cache="${ORDIVON_SQL_DIST_CACHE_DIR:-}" cached="" staged="" actual=""
+  # The optional cache is never a tool identity or an installation receipt.
+  # Explicit offline input retains its original strict-source semantics.
+  if [[ -z "${ORDIVON_SQL_DIST_DIR:-}" && -n "$cache" ]]; then
+    if [[ "$cache" = /* && ! -L "$cache" ]] && mkdir -p -- "$cache"; then
+      cached="$cache/$(basename "$dst")"
+      if [[ -f "$cached" && ! -L "$cached" ]] && cp -- "$cached" "$dst"; then
+        actual="$(sha256sum "$dst" | cut -d' ' -f1)"
+        if [[ "$actual" == "$expected" ]]; then
+          echo "SQL distribution cache verified: $(basename "$dst")"
+          return 0
+        fi
+        echo "SQL distribution cache digest mismatch; fetching official bytes" >&2
+      fi
+    else
+      echo "SQL distribution cache unavailable; fetching official bytes" >&2
+    fi
+  fi
   if [[ -n "${ORDIVON_SQL_DIST_DIR:-}" ]]; then
     cp -- "${ORDIVON_SQL_DIST_DIR}/$(basename "$dst")" "$dst"
   else
@@ -31,10 +49,22 @@ download() {
       return 1
     fi
   fi
-  local actual
   actual="$(sha256sum "$dst" | cut -d' ' -f1)"
   [[ "$actual" == "$expected" ]] ||
     { echo "SQL verifier release SHA-256 mismatch: $(basename "$dst")" >&2; exit 7; }
+  # Publish only qualified upstream bytes. A failed optional cache write
+  # must not invalidate a successful native download.
+  if [[ -n "$cached" ]]; then
+    if staged="$(mktemp "$cache/.sql-dist.XXXXXXXX")" &&
+       cp -- "$dst" "$staged" &&
+       [[ "$(sha256sum "$staged" | cut -d' ' -f1)" == "$expected" ]] &&
+       mv -T -- "$staged" "$cached"; then
+      echo "SQL distribution cache populated: $(basename "$dst")"
+    else
+      [[ -z "$staged" ]] || rm -f -- "$staged"
+      echo "SQL distribution cache write unavailable" >&2
+    fi
+  fi
 }
 
 download \

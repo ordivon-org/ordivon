@@ -55,6 +55,10 @@ jq -es '
       .toleranceLu >= 0))
 ' "$profile" >/dev/null || { echo "invalid audio profile" >&2; exit 65; }
 
+# shellcheck source=processing/bin/native-input.sh
+source "$root/processing/bin/native-input.sh"
+input_custody_start "$artifact" "$out"
+
 mkdir -p "$out/raw"
 probe="$out/raw/ffprobe.json"
 loud_stderr="$out/raw/ffmpeg-loudnorm.stderr"
@@ -62,7 +66,7 @@ loud_json="$out/raw/ffmpeg-loudnorm.json"
 assertions="$out/assertions.json"
 evidence="$out/evidence.json"
 
-ffprobe -v error -show_format -show_streams -of json "$artifact" > "$probe"
+ffprobe -v error -show_format -show_streams -of json "$input_snapshot" > "$probe"
 
 stream_index=$(jq -r '.audio.streamIndex // 0' "$profile")
 # Native FFmpeg statistics file, not a JSON fragment scraped from diagnostics.
@@ -70,7 +74,7 @@ stream_index=$(jq -r '.audio.streamIndex // 0' "$profile")
 # containing filter separators or quotes never enter the filter expression.
 (
   cd "$out/raw"
-  ffmpeg -hide_banner -nostats -i "$artifact" -map "0:a:${stream_index}" \
+  ffmpeg -hide_banner -nostats -i "$input_snapshot" -map "0:a:${stream_index}" \
     -af 'loudnorm=I=-23:LRA=7:TP=-1:print_format=json:stats_file=ffmpeg-loudnorm.json' -f null -
 ) 2>"$loud_stderr"
 
@@ -79,8 +83,9 @@ jq -e 'has("input_i") and has("input_tp") and has("input_lra") and has("input_th
   exit 65
 }
 
-artifact_sha="sha256:$(sha256sum "$artifact" | awk '{print $1}')"
-artifact_bytes=$(stat -c '%s' "$artifact")
+input_custody_finish
+artifact_sha=$input_digest
+artifact_bytes=$input_size
 profile_sha="sha256:$(sha256sum "$profile" | awk '{print $1}')"
 probe_sha="sha256:$(sha256sum "$probe" | awk '{print $1}')"
 loud_stderr_sha="sha256:$(sha256sum "$loud_stderr" | awk '{print $1}')"
@@ -155,7 +160,7 @@ jq -n \
     evidenceDirectory:$evidenceDirectory,
     kind:"ordivon.media.v2.external-audio-qc-evidence",
     truthRole:"mechanical-audio-and-loudness-evidence-not-listening-quality-or-publication-approval",
-    artifact:{path:$artifact,digest:$artifactDigest,sizeBytes:$artifactBytes},
+    artifact:{path:$artifact,digest:$artifactDigest,sizeBytes:$artifactBytes,observationMode:"attempt-private-copy-retired"},
     profile:{path:$profile,digest:$profileDigest,snapshotPath:"profile.json"},
     tools:{ffprobe:{version:$ffprobeVersion},ffmpeg:{version:$ffmpegVersion}},
     evidence:{rawProbeDigest:$rawProbeDigest,rawLoudnormStderrDigest:$rawLoudnormStderrDigest,rawLoudnormJsonDigest:$rawLoudnormJsonDigest,assertionsDigest:$assertionsDigest},
