@@ -654,6 +654,158 @@ pub(crate) struct WindowsLauncherInvocationSpec<'a> {
     pub emit_launcher_start: bool,
 }
 
+/// Resolve the existing native Windows token and environment into the exact
+/// frozen execution-plan projection. The SQLite and PostgreSQL Runtime
+/// admission carriers must share this provider operation, not reimplement
+/// token-class, broker provenance or Session 1 interpretation.
+pub(crate) fn resolve_windows_execution_context(
+    config: &WindowsExecutionConfig,
+    requested: super::WindowsExecutionContextRequest,
+    explicit: Option<super::WindowsExecutionContextRequest>,
+) -> RuntimeResult<(BTreeMap<String, String>, super::WindowsExecutionContext)> {
+    let snapshot = snapshot_windows_runtime_context_for(config, requested)?;
+    let privileged_broker_digest = if requested.transport_authority() != WindowsAuthority::Limited {
+        config
+            .privileged_broker
+            .as_ref()
+            .map(|broker| broker.executable_digest())
+            .transpose()?
+    } else {
+        None
+    };
+    Ok(project_windows_execution_context(
+        requested,
+        explicit,
+        snapshot,
+        privileged_broker_digest,
+    ))
+}
+
+fn project_windows_execution_context(
+    requested: super::WindowsExecutionContextRequest,
+    explicit: Option<super::WindowsExecutionContextRequest>,
+    snapshot: WindowsRuntimeContextSnapshot,
+    privileged_broker_digest: Option<String>,
+) -> (BTreeMap<String, String>, super::WindowsExecutionContext) {
+    let token_class = match requested.identity {
+        super::WindowsExecutionIdentity::ActiveUser => super::WindowsTokenClass::ActiveUser,
+        super::WindowsExecutionIdentity::Service
+            if requested.privilege == super::WindowsPayloadPrivilege::Elevated =>
+        {
+            super::WindowsTokenClass::Elevated
+        }
+        super::WindowsExecutionIdentity::Service => super::WindowsTokenClass::Limited,
+    };
+    let environment_source = match requested.identity {
+        super::WindowsExecutionIdentity::ActiveUser => "windows_active_user_profile_allowlist_v1",
+        _ if privileged_broker_digest.is_some() => "windows_privileged_broker_profile_allowlist_v1",
+        _ => "windows_user_machine_profile_allowlist_v1",
+    };
+    (
+        snapshot.environment,
+        super::WindowsExecutionContext {
+            token_class,
+            payload_identity: explicit.map(|context| context.identity),
+            payload_privilege: explicit.map(|context| context.privilege),
+            token_user_sid: snapshot.token_user_sid,
+            session_id: snapshot.session_id,
+            environment_source: environment_source.to_string(),
+            privileged_broker_digest,
+        },
+    )
+}
+
+#[cfg(test)]
+mod shared_execution_context_projection_tests {
+    use super::*;
+    use crate::runtime::{
+        WindowsExecutionContextRequest, WindowsExecutionIdentity, WindowsPayloadPrivilege,
+        WindowsTokenClass,
+    };
+
+    #[test]
+    fn projection_preserves_identity_explicitness_and_native_environment_source() {
+        for identity in [
+            WindowsExecutionIdentity::Service,
+            WindowsExecutionIdentity::ActiveUser,
+        ] {
+            for privilege in [
+                WindowsPayloadPrivilege::Limited,
+                WindowsPayloadPrivilege::Elevated,
+            ] {
+                let request = WindowsExecutionContextRequest::new(identity, privilege);
+                for explicit in [None, Some(request)] {
+                    for broker in [None, Some("sha256:fixture-broker".to_owned())] {
+                        if request.transport_authority() == WindowsAuthority::Limited
+                            && broker.is_some()
+                        {
+                            continue;
+                        }
+                        let session_id = if identity == WindowsExecutionIdentity::ActiveUser {
+                            Some(1)
+                        } else {
+                            Some(0)
+                        };
+                        let env =
+                            BTreeMap::from([("USERPROFILE".to_string(), "fixture".to_string())]);
+                        let snapshot = WindowsRuntimeContextSnapshot {
+                            schema_version: 1,
+                            token_selection: "fixture".into(),
+                            execution_identity: "fixture".into(),
+                            session_id,
+                            token_user_sid: "S-1-5-21-42".into(),
+                            token_type: 1,
+                            token_elevation_type: 1,
+                            token_is_elevated: false,
+                            token_integrity_level_rid: 8192,
+                            token_is_restricted: false,
+                            administrators_group_attributes: 0,
+                            environment: env.clone(),
+                        };
+                        let (actual_env, context) = project_windows_execution_context(
+                            request,
+                            explicit,
+                            snapshot,
+                            broker.clone(),
+                        );
+                        assert_eq!(actual_env, env);
+                        assert_eq!(
+                            context.payload_identity,
+                            explicit.map(|value| value.identity)
+                        );
+                        assert_eq!(
+                            context.payload_privilege,
+                            explicit.map(|value| value.privilege)
+                        );
+                        assert_eq!(context.session_id, session_id);
+                        assert_eq!(context.token_user_sid, "S-1-5-21-42");
+                        assert_eq!(context.privileged_broker_digest, broker);
+                        let expected_class = match (identity, privilege) {
+                            (WindowsExecutionIdentity::ActiveUser, _) => {
+                                WindowsTokenClass::ActiveUser
+                            }
+                            (
+                                WindowsExecutionIdentity::Service,
+                                WindowsPayloadPrivilege::Elevated,
+                            ) => WindowsTokenClass::Elevated,
+                            _ => WindowsTokenClass::Limited,
+                        };
+                        let expected_source = if identity == WindowsExecutionIdentity::ActiveUser {
+                            "windows_active_user_profile_allowlist_v1"
+                        } else if broker.is_some() {
+                            "windows_privileged_broker_profile_allowlist_v1"
+                        } else {
+                            "windows_user_machine_profile_allowlist_v1"
+                        };
+                        assert_eq!(context.token_class, expected_class);
+                        assert_eq!(context.environment_source, expected_source);
+                    }
+                }
+            }
+        }
+    }
+}
+
 pub(crate) fn snapshot_windows_runtime_context_for(
     config: &WindowsExecutionConfig,
     context: super::WindowsExecutionContextRequest,

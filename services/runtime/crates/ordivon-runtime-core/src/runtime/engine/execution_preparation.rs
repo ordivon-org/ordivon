@@ -172,46 +172,12 @@ impl Runtime {
                         "execution.executionTarget",
                     )
                 })?;
-                let snapshot =
-                    super::windows::snapshot_windows_runtime_context_for(windows, requested_windows_context)?;
-                let token_class = match requested_windows_context.identity {
-                    super::WindowsExecutionIdentity::ActiveUser => super::WindowsTokenClass::ActiveUser,
-                    super::WindowsExecutionIdentity::Service
-                        if requested_windows_context.privilege == super::WindowsPayloadPrivilege::Elevated =>
-                    {
-                        super::WindowsTokenClass::Elevated
-                    }
-                    super::WindowsExecutionIdentity::Service => super::WindowsTokenClass::Limited,
-                };
-                let privileged_broker_digest =
-                    if effective_windows_authority != super::WindowsAuthority::Limited {
-                        windows
-                            .privileged_broker
-                            .as_ref()
-                            .map(|broker| broker.executable_digest())
-                            .transpose()?
-                    } else {
-                        None
-                    };
-                let environment_source = match requested_windows_context.identity {
-                    super::WindowsExecutionIdentity::ActiveUser => "windows_active_user_profile_allowlist_v1",
-                    _ if privileged_broker_digest.is_some() => {
-                        "windows_privileged_broker_profile_allowlist_v1"
-                    }
-                    _ => "windows_user_machine_profile_allowlist_v1",
-                };
-                (
-                    snapshot.environment,
-                    Some(super::WindowsExecutionContext {
-                        token_class,
-                        payload_identity: explicit_windows_context.map(|context| context.identity),
-                        payload_privilege: explicit_windows_context.map(|context| context.privilege),
-                        token_user_sid: snapshot.token_user_sid,
-                        session_id: snapshot.session_id,
-                        environment_source: environment_source.to_string(),
-                        privileged_broker_digest,
-                    }),
-                )
+                let (environment, context) = super::windows::resolve_windows_execution_context(
+                    windows,
+                    requested_windows_context,
+                    explicit_windows_context,
+                )?;
+                (environment, Some(context))
             }
         };
         if request.execution.execution_target == super::ExecutionTarget::LocalLinux
