@@ -2801,3 +2801,59 @@ def test_graph_delta_preserves_native_non_utf8_path_and_unknown(
     ]
     assert result["proofReuseAdmissible"] is False
     assert json.loads(json.dumps(result)) == result
+
+
+
+def test_extracted_owner_graph_contract_source_membership(tmp_path: Path) -> None:
+    """The extracted pure graph contract remains a declared source dependency."""
+    import subprocess
+
+    from tools.repo import owner_lego_graph_contract as leaf
+
+    plan_path = "tools/repo/planning/lego-plan-r1.json"
+    leaf_path = "tools/repo/owner_lego_graph_contract.py"
+    ref = f"{plan_path}#RG2_OWNER"
+    plan = json.loads((ROOT / plan_path).read_text(encoding="utf-8"))
+    node = next(n for n in plan["nodes"] if n["id"] == "RG2_OWNER")
+    assert leaf_path in plan["project"]["sourceEvidence"]
+    assert Path(leaf_path).name in node["evidence"]
+    assert module.ArchitectureDocsError is leaf.ArchitectureDocsError
+    assert module.validate_owner_lego_graph is leaf.validate_owner_lego_graph
+    for name in {plan_path, *plan["project"]["sourceEvidence"],
+                 "tools/repo/check_architecture_docs.py"}:
+        target = tmp_path / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((ROOT / name).read_bytes())
+    registry = tmp_path / "tools/repo/check_architecture_docs.py"
+    registry.write_text(f"OWNER_LEGO_PLANS = ({plan_path!r},)\n", encoding="utf-8")
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-c", "maintenance.auto=false", "-C", str(tmp_path), *args],
+            text=True,
+        ).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Graph source membership")
+    git("config", "user.email", "test@example.invalid")
+    git("add", ".")
+    git("commit", "-qm", "declared extracted leaf")
+    before = git("rev-parse", "HEAD")
+    target = tmp_path / leaf_path
+    target.write_bytes(target.read_bytes() + b"\n# source identity change\n")
+    git("add", leaf_path)
+    git("commit", "-qm", "leaf-only source change")
+    after = git("rev-parse", "HEAD")
+    delta = module.project_owner_lego_source_change(
+        root=tmp_path, before_revision=before, after_revision=after,
+    )
+    assert delta["changedGitPaths"] == [leaf_path]
+    assert delta["unindexedChangedPaths"] == []
+    assert ref in delta["directChangedRefs"]
+    assert delta["proofReuseAdmissible"] is False
+    git("rm", leaf_path)
+    git("commit", "-qm", "missing declared leaf")
+    with pytest.raises(module.ArchitectureDocsError, match="sourceEvidence absent/nonregular"):
+        module.project_owner_lego_source_graph(
+            tmp_path, source_revision=git("rev-parse", "HEAD"),
+        )
