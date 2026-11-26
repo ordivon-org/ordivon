@@ -69,9 +69,11 @@ def prepare(args):
 
         csc = Path(os.environ["SystemRoot"]) / "Microsoft.NET/Framework64/v4.0.30319/csc.exe"
         common = (str(csc), "/nologo", "/optimize+", "/platform:x64")
-        run(*common, f"/out:{work / LAUNCHER}", "platform/windows/Ordivon.WindowsJobLauncher.cs", cwd=source)
+        launcher_source = source / "platform/windows/Ordivon.WindowsJobLauncher.cs"
+        broker_source = source / "platform/windows/Ordivon.WindowsPrivilegedBroker.cs"
+        run(*common, f"/out:{work / LAUNCHER}", str(launcher_source), cwd=source)
         run(*common, "/r:System.Web.Extensions.dll", "/r:System.ServiceProcess.dll",
-            f"/out:{work / BROKER}", "platform/windows/Ordivon.WindowsPrivilegedBroker.cs", cwd=source)
+            f"/out:{work / BROKER}", str(broker_source), cwd=source)
         files = {
             RUNTIME: target_dir / TARGET / "release" / RUNTIME,
             LAUNCHER: work / LAUNCHER,
