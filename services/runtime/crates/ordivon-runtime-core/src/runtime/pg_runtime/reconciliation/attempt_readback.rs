@@ -11,7 +11,6 @@ use std::path::Path;
 // Keep the exact recovery current-Attempt selectors shared with native PG
 // falsification tests; current is an explicit Job pointer, not MAX(number).
 pub(super) const RECOVERY_CURRENT_ATTEMPT_SQL: &str = "SELECT a.attempt_id,a.state,a.termination_intent,a.launch_token_digest,a.bundle_path,a.unit_name,a.created_at_ms,a.row_version,a.bundle_digest,j.execution_plan_json,j.operation_digest,a.attempt_number FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id WHERE j.job_id=$1";
-pub(super) const RELEASE_CURRENT_ATTEMPT_STATE_SQL: &str = "SELECT a.state FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id WHERE j.job_id=$1";
 
 // Observation is not an external effect. A terminal PG Job intentionally
 // clears current_attempt_id after its terminal Attempt and events are committed.
@@ -21,7 +20,11 @@ pub(super) const READBACK_VERIFIED_ATTEMPT_SQL: &str = "SELECT a.attempt_id,a.st
 // Both native release control and normal native reconciliation use the
 // existing one PG query to detect completed work. It never authorizes an
 // external effect based on a historical Attempt.
-pub(super) const RECONCILIATION_STAGE_SQL: &str = "SELECT (SELECT resolution FROM jobs WHERE job_id=$1), EXISTS(SELECT 1 FROM job_runtime_release_effects WHERE job_id=$1)";
+// The stage and qualified current Attempt must come from ONE statement.
+// A terminal commit between separate READ COMMITTED statements clears the
+// current pointer, which otherwise masquerades as a corrupt unresolved Job.
+// Keep the first twelve columns identical to the native Attempt decoder.
+pub(super) const RECONCILIATION_STAGE_SQL: &str = "SELECT a.attempt_id,a.state,a.termination_intent,a.launch_token_digest,a.bundle_path,a.unit_name,a.created_at_ms,a.row_version,a.bundle_digest,j.execution_plan_json,j.operation_digest,a.attempt_number,j.resolution,EXISTS(SELECT 1 FROM job_runtime_release_effects e WHERE e.job_id=j.job_id) FROM jobs j LEFT JOIN attempts a ON a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id WHERE j.job_id=$1";
 
 /// An absent or foreign current Attempt is an inconsistent committed
 /// lifecycle identity, not PostgreSQL transport unavailability. Never infer

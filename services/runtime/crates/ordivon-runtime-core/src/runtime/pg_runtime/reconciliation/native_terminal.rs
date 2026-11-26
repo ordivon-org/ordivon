@@ -1,10 +1,10 @@
 //! Physical systemd/Runner reconciliation and irreversible native terminal evidence.
 use super::{
     decode, error, fs, io, native_running_witness, now, observed_namespace_pid, pg, pg_read_error,
-    universal, AttemptState, AttemptTerminationIntent, NativePidReadback, PgAdmissionError,
-    PgAdmissionStore, PgArtifactRegistration, PgRuntime, PgTerminalNoArtifacts,
-    RunnerStartEvidence, RuntimeError, RuntimeErrorCode, RuntimeResult, RECONCILIATION_STAGE_SQL,
-    RELEASE_CURRENT_ATTEMPT_STATE_SQL,
+    require_recovery_current_attempt, universal, AttemptState, AttemptTerminationIntent,
+    NativePidReadback, PgAdmissionError, PgAdmissionStore, PgArtifactRegistration, PgRuntime,
+    PgTerminalNoArtifacts, RunnerStartEvidence, RuntimeError, RuntimeErrorCode, RuntimeResult,
+    RECONCILIATION_STAGE_SQL,
 };
 use std::path::{Path, PathBuf};
 
@@ -22,29 +22,22 @@ impl PgRuntime {
         job: &str,
         allow_dispatch: bool,
     ) -> RuntimeResult<()> {
-        // Preserve the existing one-query ReleaseEffect classification, now
-        // also reading the terminal flag. The atomic terminal PG transition
-        // deliberately clears current_attempt_id. A resolved Job has no
-        // remaining native effect to reconcile; ONLY project/get then verify
-        // its lifecycle, reservation, exact Attempt, and terminal events.
-        // This does not make a historical Attempt eligible for Runner effects.
-        let stage = db
-            .client
-            .query_one(RECONCILIATION_STAGE_SQL, &[&job])
-            .map_err(pg_read_error)?;
-        if stage.get::<_, Option<String>>(0).is_some() {
+        // One statement observes both the resolution and the qualified
+        // current Attempt. A terminal transaction may clear the pointer
+        // between statements, but never within this statement's snapshot.
+        let row = require_recovery_current_attempt(
+            db.client
+                .query_opt(RECONCILIATION_STAGE_SQL, &[&job])
+                .map_err(pg_read_error)?,
+            job,
+        )?;
+        if row.get::<_, Option<String>>(12).is_some() {
             return Ok(());
         }
-        let is_release: bool = stage.get(1);
+        let is_release: bool = row.get(13);
         if is_release {
-            // Accepted means no physical release dispatch occurred. Any other
-            // Attempt state without a release-specific operator receipt is
-            // inconsistent; never reconcile it through the generic Runner.
-            let row = db
-                .client
-                .query_opt(RELEASE_CURRENT_ATTEMPT_STATE_SQL, &[&job])
-                .map_err(pg_read_error)?;
-            return match row.map(|value| value.get::<_, String>(0)).as_deref() {
+            // Never reconcile a ReleaseEffect through the generic Runner.
+            return match row.get::<_, Option<String>>(1).as_deref() {
                 Some("accepted") => Ok(()),
                 _ => Err(RuntimeError::new(
                     RuntimeErrorCode::ReconciliationRequired,
@@ -55,11 +48,12 @@ impl PgRuntime {
                 .with_operation_id(job)),
             };
         }
-        // Decode the *same* committed current-Attempt row just once.
-        // A pre-dispatch STOP_REQUESTED is locally finalizable without
-        // consulting the frozen execution Plan or mutable Provider snapshot.
-        // All other states preserve the existing strict full-Plan readback.
-        let row = self.current_attempt_row(db, job)?;
+        // Unresolved missing/foreign pointer remains a hard error; a
+        // historical Attempt cannot acquire native effect authority.
+        if row.get::<_, Option<String>>(0).is_none() {
+            require_recovery_current_attempt(None, job)?;
+        }
+        // Accepted STOP_REQUESTED needs no executable Plan.
         if row.get::<_, String>(1) == "accepted" && row.get::<_, String>(2) == "stop_requested" {
             let a = self.decode_attempt_identity(&row, job)?;
             return self.reconcile_accepted_cancel(db, job, &a);

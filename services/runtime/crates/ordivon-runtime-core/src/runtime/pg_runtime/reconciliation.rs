@@ -17,12 +17,10 @@ mod scan;
 mod tests;
 
 use attempt_readback::{
-    needs_recovery_observation, RECONCILIATION_STAGE_SQL, RELEASE_CURRENT_ATTEMPT_STATE_SQL,
+    needs_recovery_observation, require_recovery_current_attempt, RECONCILIATION_STAGE_SQL,
 };
 #[cfg(test)]
-use attempt_readback::{
-    require_recovery_current_attempt, READBACK_VERIFIED_ATTEMPT_SQL, RECOVERY_CURRENT_ATTEMPT_SQL,
-};
+use attempt_readback::{READBACK_VERIFIED_ATTEMPT_SQL, RECOVERY_CURRENT_ATTEMPT_SQL};
 use observation::{
     active_log_window, output_projection_relative_path, runner_result_still_absent,
     verified_terminal_log_window,

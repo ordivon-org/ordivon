@@ -174,15 +174,15 @@ fn native_pg_terminal_verified_readback_does_not_reauthorize_historical_effects(
         .query_one(RECONCILIATION_STAGE_SQL, &[&"terminal-a"])
         .unwrap();
     assert_eq!(
-        release_terminal.get::<_, Option<String>>(0).as_deref(),
+        release_terminal.get::<_, Option<String>>(12).as_deref(),
         Some("succeeded")
     );
-    assert!(release_terminal.get::<_, bool>(1));
+    assert!(release_terminal.get::<_, bool>(13));
     let unresolved_stage = db
         .query_one(RECONCILIATION_STAGE_SQL, &[&"accepted-b"])
         .unwrap();
-    assert!(unresolved_stage.get::<_, Option<String>>(0).is_none());
-    assert!(!unresolved_stage.get::<_, bool>(1));
+    assert!(unresolved_stage.get::<_, Option<String>>(12).is_none());
+    assert!(!unresolved_stage.get::<_, bool>(13));
 
     // In this fixture, the lifecycle/event verifier has already
     // established exact terminal-verified; a later historical Attempt
@@ -270,6 +270,11 @@ fn native_pg_terminal_verified_readback_does_not_reauthorize_historical_effects(
         "stale Attempt row-version is inconclusive"
     );
 
+    assert_eq!(
+        unresolved_stage.get::<_, Option<String>>(0).as_deref(),
+        Some("attempt-b")
+    );
+    assert!(release_terminal.get::<_, Option<String>>(0).is_none());
     let pending: Option<String> = None;
     let current = db
         .query_one(
@@ -302,31 +307,65 @@ fn native_pg_release_effect_uses_current_attempt_for_dispatch_boundary() {
     let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
     db.batch_execute(
         "CREATE TEMP TABLE jobs (
-                job_id text PRIMARY KEY, current_attempt_id text);
+                job_id text PRIMARY KEY, current_attempt_id text,
+                resolution text, execution_plan_json text, operation_digest text);
+             CREATE TEMP TABLE job_runtime_release_effects (job_id text PRIMARY KEY);
              CREATE TEMP TABLE attempts (
                 attempt_id text PRIMARY KEY, job_id text,
-                attempt_number bigint, state text);
-             INSERT INTO jobs VALUES ('release-a','release-current');
+                attempt_number bigint, state text, termination_intent text,
+                launch_token_digest text, bundle_path text, unit_name text,
+                created_at_ms bigint, row_version bigint, bundle_digest text);
+             INSERT INTO jobs VALUES ('release-a','release-current',NULL,'{}','op');
+             INSERT INTO job_runtime_release_effects VALUES ('release-a');
              INSERT INTO attempts VALUES
-                ('release-current','release-a',1,'accepted'),
-                ('release-future','release-a',2,'running');",
+               ('release-current','release-a',1,'accepted','natural','launch','/tmp/a','unit-a',1,0,NULL),
+               ('release-future','release-a',2,'running','natural','future','/tmp/future','unit-future',2,0,NULL);",
     )
     .unwrap();
     let row = db
-        .query_one(RELEASE_CURRENT_ATTEMPT_STATE_SQL, &[&"release-a"])
+        .query_one(RECONCILIATION_STAGE_SQL, &[&"release-a"])
         .unwrap();
-    assert_eq!(row.get::<_, String>(0), "accepted");
+    assert_eq!(
+        row.get::<_, Option<String>>(0).as_deref(),
+        Some("release-current")
+    );
+    assert_eq!(row.get::<_, Option<String>>(1).as_deref(), Some("accepted"));
+    assert!(row.get::<_, Option<String>>(12).is_none());
+    assert!(row.get::<_, bool>(13));
+
+    // The formerly separate stage read could observe unresolved, then
+    // the Attempt read could observe the cleared pointer after terminal.
+    db.batch_execute(
+        "BEGIN;
+         UPDATE attempts SET state='succeeded' WHERE attempt_id='release-current';
+         UPDATE jobs SET current_attempt_id=NULL,resolution='succeeded' WHERE job_id='release-a';
+         COMMIT;",
+    )
+    .unwrap();
+    let terminal = db
+        .query_one(RECONCILIATION_STAGE_SQL, &[&"release-a"])
+        .unwrap();
+    assert_eq!(
+        terminal.get::<_, Option<String>>(12).as_deref(),
+        Some("succeeded")
+    );
+    assert!(terminal.get::<_, Option<String>>(0).is_none());
+    assert!(terminal.get::<_, bool>(13));
+    // An unresolved missing pointer is distinguishable, never historical.
     db.execute(
-        "UPDATE jobs SET current_attempt_id=NULL WHERE job_id='release-a'",
+        "UPDATE jobs SET resolution=NULL WHERE job_id='release-a'",
         &[],
     )
     .unwrap();
-    assert!(
-        db.query_opt(RELEASE_CURRENT_ATTEMPT_STATE_SQL, &[&"release-a"])
-            .unwrap()
-            .is_none(),
-        "missing release current pointer cannot borrow a historical Attempt"
-    );
+    let missing = db
+        .query_one(RECONCILIATION_STAGE_SQL, &[&"release-a"])
+        .unwrap();
+    assert!(missing.get::<_, Option<String>>(12).is_none());
+    assert!(missing.get::<_, Option<String>>(0).is_none());
+    assert!(db
+        .query_opt(RECONCILIATION_STAGE_SQL, &[&"unknown"])
+        .unwrap()
+        .is_none());
 }
 
 /// PostgreSQL allows current_attempt_id to refer to an Attempt belonging
