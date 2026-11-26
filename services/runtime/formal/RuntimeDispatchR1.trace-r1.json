@@ -254,6 +254,17 @@
       "condition": "qualified disposable PG18 or explicit ORDIVON_PG_TEST_DSN; database evidence, not OS execution"
     },
     {
+      "id": "PG.concurrentDispatchCAS",
+      "path": "crates/ordivon-runtime-core/src/pg_admission/live_pg_tests/dispatch_cases.rs",
+      "symbol": "pg18_concurrent_dispatch_has_one_committed_issuer",
+      "evidenceMode": "physical-opt-in",
+      "modelRelations": [
+        "RuntimeDispatch.AtMostOnceDispatchPerAttempt"
+      ],
+      "scope": "two independent PG connections contend for one bundle-ready Attempt/version; one committed issuer and one rejected contender; no native launch or all-schedules proof",
+      "condition": "qualified disposable PG18 or explicit ORDIVON_PG_TEST_DSN; database evidence, not OS execution"
+    },
+    {
       "id": "PG.admissionUnique",
       "path": "crates/ordivon-runtime-core/src/pg_admission/live_pg_tests/admission_cases.rs",
       "symbol": "pg18_concurrent_duplicate_never_creates_second_job",
@@ -261,7 +272,7 @@
       "modelRelations": [
         "RuntimeDispatch.NoCompetingLiveAttempts"
       ],
-      "scope": "two concurrent duplicate submissions produce one initial Job and Attempt; no general retry safety",
+      "scope": "four concurrent duplicate submissions produce one initial Job, Attempt, idempotency key and reservation; no general retry safety",
       "condition": "qualified disposable PG18 or explicit ORDIVON_PG_TEST_DSN; database evidence, not OS execution"
     },
     {

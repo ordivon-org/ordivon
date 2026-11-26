@@ -126,26 +126,75 @@ def required_pg_physical_witnesses(inventory: frozenset[str]) -> frozenset[str]:
     )
 
 
-def verify_native_selection(
-    cargo: str, args: tuple[str, ...], env: dict[str, str], *, identity: str | None = None
-) -> int:
-    """Require nonempty native inventory and one PASS for every same named test."""
-    listing_args = [*args[:args.index("--")], "--", "--ignored", "--list"]
-    listed = subprocess.run(
-        [cargo, *listing_args], cwd=ROOT, env=env, capture_output=True,
-        text=True, timeout=400,
+def compile_pg_test_binary(cargo: str, env: dict[str, str]) -> tuple[Path, str]:
+    """Build once using Cargo's original artifact identity; no test DSN at build time."""
+    if __package__:
+        from .verify_formal_trace import _native_cargo_test_artifact, sha256
+    else:
+        from verify_formal_trace import _native_cargo_test_artifact, sha256
+
+    build_env = dict(env)
+    build_env.pop("ORDIVON_PG_TEST_DSN", None)
+    build_env.pop("ORDIVON_PG_STAGE_TEST_DSN", None)
+    args = CARGO_ARGS[: CARGO_ARGS.index("--") - 1]
+    built = subprocess.run(
+        [cargo, *args, "--no-run", "--message-format=json"], cwd=ROOT,
+        env=build_env, capture_output=True, text=True, timeout=400,
     )
+    if built.returncode:
+        raise RuntimeError(f"native Cargo compilation failed (exit={built.returncode})")
+    artifact = _native_cargo_test_artifact(built.stdout, "pg")
+    expected_source = ROOT / "crates/ordivon-runtime-core/src/lib.rs"
+    if Path(artifact["target"]["src_path"]).resolve() != expected_source.resolve():
+        raise ValueError("Cargo emitted an unexpected PG artifact source module")
+    binary = Path(artifact["executable"])
+    target = Path(env.get("CARGO_TARGET_DIR", str(ROOT / "target")))
+    if not target.is_absolute():
+        target = ROOT / target
+    if (
+        not binary.is_absolute() or not binary.is_file() or binary.is_symlink()
+        or not binary.resolve().is_relative_to(target.resolve())
+    ):
+        raise ValueError("Cargo emitted PG artifact outside qualified build target")
+    return binary, sha256(binary)
+
+
+def verify_native_selection(
+    compiled: tuple[Path, str], args: tuple[str, ...], env: dict[str, str],
+    *, identity: str | None = None,
+) -> int:
+    """List and execute one Cargo-selected libtest artifact without rebuilding."""
+    if __package__:
+        from .verify_formal_trace import sha256
+    else:
+        from verify_formal_trace import sha256
+
+    binary, digest = compiled
+
+    def unchanged() -> None:
+        if binary.is_symlink() or sha256(binary) != digest:
+            raise ValueError("PG native artifact changed after compilation")
+
+    def run(*libtest_args: str) -> subprocess.CompletedProcess[str]:
+        unchanged()
+        result = subprocess.run(
+            [str(binary), *libtest_args],
+            cwd=ROOT / "crates/ordivon-runtime-core", env=env,
+            capture_output=True, text=True, timeout=400,
+        )
+        unchanged()
+        return result
+
+    selector = args[args.index("--") - 1]
+    listed = run(selector, "--ignored", "--list")
     if listed.returncode:
-        raise RuntimeError(f"native Cargo inventory failed (exit={listed.returncode})")
+        raise RuntimeError(f"native libtest inventory failed (exit={listed.returncode})")
     expected = (
         listed_pg18_tests(listed.stdout) if identity is None
         else listed_single_case(listed.stdout, identity)
     )
     required = required_pg_physical_witnesses(expected) if identity is None else frozenset()
-    result = subprocess.run(
-        [cargo, *args], cwd=ROOT, env=env, capture_output=True,
-        text=True, timeout=400,
-    )
+    result = run(*sorted(expected), "--exact", "--ignored", "--nocapture", "--test-threads=1")
     # libtest execution evidence comes from stdout, never compiler stderr.
     for line in result.stdout.splitlines():
         if line.startswith("test ") or line.startswith("test result:"):
@@ -153,6 +202,7 @@ def verify_native_selection(
     if result.returncode:
         raise RuntimeError(f"native PostgreSQL test failed (exit={result.returncode})")
     count = exact_test_count(result.stdout, expected)
+    print(f"PG_LIBTEST_ARTIFACT_SHA256={digest}")
     if required:
         print(f"PG_FORMAL_CONDITIONAL_WITNESSES_PASS={len(required)}/{len(required)}")
     return count
@@ -170,7 +220,8 @@ def explicit_lane(lane: str) -> int:
     env = cargo_environment(os.environ)
     env.pop("ORDIVON_PG_TEST_DSN" if stage else "ORDIVON_PG_STAGE_TEST_DSN", None)
     count = verify_native_selection(
-        cargo, single_case_args(STAGE_CASE) if stage else CARGO_ARGS,
+        compile_pg_test_binary(cargo, env),
+        single_case_args(STAGE_CASE) if stage else CARGO_ARGS,
         env, identity=STAGE_CASE if stage else None,
     )
     print(f"{'STAGE' if stage else 'PHYSICAL'}_PG18_PASS={count}/{count}")
@@ -247,10 +298,11 @@ def main() -> int:
             dirty = bool(subprocess.check_output(["git", "-C", str(ROOT), "status", "--porcelain"], text=True).strip())
             print(f"sourceCut={source} standing={'DIRTY_UNQUALIFIED' if dirty else 'CLEAN'}")
             fixture_env = fixture_environment(os.environ, root, port)
-            n = verify_native_selection(cargo, CARGO_ARGS, fixture_env)
+            compiled = compile_pg_test_binary(cargo, fixture_env)
+            n = verify_native_selection(compiled, CARGO_ARGS, fixture_env)
             print(f"DISPOSABLE_PG18_PASS={n}/{n}")
             n = verify_native_selection(
-                cargo, WINDOWS_PG_WITNESS_ARGS, fixture_env, identity=WINDOWS_PG_WITNESS_CASE
+                compiled, WINDOWS_PG_WITNESS_ARGS, fixture_env, identity=WINDOWS_PG_WITNESS_CASE
             )
             print(f"DISPOSABLE_WINDOWS_PG_WITNESS_PASS={n}/{n}")
         finally:
