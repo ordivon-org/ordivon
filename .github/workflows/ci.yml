@@ -345,7 +345,13 @@ jobs:
           # Consumer-owned finite proof obligations. Exit 0 and a subset are not enough.
           EXPECTED_PROBES = {
               "Lean kernel R2.1 relational composition": 0,
+              "Leanchecker replays R2.1 core declarations": 0,
               "Lean kernel qualified variation frame and countermodels": 0,
+              "Lean kernel consumer-owned R2.1 retirement closure challenge": 0,
+              "Leanchecker replays consumer-owned retirement challenge": 0,
+              "Leanchecker replays R2.1 variation declarations": 0,
+              "Lean compiler accepts forged axiom-free proof when kernel skipped": 0,
+              "Leanchecker rejects forged false declaration": 1,
               "Lean kernel Media processing admission model": 0,
               "Lean kernel Media Creative Library Catalog acceptance": 0,
               "Lean kernel Media TimedText delivery precision": 0,
@@ -377,6 +383,7 @@ jobs:
               "tools/repo/test_formal_source_contract.py",
               "tools/formal/RecursiveLegoRefinement.lean",
               "tools/formal/RecursiveLegoVariationFrame.lean",
+              "tools/formal/RecursiveLegoRetirementChallenge.lean",
               "capabilities/media/formal/MediaNativeProcessingAdmission.lean",
               "capabilities/media/formal/CreativeLibraryAcceptance.lean",
               "capabilities/media/formal/TimedTextDeliveryPrecision.lean",
@@ -415,7 +422,7 @@ jobs:
               "tools/formal/Proof.als",
               "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
           }
-          REQUIRED_TOOLS = {"lean", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy"}
+          REQUIRED_TOOLS = {"lean", "leanchecker", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy"}
 
           def reject_duplicate_keys(pairs):
               value = {}
@@ -526,16 +533,19 @@ jobs:
                   # A well-formed digest string does not identify an installed binary.
                   # Rehash the *actual recorded executable*, not just its claimed SHA.
                   executable = Path(record["path"])
+                  selected_name = "lean" if name == "leanchecker" else name
                   selected_path = subprocess.check_output(
-                      ["mise", "which", name],
+                      ["mise", "which", selected_name],
                       cwd=Path("tools/formal"), text=True, stderr=subprocess.PIPE,
                       timeout=20,
                   ).strip()
                   selected_version = subprocess.check_output(
-                      ["mise", "which", "--version", name],
+                      ["mise", "which", "--version", selected_name],
                       cwd=Path("tools/formal"), text=True, stderr=subprocess.PIPE,
                       timeout=20,
                   ).strip()
+                  if name == "leanchecker" and selected_path:
+                      selected_path = str(Path(selected_path).resolve(strict=True).with_name("leanchecker"))
                   if (not selected_path or not selected_version
                           or str(Path(selected_path).resolve(strict=True)) != str(executable)
                           or record["version"] != selected_version):
