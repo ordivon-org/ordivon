@@ -21,9 +21,10 @@ class EquipmentPlan:
     args: tuple[str, ...]
     notes: tuple[str, ...] = ()
     environment: tuple[tuple[str, str], ...] = ()
+    selected_binding: tuple[str, str, str] | None = None
 
     def as_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "equipmentId": self.equipment_id,
             "capability": self.capability,
             "transport": self.transport,
@@ -32,6 +33,15 @@ class EquipmentPlan:
             "notes": list(self.notes),
             "environment": dict(self.environment),
         }
+        if self.selected_binding is not None:
+            equipment_id, binding_digest, executable_digest = self.selected_binding
+            result["selectedBinding"] = {
+                "equipmentId": equipment_id,
+                "bindingDigest": binding_digest,
+                "executableDigest": executable_digest,
+                "standing": "observed-at-proposal",
+            }
+        return result
 
 
 def _require_existing(path: str) -> str:
