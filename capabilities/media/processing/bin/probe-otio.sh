@@ -9,6 +9,7 @@ root=$(cd "$(dirname "$0")/../.." && pwd)
 # Keep the complete adapter in this digest-bound source. Only the native
 # provider uses CPython 3.13; Studio Core's interpreter is unchanged.
 export UV_PYTHON=3.13
+export PYTHONPATH="$root/src"
 exec /usr/bin/mise -C "$root" exec -- uv run --no-project --with 'opentimelineio==0.18.1' python - "$@" <<'PY'
 import hashlib
 import json
@@ -18,6 +19,7 @@ import sys
 from pathlib import Path
 
 import opentimelineio as otio
+from ordivon_studio.strict_json import decode_profile
 
 
 def digest(raw):
@@ -147,8 +149,14 @@ def main():
         return 3
     source, profile_path = source.resolve(strict=True), profile_path.resolve(strict=True)
     raw, profile_raw = source.read_bytes(), profile_path.read_bytes()
-    profile = json.loads(profile_raw)
-    validate_profile(profile)
+    try:
+        profile = decode_profile(profile_raw)
+        validate_profile(profile)
+    except (ValueError, TypeError) as exc:
+        print(f"invalid OTIO profile: {exc}", file=sys.stderr)
+        return 65
+    with (out / "profile.json").open("xb") as stream:
+        stream.write(profile_raw)
     # The current profile is native OTIO JSON. Never parse a different carrier
     # and then hash a later read of the path.
     if source.suffix.lower() != ".otio":
@@ -186,7 +194,7 @@ def main():
         "truthRole": "editorial-structure-and-range-evidence-not-nle-private-state-or-publication-approval",
         "evidenceDirectory": str(out.resolve()),
         "input": {"path": str(source), "digest": digest(raw), "sizeBytes": len(raw)},
-        "profile": {"path": str(profile_path), "digest": digest(profile_raw)},
+        "profile": {"path": str(profile_path), "digest": digest(profile_raw), "snapshotPath": "profile.json"},
         "tools": {"opentimelineio": {"version": otio.__version__, "entrypoint": "python-native-api"}},
         "evidence": {"inspectionPath": inspection_path, "inspectionDigest": inspection_digest,
                      "assertionsDigest": assertions_digest},
