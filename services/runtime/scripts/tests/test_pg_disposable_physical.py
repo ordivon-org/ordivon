@@ -7,6 +7,7 @@ import os
 import tempfile
 import sys
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 SOURCE = Path(__file__).resolve().parents[1] / "pg_disposable_physical.py"
@@ -45,6 +46,36 @@ class DisposablePg18Contract(unittest.TestCase):
                 self.assertTrue(Path(env["CARGO_TARGET_DIR"]).is_dir())
             finally:
                 os.close(fd)
+
+    def test_disposable_harness_fixture_uses_locked_minimal_private_environment(self) -> None:
+        original = {"PATH": "/test", "UV_PROJECT_ENVIRONMENT": "/unrelated"}
+        root = Path("/var/tmp/owned-fixture")
+        with patch.object(module.shutil, "which", return_value="/test/uv"), patch.object(
+            module.subprocess, "run"
+        ) as run:
+            run.return_value.returncode = 0
+            env = module.prepare_harness_python(original, root)
+        self.assertEqual(original["UV_PROJECT_ENVIRONMENT"], "/unrelated")
+        self.assertEqual(env["HARNESS_PG_PYTHON"], str(root / "venv/bin/python"))
+        sync, probe = run.call_args_list
+        self.assertEqual(sync.args[0][1:],
+            ["sync", "--project", str(module.ROOT.parent / "harness"), "--locked",
+             "--no-default-groups", "--no-install-project"])
+        self.assertEqual(sync.kwargs["env"]["UV_PROJECT_ENVIRONMENT"], str(root / "venv"))
+        self.assertEqual(probe.args[0][:2], [env["HARNESS_PG_PYTHON"], "-I"])
+
+    def test_disposable_harness_fixture_preserves_explicit_interpreter_and_fails_closed(self) -> None:
+        original = {"HARNESS_PG_PYTHON": "/qualified/python"}
+        with patch.object(module.shutil, "which") as which, patch.object(
+            module.subprocess, "run"
+        ) as run:
+            run.return_value.returncode = 0
+            self.assertEqual(module.prepare_harness_python(original, Path("/unused")), original)
+            which.assert_not_called()
+            run.return_value.returncode = 1
+            run.return_value.stderr = "missing dependency"
+            with self.assertRaisesRegex(RuntimeError, "dependencies unavailable"):
+                module.prepare_harness_python(original, Path("/unused"))
 
     def test_pg18_extended_owner_inventory_is_not_a_stale_literal_count(self) -> None:
         names = [

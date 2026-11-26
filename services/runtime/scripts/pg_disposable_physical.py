@@ -246,6 +246,42 @@ def run_checked(command: list[str], *, timeout: int = 90) -> None:
         )
 
 
+def prepare_harness_python(original: dict[str, str], private_root: Path) -> dict[str, str]:
+    """Resolve the real Harness source fixture without using a global Python site."""
+    env = dict(original)
+    python = env.get("HARNESS_PG_PYTHON", "").strip()
+    if not python:
+        uv = shutil.which("uv", path=env.get("PATH"))
+        if uv is None:
+            raise RuntimeError("Harness fixture requires uv or explicit HARNESS_PG_PYTHON")
+        project_env = private_root / "venv"
+        sync_env = {**env, "UV_PROJECT_ENVIRONMENT": str(project_env)}
+        result = subprocess.run(
+            [uv, "sync", "--project", str(ROOT.parent / "harness"), "--locked",
+             "--no-default-groups", "--no-install-project"],
+            env=sync_env, capture_output=True, text=True, timeout=120,
+        )
+        if result.returncode:
+            raise RuntimeError(
+                f"Harness locked fixture environment unavailable (exit={result.returncode}): "
+                f"{result.stderr[-1500:]}"
+            )
+        python = str(project_env / "bin" / "python")
+    # The original fixture supplies its own source PYTHONPATH. Qualify the
+    # actual dependencies in isolation before creating a PostgreSQL instance.
+    result = subprocess.run(
+        [python, "-I", "-c", "import jsonschema, psycopg, httpx"],
+        env=env, capture_output=True, text=True, timeout=20,
+    )
+    if result.returncode:
+        raise RuntimeError(
+            f"Harness fixture interpreter dependencies unavailable (exit={result.returncode}): "
+            f"{result.stderr[-1500:]}"
+        )
+    env["HARNESS_PG_PYTHON"] = python
+    return env
+
+
 def main() -> int:
     if sys.platform != "linux":
         raise RuntimeError("disposable PG18 fixture supports Linux only")
@@ -255,7 +291,11 @@ def main() -> int:
     if not all((initdb, pg_ctl, cargo)):
         raise RuntimeError("initdb, pg_ctl and cargo must be installed")
     prefix: list[str] = []
-    with tempfile.TemporaryDirectory(prefix="ordivon-pg18-", dir="/var/tmp") as raw:
+    with (
+        tempfile.TemporaryDirectory(prefix="ordivon-pg18-", dir="/var/tmp") as raw,
+        tempfile.TemporaryDirectory(prefix="ordivon-pg18-harness-", dir="/var/tmp") as python_root,
+    ):
+        qualified_env = prepare_harness_python(dict(os.environ), Path(python_root))
         root = Path(raw)
         if os.geteuid() == 0:
             import pwd
@@ -306,7 +346,7 @@ def main() -> int:
             source = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
             dirty = bool(subprocess.check_output(["git", "-C", str(ROOT), "status", "--porcelain"], text=True).strip())
             print(f"sourceCut={source} standing={'DIRTY_UNQUALIFIED' if dirty else 'CLEAN'}")
-            fixture_env = fixture_environment(os.environ, root, port)
+            fixture_env = fixture_environment(qualified_env, root, port)
             compiled = compile_pg_test_binary(cargo, fixture_env)
             n = verify_native_selection(compiled, fixture_env)
             print(f"DISPOSABLE_PG18_PASS={n}/{n}")
