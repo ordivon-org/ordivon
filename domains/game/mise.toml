@@ -251,6 +251,6 @@ description = "Fast independent consumer contracts and shrinkable archive proper
 run = """
 set -euo pipefail
 cd scripts
-python3 -m unittest -v test_hosted_product_acceptance test_x11_interaction_acceptance test_mixed_audio_acceptance test_windows_render_acceptance
+python3 -m unittest -v test_hosted_product_acceptance test_x11_interaction_acceptance test_mixed_audio_acceptance test_windows_render_acceptance test_hosted_runner_acceptance
 uv run --no-project --with hypothesis python test_consumer_properties.py
 """
