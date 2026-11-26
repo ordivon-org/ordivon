@@ -8,6 +8,8 @@ the actual Runtime denial/replay/contained systemd effects.
 from __future__ import annotations
 
 import asyncio
+import json
+import socket
 from typing import Any
 
 import pytest
@@ -307,3 +309,122 @@ def test_old_request_with_different_bytes_must_not_be_reinterpreted() -> None:
         "workspace.exec",
     ]
     assert len(owner.committed) == 1
+
+
+@pytest.mark.parametrize(
+    "variant", ["structured-conflict", "text-conflict", "duplicate", "congruent"]
+)
+def test_native_sdk_error_carriers_preserve_profile_switch_boundary(tmp_path, variant):
+    import uvicorn
+    from mcp import types
+    from mcp.server import MCPServer
+
+    from ordivon_gateway.transport.upstream import McpOwnerCaller, OwnerEndpoint
+
+    calls = []
+    negative = {
+        "origin": "runtime_core",
+        "code": "AUTHORIZATION_DENIED",
+        "field": "execution.executionProfile",
+        "commitState": "not_committed",
+        "retryClass": "never",
+        "retryable": False,
+        "message": "fixture denial",
+    }
+    uncertain = dict(negative, commitState="unknown")
+
+    def wire(e):
+        return json.dumps({"error": e})
+
+    server = MCPServer("isolated-runtime-fixture", version="fixture")
+
+    @server.tool(name="workspace.exec")
+    async def execute(
+        schemaVersion: int,
+        clientRequestId: str,
+        execution: dict,
+        waitMs: int,
+        stdoutTailBytes: int,
+        stderrTailBytes: int,
+    ):
+        calls.append(("workspace.exec", clientRequestId, execution["executionProfile"]))
+        if execution["executionProfile"] == "contained_local":
+            return types.CallToolResult(
+                content=[],
+                structuredContent={
+                    "jobId": "fixture-job",
+                    "status": "succeeded",
+                    "executionTerminal": True,
+                },
+            )
+        structured = {"error": negative}
+        texts = [wire(negative)]
+        if variant == "structured-conflict":
+            texts = [wire(uncertain)]
+        elif variant == "text-conflict":
+            structured = None
+            texts = [wire(negative), wire(uncertain)]
+        elif variant == "duplicate":
+            texts = [
+                wire(negative).replace(
+                    '"commitState": "not_committed"',
+                    '"commitState": "unknown", "commitState": "not_committed"',
+                )
+            ]
+        return types.CallToolResult(
+            content=[types.TextContent(type="text", text=t) for t in texts],
+            structuredContent=structured,
+            isError=True,
+        )
+
+    @server.tool(name="runtime.describe")
+    async def describe(schemaVersion: int) -> dict:
+        calls.append(("runtime.describe", None, None))
+        return ProfileCutoverOwner().description
+
+    token = tmp_path / "fixture-token"
+    token.write_text("fixture-only-not-a-real-secret")
+    token.chmod(0o600)
+    app = server.streamable_http_app(streamable_http_path="/mcp", stateless_http=True)
+
+    async def scenario():
+        with socket.socket() as sock:
+            sock.bind(("127.0.0.1", 0))
+            port = sock.getsockname()[1]
+        uv = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="critical"))
+        serving = asyncio.create_task(uv.serve())
+        try:
+            for _ in range(150):
+                if uv.started:
+                    break
+                await asyncio.sleep(0.02)
+            assert uv.started
+            caller = McpOwnerCaller(
+                {
+                    "runtime.linux": OwnerEndpoint(
+                        f"http://127.0.0.1:{port}/mcp", bearer_token_file=str(token)
+                    )
+                }
+            )
+            try:
+                service = GatewayService(caller)
+                if variant == "congruent":
+                    receipt = await _submit(service, "fixture-key")
+                    assert receipt.native_id == "fixture-job"
+                    assert calls == [
+                        ("workspace.exec", "fixture-key", "trusted_local"),
+                        ("runtime.describe", None, None),
+                        ("workspace.exec", "fixture-key", "contained_local"),
+                    ]
+                else:
+                    with pytest.raises(OwnerCallError) as exc:
+                        await _submit(service, "fixture-key")
+                    assert exc.value.error is None
+                    assert calls == [("workspace.exec", "fixture-key", "trusted_local")]
+            finally:
+                await caller.aclose()
+        finally:
+            uv.should_exit = True
+            await asyncio.wait_for(serving, timeout=12)
+
+    asyncio.run(scenario())
