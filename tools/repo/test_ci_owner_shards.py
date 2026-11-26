@@ -225,6 +225,39 @@ class ShardQueueTests(unittest.TestCase):
 
 
 class WorkflowShardExperimentTests(unittest.TestCase):
+    def test_full_preflight_conserves_obligations(self):
+        root = Path(__file__).resolve().parents[2]
+        workflow = (root / ".github/workflows/ci.yml").read_text()
+        # Source of truth is the actual preflight, including native task
+        # validation and Formal's independent required obligation.
+        section = workflow.split("      - name: Select affected owners\n", 1)[1]
+        section = section.split("      - name: Verify changed core Formal source\n", 1)[0]
+        script = textwrap.dedent(section.split("        run: |\n", 1)[1])
+        cut = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"],
+                                      text=True).strip()
+        expected = [o.queue_task for o in affected_owners.OWNERS]
+        with tempfile.TemporaryDirectory() as td:
+            temp = Path(td)
+            for event, value, cap in (("workflow_dispatch", "3", 3),
+                                      ("workflow_dispatch", "4", 4),
+                                      ("schedule", "3", 4)):
+                with self.subTest(event=event, value=value):
+                    output = temp / "output"
+                    output.write_text("")
+                    env = dict(os.environ, EVENT_NAME=event, MANUAL_SHARD_CAP=value,
+                               GITHUB_SHA=cut, EVENT_HEAD=cut, RUNNER_TEMP=str(temp),
+                               GITHUB_OUTPUT=str(output), GITHUB_STEP_SUMMARY=str(temp / "summary"),
+                               MISE_TRUSTED_CONFIG_PATHS=str(root))
+                    result = subprocess.run(["bash", "-c", script], cwd=root, env=env,
+                                            capture_output=True, text=True, timeout=35)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    result_fields = dict(line.split("=", 1) for line in output.read_text().splitlines())
+                    self.assertEqual(result_fields["formal"], "true")
+                    self.assertEqual(result_fields["has_owner_tasks"], "true")
+                    matrix = json.loads(result_fields["shards"])
+                    self.assertEqual(matrix, ci_owner_shards.shard_queue(expected, cap))
+                    self.assertCountEqual([t for row in matrix["include"] for t in row["tasks"]], expected)
+
     def test_actual_dispatch_cap_is_isolated_from_protected_events(self):
         root = Path(__file__).resolve().parents[2]
         workflow = (root / ".github/workflows/ci.yml").read_text()
