@@ -56,7 +56,7 @@ pub fn run_job_runner(task_dir: &Path) -> Result<(), UniversalExecError> {
         return Err(runner_error("task directory must be absolute"));
     }
     let task_dir = canonical_directory(task_dir, "taskDir")?;
-    let request = load_request(&task_dir)?;
+    let (request, bundle_digest) = load_request(&task_dir)?;
     let started_unix_ms = now_unix_ms()?;
     let execution = validate_request_identity(&request).and_then(|()| {
         write_runner_start(&task_dir, &request, None, started_unix_ms)?;
@@ -96,6 +96,7 @@ pub fn run_job_runner(task_dir: &Path) -> Result<(), UniversalExecError> {
         execute_request(
             &task_dir,
             &request,
+            &bundle_digest,
             started_unix_ms,
             host_dependency_watch.as_mut(),
         )
@@ -473,6 +474,7 @@ fn validate_input_commitments(request: &RunnerRequest) -> Result<(), UniversalEx
 fn execute_request(
     task_dir: &Path,
     request: &RunnerRequest,
+    bundle_digest: &str,
     started_unix_ms: u128,
     mut host_dependency_watch: Option<&mut PathDriftWatch>,
 ) -> Result<RunnerResult, UniversalExecError> {
@@ -560,6 +562,7 @@ fn execute_request(
             request,
             &workspace,
             step,
+            bundle_digest,
             StepExecutionContext {
                 overall_deadline,
                 stdout_retained_before: stdout_retained,
@@ -724,11 +727,58 @@ pub(super) fn apply_systemd_credential_environment(
     }
 }
 
+/// Native payload receiver, not a second northbound admission or retry path.
+fn spawn_at_issuer_cut(
+    request: &RunnerRequest,
+    bundle_digest: &str,
+    command: &mut Command,
+) -> Result<std::io::Result<std::process::Child>, UniversalExecError> {
+    let Some(fence) = &request.issuer_spawn_fence else {
+        return Ok(command.spawn());
+    };
+    #[cfg(not(all(feature = "postgres-registry-admission", target_os = "linux")))]
+    {
+        let _ = (fence, bundle_digest, command);
+        Err(runner_error(
+            "issuer-fenced payload requires PG-capable native Runner",
+        ))
+    }
+    #[cfg(all(feature = "postgres-registry-admission", target_os = "linux"))]
+    {
+        use crate::pg_admission::{read_private_spawn_dsn, PgAdmissionError, PgAdmissionStore};
+        let denied = || runner_error("native Harness issuer receiver not qualified");
+        let dsn = read_private_spawn_dsn(Path::new(&fence.dsn_file)).map_err(|_| denied())?;
+        let mut store =
+            PgAdmissionStore::connect(&dsn, &fence.runtime_schema).map_err(|_| denied())?;
+        let job = request.job_id.as_deref().ok_or_else(denied)?;
+        let attempt = request.attempt_id.as_deref().ok_or_else(denied)?;
+        let token = request.launch_token.as_deref().ok_or_else(denied)?;
+        store
+            .with_current_issued_harness_spawn(
+                job,
+                attempt,
+                &fence.principal,
+                bundle_digest,
+                &sha256_text(token),
+                &fence.source_sha256,
+                &fence.issuer_schema,
+                || command.spawn(),
+            )
+            .map_err(|error| match error {
+                PgAdmissionError::IssuerNotCurrent => {
+                    runner_error("Harness issuer revoked before native payload spawn")
+                }
+                _ => denied(),
+            })
+    }
+}
+
 fn execute_step(
     task_dir: &Path,
     request: &RunnerRequest,
     workspace: &Path,
     step: &RunnerExecutionStep,
+    bundle_digest: &str,
     mut context: StepExecutionContext<'_>,
 ) -> Result<StepOutcome, UniversalExecError> {
     let cwd_text = if let Some(payload) = &request.payload {
@@ -798,14 +848,15 @@ fn execute_step(
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    let mut child = command.spawn().map_err(|error| {
-        UniversalExecError::new(
-            UniversalExecErrorCode::ToolFailed,
-            format!("cannot start step {}: {error}", step.id),
-            Some("steps.executable"),
-            false,
-        )
-    })?;
+    let mut child =
+        spawn_at_issuer_cut(request, bundle_digest, &mut command)?.map_err(|error| {
+            UniversalExecError::new(
+                UniversalExecErrorCode::ToolFailed,
+                format!("cannot start step {}: {error}", step.id),
+                Some("steps.executable"),
+                false,
+            )
+        })?;
     let stdout = child
         .stdout
         .take()
@@ -1445,7 +1496,7 @@ fn path_runtime_drift(kind: PathDriftKind, path: &Path, mask: u32) -> UniversalE
     )
 }
 
-fn load_request(task_dir: &Path) -> Result<RunnerRequest, UniversalExecError> {
+fn load_request(task_dir: &Path) -> Result<(RunnerRequest, String), UniversalExecError> {
     let path = task_dir.join(REQUEST_FILE);
     let bytes = fs::read(&path).map_err(|error| {
         UniversalExecError::new(
@@ -1455,14 +1506,15 @@ fn load_request(task_dir: &Path) -> Result<RunnerRequest, UniversalExecError> {
             false,
         )
     })?;
-    serde_json::from_slice(&bytes).map_err(|error| {
+    let request = serde_json::from_slice(&bytes).map_err(|error| {
         UniversalExecError::new(
             UniversalExecErrorCode::MetadataCorrupt,
             format!("invalid runner request: {error}"),
             None,
             false,
         )
-    })
+    })?;
+    Ok((request, super::sha256_bytes(&bytes)))
 }
 
 fn validate_request_identity(request: &RunnerRequest) -> Result<(), UniversalExecError> {

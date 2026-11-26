@@ -292,6 +292,12 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
         if os.getenv("ORDIVON_GATEWAY_PG_E2E_ISSUER_ADMISSION") == "1":
             # Same cluster and issuer, with either legacy strict whole-endpoint
             # policy or the distinct authenticated Harness route.
+            private = root / "issuer-receiver-private"
+            private.mkdir(mode=0o700)
+            dsn_file = private / "dsn"
+            dsn_file.write_text(env["ORDIVON_PG_DSN"], encoding="utf-8")
+            dsn_file.chmod(0o600)
+            env["ORDIVON_PG_DSN_FILE"] = str(dsn_file)
             env["ORDIVON_PG_HARNESS_ISSUER_SCHEMA"] = "harness_r22_source"
             if issuer_isolated:
                 assert harness_tokenfile is not None
@@ -1086,7 +1092,7 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                                 break
                         assert not observed.is_error, observed.structured_content
                         assert observed.structured_content["terminal"]
-                        assert observed.structured_content["exit_code"] == 0
+                        assert observed.structured_content["exit_code"] != 0
                         observed_effect = False
                         for artifact_id in observed.structured_content["artifact_ids"]:
                             content = await agent.call_tool(
@@ -1099,7 +1105,7 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                             )
                             assert not content.is_error, content.structured_content
                             observed_effect |= late_output in content.structured_content["content"]
-                        assert observed_effect, "native effect must occur after source revocation"
+                        assert not observed_effect, "revoked native receiver must not produce payload effect"
                         assert (
                             psql(
                                 "SELECT count(*) FROM fresh.job_events "
@@ -1107,7 +1113,7 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                             ).strip()
                             == "1"
                         ), "source revocation cannot create a second dispatch"
-                        print("R24_ISSUER_ON_SPAWN_CURRENT_COUNTEREXAMPLE_REPRODUCED")
+                        print("R24_ISSUER_ON_SPAWN_CURRENT_REVOKED_EFFECT_DENIED")
                 return
             request_id = "gateway-native-" + secrets.token_hex(6)
             output = "GATEWAY_NATIVE_PG_" + request_id

@@ -14,6 +14,8 @@ mod dispatch;
 mod input_contract;
 #[path = "pg_issuer_guard.rs"]
 mod issuer;
+#[cfg(target_os = "linux")]
+pub use issuer::read_private_spawn_dsn;
 #[cfg(all(test, feature = "postgres-registry-admission"))]
 mod live_pg_tests;
 mod readback;

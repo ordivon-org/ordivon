@@ -256,6 +256,20 @@ impl Fixture {
                 .env("ORDIVON_PG_HARNESS_TOKEN_FILE", token_file)
                 .env("ORDIVON_PG_HARNESS_PRINCIPAL", "harness-dispatch-r16");
             if self.harness_dispatch_test {
+                let private = self.root.join("issuer-receiver-private");
+                fs::create_dir_all(&private).unwrap();
+                fs::set_permissions(&private, fs::Permissions::from_mode(0o700)).unwrap();
+                let dsn_file = private.join("dsn");
+                fs::write(
+                    &dsn_file,
+                    format!(
+                        "host={} user=runtime_app dbname=postgres",
+                        self.root.display()
+                    ),
+                )
+                .unwrap();
+                fs::set_permissions(&dsn_file, fs::Permissions::from_mode(0o600)).unwrap();
+                endpoint.env("ORDIVON_PG_DSN_FILE", dsn_file);
                 endpoint.env(
                     "ORDIVON_PG_HARNESS_ISSUER_SCHEMA",
                     self.harness_schema_override
@@ -2364,6 +2378,7 @@ fn pg_workspace_open_fails_on_either_carrier_before_git_effect() {
         ),
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
+        harness_spawn_dsn_file: None,
         harness_issuer_schema: None,
         harness_dispatch_issuer: None,
         workspace_headroom: Vec::new(),
@@ -2448,6 +2463,7 @@ fn pg_workspace_close_blocks_recent_completed_job_after_stale_reclaim_scan() {
         ),
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
+        harness_spawn_dsn_file: None,
         harness_issuer_schema: None,
         harness_dispatch_issuer: None,
         workspace_headroom: Vec::new(),
@@ -2582,6 +2598,7 @@ fn pg_workspace_close_observes_admission_committed_while_waiting_for_global_lock
         ),
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
+        harness_spawn_dsn_file: None,
         harness_issuer_schema: None,
         harness_dispatch_issuer: None,
         workspace_headroom: Vec::new(),
@@ -2767,6 +2784,7 @@ fn postgres_runtime_startup_requires_exact_qualified_writer() {
         ),
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
+        harness_spawn_dsn_file: None,
         harness_issuer_schema: None,
         harness_dispatch_issuer: None,
         workspace_headroom: Vec::new(),
@@ -4207,6 +4225,7 @@ fn pg_startup_refuses_application_self_qualified_control_table() {
         ),
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
+        harness_spawn_dsn_file: None,
         harness_issuer_schema: None,
         harness_dispatch_issuer: None,
         workspace_headroom: Vec::new(),
@@ -4264,6 +4283,7 @@ fn pg_runtime_refuses_privileged_session_hidden_behind_app_role() {
         dsn,
         schema: "fresh".into(),
         source_sha256: "a".repeat(64),
+        harness_spawn_dsn_file: None,
         harness_issuer_schema: None,
         harness_dispatch_issuer: None,
         workspace_headroom: Vec::new(),

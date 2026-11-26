@@ -45,10 +45,24 @@ pub(crate) struct RunnerInputCommitment {
     pub byte_length: u64,
 }
 
+/// Only the operator-owned PG Runtime may materialize this binding.
+/// It contains a credential FILE reference, never its contents.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct RunnerIssuerSpawnFence {
+    pub dsn_file: String,
+    pub runtime_schema: String,
+    pub issuer_schema: String,
+    pub source_sha256: String,
+    pub principal: String,
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct RunnerRequest {
     pub schema_version: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuer_spawn_fence: Option<RunnerIssuerSpawnFence>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub job_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
