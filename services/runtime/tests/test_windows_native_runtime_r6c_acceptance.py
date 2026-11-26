@@ -189,3 +189,23 @@ def test_single_scm_operator_cannot_auto_start_before_actual_fresh_pg_consumer()
     assert text.index("$consumerReceipt=(& $acceptance @acceptanceArgs)") < text.index("Set-Mode $to.name $targetMode")
     assert text.count("Assert-ListenerOwner $candidatePid $false") == 2
     assert "fullCutoverAccepted=$false" in text
+
+
+def test_fresh_pg_automatic_start_requires_actual_private_git_consumer():
+    text = SCRIPT.read_text(encoding="utf-8")
+    fn = text[text.index("function Invoke-WorkspaceCwdAdmission {"):text.index("function Invoke-ActiveJobRecovery {")]
+    assert "Assert-ProbePath $env:GIT_WORK_TREE $workTree" in fn
+    assert "Assert-ProbePath $env:GIT_DIR $gitDir" in fn
+    assert "'--absolute-git-dir'" in fn and "'--show-toplevel'" in fn
+    assert "'HEAD:' + $sourceFile" in fn
+    assert "[IO.FileMode]::CreateNew" in fn
+    assert "[IO.File]::ReadAllBytes($marker)" in fn
+    assert "@('add','--',$marker)" in fn
+    assert "@('rev-parse',(':' + $marker))" in fn
+    assert "@('reset','-q','HEAD','--',$marker)" in fn
+    assert "$witness.head -ne $repo.revision" in fn
+    assert "$baseline.privateGit.$field" in fn and "$actual.privateGit.$field" in fn
+    assert fn.index("Fresh PG native Git consumer qualification missing") < fn.index("$qualified = $true")
+    assert "privateGitQualified = [bool]$RequireFreshPg" in fn
+    operator = (ROOT / "packaging" / "windows" / "activate-ordivon-runtime-pg-service.ps1").read_text(encoding="utf-8")
+    assert operator.index("$consumerReceipt.privateGitQualified -ne $true") < operator.index("Set-Mode $to.name $targetMode")

@@ -260,7 +260,7 @@ try {
             }
             $consumerReceipt=(& $acceptance @acceptanceArgs) | ConvertFrom-Json
             if ($consumerReceipt.passed -ne $true -or $consumerReceipt.freshPgProjectionQualified -ne $true -or
-                $consumerReceipt.exactReplayVerified -ne $true -or
+                $consumerReceipt.exactReplayVerified -ne $true -or $consumerReceipt.privateGitQualified -ne $true -or
                 $consumerReceipt.activeUserSessionId -ne $ExpectedActiveUserSessionId) {
                 throw 'Original fresh-PG Session1 consumer qualification failed.'
             }

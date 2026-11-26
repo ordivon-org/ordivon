@@ -507,15 +507,89 @@ function Invoke-WorkspaceCwdAdmission {
     try {
         $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
         $probe = @'
+$ErrorActionPreference = 'Stop'
 $id = [Security.Principal.WindowsIdentity]::GetCurrent()
 if ($null -eq $id.User) { throw "target user SID is missing" }
+$gitWitness = $null
+if ($qualifyPrivateGit) {
+    # The ordinary native Job must prove its exact private Git carrier,
+    # not just return a successful process CWD. Use the existing Git for
+    # Windows executable and process-scoped environment from the provider.
+    $git = 'C:\Program Files\Git\cmd\git.exe'
+    if (-not [IO.File]::Exists($git)) { throw 'Native Git executable absent.' }
+    function Invoke-ProbeGit([string[]]$Arguments) {
+        $lines = @(& $git @Arguments)
+        if ($LASTEXITCODE -ne 0) { throw 'Native private Git command failed.' }
+        return $lines
+    }
+    function Assert-ProbePath([string]$Actual, [string]$Expected) {
+        if ([string]::IsNullOrWhiteSpace($Actual) -or
+            -not [String]::Equals([IO.Path]::GetFullPath($Actual).TrimEnd('\'),
+                [IO.Path]::GetFullPath($Expected).TrimEnd('\'), [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'Native private Git carrier differs from exact Workspace.'
+        }
+    }
+    $workTree = [IO.Path]::GetFullPath((Get-Location).ProviderPath).TrimEnd('\')
+    Assert-ProbePath ([Environment]::CurrentDirectory) $workTree
+    $gitDir = Join-Path ([IO.Path]::GetDirectoryName($workTree)) ('.' + [IO.Path]::GetFileName($workTree) + '.agent-git')
+    Assert-ProbePath $env:GIT_WORK_TREE $workTree
+    Assert-ProbePath $env:GIT_DIR $gitDir
+    Assert-ProbePath ([string](Invoke-ProbeGit @('rev-parse','--show-toplevel'))) $workTree
+    Assert-ProbePath ([string](Invoke-ProbeGit @('rev-parse','--absolute-git-dir'))) $gitDir
+    $head = [string](Invoke-ProbeGit @('rev-parse','HEAD'))
+    if ($head -notmatch '^[0-9a-f]{40}$' -or @(Invoke-ProbeGit @('status','--porcelain=v1','--untracked-files=all')).Count -ne 0) {
+        throw 'Native private Git baseline is not a clean exact commit.'
+    }
+    $sourceFile = 'README.txt' # original PrepareFixture tracked input
+    $sourceFileSha256 = (Get-FileHash -LiteralPath $sourceFile -Algorithm SHA256).Hash.ToLowerInvariant()
+    $sourceBlob = [string](Invoke-ProbeGit @('rev-parse',('HEAD:' + $sourceFile)))
+    $sourceHash = [string](Invoke-ProbeGit @('hash-object',('--path=' + $sourceFile),$sourceFile))
+    if ($sourceBlob -ne $sourceHash) { throw 'Native tracked source bytes differ from the Git blob.' }
+
+    # Use a fresh disposable relative path. A successful probe must leave
+    # both the private index and linked worktree unchanged for normal close.
+    $marker = 'ordivon-pg-acceptance-' + [Guid]::NewGuid().ToString('N') + '.txt'
+    $payload = [Text.Encoding]::UTF8.GetBytes('native-private-git-write-witness')
+    if ([IO.File]::Exists($marker) -or [IO.Directory]::Exists($marker)) { throw 'Probe marker collision.' }
+    $created = $false
+    try {
+        $stream = [IO.File]::Open($marker,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+        $created = $true
+        try { $stream.Write($payload,0,$payload.Length) } finally { $stream.Dispose() }
+        if ([Convert]::ToBase64String([IO.File]::ReadAllBytes($marker)) -ne [Convert]::ToBase64String($payload)) {
+            throw 'Native relative Workspace write readback differs.'
+        }
+        $null = Invoke-ProbeGit @('add','--',$marker)
+        $markerBlob = [string](Invoke-ProbeGit @('rev-parse',(':' + $marker)))
+        $markerHash = [string](Invoke-ProbeGit @('hash-object',('--path=' + $marker),$marker))
+        if ($markerBlob -notmatch '^[0-9a-f]{40}$' -or $markerBlob -ne $markerHash) {
+            throw 'Native private index did not retain the exact marker blob.'
+        }
+    } finally {
+        if ($created) {
+            $null = Invoke-ProbeGit @('reset','-q','HEAD','--',$marker)
+            [IO.File]::Delete($marker)
+        }
+    }
+    if (@(Invoke-ProbeGit @('status','--porcelain=v1','--untracked-files=all')).Count -ne 0 -or
+        [string](Invoke-ProbeGit @('rev-parse','HEAD')) -ne $head -or [IO.File]::Exists($marker)) {
+        throw 'Native private Git probe did not restore the exact clean baseline.'
+    }
+    $gitWitness = [ordered]@{
+        head = $head; gitDir = $gitDir; workTree = $workTree
+        sourceFileSha256 = $sourceFileSha256; sourceBlob = $sourceBlob
+        relativeWriteVerified = $true; indexVerified = $true; cleanAfter = $true
+    }
+}
 [ordered]@{
     userSid = $id.User.Value
     sessionId = [Diagnostics.Process]::GetCurrentProcess().SessionId
     nativeCwd = [IO.Path]::GetFullPath([Environment]::CurrentDirectory)
     actualCwd = [IO.Path]::GetFullPath((Get-Location).ProviderPath)
+    privateGit = $gitWitness
 } | ConvertTo-Json -Compress
 '@
+        $probe = $(if ($RequireFreshPg) { '$qualifyPrivateGit = $true' } else { '$qualifyPrivateGit = $false' }) + [Environment]::NewLine + $probe
         function Invoke-CwdIdentityJob([string]$Authority, [int]$Id) {
             $execution = @{
                 workspaceId = $workspaceId
@@ -624,6 +698,22 @@ if ($null -eq $id.User) { throw "target user SID is missing" }
             throw 'active-user Workspace job reused the service principal unexpectedly.'
         }
 
+        if ($RequireFreshPg) {
+            foreach ($witness in @($baseline.privateGit,$actual.privateGit)) {
+                if ($null -eq $witness -or $witness.head -ne $repo.revision -or
+                    $witness.relativeWriteVerified -ne $true -or $witness.indexVerified -ne $true -or
+                    $witness.cleanAfter -ne $true -or $witness.sourceFileSha256 -notmatch '^[0-9a-f]{64}$' -or
+                    $witness.sourceBlob -notmatch '^[0-9a-f]{40}$') {
+                    throw 'Fresh PG native Git consumer qualification missing or incomplete.'
+                }
+            }
+            foreach ($field in @('gitDir','workTree','sourceFileSha256','sourceBlob')) {
+                if (-not [String]::Equals([string]$baseline.privateGit.$field,[string]$actual.privateGit.$field,
+                        [StringComparison]::OrdinalIgnoreCase)) {
+                    throw 'Service and Session1 Git consumers observed different exact source carriers.'
+                }
+            }
+        }
         $qualified = $true
         return [ordered]@{
             schemaVersion = 1
@@ -639,6 +729,8 @@ if ($null -eq $id.User) { throw "target user SID is missing" }
             verifiedStdoutDigest = [string](@($active.artifacts | Where-Object { $_.kind -eq 'stdout' })[0].digest)
             exactReplayVerified = $true
             freshPgProjectionQualified = [bool]$RequireFreshPg
+            privateGitQualified = [bool]$RequireFreshPg
+            privateGitWitness = $actual.privateGit
             passed = $true
         }
     }
