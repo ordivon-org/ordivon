@@ -1425,7 +1425,7 @@ def candidate_build_commands(
              "--features", "postgres-runtime", *target],
             [str(cargo), "build", "--release", "-p", "ordivon-runtime-core",
              "--bin", "ordivon-runtime-runner", "--no-default-features",
-             "--features", "runtime-contract", *target],
+             "--features", "postgres-registry-admission", *target],
         ]
     return [[str(cargo), "build", "--release", "--workspace",
              "--all-features", *target]]

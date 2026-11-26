@@ -74,8 +74,8 @@ pub(crate) use resource_receipt::{
 pub(crate) use types::RunnerStepResult;
 pub(crate) use types::{
     CapturedOutput, RunnerExecutionStep, RunnerHostDependencyCommitment, RunnerInputCommitment,
-    RunnerPayloadConfig, RunnerProgress, RunnerRequest, RunnerResult, RunnerStartEvidence,
-    RunnerTerminalStatus,
+    RunnerIssuerSpawnFence, RunnerPayloadConfig, RunnerProgress, RunnerRequest, RunnerResult,
+    RunnerStartEvidence, RunnerTerminalStatus,
 };
 #[cfg(feature = "runtime-contract")]
 pub(crate) use workspace::resolve_workspace_cwd;
