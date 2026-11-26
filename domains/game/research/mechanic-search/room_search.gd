@@ -21,10 +21,10 @@ func apply_action(rules: Node, action: String) -> bool:
 func tuning_for(name: String) -> Resource:
     var t: Resource = load("res://configs/default.tres" if name == "classic" else
         "res://configs/tactical_trial.tres").duplicate(true)
-    if name in ["trial_block2", "trial_block2_hp53"]:
+    if name == "trial_block2":
         t.guard_block = 2
     if name == "trial_block2_hp53":
-        t.player_health = 53
+        t = load("res://configs/trial_block2_hp53.tres").duplicate(true)
     return t
 
 func path_to(nodes: Array, index: int) -> Array:

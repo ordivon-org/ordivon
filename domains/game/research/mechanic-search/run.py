@@ -15,6 +15,7 @@ from native_process import verify_process
 FILES = ("encounter_rules.gd", "encounter_tuning.gd", "configs/default.tres",
          "configs/tactical_trial.tres")
 PROBE = Path(__file__).with_name("room_search.gd")
+TREATMENT = PROBE.parent / "conditions/trial_block2_hp53.tres"
 
 
 def require(test, message):
@@ -76,6 +77,7 @@ def main():
             p.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source / f, p)
         shutil.copyfile(PROBE, root / "room_search.gd")
+        shutil.copyfile(TREATMENT, root / "configs/trial_block2_hp53.tres")
         (root / "project.godot").write_text('config_version=5\n[application]\nconfig/name="Native mechanic search"\n')
         start = time.monotonic()
         p = subprocess.run(["godot", "--headless", "--path", str(root), "--script",
@@ -90,7 +92,7 @@ def main():
     require(hashes == {f: hashlib.sha256((source / f).read_bytes()).hexdigest() for f in FILES},
             "source changed")
     print(json.dumps(dict(scope="bounded_native_mechanic_search", godot=version,
-                          source_sha256=hashes, probe_sha256=hashlib.sha256(PROBE.read_bytes()).hexdigest(),
+                          source_sha256=hashes, treatment_sha256=hashlib.sha256(TREATMENT.read_bytes()).hexdigest(), probe_sha256=hashlib.sha256(PROBE.read_bytes()).hexdigest(),
                           elapsed_seconds=elapsed, cases=rows), sort_keys=True))
 
 
