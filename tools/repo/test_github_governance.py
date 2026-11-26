@@ -560,6 +560,7 @@ exit 0
                 )
                 env = os.environ.copy()
                 env.pop("ORDIVON_SQL_DIST_DIR", None)
+                env.pop("ORDIVON_SQL_DIST_CACHE_DIR", None)
                 env.update({
                     "PATH": str(folder) + os.pathsep + env.get("PATH", ""),
                     "RECORD": str(record),
@@ -591,6 +592,96 @@ exit 0
                 unavailable = invoke()
                 self.assertNotEqual(unavailable.returncode, 0)
                 self.assertEqual(len(record.read_text().splitlines()), 2)
+    def test_sql_distribution_cache_is_acceleration_not_authority(self) -> None:
+        import hashlib
+        import os
+
+        source = (ROOT / "tools/repo/install_sql_verifiers.sh").read_text()
+        function = "download() {" + source.split("download() {", 1)[1].split(
+            "\ndownload \\", 1
+        )[0]
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            cache = folder / "cache"
+            cache.mkdir()
+            record = folder / "calls"
+            destination = folder / "package.deb"
+            cached = cache / destination.name
+            payload = b"exact upstream test bytes"
+            curl = folder / "curl"
+            curl.write_text(
+                '#!/usr/bin/env bash\n'
+                'printf "network\\n" >> "$RECORD"\n'
+                'while [[ $# -gt 0 ]]; do if [[ "$1" == -o ]]; then shift; dst="$1"; fi; shift; done\n'
+                '[[ "$NETWORK_AVAILABLE" == 1 ]] || exit 28\n'
+                'printf "%s" "$PAYLOAD" > "$dst"\n',
+                encoding="utf-8",
+            )
+            curl.chmod(0o755)
+            script = "set -euo pipefail\n" + function + "\n" + (
+                'download https://publisher.invalid/p.deb "$DEST" "$EXPECTED"'
+            )
+            env = os.environ.copy()
+            env.pop("ORDIVON_SQL_DIST_DIR", None)
+            env.update({
+                "PATH": str(folder) + os.pathsep + env["PATH"],
+                "ORDIVON_SQL_DIST_CACHE_DIR": str(cache),
+                "RECORD": str(record), "DEST": str(destination),
+                "PAYLOAD": payload.decode(), "EXPECTED": hashlib.sha256(payload).hexdigest(),
+                "NETWORK_AVAILABLE": "1",
+            })
+            def invoke():
+                return subprocess.run(["/usr/bin/bash", "-c", script], env=env,
+                                      capture_output=True, text=True, timeout=15)
+
+            cold = invoke()
+            self.assertEqual(cold.returncode, 0, cold.stderr)
+            self.assertEqual(cached.read_bytes(), payload)
+            self.assertEqual(destination.read_bytes(), payload)
+            self.assertEqual(record.read_text().splitlines(), ["network"])
+            destination.unlink()
+            env["NETWORK_AVAILABLE"] = "0"
+            warm = invoke()
+            self.assertEqual(warm.returncode, 0, warm.stderr)
+            self.assertEqual(destination.read_bytes(), payload)
+            self.assertEqual(record.read_text().splitlines(), ["network"])
+
+            cached.write_bytes(b"corrupt")
+            destination.unlink()
+            bad = invoke()
+            self.assertNotEqual(bad.returncode, 0)
+            self.assertFalse(destination.exists() and destination.read_bytes() == payload)
+            self.assertEqual(cached.read_bytes(), b"corrupt")
+            env["NETWORK_AVAILABLE"] = "1"
+            repaired = invoke()
+            self.assertEqual(repaired.returncode, 0, repaired.stderr)
+            self.assertEqual(cached.read_bytes(), payload)
+
+            # Explicit offline input is a strict source, not a cache hint.
+            offline = folder / "offline"
+            offline.mkdir()
+            (offline / destination.name).write_bytes(b"wrong")
+            env["ORDIVON_SQL_DIST_DIR"] = str(offline)
+            calls = record.read_text()
+            rejected = invoke()
+            self.assertEqual(rejected.returncode, 7, rejected.stderr)
+            self.assertEqual(record.read_text(), calls)
+
+    def test_sql_cache_action_uses_exact_inputs_without_execution_bypass(self) -> None:
+        import yaml
+
+        action = yaml.safe_load((ROOT / ".github/actions/setup-root-verification/action.yml").read_text())
+        steps = action["runs"]["steps"]
+        restore = next(step for step in steps if step.get("name") == "Cache verified SQL distribution bytes")
+        install = next(step for step in steps if step.get("name") == "Install pinned SQL validation CLIs")
+        self.assertLess(steps.index(restore), steps.index(install))
+        self.assertRegex(restore["uses"], r"^actions/cache@[a-f0-9]{40}$")
+        self.assertIn("hashFiles('tools/repo/install_sql_verifiers.sh')", restore["with"]["key"])
+        self.assertNotIn("restore-keys", restore["with"])
+        self.assertEqual(restore["with"]["path"], install["env"]["ORDIVON_SQL_DIST_CACHE_DIR"])
+        self.assertNotIn("if", install)
+        self.assertIn("install_sql_verifiers.sh", install["run"])
+
     def test_root_mise_installs_get_scoped_native_github_token(self) -> None:
         """Keep bootstrap authenticated without exporting token to Owner code."""
         import yaml
