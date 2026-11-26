@@ -67,10 +67,26 @@ impl PgRuntime {
             .runner_path
             .as_deref()
             .ok_or_else(|| error("native runner missing"))?;
-        let supported = [WindowsExecutionContextRequest::new(
+        let mut supported = vec![WindowsExecutionContextRequest::new(
             WindowsExecutionIdentity::Service,
             WindowsPayloadPrivilege::Limited,
         )];
+        let active = WindowsExecutionContextRequest::new(
+            WindowsExecutionIdentity::ActiveUser,
+            WindowsPayloadPrivilege::Limited,
+        );
+        if self.config.interactive_workspace_sid.is_some()
+            && crate::runtime::windows::snapshot_windows_runtime_context_for(
+                &self.config.windows,
+                active,
+            )
+            .is_ok_and(|snap| {
+                self.require_interactive_context(&snap.token_user_sid, snap.session_id)
+                    .is_ok()
+            })
+        {
+            supported.push(active);
+        }
         let target = crate::runtime::windows::windows_pg_execution_target(
             &self.config.windows,
             runner,

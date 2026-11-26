@@ -12,13 +12,13 @@ impl PgRuntime {
         let context = e
             .windows_context
             .unwrap_or_else(|| e.windows_authority.canonical_context());
-        // The Session1 presentation/ACL/private Git carrier is a distinct
-        // mandatory qualification. Do not launch with incomplete authority.
+        // Only the configured desktop identity can receive an active-user
+        // context; the existing native launcher still verifies SID/session.
         if e.execution_target != ExecutionTarget::WindowsNative
             || e.execution_profile != ExecutionProfile::TrustedLocal
-            || context.identity != WindowsExecutionIdentity::Service
             || context.privilege != WindowsPayloadPrivilege::Limited
-            || e.windows_authority != WindowsAuthority::Limited
+            || (context.identity == WindowsExecutionIdentity::ActiveUser
+                && self.config.interactive_workspace_sid.is_none())
             || e.windows_context
                 .is_some_and(|v| !v.compatible_with_legacy(e.windows_authority))
             || !e.steps.is_empty()
@@ -30,7 +30,7 @@ impl PgRuntime {
             })
         {
             return Err(RuntimeError::invalid(
-                "native Windows PG candidate currently qualifies single-command service-limited trusted_local only",
+                "native Windows PG supports single-command limited service or operator-bound active_user trusted_local only",
                 "execution",
             ));
         }
@@ -42,7 +42,104 @@ impl PgRuntime {
         proposal: &JobRunProposal,
         plan: &mut RuntimeExecutionPlan,
     ) -> RuntimeResult<()> {
-        windows::bind_pg_execution_context(&self.config.windows, proposal, plan)
+        windows::bind_pg_execution_context(&self.config.windows, proposal, plan)?;
+        if plan.windows_authority == WindowsAuthority::ActiveUser {
+            let context = plan
+                .windows_execution_context
+                .as_ref()
+                .ok_or_else(|| error("native active-user context missing"))?;
+            self.require_interactive_context(&context.token_user_sid, context.session_id)?;
+        }
+        let (git_dir, work_tree) = self.qualified_git_environment(plan)?;
+        windows::bind_pg_private_git_environment(&mut plan.env, &git_dir, &work_tree)?;
+        Ok(())
+    }
+
+    pub(in crate::runtime::pg_runtime) fn require_interactive_context(
+        &self,
+        sid: &str,
+        session: Option<u32>,
+    ) -> RuntimeResult<()> {
+        if self.config.interactive_workspace_sid.as_deref() != Some(sid)
+            || session.is_none_or(|v| v == 0)
+        {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::AuthorizationDenied,
+                "active desktop token does not match operator-bound interactive account/session",
+                Some("windowsContext"),
+                false,
+            ));
+        }
+        Ok(())
+    }
+
+    fn interactive_workspace_leaves(&self, id: &str) -> RuntimeResult<(PathBuf, PathBuf)> {
+        let root = self
+            .config
+            .executor
+            .workspace_root
+            .as_ref()
+            .ok_or_else(|| error("operator Workspace root absent"))?;
+        let _root = universal::open_directory_nofollow(root).map_err(io)?;
+        let root = fs::canonicalize(root).map_err(io)?;
+        let leaf = |p: PathBuf| -> RuntimeResult<PathBuf> {
+            let _directory = universal::open_directory_nofollow(&p).map_err(io)?;
+            let physical = fs::canonicalize(p).map_err(io)?;
+            if physical.parent() != Some(root.as_path()) {
+                return Err(error(
+                    "interactive carrier escaped its exact presentation root",
+                ));
+            }
+            Ok(physical)
+        };
+        Ok((
+            leaf(self.config.executor.workspace_path(id))?,
+            leaf(self.config.executor.workspace_private_git_path(id))?,
+        ))
+    }
+
+    fn qualified_git_environment(
+        &self,
+        plan: &RuntimeExecutionPlan,
+    ) -> RuntimeResult<(String, String)> {
+        let (worktree, private) = self.interactive_workspace_leaves(&plan.workspace_id)?;
+        if worktree != Path::new(&plan.workspace_path) || worktree == private {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::WorkspaceStateMismatch,
+                "Windows PG private Git carrier differs from admitted Workspace",
+                Some("execution.workspaceId"),
+                false,
+            ));
+        }
+        let visible = |path: &Path| -> RuntimeResult<String> {
+            use std::path::{Component, Prefix};
+            let carrier = universal::git_cli_path(path);
+            if !matches!(carrier.components().next(), Some(Component::Prefix(p)) if matches!(p.kind(), Prefix::Disk(_)))
+            {
+                return Err(RuntimeError::invalid(
+                    "Windows PG Git carrier has no ordinary drive-path projection",
+                    "execution.workspaceId",
+                ));
+            }
+            carrier
+                .to_str()
+                .map(str::to_owned)
+                .ok_or_else(|| error("non-UTF8 Git carrier"))
+        };
+        Ok((visible(&private)?, visible(&worktree)?))
+    }
+
+    pub(in crate::runtime::pg_runtime) fn prepare_interactive_workspace_leaves(
+        &self,
+        id: &str,
+        sid: &str,
+    ) -> RuntimeResult<()> {
+        let (worktree, private) = self.interactive_workspace_leaves(id)?;
+        // Grant private Git first, then worktree. No grant to parent, source,
+        // journal or secret. Only fresh open calls this under the PG lock.
+        crate::windows_security::protect_interactive_workspace_leaf(&private, sid).map_err(io)?;
+        crate::windows_security::protect_interactive_workspace_leaf(&worktree, sid).map_err(io)?;
+        Ok(())
     }
 
     pub(in crate::runtime::pg_runtime) fn launch_native_windows_attempt(
@@ -53,7 +150,10 @@ impl PgRuntime {
         expected_launcher_digest: &str,
     ) -> RuntimeResult<()> {
         if plan.execution_target != ExecutionTarget::WindowsNative
-            || plan.windows_authority != WindowsAuthority::Limited
+            || !matches!(
+                plan.windows_authority,
+                WindowsAuthority::Limited | WindowsAuthority::ActiveUser
+            )
             || a.unit_name != format!("Ordivon.{}", a.attempt_id)
             || plan.windows_execution_context.is_none()
         {
@@ -71,6 +171,22 @@ impl PgRuntime {
             )
             .with_operation_id(&a.job_id));
         }
+        let context = plan
+            .windows_execution_context
+            .as_ref()
+            .ok_or_else(|| error("frozen native context absent"))?;
+        let active_user = plan.windows_authority == WindowsAuthority::ActiveUser;
+        if active_user {
+            self.require_interactive_context(&context.token_user_sid, context.session_id)?;
+        }
+        let (git_dir, work_tree) = self.qualified_git_environment(plan)?;
+        for (key, value) in [("GIT_DIR", git_dir), ("GIT_WORK_TREE", work_tree)] {
+            if plan.env.get(key) != Some(&value) {
+                return Err(
+                    error("frozen native PG Git carrier changed").with_operation_id(&a.job_id)
+                );
+            }
+        }
         let observed = windows::spawn_windows_native(&WindowsNativeRunSpec {
             config: &self.config.windows,
             bundle_path: Path::new(&a.bundle_path),
@@ -80,9 +196,13 @@ impl PgRuntime {
             request_digest,
             authority: plan.windows_authority,
             payload_privilege: WindowsPayloadPrivilege::Limited,
-            expected_privileged_broker_digest: None,
-            expected_user_sid: None,
-            expected_session_id: None,
+            expected_privileged_broker_digest: context.privileged_broker_digest.as_deref(),
+            expected_user_sid: active_user.then_some(context.token_user_sid.as_str()),
+            expected_session_id: if active_user {
+                context.session_id
+            } else {
+                None
+            },
             executable: Path::new(&plan.executable),
             args: &plan.args,
             cwd: Path::new(&plan.cwd),

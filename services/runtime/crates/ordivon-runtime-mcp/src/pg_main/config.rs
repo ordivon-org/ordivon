@@ -184,6 +184,8 @@ pub(super) fn load_pg_startup() -> Result<PgStartup, Box<dyn std::error::Error>>
         windows: windows_config(PathBuf::from(required("ORDIVON_PG_RUNNER")?))?,
         #[cfg(windows)]
         node_id: required("ORDIVON_NODE_ID")?,
+        #[cfg(windows)]
+        interactive_workspace_sid: pg_auth::optional_env("ORDIVON_PG_INTERACTIVE_WORKSPACE_SID")?,
         dsn: required("ORDIVON_PG_DSN")?,
         schema: required("ORDIVON_PG_SCHEMA")?,
         source_sha256: required("ORDIVON_PG_SOURCE_SHA256")?,

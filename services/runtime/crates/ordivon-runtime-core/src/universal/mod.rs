@@ -8,6 +8,8 @@ mod resource_receipt;
 mod runner;
 mod types;
 mod workspace;
+#[cfg(windows)]
+pub(crate) use workspace::git_cli_path;
 
 pub use config::{UniversalExecutorConfig, MAX_WORKSPACE_IO_BYTES, UNIVERSAL_EXEC_SCHEMA_VERSION};
 pub use error::{UniversalExecError, UniversalExecErrorCode};

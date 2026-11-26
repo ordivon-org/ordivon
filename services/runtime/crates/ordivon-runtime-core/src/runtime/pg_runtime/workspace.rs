@@ -373,8 +373,40 @@ impl PgRuntime {
         // Both host VHD backing and guest PostgreSQL/worktree carriers must
         // pass while the existing PG Workspace effect/admission lock is held.
         super::workspace_headroom::ensure_workspace_headroom(&self.config.workspace_headroom)?;
+        #[cfg(windows)]
+        if self.config.interactive_workspace_sid.is_some() {
+            // A syntactically plausible account SID alone might identify a
+            // domain group. Require the existing observed active-user token
+            // before granting any fresh presentation leaf to that SID.
+            let snapshot = super::super::windows::snapshot_windows_runtime_context_for(
+                &self.config.windows,
+                WindowsExecutionContextRequest::new(
+                    WindowsExecutionIdentity::ActiveUser,
+                    WindowsPayloadPrivilege::Limited,
+                ),
+            )?;
+            self.require_interactive_context(&snapshot.token_user_sid, snapshot.session_id)?;
+        }
         let mut result = universal::create_git_workspace(&self.config.executor, request)
             .map_err(super::super::error::map_universal_error)?;
+        #[cfg(windows)]
+        if let Some(sid) = self.config.interactive_workspace_sid.as_deref() {
+            // The original physical open already committed its native record.
+            // Any ACL failure is a recoverable UNKNOWN effect, not a claim
+            // that the Workspace was never created.
+            self.prepare_interactive_workspace_leaves(&result.workspace_id, sid)
+                .map_err(|e| {
+                    RuntimeError::new(
+                        RuntimeErrorCode::DispatchOutcomeUnknown,
+                        format!(
+                            "Workspace exists but interactive presentation may be incomplete: {}",
+                            e.message
+                        ),
+                        Some("workspaceId"),
+                        false,
+                    )
+                })?;
+        }
         workspace_effect_commit(tx.commit(), "workspace.open")?;
         result.retention_notice = Some(
             "PG Runtime Workspace is temporary. The systemd lifecycle timer may be disabled; when enabled, its cadence is operator-defined and no cleanup is guaranteed. Four hours after the latest Job activity is a minimum quiet period, not an ownership lease or promised cleanup time. An eligible clean Workspace may be reclaimed after native Job, source, and policy checks. Other Agent or external consumers are not proven absent by Job completion or a caller's consumerReleased assertion. Publish valuable source and ignored outputs to their real Git/Artifact/destination consumers and read them back before relinquishing the Workspace. Continue unfinished work in a new or retained Workspace."

@@ -1126,6 +1126,52 @@ pub(crate) fn bind_pg_execution_context(
     Ok(())
 }
 
+/// Bind the already prepared independent Git carrier to a normal PG Job.
+/// The paths have been qualified by the native provider, not supplied by
+/// the caller. This is execution identity, not a filesystem ACL or sandbox.
+#[cfg(any(windows, test))]
+pub(crate) fn bind_pg_private_git_environment(
+    environment: &mut BTreeMap<String, String>,
+    git_dir: &str,
+    work_tree: &str,
+) -> RuntimeResult<()> {
+    // These redirects would replace the repository, index or object set
+    // whose lifetime the existing Workspace open/close contract owns.
+    const REDIRECTS: &[&str] = &[
+        "GIT_COMMON_DIR",
+        "GIT_INDEX_FILE",
+        "GIT_OBJECT_DIRECTORY",
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+        "GIT_NAMESPACE",
+        "GIT_QUARANTINE_PATH",
+    ];
+    if environment
+        .keys()
+        .any(|key| REDIRECTS.iter().any(|name| key.eq_ignore_ascii_case(name)))
+    {
+        return Err(RuntimeError::invalid(
+            "Windows PG Git cannot redirect the prepared private repository",
+            "execution.env",
+        ));
+    }
+    for (key, expected) in [("GIT_DIR", git_dir), ("GIT_WORK_TREE", work_tree)] {
+        if environment
+            .iter()
+            .any(|(name, actual)| name.eq_ignore_ascii_case(key) && actual != expected)
+        {
+            return Err(RuntimeError::invalid(
+                format!("Windows PG {key} must match the prepared Workspace Git carrier"),
+                "execution.env",
+            ));
+        }
+    }
+    for (key, expected) in [("GIT_DIR", git_dir), ("GIT_WORK_TREE", work_tree)] {
+        environment.retain(|name, _| !name.eq_ignore_ascii_case(key));
+        environment.insert(key.to_owned(), expected.to_owned());
+    }
+    Ok(())
+}
+
 pub(crate) fn merge_windows_workspace_environment(
     baseline: &BTreeMap<String, String>,
     overlay: &BTreeMap<String, String>,
@@ -1787,6 +1833,37 @@ mod tests {
             let error = validate_windows_elevated_principals(&principals).unwrap_err();
             assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
             assert_eq!(error.field.as_deref(), Some("windows.elevatedPrincipals"));
+        }
+    }
+
+    #[test]
+    fn windows_pg_private_git_binding_preserves_only_exact_case_insensitive_identity() {
+        let work_tree = r"C:\Ordivon\workspaces\ws-one";
+        let git_dir = r"C:\Ordivon\workspaces\.ws-one.agent-git";
+        let mut environment = BTreeMap::from([
+            ("git_dir".to_owned(), git_dir.to_owned()),
+            ("Git_Work_Tree".to_owned(), work_tree.to_owned()),
+            ("PATH".to_owned(), r"C:\Windows".to_owned()),
+        ]);
+        bind_pg_private_git_environment(&mut environment, git_dir, work_tree).unwrap();
+        assert_eq!(environment["GIT_DIR"], git_dir);
+        assert_eq!(environment["GIT_WORK_TREE"], work_tree);
+        assert_eq!(environment.len(), 3);
+        assert_eq!(environment["PATH"], r"C:\Windows");
+        for key in [
+            "git_dir",
+            "Git_Work_Tree",
+            "GIT_COMMON_DIR",
+            "git_index_file",
+            "GIT_OBJECT_DIRECTORY",
+            "git_alternate_object_directories",
+            "GIT_NAMESPACE",
+            "GIT_QUARANTINE_PATH",
+        ] {
+            let mut conflicting = BTreeMap::from([(key.to_owned(), r"C:\other".to_owned())]);
+            let before = conflicting.clone();
+            assert!(bind_pg_private_git_environment(&mut conflicting, git_dir, work_tree).is_err());
+            assert_eq!(conflicting, before);
         }
     }
 

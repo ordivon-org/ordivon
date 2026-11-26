@@ -360,6 +360,12 @@ if ($postgres) {
         }
         $workspaceUser = [Security.Principal.SecurityIdentifier]::new($InteractiveWorkspaceSid)
     }
+    # The digest-bound PG environment and SCM root grant must identify the
+    # same one interactive account, or both remain absent.
+    $boundInteractiveSid = [string]$pgValues['ORDIVON_PG_INTERACTIVE_WORKSPACE_SID']
+    if ($boundInteractiveSid -cne $InteractiveWorkspaceSid) {
+        throw 'PG interactive workspace SID must match the exact materializer account.'
+    }
     $expectedBindings = @{
         ORDIVON_PG_BIND = $Bind
         ORDIVON_NODE_ID = $NodeId

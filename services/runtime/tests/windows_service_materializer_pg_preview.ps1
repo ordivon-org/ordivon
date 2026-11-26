@@ -39,6 +39,7 @@ try {
         ('ORDIVON_PG_RUNNER=' + (Join-Path $root 'bin\ordivon-windows-pg-job-launcher.exe')),
         "ORDIVON_BEARER_TOKEN_FILE=$token"
     )
+    if ($InteractiveWorkspaceSid) { $lines += "ORDIVON_PG_INTERACTIVE_WORKSPACE_SID=$InteractiveWorkspaceSid" }
     $options = @{
         RuntimeBinary=$runtime; WindowsJobLauncher=$launcher; TokenSource=$token;
         ServiceName=$serviceName; ProgramDataRoot=$root; Bind=$bind; NodeId=$node;
@@ -108,6 +109,20 @@ try {
     if (Test-Path -LiteralPath $workspaceRoot) { throw 'preview created Workspace root' }
     if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) { throw 'preview created service' }
     Write-Output 'PASS final no SCM/SQLite/file install side effect'
+    $wrongAccount = 'S-1-5-21-1-2-3-1234'
+    if ($InteractiveWorkspaceSid -eq $wrongAccount) { $wrongAccount = 'S-1-5-21-1-2-3-1235' }
+    Set-FixtureConfig @($lines | Where-Object { $_ -notlike 'ORDIVON_PG_INTERACTIVE_WORKSPACE_SID=*' })
+    if ($InteractiveWorkspaceSid) {
+        Assert-Rejected 'missing interactive account binding refused' 'interactive workspace SID must match'
+    } else {
+        Set-FixtureConfig @($lines + "ORDIVON_PG_INTERACTIVE_WORKSPACE_SID=$wrongAccount")
+        Assert-Rejected 'unbound interactive account refused' 'interactive workspace SID must match'
+    }
+    $wrongLines = @($lines | Where-Object { $_ -notlike 'ORDIVON_PG_INTERACTIVE_WORKSPACE_SID=*' })
+    $wrongLines += "ORDIVON_PG_INTERACTIVE_WORKSPACE_SID=$wrongAccount"
+    Set-FixtureConfig $wrongLines
+    Assert-Rejected 'mismatched interactive account refused' 'interactive workspace SID must match'
+    Set-FixtureConfig $lines
     if ($NativeScm) {
         # Actual NTFS junction negative; the materializer must reject before
         # applying any ACL or SCM effect. The destination is our own fixture.

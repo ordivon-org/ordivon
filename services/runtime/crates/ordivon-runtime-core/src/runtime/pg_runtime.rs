@@ -24,6 +24,9 @@ pub struct PgRuntimeConfig {
     pub windows: WindowsExecutionConfig,
     #[cfg(windows)]
     pub node_id: String,
+    /// Exact operator-selected interactive account, never a caller SID.
+    #[cfg(windows)]
+    pub interactive_workspace_sid: Option<String>,
     pub dsn: String,
     pub schema: String,
     pub source_sha256: String,
@@ -278,6 +281,9 @@ impl PgRuntime {
         #[cfg(windows)]
         {
             config.windows.validate()?;
+            if let Some(sid) = config.interactive_workspace_sid.as_deref() {
+                crate::windows_security::validate_interactive_account_sid(sid).map_err(io)?;
+            }
             if config.node_id.trim().is_empty()
                 || config.harness_issuer_schema.is_some()
                 || config.harness_dispatch_issuer.is_some()

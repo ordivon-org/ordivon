@@ -126,7 +126,7 @@ fn workspace_git_command() -> Command {
 // Git for Windows does not accept the Win32 extended-length drive prefix
 // as a repository/worktree argument. Keep canonical paths in durable identity
 // and native filesystem operations; change only the Git subprocess carrier.
-fn git_cli_path(path: &Path) -> PathBuf {
+pub(crate) fn git_cli_path(path: &Path) -> PathBuf {
     #[cfg(windows)]
     {
         use std::path::{Component, Prefix};
