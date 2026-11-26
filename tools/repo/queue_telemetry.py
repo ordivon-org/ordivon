@@ -14,10 +14,10 @@ import re
 import subprocess
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
-from statistics import mean, median
-from typing import Any, Iterable
+from typing import Any
+
+from github_workflow_observation import GitHubWorkflowReader, instant, run_identity, seconds, summary
 
 PR_FROM_QUEUE_BRANCH = re.compile(r"(?:^|/)pr-(\d+)-")
 REQUIRED_WORKFLOW_PATH = ".github/workflows/ci.yml"
@@ -25,33 +25,6 @@ REQUIRED_WORKFLOW_PATH = ".github/workflows/ci.yml"
 
 def _is_required_run(run: dict[str, Any]) -> bool:
     return run.get("path") == REQUIRED_WORKFLOW_PATH and run.get("event") == "merge_group"
-
-
-def instant(value: str | None) -> datetime | None:
-    if not value:
-        return None
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))
-
-
-def seconds(start: str | None, end: str | None) -> float | None:
-    a, b = instant(start), instant(end)
-    if a is None or b is None:
-        return None
-    return max(0.0, (b - a).total_seconds())
-
-
-def summary(values: Iterable[float | None]) -> dict[str, float | int | None]:
-    xs = sorted(float(x) for x in values if x is not None)
-    if not xs:
-        return {"count": 0, "mean": None, "median": None, "p95": None, "max": None}
-    rank = max(0, min(len(xs) - 1, int((0.95 * len(xs) + 0.999999999) // 1) - 1))
-    return {
-        "count": len(xs),
-        "mean": round(mean(xs), 3),
-        "median": round(median(xs), 3),
-        "p95": round(xs[rank], 3),
-        "max": round(max(xs), 3),
-    }
 
 
 @dataclass(frozen=True)
@@ -63,15 +36,7 @@ class ProviderSnapshot:
     jobs: dict[str, list[dict[str, Any]]]
 
 
-class Gh:
-    def __init__(self, repo: str):
-        self.repo = repo
-
-    def api(self, endpoint: str) -> Any:
-        cmd = ["gh", "api", "-H", "Accept: application/vnd.github+json", endpoint]
-        out = subprocess.run(cmd, check=True, text=True, capture_output=True).stdout
-        return json.loads(out)
-
+class Gh(GitHubWorkflowReader):
     def paginated_list(self, endpoint: str) -> list[dict[str, Any]]:
         cmd = [
             "gh",
@@ -115,44 +80,10 @@ class Gh:
         runs = [run for run in runs if _run_pr(run) in merged_numbers]
         jobs: dict[str, list[dict[str, Any]]] = {}
         for run in runs:
-            run_id = str(run["id"])
-            attempt = run.get("run_attempt")
-            if type(attempt) is not int or attempt < 1:
-                raise ValueError("required workflow attempt is unknown")
-            if run_id in jobs:
+            run_id, attempt = run_identity(run)
+            if str(run_id) in jobs:
                 raise ValueError("duplicate required workflow run")
-            rows = []
-            seen = set()
-            page = 1
-            expected_total = None
-            while True:
-                response = self.api(
-                    f"repos/{owner}/{repo}/actions/runs/{run_id}/attempts/{attempt}/jobs?per_page=100&page={page}"
-                )
-                batch = response["jobs"]
-                for job in batch:
-                    if (
-                        job.get("run_id") != run["id"]
-                        or job.get("run_attempt") != attempt
-                        or type(job.get("id")) is not int
-                        or job["id"] in seen
-                    ):
-                        raise ValueError("unqualified or duplicate required workflow attempt job")
-                    seen.add(job["id"])
-                    rows.append(job)
-                total = response.get("total_count")
-                if type(total) is not int or total < 0:
-                    raise ValueError("required workflow attempt job total is unknown")
-                if expected_total is None:
-                    expected_total = total
-                if total != expected_total or len(rows) > total:
-                    raise ValueError("required workflow attempt jobs changed during pagination")
-                if len(rows) == total:
-                    break
-                if len(batch) < 100:
-                    raise ValueError("incomplete required workflow attempt jobs")
-                page += 1
-            jobs[run_id] = rows
+            jobs[str(run_id)] = self.collect_attempt_jobs(run_id, attempt)
         return ProviderSnapshot(self.repo, merged, timelines, runs, jobs)
 
 
@@ -380,6 +311,7 @@ def project(normalized: dict[str, Any]) -> dict[str, Any]:
             ),
             "historicalDepthIsLowerBound": True,
             "requiredWorkflowPath": REQUIRED_WORKFLOW_PATH,
+            "verificationDurationScope": "NAMED_JOB_ONLY_NOT_ALL_WORKFLOW_JOBS",
             "historyCoverage": "BOUNDED_NONATOMIC_PROVIDER_SAMPLE",
             "mergeGroupRunScope": "OBSERVED_REQUIRED_WORKFLOW_ONLY_NOT_ALL_QUEUE_CHECKS",
             "excludedUnqualifiedWorkflowRuns": normalized.get("excludedUnqualifiedWorkflowRuns", 0),
