@@ -55,17 +55,17 @@ def search_samples(mode: str, seed: str, budget: int) -> Iterator[TrialSample]:
     scale = math.sqrt(1.0 - 0.60)
     sums = [0.0] * count
     counts = [0] * count
+    # Only the sampled family changes. Preserve the first-index tie rule.
+    means = [float("-inf")] * count
     for sequence in range(1, budget + 1):
         if sequence <= count:
             family = sequence - 1
         elif rng.random() < 0.82:
-            family = max(
-                range(count),
-                key=lambda item: sums[item] / counts[item] if counts[item] else float("-inf"),
-            )
+            family = means.index(max(means))
         else:
             family = rng.randrange(count)
         z = latent[family] + rng.gauss(0.0, scale)
         sums[family] += z
         counts[family] += 1
-        yield TrialSample(sequence, family, counts[family], z, sums[family] / counts[family])
+        means[family] = sums[family] / counts[family]
+        yield TrialSample(sequence, family, counts[family], z, means[family])

@@ -58,6 +58,17 @@ class SearchSamplingOperatorTest(unittest.TestCase):
                     self.assertEqual(calibration._winner_stat_for_replay(mode, budget, seed),
                                      max(x[3] for x in expected))
 
+    def test_adaptive_cached_means_preserve_ties_and_leader_decrease(self):
+        # Initial family means tie at 2. The first family wins, then its
+        # mean drops to 0 and the next greedy draw must select family 1.
+        rng = unittest.mock.Mock()
+        rng.gauss.side_effect = [0., 0., 2., 2., -2., 0.]
+        rng.random.return_value = 0.
+        with patch("ordivon_studio.research.search_sampling._rng", return_value=rng):
+            samples = list(search_samples("adaptive", "forced", 4))
+        self.assertEqual([sample.family for sample in samples], [0, 1, 0, 1])
+        self.assertEqual([sample.running_mean for sample in samples], [2., 2., 0., 1.])
+
     def test_null_replay_never_materializes_candidate_identity(self):
         for mode in ("static", "adaptive"):
             with patch.object(calibration, "candidate_identity", side_effect=AssertionError):
