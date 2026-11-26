@@ -59,6 +59,60 @@ fn project_committed_job_after_reconcile<T>(
     observe_committed_job_with_bounded_busy_recovery(job_id, project)
 }
 
+// Keep platform admission a closed, testable contract. A Windows PG
+// product must not accept Unix-only profiles, steps or host prerequisites
+// before the native carrier can realize them.
+fn validate_native_pg_execution(e: &ExecutionProposal, windows: bool) -> RuntimeResult<()> {
+    let valid = if windows {
+        e.execution_target == ExecutionTarget::WindowsNative
+            && e.execution_profile == ExecutionProfile::TrustedLocal
+            && e.steps.is_empty()
+            && e.host_dependencies.is_empty()
+    } else {
+        e.execution_target == ExecutionTarget::LocalLinux
+            && matches!(
+                e.execution_profile,
+                ExecutionProfile::TrustedLocal | ExecutionProfile::ContainedLocal
+            )
+            && e.windows_context.is_none()
+            && e.windows_authority == WindowsAuthority::Limited
+    };
+    if !valid {
+        return Err(RuntimeError::invalid(
+            "PG Runtime requires a supported execution profile on the installed native target",
+            "execution",
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod native_pg_target_contract_tests {
+    use super::*;
+
+    #[test]
+    fn platform_target_profile_and_native_context_are_closed() {
+        let mut e: ExecutionProposal = serde_json::from_value(json!({
+            "workspaceId":"native-contract", "executable":"C:/Windows/System32/cmd.exe",
+            "cwdRelative":".", "executionTarget":"windows_native",
+            "executionProfile":"trusted_local", "windowsAuthority":"active_user"
+        }))
+        .unwrap();
+        assert!(validate_native_pg_execution(&e, true).is_ok());
+        assert!(validate_native_pg_execution(&e, false).is_err());
+        e.execution_profile = ExecutionProfile::ContainedLocal;
+        assert!(validate_native_pg_execution(&e, true).is_err());
+        e.execution_target = ExecutionTarget::LocalLinux;
+        e.windows_authority = WindowsAuthority::Limited;
+        assert!(validate_native_pg_execution(&e, false).is_ok());
+        assert!(validate_native_pg_execution(&e, true).is_err());
+        e.execution_profile = ExecutionProfile::TrustedLocal;
+        assert!(validate_native_pg_execution(&e, false).is_ok());
+        e.windows_authority = WindowsAuthority::ActiveUser;
+        assert!(validate_native_pg_execution(&e, false).is_err());
+    }
+}
+
 // A foreign reference is caller-authored metadata, never execution authority.
 // Without a configured same-PG issuer verifier it cannot affect the environment.
 // With a verifier, preserve exact source intent for the PG transactional guard.
@@ -768,6 +822,24 @@ impl PgRuntime {
         #[cfg(windows)]
         self.bind_native_windows_plan(proposal, &mut plan)?;
         let mut contract = self.scheduling_contract(&plan)?;
+        #[cfg(windows)]
+        {
+            if !contract.workspace_access.exclusive()
+                && plan.windows_authority != WindowsAuthority::Limited
+            {
+                return Err(RuntimeError::invalid(
+                    "Windows Workspace scoping requires a limited native payload",
+                    "execution.budget.scheduling.workspaceAccess",
+                ));
+            }
+            if contract.memory_high_bytes.is_some() || contract.io_weight.is_some() {
+                return Err(RuntimeError::invalid(
+                    "Windows Job Objects do not expose these Linux soft controls",
+                    "execution.budget.scheduling",
+                ));
+            }
+        }
+
         if e.budget.scheduling.is_none() {
             if let Some(max) = plan.budget.memory_max_bytes {
                 contract.resources.memory_bytes = contract.resources.memory_bytes.min(max);
@@ -808,9 +880,21 @@ impl PgRuntime {
             }
         }
         for relative in &contract.workspace_access.write_paths {
-            let path =
-                fs::canonicalize(Path::new(&plan.workspace_path).join(relative)).map_err(io)?;
-            if !path.starts_with(&plan.workspace_path) || !path.is_dir() {
+            let workspace = Path::new(&plan.workspace_path);
+            #[cfg(windows)]
+            let workspace = fs::canonicalize(workspace).map_err(io)?;
+            let path = fs::canonicalize(workspace.join(relative)).map_err(io)?;
+            #[cfg(not(windows))]
+            let contained = path.starts_with(workspace);
+            #[cfg(windows)]
+            let contained = path.strip_prefix(&workspace).is_ok_and(|scope| {
+                !scope.as_os_str().is_empty()
+                    && scope
+                        .to_string_lossy()
+                        .replace('\\', "/")
+                        .eq_ignore_ascii_case(relative)
+            });
+            if !contained || !path.is_dir() {
                 return Err(RuntimeError::invalid(
                     "writePaths requires existing contained directories",
                     "execution.budget.scheduling.workspaceAccess",
@@ -878,7 +962,7 @@ impl PgRuntime {
             operation_digest,
             workspace_id: e.workspace_id.clone(),
             workspace_snapshot_json: encode(
-                &json!({"workspace":record,"executionProvider":{"contract":if cfg!(windows) { "windows_native_launcher_v1" } else { "local_linux_runner_v1" },"executableDigest":universal::sha256_file(runner).map_err(io)?}}),
+                &json!({"workspace":record,"executionProvider":{"contract":if cfg!(windows) {"windows_native_launcher_v1"} else {"local_linux_runner_v1"},"executableDigest":provider_digest}}),
             )?,
             execution_plan_digest: plan_digest,
             execution_plan_json: plan_json,
