@@ -101,7 +101,7 @@ def validate_graph(value: dict[str, Any]) -> None:
         node_id: set(node["dependsOn"]) for node_id, node in by_id.items()
     }
     try:
-        TopologicalSorter(predecessors).prepare()
+        topological_order = list(TopologicalSorter(predecessors).static_order())
     except CycleError as exc:
         cycle = exc.args[1] if len(exc.args) > 1 else []
         witness = cycle[0] if cycle else "<unknown>"
@@ -122,22 +122,20 @@ def validate_graph(value: dict[str, Any]) -> None:
     }
     if set(critical) & on_demand:
         raise CompositionArchitectureError("on-demand nodes must not enter criticalPath")
-    # The critical sequence is a linear extension of the DAG, even when
-    # intermediate prerequisite nodes are not themselves on the sequence.
+    # Carry the latest critical prerequisite through each topological edge
+    # once. A noncritical intermediary cannot hide a critical prerequisite.
     critical_pos = {node_id: pos for pos, node_id in enumerate(critical)}
-    for node_id, position in critical_pos.items():
-        pending = list(by_id[node_id]["dependsOn"])
-        seen: set[str] = set()
-        while pending:
-            dependency = pending.pop()
-            if dependency in seen:
-                continue
-            if dependency in critical_pos and critical_pos[dependency] >= position:
-                raise CompositionArchitectureError(
-                    f"criticalPath dependency order: {node_id} requires {dependency}"
-                )
-            seen.add(dependency)
-            pending.extend(by_id[dependency]["dependsOn"])
+    latest_critical: dict[str, int] = {}
+    for node_id in topological_order:
+        position = critical_pos.get(node_id, -1)
+        prerequisite = max(
+            (latest_critical[dep] for dep in predecessors[node_id]), default=-1
+        )
+        if position >= 0 and prerequisite >= position:
+            raise CompositionArchitectureError(
+                f"criticalPath dependency order: {node_id} requires {critical[prerequisite]}"
+            )
+        latest_critical[node_id] = max(position, prerequisite)
 
     parallel = _plan_refs(value.get("initialParallelSet"), field="initialParallelSet")
     parallel_set = set(parallel)
@@ -150,20 +148,26 @@ def validate_graph(value: dict[str, Any]) -> None:
         raise CompositionArchitectureError(
             f"initialParallelSet contains unknown nodes: {unknown_parallel}"
         )
-    # In a dependency DAG, simultaneous starts form an antichain, not just a set.
-    for start in parallel:
-        pending = list(by_id[start]["dependsOn"])
-        visited_dependencies: set[str] = set()
-        while pending:
-            dependency = pending.pop()
-            if dependency in visited_dependencies:
-                continue
-            if dependency in parallel_set:
+    # One representative parallel ancestor is sufficient to disprove an
+    # antichain. Propagate it through nonparallel intermediaries in DAG order.
+    parallel_ancestor: dict[str, str | None] = {}
+    for node_id in topological_order:
+        witness = next(
+            (
+                parallel_ancestor[dep]
+                for dep in by_id[node_id]["dependsOn"]
+                if parallel_ancestor[dep] is not None
+            ),
+            None,
+        )
+        if node_id in parallel_set:
+            if witness is not None:
                 raise CompositionArchitectureError(
-                    f"parallel dependency: {start} transitively depends on {dependency}"
+                    f"parallel dependency: {node_id} transitively depends on {witness}"
                 )
-            visited_dependencies.add(dependency)
-            pending.extend(by_id[dependency]["dependsOn"])
+            parallel_ancestor[node_id] = node_id
+        else:
+            parallel_ancestor[node_id] = witness
 
     do_not_build = value.get("doNotBuild")
     if not isinstance(do_not_build, list) or not do_not_build:
