@@ -154,7 +154,7 @@ def test_windows_cold_materialization_checks_stopped_service_before_any_mutation
         assert guard < apply.index(effect), effect
 
 
-def test_pg_service_materializer_is_explicit_digest_bound_manual_start_without_sqlite_registry():
+def test_pg_service_materializer_is_explicit_digest_bound_disabled_start_without_sqlite_registry():
     text = SCRIPT.read_text(encoding="utf-8")
     for fragment in (
         "[string]$PostgresEnvironmentFile = ''",
@@ -175,7 +175,7 @@ def test_pg_service_materializer_is_explicit_digest_bound_manual_start_without_s
         "ORDIVON_BEARER_TOKEN_FILE",
         "if (-not $postgres) { $stateDirectories += $registryRoot }",
         "start = $startMode",
-        "if ($postgres) { 'demand' } else { 'auto' }",
+        "if ($postgres) { 'disabled' } else { 'auto' }",
         "executionReady = $false",
     ):
         assert fragment in text, fragment
@@ -195,3 +195,13 @@ def test_native_pg_service_materializer_preview():
         check=True,
         timeout=60,
     )
+
+
+def test_pg_materializer_requires_disabled_stopped_native_scm_until_all_acl_effects():
+    text = SCRIPT.read_text(encoding="utf-8")
+    apply = text.split("Assert-Administrator\n\nfunction Assert-PgServiceStagingFence", 1)[1]
+    assert "[ServiceProcess.ServiceStartMode]::Disabled" in apply
+    assert "[ServiceProcess.ServiceControllerStatus]::Stopped" in apply
+    assert apply.index("Assert-PgServiceStagingFence $ServiceName $false") < apply.index("[IO.Directory]::CreateDirectory")
+    assert apply.index("Assert-PgServiceStagingFence $ServiceName ($null -ne $service)") < apply.index("'create', $ServiceName")
+    assert apply.rindex("Assert-PgServiceStagingFence $ServiceName $true") > apply.index("Set-ExactPrivateAcl $file $serviceSid $readOnly")
