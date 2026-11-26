@@ -340,7 +340,11 @@ impl Drop for Fixture {
         // ambiguous fixture roots, even when Rust is already unwinding.
         let endpoint_stopped = self.endpoint.as_mut().map_or(Ok(()), |child| {
             child.kill().or_else(|err| {
-                if child.try_wait()?.is_some() { Ok(()) } else { Err(err) }
+                if child.try_wait()?.is_some() {
+                    Ok(())
+                } else {
+                    Err(err)
+                }
             })?;
             child.wait().map(|_| ())
         });
@@ -350,8 +354,11 @@ impl Drop for Fixture {
         };
         let pg = self.pg.stop();
         if std::thread::panicking() || units.is_err() || pg.is_err() {
-            let diagnostic = format!("NATIVE_FIXTURE_RETAINED root={} panic={} units={units:?} pg={pg:?}",
-                self.root.display(), std::thread::panicking());
+            let diagnostic = format!(
+                "NATIVE_FIXTURE_RETAINED root={} panic={} units={units:?} pg={pg:?}",
+                self.root.display(),
+                std::thread::panicking()
+            );
             eprintln!("{diagnostic}");
             // Retain a bounded direct diagnostic when the successful test's
             // captured stderr is discarded by the upstream runner.
@@ -359,7 +366,10 @@ impl Drop for Fixture {
             return;
         }
         if let Err(err) = fs::remove_dir_all(&self.root) {
-            eprintln!("NATIVE_FIXTURE_RETAINED root={} removal={err}", self.root.display());
+            eprintln!(
+                "NATIVE_FIXTURE_RETAINED root={} removal={err}",
+                self.root.display()
+            );
         }
     }
 }
@@ -375,8 +385,14 @@ fn native_pg_fixture_panic_preserves_root_after_owned_postmaster_stop() {
     assert!(fault.is_err());
     let root = retained.expect("native Fixture constructed before deliberate panic");
     assert!(root.is_dir(), "panic must not erase fixture attribution");
-    assert!(!root.join("data/postmaster.pid").exists(), "postmaster did not exit");
-    assert!(!root.join(".s.PGSQL.5432").exists(), "private PG socket survived shutdown");
+    assert!(
+        !root.join("data/postmaster.pid").exists(),
+        "postmaster did not exit"
+    );
+    assert!(
+        !root.join(".s.PGSQL.5432").exists(),
+        "private PG socket survived shutdown"
+    );
     // This deliberate challenger never starts an endpoint or Unit. The
     // original unwind retained the root; only the challenger now removes it.
     fs::remove_dir_all(root).unwrap();
@@ -401,42 +417,108 @@ fn native_pg_fixture_refuses_failed_registered_unit_until_native_absence() {
         &[&attempt,&job,&digest,&bundle.to_string_lossy().to_string(),&unit],
     ).unwrap();
     let read_unit = || {
-        let out = Command::new("/usr/bin/timeout").args(["3s","systemctl","show",&unit,"--no-pager",
-            "-p","LoadState","-p","ActiveState","-p","MainPID","-p","ControlGroup",
-            "-p","ExecMainStatus","-p","Transient","-p","WorkingDirectory","-p","ExecStart"]).output().unwrap();
+        let out = Command::new("/usr/bin/timeout")
+            .args([
+                "3s",
+                "systemctl",
+                "show",
+                &unit,
+                "--no-pager",
+                "-p",
+                "LoadState",
+                "-p",
+                "ActiveState",
+                "-p",
+                "MainPID",
+                "-p",
+                "ControlGroup",
+                "-p",
+                "ExecMainStatus",
+                "-p",
+                "Transient",
+                "-p",
+                "WorkingDirectory",
+                "-p",
+                "ExecStart",
+            ])
+            .output()
+            .unwrap();
         assert!(out.status.success());
         String::from_utf8(out.stdout).unwrap()
     };
-    assert!(read_unit().lines().any(|l| l=="LoadState=not-found"));
+    assert!(read_unit().lines().any(|l| l == "LoadState=not-found"));
     let failed = Command::new("/usr/bin/timeout")
-        .args(["10s","systemd-run","--wait","--property=CollectMode=inactive","--property=Type=exec"])
+        .args([
+            "10s",
+            "systemd-run",
+            "--wait",
+            "--property=CollectMode=inactive",
+            "--property=Type=exec",
+        ])
         .arg(format!("--unit={unit}"))
-        .arg(format!("--working-directory={}",fixture.root.display()))
-        .arg("/usr/bin/false").output().unwrap();
+        .arg(format!("--working-directory={}", fixture.root.display()))
+        .arg("/usr/bin/false")
+        .output()
+        .unwrap();
     assert!(!failed.status.success(), "negative native unit must fail");
-    let state=read_unit();
-    for property in ["LoadState=loaded","ActiveState=failed","MainPID=0","ControlGroup=","Transient=yes","ExecMainStatus=1"] {
-        assert!(state.lines().any(|line| line==property), "expected {property}: {state}");
+    let state = read_unit();
+    for property in [
+        "LoadState=loaded",
+        "ActiveState=failed",
+        "MainPID=0",
+        "ControlGroup=",
+        "Transient=yes",
+        "ExecMainStatus=1",
+    ] {
+        assert!(
+            state.lines().any(|line| line == property),
+            "expected {property}: {state}"
+        );
     }
-    assert!(state.lines().any(|l| l==format!("WorkingDirectory={}",fixture.root.display())));
-    assert!(state.lines().any(|l| l.starts_with("ExecStart={ path=/usr/bin/false ;")));
-    let rejected=verify_units_absent(&mut fixture.db,&fixture.root).unwrap_err();
-    assert!(rejected.contains("Unit not absent") && rejected.contains(&unit), "{rejected}");
-    assert!(fixture.root.is_dir(), "retained native failure must preserve root");
+    assert!(state
+        .lines()
+        .any(|l| l == format!("WorkingDirectory={}", fixture.root.display())));
+    assert!(state
+        .lines()
+        .any(|l| l.starts_with("ExecStart={ path=/usr/bin/false ;")));
+    let rejected = verify_units_absent(&mut fixture.db, &fixture.root).unwrap_err();
+    assert!(
+        rejected.contains("Unit not absent") && rejected.contains(&unit),
+        "{rejected}"
+    );
+    assert!(
+        fixture.root.is_dir(),
+        "retained native failure must preserve root"
+    );
     // Test-only controlled retirement after native failure evidence is read.
     // The exact private registered Unit was absent before this test created
     // it and has no process/cgroup. Never reset arbitrary or running Units.
-    let rechecked=read_unit();
-    for property in ["LoadState=loaded","ActiveState=failed","MainPID=0","ControlGroup=","Transient=yes","ExecMainStatus=1"] {
-        assert!(rechecked.lines().any(|l| l==property), "{rechecked}");
+    let rechecked = read_unit();
+    for property in [
+        "LoadState=loaded",
+        "ActiveState=failed",
+        "MainPID=0",
+        "ControlGroup=",
+        "Transient=yes",
+        "ExecMainStatus=1",
+    ] {
+        assert!(rechecked.lines().any(|l| l == property), "{rechecked}");
     }
-    assert!(rechecked.lines().any(|l| l==format!("WorkingDirectory={}",fixture.root.display())));
-    let reset=Command::new("/usr/bin/timeout").args(["3s","systemctl","reset-failed",&unit]).output().unwrap();
-    assert!(reset.status.success(),"{reset:?}");
-    verify_units_absent(&mut fixture.db,&fixture.root).unwrap();
-    let root=fixture.root.clone();
+    assert!(rechecked
+        .lines()
+        .any(|l| l == format!("WorkingDirectory={}", fixture.root.display())));
+    let reset = Command::new("/usr/bin/timeout")
+        .args(["3s", "systemctl", "reset-failed", &unit])
+        .output()
+        .unwrap();
+    assert!(reset.status.success(), "{reset:?}");
+    verify_units_absent(&mut fixture.db, &fixture.root).unwrap();
+    let root = fixture.root.clone();
     drop(fixture);
-    assert!(!root.exists(),"qualified fixture must release its actual directory");
+    assert!(
+        !root.exists(),
+        "qualified fixture must release its actual directory"
+    );
     println!("NATIVE_FAILED_UNIT_REJECTED_THEN_EXACT_ABSENCE_RELEASED");
 }
 fn rpc(url: &str, method: &str, params: Value) -> Value {
@@ -3769,9 +3851,11 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
     );
     // Exercise a zero-wait submission deliberately. A pending response
     // is not a failed command. Observe exactly the original admission.
-    println!("FAILFAST_INITIAL_TERMINAL={} STATE={}",
+    println!(
+        "FAILFAST_INITIAL_TERMINAL={} STATE={}",
         stopped_initial["structuredContent"]["executionTerminal"],
-        stopped_initial["structuredContent"]["attemptState"]);
+        stopped_initial["structuredContent"]["attemptState"]
+    );
     let stopped = await_terminal(&endpoint, stopped_initial, Duration::from_secs(25));
     assert_ne!(stopped["isError"], true, "{stopped}");
     assert_eq!(
@@ -3786,17 +3870,24 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         "{stopped}"
     );
     let stopped_job = stopped["structuredContent"]["jobId"].as_str().unwrap();
-    let facts = fixture.db.query_one(
-        "SELECT (SELECT count(*) FROM attempts WHERE job_id=$1), \
+    let facts = fixture
+        .db
+        .query_one(
+            "SELECT (SELECT count(*) FROM attempts WHERE job_id=$1), \
          (SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'), \
          (SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='JOB_TERMINAL'), \
          (SELECT resolution FROM jobs WHERE job_id=$1)",
-        &[&stopped_job],
-    ).unwrap();
+            &[&stopped_job],
+        )
+        .unwrap();
     assert_eq!(facts.get::<_, i64>(0), 1, "exactly one Attempt");
     assert_eq!(facts.get::<_, i64>(1), 1, "exactly one native dispatch");
     assert_eq!(facts.get::<_, i64>(2), 1, "exactly one terminal event");
-    assert_eq!(facts.get::<_, String>(3), "failed", "independent PG terminal");
+    assert_eq!(
+        facts.get::<_, String>(3),
+        "failed",
+        "independent PG terminal"
+    );
     // The actual Gateway/Agent job.list consumer must retain the terminal
     // Attempt after jobs.current_attempt_id is cleared on completion.
     let finished_list = call(
@@ -4512,15 +4603,39 @@ fn resource_queue_shared_workspace_restart_and_native_write_leases() {
          (SELECT count(*) FROM job_allocations x JOIN attempts a ON a.attempt_id=x.attempt_id WHERE a.job_id=$1 AND x.state='active')",
         &[&blocked_job],
     ).unwrap();
-    assert_eq!(before.get::<_, i64>(0), 0, "held capacity prevents dispatch");
-    assert_eq!(before.get::<_, i64>(1), 0, "held capacity prevents allocation");
-    let pending_observation = call(&endpoint, "job.observe", json!({
-        "jobId":blocked_job,"waitMs":0,"stdoutTailBytes":0,"stderrTailBytes":0
-    }));
-    assert_ne!(pending_observation["isError"], true, "{pending_observation}");
-    assert_eq!(pending_observation["structuredContent"]["jobId"], blocked_job);
-    assert_eq!(pending_observation["structuredContent"]["executionTerminal"], false);
-    assert_eq!(pending_observation["structuredContent"]["attemptId"], blocked["structuredContent"]["attemptId"]);
+    assert_eq!(
+        before.get::<_, i64>(0),
+        0,
+        "held capacity prevents dispatch"
+    );
+    assert_eq!(
+        before.get::<_, i64>(1),
+        0,
+        "held capacity prevents allocation"
+    );
+    let pending_observation = call(
+        &endpoint,
+        "job.observe",
+        json!({
+            "jobId":blocked_job,"waitMs":0,"stdoutTailBytes":0,"stderrTailBytes":0
+        }),
+    );
+    assert_ne!(
+        pending_observation["isError"], true,
+        "{pending_observation}"
+    );
+    assert_eq!(
+        pending_observation["structuredContent"]["jobId"],
+        blocked_job
+    );
+    assert_eq!(
+        pending_observation["structuredContent"]["executionTerminal"],
+        false
+    );
+    assert_eq!(
+        pending_observation["structuredContent"]["attemptId"],
+        blocked["structuredContent"]["attemptId"]
+    );
     println!("CONTROLLED_PENDING_NO_DISPATCH_OR_ALLOCATION");
     let replay = submit(
         &endpoint,
@@ -4585,14 +4700,20 @@ fn resource_queue_shared_workspace_restart_and_native_write_leases() {
     // Preserve the original passive DB wait above: an active observer
     // must not rescue a stalled autonomous scheduler and turn this test green.
     let observed_blocked = await_terminal(&endpoint, blocked.clone(), Duration::from_secs(20));
-    assert_eq!(observed_blocked["structuredContent"]["executionDisposition"], "succeeded");
-    let after = fixture.db.query_one(
-        "SELECT (SELECT count(*) FROM attempts WHERE job_id=$1), \
+    assert_eq!(
+        observed_blocked["structuredContent"]["executionDisposition"],
+        "succeeded"
+    );
+    let after = fixture
+        .db
+        .query_one(
+            "SELECT (SELECT count(*) FROM attempts WHERE job_id=$1), \
          (SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'), \
          (SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='JOB_TERMINAL'), \
          (SELECT resolution FROM jobs WHERE job_id=$1)",
-        &[&blocked_job],
-    ).unwrap();
+            &[&blocked_job],
+        )
+        .unwrap();
     assert_eq!(after.get::<_, i64>(0), 1);
     assert_eq!(after.get::<_, i64>(1), 1);
     assert_eq!(after.get::<_, i64>(2), 1);
