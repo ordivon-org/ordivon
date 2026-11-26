@@ -7772,6 +7772,7 @@ fn pg_job_list_exact_key_does_not_substitute_historical_result() {
     let before = lookup();
     assert_eq!(before["resultAvailable"], true);
     assert_eq!(before["deliveryDisposition"], "committed");
+    assert_eq!(before["executionReasonCode"], "PROCESS_EXIT_ZERO");
     let prior = format!("r6-previous-{}", Uuid::now_v7());
     let prior_bundle = fixture.root.join("store/pg-attempts").join(&prior);
     let row=fixture.db.query_one("SELECT artifact_id,relative_path,byte_length,digest FROM artifacts WHERE job_id=$1 AND attempt_id=$2 AND kind='execution_result'",&[&job,&current]).unwrap();
@@ -7823,6 +7824,56 @@ fn pg_job_list_exact_key_does_not_substitute_historical_result() {
     assert_eq!(row.get::<_, String>(0), prior);
     assert_eq!(row.get::<_, i64>(1), len);
     assert_eq!(row.get::<_, String>(2), digest);
+    // Exercise exact Attempt attribution and contradictory terminal evidence in
+    // this disposable database; no new physical Attempt is asserted.
+    let terminal_sequence: i64 = fixture.db.query_one(
+        "SELECT event_sequence FROM job_events WHERE job_id=$1 AND attempt_id=$2 AND event_type='JOB_TERMINAL'",
+        &[&job, &current],
+    ).unwrap().get(0);
+    fixture
+        .db
+        .execute(
+            "UPDATE job_events SET attempt_id=$1 WHERE job_id=$2 AND event_sequence=$3",
+            &[&prior, &job, &terminal_sequence],
+        )
+        .unwrap();
+    assert!(lookup()["executionReasonCode"].is_null());
+    fixture
+        .db
+        .execute(
+            "UPDATE job_events SET attempt_id=$1 WHERE job_id=$2 AND event_sequence=$3",
+            &[&current, &job, &terminal_sequence],
+        )
+        .unwrap();
+    let extra_sequence = terminal_sequence + 1;
+    fixture.db.execute(
+        "INSERT INTO job_events(event_id,job_id,attempt_id,event_sequence,event_type,origin,previous_state,new_state,reason_code,detail_json,detail_digest,observed_at_ms) SELECT $1,job_id,attempt_id,$2,event_type,origin,previous_state,new_state,'CONTRADICTORY_TEST_REASON',detail_json,detail_digest,observed_at_ms FROM job_events WHERE job_id=$3 AND event_sequence=$4",
+        &[&format!("reason-conflict-{}", Uuid::now_v7()), &extra_sequence, &job, &terminal_sequence],
+    ).unwrap();
+    assert!(lookup()["executionReasonCode"].is_null());
+    fixture
+        .db
+        .execute(
+            "DELETE FROM job_events WHERE job_id=$1 AND event_sequence=$2",
+            &[&job, &extra_sequence],
+        )
+        .unwrap();
+    fixture
+        .db
+        .execute(
+            "UPDATE job_events SET new_state='failed' WHERE job_id=$1 AND event_sequence=$2",
+            &[&job, &terminal_sequence],
+        )
+        .unwrap();
+    assert!(lookup()["executionReasonCode"].is_null());
+    fixture
+        .db
+        .execute(
+            "UPDATE job_events SET new_state='succeeded' WHERE job_id=$1 AND event_sequence=$2",
+            &[&job, &terminal_sequence],
+        )
+        .unwrap();
+    assert_eq!(lookup()["executionReasonCode"], "PROCESS_EXIT_ZERO");
     let historical_only = lookup();
     // Restore the exact native registration before asserting the result.
     fixture
