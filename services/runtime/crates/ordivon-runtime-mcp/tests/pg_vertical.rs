@@ -6483,7 +6483,6 @@ fn pg18_original_harness_issued_dedicated_mcp_admit_then_revoke_before_dispatch(
 #[ignore = "requires disposable PG18, original Harness Python deps and native systemd runner"]
 fn pg18_original_harness_terminal_cut_joins_observed_and_unsubmitted_keys() {
     let mut fixture = Fixture::new();
-    fixture.host_visible_test_runner = true;
     fixture.harness_dispatch_test = true;
     let repo = fixture.repo();
     let id = Uuid::now_v7().simple().to_string();

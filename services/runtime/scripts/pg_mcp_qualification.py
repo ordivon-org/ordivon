@@ -36,6 +36,8 @@ REQUIRED = frozenset({
     "fixture_lifecycle::tests::exact_fixture_binding_rejects_foreign_or_traversal",
     "native_pg_fixture_panic_preserves_root_after_owned_postmaster_stop",
     "native_pg_fixture_refuses_failed_registered_unit_until_native_absence",
+    "pg18_original_harness_issued_dedicated_mcp_admit_then_revoke_before_dispatch",
+    "pg18_original_harness_terminal_cut_joins_observed_and_unsubmitted_keys",
 })
 SELECTION = (
     "--locked", "-p", PACKAGE, "--no-default-features", "--features", "postgres-runtime",
