@@ -61,6 +61,10 @@ pub(super) fn require_ordinary_contained_owner(
     Ok(())
 }
 
+#[cfg(windows)]
+#[path = "config_workspace_root.rs"]
+mod config_workspace_root;
+
 pub(super) fn load_pg_startup() -> Result<PgStartup, Box<dyn std::error::Error>> {
     let required = required_env;
     let bind: SocketAddr = required("ORDIVON_PG_BIND")?.parse()?;
@@ -167,6 +171,14 @@ pub(super) fn load_pg_startup() -> Result<PgStartup, Box<dyn std::error::Error>>
     {
         return Err("native Windows PG has no qualified Linux issuer/UID transport".into());
     }
+    let store_root = PathBuf::from(required("ORDIVON_PG_STORE_ROOT")?);
+    #[cfg(windows)]
+    let workspace_root = Some(config_workspace_root::windows_workspace_root(
+        &store_root,
+        &PathBuf::from(required("ORDIVON_PG_WORKSPACE_ROOT")?),
+    )?);
+    #[cfg(not(windows))]
+    let workspace_root = None;
     let config = PgRuntimeConfig {
         #[cfg(windows)]
         windows: windows_config(PathBuf::from(required("ORDIVON_PG_RUNNER")?))?,
@@ -190,8 +202,8 @@ pub(super) fn load_pg_startup() -> Result<PgStartup, Box<dyn std::error::Error>>
             }),
         workspace_headroom,
         executor: UniversalExecutorConfig {
-            store_root: PathBuf::from(required("ORDIVON_PG_STORE_ROOT")?),
-            workspace_root: None,
+            store_root,
+            workspace_root,
             workspace_uid: contained_workspace_owner.map(|(uid, _)| uid),
             workspace_gid: contained_workspace_owner.map(|(_, gid)| gid),
             runner_path: Some(PathBuf::from(required("ORDIVON_PG_RUNNER")?)),
