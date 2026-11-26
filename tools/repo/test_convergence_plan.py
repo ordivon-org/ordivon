@@ -1669,88 +1669,112 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertIn('mise run "$task"', workflow)
 
     def test_real_github_queue_inline_validator_rejects_forged_formal_tasks(self) -> None:
-        """Execute the exact inline Python consumer, not a duplicate example."""
+        """Execute the real inline consumer against immutable Git ranges."""
+        from python_path_closure import git_manifests
+
         root = MODULE_PATH.parents[2]
         workflow = (root / ".github/workflows/ci.yml").read_text()
         marker = (
             '          python3 - "$owners_file" "$tasks_file" '
-            '"$RUNNER_TEMP/ordivon-convergence-plan.json" <<' + "'PY'"
+            '"$RUNNER_TEMP/ordivon-convergence-plan.json" "${base:-}" "${head:-}" <<'
+            + "'PY'"
         )
         self.assertEqual(workflow.count(marker), 1)
         body = workflow.split(marker, 1)[1].split("          PY", 1)[0]
         code = "\n".join(line[10:] for line in body.splitlines() if line.strip())
         self.assertIn("convergence_plan.validate_queue_task_selection(", code)
-        self.assertNotIn(
-            "Selected verification owners and executable tasks disagree", workflow
-        )
-        examples = (
-            ([], ["formal:verify"], ["tools/formal/Proof.qnt"], True),
-            (["composition", "runtime"], ["composition:verify", "runtime:verify"],
-             ["services/runtime/crates/ordivon-runtime-core/src/lib.rs"], True),
-            ([], [], ["services/runtime/crates/ordivon-runtime-core/src/lib.rs"], False),
-            (["runtime"], ["runtime:verify"],
-             ["services/runtime/crates/ordivon-runtime-core/src/lib.rs"], False),
-            ([], [], ["tools/repo/owners.toml"], False),
-            (["composition", "runtime"],
-             ["composition:verify", "runtime:verify", "formal:verify"],
-             ["services/runtime/crates/ordivon-runtime-core/src/lib.rs",
-              "tools/formal/RecursiveLegoRefinement.lean"], True),
-            ([], ["formal:verify"], ["docs/architecture/EXAMPLE.md"], False),
-            ([], [], ["tools/formal/Proof.qnt"], False),
-            (["runtime"], ["runtime:verify", "unexpected-task"],
-             ["tools/formal/Proof.qnt"], False),
-        )
-        # Validate the *actual* GitHub inline consumer as well as the Python
-        # producer for every registered Owner one-/two-owner source cohort.
-        # This is still only a bounded source task contract, not runtime proof.
-        git_paths = subprocess.check_output(
-            ["git", "--no-replace-objects", "ls-tree", "-r", "--name-only", "HEAD"],
-            cwd=root, text=True,
-        ).splitlines()
-        samples = {}
-        for owner in MODULE.affected_owners.OWNERS:
-            paths = [path for path in git_paths if path.startswith(owner.root)]
-            self.assertTrue(paths)
-            code_paths = [
-                path for path in paths
-                if path.endswith((".rs", ".py", ".ts", ".go", ".json"))
-                and "/test" not in path
-            ]
-            samples[owner.name] = (code_paths or paths)[0]
-        owner_count = len(MODULE.affected_owners.OWNERS)
-        self.assertEqual(len(samples), owner_count)
-        cohorts = [(name,) for name in samples] + list(combinations(samples, 2))
-        self.assertEqual(len(cohorts), owner_count * (owner_count + 1) // 2)
-        original_cases = len(examples)
-        for group in cohorts:
-            changed = [samples[name] for name in group]
-            selected = MODULE.build_plan(changed_files=changed)
-            examples += (
-                (selected["verificationOwners"], selected["queueVerifyTasks"], changed, True),
-                ([], [], changed, False),
-            )
-        self.assertEqual(len(examples) - original_cases, 2 * len(cohorts))
-        with tempfile.TemporaryDirectory() as directory:
+        self.assertNotIn("Selected verification owners and executable tasks disagree", workflow)
+
+        # The two finite tests exhaust all Owner cohorts at the mathematical
+        # selection contract. Here exercise the actual transport, exact delta
+        # and native admission independently, without repeating that whole
+        # combinatorial matrix in separate Python processes.
+        cases = [
+            (["tools/formal/Proof.qnt"], {"formal:verify"}),
+            (["services/runtime/crates/ordivon-runtime-core/src/lib.rs"],
+             {"composition:verify", "runtime:verify"}),
+            (["services/runtime/crates/ordivon-runtime-core/src/lib.rs",
+              "tools/formal/RecursiveLegoRefinement.lean"],
+             {"composition:verify", "runtime:verify", "formal:verify"}),
+            (["packages/composition/src/ordivon_composition/verification_obligation_r1.py"],
+             {"composition:verify", "authority-catalog:verify", "experimental-episodes:verify"}),
+            (["tools/repo/owners.toml"], {owner.queue_task for owner in MODULE.affected_owners.OWNERS}),
+            (["docs/architecture/EXAMPLE.md"], set()),
+        ]
+        with tempfile.TemporaryDirectory(prefix="ordivon-inline-sourcecut-") as directory:
             folder = Path(directory)
+            repo = folder / "source"
+            repo.mkdir()
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True, timeout=20
+                ).strip()
+            git("init", "-q")
+            git("config", "user.name", "Inline source fixture")
+            git("config", "user.email", "fixture@example.invalid")
+            source_head = subprocess.check_output(
+                ["git", "-C", str(root), "rev-parse", "HEAD"], text=True
+            ).strip()
+            for relative, data in git_manifests(root, source_head).items():
+                path = repo / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(data)
+            (repo / "fixture.txt").write_text("base\n")
+            git("add", ".")
+            git("commit", "-qm", "base")
+            base = git("rev-parse", "HEAD")
             owners_path = folder / "owners.txt"
             tasks_path = folder / "tasks.txt"
             plan_path = folder / "plan.json"
-            for owners, tasks, changed, accepted in examples:
-                with self.subTest(owners=owners, tasks=tasks, changed=changed):
-                    owners_path.write_text("\n".join(owners) + "\n")
-                    tasks_path.write_text("\n".join(tasks) + "\n")
-                    plan_path.write_text(__import__("json").dumps({
-                        "changedPaths": changed,
-                    }))
+            env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+            env["PYTHONPATH"] = str(MODULE_PATH.parent)
+            for changed, required in cases:
+                git("reset", "--hard", base)
+                for relative in changed:
+                    path = repo / relative
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text("changed fixture\n")
+                git("add", ".")
+                git("commit", "-qm", "change")
+                head = git("rev-parse", "HEAD")
+                # Use the native producer for expected order, but independent
+                # required-task sets below prevent shared omission false-green.
+                projection = subprocess.check_output(
+                    [sys.executable, str(MODULE_PATH), "--base", base, "--head", head],
+                    cwd=repo, env=env, text=True, timeout=20,
+                )
+                plan = json.loads(projection)
+                owners, tasks = plan["verificationOwners"], plan["queueVerifyTasks"]
+                self.assertLessEqual(required, set(tasks))
+                if not required:
+                    self.assertEqual(tasks, [])
+                exact_paths = plan["changedPaths"]
+                self.assertCountEqual(exact_paths, changed)
+                def invoke(selected, requested, paths, accepted):
+                    owners_path.write_text("\n".join(selected) + "\n")
+                    tasks_path.write_text("\n".join(requested) + "\n")
+                    plan_path.write_text(json.dumps({"changedPaths": paths}))
                     result = subprocess.run(
-                        [sys.executable, "-c", code,
-                         str(owners_path), str(tasks_path), str(plan_path)],
-                        cwd=root, capture_output=True, text=True, timeout=20,
+                        [sys.executable, "-c", code, str(owners_path),
+                         str(tasks_path), str(plan_path), base, head],
+                        cwd=repo, env=env, capture_output=True, text=True, timeout=20,
                     )
-                    self.assertEqual(
-                        result.returncode == 0, accepted,
-                        result.stdout + result.stderr,
-                    )
+                    self.assertEqual(result.returncode == 0, accepted,
+                                     result.stdout + result.stderr)
+                    return result
+                with self.subTest(changed=changed, case="exact"):
+                    invoke(owners, tasks, exact_paths, True)
+                with self.subTest(changed=changed, case="forged delta"):
+                    result = invoke(owners, tasks, [], False)
+                    self.assertIn("exact Git range", result.stderr)
+                if tasks:
+                    with self.subTest(changed=changed, case="omitted queue"):
+                        invoke([], [], exact_paths, False)
+                    for missing in required:
+                        with self.subTest(changed=changed, case="missing", task=missing):
+                            invoke(owners, [t for t in tasks if t != missing], exact_paths, False)
+                with self.subTest(changed=changed, case="forged task"):
+                    invoke(owners, tasks + ["unexpected-task"], exact_paths, False)
 
     def test_explicit_owner_universe_is_used_for_direct_selection(self) -> None:
         # Scoped owner sets must not leak global owner identities into plans.
