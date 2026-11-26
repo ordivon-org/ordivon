@@ -60,7 +60,7 @@ def native_provider_protocol(monkeypatch, source_id):
 def source_id(monkeypatch):
     # Unit tests assert provider and decision logic. One external read-only
     # smoke uses actual Git objects and live GitHub metadata separately.
-    monkeypatch.setattr(module, "_exact_commit", lambda sha: sha)
+    monkeypatch.setattr(module, "_exact_commit", lambda sha, **kwargs: sha)
     monkeypatch.setattr(module, "require_ancestral_source_cuts", lambda *a: None)
     monkeypatch.setattr(module, "qualify_current_selector", lambda *a: None)
     # Decision and Formal fixtures exercise their own seams. The native
@@ -851,6 +851,27 @@ def test_formal_source_delta_exact_change_and_declaration_change(monkeypatch):
     assert result["proofReuseAdmissible"] is False
 
 
+def test_formal_sourcecut_uses_explicit_git_repo_outside_cwd(tmp_path, monkeypatch):
+    import subprocess
+
+    # This regression exercises real Git, not the autouse source-ID mocks.
+    monkeypatch.undo()
+    repo = Path(__file__).resolve().parents[2]
+    sha = subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+    ).strip()
+    monkeypatch.chdir(tmp_path)
+    temporal = module.declared_formal_source_delta(
+        repo=repo, prior_sha=sha, current_sha=sha
+    )
+    snapshot = module.compare_formal_execution_inputs_to_candidate(
+        repo=repo, execution_sha=sha, candidate_sha=sha
+    )
+    assert temporal["changedDeclaredPaths"] == snapshot["changedDeclaredPaths"] == []
+    assert temporal["proofReuseAdmissible"] is False
+    assert snapshot["proofReuseAdmissible"] is False
+
+
 def test_declared_membership_changes_even_when_git_bytes_do_not(tmp_path):
     import subprocess
 
@@ -1102,6 +1123,16 @@ def test_historical_formal_content_refuses_mutated_inputs_and_false_proof(monkey
         {"sourceBlobs": {names[0]: "1" * 40}},
         {"sourceBlobs": {names[0]: "1" * 40, names[1]: "3" * 40}},
         {"probes": [{"probe": "Lean", "result": "FAIL"}]},
+        {"probes": [{"probe": "", "result": "PASS"}]},
+        {"probes": [{"probe": "  ", "result": "PASS"}]},
+        {"probes": [{"probe": " Lean", "result": "PASS"}]},
+        {
+            "probes": [
+                {"probe": "Lean", "result": "PASS"},
+                {"probe": "Lean", "result": "PASS"},
+            ],
+            "count": 2,
+        },
         {"toolBinaries": {"z3": {"path": "x", "version": "v", "sha256": "a" * 64}}},
     ):
         altered = copy.deepcopy(good)
@@ -2242,7 +2273,7 @@ def _tool_snap_pair():
 
 
 def _compare_tool_snapshots(monkeypatch, historical, current):
-    monkeypatch.setattr(module, "_exact_commit", lambda sha: sha)
+    monkeypatch.setattr(module, "_exact_commit", lambda sha, **kwargs: sha)
     return module.compare_original_formal_tool_inputs(
         historical_receipt=historical,
         current_observation=current,
@@ -2408,3 +2439,59 @@ def test_fake_tool_mismatch_with_wrong_cut_does_not_create_spurious_obligation(
     )
     assert assessed["decision"] == "UNKNOWN_UNCLOSED_PROOF_ASSUMPTIONS"
     assert not assessed["proofReuseAdmissible"]
+
+
+def test_explicit_repository_wrapper_preserves_native_delta_across_provider_outage(
+    tmp_path, monkeypatch,
+):
+    import subprocess
+
+    monkeypatch.undo()
+    repo = Path(__file__).resolve().parents[2]
+    sha = subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(module, "_provider_checks", Mock(side_effect=OSError("offline")))
+    result = module.decide_with_optional_formal_source_delta(
+        repo=module.DEFAULT_REPOSITORY, current_sha=sha, prior_sha=sha,
+        check_name="root-verification", include_formal_source_delta=True,
+        github=object(), git_repo=repo,
+    )
+    assert result["disposition"] == "UNKNOWN_CURRENT_CHECK_PROVIDER"
+    assert result["formalDeclaredSourceDelta"]["standing"] == "UNCHANGED_DECLARED_SOURCE_INPUTS"
+    assert result["proofReuseAdmissible"] is False
+
+
+def test_explicit_repository_does_not_run_cwd_bound_selector(
+    tmp_path, monkeypatch,
+):
+    import subprocess
+
+    monkeypatch.undo()
+    repo = Path(__file__).resolve().parents[2]
+    def rev(ref):
+        return subprocess.check_output(
+            ["git", "-C", str(repo), "rev-parse", ref], text=True,
+        ).strip()
+    prior, current = rev("HEAD^"), rev("HEAD")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(module, "_provider_checks", Mock(return_value=[]))
+    monkeypatch.setattr(
+        module, "_select_check",
+        lambda rows, *, sha, **kwargs: dict(GOOD, head_sha=prior) if sha == prior else None,
+    )
+    selector = Mock(side_effect=AssertionError("wrong checkout"))
+    monkeypatch.setattr(module.convergence_plan, "build_plan", selector)
+    result = module.decide(
+        repo=module.DEFAULT_REPOSITORY, current_sha=current, prior_sha=prior,
+        github=object(), git_repo=repo,
+    )
+    assert result["disposition"] == "UNKNOWN_SOURCE_RELATION"
+    assert result["proofReuseAdmissible"] is False
+    selector.assert_not_called()
+    with pytest.raises(subprocess.CalledProcessError):
+        module.decide(
+            repo=module.DEFAULT_REPOSITORY, current_sha="0" * len(current),
+            github=object(), git_repo=repo,
+        )

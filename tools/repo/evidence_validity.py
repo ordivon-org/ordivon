@@ -48,10 +48,14 @@ REPO_PATTERN = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
 SHA_PATTERN = re.compile(r"(?:[0-9a-f]{40}|[0-9a-f]{64})")
 
 
-def _exact_commit(sha: str) -> str:
+def _exact_commit(sha: str, *, repo: Path | None = None) -> str:
     if not isinstance(sha, str) or not SHA_PATTERN.fullmatch(sha):
         raise ValueError("evidence SourceCut requires a literal full Git commit SHA")
-    actual = convergence_plan._git("rev-parse", f"{sha}^{{commit}}")
+    actual = (
+        convergence_plan._git("rev-parse", f"{sha}^{{commit}}")
+        if repo is None
+        else git_native(repo, "--no-replace-objects", "rev-parse", f"{sha}^{{commit}}").strip()
+    )
     if actual != sha:
         raise ValueError("evidence SourceCut does not match native Git commit")
     return sha
@@ -64,6 +68,7 @@ def decide(
     prior_sha: str | None = None,
     check_name: str = "root-verification",
     github: Gh | None = None,
+    git_repo: Path | None = None,
     current_workflow_run_id: int | None = None,
     prior_workflow_run_id: int | None = None,
 ) -> dict[str, Any]:
@@ -71,9 +76,9 @@ def decide(
         raise ValueError("GitHub repository must be the canonical Ordivon owner/name")
     if not check_name or len(check_name) > 128:
         raise ValueError("Check Run name must be nonempty and bounded")
-    current_sha = _exact_commit(current_sha)
+    current_sha = _exact_commit(current_sha, repo=git_repo)
     if prior_sha is not None:
-        prior_sha = _exact_commit(prior_sha)
+        prior_sha = _exact_commit(prior_sha, repo=git_repo)
     gh = github or Gh(repo)
     current = _select_check(
         _provider_checks(gh, repo, current_sha),
@@ -101,10 +106,15 @@ def decide(
     ):
         try:
             # Use existing native Git ancestry check, not a sibling PR diff.
-            require_ancestral_source_cuts(Path.cwd(), prior_sha, current_sha)
-            qualify_current_selector(Path.cwd(), current_sha)
+            source_repo = git_repo or Path.cwd()
+            require_ancestral_source_cuts(source_repo, prior_sha, current_sha)
+            # The existing selector reads the executing checkout and cwd.
+            # Do not silently reinterpret an explicitly different source repo.
+            if source_repo.resolve() != Path.cwd().resolve():
+                raise ValueError("selector cwd differs from explicit source repository")
+            qualify_current_selector(source_repo, current_sha)
             impact = convergence_plan.build_plan(base=prior_sha, head=current_sha)
-            qualify_current_selector(Path.cwd(), current_sha)
+            qualify_current_selector(source_repo, current_sha)
         except (ValueError, subprocess.CalledProcessError):
             # Nonancestral or unqualified selection is UNKNOWN, not "no hit".
             impact = None
@@ -197,8 +207,8 @@ def declared_formal_source_delta(
     cuts, and the native immutable Git source-history membership query.
     Dynamic tool/loader, environment and consumer closure stay UNKNOWN.
     """
-    prior_sha = _exact_commit(prior_sha)
-    current_sha = _exact_commit(current_sha)
+    prior_sha = _exact_commit(prior_sha, repo=repo)
+    current_sha = _exact_commit(current_sha, repo=repo)
     require_ancestral_source_cuts(repo, prior_sha, current_sha)
     old, new, changed = _formal_member_delta(repo, prior_sha, current_sha)
     return {
@@ -234,7 +244,7 @@ def inspect_historical_formal_report(
     authenticity, verifier execution, domain correctness or toolchain
     equivalence. Those remain separate proof obligations.
     """
-    source_sha = _exact_commit(source_sha)
+    source_sha = _exact_commit(source_sha, repo=repo)
     if not isinstance(report, dict) or report.get("kind") != (
         "source-scoped-native-formal-toolchain-check"
     ):
@@ -270,8 +280,11 @@ def inspect_historical_formal_report(
             not isinstance(probe, dict)
             or probe.get("result") != "PASS"
             or not isinstance(probe.get("probe"), str)
+            or not probe["probe"].strip()
+            or probe["probe"] != probe["probe"].strip()
             for probe in probes
         )
+        or len({probe["probe"] for probe in probes}) != len(probes)
     ):
         raise ValueError("historical Formal report probe inventory invalid")
     tools = report.get("toolBinaries")
@@ -378,8 +391,8 @@ def compare_formal_execution_inputs_to_candidate(
     An actual PR synthetic merge is often NOT ancestor of PR Head; exact
     Git input equivalence is distinct from historical proof reuse.
     """
-    execution_sha = _exact_commit(execution_sha)
-    candidate_sha = _exact_commit(candidate_sha)
+    execution_sha = _exact_commit(execution_sha, repo=repo)
+    candidate_sha = _exact_commit(candidate_sha, repo=repo)
     original, current, changed = _formal_member_delta(
         repo, execution_sha, candidate_sha
     )
@@ -443,7 +456,7 @@ def _workflow_formal_artifact(
     if len(matching) != 1:
         raise ValueError("historical Formal Artifact must have one exact producer")
     artifact, actual_sha = matching[0]
-    _exact_commit(actual_sha)
+    _exact_commit(actual_sha, repo=git_repo)
     workflow = artifact.get("workflow_run")
     if (
         artifact.get("expired") is not False
@@ -660,9 +673,9 @@ def decide_with_optional_formal_source_delta(
     That yields no current provider Check Run, but original Formal Artifact
     and two original Git snapshots remain independently inspectable.
     """
-    current_sha = _exact_commit(current_sha)
+    current_sha = _exact_commit(current_sha, repo=git_repo)
     if prior_sha is not None:
-        prior_sha = _exact_commit(prior_sha)
+        prior_sha = _exact_commit(prior_sha, repo=git_repo)
     if repo != DEFAULT_REPOSITORY or not check_name or len(check_name) > 128:
         raise ValueError("unqualified repository or Check Run name")
     try:
@@ -672,6 +685,7 @@ def decide_with_optional_formal_source_delta(
             prior_sha=prior_sha,
             check_name=check_name,
             github=github,
+            git_repo=git_repo,
             current_workflow_run_id=current_workflow_run_id,
             prior_workflow_run_id=prior_workflow_run_id,
         )
