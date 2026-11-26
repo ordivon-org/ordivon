@@ -3423,16 +3423,21 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
     let times = fixture
         .db
         .query_one(
-            "SELECT started_at_ms,finished_at_ms FROM attempts WHERE job_id=$1",
+            "SELECT a.started_at_ms,a.finished_at_ms,(SELECT count(*) FROM job_events e WHERE e.job_id=a.job_id AND e.attempt_id=a.attempt_id AND e.event_type='RUNNER_BOUND') FROM attempts a WHERE a.job_id=$1",
             &[&completed_job],
         )
         .unwrap();
-    let started: i64 = times.get::<_, Option<i64>>(0).expect("native Runner bound");
+    // A short native command may reach terminal before a separate RUNNER_BOUND
+    // observation commits. Preserve the actual nullable evidence, never
+    // fabricate a timestamp; the held long-running case below requires
+    // an exact RUNNER_BOUND event independently.
+    let started: Option<i64> = times.get(0);
+    assert_eq!(times.get::<_, i64>(2), i64::from(started.is_some()));
     let finished: i64 = times.get::<_, Option<i64>>(1).expect("terminal witness");
     let inspection = call(&endpoint, "job.get", json!({"jobId":completed_job}));
     assert_ne!(inspection["isError"], true, "{inspection}");
     let attempt = &inspection["structuredContent"]["attempts"][0];
-    assert_eq!(attempt["startedAtMs"], started);
+    assert_eq!(attempt.get("startedAtMs"), started.map(|v| json!(v)).as_ref());
     assert_eq!(attempt["finishedAtMs"], finished);
     assert!(
         attempt.get("durationMs").is_none(),
@@ -3445,8 +3450,8 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
     );
     assert_ne!(listed["isError"], true, "{listed}");
     assert_eq!(
-        listed["structuredContent"]["jobs"][0]["startedAtMs"],
-        started
+        listed["structuredContent"]["jobs"][0].get("startedAtMs"),
+        started.map(|v| json!(v)).as_ref()
     );
     let post_terminal_cancel = call(&endpoint, "job.cancel", json!({"jobId":completed_job}));
     assert_ne!(
@@ -4787,8 +4792,29 @@ fn resource_queue_owner_fairness_and_idle_borrowing() {
             .to_string()
     };
     let borrower = submit("idle-borrower", "idle-owner", cpu, &release_blocker);
-    let borrowed:bool=fixture.db.query_one("SELECT EXISTS(SELECT 1 FROM job_allocations x JOIN attempts a ON a.attempt_id=x.attempt_id WHERE a.job_id=$1 AND x.state='active')",&[&borrower]).unwrap().get(0);
-    assert!(borrowed, "idle capacity was artificially capped per owner");
+    // A zero-wait admission is not a synchronous allocation promise.
+    // Keep the borrower held and observe PG passively, without job.observe
+    // or a second dispatch request that might rescue a stalled scheduler.
+    let borrow_deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        let row = fixture.db.query_one(
+            "SELECT j.resolution,x.owner,x.resources_json,a.state FROM jobs j JOIN attempts a ON a.job_id=j.job_id LEFT JOIN job_allocations x ON x.attempt_id=a.attempt_id AND x.state='active' WHERE j.job_id=$1",
+            &[&borrower],
+        ).unwrap();
+        let resolution: Option<String> = row.get(0);
+        let owner: Option<String> = row.get(1);
+        let resources: Option<String> = row.get(2);
+        let state: String = row.get(3);
+        assert!(resolution.is_none(), "idle borrower terminated before capacity witness: {resolution:?}");
+        if let (Some(owner), Some(resources)) = (owner, resources) {
+            assert_eq!(owner, "idle-owner");
+            assert_eq!(serde_json::from_str::<Value>(&resources).unwrap()["cpuMillis"], cpu);
+            break;
+        }
+        assert!(Instant::now() < borrow_deadline,
+            "idle capacity did not converge under passive observation: attempt={state}");
+        thread::sleep(Duration::from_millis(50));
+    }
     let a1 = submit("owner-a-first", "owner-a", cpu / 2, &release_owners);
     let a2 = submit("owner-a-second", "owner-a", cpu / 2, &release_owners);
     let b1 = submit("owner-b-first", "owner-b", cpu / 2, &release_owners);
