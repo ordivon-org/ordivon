@@ -19,6 +19,7 @@ dev = [
   "ruff>=0.17.2",
 ]
 test = [
+  "hypothesis>=6",
   "pytest>=9.1.1",
 ]
 
@@ -29,7 +30,7 @@ default-groups = ["dev", "test"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "-q"
+addopts = "-q --strict-markers --strict-config"
 markers = [
   "integration: requires workstation-managed external tools, runtimes, or services",
 ]

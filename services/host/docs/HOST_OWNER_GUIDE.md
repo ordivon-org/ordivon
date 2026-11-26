@@ -545,3 +545,62 @@ operation, or incomplete/relabelled update rolls back the whole maintenance
 operation, even if its caller catches the error. Only after every batch is
 qualified does the existing legacy-only fence become active. The caller
 still controls the outer transaction and timeouts.
+
+### Dual-mode Work receipt writer (source candidate; default unchanged)
+
+The existing MCP process composition accepts a strict
+`ORDIVON_HOST_V2_COMPACT_WORK_RECEIPTS` option (0 by default, 1 requests
+compact writes). This option does not authorize a migration or remove the
+native legacy-only constraint. When the option is disabled the original
+full-receipt write path incurs no extra database statements. When enabled,
+the existing idempotency claim already holds ROW EXCLUSIVE until commit:
+the writer observes the native fence inside that transaction, never caches
+the mode, and writes full receipts when the validated fence is present.
+An absent fence alone is insufficient: compact writes require the exact
+validated and enforced schema-17 shape and root FK contracts, with the
+PG18 deparsed definitions serving as independent qualification oracles.
+A weak/unrecognized contract fails closed. Exact replay is validated before
+atomically finalizing the tag and native pin in the same claim transaction.
+
+Rollback takes the existing exclusive lock, expands all exact roots in a
+savepoint and restores the validated legacy-only fence. Waiting opted-in
+READ COMMITTED writers reobserve the fence after claim admission and fall
+back to full receipts; no restart is required for that fallback.
+The source option is not a production activation procedure. Before any
+activation, qualify the installed schema, real consumer/rollback reader
+fleet, recovery cut and release admission. No automatic DDL or historical
+deletion is introduced.
+
+Native root qualification also observes the four internal PostgreSQL FK
+triggers (insert/update checks and target delete/update restrictions).
+The ordinary origin session must see all four exact native signatures
+enabled for origin or always. Catalog constraint definitions alone do
+not prove active enforcement. This is a qualification of the observed
+schema under the existing transaction, not a claim that a privileged
+administrator cannot subsequently change database configuration.
+
+### Point replay observes the persisted root
+
+The Work command path reuses the generic idempotency claim arbiter and
+conflict validation, then observes the stored receipt row and schema
+version in a single SQL statement. A legacy response must have no native
+pin; a compact response must have the exact persisted native work/revision
+identity, agreeing with the requested context and immutable envelope.
+The shared codec verifies the exact indexed historical target. The
+ordinary two-statement legacy replay and three-statement compact replay
+(including the claim) are preserved, without an extra schema query.
+A whole-row projection also preserves the explicitly tested schema-16
+rollback compatibility; missing pin columns under schema >=17 are errors.
+Bulk audit/maintenance retains its set-oriented root projection.
+
+The batch expansion effect is qualified independently of UPDATE RETURNING.
+For each bounded batch, a subsequent native set readback checks the exact
+identity set, JSONB response, original operation and request digest, and
+both cleared pin coordinates. Only identifiers and qualification booleans
+are returned to the application; the expected encoded responses are sent
+once for the update and again for the comparison. This catches ordinary
+BEFORE and AFTER trigger rewrites of the batch's rows; it does not claim
+protection against arbitrary later privileged DDL or unrelated trigger
+side effects. The original exclusive lock and whole-operation savepoint
+remain in force. No new payload admission limit or storage authority is
+introduced.

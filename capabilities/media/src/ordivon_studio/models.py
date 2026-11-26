@@ -7,6 +7,7 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
+from .production_source_io import claims_source_path, read_bound_object
 from .production_validation import _validate_cognition_record, _validate_production_semantics
 from .runtime_receipt_validation import _validate_receipt_envelope, _validate_runtime_receipt
 from .timed_text import iter_cues
@@ -44,11 +45,18 @@ def validate_repository() -> list[str]:
     for production_directory in sorted(path for path in PRODUCTION_DIRECTORY.iterdir() if path.is_dir()):
         documents: dict[str, dict[str, Any]] = {}
         for document_name, validator in validators.items():
-            path = production_directory / document_name
-            if not path.exists():
+            if document_name == "claims.json":
+                try:
+                    path = claims_source_path(production_directory, documents.get("production.json", {}))
+                except (TypeError, ValueError) as exc:
+                    errors.append(f"{production_directory}: invalid claims source: {exc}")
+                    continue
+            else:
+                path = production_directory / document_name
+            if not path.is_file():
                 errors.append(f"{path}: required production document is missing")
                 continue
-            document = _load(path)
+            document, _ = read_bound_object(path)
             documents[document_name] = document
             for error in sorted(validator.iter_errors(document), key=lambda item: list(item.path)):
                 location = "/".join(str(part) for part in error.path)

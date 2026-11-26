@@ -6,6 +6,7 @@ import sys
 import pytest
 
 DIR=Path(__file__).resolve().parents[1]/"providers/gluetun"
+sys.path.insert(0,str(DIR))
 spec=importlib.util.spec_from_file_location("native_bundle",DIR/"native_bundle.py")
 bundle=importlib.util.module_from_spec(spec)
 sys.modules[spec.name]=bundle
@@ -14,7 +15,7 @@ spec.loader.exec_module(bundle)
 
 def test_reconciler_keeps_original_native_owner_and_one_recovery_consumer():
     result=bundle.validate_source()
-    assert result["nonsecretFileCount"]==8
+    assert result["nonsecretFileCount"]==9
     data=bundle.SOURCE_SVC.read_text()
     assert "ExecStartPost=/usr/bin/python3 " in data
     assert "native_switch.py --recover" in data
@@ -28,8 +29,9 @@ def test_source_payload_is_installable_without_credentials_or_live_effect(tmp_pa
     assert all("private_key" not in name for name in bundle.FILES)
     dest=tmp_path/"gluetun-native"
     bundle.copy_payload(dest)
-    assert bundle.verify(dest=dest,verify_systemd=False)["nonsecretFileCount"]==8
+    assert bundle.verify(dest=dest,verify_systemd=False)["nonsecretFileCount"]==9
     assert (dest/"native_switch.py").is_file()
+    assert (dest/"historical_observation.py").is_file()
     assert (dest/"config/exit-allowlist.json").is_file()
 
 
@@ -47,3 +49,32 @@ def test_loaded_timer_source_keeps_single_native_unit_and_minute_cadence():
     assert "Unit=network-v2-gluetun-owned-reconcile.service" in data
     assert "OnCalendar=*-*-* *:0/2:00" not in data
     assert bundle.TIMER_NAME=="network-v2-gluetun-owned-reconcile.timer"
+
+
+def test_repeated_readback_rejects_same_size_same_mtime_corruption(tmp_path):
+    import os
+    dest = tmp_path / "bundle"
+    bundle.copy_payload(dest)
+    bundle.verify(dest=dest, verify_systemd=False)
+    path = dest / "quality_history.py"
+    before = path.stat()
+    original = path.read_bytes()
+    path.write_bytes(bytes([original[0] ^ 1]) + original[1:])
+    os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))
+    with pytest.raises(ValueError, match="mismatch"):
+        bundle.verify(dest=dest, verify_systemd=False)
+
+
+@pytest.mark.parametrize("relative", ["quality_history.py", "config"])
+def test_readback_rejects_symlinked_payload_even_if_bytes_match(tmp_path, relative):
+    import shutil
+    dest = tmp_path / "bundle"
+    bundle.copy_payload(dest)
+    path = dest / relative
+    if path.is_dir():
+        shutil.rmtree(path)
+    else:
+        path.unlink()
+    path.symlink_to(bundle.SOURCE / relative, target_is_directory=relative=="config")
+    with pytest.raises(ValueError):
+        bundle.verify(dest=dest, verify_systemd=False)

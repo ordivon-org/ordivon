@@ -1,23 +1,16 @@
 """Consumer contract: prevent an old repo Network source from erasing live monitors."""
 from __future__ import annotations
 
-import importlib.util
 from pathlib import Path
 
 import pytest
+
+from monitoring_test_support import _load, _native_target_fixture
 
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/monitoring-sourcecut-preflight.py"
 CONFIGS = ("blackbox/blackbox.yml", "prometheus/prometheus.yml", "prometheus/consumer.rules.yml")
-
-
-def _load():
-    spec = importlib.util.spec_from_file_location("network_monitor_preflight", SCRIPT)
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 
 def _files(root: Path, *, blackbox: bytes = b"modules: {}\n", prometheus: bytes = b"scrape_configs: []\n", rules: bytes = b"groups: []\n"):
@@ -242,6 +235,11 @@ def test_duplicate_yaml_keys_cannot_launder_a_consumer_edge(tmp_path, which):
         ("wrong-exporter", "loaded Prometheus consumer graph differs"),
         ("missing-rule", "loaded Prometheus consumer graph differs"),
         ("duplicate-job", "duplicate Prometheus job name"),
+        ("timestamp-trust", "loaded Prometheus consumer graph differs"),
+        ("label-trust", "loaded Prometheus consumer graph differs"),
+        ("metric-relabel", "loaded Prometheus consumer graph differs"),
+        ("environment-proxy", "loaded Prometheus consumer graph differs"),
+        ("redirect", "loaded Prometheus consumer graph differs"),
     ],
 )
 def test_loaded_prometheus_binding_rejects_divergence(tmp_path, mutation, expected):
@@ -274,6 +272,15 @@ def test_loaded_prometheus_binding_rejects_divergence(tmp_path, mutation, expect
         source["rule_files"] = []
     elif mutation == "duplicate-job":
         source["scrape_configs"].append(copy.deepcopy(source["scrape_configs"][0]))
+    else:
+        field, value = {
+            "timestamp-trust": ("honor_timestamps", False),
+            "label-trust": ("honor_labels", True),
+            "metric-relabel": ("metric_relabel_configs", [{"action": "drop", "regex": ".*"}]),
+            "environment-proxy": ("proxy_from_environment", True),
+            "redirect": ("follow_redirects", False),
+        }[mutation]
+        source["scrape_configs"][0][field] = value
     with pytest.raises(ValueError, match=expected):
         owner.verify_loaded_prometheus(src, source)
 
@@ -351,39 +358,15 @@ def test_native_fragment_sourcecut_rejects_missing_or_altered_consumer(tmp_path)
 
 
 @pytest.mark.parametrize(
-    "mutation", ["missing-pool", "missing-target", "wrong-module", "wrong-exporter"]
+    "mutation", ["missing-pool", "missing-target", "wrong-module", "wrong-exporter", "wrong-scheme", "wrong-instance", "wrong-discovered-address", "extra-query", "duplicate-query", "wrong-direct-scheme"]
 )
 def test_native_prometheus_loaded_target_oracle_detects_counterexamples(
     mutation: str,
 ) -> None:
     """A native config check cannot certify that a running process loaded it."""
     import copy
-    from urllib.parse import urlencode
 
-    owner = _load()
-    declared = owner._all_scrape_jobs(ROOT / "config")
-    pool_data = {"data": {"scrapePools": [job["job_name"] for job in declared]}}
-    active = []
-    for job in declared:
-        target = job["static_configs"][0]["targets"][0]
-        module = (job.get("params") or {}).get("module")
-        if module:
-            exporter = next(
-                rule["replacement"] for rule in job["relabel_configs"]
-                if rule.get("target_label") == "__address__"
-            )
-            url = f"http://{exporter}/probe?" + urlencode(
-                {"module": module[0], "target": target}
-            )
-        else:
-            url = f"http://{target}/metrics"
-        active.append({
-            "scrapePool": job["job_name"],
-            "labels": {"job": job["job_name"]},
-            "discoveredLabels": {"__param_module": module[0]} if module else {},
-            "scrapeUrl": url,
-        })
-    target_data = {"data": {"activeTargets": active}}
+    owner, declared, pool_data, target_data = _native_target_fixture()
     assert owner.verify_loaded_active_targets(ROOT / "config", pool_data, target_data) == len(declared)
     pool_data = copy.deepcopy(pool_data)
     target_data = copy.deepcopy(target_data)
@@ -393,7 +376,72 @@ def test_native_prometheus_loaded_target_oracle_detects_counterexamples(
         target_data["data"]["activeTargets"].pop()
     elif mutation == "wrong-module":
         target_data["data"]["activeTargets"][0]["discoveredLabels"]["__param_module"] = "foreign"
-    else:
+    elif mutation == "wrong-exporter":
         target_data["data"]["activeTargets"][0]["scrapeUrl"] = "http://127.0.0.1:9999/probe?module=http_2xx_ipv4&target=https%3A%2F%2Fexample.com%2F"
+    else:
+        target = target_data["data"]["activeTargets"][0]
+        if mutation == "wrong-scheme":
+            target["scrapeUrl"] = target["scrapeUrl"].replace("http:", "https:", 1)
+        elif mutation == "wrong-instance":
+            target["labels"]["instance"] = "foreign"
+        elif mutation == "wrong-discovered-address":
+            target["discoveredLabels"]["__address__"] = "foreign"
+        elif mutation == "extra-query":
+            target["scrapeUrl"] += "&debug=true"
+        elif mutation == "duplicate-query":
+            target["scrapeUrl"] += "&target=foreign"
+        elif mutation == "wrong-direct-scheme":
+            direct = next(t for t in target_data["data"]["activeTargets"] if "/metrics" in t["scrapeUrl"])
+            direct["scrapeUrl"] = direct["scrapeUrl"].replace("http:", "https:", 1)
     with pytest.raises(ValueError, match="loaded|active target"):
         owner.verify_loaded_active_targets(ROOT / "config", pool_data, target_data)
+
+
+def test_loaded_graph_permutation_and_all_role_identity_properties():
+    """Finite metamorphic check across every source-declared role, no network effects."""
+    import copy
+    from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
+    owner, declared, pools, targets = _native_target_fixture()
+    actual = targets["data"]["activeTargets"]
+    # Relation order and URL parameter order are immaterial.
+    for order in (actual, list(reversed(actual)), actual[1:] + actual[:1]):
+        reordered = copy.deepcopy(order)
+        for t in reordered:
+            url = urlsplit(t["scrapeUrl"])
+            t["scrapeUrl"] = urlunsplit(url._replace(query=urlencode(
+                list(reversed(parse_qsl(url.query, keep_blank_values=True))))))
+        assert owner.verify_active_targets(list(reversed(declared)),
+            {"data": {"scrapePools": list(reversed(pools["data"]["scrapePools"]))}},
+            {"data": {"activeTargets": reordered}}) == len(declared)
+    # Every role must be independently observed; no missing identity,
+    # duplicated role, mislabeled target or undeclared request parameter.
+    for i in range(len(actual)):
+        for mutation in ("omit", "duplicate", "instance", "address", "scheme", "extra"):
+            changed = copy.deepcopy(actual)
+            t = changed[i]
+            if mutation == "omit":
+                changed.pop(i)
+            elif mutation == "duplicate":
+                changed.append(copy.deepcopy(t))
+            elif mutation == "instance":
+                t["labels"]["instance"] = "foreign"
+            elif mutation == "address":
+                t["discoveredLabels"]["__address__"] = "foreign"
+            elif mutation == "scheme":
+                t["scrapeUrl"] = t["scrapeUrl"].replace("http:", "https:", 1)
+            else:
+                t["scrapeUrl"] += ("&" if "?" in t["scrapeUrl"] else "?") + "foreign="
+            with pytest.raises(ValueError):
+                owner.verify_active_targets(declared, pools, {"data": {"activeTargets": changed}})
+
+
+@pytest.mark.parametrize("pools, targets", [
+    ({"data": None}, {"data": {}}),
+    ({"data": {"scrapePools": [[]]}}, {"data": {}}),
+    ({"data": {"scrapePools": ["only"]}}, {"data": {"activeTargets": [None]}}),
+])
+def test_loaded_graph_malformed_api_is_typed_rejection(pools, targets):
+    owner = _load()
+    with pytest.raises(ValueError):
+        owner.verify_active_targets([{"job_name": "only"}], pools, targets)
