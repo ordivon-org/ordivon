@@ -91,9 +91,13 @@ impl PgRuntime {
         let a = self.cancel_attempt_identity(db, &request.job_id)?;
         if !a.state.is_terminal() {
             prepare_private_pg_attempt_bundle(Path::new(&a.bundle_path))?;
+            #[cfg(windows)]
+            let marker = json!({"schemaVersion":1,"jobId":a.job_id,"attemptId":a.attempt_id});
+            #[cfg(not(windows))]
+            let marker = json!({"requestedAtMs":now()?});
             universal::write_json_atomic(
                 &Path::new(&a.bundle_path).join("cancel-requested.json"),
-                &json!({"requestedAtMs":now()?}),
+                &marker,
             )
             .map_err(io)?;
             if a.state == AttemptState::Accepted {
@@ -112,26 +116,33 @@ impl PgRuntime {
                     },
                 );
             }
-            // systemd-run already sets KillMode=control-group,
-            // TimeoutStopSec=2s and SendSIGKILL=yes. Reuse that native
-            // stop policy: no extra PID walker, custom signal escalation or
-            // immediate hard-kill wrapper is needed.
-            if a.unit_name != format!("ordivon-pg-{}.service", a.attempt_id) {
-                return Err(error("Attempt native unit identity mismatch"));
-            }
-            let stop = super::platform::stop_unit_no_block(&a.unit_name)?;
-            if !stop.status.success() {
-                // A transient Unit may already have been collected. This
-                // failed submission is not proof of an active process; native
-                // reconciliation owns the terminal/no-result decision.
-                let unit = super::platform::systemctl_show(&a.unit_name)?;
-                if super::platform::unit_is_active(&unit)
-                    || super::platform::unit_has_pending_job(&unit)
-                {
-                    return Err(error(format!(
-                        "cancel intent persisted; native stop not confirmed for {}",
-                        request.job_id
-                    )));
+            // The marker above is consumed by the Windows JobObject launcher.
+            // On Windows the original native reconciliation must observe its
+            // exact drain and result; a Linux unit stop is neither a request
+            // to that launcher nor terminal evidence. Never kill by bare PID.
+            #[cfg(target_os = "linux")]
+            {
+                // systemd-run already sets KillMode=control-group,
+                // TimeoutStopSec=2s and SendSIGKILL=yes. Reuse that native
+                // stop policy: no extra PID walker, custom signal escalation or
+                // immediate hard-kill wrapper is needed.
+                if a.unit_name != format!("ordivon-pg-{}.service", a.attempt_id) {
+                    return Err(error("Attempt native unit identity mismatch"));
+                }
+                let stop = super::platform::stop_unit_no_block(&a.unit_name)?;
+                if !stop.status.success() {
+                    // A transient Unit may already have been collected. This
+                    // failed submission is not proof of an active process; native
+                    // reconciliation owns the terminal/no-result decision.
+                    let unit = super::platform::systemctl_show(&a.unit_name)?;
+                    if super::platform::unit_is_active(&unit)
+                        || super::platform::unit_has_pending_job(&unit)
+                    {
+                        return Err(error(format!(
+                            "cancel intent persisted; native stop not confirmed for {}",
+                            request.job_id
+                        )));
+                    }
                 }
             }
         }
