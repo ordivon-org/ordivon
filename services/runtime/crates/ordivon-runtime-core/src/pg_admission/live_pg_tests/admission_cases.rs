@@ -624,6 +624,12 @@ fn windows_native_drain_event_is_current_attempt_fenced_and_never_terminal_on_it
     assert!(reopened
         .qualified_native_windows_drain(&after_restart)
         .unwrap());
+    assert!(matches!(
+        reopened
+            .record_native_windows_drain(&after_restart)
+            .unwrap(),
+        PgNativeWindowsDrainOutcome::Existing(_)
+    ));
     let mut incorrect = native.clone();
     incorrect.launcher_process_id += 1;
     assert!(!owner.qualified_native_windows_drain(&incorrect).unwrap());

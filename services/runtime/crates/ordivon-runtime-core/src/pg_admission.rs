@@ -14,9 +14,9 @@ mod dispatch;
 mod input_contract;
 #[path = "pg_issuer_guard.rs"]
 mod issuer;
-// Real Windows writer or Linux test-only falsification; never include an
-// unconsumed Windows native journal path in a production Linux PG library.
-#[cfg(any(windows, test))]
+// Native Win32 observation/journal WRITER is Windows-only. The *same-PG*
+// terminal read validator is cross-platform and must remain available even
+// to the Linux PG CAS code when asked to validate original Win32 Attempt.
 #[path = "pg_admission_native_windows_drain.rs"]
 mod native_windows_drain;
 #[cfg(all(test, feature = "postgres-registry-admission"))]
