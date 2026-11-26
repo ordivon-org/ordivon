@@ -277,10 +277,11 @@ def cad_boundary_status() -> dict[str, Any]:
     family = next(x for x in taxonomy["families"] if x.get("id") == "design-3d")
     profiles = list(family.get("currentProfiles", []))
     cad_profiles = [x for x in profiles if any(token in x.lower() for token in ("step", "ifc", "3mf", "cad", "bim"))]
+    cad_lock = _load_json(ROOT / "artifact-delivery/cad-toolchain-r1.lock.json")
     tools = {
         "blender": Path("/usr/bin/blender").is_file(),
-        "freecad": Path("/opt/ordivon/external/freecad/1.1.3/root/usr/bin/freecadcmd").is_file(),
-        "occtStepInspector": Path("/opt/ordivon/external/occt-step-inspector/1/cad_step_inspect").is_file(),
+        "freecad": (Path(cad_lock["freecad"]["rootPath"]) / cad_lock["freecad"]["freecadCmdPath"]).is_file(),
+        "occtStepInspector": Path(cad_lock["occtInspector"]["path"]).is_file(),
         "openscadWindows": Path("/mnt/c/Program Files/OpenSCAD/openscad.exe").is_file(),
     }
     return {

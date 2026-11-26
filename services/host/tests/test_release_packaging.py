@@ -204,7 +204,12 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     # independently reviewed tree, while leaving the serving pointer intact.
     before_current = (prefix / "current").resolve()
     rejected_sdk = _run(
-        str(INSTALL), str(repo), next_commit, str(prefix), expected_tree, "--prepare-only",
+        str(INSTALL),
+        str(repo),
+        next_commit,
+        str(prefix),
+        expected_tree,
+        "--prepare-only",
         env={**env, "ORDIVON_TEST_NATIVE_SDK_REJECT": "1"},
     )
     assert rejected_sdk.returncode == 73, rejected_sdk.stderr
@@ -258,6 +263,53 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     assert "release source drift" in blocked.stderr
     assert (prefix / "current").resolve() == release
     assert uv_call_log.read_text(encoding="utf-8") == uv_before
+
+    shutil.copyfile(release / "uv.lock", staged_next / "uv.lock")
+    # Native import precedence allows an untracked package to shadow a
+    # tracked Python file while all original Git blob checks remain green.
+    shadow = staged_next / "src" / "ordivon_host_v2" / "__init__"
+    shadow.mkdir()
+    (shadow / "__init__.py").write_text("SHADOW = True\n", encoding="utf-8")
+    blocked_extra = _run(
+        str(INSTALL), str(repo), next_commit, str(prefix), expected_tree, "--prepare-only", env=env
+    )
+    assert blocked_extra.returncode == 2, blocked_extra.stderr
+    assert "unexpected release entry" in blocked_extra.stderr
+    assert uv_call_log.read_text(encoding="utf-8") == uv_before
+    shutil.rmtree(shadow)
+
+    # An unchanged tracked leaf under a redirected parent is not the original
+    # physical source carrier.
+    parent = staged_next / "src" / "ordivon_host_v2"
+    external = tmp_path / "redirected-source"
+    parent.rename(external)
+    parent.symlink_to(external, target_is_directory=True)
+    redirected = _run(
+        str(INSTALL), str(repo), next_commit, str(prefix), expected_tree, "--prepare-only", env=env
+    )
+    assert redirected.returncode == 2, redirected.stderr
+    assert "not a real directory" in redirected.stderr
+    assert uv_call_log.read_text(encoding="utf-8") == uv_before
+    parent.unlink()
+    external.rename(parent)
+
+    cache = parent / "__pycache__"
+    cache.mkdir()
+    (cache / "__init__.cpython-315.pyc").write_bytes(b"generated fixture")
+    valid_cache = _run(
+        str(INSTALL), str(repo), next_commit, str(prefix), expected_tree, "--prepare-only", env=env
+    )
+    assert valid_cache.returncode == 0, valid_cache.stderr
+    uv_before = uv_call_log.read_text(encoding="utf-8")
+    (cache / "untracked.py").write_text("SHADOW = True", encoding="utf-8")
+    invalid_cache = _run(
+        str(INSTALL), str(repo), next_commit, str(prefix), expected_tree, "--prepare-only", env=env
+    )
+    assert invalid_cache.returncode == 2, invalid_cache.stderr
+    assert "unexpected cache filename" in invalid_cache.stderr
+    assert uv_call_log.read_text(encoding="utf-8") == uv_before
+    shutil.rmtree(cache)
+    assert (prefix / "current").resolve() == before_current
 
     # Git executable bits also belong to the immutable source contract.
     shutil.copyfile(release / "uv.lock", staged_next / "uv.lock")

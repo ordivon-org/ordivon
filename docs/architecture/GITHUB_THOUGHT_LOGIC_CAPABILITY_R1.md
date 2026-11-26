@@ -34,21 +34,12 @@ green test Job cannot substitute for consumer/domain acceptance.
 
 `tools/repo/check_github_governance.py` is the existing executable adapter
 for the current monorepo policy. It remains callable by CI and its independent
-consumers. Its extracted private modules are:
-
-- `github_governance/git_paths.py`: NUL-delimited Git tracked-path inventory
-  with lossless surrogateescape conversion; takes explicit repository path.
-- `github_governance/dependency_coverage.py`: Dependabot update and directory
-  coverage projection, independent of the filesystem.
-- `github_governance/codeowners.py`: restricted literal-root CODEOWNERS
-  semantics; rejects ambiguous overrides rather than pretending to implement
-  full GitHub patterns.
-- `github_governance/codeql.py`: parsed workflow semantic qualification for
-  supported languages, events and published CodeQL result categories.
-
-The original executable still composes these primitives with repository
-specific dependency, workflow, release and owner task rules. This is a first
-slice, not a claim that the rest of its checks are already modular.
+consumers. The current private-module layout and behavior are source-native: inspect
+the imports of `tools/repo/check_github_governance.py`, the implementation
+under `tools/repo/github_governance/`, and its behavioral tests.
+The architectural boundary is the existing executable adapter, not a frozen
+list of private files; provider-specific logic should stay with its natural
+consumer.
 
 ### Explicit non-migrations
 

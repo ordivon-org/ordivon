@@ -4,6 +4,7 @@ import argparse
 import importlib.util
 import io
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -40,6 +41,46 @@ class ReleaseControllerTests(unittest.TestCase):
                 repository,
             )
             self.assertEqual(resolved, provider.resolve())
+
+    def test_release_source_is_explicit_under_foreign_git_context(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            def make_repo(name):
+                repo = root / name
+                subprocess.run(["git", "init", "-q", str(repo)], check=True)
+                def git(*args):
+                    return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+                git("config", "user.name", "Test")
+                git("config", "user.email", "test@example.invalid")
+                provider = repo / "platform/workstation/providers/cloudflare"
+                (provider / "src").mkdir(parents=True)
+                (provider / "src/index.ts").write_text(name)
+                (provider / "wrangler.jsonc").write_text("{}")
+                git("add", ".")
+                git("commit", "-qm", "first")
+                return repo, provider, git
+            a, provider, ga = make_repo("a")
+            b, _, gb = make_repo("b")
+            first = ga("rev-parse", "HEAD")
+            self.assertNotEqual(first, gb("rev-parse", "HEAD"))
+            with mock.patch.object(release_controller, "ROOT", provider):
+                original = release_controller.worker_release_digest(first)
+                with mock.patch.dict(os.environ, {
+                    "GIT_DIR": str(b / ".git"), "GIT_WORK_TREE": str(b),
+                    "GIT_INDEX_FILE": str(b / ".git/index"),
+                }):
+                    self.assertEqual(release_controller.verify_release_source(), first)
+                    self.assertEqual(release_controller.worker_release_digest(first), original)
+                    (provider / "src/index.ts").write_text("dirty")
+                    with self.assertRaises(release_controller.ReleaseError):
+                        release_controller.verify_release_source()
+                ga("add", ".")
+                ga("commit", "-qm", "second")
+                ga("replace", first, ga("rev-parse", "HEAD"))
+                self.assertEqual(release_controller.worker_release_digest(first), original)
+            self.assertEqual(release_controller.resolve_provider_root(
+                pathlib.Path("/usr/local/sbin/ordivon-edge-release"), a
+            ), provider.resolve())
 
     def test_source_release_controller_prefers_adjacent_provider(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -391,6 +432,43 @@ class ReleaseControllerTests(unittest.TestCase):
                 (provider / "src" / "index.ts").write_text("dirty worker\n")
                 with self.assertRaises(release_controller.ReleaseError):
                     release_controller.verify_release_source()
+
+    def test_release_source_checks_actual_blobs_not_index_visibility(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            def git(*args):
+                return subprocess.check_output(["git", "-C", str(root), *args], text=True).strip()
+            git("config", "user.name", "Test")
+            git("config", "user.email", "test@example.invalid")
+            (root / "src").mkdir()
+            worker = root / "src/index.ts"
+            worker.write_text("committed")
+            (root / "wrangler.jsonc").write_text("{}")
+            (root / ".gitignore").write_text("src/ignored.ts\n")
+            git("add", ".")
+            git("commit", "-qm", "base")
+            head = git("rev-parse", "HEAD")
+            with mock.patch.object(release_controller, "ROOT", root):
+                self.assertEqual(release_controller.verify_release_source(), head)
+                for flag in ("assume-unchanged", "skip-worktree"):
+                    with self.subTest(flag=flag):
+                        git("update-index", "--" + flag, "src/index.ts")
+                        worker.write_text("hidden change")
+                        self.assertEqual(git("status", "--porcelain"), "")
+                        try:
+                            with self.assertRaises(release_controller.ReleaseError):
+                                release_controller.verify_release_source()
+                        finally:
+                            git("update-index", "--no-" + flag, "src/index.ts")
+                            worker.write_text("committed")
+                ignored = root / "src/ignored.ts"
+                ignored.write_text("uncommitted input")
+                self.assertEqual(git("status", "--porcelain"), "")
+                with self.assertRaises(release_controller.ReleaseError):
+                    release_controller.verify_release_source()
+                ignored.unlink()
+                self.assertEqual(release_controller.verify_release_source(), head)
 
     def test_change_aware_smoke_selection(self) -> None:
         previous = {"id": "old", "annotations": {"workers/tag": "git-aaaaaaaaaaaa-src-bbbbbbbbbbbbbbbb-1"}}

@@ -53,6 +53,11 @@ name = "ordivon-runtime-windows-deploy"
 path = "src/bin/ordivon-runtime-windows-deploy.rs"
 required-features = ["operator-tools"]
 
+[[test]]
+name = "archive_migration_properties"
+path = "tests/archive_migration_properties.rs"
+required-features = ["operator-tools"]
+
 # Kani's real proof harnesses compile under cfg(kani); standard
 # Cargo/Clippy check-cfg must recognize it without permitting unknown cfgs.
 [lints.rust]

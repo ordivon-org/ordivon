@@ -4,9 +4,12 @@ from typing import Any
 
 import psycopg
 
-from .attention_projections import AttentionReadProjections
-from .attention_projections import TargetKind as TargetKind
+from .attention_delta_queries import AttentionDeltaQueries
+from .attention_reentry_queries import AttentionReentryQueries
+from .attention_subscription_queries import AttentionSubscriptionQueries
+from .attention_subscription_queries import TargetKind as TargetKind
 from .canonical_json import canonical_digest
+from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES
 from .command_receipts import claim_command_receipt, record_command_receipt
 from .errors import ActorRefNotFound, ConflictError
 from .postgres_bounds import HOST_WIRE_INT_MAX
@@ -15,10 +18,47 @@ from .references.actor_refs import ActorReferenceLookup
 from .references.record_refs import RecordReferenceLookup
 
 
-class AttentionStore(
-    AttentionReadProjections, ActorReferenceLookup, RecordReferenceLookup, HostPostgresConnections
-):
+class AttentionStore(HostPostgresConnections):
     """Actor-scoped navigation compiled directly from owner rows, not a second event bus."""
+
+    def list_subscriptions(
+        self,
+        actor_ref: str,
+        *,
+        target_kind: TargetKind | None = None,
+        after_target_kind: str | None = None,
+        after_target_ref: str | None = None,
+        limit: int = 200,
+        max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
+    ) -> dict[str, Any]:
+        return AttentionSubscriptionQueries(self._connect).list_subscriptions(
+            actor_ref, target_kind=target_kind, after_target_kind=after_target_kind,
+            after_target_ref=after_target_ref, limit=limit, max_bytes=max_bytes,
+        )
+
+    def get(
+        self, actor_ref: str, *, limit: int = 100,
+        max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
+    ) -> dict[str, Any]:
+        return AttentionDeltaQueries(self._connect).get(
+            actor_ref, limit=limit, max_bytes=max_bytes,
+        )
+
+    def delta(
+        self, actor_ref: str, *, after_sequence: int, limit: int = 100,
+        max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
+    ) -> dict[str, Any]:
+        return AttentionDeltaQueries(self._connect).delta(
+            actor_ref, after_sequence=after_sequence, limit=limit, max_bytes=max_bytes,
+        )
+
+    def reentry(
+        self, actor_ref: str, *, after_sequence: int | None = None,
+        limit: int = 100, max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
+    ) -> dict[str, Any]:
+        return AttentionReentryQueries(self._connect).reentry(
+            actor_ref, after_sequence=after_sequence, limit=limit, max_bytes=max_bytes,
+        )
 
     def follow(
         self,
@@ -36,7 +76,7 @@ class AttentionStore(
             # Without this arbiter, a competing unfollow can remove the row
             # between INSERT ... ON CONFLICT DO NOTHING and its fallback SELECT.
             self._lock_actor(conn, actor_ref)
-            self._require_target(conn, target_kind, target_ref)
+            RecordReferenceLookup._require_target(conn, target_kind, target_ref)
             row = conn.execute(
                 "INSERT INTO subscriptions(actor_ref,target_kind,target_ref) VALUES (%s,%s,%s) "
                 "ON CONFLICT DO NOTHING RETURNING actor_ref,target_kind,target_ref,created_at,change_sequence",
@@ -102,7 +142,7 @@ class AttentionStore(
             replay = claim_command_receipt(conn, client_request_id, "attention.ack", request_digest)
             if replay is not None:
                 return replay
-            self._require_actor(conn, actor_ref)
+            ActorReferenceLookup._require_actor(conn, actor_ref)
             high = int(
                 conn.execute("SELECT value FROM swf_change_clock WHERE singleton").fetchone()[
                     "value"

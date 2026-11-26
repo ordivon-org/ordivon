@@ -10,6 +10,7 @@ import argparse
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 import json
+import math
 from pathlib import Path
 import re
 import statistics
@@ -20,11 +21,11 @@ from urllib.request import urlopen
 
 import native_profile as native
 
-JOBS = (
-    "blackbox-scoped-claude-api",
-    "blackbox-scoped-codex-mcp",
-    "blackbox-vpn-pypi",
+from historical_observation import (
+    JOBS, PairedSeries, parse_matrix, paired_matrix,
+    summarize_samples, window_coverage,
 )
+
 PROM = "http://127.0.0.1:29090"
 # Three native Prometheus Blackbox jobs scrape every 30 seconds.
 # Keep this one-shot admission bound to genuinely fresh, contiguous raw data.
@@ -42,6 +43,9 @@ CONNECT = re.compile(
 MIN_SESSION = timedelta(minutes=18)
 WARMUP = timedelta(minutes=3)
 WITNESS_MIN = 12
+# Historical coverage is a separate evidence policy from live failure admission.
+# Its initial tolerance is 1.5 times the declared 30s source cadence.
+HISTORICAL_MAX_SAMPLE_GAP_SECONDS = 45
 SUCCESS_FLOOR = 0.97
 HISTORICAL_TTL = timedelta(hours=24)
 SOURCE_TRIAL_HINTS = Path(__file__).resolve().parent / "config/recovery-hints.json"
@@ -215,29 +219,9 @@ def segments(
     return result
 
 
-def parse_matrix(rows: list[dict], metric: str, start: datetime, end: datetime) -> dict[str, list[float]]:
-    outputs: dict[str, list[float]] = {}
-    for row in rows:
-        job = row.get("metric", {}).get("job", "")
-        if job not in JOBS:
-            continue
-        values = []
-        for timestamp, raw in row.get("values", []):
-            if not (start.timestamp() <= float(timestamp) <= end.timestamp()):
-                continue
-            try:
-                number = float(raw)
-            except (ValueError, TypeError):
-                continue
-            if number == number and 0 <= number < float("inf"):
-                values.append(number)
-        outputs[job] = values
-    return outputs
-
-
 def qualify(
-    segment: Segment, success: dict[str, list[float]],
-    duration: dict[str, list[float]], now: datetime, allowed: set[str],
+    segment: Segment, observations: dict[str, PairedSeries],
+    now: datetime, allowed: set[str],
 ) -> dict[str, object]:
     base: dict[str, object] = {
         "catalogCountry": segment.country,
@@ -253,20 +237,21 @@ def qualify(
     if segment.country not in allowed:
         return base | {"standing": "REJECTED_NOT_ALLOWED"}
     checks: list[dict[str, object]] = []
+    start = segment.start + WARMUP
+    end = segment.end - timedelta(minutes=1)
     for job in JOBS:
-        values = success.get(job, [])
-        delays = duration.get(job, [])
-        if len(values) < WITNESS_MIN or len(delays) < WITNESS_MIN:
+        series = observations.get(job)
+        samples = series.samples if series is not None else ()
+        if len(samples) < WITNESS_MIN:
             return base | {"standing": "UNKNOWN_INSUFFICIENT_CONSUMER_EVIDENCE",
-                           "samples": {job: {"success": len(values), "latency": len(delays)}}}
-        ratio = sum(v >= 1.0 for v in values)/len(values)
-        checks.append({
-            "job": job,
-            "samples": len(values),
-            "successRatio": round(ratio, 5),
-            "medianMs": round(1000*statistics.median(delays)),
-            "p90Ms": round(1000*sorted(delays)[int(.9*(len(delays)-1))]),
-        })
+                           "samples": {job: {"paired": len(samples)}}}
+        coverage = window_coverage(samples, start, end, minimum=WITNESS_MIN,
+                                   max_gap=HISTORICAL_MAX_SAMPLE_GAP_SECONDS)
+        if not coverage.complete:
+            return base | {"standing": "UNKNOWN_INSUFFICIENT_TEMPORAL_COVERAGE",
+                           "coverage": {job: coverage.report()}}
+        checks.append({"job": job, **summarize_samples(samples),
+                       "coverage": coverage.report()})
     if any(float(c["successRatio"]) < SUCCESS_FLOOR for c in checks):
         status = "OBSERVED_CONSUMER_DEGRADED"
     elif now - segment.end > HISTORICAL_TTL:
@@ -275,6 +260,7 @@ def qualify(
         status = "RECENT_HISTORICAL_CONSUMER_SUCCESS"
     # Rank only within the evidence-compatible set. A historical sample
     # cannot be promoted to QUALIFIED_NOW_STANDBY without a live tunnel.
+    # Preserve legacy aggregate latency ranking; stratified latency is diagnostic.
     p90s = [int(c["p90Ms"]) for c in checks]
     success_floor = min(float(c["successRatio"]) for c in checks)
     return base | {
@@ -343,38 +329,37 @@ def decision(
     }
 
 
-def http_query(metric: str, start: datetime, end: datetime) -> list[dict]:
-    expr = metric+'{job=~"'+ "|".join(JOBS)+'"}'
-    url = PROM + "/api/v1/query_range?" + urlencode({
-        "query": expr, "start": int(start.timestamp()),
-        "end": int(end.timestamp()), "step": "60s",
-    })
-    with urlopen(url, timeout=14) as r:
-        data = json.load(r)
-    if data.get("status") != "success" or data.get("data", {}).get("resultType") != "matrix":
-        raise ValueError("Prometheus range query is not valid")
-    return data["data"]["result"]
-
-
-def http_raw_samples(metric: str, now: datetime) -> list[dict]:
-    """Return actual Prometheus scrape timestamps, NEVER query_range steps.
-
-    A query_range instant selector can repeat the final failed value for up
-    to the lookback delta after scraping stops. Query a range vector at one
-    instant to receive original raw sample times and distinguish silence.
-    """
-    if metric != "probe_success":
-        raise ValueError("Native failure admission accepts only probe_success")
-    expr = metric + '{job=~"' + "|".join(JOBS) + '"}[7m]'
+def _http_range_vector(metric: str, end: datetime, window: str, timeout: int) -> list[dict]:
+    """The native instant range-vector API preserves original scrape timestamps."""
+    expr = metric+'{job=~"'+ "|".join(JOBS)+'"}['+window+']'
     url = PROM + "/api/v1/query?" + urlencode({
-        "query": expr, "time": now.timestamp(),
+        "query": expr, "time": end.timestamp(),
     })
-    with urlopen(url, timeout=11) as response:
+    with urlopen(url, timeout=timeout) as response:
         data = json.load(response)
-    if (data.get("status") != "success" or
+    if (data.get("status") != "success" or data.get("warnings") or
         data.get("data", {}).get("resultType") != "matrix"):
         raise ValueError("Raw Prometheus range-vector observation invalid")
     return data["data"]["result"]
+
+
+def http_query(metric: str, start: datetime, end: datetime) -> list[dict]:
+    """Read the original historical scrape series, not lookback-replayed steps."""
+    if metric not in ("probe_success", "probe_duration_seconds"):
+        raise ValueError("Unsupported historical metric")
+    seconds = (end - start).total_seconds()
+    if not 0 <= seconds <= 168 * 3600:
+        raise ValueError("Historical range outside bounded observation window")
+    # Native range selectors are left-open/right-closed. Include the start
+    # boundary, then filter exactly to the caller's window in parse_matrix.
+    return _http_range_vector(metric, end, f"{math.ceil(seconds)+1}s", 14)
+
+
+def http_raw_samples(metric: str, now: datetime) -> list[dict]:
+    """Return actual Prometheus scrape timestamps, NEVER query_range steps."""
+    if metric != "probe_success":
+        raise ValueError("Native failure admission accepts only probe_success")
+    return _http_range_vector(metric, now, "7m", 11)
 
 
 def recent_failure_witness(now: datetime) -> bool | None:
@@ -527,9 +512,8 @@ def observe(*, hours: int) -> dict[str, object]:
         for segment in relevant:
             start = segment.start + WARMUP
             end = segment.end - timedelta(minutes=1)
-            success = parse_matrix(successes, "probe_success", start, end)
-            duration = parse_matrix(durations, "probe_duration_seconds", start, end)
-            results.append(qualify(segment, success, duration, now, allowed))
+            observations = paired_matrix(successes, durations, start, end)
+            results.append(qualify(segment, observations, now, allowed))
     # Live evidence is distinct from the historical trend. Do not infer
     # active failure from a missing metric or merely an older journal session.
     import observe_active

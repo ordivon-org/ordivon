@@ -60,6 +60,14 @@ fn pg18_runner_bound_exact_dispatch_becomes_running() {
     assert_eq!(row.get::<_, String>(0), "running");
     assert_eq!(row.get::<_, i64>(1), 3);
     assert_eq!(row.get::<_, Option<i64>>(2), Some(witness.observed_at_ms));
+    let crate::PgJobReadback::Observed(running) = store
+        .observe_job_readonly(&input.job_id, &input.expected_source_sha256)
+        .unwrap()
+    else {
+        panic!("bound Attempt must be observable");
+    };
+    assert_eq!(running.started_at_ms, Some(witness.observed_at_ms));
+    assert_eq!(running.finished_at_ms, None);
     let event = scratch.admin.query_one(
             "SELECT event_type,origin,previous_state,new_state,reason_code,detail_json FROM job_events WHERE job_id=$1 AND event_sequence=6",
             &[&input.job_id],
@@ -120,6 +128,15 @@ fn pg18_runner_bound_exact_dispatch_becomes_running() {
     );
     assert_eq!(final_state.get::<_, Option<String>>(1), None);
     assert_eq!(final_state.get::<_, String>(2), "released");
+    assert_eq!(scratch.count("job_events"), 8);
+    let crate::PgJobReadback::Observed(finished) = store
+        .observe_job_readonly(&input.job_id, &input.expected_source_sha256)
+        .unwrap()
+    else {
+        panic!("terminal Attempt must be observable");
+    };
+    assert_eq!(finished.started_at_ms, Some(witness.observed_at_ms));
+    assert_eq!(finished.finished_at_ms, Some(terminal.finished_at_ms));
     assert_eq!(scratch.count("job_events"), 8);
 
     // Cancellation between dispatch intent and positive start must win:

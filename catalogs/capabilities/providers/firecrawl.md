@@ -24,7 +24,7 @@ Prefer another provider when the task is mainly:
 
 - a simple public URL already readable through ordinary HTTP/fetch;
 - a known deterministic browser test/workflow -> Playwright;
-- an unknown, stateful, logged-in or transactional UI task where the Agent must repeatedly reason about browser state -> Browser Use;
+- an unknown, stateful, logged-in or transactional UI task -> Agent-directed Playwright where the required session is supported; qualified Browser Use is a fallback;
 - API/SaaS integration or recurring event automation -> native connector/n8n;
 - whole-desktop GUI interaction -> Computer Use.
 
@@ -107,7 +107,7 @@ Treat this as optional semantic extraction, not a replacement for Ordivon's Rese
 
 Firecrawl can perform browser actions such as click, scroll, write and wait before extraction. This is useful when a deterministic interaction is needed to expose data.
 
-Do not automatically route open-ended browser-operation tasks here merely because interaction exists. If the primary problem is adaptive UI operation, Browser Use remains the clearer provider boundary.
+Do not automatically route open-ended browser-operation tasks here merely because interaction exists. If the primary problem is adaptive UI operation, separate Agent reasoning from browser execution; use the current admitted browser route.
 
 ## Web-provider routing rule
 

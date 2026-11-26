@@ -214,7 +214,7 @@
       "outputs": [
         "new committed canary receipt, identical historical replay, or explicit conflict/deny"
       ],
-      "behavioralContract": "R2 create commits under admitted scope; R4 publish requires step-up approval bound to the exact effect and consumes it once; identical replay preserves previous receipt and conflicting payloads or fresh revoked-grant effects reject.",
+      "behavioralContract": "R2 create commits under admitted scope; R4 publish requires step-up approval bound to the exact effect and consumes it once; committed approval evidence cannot be reopened and pending approval lookup excludes committed effects; identical replay preserves previous receipt and conflicting payloads or fresh revoked-grant effects reject.",
       "evidence": [
         "src/store.ts",
         "src/app.ts",
@@ -223,6 +223,7 @@
         "test/agent-native-e2e.ts",
         "src/agent-canary-routes.ts",
         "formal/AgentEffectResponseR1.tla",
+        "formal/EffectApprovalRecordR1.tla",
         "formal/README.md"
       ],
       "dependencies": [

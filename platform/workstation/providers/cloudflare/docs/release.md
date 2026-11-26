@@ -69,7 +69,7 @@ git-<source-prefix>-src-<worker-input-digest>-<time>
 
 The source commit is provenance. The input digest decides whether a release changes the Worker. Documentation, tests, evidence, and release-tool-only changes do not require a new Worker version.
 
-Dirty Worker inputs are rejected because they cannot be reconstructed. A branch, detached commit, unrelated dirty file, or commit not yet equal to `origin/main` is not rejected merely for organizational form.
+Dirty Worker inputs are rejected because they cannot be reconstructed. A branch, detached commit, unrelated dirty file, or commit not yet equal to `origin/main` is not rejected merely for organizational form. Both the release controller and client SourceCut observation isolate Git reads from inherited `GIT_*` variables and disable local replace-object substitution. The explicitly selected repository or provider checkout therefore determines Git discovery rather than a caller's ambient Git directory, worktree, index, or object replacement. The release controller recognizes the canonical `platform/workstation/providers/cloudflare` layout when given a repository root. The release gate also compares every selected committed regular file's raw Git blob identity and executable bit against the physical checkout, rejects ignored uncommitted inputs within the declared Worker paths, and rechecks the source after CI before upload. Index visibility flags cannot hide altered bytes from this gate. This is not a general attestation of arbitrary local Git configuration, the entire build environment, or concurrent writes after the last observation.
 
 ## Flow
 

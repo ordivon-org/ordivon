@@ -7,15 +7,15 @@ source-independent calibration and sealed-holdout reasoning.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import math
-import random
+from bisect import bisect_left
 from collections.abc import Iterable, Mapping, Sequence
 from statistics import NormalDist
 from typing import TYPE_CHECKING, Any
 
 from .grounded_contracts import canonical_digest
+from .search_sampling import _rng, adaptive_family_count, search_samples, static_search_values
 from .trial_registration import admit_frozen_winner, seed_commitment, validate_registration
 
 if TYPE_CHECKING:
@@ -23,15 +23,6 @@ if TYPE_CHECKING:
 
 NORMAL = NormalDist()
 
-
-
-def _seed_int(seed: str, namespace: str) -> int:
-    digest = hashlib.sha256(f"{seed}\x00{namespace}".encode()).digest()
-    return int.from_bytes(digest[:16], "big")
-
-
-def _rng(seed: str, namespace: str) -> random.Random:
-    return random.Random(_seed_int(seed, namespace))
 
 
 def one_sided_p(z: float) -> float:
@@ -59,69 +50,27 @@ def _record(
         )
 
 
-def _static_search_stat(seed: str, budget: int, ledger: TrialLedger | None = None) -> dict[str, Any]:
-    rng = _rng(seed, "static-visible-search")
+def _search_stat(
+    mode: str, seed: str, budget: int, ledger: TrialLedger | None = None
+) -> dict[str, Any]:
+    """Materialize registered candidate identity and optional ledger events."""
     winner: dict[str, Any] | None = None
-    for sequence in range(1, budget + 1):
-        config = {"family": "independent-expression-probe", "sequence": sequence}
-        candidate_id = candidate_identity(config)
-        _record(ledger, sequence=sequence, candidate_id=candidate_id, event_type="trial.proposed", payload={"config": config})
-        z = rng.gauss(0.0, 1.0)
-        result = {
-            "candidateId": candidate_id,
-            "config": config,
-            "visibleStatisticZ": z,
-            "visibleEstimatedDelta": z * 0.10,
-            "standardError": 0.10,
-        }
-        _record(
-            ledger,
-            sequence=sequence,
-            candidate_id=candidate_id,
-            event_type="trial.evaluated",
-            payload={"visibleStatisticZ": z, "visibleEstimatedDelta": z * 0.10, "standardError": 0.10},
-        )
-        if winner is None or z > float(winner["visibleStatisticZ"]):
-            winner = result
-    assert winner is not None
-    return winner
-
-
-def _adaptive_search_stat(seed: str, budget: int, ledger: TrialLedger | None = None) -> dict[str, Any]:
-    rng = _rng(seed, "adaptive-visible-search")
-    family_count = min(16, max(2, budget // 8))
-    rho = 0.60
-    shared_scale = math.sqrt(rho)
-    idiosyncratic_scale = math.sqrt(1.0 - rho)
-    family_latent = {family: rng.gauss(0.0, shared_scale) for family in range(family_count)}
-    family_sums = {family: 0.0 for family in range(family_count)}
-    family_counts = {family: 0 for family in range(family_count)}
-    family_branches = {family: 0 for family in range(family_count)}
-    winner: dict[str, Any] | None = None
-
-    for sequence in range(1, budget + 1):
-        if sequence <= family_count:
-            family = sequence - 1
+    family_counts = dict.fromkeys(range(adaptive_family_count(budget)), 0) if mode == "adaptive" else {}
+    for sample in search_samples(mode, seed, budget):
+        if sample.family is None:
+            config = {"family": "independent-expression-probe", "sequence": sample.sequence}
         else:
-            if rng.random() < 0.82:
-                family = max(
-                    range(family_count),
-                    key=lambda item: family_sums[item] / family_counts[item] if family_counts[item] else float("-inf"),
-                )
-            else:
-                family = rng.randrange(family_count)
-        family_branches[family] += 1
-        config = {
-            "family": "adaptive-expression-family",
-            "familyId": family,
-            "branch": family_branches[family],
-            "selectionPolicy": "running-family-mean-82pct-exploit",
-        }
+            family_counts[sample.family] = sample.branch
+            config = {
+                "family": "adaptive-expression-family",
+                "familyId": sample.family,
+                "branch": sample.branch,
+                "selectionPolicy": "running-family-mean-82pct-exploit",
+            }
         candidate_id = candidate_identity(config)
-        _record(ledger, sequence=sequence, candidate_id=candidate_id, event_type="trial.proposed", payload={"config": config})
-        z = family_latent[family] + rng.gauss(0.0, idiosyncratic_scale)
-        family_sums[family] += z
-        family_counts[family] += 1
+        _record(ledger, sequence=sample.sequence, candidate_id=candidate_id,
+                event_type="trial.proposed", payload={"config": config})
+        z = sample.z
         result = {
             "candidateId": candidate_id,
             "config": config,
@@ -129,26 +78,20 @@ def _adaptive_search_stat(seed: str, budget: int, ledger: TrialLedger | None = N
             "visibleEstimatedDelta": z * 0.10,
             "standardError": 0.10,
         }
-        _record(
-            ledger,
-            sequence=sequence,
-            candidate_id=candidate_id,
-            event_type="trial.evaluated",
-            payload={
-                "visibleStatisticZ": z,
-                "visibleEstimatedDelta": z * 0.10,
-                "standardError": 0.10,
-                "familyRunningMean": family_sums[family] / family_counts[family],
-            },
-        )
+        payload = {"visibleStatisticZ": z, "visibleEstimatedDelta": z * 0.10, "standardError": 0.10}
+        if sample.running_mean is not None:
+            payload["familyRunningMean"] = sample.running_mean
+        _record(ledger, sequence=sample.sequence, candidate_id=candidate_id,
+                event_type="trial.evaluated", payload=payload)
         if winner is None or z > float(winner["visibleStatisticZ"]):
             winner = result
     assert winner is not None
-    winner["searchDiagnostics"] = {
-        "familyCount": family_count,
-        "withinVisibleFamilyCorrelation": rho,
-        "attemptsByFamily": {str(key): value for key, value in family_counts.items()},
-    }
+    if mode == "adaptive":
+        winner["searchDiagnostics"] = {
+            "familyCount": len(family_counts),
+            "withinVisibleFamilyCorrelation": 0.60,
+            "attemptsByFamily": {str(key): value for key, value in family_counts.items()},
+        }
     return winner
 
 
@@ -158,10 +101,7 @@ def run_registered_search(registration: Mapping[str, Any], ledger: TrialLedger |
     mode = str(search["mode"])
     budget = int(search["attemptBudget"])
     visible_seed = str(search["visibleSeed"])
-    if mode == "static":
-        winner = _static_search_stat(visible_seed, budget, ledger)
-    else:
-        winner = _adaptive_search_stat(visible_seed, budget, ledger)
+    winner = _search_stat(mode, visible_seed, budget, ledger)
     winner.update(
         {
             "schemaVersion": 1,
@@ -192,11 +132,11 @@ def run_registered_search(registration: Mapping[str, Any], ledger: TrialLedger |
 
 
 def _winner_stat_for_replay(mode: str, budget: int, seed: str) -> float:
+    # Null replay consumes only the maximum, never candidate metadata or ledger effects.
+    assert budget > 0
     if mode == "static":
-        return float(_static_search_stat(seed, budget)["visibleStatisticZ"])
-    if mode == "adaptive":
-        return float(_adaptive_search_stat(seed, budget)["visibleStatisticZ"])
-    raise ValueError(mode)
+        return max(static_search_values(seed, budget))
+    return max(sample.z for sample in search_samples(mode, seed, budget))
 
 
 def empirical_tail_probability(observed: float, reference: Sequence[float]) -> float:
@@ -204,6 +144,12 @@ def empirical_tail_probability(observed: float, reference: Sequence[float]) -> f
         raise ValueError("reference distribution is empty")
     exceed = sum(value >= observed for value in reference)
     return (exceed + 1.0) / (len(reference) + 1.0)
+
+
+def _ordered_tail_probability(observed: float, ordered_reference: Sequence[float]) -> float:
+    """Inclusive empirical tail on a nonempty, sorted finite reference."""
+    exceed = len(ordered_reference) - bisect_left(ordered_reference, observed)
+    return (exceed + 1.0) / (len(ordered_reference) + 1.0)
 
 
 def _quantile(values: Sequence[float], q: float) -> float:
@@ -353,6 +299,7 @@ def calibration_experiment(
             _winner_stat_for_replay(mode, budget, f"{seed}:reference:{budget}:{index:06d}")
             for index in range(1, reference_replays + 1)
         ]
+        ordered_reference = sorted(reference)
         naive_false = 0
         corrected_false = 0
         holdout_false = 0
@@ -365,7 +312,7 @@ def calibration_experiment(
             observed_maxima.append(observed)
             holdout_zs.append(holdout)
             naive_p = one_sided_p(observed)
-            corrected_p = empirical_tail_probability(observed, reference)
+            corrected_p = _ordered_tail_probability(observed, ordered_reference)
             holdout_p = one_sided_p(holdout)
             naive_false += int(naive_p < alpha)
             corrected_false += int(corrected_p < alpha)

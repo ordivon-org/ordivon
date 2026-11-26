@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from ordivon_studio.production_context import build_production_context
 
@@ -196,6 +197,51 @@ class ProductionContextTests(unittest.TestCase):
                 missing["outputByteIdentity"]["observations"][0]["relation"],
                 "UNKNOWN_SELECTED_FILE_UNAVAILABLE",
             )
+
+    def test_unstable_selected_output_is_unknown_without_stopping_other_evidence(self) -> None:
+        from ordivon_studio.assets import hash_file
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            production = root / "production"
+            _write_fixture(production, revision="a" * 40)
+            selected = root / "selected.mp4"
+            selected.write_bytes(b"rendered-output")
+            manifest_path = production / "production.json"
+            manifest = json.loads(manifest_path.read_text())
+            manifest["outputs"][0]["blobDigest"] = hash_file(selected).digest
+            manifest_path.write_text(json.dumps(manifest))
+            # Exercise the actual file hasher's concurrent-change witness.
+            import os
+            from types import SimpleNamespace
+
+            real_fstat = os.fstat
+            calls = 0
+
+            def changed(fd):
+                nonlocal calls
+                observed = real_fstat(fd)
+                calls += 1
+                if calls == 1:
+                    return observed
+                return SimpleNamespace(
+                    st_dev=observed.st_dev,
+                    st_ino=observed.st_ino,
+                    st_size=observed.st_size + 1,
+                    st_mtime_ns=observed.st_mtime_ns,
+                    st_ctime_ns=observed.st_ctime_ns,
+                )
+
+            with patch("ordivon_studio.assets.os.fstat", side_effect=changed):
+                result = build_production_context(
+                    production, output_files={"fixture-output": selected}
+                )
+            row = result["outputByteIdentity"]["observations"][0]
+            self.assertEqual(row["relation"], "UNKNOWN_SELECTED_FILE_UNSTABLE")
+            self.assertIsNone(row["observedBlob"])
+            self.assertEqual(result["outputs"][0]["status"], "rendered")
+            self.assertEqual(result["outputByteIdentity"]["publicationAuthorization"], "not-evaluated")
+            self.assertEqual(calls, 2)
 
     def test_source_carrier_unlisted_missing_and_symlink_escape_cannot_be_verified(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

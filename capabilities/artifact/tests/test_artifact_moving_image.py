@@ -6,6 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from artifact_verification.tool_identity import assess_native_tool_paths
+
 ROOT=Path(__file__).resolve().parents[1]
 SPEC=importlib.util.spec_from_file_location('artifact_moving_image',ROOT/'scripts/artifact_moving_image.py')
 MODULE=importlib.util.module_from_spec(SPEC); assert SPEC.loader is not None; SPEC.loader.exec_module(MODULE)
@@ -39,12 +41,11 @@ class ArtifactMovingImageTests(unittest.TestCase):
         for p in (MODULE.MEDIACONCH,MODULE.FFMPEG,MODULE.FFPROBE):
             if not p.is_file(): self.skipTest(f'required mature external tool unavailable: {p}')
 
-    def test_local_binding_tool_digests_match_proven_substrate(self):
+    def test_frozen_reference_tool_digests_match_proven_substrate(self):
         b=json.loads((ROOT/'artifact-delivery/shadow-bindings/moving-image-matroska-ffv1-local-r1.json').read_text())
         checks=[
           ('/opt/ordivon/external/mediaconch/25.04-1/rootfs/usr/bin/mediaconch',b['bindings']['implementationChecker']['binarySha256']),
-          ('/usr/bin/ffmpeg',b['bindings']['technicalAndDecode']['ffmpegSha256']),
-          ('/usr/bin/ffprobe',b['bindings']['technicalAndDecode']['ffprobeSha256'])]
+        ]
         for path,want in checks:
             p=Path(path)
             if not p.is_file(): self.skipTest(f'proven substrate unavailable: {path}')
@@ -56,6 +57,19 @@ class ArtifactMovingImageTests(unittest.TestCase):
             root=Path(d); mkv=make_mkv(root); value=MODULE.verify_moving_image(mkv,BASE,root/'e')
             self.assertEqual(value['status'],'PASS',value)
             self.assertGreater(value['matroskaImplementation']['testsRun'],0)
+            # System FFmpeg is a rolling dependency. Qualify the actual
+            # observed executable bytes, not the historical smoke version.
+            tools = {name: value["tools"][name] for name in ("ffmpeg", "ffprobe")}
+            assessment = assess_native_tool_paths({"tools": tools})
+            self.assertEqual(assessment["status"], "OBSERVED_POSTRUN_CONSISTENT", assessment)
+            self.assertFalse(assessment["dependenciesComplete"])
+            for name, path in (("ffmpeg", MODULE.FFMPEG), ("ffprobe", MODULE.FFPROBE)):
+                with self.subTest(tool=name):
+                    self.assertEqual(assessment["observed"][name]["sha256"],
+                                     hashlib.sha256(path.read_bytes()).hexdigest())
+                    tampered = {**tools, name: {**tools[name], "sha256": "0" * 64}}
+                    self.assertTrue(assess_native_tool_paths({"tools": tampered})["rejected"])
+
             self.assertEqual(value['mediaInfoTechnical']['codecVersion'],'3.4')
             self.assertEqual(value['decodedVideoIdentity']['rawVideoSha256'],json.loads(BASE.read_text())['video']['expectedRawVideoSha256'])
 

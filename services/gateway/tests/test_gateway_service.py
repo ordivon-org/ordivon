@@ -1174,3 +1174,21 @@ def test_artifact_read_rejects_unpaired_unicode_surrogate() -> None:
                 "ordivon-exec:v1:runtime.linux:job-utf8", "artifact-utf8"
             )
         )
+
+
+@pytest.mark.parametrize(
+    ("offset", "max_bytes"),
+    [(True, 10), (-1, 10), (1.5, 10), (0, False), (0, 0), (0, 1_048_577)],
+)
+def test_artifact_read_invalid_local_cursor_never_calls_owner(offset, max_bytes):
+    caller = FakeOwnerCaller()
+    with pytest.raises(GatewayError, match="range"):
+        asyncio.run(
+            GatewayService(caller).artifact_read(
+                "ordivon-exec:v1:runtime.linux:job-invalid",
+                "artifact-invalid",
+                offset=offset,
+                max_bytes=max_bytes,
+            )
+        )
+    assert caller.calls == []

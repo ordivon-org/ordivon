@@ -44,9 +44,10 @@ def resolve_provider_root(
     for candidate in candidates:
         if (candidate / "wrangler.jsonc").is_file():
             return candidate
-        nested = candidate / "providers" / "cloudflare"
-        if (nested / "wrangler.jsonc").is_file():
-            return nested
+        for relative in ("platform/workstation/providers/cloudflare", "providers/cloudflare"):
+            nested = candidate / relative
+            if (nested / "wrangler.jsonc").is_file():
+                return nested
     return script_root
 
 
@@ -237,6 +238,11 @@ def run(
     environment: dict[str, str] | None = None,
     capture: bool = False,
 ) -> subprocess.CompletedProcess[str]:
+    if arguments[0] == "git":
+        # Git-local environment and replace refs must not redirect a SourceCut.
+        inherited = os.environ if environment is None else environment
+        environment = {key: value for key, value in inherited.items() if not key.startswith("GIT_")}
+        arguments = ["git", "--no-replace-objects", *arguments[1:]]
     completed = subprocess.run(
         arguments,
         cwd=ROOT,
@@ -302,15 +308,9 @@ def parse_worker_version_tag(tag: str | None) -> tuple[str, str | None]:
 
 def verify_release_source() -> str:
     head = git_output("rev-parse", "HEAD")
+    pathspecs = worker_release_pathspecs()
     dirty = run(
-        [
-            "git",
-            "status",
-            "--porcelain",
-            "--untracked-files=all",
-            "--",
-            *worker_release_pathspecs(),
-        ],
+        ["git", "status", "--porcelain", "--untracked-files=all", "--", *pathspecs],
         capture=True,
     ).stdout.strip()
     if dirty:
@@ -318,6 +318,40 @@ def verify_release_source() -> str:
             "Worker release inputs are dirty and cannot be reconstructed from Git:\n"
             f"{dirty}"
         )
+
+    # Status is an index-relative observation: assume-unchanged and
+    # skip-worktree can hide modified files. Compare physical regular files
+    # to the selected commit's actual blob IDs without checkout filters.
+    repository = pathlib.Path(git_output("rev-parse", "--show-toplevel")).resolve()
+    entries = run(
+        ["git", "ls-tree", "-r", "-z", "--full-tree", head, "--", *pathspecs],
+        capture=True,
+    ).stdout
+    if not entries:
+        fail("Worker release inputs are empty")
+    for entry in entries.split("\0"):
+        if not entry:
+            continue
+        metadata, relative = entry.split("\t", 1)
+        mode, kind, expected_blob = metadata.split(" ")
+        path = repository / relative
+        if (
+            kind != "blob" or mode not in ("100644", "100755")
+            or not path.is_file() or path.is_symlink() or path.resolve() != path
+        ):
+            fail(f"Worker release input is not a committed regular file: {relative}")
+        if bool(path.stat().st_mode & 0o100) != (mode == "100755"):
+            fail(f"Worker release input executable mode differs from Git: {relative}")
+        actual_blob = git_output("hash-object", "--no-filters", "--", str(path))
+        if actual_blob != expected_blob:
+            fail(f"Worker release input bytes differ from Git: {relative}")
+
+    ignored = run(
+        ["git", "ls-files", "--others", "--ignored", "--exclude-standard", "-z", "--", *pathspecs],
+        capture=True,
+    ).stdout
+    if ignored:
+        fail("Uncommitted ignored Worker release inputs are present")
     return head
 
 
@@ -1085,6 +1119,10 @@ def release(args: argparse.Namespace) -> int:
         run(["pnpm", "install", "--frozen-lockfile", "--offline"])
         run(["pnpm", "run", "ci"])
         report["status"] = "ci_passed"
+        # CI/install may have modified deployable inputs; qualify them again
+        # before contacting the upload or deployment mutation boundary.
+        if verify_release_source() != commit or worker_release_digest(commit) != release_digest:
+            fail("Worker release source changed during CI")
         resume_version_id = getattr(args, "candidate_version_id", None)
         if resume_version_id is not None:
             candidate = resumable_candidate(
