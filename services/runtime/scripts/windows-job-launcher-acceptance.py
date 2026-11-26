@@ -334,6 +334,55 @@ def main() -> int:
             'mismatchRejectedBeforeLauncherStart': True,
         }
 
+        # An ordinary usable Win32 CWD can still exceed MAX_PATH when an
+        # evidence file's unique temporary suffix is appended. Exercise the
+        # real launcher and the kernel no-replace publication at that boundary.
+        long_path_results = []
+        for bundle_length in (232, 240):
+            prefix = temp / f'long-evidence-{bundle_length}'
+            padding = bundle_length - len(windows_path(prefix)) - 1
+            if not 1 <= padding <= 200:
+                fail('cannot construct bounded long-path fixture')
+            long_bundle = prefix / ('b' * padding)
+            long_bundle.mkdir(parents=True)
+            long_command = runtime_launcher_args(
+                launcher,
+                Path('/mnt/c/Windows/System32/cmd.exe'),
+                long_bundle,
+                f'job-accept-long-{bundle_length}',
+                f'attempt-accept-long-{bundle_length}',
+                context_env,
+                target_args=['/d', '/c', 'echo', 'ORDIVON_LONG_PATH_NATIVE'],
+            )
+            long_command[long_command.index('--cwd') + 1] = windows_path(long_bundle)
+            if len(windows_path(long_bundle)) != bundle_length:
+                fail('unexpected long-path fixture size')
+            observed = run(long_command)
+            if observed.returncode != 0:
+                fail('long-path native launcher failed: ' + observed.stderr)
+            evidence = {
+                name: (long_bundle / name).read_bytes()
+                for name in ('windows-start.json', 'result.json', 'stdout.log', 'stderr.log')
+            }
+            result = json.loads(evidence['result.json'])
+            if result['exitCode'] != 0 or evidence['stdout.log'].strip() != b'ORDIVON_LONG_PATH_NATIVE':
+                fail('long-path target result mismatch')
+            for stream in ('stdout', 'stderr'):
+                output = evidence[stream + '.log']
+                if (result[stream]['digest'] != 'sha256:' + hashlib.sha256(output).hexdigest()
+                        or result[stream]['retainedBytes'] != len(output)):
+                    fail('long-path captured artifact mismatch')
+            duplicate = run(long_command)
+            if duplicate.returncode == 0:
+                fail('long-path existing Attempt evidence was overwritten')
+            for name, original in evidence.items():
+                if (long_bundle / name).read_bytes() != original:
+                    fail('long-path duplicate changed existing evidence: ' + name)
+            if any(long_bundle.glob('*.tmp-*')):
+                fail('long-path publication left temporary evidence')
+            long_path_results.append({'bundleLength': bundle_length, 'duplicateRejected': True})
+        summary['nativeLongPathEvidence'] = long_path_results
+
         native_bundle = temp / 'native direct bundle'
         native_bundle.mkdir()
         native_command = runtime_launcher_args(

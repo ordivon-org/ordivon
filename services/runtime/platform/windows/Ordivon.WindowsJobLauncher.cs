@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.IO.Pipes;
+using Microsoft.Win32.SafeHandles;
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Cryptography;
@@ -2700,21 +2701,67 @@ internal static class OrdivonWindowsJobLauncher
             "}";
     }
 
+    // The original .NET Framework launcher strips Rust's verbatim prefixes for
+    // ordinary path APIs. Evidence publication is different: even a valid
+    // <248-character bundle can exceed MAX_PATH after adding a temp suffix.
+    // Use native extended paths only at this file-effect boundary. The path
+    // comes from the already canonicalized Runtime bundle, not target input.
+    private static string EvidenceWin32Path(string path)
+    {
+        if (path.StartsWith(@"\\?\", StringComparison.OrdinalIgnoreCase))
+            return path;
+        if (path.StartsWith(@"\\", StringComparison.Ordinal))
+            return @"\\?\UNC\" + path.Substring(2);
+        return @"\\?\" + path;
+    }
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true, ExactSpelling = true)]
+    private static extern SafeFileHandle CreateFileW(string path, uint access, uint share,
+        IntPtr security, uint disposition, uint attributes, IntPtr template);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true, ExactSpelling = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool MoveFileExW(string existing, string destination, uint flags);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true, ExactSpelling = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool DeleteFileW(string path);
+
     private static void WriteTextAtomic(string path, string content)
     {
-        string temporary = path + ".tmp-" + GetCurrentProcessId().ToString(CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N");
+        string temporary = EvidenceWin32Path(path + ".tmp-" +
+            GetCurrentProcessId().ToString(CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N"));
+        string destination = EvidenceWin32Path(path);
         byte[] bytes = new UTF8Encoding(false).GetBytes(content);
-        using (FileStream stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+        // GENERIC_WRITE, exclusive sharing, CREATE_NEW, FILE_ATTRIBUTE_NORMAL.
+        using (SafeFileHandle handle = CreateFileW(temporary, 0x40000000, 0,
+            IntPtr.Zero, 1, 0x80, IntPtr.Zero))
         {
-            stream.Write(bytes, 0, bytes.Length);
-            stream.Flush(true);
+            if (handle.IsInvalid)
+                ThrowWin32("CreateFileW(runtime evidence temporary)");
+            bool published = false;
+            try
+            {
+                using (FileStream stream = new FileStream(handle, FileAccess.Write))
+                {
+                    stream.Write(bytes, 0, bytes.Length);
+                    stream.Flush(true);
+                }
+                // No MOVEFILE_REPLACE_EXISTING: the kernel performs a same-volume
+                // no-replace rename, not a racy File.Exists + File.Move sequence.
+                if (!MoveFileExW(temporary, destination, 0))
+                    ThrowWin32("MoveFileExW(runtime evidence no-replace)");
+                published = true;
+            }
+            finally
+            {
+                // Close before deletion, including a failed write. This name was
+                // exclusively created by us; never delete the final evidence.
+                handle.Dispose();
+                if (!published)
+                    DeleteFileW(temporary);
+            }
         }
-        if (File.Exists(path))
-        {
-            File.Delete(temporary);
-            throw new InvalidOperationException("runtime evidence path already exists: " + path);
-        }
-        File.Move(temporary, path);
     }
 
     private static void PrepareImmutableInputs(Options options, TokenEvidence tokenEvidence)
