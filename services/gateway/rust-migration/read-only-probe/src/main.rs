@@ -1,3 +1,4 @@
+mod artifact_abi;
 mod artifact_chunk;
 mod artifact_descriptor;
 mod artifact_inventory;
@@ -131,6 +132,8 @@ fn eval(v: Value) -> Value {
             input["owner"].as_str().unwrap_or_default(),
             input["tool"].as_str().unwrap_or_default()
         )),
+        Some("artifact_v1") => artifact_abi::project(input),
+        Some("artifact_evidence_schema") => artifact_abi::schema(),
         Some("artifact_stream") => json!(artifact_stream::project(input)),
         Some("artifact_chunk") => json!(artifact_chunk::qualify(
             input["operationRef"].as_str().unwrap_or_default(),
@@ -173,7 +176,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("{}", eval(v));
             }
         }
-        Some("verify-protected-artifact-stream-fixture") => {
+        Some(mode @ ("verify-protected-artifact-stream-fixture" | "verify-scoped-artifact-stream-fixture")) => {
             let endpoint=args.next().ok_or("fixture endpoint required")?;
             let credential=args.next().ok_or("fixture credential required")?;
             let legacy=match args.next().as_deref(){Some("auto")=>false,Some("legacy")=>true,_=>return Err("unexpected fixture mode".into())};
@@ -183,7 +186,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             io::stdin().take(65537).read_to_end(&mut bytes)?;
             if bytes.len()>65536 {return Err("fixture exceeds input budget".into());}
             let input:Value=serde_json::from_slice(&bytes)?;
-            let outcome=artifact_stream_transport::read_fixture(&endpoint,std::path::Path::new(&credential),legacy,&input).await;
+            let outcome=if mode=="verify-scoped-artifact-stream-fixture"{artifact_stream_transport::read_scoped_fixture(&endpoint,std::path::Path::new(&credential),legacy,&input).await}else{artifact_stream_transport::read_fixture(&endpoint,std::path::Path::new(&credential),legacy,&input).await};
             println!("{}",serde_json::to_string(&outcome)?);
         }
         Some("observe-runtime-error-fixture") => {

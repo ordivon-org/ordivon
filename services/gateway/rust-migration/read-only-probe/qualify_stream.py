@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 import asyncio
 import copy
+import hashlib
 import json
 import random
 import secrets
@@ -13,6 +14,7 @@ import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 
+import jsonschema
 import uvicorn
 from mcp.server import MCPServer
 from mcp_types import CallToolResult, TextContent
@@ -179,6 +181,38 @@ async def qualify_stream_transport(binary: Path):
     normal = dict(
         operationRef=REF, descriptor=d, maxTotalBytes=len(raw), maxWindows=20, chunkBytes=4
     )
+    binding = {
+        "issuer": "fixture-issuer",
+        "principal": "fixture-principal",
+        "capability": "execution.linux",
+        "request_id": "original",
+        "operation_ref": REF,
+    }
+    key = (
+        "request:gw-principal:"
+        + hashlib.sha256(
+            json.dumps(
+                [
+                    "ordivon.gateway-principal-scoped-execution-request.v1",
+                    binding["issuer"],
+                    binding["principal"],
+                    binding["capability"],
+                    binding["request_id"],
+                ],
+                ensure_ascii=False,
+                separators=(",", ":"),
+            ).encode()
+        ).hexdigest()
+    )
+    import subprocess
+
+    schema = json.loads(
+        subprocess.check_output(
+            [binary, "eval"], input=b'{"operation":"artifact_evidence_schema","input":null}\n'
+        )
+    )
+    jsonschema.Draft202012Validator.check_schema(schema)
+    validator = jsonschema.Draft202012Validator(schema)
     for legacy in (False, True):
         server = MCPServer("protected-stream-fixture")
         bearer = secrets.token_urlsafe(32)
@@ -186,6 +220,26 @@ async def qualify_stream_transport(binary: Path):
         wire = []
         checked = []
         mode = "good"
+        lookups = []
+
+        @server.tool(name="job.list", structured_output=True)
+        async def list_jobs(limit: int, clientRequestId: str) -> dict[str, object]:
+            lookups.append((limit, clientRequestId))
+            row = {
+                "clientRequestId": key,
+                "jobId": "job-a",
+                "workspaceId": "ws-fixture",
+                "createdAtMs": 1,
+            }
+            if clientRequestId != key or mode == "scope_absent":
+                return {"jobs": [], "nextCursor": None}
+            if mode == "scope_foreign":
+                return {"jobs": [{**row, "clientRequestId": "other"}], "nextCursor": None}
+            if mode == "scope_wrong_job":
+                return {"jobs": [{**row, "jobId": "other"}], "nextCursor": None}
+            if mode == "scope_ambiguous":
+                return {"jobs": [row, {**row, "jobId": "other"}], "nextCursor": None}
+            return {"jobs": [row], "nextCursor": None}
 
         @server.tool(name="artifact.read", structured_output=False)
         async def read(
@@ -210,7 +264,7 @@ async def qualify_stream_transport(binary: Path):
                 digest=d["digest"],
                 content=content,
             )
-            if mode == "corrupt" and offset == 0:
+            if mode in ("corrupt", "scope_corrupt") and offset == 0:
                 result["content"] = "x" * (end - offset)
             if mode == "foreign" and offset == 0:
                 result["artifactId"] = "other"
@@ -297,9 +351,35 @@ async def qualify_stream_transport(binary: Path):
                     "wrong",
                     "missing",
                     "invalid",
+                    "scope_good",
+                    "scope_corrupt",
+                    "scope_absent",
+                    "scope_foreign",
+                    "scope_wrong_job",
+                    "scope_ambiguous",
+                    "scope_wrong_principal",
+                    "scope_wrong_issuer",
+                    "scope_wrong_request",
+                    "scope_invalid",
+                    "scope_ref_mismatch",
                 ):
-                    c, w, a = len(calls), len(wire), len(checked)
+                    c, w, a, k = len(calls), len(wire), len(checked), len(lookups)
                     input = dict(normal)
+                    scoped = mode.startswith("scope_")
+                    if scoped:
+                        input["binding"] = dict(binding)
+                        if mode == "scope_wrong_principal":
+                            input["binding"]["principal"] = "other"
+                        if mode == "scope_wrong_issuer":
+                            input["binding"]["issuer"] = "other"
+                        if mode == "scope_wrong_request":
+                            input["binding"]["request_id"] = "other"
+                        if mode == "scope_invalid":
+                            input["binding"]["capability"] = "execution.windows"
+                        if mode == "scope_ref_mismatch":
+                            input["binding"]["operation_ref"] = (
+                                "ordivon-exec:v1:runtime.linux:other"
+                            )
                     if mode == "budget":
                         input["maxWindows"] = 1
                     if mode == "invalid":
@@ -313,7 +393,9 @@ async def qualify_stream_transport(binary: Path):
                         credential.chmod(0o600)
                     proc = await asyncio.create_subprocess_exec(
                         str(binary),
-                        "verify-protected-artifact-stream-fixture",
+                        "verify-scoped-artifact-stream-fixture"
+                        if scoped
+                        else "verify-protected-artifact-stream-fixture",
                         endpoint,
                         str(credential),
                         "legacy" if legacy else "auto",
@@ -335,6 +417,44 @@ async def qualify_stream_transport(binary: Path):
                         and b"PRIVATE_FIXTURE_DETAIL" not in out + err
                     )
                     actual = json.loads(out)
+                    if scoped:
+                        tc = [
+                            m["params"]["name"] for m in wire[w:] if m.get("method") == "tools/call"
+                        ]
+                        if mode in ("scope_good", "scope_corrupt"):
+                            assert actual["outcome"] == "scoped_stream", actual
+                            evidence = actual["evidence"]
+                            validator.validate(evidence)
+                            assert evidence["operation_ref"] == REF and evidence["descriptor"] == d
+                            assert evidence["evidence"]["standing"] == (
+                                "verified" if mode == "scope_good" else "rejected"
+                            )
+                            assert tc == ["job.list"] + ["artifact.read"] * 5, tc
+                            assert lookups[k:] == [(2, key)]
+                            for invalid in (
+                                {**evidence, "schema_version": 2},
+                                {**evidence, "kind": "bad"},
+                                {**evidence, "domain_success": True},
+                                {**evidence, "evidence": {**evidence["evidence"], "forged": True}},
+                            ):
+                                assert not validator.is_valid(invalid), invalid
+                        else:
+                            assert actual == {
+                                "outcome": "stream",
+                                "evidence": {
+                                    "standing": "rejected",
+                                    "reason": "invalid_operation_binding"
+                                    if mode in ("scope_invalid", "scope_ref_mismatch")
+                                    else "unqualified_operation_binding",
+                                },
+                            }, actual
+                            assert len(calls) == c
+                            if mode in ("scope_invalid", "scope_ref_mismatch"):
+                                assert not tc and len(checked) == a and len(lookups) == k
+                            else:
+                                assert tc == ["job.list"] and len(lookups) == k + 1, tc
+                        continue
+                    assert len(lookups) == k
                     if mode == "good":
                         assert actual == {
                             "outcome": "stream",
@@ -395,7 +515,7 @@ async def qualify_stream_transport(binary: Path):
                     "PROTECTED_STREAM_TCP_PASS",
                     "legacy" if legacy else "auto",
                     8,
-                    "cases",
+                    "unscoped cases + 11 scoped cases",
                     flush=True,
                 )
             finally:

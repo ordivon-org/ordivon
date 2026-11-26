@@ -46,7 +46,10 @@ fn nonblank(s: &str) -> bool {
 }
 
 impl BindingFixture {
-    fn scoped_key(&self) -> Option<String> {
+    pub(crate) fn operation_ref(&self) -> &str {
+        &self.operation_ref
+    }
+    pub(crate) fn scoped_key(&self) -> Option<String> {
         if !nonblank(&self.issuer)
             || !nonblank(&self.principal)
             || self.capability != "execution.linux"
@@ -66,7 +69,7 @@ impl BindingFixture {
         ))
     }
 
-    fn qualify(&self, resolution: Resolution) -> Binding {
+    pub(crate) fn qualify(&self, resolution: Resolution) -> Binding {
         match resolution {
             Resolution::Found { operation_ref, .. } if operation_ref == self.operation_ref => {
                 Binding::Matched

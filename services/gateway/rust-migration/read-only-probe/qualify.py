@@ -14,6 +14,7 @@ from dataclasses import asdict, replace
 from pathlib import Path
 
 from mcp import Client, MCPError
+from qualify_abi import add_abi_cases
 from qualify_artifact import add_artifact_cases
 from qualify_chunk import add_chunk_cases, qualify_legacy_abi
 from qualify_owner import qualify_owner
@@ -349,6 +350,7 @@ async def main():
     add_receipt_cases(add)
     add_chunk_cases(add)
     add_stream_cases(add)
+    add_abi_cases(add)
     data = "".join(json.dumps(case, ensure_ascii=False) + "\n" for case, _ in cases)
     proc = subprocess.run(
         [BINARY, "eval"], input=data, encoding="utf-8", capture_output=True, check=True
@@ -372,6 +374,7 @@ async def main():
             "owner_receipt",
             "artifact_chunk",
             "artifact_stream",
+            "artifact_v1",
         )
     }
     print("PURE_DIFFERENTIAL_PASS", len(cases), counts, flush=True)

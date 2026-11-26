@@ -21,11 +21,28 @@ fn gateway_r21_real_pg_stream_consumer() {
     );
     assert_ne!(open["isError"], true, "{open}");
     let text = "中文🙂abcé";
+    use sha2::{Digest, Sha256};
+    let issuer = "fixture-issuer";
+    let principal = "pg-consumer";
+    let public_request = "gateway-r21-real-pg-stream";
+    let scoped_request = format!(
+        "request:gw-principal:{}",
+        hex::encode(Sha256::digest(
+            serde_json::to_vec(&[
+                "ordivon.gateway-principal-scoped-execution-request.v1",
+                issuer,
+                principal,
+                "execution.linux",
+                public_request
+            ])
+            .unwrap()
+        ))
+    );
     let mut observed = call(
         &endpoint,
         "workspace.exec",
         json!({
-            "clientRequestId":"gateway-r21-real-pg-stream",
+            "clientRequestId":scoped_request,
             "execution":{"workspaceId":"ws-gateway-stream","executable":"/usr/bin/printf",
                 "args":["%s",text],"cwdRelative":".","timeoutMs":5000},
             "waitMs":10000,"stdoutTailBytes":0
@@ -63,9 +80,9 @@ fn gateway_r21_real_pg_stream_consumer() {
     fs::set_permissions(&credential, fs::Permissions::from_mode(0o600)).unwrap();
     let input = json!({"operationRef":format!("ordivon-exec:v1:runtime.linux:{job}"),
         "descriptor":descriptor,"maxTotalBytes":text.len(),"maxWindows":20,"chunkBytes":4});
-    let run = |input: &Value| -> Value {
+    let run_mode = |input: &Value, mode: &str| -> Value {
         let mut child = Command::new(&probe)
-            .arg("verify-protected-artifact-stream-fixture")
+            .arg(mode)
             .arg(&endpoint)
             .arg(&credential)
             .arg("auto")
@@ -87,6 +104,7 @@ fn gateway_r21_real_pg_stream_consumer() {
         assert!(!String::from_utf8_lossy(&output.stderr).contains(&"p".repeat(32)));
         serde_json::from_str(&stdout).unwrap()
     };
+    let run = |v: &Value| run_mode(v, "verify-protected-artifact-stream-fixture");
     let verified = run(&input);
     assert_eq!(
         verified,
@@ -98,6 +116,30 @@ fn gateway_r21_real_pg_stream_consumer() {
         run(&bounded),
         json!({"outcome":"stream","evidence":{"standing":"incomplete","received_bytes":3,"windows":1}})
     );
+    let mut scoped = input.clone();
+    scoped["binding"] = json!({"issuer":issuer,"principal":principal,"capability":"execution.linux","request_id":public_request,"operation_ref":input["operationRef"]});
+    let run_scoped = |v: &Value| run_mode(v, "verify-scoped-artifact-stream-fixture");
+    let bound = run_scoped(&scoped);
+    assert_eq!(bound["outcome"], "scoped_stream", "{bound}");
+    assert_eq!(bound["evidence"]["operation_ref"], input["operationRef"]);
+    assert_eq!(bound["evidence"]["descriptor"], input["descriptor"]);
+    assert_eq!(bound["evidence"]["evidence"]["standing"], "verified");
+    for field in [
+        "issuer",
+        "principal",
+        "request_id",
+        "capability",
+        "operation_ref",
+    ] {
+        let mut foreign = scoped.clone();
+        foreign["binding"][field] = json!("foreign");
+        let denied = run_scoped(&foreign);
+        assert_eq!(
+            denied["evidence"]["standing"], "rejected",
+            "{field}: {denied}"
+        );
+    }
+    eprintln!("GATEWAY_R22_REAL_PG_SCOPED_PASS exact original namespace and 5 foreign controls");
     fs::write(&credential, "wrong-token").unwrap();
     assert_eq!(run(&input)["outcome"], "owner_failure");
     fs::write(&credential, "p".repeat(32)).unwrap();

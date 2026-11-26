@@ -1,9 +1,11 @@
 //! Strict natural Runtime ArtifactDescriptor receiver; not byte or domain verification.
 use crate::artifact_inventory;
+use rmcp::schemars;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+#[schemars(crate = "rmcp::schemars")]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct Descriptor {
     artifact_id: String,

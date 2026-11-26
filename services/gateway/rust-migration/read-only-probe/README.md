@@ -400,3 +400,20 @@ never edit tracked Runtime source or use production database/credentials. It tes
 native execution, five protected windows, incomplete budget, wrong test bearer,
 actual registered-byte corruption and one durable Job. Native toolchain/systemd
 availability is an explicit precondition; this expensive gate is not a unit test.
+
+
+## Independent R22 scoped stream + directional ABI (Host #33322 / #33323)
+
+Operator-only `verify-scoped-artifact-stream-fixture` first resolves the original
+principal-scoped request via existing exact `job.list` (limit 2) in the same
+protected SDK lifecycle and total deadline. Only an exact Found operation may
+enter artifact.read; absent, ambiguous, invalid, foreign or unresolved receives
+zero artifact calls. The operator fixture is NOT trusted HTTP ingress or a policy
+ALLOW. Successful binding emits a distinct private retained-byte evidence kind
+with exact operation reference, descriptor, status and nonauthoritative truth role;
+Rust schemars (re-exported by existing rmcp) generates the schema from the types.
+No public tool advertised, no additive v1 fields. `artifact_v1` projects a qualified
+window to the exact existing ArtifactChunk wire model; no invented content or
+metadata, and no claim that the v1 consumer verifies the entire stream. Python's
+actual Pydantic model and SDK wire tests qualify directional compatibility. Actual
+Runtime isolated PG test uses derived request namespace and negative coordinates.

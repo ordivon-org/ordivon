@@ -1,9 +1,12 @@
 //! Qualification-only protected read composition, fixed artifact.read; no effect authority.
 use crate::{
+    artifact_abi::RetainedEvidence,
     artifact_stream::{Standing, Stream},
     logic::parse_execution_ref,
     owner_credential::read_fixture_bearer,
+    owner_resolution,
     owner_transport::{self, ReadFailure, ReadRequest},
+    principal_binding::{Binding, BindingFixture},
 };
 use serde::Serialize;
 use serde_json::{Value, json};
@@ -13,6 +16,7 @@ use std::{path::Path, time::Duration};
 #[serde(tag = "outcome", rename_all = "snake_case")]
 pub(crate) enum Outcome {
     Stream { evidence: Standing },
+    ScopedStream { evidence: RetainedEvidence },
     OwnerFailure { failure: ReadFailure },
 }
 fn rejected(reason: &'static str) -> Outcome {
@@ -29,6 +33,34 @@ pub(crate) async fn read_fixture(
     credential: &Path,
     legacy: bool,
     input: &Value,
+) -> Outcome {
+    read_impl(endpoint, credential, legacy, input, None).await
+}
+
+pub(crate) async fn read_scoped_fixture(
+    endpoint: &str,
+    credential: &Path,
+    legacy: bool,
+    input: &Value,
+) -> Outcome {
+    let Ok(binding) = serde_json::from_value::<BindingFixture>(input["binding"].clone()) else {
+        return rejected("invalid_operation_binding");
+    };
+    if input["operationRef"].as_str() != Some(binding.operation_ref()) {
+        return rejected("invalid_operation_binding");
+    }
+    let Some(key) = binding.scoped_key() else {
+        return rejected("invalid_operation_binding");
+    };
+    read_impl(endpoint, credential, legacy, input, Some((binding, key))).await
+}
+
+async fn read_impl(
+    endpoint: &str,
+    credential: &Path,
+    legacy: bool,
+    input: &Value,
+    scope: Option<(BindingFixture, String)>,
 ) -> Outcome {
     let reference = input["operationRef"].as_str().unwrap_or_default();
     let Some(("runtime.linux", job_id)) = parse_execution_ref(reference) else {
@@ -62,6 +94,23 @@ pub(crate) async fn read_fixture(
             Ok(c) => c,
             Err(failure) => return Outcome::OwnerFailure { failure },
         };
+        if let Some((binding, key)) = &scope {
+            let result =
+                owner_transport::call_read(&client, ReadRequest::Resolve { request_id: key }).await;
+            match result {
+                Ok(page)
+                    if binding.qualify(owner_resolution::project(&page, key))
+                        == Binding::Matched => {}
+                Ok(_) => {
+                    let _ = client.cancel().await;
+                    return rejected("unqualified_operation_binding");
+                }
+                Err(failure) => {
+                    let _ = client.cancel().await;
+                    return Outcome::OwnerFailure { failure };
+                }
+            }
+        }
         let mut failure = None;
         while state.can_read() {
             let offset = state.next();
@@ -90,6 +139,10 @@ pub(crate) async fn read_fixture(
         let _ = client.cancel().await;
         if let Some(failure) = failure {
             Outcome::OwnerFailure { failure }
+        } else if scope.is_some() {
+            Outcome::ScopedStream {
+                evidence: state.into_bound_evidence(),
+            }
         } else {
             Outcome::Stream {
                 evidence: state.standing(),

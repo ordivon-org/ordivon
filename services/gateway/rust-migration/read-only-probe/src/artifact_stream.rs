@@ -4,6 +4,7 @@ use crate::{
     artifact_descriptor::{self, Descriptor},
     logic::parse_execution_ref,
 };
+use rmcp::schemars;
 use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -11,8 +12,9 @@ use sha2::{Digest, Sha256};
 const MAX_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_WINDOWS: u64 = 4096;
 
-#[derive(Debug, PartialEq, Eq, Serialize)]
-#[serde(tag = "standing", rename_all = "snake_case")]
+#[derive(Debug, PartialEq, Eq, Serialize, schemars::JsonSchema)]
+#[schemars(crate = "rmcp::schemars")]
+#[serde(tag = "standing", rename_all = "snake_case", deny_unknown_fields)]
 pub(crate) enum Standing {
     Incomplete { received_bytes: u64, windows: u64 },
     Verified { received_bytes: u64, windows: u64 },
@@ -115,6 +117,14 @@ impl<'a> Stream<'a> {
                 }
             }
         }
+    }
+    pub(crate) fn into_bound_evidence(self) -> crate::artifact_abi::RetainedEvidence {
+        let standing = self.standing();
+        crate::artifact_abi::RetainedEvidence::new(
+            self.reference.to_owned(),
+            self.descriptor,
+            standing,
+        )
     }
     pub(crate) fn standing(&self) -> Standing {
         match self.state {
