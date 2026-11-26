@@ -55,7 +55,7 @@ class AgentSurfaceTests(unittest.TestCase):
             "import sys; "
             f"sys.path.insert(0, {str(source)!r}); "
             "from ordivon_studio.agent_surface_contracts import surface_projection; "
-            "assert len(surface_projection()['tools']) == 9; "
+            "assert len(surface_projection()['tools']) == 10; "
             "assert not any(name.startswith(('ordivon_studio.equipment', "
             "'ordivon_studio.creative_index', 'ordivon_studio.production_context', "
             "'ordivon_studio.learning_context')) for name in sys.modules)"
@@ -120,6 +120,7 @@ class AgentSurfaceTests(unittest.TestCase):
                 "studio_creative_index_query",
                 "studio_processing_profiles",
                 "studio_processing_probe_plan",
+                "studio_processing_receipt_qualify",
                 "studio_equipment_propose",
             ],
         )
