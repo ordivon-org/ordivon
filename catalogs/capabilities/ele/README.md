@@ -7,7 +7,8 @@ remain under their natural Catalog/Knowledge Owners.
 
 ## What is actually migrated
 
-The importer reads only these source families at an exact Git SourceCut:
+The importer reads only these source families from one frozen Git commit.
+Working-tree and index edits are intentionally excluded until committed:
 
 | Family | Role |
 | --- | --- |
