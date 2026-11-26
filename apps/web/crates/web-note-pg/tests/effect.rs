@@ -26,3 +26,6 @@ mod login;
 mod consumer;
 #[path = "effect/v2.rs"]
 mod v2;
+
+#[path = "effect/http_login.rs"]
+mod http_login;

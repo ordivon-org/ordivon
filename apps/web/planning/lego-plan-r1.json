@@ -36,7 +36,8 @@
       "acceptance": [
         "Native Challenge consumer reuses one owner transaction kernel; exact one-shot state, purpose and expiry semantics are unchanged under deterministic acknowledgement and writer contention faults.",
         "Owner session/challenge tests verify one-shot behavior and browser E2E evidence scopes without treating canary enrollment as production-ready.",
-        "Native ChallengeStore consumer tests prove payload snapshot capture, digest mismatch/malformed JSON rejection before consume, rollback and one-shot behavior; no arbitrary DB tamper resistance is claimed."
+        "Native ChallengeStore consumer tests prove payload snapshot capture, digest mismatch/malformed JSON rejection before consume, rollback and one-shot behavior; no arbitrary DB tamper resistance is claimed.",
+        "R21 real SimpleWebAuthn local verifier consumes native PG Challenge and Credential, completes native verified login, authenticates resulting Cookie through Axum; actual ES256 software authenticator, no physical presence proof."
       ],
       "evidence": [
         "src/store-owner-transaction.ts",
@@ -46,7 +47,11 @@
         "test/app.test.ts",
         "README.md",
         "src/store-challenges.ts",
-        "test/challenge-store.test.ts"
+        "test/challenge-store.test.ts",
+        "verifier/webauthn-login.ts",
+        "crates/web-note-pg/src/http/login/mod.rs",
+        "crates/web-note-pg/src/http/login/verifier.rs",
+        "crates/web-note-pg/tests/effect/http_login.rs"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -82,12 +87,15 @@
       ],
       "behavioralContract": "Session token is not an authority-bearing credential beyond its exact server-bound identity; unsafe browser mutations require same-site and CSRF guards; session idle/absolute expiry, revocation and audit operate independently of Agent DPoP flow.",
       "acceptance": [
-        "Native web tests verify hashed session tokens, absent-origin/CSRF denial, idle expiration and session revocation."
+        "Native web tests verify hashed session tokens, absent-origin/CSRF denial, idle expiration and session revocation.",
+        "R21 candidate session-bound CSRF token and current-session logout only; exact Origin and metadata, MAC verified before Session touch, native revoke before clearing Cookie. Multi-process key/rate-limit/other writes remain."
       ],
       "evidence": [
         "src/app.ts",
         "src/store.ts",
-        "test/app.test.ts"
+        "test/app.test.ts",
+        "crates/web-note-pg/src/http/session_write.rs",
+        "crates/web-note-pg/src/http/boundary.rs"
       ],
       "dependencies": [
         "W01"
@@ -382,7 +390,10 @@
         "crates/web-note-pg/src/maintenance.rs",
         "crates/web-note-pg/src/bin/web-replay-maintenance.rs",
         "crates/web-note-pg/tests/effect/consumer.rs",
-        "crates/web-note-pg/tests/effect/v2.rs"
+        "crates/web-note-pg/tests/effect/v2.rs",
+        "crates/web-note-pg/tests/assertion-fixture.mjs",
+        "crates/web-note-pg/tests/verifier-failure.mjs",
+        "crates/web-note-pg/tests/effect/http_login.rs"
       ],
       "dependencies": [
         "W01",
@@ -404,7 +415,8 @@
       "acceptance": [
         "Owner source bootstrap calls createWebApp; native browser and agent tests exercise HTTP route boundaries.",
         "SOURCE/virtual browser evidence is not public production deployment readiness.",
-        "R20 candidate native Axum/Tower browser read composition exercises four real owner routes and actual HTTP/1.1 socket, scoped by opaque PG session, with V2 restore and bounded maintenance consumer; production/real verifier gates remain."
+        "R20 candidate native Axum/Tower browser read composition exercises four real owner routes and actual HTTP/1.1 socket, scoped by opaque PG session, with V2 restore and bounded maintenance consumer; production/real verifier gates remain.",
+        "R21 native candidate login options/verify and CSRF/logout composed with R20 reads; signed software assertion, failure carriers and native ACK proof. No installed ingress or Agent write."
       ],
       "formalObligations": [
         "Cross-owner installed Security/Browser/PG state qualifications UNKNOWN."

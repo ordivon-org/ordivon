@@ -853,3 +853,107 @@ Next: real Security verifier/CSRF + trusted WebAuthn composition, CI owner
 provisioning for PG18/Nextest/Chromium, durable prepared secret handling,
 V2 physical backup/retention and production source freeze, installed
 ingress/time boundaries. No peer approval inferred from a handoff.
+
+## R21 — actual WebAuthn login and narrow session write consumer
+
+Host Work@40, proposal #33347 and browser write continuation #33371.
+Replace the trusted-persistence-only authentication gap with a real
+SimpleWebAuthn consumer, not a second crypto verifier or remote service.
+
+| Logic LEGO | Thought LEGO | Capability LEGO |
+|---|---|---|
+| A01 trusted ceremony | reuse mature protocol implementation | existing SimpleWebAuthn 14.1.0 options/verification in verifier/webauthn-login.ts |
+| A02 process carrier | bounded structured execution | Tokio child with fixed absolute Node/script, cleared environment, stdin/stdout, timeout, semaphore, strict reply schema |
+| A03 login request | separate browser admission | native Axum options/verify, exact HTTPS Origin/Fetch Metadata, 64 KiB body |
+| A04 challenge | one-shot state | PG credential-bound Challenge consume, 120s expiry |
+| A05 verified completion | atomic composition | native verified credential prestate + counter + Session + independent V2 marker + audits |
+| A06 response | acknowledged evidence only | opaque Secure HttpOnly SameSite Lax host cookie after confirmed complete; no secret returned in JSON |
+| A07 CSRF | session-bound synchronizer token | RustCrypto HMAC-SHA256 with independent random process-local key, constant-time verify and domain separator |
+| A08 narrow mutation | no authority escalation | GET /api/session/csrf and POST /api/session/logout, only self-session, no arbitrary target |
+| A09 shared boundary | reuse over drift | one exact unsafe-origin guard and existing response boundary |
+| A10 falsification | real protocol, failure and lifecycle | synthetic signed ES256 assertion, malformed carrier and native ACK fault, CSRF negative and native logout |
+
+The local adapter has no DB, session bearer, or network server. Caller
+supplies checked credential projection and exact challenge; the existing
+library checks signature, origin, RP ID, user verification, challenge,
+and counter. Credential identity must match verified authentication
+information. No request selects the executable, script or expected
+origin/RP. Trusted installed code and dependency integrity are required;
+the process is not an OS sandbox. Child runs with cleared environment,
+bounded 256 KiB input/output, no stderr exposure, deadline <=30s,
+1..64 simultaneous calls, try-acquire overload refusal and kill on drop.
+EOF is a real lifecycle obligation: first integration test timed out
+because stdin was retained after writing; corrected move ownership.
+No automatic retry. No performance benchmark or proof of OS-wide cap.
+Same-origin config is an explicit HTTPS origin with HTTP URI parsing;
+installed origin/RP ownership and ingress enforcement remain external.
+
+The login options route obtains actual active credential allow-list,
+delegates challenge generation, and commits a native eligible login
+Challenge before returning. Verify reads checked active credential then
+consumes Challenge with exact Principal binding before crypto. Invalid
+foreign credential may be denied before consume; once consumed, verifier
+failure/timeout leaves it burned. Completion uses fresh time and full
+verified Credential CAS; no credential mutation or secret release if
+verification fails. Challenge consume and completion intentionally two
+transactions; unknown consume or completion never returns a cookie.
+Completion ACK loss may leave a committed unreachable session until expiry;
+no cross-process secret recovery is claimed. Existing lower-layer
+completion ACK test remains mandatory. No registration or physical
+authenticator enrollment in this candidate.
+
+Session-bound CSRF uses HMAC-SHA256 from the existing RustCrypto graph,
+not a custom crypto algorithm. Random process-local key, fixed domain
+separator, opaque session token as input; base64url digest; constant-time
+MAC verification. GET token requires authenticated session, safe fetch
+metadata and no-store response. POST logout requires exact Origin,
+same-origin metadata if present, unambiguous session cookie and one
+valid CSRF header before Session touch. Only current session can be
+revoked, with known acknowledgement before clearing Cookie. Other
+session/Grant/Effect mutations need a combined admission fence and are
+not exposed. Concurrent revocation/unknown does not imply success.
+Different session and restart tokens rejected; old Fastify CSRF cookie
+representation deliberately not reused, client refetch required.
+Multi-process shared key/rotation and per-client ingress rate limit are
+production prerequisites. Session touch and self-revoke are separate
+transactions; no claim of whole-request atomicity. No public activation.
+
+R2.1 I=bounded HTTP ceremony/opaque session and trusted verifier config;
+O=options/verified scoped principal+session or sanitized denial/UNKNOWN;
+S=PG V2 + existing verifier + process-local CSRF key;
+pre=trusted code paths/clock/ingress origin, registered real credential;
+post=known confirmed exact native login or no secret; own-session revoke
+only after CSRF+auth; inv=one-shot challenge, no foreign session, no
+verifier-bypass, no token release on UNKNOWN, no automatic retry;
+eff=local PG, local verifier processes; c=bounded child carrier/body;
+epsilon=no hostile process isolation, no actual installed TLS/rate limit,
+no physical authenticator proof, no registration/Agent write or production
+cutover; prov=Git/strict native JUnit/actual signed fixture;
+unfold=A01->A02->A03/A04->A05->A06; A07->A08/A09.
+
+Tests: real generated software ES256 key/COSE and signatures via Node
+crypto fixture, real SimpleWebAuthn options+verify and native PG login,
+successful opaque cookie consumed by actual Axum /api/me; signature,
+origin, RP, UV, challenge and repeated nonzero counter rejected; repeated
+consumed challenges denied. First test setup FK prevented replacing a
+credential referenced by approvals; add independent test credential
+instead of changing existing references. Four failure-only process
+carriers (timeout, oversized output, strict JSON extra field, nonzero
+exit), real native Challenge COMMIT ACK discard and no cookie; same
+challenge rejected on retry. Actual CSRF missing/foreign/tampered,
+wrong origin/cross-site, restart key invalidation and no denied touch;
+self-session revoked, peer unaffected. Three new mandatory named tests
+and one new mandatory native wire cut; no global mutation score.
+References:
+- https://simplewebauthn.dev/docs/packages/server
+- https://docs.rs/tokio/latest/tokio/process/
+- https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html
+- https://github.com/RustCrypto/MACs/tree/master/hmac
+
+Next P0: use existing Security OAuth/DPoP verifier and admission evaluator
+at actual native agent request boundary; trusted WebAuthn authority
+verification for Grant/Approval mutations, combined session admission
+fence for other-session writes, candidate real browser login and TLS/
+rate-limit composition. P1 root CI provisioning/maintenance scheduling/
+durable prepared intent, V2 physical backup/retention and exclusive
+writer cutover. No peer verdict inferred from requests.

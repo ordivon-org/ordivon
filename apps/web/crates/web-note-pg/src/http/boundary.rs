@@ -34,3 +34,33 @@ pub(super) fn session_token(headers: &HeaderMap) -> Result<&str, (StatusCode, &'
     }
     token.ok_or(invalid)
 }
+
+/// Shared exact unsafe-origin guard. Missing Fetch Metadata is allowed for
+/// non-browser clients, but Origin is mandatory.
+pub(super) fn unsafe_origin(
+    headers: &HeaderMap,
+    origin: &str,
+) -> Result<(), (StatusCode, &'static str)> {
+    let mut origins = headers.get_all(header::ORIGIN).iter();
+    if origins.next().and_then(|v| v.to_str().ok()) != Some(origin) || origins.next().is_some() {
+        return Err((StatusCode::FORBIDDEN, "origin-rejected"));
+    }
+    let mut sites = headers.get_all("sec-fetch-site").iter();
+    if sites.next().is_some_and(|v| v != "same-origin") || sites.next().is_some() {
+        return Err((StatusCode::FORBIDDEN, "fetch-metadata-rejected"));
+    }
+    Ok(())
+}
+/// Exact configured HTTPS origin, not a URL with path/query or userinfo.
+pub(super) fn valid_origin(origin: &str) -> bool {
+    let Ok(uri) = origin.parse::<axum::http::Uri>() else {
+        return false;
+    };
+    let Some(a) = uri.authority() else {
+        return false;
+    };
+    uri.scheme_str() == Some("https")
+        && !a.host().is_empty()
+        && !a.as_str().contains('@')
+        && origin == format!("https://{}", a.as_str())
+}

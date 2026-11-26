@@ -8,13 +8,14 @@ license = "Apache-2.0"
 description = "Native async PostgreSQL Human Note domain slice; not an authentication entrypoint"
 
 [dependencies]
-tokio = { version = "1", features = ["rt", "macros", "time", "net", "io-util"] }
+tokio = { version = "1", features = ["rt", "macros", "time", "net", "io-util", "process", "sync"] }
 tokio-postgres = "0.7"
 deadpool-postgres = "0.14"
 uuid = { version = "1", features = ["v4"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.11"
+hmac = "0.13"
 getrandom = "0.4"
 base64 = "0.22"
 thiserror = "2"

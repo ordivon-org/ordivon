@@ -1,6 +1,10 @@
-//! Candidate browser READ consumer. No login, mutation, Agent or CSRF routes.
+//! Candidate browser HTTP consumers. Read and login routers are separate.
 //! TLS, ingress/rate limiting and verifier integration remain deployment gates.
 mod boundary;
+mod login;
+mod session_write;
+pub use login::{LocalVerifier, LoginState, login_router};
+pub use session_write::{SessionWriteState, session_write_router};
 mod views;
 use crate::{OwnerError, PgNoteStore};
 use axum::{
