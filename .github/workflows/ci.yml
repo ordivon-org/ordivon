@@ -92,23 +92,16 @@ jobs:
           }
           owners_file="$RUNNER_TEMP/ordivon-affected-owners.txt"
           tasks_file="$RUNNER_TEMP/ordivon-affected-tasks.txt"
-          # A conservative full-scope fallback must not consume a stale plan.
-          rm -f -- "$RUNNER_TEMP/ordivon-convergence-plan.json"
-          if [[ "$EVENT_NAME" == "workflow_dispatch" || "$EVENT_NAME" == "schedule" ]]; then
+          plan="$RUNNER_TEMP/ordivon-convergence-plan.json"
+          rm -f -- "$plan"
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            # Both original and tested native ranges own obligations.
+            python3 tools/repo/ci_pr_execution_range.py "$PR_BASE" "$PR_HEAD" "$EVENT_HEAD" > "$plan"
+          elif [[ "$EVENT_NAME" == "workflow_dispatch" || "$EVENT_NAME" == "schedule" ]]; then
             python3 tools/repo/affected_owners.py --all --format names > "$owners_file"
             python3 tools/repo/affected_owners.py --all --format queue-tasks > "$tasks_file"
           else
-            if [[ "$EVENT_NAME" == "pull_request" ]]; then
-              # The event range is not necessarily the tested merge range.
-              # A changed inventory conservatively selects all obligations.
-              range="$(python3 tools/repo/ci_pr_execution_range.py "$PR_BASE" "$PR_HEAD" "$EVENT_HEAD")"
-              if [[ "$range" == ALL ]]; then
-                base=""
-                head="$EVENT_HEAD"
-              else
-                read -r base head <<< "$range"
-              fi
-            elif [[ "$EVENT_NAME" == "merge_group" ]]; then
+            if [[ "$EVENT_NAME" == "merge_group" ]]; then
               base="$MERGE_GROUP_BASE"
               head="$MERGE_GROUP_HEAD"
             else
@@ -119,11 +112,12 @@ jobs:
               python3 tools/repo/affected_owners.py --all --format names > "$owners_file"
               python3 tools/repo/affected_owners.py --all --format queue-tasks > "$tasks_file"
             else
-              plan="$RUNNER_TEMP/ordivon-convergence-plan.json"
               python3 tools/repo/convergence_plan.py --base "$base" --head "$head" > "$plan"
-              python3 -c 'import json,sys; print(*json.load(open(sys.argv[1], encoding="utf-8"))["verificationOwners"], sep="\n")' "$plan" > "$owners_file"
-              python3 -c 'import json,sys; print(*json.load(open(sys.argv[1], encoding="utf-8"))["queueVerifyTasks"], sep="\n")' "$plan" > "$tasks_file"
             fi
+          fi
+          if [[ -f "$plan" ]]; then
+            python3 -c 'import json,sys; print(*json.load(open(sys.argv[1], encoding="utf-8"))["verificationOwners"], sep="\n")' "$plan" > "$owners_file"
+            python3 -c 'import json,sys; print(*json.load(open(sys.argv[1], encoding="utf-8"))["queueVerifyTasks"], sep="\n")' "$plan" > "$tasks_file"
           fi
           mapfile -t owners < "$owners_file"
           mapfile -t tasks < "$tasks_file"
@@ -138,11 +132,13 @@ jobs:
           # Reuse the same native validator as the repository regression tests.
           python3 - "$owners_file" "$tasks_file" "$RUNNER_TEMP/ordivon-convergence-plan.json" "${base:-}" "${head:-}" <<'PY'
           import json
+          import os
           import sys
           from pathlib import Path
 
           sys.path.insert(0, "tools/repo")
           import convergence_plan
+          import ci_pr_execution_range
 
           def read_selection(path):
               lines = Path(path).read_text(encoding="utf-8").splitlines()
@@ -154,10 +150,16 @@ jobs:
           plan = json.loads(plan_path.read_text(encoding="utf-8")) if plan_path.is_file() else {}
           changed_paths = plan.get("changedPaths", [])
           try:
-              convergence_plan.validate_queue_task_selection(
-                  selected, requested, changed_paths,
-                  base=sys.argv[4] if plan else None, head=sys.argv[5] if plan else None,
-              )
+              if os.environ["EVENT_NAME"] == "pull_request":
+                  ci_pr_execution_range.validate_union(
+                      Path.cwd(), os.environ["PR_BASE"], os.environ["PR_HEAD"],
+                      os.environ["EVENT_HEAD"], plan, selected, requested,
+                  )
+              else:
+                  convergence_plan.validate_queue_task_selection(
+                      selected, requested, changed_paths,
+                      base=sys.argv[4] if plan else None, head=sys.argv[5] if plan else None,
+                  )
           except ValueError as exc:
               raise SystemExit(str(exc)) from exc
           PY
@@ -191,13 +193,9 @@ jobs:
           import sys
 
           sys.path.insert(0, "tools/repo")
-          from affected_owners import requires_core_formal_verification
-
           with open(sys.argv[1], encoding="utf-8") as handle:
               change_plan = json.load(handle)
-          raise SystemExit(
-              0 if requires_core_formal_verification(change_plan["changedPaths"]) else 1
-          )
+          raise SystemExit(0 if "formal:verify" in change_plan["queueVerifyTasks"] else 1)
           PY
           then
             formal=true

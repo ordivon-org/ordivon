@@ -1,10 +1,11 @@
 """Bind pull-request selection to the immutable tested merge cut.
 
-This qualifies the native range, not a proof or artifact reuse decision.
-For unequal path inventories the caller must conservatively verify all.
+This qualifies native range identities and composes existing selector plans.
+It is not a proof or artifact reuse decision.
 """
 from __future__ import annotations
 
+import json
 import os
 import re
 import subprocess
@@ -29,8 +30,8 @@ def _commit(repo: Path, value: str) -> str:
     return value
 
 
-def resolve(repo: Path, event_base: str, event_head: str, execution_cut: str) -> tuple[str, str] | None:
-    """Return actual first-parent range, or None for all-obligation fallback."""
+def qualify(repo: Path, event_base: str, event_head: str, execution_cut: str) -> tuple[str, str]:
+    """Return the actual first-parent range with immutable event identities."""
     repo = repo.resolve()
     if Path(_git(repo, "rev-parse", "--show-toplevel")).resolve() != repo:
         raise ValueError("PR execution requires repository root")
@@ -49,11 +50,79 @@ def resolve(repo: Path, event_base: str, event_head: str, execution_cut: str) ->
         raise ValueError("PR event merge base is ambiguous")
     if _git(repo, "merge-base", base, parent) != base:
         raise ValueError("PR execution base diverges from original event base")
-    event_paths = set(changed_paths(base, head, source_repo_root=repo))
-    execution_paths = set(changed_paths(parent, cut, source_repo_root=repo))
-    if event_paths != execution_paths:
-        return None
     return parent, cut
+
+
+def resolve(repo: Path, event_base: str, event_head: str, execution_cut: str) -> tuple[str, str] | None:
+    """Legacy R5 qualification; kept for its regression oracle."""
+    parent, cut = qualify(repo, event_base, event_head, execution_cut)
+    event_paths = set(changed_paths(event_base, event_head, source_repo_root=repo))
+    execution_paths = set(changed_paths(parent, cut, source_repo_root=repo))
+    return (parent, cut) if event_paths == execution_paths else None
+
+
+def build_union(repo: Path, event_base: str, event_head: str, execution_cut: str) -> dict:
+    """Compose two native plans under the currently qualified control inputs.
+
+    Old/new uv path graph selection belongs to the existing plan producer.
+    A change to the known cross-cutting selector contract across the base
+    advance retains all obligations; we do not pretend to reconstruct an
+    arbitrary historical Owner graph or dynamic test dependency.
+    """
+    import affected_owners
+    import convergence_plan
+
+    repo = repo.resolve()
+    if Path.cwd().resolve() != repo or affected_owners.SOURCE_REPO_ROOT != repo:
+        raise ValueError("PR union must use the active selector repository")
+    parent, cut = qualify(repo, event_base, event_head, execution_cut)
+    event = convergence_plan.build_plan(base=event_base, head=event_head)
+    execution = convergence_plan.build_plan(base=parent, head=cut)
+    paths = sorted(set(event["changedPaths"]) | set(execution["changedPaths"]))
+    canonical = {o.name: o.queue_task for o in affected_owners.OWNERS}
+    # The old/new uv graph is reconstructed by the native plans, but the
+    # existing Owner/seam/relocation/Formal contract is the active checkout.
+    # Do not project across an unqualified change in that control surface.
+    drift = sorted(
+        (set(changed_paths(event_base, parent, source_repo_root=repo))
+         | set(changed_paths(event_head, cut, source_repo_root=repo)))
+        & affected_owners.CROSS_CUTTING_PATHS
+    )
+    owners = sorted(canonical if drift else
+                    set(event["verificationOwners"]) | set(execution["verificationOwners"]))
+    tasks = [canonical[name] for name in owners]
+    if drift or any("formal:verify" in plan["queueVerifyTasks"] for plan in (event, execution)):
+        tasks.append("formal:verify")
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.repo-pr-obligation-union",
+        "truthRole": "qualified-current-selector-not-historical-proof",
+        "eventPlan": event,
+        "executionPlan": execution,
+        "knownCrossCuttingDrift": drift,
+        "selectionBasis": "ALL_ON_CONTROL_DRIFT" if drift else "TWO_NATIVE_RANGE_PLANS",
+        "changedPaths": paths,
+        "verificationOwners": owners,
+        "queueVerifyTasks": tasks,
+    }
+
+
+def validate_union(repo: Path, event_base: str, event_head: str, execution_cut: str,
+                   plan: dict, owners: list[str], tasks: list[str]) -> None:
+    import convergence_plan
+
+    expected = build_union(repo, event_base, event_head, execution_cut)
+    if plan != expected or owners != expected["verificationOwners"] or tasks != expected["queueVerifyTasks"]:
+        raise ValueError("PR queue must conserve both exact native range obligations")
+    # Reuse native queue admission (including Mise's runnable task validation)
+    # rather than introducing another task-language checker.
+    for native in (expected["eventPlan"], expected["executionPlan"]):
+        convergence_plan.validate_queue_task_selection(
+            native["verificationOwners"], native["queueVerifyTasks"], native["changedPaths"],
+            base=native["baseRevision"], head=native["headRevision"],
+        )
+    if expected["knownCrossCuttingDrift"]:
+        convergence_plan.validate_queue_task_selection(owners, [t for t in tasks if t != "formal:verify"])
 
 
 def main() -> int:
@@ -61,12 +130,7 @@ def main() -> int:
         base, head, cut = sys.argv[1:]
         if os.environ.get("GITHUB_SHA", cut) != cut:
             raise ValueError("provider execution SHA mismatch")
-        result = resolve(Path.cwd(), base, head, cut)
-        if result is None:
-            print("PR event/execution path inventories differ; verifying all obligations", file=sys.stderr)
-            print("ALL")
-        else:
-            print(*result)
+        print(json.dumps(build_union(Path.cwd(), base, head, cut), sort_keys=True))
         return 0
     except (OSError, ValueError, subprocess.SubprocessError) as exc:
         print("ERROR: unqualified PR execution range: " + str(exc), file=sys.stderr)
