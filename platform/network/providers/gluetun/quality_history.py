@@ -21,11 +21,11 @@ from urllib.request import urlopen
 
 import native_profile as native
 
-JOBS = (
-    "blackbox-scoped-claude-api",
-    "blackbox-scoped-codex-mcp",
-    "blackbox-vpn-pypi",
+from historical_observation import (
+    JOBS, PairedSeries, parse_matrix, paired_matrix,
+    summarize_samples, window_coverage,
 )
+
 PROM = "http://127.0.0.1:29090"
 # Three native Prometheus Blackbox jobs scrape every 30 seconds.
 # Keep this one-shot admission bound to genuinely fresh, contiguous raw data.
@@ -43,6 +43,9 @@ CONNECT = re.compile(
 MIN_SESSION = timedelta(minutes=18)
 WARMUP = timedelta(minutes=3)
 WITNESS_MIN = 12
+# Historical coverage is a separate evidence policy from live failure admission.
+# Its initial tolerance is 1.5 times the declared 30s source cadence.
+HISTORICAL_MAX_SAMPLE_GAP_SECONDS = 45
 SUCCESS_FLOOR = 0.97
 HISTORICAL_TTL = timedelta(hours=24)
 SOURCE_TRIAL_HINTS = Path(__file__).resolve().parent / "config/recovery-hints.json"
@@ -216,94 +219,9 @@ def segments(
     return result
 
 
-@dataclass(frozen=True)
-class HistoricalSeries:
-    """A metric-independent source identity and its original sample coordinates."""
-
-    labels: tuple[tuple[str, str], ...]
-    samples: dict[float, float]
-
-
-def parse_matrix(rows: list[dict], metric: str, start: datetime, end: datetime) -> dict[str, HistoricalSeries]:
-    """Project original samples only, rejecting ambiguous roles in this window."""
-    if metric not in ("probe_success", "probe_duration_seconds"):
-        raise ValueError("Unsupported historical metric")
-    outputs: dict[str, HistoricalSeries] = {}
-    seen: set[str] = set()
-    for row in rows:
-        labels = row.get("metric", {})
-        job = labels.get("job", "")
-        if job not in JOBS:
-            continue
-        samples: dict[float, float] = {}
-        coordinates: set[float] = set()
-        valid = labels.get("__name__", metric) == metric
-        for timestamp, raw in row.get("values", []):
-            try:
-                stamp = float(timestamp)
-            except (ValueError, TypeError):
-                valid = False
-                break
-            if not math.isfinite(stamp):
-                valid = False
-                break
-            if not start.timestamp() <= stamp <= end.timestamp():
-                continue
-            if stamp in coordinates:
-                valid = False
-                break
-            coordinates.add(stamp)
-            try:
-                number = float(raw)
-            except (ValueError, TypeError):
-                valid = False
-                break
-            # NaN represents missing telemetry, never an observation.
-            if math.isnan(number):
-                continue
-            if (not math.isfinite(number) or number < 0
-                    or (metric == "probe_success" and number not in (0.0, 1.0))):
-                valid = False
-                break
-            samples[stamp] = number
-        # A different identity outside this segment is not evidence for it.
-        # Invalid observations, including unknown timestamps, are ambiguous.
-        if valid and not coordinates:
-            continue
-        if job in seen:
-            outputs.pop(job, None)
-            continue
-        seen.add(job)
-        if valid:
-            identity = tuple(sorted((k,v) for k,v in labels.items() if k != "__name__"))
-            outputs[job] = HistoricalSeries(identity, samples)
-    return outputs
-
-
-def paired_matrix(success_rows: list[dict], duration_rows: list[dict],
-                  start: datetime, end: datetime) -> tuple[dict[str, list[float]], dict[str, list[float]]]:
-    """Keep only exact same-source, same-scrape metric pairs.
-
-    An inner join alone can silently drop failed observations when latency is
-    absent. Require equality of admitted coordinate sets before projecting.
-    """
-    successes = parse_matrix(success_rows, "probe_success", start, end)
-    durations = parse_matrix(duration_rows, "probe_duration_seconds", start, end)
-    success: dict[str, list[float]] = {}
-    duration: dict[str, list[float]] = {}
-    for job in successes.keys() & durations.keys():
-        a, b = successes[job], durations[job]
-        if a.labels != b.labels or a.samples.keys() != b.samples.keys():
-            continue
-        times = sorted(a.samples)
-        success[job] = [a.samples[stamp] for stamp in times]
-        duration[job] = [b.samples[stamp] for stamp in times]
-    return success, duration
-
-
 def qualify(
-    segment: Segment, success: dict[str, list[float]],
-    duration: dict[str, list[float]], now: datetime, allowed: set[str],
+    segment: Segment, observations: dict[str, PairedSeries],
+    now: datetime, allowed: set[str],
 ) -> dict[str, object]:
     base: dict[str, object] = {
         "catalogCountry": segment.country,
@@ -319,20 +237,21 @@ def qualify(
     if segment.country not in allowed:
         return base | {"standing": "REJECTED_NOT_ALLOWED"}
     checks: list[dict[str, object]] = []
+    start = segment.start + WARMUP
+    end = segment.end - timedelta(minutes=1)
     for job in JOBS:
-        values = success.get(job, [])
-        delays = duration.get(job, [])
-        if len(values) < WITNESS_MIN or len(delays) < WITNESS_MIN:
+        series = observations.get(job)
+        samples = series.samples if series is not None else ()
+        if len(samples) < WITNESS_MIN:
             return base | {"standing": "UNKNOWN_INSUFFICIENT_CONSUMER_EVIDENCE",
-                           "samples": {job: {"success": len(values), "latency": len(delays)}}}
-        ratio = sum(v >= 1.0 for v in values)/len(values)
-        checks.append({
-            "job": job,
-            "samples": len(values),
-            "successRatio": round(ratio, 5),
-            "medianMs": round(1000*statistics.median(delays)),
-            "p90Ms": round(1000*sorted(delays)[int(.9*(len(delays)-1))]),
-        })
+                           "samples": {job: {"paired": len(samples)}}}
+        coverage = window_coverage(samples, start, end, minimum=WITNESS_MIN,
+                                   max_gap=HISTORICAL_MAX_SAMPLE_GAP_SECONDS)
+        if not coverage.complete:
+            return base | {"standing": "UNKNOWN_INSUFFICIENT_TEMPORAL_COVERAGE",
+                           "coverage": {job: coverage.report()}}
+        checks.append({"job": job, **summarize_samples(samples),
+                       "coverage": coverage.report()})
     if any(float(c["successRatio"]) < SUCCESS_FLOOR for c in checks):
         status = "OBSERVED_CONSUMER_DEGRADED"
     elif now - segment.end > HISTORICAL_TTL:
@@ -341,6 +260,7 @@ def qualify(
         status = "RECENT_HISTORICAL_CONSUMER_SUCCESS"
     # Rank only within the evidence-compatible set. A historical sample
     # cannot be promoted to QUALIFIED_NOW_STANDBY without a live tunnel.
+    # Preserve legacy aggregate latency ranking; stratified latency is diagnostic.
     p90s = [int(c["p90Ms"]) for c in checks]
     success_floor = min(float(c["successRatio"]) for c in checks)
     return base | {
@@ -592,8 +512,8 @@ def observe(*, hours: int) -> dict[str, object]:
         for segment in relevant:
             start = segment.start + WARMUP
             end = segment.end - timedelta(minutes=1)
-            success, duration = paired_matrix(successes, durations, start, end)
-            results.append(qualify(segment, success, duration, now, allowed))
+            observations = paired_matrix(successes, durations, start, end)
+            results.append(qualify(segment, observations, now, allowed))
     # Live evidence is distinct from the historical trend. Do not infer
     # active failure from a missing metric or merely an older journal session.
     import observe_active

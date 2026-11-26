@@ -16,9 +16,23 @@ def t(h=0):return datetime(2026,11,13,15,0,tzinfo=timezone.utc)+timedelta(hours=
 def seg(country="Japan",end_h=0):
     return history.Segment(t(end_h)-timedelta(hours=2),t(end_h),country,"192.0.2.1")
 
+def observations(segment, values=None, delays=None):
+    start = (segment.start + history.WARMUP).timestamp()
+    end = (segment.end - timedelta(minutes=1)).timestamp()
+    if values is None:
+        values = [1.0]*int((end-start)/30)
+    if delays is None:
+        delays = [.12]*len(values)
+    rows = []
+    for metric, data in (("probe_success",values),("probe_duration_seconds",delays)):
+        rows.append([{"metric":{"job":j,"__name__":metric,"instance":j},
+                      "values":[[start+30*i,str(v)] for i,v in enumerate(data)]}
+                     for j in history.JOBS])
+    return history.paired_matrix(*rows, datetime.fromtimestamp(start,timezone.utc),
+                                 datetime.fromtimestamp(end,timezone.utc))
+
 def evidence(segment,now=t()):
-    return history.qualify(segment, {j:[1.0]*32 for j in history.JOBS},
-             {j:[.12]*32 for j in history.JOBS},now,{"Japan","Mexico"})
+    return history.qualify(segment, observations(segment),now,{"Japan","Mexico"})
 
 def test_endpoint_catalog_and_stable_session_requires_dwell():
     raw='{"surfshark":{"servers":[{"vpn":"wireguard","ips":["192.0.2.1"],"country":"Japan"},{"vpn":"wireguard","ips":["192.0.2.2"],"country":"Mexico"}]}}'
@@ -43,15 +57,15 @@ def test_history_does_not_promote_hot_backup():
 
 def test_country_forbidden_and_missing_evidence():
     assert evidence(seg("Hong Kong"),t())["standing"]=="REJECTED_NOT_ALLOWED"
-    res=history.qualify(seg(),{j:[1.0]*5 for j in history.JOBS},
-        {j:[.1]*5 for j in history.JOBS},t(),{"Japan"})
+    segment=history.Segment(t()-timedelta(minutes=21),t(),"Japan","192.0.2.1")
+    res=history.qualify(segment, observations(segment,[1.0]*5),t(),{"Japan"})
     assert res["standing"]=="UNKNOWN_INSUFFICIENT_CONSUMER_EVIDENCE"
-    x={j:[1.0]*33+[0.0] for j in history.JOBS}
-    y=history.qualify(seg(),x,{j:[.1]*34 for j in history.JOBS},t(),{"Japan"})
+    y=history.qualify(segment,observations(segment,[1.0]*33+[0.0]),t(),{"Japan"})
     assert y["standing"]=="RECENT_HISTORICAL_CONSUMER_SUCCESS"
-    x={j:[1.0]*32+[0.0,0.0] for j in history.JOBS}
-    y=history.qualify(seg(),x,{j:[.1]*32 for j in history.JOBS},t(),{"Japan"})
+    y=history.qualify(segment,observations(segment,[1.0]*32+[0.0,0.0]),t(),{"Japan"})
     assert y["standing"]=="OBSERVED_CONSUMER_DEGRADED"
+    assert y["consumers"][0]["failedProbeLatency"]["samples"] == 2
+
 
 def test_only_true_failures_and_reachable_underlay_allow_trial():
     row=evidence(seg(),t())
@@ -569,13 +583,14 @@ def test_historical_pairing_preserves_identity_and_exact_scrape_coordinates():
                           for i in range(1,13)]}
     successes = [row("probe_success")]
     good = [row("probe_duration_seconds")]
-    a,b = history.paired_matrix(successes,good,start,t())
-    assert a[job] == [1.0]*12 and b[job] == [.1]*12
+    paired = history.paired_matrix(successes,good,start,t())[job]
+    assert [s.success for s in paired.samples] == [1.0]*12
+    assert [s.duration for s in paired.samples] == [.1]*12
+    assert [s.timestamp for s in paired.samples] == [start.timestamp()+30*i for i in range(1,13)]
     for bad in ([row("probe_duration_seconds",instance="b")],
                 [row("probe_duration_seconds",offset=1)],
                 [{"metric":good[0]["metric"],"values":good[0]["values"][:-1]}]):
-        a,b = history.paired_matrix(successes,bad,start,t())
-        assert job not in a and job not in b
+        assert job not in history.paired_matrix(successes,bad,start,t())
 
 
 def test_history_duplicate_nan_coordinate_and_outside_segment_identity():
@@ -601,3 +616,19 @@ def test_native_promql_raw_and_grid_evaluation_are_not_equivalent():
     result = subprocess.run([promtool,"test","rules",str(fixture)],
                             capture_output=True,text=True,timeout=30)
     assert result.returncode == 0, result.stdout+result.stderr
+
+
+def test_bunched_history_cannot_certify_whole_session():
+    segment = seg()
+    start = segment.start + history.WARMUP
+    end = segment.end - timedelta(minutes=1)
+    # 32 genuine, correctly paired scrapes, but only the first 16 minutes
+    # of the 116-minute eligible window were observed.
+    def rows(metric):
+        return [{"metric":{"job":j,"__name__":metric,"instance":j},
+                 "values":[[start.timestamp()+30*i,
+                            "1" if metric=="probe_success" else ".12"]
+                           for i in range(32)]} for j in history.JOBS]
+    paired = history.paired_matrix(rows("probe_success"),rows("probe_duration_seconds"),start,end)
+    result = history.qualify(segment,paired,t(),{"Japan"})
+    assert result["standing"] == "UNKNOWN_INSUFFICIENT_TEMPORAL_COVERAGE"

@@ -209,3 +209,34 @@ production acceptance; prov exact job receipts; unfold locked uv -> native
 pytest -> stateful oracle -> test evidence. The conflicting shared package
 node-exporter lifecycle remains a cross-owner source contract, not an
 authorization to change the active unit.
+
+
+## R16 — Temporal coverage and historical evidence representation (2026-11-26)
+
+Host #33104, inherits exact R15 joint candidate. RED native pipeline
+accepted 32 correctly paired scrapes concentrated in 15.5 minutes as
+evidence for a 116-minute window (job-01a2153d-8348-7056-9c7e-dfd7f1a060d5).
+Extract pure `historical_observation.py`: full source labels, exact paired
+timestamps, immutable paired values, per-role leading/trailing and
+inter-sample gap checks, separate successful and failed latency summaries.
+At least 12 paired samples and no silence over 45 seconds within the
+eligible window (30s declared cadence) are required; this is a conservative
+coverage policy, not an availability estimate or proof of independence.
+Historical qualification becomes UNKNOWN for inadequate coverage;
+existing success floor uses unrounded ratio. Existing legacy all-probe
+latency ranking remains unchanged; stratified statistics are diagnostic.
+No new runtime dependency; native bundle source inventory includes the
+new module (9 files); no deployment or group-atomic install claim.
+Native local API witness 3 roles x 60 paired samples with 30s max gap
+job-01a2153f-6ff0-7383-ac92-e4e0c97241b3. Generated regular-grid missing
+slot oracle and latency partition oracle use locked Hypothesis.
+R2.1 I exact per-role series and time bounds; O paired evidence, coverage,
+diagnostic summaries, historical standing or UNKNOWN; S ephemeral typed
+samples; pre source cadence, labels, matching original coordinates;
+post exact pairs and bounded gaps; inv no implied current consumer health,
+causality or effect authority; eff read-only source/verification; c sorted
+pairing O(n log n), linear gap scan; epsilon historical stationarity and
+physical availability unproved; prov native job receipts; unfold native
+raw -> identity/time pair -> coverage -> diagnostics -> existing advisory
+consumer. Cross-owner exporter correction remains PR2867, reviewed
+separately without live effects.
