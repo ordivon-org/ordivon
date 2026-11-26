@@ -19,6 +19,7 @@ from .git_identity import (
     verify_object_batch,
 )
 from .git_transport import capture_git_output
+from .git_tree import qualify_tree_listing
 
 _OBJECT_ID = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}\Z")
 _MAX_LISTING_BYTES = 16 * 1024 * 1024
@@ -99,36 +100,15 @@ def committed_owner_products(repo: Path, revision: str) -> tuple[str, list[bytes
         commit,
         max_output=_MAX_LISTING_BYTES,
     )
-    # Native ls-tree -z emits one nonempty row per unique path, terminated
-    # by NUL. Qualify framing and path multiplicity before object dispatch.
-    if not tree.endswith(b"\x00"):
-        raise ValueError("incomplete Git tree listing")
-    entries = tree.split(b"\x00")
-    entries.pop()
-    seen_paths: set[bytes] = set()
-    tree_ids = {root_tree}
-    objects: list[tuple[str, str]] = []
-    for entry in entries:
-        metadata, separator, path = entry.partition(b"\t")
-        if not separator or not metadata or not path or path in seen_paths:
-            raise ValueError("incomplete or duplicate Git tree listing")
-        seen_paths.add(path)
-        mode, kind, oid = metadata.decode("ascii").split(" ")
-        if kind == "tree":
-            tree_ids.add(oid)
-            continue
-        if not path.endswith(b"/odps.json"):
-            continue
-        if mode not in ("100644", "100755") or kind != "blob":
-            raise ValueError("ODPS tracked source is not a regular Git blob")
-        objects.append((path.decode("utf-8"), oid))
+    algorithm = _git(repo, "rev-parse", "--show-object-format").decode("ascii").strip()
+    # A syntactically complete native listing is not necessarily a complete
+    # projection. Bind every direct tree record to the immutable root before
+    # dispatching expensive object reads.
+    tree_ids, objects = qualify_tree_listing(tree, root_tree, algorithm)
     if not objects:
         raise ValueError("Git commit has no producer-owned ODPS inputs")
-    # Qualify the commit and every distinct tree in the native traversal.
-    # Static corruption can otherwise redirect the listing to a different,
-    # individually valid blob. The repository is assumed quiescent: this is
-    # not an atomic snapshot across separate Git commands.
-    algorithm = _git(repo, "rev-parse", "--show-object-format").decode("ascii").strip()
+    # Retain independent physical commit/tree object qualification. Listing
+    # reconstruction is not atomic observation of the object store.
     blob_ids = sorted({oid for _, oid in objects})
     if 1 + len(tree_ids) + len(blob_ids) > _MAX_OBJECTS:
         raise ValueError("Git cut exceeds bounded object count")
