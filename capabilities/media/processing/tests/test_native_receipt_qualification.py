@@ -70,8 +70,35 @@ class NativeReceiptQualificationTests(unittest.TestCase):
             ]
             for i, (profile, source, count) in enumerate(sources):
                 with self.subTest(profile=profile):
-                    _, _, result = self.native(profile, source, root / f"out-{i}")
+                    plan, receipt, result = self.native(profile, source, root / f"out-{i}")
                     self.assertEqual(len(result["verifiedFiles"]), count)
+                    assertions = receipt.parent / "assertions.json"
+                    original = assertions.read_bytes()
+                    raw_receipt = receipt.read_bytes()
+                    checks = json.loads(original)["checks"]
+                    variants = [
+                        checks[:-1],
+                        [checks[0]] * len(checks),
+                        [{"name": "unrelated", "ok": True}],
+                        [{**checks[0], "expected": {"foreign": True}}, *checks[1:]],
+                        [{**checks[0], "actual": None}, *checks[1:]],
+                        [{**checks[0], "actual": True}, *checks[1:]],
+                    ]
+                    for invalid in variants:
+                        assertions.write_text(json.dumps({**json.loads(original), "checks": invalid}))
+                        updated = json.loads(raw_receipt)
+                        updated["evidence"]["assertionsDigest"] = digest(assertions)
+                        receipt.write_text(json.dumps(updated))
+                        with self.assertRaises(ValueError):
+                            self.qualify(plan, 0, digest(receipt))
+                    # Order is not identity: a permutation preserves the contract.
+                    assertions.write_text(json.dumps({**json.loads(original), "checks": list(reversed(checks))}))
+                    updated = json.loads(raw_receipt)
+                    updated["evidence"]["assertionsDigest"] = digest(assertions)
+                    receipt.write_text(json.dumps(updated))
+                    self.assertTrue(self.qualify(plan, 0, digest(receipt))["mechanicalOk"])
+                    assertions.write_bytes(original)
+                    receipt.write_bytes(raw_receipt)
             bad = root / "bad.mp4"
             subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i",
                             "color=c=black:s=320x240:r=30:d=0.3",

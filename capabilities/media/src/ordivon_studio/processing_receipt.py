@@ -11,6 +11,7 @@ from typing import Any
 
 from .agent_processing import required_source_paths
 from .assets import UnstableBlobError, hash_file
+from .processing_assertions import validate_assertion_contract
 from .processing_plan_identity import canonical_relative_path, is_digest, validate_selected_closure
 from .strict_json import decode_object
 
@@ -80,6 +81,7 @@ def qualify_processing_receipt(
         "schemaVersion": 1, "kind": "ordivon.studio-processing-receipt-qualification",
         "standing": "UNKNOWN", "mechanicalOk": None, "verifiedFiles": [],
         "scope": "caller-selected-plan-and-local-retained-bytes",
+        "assertionScope": "selected-inventory-and-reported-fact-consistency",
         "runtimeWitness": "not-verified", "semanticQuality": "not-evaluated",
         "publicationStanding": "not-evaluated",
     }
@@ -165,6 +167,7 @@ def qualify_processing_receipt(
                 or verdict != assertions["ok"] or verdict != all(check["ok"] for check in checks)
                 or verdict != (exit_code == 0)):
             raise ValueError("assertion, native verdict or exit mismatch")
+        validate_assertion_contract(kind, profile_snapshot, checks)
         verified = [
             {"path": "evidence.json", "digest": expected_receipt_digest},
             {"path": "profile.json", "digest": plan["profileDigest"]},
