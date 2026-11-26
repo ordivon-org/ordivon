@@ -5,7 +5,7 @@
 //! -> exact terminal decision. Capability: original PG writer & Artifacts.
 //! This is not a second Windows registry, policy layer or PID-based kill loop.
 use super::{
-    inspect_windows_pg_bundle, read_raw_bounded, read_value, sha256, PgWindowsWitnessIdentity,
+    inspect_windows_pg_bundle, read_value, sha256, verified_output, PgWindowsWitnessIdentity,
     PgWindowsWitnessObservation, PgWindowsWitnessPhase,
 };
 use crate::pg_admission::{PgArtifactRegistration, PgTerminalNoArtifacts};
@@ -18,23 +18,14 @@ fn bounded_output_artifact(
     name: &str,
     result: &Value,
     finished: i64,
+    admitted_limit: u64,
 ) -> Result<PgArtifactRegistration, String> {
     let path = format!("{name}.log");
     let output = result
         .get(name)
         .ok_or_else(|| format!("{name}: missing Windows native output"))?;
-    if output.get("fileName").and_then(Value::as_str) != Some(path.as_str()) {
-        return Err(format!("{name}: unexpected file name"));
-    }
-    let bytes = read_raw_bounded(&dir.join(&path))?;
-    let digest = sha256(&bytes);
-    if output.get("retainedBytes").and_then(Value::as_u64) != Some(bytes.len() as u64)
-        || output.get("digest").and_then(Value::as_str) != Some(digest.as_str())
-    {
-        return Err(format!(
-            "{name}: registered bytes do not match native Result"
-        ));
-    }
+    let (byte_length, digest) = verified_output(dir, &path, output, admitted_limit)
+        .map_err(|error| format!("{name}: {error}"))?;
     let truncated = output
         .get("truncated")
         .and_then(Value::as_bool)
@@ -45,7 +36,7 @@ fn bounded_output_artifact(
         relative_path: path,
         digest,
         media_type: "text/plain; charset=utf-8".into(),
-        byte_length: i64::try_from(bytes.len()).map_err(|_| "unbounded Windows output")?,
+        byte_length,
         truncated,
         created_at_ms: finished,
     })
@@ -103,8 +94,22 @@ pub(crate) fn prepare_windows_terminal(
         .filter(|ms| *ms > 0)
         .ok_or("Windows Result has no positive finish timestamp")?;
     let mut artifacts = vec![
-        bounded_output_artifact(dir, &id.attempt_id, "stdout", &raw, finished)?,
-        bounded_output_artifact(dir, &id.attempt_id, "stderr", &raw, finished)?,
+        bounded_output_artifact(
+            dir,
+            &id.attempt_id,
+            "stdout",
+            &raw,
+            finished,
+            id.stdout_limit_bytes,
+        )?,
+        bounded_output_artifact(
+            dir,
+            &id.attempt_id,
+            "stderr",
+            &raw,
+            finished,
+            id.stderr_limit_bytes,
+        )?,
     ];
     artifacts.push(PgArtifactRegistration {
         artifact_id: format!("{}.result", id.attempt_id),
@@ -242,6 +247,8 @@ mod tests {
             launch_token_digest: format!("sha256:{}", "a".repeat(64)),
             request_digest: format!("sha256:{}", "b".repeat(64)),
             launcher_image_digest: format!("sha256:{}", "c".repeat(64)),
+            stdout_limit_bytes: 4096,
+            stderr_limit_bytes: 4096,
         };
         let put = |file: &str, value: &Value| {
             std::fs::write(dir.path().join(file), serde_json::to_vec(value).unwrap()).unwrap();
@@ -295,6 +302,47 @@ mod tests {
         assert!(!w.terminal_proven);
         assert!(!t.result_digest.is_empty());
     }
+    #[test]
+    fn exact_frozen_output_limits_apply_to_observation_and_terminal() {
+        let (d, mut id, witness) = fixtures();
+        // The original valid native result contains exactly 16 stdout bytes.
+        // Change only the admission-bound stream limit, leaving all physical
+        // identity, receipt bytes and digest unchanged.
+        id.stdout_limit_bytes = 16;
+        assert!(inspect_windows_pg_bundle(d.path(), &id).is_ok());
+        assert!(prepare_windows_terminal(d.path(), &id, &witness, &"d".repeat(64), 2).is_ok());
+        id.stdout_limit_bytes = 15;
+        assert!(
+            inspect_windows_pg_bundle(d.path(), &id).is_err(),
+            "observation accepted self-consistent stdout above the frozen PG limit"
+        );
+        assert!(prepare_windows_terminal(d.path(), &id, &witness, &"d".repeat(64), 2).is_err());
+    }
+
+    #[test]
+    fn streamed_output_above_old_global_ceiling_uses_only_the_frozen_limit() {
+        let (d, mut id, _) = fixtures();
+        let bytes = vec![b'x'; 4 * 1024 * 1024 + 1];
+        let mut raw: Value =
+            serde_json::from_slice(&std::fs::read(d.path().join("result.json")).unwrap()).unwrap();
+        raw["stderr"]["retainedBytes"] = json!(bytes.len());
+        raw["stderr"]["digest"] = json!(sha256(&bytes));
+        std::fs::write(d.path().join("stderr.log"), &bytes).unwrap();
+        std::fs::write(
+            d.path().join("result.json"),
+            serde_json::to_vec(&raw).unwrap(),
+        )
+        .unwrap();
+        id.stderr_limit_bytes = bytes.len() as u64;
+        let witness = inspect_windows_pg_bundle(d.path(), &id).unwrap();
+        let (_, artifacts) =
+            prepare_windows_terminal(d.path(), &id, &witness, &"d".repeat(64), 2).unwrap();
+        assert_eq!(artifacts[1].byte_length, bytes.len() as i64);
+        id.stderr_limit_bytes -= 1;
+        assert!(inspect_windows_pg_bundle(d.path(), &id).is_err());
+        assert!(prepare_windows_terminal(d.path(), &id, &witness, &"d".repeat(64), 2).is_err());
+    }
+
     #[test]
     fn terminal_preparation_rejects_changed_output_and_result() {
         let (d, id, w) = fixtures();

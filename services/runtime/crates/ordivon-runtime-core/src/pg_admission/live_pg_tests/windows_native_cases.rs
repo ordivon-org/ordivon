@@ -171,10 +171,21 @@ fn windows_pg_native_journal_and_result_reach_one_verified_terminal_with_artifac
         launch_token_digest: format!("sha256:{}", "a".repeat(64)),
         request_digest: format!("sha256:{}", "b".repeat(64)),
         launcher_image_digest: format!("sha256:{}", "c".repeat(64)),
+        stdout_limit_bytes: 4096,
+        stderr_limit_bytes: 4096,
     };
     input.launch_token_digest = id.launch_token_digest.clone();
     input.bundle_path = temp.path().to_string_lossy().into_owned();
     input.unit_name = format!("Ordivon.{}", id.attempt_id);
+    input.execution_plan_json = serde_json::json!({
+        "stdoutLimitBytes":id.stdout_limit_bytes,
+        "stderrLimitBytes":id.stderr_limit_bytes,
+    })
+    .to_string();
+    input.execution_plan_digest = format!(
+        "sha256:{}",
+        hex::encode(Sha256::digest(input.execution_plan_json.as_bytes()))
+    );
     input.workspace_snapshot_json = serde_json::json!({
         "executionProvider":{"contract":"windows_native_launcher_v1",
             "executableDigest":id.launcher_image_digest}
@@ -428,7 +439,18 @@ fn run_winpg_native_real_attempt(force_wrong_peer: bool, cancel_after_start: boo
         launch_token_digest: input.launch_token_digest.clone(),
         request_digest: request_digest.clone(),
         launcher_image_digest: image,
+        stdout_limit_bytes: 4096,
+        stderr_limit_bytes: 4096,
     };
+    input.execution_plan_json = serde_json::json!({
+        "stdoutLimitBytes":id.stdout_limit_bytes,
+        "stderrLimitBytes":id.stderr_limit_bytes,
+    })
+    .to_string();
+    input.execution_plan_digest = format!(
+        "sha256:{}",
+        hex::encode(Sha256::digest(input.execution_plan_json.as_bytes()))
+    );
     input.workspace_snapshot_json = serde_json::json!({
         "executionProvider":{"contract":"windows_native_launcher_v1",
             "executableDigest":id.launcher_image_digest}

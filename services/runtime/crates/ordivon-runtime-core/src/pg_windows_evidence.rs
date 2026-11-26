@@ -11,7 +11,7 @@ use std::{
 
 #[path = "pg_windows_evidence/carrier.rs"]
 mod carrier;
-use carrier::{read_raw_bounded, read_value};
+use carrier::{read_request_bytes, read_value};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PgWindowsWitnessIdentity {
@@ -22,6 +22,9 @@ pub struct PgWindowsWitnessIdentity {
     pub request_digest: String,
     /// Must identify the exact binary admitted as the Windows launcher.
     pub launcher_image_digest: String,
+    /// Frozen per-stream limits from the original admitted PG Plan.
+    pub stdout_limit_bytes: u64,
+    pub stderr_limit_bytes: u64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -86,6 +89,52 @@ fn identity(value: &Value, expected: &PgWindowsWitnessIdentity) -> Result<(), St
 }
 fn sha256(bytes: &[u8]) -> String {
     format!("sha256:{}", hex::encode(Sha256::digest(bytes)))
+}
+
+/// One shared output-verification operator, used before native drain
+/// journal publication and again before the terminal/Artifact transaction.
+fn verified_output(
+    dir: &Path,
+    filename: &str,
+    item: &Value,
+    admitted_limit: u64,
+) -> Result<(i64, String), String> {
+    exact_text(item, "fileName", filename)?;
+    let length = item
+        .get("retainedBytes")
+        .and_then(Value::as_u64)
+        .ok_or("invalid retained output length")?;
+    let digest = item
+        .get("digest")
+        .and_then(Value::as_str)
+        .ok_or("missing output digest")?;
+    carrier::verify_output(&dir.join(filename), length, digest, admitted_limit)?;
+    Ok((
+        i64::try_from(length).map_err(|_| "output length out of range")?,
+        digest.to_owned(),
+    ))
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FrozenWindowsOutputLimits {
+    stdout_limit_bytes: u64,
+    stderr_limit_bytes: u64,
+}
+
+fn frozen_output_limits(plan: &str, digest: &str) -> Result<FrozenWindowsOutputLimits, String> {
+    if sha256(plan.as_bytes()) != digest {
+        return Err("PG frozen execution Plan digest mismatch".into());
+    }
+    let limits: FrozenWindowsOutputLimits =
+        serde_json::from_str(plan).map_err(|_| "PG frozen execution Plan output limits invalid")?;
+    if [limits.stdout_limit_bytes, limits.stderr_limit_bytes]
+        .into_iter()
+        .any(|v| v == 0 || v > i64::MAX as u64)
+    {
+        return Err("PG frozen execution Plan output limits out of range".into());
+    }
+    Ok(limits)
 }
 
 /// No OS calls. A mere result.json is always a candidate, never a terminal.
@@ -203,17 +252,14 @@ fn inspect_windows_pg_bundle_with_start(
     if positive_u64(&complete, "finishedUnixMs")? < begin {
         return Err("result finished before start".into());
     }
-    for (name, filename) in [("stdout", "stdout.log"), ("stderr", "stderr.log")] {
+    for (name, filename, limit) in [
+        ("stdout", "stdout.log", expected.stdout_limit_bytes),
+        ("stderr", "stderr.log", expected.stderr_limit_bytes),
+    ] {
         let item = complete
             .get(name)
             .ok_or_else(|| format!("{name}: absent"))?;
-        exact_text(item, "fileName", filename)?;
-        let artifact = read_raw_bounded(&dir.join(filename))?;
-        if item.get("retainedBytes").and_then(Value::as_u64) != Some(artifact.len() as u64)
-            || item.get("digest").and_then(Value::as_str) != Some(sha256(&artifact).as_str())
-        {
-            return Err(format!("{name}: retained artifact identity mismatch"));
-        }
+        verified_output(dir, filename, item, limit).map_err(|error| format!("{name}: {error}"))?;
     }
     output.phase = PgWindowsWitnessPhase::ResultWitnessPendingOsReconciliation;
     output.result_digest = Some(sha256(&bytes));
@@ -271,6 +317,25 @@ mod tests {
     use serde_json::json;
     use tempfile::TempDir;
 
+    #[test]
+    fn original_plan_limits_are_digest_bound_positive_and_asymmetric() {
+        let plan = r#"{"stdoutLimitBytes":17,"stderrLimitBytes":99,"other":true}"#;
+        let limits = frozen_output_limits(plan, &sha256(plan.as_bytes())).unwrap();
+        assert_eq!(
+            (limits.stdout_limit_bytes, limits.stderr_limit_bytes),
+            (17, 99)
+        );
+        assert!(frozen_output_limits(plan, &sha256(b"different")).is_err());
+        for invalid in [
+            r#"{"stdoutLimitBytes":17}"#,
+            r#"{"stdoutLimitBytes":0,"stderrLimitBytes":99}"#,
+            r#"{"stdoutLimitBytes":17,"stdoutLimitBytes":18,"stderrLimitBytes":99}"#,
+            r#"{"stdoutLimitBytes":9223372036854775808,"stderrLimitBytes":99}"#,
+        ] {
+            assert!(frozen_output_limits(invalid, &sha256(invalid.as_bytes())).is_err());
+        }
+    }
+
     fn fixtures() -> (TempDir, PgWindowsWitnessIdentity) {
         let dir = TempDir::new().unwrap();
         let id = PgWindowsWitnessIdentity {
@@ -279,6 +344,8 @@ mod tests {
             launch_token_digest: "sha256:".to_string() + &"a".repeat(64),
             request_digest: "sha256:".to_string() + &"b".repeat(64),
             launcher_image_digest: "sha256:".to_string() + &"c".repeat(64),
+            stdout_limit_bytes: 4096,
+            stderr_limit_bytes: 4096,
         };
         (dir, id)
     }
@@ -622,7 +689,7 @@ fn bind_admitted_windows_pg_bundle(
     let row = tx
         .query_opt(
             "SELECT j.principal,j.workspace_snapshot_json,a.launch_token_digest, \
-             a.bundle_path,a.unit_name,a.bundle_digest \
+             a.bundle_path,a.unit_name,a.bundle_digest,j.execution_plan_json,j.execution_plan_digest \
              FROM jobs j JOIN attempts a ON a.job_id=j.job_id AND a.attempt_id=$2 \
              WHERE j.job_id=$1 AND j.row_version=$3 AND a.row_version=$4 \
                AND j.resolution IS NOT DISTINCT FROM $5::TEXT AND a.state=$6::TEXT \
@@ -662,6 +729,7 @@ fn bind_admitted_windows_pg_bundle(
     if name != format!("Ordivon.{attempt_id}") {
         return Err("PG attempt does not bind the Windows native Job Object".into());
     }
+    let limits = frozen_output_limits(&row.get::<_, String>(6), &row.get::<_, String>(7))?;
     let launcher_digest = launcher_digest.to_owned();
     // A previously observed supervisor binding is part of terminal evidence.
     // Fast Jobs may finish before RUNNER_BOUND; do not require a fabricated
@@ -714,7 +782,7 @@ fn bind_admitted_windows_pg_bundle(
     if root != fs::canonicalize(&bundle).map_err(|_| "PG bundle unavailable".to_string())? {
         return Err("PG Attempt bundle escapes configured store root".into());
     }
-    let bytes = read_raw_bounded(&root.join("request.json"))?;
+    let bytes = read_request_bytes(&root.join("request.json"))?;
     if sha256(&bytes) != request_digest {
         return Err("PG immutable request digest mismatch".into());
     }
@@ -724,6 +792,8 @@ fn bind_admitted_windows_pg_bundle(
         launch_token_digest: token,
         request_digest,
         launcher_image_digest: launcher_digest,
+        stdout_limit_bytes: limits.stdout_limit_bytes,
+        stderr_limit_bytes: limits.stderr_limit_bytes,
     };
     Ok(BoundWindowsPgBundle {
         root,
@@ -1452,6 +1522,7 @@ mod qualified_pg18_preflight_tests {
         let request = b"immutable-typed-windows-native-request";
         fs::write(bundle.join("request.json"), request).unwrap();
         let request_digest = sha256(request);
+        let plan = r#"{"stdoutLimitBytes":17,"stderrLimitBytes":99}"#;
         let input = PgAdmissionInput {
             job_id: job.into(),
             attempt_id: attempt.into(),
@@ -1468,8 +1539,8 @@ mod qualified_pg18_preflight_tests {
                 }
             })
             .to_string(),
-            execution_plan_json: "{}".into(),
-            execution_plan_digest: format!("sha256:{}", "e".repeat(64)),
+            execution_plan_json: plan.into(),
+            execution_plan_digest: sha256(plan.as_bytes()),
             launch_token_digest: format!("sha256:{}", "f".repeat(64)),
             bundle_path: bundle.to_string_lossy().into_owned(),
             unit_name: format!("Ordivon.{attempt}"),
@@ -1510,6 +1581,45 @@ mod qualified_pg18_preflight_tests {
                 temp.path(),
             )
         };
+        assert_eq!(
+            inspect().unwrap().phase,
+            PgWindowsWitnessPhase::NoLauncherWitness
+        );
+        // Actual PG readback binds the exact two independent frozen limits.
+        let bound = bind_admitted_windows_pg_bundle(
+            &mut writer,
+            &source,
+            &input.principal,
+            &input.job_id,
+            temp.path(),
+        )
+        .unwrap();
+        assert_eq!(
+            (
+                bound.identity.stdout_limit_bytes,
+                bound.identity.stderr_limit_bytes
+            ),
+            (17, 99)
+        );
+        // A changed Plan with its old digest cannot silently change output policy.
+        scratch
+            .admin
+            .execute(
+                "UPDATE jobs SET execution_plan_json=$1 WHERE job_id=$2",
+                &[
+                    &r#"{"stdoutLimitBytes":18,"stderrLimitBytes":99}"#,
+                    &input.job_id,
+                ],
+            )
+            .unwrap();
+        assert!(inspect().is_err());
+        scratch
+            .admin
+            .execute(
+                "UPDATE jobs SET execution_plan_json=$1 WHERE job_id=$2",
+                &[&plan, &input.job_id],
+            )
+            .unwrap();
         assert_eq!(
             inspect().unwrap().phase,
             PgWindowsWitnessPhase::NoLauncherWitness
