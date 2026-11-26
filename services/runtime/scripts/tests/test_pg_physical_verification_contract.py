@@ -202,7 +202,13 @@ class PgPhysicalVerificationContractTests(unittest.TestCase):
     def test_actual_libtest_diagnostics_cannot_contaminate_execution_receipts(self):
         """Use upstream libtest, not a fake result parser or mock compiler."""
         import hashlib
-        from scripts import pg_disposable_physical as driver
+        import sys
+        from unittest.mock import patch
+
+        # The existing Owner task executes this file directly; package discovery
+        # instead starts at the Runtime root. Bind the same local driver in both.
+        with patch.object(sys, "path", [str(ROOT), *sys.path]):
+            from scripts import pg_disposable_physical as driver
 
         with tempfile.TemporaryDirectory() as raw:
             source = Path(raw) / "noisy.rs"
