@@ -2,6 +2,8 @@ mod artifact_abi;
 mod artifact_chunk;
 mod artifact_descriptor;
 mod artifact_inventory;
+mod artifact_northbound;
+mod artifact_provenance;
 mod artifact_stream;
 mod artifact_stream_transport;
 mod logic;
@@ -131,6 +133,13 @@ fn eval(v: Value) -> Value {
             &input["result"],
             input["owner"].as_str().unwrap_or_default(),
             input["tool"].as_str().unwrap_or_default()
+        )),
+        Some("artifact_provenance") => json!(artifact_provenance::descriptor(
+            input["jobId"].as_str().unwrap_or_default(),
+            input["scopedKey"].as_str().unwrap_or_default(),
+            input["artifactId"].as_str().unwrap_or_default(),
+            &input["inspection"],
+            &input["observation"]
         )),
         Some("artifact_v1") => artifact_abi::project(input),
         Some("artifact_evidence_schema") => artifact_abi::schema(),
@@ -302,6 +311,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 fixture, &endpoint, &node, credential.as_deref().map(std::path::Path::new),
             ).await?;
             println!("{}", serde_json::to_string(&discovery)?);
+        }
+        Some("serve-artifact-fixture") => {
+            let path=args.next().ok_or("fixture config required")?;
+            if args.next().is_some(){return Err("unexpected arguments".into());}
+            artifact_northbound::serve(std::path::Path::new(&path)).await?;
         }
         Some("serve") => {
             let path = args.next().ok_or("fixture path required")?;

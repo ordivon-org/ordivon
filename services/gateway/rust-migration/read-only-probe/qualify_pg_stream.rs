@@ -140,6 +140,22 @@ fn gateway_r21_real_pg_stream_consumer() {
         );
     }
     eprintln!("GATEWAY_R22_REAL_PG_SCOPED_PASS exact original namespace and 5 foreign controls");
+    // Run the exact Harness consumer through Rust northbound + native Runtime.
+    let python = std::env::var_os("ORDIVON_GATEWAY_NORTHBOUND_PYTHON").expect("python");
+    let script = std::env::var_os("ORDIVON_GATEWAY_NORTHBOUND_SCRIPT").expect("script");
+    let north = Command::new(python)
+        .arg(script)
+        .arg(&probe)
+        .arg(&endpoint)
+        .arg(&credential)
+        .arg(&job)
+        .arg(id)
+        .arg(public_request)
+        .arg(text)
+        .output()
+        .expect("native northbound consumer");
+    assert!(north.status.success(), "northbound consumer: {}", String::from_utf8_lossy(&north.stderr));
+    eprintln!("{}", String::from_utf8_lossy(&north.stdout));
     fs::write(&credential, "wrong-token").unwrap();
     assert_eq!(run(&input)["outcome"], "owner_failure");
     fs::write(&credential, "p".repeat(32)).unwrap();

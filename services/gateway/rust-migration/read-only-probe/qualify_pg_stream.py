@@ -6,6 +6,7 @@ import json
 import os
 import pathlib
 import subprocess
+import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[3]
@@ -33,7 +34,12 @@ def main():
     )
     probe = pathlib.Path(meta["target_directory"]) / "debug/ordivon-gateway-read-only-probe"
     assert probe.is_file(), "build the Gateway probe first"
-    env = dict(os.environ, ORDIVON_GATEWAY_STREAM_PROBE=str(probe))
+    env = dict(
+        os.environ,
+        ORDIVON_GATEWAY_STREAM_PROBE=str(probe),
+        ORDIVON_GATEWAY_NORTHBOUND_PYTHON=sys.executable,
+        ORDIVON_GATEWAY_NORTHBOUND_SCRIPT=str(HERE / "qualify_northbound.py"),
+    )
     # Exclusive creation; never edit or restore a peer's tracked source.
     content = original.read_bytes() + b"\n" + (HERE / "qualify_pg_stream.rs").read_bytes()
     with generated.open("xb") as out:

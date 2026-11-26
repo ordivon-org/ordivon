@@ -25,12 +25,31 @@ pub(crate) struct ArtifactChunkV1<'a> {
 }
 pub(crate) fn project(input: &Value) -> Value {
     let reference = input["operationRef"].as_str().unwrap_or_default();
-    match artifact_chunk::qualify(
+    project_window(
         reference,
-        &input["descriptor"],
-        &input["request"],
-        &input["response"],
-    ) {
+        artifact_chunk::qualify(
+            reference,
+            &input["descriptor"],
+            &input["request"],
+            &input["response"],
+        ),
+    )
+}
+
+pub(crate) fn project_bound(
+    reference: &str,
+    descriptor: &Descriptor,
+    request: &Value,
+    response: &Value,
+) -> Value {
+    project_window(
+        reference,
+        artifact_chunk::qualify_bound(reference, descriptor, request, response),
+    )
+}
+
+fn project_window(reference: &str, window: Window<'_>) -> Value {
+    match window {
         Window::Unobserved { reason } => json!({"standing":"unobserved","reason":reason}),
         Window::Qualified {
             owner,

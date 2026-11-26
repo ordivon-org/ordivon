@@ -19,6 +19,7 @@ from qualify_artifact import add_artifact_cases
 from qualify_chunk import add_chunk_cases, qualify_legacy_abi
 from qualify_owner import qualify_owner
 from qualify_principal import qualify_principal
+from qualify_provenance import add_provenance_cases
 from qualify_receipt import add_receipt_cases
 from qualify_resolution import qualify_resolution
 from qualify_semantics import add_descriptor_cases, add_error_cases, qualify_error_transport
@@ -351,6 +352,7 @@ async def main():
     add_chunk_cases(add)
     add_stream_cases(add)
     add_abi_cases(add)
+    add_provenance_cases(add)
     data = "".join(json.dumps(case, ensure_ascii=False) + "\n" for case, _ in cases)
     proc = subprocess.run(
         [BINARY, "eval"], input=data, encoding="utf-8", capture_output=True, check=True
@@ -375,6 +377,7 @@ async def main():
             "artifact_chunk",
             "artifact_stream",
             "artifact_v1",
+            "artifact_provenance",
         )
     }
     print("PURE_DIFFERENTIAL_PASS", len(cases), counts, flush=True)

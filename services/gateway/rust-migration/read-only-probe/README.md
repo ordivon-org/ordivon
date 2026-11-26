@@ -417,3 +417,45 @@ window to the exact existing ArtifactChunk wire model; no invented content or
 metadata, and no claim that the v1 consumer verifies the entire stream. Python's
 actual Pydantic model and SDK wire tests qualify directional compatibility. Actual
 Runtime isolated PG test uses derived request namespace and negative coordinates.
+
+
+## Independent R23 native northbound Artifact provenance (Host #33403 / #33436 / #33437)
+
+Goal: actual Harness source consumes the existing ArtifactChunk v1 result from
+a Rust loopback MCP endpoint, with the descriptor supplied by the natural
+Runtime, never by the northbound caller. This is a qualification fixture,
+not a replacement production service, Security PEP, or a new public tool.
+
+Logic: verified fixture identity -> scoped request resolution -> matching
+terminal inspection (PG schema 2, migration 0, one complete attempt) ->
+matching terminal committed observation -> typed complete unique descriptor
+set -> exact opaque Artifact ID -> bounded read -> directional v1 projection.
+A mismatch at any step returns a fixed error. Do not invoke job.observe on a
+nonterminal inspection: it can reconcile or dispatch. No generic effect
+dispatch, no automatic retries. Separate credentials for north and south;
+only loopback, fixed fixture principal, 1 MiB transport limit, five-second
+southbound budget per window and 128 KiB maximum Owner read. The descriptor
+remains typed across internal operators; checked offset before the byte read.
+Legacy production v1 ABI remains unchanged.
+
+Evidence: generated relational oracle and property tests, actual PG Runner
+fixture with the original scoped request, and exact Harness OfficialMcpClient
+and GatewayExecutionPort.read_stdout over native northbound TCP. Negative
+inputs cover wrong request, capability, ref, artifact, offset, maxBytes,
+extra issuer/descriptor and absent/wrong bearer. This is source qualification,
+not proof of production OAuth, authorization, all v1 tools, immutable snapshot,
+or a whole-stream consumer verification; the existing Harness v1 reader does
+not itself establish the complete digest or explicit kind.
+
+P0 natural Runtime followup (#33436): job.get and job.observe are separate
+reads; same-count substitution or historical rows are not excluded by current
+public receipts. Reuse pg_artifact_manifest_digest and exact attempt snapshot,
+return actual per-row origin and a passive, bounded descriptor witness tied
+to the manifest version. Do not create a Gateway registry or duplicate
+Runtime storage queries. Reject stale/corrected receipts, mismatched manifest
+or attempt, and unresolved state without physical effect. P0 Security:
+qualify actual verified ingress identity and explicit policy, not fixture
+bearer. P0 Harness (#33442): kind-based selection, checked geometry and digest,
+EOF and total-byte/window/deadline bound, explicit verified/incomplete/rejected
+standing, no domain-success inference. Production promotion requires these
+natural-owner contracts and real installed consumer readback.

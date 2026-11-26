@@ -15,6 +15,12 @@ use std::{path::Path, time::Duration};
 
 pub(crate) enum ReadRequest<'a> {
     Describe,
+    Inspect {
+        job_id: &'a str,
+    },
+    Observe {
+        job_id: &'a str,
+    },
     Resolve {
         request_id: &'a str,
     },
@@ -30,6 +36,8 @@ impl ReadRequest<'_> {
     fn tool(&self) -> &'static str {
         match self {
             Self::Describe => "runtime.describe",
+            Self::Inspect { .. } => "job.get",
+            Self::Observe { .. } => "job.observe",
             Self::Resolve { .. } => "job.list",
             Self::Artifact { .. } => "artifact.read",
         }
@@ -37,6 +45,14 @@ impl ReadRequest<'_> {
     fn params(self) -> CallToolRequestParams {
         let (name, args) = match self {
             Self::Describe => ("runtime.describe", json!({"schemaVersion":1})),
+            Self::Inspect { job_id } => (
+                "job.get",
+                json!({"schemaVersion":1,"jobId":job_id,"eventLimit":1}),
+            ),
+            Self::Observe { job_id } => (
+                "job.observe",
+                json!({"schemaVersion":1,"jobId":job_id,"waitMs":0,"stdoutTailBytes":0,"stderrTailBytes":0}),
+            ),
             Self::Artifact {
                 job_id,
                 artifact_id,

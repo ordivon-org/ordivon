@@ -22,6 +22,9 @@ impl Descriptor {
     pub(crate) fn artifact_id(&self) -> &str {
         &self.artifact_id
     }
+    pub(crate) fn attempt_id(&self) -> &str {
+        &self.attempt_id
+    }
     pub(crate) fn digest(&self) -> &str {
         &self.digest
     }
@@ -58,6 +61,12 @@ pub(crate) struct Qualification {
     identity_complete: Option<bool>,
     metadata_complete: Option<bool>,
     descriptors: Vec<Descriptor>,
+}
+
+impl Qualification {
+    pub(crate) fn into_complete_descriptors(self) -> Option<Vec<Descriptor>> {
+        (self.metadata_complete == Some(true)).then_some(self.descriptors)
+    }
 }
 
 pub(crate) fn qualify(payload: &Value, count: &Value) -> Qualification {
