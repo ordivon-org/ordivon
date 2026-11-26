@@ -321,9 +321,9 @@ if ($postgres) {
 } elseif ($ExpectedRuntimeSha256 -or $ExpectedLauncherSha256 -or $ExpectedPostgresEnvironmentSha256) {
     throw 'PG candidate commitments require PostgresEnvironmentFile.'
 }
-# PG materialization is a manual-start stage; the actual qualified cold
-# cutover owns start and automatic-start policy, not this file copier.
-$startMode = $(if ($postgres) { 'demand' } else { 'auto' })
+# PG materialization must remain disabled through all SCM and ACL changes.
+# Only the separately qualified cold activation may enable the service.
+$startMode = $(if ($postgres) { 'disabled' } else { 'auto' })
 $serviceAccount = "NT SERVICE\$ServiceName"
 $requiresLocalAdministrators = $WindowsAuthorityProfile -eq 'limited-and-elevated'
 $imagePath = ('"{0}" --windows-service --env-file "{1}"' -f $runtimeTarget, $configTarget)
@@ -375,7 +375,7 @@ $plan = [ordered]@{
         'No bearer secret appears in SCM ImagePath or the env file.',
         'ProgramData state/config/token are ACL-bound to SYSTEM, Builtin Administrators and the service SID.',
         'The service is not started by this materializer; start/cold-restart acceptance is a separate gate.',
-        'PG uses a separate store, a pre-provisioned exact private env file, and manual startup until the qualified cold cutover.',
+        'PG uses a separate store, a pre-provisioned exact private env file, and disabled startup until the qualified cold cutover.',
         'Required service privileges are not broadened before native acceptance proves the minimum set.',
         'limited-and-elevated uses the dedicated virtual service account as a Builtin Administrators member; launcher acceptance must prove both High/Admin-enabled elevated context and LUA-filtered Medium/Admin-disabled limited context.',
         'The dedicated virtual service identity is preserved so limited-token semantics do not inherit a shared machine identity.'
@@ -388,6 +388,21 @@ if (-not $Apply) {
 }
 
 Assert-Administrator
+
+function Assert-PgServiceStagingFence([string]$Name, [bool]$MustExist) {
+    # Native SCM StartType and Status, not a textual sc.exe projection.
+    $observed = Get-Service -Name $Name -ErrorAction SilentlyContinue
+    if ($null -eq $observed) {
+        if ($MustExist) { throw "PG staging service $Name disappeared." }
+        return
+    }
+    if ($observed.Status -ne [ServiceProcess.ServiceControllerStatus]::Stopped -or
+        $observed.StartType -ne [ServiceProcess.ServiceStartMode]::Disabled) {
+        throw "PG staging service $Name must be stopped and disabled before materialization."
+    }
+}
+
+if ($postgres) { Assert-PgServiceStagingFence $ServiceName $false }
 
 # A running old Writer must be rejected before touching its binary, launcher,
 # credentials or config. Recheck at the SCM change boundary as well.
@@ -457,6 +472,7 @@ if (-not $postgres) {
 }
 
 $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+if ($postgres) { Assert-PgServiceStagingFence $ServiceName ($null -ne $service) }
 if ($null -eq $service) {
     Invoke-ScChecked @(
         'create', $ServiceName,
@@ -481,6 +497,8 @@ if ($null -eq $service) {
         'DisplayName=', $DisplayName
     )
 }
+
+if ($postgres) { Assert-PgServiceStagingFence $ServiceName $true }
 
 Invoke-ScChecked @('description', $ServiceName, 'Native Ordivon Runtime control plane')
 Invoke-ScChecked @('sidtype', $ServiceName, 'unrestricted')
@@ -517,6 +535,7 @@ foreach ($file in @($configTarget, $tokenTarget)) {
 }
 
 $plan.service.builtinAdministratorsMembershipObserved = $administratorMembership
+if ($postgres) { Assert-PgServiceStagingFence $ServiceName $true }
 
 # Re-query through native SCM tooling. These are evidence surfaces; this script never starts the service.
 Invoke-ScChecked @('qc', $ServiceName)

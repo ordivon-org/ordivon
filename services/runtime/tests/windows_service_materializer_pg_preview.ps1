@@ -1,7 +1,8 @@
 #requires -version 5.1
 [CmdletBinding()]
 param(
-    [string]$Materializer = (Join-Path $PSScriptRoot '..\packaging\windows\materialize-ordivon-runtime-service.ps1')
+    [string]$Materializer = (Join-Path $PSScriptRoot '..\packaging\windows\materialize-ordivon-runtime-service.ps1'),
+    [switch]$NativeScm
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -60,12 +61,12 @@ try {
     Set-FixtureConfig $lines
     $original=(Get-FileHash -LiteralPath $cfg).Hash
     $p=(& $Materializer @options | ConvertFrom-Json)
-    if ($p.registryBackend -ne 'postgresql' -or $p.service.start -ne 'demand' -or
+    if ($p.registryBackend -ne 'postgresql' -or $p.service.start -ne 'disabled' -or
         $p.executionReady -ne $false -or $p.files.runtimeTarget -notlike '*ordivon-runtime-pg.exe' -or
         $p.files.launcherTarget -notlike '*ordivon-windows-pg-job-launcher.exe' -or
         $p.files.tokenTarget -notlike '*runtime-pg-mcp.token') { throw 'wrong PG plan' }
     if ((Get-FileHash -LiteralPath $cfg).Hash -ne $original) { throw 'preview changed env' }
-    Write-Output 'PASS native PG preview separate paths/manual-start'
+    Write-Output 'PASS native PG preview separate paths/disabled-start'
     $options.ExpectedRuntimeSha256='0'*64
     Assert-Rejected 'wrong binary digest' 'SHA-256 commitment mismatch'
     $options.ExpectedRuntimeSha256=(Get-FileHash -LiteralPath $runtime).Hash
@@ -92,6 +93,52 @@ try {
     }
     if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) { throw 'preview created service' }
     Write-Output 'PASS final no SCM/SQLite/file install side effect'
+    if ($NativeScm) {
+        # Explicit opt-in: a disposable service, invalid fixture executables,
+        # no production credentials or service identity. Never enable/start
+        # the candidate except to check native refusal while disabled.
+        $sc = "$env:SystemRoot\System32\sc.exe"
+        $serviceCreated = $false
+        try {
+            & $Materializer @options -Apply | Out-Null
+            $serviceCreated = $true
+            $observed = Get-Service -Name $serviceName
+            if ($observed.Status -ne 'Stopped' -or $observed.StartType -ne 'Disabled') {
+                throw 'SCM staging not disabled/stopped'
+            }
+            Write-Output 'PASS native SCM applied disabled/stopped'
+            $startOutput = & $sc start $serviceName 2>&1 | Out-String
+            if ($LASTEXITCODE -ne 1058) { throw "Expected native disabled start refusal 1058, got $LASTEXITCODE" }
+            Write-Output 'PASS native SCM refused start (1058)'
+            & $sc config $serviceName start= demand | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw 'Cannot create demand-start negative control' }
+            $target = Join-Path $root 'bin\ordivon-runtime-pg.exe'
+            $before = (Get-FileHash -LiteralPath $target).Hash
+            $caught = $false
+            try { & $Materializer @options -Apply | Out-Null }
+            catch {
+                if ($_.Exception.Message -notmatch 'stopped and disabled') { throw }
+                $caught = $true
+            }
+            if (-not $caught -or (Get-FileHash -LiteralPath $target).Hash -ne $before) {
+                throw 'Demand-start service was not refused before file mutation'
+            }
+            Write-Output 'PASS existing demand-start service rejected before effect'
+            & $sc config $serviceName start= disabled | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw 'Cannot restore disabled staging fence' }
+            & $Materializer @options -Apply | Out-Null
+            $observed = Get-Service -Name $serviceName
+            if ($observed.Status -ne 'Stopped' -or $observed.StartType -ne 'Disabled') {
+                throw 'Idempotent stage lost disabled fence'
+            }
+            Write-Output 'PASS disabled staging reapply'
+        } finally {
+            if ($serviceCreated -or (Get-Service -Name $serviceName -ErrorAction SilentlyContinue)) {
+                & $sc delete $serviceName | Out-Null
+                if ($LASTEXITCODE -ne 0) { throw 'Disposable SCM service cleanup failed' }
+            }
+        }
+    }
 } finally {
     Remove-Item -LiteralPath $fixture -Recurse -Force
 }
