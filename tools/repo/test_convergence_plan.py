@@ -1898,6 +1898,61 @@ class OwnerVerificationExecutionTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 29, proc.stdout + proc.stderr)
         self.assertEqual(called, ["artifact:queue", "data:verify"])
 
+class PullRequestExecutionRangeTests(unittest.TestCase):
+    def test_native_merge_cut_and_conservative_scope(self):
+        import ci_pr_execution_range as ranges
+
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td)
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True,
+                    stderr=subprocess.PIPE, timeout=15,
+                ).strip()
+            git("init", "-q")
+            git("config", "user.name", "fixture")
+            git("config", "user.email", "fixture@local.invalid")
+            def commit(name, value):
+                (repo / name).write_text(value)
+                git("add", ".")
+                git("commit", "-qm", name)
+                return git("rev-parse", "HEAD")
+            base = commit("base.txt", "base")
+            git("switch", "-qc", "pr")
+            head = commit("feature.txt", "feature")
+            git("switch", "--detach", "-q", base)
+            parent = commit("advanced.txt", "main advanced")
+            git("merge", "--no-ff", "--no-edit", head)
+            cut = git("rev-parse", "HEAD")
+            self.assertEqual(ranges.resolve(repo, base, head, cut), (parent, cut))
+            # The original Base can be stale but cannot be divergent.
+            for b, h, c in ((head, head, cut), (base, parent, cut),
+                            (base, head, head), (base, head, "HEAD"),
+                            ("0" * 40, head, cut)):
+                with self.subTest(b=b, h=h, c=c), self.assertRaises(ValueError):
+                    ranges.resolve(repo, b, h, c)
+            # A merge resolution can change an additional path, invisible
+            # in original PR diff. Both orders of parent must be conserved.
+            (repo / "merge-only.txt").write_text("resolution")
+            git("add", ".")
+            git("commit", "--amend", "--no-edit", "-q")
+            extra = git("rev-parse", "HEAD")
+            self.assertIsNone(ranges.resolve(repo, base, head, extra))
+            # Original PR change already present on new base: do not
+            # silently shrink prior obligation even if merge is a no-op.
+            git("switch", "--detach", "-q", base)
+            commit("feature.txt", "feature")
+            git("merge", "--no-ff", "--no-edit", head)
+            self.assertIsNone(ranges.resolve(repo, base, head, git("rev-parse", "HEAD")))
+            # Raw immutable parents remain authoritative despite replace refs.
+            git("switch", "--detach", "-q", cut)
+            git("replace", cut, extra)
+            try:
+                self.assertEqual(ranges.resolve(repo, base, head, cut), (parent, cut))
+            finally:
+                git("replace", "-d", cut)
+
+
 class OwnerSelectorFailClosedRegression(unittest.TestCase):
     """Run the actual protected GitHub Actions shell, not a Python stand-in."""
 
