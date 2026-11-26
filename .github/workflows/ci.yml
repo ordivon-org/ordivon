@@ -92,6 +92,8 @@ jobs:
           }
           owners_file="$RUNNER_TEMP/ordivon-affected-owners.txt"
           tasks_file="$RUNNER_TEMP/ordivon-affected-tasks.txt"
+          # A conservative full-scope fallback must not consume a stale plan.
+          rm -f -- "$RUNNER_TEMP/ordivon-convergence-plan.json"
           if [[ "$EVENT_NAME" == "workflow_dispatch" || "$EVENT_NAME" == "schedule" ]]; then
             python3 tools/repo/affected_owners.py --all --format names > "$owners_file"
             python3 tools/repo/affected_owners.py --all --format queue-tasks > "$tasks_file"

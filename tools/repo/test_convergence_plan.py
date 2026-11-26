@@ -1942,6 +1942,8 @@ class PullRequestExecutionRangeTests(unittest.TestCase):
             # silently shrink prior obligation even if merge is a no-op.
             git("switch", "--detach", "-q", base)
             commit("feature.txt", "feature")
+            # Distinguish coincident same-second commit identities.
+            git("commit", "--amend", "-qm", "independent main copy")
             git("merge", "--no-ff", "--no-edit", head)
             self.assertIsNone(ranges.resolve(repo, base, head, git("rev-parse", "HEAD")))
             # Raw immutable parents remain authoritative despite replace refs.
