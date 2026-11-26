@@ -109,3 +109,18 @@ MISE_OFFLINE=1 MISE_AUTO_INSTALL=false mise exec -- lean ../../platform/security
 MISE_OFFLINE=1 MISE_AUTO_INSTALL=false mise exec -- lean ../../platform/security/formal/EffectAuthorityBinding.lean
 MISE_OFFLINE=1 MISE_AUTO_INSTALL=false mise exec -- lean ../../platform/security/formal/BuildEvidenceBinding.lean
 """
+
+# Scoped local package source identity, not an installed service attestation.
+[tasks.verify-wheel-source]
+run = """
+set -euo pipefail
+export UV_PYTHON="$(mise which python)"
+uv sync --locked
+wheel_dir="$(mktemp -d)"
+trap 'rm -rf -- "$wheel_dir"' EXIT
+uv build --wheel --no-sources --out-dir "$wheel_dir" services/gateway-authzen
+set -- "$wheel_dir"/*.whl
+test "$#" = 1
+test -f "$1"
+uv run --frozen python tests/qualify_authzen_wheel.py "$1"
+"""

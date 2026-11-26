@@ -928,3 +928,46 @@ References:
 - https://github.com/json-schema-org/JSON-Schema-Test-Suite
 - https://bowtie.report/
 - https://pypi.org/project/jsonschema-rs/0.63.1/
+
+### R27 — native wheel source identity and isolated install qualification
+
+L14/L16/L23/T02/T07/T10/T12: distinguish revision source, built archive,
+installed source bytes, imported module identity, running process identity,
+and provider authentication. The existing AuthZEN package uses uv_build;
+reuse native uv build and standard Wheel metadata instead of a second
+package manager or release substrate. The current unit starts a local
+venv entry point; this experiment does not observe that installed service
+or change its unit, credentials, policy or launch configuration.
+
+Actual local native wheel builds using uv 0.13.10, once normally and once
+with --no-sources, produced the same archive digest
+dc12c41a65d4d3e943928b6ee409717b279897fb8e3e0f4e78911b5ea4076240.
+The four package source files match the exact R26 Git objects at
+db8d39f912226648f7477383d30ca0d8f6e27036 (jobs
+job-01a2156f-20a3-7772-abcb-27dc8915e1c8 and
+job-01a2156f-b22b-7487-9553-b31432cb930a). This is a repeated local
+observation, not a full reproducible-build guarantee. A separate
+disposable CPython 3.15.2 installation via uv pip --no-index --no-deps
+reads installed distribution metadata and four exact source files back
+against the built wheel (job job-01a21570-2347-75ed-b60e-1f2edf376e8f).
+No application import, service startup, or production access.
+
+Provide optional verify-wheel-source using native build and a small
+package-specific source comparator against HEAD tree/blob bytes.
+It checks only the package prefix inventory and bytes, plus unique
+archive names. It is not a generic wheel parser/validator, RECORD
+verifier, authenticity proof, full source readset closure, or runtime
+attestation. Existing native package installation owns its own format
+and installation checks. Ordinary Core tests cover independent harmless
+synthetic document inventories, missing/extra/different content, and
+duplicate archive members. Do not infer production standing from these
+tests. No new package dependency or deployment behavior.
+
+Natural Repo release gate #33159 remains independent. Gateway actual
+native PG consumer #33315/#33326 acknowledged via #33337; R26 TM-BOM
+schema result is not a public Gateway ABI or authorization oracle.
+Retain separate producer, consumer, and installed identity obligations.
+
+References:
+- https://docs.astral.sh/uv/concepts/projects/build/
+- https://packaging.python.org/en/latest/specifications/binary-distribution-format/
