@@ -704,7 +704,13 @@ exit 0
         self.assertIn("hashFiles('tools/repo/install_sql_verifiers.sh')", restore["with"]["key"])
         self.assertNotIn("restore-keys", restore["with"])
         self.assertEqual(restore["with"]["path"], install["env"]["ORDIVON_SQL_DIST_CACHE_DIR"])
-        self.assertNotIn("if", install)
+        # Qualification is consumer-scoped, never cache-hit-scoped. The
+        # default and exact callers are independently checked below.
+        self.assertEqual(action["inputs"]["sql-verifiers"]["default"], "true")
+        expected_scope = "inputs.sql-verifiers == 'true'"
+        for step in (restore, install):
+            self.assertEqual(step.get("if"), expected_scope)
+            self.assertNotIn("continue-on-error", step)
         self.assertIn("install_sql_verifiers.sh", install["run"])
 
     def test_root_mise_installs_get_scoped_native_github_token(self) -> None:
@@ -2398,6 +2404,36 @@ exit 0
             self.assertEqual(calls.read_text(), count)
             self.assertFalse(target_marker.exists())
 
+    def test_mise_signed_pair_cache_is_source_bound_and_reverified(self) -> None:
+        import yaml
+
+        steps = yaml.safe_load((ROOT / ".github/actions/setup-root-verification/action.yml")
+                               .read_text())["runs"]["steps"]
+        cache = next(step for step in steps if step.get("name") == "Cache signed mise release material")
+        install = next(step for step in steps if step.get("name") ==
+                       "Network - acquire verified mise via official GitHub API")
+        toolchain = next(step for step in steps if step.get("name") == "Install monorepo toolchain")
+        self.assertLess(steps.index(cache), steps.index(install))
+        self.assertLess(steps.index(install), steps.index(toolchain))
+        self.assertRegex(cache["uses"], r"^actions/cache@[a-f0-9]{40}$")
+        self.assertIn("hashFiles('platform/network/consumers/developer-egress/github_release_mise.py')",
+                      cache["with"]["key"])
+        self.assertNotIn("restore-keys", cache["with"])
+        self.assertEqual(cache["with"]["path"],
+                         install["env"]["ORDIVON_MISE_SIGNED_PAIR_CACHE_DIR"])
+        self.assertNotIn("if", install)
+        self.assertNotIn("continue-on-error", install)
+        self.assertIn("github_release_mise.py", install["run"])
+
+        # A tagged publishing consumer still performs signed acquisition from
+        # official upstream; it must not restore PR-writable caches.
+        release = yaml.safe_load((ROOT / ".github/workflows/runtime-release.yml")
+                                 .read_text())["jobs"]["runtime-release"]["steps"]
+        release_install = next(step for step in release if step.get("name") ==
+                               "Network - acquire verified mise via official GitHub API")
+        self.assertNotIn("ORDIVON_MISE_SIGNED_PAIR_CACHE_DIR", release_install["env"])
+        self.assertFalse(any("actions/cache@" in step.get("uses", "") for step in release))
+
     def test_bash_source_cache_action_is_manifest_bound(self) -> None:
         import yaml
 
@@ -2580,6 +2616,54 @@ exit 0
             self.assertTrue((ROOT / "docs/architecture" / target).is_file())
         self.assertIn("not a new architectural authority", decisions)
 
+
+
+class RootSetupConsumerScopeTests(unittest.TestCase):
+    """Native setup resource scope is not permission to omit verification."""
+
+    def test_sql_tools_only_preflight_can_explicitly_opt_out(self) -> None:
+        import os
+        import yaml
+
+        action = yaml.safe_load(
+            (ROOT / ".github/actions/setup-root-verification/action.yml").read_text()
+        )
+        self.assertEqual(action["inputs"]["sql-verifiers"]["default"], "true")
+        steps = action["runs"]["steps"]
+        guard = next(s for s in steps if s["name"] == "Validate SQL tool scope")
+        self.assertEqual(guard["env"]["SQL_VERIFIERS"], "$" + "{{ inputs.sql-verifiers }}")
+        self.assertNotIn("if", guard)
+        self.assertNotIn("continue-on-error", guard)
+        for value, expected in (("true", 0), ("false", 0), ("", 2),
+                                ("False", 2), ("typo", 2), ("true; exit 0", 2)):
+            with self.subTest(value=value):
+                result = subprocess.run(
+                    ["bash", "-c", guard["run"]],
+                    env=dict(os.environ, SQL_VERIFIERS=value),
+                    capture_output=True, text=True, timeout=5,
+                )
+                self.assertEqual(result.returncode, expected, result.stderr)
+        sql_steps = [s for s in steps if s["name"] in (
+            "Cache verified SQL distribution bytes", "Install pinned SQL validation CLIs")]
+        self.assertEqual(len(sql_steps), 2)
+        for step in sql_steps:
+            self.assertEqual(step["if"], "inputs.sql-verifiers == 'true'")
+            self.assertLess(steps.index(guard), steps.index(step))
+        jobs = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())["jobs"]
+        for name in ("root-preflight", "repo-mechanics", "owner-verification"):
+            caller = next(s for s in jobs[name]["steps"]
+                          if s.get("uses") == "./.github/actions/setup-root-verification")
+            with self.subTest(job=name):
+                self.assertNotIn("if", caller)
+                self.assertEqual(caller.get("with", {}).get("sql-verifiers", "true"),
+                                 "false" if name == "root-preflight" else "true")
+        # The independent repository mechanics job still runs its original
+        # real SQL oracle as part of repo:ci; do not turn a setup opt-out into
+        # a test opt-out.
+        self.assertIn("mise run repo:ci", next(s["run"] for s in jobs["repo-mechanics"]["steps"]
+                         if s.get("name") == "Repository mechanics"))
+        self.assertIn("python tools/repo/check_sql_dialects.py",
+                      (ROOT / "mise.toml").read_text())
 
 
 class ParallelRootVerificationTests(unittest.TestCase):
