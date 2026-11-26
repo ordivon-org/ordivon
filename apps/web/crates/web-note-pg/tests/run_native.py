@@ -126,7 +126,7 @@ if __name__ == "__main__":
         ],
         "effect": [
             (f"WEB_{kind.upper()}_TEST_ACK_PROXY", f"{kind}-proxy", False)
-            for kind in ("effect", "grant", "revoke", "session", "login", "challenge", "dpop", "http_login")
+            for kind in ("effect", "grant", "revoke", "session", "login", "challenge", "dpop", "http_login", "http_agent")
         ],
     }
     try:

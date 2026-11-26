@@ -35,6 +35,7 @@ impl PgNoteStore {
         let r = &prepared.row;
         let a = &prepared.audit;
         self.owner_write(|source|EffectError::AuthorityCommitUnknown{operation:"grant-issuance",coordinate:a.event_id.clone(),source},async |tx|{
+            scope_lock(tx,&r.agent_id,&r.audience,false).await?;
             one(tx.execute("INSERT INTO agent_grants(grant_id,grant_digest,principal_id,agent_id,audience,allowed_actions_json,resource_prefixes_json,expires_at,max_risk_class,step_up_at_or_above,remaining_effects,active,revision) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,1,1)",
             &[&r.grant_id,&r.grant_digest,&r.principal_id,&r.agent_id,&r.audience,&r.allowed_actions_json,&r.resource_prefixes_json,&r.expires_at,&r.max_risk_class,&r.step_up_at_or_above,&r.remaining_effects]).await.map_err(|e|db("grant insert",e))?,"grant")?;
             one(tx.execute("INSERT INTO audit_events VALUES($1,$2,$3,$4,$5,$6,$7)",&[&a.event_id,&a.principal_id,&a.event_type,&a.object_type,&a.object_id,&a.detail_json,&a.created_at]).await.map_err(|e|db("issuance audit",e))?,"issuance audit")?;
@@ -128,23 +129,75 @@ impl PgNoteStore {
         }
         let mut lease = self.connect().await.map_err(EffectError::Pool)?;
         let rows=lease.client().query("SELECT * FROM agent_grants WHERE agent_id=$1 AND audience=$2 AND active=1 AND expires_at>$3",&[&agent,&audience,&now]).await.map_err(|e|db("resolve grant",e))?;
-        // Decode every candidate before selection, including nonmatching
-        // scope; a corrupt row must not silently disappear.
-        let snapshots = rows
-            .iter()
-            .map(|r| GrantRow::read(r)?.snapshot())
-            .collect::<Result<Vec<_>, _>>()?;
+        let result = select_rows(rows, action, resource);
         lease.reusable();
-        let mut matches = snapshots.into_iter().filter(|g| {
-            g.allowed_actions.iter().any(|a| a == action)
-                && g.resource_prefixes
-                    .iter()
-                    .any(|p| scope_contains(p, resource))
-        });
-        let one = matches.next().ok_or(EffectError::GrantUnavailable)?;
-        if matches.next().is_some() {
-            return Err(EffectError::GrantAmbiguous);
-        }
-        Ok(one)
+        result
     }
+}
+
+fn select_rows(
+    rows: Vec<tokio_postgres::Row>,
+    action: &str,
+    resource: &str,
+) -> Result<GrantSnapshot, EffectError> {
+    // Decode all candidates, including nonmatching scope.
+    let snapshots = rows
+        .iter()
+        .map(|r| GrantRow::read(r)?.snapshot())
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut matches = snapshots.into_iter().filter(|g| {
+        g.allowed_actions.iter().any(|a| a == action)
+            && g.resource_prefixes
+                .iter()
+                .any(|p| scope_contains(p, resource))
+    });
+    let one = matches.next().ok_or(EffectError::GrantUnavailable)?;
+    if matches.next().is_some() {
+        return Err(EffectError::GrantAmbiguous);
+    }
+    Ok(one)
+}
+// Exclusive issuance vs shared use. Scope coordinates use length-prefixed
+// agent bytes; a hash collision is conservative BUSY, never permission.
+async fn scope_lock(
+    tx: &Transaction<'_>,
+    agent: &str,
+    audience: &str,
+    shared: bool,
+) -> Result<(), EffectError> {
+    let key = format!("web-grant-scope:{}:{}{}", agent.len(), agent, audience);
+    let sql = if shared {
+        "SELECT pg_try_advisory_xact_lock_shared(hashtextextended($1,0))"
+    } else {
+        "SELECT pg_try_advisory_xact_lock(hashtextextended($1,0))"
+    };
+    let locked: bool = tx
+        .query_one(sql, &[&key])
+        .await
+        .map_err(|e| db("grant scope lock", e))?
+        .get(0);
+    if !locked {
+        return Err(EffectError::Busy);
+    }
+    Ok(())
+}
+pub(super) async fn verify_unique_selection(
+    tx: &Transaction<'_>,
+    g: &super::GrantFence,
+    r: &super::EffectRequest,
+    now: i64,
+) -> Result<(), EffectError> {
+    scope_lock(tx, &r.agent_id, &r.audience, true).await?;
+    let rows=tx.query("SELECT * FROM agent_grants WHERE agent_id=$1 AND audience=$2 AND active=1 AND expires_at>$3",&[&r.agent_id,&r.audience,&now]).await.map_err(|e|db("transaction grant selection",e))?;
+    let selected = select_rows(rows, &r.action, &r.resource)?;
+    let f = selected.fence();
+    if f.grant_id != g.grant_id
+        || f.grant_digest != g.grant_digest
+        || f.revision != g.revision
+        || f.principal_id != g.principal_id
+        || f.agent_id != g.agent_id
+    {
+        return Err(EffectError::GrantChanged);
+    }
+    Ok(())
 }

@@ -29,3 +29,6 @@ mod v2;
 
 #[path = "effect/http_login.rs"]
 mod http_login;
+
+#[path = "effect/agent_http.rs"]
+mod agent_http;

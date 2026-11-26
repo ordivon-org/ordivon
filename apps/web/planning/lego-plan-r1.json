@@ -88,14 +88,19 @@
       "behavioralContract": "Session token is not an authority-bearing credential beyond its exact server-bound identity; unsafe browser mutations require same-site and CSRF guards; session idle/absolute expiry, revocation and audit operate independently of Agent DPoP flow.",
       "acceptance": [
         "Native web tests verify hashed session tokens, absent-origin/CSRF denial, idle expiration and session revocation.",
-        "R21 candidate session-bound CSRF token and current-session logout only; exact Origin and metadata, MAC verified before Session touch, native revoke before clearing Cookie. Multi-process key/rate-limit/other writes remain."
+        "R21 candidate session-bound CSRF token and current-session logout only; exact Origin and metadata, MAC verified before Session touch, native revoke before clearing Cookie. Multi-process key/rate-limit/other writes remain.",
+        "R22 real Security OAuth/DPoP -> native replay -> OPA exact admission -> native Effect candidate; real signed issuer and native race/fault evidence; human authority ceremony and full ingress pending."
       ],
       "evidence": [
         "src/app.ts",
         "src/store.ts",
         "test/app.test.ts",
         "crates/web-note-pg/src/http/session_write.rs",
-        "crates/web-note-pg/src/http/boundary.rs"
+        "crates/web-note-pg/src/http/boundary.rs",
+        "verifier/agent-request.ts",
+        "crates/web-note-pg/src/http/agent/mod.rs",
+        "crates/web-note-pg/src/http/agent/auth.rs",
+        "crates/web-note-pg/src/http/agent/admission.rs"
       ],
       "dependencies": [
         "W01"
@@ -309,7 +314,10 @@
         "src/agent-canary-routes.ts",
         "formal/AgentEffectResponseR1.tla",
         "formal/EffectApprovalRecordR1.tla",
-        "formal/README.md"
+        "formal/README.md",
+        "crates/web-note-pg/src/effect/grants.rs",
+        "crates/web-note-pg/src/effect/transaction.rs",
+        "crates/web-note-pg/src/effect/authority.rs"
       ],
       "dependencies": [
         "W01",
@@ -345,7 +353,8 @@
         "Native contention with a peer WAL writer returns typed 503 only for BUSY before transaction acquisition. Historical replay needs no writer lock; after acquisition preserve original error and reconcile by identity without automatic retry.",
         "Native owner transaction recovery covers BEGIN/COMMIT acknowledgement faults, rollback failure and explicit connection reopening, and abrupt disposable child process death on both sides of COMMIT. A bounded trace oracle checks identity, quota, revision and receipt on every transition; no automatic Effect retry.",
         "An initial receipt miss is provisional until native writer admission; a second lookup resolves exact historical replay or conflicting identity before mutable Grant checks. A COMMIT exception does not establish non-commit; rollback only while the connection reports an active transaction and never automatically reissue.",
-        "Deterministic two-connection WAL tests cover create/publish exact replay, conflict, stale distinct effects, and before/after-commit acknowledgement injection; no process-crash, lock-wait or distributed delivery proof."
+        "Deterministic two-connection WAL tests cover create/publish exact replay, conflict, stale distinct effects, and before/after-commit acknowledgement injection; no process-crash, lock-wait or distributed delivery proof.",
+        "R22 selected native transaction shares agent/audience scope lock versus exclusive issuance; exact selection after asynchronous policy and native revision/approval fences."
       ],
       "formalObligations": [
         "PG candidate primitive witness only: acquire transaction-scoped effect identity lock before Grant row lock, re-observe receipt in a fresh READ COMMITTED statement, preserve revision CAS and exact serialized receipt bytes. A failed lock or unknown commit is not evidence of non-commit; no automatic reissue. Hash collisions can conservatively deny disjoint work. Full schema, async driver, approval/note row lock order, error mapping and migration remain unqualified.",
@@ -393,7 +402,12 @@
         "crates/web-note-pg/tests/effect/v2.rs",
         "crates/web-note-pg/tests/assertion-fixture.mjs",
         "crates/web-note-pg/tests/verifier-failure.mjs",
-        "crates/web-note-pg/tests/effect/http_login.rs"
+        "crates/web-note-pg/tests/effect/http_login.rs",
+        "crates/web-note-pg/src/http/carrier.rs",
+        "crates/web-note-pg/src/http/agent/routes.rs",
+        "crates/web-note-pg/tests/effect/agent_http.rs",
+        "crates/web-note-pg/tests/effect/agent_http_races.rs",
+        "verify-target-prerequisites.sh"
       ],
       "dependencies": [
         "W01",
@@ -416,7 +430,8 @@
         "Owner source bootstrap calls createWebApp; native browser and agent tests exercise HTTP route boundaries.",
         "SOURCE/virtual browser evidence is not public production deployment readiness.",
         "R20 candidate native Axum/Tower browser read composition exercises four real owner routes and actual HTTP/1.1 socket, scoped by opaque PG session, with V2 restore and bounded maintenance consumer; production/real verifier gates remain.",
-        "R21 native candidate login options/verify and CSRF/logout composed with R20 reads; signed software assertion, failure carriers and native ACK proof. No installed ingress or Agent write."
+        "R21 native candidate login options/verify and CSRF/logout composed with R20 reads; signed software assertion, failure carriers and native ACK proof. No installed ingress or Agent write.",
+        "R22 shared carrier and native Agent create/publish candidate with actual Security+OPA, signed issuer, scope race, native ACK and mutant evidence; explicit root target gate, hosted CI provisioning pending."
       ],
       "formalObligations": [
         "Cross-owner installed Security/Browser/PG state qualifications UNKNOWN."

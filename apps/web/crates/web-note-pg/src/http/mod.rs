@@ -1,6 +1,9 @@
 //! Candidate browser HTTP consumers. Read and login routers are separate.
 //! TLS, ingress/rate limiting and verifier integration remain deployment gates.
+mod agent;
+pub use agent::{AgentConfig, AgentState, agent_router};
 mod boundary;
+mod carrier;
 mod login;
 mod session_write;
 pub use login::{LocalVerifier, LoginState, login_router};

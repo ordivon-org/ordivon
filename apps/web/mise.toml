@@ -13,10 +13,11 @@ pnpm run ci
 
 
 [tasks."verify:target"]
-description = "Full target-candidate verification (requires Rust/Nextest, native PG18 and Chromium)"
+description = "Full target-candidate verification (requires Rust/Nextest, native PG18, OPA and Chromium)"
 shell = "bash -c"
 run = """
 set -euo pipefail
+bash ./verify-target-prerequisites.sh
 mise run verify
 cargo fetch --locked --manifest-path crates/web-note-pg/Cargo.toml
 cargo fmt --manifest-path crates/web-note-pg/Cargo.toml -- --check

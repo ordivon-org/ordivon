@@ -21,6 +21,29 @@ impl PgNoteStore {
         audit_id: uuid::Uuid,
         now: i64,
     ) -> Result<EffectOutcome, EffectError> {
+        self.commit_with_selection(g, r, op, audit_id, now, false)
+            .await
+    }
+    pub(crate) async fn commit_selected_effect(
+        &self,
+        g: &GrantFence,
+        r: &EffectRequest,
+        op: &EffectOperation,
+        audit_id: uuid::Uuid,
+        now: i64,
+    ) -> Result<EffectOutcome, EffectError> {
+        self.commit_with_selection(g, r, op, audit_id, now, true)
+            .await
+    }
+    async fn commit_with_selection(
+        &self,
+        g: &GrantFence,
+        r: &EffectRequest,
+        op: &EffectOperation,
+        audit_id: uuid::Uuid,
+        now: i64,
+        strict: bool,
+    ) -> Result<EffectOutcome, EffectError> {
         if !valid_input(r, g, op, now) {
             return Err(EffectError::Invalid);
         }
@@ -29,7 +52,7 @@ impl PgNoteStore {
                 effect_id: r.effect_id.clone(),
                 source,
             },
-            async |tx| execute(tx, g, r, op, audit_id, now).await,
+            async |tx| execute(tx, g, r, op, audit_id, now, strict).await,
         )
         .await
     }
@@ -67,6 +90,7 @@ async fn execute(
     op: &EffectOperation,
     audit_id: uuid::Uuid,
     now: i64,
+    strict: bool,
 ) -> Result<EffectOutcome, EffectError> {
     lock_identity(tx, &r.effect_id).await?;
     if let Some(row) = tx
@@ -83,6 +107,9 @@ async fn execute(
             receipt,
             replayed: true,
         });
+    }
+    if strict {
+        super::grants::verify_unique_selection(tx, g, r, now).await?;
     }
     let publish = matches!(op, EffectOperation::Publish { .. });
     let denied = || {

@@ -437,6 +437,14 @@ mise install
 mise run verify
 """
 
+[tasks."web:verify-target"]
+description = "Explicit complete Web candidate gate; provision native PG18, Rust/Nextest, OPA and Chromium first"
+run = """
+set -euo pipefail
+cd apps/web
+mise run verify:target
+"""
+
 [tasks."preservation:verify"]
 run = """
 set -euo pipefail

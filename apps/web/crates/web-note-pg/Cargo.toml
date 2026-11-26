@@ -19,7 +19,7 @@ hmac = "0.13"
 getrandom = "0.4"
 base64 = "0.22"
 thiserror = "2"
-axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio"] }
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "original-uri"] }
 tower = { version = "0.5", features = ["util"] }
 
 [dev-dependencies]

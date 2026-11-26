@@ -106,6 +106,27 @@ impl PgNoteStore {
         now: i64,
         expires: i64,
     ) -> Result<PendingOutcome, EffectError> {
+        self.register_pending(g, r, op, now, expires, false).await
+    }
+    pub(crate) async fn register_selected_pending(
+        &self,
+        g: &GrantFence,
+        r: &EffectRequest,
+        op: &EffectOperation,
+        now: i64,
+        expires: i64,
+    ) -> Result<PendingOutcome, EffectError> {
+        self.register_pending(g, r, op, now, expires, true).await
+    }
+    async fn register_pending(
+        &self,
+        g: &GrantFence,
+        r: &EffectRequest,
+        op: &EffectOperation,
+        now: i64,
+        expires: i64,
+        strict: bool,
+    ) -> Result<PendingOutcome, EffectError> {
         if !valid_input(r, g, op, now) || !deadline(now, expires) {
             return Err(EffectError::Invalid);
         }
@@ -114,6 +135,7 @@ impl PgNoteStore {
             if let Some(receipt)=receipt(tx,&r.effect_id).await?{
                 receipt.replay(r)?;return Ok(PendingOutcome::AlreadyCommitted(receipt));
             }
+            if strict {super::grants::verify_unique_selection(tx,g,r,now).await?;}
             let current=grant(tx,&g.grant_id).await?;
             let (actions,prefixes)=current.checked()?;
             if !current.current(g,now){return Err(EffectError::GrantChanged)}

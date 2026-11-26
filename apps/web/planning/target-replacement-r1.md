@@ -957,3 +957,123 @@ fence for other-session writes, candidate real browser login and TLS/
 rate-limit composition. P1 root CI provisioning/maintenance scheduling/
 durable prepared intent, V2 physical backup/retention and exclusive
 writer cutover. No peer verdict inferred from requests.
+
+## R22 — native Agent Rail, exact admission and transactional selection
+
+Host Work@41 #33392, Security natural-owner review #33412.
+Existing OAuthDpopAgentRequestVerifier and agent-admission-v1 evaluator are
+the authorities; Web is the actual enforcement and persistence consumer.
+References RFC9449 https://www.rfc-editor.org/rfc/rfc9449.html and
+OPA https://www.openpolicyagent.org/docs ; PostgreSQL advisory locks
+https://www.postgresql.org/docs/18/explicit-locking.html .
+
+| Logic LEGO | Thought LEGO | Capability LEGO |
+|---|---|---|
+| G01 request boundary | fixed owner representation | exact POST canonical route, bounded body, single Authorization/DPoP/Effect ID |
+| G02 verified identity | reuse mature security | existing Security OAuth/DPoP verifier with configured issuer/audience |
+| G03 replay obligation | provisional vs durable | candidate proof jti/TTL capture, actual PG consume before Agent authority |
+| G04 carrier | delete duplicate lifecycle | shared bounded JSON carrier from R21 for Human and Agent |
+| G05 effect identity | representation-first | typed digest of fixed action/resource/content or noteId, Node exact differential |
+| G06 replay observation | idempotency | authenticated exact Receipt before mutable Grant, repeat with new proof |
+| G07 grant selection | cooperative concurrency | decode all candidates, strict selection/revision under shared scope lock vs exclusive issuance |
+| G08 admission | policy as code | existing Python/OPA schema, Agent and Effect policies, exact bound projection |
+| G09 approval | effect-bound authority | native current live approval observation/atomic pending/publish consumption |
+| G10 transaction | exact effects | existing native Note/Grant/Approval/Receipt/Audit commit, explicit UNKNOWN |
+| G11 evidence | independent falsification | signed local issuer, real OPA, actual PG race/ACK and four selected mutants |
+| G12 root consumer | fail closed qualification | explicit root web:verify-target entrypoint, native PG18 prerequisite gate |
+
+Actual candidate routes POST /api/agent/canary/notes and
+POST /api/agent/canary/notes/{canonical UUID}/publish. Reject malformed
+effect ID, duplicate headers, query/alias paths and nonrepresentable
+content (legacy UTF16 length bound). Fixed configured HTTPS audience and
+issuer, explicit loopback HTTP only for test issuer. No request-selected
+authority or issuer. Adapter uses existing oauth4webapi Security verifier
+and captures its single replay obligation, never declares durable
+verification; Rust checks identity and time/TTL binding, consumes jti in
+native PG, only acknowledged success releases agent identity. Current
+Security contract uses globally keyed jti and 600s TTL; reuse, do not
+invent a different replay identity. Actual token proof validation uses
+library clock, native trusted clock supplied by caller must remain
+consistent. Discovery and JWKS per one-shot call; no cache/performance
+claim. Issuer/metadata network policy, rate limit, TLS and process
+containment are deployment prerequisites.
+
+Shared carrier (fixed absolute executable/script, cleared environment,
+bounded JSON stdio 256KiB, deadline up to 30s, semaphore, kill on drop)
+reused across WebAuthn/Agent/OPA. For existing Python evaluator only,
+PATH is an explicit OPA directory. Not OS sandbox or descendant process
+group containment; actual OPA child lifetime governance remains Runtime
+integration work. No secrets in command args/diagnostic output.
+
+OPA receives schema-version-1 exact principal, agent, grant, effect and
+approval projections. ALLOW must match exact Agent and Effect identities,
+request digest, authority digest, zone, capability, effect type and
+version-2 bound-authority evidence. DENY/STEP_UP carry no authority
+projection. Unknown/malformed/unavailable never permits commit.
+Replay is checked before mutable Grant and again after async policy,
+then native transaction rechecks terminal receipt before strict
+selection. Same-effect exact replay with fresh DPoP is distinct from
+reusing a DPoP proof; historical receipt can be read after revocation.
+Absence is not proof of noncommit. Create supported only when no approval
+required: provide no approval, deny STEP_UP because the existing native
+Create does not consume approval. Publish requires exact live approval,
+including if policy allows without it; STEP_UP registers 300s pending
+approval and returns 428. Human real approval ceremony is still pending.
+No legacy fallback, no public activation.
+
+Scope race: native selected commit and pending take shared advisory
+lock on length-delimited agent/audience scope after Effect identity and
+receipt; native Grant issuance takes exclusive lock on the same scope
+before insert. Under READ COMMITTED fresh statement decode all active
+unexpired candidates, require exactly selected id/digest/revision/
+principal/agent, then existing row lock/CAS and approval fence. Revoke
+only reduces availability; its selected row revision/active check is
+retained. Multiple same-scope distinct effect identities share the lock,
+but selected same-Grant quota/revision remains native serial fence;
+disjoint scope issuance progresses. Hash collision is conservative BUSY.
+All new Grant writers must cooperate; old direct trusted commit API
+retained for historical native tests, not public consumer. No claim of
+hostile raw SQL safety or global serializability. Native replay ACK
+UNKNOWN stops before Grant/Effect, a new proof is caller-controlled.
+Fresh policy use bounded to 30s from observation; policy epoch/long
+request freshness and real issuer token lifecycle review remain.
+
+R2.1 I=actual OAuth/DPoP headers, effect identity and typed content,
+trusted configured verifier/policy paths/clock; O=typed denial,
+step-up or exact receipt/UNKNOWN; S=PG owner + Security contract + OPA;
+pre=installed trusted verifier and policy, consistent time, cooperating
+writers; post=confirmed replay claim before admission, exact committed
+effect or no false success; inv=no unauthorized actor/digest replay,
+no mutable grant ambiguity, no double proof consumption or implicit
+retry; eff=local PG, trusted local processes, configured issuer network;
+c=bounded carrier/body, scoped shared/exclusive native locks;
+epsilon=no real Keycloak deployment, no human approval ceremony, no
+general create step-up, no physical auth/installed ingress, no
+production migration, not hostile SQL/OS sandbox; prov=Git/native JUnit/
+real signed fixture; unfold=G01->G02/G03->G05/G06/G07->G08/G09->G10.
+
+Three new mandatory named tests in Effect lane. Actual loopback OIDC
+discovery/JWKS and RSA signed access JWT + ES256 DPoP; wrong audience,
+binding, method, path, expired proof and bad token rejected. Real OPA
+create/publish decision and PG exact receipt, Node digest differential
+with Unicode content, same proof refused, fresh proof replay exact,
+actor/content conflicts denied, real approval persistence fixture
+consumed by publish, revoke and historical replay. Real policy result
+gated before return, concurrent matching issuance leads to ambiguity
+denial; tampered bound effect digest rejected; real trigger and
+pg_locks witness hold transaction, same scope issuance BUSY, disjoint
+scope succeeds. Actual native HTTP Replay COMMIT ACK discard: no effect
+or quota decrement, burned proof denied, explicit fresh proof succeeds.
+Four selected mutants killed (transaction selection, shared scope lock,
+effect projection check, durable replay handoff). No global score.
+Strict discovery/JUnit plus extra mandatory wire cut.
+
+Root candidate task web:verify-target is explicitly callable and runs
+native prerequisites then full target gate. Root owner selection still
+web:verify; GitHub runner provisioning of PostgreSQL18 server binaries,
+Rust/Nextest and locked Chromium not verified in hosted runner. Do not
+silently skip target tests or claim CI activation. Root task makes
+actual integration reproducible; shared CI owner handoff required.
+Next: real WebAuthn Grant/Approval ceremony with credential and authority
+atomic completion, generalized approval consumption, actual candidate
+browser/Agent ingress, CI provision and single-writer production cutover.
