@@ -23,6 +23,46 @@ SPEC.loader.exec_module(MODULE)
 
 
 
+class OwnerPolicyLifetimeTests(unittest.TestCase):
+    def test_operation_resolves_fresh_owner_policy_and_preserves_explicit_snapshot(self) -> None:
+        from dataclasses import replace
+
+        import ci_owner_shards
+
+        original = MODULE.affected_owners.load_owners()
+        old = next(owner for owner in original if owner.name == "host")
+        fresh = tuple(
+            replace(owner, queue_task="host:current-policy-probe")
+            if owner.name == "host" else owner
+            for owner in original
+        )
+        path = ["services/host/README.md"]
+        with mock.patch.object(
+            MODULE.affected_owners, "load_owners", return_value=fresh
+        ) as load:
+            selected = MODULE.build_plan(changed_files=path)
+            self.assertIn("host:current-policy-probe", selected["queueVerifyTasks"])
+            self.assertNotIn(old.queue_task, selected["queueVerifyTasks"])
+            load.assert_called_once_with()
+            pinned = MODULE.build_plan(changed_files=path, owners=original)
+            self.assertIn(old.queue_task, pinned["queueVerifyTasks"])
+            load.assert_called_once_with()
+            self.assertIn(
+                "host:current-policy-probe",
+                [owner.queue_task for owner in MODULE.affected_owners.owners_for_paths(path)],
+            )
+            self.assertEqual(
+                ci_owner_shards.shard_queue(["host:current-policy-probe"])["include"],
+                [{"shard": 0, "tasks": ["host:current-policy-probe"]}],
+            )
+            with self.assertRaisesRegex(ValueError, "unknown selected"):
+                ci_owner_shards.shard_queue([old.queue_task])
+            with self.assertRaisesRegex(ValueError, "exact canonical"):
+                MODULE.validate_queue_task_selection(
+                    pinned["verificationOwners"], pinned["queueVerifyTasks"], path
+                )
+
+
 class CandidateSourceRedundancyTests(unittest.TestCase):
     """Independent immutable-Git oracle; no operational deletion side effects."""
 

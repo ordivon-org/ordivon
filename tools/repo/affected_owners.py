@@ -104,6 +104,9 @@ def _normalize(path: str) -> str:
     return PurePosixPath(value).as_posix()
 
 
+# Compatibility snapshot for existing importers. Live selection must resolve
+# the manifest at the operation boundary, not treat this import-time value
+# as current authority.
 OWNERS: tuple[Owner, ...] = load_owners()
 
 
@@ -155,8 +158,10 @@ EXECUTABLE_OWNER_ROOTS = (
 
 
 def require_registered_execution_paths(
-    paths: Iterable[str], *, owners: tuple[Owner, ...] = OWNERS
+    paths: Iterable[str], *, owners: tuple[Owner, ...] | None = None
 ) -> None:
+    if owners is None:
+        owners = load_owners()
     relocated = _deployed_relocation_origins(owners)
     unregistered = sorted({
         path for raw in paths
@@ -169,8 +174,10 @@ def require_registered_execution_paths(
 
 
 def owners_for_paths(
-    paths: Iterable[str], *, owners: tuple[Owner, ...] = OWNERS
+    paths: Iterable[str], *, owners: tuple[Owner, ...] | None = None
 ) -> tuple[Owner, ...]:
+    if owners is None:
+        owners = load_owners()
     normalized = tuple(_normalize(path) for path in paths if path.strip())
     relocated = _deployed_relocation_origins(owners)
     if any(path in CROSS_CUTTING_PATHS for path in normalized):
@@ -343,9 +350,10 @@ def _parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = _parser().parse_args()
     source_cut: dict[str, str] | None = None
+    owners = load_owners()
     if args.all:
         selection_basis = "ALL_OWNERS"
-        selected = OWNERS
+        selected = owners
         paths: tuple[str, ...] = ()
     else:
         if args.changed_file:
@@ -360,8 +368,8 @@ def main() -> int:
             diff_base = _source_diff_base(base, head)
             paths = changed_paths(diff_base, head)
             source_cut = {"base": base, "head": head, "diffBase": diff_base}
-        require_registered_execution_paths(paths)
-        selected = owners_for_paths(paths)
+        require_registered_execution_paths(paths, owners=owners)
+        selected = owners_for_paths(paths, owners=owners)
 
     if args.format == "names":
         for owner in selected:

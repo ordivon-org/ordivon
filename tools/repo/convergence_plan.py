@@ -51,10 +51,12 @@ def _digest(path: Path) -> str:
 
 
 def load_dependency_graph(
-    owners: tuple[affected_owners.Owner, ...] = affected_owners.OWNERS,
+    owners: tuple[affected_owners.Owner, ...] | None = None,
     path: Path = DEPENDENCY_PATH,
     *, test_only_consumers: list[tuple[str, str, str, str]] | None = None,
 ) -> dict[str, set[str]]:
+    if owners is None:
+        owners = affected_owners.load_owners()
     names = {owner.name for owner in owners}
     graph = {name: set() for name in names}
     data = tomllib.loads(path.read_text(encoding="utf-8"))
@@ -308,9 +310,8 @@ def validate_queue_task_selection(
     The only source-only verification task is the existing formal:verify. It
     is never a fake Owner or a substitute for another Owner's queue gate.
     """
-    canonical = {
-        owner.name: owner.queue_task for owner in affected_owners.OWNERS
-    }
+    owners = affected_owners.load_owners()
+    canonical = {owner.name: owner.queue_task for owner in owners}
     # The queue consumes the already projected source impact, not merely the
     # producer's asserted Owner list. Otherwise a consistently empty/partial
     # (verificationOwners, queueVerifyTasks) pair would pass and silently
@@ -320,7 +321,7 @@ def validate_queue_task_selection(
     # dependency/consumer closure. It DOES NOT prove changedPaths matches Git
     # bytes, installed effects, complete dynamic consumers or formal proof.
     if changed_paths:
-        impact = build_plan(changed_files=changed_paths)
+        impact = build_plan(changed_files=changed_paths, owners=owners)
         if selected_owners != impact["verificationOwners"]:
             raise ValueError(
                 "queue source impact must include the exact canonical "
@@ -409,9 +410,14 @@ def build_plan(
     base: str | None = None,
     head: str | None = None,
     changed_files: Iterable[str] = (),
-    owners: tuple[affected_owners.Owner, ...] = affected_owners.OWNERS,
+    owners: tuple[affected_owners.Owner, ...] | None = None,
     dependency_path: Path = DEPENDENCY_PATH,
 ) -> dict[str, object]:
+    # Resolve once per operation; propagate one immutable policy tuple into
+    # selection, graph closure and task projection. An import-time default
+    # can survive a manifest restoration even after source qualification.
+    if owners is None:
+        owners = affected_owners.load_owners()
     explicit_paths = tuple(path for path in changed_files if path.strip())
     if explicit_paths:
         paths = explicit_paths

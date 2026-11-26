@@ -39,7 +39,7 @@ def shard_queue(
 ) -> dict[str, object]:
     if not 1 <= count <= MAX_SHARDS:
         raise ValueError("invalid CI shard count")
-    canonical = {owner.queue_task for owner in affected_owners.OWNERS}
+    canonical = {owner.queue_task for owner in affected_owners.load_owners()}
     if len(tasks) != len(set(tasks)):
         raise ValueError("duplicate selected Owner verification task")
     if set(tasks) - canonical - {"formal:verify"}:
