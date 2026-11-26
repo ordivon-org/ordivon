@@ -1,31 +1,17 @@
 use super::*;
 use tempfile::TempDir;
 
+// Reuse the single compiled SQL input per migration. Independently specify
+// historical names and derive checksums from the SQL bytes, not descriptors
+// or ledger constants. A second include_str! spelling creates ambiguous
+// rustc dep-info paths without adding an independent source.
 const FIXTURES: [(&str, &str); 6] = [
-    (
-        "0001_runtime",
-        include_str!("../../../migrations/runtime/0001_runtime.sql"),
-    ),
-    (
-        "0002_orphan_recovery",
-        include_str!("../../../migrations/runtime/0002_orphan_recovery.sql"),
-    ),
-    (
-        "0003_terminal_repair",
-        include_str!("../../../migrations/runtime/0003_terminal_repair.sql"),
-    ),
-    (
-        "0004_orphan_reclaim",
-        include_str!("../../../migrations/runtime/0004_orphan_reclaim.sql"),
-    ),
-    (
-        "0005_condition_retirement",
-        include_str!("../../../migrations/runtime/0005_condition_retirement.sql"),
-    ),
-    (
-        "0006_workspace_patch_retirement",
-        include_str!("../../../migrations/runtime/0006_workspace_patch_retirement.sql"),
-    ),
+    ("0001_runtime", MIGRATION_V1_SQL),
+    ("0002_orphan_recovery", MIGRATION_V2_SQL),
+    ("0003_terminal_repair", MIGRATION_V3_SQL),
+    ("0004_orphan_reclaim", MIGRATION_V4_SQL),
+    ("0005_condition_retirement", MIGRATION_V5_SQL),
+    ("0006_workspace_patch_retirement", MIGRATION_V6_SQL),
 ];
 
 fn fixture_checksum(sql: &str) -> String {
