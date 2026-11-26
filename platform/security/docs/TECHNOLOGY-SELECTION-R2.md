@@ -971,3 +971,43 @@ Retain separate producer, consumer, and installed identity obligations.
 References:
 - https://docs.astral.sh/uv/concepts/projects/build/
 - https://packaging.python.org/en/latest/specifications/binary-distribution-format/
+
+### R28 — same-capture local wheel source identity
+
+L14/L16/L23/T02/T07/T12: distinguish the Git source revision,
+examined archive content, archive digest and actual installed/runtime
+identity. R27's opt-in local source qualification examined a ZIP by
+path and subsequently read that path for a digest. The report must
+identify exactly the bytes examined. Capture the small locally built
+wheel once, use stdlib BytesIO/ZipFile for the existing package inventory
+and content comparison, and hash that same immutable byte value.
+Retain the existing count-only wrapper, output labels, exact Git source
+lookup and duplicate archive-member rejection. No new runtime dependency,
+service, or authentication behavior.
+
+The independent document fixture checks exact count and SHA-256 against
+captured bytes and observes one Path.read_bytes call. All four scoped
+unit tests and actual native verify-wheel-source passed (job
+job-01a2157f-aa57-7571-b569-4df2928616d1): 4 exact package sources at
+eb2e1a18b14160ae60e6f934ddf1743360642bc0, wheel SHA256
+dd945b00178c956473b39697085892b2c17cfb50603bf8b0d52e04f6453aa376.
+This is an opt-in small local wheel check; memory is O(archive bytes
+plus examined source contents). It is not a large-file streaming
+protocol, signed attestation, complete build readset, atomic filesystem
+snapshot, or installed process identity. No performance improvement is
+claimed. Use existing natural release owner and independent installed
+consumer evidence for those separate obligations.
+
+P0: R26 exact #2808 official terminal preflight/root failure, CodeQL
+and mechanics success; preserve all gates (job
+job-01a2157f-1b27-75fb-ade5-b0b56104ecdc). R27/R28 may compose in the
+existing Draft after exact revision and current-main merge-tree checks.
+Research actual consumer #33374 requested a declared provider; native
+Linux PG capability readback still reports empty declared credential
+authorities and materialization bindings. Host #33397 hands the
+supported provider contract and installed qualification to natural
+Runtime ownership. No credential read, external probe or authority
+change; do not infer actual capability from source or a request.
+
+References: https://docs.python.org/3/library/zipfile.html and
+https://github.com/in-toto/attestation/blob/main/spec/v1/statement.md .

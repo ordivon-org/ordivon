@@ -1,12 +1,13 @@
 """Synthetic package-data fixtures, independent of service behavior."""
 
+import hashlib
 import tempfile
 import unittest
 import warnings
 from pathlib import Path
 from zipfile import ZipFile
 
-from qualify_authzen_wheel import PACKAGE, check_package_sources
+from qualify_authzen_wheel import PACKAGE, check_package_sources, qualify_package_source
 
 
 class WheelSourceQualificationTests(unittest.TestCase):
@@ -43,3 +44,37 @@ class WheelSourceQualificationTests(unittest.TestCase):
                     output.writestr(name, b"two")
             with self.assertRaisesRegex(ValueError, "duplicate archive member"):
                 check_package_sources(archive, {name: b"two"})
+
+    def test_qualification_reports_identity_of_examined_bytes(self):
+        name = PACKAGE + "sample.txt"
+        expected = {name: b"sample document"}
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / "fixture.whl"
+            with ZipFile(archive, "w") as output:
+                output.writestr(name, expected[name])
+                output.writestr("fixture.dist-info/METADATA", "Name: fixture")
+            raw = archive.read_bytes()
+            self.assertEqual(
+                qualify_package_source(archive, expected),
+                (1, hashlib.sha256(raw).hexdigest()),
+            )
+            self.assertEqual(check_package_sources(archive, expected), 1)
+
+    def test_archive_capture_does_not_repeat_file_read(self):
+        from unittest.mock import patch
+
+        name = PACKAGE + "sample.txt"
+        expected = {name: b"sample document"}
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / "fixture.whl"
+            with ZipFile(archive, "w") as output:
+                output.writestr(name, expected[name])
+            raw = archive.read_bytes()
+            # The local document fixture is immutable for the examination.
+            # Require one capture, independent of the internal ZIP reader.
+            with patch.object(Path, "read_bytes", return_value=raw) as capture:
+                self.assertEqual(
+                    qualify_package_source(archive, expected),
+                    (1, hashlib.sha256(raw).hexdigest()),
+                )
+                capture.assert_called_once_with()

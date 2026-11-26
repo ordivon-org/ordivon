@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import subprocess
 import sys
+from io import BytesIO
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -16,8 +17,8 @@ SOURCE = "platform/security/services/gateway-authzen/src/"
 PACKAGE = "ordivon_security_gateway_authzen/"
 
 
-def check_package_sources(wheel: Path, expected: dict[str, bytes]) -> int:
-    with ZipFile(wheel) as archive:
+def check_captured_package_sources(raw: bytes, expected: dict[str, bytes]) -> int:
+    with ZipFile(BytesIO(raw)) as archive:
         names = archive.namelist()
         if len(names) != len(set(names)):
             raise ValueError("duplicate archive member")
@@ -31,6 +32,17 @@ def check_package_sources(wheel: Path, expected: dict[str, bytes]) -> int:
     if any(actual[name] != data for name, data in expected.items()):
         raise ValueError("package source bytes mismatch")
     return len(actual)
+
+
+def check_package_sources(wheel: Path, expected: dict[str, bytes]) -> int:
+    return check_captured_package_sources(wheel.read_bytes(), expected)
+
+
+def qualify_package_source(wheel: Path, expected: dict[str, bytes]) -> tuple[int, str]:
+    """Bind the reported digest to exactly the archive bytes examined."""
+    raw = wheel.read_bytes()
+    count = check_captured_package_sources(raw, expected)
+    return count, hashlib.sha256(raw).hexdigest()
 
 
 def main():
@@ -50,10 +62,10 @@ def main():
     }
     if not expected:
         raise ValueError("no package source inventory in revision")
-    count = check_package_sources(wheel, expected)
+    count, digest = qualify_package_source(wheel, expected)
     print("SOURCE_REVISION", revision)
     print("WHEEL_SOURCE_FILES", count, "EXACT")
-    print("WHEEL_SHA256", hashlib.sha256(wheel.read_bytes()).hexdigest())
+    print("WHEEL_SHA256", digest)
 
 
 if __name__ == "__main__":
