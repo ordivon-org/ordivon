@@ -256,6 +256,30 @@ jobs:
             done
             git --no-replace-objects diff --quiet HEAD -- services/gateway/formal/ || return 1
             [[ -z "$(git --no-replace-objects ls-files --others --exclude-standard -- services/gateway/formal/)" ]] || return 1
+            # Ignored TLC artifacts are not model authority. Refuse additional
+            # model/config inputs even when Git ignore would hide their presence.
+            [[ -z "$(git --no-replace-objects ls-files --others --ignored --exclude-standard -- \
+                'services/gateway/formal/*.tla' 'services/gateway/formal/*.cfg')" ]] || return 1
+            # Qualify the actual native task resolution rather than just its name.
+            mise tasks info --json gateway:formal:verify | python3 -c '
+          import json
+          from pathlib import Path
+          import sys
+
+          task = json.load(sys.stdin)
+          root = Path.cwd()
+          if (
+              task.get("source") != str(root / "mise.toml")
+              or task.get("dir") != str(root)
+              or task.get("run") != ["bash services/gateway/formal/verify.sh"]
+              or any(task.get(key) for key in (
+                  "depends", "depends_post", "daemons", "wait_for", "env",
+                  "skip_if", "outputs", "sources", "file", "tools",
+              ))
+              or task.get("cache", {}).get("enabled")
+          ):
+              raise ValueError("effective Gateway Formal task differs from qualified root entry")
+          ' || return 1
           }
           qualify_gateway_formal_source
           unset ORDIVON_TLA_TOOLS_JAR

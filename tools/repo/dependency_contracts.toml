@@ -185,6 +185,16 @@ allowed_fragment = "services/runtime/formal/toolchain.lock.json"
 kind = "PUBLIC_PINNED_FORMAL_TOOLCHAIN"
 contract_ref = "services/runtime/formal/README.md"
 
+# Actual Gateway owner test consumes the exact public lock, not Runtime state.
+[[seams]]
+from_owner = "gateway"
+to_owner = "runtime"
+source_glob = "services/gateway/tests/test_formal_task_owner.py"
+allowed_fragment = "services/runtime/formal/toolchain.lock.json"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "PATH"
+contract_ref = "services/runtime/formal/README.md"
+
 # Public digest-verified upstream Formal toolchain; not Runtime Job/Attempt state.
 [[seams]]
 from_owner = "composition"

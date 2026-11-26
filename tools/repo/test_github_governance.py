@@ -779,6 +779,68 @@ exit 0
                         self.assertEqual(run.returncode, 0, run.stderr)
                         self.assertEqual(output.read_text().strip(), "gateway_formal=" + expected)
 
+    def test_gateway_formal_guard_rejects_unqualified_effective_input(self) -> None:
+        import os
+        import yaml
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = {step["name"]: step for step in required_ci_steps(workflow)}
+        run = steps["Verify changed Gateway Formal source"]["run"]
+        guard = run.split("\nqualify_gateway_formal_source\n", 1)[0]
+        guard += "\nqualify_gateway_formal_source\n"
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = Path(directory)
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", directory, *args], text=True,
+                    stderr=subprocess.PIPE,
+                )
+            git("init", "-q")
+            for rel, content in {
+                "mise.toml": '[tasks."gateway:formal:verify"]\nrun = "bash services/gateway/formal/verify.sh"\n',
+                "services/gateway/formal/verify.sh": "#!/bin/bash\n",
+                "services/gateway/formal/Model.tla": "fixture\n",
+                "services/runtime/formal/toolchain.lock.json": "{}",
+                "services/runtime/scripts/tla-formal": "#!/bin/bash\n",
+                "services/runtime/mise.toml": "",
+            }.items():
+                path = fixture / rel
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content)
+            git("add", ".")
+            git("-c", "user.name=fixture", "-c", "user.email=fixture@example.invalid",
+                "commit", "-qm", "fixture")
+            env = {
+                **os.environ,
+                "GITHUB_SHA": git("rev-parse", "HEAD").strip(),
+                "MISE_TRUSTED_CONFIG_PATHS": directory,
+            }
+
+            def check(expected):
+                result = subprocess.run(
+                    ["bash", "-c", guard], cwd=fixture, env=env,
+                    text=True, capture_output=True, check=False,
+                )
+                self.assertEqual(result.returncode == 0, expected, result.stderr)
+
+            check(True)
+            model = fixture / "services/gateway/formal/Model.tla"
+            model.write_text("changed\n")
+            check(False)
+            model.write_text("fixture\n")
+            ignored = fixture / "services/gateway/formal/Ignored.tla"
+            (fixture / ".git/info/exclude").write_text("Ignored.tla\n")
+            ignored.write_text("fixture\n")
+            check(False)
+            ignored.unlink()
+            override = fixture / "mise.local.toml"
+            override.write_text(
+                '[tasks."gateway:formal:verify"]\nrun = "echo alternate fixture"\n'
+            )
+            check(False)
+            override.unlink()
+            check(True)
+
     def test_selected_formal_has_one_isolated_real_invocation_and_owner_failures_propagate(self) -> None:
         """Execute the real GitHub queue shell and dedicated Formal step."""
         import os

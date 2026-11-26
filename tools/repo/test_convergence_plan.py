@@ -1808,6 +1808,36 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(runtime["verificationOwners"], ["composition", "runtime"])
         self.assertEqual(runtime["taskLocalTestConsumers"], ["composition"])
 
+    def test_gateway_formal_public_checker_does_not_expand_business_edges(self) -> None:
+        graph = MODULE.load_dependency_graph()
+        self.assertNotIn("runtime", graph["gateway"])
+        self.assertNotIn("gateway", graph["runtime"])
+        model = MODULE.build_plan(changed_files=["services/gateway/formal/verify.sh"])
+        self.assertIn("gateway", model["verificationOwners"])
+        self.assertNotIn("runtime", model["verificationOwners"])
+        lock = MODULE.build_plan(changed_files=["services/runtime/formal/toolchain.lock.json"])
+        self.assertIn("gateway", lock["taskLocalTestConsumers"])
+        self.assertIn("gateway", lock["verificationOwners"])
+        runtime = MODULE.build_plan(
+            changed_files=["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]
+        )
+        self.assertNotIn("gateway", runtime["taskLocalTestConsumers"])
+        self.assertNotIn("gateway", runtime["verificationOwners"])
+
+    def test_gateway_formal_toolchain_seam_cannot_cover_other_sources(self) -> None:
+        original = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
+        known = 'source_glob = "services/gateway/formal/verify.sh"'
+        self.assertEqual(original.count(known), 2)
+        for mutation in (
+            'source_glob = "services/gateway/**"',
+            'source_glob = "services/gateway/src/ordivon_gateway/service.py"',
+        ):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
+                shadow = Path(directory) / "dependency_contracts.toml"
+                shadow.write_text(original.replace(known, mutation), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "unapproved upstream toolchain-only seam"):
+                    MODULE.load_dependency_graph(path=shadow)
+
     def test_formal_toolchain_exception_rejects_unapproved_consumer_paths(self) -> None:
         """The tool-only exemption is an exact named file, not owner authority."""
         policy = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")

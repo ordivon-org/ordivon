@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import tomllib
@@ -15,7 +16,15 @@ def test_root_alias_preserves_gateway_model_inventory() -> None:
     assert task["run"] == "bash services/gateway/formal/verify.sh"
     formal = ROOT / "services/gateway/formal"
     script = formal / "verify.sh"
+    assert script.is_file() and not script.is_symlink()
     source = script.read_text()
+    assert source.splitlines()[:2] == ["#!/usr/bin/env bash", "set -euo pipefail"]
+    lock_path = "services/runtime/formal/toolchain.lock.json"
+    assert lock_path in source
+    lock = json.loads((ROOT / lock_path).read_text())
+    assert lock["tool"] == "tla2tools.jar"
+    assert len(lock["sha256"]) == 64
+    int(lock["sha256"], 16)
     subprocess.run(["bash", "-n", str(script)], check=True)
     for model in formal.glob("*.tla"):
         assert model.name in source
