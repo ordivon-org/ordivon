@@ -1,5 +1,6 @@
 //! Fixed native read operations; no public generic dispatch or effect authority.
 use crate::owner_credential::read_fixture_bearer;
+use crate::owner_error::{self, QualifiedError};
 use rmcp::{
     ClientLifecycleMode, ClientServiceExt,
     model::{CallToolRequestParams, ClientConfig, ProtocolVersion},
@@ -7,6 +8,7 @@ use rmcp::{
         StreamableHttpClientTransport, StreamableHttpClientTransportConfig,
     },
 };
+use serde::Serialize;
 use serde_json::{Value, json};
 use std::{path::Path, time::Duration};
 
@@ -16,6 +18,12 @@ pub(crate) enum ReadRequest<'a> {
 }
 
 impl ReadRequest<'_> {
+    fn tool(&self) -> &'static str {
+        match self {
+            Self::Describe => "runtime.describe",
+            Self::Resolve { .. } => "job.list",
+        }
+    }
     fn params(self) -> CallToolRequestParams {
         let (name, args) = match self {
             Self::Describe => ("runtime.describe", json!({"schemaVersion":1})),
@@ -53,6 +61,24 @@ pub(crate) async fn protected_read(
     read_endpoint(url, budget, legacy, Some(token), request).await
 }
 
+#[derive(Debug, Serialize)]
+#[serde(tag = "failure", rename_all = "snake_case")]
+pub(crate) enum ReadFailure {
+    Unobserved { reason: &'static str },
+    Tool { evidence: Option<QualifiedError> },
+}
+impl ReadFailure {
+    fn reason(&self) -> &'static str {
+        match self {
+            Self::Unobserved { reason } => reason,
+            Self::Tool { .. } => "owner_tool_error",
+        }
+    }
+}
+fn unknown(reason: &'static str) -> ReadFailure {
+    ReadFailure::Unobserved { reason }
+}
+
 pub(crate) async fn read_endpoint(
     url: reqwest::Url,
     budget: Duration,
@@ -60,6 +86,19 @@ pub(crate) async fn read_endpoint(
     bearer: Option<String>,
     request: ReadRequest<'_>,
 ) -> Result<Value, &'static str> {
+    read_endpoint_typed(url, budget, legacy, bearer, request)
+        .await
+        .map_err(|e| e.reason())
+}
+
+pub(crate) async fn read_endpoint_typed(
+    url: reqwest::Url,
+    budget: Duration,
+    legacy: bool,
+    bearer: Option<String>,
+    request: ReadRequest<'_>,
+) -> Result<Value, ReadFailure> {
+    let tool = request.tool();
     let observed = tokio::time::timeout(budget, async {
         let Ok(http) = reqwest::Client::builder()
             .no_proxy()
@@ -68,7 +107,7 @@ pub(crate) async fn read_endpoint(
             .timeout(budget)
             .build()
         else {
-            return Err("client_configuration");
+            return Err(unknown("client_configuration"));
         };
         let mut config = StreamableHttpClientTransportConfig::with_uri(url.as_str());
         if let Some(token) = bearer {
@@ -94,17 +133,24 @@ pub(crate) async fn read_endpoint(
             )
             .await
         else {
-            return Err("negotiation_failed");
+            return Err(unknown("negotiation_failed"));
         };
         let response = client.call_tool(request.params()).await;
         let outcome = match response {
-            Ok(result) if result.is_error == Some(true) => Err("owner_tool_error"),
-            Ok(result) => result.structured_content.ok_or("structured_result_absent"),
-            Err(_) => Err("protocol_or_transport_failed"),
+            Ok(result) if result.is_error == Some(true) => {
+                let evidence = serde_json::to_value(&result)
+                    .ok()
+                    .and_then(|v| owner_error::decode(&v, "runtime.linux", tool));
+                Err(ReadFailure::Tool { evidence })
+            }
+            Ok(result) => result
+                .structured_content
+                .ok_or_else(|| unknown("structured_result_absent")),
+            Err(_) => Err(unknown("protocol_or_transport_failed")),
         };
         let _ = client.cancel().await;
         outcome
     })
     .await;
-    observed.unwrap_or(Err("observation_deadline"))
+    observed.unwrap_or_else(|_| Err(unknown("observation_deadline")))
 }

@@ -1,9 +1,12 @@
+mod artifact_descriptor;
 mod artifact_inventory;
 mod logic;
 mod matching;
 mod native_discovery;
 mod owner_credential;
+mod owner_error;
 mod owner_observation;
+mod owner_receipt;
 mod owner_resolution;
 mod owner_transport;
 mod principal_binding;
@@ -115,6 +118,20 @@ fn eval(v: Value) -> Value {
             });
             json!(coords.map(|v| principal_binding::namespace(v[0], v[1], v[2], v[3])))
         }
+        Some("owner_receipt") => json!(owner_receipt::project(
+            input["operationRef"].as_str().unwrap_or_default(),
+            &input["observation"],
+            &input["inspection"]
+        )),
+        Some("owner_error") => json!(owner_error::decode(
+            &input["result"],
+            input["owner"].as_str().unwrap_or_default(),
+            input["tool"].as_str().unwrap_or_default()
+        )),
+        Some("artifact_descriptor") => json!(artifact_descriptor::qualify(
+            &input["payload"],
+            &input["count"]
+        )),
         Some("artifact_inventory") => json!(artifact_inventory::project(
             &input["payload"],
             &input["count"]
@@ -145,6 +162,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let v: Value = serde_json::from_str(&line?)?;
                 println!("{}", eval(v));
             }
+        }
+        Some("observe-runtime-error-fixture") => {
+            let endpoint=args.next().ok_or("fixture endpoint required")?;
+            let legacy=match args.next().as_deref(){Some("auto")=>false,Some("legacy")=>true,_=>return Err("unexpected fixture mode".into())};
+            if args.next().is_some(){return Err("unexpected arguments".into());}
+            let url=owner_transport::fixture_endpoint(&endpoint).ok_or("unqualified fixture endpoint")?;
+            let result=owner_transport::read_endpoint_typed(url,std::time::Duration::from_secs(3),legacy,None,owner_transport::ReadRequest::Describe).await;
+            match result {Ok(_)=>println!("{}",json!({"standing":"reported"})),Err(e)=>println!("{}",serde_json::to_string(&e)?),}
         }
         Some("observe-runtime-fixture") => {
             let endpoint = args.next().ok_or("fixture endpoint required")?;

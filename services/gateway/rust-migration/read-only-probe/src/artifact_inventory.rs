@@ -10,6 +10,12 @@ pub(crate) struct Inventory<'a> {
     complete: Option<bool>,
 }
 
+impl Inventory<'_> {
+    pub(crate) fn complete(&self) -> Option<bool> {
+        self.complete
+    }
+}
+
 pub(crate) fn project<'a>(payload: &'a Value, count: &Value) -> Inventory<'a> {
     let mut ids = Vec::new();
     let mut qualified = false;

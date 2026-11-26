@@ -324,3 +324,35 @@ call job.observe and trigger reconciliation/dispatch; it must not be silently
 replaced by job.get. The next native contract needs exact Owner descriptor
 kind/digest/retainedBytes, separate from IDs-only coverage, with real Harness
 compatibility and versioned public ABI qualification. No production promotion.
+
+
+## Independent R19 typed descriptor, error, and receipt composition (Host #33235 / #33249)
+
+Artifact qualification reuses identity coverage and separately decodes the exact Runtime v1
+ArtifactDescriptor. Trimmed nonblank opaque identifiers, canonical lowercase SHA-256
+hex, integer u64 byte counts, boolean truncated, and absent-or-u64 droppedBytes are
+required. Unknown fields and explicit null droppedBytes are rejected for this exact
+producer version; future shape evolution needs a new qualified receiver. Descriptors
+are emitted only for a fully qualified unique set; no byte verification or semantic ACK.
+
+The private typed error receiver distinguishes Owner tool failures from negotiation,
+protocol/transport, missing structured result, and timeout. Structured canonical error
+has precedence; text fallback is restricted to exact Owner/tool envelopes and bounded
+UTF-8. Safe result preserves Runtime commit state/retryable, known artifact action,
+or qualified Host cursor geometry; arbitrary detail, refs, message, and stack never
+enter this diagnostic projection. This is narrower than the legacy public envelope:
+unknown Owners, float extension fields and oversized UTF-8 fallback stay opaque.
+The existing legacy observation/reattachment reason shape is unchanged. The additional
+loopback-only runtime.describe fixture exposes the internal typed failure, never a
+public Host/Runtime endpoint or authorization. MCP spec tools errors and RFC6920
+hash naming motivate the boundaries, not new protocol rules. No retry is derived.
+
+The receipt receiver composes exact operation reference + matching Owner Job
+observation + optional matching job.get summary. Job state and attempt state,
+terminal, delivery/execution disposition, exit code (native i32), availability,
+recovery and semanticCompletionEvaluated are separate; the latter is an evaluation
+flag, not a verdict. Unknown booleans remain unknown. The matching summary is the
+only count evidence; descriptors are independently qualified. No job.observe is
+called by this pure operator; no public ABI, deployment, grant or domain success.
+Independent Python source/refinement oracles, generated tests and real TCP SDK
+fixture qualify bounded behavior; native actual protected route remains a separate gate.

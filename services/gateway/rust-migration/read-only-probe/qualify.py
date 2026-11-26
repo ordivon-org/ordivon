@@ -17,7 +17,9 @@ from mcp import Client, MCPError
 from qualify_artifact import add_artifact_cases
 from qualify_owner import qualify_owner
 from qualify_principal import qualify_principal
+from qualify_receipt import add_receipt_cases
 from qualify_resolution import qualify_resolution
+from qualify_semantics import add_descriptor_cases, add_error_cases, qualify_error_transport
 from qualify_stateful import qualify_stateful
 
 from ordivon_gateway.logic.execution_refs import GatewayError, parse_execution_ref
@@ -340,6 +342,9 @@ async def main():
     qualify_unicode()
     await add_search_cases(add)
     add_artifact_cases(add)
+    add_descriptor_cases(add)
+    add_error_cases(add)
+    add_receipt_cases(add)
     data = "".join(json.dumps(case, ensure_ascii=False) + "\n" for case, _ in cases)
     proc = subprocess.run(
         [BINARY, "eval"], input=data, encoding="utf-8", capture_output=True, check=True
@@ -358,6 +363,9 @@ async def main():
             "search",
             "search_batch",
             "artifact_inventory",
+            "artifact_descriptor",
+            "owner_error",
+            "owner_receipt",
         )
     }
     print("PURE_DIFFERENTIAL_PASS", len(cases), counts, flush=True)
@@ -415,6 +423,7 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
     asyncio.run(qualify_owner(BINARY))
+    asyncio.run(qualify_error_transport(BINARY))
     asyncio.run(qualify_stateful(BINARY))
     asyncio.run(qualify_resolution(BINARY))
     asyncio.run(qualify_principal(BINARY))
