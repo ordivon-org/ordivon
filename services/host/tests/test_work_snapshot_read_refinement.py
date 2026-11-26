@@ -83,3 +83,15 @@ def test_host_historical_work_read_does_not_require_current_pointer_match() -> N
     result = read_work_in_tx(conn, "work:verification", 1)
     assert result["snapshotDigest"] == historical
     assert result["state"] == "historical_state_unknown"
+
+
+@pytest.mark.parametrize(
+    ("revision", "expected_state"),
+    [(None, "open"), (2, "open"), (1, "historical_state_unknown")],
+)
+def test_work_read_uses_one_authority_row_and_one_snapshot_row(revision, expected_state):
+    digest = canonical_digest(_PAYLOAD)
+    conn = _Rows(digest, digest)
+    result = read_work_in_tx(conn, "work:verification", revision)
+    assert result["state"] == expected_state
+    assert len(conn.calls) == 2
