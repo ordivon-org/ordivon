@@ -8,7 +8,6 @@ not create a new WireGuard tunnel, daemon, proxy or source of credentials.
 from __future__ import annotations
 
 import argparse
-import filecmp
 import json
 import os
 from pathlib import Path
@@ -43,6 +42,36 @@ def run(*args: str, timeout: int = 25) -> str:
     ).stdout.strip()
 
 
+def payload_file(root: Path, relative: str) -> Path:
+    """Check the declared tree, not a byte-identical external symlink.
+
+    This is a bounded readback precondition, not a concurrency or crash fence.
+    The generation owner must pin and protect the directory during activation.
+    """
+    path = Path(relative)
+    if path.is_absolute() or not path.parts or ".." in path.parts:
+        raise ValueError("Invalid native recovery relative path")
+    if root.is_symlink() or not root.is_dir():
+        raise ValueError("Unexpected native recovery bundle root")
+    current = root
+    for part in path.parts[:-1]:
+        current /= part
+        if current.is_symlink() or not current.is_dir():
+            raise ValueError(f"Native recovery directory mismatch: {relative}")
+    current /= path.parts[-1]
+    if current.is_symlink() or not current.is_file():
+        raise ValueError(f"Native recovery file mismatch: {relative}")
+    return current
+
+
+def require_equal_bytes(source: Path, installed: Path) -> None:
+    """No metadata-keyed comparison cache; read actual bytes on every call."""
+    if source.is_symlink() or installed.is_symlink():
+        raise ValueError("Native recovery source vs installed mismatch: symlink")
+    if not source.is_file() or not installed.is_file() or source.read_bytes() != installed.read_bytes():
+        raise ValueError(f"Native recovery source vs installed mismatch: {installed.name}")
+
+
 def validate_source() -> dict[str, object]:
     content = SOURCE_SVC.read_text(encoding="utf-8")
     clause = f"ExecStartPost=/usr/bin/python3 {EFFECT} --recover"
@@ -60,9 +89,7 @@ def validate_source() -> dict[str, object]:
         "Unit=" + SVC_NAME not in calendar):
         raise ValueError("Existing native timer has unexpected recovery cadence")
     for name in FILES:
-        file = SOURCE / name
-        if not file.is_file() or file.is_symlink():
-            raise ValueError(f"Native recovery source is missing: {name}")
+        payload_file(SOURCE, name)
     # Source policy is also checked before production files are installed:
     # a bad geographic hint must never get as far as a real API action.
     import native_profile as profile
@@ -91,13 +118,10 @@ def copy_payload(dest: Path = DEST) -> None:
 def verify(*, dest: Path = DEST, verify_systemd: bool = True) -> dict[str, object]:
     validate_source()
     for relative in FILES:
-        if not filecmp.cmp(SOURCE / relative, dest / relative, shallow=False):
-            raise ValueError(f"Native recovery source vs installed mismatch: {relative}")
+        require_equal_bytes(payload_file(SOURCE, relative), payload_file(dest, relative))
     if verify_systemd:
-        if not filecmp.cmp(SOURCE_SVC, INSTALLED_SVC, shallow=False):
-            raise ValueError("Native recovery systemd source vs installed mismatch")
-        if not filecmp.cmp(SOURCE_TIMER, INSTALLED_TIMER, shallow=False):
-            raise ValueError("Native recovery timer source vs installed mismatch")
+        require_equal_bytes(SOURCE_SVC, INSTALLED_SVC)
+        require_equal_bytes(SOURCE_TIMER, INSTALLED_TIMER)
         loaded = run("/usr/bin/systemctl", "show", SVC_NAME, "-p", "ExecStartPost")
         if EFFECT not in loaded or "--recover" not in loaded:
             raise ValueError("New native recovery systemd unit not loaded")

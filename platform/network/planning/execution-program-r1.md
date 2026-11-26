@@ -240,3 +240,44 @@ physical availability unproved; prov native job receipts; unfold native
 raw -> identity/time pair -> coverage -> diagnostics -> existing advisory
 consumer. Cross-owner exporter correction remains PR2867, reviewed
 separately without live effects.
+
+
+## R17 — Release consumer identity and integration convergence (2026-11-26)
+
+Host #33182; Runtime release consumer specification #33163 and GitHub
+owner finding #33171. Official #2822 owner shard passes; repository
+mechanics fails on a historical uv version literal in the current owner
+test. Preserve registration evidence and scope; verify the native task
+route rather than a historical version string. Current source verification
+must not reinterpret a historical proof as a toolchain constraint.
+
+The recovery payload contains nine nonsecret files in one directory.
+Existing native install sequentially writes these files, then separately
+writes two systemd unit files, reloads systemd and restarts the timer.
+Observed native-copy fault cuts 1..8 all produce mixed payloads; 0 and 9
+are unmixed. This is a temporary-directory injected-command-failure witness,
+not a real filesystem power-loss or live service experiment. Fresh byte
+readback rejects all incomplete cuts, same-size/same-mtime corruption and
+linked payload paths. It does not make publication atomic.
+
+Target reusable release interface (Runtime/Artifact ownership, pending):
+immutable staged generation + exact byte/mode manifest + retained roots;
+serialized preimage CAS and one durable activation pointer; consumer pins
+the generation before resolving sibling imports/config; independent readback
+of actual generation consumption; rollback as a new fenced effect. Systemd
+unit writes, reload, timer scheduling and actual process effects are separate
+obligations and cannot be declared atomic with the pointer. No Network
+installer or daemon replacement until a qualified upstream release consumer
+contract exists. Reference Nix profiles and OSTree atomic generations.
+
+R2.1 I declared payload and historical/current source coordinates; O
+byte/path readback and native route evidence; S bounded temporary test
+workspace; pre stable authorized source and declared directories; post
+no metadata-cache false match and no linked payload; inv installed bytes
+!= loaded generation != consumer acceptance; eff no live changes; c linear
+bytes; epsilon no race-free filesystem proof, power-loss durability or
+multi-file transaction claim; prov exact Host/Runtime receipts; unfold
+source -> byte readback -> native verification -> release consumer.
+Consolidate the four original Network drafts and R15/R16 into one review
+candidate for official CI; retain original branch history and natural
+owner review. Do not merge by bypassing protected checks.
