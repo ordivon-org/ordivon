@@ -87,6 +87,77 @@ class PgOnlyReleaseBuildContract(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "missing or unsafe"):
                 _deploy["stage_operator_artifacts"](args, source)
 
+    def test_manifest_rejects_nonunique_or_inconsistent_artifact_records(self) -> None:
+        import copy
+        import json
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = root / "repo"
+            repo.mkdir()
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run(
+                ["git", "-C", str(repo), "-c", "user.name=Test",
+                 "-c", "user.email=test@example.invalid", "commit",
+                 "--allow-empty", "-qm", "initial"], check=True,
+            )
+            commit = subprocess.check_output(
+                ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+            ).strip()
+            target = root / "target" / "release"
+            target.mkdir(parents=True)
+            args = argparse.Namespace(
+                binaries=["ordivon-runtime-pg", "ordivon-runtime-runner"],
+                include_pg_reclaimer=True, candidate_dir=target,
+                candidate_manifest=root / "manifest.json",
+                source_repo=repo, commit=commit, git=Path("/usr/bin/git"),
+            )
+            for spec in _deploy["release_artifact_specs"](args):
+                path = target / str(spec["name"])
+                path.write_bytes(str(spec["name"]).encode())
+                path.chmod(0o755)
+            candidate = _deploy["candidate_artifacts"](args)
+            tool = {"version": "test", "resolvedPath": "/test",
+                    "digest": "sha256:" + "a" * 64}
+            manifest = {
+                "schemaVersion": _deploy["SCHEMA_VERSION"],
+                "commit": commit, "sourceRepo": str(repo),
+                "sourceMaterialization": "detached_git_checkout",
+                "candidateDir": str(target),
+                "toolchain": {"cargo": tool, "rustc": tool, "host": "test"},
+                "artifacts": candidate,
+                "binaries": [item for item in candidate if item["kind"] == "binary"],
+            }
+
+            def blockers(value):
+                args.candidate_manifest.write_text(json.dumps(value))
+                return _deploy["validate_candidate_manifest"](args, candidate)[1]
+
+            self.assertEqual(blockers(manifest), [])
+            for case in ("duplicate_artifact", "shadowed_artifact", "nonrecord_artifact",
+                         "duplicate_binary", "shadowed_binary", "nonrecord_binary",
+                         "inconsistent_binary"):
+                with self.subTest(case=case):
+                    value = json.loads(json.dumps(manifest))
+                    if case == "duplicate_artifact":
+                        value["artifacts"].append(copy.deepcopy(value["artifacts"][0]))
+                    elif case == "shadowed_artifact":
+                        bad = {**value["artifacts"][0], "digest": "sha256:" + "0" * 64}
+                        value["artifacts"].insert(0, bad)
+                    elif case == "nonrecord_artifact":
+                        value["artifacts"].append(None)
+                    elif case == "duplicate_binary":
+                        value["binaries"].append(copy.deepcopy(value["binaries"][0]))
+                    elif case == "shadowed_binary":
+                        bad = {**value["binaries"][0], "digest": "sha256:" + "0" * 64}
+                        value["binaries"].insert(0, bad)
+                    elif case == "nonrecord_binary":
+                        value["binaries"].append(None)
+                    else:
+                        value["binaries"][0]["digest"] = "sha256:" + "0" * 64
+                    self.assertTrue(blockers(value), case)
+
     def test_binary_subset_retains_old_mode_and_wrong_opt_in_pair_is_rejected(self) -> None:
         subset = argparse.Namespace(
             binaries=["ordivon-runtime-pg", "ordivon-runtime-runner"],

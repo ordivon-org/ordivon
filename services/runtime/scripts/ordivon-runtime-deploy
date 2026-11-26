@@ -1545,11 +1545,25 @@ def validate_candidate_manifest(
                 blockers.append(f"candidate manifest has invalid {name} identity")
         if not isinstance(toolchain.get("host"), str) or not toolchain.get("host"):
             blockers.append("candidate manifest lacks Rust host target")
-    manifest_by_name = {
-        str(item.get("name")): item
-        for item in manifest.get("artifacts", [])
-        if isinstance(item, dict)
-    }
+    def unique_records(field: str) -> dict[str, dict[str, object]]:
+        records = manifest.get(field)
+        indexed: dict[str, dict[str, object]] = {}
+        if not isinstance(records, list):
+            blockers.append(f"candidate manifest {field} must be a list")
+            return indexed
+        for item in records:
+            if (not isinstance(item, dict) or
+                    not isinstance(item.get("name"), str) or not item["name"]):
+                blockers.append(f"candidate manifest {field} contains an invalid record")
+                continue
+            name = item["name"]
+            if name in indexed:
+                blockers.append(f"candidate manifest {field} contains duplicate name: {name}")
+                continue
+            indexed[name] = item
+        return indexed
+
+    manifest_by_name = unique_records("artifacts")
     for item in candidate:
         name = str(item["name"])
         recorded = manifest_by_name.get(name)
@@ -1563,16 +1577,21 @@ def validate_candidate_manifest(
     candidate_names = {str(item["name"]) for item in candidate}
     if set(manifest_by_name) != candidate_names:
         blockers.append("candidate manifest artifact set does not match requested release set")
-    manifest_binary_names = {
-        str(item.get("name"))
-        for item in manifest.get("binaries", [])
-        if isinstance(item, dict)
-    }
+    manifest_binaries = unique_records("binaries")
+    manifest_binary_names = set(manifest_binaries)
     expected_binary_names = {
         str(item["name"]) for item in candidate if item.get("kind") == "binary"
     }
     if manifest_binary_names != expected_binary_names:
         blockers.append("candidate manifest binary subset does not match release artifacts")
+    for name in manifest_binary_names & expected_binary_names:
+        artifact = manifest_by_name.get(name)
+        binary = manifest_binaries[name]
+        if artifact is None or any(
+            binary.get(field) != artifact.get(field)
+            for field in ("digest", "bytes", "mode", "kind")
+        ):
+            blockers.append(f"candidate manifest binary record conflicts with artifact: {name}")
     runtime_policy = None
     if args.binaries is None:
         try:
