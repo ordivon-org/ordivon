@@ -161,6 +161,7 @@ fn pg18_artifact_readers_reject_cross_job_attempt_origin() {
         dsn: format!("{dsn} user={role}"),
         schema: schema.clone(),
         source_sha256: source,
+        harness_spawn_dsn_file: None,
         harness_issuer_schema: None,
         harness_dispatch_issuer: None,
         executor: UniversalExecutorConfig {

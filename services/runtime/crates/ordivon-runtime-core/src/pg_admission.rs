@@ -11,9 +11,12 @@ mod cancellation;
 mod contract_tests;
 #[path = "pg_dispatch.rs"]
 mod dispatch;
+pub(crate) use dispatch::PgIssuedHarnessSpawn;
 mod input_contract;
 #[path = "pg_issuer_guard.rs"]
 mod issuer;
+#[cfg(target_os = "linux")]
+pub use issuer::read_private_spawn_dsn;
 #[cfg(all(test, feature = "postgres-registry-admission"))]
 mod live_pg_tests;
 // Win32 journal writer is platform-specific; terminal validation is shared.

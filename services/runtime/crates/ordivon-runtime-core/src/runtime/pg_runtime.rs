@@ -28,6 +28,7 @@ pub struct PgRuntimeConfig {
     #[cfg(windows)]
     pub interactive_workspace_sid: Option<String>,
     pub dsn: String,
+    pub harness_spawn_dsn_file: Option<PathBuf>,
     pub schema: String,
     pub source_sha256: String,
     /// Optional SAME-PG issuer currentness guard, not foreignRef authentication.
@@ -287,11 +288,24 @@ impl PgRuntime {
             if config.node_id.trim().is_empty()
                 || config.harness_issuer_schema.is_some()
                 || config.harness_dispatch_issuer.is_some()
+                || config.harness_spawn_dsn_file.is_some()
                 || config.executor.workspace_root.is_none()
                 || config.executor.runner_path.as_deref()
                     != Some(config.windows.launcher_path.as_path())
             {
                 return Err(error("Windows PG requires an exact native launcher, node identity and disjoint workspace root; issuer not qualified"));
+            }
+        }
+        #[cfg(target_os = "linux")]
+        if config.harness_issuer_schema.is_some() || config.harness_dispatch_issuer.is_some() {
+            let path = config
+                .harness_spawn_dsn_file
+                .as_deref()
+                .ok_or_else(|| error("issuer-fenced Runtime requires owner-private PG DSN file"))?;
+            if crate::pg_admission::read_private_spawn_dsn(path).map_err(io)? != config.dsn {
+                return Err(error(
+                    "issuer receiver and Runtime must use the same PG DSN",
+                ));
             }
         }
         super::workspace_headroom::validate_workspace_headroom(&config.workspace_headroom)?;

@@ -179,6 +179,24 @@ pub(super) fn load_pg_startup() -> Result<PgStartup, Box<dyn std::error::Error>>
     )?);
     #[cfg(not(windows))]
     let workspace_root = None;
+    let harness_spawn_dsn_file = pg_auth::optional_env("ORDIVON_PG_DSN_FILE")?.map(PathBuf::from);
+    #[cfg(not(target_os = "linux"))]
+    if harness_spawn_dsn_file.is_some() {
+        return Err("ORDIVON_PG_DSN_FILE requires the Linux issuer transport".into());
+    }
+    #[cfg(not(target_os = "linux"))]
+    let dsn = required("ORDIVON_PG_DSN")?;
+    #[cfg(target_os = "linux")]
+    let dsn = match harness_spawn_dsn_file.as_deref() {
+        Some(path) => {
+            let from_file = ordivon_runtime_core::pg_admission::read_private_spawn_dsn(path)?;
+            if pg_auth::optional_env("ORDIVON_PG_DSN")?.is_some_and(|value| value != from_file) {
+                return Err("ORDIVON_PG_DSN and owner-private DSN file disagree".into());
+            }
+            from_file
+        }
+        None => required("ORDIVON_PG_DSN")?,
+    };
     let config = PgRuntimeConfig {
         #[cfg(windows)]
         windows: windows_config(PathBuf::from(required("ORDIVON_PG_RUNNER")?))?,
@@ -186,7 +204,8 @@ pub(super) fn load_pg_startup() -> Result<PgStartup, Box<dyn std::error::Error>>
         node_id: required("ORDIVON_NODE_ID")?,
         #[cfg(windows)]
         interactive_workspace_sid: pg_auth::optional_env("ORDIVON_PG_INTERACTIVE_WORKSPACE_SID")?,
-        dsn: required("ORDIVON_PG_DSN")?,
+        dsn,
+        harness_spawn_dsn_file,
         schema: required("ORDIVON_PG_SCHEMA")?,
         source_sha256: required("ORDIVON_PG_SOURCE_SHA256")?,
         // A dedicated authenticated Harness route uses its own cloned

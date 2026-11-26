@@ -92,11 +92,22 @@ impl PgRuntime {
         if !a.state.is_terminal() {
             prepare_private_pg_attempt_bundle(Path::new(&a.bundle_path))?;
             #[cfg(not(windows))]
-            universal::write_json_atomic(
-                &Path::new(&a.bundle_path).join("cancel-requested.json"),
-                &json!({"requestedAtMs":now()?}),
-            )
-            .map_err(io)?;
+            {
+                // The same trusted root-owned Attempt inode is locked by the
+                // Runner while checking cancel and spawning each payload.
+                // Once this marker is durable and the lock is released, any
+                // later Runner step must observe cancellation before spawn.
+                // Windows PG uses its own native JobObject launcher and does
+                // not run the Unix Runner. Preserve its separate protocol.
+                #[cfg(unix)]
+                let _spawn_guard =
+                    universal::lock_attempt_spawn_fence(Path::new(&a.bundle_path)).map_err(io)?;
+                universal::write_json_atomic(
+                    &Path::new(&a.bundle_path).join("cancel-requested.json"),
+                    &json!({"requestedAtMs":now()?}),
+                )
+                .map_err(io)?;
+            }
             #[cfg(windows)]
             self.publish_native_windows_stop(&a)?;
             if a.state == AttemptState::Accepted {

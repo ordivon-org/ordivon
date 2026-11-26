@@ -15,7 +15,7 @@ from statistics import NormalDist
 from typing import TYPE_CHECKING, Any
 
 from .grounded_contracts import canonical_digest
-from .search_sampling import _rng, adaptive_family_count, search_samples
+from .search_sampling import _rng, adaptive_family_count, search_samples, static_search_values
 from .trial_registration import admit_frozen_winner, seed_commitment, validate_registration
 
 if TYPE_CHECKING:
@@ -134,6 +134,8 @@ def run_registered_search(registration: Mapping[str, Any], ledger: TrialLedger |
 def _winner_stat_for_replay(mode: str, budget: int, seed: str) -> float:
     # Null replay consumes only the maximum, never candidate metadata or ledger effects.
     assert budget > 0
+    if mode == "static":
+        return max(static_search_values(seed, budget))
     return max(sample.z for sample in search_samples(mode, seed, budget))
 
 

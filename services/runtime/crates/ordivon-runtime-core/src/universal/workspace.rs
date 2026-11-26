@@ -154,11 +154,14 @@ fn git_registered_path_matches(raw: &[u8], expected: &Path) -> bool {
         // Git porcelain uses forward separators and ordinary drive paths.
         // A lexical match is required even for absent worktrees; the caller
         // separately qualifies canonical filesystem identity when present.
-        return std::str::from_utf8(raw).ok()
+        return std::str::from_utf8(raw)
+            .ok()
             .is_some_and(|value| git_cli_path(Path::new(value)) == git_cli_path(expected));
     }
     #[cfg(not(windows))]
-    { raw == expected.as_os_str().as_encoded_bytes() }
+    {
+        raw == expected.as_os_str().as_encoded_bytes()
+    }
 }
 
 #[cfg(all(windows, test))]
@@ -171,41 +174,70 @@ fn canonical_windows_git_cli_real_worktree_roundtrip() {
     fs::create_dir(&repo).unwrap();
     fs::create_dir(&presentation).unwrap();
     let git = |args: &[&str]| {
-        let output = workspace_git_command().arg("-C").arg(git_cli_path(&repo))
-            .args(args).output().unwrap();
-        assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+        let output = workspace_git_command()
+            .arg("-C")
+            .arg(git_cli_path(&repo))
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     };
     git(&["init", "-q"]);
     fs::write(repo.join("marker"), "native Git fixture").unwrap();
     git(&["add", "marker"]);
-    git(&["-c", "user.name=Fixture", "-c", "user.email=fixture@local.invalid", "commit", "-qm", "seed"]);
+    git(&[
+        "-c",
+        "user.name=Fixture",
+        "-c",
+        "user.email=fixture@local.invalid",
+        "commit",
+        "-qm",
+        "seed",
+    ]);
     let cfg = UniversalExecutorConfig {
         store_root: root.join("store"),
         workspace_root: Some(presentation.clone()),
-        workspace_uid: None, workspace_gid: None, runner_path: None,
+        workspace_uid: None,
+        workspace_gid: None,
+        runner_path: None,
         allowed_executable_roots: vec![root.clone()],
-        max_runtime_ms: 60000, max_output_bytes: 1048576,
+        max_runtime_ms: 60000,
+        max_output_bytes: 1048576,
     };
     let id = "winpg-canonical-git";
     let target = cfg.workspace_path(id);
     let revision = resolve_git_commit(&repo, "HEAD").unwrap();
-    let out = workspace_git_command().arg("-C").arg(git_cli_path(&repo))
-        .args(["worktree","add","--detach"]).arg(git_cli_path(&target))
-        .arg(&revision).output().unwrap();
-    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
-    let actual = verified_interrupted_open(&repo,&target,&revision).unwrap();
+    let out = workspace_git_command()
+        .arg("-C")
+        .arg(git_cli_path(&repo))
+        .args(["worktree", "add", "--detach"])
+        .arg(git_cli_path(&target))
+        .arg(&revision)
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let actual = verified_interrupted_open(&repo, &target, &revision).unwrap();
     assert_eq!(actual, fs::canonicalize(&target).unwrap());
     fs::create_dir(&cfg.store_root).unwrap();
-    create_workspace_private_git_snapshot(&cfg,id,&repo,&revision,&actual).unwrap();
-    let private=cfg.workspace_private_git_path(id);
-    assert!(!workspace_private_git_has_outputs(&private,&revision).unwrap());
-    let inv=git_output_bytes(&repo,["worktree","list","--porcelain","-z"]).unwrap();
-    assert!(inv.split(|b| *b==0).any(|v| v.strip_prefix(b"worktree ")
-        .is_some_and(|path| git_registered_path_matches(path,&actual))));
+    create_workspace_private_git_snapshot(&cfg, id, &repo, &revision, &actual).unwrap();
+    let private = cfg.workspace_private_git_path(id);
+    assert!(!workspace_private_git_has_outputs(&private, &revision).unwrap());
+    let inv = git_output_bytes(&repo, ["worktree", "list", "--porcelain", "-z"]).unwrap();
+    assert!(inv.split(|b| *b == 0).any(|v| v
+        .strip_prefix(b"worktree ")
+        .is_some_and(|path| git_registered_path_matches(path, &actual))));
     assert!(!git_registered_path_matches(b"C:/different", &actual));
-    remove_git_worktree(&repo,&actual,false).unwrap();
+    remove_git_worktree(&repo, &actual, false).unwrap();
     assert!(!target.exists());
-    assert_eq!(resolve_git_commit(&repo,"HEAD").unwrap(),revision);
+    assert_eq!(resolve_git_commit(&repo, "HEAD").unwrap(), revision);
 }
 
 include!("workspace/records.rs");

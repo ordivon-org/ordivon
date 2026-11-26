@@ -13,6 +13,8 @@ pub(crate) use workspace::git_cli_path;
 
 pub use config::{UniversalExecutorConfig, MAX_WORKSPACE_IO_BYTES, UNIVERSAL_EXEC_SCHEMA_VERSION};
 pub use error::{UniversalExecError, UniversalExecErrorCode};
+#[cfg(unix)]
+pub(crate) use fsutil::lock_attempt_spawn_fence;
 pub use fsutil::{
     ENVIRONMENT_VARIABLE_NAME_PATTERN, WORKSPACE_ID_MAX_LENGTH, WORKSPACE_ID_MIN_LENGTH,
     WORKSPACE_ID_PATTERN,
@@ -74,8 +76,8 @@ pub(crate) use resource_receipt::{
 pub(crate) use types::RunnerStepResult;
 pub(crate) use types::{
     CapturedOutput, RunnerExecutionStep, RunnerHostDependencyCommitment, RunnerInputCommitment,
-    RunnerPayloadConfig, RunnerProgress, RunnerRequest, RunnerResult, RunnerStartEvidence,
-    RunnerTerminalStatus,
+    RunnerIssuerSpawnFence, RunnerPayloadConfig, RunnerProgress, RunnerRequest, RunnerResult,
+    RunnerStartEvidence, RunnerTerminalStatus,
 };
 #[cfg(feature = "runtime-contract")]
 pub(crate) use workspace::resolve_workspace_cwd;
