@@ -19,7 +19,7 @@ from catalogs.capabilities.scripts.github_radar.provider import (
     live_observation,
 )
 
-CLI = Path(__file__).resolve().parent / "github_radar_incremental.py"
+CLI = Path(__file__).resolve().parents[1] / "scripts" / "github_radar_incremental.py"
 
 
 def observation() -> dict:
