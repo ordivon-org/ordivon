@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from .browser_security_comparison import REPAIR_ROUTES, compare_browser_security_bundles
 from .browser_security_witness import BrowserSecurityWitnessBundle, _required_text
+from .change_partition import partition_changes
 
 
 def compare_browser_security_pool(
@@ -88,20 +89,8 @@ def compare_browser_security_pool(
             "rootCauseEstablished": False,
         }
 
-    shared_families = set.intersection(*(family_changes[carrier] for carrier in carrier_ids))
-    shared_infrastructure = set.intersection(
-        *(infrastructure_changes[carrier] for carrier in carrier_ids)
-    )
-    local_families = {
-        carrier: sorted(family_changes[carrier] - shared_families)
-        for carrier in carrier_ids
-        if family_changes[carrier] - shared_families
-    }
-    local_infrastructure = {
-        carrier: sorted(infrastructure_changes[carrier] - shared_infrastructure)
-        for carrier in carrier_ids
-        if infrastructure_changes[carrier] - shared_infrastructure
-    }
+    shared_families, local_families = partition_changes(family_changes)
+    shared_infrastructure, local_infrastructure = partition_changes(infrastructure_changes)
     has_shared = bool(shared_families or shared_infrastructure)
     has_local = bool(local_families or local_infrastructure)
     if not has_shared and not has_local:
@@ -124,9 +113,9 @@ def compare_browser_security_pool(
         "detectorDriftCarriers": [],
         "observationInvalidCarriers": {},
         "subjectClassificationSuppressed": False,
-        "sharedChangedFamilies": sorted(shared_families),
+        "sharedChangedFamilies": shared_families,
         "carrierLocalChangedFamilies": local_families,
-        "sharedInfrastructureChanges": sorted(shared_infrastructure),
+        "sharedInfrastructureChanges": shared_infrastructure,
         "carrierLocalInfrastructureChanges": local_infrastructure,
         "challengeStandingChangedCarriers": challenge_change_carriers,
         "perCarrier": comparisons,

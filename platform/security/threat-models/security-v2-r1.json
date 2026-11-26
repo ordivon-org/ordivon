@@ -393,7 +393,7 @@
         "docs/STANDARDS-BASELINE.md",
         "docs/TECHNOLOGY-SELECTION-R2.md"
       ],
-      "architectureEnvelopeSha256": "sha256:02f815bbf7ddecf4061574a1929c2c211a15b758c14a748c85d9d637fd66ae3e",
+      "architectureEnvelopeSha256": "sha256:cf694c7586deec3ba2f007d0939fef99e80c19d79f7f0b28fd18a4f9dc5f99be",
       "modelingMethod": "OWASP Threat Model Library schema with STRIDE-compatible analysis; CAPEC/CWE references may be added when applicable",
       "editorStanding": "Threat Dragon is a replaceable editor/viewer, not the authority format"
     }

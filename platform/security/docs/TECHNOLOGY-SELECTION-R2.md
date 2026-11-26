@@ -771,3 +771,43 @@ References:
 - https://pypi.org/project/check-jsonschema/0.39.0/
 - https://github.com/json-schema-org/JSON-Schema-Test-Suite
 - https://bowtie.report/
+
+### R23 — cumulative draft integration and independent change partition
+
+T01/T02/T04/T06/T12: retain the existing #2808 Draft and all publication
+gates. Exact R22 857100ed05a1a57d055d5b20c64b66afba69f60f is a descendant
+of the previous Draft head 2f12a0c5d0c9f68d1d69c98698c2ab992aeb8a25,
+24 files +1878/-51. Native merge-tree with observed main
+ca1b34e63d5e872c5f0b77764dc4a62647896df0 exited 0 with tree
+a6b6654e7d9aa7306af632ef39d53f202e255a8f. The composed tree has identical
+Security/Gateway/formal paths to the candidate, but 129 changed paths
+overall including root SQL dialect checks; no root or release pass inferred.
+Normal fast-forward and independent remote readback of the still-Draft
+#2808 succeeded (job job-01a2153d-258f-7634-abe5-23e9465063a8). New official
+CI was in progress at observation; previous preflight failure is not
+automatically a verdict for the new head. No gate or deployment changes.
+
+Separate the pure set partition from the existing pool composition
+adapter. For a nonempty observed-group mapping A, shared S is the
+intersection of all group sets, local L_i is A_i minus S; each A_i is
+reconstructed by their disjoint union. An empty set is an observed group,
+not an absent group. Return deterministic sorted values and do not
+mutate input. Reuse native sets and a single subtraction per group;
+the same operator handles both existing family and infrastructure
+collections, without changing observation, classification or consumer ABI.
+The new foundation module has no imports from upper-level consumers;
+extend the existing native observation-layer contract. This follows
+functional-core separation rather than adding a general-purpose framework.
+
+Independent Counter oracle, 150 Hypothesis examples with arbitrary
+abstract labels, verifies exact shared/local values, reconstruction,
+disjointness, input nonmutation, and order invariance. Existing pool
+consumer tests 7/7 and partition tests 3/3 pass; 3 architecture contracts,
+16 modules, 17 static edges (job job-01a2153e-0cbf-7562-be15-68bb4055871b).
+A disposable synthetic mutant using union instead of intersection is
+rejected by the independent oracle. No live observation, detector change,
+authorization, or provider qualification. No new dependencies.
+
+References:
+- https://testing.googleblog.com/2025/10/simplify-your-code-functional-core.html
+- https://hypothesis.readthedocs.io/

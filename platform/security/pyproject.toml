@@ -87,5 +87,5 @@ containers = ["ordivon_security_v2"]
 layers = [
   "browser_security_pool",
   "browser_security_comparison",
-  "browser_security_observation | browser_security_witness",
+  "browser_security_observation | browser_security_witness | change_partition",
 ]
