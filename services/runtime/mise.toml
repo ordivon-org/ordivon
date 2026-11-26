@@ -158,6 +158,9 @@ fi
 scripts/tla-formal check
 # An intentionally unsafe abstract retry MUST produce the named TLC violation.
 scripts/tla-formal falsify
+# This class is optional in ordinary unittest discovery, but required here
+# after the existing pinned formal toolchain has been materialized.
+ORDIVON_RUN_ISSUER_ACK_EFFECT_MODEL_TEST=1 python -m unittest -v scripts.tests.test_issuer_revoke_ack_effect_model
 """
 
 
