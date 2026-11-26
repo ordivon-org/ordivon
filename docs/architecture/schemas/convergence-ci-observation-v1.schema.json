@@ -89,6 +89,10 @@
             "null"
           ]
         },
+        "workflowPath": {
+          "type": ["string", "null"],
+          "description": "Provider-reported workflow path; optional for older observations."
+        },
         "workflowName": {
           "type": [
             "string",
