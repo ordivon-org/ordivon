@@ -3,14 +3,13 @@ import copy
 import json
 from pathlib import Path
 import sys
-import os
 import signal
 import subprocess
 import unittest
 import xml.etree.ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from pg_mcp_qualification import (BINARY, PACKAGE, REQUIRED, FIXTURE_SCOPE_ENV, exact_passes,
+from pg_mcp_qualification import (BINARY, PACKAGE, REQUIRED, FIXTURE_SCOPE_ENV, SELECTION, RUNNER_BUILD_ARGS, exact_passes,
                                    inventory, consumer_environment, allocate_fixture_scope, release_empty_scope)
 
 ID = f"{PACKAGE}::{BINARY}"
@@ -26,14 +25,23 @@ def listed():
 
 
 def report():
-    root = ET.Element("testsuites", tests=str(len(REQUIRED)), errors="0", failures="0")
-    suite = ET.SubElement(root, "testsuite", name=ID, tests=str(len(REQUIRED)), errors="0", failures="0")
+    root = ET.Element("testsuites", tests=str(len(REQUIRED)), errors="0", failures="0", skipped="0", uuid="7f8c53ab-c14a-4cc4-8e33-d45820be61c0")
+    suite = ET.SubElement(root, "testsuite", name=ID, tests=str(len(REQUIRED)), errors="0", failures="0", skipped="0")
     for name in sorted(REQUIRED):
         ET.SubElement(suite, "testcase", name=name, classname=ID)
     return root, suite
 
 
 class NativeEvidence(unittest.TestCase):
+    def test_native_pg_lane_uses_release_feature_boundary(self):
+        self.assertIn("--no-default-features", SELECTION)
+        self.assertEqual(SELECTION[SELECTION.index("--features") + 1], "postgres-runtime")
+        self.assertIn("--no-default-features", RUNNER_BUILD_ARGS)
+        self.assertEqual(RUNNER_BUILD_ARGS[RUNNER_BUILD_ARGS.index("--features") + 1],
+                         "postgres-registry-admission")
+        self.assertEqual(RUNNER_BUILD_ARGS[RUNNER_BUILD_ARGS.index("--bin") + 1],
+                         "ordivon-runtime-runner")
+
     def test_exact_native_success(self):
         binary, names = inventory(json.dumps(listed()).encode())
         root, _ = report()
@@ -77,6 +85,31 @@ class NativeEvidence(unittest.TestCase):
                     ET.SubElement(case, "skipped" if mutation == "skip" else mutation)
                 with self.assertRaises(ValueError):
                     exact_passes(ET.tostring(root), ID, REQUIRED)
+
+    def test_native_root_suite_and_run_identity_are_closed(self):
+        for mutation in ("root-unknown", "suite-error", "suite-unknown", "nested-suite", "missing-run-id", "disabled"):
+            with self.subTest(mutation=mutation):
+                root, suite = report()
+                if mutation == "root-unknown":
+                    ET.SubElement(root, "unknown")
+                elif mutation == "suite-error":
+                    ET.SubElement(suite, "error").text = "setup failed"
+                elif mutation == "suite-unknown":
+                    ET.SubElement(suite, "unknown")
+                elif mutation == "nested-suite":
+                    ET.SubElement(suite, "testsuite", name="foreign")
+                elif mutation == "missing-run-id":
+                    del root.attrib["uuid"]
+                else:
+                    suite.set("disabled", "1")
+                with self.assertRaises(ValueError):
+                    exact_passes(ET.tostring(root), ID, REQUIRED)
+
+    def test_duplicate_native_inventory_key_is_rejected(self):
+        raw = json.dumps(listed()).encode()
+        duplicate = b'{"test-count":' + str(len(REQUIRED)).encode() + b"," + raw[1:]
+        with self.assertRaises(ValueError):
+            inventory(duplicate)
 
     def test_production_connection_and_filter_environment_removed(self):
         env = consumer_environment({"PATH": "/bin", "PGHOST": "prod", "PGOPTIONS": "secret",

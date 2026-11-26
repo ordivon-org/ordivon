@@ -14,6 +14,7 @@ import tomllib
 import xml.etree.ElementTree as ET
 
 from pg_disposable_physical import ROOT, cargo_environment
+from qualify_focused_evidence import qualified_report, unique_object
 
 PACKAGE = "ordivon-runtime-mcp"
 BINARY = "pg_vertical"
@@ -37,13 +38,19 @@ REQUIRED = frozenset({
     "native_pg_fixture_refuses_failed_registered_unit_until_native_absence",
 })
 SELECTION = (
-    "--locked", "-p", PACKAGE, "--features", "postgres-runtime",
+    "--locked", "-p", PACKAGE, "--no-default-features", "--features", "postgres-runtime",
     "--test", BINARY, "--run-ignored", "all", "--ignore-default-filter",
+)
+
+RUNNER_BUILD_ARGS = (
+    "build", "--locked", "-p", "ordivon-runtime-core",
+    "--no-default-features", "--features", "postgres-registry-admission",
+    "--bin", "ordivon-runtime-runner",
 )
 
 
 def inventory(raw: bytes) -> tuple[str, frozenset[str]]:
-    doc = json.loads(raw)
+    doc = json.loads(raw, object_pairs_hook=unique_object)
     suites = doc["rust-suites"]
     if len(suites) != 1:
         raise ValueError("expected exactly one native MCP test binary")
@@ -62,27 +69,19 @@ def inventory(raw: bytes) -> tuple[str, frozenset[str]]:
 
 def exact_passes(raw: bytes, binary_id: str, expected: frozenset[str]) -> int:
     report = ET.fromstring(raw)
-    suites = report.findall("testsuite")
-    if report.tag != "testsuites" or len(suites) != 1:
-        raise ValueError("missing or unexpected native JUnit suite")
-    suite = suites[0]
-    if suite.get("name") != binary_id or not expected:
-        raise ValueError("JUnit binary identity mismatch")
-    for node in (report, suite):
+    # Selection policy stays physical: required ignored tests are executed
+    # here, not admitted through the focused lane's selection policy.
+    try:
+        qualified_report({(binary_id, name) for name in expected}, report)
+    except (KeyError, TypeError, AttributeError, ValueError) as exc:
+        raise ValueError("native JUnit evidence is unqualified") from exc
+    # Preserve the existing physical aggregate contract, including disabled.
+    for node in (report, *report):
         if (node.get("tests") != str(len(expected))
             or node.get("failures") != "0" or node.get("errors") != "0"
             or node.get("skipped", "0") != "0" or node.get("disabled", "0") != "0"):
             raise ValueError("JUnit aggregate not fully successful")
-    cases = suite.findall("testcase")
-    names = [c.get("name") for c in cases]
-    if len(names) != len(expected) or frozenset(names) != expected:
-        raise ValueError("JUnit missing, duplicate or unexpected test identity")
-    for case in cases:
-        if case.get("classname") != binary_id or any(
-            node.tag not in {"system-out", "system-err"} for node in case
-        ):
-            raise ValueError("JUnit non-PASS, retried or foreign test")
-    return len(cases)
+    return len(expected)
 
 
 def consumer_environment(original: dict[str, str]) -> dict[str, str]:
@@ -170,11 +169,7 @@ def main() -> int:
         if evidence.resolve().is_relative_to(repo):
             raise ValueError("evidence directory must be outside the source checkout")
         evidence.mkdir(mode=0o700, exist_ok=False)
-    subprocess.run([
-        "cargo", "build", "--locked", "-p", "ordivon-runtime-core",
-        "--no-default-features", "--features", "runtime-contract",
-        "--bin", "ordivon-runtime-runner",
-    ], cwd=ROOT, env=env, check=True, timeout=400)
+    subprocess.run(["cargo", *RUNNER_BUILD_ARGS], cwd=ROOT, env=env, check=True, timeout=400)
     with tempfile.TemporaryDirectory(prefix="ordivon-mcp-nextest-", dir="/var/tmp") as temp:
         base = Path(temp)
         env["HARNESS_PG_PYTHON"] = prepare_harness_python(base, env)

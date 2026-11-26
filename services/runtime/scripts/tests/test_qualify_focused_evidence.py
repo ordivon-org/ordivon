@@ -64,6 +64,31 @@ class FocusedEvidenceTests(unittest.TestCase):
             with self.subTest(expected=expected), self.assertRaises(ValueError):
                 qualified_report(expected, report())
 
+    def test_suite_grammar_and_binary_partition_are_exact(self):
+        for change in ("suite-error", "unknown-child", "duplicate-binary", "empty-foreign-suite"):
+            with self.subTest(change=change):
+                root = report()
+                suite = root[0]
+                suite.append(ET.Element("testcase", name="second", classname="binary"))
+                suite.set("tests", "2")
+                root.set("tests", "2")
+                expected = {("binary", "run"), ("binary", "second")}
+                self.assertTrue(qualified_report(expected, root))
+                if change == "suite-error":
+                    ET.SubElement(suite, "error").text = "setup failed"
+                elif change == "unknown-child":
+                    ET.SubElement(suite, "unknown-verdict")
+                elif change == "duplicate-binary":
+                    second = suite[1]
+                    suite.remove(second)
+                    suite.set("tests", "1")
+                    ET.SubElement(root, "testsuite", dict(suite.attrib)).append(second)
+                else:
+                    ET.SubElement(root, "testsuite", name="foreign", tests="0",
+                                  skipped="0", failures="0", errors="0")
+                with self.assertRaises(ValueError):
+                    qualified_report(expected, root)
+
     def test_mutated_report_cannot_be_qualified(self):
         expected = selected_tests(inventory())
         for change in ("duplicate", "skipped", "failure", "error", "flakyFailure",
