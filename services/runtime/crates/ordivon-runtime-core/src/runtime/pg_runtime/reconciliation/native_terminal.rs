@@ -154,21 +154,16 @@ impl PgRuntime {
         }
         if !a.state.is_terminal() && path.join("result.json").exists() {
             // Reuse native identity, stdout/stderr digest and result validators.
-            let start: RunnerStartEvidence =
-                serde_json::from_slice(&fs::read(path.join("runner-start.json")).map_err(io)?)
-                    .map_err(io)?;
-            if start.job_id != job
-                || start.attempt_id != a.attempt_id
-                || start.launch_token_digest != a.launch_token_digest
-                || start.unit_name != a.unit_name
-                || start.invocation_id.is_empty()
-            {
-                return Err(error("runner start identity mismatch"));
-            }
+            let start_bytes = super::native_start_receipt::read_native_start_receipt(&path)?
+                .ok_or_else(|| error("Runner result lacks original start receipt"))?;
+            let (start, _) = super::native_start_receipt::qualify_native_start_receipt(
+                db,
+                &a,
+                &provider,
+                &start_bytes,
+            )?;
             let properties = super::platform::systemctl_show(&a.unit_name)?;
-            if super::platform::unit_is_active(&properties)
-                || super::platform::unit_has_pending_job(&properties)
-            {
+            if !super::platform::unit_has_settled_state(&properties) {
                 return Ok(());
             }
             if super::platform::nonempty_property(&properties, "InvocationID")
@@ -176,11 +171,6 @@ impl PgRuntime {
                 || super::platform::cgroup_has_processes(&start.control_group)?
             {
                 return Err(error("runner process ownership has not converged"));
-            }
-            if start.runner_executable_digest.as_deref()
-                != provider["executionProvider"]["executableDigest"].as_str()
-            {
-                return Err(error("runner evidence provider mismatch"));
             }
             let mut terminal = super::evidence::prepare_runner_terminal_from_bundle(&a)?;
             if let Some(artifact) = super::evidence::validate_workspace_source_observation_artifact(

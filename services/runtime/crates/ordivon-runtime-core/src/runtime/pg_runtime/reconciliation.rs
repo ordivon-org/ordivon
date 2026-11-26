@@ -6,6 +6,7 @@ use super::*;
 // authorizer, registry or source-file placement contract is introduced.
 mod attempt_readback;
 mod dispatch_accepted;
+mod native_start_receipt;
 mod native_stop_evidence;
 mod native_terminal;
 mod observation;

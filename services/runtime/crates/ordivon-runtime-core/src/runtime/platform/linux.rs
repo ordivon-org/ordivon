@@ -564,7 +564,7 @@ pub(crate) fn release_terminal_unit(unit_name: &str) {
         {
             return;
         }
-        if !unit_is_active(&properties) {
+        if unit_has_settled_state(&properties) {
             let mut command = Command::new("systemctl");
             command.args(["reset-failed", unit_name]);
             let _ = bounded_observation_output(
@@ -621,7 +621,7 @@ pub(crate) fn systemctl_show(unit_name: &str) -> RuntimeResult<BTreeMap<String, 
     command.args([
         "show",
         unit_name,
-        "--property=LoadState,ActiveState,SubState,Job,InvocationID,ControlGroup,MainPID,Result,ExecMainCode,ExecMainStatus",
+        "--property=LoadState,ActiveState,SubState,Job,InvocationID,ControlGroup,MainPID,ControlPID,Result,ExecMainCode,ExecMainStatus",
     ]);
     let output = bounded_observation_output(
         &mut command,
@@ -696,6 +696,7 @@ fn parse_systemctl_show_output(output: Output) -> RuntimeResult<BTreeMap<String,
         "InvocationID",
         "ControlGroup",
         "MainPID",
+        "ControlPID",
         "Result",
         "ExecMainCode",
         "ExecMainStatus",
@@ -745,6 +746,18 @@ pub(crate) fn unit_is_active(properties: &BTreeMap<String, String>) -> bool {
 /// evidence that dispatch was lost.
 pub(crate) fn unit_has_pending_job(properties: &BTreeMap<String, String>) -> bool {
     properties.get("Job").is_some_and(|job| !job.is_empty())
+}
+
+/// Positive native Manager terminal-state candidate; never a NoFutureSpawn
+/// or cgroup drain proof on its own. MainPID=0 omits ExecStop/ControlPID.
+pub(crate) fn unit_has_settled_state(properties: &BTreeMap<String, String>) -> bool {
+    let get = |name: &str| properties.get(name).map(String::as_str);
+    matches!(
+        (get("LoadState"), get("ActiveState")),
+        (Some("loaded"), Some("inactive" | "failed")) | (Some("not-found"), Some("inactive"))
+    ) && get("Job") == Some("")
+        && get("MainPID") == Some("0")
+        && get("ControlPID") == Some("0")
 }
 
 pub(crate) fn nonempty_property(
@@ -1428,7 +1441,7 @@ mod tests {
         let output = Command::new("/usr/bin/sh")
             .args([
                 "-c",
-                "printf 'LoadState=not-found\\nActiveState=inactive\\nSubState=dead\\nJob=\\nInvocationID=\\nControlGroup=\\nMainPID=0\\nResult=success\\nExecMainCode=0\\nExecMainStatus=0\\n'",
+                "printf 'LoadState=not-found\\nActiveState=inactive\\nSubState=dead\\nJob=\\nInvocationID=\\nControlGroup=\\nMainPID=0\\nControlPID=0\\nResult=success\\nExecMainCode=0\\nExecMainStatus=0\\n'",
             ])
             .output()
             .unwrap();
@@ -1459,7 +1472,7 @@ mod tests {
     #[test]
     fn unrecognized_systemctl_load_state_is_unknown_not_false() {
         let output = Command::new("/usr/bin/sh")
-            .args(["-c", "printf 'LoadState=BROKEN\nActiveState=inactive\nSubState=dead\nJob=\nInvocationID=\nControlGroup=\nMainPID=0\nResult=success\nExecMainCode=0\nExecMainStatus=0\n'"])
+            .args(["-c", "printf 'LoadState=BROKEN\nActiveState=inactive\nSubState=dead\nJob=\nInvocationID=\nControlGroup=\nMainPID=0\nControlPID=0\nResult=success\nExecMainCode=0\nExecMainStatus=0\n'"])
             .output().unwrap();
         assert!(parse_systemctl_show_output(output).is_err());
     }
@@ -1473,6 +1486,47 @@ mod tests {
         assert_eq!(properties["Job"], "");
         assert!(!unit_is_active(&properties));
         assert!(!unit_has_pending_job(&properties));
+    }
+
+    #[test]
+    fn native_terminal_candidate_requires_positive_manager_and_control_process_state() {
+        let mut p = BTreeMap::from([
+            ("LoadState".to_string(), "loaded".to_string()),
+            ("ActiveState".to_string(), "inactive".to_string()),
+            ("Job".to_string(), String::new()),
+            ("MainPID".to_string(), "0".to_string()),
+            ("ControlPID".to_string(), "0".to_string()),
+        ]);
+        assert!(unit_has_settled_state(&p));
+        for state in [
+            "active",
+            "activating",
+            "deactivating",
+            "reloading",
+            "refreshing",
+            "maintenance",
+        ] {
+            p.insert("ActiveState".into(), state.into());
+            assert!(!unit_has_settled_state(&p), "{state}");
+        }
+        p.insert("ActiveState".into(), "failed".into());
+        assert!(unit_has_settled_state(&p));
+        for (key, value) in [("MainPID", "17"), ("ControlPID", "19"), ("Job", "42")] {
+            let mut other = p.clone();
+            other.insert(key.into(), value.into());
+            assert!(!unit_has_settled_state(&other), "{key}");
+        }
+        for key in ["LoadState", "ActiveState", "Job", "MainPID", "ControlPID"] {
+            let mut other = p.clone();
+            other.remove(key);
+            assert!(!unit_has_settled_state(&other), "missing {key}");
+        }
+        p.insert("LoadState".into(), "not-found".into());
+        assert!(!unit_has_settled_state(&p));
+        p.insert("ActiveState".into(), "inactive".into());
+        assert!(unit_has_settled_state(&p));
+        p.insert("LoadState".into(), "masked".into());
+        assert!(!unit_has_settled_state(&p));
     }
 
     #[test]

@@ -125,9 +125,7 @@ impl PgRuntime {
                 // failed submission is not proof of an active process; native
                 // reconciliation owns the terminal/no-result decision.
                 let unit = super::platform::systemctl_show(&a.unit_name)?;
-                if super::platform::unit_is_active(&unit)
-                    || super::platform::unit_has_pending_job(&unit)
-                {
+                if !super::platform::unit_has_settled_state(&unit) {
                     return Err(error(format!(
                         "cancel intent persisted; native stop not confirmed for {}",
                         request.job_id

@@ -2,7 +2,7 @@
 //! No terminal transition is inferred from merely missing result.json.
 use super::{
     error, fs, io, now, pg, runner_result_still_absent, universal, AttemptRecord, PgAdmissionStore,
-    PgArtifactRegistration, PgRuntime, PgTerminalNoArtifacts, RunnerStartEvidence, RuntimeResult,
+    PgArtifactRegistration, PgRuntime, PgTerminalNoArtifacts, RuntimeResult,
 };
 use serde_json::json;
 use std::path::Path;
@@ -24,74 +24,41 @@ impl PgRuntime {
             return Err(error("Attempt native unit identity mismatch"));
         }
         let properties = super::platform::systemctl_show(&a.unit_name)?;
-        if super::platform::unit_is_active(&properties)
-            || super::platform::unit_has_pending_job(&properties)
-        {
+        if !super::platform::unit_has_settled_state(&properties) {
             return Ok(());
         }
-        let start_path = path.join("runner-start.json");
-        let (runner_start, runner_start_digest): (Option<RunnerStartEvidence>, String) =
-            if start_path.exists() {
-                let bytes = fs::read(&start_path).map_err(io)?;
-                let start: RunnerStartEvidence = serde_json::from_slice(&bytes).map_err(io)?;
-                if start.control_group != format!("/system.slice/{}", a.unit_name)
-                    || start.job_id != job
-                    || start.attempt_id != a.attempt_id
-                    || start.launch_token_digest != a.launch_token_digest
-                    || start.unit_name != a.unit_name
-                    || start.invocation_id.is_empty()
-                {
-                    return Err(error("Runner identity mismatch during native cancellation"));
-                }
-                if super::platform::nonempty_property(&properties, "InvocationID")
-                    .is_some_and(|observed| observed != start.invocation_id)
-                {
-                    return Err(error("Native Unit invocation changed during cancellation"));
-                }
-                (Some(start), universal::sha256_bytes(&bytes))
-            } else {
-                // A transient Unit can be absent while systemd-run has not
-                // finished dispatch. Without a bound Runner start, its
-                // absence cannot fence a late physical launch.
-                return Ok(());
-            };
-        let observed_cgroup = super::platform::nonempty_property(&properties, "ControlGroup");
-        let cgroup = runner_start
-            .as_ref()
-            .map(|start| start.control_group.as_str())
-            .or(observed_cgroup.as_deref());
-        let Some(cgroup) = cgroup else {
+        let Some(start_bytes) = super::native_start_receipt::read_native_start_receipt(path)?
+        else {
+            // A missing start receipt cannot fence a late native launch.
             return Ok(());
         };
+        let (start, runner_start_digest) =
+            super::native_start_receipt::qualify_native_start_receipt(
+                db,
+                a,
+                provider,
+                &start_bytes,
+            )?;
+        if super::platform::nonempty_property(&properties, "InvocationID")
+            .is_some_and(|observed| observed != start.invocation_id)
+        {
+            return Err(error("Native Unit invocation changed during cancellation"));
+        }
+        let cgroup = start.control_group.as_str();
         let population = super::platform::cgroup_population(cgroup)?;
         let removed = population == super::platform::CgroupPopulation::Removed;
-        if !matches!(
-            properties.get("ActiveState").map(String::as_str),
-            Some("inactive" | "failed")
-        ) || !matches!(
-            properties.get("LoadState").map(String::as_str),
-            Some("loaded" | "not-found")
-        ) || runner_start
-            .as_ref()
-            .and_then(|start| start.runner_executable_digest.as_deref())
-            != provider["executionProvider"]["executableDigest"].as_str()
-        {
-            return Ok(());
-        }
         // CollectMode=inactive retains a *failed* transient even after
         // systemd has killed its cgroup. Do not reset-failed first: its
         // invocation identity is valuable evidence until PG commits LOST.
         // Only the exact Runner start + same systemd InvocationID + no
         // MainPID can authorize the failed/removed classification.
-        let bound_failed_unit = runner_start.as_ref().is_some_and(|start| {
-            super::native_stop::failed_unit_matches_runner(
-                properties.get("LoadState").map(String::as_str),
-                properties.get("ActiveState").map(String::as_str),
-                properties.get("InvocationID").map(String::as_str),
-                &start.invocation_id,
-                properties.get("MainPID").map(String::as_str),
-            )
-        });
+        let bound_failed_unit = super::native_stop::failed_unit_matches_runner(
+            properties.get("LoadState").map(String::as_str),
+            properties.get("ActiveState").map(String::as_str),
+            properties.get("InvocationID").map(String::as_str),
+            &start.invocation_id,
+            properties.get("MainPID").map(String::as_str),
+        );
         if super::native_stop::decide_native_stop(
             super::platform::unit_is_active(&properties),
             super::platform::unit_has_pending_job(&properties),
@@ -99,7 +66,7 @@ impl PgRuntime {
                 .get("LoadState")
                 .is_some_and(|state| state == "not-found"),
             bound_failed_unit,
-            runner_start.is_some(),
+            true,
             population,
         ) != super::native_stop::NativeStopDecision::CommitLost
         {
@@ -114,12 +81,9 @@ impl PgRuntime {
                 recheck.get("LoadState").map(String::as_str),
                 recheck.get("ActiveState").map(String::as_str),
                 recheck.get("InvocationID").map(String::as_str),
-                runner_start
-                    .as_ref()
-                    .map(|start| start.invocation_id.as_str())
-                    .unwrap_or(""),
+                &start.invocation_id,
                 recheck.get("MainPID").map(String::as_str),
-            ) || super::platform::unit_has_pending_job(&recheck)
+            ) || !super::platform::unit_has_settled_state(&recheck)
                 || super::platform::cgroup_population(cgroup)?
                     != super::platform::CgroupPopulation::Removed
             {
@@ -138,7 +102,7 @@ impl PgRuntime {
             "activeState": properties.get("ActiveState"),
             "loadState": properties.get("LoadState"),
             "controlGroup": cgroup,
-            "runnerStartObserved": runner_start.is_some(),
+            "runnerStartObserved": true,
             "runnerStartDigest": runner_start_digest,
             "nativeCgroupState": population.as_str(),
             "failedUnitInvocationBound": bound_failed_unit,
