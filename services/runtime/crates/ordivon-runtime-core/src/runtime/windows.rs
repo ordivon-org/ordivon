@@ -959,6 +959,71 @@ pub(crate) fn validate_windows_exec_payload(
 /// this exact worktree in the Job, so only its active-user consumer may opt in
 /// to the existing Git command-scope safe.directory primitive. No gitconfig
 /// is written, no wildcard trust is granted, and service jobs are unaffected.
+#[cfg(all(windows, feature = "postgres-registry-admission"))]
+pub(crate) fn bind_pg_execution_context(
+    config: &WindowsExecutionConfig,
+    proposal: &super::JobRunProposal,
+    plan: &mut super::RuntimeExecutionPlan,
+) -> RuntimeResult<()> {
+    use super::types::{WindowsExecutionContext, WindowsTokenClass};
+    use super::{WindowsExecutionIdentity, WindowsPayloadPrivilege};
+    super::authority_contract::AuthorityContract::ordinary(proposal)?
+        .authorize_windows_elevation(&config.elevated_principals)?;
+    config.authorize_new_proposal(proposal)?;
+    let explicit = proposal.execution.windows_context;
+    let context =
+        explicit.unwrap_or_else(|| proposal.execution.windows_authority.canonical_context());
+    if explicit.is_some() && !context.compatible_with_legacy(proposal.execution.windows_authority) {
+        return Err(RuntimeError::invalid(
+            "windowsContext conflicts with windowsAuthority",
+            "execution.windowsContext",
+        ));
+    }
+    let snapshot = snapshot_windows_runtime_context_for(config, context)?;
+    let authority = context.transport_authority();
+    let privileged_broker_digest = if authority == WindowsAuthority::Limited {
+        None
+    } else {
+        config
+            .privileged_broker
+            .as_ref()
+            .map(|broker| broker.executable_digest())
+            .transpose()?
+    };
+    let (token_class, environment_source) = match (context.identity, context.privilege) {
+        (WindowsExecutionIdentity::ActiveUser, _) => (
+            WindowsTokenClass::ActiveUser,
+            "windows_active_user_profile_allowlist_v1",
+        ),
+        (WindowsExecutionIdentity::Service, WindowsPayloadPrivilege::Elevated) => (
+            WindowsTokenClass::Elevated,
+            "windows_privileged_broker_profile_allowlist_v1",
+        ),
+        _ => (
+            WindowsTokenClass::Limited,
+            "windows_user_machine_profile_allowlist_v1",
+        ),
+    };
+    plan.env = merge_windows_workspace_environment(
+        &snapshot.environment,
+        &proposal.execution.env,
+        context.identity == WindowsExecutionIdentity::ActiveUser,
+        Path::new(&plan.workspace_path),
+    )?;
+    plan.windows_authority = authority;
+    plan.windows_context = explicit;
+    plan.windows_execution_context = Some(WindowsExecutionContext {
+        token_class,
+        payload_identity: explicit.map(|context| context.identity),
+        payload_privilege: explicit.map(|context| context.privilege),
+        token_user_sid: snapshot.token_user_sid,
+        session_id: snapshot.session_id,
+        environment_source: environment_source.into(),
+        privileged_broker_digest,
+    });
+    Ok(())
+}
+
 pub(crate) fn merge_windows_workspace_environment(
     baseline: &BTreeMap<String, String>,
     overlay: &BTreeMap<String, String>,
