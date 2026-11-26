@@ -127,6 +127,10 @@ def test_native_loaded_identity_accepts_exact_metadata_without_claiming_executio
         fragment = bundle.INSTALLED_SVC if args[2] == bundle.SVC_NAME else bundle.INSTALLED_TIMER
         return f"NeedDaemonReload=no\nDropInPaths=\nFragmentPath={fragment}\nLoadState=loaded"
     monkeypatch.setattr(bundle, "run", fake_run)
+    monkeypatch.setattr(bundle, "read_unit_property", lambda unit, interface, prop:
+        {"type":"a(sasbttttuii)", "data":[["/usr/bin/python3",
+         ["/usr/bin/python3",bundle.EFFECT,"--recover"],False,0,0,0,0,0,0,0]]}
+        if prop=="ExecStartPost" else {"type":"a(sst)","data":[["OnCalendar","*-*-* *:*:00",0]]})
     receipt = bundle.verify(dest=dest)
     assert receipt["loadedIdentityChecked"] is True
     assert receipt["consumerExecutionProved"] is False
@@ -166,3 +170,33 @@ def test_native_copy_interruption_is_not_complete_readback(tmp_path, monkeypatch
             bundle.verify(dest=dest, verify_systemd=False)
     else:
         assert bundle.verify(dest=dest, verify_systemd=False)["consumerExecutionProved"] is False
+
+
+@pytest.mark.parametrize("defect", ["extra-argument","extra-command","wrong-binary","ignore-errors","extra-calendar","wrong-calendar"])
+def test_loaded_contract_rejects_substring_only_match(tmp_path, monkeypatch, defect):
+    dest = tmp_path / "bundle"
+    bundle.copy_payload(dest)
+    monkeypatch.setattr(bundle, "INSTALLED_SVC", bundle.SOURCE_SVC)
+    monkeypatch.setattr(bundle, "INSTALLED_TIMER", bundle.SOURCE_TIMER)
+    row = ["/usr/bin/python3", ["/usr/bin/python3",bundle.EFFECT,"--recover"],False,0,0,0,0,0,0,0]
+    commands = [row]
+    calendar = [["OnCalendar","*-*-* *:*:00",0]]
+    if defect == "extra-argument": row[1].append("--unexpected")
+    elif defect == "extra-command": commands.append(row.copy())
+    elif defect == "wrong-binary": row[0] += "-other"
+    elif defect == "ignore-errors": row[2] = True
+    elif defect == "extra-calendar": calendar.append(["OnCalendar","daily",0])
+    elif defect == "wrong-calendar": calendar[0][1] += " UTC"
+    def fake_run(*args, **kwargs):
+        if args[-1] == "ExecStartPost":
+            return "ExecStartPost=" + bundle.EFFECT + " --recover"
+        if args[-1] == "TimersCalendar":
+            return "TimersCalendar=OnCalendar=*-*-* *:*:00"
+        fragment = bundle.INSTALLED_SVC if args[2] == bundle.SVC_NAME else bundle.INSTALLED_TIMER
+        return f"LoadState=loaded\nFragmentPath={fragment}\nDropInPaths=\nNeedDaemonReload=no"
+    monkeypatch.setattr(bundle, "run", fake_run)
+    monkeypatch.setattr(bundle, "read_unit_property",
+        lambda unit, interface, prop: {"type":"a(sasbttttuii)","data":commands}
+        if prop=="ExecStartPost" else {"type":"a(sst)","data":calendar}, raising=False)
+    with pytest.raises(ValueError):
+        bundle.verify(dest=dest)

@@ -355,3 +355,32 @@ atomic observation, no deployment proof; prov actual Host/Runtime
 receipts; unfold native manager observation -> pure projection ->
 existing verification. Reuse native systemd, no replacement controller
 or registry. Preserve in-flight protected R17 queue head.
+
+
+## R20 — Native typed loaded configuration (2026-11-26)
+
+Host #33332, R19 donor c32a630cdd; R17 #2877 native protected queue
+position5 at observation, not merged. Runtime #33321 receipt snapshot
+and reader-lifetime proof remain distinct from per-resource activation CAS.
+Replace display-text substring acceptance with existing systemd D-Bus
+native JSON property projection (busctl GetUnit, get-property only).
+Require exact declared command tuple and exact single calendar rule,
+native signatures and numeric coordinate shapes; runtime coordinates do
+not prove execution. R19 native identity/currentness checks remain.
+RED six synthetic false accepts job-01a2156f-7a62-76f6-bae0-31f41f575b6a;
+native systemd 262.2 actual typed property 2/2 read-only PASS
+job-01a2156f-d380-76d6-b61d-dee1cf51805f. No new production dependency
+(the existing systemd distribution supplies busctl), no changed operational
+policy, no activation, no new runtime registry. Separate GetUnit and
+property reads do not prove atomic snapshots; exact selected command and
+calendar are not full effective unit configuration.
+R2.1 I declared expected tuple, native JSON; O qualified bounded configuration
+projection or rejection; S none; pre trusted stable manager; post exact
+signature, row count, selected static fields and coordinate types;
+inv configuration != execution != consumer; eff read-only tests;
+c bounded linear parsing; epsilon no whole-unit, live deployment,
+concurrent change or startup proof; prov exact jobs; unfold native manager
+-> pure projection -> existing verifier. Preserve pending R17 queue;
+recompose R18-R20 once actual merge is observed.
+Reference https://www.freedesktop.org/software/systemd/man/262/org.freedesktop.systemd1.html
+and https://www.freedesktop.org/software/systemd/man/262/busctl.html.
