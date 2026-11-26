@@ -62,8 +62,8 @@ fn project_committed_job_after_reconcile<T>(
 // Keep platform admission a closed, testable contract. A Windows PG
 // product must not accept Unix-only profiles, steps or host prerequisites
 // before the native carrier can realize them.
-fn validate_native_pg_execution(e: &ExecutionProposal, windows: bool) -> RuntimeResult<()> {
-    let valid = if windows {
+pub(super) fn supports_native_pg_execution(e: &ExecutionProposal, windows: bool) -> bool {
+    if windows {
         e.execution_target == ExecutionTarget::WindowsNative
             && e.execution_profile == ExecutionProfile::TrustedLocal
             && e.steps.is_empty()
@@ -76,14 +76,7 @@ fn validate_native_pg_execution(e: &ExecutionProposal, windows: bool) -> Runtime
             )
             && e.windows_context.is_none()
             && e.windows_authority == WindowsAuthority::Limited
-    };
-    if !valid {
-        return Err(RuntimeError::invalid(
-            "PG Runtime requires a supported execution profile on the installed native target",
-            "execution",
-        ));
     }
-    Ok(())
 }
 
 #[cfg(test)]
@@ -98,18 +91,18 @@ mod native_pg_target_contract_tests {
             "executionProfile":"trusted_local", "windowsAuthority":"active_user"
         }))
         .unwrap();
-        assert!(validate_native_pg_execution(&e, true).is_ok());
-        assert!(validate_native_pg_execution(&e, false).is_err());
+        assert!(supports_native_pg_execution(&e, true));
+        assert!(!supports_native_pg_execution(&e, false));
         e.execution_profile = ExecutionProfile::ContainedLocal;
-        assert!(validate_native_pg_execution(&e, true).is_err());
+        assert!(!supports_native_pg_execution(&e, true));
         e.execution_target = ExecutionTarget::LocalLinux;
         e.windows_authority = WindowsAuthority::Limited;
-        assert!(validate_native_pg_execution(&e, false).is_ok());
-        assert!(validate_native_pg_execution(&e, true).is_err());
+        assert!(supports_native_pg_execution(&e, false));
+        assert!(!supports_native_pg_execution(&e, true));
         e.execution_profile = ExecutionProfile::TrustedLocal;
-        assert!(validate_native_pg_execution(&e, false).is_ok());
+        assert!(supports_native_pg_execution(&e, false));
         e.windows_authority = WindowsAuthority::ActiveUser;
-        assert!(validate_native_pg_execution(&e, false).is_err());
+        assert!(!supports_native_pg_execution(&e, false));
     }
 }
 
@@ -617,14 +610,7 @@ impl PgRuntime {
         }
 
         #[cfg(not(windows))]
-        if e.execution_target != ExecutionTarget::LocalLinux
-            || !matches!(
-                e.execution_profile,
-                ExecutionProfile::TrustedLocal | ExecutionProfile::ContainedLocal
-            )
-            || e.windows_context.is_some()
-            || e.windows_authority != WindowsAuthority::Limited
-        {
+        if !supports_native_pg_execution(e, false) {
             return Err(RuntimeError::invalid(
                 "PG vertical supports local_linux trusted_local or contained_local execution only",
                 "execution",

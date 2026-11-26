@@ -161,13 +161,15 @@ impl PgAdmissionStore {
                 let bundle_digest = bundle_digest.ok_or(PgAdmissionError::Blocked)?;
                 native_windows_drain::require_native_windows_drain_in_terminal_tx(
                     &mut tx,
-                    &job_id,
-                    &i.attempt_id,
-                    &i.expected_source_sha256,
-                    &current.get::<_, String>(5),
-                    &bundle_digest,
-                    &i.result_digest,
-                    i.expected_row_version,
+                    &native_windows_drain::PgWindowsDrainIdentity {
+                        job_id: &job_id,
+                        attempt_id: &i.attempt_id,
+                        source_sha256: &i.expected_source_sha256,
+                        launch_token_digest: &current.get::<_, String>(5),
+                        request_digest: &bundle_digest,
+                        result_digest: &i.result_digest,
+                        expected_row_version: i.expected_row_version,
+                    },
                 )?;
             }
         }

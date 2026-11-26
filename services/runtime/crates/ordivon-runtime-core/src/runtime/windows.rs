@@ -621,6 +621,7 @@ pub(crate) struct WindowsNativeRunSpec<'a> {
     pub stdout_limit_bytes: u64,
     pub stderr_limit_bytes: u64,
     /// PG-only original Runtime process identity. Ordinary legacy jobs leave None.
+    #[cfg(windows)]
     pub pg_terminal_peer_pid: Option<u32>,
 }
 

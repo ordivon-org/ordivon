@@ -609,6 +609,7 @@ mod tests {
     }
 }
 
+#[cfg(any(windows, test))]
 #[path = "pg_windows_evidence/terminal.rs"]
 pub(crate) mod terminal;
 

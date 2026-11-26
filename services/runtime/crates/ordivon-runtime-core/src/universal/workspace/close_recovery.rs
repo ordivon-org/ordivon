@@ -529,7 +529,7 @@ fn reconcile_closing_workspace(
     let expected_commit = format!("{}^{{commit}}", closing.final_head);
     let verified_commit = workspace_git_command()
         .arg("-C")
-        .arg(git_cli_path(&source_repo))
+        .arg(git_cli_path(source_repo))
         .args(["cat-file", "-e", &expected_commit])
         .output()
         .map_err(|error| tool_unavailable("git cat-file closing HEAD", error))?;
@@ -670,7 +670,7 @@ fn workspace_private_git_has_outputs(
     // At most two records are sufficient to disprove the exact-one claim.
     let refs = workspace_git_command()
         .arg("--git-dir")
-        .arg(git_cli_path(&private))
+        .arg(git_cli_path(private))
         .args(["for-each-ref", "--count=2", "--format=%(refname)%00%(objectname)"])
         .output()
         .map_err(|e| tool_unavailable("git for-each-ref", e))?;
@@ -685,7 +685,7 @@ fn workspace_private_git_has_outputs(
     // original root-owned linked Worktree's file digest is unchanged.
     let result = workspace_git_command()
         .arg("--git-dir")
-        .arg(git_cli_path(&private))
+        .arg(git_cli_path(private))
         .args(["-c", "core.fsmonitor=false", "diff-index", "--cached", "--quiet", "HEAD", "--"])
         .output()
         .map_err(|e| tool_unavailable("git", e))?;
@@ -1228,7 +1228,7 @@ fn remove_registered_workspace_with_broken_metadata(
 
     let output = workspace_git_command()
         .arg("-C")
-        .arg(git_cli_path(&source_repo))
+        .arg(git_cli_path(source_repo))
         .args(["worktree", "prune", "--expire", "now"])
         .output()
         .map_err(|error| tool_unavailable("git worktree prune", error))?;
@@ -1255,7 +1255,7 @@ fn registered_workspace_head(
     }
     let output = workspace_git_command()
         .arg("-C")
-        .arg(git_cli_path(&source_repo))
+        .arg(git_cli_path(source_repo))
         .args(["worktree", "list", "--porcelain"])
         .output()
         .map_err(|error| tool_unavailable("git worktree list", error))?;
@@ -1297,7 +1297,7 @@ fn recover_missing_workspace_head(
     let rescue_ref = format!("refs/ordivon/closed/{}", record.workspace_id);
     let rescued = workspace_git_command()
         .arg("-C")
-        .arg(git_cli_path(&source_repo))
+        .arg(git_cli_path(source_repo))
         .args(["rev-parse", "--verify", "--quiet", &rescue_ref])
         .output()
         .map_err(|error| tool_unavailable("git rev-parse rescue ref", error))?;
@@ -1315,7 +1315,7 @@ fn recover_missing_workspace_head(
     }
     let output = workspace_git_command()
         .arg("-C")
-        .arg(git_cli_path(&source_repo))
+        .arg(git_cli_path(source_repo))
         .args(["worktree", "list", "--porcelain"])
         .output()
         .map_err(|error| tool_unavailable("git worktree list", error))?;
@@ -1365,7 +1365,7 @@ fn remove_git_worktree_from_workspace(
         command.arg("--force");
     }
     let output = command
-        .arg(git_cli_path(&workspace))
+        .arg(git_cli_path(workspace))
         .output()
         .map_err(|error| tool_unavailable("git worktree remove", error))?;
     if output.status.success() {
@@ -1382,7 +1382,7 @@ mod rescue_ref_atomicity_tests {
     fn git(root: &Path, args: &[&str]) -> String {
         let output = workspace_git_command()
             .arg("-C")
-            .arg(git_cli_path(&root))
+            .arg(git_cli_path(root))
             .args(args)
             .output()
             .expect("native Git must run");
@@ -1744,7 +1744,7 @@ mod durable_closing_intent_tests {
     fn git(root: &Path, args: &[&str]) -> String {
         let output = workspace_git_command()
             .arg("-C")
-            .arg(git_cli_path(&root))
+            .arg(git_cli_path(root))
             .args(args)
             .output()
             .expect("Git must execute in isolated disposable repo");

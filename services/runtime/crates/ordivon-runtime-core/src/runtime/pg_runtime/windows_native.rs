@@ -14,15 +14,12 @@ impl PgRuntime {
             .unwrap_or_else(|| e.windows_authority.canonical_context());
         // Only the configured desktop identity can receive an active-user
         // context; the existing native launcher still verifies SID/session.
-        if e.execution_target != ExecutionTarget::WindowsNative
-            || e.execution_profile != ExecutionProfile::TrustedLocal
+        if !super::job::supports_native_pg_execution(e, true)
             || context.privilege != WindowsPayloadPrivilege::Limited
             || (context.identity == WindowsExecutionIdentity::ActiveUser
                 && self.config.interactive_workspace_sid.is_none())
             || e.windows_context
                 .is_some_and(|v| !v.compatible_with_legacy(e.windows_authority))
-            || !e.steps.is_empty()
-            || !e.host_dependencies.is_empty()
             || e.budget.scheduling.as_ref().is_some_and(|s| {
                 s.workspace_access.read_only
                     || !s.workspace_access.read_paths.is_empty()

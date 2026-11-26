@@ -371,7 +371,7 @@ fn symlink_target_bytes(target: &Path) -> Vec<u8> {
 fn is_git_worktree(path: &Path) -> Result<bool, UniversalExecError> {
     let output = workspace_git_command()
         .arg("-C")
-        .arg(git_cli_path(&path))
+        .arg(git_cli_path(path))
         .args(["rev-parse", "--is-inside-work-tree", "--show-prefix"])
         .output()
         .map_err(|error| tool_unavailable("git rev-parse worktree", error))?;
@@ -443,7 +443,7 @@ mod gitlink_worktree_root_tests {
         let run = |cwd: &Path, args: &[&str]| {
             let output = workspace_git_command()
                 .arg("-C")
-                .arg(git_cli_path(&cwd))
+                .arg(git_cli_path(cwd))
                 .args(args)
                 .output()
                 .expect("run git");
@@ -504,7 +504,7 @@ mod gitlink_worktree_root_tests {
         let run = |cwd: &Path, args: &[&str]| {
             let output = workspace_git_command()
                 .arg("-C")
-                .arg(git_cli_path(&cwd))
+                .arg(git_cli_path(cwd))
                 .args(args)
                 .output()
                 .expect("run git");
@@ -587,7 +587,7 @@ mod gitlink_worktree_root_tests {
         let run = |cwd: &Path, args: &[&str]| {
             let output = workspace_git_command()
                 .arg("-C")
-                .arg(git_cli_path(&cwd))
+                .arg(git_cli_path(cwd))
                 .args(args)
                 .output()
                 .expect("git");

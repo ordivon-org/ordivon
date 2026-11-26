@@ -156,7 +156,7 @@ fn create_workspace_private_git_snapshot(
             run("init", init)?;
             let mut fetch = workspace_git_command();
             fetch.arg("--git-dir").arg(git_cli_path(&private)).args(["fetch", "--no-tags", "--depth=1"])
-                .arg(git_cli_path(&source)).arg(revision);
+                .arg(git_cli_path(source)).arg(revision);
             run("shallow exact revision", fetch)?;
             let mut ref_update = workspace_git_command();
             ref_update.arg("--git-dir").arg(git_cli_path(&private))
@@ -167,7 +167,7 @@ fn create_workspace_private_git_snapshot(
                 .args(["symbolic-ref", "HEAD", "refs/heads/agent-work"]);
             run("private HEAD", head)?;
             let mut index = workspace_git_command();
-            index.arg("--git-dir").arg(git_cli_path(&private)).arg("--work-tree").arg(git_cli_path(&workspace))
+            index.arg("--git-dir").arg(git_cli_path(&private)).arg("--work-tree").arg(git_cli_path(workspace))
                 .args(["read-tree", "HEAD"]);
             run("private index", index)?;
             if workspace_private_git_has_outputs(&private, revision)? {

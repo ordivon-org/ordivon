@@ -4,9 +4,11 @@
 //! Logic: result bytes -> original native owner -> durable kernel drain event
 //! -> exact terminal decision. Capability: original PG writer & Artifacts.
 //! This is not a second Windows registry, policy layer or PID-based kill loop.
+#[cfg(test)]
+use super::inspect_windows_pg_bundle;
 use super::{
-    inspect_windows_pg_bundle, read_value, sha256, verified_output, PgWindowsWitnessIdentity,
-    PgWindowsWitnessObservation, PgWindowsWitnessPhase,
+    read_value, sha256, verified_output, PgWindowsWitnessIdentity, PgWindowsWitnessObservation,
+    PgWindowsWitnessPhase,
 };
 use crate::pg_admission::{PgArtifactRegistration, PgTerminalNoArtifacts};
 use serde_json::Value;
