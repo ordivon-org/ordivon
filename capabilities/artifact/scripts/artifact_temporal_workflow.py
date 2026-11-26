@@ -9,8 +9,8 @@ from typing import Any
 
 from temporalio import activity, workflow
 from temporalio.client import Client
-from temporalio.common import RetryPolicy
-from temporalio.worker import Worker
+from temporalio.common import RetryPolicy, VersioningBehavior, WorkerDeploymentVersion
+from temporalio.worker import Worker, WorkerDeploymentConfig
 
 with workflow.unsafe.imports_passed_through():
     from artifact_temporal_support import ReceiptFencedArtifactExecutor
@@ -57,7 +57,30 @@ class ArtifactWorkflow:
         if trust_material is not None: package_input['trustMaterial']=trust_material
         packaged=await self._activity(PACKAGE_ACTIVITY,package_input); self._phase='COMPLETE'
         return {'schemaVersion':1,'kind':'artifact-temporal-workflow-result','workflowId':wid,'status':'PASS','allowLocalUnsignedDevelopment':local,'prepare':prepared,'build':built,'verify':verified,'trust':trust_result,'package':packaged,'releaseReady':bool(packaged.get('metadata',{}).get('releaseReady')),'trustStanding':packaged.get('metadata',{}).get('trustStanding')}
-async def run_worker(*,temporal_address:str,namespace:str,task_queue:str,state_root:Path)->None:
-    client=await Client.connect(temporal_address,namespace=namespace); activities=ArtifactActivities(state_root=state_root)
+def worker_deployment_config(deployment_name: str | None, build_id: str | None) -> WorkerDeploymentConfig | None:
+    """Opt in explicitly; leave existing unversioned workers unchanged."""
+    if deployment_name is None and build_id is None:
+        return None
+    if not deployment_name or not build_id:
+        raise ValueError("deployment name and build ID are required together")
+    return WorkerDeploymentConfig(
+        version=WorkerDeploymentVersion(deployment_name, build_id),
+        use_worker_versioning=True,
+        default_versioning_behavior=VersioningBehavior.PINNED,
+    )
+
+
+async def run_worker(*, temporal_address: str, namespace: str, task_queue: str,
+                     state_root: Path, deployment_name: str | None = None,
+                     build_id: str | None = None) -> None:
+    deployment = worker_deployment_config(deployment_name, build_id)
+    client = await Client.connect(temporal_address, namespace=namespace)
+    activities = ArtifactActivities(state_root=state_root)
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-        worker=Worker(client,task_queue=task_queue,workflows=[ArtifactWorkflow],activities=[activities.prepare,activities.build,activities.verify,activities.verify_trust,activities.package],activity_executor=executor); await worker.run()
+        worker = Worker(
+            client, task_queue=task_queue, workflows=[ArtifactWorkflow],
+            activities=[activities.prepare, activities.build, activities.verify,
+                        activities.verify_trust, activities.package],
+            activity_executor=executor, deployment_config=deployment,
+        )
+        await worker.run()

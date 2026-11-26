@@ -17,10 +17,15 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.mark.integration
-def test_complete_local_development_workflow_and_receipt_replay(tmp_path, monkeypatch):
+@pytest.mark.parametrize("versioned", [False, True])
+def test_complete_local_development_workflow_and_receipt_replay(tmp_path, monkeypatch, versioned):
     monkeypatch.syspath_prepend(str(ROOT / "scripts"))
     from artifact_temporal_support import ReceiptFencedArtifactExecutor
-    from artifact_temporal_workflow import ArtifactActivities, ArtifactWorkflow
+    from artifact_temporal_workflow import (
+        ArtifactActivities,
+        ArtifactWorkflow,
+        worker_deployment_config,
+    )
 
     cli = os.environ.get("ARTIFACT_TEMPORAL_CLI") or shutil.which("temporal")
     assert cli and Path(cli).is_file(), "qualify a local Temporal CLI; do not implicitly download"
@@ -56,7 +61,30 @@ def test_complete_local_development_workflow_and_receipt_replay(tmp_path, monkey
                         activities.package,
                     ],
                     activity_executor=pool,
+                    deployment_config=worker_deployment_config("artifact-native-test", "candidate") if versioned else None,
                 ):
+                    if versioned:
+                        address = environment.client.service_client.config.target_host
+                        assert address.startswith("127.0.0.1:") and not address.endswith(":17233")
+                        for _ in range(20):
+                            proc = await asyncio.create_subprocess_exec(
+                                cli, "--address", address, "worker", "deployment",
+                                "set-current-version", "--deployment-name", "artifact-native-test",
+                                "--build-id", "candidate", "--yes",
+                                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+                            )
+                            try:
+                                out, err = await asyncio.wait_for(proc.communicate(), timeout=12)
+                            except TimeoutError:
+                                proc.kill()
+                                await proc.wait()
+                                raise
+                            if proc.returncode == 0:
+                                print("ACTUAL ARTIFACT CURRENT", out.decode().strip())
+                                break
+                            await asyncio.sleep(0.4)
+                        else:
+                            raise RuntimeError(err.decode())
                     handle = await environment.client.start_workflow(
                         ArtifactWorkflow.run,
                         activity_input,
@@ -104,3 +132,19 @@ def test_complete_local_development_workflow_and_receipt_replay(tmp_path, monkey
             )
 
     asyncio.run(run())
+
+
+def test_worker_deployment_config_explicit_opt_in(monkeypatch):
+    monkeypatch.syspath_prepend(str(ROOT / "scripts"))
+    from artifact_temporal_workflow import worker_deployment_config
+    from temporalio.common import VersioningBehavior
+
+    assert worker_deployment_config(None, None) is None
+    config = worker_deployment_config("artifact-test", "exact-build")
+    assert config.use_worker_versioning
+    assert config.version.deployment_name == "artifact-test"
+    assert config.version.build_id == "exact-build"
+    assert config.default_versioning_behavior == VersioningBehavior.PINNED
+    for name, build in ((None, "id"), ("name", None), ("", "id"), ("name", "")):
+        with pytest.raises(ValueError):
+            worker_deployment_config(name, build)
