@@ -3313,6 +3313,180 @@ fn failed_retained_pg_transient_auto_converges_to_lost_and_releases_capacity() {
 
 #[test]
 #[ignore = "requires PostgreSQL binaries and authorized systemd/cgroup execution"]
+fn native_terminal_recovery_rejects_changed_bound_runner_start_bytes() {
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let open = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-start-evidence","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(open["isError"], true, "{open}");
+    let gate = fixture.root.join("finish-native");
+    let script = format!(
+        "while [ ! -f '{}' ]; do /usr/bin/sleep 0.05; done; printf original",
+        gate.display()
+    );
+    let admitted = call(
+        &endpoint,
+        "workspace.exec",
+        json!({
+            "clientRequestId":"bound-runner-start-exact",
+            "execution":{"workspaceId":"ws-start-evidence","executable":"/usr/bin/bash",
+              "args":["-c",script],"cwdRelative":".","timeoutMs":60000},"waitMs":0
+        }),
+    );
+    assert_ne!(admitted["isError"], true, "{admitted}");
+    let job = admitted["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let deadline = Instant::now() + Duration::from_secs(25);
+    let (attempt, bundle, unit): (String, String, String) = loop {
+        let row = fixture
+            .db
+            .query_one(
+                "SELECT attempt_id,bundle_path,unit_name,state FROM attempts WHERE job_id=$1",
+                &[&job],
+            )
+            .unwrap();
+        if row.get::<_, String>(3) == "running" {
+            break (row.get(0), row.get(1), row.get(2));
+        }
+        assert!(Instant::now() < deadline, "native attempt never bound");
+        thread::sleep(Duration::from_millis(50));
+    };
+    // The private MCP process must be gone before Runner completes, so no
+    // background reconciliation can consume the original start receipt.
+    let mut endpoint_process = fixture.endpoint.take().unwrap();
+    endpoint_process.kill().unwrap();
+    endpoint_process.wait().unwrap();
+    let start_path = PathBuf::from(&bundle).join("runner-start.json");
+    let original = fs::read(&start_path).unwrap();
+    let bound: String=fixture.db.query_one(
+        "SELECT detail_json FROM job_events WHERE job_id=$1 AND attempt_id=$2 AND event_type='RUNNER_BOUND'",
+        &[&job,&attempt]).unwrap().get(0);
+    let detail: Value = serde_json::from_str(&bound).unwrap();
+    assert_eq!(detail["runnerStartDigest"], {
+        use sha2::Digest as _;
+        format!("sha256:{}", hex::encode(sha2::Sha256::digest(&original)))
+    });
+    fs::write(&gate, b"finish").unwrap();
+    let deadline = Instant::now() + Duration::from_secs(15);
+    loop {
+        let state = Command::new("/usr/bin/systemctl")
+            .args(["show", &unit, "--property=ActiveState", "--value"])
+            .output()
+            .unwrap();
+        if PathBuf::from(&bundle).join("result.json").is_file()
+            && matches!(
+                String::from_utf8_lossy(&state.stdout).trim(),
+                "inactive" | "failed"
+            )
+        {
+            break;
+        }
+        assert!(Instant::now() < deadline, "native process did not finish");
+        thread::sleep(Duration::from_millis(50));
+    }
+    let mut changed = original.clone();
+    changed.extend_from_slice(b"\n ");
+    assert_eq!(
+        serde_json::from_slice::<Value>(&changed).unwrap(),
+        serde_json::from_slice::<Value>(&original).unwrap()
+    );
+    fs::write(&start_path, &changed).unwrap();
+    let endpoint = fixture.endpoint();
+    let observed = call(&endpoint, "job.observe", json!({"jobId":job,"waitMs":0}));
+    let resolution: Option<String> = fixture
+        .db
+        .query_one("SELECT resolution FROM jobs WHERE job_id=$1", &[&job])
+        .unwrap()
+        .get(0);
+    assert!(
+        resolution.is_none(),
+        "mutated original Runner start was settled: {resolution:?} {observed}"
+    );
+    let reservation: String = fixture
+        .db
+        .query_one(
+            "SELECT state FROM concurrency_reservations WHERE attempt_id=$1",
+            &[&attempt],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(reservation, "active");
+    assert_eq!(observed["isError"], true, "{observed}");
+    // A byte-correct start receipt cannot borrow a foreign cgroup identity.
+    let mut wrong_group: Value = serde_json::from_slice(&original).unwrap();
+    wrong_group["controlGroup"] = json!("/system.slice/ordivon-r18-unrelated.service");
+    fs::write(&start_path, serde_json::to_vec(&wrong_group).unwrap()).unwrap();
+    let wrong_group_observed = call(&endpoint, "job.observe", json!({"jobId":job,"waitMs":0}));
+    assert_eq!(
+        wrong_group_observed["isError"], true,
+        "{wrong_group_observed}"
+    );
+    assert!(fixture
+        .db
+        .query_one("SELECT resolution FROM jobs WHERE job_id=$1", &[&job])
+        .unwrap()
+        .get::<_, Option<String>>(0)
+        .is_none());
+    // Even with exact restored bytes, the original PG event itself must
+    // still be coherent, rather than accepting any event named RUNNER_BOUND.
+    let event_digest: String=fixture.db.query_one(
+        "SELECT detail_digest FROM job_events WHERE job_id=$1 AND attempt_id=$2 AND event_type='RUNNER_BOUND'",
+        &[&job,&attempt]).unwrap().get(0);
+    assert_eq!(fixture.db.execute(
+        "UPDATE job_events SET detail_digest=$3 WHERE job_id=$1 AND attempt_id=$2 AND event_type='RUNNER_BOUND'",
+        &[&job,&attempt,&format!("sha256:{}", "0".repeat(64))]).unwrap(),1);
+    fs::write(&start_path, &original).unwrap();
+    let wrong_event = call(&endpoint, "job.observe", json!({"jobId":job,"waitMs":0}));
+    assert_eq!(wrong_event["isError"], true, "{wrong_event}");
+    assert!(fixture
+        .db
+        .query_one("SELECT resolution FROM jobs WHERE job_id=$1", &[&job])
+        .unwrap()
+        .get::<_, Option<String>>(0)
+        .is_none());
+    assert_eq!(fixture.db.execute(
+        "UPDATE job_events SET detail_digest=$3 WHERE job_id=$1 AND attempt_id=$2 AND event_type='RUNNER_BOUND'",
+        &[&job,&attempt,&event_digest]).unwrap(),1);
+    let deadline = Instant::now() + Duration::from_secs(15);
+    loop {
+        let recovered = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":job,"waitMs":1000,"stdoutTailBytes":64}),
+        );
+        if recovered["structuredContent"]["executionTerminal"] == true {
+            assert_eq!(
+                recovered["structuredContent"]["executionDisposition"], "succeeded",
+                "{recovered}"
+            );
+            assert_eq!(recovered["structuredContent"]["stdoutTail"], "original");
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "exact receipt restoration did not recover: {recovered}"
+        );
+    }
+    for event in [
+        "DISPATCH_ISSUED",
+        "RUNNER_BOUND",
+        "PROCESS_EXITED",
+        "JOB_TERMINAL",
+    ] {
+        let n:i64=fixture.db.query_one("SELECT count(*) FROM job_events WHERE job_id=$1 AND attempt_id=$2 AND event_type=$3",&[&job,&attempt,&event]).unwrap().get(0);
+        assert_eq!(n, 1, "{event}");
+    }
+}
+
+#[test]
+#[ignore = "requires PostgreSQL binaries and authorized systemd/cgroup execution"]
 fn fresh_pg_mcp_native_runner_success_and_cancel() {
     let mut fixture = Fixture::new();
     // Cargo's per-Job /run/ordivon/cargo-target is private to the test's
