@@ -1,7 +1,7 @@
 #requires -version 5.1
 [CmdletBinding()]
 param(
-    [ValidateSet('Status', 'AuthorityProfile', 'WorkspaceCwdAdmission', 'PrepareFixture', 'CrashRecovery', 'ActiveJobRecovery', 'CancelJob')]
+    [ValidateSet('Status', 'AuthorityProfile', 'WorkspaceCwdAdmission', 'PrepareFixture', 'CrashRecovery', 'ActiveJobRecovery', 'CancelJob', 'PgSession1Readback')]
     [string]$Mode = 'Status',
 
     [string]$ServiceName = 'OrdivonRuntimeR6Candidate',
@@ -14,6 +14,9 @@ param(
     [ValidateRange(60, 300)]
     [int]$RecoveryTimeoutSeconds = 90,
     [string]$JobId = '',
+    [string]$ExpectedAttemptId = '',
+    [string]$ExpectedClientRequestId = '',
+    [string]$ExpectedMarker = '',
     [switch]$ApplyFault
 )
 
@@ -699,6 +702,85 @@ function Invoke-ActiveJobRecovery {
     }
 }
 
+# Reverse consumer gate for the normal candidate MCP, not the standalone PG
+# preflight. Only a previously submitted, exact, successful Session 1 probe
+# can qualify this projection. Independent SQL/SCM writer evidence is still
+# required; migrationVersion is a provider discriminator, not database proof.
+function Assert-PgSession1Projection {
+    param($Inspection, [string]$ExpectedJob, [string]$ExpectedAttempt, [string]$ExpectedRequest)
+    if (($Inspection.schemaVersion -isnot [int] -and $Inspection.schemaVersion -isnot [long]) -or
+        $Inspection.schemaVersion -ne 2 -or
+        ($Inspection.migrationVersion -isnot [int] -and $Inspection.migrationVersion -isnot [long]) -or
+        $Inspection.migrationVersion -ne 0) {
+        throw 'PG_SESSION1_REQUIRED_FRESH_PG_PROJECTION'
+    }
+    if ($Inspection.job.jobId -cne $ExpectedJob -or
+        $Inspection.job.clientRequestId -cne $ExpectedRequest -or
+        $Inspection.job.resolution -cne 'succeeded' -or
+        $Inspection.job.mechanicallyConverged -ne $true -or
+        $Inspection.attemptsTruncated -ne $false -or
+        $Inspection.eventsTruncated -ne $false -or
+        @($Inspection.attempts).Count -ne 1) {
+        throw 'PG_SESSION1_JOB_IDENTITY_OR_TERMINAL_MISMATCH'
+    }
+    $a = @($Inspection.attempts)[0]
+    if ($a.attemptId -cne $ExpectedAttempt -or $a.state -cne 'succeeded' -or
+        $a.exitCode -ne 0 -or $a.resultAvailable -ne $true -or
+        $a.reservationState -cne 'released' -or $Inspection.artifacts.truncated -ne 0) {
+        throw 'PG_SESSION1_ATTEMPT_NOT_QUALIFIED'
+    }
+    # PG inspection episodes are currently a default projection; use the actual
+    # bounded event timeline instead of treating a zero aggregate as proof.
+    $dispatch = @($Inspection.timeline | Where-Object { $_.eventType -ceq 'DISPATCH_ISSUED' })
+    if ($dispatch.Count -ne 1 -or $dispatch[0].attemptId -cne $ExpectedAttempt) {
+        throw 'PG_SESSION1_DISPATCH_IDENTITY_MISMATCH'
+    }
+}
+
+function Assert-PgSession1Artifact {
+    param($Artifact, [string]$ExpectedJob, [string]$ExpectedAttempt, [string]$Marker)
+    $expectedArtifact = "$ExpectedAttempt.stdout"
+    if ($Artifact.jobId -cne $ExpectedJob -or $Artifact.artifactId -cne $expectedArtifact -or
+        $Artifact.eof -ne $true -or $Artifact.offset -ne 0) {
+        throw 'PG_SESSION1_ARTIFACT_IDENTITY_MISMATCH'
+    }
+    $bytes = [Text.Encoding]::UTF8.GetBytes([string]$Artifact.content)
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { $actual = 'sha256:' + ([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-', '').ToLowerInvariant() }
+    finally { $sha.Dispose() }
+    if ($Artifact.digest -cne $actual -or $Artifact.nextOffset -ne $bytes.Length) {
+        throw 'PG_SESSION1_ARTIFACT_BYTES_MISMATCH'
+    }
+    $body = $Artifact.content | ConvertFrom-Json
+    if (($body.sessionId -isnot [int] -and $body.sessionId -isnot [long]) -or $body.sessionId -ne 1 -or $body.marker -cne $Marker) {
+        throw 'PG_SESSION1_PHYSICAL_PROBE_MISMATCH'
+    }
+}
+
+function Invoke-PgSession1Readback {
+    if ($JobId -notmatch '^job-[A-Za-z0-9-]+$' -or
+        $ExpectedAttemptId -notmatch '^attempt-[A-Za-z0-9-]+$' -or
+        [string]::IsNullOrWhiteSpace($ExpectedClientRequestId) -or
+        [string]::IsNullOrWhiteSpace($ExpectedMarker)) {
+        throw 'PgSession1Readback requires explicit Job, Attempt, request and probe marker identities.'
+    }
+    $runtime = Get-RuntimeDescribe -Id 410
+    $inspection = Invoke-McpTool -Name 'job.get' -Arguments @{
+        schemaVersion = 1; jobId = $JobId; eventLimit = 200
+    } -Id 411
+    Assert-PgSession1Projection $inspection $JobId $ExpectedAttemptId $ExpectedClientRequestId
+    $artifact = Invoke-McpTool -Name 'artifact.read' -Arguments @{
+        schemaVersion = 1; jobId = $JobId; artifactId = "$ExpectedAttemptId.stdout"; offset = 0; maxBytes = 4096
+    } -Id 412
+    Assert-PgSession1Artifact $artifact $JobId $ExpectedAttemptId $ExpectedMarker
+    return [ordered]@{
+        schemaVersion = 1; mode = 'PgSession1Readback'; node = $runtime.node
+        jobId = $JobId; attemptId = $ExpectedAttemptId; stdoutDigest = $artifact.digest
+        pgProjectionQualified = $true; session1ArtifactQualified = $true
+        uniqueWriterQualified = $false; cutoverAccepted = $false
+    }
+}
+
 Assert-CandidateBoundary
 if ($Mode -ne 'PrepareFixture') {
     $script:BearerToken = Read-BearerToken
@@ -741,6 +823,9 @@ switch ($Mode) {
     }
     'ActiveJobRecovery' {
         (Invoke-ActiveJobRecovery) | ConvertTo-Json -Depth 16
+    }
+    'PgSession1Readback' {
+        (Invoke-PgSession1Readback) | ConvertTo-Json -Depth 16
     }
     'CancelJob' {
         if (-not $ApplyFault) {
