@@ -2467,7 +2467,7 @@ internal static class OrdivonWindowsJobLauncher
 
     private static string BindPgRecoveryService(SecurityIdentifier sid, uint originalPid)
     {
-        const string prefix = @"NT SERVICE";
+        const string prefix = @"NT SERVICE\";
         string account;
         try { account = sid.Translate(typeof(NTAccount)).Value; }
         catch (IdentityNotMappedException) { return null; }
@@ -2958,7 +2958,6 @@ internal static class OrdivonWindowsJobLauncher
             "\"index\":0," +
             "\"status\":" + JsonString(stepStatus) + "," +
             "\"exitCode\":" + exitCode.ToString(CultureInfo.InvariantCulture) + "," +
-            (runtimeOwnerLost ? "\"runtimeOwnerLost\":true," : "") +
             "\"timedOut\":" + (timedOut ? "true" : "false") + "," +
             "\"continued\":false," +
             "\"startedUnixMs\":" + startedUnixMs.ToString(CultureInfo.InvariantCulture) + "," +
@@ -2974,6 +2973,7 @@ internal static class OrdivonWindowsJobLauncher
             "\"launchTokenDigest\":" + JsonString(options.RuntimeLaunchTokenDigest) + "," +
             "\"status\":" + JsonString(status) + "," +
             "\"exitCode\":" + exitCode.ToString(CultureInfo.InvariantCulture) + "," +
+            (runtimeOwnerLost ? "\"runtimeOwnerLost\":true," : "") +
             "\"timedOut\":" + (timedOut ? "true" : "false") + "," +
             "\"startedUnixMs\":" + startedUnixMs.ToString(CultureInfo.InvariantCulture) + "," +
             "\"finishedUnixMs\":" + finishedUnixMs.ToString(CultureInfo.InvariantCulture) + "," +
