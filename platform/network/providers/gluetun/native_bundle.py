@@ -14,8 +14,9 @@ from pathlib import Path
 import subprocess
 import sys
 
-from release_unit_evidence import (UNIT_PROPERTIES, require_calendar,
-                                   require_command, require_loaded_identity)
+from release_unit_evidence import (UNIT_PROPERTIES, decode_native_json, require_calendar,
+                                   require_command, require_loaded_identity, require_unit_id,
+                                   unit_object_path)
 
 SOURCE = Path(__file__).resolve().parent
 DEST = Path("/usr/local/libexec/network-v2/gluetun-native")
@@ -51,15 +52,14 @@ def read_unit_property(unit: str, interface: str, prop: str) -> object:
     """Read an already-loaded unit through the native typed D-Bus interface."""
     service = "org.freedesktop.systemd1"
     base = ("/usr/bin/busctl", "--system", "--json=short")
-    result = json.loads(run(*base, "call", service, "/org/freedesktop/systemd1",
-                            service + ".Manager", "GetUnit", "s", unit))
-    if (not isinstance(result, dict) or set(result) != {"type", "data"}
-            or result["type"] != "o" or not isinstance(result["data"], list)
-            or len(result["data"]) != 1 or not isinstance(result["data"][0], str)
-            or not result["data"][0].startswith("/org/freedesktop/systemd1/unit/")):
-        raise ValueError("No unique native loaded unit identity")
-    return json.loads(run(*base, "get-property", service, result["data"][0],
-                          service + "." + interface, prop))
+    path = unit_object_path(decode_native_json(run(
+        *base, "call", service, "/org/freedesktop/systemd1",
+        service + ".Manager", "GetUnit", "s", unit)))
+    identity = decode_native_json(run(*base, "get-property", service, path,
+                                      service + ".Unit", "Id"))
+    require_unit_id(identity, unit)
+    return decode_native_json(run(*base, "get-property", service, path,
+                                  service + "." + interface, prop))
 
 
 def payload_file(root: Path, relative: str) -> Path:

@@ -201,3 +201,47 @@ def test_loaded_contract_rejects_substring_only_match(tmp_path, monkeypatch, def
         if prop=="ExecStartPost" else {"type":"a(sst)","data":calendar}, raising=False)
     with pytest.raises(ValueError):
         bundle.verify(dest=dest)
+
+
+@pytest.mark.parametrize("defect", ["foreign-id","duplicate-id","duplicate-object","duplicate-property","nonfinite-property"])
+def test_native_property_read_requires_bound_unambiguous_object(monkeypatch, defect):
+    import json
+    unit = bundle.SVC_NAME
+    path = "/org/freedesktop/systemd1/unit/synthetic"
+    prop = '{"type":"a(sasbttttuii)","data":[["/usr/bin/python3",["/usr/bin/python3"],false,0,0,0,0,0,0,0]]}'
+    def fake_run(*args, **kwargs):
+        if "GetUnit" in args:
+            if defect == "duplicate-object":
+                return '{"type":"o","data":["/wrong"],"data":["'+path+'"]}'
+            return json.dumps({"type":"o","data":[path]})
+        if args[-1] == "Id":
+            if defect == "foreign-id":
+                return json.dumps({"type":"s","data":"another.service"})
+            if defect == "duplicate-id":
+                return '{"type":"s","data":"another.service","data":"'+unit+'"}'
+            return json.dumps({"type":"s","data":unit})
+        if defect == "duplicate-property":
+            return prop.replace('"data":','"data":[],"data":')
+        if defect == "nonfinite-property":
+            return prop[:-1]+',"other":NaN}'
+        return prop
+    monkeypatch.setattr(bundle,"run",fake_run)
+    with pytest.raises(ValueError):
+        bundle.read_unit_property(unit,"Service","ExecStartPost")
+
+
+def test_native_property_read_binds_id_on_same_object(monkeypatch):
+    import json
+    calls=[]
+    path="/org/freedesktop/systemd1/unit/synthetic"
+    def fake_run(*args, **kwargs):
+        calls.append(args)
+        if "GetUnit" in args:
+            return json.dumps({"type":"o","data":[path]})
+        assert path in args
+        if args[-1]=="Id":
+            return json.dumps({"type":"s","data":bundle.SVC_NAME})
+        return json.dumps({"type":"a(sasbttttuii)","data":[]})
+    monkeypatch.setattr(bundle,"run",fake_run)
+    assert bundle.read_unit_property(bundle.SVC_NAME,"Service","ExecStartPost")=={"type":"a(sasbttttuii)","data":[]}
+    assert [c[-1] for c in calls] == [bundle.SVC_NAME,"Id","ExecStartPost"]

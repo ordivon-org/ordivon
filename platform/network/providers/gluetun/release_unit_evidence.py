@@ -2,6 +2,7 @@
 
 A manager observation is not an execution or consumer-success receipt.
 """
+import json
 from pathlib import Path
 
 UNIT_PROPERTIES = ("LoadState", "FragmentPath", "DropInPaths", "NeedDaemonReload")
@@ -65,3 +66,33 @@ def require_calendar(value: object, expected_expression: str) -> None:
     if (kind != "OnCalendar" or expression != expected_expression
             or type(next_elapse) is not int or not 0 <= next_elapse < 2**64):
         raise ValueError("Native loaded calendar does not match declared tuple")
+
+def unique_fields(pairs: list[tuple[str, object]]) -> dict:
+    fields = {}
+    for key, value in pairs:
+        if key in fields:
+            raise ValueError("Duplicate native D-Bus JSON field")
+        fields[key] = value
+    return fields
+
+
+def reject_constant(value: str) -> None:
+    raise ValueError("Nonfinite native D-Bus JSON constant")
+
+
+def decode_native_json(raw: str) -> object:
+    return json.loads(raw, object_pairs_hook=unique_fields, parse_constant=reject_constant)
+
+
+def unit_object_path(value: object) -> str:
+    if (not isinstance(value, dict) or set(value) != {"type", "data"}
+            or value["type"] != "o" or not isinstance(value["data"], list)
+            or len(value["data"]) != 1 or not isinstance(value["data"][0], str)
+            or not value["data"][0].startswith("/org/freedesktop/systemd1/unit/")):
+        raise ValueError("No unique native loaded unit identity")
+    return value["data"][0]
+
+
+def require_unit_id(value: object, expected: str) -> None:
+    if value != {"type": "s", "data": expected}:
+        raise ValueError("Native loaded object identity mismatch")

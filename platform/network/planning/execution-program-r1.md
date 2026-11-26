@@ -422,3 +422,26 @@ dependency or scheduler. Further decomposition of orchestration,
 freshness identity and full effect receipt remains distinct. Reference
 https://docs.python.org/3/library/subprocess.html and
 https://hypothesis.readthedocs.io/en/latest/tutorial/introduction.html.
+
+
+## R22 — Native manager object identity and unambiguous representation
+
+Host #33440; exact R21 consolidation head7c5ff9aa081ad53458f58c9d3d98aba90ee02322.
+PR2899 official open auto-merge enabled; preserve its in-flight head.
+Runtime #33413 independently pursuing positive native terminal evidence.
+Native D-Bus reader previously accepted any matching path prefix and
+ordinary JSON duplicate-field overwrite. Six RED cases
+job-01a21588-7260-71a5-8774-a98e688e8620. Separate pure strict JSON
+envelope, object path projection and canonical unit Id match; selected
+property read uses the same observed object path. Reject ambiguous JSON
+or foreign Id; no activation or operational policy change.
+62 focused PASS and actual two native read-only selected properties
+job-01a21588-ad6d-7222-923f-99591561e75e. I native manager responses;
+O identity-bound property or explicit rejection; S none; pre trusted
+stable manager; post canonical Id matches requested unit; inv property
+readback != execution/consumption; eff source/tests/read-only; c linear
+representation; epsilon no atomic multi-query observation, no production
+deployment. Reuse native systemd and Python JSON hooks, no new production
+dependency. External references systemd262
+https://www.freedesktop.org/software/systemd/man/262/org.freedesktop.systemd1.html
+and https://docs.python.org/3/library/json.html.
