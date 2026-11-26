@@ -9,8 +9,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-const MAX_EVIDENCE_BYTES: u64 = 2 * 1024 * 1024;
-const MAX_OUTPUT_BYTES: u64 = 4 * 1024 * 1024;
+#[path = "pg_windows_evidence/carrier.rs"]
+mod carrier;
+use carrier::{read_raw_bounded, read_value};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PgWindowsWitnessIdentity {
@@ -63,25 +64,6 @@ pub struct PgWindowsWitnessObservation {
     pub terminal_proven: bool,
 }
 
-fn read_value(path: &Path) -> Result<Option<(Value, Vec<u8>)>, String> {
-    if !path.exists() {
-        return Ok(None);
-    }
-    let meta = fs::symlink_metadata(path).map_err(|e| format!("metadata: {e}"))?;
-    if !meta.file_type().is_file() || meta.len() > MAX_EVIDENCE_BYTES {
-        return Err("evidence must be a bounded regular non-symlink file".into());
-    }
-    let bytes = fs::read(path).map_err(|e| format!("evidence read: {e}"))?;
-    if bytes.len() as u64 != meta.len() {
-        return Err("evidence mutated during read".into());
-    }
-    let value =
-        serde_json::from_slice::<Value>(&bytes).map_err(|e| format!("evidence JSON: {e}"))?;
-    if !value.is_object() {
-        return Err("evidence must be a JSON object".into());
-    }
-    Ok(Some((value, bytes)))
-}
 fn exact_text(value: &Value, key: &str, expected: &str) -> Result<(), String> {
     if value.get(key).and_then(Value::as_str) != Some(expected) {
         return Err(format!("{key}: identity mismatch"));
@@ -281,18 +263,6 @@ pub fn inspect_windows_pg_drain_candidate(
         total_processes,
         observed_unix_ms,
     }))
-}
-
-fn read_raw_bounded(path: &Path) -> Result<Vec<u8>, String> {
-    let meta = fs::symlink_metadata(path).map_err(|e| format!("output metadata: {e}"))?;
-    if !meta.file_type().is_file() || meta.len() > MAX_OUTPUT_BYTES {
-        return Err("output must be a bounded regular file".into());
-    }
-    let bytes = fs::read(path).map_err(|e| format!("output read: {e}"))?;
-    if bytes.len() as u64 != meta.len() {
-        return Err("output changed during read".into());
-    }
-    Ok(bytes)
 }
 
 #[cfg(test)]
@@ -545,6 +515,18 @@ mod tests {
         write(d.path(), "result.json", result(&i));
         assert!(inspect_windows_pg_bundle(d.path(), &i).is_err());
     }
+    #[cfg(unix)]
+    #[test]
+    fn dangling_receipt_link_is_conflict_not_absence() {
+        let (d, i) = fixtures();
+        std::os::unix::fs::symlink(
+            "does-not-exist",
+            d.path().join("windows-launcher-start.json"),
+        )
+        .unwrap();
+        assert!(inspect_windows_pg_bundle(d.path(), &i).is_err());
+    }
+
     #[test]
     fn unexpected_symlink_rejected() {
         let (d, i) = fixtures();
