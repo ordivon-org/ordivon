@@ -1,3 +1,4 @@
+
 import gzip
 import hashlib
 import importlib.util
@@ -7,6 +8,8 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+
+import pytest
 
 from artifact_verification.tool_identity import assess_native_tool_paths
 
@@ -57,6 +60,7 @@ class SoftwareReleaseTests(unittest.TestCase):
         for p in (*tools, GO) if builder else tools:
             if not p.is_file(): self.skipTest(f'missing tool {p}')
 
+    @pytest.mark.integration
     def test_frozen_database_binding_matches(self):
         db = MODULE.TRIVY_DB_ROOT / "cache/db"
         if not (db / "trivy.db").is_file() or not (db / "metadata.json").is_file():
@@ -79,6 +83,7 @@ class SoftwareReleaseTests(unittest.TestCase):
         tampered["skopeo"]["sha256"] = "0" * 64
         self.assertTrue(assess_native_tool_paths({"tools": tampered})["rejected"])
 
+    @pytest.mark.integration
     def test_valid_oci_release_passes(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -86,18 +91,21 @@ class SoftwareReleaseTests(unittest.TestCase):
             self.assertEqual(v['status'],'PASS',v); self.assertEqual(v['vulnerabilityScan']['vulnerabilityCount'],0); self.assertEqual(v['secretScan']['secretCount'],0)
             self.assert_current_tool_identity(v)
 
+    @pytest.mark.integration
     def test_valid_oci_does_not_launder_wrong_manifest_contract(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
             root=Path(d); layout=build_layout(root); c=json.loads(BASE.read_text()); c['image']['manifestDigest']='sha256:'+'0'*64; cp=root/'c.json'; cp.write_text(json.dumps(c)); v=MODULE.verify_oci(layout,cp,root/'e')
             self.assertEqual(v['status'],'FAIL'); self.assertIn('OCI manifest digest differs from object contract',v['failures'])
 
+    @pytest.mark.integration
     def test_tampered_layer_fails_descriptor_integrity(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
             root=Path(d); layout=build_layout(root); idx=json.loads((layout/'index.json').read_text()); man=layout/'blobs/sha256'/idx['manifests'][0]['digest'].split(':')[1]; m=json.loads(man.read_text()); layer=layout/'blobs/sha256'/m['layers'][0]['digest'].split(':')[1]; data=bytearray(layer.read_bytes()); data[len(data)//2]^=0x55; layer.write_bytes(data); v=MODULE.verify_oci(layout,BASE,root/'e')
             self.assertEqual(v['status'],'FAIL'); self.assertTrue(any('blob digest mismatch' in x for x in v['failures']),v)
 
+    @pytest.mark.integration
     def test_wrong_entrypoint_contract_fails_config_even_if_image_valid(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -110,6 +118,7 @@ class SoftwareReleaseTests(unittest.TestCase):
         self.assertEqual(count,1)
         self.assertEqual(failures,['secret count exceeds object contract maximum'])
 
+    @pytest.mark.integration
     def test_vulnerable_go1265_fixture_fails_frozen_db_policy(self):
         self.require_tools(builder=False)
         # The immutable negative-control input deliberately retains old Go
@@ -149,12 +158,14 @@ class SoftwareReleaseTests(unittest.TestCase):
             self.assertEqual(v["failures"], ["vulnerability count exceeds object contract maximum"])
             self.assert_current_tool_identity(v)
 
+    @pytest.mark.integration
     def test_runtime_mismatch_fails_after_static_gates_pass(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
             root=Path(d); layout=build_layout(root,stdout_text='different-output'); c=json.loads(BASE.read_text()); idx=json.loads((layout/'index.json').read_text()); c['image']['manifestDigest']=idx['manifests'][0]['digest']; c['image']['expectedFiles'][0]['sha256']=hashlib.sha256((root/'src/app').read_bytes()).hexdigest(); c['sbom']['requiredPackages'][0]['version']='go1.26.6'; cp=root/'c.json'; cp.write_text(json.dumps(c)); v=MODULE.verify_oci(layout,cp,root/'e')
             self.assertEqual(v['status'],'FAIL'); self.assertEqual(v['vulnerabilityScan']['status'],'PASS'); self.assertIn('runtime stdout differs from contract',v['failures'])
 
+    @pytest.mark.integration
     def test_contract_rejects_non_linux_platform_before_external_evidence(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:

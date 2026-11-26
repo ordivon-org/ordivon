@@ -62,6 +62,7 @@ class ArtifactAgentSurfaceTests(unittest.TestCase):
         self.assertEqual(row["gates"]["deliveryReadback"]["status"], "NOT_EXPLICITLY_MODELED")
         self.assertEqual(row["gates"]["roundTripEdit"]["status"], "EDITABLE_OUTPUT_DECLARED_BUT_ROUNDTRIP_GATE_UNMODELED")
 
+    @pytest.mark.integration
     def test_verify_proposal_compiles_existing_service_not_family_logic(self):
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / "request.json"

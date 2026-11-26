@@ -1,9 +1,12 @@
+
 import importlib.util
 import json
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("artifact_dataset", ROOT / "scripts/artifact_dataset.py")
@@ -48,6 +51,7 @@ class ArtifactDatasetTests(unittest.TestCase):
             {"id":3,"name":"gamma","score":-4.5,"active":True},
         ]
 
+    @pytest.mark.integration
     def test_flat_parquet_contract_passes_two_reader_matrix(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -60,6 +64,7 @@ class ArtifactDatasetTests(unittest.TestCase):
             self.assertEqual(value['keyIntegrity']['status'],'PASS')
             self.assertEqual(value['parquetSchema']['status'],'PASS')
 
+    @pytest.mark.integration
     def test_valid_parquet_does_not_launder_contract_schema_mismatch(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -71,6 +76,7 @@ class ArtifactDatasetTests(unittest.TestCase):
             self.assertEqual(value['status'],'FAIL')
             self.assertTrue(any('score' in x and ('nullability' in x or 'repetition' in x) for x in value['failures']),value)
 
+    @pytest.mark.integration
     def test_duplicate_primary_key_fails_closed_after_valid_decode(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -82,6 +88,7 @@ class ArtifactDatasetTests(unittest.TestCase):
             self.assertIn('declared primary key is not unique',value['failures'])
             self.assertTrue(value['readerAgreement']['exactCanonicalRowsMatch'])
 
+    @pytest.mark.integration
     def test_corrupt_parquet_fails_reader_evidence(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -92,6 +99,7 @@ class ArtifactDatasetTests(unittest.TestCase):
             self.assertEqual(value['status'],'FAIL')
             self.assertTrue(any('rejected' in x or 'decode' in x for x in value['failures']),value)
 
+    @pytest.mark.integration
     def test_non_finite_float_is_outside_profile_and_fails_closed(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -102,6 +110,7 @@ class ArtifactDatasetTests(unittest.TestCase):
             self.assertEqual(value['status'],'FAIL')
             self.assertIn('PyArrow rejected or could not decode the Parquet artifact',value['failures'])
 
+    @pytest.mark.integration
     def test_contract_rejects_nullable_primary_key_before_readers(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:

@@ -135,6 +135,7 @@ class ArtifactStandingEntrypointsTests(unittest.TestCase):
                 "EXTERNAL_NOT_EVALUATED",
             )
 
+    @pytest.mark.integration
     def test_wave_live_native_claims_share_production_coverage_semantics(self):
         with tempfile.TemporaryDirectory() as d:
             native = self._wave_service_result(Path(d))

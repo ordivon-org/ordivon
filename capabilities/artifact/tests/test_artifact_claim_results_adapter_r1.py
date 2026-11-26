@@ -170,6 +170,7 @@ class ArtifactClaimResultsAdapterR1Tests(unittest.TestCase):
         self.assertFalse(assessed["complete"])
         self.assertEqual(assessed["status"], "NOT_DECLARED")
 
+    @pytest.mark.integration
     def test_wave_native_result_exposes_complete_claim_results(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -229,6 +230,7 @@ class ArtifactClaimResultsAdapterR1Tests(unittest.TestCase):
                 all(item["status"] == "PASS" for item in native_claims.values())
             )
 
+    @pytest.mark.integration
     def test_png_native_result_exposes_complete_claim_results(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

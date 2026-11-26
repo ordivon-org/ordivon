@@ -1,8 +1,11 @@
+
 import importlib.util
 import json
 import tempfile
 import unittest
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("artifact_spice", ROOT / "scripts/artifact_spice.py")
@@ -23,6 +26,7 @@ class ArtifactSpiceTests(unittest.TestCase):
     def require_tool(self):
         if not Path("/usr/bin/ngspice").is_file(): self.skipTest("ngspice unavailable")
 
+    @pytest.mark.integration
     def test_transient_measure_contract_passes_real_ngspice(self):
         self.require_tool()
         with tempfile.TemporaryDirectory() as d:
@@ -32,6 +36,7 @@ class ArtifactSpiceTests(unittest.TestCase):
             self.assertGreaterEqual(result['simulation']['dataRows'],400)
             self.assertEqual(result['simulation']['measurements']['vmax']['status'],'PASS')
 
+    @pytest.mark.integration
     def test_malformed_netlist_fails_closed(self):
         self.require_tool()
         with tempfile.TemporaryDirectory() as d:
@@ -40,6 +45,7 @@ class ArtifactSpiceTests(unittest.TestCase):
             self.assertEqual(result['status'],'FAIL')
             self.assertIn('ngspice batch simulation failed',result['failures'])
 
+    @pytest.mark.integration
     def test_numeric_contract_divergence_fails_closed(self):
         self.require_tool()
         with tempfile.TemporaryDirectory() as d:

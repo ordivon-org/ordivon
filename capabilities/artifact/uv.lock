@@ -233,7 +233,7 @@ requires-dist = [
 dev = [{ name = "ruff", specifier = ">=0.17.2" }]
 test = [
     { name = "hypothesis", specifier = ">=6" },
-    { name = "pytest", specifier = ">=9.1.1" },
+    { name = "pytest", specifier = ">=9.2" },
 ]
 
 [[package]]

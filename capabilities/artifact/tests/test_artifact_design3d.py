@@ -77,6 +77,7 @@ class Design3DTests(unittest.TestCase):
             if not p.is_file():
                 self.skipTest(str(p))
 
+    @pytest.mark.historical
     def test_binding_digests(self):
         b = json.loads(
             (
@@ -109,6 +110,7 @@ class Design3DTests(unittest.TestCase):
             b["bindings"]["standardValidator"]["packageArchiveSha256"],
         )
 
+    @pytest.mark.historical
     def test_rich_profile_binding_tool_digests(self):
         for name in (
             "design-3d-glb-material-scene-local-r1.json",

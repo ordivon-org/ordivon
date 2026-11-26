@@ -1,3 +1,4 @@
+
 import hashlib
 import importlib.util
 import json
@@ -9,6 +10,8 @@ import unittest
 import wave
 from pathlib import Path
 from unittest import mock
+
+import pytest
 
 from artifact_verification.tool_identity import assess_native_tool_paths
 
@@ -85,6 +88,8 @@ class ArtifactAudioTests(unittest.TestCase):
         for p in (MODULE.FLAC,MODULE.METAFLAC,MODULE.FFMPEG,MODULE.FFPROBE):
             if not p.is_file(): self.skipTest(f'required mature external tool unavailable: {p}')
 
+    @pytest.mark.integration
+    @pytest.mark.historical
     def test_frozen_reference_tool_digests_match_proven_substrate(self):
         b=json.loads((ROOT/'artifact-delivery/shadow-bindings/audio-flac-pcm16-local-r1.json').read_text())
         checks=[
@@ -96,6 +101,7 @@ class ArtifactAudioTests(unittest.TestCase):
             if not p.is_file(): self.skipTest(f'proven substrate path unavailable: {path}')
             self.assertEqual(hashlib.sha256(p.read_bytes()).hexdigest(),want,path)
 
+    @pytest.mark.integration
     def test_native_flac_contract_passes_decoder_matrix(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -125,6 +131,7 @@ class ArtifactAudioTests(unittest.TestCase):
                     self.assertEqual(value['claimResults'][name]['status'],'PASS')
                     self.assertEqual(value['claimResults'][name]['nativePointers'],['/'+name])
 
+    @pytest.mark.integration
     def test_valid_flac_does_not_launder_wrong_sample_rate_contract(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -137,6 +144,7 @@ class ArtifactAudioTests(unittest.TestCase):
             self.assertEqual(value['claimResults']['referenceIntegrity']['status'],'PASS')
             self.assertEqual(value['claimResults']['streamInfo']['status'],'FAIL')
 
+    @pytest.mark.integration
     def test_corrupt_audio_frame_fails_closed(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -146,6 +154,7 @@ class ArtifactAudioTests(unittest.TestCase):
             self.assertEqual(value['status'],'FAIL')
             self.assertTrue(value['referenceIntegrity']['status']=='FAIL' or value['decoderMatrix']['status']=='FAIL',value)
 
+    @pytest.mark.integration
     def test_picture_metadata_is_valid_flac_but_outside_r1_profile(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -162,6 +171,7 @@ class ArtifactAudioTests(unittest.TestCase):
             self.assertEqual(value['claimResults']['metadataBlockPolicy']['status'],'FAIL')
             self.assertEqual(value['claimResults']['referenceIntegrity']['status'],'PASS')
 
+    @pytest.mark.integration
     def test_wrong_expected_pcm_digest_fails_after_both_decoders_agree(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -205,6 +215,7 @@ class ArtifactAudioTests(unittest.TestCase):
             )
             self.assertTrue((evidence / "verification.json").is_file())
 
+    @pytest.mark.integration
     def test_contract_schema_rejects_non_r1_bit_depth_before_decoders(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:

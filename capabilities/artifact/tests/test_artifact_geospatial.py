@@ -35,6 +35,7 @@ class ArtifactGeospatialTests(unittest.TestCase):
         for p in (MODULE.GDAL,MODULE.SQLITE,MODULE.OGRINFO,MODULE.OGR2OGR):
             if not p.is_file(): self.skipTest(f'required mature external tool unavailable: {p}')
 
+    @pytest.mark.historical
     def test_local_binding_tool_digests_match_proven_substrate(self):
         import hashlib
         binding=json.loads((ROOT/'artifact-delivery/shadow-bindings/geospatial-geopackage-point-local-r1.json').read_text())

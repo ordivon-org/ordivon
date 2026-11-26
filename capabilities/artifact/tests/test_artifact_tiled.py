@@ -1,3 +1,4 @@
+
 import hashlib
 import importlib.util
 import json
@@ -7,6 +8,8 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("artifact_tiled", ROOT / "scripts/artifact_tiled.py")
@@ -112,6 +115,7 @@ class ArtifactTiledTests(unittest.TestCase):
             if not p.is_file():
                 self.skipTest(str(p))
 
+    @pytest.mark.integration
     def test_canonical_object_map_passes_native_roundtrips_and_raster(self):
         self.req()
         with tempfile.TemporaryDirectory() as d:
@@ -124,6 +128,7 @@ class ArtifactTiledTests(unittest.TestCase):
             self.assertEqual(v["nativeCrossFormatRoundTrip"]["status"], "PASS")
             self.assertTrue(v["nativeRasterReadback"]["render"]["nonEmptyAlpha"])
 
+    @pytest.mark.integration
     def test_legacy_object_class_field_fails_closed(self):
         self.req()
         with tempfile.TemporaryDirectory() as d:
@@ -134,6 +139,7 @@ class ArtifactTiledTests(unittest.TestCase):
             self.assertEqual(v["status"], "FAIL")
             self.assertTrue(any("legacy class" in z for z in v["failures"]))
 
+    @pytest.mark.integration
     def test_tileset_external_reference_fails_bounded_profile(self):
         self.req()
         with tempfile.TemporaryDirectory() as d:
@@ -144,6 +150,7 @@ class ArtifactTiledTests(unittest.TestCase):
             self.assertEqual(v["status"], "FAIL")
             self.assertTrue(any("tilesets" in z for z in v["failures"]))
 
+    @pytest.mark.integration
     def test_wrong_canonical_digest_fails_before_native_roundtrip(self):
         self.req()
         with tempfile.TemporaryDirectory() as d:
@@ -154,6 +161,7 @@ class ArtifactTiledTests(unittest.TestCase):
             self.assertEqual(v["status"], "FAIL")
             self.assertEqual(v["canonicalSemanticIdentity"]["status"], "FAIL")
 
+    @pytest.mark.integration
     def test_file_properties_on_map_layer_and_custom_class_are_rejected_before_native(self):
         self.req()
         for location in ("map", "layer", "class"):
@@ -187,6 +195,7 @@ class ArtifactTiledTests(unittest.TestCase):
                     any("external" in x or "class property" in x for x in v["failures"]), v
                 )
 
+    @pytest.mark.integration
     def test_service_native_snapshot_resists_original_path_aba(self):
         self.req()
         from scripts import artifact_verify as service
@@ -246,6 +255,7 @@ class ArtifactTiledTests(unittest.TestCase):
             self.assertTrue(paths)
             self.assertTrue(all(not p.exists() for p in paths))
 
+    @pytest.mark.integration
     def test_malformed_ids_and_duplicate_keys_fail_before_native(self):
         self.req()
         with tempfile.TemporaryDirectory() as d:
@@ -268,6 +278,7 @@ class ArtifactTiledTests(unittest.TestCase):
                     )
                 )
 
+    @pytest.mark.integration
     def test_invalid_json_fails_closed(self):
         self.req()
         with tempfile.TemporaryDirectory() as d:

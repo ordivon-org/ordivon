@@ -1256,6 +1256,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
                 self.assertEqual(result["receipts"][gate]["verificationResult"], "PASSED")
                 self.assertEqual(result["receipts"][gate]["vsaValidation"]["status"], "PASS")
 
+    @pytest.mark.integration
     def test_nu_html_checker_valid_fixture_when_installed(self) -> None:
         jar = vnu_jar()
         if jar is None or shutil.which("java") is None:
@@ -1396,6 +1397,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             self.assertEqual(drift["status"], "FAIL")
             self.assertTrue(any("trustedRoot digest mismatch" in item for item in drift["failures"]))
 
+    @pytest.mark.integration
     def test_signed_vsa_public_key_standard_bundle_verifies(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -1441,6 +1443,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             self.assertEqual(blocked["tool"]["provenance"]["status"], "FAIL")
             self.assertTrue(any("cosign verifier" in item for item in blocked["failures"]))
 
+    @pytest.mark.integration
     def test_signed_vsa_rejects_detached_statement_substitution(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -1464,6 +1467,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             self.assertTrue(any("bundle shape/statement" in item for item in result["failures"]))
             self.assertFalse(result["bundleShape"]["signedStatementMatches"])
 
+    @pytest.mark.integration
     def test_signed_vsa_rejects_signer_verifier_policy_mismatch(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -1486,6 +1490,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             self.assertEqual(result["status"], "FAIL")
             self.assertTrue(any("verifier.id is not authorized" in item for item in result["failures"]))
 
+    @pytest.mark.integration
     def test_signed_vsa_rejects_signature_from_untrusted_key(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -1511,6 +1516,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             self.assertEqual(result["authenticity"], "NOT_VERIFIED")
             self.assertTrue(any("cryptographic attestation verification failed" in item for item in result["failures"]))
 
+    @pytest.mark.integration
     def test_signed_vsa_rejects_legacy_bundle_shape(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -1822,14 +1828,24 @@ class ArtifactDeliveryTests(unittest.TestCase):
             self.assertIn("companionPdf", result["requiredGateFailures"])
             self.assertIn("deliveryReadback", result["requiredGateFailures"])
 
-    def test_verapdf_rejects_ordinary_powerpoint_pdf_as_pdfua2_when_available(self) -> None:
-        pdf = ROOT / ".cache/artifact-toolchain/python-pptx/target/probe.pdf"
-        if not pdf.is_file() or verapdf_executable() is None:
-            self.skipTest("local veraPDF/PDF probe is not available")
-        result = verify_pdf_conformance(pdf, "ua2")
-        self.assertEqual(result["status"], "FAIL")
-        self.assertFalse(result["compliant"])
-        self.assertEqual(result["validator"]["implementation"], "veraPDF")
+    @pytest.mark.integration
+    def test_verapdf_rejects_ordinary_untagged_pdf_as_pdfua2(self) -> None:
+        # An independently generated valid ordinary PDF replaces an ephemeral
+        # PowerPoint cache prerequisite. This does NOT qualify PowerPoint export.
+        from PIL import Image
+
+        if verapdf_executable() is None:
+            self.skipTest("native veraPDF unavailable")
+        with tempfile.TemporaryDirectory() as d:
+            pdf = Path(d) / "untagged.pdf"
+            Image.new("RGB", (32, 32), "white").save(pdf)
+            result = verify_pdf_conformance(pdf, "ua2")
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertIs(result["compliant"], False)
+            self.assertIsNone(result["parseError"])
+            self.assertGreater(result["failedRules"], 0)
+            self.assertGreater(result["failedChecks"], 0)
+            self.assertEqual(result["validator"]["implementation"], "veraPDF")
 
     def test_render_evidence_accepts_powerpoint_uppercase_png_extension(self) -> None:
         with tempfile.TemporaryDirectory() as d:

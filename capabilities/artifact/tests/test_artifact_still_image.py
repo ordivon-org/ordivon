@@ -1,3 +1,4 @@
+
 import binascii
 import importlib.util
 import struct
@@ -5,6 +6,8 @@ import tempfile
 import unittest
 import zlib
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("artifact_still_image", ROOT / "scripts/artifact_still_image.py")
@@ -32,6 +35,7 @@ class ArtifactStillImageTests(unittest.TestCase):
             if not path.is_file():
                 self.skipTest(f"required mature external tool is unavailable: {path}")
 
+    @pytest.mark.integration
     def test_static_8bit_srgb_png_passes_bounded_shadow_profile(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -52,6 +56,7 @@ class ArtifactStillImageTests(unittest.TestCase):
             self.assertTrue((evidence / "pngcheck.txt").is_file())
             self.assertTrue((evidence / "exiftool.json").is_file())
 
+    @pytest.mark.integration
     def test_png_validity_does_not_launder_missing_profile_color_fact(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -65,6 +70,7 @@ class ArtifactStillImageTests(unittest.TestCase):
             self.assertEqual(value["claimResults"]["profileFacts"]["status"], "FAIL")
             self.assertIn("missing required PNG chunk(s): sRGB", value["failures"])
 
+    @pytest.mark.integration
     def test_corrupt_png_fails_closed(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:

@@ -1,3 +1,4 @@
+
 import hashlib
 import importlib.util
 import json
@@ -5,6 +6,8 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+
+import pytest
 
 from artifact_verification.tool_identity import assess_native_tool_paths
 
@@ -41,6 +44,8 @@ class ArtifactMovingImageTests(unittest.TestCase):
         for p in (MODULE.MEDIACONCH,MODULE.FFMPEG,MODULE.FFPROBE):
             if not p.is_file(): self.skipTest(f'required mature external tool unavailable: {p}')
 
+    @pytest.mark.integration
+    @pytest.mark.historical
     def test_frozen_reference_tool_digests_match_proven_substrate(self):
         b=json.loads((ROOT/'artifact-delivery/shadow-bindings/moving-image-matroska-ffv1-local-r1.json').read_text())
         checks=[
@@ -51,6 +56,7 @@ class ArtifactMovingImageTests(unittest.TestCase):
             if not p.is_file(): self.skipTest(f'proven substrate unavailable: {path}')
             self.assertEqual(hashlib.sha256(p.read_bytes()).hexdigest(),want,path)
 
+    @pytest.mark.integration
     def test_matroska_ffv1_contract_passes(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -73,6 +79,7 @@ class ArtifactMovingImageTests(unittest.TestCase):
             self.assertEqual(value['mediaInfoTechnical']['codecVersion'],'3.4')
             self.assertEqual(value['decodedVideoIdentity']['rawVideoSha256'],json.loads(BASE.read_text())['video']['expectedRawVideoSha256'])
 
+    @pytest.mark.integration
     def test_mediainfo_decimal_frame_rate_is_normalized_to_contract_rational(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -82,6 +89,7 @@ class ArtifactMovingImageTests(unittest.TestCase):
             self.assertEqual(value['status'],'PASS',value)
             self.assertEqual(value['mediaInfoTechnical']['frameRate'],'30.000')
 
+    @pytest.mark.integration
     def test_valid_file_does_not_launder_wrong_dimension_contract(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -90,6 +98,7 @@ class ArtifactMovingImageTests(unittest.TestCase):
             self.assertEqual(value['status'],'FAIL'); self.assertEqual(value['matroskaImplementation']['status'],'PASS')
             self.assertTrue(any('Width' in x or 'dimensions' in x or 'byte count' in x for x in value['failures']),value)
 
+    @pytest.mark.integration
     def test_corrupt_ffv1_packet_fails_even_when_ffmpeg_process_exits_zero(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -101,6 +110,7 @@ class ArtifactMovingImageTests(unittest.TestCase):
             self.assertEqual(value['matroskaImplementation']['status'],'FAIL')
             self.assertTrue(value['matroskaImplementation']['nonZeroFailureChecks'] or value['ffv1Implementation']['nonZeroFailureChecks'])
 
+    @pytest.mark.integration
     def test_ffv1_unstable_or_old_major_version_is_outside_r1(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -109,6 +119,7 @@ class ArtifactMovingImageTests(unittest.TestCase):
             self.assertEqual(value['status'],'FAIL')
             self.assertTrue(any('stable FFV1 version 3' in x for x in value['failures']),value)
 
+    @pytest.mark.integration
     def test_audio_track_is_valid_container_but_outside_video_only_profile(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -117,6 +128,7 @@ class ArtifactMovingImageTests(unittest.TestCase):
             self.assertEqual(value['status'],'FAIL')
             self.assertTrue(any('non-video' in x or 'non-video stream classes' in x for x in value['failures']),value)
 
+    @pytest.mark.integration
     def test_wrong_expected_rawvideo_digest_fails_after_implementation_checks_pass(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:
@@ -125,6 +137,7 @@ class ArtifactMovingImageTests(unittest.TestCase):
             self.assertEqual(value['status'],'FAIL'); self.assertEqual(value['matroskaImplementation']['status'],'PASS')
             self.assertIn('canonical decoded rawvideo SHA-256 differs from object contract',value['failures'])
 
+    @pytest.mark.integration
     def test_contract_rejects_non_r1_pixel_format_before_external_evidence(self):
         self.require_tools()
         with tempfile.TemporaryDirectory() as d:

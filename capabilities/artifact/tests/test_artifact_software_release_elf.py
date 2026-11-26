@@ -1,3 +1,4 @@
+
 import hashlib
 import importlib.util
 import json
@@ -6,6 +7,8 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+
+import pytest
 
 from artifact_verification.tool_identity import assess_native_tool_paths
 
@@ -43,6 +46,7 @@ class LinuxElfReleaseTests(unittest.TestCase):
   return p
  def write_contract(self,root:Path,c):
   p=root/'contract.json';p.write_text(json.dumps(c));return p
+ @pytest.mark.integration
  def test_valid_linux_elf_passes(self):
   self.require()
   with tempfile.TemporaryDirectory() as d:
@@ -55,18 +59,22 @@ class LinuxElfReleaseTests(unittest.TestCase):
      self.assertEqual(tool['sha256'],hashlib.sha256(Path(tool['path']).read_bytes()).hexdigest())
      bad={**tools,name:{**tool,'sha256':'0'*64}}
      self.assertTrue(assess_native_tool_paths({'tools':bad})['rejected'])
+ @pytest.mark.integration
  def test_wrong_sha_fails_before_external_tools(self):
   self.require()
   with tempfile.TemporaryDirectory() as d:
    r=Path(d);fixture=self.make_fixture(r);c=contract(fixture);c['artifact']['sha256']='0'*64;v=M.verify_linux_elf(fixture,self.write_contract(r,c),r/'e');self.assertEqual(v['status'],'FAIL');self.assertIn('release SHA-256 differs from contract',v['failures']);self.assertNotIn('fileInspection',v)
+ @pytest.mark.integration
  def test_wrong_interpreter_fails_structure(self):
   self.require()
   with tempfile.TemporaryDirectory() as d:
    r=Path(d);fixture=self.make_fixture(r);c=contract(fixture,interpreter='/wrong/ld.so');v=M.verify_linux_elf(fixture,self.write_contract(r,c),r/'e');self.assertEqual(v['status'],'FAIL');self.assertIn('ELF interpreter differs from contract',v['failures']);self.assertNotIn('runtimeReadback',v)
+ @pytest.mark.integration
  def test_missing_runtime_marker_fails_after_elf_passes(self):
   self.require()
   with tempfile.TemporaryDirectory() as d:
    r=Path(d);fixture=self.make_fixture(r);c=contract(fixture,marker='ACTUAL_MARKER');c['runtime']['stdoutContains']=['NEVER_EMITTED'];v=M.verify_linux_elf(fixture,self.write_contract(r,c),r/'e');self.assertEqual(v['status'],'FAIL');self.assertEqual(v['elfStructure']['status'],'PASS');self.assertIn('sandbox runtime stdout missing marker: NEVER_EMITTED',v['failures'])
+ @pytest.mark.integration
  def test_symlink_release_inspects_exact_target_elf_bytes(self):
   self.require()
   with tempfile.TemporaryDirectory() as d:
@@ -77,6 +85,7 @@ class LinuxElfReleaseTests(unittest.TestCase):
    self.assertEqual(v['elfStructure']['status'],'PASS',v)
    self.assertEqual(v['status'],'PASS',v)
    self.assertIn('ELF 64-bit LSB',v['fileInspection']['description'])
+ @pytest.mark.integration
  def test_symlink_to_non_elf_bytes_still_fails_closed(self):
   self.require()
   with tempfile.TemporaryDirectory() as d:
@@ -85,6 +94,7 @@ class LinuxElfReleaseTests(unittest.TestCase):
    c=contract(link);v=M.verify_linux_elf(link,self.write_contract(r,c),r/'e')
    self.assertEqual(v['status'],'FAIL',v)
    self.assertNotEqual(v['fileInspection']['status'],'PASS',v)
+ @pytest.mark.integration
  def test_non_elf_bytes_fail_closed(self):
   self.require()
   with tempfile.TemporaryDirectory() as d:

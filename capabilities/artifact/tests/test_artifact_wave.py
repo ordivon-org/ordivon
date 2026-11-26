@@ -1,3 +1,4 @@
+
 import hashlib
 import importlib.util
 import json
@@ -7,6 +8,8 @@ import tempfile
 import unittest
 import wave
 from pathlib import Path
+
+import pytest
 
 from artifact_verification.tool_identity import assess_native_tool_paths
 
@@ -26,6 +29,7 @@ class ArtifactWaveTests(unittest.TestCase):
  def require_tools(self):
   for p in (M.SNDFILE_INFO,M.SOX,M.SOXI,M.FFMPEG,M.FFPROBE):
    if not p.is_file():self.skipTest(str(p))
+ @pytest.mark.integration
  def test_pcm16_wave_passes_three_views_and_exact_decoder_matrix(self):
   self.require_tools()
   with tempfile.TemporaryDirectory() as d:
@@ -40,14 +44,17 @@ class ArtifactWaveTests(unittest.TestCase):
      bad={**tools,name:{**tool,'sha256':'0'*64}}
      self.assertTrue(assess_native_tool_paths({'tools':bad})['rejected'])
    self.assertTrue(v['decoderMatrix']['exactByteMatch']);self.assertEqual(v['referenceContainerView']['facts']['formatName'],'WAVE_FORMAT_PCM');self.assertEqual(v['independentTechnicalView']['facts']['codecTag'],'0x0001');self.assertEqual(set(v['claimResults']),{'contractSchema','decoderMatrix','independentTechnicalView','pcmIdentity','referenceContainerView'});self.assertTrue(all(x['status']=='PASS' for x in v['claimResults'].values()))
+ @pytest.mark.integration
  def test_wrong_sample_rate_contract_fails_after_file_remains_valid(self):
   self.require_tools()
   with tempfile.TemporaryDirectory() as d:
    r=Path(d);f=r/'a.wav';raw=make_wave(f);c=r/'c.json';x=contract(c,raw);x['audio']['sampleRateHz']=44100;c.write_text(json.dumps(x));v=M.verify_wave(f,c,r/'e');self.assertEqual(v['status'],'FAIL');self.assertTrue(any('sampleRateHz' in z or 'sampleRate' in z for z in v['failures']))
+ @pytest.mark.integration
  def test_wrong_pcm_digest_fails_after_decoder_matrix_passes(self):
   self.require_tools()
   with tempfile.TemporaryDirectory() as d:
    r=Path(d);f=r/'a.wav';raw=make_wave(f);c=r/'c.json';x=contract(c,raw);x['audio']['expectedPcmSha256']='0'*64;c.write_text(json.dumps(x));v=M.verify_wave(f,c,r/'e');self.assertEqual(v['status'],'FAIL');self.assertEqual(v['decoderMatrix']['status'],'PASS');self.assertIn('canonical decoded PCM SHA-256 differs from object contract',v['failures'])
+ @pytest.mark.integration
  def test_non_pcm_wave_fails_profile(self):
   self.require_tools()
   with tempfile.TemporaryDirectory() as d:

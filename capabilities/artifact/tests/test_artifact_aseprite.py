@@ -1,3 +1,4 @@
+
 import hashlib
 import importlib.util
 import json
@@ -6,6 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
 from PIL import Image
 
 ROOT=Path(__file__).resolve().parents[1];SPEC=importlib.util.spec_from_file_location('artifact_aseprite',ROOT/'scripts/artifact_aseprite.py');M=importlib.util.module_from_spec(SPEC);assert SPEC.loader;SPEC.loader.exec_module(M)
@@ -18,22 +20,27 @@ def contract(root:Path,export):
 class ArtifactAsepriteTests(unittest.TestCase):
  def req(self):
   if not M.ASEPRITE.is_file():self.skipTest(str(M.ASEPRITE))
+ @pytest.mark.integration
  def test_native_source_export_is_byte_deterministic_and_png_profile_passes(self):
   self.req()
   with tempfile.TemporaryDirectory() as d:
    r=Path(d);src=make_source(r);want=export_expected(r,src);c=contract(r,want);v=M.verify_aseprite(src,c,r/'e');self.assertEqual(v['status'],'PASS',v);self.assertTrue(v['nativeDeterministicExport']['pngExactAcrossRuns']);self.assertTrue(v['nativeDeterministicExport']['metadataExactAcrossRuns']);self.assertEqual(v['derivedStillImageProfile']['status'],'PASS')
+ @pytest.mark.integration
  def test_wrong_png_digest_fails_identity(self):
   self.req()
   with tempfile.TemporaryDirectory() as d:
    r=Path(d);src=make_source(r);want=export_expected(r,src);want['expectedPngSha256']='0'*64;c=contract(r,want);v=M.verify_aseprite(src,c,r/'e');self.assertEqual(v['status'],'FAIL');self.assertEqual(v['derivativeIdentity']['status'],'FAIL')
+ @pytest.mark.integration
  def test_wrong_native_metadata_digest_fails_identity(self):
   self.req()
   with tempfile.TemporaryDirectory() as d:
    r=Path(d);src=make_source(r);want=export_expected(r,src);want['expectedNativeMetadataSha256']='0'*64;c=contract(r,want);v=M.verify_aseprite(src,c,r/'e');self.assertEqual(v['status'],'FAIL');self.assertEqual(v['derivativeIdentity']['status'],'FAIL')
+ @pytest.mark.integration
  def test_wrong_frame_count_fails_native_facts(self):
   self.req()
   with tempfile.TemporaryDirectory() as d:
    r=Path(d);src=make_source(r);want=export_expected(r,src);want['frameCount']+=1;c=contract(r,want);v=M.verify_aseprite(src,c,r/'e');self.assertEqual(v['status'],'FAIL');self.assertEqual(v['nativeMetadataFacts']['status'],'FAIL')
+ @pytest.mark.integration
  def test_invalid_source_fails_native_export(self):
   self.req()
   with tempfile.TemporaryDirectory() as d:

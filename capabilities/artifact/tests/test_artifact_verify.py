@@ -1,3 +1,4 @@
+
 import binascii
 import hashlib
 import importlib.util
@@ -10,6 +11,8 @@ import unittest
 import zlib
 from pathlib import Path
 from unittest import mock
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 MONOREPO_ROOT = ROOT.parents[1]
@@ -124,6 +127,7 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
                 result["failures"],
             )
 
+    @pytest.mark.integration
     def test_exact_still_image_request_delegates_and_digest_binds_result(self):
         self.require_png_tools()
         with tempfile.TemporaryDirectory() as d:

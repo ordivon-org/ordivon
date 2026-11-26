@@ -2237,8 +2237,11 @@ exit 0
         for required in ("uv lock --check", "uv sync --locked", "uv run ruff check",
                          'uv run python -m pytest -m "not integration"'):
             self.assertIn(required, portable)
-        self.assertIn('uv run python -m pytest -m "integration"',
+        self.assertIn('uv run python -m pytest -m "integration and not historical"',
                       artifact_mise["tasks"]["native"]["run"])
+        self.assertIn('--artifact-qualification=portable', portable)
+        self.assertIn('--artifact-qualification=native', artifact_mise["tasks"]["native"]["run"])
+        self.assertIn('--artifact-qualification=historical', artifact_mise["tasks"]["historical"]["run"])
         source_selection = subprocess.run(
             [sys.executable, str(ROOT / "tools/repo/affected_owners.py"),
              "--changed-file", "capabilities/artifact/.github/workflows/ci.yml",
