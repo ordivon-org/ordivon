@@ -171,6 +171,7 @@ def inspect_archive(args: argparse.Namespace) -> dict[str, object]:
             "activeOrHeldReservationsExcluded": True,
             "supervisorOwnersExcluded": True,
             "recordedRecoveryObligationsExcluded": True,
+            "exactReleasedReservationPerAttemptRequired": True,
         },
         "summary": {
             "classifiedJobs": classified_total,

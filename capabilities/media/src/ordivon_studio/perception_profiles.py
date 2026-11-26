@@ -31,13 +31,13 @@ def _quantile(values: Sequence[float], fraction: float) -> float:
     weight = position - lower
     return ordered[lower] * (1.0 - weight) + ordered[upper] * weight
 
-def _correlation(left: Sequence[float], right: Sequence[float]) -> float:
-    # Media's domain contract treats degenerate *finite* profiles as zero coupling.
-    # Reject non-finite samples before calling the standard Pearson operator.
-    if any(not math.isfinite(value) for series in (left, right) for value in series):
+def _require_finite_profiles(*profiles: Sequence[float]) -> None:
+    if any(not math.isfinite(value) for series in profiles for value in series):
         raise ValueError("Media correlation profiles must contain finite numbers")
-    if len(left) != len(right) or len(left) < 2:
-        return 0.0
+
+
+def _pearson_finite(left: Sequence[float], right: Sequence[float]) -> float:
+    """Native Pearson operator on already validated, equally sized profiles."""
     try:
         result = statistics.correlation(left, right)
     except statistics.StatisticsError:
@@ -45,6 +45,34 @@ def _correlation(left: Sequence[float], right: Sequence[float]) -> float:
     if not math.isfinite(result):
         raise ValueError("Media correlation result must be finite")
     return result
+
+
+def _correlation(left: Sequence[float], right: Sequence[float]) -> float:
+    # Finite degenerate profiles have zero coupling; validate before shape checks.
+    _require_finite_profiles(left, right)
+    if len(left) != len(right) or len(left) < 2:
+        return 0.0
+    return _pearson_finite(left, right)
+
+
+def _circular_shift_correlations(left: Sequence[float], right: Sequence[float]) -> list[float]:
+    """Preserve native Pearson rounding and exact shift order; validate once.
+
+    Rotation preserves the set of input samples. A doubled right profile
+    supports each rotation with one contiguous slice instead of two slices
+    and a concatenation. No FFT approximation or tie tolerance is introduced.
+    """
+    if len(left) != len(right) or len(left) < 4:
+        raise ValueError("circular-shift null requires equal profiles with at least four bins")
+    left_values, right_values = list(left), list(right)
+    _require_finite_profiles(left_values, right_values)
+    n = len(right_values)
+    doubled = right_values + right_values
+    return [
+        _pearson_finite(left_values, doubled[shift:shift + n])
+        for shift in range(n)
+    ]
+
 
 def _normalized_entropy(values: Sequence[float]) -> float:
     positive = [max(0.0, float(value)) for value in values]
