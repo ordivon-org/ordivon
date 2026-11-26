@@ -100,6 +100,39 @@ class FocusedVerificationContractTests(unittest.TestCase):
         self.assertIn("1 test run", combined)
         self.assertIn(LEGACY_TEST, combined)
 
+    def test_archive_profile_runs_real_integration_binary(self) -> None:
+        result = self.run_focused(None, "archive")
+        combined = result.stdout + result.stderr
+        self.assertEqual(result.returncode, 0, combined)
+        self.assertIn("Runtime focused feature: operator-tools", combined)
+        self.assertIn("QUALIFIED_FOCUSED_PASS", combined)
+        self.assertIn('"archiveSha256"', combined)
+        for name in ("migrated_unknown_recovery_cannot_become_absent",
+                     "real_migration_archive_refinement"):
+            self.assertIn(name, combined)
+
+    def test_archive_profile_does_not_select_legacy_library_consumer(self) -> None:
+        result = self.run_focused(LEGACY_TEST, "archive")
+        combined = result.stdout + result.stderr
+        self.assertEqual(result.returncode, 4, combined)
+        self.assertIn("0 tests run", combined)
+
+    def test_mixed_selection_cannot_silently_skip_physical_test(self) -> None:
+        env = dict(os.environ)
+        env["RUNTIME_TEST_PROFILE"] = "pg"
+        env["RUNTIME_TEST_EXPR"] = (
+            f"test({POSITIVE_TEST}) | test(pg18_native_atomic_admission_replay_fence_and_rollback)"
+        )
+        result = subprocess.run(
+            ["mise", "run", "test:focused"], cwd=RUNTIME_ROOT, env=env,
+            text=True, capture_output=True, timeout=120, close_fds=False,
+        )
+        combined = result.stdout + result.stderr
+        self.assertNotEqual(result.returncode, 0, combined)
+        self.assertIn("1 selected ignored tests", combined)
+        self.assertNotIn("QUALIFIED_FOCUSED_PASS", combined)
+        self.assertNotIn("Starting ", combined)
+
     def test_unknown_profile_fails_before_test_execution(self) -> None:
         result = self.run_focused(None, "typo")
         combined = result.stdout + result.stderr
