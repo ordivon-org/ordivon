@@ -99,12 +99,20 @@ def committed_owner_products(repo: Path, revision: str) -> tuple[str, list[bytes
         commit,
         max_output=_MAX_LISTING_BYTES,
     )
+    # Native ls-tree -z emits one nonempty row per unique path, terminated
+    # by NUL. Qualify framing and path multiplicity before object dispatch.
+    if not tree.endswith(b"\x00"):
+        raise ValueError("incomplete Git tree listing")
+    entries = tree.split(b"\x00")
+    entries.pop()
+    seen_paths: set[bytes] = set()
     tree_ids = {root_tree}
     objects: list[tuple[str, str]] = []
-    for entry in tree.split(b"\x00"):
-        if not entry:
-            continue
-        metadata, path = entry.split(b"\t", 1)
+    for entry in entries:
+        metadata, separator, path = entry.partition(b"\t")
+        if not separator or not metadata or not path or path in seen_paths:
+            raise ValueError("incomplete or duplicate Git tree listing")
+        seen_paths.add(path)
         mode, kind, oid = metadata.decode("ascii").split(" ")
         if kind == "tree":
             tree_ids.add(oid)
