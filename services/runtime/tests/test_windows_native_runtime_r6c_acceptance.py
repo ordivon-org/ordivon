@@ -6,7 +6,7 @@ SCRIPT = ROOT / "scripts" / "windows-native-runtime-r6c-acceptance.ps1"
 
 def test_r6c_acceptance_harness_is_candidate_only_and_faults_are_opt_in():
     text = SCRIPT.read_text(encoding="utf-8")
-    assert "[ValidateSet('Status', 'AuthorityProfile', 'WorkspaceCwdAdmission', 'PrepareFixture', 'CrashRecovery', 'ActiveJobRecovery', 'CancelJob')]" in text
+    assert "[ValidateSet('Status', 'AuthorityProfile', 'WorkspaceCwdAdmission', 'PrepareFixture', 'CrashRecovery', 'ActiveJobRecovery', 'CancelJob', 'PgSession1Readback')]" in text
     assert "[switch]$ApplyFault" in text
     assert "[int]$RecoveryTimeoutSeconds = 90" in text
     assert "[ValidateRange(60, 300)]" in text
@@ -155,3 +155,14 @@ def test_session1_cutover_requires_native_and_shell_cwd_exact_replay_and_artifac
     assert "$bytes.Length -ne $descriptor.retainedBytes" in fn
     assert "$actual = Read-VerifiedCwdStdout $active 543" in fn
     assert "active-user target ran outside the bound Workspace" in fn
+
+def test_pg_session1_readback_discriminates_legacy_success_and_reuses_exact_artifact():
+    text = SCRIPT.read_text(encoding="utf-8")
+    gate = text[text.index("function Assert-PgSession1Projection"):text.index("\nAssert-CandidateBoundary\n")]
+    assert "migrationVersion -ne 0" in gate
+    assert "PG_SESSION1_REQUIRED_FRESH_PG_PROJECTION" in gate
+    assert "DISPATCH_ISSUED" in gate and "$dispatch.Count -ne 1" in gate
+    assert "artifact.read" in gate and "$ExpectedAttemptId.stdout" in gate
+    assert "ComputeHash($bytes)" in gate and "$body.sessionId -ne 1" in gate
+    assert "uniqueWriterQualified = $false; cutoverAccepted = $false" in gate
+    assert "workspace.exec" not in gate and "job.cancel" not in gate
