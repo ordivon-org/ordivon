@@ -283,3 +283,10 @@ python3 research/content-search/run.py > "$receipt"
 python3 research/content-search/test_receipt.py "$receipt"
 cat "$receipt"
 """
+
+[tasks."factory:content:room-progressive"]
+description = "Manufacture the generated four-room native technical preview; separate from normal READY"
+run = """
+set -eu
+python3 research/content-search/build_preview.py --output "${GAME_CONTENT_OUTPUT:?set absolute fresh output directory}"
+"""

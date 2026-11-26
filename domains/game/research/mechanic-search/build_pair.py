@@ -41,13 +41,17 @@ def git(*args):
     return subprocess.check_output(["git", "-C", str(GAME), *args], text=True).strip()
 
 
-def stage_project(root, source_commit, condition):
+def stage_native_project(root, source_commit):
     repo = Path(git("rev-parse", "--show-toplevel"))
     relative = SOURCE.relative_to(repo)
     raw = subprocess.check_output(["git", "-C", str(repo), "archive", source_commit, str(relative)])
     with tarfile.open(fileobj=io.BytesIO(raw)) as archive:
         archive.extractall(root, filter="data")
-    project = root / relative
+    return root / relative
+
+
+def stage_project(root, source_commit, condition):
+    project = stage_native_project(root, source_commit)
     original = project / "configs/tactical_trial.tres"
     old = original.read_text()
     expected = old.replace("player_health = 48", "player_health = 53").replace("guard_block = 3", "guard_block = 2")
@@ -55,14 +59,18 @@ def stage_project(root, source_commit, condition):
             and TREATMENT.read_text() == expected, "condition is not exact two-parameter intervention")
     if condition == "B":
         shutil.copyfile(TREATMENT, original)
+    isolate_storage(project, f"OrdivonRoomStudy/{condition}")
+    return project
+
+
+def isolate_storage(project, storage_dir):
     config = project / "project.godot"
     s = config.read_text()
     require(s.count('config/name="Room Encounter"') == 1 and "custom_user_dir" not in s,
             "unexpected storage settings")
     config.write_text(s.replace('config/name="Room Encounter"', 'config/name="Room Encounter"\n'
         'config/use_custom_user_dir=true\n'
-        f'config/custom_user_dir_name="OrdivonRoomStudy/{condition}"'))
-    return project
+        f'config/custom_user_dir_name="{storage_dir}"'))
 
 
 def verify_source(project, hp, block):
@@ -95,6 +103,22 @@ def decode_save(root, raw):
                            "res://read_checkpoint.gd","--",str(save)), "STUDY_CHECKPOINT=")
 
 
+def pack_native_archives(project, native, output, stem):
+    linux = native / "room-encounter.x86_64"
+    windows = native / "room-encounter.exe"
+    for name, relative in LICENSES.items():
+        shutil.copyfile(project / relative, native / name)
+    tar = output / f"{stem}-linux.tar.gz"
+    win = output / f"{stem}-windows.zip"
+    with tarfile.open(tar, "w:gz") as f:
+        for name in (linux.name, *LICENSES):
+            f.add(native/name, arcname=name, recursive=False)
+    with zipfile.ZipFile(win, "w", compression=zipfile.ZIP_DEFLATED) as f:
+        for name in (windows.name, *LICENSES):
+            f.write(native/name, arcname=name)
+    return tar, win
+
+
 def pack_condition(root, output, source_commit, condition):
     hp, block = CONDITIONS[condition]
     project = stage_project(root, source_commit, condition)
@@ -119,16 +143,7 @@ def pack_condition(root, output, source_commit, condition):
             and cp["tuning"]["tactical_trial"] is True and cp["state"]["turn"] == 1
             and cp["state"]["player_health"] == hp-(3-block), "exported saved treatment differs")
     require(export_identity(project) == inputs, "native input identity changed")
-    for name, relative in LICENSES.items():
-        shutil.copyfile(project / relative, native / name)
-    tar = output / f"condition-{condition}-linux.tar.gz"
-    win = output / f"condition-{condition}-windows.zip"
-    with tarfile.open(tar, "w:gz") as f:
-        for name in (linux.name, *LICENSES):
-            f.add(native/name, arcname=name, recursive=False)
-    with zipfile.ZipFile(win, "w", compression=zipfile.ZIP_DEFLATED) as f:
-        for name in (windows.name, *LICENSES):
-            f.write(native/name, arcname=name)
+    tar, win = pack_native_archives(project, native, output, f"condition-{condition}")
     return {"condition":condition, "initial_health":hp, "guard_block":block,
             "resource_sha256":digest(project/"configs/tactical_trial.tres"),
             "project_settings_sha256":digest(project/"project.godot"),
