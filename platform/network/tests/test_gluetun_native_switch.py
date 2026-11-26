@@ -550,3 +550,61 @@ def test_api_trial_unknown_consumer_observation_does_not_authorize_restart(monke
     assert result["standing"] == "NATIVE_SWITCH_FAILED"
     assert result["effectAttempted"] is True  # Original API PUT was attempted.
     assert effects.count("restart") == 0
+
+
+def test_native_subprocess_paths_remain_on_loaded_generation(tmp_path, monkeypatch):
+    import json
+    import os
+    import shutil
+    from types import SimpleNamespace
+
+    a, b = tmp_path / "a", tmp_path / "b"
+    shutil.copytree(DIR, a, ignore=shutil.ignore_patterns("__pycache__", ".venv"))
+    shutil.copytree(DIR, b, ignore=shutil.ignore_patterns("__pycache__", ".venv"))
+    active = tmp_path / "active"
+    active.symlink_to(a, target_is_directory=True)
+    spec = importlib.util.spec_from_file_location("generation_switch", active / "native_switch.py")
+    loaded = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(loaded)
+    next_link = tmp_path / "next"
+    next_link.symlink_to(b, target_is_directory=True)
+    os.replace(next_link, active)
+    calls = []
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        return SimpleNamespace(returncode=0, stdout=json.dumps({"standing":"READONLY"}))
+    monkeypatch.setattr(loaded.subprocess, "run", fake_run)
+    monkeypatch.setattr(loaded, "container_pid", lambda:"42")
+    loaded.api_call("GET")
+    monkeypatch.setattr(loaded, "protected_key", lambda:"synthetic")
+    monkeypatch.setattr(loaded.native, "read_selector_policy", lambda:{"selectedCountries":["Japan"]})
+    monkeypatch.setattr(loaded, "api_call", lambda method:{"type":"wireguard","provider":{"name":"surfshark","server_selection":{"countries":["Japan"]}}})
+    loaded.initial_preflight()
+    loaded.bounded_consumer_observe()
+    children = [next(Path(x) for x in cmd if str(x).endswith(".py")) for cmd in calls]
+    assert children == [a/"native_switch.py", a/"native_profile.py", a/"observe_active.py"]
+
+
+@pytest.mark.parametrize("raw", [None, [], {"type":"wireguard","provider":[]},
+    {"type":"wireguard","provider":{"name":"surfshark","server_selection":None}},
+    {"type":"wireguard","provider":{"name":"surfshark","server_selection":{"countries":["Japan"],"regions":0}}}])
+def test_malformed_native_selection_is_explicit_contract_rejection(raw):
+    with pytest.raises(ValueError):
+        switch.selected_snapshot(raw, {"Japan"})
+
+
+@pytest.mark.parametrize("raw", [[], {"type":"wireguard","provider":[]},
+    {"type":"wireguard","provider":{"name":"surfshark","server_selection":None}}])
+def test_native_get_malformed_response_returns_unknown_receipt(monkeypatch, capsys, raw):
+    import json
+    from types import SimpleNamespace
+    class Response:
+        status = 200
+        def __enter__(self): return self
+        def __exit__(self,*args): pass
+        def read(self,*args): return json.dumps(raw).encode()
+    monkeypatch.setattr(switch,"protected_key",lambda:"synthetic-test-key")
+    monkeypatch.setattr(switch.urllib.request,"build_opener",
+                        lambda *a:SimpleNamespace(open=lambda *a,**kw:Response()))
+    assert switch.internal_http("GET") != 0
+    assert json.loads(capsys.readouterr().out)["standing"] == "NATIVE_API_UNKNOWN"

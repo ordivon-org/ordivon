@@ -19,7 +19,13 @@ import tomllib
 import urllib.error
 import urllib.request
 
+# Future immutable release consumers must launch from a retained physical
+# generation. Resolve once, not again at each child invocation.
+SOURCE_SCRIPT = Path(__file__).resolve()
+SOURCE_DIR = SOURCE_SCRIPT.parent
+
 import native_profile as native
+from native_selection import country_patch, project_settings, selected_snapshot
 import quality_history as quality
 import observe_active as observer
 
@@ -70,40 +76,6 @@ def protected_key() -> str:
     return token
 
 
-def country_patch(country: str, allowed: set[str]) -> dict:
-    if country not in allowed or country == "Hong Kong":
-        raise ValueError("Cannot apply a country outside policy")
-    return {"provider": {"server_selection": {"countries": [country]}}}
-
-
-def selected_snapshot(raw: dict, allowed: set[str]) -> dict:
-    if raw.get("type") != "wireguard":
-        raise ValueError("Unexpected VPN type")
-    provider = raw.get("provider", {})
-    if provider.get("name") != "surfshark":
-        raise ValueError("Unexpected VPN provider")
-    s = provider.get("server_selection", {})
-    countries = s.get("countries")
-    if not isinstance(countries, list) or not countries:
-        raise ValueError("Gluetun control country selection violates policy")
-    # Official Gluetun v3.41.3 lowercases source SERVER_COUNTRIES in its
-    # GET /v1/vpn/settings output. Compare with a case-folded permission map,
-    # but always return canonical source names for PUT and rollback.
-    canonical_names = {name.casefold(): name for name in allowed}
-    if len(canonical_names) != len(allowed):
-        raise ValueError("Ambiguous allowed countries after case normalization")
-    if any(not isinstance(c, str) or not c or c.casefold() not in canonical_names
-           or c.casefold() == "hong kong" for c in countries):
-        raise ValueError("Gluetun control country selection violates policy")
-    if any(s.get(field) for field in ("regions", "cities", "hostnames", "names",
-                                     "isps", "numbers")):
-        raise ValueError("Unexpected other native server selection filters")
-    canonical = [canonical_names[c.casefold()] for c in countries]
-    if len(canonical) != len(set(canonical)):
-        raise ValueError("Duplicate native selected country")
-    return {"countries": canonical, "vpn": raw.get("type"), "provider": provider.get("name")}
-
-
 def internal_http(method: str) -> int:
     # Run only in Gluetun's own loopback namespace. The API is NOT published.
     if method not in ("GET", "PUT"):
@@ -126,19 +98,8 @@ def internal_http(method: str) -> int:
             body = response.read(50000)
             status = response.status
         if method == "GET":
-            raw = json.loads(body)
-            # Only emit the schema fields needed, NEVER serialise VPN secrets.
-            p = raw.get("provider", {})
-            output = {
-                "status": status, "type": raw.get("type"),
-                "provider": {
-                    "name": p.get("name"), "server_selection": {
-                        x: p.get("server_selection", {}).get(x)
-                        for x in ("countries", "regions", "cities", "hostnames",
-                                  "names", "isps", "numbers")
-                    },
-                },
-            }
+            # The pure schema projection never serializes VPN secrets.
+            output = project_settings(json.loads(body), status)
         else:
             output = {"status": status, "outcome": body.decode(errors="replace")[:200]}
         print(json.dumps(output))
@@ -165,7 +126,7 @@ def container_pid() -> str:
 def api_call(method: str, payload: dict | None = None) -> dict:
     pid = container_pid()
     cmd = ["/usr/bin/nsenter", "-t", pid, "-n",
-           "/usr/bin/python3", str(Path(__file__).resolve()),
+           "/usr/bin/python3", str(SOURCE_SCRIPT),
            "--internal-api", method]
     receipt = subprocess.run(
         cmd, input=json.dumps(payload) if payload is not None else "",
@@ -177,6 +138,8 @@ def api_call(method: str, payload: dict | None = None) -> dict:
         data = json.loads(receipt.stdout)
     except (json.JSONDecodeError, ValueError):
         raise ValueError("Native VPN API returned no inspectable receipt") from None
+    if not isinstance(data, dict):
+        raise ValueError("Native VPN API returned no inspectable receipt")
     if receipt.returncode != 0:
         raise ValueError("Native VPN API not authorized or unavailable: "+str(data.get("standing","UNKNOWN")))
     return data
@@ -184,7 +147,7 @@ def api_call(method: str, payload: dict | None = None) -> dict:
 
 def initial_preflight() -> dict:
     subprocess.run(
-        ["/usr/bin/python3", str(Path(__file__).resolve().parent/"native_profile.py"), "--verify"],
+        ["/usr/bin/python3", str(SOURCE_DIR/"native_profile.py"), "--verify"],
         check=True, capture_output=True, timeout=20,
     )
     key = protected_key()  # do not log or expose
@@ -203,7 +166,7 @@ def bounded_consumer_observe(seconds: int = 25) -> dict[str, object]:
     """
     try:
         receipt = subprocess.run(
-            ["/usr/bin/python3", str(Path(__file__).resolve().with_name("observe_active.py"))],
+            ["/usr/bin/python3", str(SOURCE_DIR/"observe_active.py")],
             capture_output=True, text=True, timeout=seconds,
         )
         data = json.loads(receipt.stdout)

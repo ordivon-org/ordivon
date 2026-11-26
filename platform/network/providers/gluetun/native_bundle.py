@@ -28,6 +28,7 @@ FILES = (
     "quality_history.py",
     "historical_observation.py",
     "native_switch.py",
+    "native_selection.py",
     "auth_profile.py",
     "config/exit-allowlist.json",
     "config/exit-selector.json",

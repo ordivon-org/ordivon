@@ -281,3 +281,39 @@ source -> byte readback -> native verification -> release consumer.
 Consolidate the four original Network drafts and R15/R16 into one review
 candidate for official CI; retain original branch history and natural
 owner review. Do not merge by bypassing protected checks.
+
+
+## R18 — Native generation consumer and pure response boundary (2026-11-26)
+
+Host #33243, Runtime Nix private-store qualification #33210, consumer
+witness #33251. Retain existing R17 consolidation PR2877. Adopt Nix native
+immutable store/profile/GC roots as preferred release substrate candidate,
+not an additional Network-specific installer. Runtime must supply
+serialized preimage CAS, root acquisition before physical launch, retained
+generation path through native terminal, durable receipt and reconciliation;
+systemd unit writes/reload are separately qualified effects.
+
+Actual native_switch child path calls re-resolved the active link after
+module load; RED job-01a21553-7996-7481-9c53-6f6642ff9f84 (one path and five
+malformed selection cases). Resolve source once before sibling imports
+and reuse for three child edges. This pins those paths only; a physical
+generation launch and retention fence are mandatory to avoid startup races.
+Extract pure native_selection.py: typed selected snapshot, canonical
+existing selection semantics, strict nested shapes and redacted read-only
+projection. Malformed GET response now UNKNOWN rather than AttributeError
+(three RED job-01a21554-ee26-717f-b180-7ec87018cc41). No new policy or
+provider effect. Existing bundle ten declared nonsecret files. Private
+native Nix actual ten-byte-exact/read-only payload and both generation
+CLI imports/help PASS job-01a21554-161b-718e-b10f-ce596a1f0bae; second
+generation synthetic marker, no provider execution. Generated independent
+schema/field projection tests 350 configured examples, native regression
+51 PASS and existing Z3 model job-01a21555-5414-713b-9b4d-5894862e768e.
+R2.1 I raw JSON shape, current pinned path, source manifest; O canonical
+snapshot or explicit rejection, stable child path; S immutable per-process
+identity; pre physical generation retained by Runtime; post no per-child
+re-resolution, no arbitrary nested payload projection; inv observation !=
+effect authorization; eff isolated tests only; c linear schema projection;
+epsilon no startup-race or runtime-retention proof, no production policy
+change or deployment; prov exact Runtime/Host receipts; unfold source
+-> native store -> pinned consumer -> pure representation -> existing
+native adapter. Keep native owner lock; no extra production dependency.
