@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 import subprocess
 import tempfile
+import tomllib
 from zipfile import ZIP_DEFLATED, ZipFile
 
 TARGET = "x86_64-pc-windows-msvc"
@@ -56,9 +57,14 @@ def prepare(args):
         run("tar.exe", "-xf", str(source_tar), cwd=work)
         source = work / "services" / "runtime"
         target_dir = args.cargo_target_directory.resolve() if args.cargo_target_directory else work / "target"
-        rustc = output("rustc", "--version", cwd=source)
+        with (source / "rust-toolchain.toml").open("rb") as stream:
+            toolchain = tomllib.load(stream)["toolchain"]["channel"]
+        if not args.offline:
+            run("rustup", "toolchain", "install", toolchain, "--profile", "minimal", cwd=source)
+        compiler = ("rustup", "run", toolchain)
+        rustc = output(*compiler, "rustc", "--version", cwd=source)
         build = [
-            "cargo", "build", "--release", "--locked", "--jobs", str(args.jobs),
+            *compiler, "cargo", "build", "--release", "--locked", "--jobs", str(args.jobs),
             "--target", TARGET, "--target-dir", str(target_dir),
             "-p", "ordivon-runtime-mcp", "--no-default-features",
             "--features", "postgres-runtime", "--bin", "ordivon-runtime-pg",
