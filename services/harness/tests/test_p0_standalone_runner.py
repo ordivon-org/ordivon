@@ -4,7 +4,6 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
-import tempfile
 import threading
 import time
 
@@ -22,7 +21,8 @@ from ordivon_harness.ordivon.events import HarnessRunEvent, HarnessTrace
 from ordivon_harness.ordivon.model import AgentRunConclusion, ScriptedTurnAdapter
 from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from ordivon_harness.postgres_store import PostgresHarnessStore
+from tests.pg_test_support import isolated_harness_schema
 from ordivon_harness.standalone import StandaloneHarnessRunner
 from ordivon_harness.store import HarnessRunStatus
 
@@ -37,9 +37,9 @@ from tests.test_p0_sqlite_agent_loop import (
 
 class StandaloneHarnessRunnerTests(unittest.TestCase):
     @staticmethod
-    def initialize(root: Path, suffix: str, clock: FixedClock, run_contract=None):
+    def initialize(dsn: str, schema: str, suffix: str, clock: FixedClock, run_contract=None):
         run_contract = contract(suffix) if run_contract is None else run_contract
-        store = SQLiteHarnessStore.initialize(root)
+        store = PostgresHarnessStore(dsn, schema=schema)
         store.create_run(run_contract)
         continuity = EventSourcedRunContinuity(
             store,
@@ -61,8 +61,7 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
         )
 
     def test_concurrent_workers_dispatch_one_physical_provider_call(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with isolated_harness_schema() as (dsn, schema):
             # This test asserts one acknowledged completion as well as one
             # physical dispatch. The metadata-only default intentionally
             # suppresses result retention, so a caller can correctly require
@@ -77,7 +76,7 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
                     allow_tool_content=False,
                 ),
             )
-            with SQLiteHarnessStore.initialize(root) as store:
+            with PostgresHarnessStore(dsn, schema=schema) as store:
                 store.create_run(run_contract)
 
             workers = 12
@@ -99,7 +98,7 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
             def execute(worker: int) -> str:
                 clock = FixedClock()
                 try:
-                    with SQLiteHarnessStore(root) as store:
+                    with PostgresHarnessStore(dsn, schema=schema) as store:
                         continuity = EventSourcedRunContinuity.open(
                             store, run_contract.harness_run_id, clock_ms=clock
                         )
@@ -119,7 +118,7 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
 
             # Preserve the durable projection on a failed acknowledgment check:
             # physical dispatch safety and caller delivery are different claims.
-            with SQLiteHarnessStore(root) as store:
+            with PostgresHarnessStore(dsn, schema=schema) as store:
                 report = store.doctor(full=True)
                 projection = store.load_run(run_contract.harness_run_id)
                 events = store.list_run_events(run_contract.harness_run_id)
@@ -140,11 +139,10 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
 
 
     def test_durable_claim_does_not_rebind_state_before_dispatch(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with isolated_harness_schema() as (dsn, schema):
             clock = FixedClock()
             suffix = "claim-to-dispatch-no-rebind"
-            run_contract, store, continuity = self.initialize(root, suffix, clock)
+            run_contract, store, continuity = self.initialize(dsn, schema, suffix, clock)
             adapter = ScriptedTurnAdapter((completed_result(suffix),))
             bridge = HarnessAgentBridge(run_contract, continuity)
             runner = self.runner(run_contract, continuity, adapter, bridge, clock)
@@ -190,8 +188,7 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
                 store.close()
 
     def test_structured_completion_requires_adapter_binding_to_exact_contract(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with isolated_harness_schema() as (dsn, schema):
             clock = FixedClock()
             base = contract("structured-binding")
             run_contract = replace(
@@ -205,7 +202,7 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
                     },
                 },
             )
-            store = SQLiteHarnessStore.initialize(root)
+            store = PostgresHarnessStore(dsn, schema=schema)
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(
                 store, run_contract, clock_ms=clock
@@ -226,8 +223,7 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
 
 
     def test_completed_run_preserves_unresolved_unknowns_for_caller(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with isolated_harness_schema() as (dsn, schema):
             clock = FixedClock()
             run_contract = replace(
                 contract("completed-with-unknowns"),
@@ -238,7 +234,7 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
                 ),
             )
             run_contract, store, continuity = self.initialize(
-                root, "completed-with-unknowns", clock, run_contract
+                dsn, schema, "completed-with-unknowns", clock, run_contract
             )
             unknowns = (
                 "A later Run must observe the current repository before executing the plan.",
@@ -282,8 +278,7 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
             store.close()
 
     def test_candidate_completion_is_terminal_and_restart_inspectable(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with isolated_harness_schema() as (dsn, schema):
             clock = FixedClock()
             run_contract = replace(
                 contract("standalone"),
@@ -294,7 +289,7 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
                 ),
             )
             run_contract, store, continuity = self.initialize(
-                root, "standalone", clock, run_contract
+                dsn, schema, "standalone", clock, run_contract
             )
             adapter = ScriptedTurnAdapter((completed_result("standalone"),))
             bridge = HarnessAgentBridge(run_contract, continuity)
@@ -324,7 +319,7 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
             receipt_digest = terminal.receipt.digest
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with PostgresHarnessStore(dsn, schema=schema) as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
@@ -342,8 +337,7 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
                 self.assertTrue(reopened_store.doctor(full=True)["healthy"])
 
     def test_pause_resume_retains_two_trace_segments_and_one_proposal(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with isolated_harness_schema() as (dsn, schema):
             clock = FixedClock()
             run_contract = replace(
                 contract("standalone-resume"),
@@ -354,7 +348,7 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
                 ),
             )
             run_contract, store, continuity = self.initialize(
-                root, "standalone-resume", clock, run_contract
+                dsn, schema, "standalone-resume", clock, run_contract
             )
             first_adapter = ScriptedTurnAdapter((needs_input_result("standalone-pause"),))
             first_bridge = HarnessAgentBridge(run_contract, continuity)
@@ -373,7 +367,7 @@ class StandaloneHarnessRunnerTests(unittest.TestCase):
             )
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with PostgresHarnessStore(dsn, schema=schema) as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
