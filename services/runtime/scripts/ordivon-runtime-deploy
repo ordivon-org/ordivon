@@ -781,9 +781,8 @@ def exact_source_checkout(source_repo: Path, commit: str):
         raise RuntimeError(
             f"requested commit {commit} is not the exact configured owner revision {resolved_owner}"
         )
-    # A --shared clone of a partial/promisor source may use upload-pack rather
-    # than alternates. Materialize the exact Git tree before cloning, so absent
-    # promised blobs cannot silently produce a dirty or incomplete checkout.
+    # Materialize the exact requested tree, not unrelated historical objects.
+    # An unavailable required blob must fail before a release can be built.
     archive = subprocess.run(
         [str(git), "-C", str(git_root), "archive", "--format=tar", commit],
         check=False,
@@ -796,28 +795,31 @@ def exact_source_checkout(source_repo: Path, commit: str):
         raise RuntimeError(f"cannot materialize exact release source: {detail}")
     with tempfile.TemporaryDirectory(prefix="ordivon-runtime-release-source-") as temporary:
         checkout = Path(temporary) / "source"
-        run(
-            [
-                str(git),
-                "clone",
-                "--quiet",
-                "--shared",
-                "--no-checkout",
-                str(git_root),
-                str(checkout),
-            ]
-        )
-        # The clone's ref advertisement may omit the target if the local main
-        # lags origin/main. Fetch by exact OID with no ref or FETCH_HEAD write.
-        run(
-            [
-                str(git), "-C", str(checkout),
-                "-c", "gc.auto=0", "-c", "maintenance.auto=false",
-                "fetch", "--quiet", "--no-tags", "--no-write-fetch-head",
-                str(git_root), commit,
-            ]
-        )
-        run([str(git), "-C", str(checkout), "checkout", "--quiet", "--detach", commit])
+        # Git disables local cloning for shallow repositories; upload-pack
+        # can then require unrelated missing historical promisor blobs. Use
+        # Git's native local object alternate instead of negotiating history.
+        # The requested tree was materialized above; checkout must not fetch.
+        objects = Path(git_text(git, git_root, [
+            "rev-parse", "--path-format=absolute", "--git-path", "objects",
+        ])).resolve(strict=True)
+        if (not objects.is_dir()
+                or any(c in str(objects) for c in ("\n", "\r"))
+                or str(objects).startswith('"')):
+            raise RuntimeError("release source object directory is unsafe")
+        object_format = git_text(git, git_root, ["rev-parse", "--show-object-format"])
+        run([str(git), "init", "--quiet", "--template=",
+             f"--object-format={object_format}", str(checkout)])
+        alternates = checkout / ".git/objects/info/alternates"
+        alternates.write_bytes(os.fsencode(objects) + b"\n")
+        # Preserve the source's existing shallow-history boundary rather than
+        # representing an incomplete history as a full clone.
+        shallow = Path(git_text(git, git_root, [
+            "rev-parse", "--path-format=absolute", "--git-path", "shallow",
+        ]))
+        if shallow.is_file():
+            (checkout / ".git/shallow").write_bytes(shallow.read_bytes())
+        run([str(git), "-C", str(checkout), "checkout", "--quiet", "--detach", commit],
+            env={**os.environ, "GIT_NO_LAZY_FETCH": "1"})
         head = git_text(git, checkout, ["rev-parse", "HEAD"])
         if head != commit:
             raise RuntimeError(
