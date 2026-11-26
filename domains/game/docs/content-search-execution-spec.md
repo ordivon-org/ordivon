@@ -57,3 +57,29 @@ feedback through the existing View reset seam, including reset after load.
 Add original Trial native regression and generated full-scene visible
 terminal obligation. Retire first local preview rather than deliver it
 as the refined product.
+
+## Final native content preview and regression
+
+Shared search extraction retained all four R19 state counts and frontiers;
+actual R21 20-case census plus seven receipt corruptions pass. The first
+execution timed out on missing preloaded default Resource; explicit native
+preflight and complete source closure correct the failure. Selector
+ambiguity rejected before a successful receipt; the prior declared
+[1,2,2,3] is uniquely expressed by adjacent increments <=1.
+Final exact build source e888b6b19970060bbc38d354175d988d7983ab48,
+job-01a2156d-0bd3-7042-93cd-648ff076e01d exit0. Original Trial native
+16101 assertions/486 traces, restart8+9, generated29 programs/58
+mode-programs/352 steps, finite phase8/8 (job-01a2156c-928f-73a7-ba8a-9c16b553e67a).
+Full generated Scene 4 dialogue unlocks, 30 actions, 26 combat turns, won
+12 HP and correct visible terminal feedback. Actual exported Linux
+T/G/S/G/L/R, ConfigFile exact entire tuning [1,2,2,3] and first guard HP48,
+storage OrdivonRoomContent/ProgressiveR21, Windows export only in receipt.
+Native archives SHA a19475cd0ab882808fa783a8924ecae646ef820f9a6f34e604e7a7a618414bc1
+(Linux) / 9671df4801ad1be7853557627eac0e8e0b46503ed30e44c436fdacc8237a7c40
+(Windows). Manifest c53be1833cfb64d33a4756cf7bbfd0a1cee37a6da0b0618b31d1a644b9e279bc,
+receipt 757994d4174290101a16f20dddcfe88e8c84c166cd66ee8252ed763679055449.
+Separate private delivery Downloads/Ordivon-Game-R21-Progressive-20261126;
+no public release. Human quality not evaluated.
+Reproduction:
+`mise run experiment:content-search`;
+`GAME_CONTENT_OUTPUT=/absolute/fresh/path mise run factory:content:room-progressive`.
