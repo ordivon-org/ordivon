@@ -25,6 +25,9 @@ dependencies = [
 mcp = ["mcp==2.3.0"]
 
 [dependency-groups]
+# Keep the PEP 517 backend outside runtime/default groups while locking the
+# exact version selected for owner-native wheel verification.
+build = ["setuptools>=68"]
 dev = ["ruff==0.17.2"]
 formal = [
     "crosshair-tool==0.0.112",

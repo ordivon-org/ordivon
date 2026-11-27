@@ -26,6 +26,7 @@ class RepositoryBoundaryTests(unittest.TestCase):
         self.assertEqual(
             project.get("dependency-groups"),
             {
+                "build": project["build-system"]["requires"],
                 "dev": ["ruff==0.17.2"],
                 "formal": ["crosshair-tool==0.0.112"],
                 "test": [
@@ -92,6 +93,14 @@ class RepositoryBoundaryTests(unittest.TestCase):
                 self.assertIn(audit_action, source)
                 self.assertIn("uv run --locked ruff check src tests scripts", source)
                 self.assertNotIn("uvx ruff==", source)
+        for name in ("queue", "verify"):
+            with self.subTest(build_consumer=name):
+                source = sources[name]
+                self.assertIn("uv sync --locked --group build", source)
+                self.assertIn(
+                    'uv build --offline --no-build-isolation --wheel --out-dir "$tmp"',
+                    source,
+                )
         self.assertFalse((ROOT / "requirements-audit.txt").exists())
 
     def test_source_tree_contains_no_ordivon_host_imports(self) -> None:
