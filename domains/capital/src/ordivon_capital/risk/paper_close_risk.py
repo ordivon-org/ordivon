@@ -67,7 +67,11 @@ def review_paper_close_risk(
     contradictory payloads but cannot verify their external origin.
     """
     body = _object(receipt, "paper receipt")
-    if body.get("schema_version") != 1 or body.get("mode") != "PAPER":
+    if (
+        type(body.get("schema_version")) is not int
+        or body["schema_version"] != 1
+        or body.get("mode") != "PAPER"
+    ):
         raise PaperRiskEvidenceError("requires the native paper Accounting receipt")
     key = body.get("account_key")
     digest = body.get("request_sha256")
