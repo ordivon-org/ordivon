@@ -50,7 +50,10 @@ def registered_at(revision: str) -> dict[str, dict]:
 
 def changed_history(before: dict[str, dict], after: dict[str, dict]) -> list[str]:
     violations = []
-    for identifier in sorted(before.keys() & after.keys()):
+    for identifier in sorted(before):
+        if identifier not in after:
+            violations.append(f"{identifier}: registered Authority identity removed")
+            continue
         old, new = before[identifier], after[identifier]
         for field in ("registeredDate", "registrationBasis"):
             if old[field] != new[field]:
