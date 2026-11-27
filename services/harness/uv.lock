@@ -396,6 +396,7 @@ dependencies = [
     { name = "httpx" },
     { name = "jsonschema" },
     { name = "psycopg", extra = ["binary"] },
+    { name = "referencing" },
 ]
 
 [package.optional-dependencies]
@@ -424,6 +425,7 @@ requires-dist = [
     { name = "jsonschema", specifier = ">=4.26,<5" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = "==2.3.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3" },
+    { name = "referencing", specifier = ">=0.37,<1" },
 ]
 provides-extras = ["mcp"]
 
