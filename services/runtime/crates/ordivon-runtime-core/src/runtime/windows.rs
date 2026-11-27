@@ -2745,6 +2745,29 @@ mod privileged_profile_tests {
     }
 
     #[test]
+    fn matching_elevated_profile_rejects_caller_environment() {
+        let mut request = proposal(
+            r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+            &[
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                r"D:\OrdivonStudio\d-drive-compact-run-r3.ps1",
+            ],
+            vec![profile_ref("workstation.d-drive-compact-r3")],
+        );
+        request
+            .execution
+            .env
+            .insert("Path".into(), r"C:\workspace".into());
+        let error = config().authorize_elevated_proposal(&request).unwrap_err();
+        assert_eq!(error.code, RuntimeErrorCode::AuthorizationDenied);
+        assert_eq!(error.field.as_deref(), Some("execution.env"));
+    }
+
+    #[test]
     fn profile_principal_and_all_structured_steps_are_enforced() {
         let reference = profile_ref("workstation.d-drive-compact-r3");
         let mut denied_principal = proposal(
