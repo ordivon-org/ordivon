@@ -16,9 +16,10 @@ TARGET = "x86_64-pc-windows-msvc"
 RUNTIME = "ordivon-runtime-pg.exe"
 LAUNCHER = "ordivon-windows-pg-job-launcher.exe"
 BROKER = "ordivon-windows-privileged-broker.exe"
-INSTALLERS = (
+OPERATOR_FILES = (
     "packaging/windows/materialize-ordivon-runtime-service.ps1",
     "packaging/windows/activate-ordivon-runtime-pg-service.ps1",
+    "scripts/windows-native-runtime-r6c-acceptance.ps1",
 )
 
 
@@ -84,7 +85,7 @@ def prepare(args):
             RUNTIME: target_dir / TARGET / "release" / RUNTIME,
             LAUNCHER: work / LAUNCHER,
             BROKER: work / BROKER,
-            **{installer: source / installer for installer in INSTALLERS},
+            **{name: source / name for name in OPERATOR_FILES},
         }
         commitments = [
             {"path": name, "size": path.stat().st_size, "sha256": digest(path)}
