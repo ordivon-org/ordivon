@@ -14,6 +14,7 @@ from typing import Any
 
 import jsonschema
 
+from artifact_core.contracts import FileCommitment
 from artifact_core.json_validation import load_json
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -52,7 +53,8 @@ def canonical_digest(value: Any) -> str:
 
 
 def artifact_fact(path: Path) -> dict[str, Any]:
-    return {"path": str(path.resolve()), "name": path.name, "size": path.stat().st_size, "sha256": sha256_file(path)}
+    commitment = FileCommitment.from_path(path)
+    return {"path": str(commitment.path), "name": path.name, "size": commitment.size, "sha256": commitment.sha256}
 
 
 def _claim_result(

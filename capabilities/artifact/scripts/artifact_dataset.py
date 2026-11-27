@@ -10,15 +10,16 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import math
 import os
-from pathlib import Path
 import re
 import subprocess
 import tempfile
+from pathlib import Path
 from typing import Any
 
 import jsonschema
+
+from artifact_core.contracts import FileCommitment
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_SCHEMA = ROOT / "artifact-delivery/shadow-contracts/dataset-contract-v1.schema.json"
@@ -47,7 +48,8 @@ def run(argv: list[str], *, timeout: int = 90) -> subprocess.CompletedProcess[st
 
 
 def artifact_fact(path: Path) -> dict[str, Any]:
-    return {"path": str(path.resolve()), "name": path.name, "size": path.stat().st_size, "sha256": sha256(path)}
+    commitment = FileCommitment.from_path(path)
+    return {"path": str(commitment.path), "name": path.name, "size": commitment.size, "sha256": commitment.sha256}
 
 
 def canonical_bytes(value: Any) -> bytes:
