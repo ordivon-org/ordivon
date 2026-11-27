@@ -167,6 +167,11 @@ def test_pg_service_materializer_is_explicit_digest_bound_disabled_start_without
         "$ExpectedRuntimeSha256",
         "$ExpectedLauncherSha256",
         "$ExpectedPostgresEnvironmentSha256",
+        "$WindowsPgReleaseManifest",
+        "$ExpectedWindowsPgSourceCommit",
+        "Get-OrdivonWindowsPgReleaseProvenance",
+        "releaseManifestTarget",
+        "releaseProvenance",
         "Assert-PgCandidateCommitments",
         "Get-FileHash",
         "ORDIVON_PG_DSN",
@@ -182,6 +187,22 @@ def test_pg_service_materializer_is_explicit_digest_bound_disabled_start_without
     assert "Start-Service" not in text
     assert "ORDIVON_REGISTRY_ROOT','ORDIVON_BIND','ORDIVON_BEARER_TOKEN'" in text
     assert "PG environment does not bind the planned service" in text
+
+
+def test_pg_materializer_preserves_build_manifest_provenance_for_activation():
+    text = SCRIPT.read_text(encoding="utf-8")
+    helper = (ROOT / "packaging" / "windows" / "windows-pg-release-provenance.ps1").read_text(encoding="utf-8")
+    assert "ordivon.windows-pg-release" in helper
+    assert "builder-manifest-claim-bound-to-exact-bytes-not-reproducible-build-proof" in helper
+    assert "sourceCommitClaim" in helper
+    assert "ExpectedSourceCommit" in helper
+    assert "runtimeSourceArchiveSha256" in helper
+    assert "cargoLockSha256" in helper
+    assert "ordivon-runtime-pg.exe" in helper
+    assert "ordivon-windows-pg-job-launcher.exe" in helper
+    assert "ordivon-runtime-pg-release.json" in text
+    assert "Staged Windows PG release manifest digest mismatch." in text
+    assert "Set-ExactPrivateAcl $releaseManifestTarget $serviceSid $readOnly" in text
 
 
 @unittest.skipUnless(os.name == "nt", "native Windows PowerShell 5.1 acceptance")

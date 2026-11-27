@@ -16,6 +16,7 @@ try {
     $cfg = Join-Path $root 'config\ordivon-runtime-pg.env'
     $runtime = Join-Path $fixture 'fixture-runtime.exe'
     $launcher = Join-Path $fixture 'fixture-launcher.exe'
+    $manifest = Join-Path $fixture 'manifest.json'
     $token = Join-Path $root 'secrets\runtime-pg-mcp.token'
     $utf8 = [Text.UTF8Encoding]::new($false)
     [IO.Directory]::CreateDirectory((Split-Path $cfg -Parent)) | Out-Null
@@ -23,6 +24,9 @@ try {
     [IO.File]::WriteAllText($runtime,'fixture runtime',$utf8)
     [IO.File]::WriteAllText($launcher,'fixture launcher',$utf8)
     [IO.File]::WriteAllText($token,'fixture-not-a-production-token',$utf8)
+    $sourceCommit='b'*40
+    $release=[ordered]@{schemaVersion=1;kind='ordivon.windows-pg-release';truthRole='builder-manifest-claim-bound-to-exact-bytes-not-reproducible-build-proof';source=[ordered]@{commit=$sourceCommit;runtimeTree=('c'*40);runtimeSourceArchiveSha256=('d'*64);cargoLockSha256=('e'*64)};files=@([ordered]@{path='ordivon-runtime-pg.exe';size=(Get-Item $runtime).Length;sha256=(Get-FileHash $runtime).Hash.ToLowerInvariant()},[ordered]@{path='ordivon-windows-pg-job-launcher.exe';size=(Get-Item $launcher).Length;sha256=(Get-FileHash $launcher).Hash.ToLowerInvariant()})}
+    [IO.File]::WriteAllText($manifest,($release|ConvertTo-Json -Depth 8),$utf8)
     $serviceName = 'OrdivonPgFixture' + [Guid]::NewGuid().ToString('N')
     $bind = '127.0.0.1:19487'
     $node = 'windows-pg-fixture'
@@ -47,6 +51,7 @@ try {
         ExpectedRuntimeSha256=(Get-FileHash -LiteralPath $runtime -Algorithm SHA256).Hash;
         ExpectedLauncherSha256=(Get-FileHash -LiteralPath $launcher -Algorithm SHA256).Hash;
         ExpectedPostgresEnvironmentSha256='';
+        WindowsPgReleaseManifest=$manifest;ExpectedWindowsPgSourceCommit=$sourceCommit;
     }
     function Set-FixtureConfig([string[]]$body) {
         [IO.File]::WriteAllLines($cfg,$body,$utf8)
@@ -68,7 +73,9 @@ try {
     if ($p.registryBackend -ne 'postgresql' -or $p.service.start -ne 'disabled' -or
         $p.executionReady -ne $false -or $p.workspacePresentationRoot -ne $workspaceRoot -or $p.files.runtimeTarget -notlike '*ordivon-runtime-pg.exe' -or
         $p.files.launcherTarget -notlike '*ordivon-windows-pg-job-launcher.exe' -or
-        $p.files.tokenTarget -notlike '*runtime-pg-mcp.token') { throw 'wrong PG plan' }
+        $p.files.tokenTarget -notlike '*runtime-pg-mcp.token' -or
+        $p.files.releaseManifestTarget -notlike '*ordivon-runtime-pg-release.json' -or
+        $p.releaseProvenance.sourceCommitClaim -cne $sourceCommit) { throw 'wrong PG plan' }
     if ((Get-FileHash -LiteralPath $cfg).Hash -ne $original) { throw 'preview changed env' }
     Write-Output 'PASS native PG preview separate paths/disabled-start'
     $options.ExpectedRuntimeSha256='0'*64

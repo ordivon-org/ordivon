@@ -94,6 +94,7 @@ def prepare(args):
         manifest = {
             "schemaVersion": 1,
             "kind": "ordivon.windows-pg-release",
+            "truthRole": "builder-manifest-claim-bound-to-exact-bytes-not-reproducible-build-proof",
             "source": {
                 "commit": args.commit,
                 "runtimeTree": runtime_tree,
