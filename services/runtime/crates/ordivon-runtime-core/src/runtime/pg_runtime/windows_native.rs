@@ -46,6 +46,20 @@ impl PgRuntime {
                 .ok_or_else(|| error("native active-user context missing"))?;
             self.require_interactive_context(&context.token_user_sid, context.session_id)?;
         }
+        let context = plan
+            .windows_context
+            .unwrap_or_else(|| plan.windows_authority.canonical_context());
+        if context.privilege == WindowsPayloadPrivilege::Elevated {
+            // A writable Workspace must not become the privileged process's
+            // current-directory search root. The operator owns the profile's
+            // executable and its installation directory.
+            plan.cwd = Path::new(&plan.executable)
+                .parent()
+                .ok_or_else(|| error("elevated Windows executable directory missing"))?
+                .to_str()
+                .ok_or_else(|| error("non-UTF8 elevated Windows executable directory"))?
+                .to_owned();
+        }
         let (git_dir, work_tree) = self.qualified_git_environment(plan)?;
         windows::bind_pg_private_git_environment(&mut plan.env, &git_dir, &work_tree)?;
         Ok(())
