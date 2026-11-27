@@ -184,6 +184,12 @@ class MonorepoCodeQLTests(unittest.TestCase):
         corruptions = (
             source.replace("python, javascript-typescript, rust", "python, javascript-typescript", 1),
             source.replace("  merge_group:\n", "  skipped_merge_group:\n", 1),
+            source.replace("  pull_request:\n    branches: [main]", "  pull_request: false", 1),
+            source.replace(
+                '  schedule:\n    - cron: "17 19 * * 0"',
+                "  schedule: []",
+                1,
+            ),
             source.replace("security-events: write", "security-events: read", 1),
             re.sub(r"github/codeql-action/analyze@[0-9a-f]{40}",
                    "github/codeql-action/analyze@v4", source, count=1),
