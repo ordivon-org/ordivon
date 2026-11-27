@@ -415,6 +415,13 @@ def _finalize_receipt(path: Path, body: dict[str, Any]) -> dict[str, Any]:
     return receipt
 
 
+def _validate_retained_receipt(receipt: dict[str, Any]) -> None:
+    body = dict(receipt)
+    claimed_digest = body.pop("receiptDigest", None)
+    if claimed_digest != _digest(body):
+        raise IngressConflict("durable receipt canonical digest is invalid")
+
+
 def _ingest_locked(
     config: dict[str, Any],
     request: dict[str, Any],
@@ -442,6 +449,7 @@ def _ingest_locked(
     max_bytes: int = config["maxBytes"]
     if receipt_path.exists():
         receipt = _read_json(receipt_path)
+        _validate_retained_receipt(receipt)
         if receipt.get("requestDigest") != request_digest:
             raise IngressConflict("durable receipt identity conflicts with request")
         if str(receipt.get("commitStanding", "")).startswith("COMMITTED"):
