@@ -42,6 +42,8 @@ def config() -> tuple[str, str, str, str]:
         peer = ipaddress.IPv4Interface(ns_addr)
     except ValueError as exc:
         raise TopologyError("invalid IPv4 endpoint address") from exc
+    if host.network.prefixlen not in (30, 31):
+        raise TopologyError("shared forwarding subnet must be point-to-point sized")
     if host.network != peer.network or host.ip == peer.ip:
         raise TopologyError("veth endpoints must have distinct addresses on one subnet")
     return host_if, ns_if, str(host), str(peer)
