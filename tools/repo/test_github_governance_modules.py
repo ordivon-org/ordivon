@@ -27,6 +27,8 @@ class GitHubGovernanceModuleContracts(unittest.TestCase):
         )
         for invalid in (
             "/services/runtime/\n",
+            "/services/runtime/ @maintainer\n",
+            "* @team\n* @other\n/services/runtime/ @maintainer\n",
             "/services/runtime/ @maintainer\n* @team\n",
             "/services/ @maintainer\n/services/runtime/ @other\n",
         ):
