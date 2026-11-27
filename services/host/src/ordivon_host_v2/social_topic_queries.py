@@ -20,6 +20,7 @@ from .collection_pagination import (
     bounded_page,
     validate_max_bytes,
 )
+from .errors import InvalidArgumentError
 from .postgres_bounds import HOST_WIRE_INT_MAX
 from .references.actor_refs import ActorReferenceLookup
 from .references.record_refs import RecordReferenceLookup
@@ -46,10 +47,10 @@ class SocialTopicReadQueries:
         include_archived: bool = False,
     ) -> dict[str, Any]:
         if type(limit) is not int or not 1 <= limit <= 500:
-            raise ValueError("limit must be in [1,500]")
+            raise InvalidArgumentError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
         if type(include_archived) is not bool:
-            raise ValueError("include_archived must be a boolean")
+            raise InvalidArgumentError("include_archived must be a boolean")
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             RecordReferenceLookup._require_space(conn, space_ref)
@@ -103,9 +104,9 @@ class SocialTopicReadQueries:
         max_bytes: int = DEFAULT_MESSAGE_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
         if type(limit) is not int or not 1 <= limit <= 500:
-            raise ValueError("limit must be in [1,500]")
+            raise InvalidArgumentError("limit must be in [1,500]")
         if type(after_sequence) is not int or not 0 <= after_sequence <= HOST_WIRE_INT_MAX:
-            raise ValueError("after_sequence must be non-negative within JSON safe integer range")
+            raise InvalidArgumentError("after_sequence must be non-negative within JSON safe integer range")
         validate_max_bytes(max_bytes, minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES)
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
