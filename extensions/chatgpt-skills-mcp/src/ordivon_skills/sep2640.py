@@ -1,17 +1,14 @@
 from __future__ import annotations
 
 import hashlib
-import stat
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import quote, unquote, urlsplit
 
-from .catalog import SkillCatalogError, _package_revision
+from .catalog import SkillCatalogError, _package_revision, _package_snapshot
 from .model import SkillRecord
 from .parser import SkillParseError, _load_yaml_mapping
 
-MAX_SKILL_RESOURCES = 512
-MAX_SKILL_BYTES = 16 * 1024 * 1024
 SEP_SKILL_AUTHORITY = "ordivon"
 _STANDARD_FRONTMATTER_FIELDS = {
     "name",
@@ -87,19 +84,11 @@ def _validate_standard_name(name: object, parent_name: str) -> str:
     return name
 
 
-def parse_standard_frontmatter(skill_root: Path) -> dict[str, object]:
-    """Parse and enforce the portable Agent Skills frontmatter contract.
-
-    Product/Harness dialect fields stay outside this transport projection. This is
-    intentionally stricter than Ordivon's raw discovery parser because SEP-2640
-    requires every advertised Skill to conform to the Agent Skills specification.
-    """
-
-    skill_md = skill_root / "SKILL.md"
-    try:
-        body = skill_md.read_bytes()
-    except OSError as exc:
-        raise AgentSkillsConformanceError("cannot read SKILL.md") from exc
+def _parse_standard_frontmatter_bytes(
+    body: bytes,
+    *,
+    parent_name: str,
+) -> dict[str, object]:
     try:
         value = _load_yaml_mapping(_frontmatter_bytes(body).decode("utf-8"))
     except SkillParseError as exc:
@@ -115,7 +104,7 @@ def parse_standard_frontmatter(skill_root: Path) -> dict[str, object]:
             "non-standard top-level frontmatter fields: " + ", ".join(extras)
         )
 
-    _validate_standard_name(value.get("name"), skill_root.name)
+    _validate_standard_name(value.get("name"), parent_name)
 
     description = value.get("description")
     if not isinstance(description, str) or not (1 <= len(description) <= 1024):
@@ -140,6 +129,22 @@ def parse_standard_frontmatter(skill_root: Path) -> dict[str, object]:
         raise AgentSkillsConformanceError("allowed-tools must be a space-separated string")
 
     return dict(value)
+
+
+def parse_standard_frontmatter(skill_root: Path) -> dict[str, object]:
+    """Parse and enforce the portable Agent Skills frontmatter contract.
+
+    Product/Harness dialect fields stay outside this transport projection. This is
+    intentionally stricter than Ordivon's raw discovery parser because SEP-2640
+    requires every advertised Skill to conform to the Agent Skills specification.
+    """
+
+    skill_md = skill_root / "SKILL.md"
+    try:
+        body = skill_md.read_bytes()
+    except OSError as exc:
+        raise AgentSkillsConformanceError("cannot read SKILL.md") from exc
+    return _parse_standard_frontmatter_bytes(body, parent_name=skill_root.name)
 
 
 def skill_uri(source_id: str, skill_name: str, relative_path: str = "SKILL.md") -> str:
@@ -170,61 +175,55 @@ def parse_skill_uri(uri: str) -> tuple[str, str, str]:
     return source_id, skill_name, resource_path
 
 
-def resource_manifest(record: SkillRecord) -> tuple[SkillResourceManifestEntry, ...]:
-    root = record.skill_root
-    manifest: list[SkillResourceManifestEntry] = []
-    total_bytes = 0
-    for candidate in sorted(root.rglob("*"), key=lambda path: path.as_posix()):
-        try:
-            lst = candidate.lstat()
-        except OSError as exc:
-            raise AgentSkillsConformanceError("cannot stat Skill package resource") from exc
-        if stat.S_ISDIR(lst.st_mode):
-            continue
-        relative = candidate.relative_to(root).as_posix()
-        if stat.S_ISLNK(lst.st_mode) or not stat.S_ISREG(lst.st_mode):
-            raise AgentSkillsConformanceError(
-                f"SEP-2640 static manifest rejects non-regular resource: {relative}"
-            )
-        if len(manifest) >= MAX_SKILL_RESOURCES:
-            raise AgentSkillsConformanceError(
-                f"Skill exceeds SEP-2640 {MAX_SKILL_RESOURCES}-resource limit"
-            )
-        try:
-            data = candidate.read_bytes()
-        except OSError as exc:
-            raise AgentSkillsConformanceError(f"cannot read resource: {relative}") from exc
-        total_bytes += len(data)
-        if total_bytes > MAX_SKILL_BYTES:
-            raise AgentSkillsConformanceError(
-                f"Skill exceeds SEP-2640 {MAX_SKILL_BYTES}-byte limit"
-            )
-        manifest.append(
-            SkillResourceManifestEntry(
-                uri=skill_uri(record.source_id, record.name, relative),
-                digest=_sha256(data),
-                size=len(data),
-            )
+def _resource_manifest_from_inventory(
+    record: SkillRecord,
+    inventory: tuple[dict[str, object], ...],
+) -> tuple[SkillResourceManifestEntry, ...]:
+    manifest = tuple(
+        SkillResourceManifestEntry(
+            uri=skill_uri(record.source_id, record.name, str(item["path"])),
+            digest=str(item["sha256"]),
+            size=int(item["size"]),
         )
+        for item in inventory
+    )
     if not any(item.uri.endswith("/SKILL.md") for item in manifest):
         raise AgentSkillsConformanceError("Skill manifest must include SKILL.md")
-    return tuple(manifest)
+    return manifest
+
+
+def resource_manifest(record: SkillRecord) -> tuple[SkillResourceManifestEntry, ...]:
+    try:
+        revision, inventory, _ = _package_snapshot(record.skill_root)
+    except (SkillCatalogError, OSError) as exc:
+        raise AgentSkillsConformanceError("cannot verify admitted Skill package") from exc
+    if revision != record.package_revision:
+        raise AgentSkillsConformanceError("Skill package differs from admitted scan")
+    return _resource_manifest_from_inventory(record, inventory)
 
 
 def skill_entry(record: SkillRecord) -> Sep2640SkillEntry:
     # A fresh digest of live files cannot replace the source package whose
-    # scan/trust verdict admitted this record. The standard Skills list/get
-    # and resource routes must share the same immutable admission boundary as
-    # the legacy skills.read consumer.
+    # scan/trust verdict admitted this record. Build every advertised field from
+    # one bounded package observation, then reject mutation after that snapshot.
     try:
-        if _package_revision(record.skill_root) != record.package_revision:
+        revision, inventory, package_bytes = _package_snapshot(record.skill_root)
+        if revision != record.package_revision:
             raise AgentSkillsConformanceError("Skill package differs from admitted scan")
-        if _sha256(record.main_resource.read_bytes()) != record.instruction_digest:
+        try:
+            instruction_key = record.main_resource.relative_to(record.skill_root).as_posix()
+            instruction = package_bytes[instruction_key]
+        except (KeyError, ValueError) as exc:
+            raise AgentSkillsConformanceError("SKILL.md differs from admitted scan") from exc
+        if _sha256(instruction) != record.instruction_digest:
             raise AgentSkillsConformanceError("SKILL.md differs from admitted scan")
-        frontmatter = parse_standard_frontmatter(record.skill_root)
+        frontmatter = _parse_standard_frontmatter_bytes(
+            instruction,
+            parent_name=record.skill_root.name,
+        )
         if frontmatter["name"] != record.name:
             raise AgentSkillsConformanceError("catalog name differs from standard frontmatter name")
-        resources = resource_manifest(record)
+        resources = _resource_manifest_from_inventory(record, inventory)
         if _package_revision(record.skill_root) != record.package_revision:
             raise AgentSkillsConformanceError("Skill package changed after admitted scan")
     except (SkillCatalogError, OSError) as exc:

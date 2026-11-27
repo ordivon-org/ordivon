@@ -678,18 +678,17 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
             original_package_revision = catalog_module._package_revision
             mutated = False
 
-            def revision_then_mutate(skill_root: Path) -> str:
+            def mutate_then_revision(skill_root: Path) -> str:
                 nonlocal mutated
-                revision = original_package_revision(skill_root)
                 if not mutated:
                     guide.write_text("v2", encoding="utf-8")
                     mutated = True
-                return revision
+                return original_package_revision(skill_root)
 
             with mock.patch.object(
                 catalog_module,
                 "_package_revision",
-                side_effect=revision_then_mutate,
+                side_effect=mutate_then_revision,
             ):
                 with self.assertRaises(SkillCatalogError) as captured:
                     catalog.read_text(
