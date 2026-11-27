@@ -156,6 +156,17 @@ def _infer_project_root(source: SkillSource, resolved_root: Path) -> Path | None
 
 
 def _package_revision(root: Path) -> str:
+    return _package_revision_with_observed_resource(root)
+
+
+def _package_revision_with_observed_resource(
+    root: Path,
+    *,
+    observed_path: Path | None = None,
+    observed_data: bytes | None = None,
+) -> str:
+    if (observed_path is None) != (observed_data is None):
+        raise ValueError("observed_path and observed_data must be supplied together")
     manifest: list[dict[str, object]] = []
     total_bytes = 0
     for candidate in sorted(root.rglob("*"), key=lambda p: p.as_posix()):
@@ -172,7 +183,7 @@ def _package_revision(root: Path) -> str:
             raise SkillCatalogError("SKILL_INVALID", f"non-regular package entry rejected: {relative}")
         if len(manifest) >= MAX_PACKAGE_FILES:
             raise SkillCatalogError("PACKAGE_TOO_LARGE", f"package exceeds {MAX_PACKAGE_FILES} files")
-        data = candidate.read_bytes()
+        data = observed_data if observed_path is not None and candidate == observed_path else candidate.read_bytes()
         total_bytes += len(data)
         if total_bytes > MAX_PACKAGE_BYTES:
             raise SkillCatalogError("PACKAGE_TOO_LARGE", f"package exceeds {MAX_PACKAGE_BYTES} bytes")
@@ -691,6 +702,16 @@ class SkillCatalog:
         raw_data = resolved.read_bytes()
         if len(raw_data) > MAX_RESOURCE_READ_BYTES:
             raise SkillCatalogError("RESOURCE_TOO_LARGE", relative_path)
+        # Bind the exact bytes returned to the package revision that was admitted.
+        # A pre/post filesystem hash alone can miss an ABA replacement that exists
+        # only for the resource read and is restored before the post-read scan.
+        observed_package_revision = _package_revision_with_observed_resource(
+            record.skill_root,
+            observed_path=resolved,
+            observed_data=raw_data,
+        )
+        if observed_package_revision != package_fence:
+            raise SkillCatalogError("PACKAGE_CHANGED", f"Skill package changed for {skill_id}")
         post_read_package_revision = _package_revision(record.skill_root)
         if post_read_package_revision != package_fence:
             raise SkillCatalogError("PACKAGE_CHANGED", f"Skill package changed for {skill_id}")
