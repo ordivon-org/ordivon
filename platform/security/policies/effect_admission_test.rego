@@ -134,3 +134,36 @@ test_missing_contract_version_is_not_a_downgrade_path if {
   result.admitted == false
   result.reason == "unsupported-contract-version"
 }
+
+# A direct OPA caller cannot interpret malformed identity and effect shape as ALLOW.
+test_malformed_request_digest_is_a_defined_deny if {
+  req := request({"requestDigest": "not-a-sha256"})
+  result := decision with input as input_for(req)
+  result.admitted == false
+  result.reason == "invalid-input"
+  result.requestDigest == "not-a-sha256"
+}
+
+test_non_string_effect_type_is_a_defined_deny if {
+  req := request({"effectType": 7})
+  result := decision with input as input_for(req)
+  result.admitted == false
+  result.reason == "invalid-input"
+  result.effectType == null
+}
+
+test_missing_request_identity_is_a_defined_deny if {
+  req := object.remove(request({}), {"requestId", "requestDigest"})
+  result := decision with input as input_for(req)
+  result.admitted == false
+  result.reason == "invalid-input"
+  result.requestId == null
+  result.requestDigest == null
+}
+
+test_extra_request_fields_are_rejected if {
+  req := object.union(request({}), {"shadowAuthority": "untrusted"})
+  result := decision with input as input_for(req)
+  result.admitted == false
+  result.reason == "invalid-input"
+}
