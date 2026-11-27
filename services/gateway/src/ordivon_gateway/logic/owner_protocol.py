@@ -47,7 +47,7 @@ def _configuration_error(caller: OwnerToolCaller, owner_id: str) -> str | None:
 
 def _required_str(payload: dict[str, Any], key: str) -> str:
     value = payload.get(key)
-    if not isinstance(value, str) or not value:
+    if not isinstance(value, str) or not value.strip():
         raise GatewayError(f"owner response omitted {key}")
     return value
 
