@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import importlib.util
 import json
 import os
@@ -1464,6 +1465,40 @@ class ArtifactDeliveryTests(unittest.TestCase):
             self.assertTrue(any("bundle shape/statement" in item for item in result["failures"]))
             self.assertFalse(result["bundleShape"]["signedStatementMatches"])
 
+    def test_signed_vsa_rejects_duplicate_authenticated_json_members(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            statement_path = root / "structural.vsa.json"
+            write_json(statement_path, {"x": 2})
+            bundle = root / "structural.sigstore.json"
+            write_json(
+                bundle,
+                {
+                    "mediaType": trust_vsa.SIGSTORE_BUNDLE_V03,
+                    "dsseEnvelope": {
+                        "payloadType": "application/vnd.in-toto+json",
+                        "payload": base64.b64encode(b'{"x":1,"x":2}').decode("ascii"),
+                        "signatures": [{"sig": "AA=="}],
+                    },
+                    "verificationMaterial": {
+                        "publicKey": {"hint": "test"},
+                        "tlogEntries": [],
+                    },
+                },
+            )
+            result = trust_vsa.verify_sigstore_vsa_bundle_shape(
+                bundle,
+                statement_path,
+                [trust_vsa.SIGSTORE_BUNDLE_V03],
+                "public-key",
+            )
+            self.assertEqual(result["status"], "FAIL")
+            self.assertFalse(result["signedStatementMatches"])
+            self.assertTrue(
+                any("duplicate JSON key: x" in item for item in result["failures"]),
+                result,
+            )
+
     def test_signed_vsa_rejects_signer_verifier_policy_mismatch(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -1868,6 +1903,27 @@ class ArtifactDeliveryTests(unittest.TestCase):
             value["result"]["pngs"][0]["sha256"] = "0" * 64
             evidence.write_text(json.dumps(value))
             self.assertEqual(verify_target_evidence(evidence, pptx, pdf, 1, render_result)["status"], "FAIL")
+
+    def test_target_evidence_rejects_duplicate_json_members(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            pptx = root / "deck.pptx"
+            pdf = root / "deck.pdf"
+            pptx.write_bytes(b"pptx")
+            pdf.write_bytes(b"pdf")
+            evidence = root / "target.json"
+            evidence.write_text(
+                '{"artifact":{"sha256":"'
+                + sha256_file(pptx)
+                + '"},"renderer":{"name":"Untrusted","version":"0"},'
+                + '"renderer":{"name":"Microsoft PowerPoint Desktop","version":"16.0"},'
+                + '"result":{"slideCount":1,"pdfSha256":"'
+                + sha256_file(pdf)
+                + '"}}',
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "duplicate JSON key: renderer"):
+                verify_target_evidence(evidence, pptx, pdf, 1)
 
     def test_visual_review_binds_exact_artifact_and_render_digests(self) -> None:
         with tempfile.TemporaryDirectory() as d:
