@@ -52,6 +52,29 @@ export class WebStore {
     this.db.close();
   }
 
+  private transaction<T>(operation: () => T): T {
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const result = operation();
+      this.db.exec("COMMIT");
+      return result;
+    } catch (error) {
+      // A failed COMMIT acknowledgement is not evidence that COMMIT did not
+      // occur. Roll back only while SQLite still reports an active transaction.
+      if (this.db.isTransaction) {
+        try {
+          this.db.exec("ROLLBACK");
+        } catch (rollbackError) {
+          throw new AggregateError(
+            [error, rollbackError],
+            "WebStore transaction and rollback failed",
+          );
+        }
+      }
+      throw error;
+    }
+  }
+
   audit(
     eventType: string,
     now: number,
@@ -97,13 +120,15 @@ export class WebStore {
       }
       return principalFromRow(row);
     }
-    this.db
-      .prepare(
-        "INSERT INTO principals (principal_id, user_name, display_name, created_at) VALUES (?, ?, ?, ?)",
-      )
-      .run(principalId, userName, displayName, now);
-    this.audit("principal.created", now, principalId, "principal", principalId, {});
-    return { principalId, userName, displayName };
+    return this.transaction(() => {
+      this.db
+        .prepare(
+          "INSERT INTO principals (principal_id, user_name, display_name, created_at) VALUES (?, ?, ?, ?)",
+        )
+        .run(principalId, userName, displayName, now);
+      this.audit("principal.created", now, principalId, "principal", principalId, {});
+      return { principalId, userName, displayName };
+    });
   }
 
   getPrincipal(principalId: string): Principal {
@@ -174,32 +199,34 @@ export class WebStore {
     },
     now: number,
   ): void {
-    this.db
-      .prepare(`
-        INSERT INTO webauthn_credentials (
-          credential_id, principal_id, public_key, counter, transports_json,
-          device_type, backed_up, created_at, last_used_at, revoked_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
-      `)
-      .run(
-        credential.id,
+    this.transaction(() => {
+      this.db
+        .prepare(`
+          INSERT INTO webauthn_credentials (
+            credential_id, principal_id, public_key, counter, transports_json,
+            device_type, backed_up, created_at, last_used_at, revoked_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+        `)
+        .run(
+          credential.id,
+          principalId,
+          Buffer.from(credential.publicKey),
+          credential.counter,
+          JSON.stringify([...credential.transports]),
+          credential.deviceType,
+          credential.backedUp ? 1 : 0,
+          now,
+          now,
+        );
+      this.audit(
+        "credential.registered",
+        now,
         principalId,
-        Buffer.from(credential.publicKey),
-        credential.counter,
-        JSON.stringify([...credential.transports]),
-        credential.deviceType,
-        credential.backedUp ? 1 : 0,
-        now,
-        now,
+        "webauthn-credential",
+        credential.id,
+        { deviceType: credential.deviceType, backedUp: credential.backedUp },
       );
-    this.audit(
-      "credential.registered",
-      now,
-      principalId,
-      "webauthn-credential",
-      credential.id,
-      { deviceType: credential.deviceType, backedUp: credential.backedUp },
-    );
+    });
   }
 
   updateCredentialCounter(
@@ -251,7 +278,9 @@ export class WebStore {
     absoluteSeconds: number,
     userAgent: string | null,
   ): { token: string; session: SessionView } {
-    return this.sessions.createSession(principalId, now, idleSeconds, absoluteSeconds, userAgent);
+    return this.transaction(
+      () => this.sessions.createSession(principalId, now, idleSeconds, absoluteSeconds, userAgent),
+    );
   }
 
   authenticateSession(
@@ -271,11 +300,11 @@ export class WebStore {
     sessionId: string,
     now: number,
   ): boolean {
-    return this.sessions.revokeSession(principalId, sessionId, now);
+    return this.transaction(() => this.sessions.revokeSession(principalId, sessionId, now));
   }
 
   revokeAllSessions(principalId: string, now: number): number {
-    return this.sessions.revokeAllSessions(principalId, now);
+    return this.transaction(() => this.sessions.revokeAllSessions(principalId, now));
   }
 
   createCanaryNote(
@@ -283,30 +312,32 @@ export class WebStore {
     content: string,
     now: number,
   ): CanaryNote {
-    const noteId = randomUUID();
-    this.db
-      .prepare(`
-        INSERT INTO canary_notes (
-          note_id, principal_id, content, state, created_at, published_at
-        ) VALUES (?, ?, ?, 'DRAFT', ?, NULL)
-      `)
-      .run(noteId, principalId, content, now);
-    this.audit(
-      "canary.note.created",
-      now,
-      principalId,
-      "canary-note",
-      noteId,
-      {},
-    );
-    return {
-      noteId,
-      principalId,
-      content,
-      state: "DRAFT",
-      createdAt: now,
-      publishedAt: null,
-    };
+    return this.transaction(() => {
+      const noteId = randomUUID();
+      this.db
+        .prepare(`
+          INSERT INTO canary_notes (
+            note_id, principal_id, content, state, created_at, published_at
+          ) VALUES (?, ?, ?, 'DRAFT', ?, NULL)
+        `)
+        .run(noteId, principalId, content, now);
+      this.audit(
+        "canary.note.created",
+        now,
+        principalId,
+        "canary-note",
+        noteId,
+        {},
+      );
+      return {
+        noteId,
+        principalId,
+        content,
+        state: "DRAFT" as const,
+        createdAt: now,
+        publishedAt: null,
+      };
+    });
   }
 
   listCanaryNotes(principalId: string): CanaryNote[] {
@@ -365,7 +396,7 @@ export class WebStore {
   }
 
   createAgentGrant(input: AgentGrantCreate, now: number): AgentGrantSnapshot {
-    return this.grants.createAgentGrant(input, now);
+    return this.transaction(() => this.grants.createAgentGrant(input, now));
   }
 
   getAgentGrant(grantId: string): AgentGrantSnapshot {
@@ -382,7 +413,9 @@ export class WebStore {
     expectedDigest: string,
     now: number,
   ): AgentGrantSnapshot {
-    return this.grants.revokeAgentGrant(principalId, grantId, expectedDigest, now);
+    return this.transaction(
+      () => this.grants.revokeAgentGrant(principalId, grantId, expectedDigest, now),
+    );
   }
 
   resolveAgentGrant(

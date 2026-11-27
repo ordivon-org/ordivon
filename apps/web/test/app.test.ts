@@ -261,6 +261,50 @@ test("Principal can list and revoke sessions, including revoke-all", async () =>
   f.store.close();
 });
 
+test("audit failure rolls back durable principal mutation and permits evidenced retry", () => {
+  const store = new WebStore(":memory:");
+  try {
+    store.db.exec(
+      "CREATE TRIGGER reject_audit BEFORE INSERT ON audit_events " +
+      "BEGIN SELECT RAISE(ABORT, 'synthetic audit failure'); END;",
+    );
+    assert.throws(
+      () => store.ensurePrincipal(
+        "principal:atomic-audit",
+        "atomic-user",
+        "Atomic User",
+        100,
+      ),
+      /synthetic audit failure/,
+    );
+    assert.equal(
+      store.db.prepare(
+        "SELECT principal_id FROM principals WHERE principal_id = ?",
+      ).get("principal:atomic-audit"),
+      undefined,
+    );
+
+    store.db.exec("DROP TRIGGER reject_audit");
+    const principal = store.ensurePrincipal(
+      "principal:atomic-audit",
+      "atomic-user",
+      "Atomic User",
+      101,
+    );
+    assert.equal(principal.principalId, "principal:atomic-audit");
+    assert.equal(
+      (
+        store.db.prepare(
+          "SELECT COUNT(*) AS n FROM audit_events WHERE principal_id = ?",
+        ).get("principal:atomic-audit") as { n: number }
+      ).n,
+      1,
+    );
+  } finally {
+    store.close();
+  }
+});
+
 test("WebAuthn challenges are one-shot even before browser ceremony tests", () => {
   const store = new WebStore(":memory:");
   store.ensurePrincipal("principal:test", "test-user", "Test User", 100);
