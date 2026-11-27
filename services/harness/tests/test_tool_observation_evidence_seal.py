@@ -27,6 +27,16 @@ def observation(content: dict) -> HarnessToolObservation:
 
 
 class ToolObservationEvidenceSealTests(unittest.TestCase):
+    def test_wire_schema_version_rejects_python_numeric_aliases(self) -> None:
+        encoded = observation({"result": {"status": "unknown"}}).to_dict()
+        self.assertEqual(HarnessToolObservation.from_dict(dict(encoded)).to_dict(), encoded)
+        for alias in (1.0, True):
+            with self.subTest(alias=alias):
+                malformed = dict(encoded)
+                malformed["schemaVersion"] = alias
+                with self.assertRaisesRegex(ValueError, "version or kind"):
+                    HarnessToolObservation.from_dict(malformed)
+
     def test_input_alias_does_not_rewrite_admitted_observation(self) -> None:
         raw = {"result": {"status": "unknown", "hits": [{"claim": "unverified"}]}}
         item = observation(raw)

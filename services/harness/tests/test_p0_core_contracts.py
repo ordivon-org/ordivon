@@ -51,6 +51,28 @@ class HarnessCoreContractTests(unittest.TestCase):
         self.assertEqual(HarnessRunContract.from_dict(value.to_dict()).digest, value.digest)
         self.assertTrue(value.digest.startswith("sha256:"))
 
+    def test_schema_version_requires_exact_integer_representation(self) -> None:
+        current = contract().to_dict()
+        malformed_v2 = dict(current)
+        malformed_v2["schemaVersion"] = 2.0
+        with self.assertRaisesRegex(ValueError, "version or kind"):
+            HarnessRunContract.from_dict(malformed_v2)
+
+        legacy = dict(current)
+        legacy["schemaVersion"] = 1
+        legacy["correlation"] = {"traceparent": None, "tracestate": None, "links": []}
+        for alias in (1.0, True):
+            with self.subTest(alias=alias):
+                malformed_v1 = dict(legacy)
+                malformed_v1["schemaVersion"] = alias
+                with self.assertRaisesRegex(ValueError, "version or kind"):
+                    HarnessRunContract.from_dict(malformed_v1)
+
+        for alias in (1.0, 2.0, True):
+            with self.subTest(constructor_alias=alias):
+                with self.assertRaisesRegex(ValueError, "schema version"):
+                    replace(contract(), _schema_version=alias)  # type: ignore[arg-type]
+
 
     def test_no_tool_budget_may_bind_zero_tool_calls(self) -> None:
         value = RunBudget(

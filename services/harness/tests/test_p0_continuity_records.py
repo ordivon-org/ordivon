@@ -241,6 +241,32 @@ class ContinuityRecordTests(unittest.TestCase):
         self.assertEqual(HarnessDispatchFence.from_dict(encoded), value)
         self.assertIsInstance(value, HarnessDispatchFenceView)
 
+    def test_retained_continuity_decoders_reject_float_schema_versions(self) -> None:
+        v3 = provider_v3()
+
+        v4_payload = v3.to_dict()
+        v4_payload["schemaVersion"] = 4
+        v4 = HarnessProviderCallRecordV4.from_dict(v4_payload)
+
+        fence = HarnessDispatchFenceV2(
+            fence_id="harness-dispatch-fence:p0-wire-version",
+            harness_run_id=binding().harness_run_id,
+            run_revision=7,
+            binding_digest=binding().digest,
+            intent_digest=DIGEST_E,
+            runtime_operation="workspace.exec",
+            client_request_id="request:p0-wire-version",
+            issued_at_ms=1_000,
+            expires_at_ms=2_000,
+        )
+
+        for value, invalid in ((v3, 3.0), (v4, 4.0), (fence, 2.0)):
+            encoded = value.to_dict()
+            encoded["schemaVersion"] = invalid
+            with self.subTest(carrier=type(value).__name__, schema_version=invalid):
+                with self.assertRaisesRegex(ValueError, "version or kind is invalid"):
+                    type(value).from_dict(encoded)
+
     def test_v3_decoder_rejects_host_field_injection(self) -> None:
         provider = provider_v3().to_dict()
         provider["taskId"] = "task:injected"

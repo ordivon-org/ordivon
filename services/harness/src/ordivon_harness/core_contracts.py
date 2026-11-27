@@ -245,7 +245,7 @@ class HarnessRunContract:
             "completion_contract",
             _freeze_json(completion_snapshot),
         )
-        if self._schema_version not in {1, 2}:
+        if type(self._schema_version) is not int or self._schema_version not in {1, 2}:
             raise ValueError("Harness Run Contract schema version is unsupported")
         if self._schema_version == 1:
             if self._legacy_correlation is None:
@@ -306,7 +306,11 @@ class HarnessRunContract:
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> HarnessRunContract:
         schema_version = value.get("schemaVersion")
-        if schema_version not in {1, 2} or value.get("kind") != "ordivon.harness-run-contract":
+        if (
+            type(schema_version) is not int
+            or schema_version not in {1, 2}
+            or value.get("kind") != "ordivon.harness-run-contract"
+        ):
             raise ValueError("HarnessRunContract version or kind is invalid")
         expected = {
             "schemaVersion",
