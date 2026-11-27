@@ -16,6 +16,7 @@ from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import ExportTrace
 ROOT = Path(__file__).resolve().parents[1]
 UNIT = ROOT / "systemd" / "ordivon-gateway.service"
 PUBLIC = ROOT / "systemd" / "ordivon-gateway.service.d" / "20-public-access.example.conf"
+HOST_OWNER = ROOT / "systemd" / "ordivon-gateway.service.d" / "25-host-owner-identity.example.conf"
 WINDOWS = (
     ROOT / "systemd" / "ordivon-gateway.service.d" / "30-windows-service-identity.example.conf"
 )
@@ -74,6 +75,17 @@ def test_public_access_is_a_separate_cutover_dropin() -> None:
     assert "ORDIVON_GATEWAY_TRUST_CF_ACCESS=true" in text
     assert "ORDIVON_GATEWAY_CF_ACCESS_AUDIENCE=<gateway-access-application-aud>" in text
     assert "client-secret" not in text.lower()
+
+
+def test_host_owner_identity_routes_to_protected_loopback_with_encrypted_credential() -> None:
+    text = HOST_OWNER.read_text(encoding="utf-8")
+    assert (
+        "LoadCredentialEncrypted=host-mcp-bearer:/etc/ordivon/credentials/host-mcp-bearer.cred"
+        in text
+    )
+    assert "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:19008/mcp" in text
+    assert "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer" in text
+    assert "127.0.0.1:8898" not in text
 
 
 def test_windows_machine_identity_is_credential_file_only() -> None:
