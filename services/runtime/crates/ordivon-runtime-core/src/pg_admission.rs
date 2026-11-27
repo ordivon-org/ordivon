@@ -19,8 +19,7 @@ mod issuer;
 pub use issuer::read_private_spawn_dsn;
 #[cfg(all(test, feature = "postgres-registry-admission"))]
 mod live_pg_tests;
-// Windows native drain is consumed by the native writer and PG falsification.
-#[cfg(any(windows, test))]
+// Win32 journal writer is platform-specific; terminal validation is shared.
 #[path = "pg_admission_native_windows_drain.rs"]
 mod native_windows_drain;
 mod readback;

@@ -1,7 +1,10 @@
+#[cfg(unix)]
 use ordivon_runtime_core::run_job_runner;
+#[cfg(unix)]
 use std::path::PathBuf;
 use std::process::ExitCode;
 
+#[cfg(unix)]
 fn main() -> ExitCode {
     let mut args = std::env::args().skip(1);
     let Some(flag) = args.next() else {
@@ -27,4 +30,10 @@ fn main() -> ExitCode {
             ExitCode::from(70)
         }
     }
+}
+
+#[cfg(not(unix))]
+fn main() -> ExitCode {
+    eprintln!("This platform uses its native Windows Job Object launcher");
+    ExitCode::from(64)
 }

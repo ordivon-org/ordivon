@@ -313,3 +313,52 @@ jobs:
             ${{ runner.temp }}/ordivon-runtime-tagged-release/sbom.spdx.json
           if-no-files-found: error
           retention-days: 30
+
+
+  windows-postgresql-runtime-release:
+    name: windows-postgresql-runtime-release
+    needs: runtime-release
+    runs-on: windows-2025
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - name: Checkout exact protected Runtime tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build exact Windows PostgreSQL Runtime package
+        shell: pwsh
+        run: |
+          python services/runtime/scripts/prepare_windows_pg_release.py --commit $env:GITHUB_SHA --output (Join-Path $env:RUNNER_TEMP "ordivon-windows-runtime-release")
+          exit $LASTEXITCODE
+
+      - name: Attest the Windows PostgreSQL package
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: ${{ runner.temp }}/ordivon-windows-runtime-release/subjects.sha256
+
+      - name: Verify signed Windows PostgreSQL provenance
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP "ordivon-windows-runtime-release"
+          $archive = Join-Path $root "ordivon-runtime-windows-pg-$env:GITHUB_SHA.zip"
+          $workflow = "$env:GITHUB_REPOSITORY/.github/workflows/runtime-release.yml"
+          gh attestation verify $archive --repo $env:GITHUB_REPOSITORY --signer-workflow $workflow --source-digest $env:GITHUB_SHA --source-ref $env:GITHUB_REF
+          exit $LASTEXITCODE
+
+      - name: Retain the Windows PostgreSQL release and checksum
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ordivon-windows-runtime-pg-${{ github.ref_name }}
+          path: |
+            ${{ runner.temp }}/ordivon-windows-runtime-release/*.zip
+            ${{ runner.temp }}/ordivon-windows-runtime-release/subjects.sha256
+          if-no-files-found: error
+          retention-days: 30
