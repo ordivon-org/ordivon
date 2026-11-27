@@ -363,6 +363,9 @@ function receiptMatchesLease(
     receipt.operation === lease.operation &&
     receipt.execution.policy_version === lease.policy_version &&
     receipt.execution.capability_version === lease.capability_version &&
+    receipt.execution.worker_version_id === lease.worker_version_id &&
+    receipt.execution.worker_version_tag === lease.worker_version_tag &&
+    receipt.execution.worker_version_timestamp === lease.worker_version_timestamp &&
     receipt.execution.lease_generation === lease.lease_generation
   );
 }
