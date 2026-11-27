@@ -1,6 +1,8 @@
 """External source evidence, owner consumer and GitHub candidate behavior."""
 import json
+import os
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -37,6 +39,78 @@ class EvidenceTests(unittest.TestCase):
             issues = check(ROOT, packet)
         self.assertTrue(any("missing/escaping" in issue for issue in issues))
         self.assertTrue(any("blob" in issue for issue in issues))
+
+    def test_source_cut_ignores_git_replace_and_foreign_git_dir(self):
+        def git(repo, *args):
+            return subprocess.check_output(
+                ["git", "-C", str(repo), *args], text=True
+            ).strip()
+
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp) / "repo"
+            foreign = Path(temp) / "foreign"
+            for path in (repo, foreign):
+                subprocess.run(["git", "init", "-q", str(path)], check=True)
+                git(path, "config", "user.email", "catalog@example.invalid")
+                git(path, "config", "user.name", "Catalog Test")
+
+            (repo / "consumer.py").write_text("ORIGINAL = 1\n", encoding="utf-8")
+            experiment = {
+                "candidate": "example/upstream",
+                "productionReplacementAuthorized": False,
+                "negative": ["reject"],
+                "rollback": ["restore"],
+            }
+            (repo / "experiment.json").write_text(
+                json.dumps(experiment), encoding="utf-8"
+            )
+            git(repo, "add", ".")
+            git(repo, "commit", "-q", "-m", "original")
+            source_cut = git(repo, "rev-parse", "HEAD")
+            source_blob = git(repo, "rev-parse", f"{source_cut}:consumer.py")
+
+            (repo / "consumer.py").write_text("REPLACED = 2\n", encoding="utf-8")
+            git(repo, "add", "consumer.py")
+            git(repo, "commit", "-q", "-m", "replacement")
+            replacement = git(repo, "rev-parse", "HEAD")
+            git(repo, "replace", source_cut, replacement)
+
+            packet = repo / "packet.json"
+            packet.write_text(
+                json.dumps(
+                    {
+                        "source": {
+                            "ordivonSourceCut": source_cut,
+                            "consumerSourceBlobSha1": {"consumer.py": source_blob},
+                            "upstream": {
+                                "repository": "https://github.com/example/upstream"
+                            },
+                        },
+                        "references": {
+                            "consumerSources": ["consumer.py"],
+                            "experiment": "experiment.json",
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            self.assertEqual(check(repo, packet), [])
+
+            (foreign / "consumer.py").write_text("FOREIGN = 3\n", encoding="utf-8")
+            (foreign / "experiment.json").write_text(
+                json.dumps(experiment), encoding="utf-8"
+            )
+            git(foreign, "add", ".")
+            git(foreign, "commit", "-q", "-m", "foreign")
+            previous = os.environ.get("GIT_DIR")
+            os.environ["GIT_DIR"] = str(foreign / ".git")
+            try:
+                self.assertEqual(check(repo, packet), [])
+            finally:
+                if previous is None:
+                    os.environ.pop("GIT_DIR", None)
+                else:
+                    os.environ["GIT_DIR"] = previous
 
 
 class WorktrunkConsumerProjectionTests(unittest.TestCase):
