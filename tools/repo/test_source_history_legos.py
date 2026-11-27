@@ -28,6 +28,15 @@ def git(p: Path, *args: str) -> str:
 
 
 class SourceHistoryGitEnvironmentTests(unittest.TestCase):
+    def test_source_git_env_disables_promisor_lazy_fetch(self):
+        from unittest.mock import patch
+
+        with patch.dict(os.environ, {"GIT_NO_LAZY_FETCH": "0", "GIT_DIR": "/tmp/foreign"}):
+            env = source_history_legos._source_git_env()
+        self.assertEqual(env["GIT_NO_LAZY_FETCH"], "1")
+        self.assertEqual(env["GIT_GRAFT_FILE"], os.devnull)
+        self.assertNotIn("GIT_DIR", env)
+
     def test_explicit_source_repo_ignores_foreign_ambient_git_namespace(self):
         # Composition runs this native source-history producer with --repo.
         # Inherited GIT_DIR must not replace that explicit immutable source.
