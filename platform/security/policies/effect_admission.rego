@@ -3,6 +3,7 @@ package ordivon.security.v2.effect_admission
 import rego.v1
 
 matching_authorities := [authority |
+  authorities_contract_valid
   some authority in input.authorities
   authority.authorityId == input.request.authorityId
 ]
@@ -27,6 +28,40 @@ valid_sha256(value) if {
 nonempty_string(value) if {
   is_string(value)
   count(value) > 0
+}
+
+string_array(value) if {
+  is_array(value)
+  every item in value {
+    nonempty_string(item)
+  }
+}
+
+authority_contract_valid(authority) if {
+  is_object(authority)
+  allowed := {"authorityId", "actorId", "zoneRefs", "capabilities", "authorityDigest"}
+  every key in object.keys(authority) { key in allowed }
+  nonempty_string(authority.authorityId)
+  nonempty_string(authority.actorId)
+  string_array(authority.zoneRefs)
+  string_array(authority.capabilities)
+  nonempty_string(authority.authorityDigest)
+}
+
+authorities_contract_valid if {
+  is_array(input.authorities)
+  every authority in input.authorities {
+    authority_contract_valid(authority)
+  }
+}
+
+input_contract_valid if {
+  is_object(input)
+  allowed := {"schemaVersion", "actorIds", "authorities", "request"}
+  every key in object.keys(input) { key in allowed }
+  string_array(input.actorIds)
+  authorities_contract_valid
+  request_contract_valid
 }
 
 # A direct OPA consumer must not bypass the typed public adapter.
@@ -84,7 +119,7 @@ reason := "unsupported-contract-version" if {
 }
 else := "invalid-input" if {
   bound_contract
-  not request_contract_valid
+  not input_contract_valid
 }
 else := "unknown-actor" if {
   bound_contract

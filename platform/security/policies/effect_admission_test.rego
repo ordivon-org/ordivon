@@ -167,3 +167,27 @@ test_extra_request_fields_are_rejected if {
   result.admitted == false
   result.reason == "invalid-input"
 }
+
+test_direct_opa_collection_shapes_fail_closed if {
+  base := input_for(request({}))
+  authority_with_extra := object.union(base_authorities[0], {"shadowAuthority": "untrusted"})
+  authority_with_object_zones := object.union(base_authorities[0], {"zoneRefs": {"zone:battlefield": true}})
+  authority_with_object_capabilities := object.union(base_authorities[0], {"capabilities": {"range-network": true}})
+
+  cases := [
+    object.union(base, {"actorIds": {"actor:red": true}}),
+    object.union(base, {"actorIds": ["actor:red", 7]}),
+    object.union(base, {"authorities": {"red": base_authorities[0]}}),
+    object.union(base, {"authorities": [base_authorities[0], 7]}),
+    object.union(base, {"authorities": [authority_with_object_zones, base_authorities[1]]}),
+    object.union(base, {"authorities": [authority_with_object_capabilities, base_authorities[1]]}),
+    object.union(base, {"authorities": [authority_with_extra, base_authorities[1]]}),
+    object.union(base, {"shadowRoot": "untrusted"}),
+  ]
+
+  every bad_input in cases {
+    result := decision with input as bad_input
+    result.admitted == false
+    result.reason == "invalid-input"
+  }
+}
