@@ -19,6 +19,10 @@ mod issuer;
 pub use issuer::read_private_spawn_dsn;
 #[cfg(all(test, feature = "postgres-registry-admission"))]
 mod live_pg_tests;
+// Windows native drain is consumed by the native writer and PG falsification.
+#[cfg(any(windows, test))]
+#[path = "pg_admission_native_windows_drain.rs"]
+mod native_windows_drain;
 mod readback;
 mod release;
 pub use readback::PgAdmissionObservation;
@@ -32,6 +36,8 @@ pub(crate) use dispatch::PgRunnerBound;
 pub use dispatch::{PgBundleReady, PgDispatchIssued};
 use input_contract::unambiguous_json_object;
 pub use input_contract::PgAdmissionInput;
+#[cfg(any(windows, test))]
+pub(crate) use native_windows_drain::{PgNativeWindowsDrainInput, PgNativeWindowsDrainOutcome};
 use terminal_contract::terminal_transition;
 pub(crate) use terminal_contract::{pg_artifact_manifest_digest, valid_pg_artifacts};
 pub use terminal_contract::{PgArtifactRegistration, PgTerminalNoArtifacts, PgTerminalOutcome};
