@@ -60,6 +60,24 @@ def test_netns_rejects_subnet_wider_than_forwarding_contract(monkeypatch):
         netns.config()
 
 
+def test_netns_rejects_drifted_forwarding_subnet_before_any_ip_effect(monkeypatch, capsys):
+    netns = load()
+    monkeypatch.setenv("HOST_IF", "vethHost")
+    monkeypatch.setenv("NS_IF", "vethPeer")
+    monkeypatch.setenv("HOST_ADDR", "10.20.30.1/30")
+    monkeypatch.setenv("NS_ADDR", "10.20.30.2/30")
+    monkeypatch.setenv("NS_CIDR", "10.20.30.0/29")
+    monkeypatch.setattr(netns.sys, "argv", ["shared-egress-netns", "ensure"])
+    monkeypatch.setattr(
+        netns,
+        "command",
+        lambda *args, **kwargs: pytest.fail(f"unexpected ip effect: {args}"),
+    )
+
+    assert netns.main() == 1
+    assert "shared forwarding subnet does not match veth endpoints" in capsys.readouterr().err
+
+
 def test_existing_topology_is_reused_without_any_ip_mutation(monkeypatch, capsys):
     netns = load()
     FakePath.present = {"/run/netns/nv2-browserless-prod", "/sys/class/net/vethHost"}
