@@ -403,7 +403,8 @@ def _read_committed_paper_receipt(
     ).hexdigest()
     if (
         recomputed != digest
-        or receipt.get("schema_version") != 1
+        or type(receipt.get("schema_version")) is not int
+        or receipt["schema_version"] != 1
         or receipt.get("request_sha256") != digest
         or receipt.get("previous_request_sha256") != previous_digest
         or (
