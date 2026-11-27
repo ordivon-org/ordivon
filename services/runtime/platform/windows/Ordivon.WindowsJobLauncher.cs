@@ -2508,22 +2508,42 @@ internal static class OrdivonWindowsJobLauncher
     }
 
     private static IntPtr OpenPgRecoveryPeer(string service, SecurityIdentifier sid, out uint pid,
-        out bool removed)
+        out bool removed, out string rejection)
     {
+        rejection = null;
         pid = PgScmProcessId(service, out removed);
-        if (pid == 0) return IntPtr.Zero;
+        if (pid == 0)
+        {
+            rejection = "SCM did not report a running dedicated Runtime process";
+            return IntPtr.Zero;
+        }
         IntPtr process = OpenProcess(ProcessQueryLimitedInformation | Synchronize, false, pid);
-        if (process == IntPtr.Zero) return IntPtr.Zero;
+        if (process == IntPtr.Zero)
+        {
+            rejection = "OpenProcess(replacement Runtime) failed: " + Marshal.GetLastWin32Error();
+            return IntPtr.Zero;
+        }
         bool matched = false;
         try
         {
             IntPtr token;
-            if (!OpenProcessToken(process, TokenQuery, out token)) return IntPtr.Zero;
+            if (!OpenProcessToken(process, TokenQuery, out token))
+            {
+                rejection = "OpenProcessToken(replacement Runtime) failed: " + Marshal.GetLastWin32Error();
+                return IntPtr.Zero;
+            }
             try
             {
                 using (WindowsIdentity identity = new WindowsIdentity(token))
-                    matched = sid.Equals(identity.User) && PgScmProcessId(service, out removed) == pid
-                        && ProcessHandleIsRunning(process, "WaitForSingleObject(SCM Runtime owner)");
+                {
+                    if (!sid.Equals(identity.User))
+                        rejection = "replacement Runtime SID differs from original service SID";
+                    else if (PgScmProcessId(service, out removed) != pid
+                        || !ProcessHandleIsRunning(process, "WaitForSingleObject(SCM Runtime owner)"))
+                        rejection = "SCM Runtime changed during identity verification";
+                    else
+                        matched = true;
+                }
             }
             finally { CloseHandle(token); }
             return matched ? process : IntPtr.Zero;
@@ -2577,6 +2597,7 @@ internal static class OrdivonWindowsJobLauncher
                 PipeAccessRights.ReadAttributes | PipeAccessRights.Synchronize,
             AccessControlType.Allow));
         Stopwatch standaloneDeadline = Stopwatch.StartNew();
+        string previousRejection = null;
         while (true)
         {
             using (NamedPipeServerStream pipe = new NamedPipeServerStream(
@@ -2586,10 +2607,11 @@ internal static class OrdivonWindowsJobLauncher
                 uint expectedPid = options.PgTerminalPeerProcessId.Value;
                 IntPtr owner = pgPeerProcess;
                 bool recovering = !ProcessHandleIsRunning(owner, "WaitForSingleObject(original PG peer)");
+                string rejection = null;
                 if (recovering && pgRecoveryService != null)
                 {
                     bool removed;
-                    owner = OpenPgRecoveryPeer(pgRecoveryService, pgPeerSid, out expectedPid, out removed);
+                    owner = OpenPgRecoveryPeer(pgRecoveryService, pgPeerSid, out expectedPid, out removed, out rejection);
                     if (removed)
                         throw new InvalidOperationException("qualified PG Runtime service was removed");
                 }
@@ -2609,7 +2631,7 @@ internal static class OrdivonWindowsJobLauncher
                             if (pgRecoveryService != null && owner == IntPtr.Zero)
                             {
                                 bool removed;
-                                owner = OpenPgRecoveryPeer(pgRecoveryService, pgPeerSid, out expectedPid, out removed);
+                                owner = OpenPgRecoveryPeer(pgRecoveryService, pgPeerSid, out expectedPid, out removed, out rejection);
                                 if (removed)
                                     throw new InvalidOperationException("qualified PG Runtime service was removed");
                             }
@@ -2627,6 +2649,7 @@ internal static class OrdivonWindowsJobLauncher
                     {
                         // SCM may have restarted between the poll and pipe connect.
                         // Reject this unauthenticated connection and rebind on retry.
+                        ReportPgRecoveryRejection(rejection, ref previousRejection);
                         continue;
                     }
                     uint nativePeer;
@@ -2634,7 +2657,12 @@ internal static class OrdivonWindowsJobLauncher
                         ThrowWin32("GetNamedPipeClientProcessId(PG terminal)");
                     if (nativePeer != expectedPid
                         || !ProcessHandleIsRunning(owner, "WaitForSingleObject(PG pipe client)"))
+                    {
+                        if (recovering)
+                            ReportPgRecoveryRejection("unexpected native pipe PID " + nativePeer
+                                + " for SCM Runtime PID " + expectedPid, ref previousRejection);
                         continue;
+                    }
                     // A Ready byte authorizes the observer to journal the native
                     // drain. Release the Job handle only on its post-COMMIT ACK.
                     pipe.WriteByte((byte)'R');
@@ -2659,6 +2687,14 @@ internal static class OrdivonWindowsJobLauncher
                 }
             }
         }
+    }
+
+    private static void ReportPgRecoveryRejection(string rejection, ref string previous)
+    {
+        string reason = rejection ?? "no live SCM Runtime was pinned before connection";
+        if (reason == previous) return;
+        previous = reason;
+        Console.Error.WriteLine("PG terminal replacement rejected: " + reason);
     }
 
     private static void WriteWindowsJobDrainEvidence(
