@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .canonical_json import canonical_bytes
+from .errors import InvalidArgumentError
 
 
 def reentry_topic_refs(events: Sequence[dict[str, Any]]) -> list[str]:
@@ -137,6 +138,6 @@ def project_reentry(
         accepted = count
 
     if not accepted:
-        raise ValueError("max_bytes cannot fit one re-entry navigation item")
+        raise InvalidArgumentError("max_bytes cannot fit one re-entry navigation item")
     # Rebuild only the accepted prefix, excluding the overflowing event.
     return projection(accepted)

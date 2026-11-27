@@ -9,7 +9,7 @@ from psycopg_pool import ConnectionPool
 
 from .canonical_json import canonical_digest
 from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES
-from .errors import ConflictError, WorkNotFound
+from .errors import ConflictError, InvalidArgumentError, WorkNotFound
 from .postgres_bounds import HOST_WIRE_INT_MAX
 from .postgres_connections import HostPostgresConnections
 from .references.actor_refs import ActorReferenceLookup
@@ -172,7 +172,7 @@ class WorkStore(HostPostgresConnections):
         # Revision is a typed CAS identity, not Python numeric equality:
         # bool is an int subclass, and 1.0 compares equal to 1.
         if type(expected_revision) is not int or not 1 <= expected_revision < HOST_WIRE_INT_MAX:
-            raise ValueError(
+            raise InvalidArgumentError(
                 "expected_revision must be a positive PostgreSQL BIGINT predecessor within JSON safe integer range"
             )
         payload = snapshot.canonical_payload()

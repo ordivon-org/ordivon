@@ -2,6 +2,10 @@ class HostV2Error(RuntimeError):
     pass
 
 
+class InvalidArgumentError(ValueError):
+    """Caller-supplied argument violates an explicit Host domain boundary."""
+
+
 class ConflictError(HostV2Error):
     pass
 
