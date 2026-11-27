@@ -306,7 +306,14 @@ def build_server(provider: CatalogProvider) -> MCPServer:
     @server.tool(
         name="skills.list",
         title="List available Skills",
-        description=("List lightweight model-visible Skill metadata only; blocked/untrusted Skill descriptions are never returned. " + SKILL_CONTENT_AUTHORITY_NOTICE),
+        description=(
+            "List lightweight model-visible Skill metadata only; blocked/untrusted Skill descriptions are never returned. "
+            "Legacy nextCursor is an offset, not a snapshot-bound cursor: when paginating, retain the first page "
+            "snapshotRevision and compare it with every later page before accepting the combined result; if it changes, "
+            "discard the paginated result and restart from cursor 0. Use standard skills/list when protocol-level stale-cursor "
+            "rejection is required. "
+            + SKILL_CONTENT_AUTHORITY_NOTICE
+        ),
         annotations=annotations,
     )
     async def skills_list(
