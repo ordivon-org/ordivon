@@ -1,7 +1,7 @@
 use super::terminal_event::terminal_events_coherent;
 use super::types::{PgJobReadback, PgJobSnapshot};
 use crate::pg_admission::{require_pg_writer_epoch, PgAdmissionError, PgAdmissionStore};
-use postgres::IsolationLevel;
+use postgres::{IsolationLevel, Transaction};
 
 impl PgAdmissionStore {
     /// Read a single consistent Job/Attempt/Reservation snapshot without
@@ -13,6 +13,24 @@ impl PgAdmissionStore {
         job_id: &str,
         expected_source_sha256: &str,
     ) -> Result<PgJobReadback, PgAdmissionError> {
+        let mut tx = self
+            .client
+            .build_transaction()
+            .isolation_level(IsolationLevel::RepeatableRead)
+            .read_only(true)
+            .start()?;
+        let snapshot = Self::observe_job_snapshot(&mut tx, job_id, expected_source_sha256)?;
+        tx.commit()?;
+        Ok(snapshot)
+    }
+
+    /// Extend a caller's read-only REPEATABLE READ snapshot with the canonical
+    /// writer, Job, Attempt, Reservation, and terminal evidence qualifications.
+    pub(crate) fn observe_job_snapshot(
+        tx: &mut Transaction<'_>,
+        job_id: &str,
+        expected_source_sha256: &str,
+    ) -> Result<PgJobReadback, PgAdmissionError> {
         if job_id.is_empty()
             || expected_source_sha256.len() != 64
             || !expected_source_sha256
@@ -21,12 +39,6 @@ impl PgAdmissionStore {
         {
             return Err(PgAdmissionError::InvalidInput);
         }
-        let mut tx = self
-            .client
-            .build_transaction()
-            .isolation_level(IsolationLevel::RepeatableRead)
-            .read_only(true)
-            .start()?;
         let owner = tx.query_opt(
             "SELECT state, source_sha256, promotion_allowed FROM _stage_control WHERE id='source'",
             &[],
@@ -41,7 +53,7 @@ impl PgAdmissionStore {
         // Current Job readback must not promote restored historical data to
         // installed/current authority without the operator-owned PG epoch.
         // This is a read-only check; forensic SQL can still inspect old rows.
-        require_pg_writer_epoch(&mut tx, expected_source_sha256, false)?;
+        require_pg_writer_epoch(tx, expected_source_sha256, false)?;
         let Some(job) = tx.query_opt(
             "SELECT desired_state, resolution, current_attempt_id, row_version FROM jobs WHERE job_id=$1",
             &[&job_id],
@@ -99,11 +111,9 @@ impl PgAdmissionStore {
             attempt_row_version: attempt.get(5),
             reservation_state: reservation.get(0),
         };
-        if !snapshot.lifecycle_coherent() || !terminal_events_coherent(&mut tx, &snapshot)? {
+        if !snapshot.lifecycle_coherent() || !terminal_events_coherent(tx, &snapshot)? {
             return Ok(PgJobReadback::Inconclusive);
         }
-        // Read-only transaction commit is not an effectful admission.
-        tx.commit()?;
         Ok(PgJobReadback::Observed(Box::new(snapshot)))
     }
 }

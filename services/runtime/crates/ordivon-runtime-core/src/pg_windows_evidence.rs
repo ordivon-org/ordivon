@@ -4,10 +4,14 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
-const MAX_EVIDENCE_BYTES: u64 = 2 * 1024 * 1024;
-const MAX_OUTPUT_BYTES: u64 = 4 * 1024 * 1024;
+#[path = "pg_windows_evidence/carrier.rs"]
+mod carrier;
+use carrier::{read_request_bytes, read_value};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PgWindowsWitnessIdentity {
@@ -18,6 +22,9 @@ pub struct PgWindowsWitnessIdentity {
     pub request_digest: String,
     /// Must identify the exact binary admitted as the Windows launcher.
     pub launcher_image_digest: String,
+    /// Frozen per-stream limits from the original admitted PG Plan.
+    pub stdout_limit_bytes: u64,
+    pub stderr_limit_bytes: u64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -60,25 +67,6 @@ pub struct PgWindowsWitnessObservation {
     pub terminal_proven: bool,
 }
 
-fn read_value(path: &Path) -> Result<Option<(Value, Vec<u8>)>, String> {
-    if !path.exists() {
-        return Ok(None);
-    }
-    let meta = fs::symlink_metadata(path).map_err(|e| format!("metadata: {e}"))?;
-    if !meta.file_type().is_file() || meta.len() > MAX_EVIDENCE_BYTES {
-        return Err("evidence must be a bounded regular non-symlink file".into());
-    }
-    let bytes = fs::read(path).map_err(|e| format!("evidence read: {e}"))?;
-    if bytes.len() as u64 != meta.len() {
-        return Err("evidence mutated during read".into());
-    }
-    let value =
-        serde_json::from_slice::<Value>(&bytes).map_err(|e| format!("evidence JSON: {e}"))?;
-    if !value.is_object() {
-        return Err("evidence must be a JSON object".into());
-    }
-    Ok(Some((value, bytes)))
-}
 fn exact_text(value: &Value, key: &str, expected: &str) -> Result<(), String> {
     if value.get(key).and_then(Value::as_str) != Some(expected) {
         return Err(format!("{key}: identity mismatch"));
@@ -103,6 +91,52 @@ fn sha256(bytes: &[u8]) -> String {
     format!("sha256:{}", hex::encode(Sha256::digest(bytes)))
 }
 
+/// One shared output-verification operator, used before native drain
+/// journal publication and again before the terminal/Artifact transaction.
+fn verified_output(
+    dir: &Path,
+    filename: &str,
+    item: &Value,
+    admitted_limit: u64,
+) -> Result<(i64, String), String> {
+    exact_text(item, "fileName", filename)?;
+    let length = item
+        .get("retainedBytes")
+        .and_then(Value::as_u64)
+        .ok_or("invalid retained output length")?;
+    let digest = item
+        .get("digest")
+        .and_then(Value::as_str)
+        .ok_or("missing output digest")?;
+    carrier::verify_output(&dir.join(filename), length, digest, admitted_limit)?;
+    Ok((
+        i64::try_from(length).map_err(|_| "output length out of range")?,
+        digest.to_owned(),
+    ))
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FrozenWindowsOutputLimits {
+    stdout_limit_bytes: u64,
+    stderr_limit_bytes: u64,
+}
+
+fn frozen_output_limits(plan: &str, digest: &str) -> Result<FrozenWindowsOutputLimits, String> {
+    if sha256(plan.as_bytes()) != digest {
+        return Err("PG frozen execution Plan digest mismatch".into());
+    }
+    let limits: FrozenWindowsOutputLimits =
+        serde_json::from_str(plan).map_err(|_| "PG frozen execution Plan output limits invalid")?;
+    if [limits.stdout_limit_bytes, limits.stderr_limit_bytes]
+        .into_iter()
+        .any(|v| v == 0 || v > i64::MAX as u64)
+    {
+        return Err("PG frozen execution Plan output limits out of range".into());
+    }
+    Ok(limits)
+}
+
 /// No OS calls. A mere result.json is always a candidate, never a terminal.
 /// Uses exact attempt and process creation identity to reject stale/PID-reused
 /// witnesses and does not infer negative effects from missing evidence.
@@ -110,6 +144,15 @@ pub fn inspect_windows_pg_bundle(
     dir: &Path,
     expected: &PgWindowsWitnessIdentity,
 ) -> Result<PgWindowsWitnessObservation, String> {
+    inspect_windows_pg_bundle_with_start(dir, expected).map(|(witness, _)| witness)
+}
+
+// Return the digest of the SAME validated start bytes, never re-read the
+// mutable carrier to manufacture a different RUNNER_BOUND commitment.
+fn inspect_windows_pg_bundle_with_start(
+    dir: &Path,
+    expected: &PgWindowsWitnessIdentity,
+) -> Result<(PgWindowsWitnessObservation, Option<String>), String> {
     if expected.job_id.is_empty()
         || expected.attempt_id.is_empty()
         || !expected.launch_token_digest.starts_with("sha256:")
@@ -135,7 +178,7 @@ pub fn inspect_windows_pg_bundle(
         if target.is_some() || result.is_some() {
             return Err("target/result without independently bound launcher identity".into());
         }
-        return Ok(output);
+        return Ok((output, None));
     };
     identity(&launch, expected)?;
     exact_text(&launch, "requestDigest", &expected.request_digest)?;
@@ -155,11 +198,11 @@ pub fn inspect_windows_pg_bundle(
     output.phase = PgWindowsWitnessPhase::LauncherWitness;
     output.launcher_process_id = Some(pid);
     output.launcher_creation_file_time = Some(birth);
-    let Some((start, _)) = target else {
+    let Some((start, start_bytes)) = target else {
         if result.is_some() {
             return Err("result without bound target-start identity".into());
         }
-        return Ok(output);
+        return Ok((output, None));
     };
     identity(&start, expected)?;
     exact_text(&start, "requestDigest", &expected.request_digest)?;
@@ -183,7 +226,7 @@ pub fn inspect_windows_pg_bundle(
     positive_u64(&start, "observedUnixMs")?;
     output.phase = PgWindowsWitnessPhase::TargetWitness;
     let Some((complete, bytes)) = result else {
-        return Ok(output);
+        return Ok((output, Some(sha256(&start_bytes))));
     };
     identity(&complete, expected)?;
     exact_text(&complete, "taskId", &expected.attempt_id)?;
@@ -209,21 +252,18 @@ pub fn inspect_windows_pg_bundle(
     if positive_u64(&complete, "finishedUnixMs")? < begin {
         return Err("result finished before start".into());
     }
-    for (name, filename) in [("stdout", "stdout.log"), ("stderr", "stderr.log")] {
+    for (name, filename, limit) in [
+        ("stdout", "stdout.log", expected.stdout_limit_bytes),
+        ("stderr", "stderr.log", expected.stderr_limit_bytes),
+    ] {
         let item = complete
             .get(name)
             .ok_or_else(|| format!("{name}: absent"))?;
-        exact_text(item, "fileName", filename)?;
-        let artifact = read_raw_bounded(&dir.join(filename))?;
-        if item.get("retainedBytes").and_then(Value::as_u64) != Some(artifact.len() as u64)
-            || item.get("digest").and_then(Value::as_str) != Some(sha256(&artifact).as_str())
-        {
-            return Err(format!("{name}: retained artifact identity mismatch"));
-        }
+        verified_output(dir, filename, item, limit).map_err(|error| format!("{name}: {error}"))?;
     }
     output.phase = PgWindowsWitnessPhase::ResultWitnessPendingOsReconciliation;
     output.result_digest = Some(sha256(&bytes));
-    Ok(output)
+    Ok((output, Some(sha256(&start_bytes))))
 }
 /// Missing receipt is UNKNOWN. A matching carrier receipt is NOT a trusted
 /// native drain and never substitutes for independent owner/provenance checks.
@@ -271,23 +311,30 @@ pub fn inspect_windows_pg_drain_candidate(
     }))
 }
 
-fn read_raw_bounded(path: &Path) -> Result<Vec<u8>, String> {
-    let meta = fs::symlink_metadata(path).map_err(|e| format!("output metadata: {e}"))?;
-    if !meta.file_type().is_file() || meta.len() > MAX_OUTPUT_BYTES {
-        return Err("output must be a bounded regular file".into());
-    }
-    let bytes = fs::read(path).map_err(|e| format!("output read: {e}"))?;
-    if bytes.len() as u64 != meta.len() {
-        return Err("output changed during read".into());
-    }
-    Ok(bytes)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
     use tempfile::TempDir;
+
+    #[test]
+    fn original_plan_limits_are_digest_bound_positive_and_asymmetric() {
+        let plan = r#"{"stdoutLimitBytes":17,"stderrLimitBytes":99,"other":true}"#;
+        let limits = frozen_output_limits(plan, &sha256(plan.as_bytes())).unwrap();
+        assert_eq!(
+            (limits.stdout_limit_bytes, limits.stderr_limit_bytes),
+            (17, 99)
+        );
+        assert!(frozen_output_limits(plan, &sha256(b"different")).is_err());
+        for invalid in [
+            r#"{"stdoutLimitBytes":17}"#,
+            r#"{"stdoutLimitBytes":0,"stderrLimitBytes":99}"#,
+            r#"{"stdoutLimitBytes":17,"stdoutLimitBytes":18,"stderrLimitBytes":99}"#,
+            r#"{"stdoutLimitBytes":9223372036854775808,"stderrLimitBytes":99}"#,
+        ] {
+            assert!(frozen_output_limits(invalid, &sha256(invalid.as_bytes())).is_err());
+        }
+    }
 
     fn fixtures() -> (TempDir, PgWindowsWitnessIdentity) {
         let dir = TempDir::new().unwrap();
@@ -297,6 +344,8 @@ mod tests {
             launch_token_digest: "sha256:".to_string() + &"a".repeat(64),
             request_digest: "sha256:".to_string() + &"b".repeat(64),
             launcher_image_digest: "sha256:".to_string() + &"c".repeat(64),
+            stdout_limit_bytes: 4096,
+            stderr_limit_bytes: 4096,
         };
         (dir, id)
     }
@@ -330,6 +379,28 @@ mod tests {
         fs::write(dir.join("stderr.log"), []).unwrap();
         write(dir, "result.json", result(id));
         inspect_windows_pg_bundle(dir, id).unwrap()
+    }
+
+    #[test]
+    fn validated_start_digest_is_exact_and_missing_or_foreign_is_not_a_binding() {
+        let (d, i) = fixtures();
+        let (empty, digest) = inspect_windows_pg_bundle_with_start(d.path(), &i).unwrap();
+        assert_eq!(empty.phase, PgWindowsWitnessPhase::NoLauncherWitness);
+        assert_eq!(digest, None);
+        write(d.path(), "windows-launcher-start.json", launcher(&i));
+        let (only_launcher, digest) = inspect_windows_pg_bundle_with_start(d.path(), &i).unwrap();
+        assert_eq!(only_launcher.phase, PgWindowsWitnessPhase::LauncherWitness);
+        assert_eq!(digest, None);
+        let bytes = serde_json::to_vec_pretty(&target(&i)).unwrap();
+        fs::write(d.path().join("windows-start.json"), &bytes).unwrap();
+        let (start, digest) = inspect_windows_pg_bundle_with_start(d.path(), &i).unwrap();
+        assert_eq!(start.phase, PgWindowsWitnessPhase::TargetWitness);
+        assert_eq!(digest, Some(sha256(&bytes)));
+        assert!(!start.terminal_proven);
+        let mut foreign = target(&i);
+        foreign["launcherProcessId"] = json!(999);
+        write(d.path(), "windows-start.json", foreign);
+        assert!(inspect_windows_pg_bundle_with_start(d.path(), &i).is_err());
     }
 
     fn native_drain(id: &PgWindowsWitnessIdentity) -> Value {
@@ -511,6 +582,18 @@ mod tests {
         write(d.path(), "result.json", result(&i));
         assert!(inspect_windows_pg_bundle(d.path(), &i).is_err());
     }
+    #[cfg(unix)]
+    #[test]
+    fn dangling_receipt_link_is_conflict_not_absence() {
+        let (d, i) = fixtures();
+        std::os::unix::fs::symlink(
+            "does-not-exist",
+            d.path().join("windows-launcher-start.json"),
+        )
+        .unwrap();
+        assert!(inspect_windows_pg_bundle(d.path(), &i).is_err());
+    }
+
     #[test]
     fn unexpected_symlink_rejected() {
         let (d, i) = fixtures();
@@ -526,6 +609,10 @@ mod tests {
     }
 }
 
+#[cfg(any(windows, test))]
+#[path = "pg_windows_evidence/terminal.rs"]
+pub(crate) mod terminal;
+
 /// Bind a Windows evidence read to an exact, admitted PostgreSQL Job snapshot.
 /// PostgreSQL qualification and ownership are checked in one read-only snapshot.
 /// This must NOT be used to declare terminal before independent OS owner death
@@ -538,7 +625,35 @@ pub fn inspect_admitted_windows_pg_bundle(
     job_id: &str,
     store_root: &Path,
 ) -> Result<PgWindowsWitnessObservation, String> {
-    use crate::pg_admission::PgAdmissionStore;
+    let mut store = crate::pg_admission::PgAdmissionStore::connect(dsn, schema)
+        .map_err(|_| "PG schema unavailable or invalid".to_string())?;
+    let bound =
+        bind_admitted_windows_pg_bundle(&mut store, source_sha256, principal, job_id, store_root)?;
+    inspect_windows_pg_bundle(&bound.root, &bound.identity)
+}
+
+struct BoundWindowsPgBundle {
+    root: PathBuf,
+    identity: PgWindowsWitnessIdentity,
+    #[cfg(windows)]
+    attempt_row_version: i64,
+    #[cfg(windows)]
+    resolved: bool,
+    #[cfg(windows)]
+    starting_natural: bool,
+    #[cfg(windows)]
+    runner_bound_start_digest: Option<String>,
+}
+
+/// Shared trusted binding for readback and effectful reconciliation.
+/// Never accepts caller-provided Attempt, bundle, launcher or row-version identity.
+fn bind_admitted_windows_pg_bundle(
+    store: &mut crate::pg_admission::PgAdmissionStore,
+    source_sha256: &str,
+    principal: &str,
+    job_id: &str,
+    store_root: &Path,
+) -> Result<BoundWindowsPgBundle, String> {
     use crate::pg_readback::PgJobReadback;
     use postgres::IsolationLevel;
 
@@ -549,24 +664,9 @@ pub fn inspect_admitted_windows_pg_bundle(
     {
         return Err("invalid PG readback query identity".into());
     }
-    let mut store = PgAdmissionStore::connect(dsn, schema)
-        .map_err(|_| "PG schema unavailable or invalid".to_string())?;
-    // The one qualified PG readback owns Writer Epoch, lifecycle, terminal
-    // events and Reservation coherence. Do not reimplement those checks here.
-    let qualified = match store
-        .observe_job_readonly(job_id, source_sha256)
-        .map_err(|_| "PG writer/currentness readback unavailable".to_string())?
-    {
-        PgJobReadback::Observed(snapshot) => snapshot,
-        PgJobReadback::Inconclusive => {
-            return Err("PG lifecycle inconclusive: current Attempt, resolved PG Job retains a pointer, or terminal evidence disagrees".into());
-        }
-    };
-
-    // A second read-only snapshot is only for the Windows provider's immutable
-    // bundle fields, absent from the shared lifecycle projection. Fence both
-    // versions and the exact Attempt: a changing Job is UNKNOWN, never a
-    // fallback to its highest historical attempt.
+    // Qualify the ordinary PG lifecycle and Windows provider fields in
+    // the same snapshot. Runtime's scheduler can bind or terminalize the
+    // Attempt while a consumer is observing and replaying the same Job.
     let mut tx = store
         .client
         .build_transaction()
@@ -574,10 +674,22 @@ pub fn inspect_admitted_windows_pg_bundle(
         .read_only(true)
         .start()
         .map_err(|_| "PG provider snapshot unavailable".to_string())?;
+    let qualified = match crate::pg_admission::PgAdmissionStore::observe_job_snapshot(
+        &mut tx,
+        job_id,
+        source_sha256,
+    )
+    .map_err(|_| "PG writer/currentness readback unavailable".to_string())?
+    {
+        PgJobReadback::Observed(snapshot) => snapshot,
+        PgJobReadback::Inconclusive => {
+            return Err("PG lifecycle inconclusive: current Attempt, resolved PG Job retains a pointer, or terminal evidence disagrees".into());
+        }
+    };
     let row = tx
         .query_opt(
             "SELECT j.principal,j.workspace_snapshot_json,a.launch_token_digest, \
-             a.bundle_path,a.unit_name,a.bundle_digest \
+             a.bundle_path,a.unit_name,a.bundle_digest,j.execution_plan_json,j.execution_plan_digest \
              FROM jobs j JOIN attempts a ON a.job_id=j.job_id AND a.attempt_id=$2 \
              WHERE j.job_id=$1 AND j.row_version=$3 AND a.row_version=$4 \
                AND j.resolution IS NOT DISTINCT FROM $5::TEXT AND a.state=$6::TEXT \
@@ -617,7 +729,51 @@ pub fn inspect_admitted_windows_pg_bundle(
     if name != format!("Ordivon.{attempt_id}") {
         return Err("PG attempt does not bind the Windows native Job Object".into());
     }
+    let limits = frozen_output_limits(&row.get::<_, String>(6), &row.get::<_, String>(7))?;
     let launcher_digest = launcher_digest.to_owned();
+    // A previously observed supervisor binding is part of terminal evidence.
+    // Fast Jobs may finish before RUNNER_BOUND; do not require a fabricated
+    // start. If it exists, preserve its exact original carrier bytes.
+    #[cfg(windows)]
+    let runner_bound_start_digest = {
+        let event = tx
+            .query_opt(
+                "SELECT origin,reason_code,detail_json,detail_digest FROM job_events \
+             WHERE job_id=$1 AND attempt_id=$2 AND event_type='RUNNER_BOUND'",
+                &[&job_id, &attempt_id],
+            )
+            .map_err(|_| "PG native supervisor event unavailable or ambiguous".to_string())?;
+        match (qualified.started_at_ms, event) {
+            (None, None) => None,
+            (Some(_), Some(row)) => {
+                let origin: String = row.get(0);
+                let reason: String = row.get(1);
+                let detail: String = row.get(2);
+                let digest: String = row.get(3);
+                let value: Value = serde_json::from_str(&detail)
+                    .map_err(|_| "PG native supervisor event invalid".to_string())?;
+                let start = value["runnerStartDigest"]
+                    .as_str()
+                    .filter(|v| {
+                        v.len() == 71
+                            && v.starts_with("sha256:")
+                            && v[7..].bytes().all(|b| b.is_ascii_hexdigit())
+                    })
+                    .ok_or("PG native supervisor start digest invalid")?;
+                if origin != "SYSTEM_OBSERVED"
+                    || reason != "SUPERVISOR_OWNER_MATCHED"
+                    || digest != sha256(detail.as_bytes())
+                    || !value["invocationId"]
+                        .as_str()
+                        .is_some_and(|v| v.starts_with("windows-launcher:"))
+                {
+                    return Err("PG native supervisor event identity mismatch".into());
+                }
+                Some(start.to_owned())
+            }
+            _ => return Err("PG native supervisor timestamp/event mismatch".into()),
+        }
+    };
     tx.commit()
         .map_err(|_| "PG read-only snapshot commit failed".to_string())?;
 
@@ -626,7 +782,7 @@ pub fn inspect_admitted_windows_pg_bundle(
     if root != fs::canonicalize(&bundle).map_err(|_| "PG bundle unavailable".to_string())? {
         return Err("PG Attempt bundle escapes configured store root".into());
     }
-    let bytes = read_raw_bounded(&root.join("request.json"))?;
+    let bytes = read_request_bytes(&root.join("request.json"))?;
     if sha256(&bytes) != request_digest {
         return Err("PG immutable request digest mismatch".into());
     }
@@ -636,8 +792,97 @@ pub fn inspect_admitted_windows_pg_bundle(
         launch_token_digest: token,
         request_digest,
         launcher_image_digest: launcher_digest,
+        stdout_limit_bytes: limits.stdout_limit_bytes,
+        stderr_limit_bytes: limits.stderr_limit_bytes,
     };
-    inspect_windows_pg_bundle(&root, &identity)
+    Ok(BoundWindowsPgBundle {
+        root,
+        identity,
+        #[cfg(windows)]
+        attempt_row_version: qualified.attempt_row_version,
+        #[cfg(windows)]
+        resolved: qualified.resolution.is_some(),
+        #[cfg(windows)]
+        starting_natural: qualified.resolution.is_none()
+            && qualified.attempt_state == "starting"
+            && qualified.termination_intent == "natural"
+            && qualified.desired_state == "run",
+        #[cfg(windows)]
+        runner_bound_start_digest,
+    })
+}
+
+#[cfg(windows)]
+#[path = "pg_windows_evidence/running.rs"]
+mod running;
+
+/// Positive native supervisor binding. The existing RUNNER_BOUND event means
+/// observed custody, NOT proof of resumed user instructions or domain success.
+#[cfg(windows)]
+pub(crate) fn reconcile_admitted_windows_pg_running(
+    store: &mut crate::pg_admission::PgAdmissionStore,
+    source_sha256: &str,
+    principal: &str,
+    job_id: &str,
+    store_root: &Path,
+) -> Result<bool, String> {
+    let bound =
+        bind_admitted_windows_pg_bundle(store, source_sha256, principal, job_id, store_root)?;
+    if !bound.starting_natural {
+        return Ok(false);
+    }
+    let (witness, start_digest) =
+        inspect_windows_pg_bundle_with_start(&bound.root, &bound.identity)?;
+    let Some(start_digest) = start_digest else {
+        return Ok(false);
+    };
+    let observed_at_ms = crate::universal::now_unix_ms().map_err(|e| e.to_string())? as i64;
+    let Some(invocation) = running::observe_owned_target(&bound.identity, &witness) else {
+        return Ok(false);
+    };
+    // The existing CAS arbitrates concurrent cancel/terminal/other observer.
+    // Neither a conflict nor an unknown commit permits a new launch.
+    let input = crate::pg_admission::PgRunnerBound {
+        attempt_id: bound.identity.attempt_id,
+        expected_row_version: bound.attempt_row_version,
+        expected_bundle_digest: bound.identity.request_digest,
+        runner_start_digest: start_digest,
+        native_invocation_id: invocation,
+        observed_at_ms,
+        expected_source_sha256: source_sha256.to_owned(),
+    };
+    match store.mark_runner_bound_pg(&input) {
+        Ok(_) => Ok(true),
+        Err(crate::pg_admission::PgAdmissionError::Blocked) => Ok(false),
+        Err(e) => Err(format!("Windows native supervisor binding: {e:?}")),
+    }
+}
+
+/// Native PG service reconciliation entry: authenticated principal and Job only.
+/// The original PG writer/epoch and exact current Attempt supply the CAS key.
+/// Does not admit, dispatch, respawn, or select a historical Attempt for writing.
+/// Repeated observation of an already resolved Job is read-only.
+#[cfg(windows)]
+pub fn reconcile_admitted_windows_pg_terminal(
+    store: &mut crate::pg_admission::PgAdmissionStore,
+    source_sha256: &str,
+    principal: &str,
+    job_id: &str,
+    store_root: &Path,
+) -> Result<bool, String> {
+    let bound =
+        bind_admitted_windows_pg_bundle(store, source_sha256, principal, job_id, store_root)?;
+    if bound.resolved {
+        return Ok(false);
+    }
+    terminal::reconcile_windows_native_terminal(
+        store,
+        &bound.root,
+        &bound.identity,
+        source_sha256,
+        bound.attempt_row_version,
+        bound.runner_bound_start_digest.as_deref(),
+    )
 }
 
 /// Read-only native Windows Job Object population, independent of target-writable
@@ -842,7 +1087,10 @@ pub mod native_terminal_gate {
         use windows_sys::Win32::Foundation::{
             CloseHandle, GetLastError, FILETIME, INVALID_HANDLE_VALUE,
         };
-        use windows_sys::Win32::Storage::FileSystem::{CreateFileW, OPEN_EXISTING};
+        use windows_sys::Win32::Storage::FileSystem::{
+            CreateFileW, FILE_READ_ATTRIBUTES, FILE_READ_DATA, FILE_WRITE_DATA, OPEN_EXISTING,
+        };
+        const SYNCHRONIZE: u32 = 0x0010_0000;
         use windows_sys::Win32::System::Pipes::GetNamedPipeServerProcessId;
         use windows_sys::Win32::System::Threading::{
             GetProcessTimes, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
@@ -865,12 +1113,12 @@ pub mod native_terminal_gate {
         }
         let name = pipe_name(&expected.attempt_id)?;
         let wide: Vec<u16> = name.encode_utf16().chain(Some(0)).collect();
-        // Generic read/write for a single bounded ACK, no sharing and no
-        // inheritable handle. The server only accepts the original PG parent.
+        // Request the exact data/identity/synchronization access used below.
+        // GENERIC_WRITE also grants the right to create another pipe instance.
         let handle = unsafe {
             CreateFileW(
                 wide.as_ptr(),
-                0x8000_0000 | 0x4000_0000,
+                FILE_READ_DATA | FILE_WRITE_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
                 0,
                 std::ptr::null(),
                 OPEN_EXISTING,
@@ -898,7 +1146,6 @@ pub mod native_terminal_gate {
         {
             return Err("PG terminal native pipe server is not the original Launcher".into());
         }
-        const SYNCHRONIZE: u32 = 0x0010_0000;
         let process = unsafe {
             OpenProcess(
                 PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE,
@@ -929,6 +1176,25 @@ pub mod native_terminal_gate {
             return Err(
                 "PG terminal original Job Object lacks positive kernel Empty observation".into(),
             );
+        }
+        // Two-way issuer confirmation. The original Launcher first checks
+        // GetNamedPipeClientProcessId against the original Runtime or its
+        // verified SCM replacement and only then writes 'R'. A client cannot persist
+        // a supposed issuer-owned drain event before this issuer confirmation.
+        // A rejected/closed pipe is UNKNOWN, never an authorized journal.
+        let mut ready = [0u8; 1];
+        let mut count = 0u32;
+        let accepted = unsafe {
+            windows_sys::Win32::Storage::FileSystem::ReadFile(
+                gate.pipe,
+                ready.as_mut_ptr(),
+                1,
+                &mut count,
+                std::ptr::null_mut(),
+            )
+        };
+        if accepted == 0 || count != 1 || ready[0] != b'R' {
+            return Err("PG native drain original Launcher did not confirm client identity".into());
         }
         // Return with the connection HELD. Dropping it without PG CAS does
         // not send ACK; original Launcher times out and closes its Job handle.
@@ -1258,6 +1524,7 @@ mod qualified_pg18_preflight_tests {
         let request = b"immutable-typed-windows-native-request";
         fs::write(bundle.join("request.json"), request).unwrap();
         let request_digest = sha256(request);
+        let plan = r#"{"stdoutLimitBytes":17,"stderrLimitBytes":99}"#;
         let input = PgAdmissionInput {
             job_id: job.into(),
             attempt_id: attempt.into(),
@@ -1274,8 +1541,8 @@ mod qualified_pg18_preflight_tests {
                 }
             })
             .to_string(),
-            execution_plan_json: "{}".into(),
-            execution_plan_digest: format!("sha256:{}", "e".repeat(64)),
+            execution_plan_json: plan.into(),
+            execution_plan_digest: sha256(plan.as_bytes()),
             launch_token_digest: format!("sha256:{}", "f".repeat(64)),
             bundle_path: bundle.to_string_lossy().into_owned(),
             unit_name: format!("Ordivon.{attempt}"),
@@ -1316,6 +1583,45 @@ mod qualified_pg18_preflight_tests {
                 temp.path(),
             )
         };
+        assert_eq!(
+            inspect().unwrap().phase,
+            PgWindowsWitnessPhase::NoLauncherWitness
+        );
+        // Actual PG readback binds the exact two independent frozen limits.
+        let bound = bind_admitted_windows_pg_bundle(
+            &mut writer,
+            &source,
+            &input.principal,
+            &input.job_id,
+            temp.path(),
+        )
+        .unwrap();
+        assert_eq!(
+            (
+                bound.identity.stdout_limit_bytes,
+                bound.identity.stderr_limit_bytes
+            ),
+            (17, 99)
+        );
+        // A changed Plan with its old digest cannot silently change output policy.
+        scratch
+            .admin
+            .execute(
+                "UPDATE jobs SET execution_plan_json=$1 WHERE job_id=$2",
+                &[
+                    &r#"{"stdoutLimitBytes":18,"stderrLimitBytes":99}"#,
+                    &input.job_id,
+                ],
+            )
+            .unwrap();
+        assert!(inspect().is_err());
+        scratch
+            .admin
+            .execute(
+                "UPDATE jobs SET execution_plan_json=$1 WHERE job_id=$2",
+                &[&plan, &input.job_id],
+            )
+            .unwrap();
         assert_eq!(
             inspect().unwrap().phase,
             PgWindowsWitnessPhase::NoLauncherWitness

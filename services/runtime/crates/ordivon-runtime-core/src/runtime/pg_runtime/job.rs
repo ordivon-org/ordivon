@@ -60,6 +60,53 @@ fn project_committed_job_after_reconcile<T>(
     observe_committed_job_with_bounded_busy_recovery(job_id, project)
 }
 
+// Keep platform admission a closed, testable contract. A Windows PG
+// product must not accept Unix-only profiles, steps or host prerequisites
+// before the native carrier can realize them.
+pub(super) fn supports_native_pg_execution(e: &ExecutionProposal, windows: bool) -> bool {
+    if windows {
+        e.execution_target == ExecutionTarget::WindowsNative
+            && e.execution_profile == ExecutionProfile::TrustedLocal
+            && e.steps.is_empty()
+            && e.host_dependencies.is_empty()
+    } else {
+        e.execution_target == ExecutionTarget::LocalLinux
+            && matches!(
+                e.execution_profile,
+                ExecutionProfile::TrustedLocal | ExecutionProfile::ContainedLocal
+            )
+            && e.windows_context.is_none()
+            && e.windows_authority == WindowsAuthority::Limited
+    }
+}
+
+#[cfg(test)]
+mod native_pg_target_contract_tests {
+    use super::*;
+
+    #[test]
+    fn platform_target_profile_and_native_context_are_closed() {
+        let mut e: ExecutionProposal = serde_json::from_value(json!({
+            "workspaceId":"native-contract", "executable":"C:/Windows/System32/cmd.exe",
+            "cwdRelative":".", "executionTarget":"windows_native",
+            "executionProfile":"trusted_local", "windowsAuthority":"active_user"
+        }))
+        .unwrap();
+        assert!(supports_native_pg_execution(&e, true));
+        assert!(!supports_native_pg_execution(&e, false));
+        e.execution_profile = ExecutionProfile::ContainedLocal;
+        assert!(!supports_native_pg_execution(&e, true));
+        e.execution_target = ExecutionTarget::LocalLinux;
+        e.windows_authority = WindowsAuthority::Limited;
+        assert!(supports_native_pg_execution(&e, false));
+        assert!(!supports_native_pg_execution(&e, true));
+        e.execution_profile = ExecutionProfile::TrustedLocal;
+        assert!(supports_native_pg_execution(&e, false));
+        e.windows_authority = WindowsAuthority::ActiveUser;
+        assert!(!supports_native_pg_execution(&e, false));
+    }
+}
+
 mod environment;
 mod ingress_policy;
 use environment::{pg_contained_workspace_environment, pg_workspace_tool_environment};

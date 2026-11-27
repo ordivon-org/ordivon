@@ -20,6 +20,13 @@ use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct PgRuntimeConfig {
+    #[cfg(windows)]
+    pub windows: WindowsExecutionConfig,
+    #[cfg(windows)]
+    pub node_id: String,
+    /// Exact operator-selected interactive account, never a caller SID.
+    #[cfg(windows)]
+    pub interactive_workspace_sid: Option<String>,
     pub dsn: String,
     pub harness_spawn_dsn_file: Option<PathBuf>,
     pub schema: String,
@@ -262,6 +269,8 @@ mod node_query;
 mod reconciliation;
 mod release;
 mod scheduling;
+#[cfg(windows)]
+mod windows_native;
 mod workspace;
 pub use claim::{WorkspaceClaimKeyRequest, WorkspaceClaimProjection, WorkspaceClaimReserveRequest};
 
@@ -270,6 +279,24 @@ impl PgRuntime {
         // Pure preflight first: an unqualified or unreachable PG writer must
         // never create Workspace/cache directories before source admission.
         config.executor.validate().map_err(io)?;
+        #[cfg(windows)]
+        {
+            config.windows.validate()?;
+            if let Some(sid) = config.interactive_workspace_sid.as_deref() {
+                crate::windows_security::validate_interactive_account_sid(sid).map_err(io)?;
+            }
+            if config.node_id.trim().is_empty()
+                || config.harness_issuer_schema.is_some()
+                || config.harness_dispatch_issuer.is_some()
+                || config.harness_spawn_dsn_file.is_some()
+                || config.executor.workspace_root.is_none()
+                || config.executor.runner_path.as_deref()
+                    != Some(config.windows.launcher_path.as_path())
+            {
+                return Err(error("Windows PG requires an exact native launcher, node identity and disjoint workspace root; issuer not qualified"));
+            }
+        }
+        #[cfg(target_os = "linux")]
         if config.harness_issuer_schema.is_some() || config.harness_dispatch_issuer.is_some() {
             let path = config
                 .harness_spawn_dsn_file

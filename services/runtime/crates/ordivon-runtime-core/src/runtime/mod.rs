@@ -147,7 +147,10 @@ mod integration_tests;
 #[cfg(all(test, feature = "transactional-runtime"))]
 mod tests;
 
-#[cfg(all(feature = "postgres-registry-admission", target_os = "linux"))]
+#[cfg(all(
+    feature = "postgres-registry-admission",
+    any(target_os = "linux", windows)
+))]
 pub mod pg_runtime;
 
 pub use workspace_headroom::WorkspaceHeadroomConfig;

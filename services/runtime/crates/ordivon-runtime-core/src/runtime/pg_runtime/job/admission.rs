@@ -56,19 +56,15 @@ impl PgRuntime {
             ));
         }
 
-        if e.execution_target != ExecutionTarget::LocalLinux
-            || !matches!(
-                e.execution_profile,
-                ExecutionProfile::TrustedLocal | ExecutionProfile::ContainedLocal
-            )
-            || e.windows_context.is_some()
-            || e.windows_authority != WindowsAuthority::Limited
-        {
+        #[cfg(not(windows))]
+        if !supports_native_pg_execution(e, false) {
             return Err(RuntimeError::invalid(
                 "PG vertical supports local_linux trusted_local or contained_local execution only",
                 "execution",
             ));
         }
+        #[cfg(windows)]
+        self.validate_native_windows_proposal(proposal)?;
         // A current Issuer must not authorize unrelated physical steps/budgets.
         if self.config.harness_issuer_schema.is_some()
             && (!e.steps.is_empty() || !e.host_dependencies.is_empty() || !e.budget.is_empty())
@@ -256,7 +252,27 @@ impl PgRuntime {
             credential_set_id: None,
             principal: proposal.principal.clone(),
         };
+        #[cfg(windows)]
+        self.bind_native_windows_plan(proposal, &mut plan)?;
         let mut contract = self.scheduling_contract(&plan)?;
+        #[cfg(windows)]
+        {
+            if !contract.workspace_access.exclusive()
+                && plan.windows_authority != WindowsAuthority::Limited
+            {
+                return Err(RuntimeError::invalid(
+                    "Windows Workspace scoping requires a limited native payload",
+                    "execution.budget.scheduling.workspaceAccess",
+                ));
+            }
+            if contract.memory_high_bytes.is_some() || contract.io_weight.is_some() {
+                return Err(RuntimeError::invalid(
+                    "Windows Job Objects do not expose these Linux soft controls",
+                    "execution.budget.scheduling",
+                ));
+            }
+        }
+
         if e.budget.scheduling.is_none() {
             if let Some(max) = plan.budget.memory_max_bytes {
                 contract.resources.memory_bytes = contract.resources.memory_bytes.min(max);
@@ -297,9 +313,21 @@ impl PgRuntime {
             }
         }
         for relative in &contract.workspace_access.write_paths {
-            let path =
-                fs::canonicalize(Path::new(&plan.workspace_path).join(relative)).map_err(io)?;
-            if !path.starts_with(&plan.workspace_path) || !path.is_dir() {
+            let workspace = Path::new(&plan.workspace_path);
+            #[cfg(windows)]
+            let workspace = fs::canonicalize(workspace).map_err(io)?;
+            let path = fs::canonicalize(workspace.join(relative)).map_err(io)?;
+            #[cfg(not(windows))]
+            let contained = path.starts_with(workspace);
+            #[cfg(windows)]
+            let contained = path.strip_prefix(&workspace).is_ok_and(|scope| {
+                !scope.as_os_str().is_empty()
+                    && scope
+                        .to_string_lossy()
+                        .replace('\\', "/")
+                        .eq_ignore_ascii_case(relative)
+            });
+            if !contained || !path.is_dir() {
                 return Err(RuntimeError::invalid(
                     "writePaths requires existing contained directories",
                     "execution.budget.scheduling.workspaceAccess",
@@ -367,13 +395,17 @@ impl PgRuntime {
             operation_digest,
             workspace_id: e.workspace_id.clone(),
             workspace_snapshot_json: encode(
-                &json!({"workspace":record,"executionProvider":{"contract":"local_linux_runner_v1","executableDigest":universal::sha256_file(runner).map_err(io)?}}),
+                &json!({"workspace":record,"executionProvider":{"contract":if cfg!(windows) {"windows_native_launcher_v1"} else {"local_linux_runner_v1"},"executableDigest":provider_digest}}),
             )?,
             execution_plan_digest: plan_digest,
             execution_plan_json: plan_json,
             launch_token_digest: universal::sha256_bytes(token.as_bytes()),
             bundle_path: bundle.to_string_lossy().into_owned(),
-            unit_name: format!("ordivon-pg-{attempt}.service"),
+            unit_name: if cfg!(windows) {
+                format!("Ordivon.{attempt}")
+            } else {
+                format!("ordivon-pg-{attempt}.service")
+            },
             global_limit: 0,
             created_at_ms: now()?,
             expected_source_sha256: self.config.source_sha256.clone(),
