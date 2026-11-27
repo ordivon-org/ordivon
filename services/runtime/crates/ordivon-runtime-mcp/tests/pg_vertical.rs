@@ -3395,6 +3395,37 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
     let finished: i64 = times.get::<_, Option<i64>>(1).expect("terminal witness");
     let inspection = call(&endpoint, "job.get", json!({"jobId":completed_job}));
     assert_ne!(inspection["isError"], true, "{inspection}");
+    // The public MCP projection must agree with the real native Job journal,
+    // independently of how many timeline events the caller requests.
+    let dispatch_count: i64 = fixture
+        .db
+        .query_one(
+            "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+            &[&completed_job],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(dispatch_count, 1);
+    for event_limit in [0, 1, 100] {
+        let projected = call(
+            &endpoint,
+            "job.get",
+            json!({"jobId":completed_job,"eventLimit":event_limit}),
+        );
+        assert_ne!(projected["isError"], true, "{projected}");
+        let body = &projected["structuredContent"];
+        assert_eq!(body["episodes"]["dispatches"], dispatch_count);
+        assert_eq!(body["episodes"]["duplicateDispatches"], 0);
+        let events = body["timeline"].as_array().unwrap();
+        assert!(events.len() <= event_limit as usize);
+        if event_limit == 100 {
+            let issued = events
+                .iter()
+                .find(|e| e["eventType"] == "DISPATCH_ISSUED")
+                .unwrap();
+            assert_eq!(issued["attemptId"], body["attempts"][0]["attemptId"]);
+        }
+    }
     let attempt = &inspection["structuredContent"]["attempts"][0];
     assert_eq!(attempt["startedAtMs"], started);
     assert_eq!(attempt["finishedAtMs"], finished);
@@ -7741,6 +7772,41 @@ fn pg_job_list_exact_key_does_not_substitute_historical_result() {
     let before = lookup();
     assert_eq!(before["resultAvailable"], true);
     assert_eq!(before["deliveryDisposition"], "committed");
+    assert_eq!(before["executionReasonCode"], "PROCESS_EXIT_ZERO");
+    let at_max = call(
+        &endpoint,
+        "job.list",
+        json!({"clientRequestId":key,"limit":2,"cursor":{"createdAtMs":i64::MAX as u64,"jobId":"z"}}),
+    );
+    assert_ne!(at_max["isError"], true, "{at_max}");
+    assert_eq!(
+        at_max["structuredContent"]["jobs"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    for bad_time in [i64::MAX as u64 + 1, u64::MAX] {
+        let bad = call(
+            &endpoint,
+            "job.list",
+            json!({"clientRequestId":key,"limit":2,"cursor":{"createdAtMs":bad_time,"jobId":"z"}}),
+        );
+        eprintln!("CURSOR_UNREPRESENTABLE {bad_time} => {bad}");
+        assert_eq!(
+            bad["isError"], true,
+            "unrepresentable cursor must not become an empty success: {bad}"
+        );
+        assert_eq!(
+            bad["structuredContent"]["error"]["code"], "INVALID_REQUEST",
+            "{bad}"
+        );
+        assert_eq!(
+            bad["structuredContent"]["error"]["field"], "cursor.createdAtMs",
+            "{bad}"
+        );
+    }
+
     let prior = format!("r6-previous-{}", Uuid::now_v7());
     let prior_bundle = fixture.root.join("store/pg-attempts").join(&prior);
     let row=fixture.db.query_one("SELECT artifact_id,relative_path,byte_length,digest FROM artifacts WHERE job_id=$1 AND attempt_id=$2 AND kind='execution_result'",&[&job,&current]).unwrap();
@@ -7792,6 +7858,56 @@ fn pg_job_list_exact_key_does_not_substitute_historical_result() {
     assert_eq!(row.get::<_, String>(0), prior);
     assert_eq!(row.get::<_, i64>(1), len);
     assert_eq!(row.get::<_, String>(2), digest);
+    // Exercise exact Attempt attribution and contradictory terminal evidence in
+    // this disposable database; no new physical Attempt is asserted.
+    let terminal_sequence: i64 = fixture.db.query_one(
+        "SELECT event_sequence FROM job_events WHERE job_id=$1 AND attempt_id=$2 AND event_type='JOB_TERMINAL'",
+        &[&job, &current],
+    ).unwrap().get(0);
+    fixture
+        .db
+        .execute(
+            "UPDATE job_events SET attempt_id=$1 WHERE job_id=$2 AND event_sequence=$3",
+            &[&prior, &job, &terminal_sequence],
+        )
+        .unwrap();
+    assert!(lookup()["executionReasonCode"].is_null());
+    fixture
+        .db
+        .execute(
+            "UPDATE job_events SET attempt_id=$1 WHERE job_id=$2 AND event_sequence=$3",
+            &[&current, &job, &terminal_sequence],
+        )
+        .unwrap();
+    let extra_sequence = terminal_sequence + 1;
+    fixture.db.execute(
+        "INSERT INTO job_events(event_id,job_id,attempt_id,event_sequence,event_type,origin,previous_state,new_state,reason_code,detail_json,detail_digest,observed_at_ms) SELECT $1,job_id,attempt_id,$2,event_type,origin,previous_state,new_state,'CONTRADICTORY_TEST_REASON',detail_json,detail_digest,observed_at_ms FROM job_events WHERE job_id=$3 AND event_sequence=$4",
+        &[&format!("reason-conflict-{}", Uuid::now_v7()), &extra_sequence, &job, &terminal_sequence],
+    ).unwrap();
+    assert!(lookup()["executionReasonCode"].is_null());
+    fixture
+        .db
+        .execute(
+            "DELETE FROM job_events WHERE job_id=$1 AND event_sequence=$2",
+            &[&job, &extra_sequence],
+        )
+        .unwrap();
+    fixture
+        .db
+        .execute(
+            "UPDATE job_events SET new_state='failed' WHERE job_id=$1 AND event_sequence=$2",
+            &[&job, &terminal_sequence],
+        )
+        .unwrap();
+    assert!(lookup()["executionReasonCode"].is_null());
+    fixture
+        .db
+        .execute(
+            "UPDATE job_events SET new_state='succeeded' WHERE job_id=$1 AND event_sequence=$2",
+            &[&job, &terminal_sequence],
+        )
+        .unwrap();
+    assert_eq!(lookup()["executionReasonCode"], "PROCESS_EXIT_ZERO");
     let historical_only = lookup();
     // Restore the exact native registration before asserting the result.
     fixture

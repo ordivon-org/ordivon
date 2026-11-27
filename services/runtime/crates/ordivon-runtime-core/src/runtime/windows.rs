@@ -620,6 +620,9 @@ pub(crate) struct WindowsNativeRunSpec<'a> {
     pub timeout_ms: u64,
     pub stdout_limit_bytes: u64,
     pub stderr_limit_bytes: u64,
+    /// PG-only original Runtime process identity. Ordinary legacy jobs leave None.
+    #[cfg(windows)]
+    pub pg_terminal_peer_pid: Option<u32>,
 }
 
 /// Windows-native launcher contract after all control-plane path projection has completed.
@@ -651,7 +654,105 @@ pub(crate) struct WindowsLauncherInvocationSpec<'a> {
     pub timeout_ms: u64,
     pub stdout_limit_bytes: u64,
     pub stderr_limit_bytes: u64,
+    pub pg_terminal_peer_pid: Option<u32>,
     pub emit_launcher_start: bool,
+}
+
+/// PG consumer affordance projection. Only the configured original launcher
+/// and contexts supported by the selected product may be advertised. It is
+/// not a dispatch authorization or a physical terminal witness.
+#[cfg(windows)]
+pub(crate) fn windows_pg_execution_target(
+    config: &WindowsExecutionConfig,
+    configured_runner: &Path,
+    supported_contexts: &[super::WindowsExecutionContextRequest],
+) -> RuntimeResult<serde_json::Value> {
+    config.validate()?;
+    let io = |err: std::io::Error| {
+        RuntimeError::new(
+            RuntimeErrorCode::IoError,
+            format!("inspect Windows PG launcher: {err}"),
+            Some("executionProvider"),
+            false,
+        )
+    };
+    let launcher = fs::canonicalize(&config.launcher_path).map_err(io)?;
+    if fs::canonicalize(configured_runner).map_err(io)? != launcher {
+        return Err(RuntimeError::invalid(
+            "Windows PG launcher and configured runner differ",
+            "executionProvider",
+        ));
+    }
+    let digest = crate::universal::sha256_file(&launcher).map_err(|err| {
+        RuntimeError::new(
+            RuntimeErrorCode::IoError,
+            err.to_string(),
+            Some("executionProvider"),
+            false,
+        )
+    })?;
+    Ok(windows_pg_target_projection(
+        digest,
+        supported_contexts,
+        config.maintenance_lease_path.is_some(),
+    ))
+}
+
+#[cfg(any(windows, test))]
+fn windows_pg_target_projection(
+    digest: String,
+    contexts: &[super::WindowsExecutionContextRequest],
+    maintenance_fence_configured: bool,
+) -> serde_json::Value {
+    let authorities = contexts
+        .iter()
+        .filter_map(|context| context.legacy_authority())
+        .collect::<Vec<_>>();
+    serde_json::json!({
+        "target": "windows_native",
+        "configured": true,
+        "available": !contexts.is_empty(),
+        "executionProfiles": ["trusted_local"],
+        "structuredPlan": false,
+        "immutableInputs": false,
+        "hostDependencyCommitments": false,
+        "windowsContexts": contexts,
+        "windowsAuthorities": authorities,
+        "windowsMaintenanceFenceConfigured": maintenance_fence_configured,
+        "executionProvider": {"contract":"windows_native_launcher_v1","executableDigest":digest},
+        "availabilityIssue": if contexts.is_empty() {Some("WINDOWS_CONTEXT_UNAVAILABLE")} else {None}
+    })
+}
+
+#[cfg(test)]
+mod windows_pg_projection_tests {
+    use super::*;
+    #[test]
+    fn native_pg_projection_does_not_invent_contexts_or_linux_capability() {
+        use crate::runtime::{
+            WindowsExecutionContextRequest, WindowsExecutionIdentity, WindowsPayloadPrivilege,
+        };
+        let digest = format!("sha256:{}", "a".repeat(64));
+        let unavailable = windows_pg_target_projection(digest.clone(), &[], false);
+        assert_eq!(unavailable["available"], false);
+        assert_eq!(
+            unavailable["availabilityIssue"],
+            "WINDOWS_CONTEXT_UNAVAILABLE"
+        );
+        assert_eq!(unavailable["windowsContexts"], serde_json::json!([]));
+        let context = WindowsExecutionContextRequest::new(
+            WindowsExecutionIdentity::ActiveUser,
+            WindowsPayloadPrivilege::Limited,
+        );
+        let available = windows_pg_target_projection(digest.clone(), &[context], true);
+        assert_eq!(available["available"], true);
+        assert_eq!(available["target"], "windows_native");
+        assert_eq!(available["windowsContexts"], serde_json::json!([context]));
+        assert_eq!(available["executionProvider"]["executableDigest"], digest);
+        assert_eq!(available["immutableInputs"], false);
+        assert_eq!(available["structuredPlan"], false);
+        assert_eq!(available["hostDependencyCommitments"], false);
+    }
 }
 
 pub(crate) fn snapshot_windows_runtime_context_for(
@@ -956,6 +1057,117 @@ pub(crate) fn validate_windows_exec_payload(
 /// this exact worktree in the Job, so only its active-user consumer may opt in
 /// to the existing Git command-scope safe.directory primitive. No gitconfig
 /// is written, no wildcard trust is granted, and service jobs are unaffected.
+#[cfg(all(windows, feature = "postgres-registry-admission"))]
+pub(crate) fn bind_pg_execution_context(
+    config: &WindowsExecutionConfig,
+    proposal: &super::JobRunProposal,
+    plan: &mut super::RuntimeExecutionPlan,
+) -> RuntimeResult<()> {
+    use super::types::{WindowsExecutionContext, WindowsTokenClass};
+    use super::{WindowsExecutionIdentity, WindowsPayloadPrivilege};
+    super::authority_contract::AuthorityContract::ordinary(proposal)?
+        .authorize_windows_elevation(&config.elevated_principals)?;
+    config.authorize_new_proposal(proposal)?;
+    let explicit = proposal.execution.windows_context;
+    let context =
+        explicit.unwrap_or_else(|| proposal.execution.windows_authority.canonical_context());
+    if explicit.is_some() && !context.compatible_with_legacy(proposal.execution.windows_authority) {
+        return Err(RuntimeError::invalid(
+            "windowsContext conflicts with windowsAuthority",
+            "execution.windowsContext",
+        ));
+    }
+    let snapshot = snapshot_windows_runtime_context_for(config, context)?;
+    let authority = context.transport_authority();
+    let privileged_broker_digest = if authority == WindowsAuthority::Limited {
+        None
+    } else {
+        config
+            .privileged_broker
+            .as_ref()
+            .map(|broker| broker.executable_digest())
+            .transpose()?
+    };
+    let (token_class, environment_source) = match (context.identity, context.privilege) {
+        (WindowsExecutionIdentity::ActiveUser, _) => (
+            WindowsTokenClass::ActiveUser,
+            "windows_active_user_profile_allowlist_v1",
+        ),
+        (WindowsExecutionIdentity::Service, WindowsPayloadPrivilege::Elevated) => (
+            WindowsTokenClass::Elevated,
+            "windows_privileged_broker_profile_allowlist_v1",
+        ),
+        _ => (
+            WindowsTokenClass::Limited,
+            "windows_user_machine_profile_allowlist_v1",
+        ),
+    };
+    plan.env = merge_windows_workspace_environment(
+        &snapshot.environment,
+        &proposal.execution.env,
+        context.identity == WindowsExecutionIdentity::ActiveUser,
+        Path::new(&plan.workspace_path),
+    )?;
+    plan.windows_authority = authority;
+    plan.windows_context = explicit;
+    plan.windows_execution_context = Some(WindowsExecutionContext {
+        token_class,
+        payload_identity: explicit.map(|context| context.identity),
+        payload_privilege: explicit.map(|context| context.privilege),
+        token_user_sid: snapshot.token_user_sid,
+        session_id: snapshot.session_id,
+        environment_source: environment_source.into(),
+        privileged_broker_digest,
+    });
+    Ok(())
+}
+
+/// Bind the already prepared independent Git carrier to a normal PG Job.
+/// The paths have been qualified by the native provider, not supplied by
+/// the caller. This is execution identity, not a filesystem ACL or sandbox.
+#[cfg(any(windows, test))]
+pub(crate) fn bind_pg_private_git_environment(
+    environment: &mut BTreeMap<String, String>,
+    git_dir: &str,
+    work_tree: &str,
+) -> RuntimeResult<()> {
+    // These redirects would replace the repository, index or object set
+    // whose lifetime the existing Workspace open/close contract owns.
+    const REDIRECTS: &[&str] = &[
+        "GIT_COMMON_DIR",
+        "GIT_INDEX_FILE",
+        "GIT_OBJECT_DIRECTORY",
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+        "GIT_NAMESPACE",
+        "GIT_QUARANTINE_PATH",
+    ];
+    if environment
+        .keys()
+        .any(|key| REDIRECTS.iter().any(|name| key.eq_ignore_ascii_case(name)))
+    {
+        return Err(RuntimeError::invalid(
+            "Windows PG Git cannot redirect the prepared private repository",
+            "execution.env",
+        ));
+    }
+    for (key, expected) in [("GIT_DIR", git_dir), ("GIT_WORK_TREE", work_tree)] {
+        if environment
+            .iter()
+            .any(|(name, actual)| name.eq_ignore_ascii_case(key) && actual != expected)
+        {
+            return Err(RuntimeError::invalid(
+                format!("Windows PG {key} must match the prepared Workspace Git carrier"),
+                "execution.env",
+            ));
+        }
+    }
+    for (key, expected) in [("GIT_DIR", git_dir), ("GIT_WORK_TREE", work_tree)] {
+        environment.retain(|name, _| !name.eq_ignore_ascii_case(key));
+        environment.insert(key.to_owned(), expected.to_owned());
+    }
+    Ok(())
+}
+
 pub(crate) fn merge_windows_workspace_environment(
     baseline: &BTreeMap<String, String>,
     overlay: &BTreeMap<String, String>,
@@ -1214,6 +1426,7 @@ pub(crate) fn spawn_windows_native(
         // It records launcher identity from that OS handle immediately after spawn, so the
         // launcher must not race the parent by self-publishing the same first-stage evidence.
         emit_launcher_start: false,
+        pg_terminal_peer_pid: spec.pg_terminal_peer_pid,
     };
     let launcher_stderr_path = spec.bundle_path.join("launcher-stderr.log");
     let mut command = Command::new(&launcher);
@@ -1422,6 +1635,17 @@ pub(crate) fn append_windows_launcher_arguments(
     if spec.emit_launcher_start {
         command.arg("--emit-launcher-start");
     }
+    if let Some(peer) = spec.pg_terminal_peer_pid {
+        if peer == 0 {
+            return Err(RuntimeError::invalid(
+                "PG terminal peer process ID must be nonzero",
+                "windows.pgTerminalPeerProcessId",
+            ));
+        }
+        command
+            .arg("--pg-terminal-peer-process-id")
+            .arg(peer.to_string());
+    }
 
     match (
         spec.input_source_root,
@@ -1605,6 +1829,37 @@ mod tests {
             let error = validate_windows_elevated_principals(&principals).unwrap_err();
             assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
             assert_eq!(error.field.as_deref(), Some("windows.elevatedPrincipals"));
+        }
+    }
+
+    #[test]
+    fn windows_pg_private_git_binding_preserves_only_exact_case_insensitive_identity() {
+        let work_tree = r"C:\Ordivon\workspaces\ws-one";
+        let git_dir = r"C:\Ordivon\workspaces\.ws-one.agent-git";
+        let mut environment = BTreeMap::from([
+            ("git_dir".to_owned(), git_dir.to_owned()),
+            ("Git_Work_Tree".to_owned(), work_tree.to_owned()),
+            ("PATH".to_owned(), r"C:\Windows".to_owned()),
+        ]);
+        bind_pg_private_git_environment(&mut environment, git_dir, work_tree).unwrap();
+        assert_eq!(environment["GIT_DIR"], git_dir);
+        assert_eq!(environment["GIT_WORK_TREE"], work_tree);
+        assert_eq!(environment.len(), 3);
+        assert_eq!(environment["PATH"], r"C:\Windows");
+        for key in [
+            "git_dir",
+            "Git_Work_Tree",
+            "GIT_COMMON_DIR",
+            "git_index_file",
+            "GIT_OBJECT_DIRECTORY",
+            "git_alternate_object_directories",
+            "GIT_NAMESPACE",
+            "GIT_QUARANTINE_PATH",
+        ] {
+            let mut conflicting = BTreeMap::from([(key.to_owned(), r"C:\other".to_owned())]);
+            let before = conflicting.clone();
+            assert!(bind_pg_private_git_environment(&mut conflicting, git_dir, work_tree).is_err());
+            assert_eq!(conflicting, before);
         }
     }
 
@@ -2042,6 +2297,7 @@ mod tests {
             stdout_limit_bytes: 4096,
             stderr_limit_bytes: 4096,
             emit_launcher_start: false,
+            pg_terminal_peer_pid: None,
         };
         let mut command = Command::new("/native/Ordivon.WindowsJobLauncher.exe");
         append_windows_launcher_arguments(&mut command, &spec).unwrap();
@@ -2151,6 +2407,7 @@ mod tests {
             stdout_limit_bytes: 4096,
             stderr_limit_bytes: 4096,
             emit_launcher_start: false,
+            pg_terminal_peer_pid: None,
         };
         let mut command = Command::new("/native/Ordivon.WindowsJobLauncher.exe");
         append_windows_launcher_arguments(&mut command, &spec).unwrap();
@@ -2248,7 +2505,7 @@ mod tests {
         let args = Vec::<String>::new();
         let environment = BTreeMap::new();
         let budget = ExecutionBudget::default();
-        let spec = WindowsLauncherInvocationSpec {
+        let mut spec = WindowsLauncherInvocationSpec {
             bundle: "C:\\ProgramData\\Ordivon\\attempts\\attempt-2",
             job_id: "job-2",
             attempt_id: "attempt-2",
@@ -2274,6 +2531,7 @@ mod tests {
             stdout_limit_bytes: 1024,
             stderr_limit_bytes: 1024,
             emit_launcher_start: true,
+            pg_terminal_peer_pid: None,
         };
         let mut command = Command::new("/native/Ordivon.WindowsJobLauncher.exe");
         append_windows_launcher_arguments(&mut command, &spec).unwrap();
@@ -2287,6 +2545,30 @@ mod tests {
                 .filter(|arg| arg.as_str() == "--emit-launcher-start")
                 .count(),
             1
+        );
+        // The actual PG parent holds the original process handle and writes
+        // windows-launcher-start.json. It MUST NOT enable the competing
+        // Launcher self-writer merely to obtain the native drain gate.
+        spec.emit_launcher_start = false;
+        spec.pg_terminal_peer_pid = Some(12345);
+        let mut pg_command = Command::new("/native/Ordivon.WindowsJobLauncher.exe");
+        append_windows_launcher_arguments(&mut pg_command, &spec).unwrap();
+        let pg_arguments = pg_command
+            .get_args()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+        assert!(!pg_arguments
+            .iter()
+            .any(|arg| arg == "--emit-launcher-start"));
+        assert!(pg_arguments
+            .windows(2)
+            .any(|pair| pair[0] == "--pg-terminal-peer-process-id" && pair[1] == "12345"));
+        spec.pg_terminal_peer_pid = Some(0);
+        assert_eq!(
+            append_windows_launcher_arguments(&mut Command::new("launcher"), &spec)
+                .unwrap_err()
+                .code,
+            RuntimeErrorCode::InvalidRequest
         );
     }
 

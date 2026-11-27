@@ -17,6 +17,15 @@ param(
     [string]$ElevatedPrincipalsJson = '',
     [string]$ElevatedProfilesJson = '',
     [string]$MaintenanceLeasePath = '',
+    # PG candidate uses an operator-provisioned private env file at its final
+    # path. This script never generates a DSN or migrates the old Registry.
+    [string]$PostgresEnvironmentFile = '',
+    # Optional exact operator-selected interactive user SID. The provider owns
+    # per-Workspace grants; never grant this identity inherited store access.
+    [string]$InteractiveWorkspaceSid = '',
+    [string]$ExpectedRuntimeSha256 = '',
+    [string]$ExpectedLauncherSha256 = '',
+    [string]$ExpectedPostgresEnvironmentSha256 = '',
     [switch]$Apply
 )
 
@@ -212,6 +221,47 @@ function Set-ExactPrivateAcl(
     }
 }
 
+function Assert-PgWorkspaceRoot([string]$Path, [string]$PrivateRoot) {
+    if ($Path -notmatch '^[A-Za-z]:\\[^\\]' -or $Path.Contains('/')) {
+        throw 'PG Workspace root must be an absolute local drive directory.'
+    }
+    $full = [IO.Path]::GetFullPath($Path).TrimEnd('\')
+    if ($full -cne $Path -or $full -match '[ .]($|\\)' -or
+        $full.Substring(2).Contains(':')) {
+        throw 'PG Workspace root must use its normalized directory path.'
+    }
+    $privateFull = [IO.Path]::GetFullPath($PrivateRoot).TrimEnd('\')
+    $comparison = [StringComparison]::OrdinalIgnoreCase
+    if ($full.Equals($privateFull, $comparison) -or
+        $full.StartsWith($privateFull+'\', $comparison) -or
+        $privateFull.StartsWith($full+'\', $comparison)) {
+        throw 'PG Workspace root must be disjoint from the entire private ProgramData root.'
+    }
+    $parent = Split-Path -Path $full -Parent
+    if (-not [IO.Directory]::Exists($parent)) {
+        throw 'PG Workspace root requires an existing operator-owned parent.'
+    }
+    # Check the complete existing path, not just the leaf, before staging.
+    $cursor = $full
+    while (-not [string]::IsNullOrEmpty($cursor)) {
+        if (Test-Path -LiteralPath $cursor) {
+            $entry = Get-Item -LiteralPath $cursor -Force
+            if (-not $entry.PSIsContainer -or
+                ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+                throw 'PG Workspace root must not traverse files or reparse points.'
+            }
+        }
+        $next = Split-Path -Path $cursor -Parent
+        if ($next -eq $cursor) { break }
+        $cursor = $next
+    }
+    if ([IO.Directory]::Exists($full) -and
+        [IO.Directory]::GetFileSystemEntries($full).Length -ne 0) {
+        throw 'PG Workspace root must be empty for cold materialization.'
+    }
+    return $full
+}
+
 $runtimeSource = Resolve-ExistingFile $RuntimeBinary 'RuntimeBinary'
 $launcherSource = Resolve-ExistingFile $WindowsJobLauncher 'WindowsJobLauncher'
 $tokenSourceResolved = Resolve-ExistingFile $TokenSource 'TokenSource'
@@ -222,10 +272,119 @@ $secretRoot = Join-Path $ProgramDataRoot 'secrets'
 $storeRoot = Join-Path $ProgramDataRoot 'store'
 $registryRoot = Join-Path $ProgramDataRoot 'registry'
 $serviceHome = Join-Path $ProgramDataRoot 'service-home'
+$postgres = -not [string]::IsNullOrWhiteSpace($PostgresEnvironmentFile)
+$workspaceRoot = $null
+$workspaceUser = $null
+if (-not $postgres -and $InteractiveWorkspaceSid) { throw 'InteractiveWorkspaceSid requires the PG profile.' }
 $runtimeTarget = Join-Path $binRoot 'ordivon-runtime.exe'
+if ($postgres) {
+    $runtimeTarget = Join-Path $binRoot 'ordivon-runtime-pg.exe'
+    $storeRoot = Join-Path $ProgramDataRoot 'pg-store'
+}
 $launcherTarget = Join-Path $binRoot 'ordivon-windows-job-launcher.exe'
 $configTarget = Join-Path $configRoot 'ordivon-runtime.env'
 $tokenTarget = Join-Path $secretRoot 'runtime-mcp.token'
+if ($postgres) {
+    # Never overwrite the legacy install's launcher, environment or token.
+    # The PG launcher has a separate exact target, and the private config and
+    # token are already provisioned in their final operator-owned locations.
+    $launcherTarget = Join-Path $binRoot 'ordivon-windows-pg-job-launcher.exe'
+    $configTarget = Join-Path $configRoot 'ordivon-runtime-pg.env'
+    $tokenTarget = Join-Path $secretRoot 'runtime-pg-mcp.token'
+    if (-not [string]::Equals([IO.Path]::GetFullPath($tokenSourceResolved),
+            [IO.Path]::GetFullPath($tokenTarget), [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'PG TokenSource must be pre-provisioned at the final private PG token path.'
+    }
+    $pgConfig = Resolve-ExistingFile $PostgresEnvironmentFile 'PostgresEnvironmentFile'
+    if (-not [string]::Equals([IO.Path]::GetFullPath($pgConfig), [IO.Path]::GetFullPath($configTarget),
+            [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'PostgresEnvironmentFile must be pre-provisioned at the final private PG config path.'
+    }
+    if ($privilegedPolicyConfigured) {
+        throw 'PG privileged admission policy must be bound inside the pre-provisioned PG environment.'
+    }
+    $commitments = @(
+        @{ path = $runtimeSource; digest = $ExpectedRuntimeSha256; label = 'Runtime binary' },
+        @{ path = $launcherSource; digest = $ExpectedLauncherSha256; label = 'Windows launcher' },
+        @{ path = $pgConfig; digest = $ExpectedPostgresEnvironmentSha256; label = 'PG environment' }
+    )
+    function Assert-PgCandidateCommitments {
+        foreach ($item in $commitments) {
+            if ($item.digest -notmatch '^[0-9a-fA-F]{64}$') {
+                throw ('Missing or invalid SHA-256 commitment for ' + $item.label)
+            }
+            if ((Get-FileHash -LiteralPath $item.path -Algorithm SHA256).Hash -ne $item.digest) {
+                throw ('SHA-256 commitment mismatch for ' + $item.label)
+            }
+        }
+    }
+    Assert-PgCandidateCommitments
+    $pgItem = Get-Item -LiteralPath $pgConfig
+    if ($pgItem.Length -gt 65536 -or
+        ($pgItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+        throw 'PG environment must be a regular file of at most 64 KiB.'
+    }
+    # The Rust native env loader remains the authoritative parser. Here check
+    # only the SCM/file identity and required PG profile, without echoing secrets.
+    $pgValues = @{}
+    foreach ($rawLine in [IO.File]::ReadAllLines($pgConfig)) {
+        $line = $rawLine.Trim()
+        if ($line.Length -eq 0 -or $line.StartsWith('#')) { continue }
+        # Windows PowerShell 5.1 selects a different String.Split overload.
+        # IndexOf/Substring matches the native loader's first '=' semantics.
+        $separator = $line.IndexOf('=')
+        if ($separator -lt 1) { throw 'Invalid PG environment line.' }
+        $key = $line.Substring(0, $separator).Trim()
+        if ($key -cnotmatch '^(ORDIVON_[A-Z0-9_]+|RUST_LOG)$' -or $pgValues.ContainsKey($key)) {
+            throw 'Unsupported or duplicate PG environment key.'
+        }
+        $pgValues[$key] = $line.Substring($separator + 1).Trim()
+    }
+    foreach ($key in @('ORDIVON_PG_DSN','ORDIVON_PG_SCHEMA','ORDIVON_PG_SOURCE_SHA256',
+            'ORDIVON_PG_PRINCIPAL','ORDIVON_PG_EXECUTABLE_ROOTS_JSON','ORDIVON_PG_WORKSPACE_ROOT')) {
+        if (-not $pgValues.ContainsKey($key) -or [string]::IsNullOrWhiteSpace($pgValues[$key])) {
+            throw ('Required PG environment key missing: ' + $key)
+        }
+    }
+    foreach ($key in @('ORDIVON_REGISTRY_ROOT','ORDIVON_BIND','ORDIVON_BEARER_TOKEN',
+            'ORDIVON_PG_TOKEN','ORDIVON_REMOTE_BEARER_TOKEN')) {
+        if ($pgValues.ContainsKey($key)) { throw ('Legacy or inline secret key forbidden: ' + $key) }
+    }
+    if ($pgValues['ORDIVON_PG_SOURCE_SHA256'] -cnotmatch '^[0-9a-f]{64}$') {
+        throw 'PG source identity must be lowercase SHA-256.'
+    }
+    $workspaceRoot = Assert-PgWorkspaceRoot $pgValues['ORDIVON_PG_WORKSPACE_ROOT'] $ProgramDataRoot
+    if ($InteractiveWorkspaceSid) {
+        if ($InteractiveWorkspaceSid -notmatch '^S-1-(5-21-(?:[0-9]+-){3}[0-9]+|12-1-(?:[0-9]+-){3}[0-9]+)$') {
+            throw 'InteractiveWorkspaceSid must identify one explicit account SID.'
+        }
+        $workspaceUser = [Security.Principal.SecurityIdentifier]::new($InteractiveWorkspaceSid)
+    }
+    # The digest-bound PG environment and SCM root grant must identify the
+    # same one interactive account, or both remain absent.
+    $boundInteractiveSid = [string]$pgValues['ORDIVON_PG_INTERACTIVE_WORKSPACE_SID']
+    if ($boundInteractiveSid -cne $InteractiveWorkspaceSid) {
+        throw 'PG interactive workspace SID must match the exact materializer account.'
+    }
+    $expectedBindings = @{
+        ORDIVON_PG_BIND = $Bind
+        ORDIVON_NODE_ID = $NodeId
+        ORDIVON_PG_STORE_ROOT = $storeRoot
+        ORDIVON_PG_WORKSPACE_ROOT = $workspaceRoot
+        ORDIVON_PG_RUNNER = $launcherTarget
+        ORDIVON_BEARER_TOKEN_FILE = $tokenTarget
+    }
+    foreach ($key in $expectedBindings.Keys) {
+        if (-not $pgValues.ContainsKey($key) -or $pgValues[$key] -cne $expectedBindings[$key]) {
+            throw ('PG environment does not bind the planned service: ' + $key)
+        }
+    }
+} elseif ($ExpectedRuntimeSha256 -or $ExpectedLauncherSha256 -or $ExpectedPostgresEnvironmentSha256) {
+    throw 'PG candidate commitments require PostgresEnvironmentFile.'
+}
+# PG materialization must remain disabled through all SCM and ACL changes.
+# Only the separately qualified cold activation may enable the service.
+$startMode = $(if ($postgres) { 'disabled' } else { 'auto' })
 $serviceAccount = "NT SERVICE\$ServiceName"
 $requiresLocalAdministrators = $WindowsAuthorityProfile -eq 'limited-and-elevated'
 $imagePath = ('"{0}" --windows-service --env-file "{1}"' -f $runtimeTarget, $configTarget)
@@ -234,8 +393,12 @@ $plan = [ordered]@{
     schemaVersion = 1
     applyRequested = [bool]$Apply
     programDataRoot = $ProgramDataRoot
+    workspacePresentationRoot = $workspaceRoot
+    interactiveWorkspaceMetadataGrant = ($null -ne $workspaceUser)
     bind = $Bind
     nodeId = $NodeId
+    registryBackend = $(if ($postgres) { 'postgresql' } else { 'sqlite' })
+    executionReady = $false
     privilegedAdmission = [ordered]@{
         configured = $privilegedPolicyConfigured
         principalCount = $elevatedPrincipalCount
@@ -246,7 +409,7 @@ $plan = [ordered]@{
         name = $ServiceName
         displayName = $DisplayName
         type = 'own'
-        start = 'auto'
+        start = $startMode
         account = $serviceAccount
         windowsAuthorityProfile = $WindowsAuthorityProfile
         builtinAdministratorsMembershipRequired = $requiresLocalAdministrators
@@ -275,6 +438,7 @@ $plan = [ordered]@{
         'No bearer secret appears in SCM ImagePath or the env file.',
         'ProgramData state/config/token are ACL-bound to SYSTEM, Builtin Administrators and the service SID.',
         'The service is not started by this materializer; start/cold-restart acceptance is a separate gate.',
+        'PG uses a separate store, a pre-provisioned exact private env file, and disabled startup until the qualified cold cutover.',
         'Required service privileges are not broadened before native acceptance proves the minimum set.',
         'limited-and-elevated uses the dedicated virtual service account as a Builtin Administrators member; launcher acceptance must prove both High/Admin-enabled elevated context and LUA-filtered Medium/Admin-disabled limited context.',
         'The dedicated virtual service identity is preserved so limited-token semantics do not inherit a shared machine identity.'
@@ -288,9 +452,35 @@ if (-not $Apply) {
 
 Assert-Administrator
 
-foreach ($directory in @(
-    $ProgramDataRoot, $binRoot, $configRoot, $secretRoot, $storeRoot, $registryRoot, $serviceHome
-)) {
+function Assert-PgServiceStagingFence([string]$Name, [bool]$MustExist) {
+    # Native SCM StartType and Status, not a textual sc.exe projection.
+    $observed = Get-Service -Name $Name -ErrorAction SilentlyContinue
+    if ($null -eq $observed) {
+        if ($MustExist) { throw "PG staging service $Name disappeared." }
+        return
+    }
+    if ($observed.Status -ne [ServiceProcess.ServiceControllerStatus]::Stopped -or
+        $observed.StartType -ne [ServiceProcess.ServiceStartMode]::Disabled) {
+        throw "PG staging service $Name must be stopped and disabled before materialization."
+    }
+}
+
+if ($postgres) { Assert-PgServiceStagingFence $ServiceName $false }
+
+# A running old Writer must be rejected before touching its binary, launcher,
+# credentials or config. Recheck at the SCM change boundary as well.
+$service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+if ($null -ne $service -and $service.Status -ne [ServiceProcess.ServiceControllerStatus]::Stopped) {
+    throw "Service $ServiceName already exists and must be stopped before materialization."
+}
+
+if ($postgres) {
+    Assert-PgCandidateCommitments
+    $null = Assert-PgWorkspaceRoot $workspaceRoot $ProgramDataRoot
+}
+$stateDirectories = @($storeRoot, $serviceHome)
+if (-not $postgres) { $stateDirectories += $registryRoot }
+foreach ($directory in (@($ProgramDataRoot, $binRoot, $configRoot, $secretRoot) + $stateDirectories)) {
     [IO.Directory]::CreateDirectory($directory) | Out-Null
 }
 function Copy-UnlessSameFile([string]$Source, [string]$Destination) {
@@ -307,39 +497,51 @@ function Copy-UnlessSameFile([string]$Source, [string]$Destination) {
 
 Copy-UnlessSameFile $runtimeSource $runtimeTarget
 Copy-UnlessSameFile $launcherSource $launcherTarget
-Copy-UnlessSameFile $tokenSourceResolved $tokenTarget
-
-$templatePath = Join-Path $PSScriptRoot 'ordivon-runtime.env.example'
-$template = [IO.File]::ReadAllText($templatePath)
-$templateRoot = 'C:\ProgramData\Ordivon\Runtime'
-$materialized = $template.Replace($templateRoot, $ProgramDataRoot)
-$materialized = $materialized.Replace(
-    'ORDIVON_BIND=127.0.0.1:8897',
-    ('ORDIVON_BIND=' + $Bind))
-$materialized = $materialized.Replace(
-    'ORDIVON_NODE_ID=windows-main',
-    ('ORDIVON_NODE_ID=' + $NodeId))
-if ($privilegedPolicyConfigured) {
-    if (-not $materialized.EndsWith("`n")) {
-        $materialized += "`r`n"
-    }
-    $materialized += (
-        'ORDIVON_WINDOWS_ELEVATED_PRINCIPALS_JSON=' + $ElevatedPrincipalsJson + "`r`n" +
-        'ORDIVON_WINDOWS_ELEVATED_PROFILES_JSON=' + $ElevatedProfilesJson + "`r`n" +
-        'ORDIVON_WINDOWS_MAINTENANCE_LEASE_PATH=' + $MaintenanceLeasePath + "`r`n"
-    )
+if (-not $postgres) {
+    Copy-UnlessSameFile $tokenSourceResolved $tokenTarget
 }
-[IO.File]::WriteAllText(
-    $configTarget,
-    $materialized,
-    [Text.UTF8Encoding]::new($false))
+
+if (-not $postgres) {
+    $templatePath = Join-Path $PSScriptRoot 'ordivon-runtime.env.example'
+    $template = [IO.File]::ReadAllText($templatePath)
+    $templateRoot = 'C:\ProgramData\Ordivon\Runtime'
+    $materialized = $template.Replace($templateRoot, $ProgramDataRoot)
+    $materialized = $materialized.Replace(
+        'ORDIVON_BIND=127.0.0.1:8897',
+        ('ORDIVON_BIND=' + $Bind))
+    $materialized = $materialized.Replace(
+        'ORDIVON_NODE_ID=windows-main',
+        ('ORDIVON_NODE_ID=' + $NodeId))
+    if ($privilegedPolicyConfigured) {
+        if (-not $materialized.EndsWith("`n")) {
+            $materialized += "`r`n"
+        }
+        $materialized += (
+            'ORDIVON_WINDOWS_ELEVATED_PRINCIPALS_JSON=' + $ElevatedPrincipalsJson + "`r`n" +
+            'ORDIVON_WINDOWS_ELEVATED_PROFILES_JSON=' + $ElevatedProfilesJson + "`r`n" +
+            'ORDIVON_WINDOWS_MAINTENANCE_LEASE_PATH=' + $MaintenanceLeasePath + "`r`n"
+        )
+    }
+    [IO.File]::WriteAllText(
+        $configTarget,
+        $materialized,
+        [Text.UTF8Encoding]::new($false))
+} else {
+    # The operator file is already at its final location. No secret copy or rewrite.
+    Assert-PgCandidateCommitments
+    if ((Get-FileHash -LiteralPath $runtimeTarget -Algorithm SHA256).Hash -ne $ExpectedRuntimeSha256 -or
+        (Get-FileHash -LiteralPath $launcherTarget -Algorithm SHA256).Hash -ne $ExpectedLauncherSha256) {
+        throw 'Staged PG binary or launcher digest mismatch.'
+    }
+}
 
 $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+if ($postgres) { Assert-PgServiceStagingFence $ServiceName ($null -ne $service) }
 if ($null -eq $service) {
     Invoke-ScChecked @(
         'create', $ServiceName,
         'type=', 'own',
-        'start=', 'auto',
+        'start=', $startMode,
         'error=', 'normal',
         'binPath=', $imagePath,
         'obj=', $serviceAccount,
@@ -352,13 +554,15 @@ if ($null -eq $service) {
     Invoke-ScChecked @(
         'config', $ServiceName,
         'type=', 'own',
-        'start=', 'auto',
+        'start=', $startMode,
         'error=', 'normal',
         'binPath=', $imagePath,
         'obj=', $serviceAccount,
         'DisplayName=', $DisplayName
     )
 }
+
+if ($postgres) { Assert-PgServiceStagingFence $ServiceName $true }
 
 Invoke-ScChecked @('description', $ServiceName, 'Native Ordivon Runtime control plane')
 Invoke-ScChecked @('sidtype', $ServiceName, 'unrestricted')
@@ -384,8 +588,30 @@ $fullControl = [Security.AccessControl.FileSystemRights]::FullControl
 foreach ($directory in @($ProgramDataRoot, $binRoot, $configRoot, $secretRoot)) {
     Set-ExactPrivateAcl $directory $serviceSid $readExecute
 }
-foreach ($directory in @($storeRoot, $registryRoot, $serviceHome)) {
+foreach ($directory in $stateDirectories) {
     Set-ExactPrivateAcl $directory $serviceSid $fullControl
+}
+if ($postgres) {
+    # The new root is distinct from all private state. Keep it empty until
+    # actual provider admission creates a Workspace and owns the leaf grant.
+    $null = Assert-PgWorkspaceRoot $workspaceRoot $ProgramDataRoot
+    $workspaceAcl = New-PrivateDirectorySecurity $serviceSid $fullControl
+    if ($null -ne $workspaceUser) {
+        $workspaceAcl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new(
+            $workspaceUser,
+            [Security.AccessControl.FileSystemRights]::ReadAttributes -bor
+                [Security.AccessControl.FileSystemRights]::Traverse -bor
+                [Security.AccessControl.FileSystemRights]::Synchronize,
+            [Security.AccessControl.InheritanceFlags]::None,
+            [Security.AccessControl.PropagationFlags]::None,
+            [Security.AccessControl.AccessControlType]::Allow))
+    }
+    if (-not [IO.Directory]::Exists($workspaceRoot)) {
+        [IO.Directory]::CreateDirectory($workspaceRoot, $workspaceAcl) | Out-Null
+    } else {
+        [IO.Directory]::SetAccessControl($workspaceRoot, $workspaceAcl)
+    }
+    $null = Assert-PgWorkspaceRoot $workspaceRoot $ProgramDataRoot
 }
 foreach ($file in @($runtimeTarget, $launcherTarget)) {
     Set-ExactPrivateAcl $file $serviceSid $readExecute
@@ -395,6 +621,7 @@ foreach ($file in @($configTarget, $tokenTarget)) {
 }
 
 $plan.service.builtinAdministratorsMembershipObserved = $administratorMembership
+if ($postgres) { Assert-PgServiceStagingFence $ServiceName $true }
 
 # Re-query through native SCM tooling. These are evidence surfaces; this script never starts the service.
 Invoke-ScChecked @('qc', $ServiceName)

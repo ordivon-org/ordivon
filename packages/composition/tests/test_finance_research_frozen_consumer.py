@@ -361,7 +361,7 @@ def test_forged_authority_and_tampered_frozen_plan_cannot_become_research_pass()
         )
         assert results[0]["standing"] == "UNSATISFIED"
         assert evaluate_gate_results(manifest, results)["standing"] == (
-            "COMPOSITION_GATES_UNSATISFIED"
+            "COMPOSITION_GATES_REPORTED_UNSATISFIED"
         )
 
     tampered = copy.deepcopy(frozen)
@@ -373,7 +373,9 @@ def test_forged_authority_and_tampered_frozen_plan_cannot_become_research_pass()
         manifest, plan, tampered, rejected, assessment_request=tampered_request
     )
     assert results[0]["standing"] == "UNSATISFIED"
-    assert evaluate_gate_results(manifest, results)["standing"] == ("COMPOSITION_GATES_UNSATISFIED")
+    assert evaluate_gate_results(manifest, results)["standing"] == (
+        "COMPOSITION_GATES_REPORTED_UNSATISFIED"
+    )
 
     # A malicious/inaccurate assessment cannot turn absent holdout evidence
     # into a completed source protocol merely by naming REVIEW_REQUIRED.
@@ -386,7 +388,7 @@ def test_forged_authority_and_tampered_frozen_plan_cannot_become_research_pass()
         )
         assert results[0]["standing"] == "UNSATISFIED"
         assert evaluate_gate_results(manifest, results)["standing"] == (
-            "COMPOSITION_GATES_UNSATISFIED"
+            "COMPOSITION_GATES_REPORTED_UNSATISFIED"
         )
 
     # Contradictory request/result pair must never be accepted. The verifier

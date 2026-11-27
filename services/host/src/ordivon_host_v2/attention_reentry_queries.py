@@ -11,6 +11,7 @@ import psycopg
 from .attention_delta_queries import AttentionDeltaQueries
 from .attention_reentry import project_reentry, reentry_topic_refs
 from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, validate_max_bytes
+from .errors import InvalidArgumentError
 from .postgres_bounds import HOST_WIRE_INT_MAX
 from .references.actor_refs import ActorReferenceLookup
 from .topic_cursor_records import list_topic_cursors_in_tx
@@ -35,12 +36,12 @@ class AttentionReentryQueries:
         max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
         if type(limit) is not int or not 1 <= limit <= 500:
-            raise ValueError("limit must be in [1,500]")
+            raise InvalidArgumentError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
         if after_sequence is not None and (
             type(after_sequence) is not int or not 0 <= after_sequence <= HOST_WIRE_INT_MAX
         ):
-            raise ValueError("after_sequence must be non-negative integer within JSON safe integer range")
+            raise InvalidArgumentError("after_sequence must be non-negative integer within JSON safe integer range")
         # Cursor, events, and topic resume cursors come from one MVCC snapshot.
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")

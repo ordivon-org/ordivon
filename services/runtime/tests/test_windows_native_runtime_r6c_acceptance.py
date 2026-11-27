@@ -6,7 +6,7 @@ SCRIPT = ROOT / "scripts" / "windows-native-runtime-r6c-acceptance.ps1"
 
 def test_r6c_acceptance_harness_is_candidate_only_and_faults_are_opt_in():
     text = SCRIPT.read_text(encoding="utf-8")
-    assert "[ValidateSet('Status', 'AuthorityProfile', 'WorkspaceCwdAdmission', 'PrepareFixture', 'CrashRecovery', 'ActiveJobRecovery', 'CancelJob')]" in text
+    assert "[ValidateSet('Status', 'AuthorityProfile', 'WorkspaceCwdAdmission', 'PrepareFixture', 'CrashRecovery', 'ActiveJobRecovery', 'CancelJob', 'PgSession1Readback')]" in text
     assert "[switch]$ApplyFault" in text
     assert "[int]$RecoveryTimeoutSeconds = 90" in text
     assert "[ValidateRange(60, 300)]" in text
@@ -140,3 +140,85 @@ def test_native_workspace_cwd_acceptance_rejects_false_success_and_fences_retire
     assert "expectedSourceStateDigest" in fn
     assert "force = $false" in fn
     assert "jobId" in fn
+
+def test_session1_cutover_requires_native_and_shell_cwd_exact_replay_and_artifact():
+    text = SCRIPT.read_text(encoding="utf-8")
+    fn = text[text.index("function Invoke-WorkspaceCwdAdmission {"):text.index("function Invoke-ActiveJobRecovery {")]
+    assert "[int]$ExpectedActiveUserSessionId = 1" in text
+    assert "[Diagnostics.Process]::GetCurrentProcess().SessionId" in fn
+    assert "[Environment]::CurrentDirectory" in fn
+    assert "$actual.sessionId -ne $ExpectedActiveUserSessionId" in fn
+    assert "$replay.jobId -ne $result.jobId" in fn
+    assert "$replay.attemptId -ne $result.attemptId" in fn
+    assert "Invoke-McpTool -Name 'artifact.read'" in fn
+    assert "$digest -ne $descriptor.digest" in fn
+    assert "$bytes.Length -ne $descriptor.retainedBytes" in fn
+    assert "$actual = Read-VerifiedCwdStdout $active 543" in fn
+    assert "active-user target ran outside the bound Workspace" in fn
+
+def test_pg_session1_readback_discriminates_legacy_success_and_reuses_exact_artifact():
+    text = SCRIPT.read_text(encoding="utf-8")
+    gate = text[text.index("function Assert-PgSession1Projection"):text.index("\nAssert-CandidateBoundary\n")]
+    assert "migrationVersion -ne 0" in gate
+    assert "PG_SESSION1_REQUIRED_FRESH_PG_PROJECTION" in gate
+    assert "DISPATCH_ISSUED" in gate and "$dispatch.Count -ne 1" in gate
+    assert "artifact.read" in gate and "$ExpectedAttemptId.stdout" in gate
+    assert "ComputeHash($bytes)" in gate and "$body.sessionId -ne 1" in gate
+    assert "uniqueWriterQualified = $false; cutoverAccepted = $false" in gate
+    assert "workspace.exec" not in gate and "job.cancel" not in gate
+
+
+def test_fresh_pg_uses_prepared_source_not_fixture_recreation_and_releases_only_on_acceptance():
+    text = SCRIPT.read_text(encoding="utf-8")
+    fn = text[text.index("function Invoke-WorkspaceCwdAdmission {"):text.index("function Invoke-ActiveJobRecovery {")]
+    assert "if (-not $RequireFreshPg) { Assert-CurrentTokenIsCandidateServiceIdentity }" in fn
+    assert "$repo = if ($RequireFreshPg) { Resolve-PreparedTestRepository } else { Ensure-TestRepository }" in fn
+    assert "Assert-PgSession1Projection $inspection" in fn
+    assert "$qualified = $true" in fn
+    assert "if (-not $RequireFreshPg -or $qualified)" in fn
+    assert "$closeRequest.consumerReleased = $true" in fn
+
+
+def test_single_scm_operator_cannot_auto_start_before_actual_fresh_pg_consumer():
+    operator = ROOT / "packaging" / "windows" / "activate-ordivon-runtime-pg-service.ps1"
+    text = operator.read_text(encoding="utf-8")
+    assert "Automatic PG startup requires exact fresh-PG consumer qualification inputs." in text
+    assert "Assert-QualificationInputs\n    Assert-Commitments\n    $legacy=Get-ExactService" in text
+    assert "if ($Direction -eq 'Activate') {'Manual'}" in text
+    assert "Mode='WorkspaceCwdAdmission';RequireFreshPg=$true" in text
+    assert text.index("$consumerReceipt=(& $acceptance @acceptanceArgs)") < text.index("Set-Mode $to.name $targetMode")
+    assert text.count("Assert-ListenerOwner $candidatePid $false") == 2
+    assert "fullCutoverAccepted=$false" in text
+
+
+def test_fresh_pg_automatic_start_requires_actual_private_git_consumer():
+    text = SCRIPT.read_text(encoding="utf-8")
+    fn = text[text.index("function Invoke-WorkspaceCwdAdmission {"):text.index("function Invoke-ActiveJobRecovery {")]
+    assert "Assert-ProbePath $env:GIT_WORK_TREE $workTree" in fn
+    assert "Assert-ProbePath $env:GIT_DIR $gitDir" in fn
+    assert "'--absolute-git-dir'" in fn and "'--show-toplevel'" in fn
+    assert "'HEAD:' + $sourceFile" in fn
+    assert "[IO.FileMode]::CreateNew" in fn
+    assert "[IO.File]::ReadAllBytes($marker)" in fn
+    assert "@('add','--',$marker)" in fn
+    assert "@('rev-parse',(':' + $marker))" in fn
+    assert "@('reset','-q','HEAD','--',$marker)" in fn
+    assert "$witness.head -ne $repo.revision" in fn
+    assert "$baseline.privateGit.$field" in fn and "$actual.privateGit.$field" in fn
+    assert fn.index("Fresh PG native Git consumer qualification missing") < fn.index("$qualified = $true")
+    assert "privateGitQualified = [bool]$RequireFreshPg" in fn
+    operator = (ROOT / "packaging" / "windows" / "activate-ordivon-runtime-pg-service.ps1").read_text(encoding="utf-8")
+    assert operator.index("$consumerReceipt.privateGitQualified -ne $true") < operator.index("Set-Mode $to.name $targetMode")
+
+
+def test_fresh_pg_reverse_gate_binds_operator_sid_and_attempt_artifact():
+    operator = ROOT / "packaging" / "windows" / "activate-ordivon-runtime-pg-service.ps1"
+    text = operator.read_text(encoding="utf-8")
+    assert "$expectedInteractiveSid=Assert-PgEnvironmentBindings -PassInteractiveSid" in text
+    assert "ExpectedActiveUserSid=$expectedInteractiveSid" in text
+    assert "$consumerReceipt.activeUserSid -cne $expectedInteractiveSid" in text
+    probe = SCRIPT.read_text(encoding="utf-8")
+    assert "Assert-PgSession1ActiveIdentity $actual $ExpectedActiveUserSid" in probe
+    assert "$descriptor.attemptId -cne $Observation.attemptId" in probe
+    assert "$descriptor.artifactId -cne ($Observation.attemptId + '.stdout')" in probe
+    assert "$replay.operationDigest -cne $result.operationDigest" in probe

@@ -65,14 +65,14 @@ impl PgAdmissionStore {
         }
         require_pg_writer_epoch(&mut tx, &i.expected_source_sha256, true)?;
         let current=tx.query_opt(
-            "SELECT job_id,state,result_digest,row_version FROM attempts WHERE attempt_id=$1 FOR UPDATE",
+            "SELECT job_id,state,result_digest,row_version,unit_name,launch_token_digest,bundle_digest FROM attempts WHERE attempt_id=$1 FOR UPDATE",
             &[&i.attempt_id])?.ok_or(PgAdmissionError::InvalidInput)?;
         let job_id: String = current.get(0);
         let previous: String = current.get(1);
         let digest: Option<String> = current.get(2);
         let version: i64 = current.get(3);
         let job = tx.query_one(
-            "SELECT resolution,current_attempt_id FROM jobs WHERE job_id=$1 FOR UPDATE",
+            "SELECT resolution,current_attempt_id,workspace_snapshot_json FROM jobs WHERE job_id=$1 FOR UPDATE",
             &[&job_id],
         )?;
         let job_resolution: Option<String> = job.get(0);
@@ -127,6 +127,51 @@ impl PgAdmissionStore {
             || job_resolution.is_some()
         {
             return Err(PgAdmissionError::Blocked);
+        }
+        // The same serializable PG transaction owning terminal+Artifacts MUST
+        // enforce a Windows native source-bound kernel event. A caller cannot
+        // bypass this by skipping the normal native reconciliation adapter.
+        // Linux systemd/cgroup jobs and non-result LOST/orphaned recovery are
+        // untouched. The native caller separately proves original OS exit.
+        // The provider is an admitted Job identity, not an inference from
+        // a mutable file extension. Older R8 candidate admissions used a
+        // Linux-looking ".service" name even for the Windows native provider:
+        // that mismatch must BLOCK instead of silently bypassing the guard.
+        let snapshot_json: String = job.get(2);
+        let provider: serde_json::Value =
+            serde_json::from_str(&snapshot_json).map_err(|_| PgAdmissionError::Unqualified)?;
+        let declared_native = provider
+            .pointer("/executionProvider/contract")
+            .and_then(serde_json::Value::as_str)
+            == Some("windows_native_launcher_v1");
+        let native_name = format!("Ordivon.{}", i.attempt_id);
+        let original_native: String = current.get(4);
+        if declared_native || original_native == native_name {
+            if original_native != native_name {
+                return Err(PgAdmissionError::Blocked);
+            }
+            if matches!(
+                i.terminal_state.as_str(),
+                "succeeded" | "failed" | "timed_out" | "cancelled"
+            ) {
+                if artifacts.is_empty() {
+                    return Err(PgAdmissionError::Blocked);
+                }
+                let bundle_digest: Option<String> = current.get(6);
+                let bundle_digest = bundle_digest.ok_or(PgAdmissionError::Blocked)?;
+                native_windows_drain::require_native_windows_drain_in_terminal_tx(
+                    &mut tx,
+                    &native_windows_drain::PgWindowsDrainIdentity {
+                        job_id: &job_id,
+                        attempt_id: &i.attempt_id,
+                        source_sha256: &i.expected_source_sha256,
+                        launch_token_digest: &current.get::<_, String>(5),
+                        request_digest: &bundle_digest,
+                        result_digest: &i.result_digest,
+                        expected_row_version: i.expected_row_version,
+                    },
+                )?;
+            }
         }
         let changed=tx.execute(
             "UPDATE attempts SET state=$1,result_digest=$2,exit_code=$3,finished_at_ms=$4,row_version=row_version+1 WHERE attempt_id=$5 AND row_version=$6 AND state=$7",

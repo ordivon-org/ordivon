@@ -8,7 +8,8 @@
     "sourceEvidence": [
       "tools/repo/owners.toml",
       "tools/repo/source_history_legos.py",
-      "tools/repo/test_source_history_legos.py"
+      "tools/repo/test_source_history_legos.py",
+      "tools/repo/owner_lego_graph_contract.py"
     ]
   },
   "nodes": [
@@ -76,6 +77,7 @@
       "sharedRefs": [],
       "evidence": [
         "check_architecture_docs.py",
+        "owner_lego_graph_contract.py",
         "test_architecture_docs.py::test_formal_issue_census_rejects_undeclared_natural_owner",
         "test_architecture_docs.py::test_issue_owner_source_cut_is_explicit",
         "test_architecture_docs.py::test_formal_issue_owner_plan_cannot_escape_source_cut",

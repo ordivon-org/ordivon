@@ -10,7 +10,7 @@ import psycopg
 
 from .attention_sql import ATTENTION_DELTA_SQL
 from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_page, validate_max_bytes
-from .errors import ConflictError
+from .errors import ConflictError, InvalidArgumentError
 from .postgres_bounds import HOST_WIRE_INT_MAX
 from .references.actor_refs import ActorReferenceLookup
 
@@ -46,7 +46,7 @@ class AttentionDeltaQueries:
     @staticmethod
     def _validate_delta_page(*, limit: int, max_bytes: int) -> None:
         if type(limit) is not int or not 1 <= limit <= 500:
-            raise ValueError("limit must be in [1,500]")
+            raise InvalidArgumentError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
 
     def delta(
@@ -58,7 +58,7 @@ class AttentionDeltaQueries:
         max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
         if type(after_sequence) is not int or not 0 <= after_sequence <= HOST_WIRE_INT_MAX:
-            raise ValueError(
+            raise InvalidArgumentError(
                 "after_sequence must be non-negative integer within JSON safe integer range"
             )
         self._validate_delta_page(limit=limit, max_bytes=max_bytes)

@@ -21,7 +21,7 @@ from .collection_pagination import (
     bounded_page,
     validate_max_bytes,
 )
-from .errors import ConflictError
+from .errors import ConflictError, InvalidArgumentError
 from .postgres_bounds import HOST_WIRE_INT_MAX
 from .references.record_refs import RecordReferenceLookup
 from .social_errors import MessageNotFound
@@ -47,14 +47,14 @@ class SocialMessageReadQueries:
         max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
         if direction not in {"outgoing", "incoming", "both"}:
-            raise ValueError("direction must be outgoing, incoming, or both")
+            raise InvalidArgumentError("direction must be outgoing, incoming, or both")
         if (
             type(after_change_sequence) is not int
             or not 0 <= after_change_sequence <= HOST_WIRE_INT_MAX
         ):
-            raise ValueError("after_change_sequence must be a non-negative safe integer")
+            raise InvalidArgumentError("after_change_sequence must be a non-negative safe integer")
         if type(limit) is not int or not 1 <= limit <= 500:
-            raise ValueError("limit must be in [1,500]")
+            raise InvalidArgumentError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
@@ -154,13 +154,13 @@ class SocialMessageReadQueries:
         max_bytes: int = DEFAULT_MESSAGE_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
         if not query.strip():
-            raise ValueError("query must be non-empty")
+            raise InvalidArgumentError("query must be non-empty")
         if type(limit) is not int or not 1 <= limit <= 200:
-            raise ValueError("limit must be in [1,200]")
+            raise InvalidArgumentError("limit must be in [1,200]")
         if before_sequence is not None and (
             type(before_sequence) is not int or not 1 <= before_sequence <= HOST_WIRE_INT_MAX
         ):
-            raise ValueError("before_sequence must be a positive safe integer")
+            raise InvalidArgumentError("before_sequence must be a positive safe integer")
         validate_max_bytes(max_bytes, minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES)
         # PostgreSQL 'simple' FTS does not segment Chinese words. Match a
         # single unspaced CJK phrase literally so it can occur within a
