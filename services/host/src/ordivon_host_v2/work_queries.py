@@ -15,7 +15,7 @@ import psycopg
 
 from .canonical_json import canonical_digest
 from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_page, validate_max_bytes
-from .errors import WorkNotFound, WorkRevisionUnavailable
+from .errors import InvalidArgumentError, WorkNotFound, WorkRevisionUnavailable
 from .postgres_bounds import HOST_WIRE_INT_MAX
 from .work_inputs import WorkState
 
@@ -107,7 +107,7 @@ class WorkReadQueries:
         if revision is not None and (
             type(revision) is not int or not 1 <= revision <= HOST_WIRE_INT_MAX
         ):
-            raise ValueError(
+            raise InvalidArgumentError(
                 "revision must be a positive PostgreSQL BIGINT within JSON safe integer range"
             )
         with self._connect() as conn, conn.transaction():
@@ -126,11 +126,11 @@ class WorkReadQueries:
         # A pagination budget is a typed integer, not numeric equality:
         # True == 1 and 1.0 == 1 must not cross the PostgreSQL boundary.
         if type(limit) is not int or not 1 <= limit <= 200:
-            raise ValueError("limit must be in [1,200]")
+            raise InvalidArgumentError("limit must be in [1,200]")
         if state is not None and state not in {item.value for item in WorkState}:
-            raise ValueError("unknown Work state")
+            raise InvalidArgumentError("unknown Work state")
         if (before_updated_at is None) != (before_work_ref is None):
-            raise ValueError("before_updated_at and before_work_ref must be supplied together")
+            raise InvalidArgumentError("before_updated_at and before_work_ref must be supplied together")
         validate_max_bytes(max_bytes)
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")

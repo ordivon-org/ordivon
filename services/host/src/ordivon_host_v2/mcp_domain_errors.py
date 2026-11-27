@@ -8,7 +8,13 @@ from psycopg.errors import CheckViolation, SequenceGeneratorLimitExceeded
 from psycopg_pool import PoolTimeout, TooManyRequests
 from pydantic import ValidationError
 
-from .errors import ActorRefNotFound, ConflictError, WorkNotFound, WorkRevisionUnavailable
+from .errors import (
+    ActorRefNotFound,
+    ConflictError,
+    InvalidArgumentError,
+    WorkNotFound,
+    WorkRevisionUnavailable,
+)
 from .social_errors import MessageNotFound, SpaceNotFound, TopicNotFound, TopicResumeCursorAhead
 
 
@@ -115,7 +121,7 @@ def _domain_error_payload(exc: Exception) -> dict[str, object]:
             issues=exc.errors(include_url=False, include_input=False),
             suggestedAction="correct-request",
         )
-    elif isinstance(exc, ValueError):
+    elif isinstance(exc, InvalidArgumentError):
         payload.update(
             code="INVALID_ARGUMENT",
             detail=str(exc),
@@ -159,7 +165,7 @@ def _project_domain_errors(func):
             PoolTimeout,
             TooManyRequests,
             ValidationError,
-            ValueError,
+            InvalidArgumentError,
         ) as exc:
             raise ToolError(
                 json.dumps(_domain_error_payload(exc), sort_keys=True, separators=(",", ":"))

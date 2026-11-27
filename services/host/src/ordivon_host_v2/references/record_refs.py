@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 import psycopg
 
-from ..errors import WorkNotFound
+from ..errors import InvalidArgumentError, WorkNotFound
 from ..social_errors import SpaceNotFound, TopicNotFound
 
 TargetKind = Literal["work", "space", "topic"]
@@ -59,7 +59,7 @@ class RecordReferenceLookup:
             "topic": ("topics", "topic_ref", TopicNotFound),
         }
         if target_kind not in targets:
-            raise ValueError(f"unsupported Host attention target kind: {target_kind}")
+            raise InvalidArgumentError(f"unsupported Host attention target kind: {target_kind}")
         table, column, missing = targets[target_kind]
         if (
             conn.execute(f"SELECT 1 FROM {table} WHERE {column}=%s", (target_ref,)).fetchone()
