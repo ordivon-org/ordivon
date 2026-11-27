@@ -4,6 +4,7 @@
 param([string]$Operator=(Join-Path $PSScriptRoot '../packaging/windows/activate-ordivon-runtime-pg-service.ps1'))
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
+. (Join-Path (Split-Path (Resolve-Path $Operator).Path -Parent) 'windows-pg-release-provenance.ps1')
 $tokens=$null;$errors=$null
 $ast=[System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $Operator).Path,[ref]$tokens,[ref]$errors)
 if ($errors.Count) { throw ($errors|Out-String) }
@@ -22,12 +23,16 @@ $fixture=Join-Path ([IO.Path]::GetTempPath()) ('ordivon-scm-config-'+[Guid]::New
 $null=New-Item -ItemType Directory -Path $fixture
 try {
     $LegacyBinary=Join-Path $fixture 'legacy.bin';$PgBinary=Join-Path $fixture 'pg.bin'
-    $PgLauncher=Join-Path $fixture 'launcher.bin';$PgEnvironment=Join-Path $fixture 'candidate.env'
+    $PgLauncher=Join-Path $fixture 'launcher.bin';$PgEnvironment=Join-Path $fixture 'candidate.env';$PgReleaseManifest=Join-Path $fixture 'manifest.json'
     $TokenFile=Join-Path $fixture 'token-reference-only'
     foreach ($p in @($LegacyBinary,$PgBinary,$PgLauncher)) { [IO.File]::WriteAllText($p,'fixture') }
     $ExpectedLegacySha256=(Get-FileHash $LegacyBinary).Hash
     $ExpectedPgSha256=(Get-FileHash $PgBinary).Hash
     $ExpectedLauncherSha256=(Get-FileHash $PgLauncher).Hash
+    $ExpectedSourceCommit='b'*40
+    $release=[ordered]@{schemaVersion=1;kind='ordivon.windows-pg-release';truthRole='builder-manifest-claim-bound-to-exact-bytes-not-reproducible-build-proof';source=[ordered]@{commit=$ExpectedSourceCommit;runtimeTree=('c'*40);runtimeSourceArchiveSha256=('d'*64);cargoLockSha256=('e'*64)};files=@([ordered]@{path='ordivon-runtime-pg.exe';size=(Get-Item $PgBinary).Length;sha256=$ExpectedPgSha256.ToLowerInvariant()},[ordered]@{path='ordivon-windows-pg-job-launcher.exe';size=(Get-Item $PgLauncher).Length;sha256=$ExpectedLauncherSha256.ToLowerInvariant()})}
+    [IO.File]::WriteAllText($PgReleaseManifest,($release|ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false))
+    $ExpectedReleaseManifestSha256=(Get-FileHash $PgReleaseManifest).Hash
     $PgImagePath='"'+$PgBinary+'" --windows-service --env-file "'+$PgEnvironment+'"'
     $LegacyImagePath='"'+$LegacyBinary+'"'
     $Direction='Activate';$selectedQualification=$true
@@ -86,6 +91,11 @@ try {
     }
     $ExpectedEnvironmentSha256=Write-Fixture ($lines+$lines[0])
     Expect-Rejection 'duplicate configuration key' 'duplicate'
+    $ExpectedEnvironmentSha256=Write-Fixture $lines
+    $originalManifestSha=$ExpectedReleaseManifestSha256
+    $ExpectedReleaseManifestSha256='0'*64
+    Expect-Rejection 'changed release manifest digest' 'manifest digest changed'
+    $ExpectedReleaseManifestSha256=$originalManifestSha
     $selectedQualification=$false
     $ExpectedEnvironmentSha256=Write-Fixture @($lines[0])
     Assert-Commitments

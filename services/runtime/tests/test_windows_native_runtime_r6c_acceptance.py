@@ -184,6 +184,9 @@ def test_single_scm_operator_cannot_auto_start_before_actual_fresh_pg_consumer()
     text = operator.read_text(encoding="utf-8")
     assert "Automatic PG startup requires exact fresh-PG consumer qualification inputs." in text
     assert "Assert-QualificationInputs\n    Assert-Commitments\n    $legacy=Get-ExactService" in text
+    assert "PG activation requires exact release-manifest provenance inputs." in text
+    assert "releaseManifestSha256" in text and "sourceCommitClaim" in text
+    assert "releaseProvenanceTruthRole" in text
     assert "if ($Direction -eq 'Activate') {'Manual'}" in text
     assert "Mode='WorkspaceCwdAdmission';RequireFreshPg=$true" in text
     assert text.index("$consumerReceipt=(& $acceptance @acceptanceArgs)") < text.index("Set-Mode $to.name $targetMode")

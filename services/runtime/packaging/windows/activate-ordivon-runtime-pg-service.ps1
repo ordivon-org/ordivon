@@ -26,6 +26,9 @@ param(
     [Parameter(Mandatory=$true)][string]$ExpectedLauncherSha256,
     [Parameter(Mandatory=$true)][string]$PgEnvironment,
     [Parameter(Mandatory=$true)][string]$ExpectedEnvironmentSha256,
+    [string]$PgReleaseManifest='',
+    [string]$ExpectedReleaseManifestSha256='',
+    [string]$ExpectedSourceCommit='',
     [ValidateRange(5,120)][int]$TimeoutSeconds=30,
     [string]$PgEndpoint='',
     [string]$ExpectedNodeId='',
@@ -42,6 +45,8 @@ param(
 )
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'windows-pg-release-provenance.ps1')
+$releaseProvenance=$null
 if ($LegacyService -notmatch '^[A-Za-z0-9_.-]+$' -or
     $PgService -notmatch '^[A-Za-z0-9_.-]+$' -or
     $LegacyService -ieq $PgService) {
@@ -138,6 +143,17 @@ function Assert-Commitments {
     Assert-Commitment $PgLauncher $ExpectedLauncherSha256
     Assert-Commitment $PgEnvironment $ExpectedEnvironmentSha256
     Assert-PgEnvironmentBindings
+    if ($Direction -eq 'Activate') {
+        if ([string]::IsNullOrWhiteSpace($PgReleaseManifest) -or
+            [string]::IsNullOrWhiteSpace($ExpectedReleaseManifestSha256) -or
+            [string]::IsNullOrWhiteSpace($ExpectedSourceCommit)) {
+            throw 'PG activation requires exact release-manifest provenance inputs.'
+        }
+        $script:releaseProvenance=Get-OrdivonWindowsPgReleaseProvenance -ManifestPath $PgReleaseManifest -ExpectedSourceCommit $ExpectedSourceCommit -RuntimePath $PgBinary -LauncherPath $PgLauncher -ExpectedRuntimeSha256 $ExpectedPgSha256 -ExpectedLauncherSha256 $ExpectedLauncherSha256
+        if ($script:releaseProvenance.manifestSha256 -ine $ExpectedReleaseManifestSha256) {
+            throw 'PG release manifest digest changed after materialization.'
+        }
+    }
     # Bind the operator's file commitments to the exact installed image paths.
     # Native SCM can omit quotes on whitespace-free paths.
     $exeArgs=@(('"{0}"' -f $PgBinary))
@@ -273,7 +289,10 @@ try {
     if (-not $Apply) {
         [ordered]@{schemaVersion=1;kind='ordivon.windows-pg-scm-cutover-preview';
             direction=$Direction;from=$from.name;to=$to.name;fromPid=$from.pid;
-            sourceMode=$from.mode;destinationMode=$targetMode;effect=$false} | ConvertTo-Json
+            sourceMode=$from.mode;destinationMode=$targetMode;effect=$false;
+            releaseProvenanceTruthRole=$(if ($null -ne $releaseProvenance) {$releaseProvenance.truthRole} else {$null});
+            sourceCommitClaim=$(if ($null -ne $releaseProvenance) {$releaseProvenance.sourceCommitClaim} else {$null});
+            releaseManifestSha256=$(if ($null -ne $releaseProvenance) {$releaseProvenance.manifestSha256} else {$null})} | ConvertTo-Json
         return
     }
     $identity=[Security.Principal.WindowsIdentity]::GetCurrent()
@@ -349,6 +368,9 @@ try {
     [ordered]@{schemaVersion=1;kind='ordivon.windows-pg-scm-transition';
         direction=$Direction;from=$stopped.name;fromState=$stopped.state;fromMode=$stopped.mode;
         to=$current.name;toState=$current.state;toMode=$current.mode;toPid=$current.pid;
+        releaseProvenanceTruthRole=$(if ($null -ne $releaseProvenance) {$releaseProvenance.truthRole} else {$null});
+        sourceCommitClaim=$(if ($null -ne $releaseProvenance) {$releaseProvenance.sourceCommitClaim} else {$null});
+        releaseManifestSha256=$(if ($null -ne $releaseProvenance) {$releaseProvenance.manifestSha256} else {$null});
         scmTransitionObserved=$true;consumerQualificationEvaluated=($null -ne $consumerReceipt);
         freshPgSessionQualified=($null -ne $consumerReceipt);consumerReceipt=$consumerReceipt;
         pgWriterUniquenessEvaluated=$false;ingressReopened=$false;fullCutoverAccepted=$false} | ConvertTo-Json -Depth 12

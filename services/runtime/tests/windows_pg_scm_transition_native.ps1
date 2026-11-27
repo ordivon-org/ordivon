@@ -21,6 +21,7 @@ $legacyExe=Join-Path $root 'legacy.exe'
 $pgExe=Join-Path $root 'pg.exe'
 $envFile=Join-Path $root 'pg-fixture.env'
 $launcher=Join-Path $root 'launcher-fixture.bin'
+$manifest=Join-Path $root 'manifest.json'
 function Assert-State($name,$status,$mode) {
     $v=Get-Service -Name $name
     if ($v.Status -ne $status -or $v.StartType -ne $mode) { throw "Unexpected state $name $($v.Status) $($v.StartType)" }
@@ -62,6 +63,9 @@ try {
     Compile-Service $pg $pgExe
     [IO.File]::WriteAllText($envFile,('ORDIVON_PG_RUNNER='+$launcher))
     [IO.File]::WriteAllText($launcher,'fixture only')
+    $sourceCommit='b'*40
+    $release=[ordered]@{schemaVersion=1;kind='ordivon.windows-pg-release';truthRole='builder-manifest-claim-bound-to-exact-bytes-not-reproducible-build-proof';source=[ordered]@{commit=$sourceCommit;runtimeTree=('c'*40);runtimeSourceArchiveSha256=('d'*64);cargoLockSha256=('e'*64)};files=@([ordered]@{path='ordivon-runtime-pg.exe';size=(Get-Item $pgExe).Length;sha256=(Get-FileHash $pgExe).Hash.ToLowerInvariant()},[ordered]@{path='ordivon-windows-pg-job-launcher.exe';size=(Get-Item $launcher).Length;sha256=(Get-FileHash $launcher).Hash.ToLowerInvariant()})}
+    [IO.File]::WriteAllText($manifest,($release|ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false))
     $oldImage='"'+$legacyExe+'"'
     $newImage='"'+$pgExe+'" --windows-service --env-file "'+$envFile+'"'
     # The fixture services do not run Runtime, PG, or user payloads.
@@ -78,6 +82,7 @@ try {
       PgBinary=$pgExe;ExpectedPgSha256=(Get-FileHash $pgExe).Hash
       PgLauncher=$launcher;ExpectedLauncherSha256=(Get-FileHash $launcher).Hash
       PgEnvironment=$envFile;ExpectedEnvironmentSha256=(Get-FileHash $envFile).Hash
+      PgReleaseManifest=$manifest;ExpectedReleaseManifestSha256=(Get-FileHash $manifest).Hash;ExpectedSourceCommit=$sourceCommit
       TimeoutSeconds=15
     }
     $preview=(& $Operator @params|ConvertFrom-Json)
@@ -97,6 +102,8 @@ try {
     Expect-Reject { & $Operator @wrong -Apply -IngressQuiesced -OriginalConsumerQualified -OriginalWriterDrained } 'preimage changed'
     $wrong=@{}+$params;$wrong.ExpectedPgSha256='0'*64
     Expect-Reject { & $Operator @wrong -Apply -IngressQuiesced -OriginalConsumerQualified -OriginalWriterDrained } 'commitment differs'
+    $wrong=@{}+$params;$wrong.ExpectedSourceCommit='a'*40
+    Expect-Reject { & $Operator @wrong -Apply -IngressQuiesced -OriginalConsumerQualified -OriginalWriterDrained } 'source provenance'
     Assert-State $legacy 'Running' 'Manual';Assert-State $pg 'Stopped' 'Disabled'
     'PASS_UNQUALIFIED_STALE_PID_HASH_REJECT_BEFORE_EFFECT'
     $receipt=(& $Operator @params -Apply -IngressQuiesced -OriginalConsumerQualified -OriginalWriterDrained|ConvertFrom-Json)

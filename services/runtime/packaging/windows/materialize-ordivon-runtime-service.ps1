@@ -26,11 +26,14 @@ param(
     [string]$ExpectedRuntimeSha256 = '',
     [string]$ExpectedLauncherSha256 = '',
     [string]$ExpectedPostgresEnvironmentSha256 = '',
+    [string]$WindowsPgReleaseManifest = '',
+    [string]$ExpectedWindowsPgSourceCommit = '',
     [switch]$Apply
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'windows-pg-release-provenance.ps1')
 
 if ($ServiceName -notmatch '^[A-Za-z0-9_.-]+$') {
     throw 'ServiceName contains unsupported characters.'
@@ -284,6 +287,8 @@ if ($postgres) {
 $launcherTarget = Join-Path $binRoot 'ordivon-windows-job-launcher.exe'
 $configTarget = Join-Path $configRoot 'ordivon-runtime.env'
 $tokenTarget = Join-Path $secretRoot 'runtime-mcp.token'
+$releaseManifestTarget = $null
+$releaseProvenance = $null
 if ($postgres) {
     # Never overwrite the legacy install's launcher, environment or token.
     # The PG launcher has a separate exact target, and the private config and
@@ -291,11 +296,17 @@ if ($postgres) {
     $launcherTarget = Join-Path $binRoot 'ordivon-windows-pg-job-launcher.exe'
     $configTarget = Join-Path $configRoot 'ordivon-runtime-pg.env'
     $tokenTarget = Join-Path $secretRoot 'runtime-pg-mcp.token'
+    $releaseManifestTarget = Join-Path $configRoot 'ordivon-runtime-pg-release.json'
     if (-not [string]::Equals([IO.Path]::GetFullPath($tokenSourceResolved),
             [IO.Path]::GetFullPath($tokenTarget), [StringComparison]::OrdinalIgnoreCase)) {
         throw 'PG TokenSource must be pre-provisioned at the final private PG token path.'
     }
     $pgConfig = Resolve-ExistingFile $PostgresEnvironmentFile 'PostgresEnvironmentFile'
+    if ([string]::IsNullOrWhiteSpace($WindowsPgReleaseManifest) -or
+        [string]::IsNullOrWhiteSpace($ExpectedWindowsPgSourceCommit)) {
+        throw 'PG materialization requires the exact Windows PG release manifest and source commit.'
+    }
+    $releaseManifestSource = Resolve-ExistingFile $WindowsPgReleaseManifest 'WindowsPgReleaseManifest'
     if (-not [string]::Equals([IO.Path]::GetFullPath($pgConfig), [IO.Path]::GetFullPath($configTarget),
             [StringComparison]::OrdinalIgnoreCase)) {
         throw 'PostgresEnvironmentFile must be pre-provisioned at the final private PG config path.'
@@ -319,6 +330,7 @@ if ($postgres) {
         }
     }
     Assert-PgCandidateCommitments
+    $releaseProvenance = Get-OrdivonWindowsPgReleaseProvenance -ManifestPath $releaseManifestSource -ExpectedSourceCommit $ExpectedWindowsPgSourceCommit -RuntimePath $runtimeSource -LauncherPath $launcherSource -ExpectedRuntimeSha256 $ExpectedRuntimeSha256 -ExpectedLauncherSha256 $ExpectedLauncherSha256
     $pgItem = Get-Item -LiteralPath $pgConfig
     if ($pgItem.Length -gt 65536 -or
         ($pgItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
@@ -379,8 +391,9 @@ if ($postgres) {
             throw ('PG environment does not bind the planned service: ' + $key)
         }
     }
-} elseif ($ExpectedRuntimeSha256 -or $ExpectedLauncherSha256 -or $ExpectedPostgresEnvironmentSha256) {
-    throw 'PG candidate commitments require PostgresEnvironmentFile.'
+} elseif ($ExpectedRuntimeSha256 -or $ExpectedLauncherSha256 -or $ExpectedPostgresEnvironmentSha256 -or
+    $WindowsPgReleaseManifest -or $ExpectedWindowsPgSourceCommit) {
+    throw 'PG candidate commitments and release provenance require PostgresEnvironmentFile.'
 }
 # PG materialization must remain disabled through all SCM and ACL changes.
 # Only the separately qualified cold activation may enable the service.
@@ -433,7 +446,16 @@ $plan = [ordered]@{
         launcherTarget = $launcherTarget
         configTarget = $configTarget
         tokenTarget = $tokenTarget
+        releaseManifestTarget = $releaseManifestTarget
     }
+    releaseProvenance = $(if ($postgres) {
+        [ordered]@{
+            truthRole = $releaseProvenance.truthRole
+            sourceCommitClaim = $releaseProvenance.sourceCommitClaim
+            runtimeTree = $releaseProvenance.runtimeTree
+            manifestSha256 = $releaseProvenance.manifestSha256
+        }
+    } else { $null })
     invariants = @(
         'No bearer secret appears in SCM ImagePath or the env file.',
         'ProgramData state/config/token are ACL-bound to SYSTEM, Builtin Administrators and the service SID.',
@@ -497,6 +519,12 @@ function Copy-UnlessSameFile([string]$Source, [string]$Destination) {
 
 Copy-UnlessSameFile $runtimeSource $runtimeTarget
 Copy-UnlessSameFile $launcherSource $launcherTarget
+if ($postgres) {
+    Copy-UnlessSameFile $releaseManifestSource $releaseManifestTarget
+    if ((Get-FileHash -LiteralPath $releaseManifestTarget -Algorithm SHA256).Hash -ine $releaseProvenance.manifestSha256) {
+        throw 'Staged Windows PG release manifest digest mismatch.'
+    }
+}
 if (-not $postgres) {
     Copy-UnlessSameFile $tokenSourceResolved $tokenTarget
 }
@@ -618,6 +646,9 @@ foreach ($file in @($runtimeTarget, $launcherTarget)) {
 }
 foreach ($file in @($configTarget, $tokenTarget)) {
     Set-ExactPrivateAcl $file $serviceSid $readOnly
+}
+if ($postgres) {
+    Set-ExactPrivateAcl $releaseManifestTarget $serviceSid $readOnly
 }
 
 $plan.service.builtinAdministratorsMembershipObserved = $administratorMembership
