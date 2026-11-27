@@ -664,22 +664,9 @@ fn bind_admitted_windows_pg_bundle(
     {
         return Err("invalid PG readback query identity".into());
     }
-    // The one qualified PG readback owns Writer Epoch, lifecycle, terminal
-    // events and Reservation coherence. Do not reimplement those checks here.
-    let qualified = match store
-        .observe_job_readonly(job_id, source_sha256)
-        .map_err(|_| "PG writer/currentness readback unavailable".to_string())?
-    {
-        PgJobReadback::Observed(snapshot) => snapshot,
-        PgJobReadback::Inconclusive => {
-            return Err("PG lifecycle inconclusive: current Attempt, resolved PG Job retains a pointer, or terminal evidence disagrees".into());
-        }
-    };
-
-    // A second read-only snapshot is only for the Windows provider's immutable
-    // bundle fields, absent from the shared lifecycle projection. Fence both
-    // versions and the exact Attempt: a changing Job is UNKNOWN, never a
-    // fallback to its highest historical attempt.
+    // Qualify the ordinary PG lifecycle and Windows provider fields in
+    // the same snapshot. Runtime's scheduler can bind or terminalize the
+    // Attempt while a consumer is observing and replaying the same Job.
     let mut tx = store
         .client
         .build_transaction()
@@ -687,6 +674,18 @@ fn bind_admitted_windows_pg_bundle(
         .read_only(true)
         .start()
         .map_err(|_| "PG provider snapshot unavailable".to_string())?;
+    let qualified = match crate::pg_admission::PgAdmissionStore::observe_job_snapshot(
+        &mut tx,
+        job_id,
+        source_sha256,
+    )
+    .map_err(|_| "PG writer/currentness readback unavailable".to_string())?
+    {
+        PgJobReadback::Observed(snapshot) => snapshot,
+        PgJobReadback::Inconclusive => {
+            return Err("PG lifecycle inconclusive: current Attempt, resolved PG Job retains a pointer, or terminal evidence disagrees".into());
+        }
+    };
     let row = tx
         .query_opt(
             "SELECT j.principal,j.workspace_snapshot_json,a.launch_token_digest, \
