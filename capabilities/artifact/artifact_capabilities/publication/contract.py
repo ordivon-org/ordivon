@@ -67,6 +67,26 @@ def load_publication_contract(path: Path) -> dict[str, Any]:
             raise ValueError(f"authority[{index}].url must be HTTP(S)")
         if not isinstance(row.get("observedAt"), str) or not row["observedAt"]:
             raise ValueError(f"authority[{index}].observedAt is required")
+
+    page_rules = value.get("pageRules", {})
+    heading_rules = page_rules.get("headings", []) if isinstance(page_rules, dict) else []
+    heading_ids = {
+        rule.get("id")
+        for rule in heading_rules
+        if isinstance(rule, dict) and isinstance(rule.get("id"), str) and rule["id"]
+    }
+    for index, rule in enumerate(heading_rules):
+        if not isinstance(rule, dict):
+            continue
+        predecessor = rule.get("mustFollow")
+        if predecessor is None:
+            continue
+        if not isinstance(predecessor, str) or not predecessor:
+            raise ValueError(f"pageRules.headings[{index}].mustFollow must be a non-empty string")
+        if predecessor not in heading_ids:
+            raise ValueError(
+                f"pageRules.headings[{index}].mustFollow references unknown heading: {predecessor}"
+            )
     return value
 
 
