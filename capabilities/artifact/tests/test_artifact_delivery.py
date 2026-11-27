@@ -1869,6 +1869,22 @@ class ArtifactDeliveryTests(unittest.TestCase):
             evidence.write_text(json.dumps(value))
             self.assertEqual(verify_target_evidence(evidence, pptx, pdf, 1, render_result)["status"], "FAIL")
 
+    def test_target_evidence_rejects_duplicate_json_members(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            pptx = root / "deck.pptx"
+            pptx.write_bytes(b"pptx")
+            evidence = root / "target.json"
+            evidence.write_text(
+                '{"artifact":{"sha256":"'
+                + sha256_file(pptx)
+                + '"},"renderer":{"name":"Untrusted","version":"bad"},'
+                + '"renderer":{"name":"Microsoft PowerPoint Desktop","version":"16.0"},'
+                + '"result":{"slideCount":1}}'
+            )
+            with self.assertRaisesRegex(ValueError, "duplicate JSON key: renderer"):
+                verify_target_evidence(evidence, pptx, None, 1)
+
     def test_visual_review_binds_exact_artifact_and_render_digests(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
