@@ -52,7 +52,7 @@ def explore() -> dict[str, int]:
     with patch.object(
         routing_module,
         "research_capabilities",
-        return_value={"execution.linux": collision},
+        return_value={"research.synthetic.nonmatching-key": collision},
     ):
         try:
             routing_module.default_routes()

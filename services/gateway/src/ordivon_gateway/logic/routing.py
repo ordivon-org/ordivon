@@ -94,7 +94,7 @@ def default_routes() -> dict[str, CapabilityRoute]:
     ]
     research = research_capabilities()
     existing = {route.capability for route in routes}
-    overlap = existing.intersection(research)
+    overlap = existing.intersection(spec.capability for spec in research.values())
     if overlap:
         names = ", ".join(sorted(overlap))
         raise ValueError(f"duplicate default capability route: {names}")
