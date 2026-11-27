@@ -430,7 +430,11 @@ def run(args: argparse.Namespace) -> dict:
         # Linux ctime is only a cheap age filter. A no-Job Workspace has no
         # Job outcome to infer; Runtime OPEN record, source, outputs, and
         # native close decide the actual physical effect after this scan.
-        if path.stat().st_ctime * 1000 > now - retention_ms:
+        try:
+            changed_at_ms = path.stat().st_ctime * 1000
+        except FileNotFoundError:
+            skip("workspace_disappeared");continue
+        if changed_at_ms > now - retention_ms:
             skip("directory_recently_changed");continue
         # No Job and definite failed/timed-out/cancelled Jobs should not leak
         # forever purely because "succeeded" was never written. This scan
