@@ -6,15 +6,17 @@ import argparse
 import hashlib
 import json
 import os
-from fractions import Fraction
-from pathlib import Path
 import re
 import subprocess
 import tempfile
-from typing import Any
 import xml.etree.ElementTree as ET
+from fractions import Fraction
+from pathlib import Path
+from typing import Any
 
 import jsonschema
+
+from artifact_core.contracts import FileCommitment
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_SCHEMA = ROOT / "artifact-delivery/shadow-contracts/moving-image-ffv1-contract-v1.schema.json"
@@ -43,7 +45,8 @@ def canonical_digest(value: Any) -> str:
 
 
 def artifact_fact(path: Path) -> dict[str,Any]:
-    return {'path':str(path.resolve()),'name':path.name,'size':path.stat().st_size,'sha256':sha256_file(path)}
+    commitment = FileCommitment.from_path(path)
+    return {'path':str(commitment.path),'name':path.name,'size':commitment.size,'sha256':commitment.sha256}
 
 
 def validate_contract(contract: dict[str,Any]) -> list[str]:
