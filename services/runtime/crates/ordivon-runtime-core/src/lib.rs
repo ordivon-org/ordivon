@@ -25,6 +25,7 @@ mod windows_security;
 #[cfg(windows)]
 pub use windows_security::{
     current_token_is_local_system as windows_current_token_is_local_system,
+    prepare_windows_pg_service_observation,
     validate_private_readonly_file_acl as validate_windows_private_readonly_file_acl,
 };
 

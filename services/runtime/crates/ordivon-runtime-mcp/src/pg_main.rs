@@ -153,6 +153,10 @@ pub(crate) async fn run_runtime_server(
     )?;
     let (app, configured_tool_count) =
         http_routes::build_pg_http_routes(server, dedicated_server, auth, isolated_harness)?;
+    #[cfg(windows)]
+    if ready_hook.is_some() {
+        ordivon_runtime_core::prepare_windows_pg_service_observation()?;
+    }
     let listener = tokio::net::TcpListener::bind(bind).await?;
     eprintln!(
         "fresh PG Runtime MCP: http://{}/mcp ({} tools)",

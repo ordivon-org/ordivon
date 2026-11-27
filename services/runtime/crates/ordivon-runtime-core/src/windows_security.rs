@@ -6,9 +6,9 @@ use std::ptr::{null, null_mut};
 
 use windows_sys::Win32::Foundation::{CloseHandle, LocalFree, HANDLE};
 use windows_sys::Win32::Security::Authorization::{
-    ConvertStringSidToSidW, GetExplicitEntriesFromAclW, GetNamedSecurityInfoW, SetEntriesInAclW,
-    SetNamedSecurityInfoW, SetSecurityInfo, EXPLICIT_ACCESS_W, GRANT_ACCESS, SET_ACCESS,
-    SE_FILE_OBJECT, TRUSTEE_IS_SID, TRUSTEE_IS_UNKNOWN, TRUSTEE_W,
+    ConvertStringSidToSidW, GetExplicitEntriesFromAclW, GetNamedSecurityInfoW, GetSecurityInfo,
+    SetEntriesInAclW, SetNamedSecurityInfoW, SetSecurityInfo, EXPLICIT_ACCESS_W, GRANT_ACCESS,
+    SET_ACCESS, SE_FILE_OBJECT, SE_KERNEL_OBJECT, TRUSTEE_IS_SID, TRUSTEE_IS_UNKNOWN, TRUSTEE_W,
 };
 use windows_sys::Win32::Security::{
     CreateWellKnownSid, EqualSid, GetSecurityDescriptorControl, GetTokenInformation, TokenUser,
@@ -19,8 +19,11 @@ use windows_sys::Win32::Security::{
 use windows_sys::Win32::Storage::FileSystem::{
     FILE_ALL_ACCESS, FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_BACKUP_SEMANTICS,
     FILE_FLAG_OPEN_REPARSE_POINT, FILE_GENERIC_EXECUTE, FILE_GENERIC_READ, FILE_GENERIC_WRITE,
+    READ_CONTROL, SYNCHRONIZE, WRITE_DAC,
 };
-use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
+use windows_sys::Win32::System::Threading::{
+    GetCurrentProcess, OpenProcessToken, PROCESS_QUERY_LIMITED_INFORMATION,
+};
 
 pub(crate) fn protect_private_directory(path: &Path) -> io::Result<()> {
     protect_private_path(path, true)
@@ -39,6 +42,89 @@ pub fn current_token_is_local_system() -> io::Result<bool> {
     let mut current = CurrentTokenUserSid::load()?;
     let mut system = WellKnownSid::new(WinLocalSystemSid)?;
     Ok(unsafe { EqualSid(current.as_mut_ptr(), system.as_mut_ptr()) } != 0)
+}
+
+/// Allow the original PG Launcher to identify an SCM restart of this exact
+/// virtual account. The previous service logon SID no longer grants access to
+/// the new process/token. The stable account receives only observation rights.
+pub fn prepare_windows_pg_service_observation() -> io::Result<()> {
+    let process = unsafe { GetCurrentProcess() };
+    let mut raw_token = null_mut();
+    if unsafe {
+        OpenProcessToken(
+            process,
+            TOKEN_QUERY | READ_CONTROL | WRITE_DAC,
+            &mut raw_token,
+        )
+    } == 0
+    {
+        return Err(io::Error::last_os_error());
+    }
+    let token = OwnedHandle(raw_token);
+    let mut principal = CurrentTokenUserSid::read(&token)?;
+    let sid = principal.as_mut_ptr();
+    grant_kernel_observation(token.0, sid, TOKEN_QUERY)?;
+    grant_kernel_observation(
+        process,
+        sid,
+        PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE,
+    )
+}
+
+fn grant_kernel_observation(
+    handle: HANDLE,
+    sid: windows_sys::Win32::Security::PSID,
+    rights: u32,
+) -> io::Result<()> {
+    let mut dacl = null_mut();
+    let mut descriptor = null_mut();
+    let result = unsafe {
+        GetSecurityInfo(
+            handle,
+            SE_KERNEL_OBJECT,
+            DACL_SECURITY_INFORMATION,
+            null_mut(),
+            null_mut(),
+            &mut dacl,
+            null_mut(),
+            &mut descriptor,
+        )
+    };
+    if result != 0 {
+        return Err(io::Error::from_raw_os_error(result as i32));
+    }
+    let _descriptor = LocalAcl(descriptor.cast());
+    if dacl.is_null() {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "Windows PG observation requires an existing object DACL",
+        ));
+    }
+
+    let mut entry = explicit_full_control(sid, NO_INHERITANCE);
+    entry.grfAccessMode = GRANT_ACCESS;
+    entry.grfAccessPermissions = rights;
+    let mut updated = null_mut();
+    let result = unsafe { SetEntriesInAclW(1, &entry, dacl, &mut updated) };
+    if result != 0 {
+        return Err(io::Error::from_raw_os_error(result as i32));
+    }
+    let _updated = LocalAcl(updated.cast());
+    let result = unsafe {
+        SetSecurityInfo(
+            handle,
+            SE_KERNEL_OBJECT,
+            DACL_SECURITY_INFORMATION,
+            null_mut(),
+            null_mut(),
+            updated,
+            null_mut(),
+        )
+    };
+    if result != 0 {
+        return Err(io::Error::from_raw_os_error(result as i32));
+    }
+    Ok(())
 }
 
 #[derive(Clone, Copy)]
@@ -267,8 +353,10 @@ impl CurrentTokenUserSid {
         if ok == 0 {
             return Err(io::Error::last_os_error());
         }
-        let token = OwnedHandle(token);
+        Self::read(&OwnedHandle(token))
+    }
 
+    fn read(token: &OwnedHandle) -> io::Result<Self> {
         let mut required = 0_u32;
         unsafe {
             let _ = GetTokenInformation(token.0, TokenUser, null_mut(), 0, &mut required);
