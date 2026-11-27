@@ -369,6 +369,7 @@ def test_projection_preserves_unconfigured_and_missing_target_distinction() -> N
         configured_at_gateway=True,
         owner_response={
             "schemaVersion": 1,
+            "node": {"nodeId": "linux-pg"},
             "targets": [{"target": "windows_native", "configured": True, "available": True}],
         },
     )

@@ -37,10 +37,20 @@ def valid_runtime_status_envelope(response: object) -> bool:
     A target list in an arbitrary JSON object is NOT authenticated evidence
     of the versioned Runtime describe API.
     """
+    if (
+        not isinstance(response, dict)
+        or type(response.get("schemaVersion")) is not int
+        or response["schemaVersion"] != 1
+    ):
+        return False
+    node = response.get("node")
+    targets = response.get("targets")
     return (
-        isinstance(response, dict)
-        and type(response.get("schemaVersion")) is int
-        and response["schemaVersion"] == 1
+        isinstance(node, dict)
+        and isinstance(node.get("nodeId"), str)
+        and bool(node["nodeId"].strip())
+        and isinstance(targets, list)
+        and all(isinstance(target, dict) for target in targets)
     )
 
 
