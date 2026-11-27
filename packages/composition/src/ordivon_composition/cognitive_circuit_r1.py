@@ -208,6 +208,12 @@ def validate_gate_result(
     result: dict[str, Any],
 ) -> None:
     _validate_schema(result, GATE_SCHEMA, "composition gate result")
+    actual_manifest_digest = canonical_digest(manifest)
+    compiled_manifest_digest = compiled.get("manifestDigest")
+    if compiled_manifest_digest != actual_manifest_digest:
+        raise CircuitContractError(
+            f"gate {result['gateId']} compiled manifest digest does not match current manifest"
+        )
     if result["circuitId"] != manifest["circuitId"]:
         raise CircuitContractError(f"gate {result['gateId']} binds a different circuitId")
     if result["manifestDigest"] != compiled["manifestDigest"]:
