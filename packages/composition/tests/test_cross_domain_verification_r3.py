@@ -270,6 +270,15 @@ def test_task_local_binding_path_traversal_fails_closed() -> None:
         resolve_repo_file(ROOT, "../outside-owner")
 
 
+def test_task_local_binding_nul_path_fails_closed() -> None:
+    binding = _binding()
+    binding["researchArtifact"]["profilePath"] = "profiles/research/\x00invalid.json"
+    with pytest.raises(CircuitContractError, match="schema violation"):
+        validate_binding(binding)
+    with pytest.raises(CircuitContractError, match="NUL"):
+        resolve_repo_file(ROOT, "profiles/research/\x00invalid.json")
+
+
 def test_research_artifact_real_paper3_dogfood_satisfies_bounded_gate() -> None:
     binding, profile, dogfood = _research_inputs()
     manifest = research_artifact_manifest()

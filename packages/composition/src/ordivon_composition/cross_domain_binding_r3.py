@@ -40,6 +40,8 @@ def load_binding(path: Path) -> dict[str, Any]:
 
 
 def resolve_repo_file(repo_root: Path, relative: str) -> Path:
+    if "\x00" in relative:
+        raise CircuitContractError("binding path must not contain NUL")
     path = Path(relative)
     if path.is_absolute() or ".." in path.parts:
         raise CircuitContractError(
