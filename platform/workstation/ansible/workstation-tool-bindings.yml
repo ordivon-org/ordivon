@@ -4,6 +4,67 @@
   become: true
   gather_facts: false
   tasks:
+    - name: Create immutable Microsoft Playwright CLI 0.1.25 carrier directory
+      ansible.builtin.file:
+        path: /opt/ordivon/external/playwright-cli/0.1.25
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Stage exact Microsoft Playwright CLI package manifest
+      ansible.builtin.copy:
+        src: ../workstation/playwright-cli/package.json
+        dest: /opt/ordivon/external/playwright-cli/0.1.25/package.json
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Stage frozen Microsoft Playwright CLI dependency lock
+      ansible.builtin.copy:
+        src: ../workstation/playwright-cli/pnpm-lock.yaml
+        dest: /opt/ordivon/external/playwright-cli/0.1.25/pnpm-lock.yaml
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Stage pnpm workspace installation restrictions
+      ansible.builtin.copy:
+        src: ../workstation/playwright-cli/pnpm-workspace.yaml
+        dest: /opt/ordivon/external/playwright-cli/0.1.25/pnpm-workspace.yaml
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Install exact Microsoft Playwright CLI carrier using owner pnpm
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/mise
+          - -C
+          - "{{ playbook_dir }}/.."
+          - exec
+          - --
+          - pnpm
+          - --dir
+          - /opt/ordivon/external/playwright-cli/0.1.25
+          - install
+          - --frozen-lockfile
+          - --ignore-scripts
+      environment:
+        MISE_AUTO_INSTALL: "false"
+
+    - name: Observe exact Microsoft Playwright CLI 0.1.25 carrier digest
+      ansible.builtin.stat:
+        path: /opt/ordivon/external/playwright-cli/0.1.25/node_modules/@playwright/cli/playwright-cli.js
+        checksum_algorithm: sha256
+      register: ordivon_playwright_cli_binary
+
+    - name: Refuse Microsoft Playwright CLI carrier byte drift
+      ansible.builtin.assert:
+        that:
+          - ordivon_playwright_cli_binary.stat.exists
+          - ordivon_playwright_cli_binary.stat.checksum == "a174d071b97fd0480e9ff25625d7bc2880f8a795152236360a6808e74ccaf614"
+
     - name: Create Workstation v2 catalog directory
       ansible.builtin.file:
         path: /etc/ordivon/workstation-v2
@@ -51,6 +112,14 @@
         owner: root
         group: root
         mode: "0755"
+
+    - name: Install Workstation mise toolchain pin for relocated Playwright CLI binding
+      ansible.builtin.copy:
+        src: ../mise.toml
+        dest: /usr/local/libexec/ordivon/workstation-v2/mise.toml
+        owner: root
+        group: root
+        mode: "0644"
 
     - name: Install stable equipment-binding launcher
       ansible.builtin.copy:

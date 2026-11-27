@@ -18,6 +18,15 @@ uv run python -m pytest --ignore=tests/test_workstation_consequences.py
   pnpm install --frozen-lockfile
   pnpm run ci
 )
+# Playwright CLI is a versioned upstream carrier: verify the exact source lock
+# and real executable without running vendor install scripts or browser downloads.
+(
+  cd workstation/playwright-cli
+  pnpm install --frozen-lockfile --ignore-scripts
+  expected=$(node -p 'require("./package.json").dependencies["@playwright/cli"]')
+  actual=$(node node_modules/@playwright/cli/playwright-cli.js --version)
+  test "$actual" = "$expected"
+)
 git ls-files -z -- '*.sh' | xargs -0 -r shellcheck
 """
 

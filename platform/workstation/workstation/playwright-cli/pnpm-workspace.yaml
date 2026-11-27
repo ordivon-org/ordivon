@@ -1,0 +1,7 @@
+packages:
+  - .
+
+# Vendor browser binaries are managed by the independent Workstation browser LEGO.
+# The CLI carrier never executes install-time scripts against that shared cache.
+allowBuilds:
+  fsevents: false
