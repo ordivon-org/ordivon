@@ -16,6 +16,7 @@ set -euo pipefail
 (cd ../../tools/formal && mise exec -- lean ../../packages/data/formal/DataProduct.lean)
 (cd ../../tools/formal && mise exec -- lean ../../packages/data/formal/DataPublication.lean)
 (cd ../../tools/formal && mise exec -- lean ../../packages/data/formal/DataMultiVersion.lean)
+(cd ../../tools/formal && mise exec -- lean ../../packages/data/formal/DataTransportProjection.lean)
 # Symbolic Python implementation check; bounded search is not a kernel proof.
 # Float the auxiliary verifier; the shared Lean kernel remains pinned.
 uvx --from crosshair-tool crosshair check src/ordivon_data/verification.py --analysis_kind PEP316 --per_condition_timeout 12 --per_path_timeout 3
