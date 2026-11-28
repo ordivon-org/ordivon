@@ -54,62 +54,47 @@ impl PgAdmissionStore {
         // installed/current authority without the operator-owned PG epoch.
         // This is a read-only check; forensic SQL can still inspect old rows.
         require_pg_writer_epoch(tx, expected_source_sha256, false)?;
-        let Some(job) = tx.query_opt(
-            "SELECT desired_state, resolution, current_attempt_id, row_version FROM jobs WHERE job_id=$1",
+        // The latest Attempt, its reservation and all unsettled-history
+        // exclusions are one row projection of the same qualified snapshot.
+        // The job/attempt-number and attempt/reservation keys are unique in
+        // the native schema. Missing evidence produces no row, not absence
+        // authority. Keep the selected attempt distinct from the current
+        // pointer: lifecycle_coherent checks that original relation below.
+        let Some(row) = tx.query_opt(
+            "SELECT j.desired_state, j.resolution, j.current_attempt_id, j.row_version, \
+                    a.attempt_id, a.state, a.termination_intent, a.result_digest, \
+                    a.finished_at_ms, a.row_version, a.started_at_ms, c.state \
+             FROM jobs j \
+             JOIN LATERAL (SELECT attempt_id, state, termination_intent, result_digest, \
+                                  finished_at_ms, row_version, started_at_ms \
+                           FROM attempts WHERE job_id=j.job_id \
+                           ORDER BY attempt_number DESC LIMIT 1) a ON true \
+             JOIN concurrency_reservations c ON c.attempt_id=a.attempt_id \
+             WHERE j.job_id=$1 AND NOT EXISTS(SELECT 1 FROM attempts h \
+                 LEFT JOIN concurrency_reservations hc ON hc.attempt_id=h.attempt_id \
+                 LEFT JOIN job_allocations x ON x.attempt_id=h.attempt_id \
+                 WHERE h.job_id=j.job_id AND (\
+                   (h.attempt_id<>a.attempt_id AND (h.state NOT IN ('succeeded','failed','timed_out','cancelled','lost') \
+                    OR hc.state IS DISTINCT FROM 'released')) \
+                   OR (x.state='active' AND (h.attempt_id<>a.attempt_id OR j.resolution IS NOT NULL))))",
             &[&job_id],
         )? else {
-            return Ok(PgJobReadback::Inconclusive);
-        };
-        let Some(attempt) = tx.query_opt(
-            "SELECT attempt_id, state, termination_intent, result_digest, finished_at_ms, row_version, started_at_ms \
-             FROM attempts WHERE job_id=$1 ORDER BY attempt_number DESC LIMIT 1",
-            &[&job_id],
-        )? else {
-            return Ok(PgJobReadback::Inconclusive);
-        };
-        let attempt_id: String = attempt.get(0);
-        // The selected Attempt cannot certify the whole Job while an older
-        // Attempt still has an unresolved lifecycle or capacity reservation.
-        // Scheduler allocations are separate from admission reservations:
-        // a terminal writer releases both, while a never-dispatched Attempt
-        // may have no allocation. Check the original PG history in one snapshot.
-        let terminal_job = job.get::<_, Option<String>>(1).is_some();
-        let unsettled_history: bool = tx
-            .query_one(
-                "SELECT EXISTS(SELECT 1 FROM attempts a \
-                 LEFT JOIN concurrency_reservations c ON c.attempt_id=a.attempt_id \
-                 LEFT JOIN job_allocations x ON x.attempt_id=a.attempt_id \
-                 WHERE a.job_id=$1 AND (\
-                   (a.attempt_id<>$2 AND (a.state NOT IN ('succeeded','failed','timed_out','cancelled','lost') \
-                    OR c.state IS DISTINCT FROM 'released')) \
-                   OR (x.state='active' AND (a.attempt_id<>$2 OR $3::boolean))))",
-                &[&job_id, &attempt_id, &terminal_job],
-            )?
-            .get(0);
-        if unsettled_history {
-            return Ok(PgJobReadback::Inconclusive);
-        }
-        let Some(reservation) = tx.query_opt(
-            "SELECT state FROM concurrency_reservations WHERE attempt_id=$1",
-            &[&attempt_id],
-        )?
-        else {
             return Ok(PgJobReadback::Inconclusive);
         };
         let snapshot = PgJobSnapshot {
             job_id: job_id.to_owned(),
-            desired_state: job.get(0),
-            resolution: job.get(1),
-            current_attempt_id: job.get(2),
-            job_row_version: job.get(3),
-            attempt_id,
-            attempt_state: attempt.get(1),
-            termination_intent: attempt.get(2),
-            result_digest: attempt.get(3),
-            started_at_ms: attempt.get(6),
-            finished_at_ms: attempt.get(4),
-            attempt_row_version: attempt.get(5),
-            reservation_state: reservation.get(0),
+            desired_state: row.get(0),
+            resolution: row.get(1),
+            current_attempt_id: row.get(2),
+            job_row_version: row.get(3),
+            attempt_id: row.get(4),
+            attempt_state: row.get(5),
+            termination_intent: row.get(6),
+            result_digest: row.get(7),
+            finished_at_ms: row.get(8),
+            attempt_row_version: row.get(9),
+            started_at_ms: row.get(10),
+            reservation_state: row.get(11),
         };
         if !snapshot.lifecycle_coherent() || !terminal_events_coherent(tx, &snapshot)? {
             return Ok(PgJobReadback::Inconclusive);
