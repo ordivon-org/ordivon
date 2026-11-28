@@ -24,6 +24,23 @@ Consumer-falsified candidates must remain out of implementation until their real
 
 These results are Deletion-Test outcomes, not exemptions from future cleanup: revisit a HOLD/KEEP only when its cited consumer contract changes. Continue by selecting a non-overlapping natural-Owner slice with a behavior-preserving reduction; current open PR paths take precedence over creating parallel implementations.
 
+### Closed loops on the current continuation
+
+The branch was repeatedly rebased onto remote main; the latest verified base for the completed code batches is fa1a8a7496f0c9bfc8f05fb2067fe2d1d233b07a.
+
+| Slice | Result | Verification |
+| --- | --- | --- |
+| Network VPN recovery finite refinement | Split the 313-line / 139-branch validate() into seven private proof responsibilities while preserving the sole validate() entrypoint and report contract. The orchestrator is now 40 lines / 0 branches; no new module, dependency, registry or proof claim was introduced. | mise run formal-vpn-recovery produced the exact same parsed JSON before/after; targeted Ruff/py_compile/diff checks PASS; full platform/network CI PASS with 654 tests + 4 subtests. Commit 7d774f97983 on the then-current branch. |
+| Capital simulated Paper application | Separated caller-artifact binding, Qlib decision refinement, pure Paper replay, native fill economics, simulation identity and the single PostgreSQL effect boundary. Public run_simulated_paper fell from ~294 lines / 61 branches to 55 lines / 1 branch without changing its public API or account-key/effect semantics. | Focused Paper simulation suite remains 27 PASS / 1 environment-dependent PG skip; exception literal multiset unchanged; full Capital mise run verify PASS with 1220 tests, 52 skips, 39 deselected, 243 subtests plus Lean/Z3/CrossHair/Paper/PIT checks. Commit 1ea34bba5b1. |
+
+Additional deletion/substitution candidates reviewed and rejected on current source facts:
+
+| Candidate | Verdict | Reason |
+| --- | --- | --- |
+| Artifact artifact_software_release.py OCI shadow verifier | **HOLD — profile retirement/migration required first** | No production verification route currently calls the script, but software-release-oci-image-r1 remains a declared SHADOW_PROFILE_LIVE_PROVEN capability with focused verifier tests, shadow binding, taxonomy entry and Artifact skill reference. Deleting the verifier while retaining live-proven standing would create evidence drift. Retire the profile or migrate directory-layout verification to the canonical verification service before deleting executable/test evidence. |
+| Host/Gateway social-tool registration similarity | **KEEP — owner projection, not duplicate authority** | Host owns the adapter schema; Gateway owns typed northbound projection/policy. Gateway source-consumer tests deliberately validate allowed schema differences, while host_tool_contracts.py already centralizes read/write class and budget policy. Cross-owner shared registration would increase coupling. |
+| Media equipment_plan.compile_operation provider branches | **KEEP — explicit provider dispatch is the canonical rule location** | The function is pure compilation; branches correspond real provider/capability boundaries. Extracting one helper/catalog per provider would spread the same rules without reducing change sites or effects. |
+
 
 **Phase 3:** complete planning against `ef17d6879d12faa61fff3bb762b0d500d73c9113`, existing `AUDIT_REPORT.md` findings F01–F12.
 **Execution:** original/current tests and native source reads, not a new test suite or consumer route. Use the already existing `docs/architecture/REPOSITORY_BROWNFIELD_MODERNIZATION_EXECUTION_SPEC_20261110.md` proposed in PR #2012; this file is the specific Phase 3 execution breakdown, not a new authority registry.
