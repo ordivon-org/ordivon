@@ -37,6 +37,7 @@ updates:
 
   - package-ecosystem: cargo
     directories:
+      - "/services/gateway/rust-migration/read-only-probe"
       - "/services/harness"
       - "/services/runtime"
     schedule:
