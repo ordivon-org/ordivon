@@ -181,9 +181,7 @@ impl JobIdentityContract {
                 "requestIdentityDigest",
             )
         })?;
-        let valid = digest
-            .strip_prefix("sha256:")
-            .is_some_and(|hex| hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit()));
+        let valid = crate::runtime::types::is_sha256_digest(digest);
         if !valid {
             return Err(RuntimeError::invalid(
                 "requestIdentityDigest must be a SHA-256 digest",

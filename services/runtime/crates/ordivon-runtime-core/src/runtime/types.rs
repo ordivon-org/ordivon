@@ -25,6 +25,14 @@ pub const CLIENT_REQUEST_ID_MIN_LENGTH: usize = LOGICAL_ID_MIN_LENGTH;
 pub const CLIENT_REQUEST_ID_MAX_LENGTH: usize = LOGICAL_ID_MAX_LENGTH;
 pub const CLIENT_REQUEST_ID_PATTERN: &str = LOGICAL_ID_PATTERN;
 
+/// Lexical SHA-256 syntax only. Mixed-case ASCII hexadecimal is accepted;
+/// consumers requiring canonical lowercase or byte identity check it separately.
+pub(crate) fn is_sha256_digest(value: &str) -> bool {
+    value.len() == 71
+        && value.starts_with("sha256:")
+        && value[7..].bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
 pub(crate) fn validate_logical_id(value: &str, field: &str) -> RuntimeResult<()> {
     let scalar_length = value.chars().count();
     if !(LOGICAL_ID_MIN_LENGTH..=LOGICAL_ID_MAX_LENGTH).contains(&scalar_length)
@@ -184,5 +192,35 @@ mod workspace_issue_schema_contract_tests {
                 .contains(&json!("projection")),
             "MCP tools/list must permit the actual PG list issue stage"
         );
+    }
+}
+
+#[cfg(test)]
+mod digest_syntax_tests {
+    use super::is_sha256_digest;
+
+    #[test]
+    fn sha256_syntax_preserves_legacy_hex_contract() {
+        let original = format!("sha256:{}", "0".repeat(64));
+        let legacy = |value: &str| {
+            value.strip_prefix("sha256:").is_some_and(|hex| {
+                hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit())
+            })
+        };
+        for offset in 0..original.len() {
+            for byte in 0..=127u8 {
+                let mut candidate = original.clone().into_bytes();
+                candidate[offset] = byte;
+                let candidate = String::from_utf8(candidate).unwrap();
+                assert_eq!(is_sha256_digest(&candidate), legacy(&candidate));
+            }
+        }
+        for length in 0..=128 {
+            let candidate = format!("sha256:{}", "a".repeat(length));
+            assert_eq!(is_sha256_digest(&candidate), length == 64);
+        }
+        assert!(is_sha256_digest(&format!("sha256:{}", "aF".repeat(32))));
+        assert!(!is_sha256_digest(&format!("sha256:{}", "é".repeat(32))));
+        assert!(!is_sha256_digest(&format!("SHA256:{}", "a".repeat(64))));
     }
 }
