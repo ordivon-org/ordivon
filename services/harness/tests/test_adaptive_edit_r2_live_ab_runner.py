@@ -14,6 +14,43 @@ spec.loader.exec_module(runner)
 
 
 class AdaptiveEditR2LiveABRunnerTests(unittest.TestCase):
+    def test_pg_run_store_requires_explicit_authority_and_cleans_up(self) -> None:
+        import os
+        import psycopg
+
+        dsn = os.environ.get("HARNESS_PG_TEST_DSN")
+        if not dsn:
+            self.skipTest("real PostgreSQL test authority not supplied")
+        with runner.isolated_live_eval_store(dsn) as store:
+            schema = store.schema
+            self.assertTrue(schema.startswith("heval_"))
+            self.assertTrue(store.doctor()["healthy"])
+        with psycopg.connect(dsn) as conn:
+            row = conn.execute(
+                "SELECT 1 FROM pg_namespace WHERE nspname = %s", (schema,)
+            ).fetchone()
+        self.assertIsNone(row)
+
+    def test_pg_run_store_failure_does_not_leave_orphan_schema(self) -> None:
+        import os
+        import psycopg
+
+        dsn = os.environ.get("HARNESS_PG_TEST_DSN")
+        if not dsn:
+            self.skipTest("real PostgreSQL test authority not supplied")
+        schema = None
+        with self.assertRaisesRegex(RuntimeError, "injected"):
+            with runner.isolated_live_eval_store(dsn) as store:
+                schema = store.schema
+                raise RuntimeError("injected failure")
+        assert schema is not None
+        with psycopg.connect(dsn) as conn:
+            self.assertIsNone(
+                conn.execute(
+                    "SELECT 1 FROM pg_namespace WHERE nspname = %s", (schema,)
+                ).fetchone()
+            )
+
     def test_treatments_expose_exactly_one_codec_schema(self) -> None:
         exact = runner.treatment_edit_definition("exact-replacement-v1")
         anchored = runner.treatment_edit_definition("anchored-line-v1")
