@@ -69,6 +69,8 @@ run = """
 set -euo pipefail
 mise run repo:retirement:verify
 python3 -m unittest tools/repo/test_tracked_secrets.py
+python3 -m unittest tools/repo/test_check_large_files.py
+python3 tools/repo/check_large_files.py
 python3 -m unittest tools/repo/test_install_verified_cargo_deny.py
 python3 -m unittest tools/repo/test_source_history_legos.py
 python3 -m unittest tools.repo.test_exhaustive_coverage.ExactGitCrossFormatReferenceTests tools.repo.test_exhaustive_coverage.CrossScopeLexicalHintsTests
