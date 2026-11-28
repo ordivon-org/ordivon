@@ -1,5 +1,78 @@
 //! PostgreSQL Job admission: exact-key replay, plan qualification, immutable identity and dispatch intent.
 use super::*;
+
+// A Workspace created by the pre-nonroot Runtime can still be root:root 0700.
+// With the new operator-owned nonroot payload, its cwd is physically
+// unreachable. Reject that deterministic legacy state before PG admits a Job
+// or issues any systemd effect; preserve the original Workspace and its bytes.
+// The Runner drops supplementary groups, so only its UID, primary GID and
+// the inode's effective owner/group/other execute bit can authorize traversal.
+#[cfg(target_os = "linux")]
+fn preflight_contained_workspace_traversal(path: &Path, uid: u32, gid: u32) -> RuntimeResult<()> {
+    use std::os::unix::fs::MetadataExt;
+    let metadata = fs::symlink_metadata(path).map_err(io)?;
+    let execute_bit = if metadata.uid() == uid {
+        0o100
+    } else if metadata.gid() == gid {
+        0o010
+    } else {
+        0o001
+    };
+    if !metadata.file_type().is_dir() || metadata.mode() & execute_bit == 0 {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::WorkspaceStateMismatch,
+            "contained_local cannot enter legacy Workspace; preserve its source and migrate ownership before a new Job",
+            Some("execution.workspaceId"),
+            false,
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod contained_legacy_workspace_admission_tests {
+    use super::preflight_contained_workspace_traversal;
+    use crate::runtime::RuntimeErrorCode;
+    use std::{
+        fs,
+        os::unix::fs::{MetadataExt, PermissionsExt},
+    };
+
+    #[test]
+    fn root_private_legacy_workspace_fails_before_pg_or_systemd_birth() {
+        let path = std::env::temp_dir().join(format!(
+            "ordivon-contained-legacy-precommit-{}",
+            uuid::Uuid::now_v7()
+        ));
+        fs::create_dir(&path).unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o700)).unwrap();
+        let metadata = fs::symlink_metadata(&path).unwrap();
+        let foreign_uid = if metadata.uid() == 65534 {
+            65533
+        } else {
+            65534
+        };
+        let foreign_gid = if metadata.gid() == 65534 {
+            65533
+        } else {
+            65534
+        };
+        let denied = preflight_contained_workspace_traversal(&path, foreign_uid, foreign_gid)
+            .expect_err("root-private legacy Workspace cannot be entered by a nonroot payload");
+        assert_eq!(denied.code, RuntimeErrorCode::WorkspaceStateMismatch);
+        assert!(!denied.retryable);
+        // Fresh group-owned worktrees use group execute (01770 in production).
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o1770)).unwrap();
+        preflight_contained_workspace_traversal(&path, foreign_uid, metadata.gid())
+            .expect("group-matching fresh Workspace remains executable");
+        // Other execute is sufficient for a read-only temporary directory.
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o711)).unwrap();
+        preflight_contained_workspace_traversal(&path, foreign_uid, foreign_gid)
+            .expect("traversable Workspace must not be spuriously denied");
+        fs::remove_dir(&path).unwrap();
+    }
+}
+
 impl PgRuntime {
     pub fn run(&self, proposal: &JobRunProposal) -> RuntimeResult<JobObservation> {
         self.run_with_execution_profile_policy(proposal, None)
@@ -111,6 +184,21 @@ impl PgRuntime {
         super::platform::validate_runner(runner)?;
         let record = universal::load_workspace_record(&self.config.executor, &e.workspace_id)
             .map_err(super::super::error::map_universal_error)?;
+        // This check is only for NEW contained Jobs. Previously committed
+        // principal/request-key replays already returned above unchanged.
+        #[cfg(target_os = "linux")]
+        if e.execution_profile == ExecutionProfile::ContainedLocal {
+            if let (Some(uid), Some(gid)) = (
+                self.config.executor.workspace_uid,
+                self.config.executor.workspace_gid,
+            ) {
+                preflight_contained_workspace_traversal(
+                    Path::new(&record.workspace_path),
+                    uid,
+                    gid,
+                )?;
+            }
+        }
         let workspace_generated_cache = self
             .config
             .executor
@@ -424,6 +512,22 @@ impl PgRuntime {
                 .map_err(|_| PgAdmissionError::WorkspaceStale)?;
             if current != record {
                 return Err(PgAdmissionError::WorkspaceStale);
+            }
+            // The original close/open/mutate admission lock also protects the
+            // nonroot traversal precondition from normal Workspace mutation.
+            #[cfg(target_os = "linux")]
+            if e.execution_profile == ExecutionProfile::ContainedLocal {
+                if let (Some(uid), Some(gid)) = (
+                    self.config.executor.workspace_uid,
+                    self.config.executor.workspace_gid,
+                ) {
+                    preflight_contained_workspace_traversal(
+                        Path::new(&current.workspace_path),
+                        uid,
+                        gid,
+                    )
+                    .map_err(|_| PgAdmissionError::WorkspaceStale)?;
+                }
             }
             Ok(())
         };
