@@ -593,7 +593,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             }
             claimed = {
                 "state": "UNKNOWN",
-                "promptDigest": "sha256:" + "1" * 64,
+                "promptDigest": "sha256:" + __import__("hashlib").sha256(b"continue exactly").hexdigest(),
                 "targetCoordinate": "https://chatgpt.com/c/abc",
                 "receipt": None,
                 "updatedAtMs": 1,

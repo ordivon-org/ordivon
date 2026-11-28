@@ -92,11 +92,15 @@ class TemporalAgentAutomationContractTests(unittest.TestCase):
         ns = {
             "Client": object, "AgentContinueInput": object,
             "WorkflowIDReusePolicy": values,
-            "WorkflowIDConflictPolicy": SimpleNamespace(USE_EXISTING="use_existing"),
+            "WorkflowIDConflictPolicy": SimpleNamespace(USE_EXISTING="use_existing", FAIL="fail"),
             "WorkflowExecutionStatus": statuses,
             "WorkflowAlreadyStartedError": AlreadyStarted,
             "AGENT_CONTINUE_WORKFLOW": "continue",
         }
+        async def verify_input(*args, **kwargs):
+            return None
+
+        ns["_require_existing_continue_input"] = verify_input
         exec(compile(ast.Module(body=functions, type_ignores=[]), str(path), "exec"), ns)
 
         class Client:
@@ -150,7 +154,7 @@ class TemporalAgentAutomationContractTests(unittest.TestCase):
                     request["id_reuse_policy"], values.ALLOW_DUPLICATE_FAILED_ONLY,
                 )
                 self.assertEqual(
-                    request["id_conflict_policy"], "use_existing",
+                    request["id_conflict_policy"], "fail",
                 )
 
             client.status = statuses.COMPLETED

@@ -15,6 +15,7 @@ import playwright_browserless_turn_once as turn  # noqa: E402
 from agent_automation_browserless import (  # noqa: E402
     BrowserlessAutomationConfig,
     BrowserlessAutomationHold,
+    BrowserlessAutomationConflict,
     BrowserlessAutomationService,
 )
 
@@ -142,6 +143,43 @@ def test_launch_continue_uses_adopted_affinity_without_browserless_preflight(
         path, "continue", agent_id="A01", prompt="continue", turn_request_id=TURN_ID
     )
     assert value["affinityKind"] == "DURABLE_CFT_SESSION"
+
+
+@pytest.mark.parametrize("standing", ["not-admitted-prior-running", "not-admitted-existing"])
+def test_exact_inflight_continuation_replay_remains_existing(tmp_path: Path, standing: str) -> None:
+    svc = BrowserlessAutomationService(BrowserlessAutomationConfig.from_dict(config(tmp_path)))
+    path = spec_path(tmp_path)
+    affinity = {
+        "standing": "READY", "placementAction": "CONTINUE",
+        "affinityKind": "DURABLE_CFT_SESSION",
+    }
+    first = {"workflowId": TURN_ID, "disposition": "existing", "runId": "r1"}
+    retry = {"workflowId": TURN_ID, "disposition": "existing", "retryStanding": standing}
+    with (
+        mock.patch.object(svc, "conversation_affinity", return_value=affinity),
+        mock.patch.object(svc, "_turn_effect_row", return_value=None),
+        mock.patch.object(svc, "_temporal_admit", side_effect=[first, retry]) as temporal,
+    ):
+        result = svc.launch_continue(path, "A01", campaign_ref=CAMPAIGN_REF,
+                                     prompt="continue", turn_request_id=TURN_ID)
+    assert result["temporal"]["disposition"] == "existing"
+    assert result["temporal"]["retryStanding"] == standing
+    assert result["retryAdmitted"] is False
+    assert temporal.call_count == 2
+
+
+def test_claimed_turn_rejects_changed_prompt_before_temporal(tmp_path: Path) -> None:
+    svc = BrowserlessAutomationService(BrowserlessAutomationConfig.from_dict(config(tmp_path)))
+    path = spec_path(tmp_path)
+    claimed = {"state": "UNKNOWN", "promptDigest": "sha256:" + "a" * 64}
+    with (
+        mock.patch.object(svc, "_turn_effect_row", return_value=claimed),
+        mock.patch.object(svc, "_temporal_admit") as temporal,
+        pytest.raises(BrowserlessAutomationConflict, match="prompt"),
+    ):
+        svc.launch_continue(path, "A01", campaign_ref=CAMPAIGN_REF,
+                            prompt="changed", turn_request_id=TURN_ID)
+    temporal.assert_not_called()
 
 
 def test_launch_continue_holds_stale_explicit_affinity(tmp_path: Path) -> None:
