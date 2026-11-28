@@ -1,6 +1,6 @@
-# Recursive LEGO Calculus — formal model R2.1
+# Ordivon LEGO — foundational mathematical methods
 
-This reference gives the compact formal contract behind `recursive-lego-calculus`. Symbols are deliberately single-purpose. R2.1 separates truth/specification from verification, system specification from runtime state, representation validity from vacuous refinement, and linear repair from the more general minimal broken frontier of a recursive dependency graph.
+This reference collects problem-specific mathematical methods for OL. Symbols are local to the selected model. OL separates truth/specification from verification, system specification from runtime state, representation validity from vacuous refinement, and linear repair from the more general minimal broken frontier of a recursive dependency graph.
 
 ## Symbols
 
@@ -195,33 +195,18 @@ acceptance, not its apparent size.
 
 `G_rho={g1,...,gn}` is a compositional vocabulary. It is not called a mathematical basis without independent proofs of independence and completeness.
 
-## LEGO contract — adopted component semantics
+## Foundational mathematics — choose the structure from the problem
 
-Treat R2.1 as an application profile of established module/interface and
-contract theories, not a new universal calculus. Preserve the six practical
-roles (identity, responsibility, inputs, outputs, behavioral contract,
-acceptance); these are engineering descriptors, not six mathematical axioms.
+Start with the mathematical objects needed for the actual question, not a predetermined record.
 
-### Semantic mapping
+- Sets and types express objects and admissible values; functions, partial functions and relations express behavior.
+- Predicates and quantification express properties and assumptions. A proof discharges a proposition, not a declaration.
+- Order, equivalence and observation determine justified comparisons or quotients. Composition on a quotient requires the operations to respect the equivalence.
+- Inductive definitions and least fixed points express generation and reachability under their hypotheses. Coalgebraic and transition-system models express evolving observations; no universal state carrier is assumed.
+- Composition, hiding, resource bounds and stochastic semantics are chosen only where needed. Establish closure, identity, associativity, monotonicity, congruence or preservation under the selected theory; do not assume them from a name.
+- Distinguish actual effects, evidence and consumer acceptance. Source identity and proof scope belong to the evidence judgment, not mandatory coordinates of every mathematical object.
 
-| Existing R2.1 coordinate | Adopted interpretation | Required distinction |
-| --- | --- | --- |
-| identity / responsibility | scoped component identity and requirement allocation | identity is not semantic equivalence |
-| I, O | typed signatures / ports with declared direction and visibility | shape compatibility is not behavioral substitutability |
-| S, pre, post, inv | transition systems and Hoare-style obligations | invariant satisfiability is not invariant preservation |
-| behavioral contract | assume–guarantee contract with explicit behavior universe | a specification is distinct from its implementations |
-| compose / unfold | theory-specific composition and hiding / architectural decomposition | hiding is not generally invertible |
-| replacement | contract refinement or contextual/observational relation | declare the relation and its direction |
-| rho, alpha, gamma, beta | abstraction and property-preserving realization relations | arbitrary encoding is not automatically a Galois connection |
-| eff | observable effects and environment/authority assumptions | a proof never grants execution permission |
-| c, epsilon | measured cost / explicitly defined approximation bounds | neither is a universal truth or compatibility metric |
-| prov, acceptance | source-bound evidence and requirement-specific acceptance | metadata and test outcomes are not component semantics |
-
-### Select the mathematical structure from the property
-
-No universal declaration or admission record is required. Define a carrier and the operations or relations relevant to the question, specify lawful contexts and observations, and choose the appropriate proof notion. A function needs no artificial state; a relation need not have a cost model; a stateful protocol needs the actual transition and effect semantics. Quantify over relevant behaviors, including failures and recovery. Use separate source and consumer evidence for claims about implementations or real effects.
-
-For a reachable semantic core, take the closure of legitimate generators under the selected operations (including external inputs and recovery when applicable). For a quotient, prove the relevant equivalence is compatible with the allowed contexts and operations. A reachable subalgebra need not be observationally minimal. For replacement, prove the direction of refinement and the assumptions under which observations are preserved. These are task-relative mathematical obligations, not a new universal object.
+These are examples with different hypotheses, not competing universal definitions. No field count or declaration format is a prerequisite for expressing or proving a property. Leave unsupported dependent conclusions UNKNOWN.
 
 ### Behavioral assume–guarantee profile
 
@@ -295,7 +280,7 @@ when state relation R is empty. InitialCoverage is a derived predicate
 on existing typed initial-state sets and R; for a nonempty OLD initial
 set, initial_coverage_supplies_related_state produces a related start,
 and empty_relation_fails_real_initial_coverage rejects the false-green.
-This is neither an installed initialization proof nor a new R2.1 field.
+This is not an installed initialization proof.
 
 Initial states must be related separately;
 no real Rust or installed PG backend is verified merely by this Lean proof.
@@ -319,7 +304,7 @@ Account for parameter substitution, framing and effects. Partial-correctness
 triples do not establish termination. The old `post1 => pre2` check is a
 sequential seam obligation, not a theorem for arbitrary interacting services.
 
-**R2.1 sequential substitution rule (mechanically checked, bounded ports).**
+**Sequential substitution rule (mechanically checked, bounded ports).**
 The existing Lean OrdivonR21.IOContract projection has assumptions A
 and guarantees G over the same observable I/O port universe. For
 F_new <=ref F_old and H_new <=ref H_old, local refinement does *not* alone
@@ -437,8 +422,7 @@ implementation-refinement theorem.
 
 ### Historical evidence provenance: content-addressed DAG versus transport (R15)
 
-Reuse the canonical R2.1 `prov` coordinate; do **not** create a new LEGO
-tuple, historical-source registry or evidence signing layer. For an archived
+Reuse existing source-bound evidence; do not create a historical-source registry or evidence signing layer. For an archived
 original repository, the natural native Git consumer must establish
 
 \[
