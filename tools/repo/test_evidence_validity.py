@@ -189,6 +189,43 @@ def test_complete_multi_page_check_run_listing():
     assert len(gh.calls) == 2
 
 
+@pytest.mark.parametrize("count", [0, 1, 99, 100, 101, 199, 200, 201, 2000])
+def test_native_page_geometry_preserves_exact_membership(count):
+    class NativePages:
+        def api(self, endpoint):
+            page = int(endpoint.rsplit("=", 1)[1])
+            start = (page - 1) * 100
+            return {
+                "total_count": count,
+                "rows": [{"id": i + 1} for i in range(start, min(start + 100, count))],
+            }
+
+    rows = github_checks.bounded_provider_rows(
+        NativePages(), "fixture", key="rows", label="native"
+    )
+    assert [row["id"] for row in rows] == list(range(1, count + 1))
+
+
+@pytest.mark.parametrize("first_size", range(1, 100))
+def test_equal_cardinality_cannot_repair_a_short_native_page(first_size):
+    # Independent offset semantics: page two starts at index 100, even
+    # when page one is malformed. The aggregate still has 101 unique IDs.
+    class InconsistentPages:
+        def api(self, endpoint):
+            page = int(endpoint.rsplit("=", 1)[1])
+            ids = (
+                range(1, first_size + 1)
+                if page == 1
+                else range(101, 101 + 101 - first_size)
+            )
+            return {"total_count": 101, "rows": [{"id": i} for i in ids]}
+
+    with pytest.raises(ValueError, match="truncated or inconsistent"):
+        github_checks.bounded_provider_rows(
+            InconsistentPages(), "fixture", key="rows", label="native"
+        )
+
+
 def test_provider_requests_all_attempts_not_completed_only_view():
     class DefaultFiltered:
         def api(self, endpoint):
