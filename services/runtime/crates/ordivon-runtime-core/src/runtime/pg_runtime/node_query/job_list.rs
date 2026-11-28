@@ -1,5 +1,5 @@
 //! Original principal-scoped qualified-epoch PostgreSQL Job cursor, one repeatable-read transaction.
-use super::super::{PgRuntime, RuntimeError, RuntimeJobListRequest, RuntimeResult, error, io, pg};
+use super::super::{error, io, pg, PgRuntime, RuntimeError, RuntimeJobListRequest, RuntimeResult};
 use postgres::types::Type;
 use serde_json::json;
 
