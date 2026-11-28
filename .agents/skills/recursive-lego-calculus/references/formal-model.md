@@ -208,6 +208,12 @@ Start with the mathematical objects needed for the actual question, not a predet
 
 These are examples with different hypotheses, not competing universal definitions. No field count or declaration format is a prerequisite for expressing or proving a property. Leave unsupported dependent conclusions UNKNOWN.
 
+### Reachability and observational reduction (when applicable)
+
+For a chosen state carrier and admitted transition relation, the reachable semantic core is the least subset containing the initial states and closed under the admitted transitions. For an algebraic generator problem, use the corresponding closure under the selected operations instead. Restricting to this core is justified only for the stated initial conditions, operations and contexts, including relevant recovery or externally supplied states.
+
+Reachability does not establish observational minimality. Further identification requires an equivalence that preserves the required consumer observations and is compatible with each admitted enclosing operation; for partial operations it must preserve definedness as well. Without these conditions, a quotient may introduce spurious behavior. This is a problem-specific construction, not a universal OL carrier or a required declaration.
+
 ### Behavioral assume–guarantee profile
 
 For this profile fix a behavior universe `B`, port alignment, and observation
@@ -653,4 +659,4 @@ Do not hand-roll a universal prover. Route a bounded obligation to the mature ow
 - discrete objective/configuration search -> OR-Tools, while keeping its objective separate from truth/acceptance;
 - evaluator/anchor leakage or prohibited influence -> information-flow/noninterference analysis, with stronger formalization only when warranted by the risk.
 
-A solver/model-checker PASS establishes only the encoded obligation under its model and assumptions. It does not by itself validate the representation, prove implementation refinement, establish domain truth, or qualify the full Recursive LEGO Calculus.
+A solver/model-checker PASS establishes only the encoded obligation under its model and assumptions. It does not by itself validate the representation, prove implementation refinement, establish domain truth, or establish unencoded claims about OL.
