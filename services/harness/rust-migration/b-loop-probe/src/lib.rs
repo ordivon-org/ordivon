@@ -140,12 +140,40 @@ pub fn decide_progress(
     prior: ProgressCounters,
     limits: GateLimits,
 ) -> Result<ProgressDecision, ProgressError> {
-    let allowed: HashSet<&str> = observation_only_names.iter().copied().collect();
-    let observed: HashSet<&str> = observed_names.iter().copied().collect();
-    let observation_only =
-        !observed.is_empty() && observed.iter().all(|name| allowed.contains(name));
-    let action_progress = observed.iter().any(|name| !allowed.contains(name));
+    let (observation_only, action_progress) =
+        classify_observed_names(observed_names.iter().copied(), observation_only_names);
+    decide_progress_from_flags(
+        observation_only,
+        action_progress,
+        new_evidence,
+        prior,
+        limits,
+    )
+}
 
+// The classification depends on existence, not multiplicity or order.
+fn classify_observed_names<'a>(
+    observed_names: impl IntoIterator<Item = &'a str>,
+    observation_only_names: &[&str],
+) -> (bool, bool) {
+    let allowed: HashSet<&str> = observation_only_names.iter().copied().collect();
+    let mut has_observation = false;
+    for name in observed_names {
+        if !allowed.contains(name) {
+            return (false, true);
+        }
+        has_observation = true;
+    }
+    (has_observation, false)
+}
+
+fn decide_progress_from_flags(
+    observation_only: bool,
+    action_progress: bool,
+    new_evidence: bool,
+    prior: ProgressCounters,
+    limits: GateLimits,
+) -> Result<ProgressDecision, ProgressError> {
     let counters = ProgressCounters {
         observation_only_turns: if observation_only {
             prior
@@ -232,6 +260,39 @@ mod tests {
             Ok(vec![0])
         );
     }
+    #[test]
+    fn classification_matches_set_semantics_with_duplicates_and_empty_inputs() {
+        let names = ["read", "search", "edit"];
+        for mask in 0..8usize {
+            let allowed: Vec<&str> = names
+                .iter()
+                .copied()
+                .enumerate()
+                .filter_map(|(i, name)| ((mask & (1 << i)) != 0).then_some(name))
+                .collect();
+            let allowed_set: HashSet<&str> = allowed.iter().copied().collect();
+            for len in 0..=4u32 {
+                for mut index in 0..3usize.pow(len) {
+                    let observed: Vec<&str> = (0..len)
+                        .map(|_| {
+                            let name = names[index % names.len()];
+                            index /= names.len();
+                            name
+                        })
+                        .collect();
+                    let observed_set: HashSet<&str> = observed.iter().copied().collect();
+                    assert_eq!(
+                        classify_observed_names(observed.iter().copied(), &allowed),
+                        (
+                            !observed_set.is_empty() && observed_set.is_subset(&allowed_set),
+                            !observed_set.is_subset(&allowed_set)
+                        )
+                    );
+                }
+            }
+        }
+    }
+
     #[test]
     fn repeated_observation_increments_both_counters() {
         let p = decide_progress(
