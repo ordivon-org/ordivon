@@ -1039,12 +1039,30 @@ exit 0
             # falsifier below. The checks must grow with the live proof readset,
             # not fail at an obsolete hard-coded specimen count.
 
+            # The fixture varies only receipt bytes, never the source/config
+            # or fake toolchain. Run the exact live CI receipt consumer for
+            # every falsifier; retain full shell integration at the producer/
+            # consumer boundary, alongside the separate prefix-mutation test.
+            marker = "python3 - \"$receipt\" <<'PY'\n"
+            script = formal_step["run"]
+            self.assertEqual(script.count(marker), 1)
+            _, separator, consumer = script.partition(marker)
+            self.assertTrue(consumer.rstrip().endswith("\nPY"))
+            receipt_only = 'set -euo pipefail\nreceipt="$FORMAL_MOCK_RECEIPT"\n' + separator + consumer
+            full_shell_cases = {
+                "one-pass-subset",
+                "duplicate-JSON-kind",
+                "fake-proof-source-blob",
+                "valid-digest-foreign-tool-identity",
+                "explicit-failure",
+            }
+            self.assertTrue(full_shell_cases <= invalid_receipts.keys())
             try:
                 for label, payload in invalid_receipts.items():
                     with self.subTest(receipt=label):
                         report_path.write_text(payload, encoding="utf-8")
                         failed = subprocess.run(
-                            ["/usr/bin/bash", "-c", formal_step["run"]],
+                            ["/usr/bin/bash", "-c", receipt_only],
                             cwd=ROOT, env=env, text=True, capture_output=True,
                             timeout=14, check=False,
                         )
@@ -1053,6 +1071,17 @@ exit 0
                             "Formal execution lacks a valid scoped PASS receipt",
                             failed.stderr, label,
                         )
+                        if label in full_shell_cases:
+                            full = subprocess.run(
+                                ["/usr/bin/bash", "-c", script],
+                                cwd=ROOT, env=env, text=True, capture_output=True,
+                                timeout=14, check=False,
+                            )
+                            self.assertNotEqual(full.returncode, 0, label)
+                            self.assertIn(
+                                "Formal execution lacks a valid scoped PASS receipt",
+                                full.stderr, label,
+                            )
             finally:
                 report_path.write_text(
                     json.dumps(full_report), encoding="utf-8",
