@@ -102,7 +102,10 @@ refusal is not absence. For Python dependencies, check the owner interpreter
 and locked `uv run` environment, not imports in system Python. If the lock
 is not materialized, use the owner's locked sync and verify the intended
 consumer; distinguish an offline cache miss from a missing installation.
-Do not install duplicate tools merely because PATH lookup fails.
+The optional `--mise-installed` view reports existing supplier records, even
+when a tool is not selected in the current project. An empty list means no
+matching supplier record, not global absence; a supplier error is UNKNOWN.
+Do not install duplicate tools merely because PATH or Gateway discovery fails.
 
 An `on_path` result is only command resolution; `not_on_path` is **not**
 an installation verdict. Windows installed applications are separately observed

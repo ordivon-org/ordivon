@@ -19,7 +19,10 @@ that its deployment, data source, release or consumer is current.
 For local software, use the [Workstation live-inventory guide](../../platform/workstation/inventory/README.md)
 and choose the **actual node and Runtime identity** before probing. The
 read-only `probe_executables.py` reports PATH resolution only; missing from
-PATH never proves the application is not installed. A Windows service context
+PATH never proves the application is not installed. For a project tool, use
+`--mise` in the Owner directory (including system PATH hits with the wrong
+version); `--mise-installed` distinguishes supplier inventory from selected
+version. Verify the actual tool and restore the locked environment as needed. A Windows service context
 and the interactive desktop user can have different tools and PATH entries.
 
 For semantic tool selection, use [Capability Catalog](../../catalogs/capabilities/README.md)

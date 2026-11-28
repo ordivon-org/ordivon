@@ -122,3 +122,32 @@ def test_scoped_mise_failure_is_not_a_missing_installation_verdict() -> None:
             assert probe.observe(["z3"], mise_scope=True)["commands"][0]["mise"]["resolution"] == "resolver_error"
     with pytest.raises(ValueError):
         probe.observe(["z3"] * 17, mise_scope=True)
+
+
+def test_mise_inventory_distinguishes_off_path_installation() -> None:
+    from subprocess import CompletedProcess
+
+    with (
+        patch.object(probe.shutil, "which", return_value="/usr/bin/mise"),
+        patch.object(probe.subprocess, "run", return_value=CompletedProcess(
+            [], 0, '{"pnpm":[{"version":"12.16.1","installed":true}]}', ""
+        )) as run,
+    ):
+        report = probe.observe_mise_installed(["pnpm", "unlikely-tool"])
+    assert report == {
+        "state": "observed",
+        "installedVersions": {"pnpm": ["12.16.1"], "unlikely-tool": []},
+    }
+    assert run.call_args.args[0] == [
+        "/usr/bin/mise", "ls", "--installed", "--json",
+    ]
+
+
+def test_mise_inventory_failure_is_unknown_not_absence() -> None:
+    with patch.object(probe.shutil, "which", return_value=None):
+        assert probe.observe_mise_installed(["pnpm"])["state"] == "unknown"
+    with (
+        patch.object(probe.shutil, "which", return_value="/usr/bin/mise"),
+        patch.object(probe.subprocess, "run", side_effect=OSError("unavailable")),
+    ):
+        assert probe.observe_mise_installed(["pnpm"])["state"] == "unknown"
