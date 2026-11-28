@@ -48,13 +48,26 @@ def qualified_report(expected, root):
         raise ValueError("empty selection or invalid JUnit root")
     run_id = str(uuid.UUID(root.attrib["uuid"]))
     observed = set()
+    observed_binaries = set()
+    expected_binaries = {binary for binary, _ in expected}
     for suite in root:
         if suite.tag != "testsuite":
             raise ValueError("unsupported JUnit root child")
-        cases = suite.findall("testcase")
+        binary = suite.attrib["name"]
+        if binary not in expected_binaries or binary in observed_binaries:
+            raise ValueError("unexpected or duplicate JUnit binary suite")
+        observed_binaries.add(binary)
+        # The focused Nextest profile emits one suite per executed binary,
+        # with verdicts and captured output contained in testcase elements.
+        # Reject foreign suite-level nodes instead of silently dropping them.
+        if any(child.tag != "testcase" for child in suite):
+            raise ValueError("unsupported JUnit suite child")
+        cases = list(suite)
+        if not cases:
+            raise ValueError("empty JUnit binary suite")
         check_counts(suite, len(cases))
         for case in cases:
-            identity = (suite.attrib["name"], case.attrib["name"])
+            identity = (binary, case.attrib["name"])
             if case.attrib["classname"] != identity[0] or identity in observed:
                 raise ValueError("duplicate or inconsistent test identity")
             if any(child.tag not in {"system-out", "system-err"} for child in case):
