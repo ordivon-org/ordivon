@@ -380,7 +380,7 @@ impl RuntimeServer {
 
     #[tool(
         name = "workspace.close",
-        description = "Close one Workspace. By default, reject tracked or untracked changes; force=true may remove dirty files. expectedSourceStateDigest compare-and-closes only the exact committed source state and remains replayable through the closed tombstone. closureDisposition distinguishes removed, already_closed, already_absent, and recovered_missing; removed only says whether this call performed physical removal. Active or held Jobs and open Workspaces whose Git authority lives under paths this close would remove block closure without reconciliation or dispatch. A bounded 4-hour consumer continuation guard also rejects early close unless consumerReleased=true explicitly declares task completion; this declaration is caller-provided, not independently authenticated.",
+        description = "Close one Workspace. By default, reject tracked changes and untracked paths, including ignored files; force=true may remove dirty files. A source-clean workspace.get or workspace.list result does not establish close eligibility. expectedSourceStateDigest compare-and-closes only the exact committed source state and remains replayable through the closed tombstone. closureDisposition distinguishes removed, already_closed, already_absent, and recovered_missing; removed only says whether this call performed physical removal. Active or held Jobs and open Workspaces whose Git authority lives under paths this close would remove block closure without reconciliation or dispatch. A bounded 4-hour consumer continuation guard also rejects early close unless consumerReleased=true explicitly declares task completion; this declaration is caller-provided, not independently authenticated.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<WorkspaceCloseResult>>(),
         annotations(
             title = "Close workspace",
@@ -403,7 +403,7 @@ impl RuntimeServer {
 
     #[tool(
         name = "workspace.get",
-        description = "Return one Workspace's canonical sourceRepo, opening/base sourceRevision, exact currentHeadRevision, detached-head mode, dirty state, complete sourceStateDigest, creation time, and active Job identities. This is a projection-only read: it does not reconcile or dispatch Jobs. Use it after reconnecting or after an uncertain workspace.open instead of reconstructing Workspace identity or state from memory.",
+        description = "Return one Workspace's canonical sourceRepo, opening/base sourceRevision, exact currentHeadRevision, detached-head mode, dirty state, complete sourceStateDigest, creation time, and active Job identities. dirty and sourceStateDigest exclude ignored output; dirty=false is source cleanliness, not proof of close eligibility. This is a projection-only read: it does not reconcile or dispatch Jobs. Use it after reconnecting or after an uncertain workspace.open instead of reconstructing Workspace identity or state from memory.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<RuntimeWorkspaceSummary>>(),
         annotations(
             title = "Get workspace state",
@@ -426,7 +426,7 @@ impl RuntimeServer {
 
     #[tool(
         name = "workspace.list",
-        description = "List newest healthy open Workspaces using stable cursor pagination, with canonical sourceRepo, opening/base sourceRevision, and exact currentHeadRevision. Exact sourceStateDigest is omitted by default and may be requested explicitly; workspace.get remains the precise proof boundary. This is a projection-only read and does not reconcile or dispatch Jobs. Inventory is derived from current physical Workspace candidates rather than historical closed tombstones; current inventory and page-local projection failures are isolated with a machine-readable stage, while authority-wide failures still fail closed.",
+        description = "List newest healthy open Workspaces using stable cursor pagination, with canonical sourceRepo, opening/base sourceRevision, and exact currentHeadRevision. Exact sourceStateDigest is omitted by default and may be requested explicitly; workspace.get remains the precise source proof boundary. dirty excludes ignored output and does not establish close eligibility. This is a projection-only read and does not reconcile or dispatch Jobs. Inventory is derived from current physical Workspace candidates rather than historical closed tombstones; current inventory and page-local projection failures are isolated with a machine-readable stage, while authority-wide failures still fail closed.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<RuntimeWorkspaceListResult>>(),
         annotations(
             title = "List open workspaces",
