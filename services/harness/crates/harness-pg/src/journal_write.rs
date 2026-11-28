@@ -182,6 +182,148 @@ fn cas_insert(
     cas_require(tx, digest, kind, len)
 }
 
+/// Atomically bind a validated Run Contract and deterministic birth Event.
+/// This grants no Lease, Tool, Provider or physical-effect permission.
+pub fn create_run(
+    db: &mut Client,
+    schema: &str,
+    contract: &CanonicalDocument,
+) -> Result<Admission, WriteError> {
+    contract_semantics::validate_contract(contract)?;
+    let text = |key| {
+        contract
+            .field(key)
+            .and_then(|v| v.as_str())
+            .ok_or(WriteError::Invalid("contract identity"))
+    };
+    let run = text("harnessRunId")?;
+    let caller = text("callerId")?;
+    let caller_ref = text("callerRunRef")?;
+    let at: i64 = contract
+        .field("createdAtMs")
+        .and_then(|v| v.integer_text())
+        .ok_or(WriteError::Invalid("createdAtMs"))?
+        .parse()
+        .map_err(|_| WriteError::Overflow)?;
+    let mut tx = db.transaction()?;
+    check_schema(&mut tx, schema)?;
+    let contract_bytes = canonical_bytes(contract);
+    let object = StoredRef {
+        digest: digest_bytes(&contract_bytes),
+        kind: CONTRACT_KIND.into(),
+        byte_length: i64::try_from(contract_bytes.len()).map_err(|_| WriteError::Overflow)?,
+    };
+    let identity = CanonicalDocument::object(vec![
+        ("harnessRunId".into(), CanonicalDocument::string(run)),
+        (
+            "contractDigest".into(),
+            CanonicalDocument::string(&object.digest),
+        ),
+    ])?;
+    let event_id = format!(
+        "event:harness-run-created:{}",
+        &digest_bytes(&canonical_bytes(&identity))[7..]
+    );
+    let event = EventWrite {
+        event_id,
+        event_kind: "harness.run-created".into(),
+        data: CanonicalDocument::object(vec![
+            (
+                "contractDigest".into(),
+                CanonicalDocument::string(&object.digest),
+            ),
+            (
+                "contractObjectDigest".into(),
+                CanonicalDocument::string(&object.digest),
+            ),
+            ("callerId".into(), CanonicalDocument::string(caller)),
+            ("callerRunRef".into(), CanonicalDocument::string(caller_ref)),
+        ])?,
+        recorded_at_ms: at,
+        caused_by_event_id: None,
+        referenced_objects: vec![object.clone()],
+    };
+    let bytes = payload(&event)?;
+    let digest = digest_bytes(&bytes);
+    let prepared = Prepared {
+        source: &event,
+        digest,
+        bytes,
+    };
+    // A committed birth is inspected, never repaired by a replay.
+    let existing = tx.query_opt(
+        "SELECT * FROM runs WHERE harness_run_id=$1 FOR UPDATE",
+        &[&run],
+    )?;
+    if existing.is_none() {
+        cas_insert(&mut tx, &object.digest, CONTRACT_KIND, &contract_bytes, at)?;
+        cas_insert(
+            &mut tx,
+            &prepared.digest,
+            EVENT_PAYLOAD_KIND,
+            &prepared.bytes,
+            at,
+        )?;
+    }
+    let inserted = if existing.is_some() {
+        0
+    } else {
+        // Unique constraints arbitrate concurrent Run/caller identities.
+        tx.execute(
+            "INSERT INTO runs(harness_run_id,contract_digest,contract_object_digest,caller_id,caller_run_ref,status,revision,created_at_ms,updated_at_ms) VALUES($1,$2,$2,$3,$4,'created',1,$5,$5) ON CONFLICT DO NOTHING",
+            &[&run, &object.digest, &caller, &caller_ref, &at],
+        )?
+    };
+    if inserted == 0 {
+        let row = match existing {
+            Some(row) => row,
+            None => tx
+                .query_opt(
+                    "SELECT * FROM runs WHERE harness_run_id=$1 FOR UPDATE",
+                    &[&run],
+                )?
+                .ok_or_else(|| WriteError::Conflict("Run/caller identity already bound".into()))?,
+        };
+        let current = run_projection(&row)?;
+        if current.contract_digest != object.digest
+            || current.contract_object_digest != object.digest
+            || current.caller_id != caller
+            || current.caller_run_ref != caller_ref
+            || current.status != "created"
+            || current.revision != 1
+            || current.created_at_ms != at
+            || current.updated_at_ms != at
+            || current.terminal_event_id.is_some()
+        {
+            return Err(WriteError::Conflict(
+                "Run identity already bound differently".into(),
+            ));
+        }
+        cas_require(&mut tx, &object.digest, CONTRACT_KIND, object.byte_length)?;
+        cas_require(
+            &mut tx,
+            &prepared.digest,
+            EVENT_PAYLOAD_KIND,
+            i64::try_from(prepared.bytes.len()).map_err(|_| WriteError::Overflow)?,
+        )?;
+        exact(&mut tx, run, 1, &prepared)?;
+        tx.commit()?;
+        return Ok(Admission::Existing);
+    }
+    tx.execute(
+        "INSERT INTO run_events(event_id,harness_run_id,run_revision,event_kind,payload_digest,recorded_at_ms) VALUES($1,$2,1,$3,$4,$5)",
+        &[&event.event_id, &run, &event.event_kind, &prepared.digest, &at],
+    )?;
+    for (digest, role) in edges(&prepared) {
+        tx.execute(
+            "INSERT INTO run_object_refs(harness_run_id,event_id,digest,role) VALUES($1,$2,$3,$4)",
+            &[&run, &event.event_id, &digest, &role],
+        )?;
+    }
+    tx.commit()?;
+    Ok(Admission::Created)
+}
+
 /// Reuse the Reader's ONE versioned Contract semantic validator under the
 /// SAME locked Run transaction. CAS hashes and lease identity alone are not
 /// proof that a Python-invalid Contract can be extended by the Rust Writer.
