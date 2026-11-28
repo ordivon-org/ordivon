@@ -33,7 +33,8 @@ pub struct PgArtifactRegistration {
     pub created_at_ms: i64,
 }
 pub(crate) fn pg_artifact_manifest_digest(artifacts: &[PgArtifactRegistration]) -> String {
-    let mut ordered = artifacts.to_vec();
+    // Sort borrowed registrations; stable ordering and manifest bytes stay identical.
+    let mut ordered: Vec<_> = artifacts.iter().collect();
     ordered.sort_by(|a, b| a.artifact_id.cmp(&b.artifact_id));
     let manifest: Vec<_> = ordered
         .iter()
@@ -153,5 +154,80 @@ mod kani_transition_proofs {
             terminal_transition(state(from_id), state(to_id)),
             expected_transition(from_id, to_id)
         );
+    }
+}
+
+#[cfg(test)]
+mod manifest_order_tests {
+    use super::*;
+
+    // Previous production implementation, independent of the borrowed sort.
+    fn owned_sort_digest(artifacts: &[PgArtifactRegistration]) -> String {
+        let mut ordered = artifacts.to_vec();
+        ordered.sort_by(|a, b| a.artifact_id.cmp(&b.artifact_id));
+        let manifest: Vec<_> = ordered
+            .iter()
+            .map(|a| {
+                serde_json::json!({
+                    "artifactId":a.artifact_id, "kind":a.kind, "relativePath":a.relative_path,
+                    "digest":a.digest, "mediaType":a.media_type, "byteLength":a.byte_length,
+                    "truncated":a.truncated, "createdAtMs":a.created_at_ms
+                })
+            })
+            .collect();
+        format!(
+            "sha256:{}",
+            hex::encode(Sha256::digest(serde_json::to_vec(&manifest).unwrap()))
+        )
+    }
+
+    fn registration(id: &str, path: &str, n: i64) -> PgArtifactRegistration {
+        PgArtifactRegistration {
+            artifact_id: id.into(),
+            kind: "stdout".into(),
+            relative_path: path.into(),
+            digest: format!("sha256:{:064x}", n),
+            media_type: "text/plain; charset=utf-8".into(),
+            byte_length: n,
+            truncated: n % 2 == 0,
+            created_at_ms: 1_795_852_500_000 + n,
+        }
+    }
+
+    fn visit_permutations(rows: &mut [PgArtifactRegistration], start: usize, checks: &mut usize) {
+        if start == rows.len() {
+            assert_eq!(pg_artifact_manifest_digest(rows), owned_sort_digest(rows));
+            *checks += 1;
+            return;
+        }
+        for i in start..rows.len() {
+            rows.swap(start, i);
+            visit_permutations(rows, start + 1, checks);
+            rows.swap(start, i);
+        }
+    }
+
+    #[test]
+    fn borrowed_manifest_sort_preserves_exact_owned_sort_digest() {
+        assert_eq!(pg_artifact_manifest_digest(&[]), owned_sort_digest(&[]));
+        let mut rows = [
+            registration("z", "logs/one", 1),
+            registration("a", "logs/two", 2),
+            registration("中", "logs/🙂", 3),
+            registration("same", "logs/quote\"\n", 4),
+            registration("same", "logs/other", 5),
+        ];
+        // Duplicate keys are rejected by the separate admission predicate.
+        // Even outside its valid domain, stable equal-key ordering is unchanged.
+        assert!(!valid_pg_artifacts(&rows));
+        let mut checks = 0;
+        visit_permutations(&mut rows, 0, &mut checks);
+        assert_eq!(checks, 120);
+        rows[4].artifact_id = "unique".into();
+        assert!(valid_pg_artifacts(&rows));
+        let expected = owned_sort_digest(&rows);
+        rows.reverse();
+        assert_eq!(pg_artifact_manifest_digest(&rows), expected);
+        assert_eq!(owned_sort_digest(&rows), expected);
     }
 }
