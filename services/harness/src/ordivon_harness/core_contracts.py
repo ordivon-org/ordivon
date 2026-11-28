@@ -237,7 +237,9 @@ class HarnessRunContract:
             raise ValueError(
                 "structured completion conformancePolicy requires structured-result-v1"
             )
-        object.__setattr__(self, "budget", MappingProxyType(dict(self.budget)))
+        budget_snapshot = _thaw_json(self.budget)
+        assert isinstance(budget_snapshot, dict)
+        object.__setattr__(self, "budget", _freeze_json(budget_snapshot))
         completion_snapshot = _thaw_json(self.completion_contract)
         assert isinstance(completion_snapshot, dict)
         object.__setattr__(
@@ -288,7 +290,7 @@ class HarnessRunContract:
             "requestedModelId": self.requested_model_id,
             "toolCatalogDigest": self.tool_catalog_digest,
             "toolGrantDigest": self.tool_grant_digest,
-            "budget": dict(self.budget),
+            "budget": _thaw_json(self.budget),
             "completionContract": _thaw_json(self.completion_contract),
             "systemManifestRef": self.system_manifest_ref.to_dict(),
             "createdAtMs": self.created_at_ms,
