@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-IMAGE="${OPENAPI_GENERATOR_IMAGE:-docker.io/openapitools/openapi-generator-cli:v7.24.0}"
+IMAGE="${OPENAPI_GENERATOR_IMAGE:-$(jq -er '.activated["openapi-generator"].containerImage | strings | select(length > 0)' "$ROOT/external-lock.json")}"
 out="$(mktemp -d)"
 trap 'rm -rf "$out"' EXIT
 podman run --rm --network=none --user 0 \
