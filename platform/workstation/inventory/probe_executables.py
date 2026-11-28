@@ -37,7 +37,10 @@ def _mise_observation(name: str, mise: str | None, cwd: Path, path: str) -> dict
     if result.returncode:
         return {"resolution": "unresolved", "executablePath": None,
                 "exitCode": result.returncode}
-    selected = Path(result.stdout.strip())
+    lines = result.stdout.strip().splitlines()
+    if len(lines) != 1:
+        return {"resolution": "unverified_path", "executablePath": None}
+    selected = Path(lines[0])
     if not selected.is_absolute() or not selected.is_file() or not os.access(selected, os.X_OK):
         return {"resolution": "unverified_path", "executablePath": None}
     return {"resolution": "resolved", "executablePath": str(selected)}
@@ -53,11 +56,10 @@ def observe(names: list[str], *, path: str | None = None,
             raise ValueError(f"invalid executable name: {name!r}")
 
     effective_path = os.environ.get("PATH", "") if path is None else path
-    if mise_scope and len(names) > 16:
-        raise ValueError("provide at most 16 names for scoped mise resolution")
     cwd = Path.cwd()
     mise = shutil.which("mise", path=effective_path) if mise_scope else None
     observations = []
+    remaining_mise_lookups = 16
     for name in names:
         found = shutil.which(name, path=effective_path)
         row = {
@@ -66,7 +68,11 @@ def observe(names: list[str], *, path: str | None = None,
             "executablePath": os.path.abspath(found) if found else None,
         }
         if mise_scope:
-            row["mise"] = _mise_observation(name, mise, cwd, effective_path)
+            if remaining_mise_lookups:
+                row["mise"] = _mise_observation(name, mise, cwd, effective_path)
+                remaining_mise_lookups -= 1
+            else:
+                row["mise"] = {"resolution": "lookup_budget_exhausted", "executablePath": None}
         observations.append(row)
     report = {
         "kind": "ordivon.workstation.executable-path-observation",

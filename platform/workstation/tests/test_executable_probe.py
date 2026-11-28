@@ -120,8 +120,9 @@ def test_scoped_mise_failure_is_not_a_missing_installation_verdict() -> None:
             assert probe.observe(["z3"], mise_scope=True)["commands"][0]["mise"]["resolution"] == "unresolved"
         with patch.object(probe.subprocess, "run", side_effect=TimeoutExpired("mise", 5)):
             assert probe.observe(["z3"], mise_scope=True)["commands"][0]["mise"]["resolution"] == "resolver_error"
-    with pytest.raises(ValueError):
-        probe.observe(["z3"] * 17, mise_scope=True)
+    with patch.object(probe.shutil, "which", return_value=None):
+        rows = probe.observe(["z3"] * 17, mise_scope=True)["commands"]
+    assert rows[-1]["mise"]["resolution"] == "lookup_budget_exhausted"
 
 
 def test_mise_inventory_distinguishes_off_path_installation() -> None:
@@ -151,3 +152,17 @@ def test_mise_inventory_failure_is_unknown_not_absence() -> None:
         patch.object(probe.subprocess, "run", side_effect=OSError("unavailable")),
     ):
         assert probe.observe_mise_installed(["pnpm"])["state"] == "unknown"
+
+
+def test_mise_scope_resolves_even_when_system_tool_is_on_path(tmp_path) -> None:
+    from subprocess import CompletedProcess
+
+    binary = tmp_path / "python"
+    binary.write_text("fixture")
+    binary.chmod(0o755)
+    with patch.object(probe.shutil, "which", side_effect=lambda name, path: "/usr/bin/" + name), patch.object(
+        probe.subprocess, "run", return_value=CompletedProcess([], 0, str(binary), "")
+    ):
+        row = probe.observe(["python"], mise_scope=True)["commands"][0]
+    assert row["executablePath"] == "/usr/bin/python"
+    assert row["mise"]["executablePath"] == str(binary)
