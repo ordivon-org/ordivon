@@ -42,7 +42,7 @@ fn pg_portable_tool_catalog() -> Vec<Tool> {
         entry::<WorkspaceChangesRequest, WorkspaceChangePageResult>("workspace.changes", "Page workspace changes", true, false, true, false),
         entry::<WorkspaceDiffRequest, CompactWorkspaceDiffResult>("workspace.diff", "Inspect workspace diff", true, false, true, false),
         entry::<WorkspaceExecRequest, JobObservation>("workspace.exec", "Execute transactional workspace job", false, true, false, true),
-        entry::<WorkspaceExecPlanRequest, JobObservation>("workspace.execPlan", "Execute fail-fast workspace plan", false, true, false, true),
+        entry::<WorkspaceExecPlanRequest, JobObservation>("workspace.execPlan", "Execute ordered workspace plan (fail-fast by default)", false, true, false, true),
         entry::<JobGetRequest, RuntimeJobInspection>("job.get", "Get transactional job", true, false, true, false),
         entry::<JobObserveRequest, JobObservation>("job.observe", "Observe transactional job", false, true, true, true),
         entry::<JobCancelRequest, JobObservation>("job.cancel", "Cancel transactional job", false, true, true, false),
