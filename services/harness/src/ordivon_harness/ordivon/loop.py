@@ -1651,16 +1651,8 @@ class OrdivonAgentLoop:
                 if self.provider_lifecycle.records_completions:
                     bind_run_state()
                     self.provider_lifecycle.complete(request, result)
-            if cancellation.cancelled:
-                return stop(
-                    RunStopCode.CANCELLED,
-                    detail="cancellation was requested during the Provider call",
-                )
-            if execution_deadline_expired():
-                return stop(
-                    RunStopCode.BUDGET_EXHAUSTED,
-                    detail="wall-time deadline expired during the Provider call",
-                )
+            # A returned Provider result is an observation even if cancellation
+            # or the deadline prevents its subsequent cognitive consumption.
             effective_model = result.effective_model
             model_calls += 1
             effective_models.append(effective_model)
@@ -1687,6 +1679,16 @@ class OrdivonAgentLoop:
                     "normalizedResult": result.to_dict(),
                 },
             )
+            if cancellation.cancelled:
+                return stop(
+                    RunStopCode.CANCELLED,
+                    detail="cancellation was requested during the Provider call",
+                )
+            if execution_deadline_expired():
+                return stop(
+                    RunStopCode.BUDGET_EXHAUSTED,
+                    detail="wall-time deadline expired during the Provider call",
+                )
             if total_tokens > self.budget.max_total_tokens:
                 return stop(
                     RunStopCode.BUDGET_EXHAUSTED,
