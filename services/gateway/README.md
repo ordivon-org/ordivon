@@ -913,3 +913,50 @@ structuredReleaseConfigured=false means NOT_READY, while malformed fields
 remain UNKNOWN. It is forbidden to satisfy a requested release by sending
 a generic execution.linux shell installer. R13 only changes SourceCut,
 package version and routeDigest, NOT the MCP tool schema or Surface Epoch 12.
+
+### Effective Security policy standing (candidate B preflight)
+
+Gateway no longer reads Security's private grant-data credential or interprets
+its grant list. The operator supplies these **Gateway-side** release inputs:
+`ORDIVON_GATEWAY_RELEASE_POLICY_STANDING_CONFIG` (absolute nonsecret JSON
+expectation), `ORDIVON_GATEWAY_RELEASE_POLICY_STANDING_BEARER_FILE` (its own
+authorized PDP client credential), and optionally
+`ORDIVON_GATEWAY_RELEASE_POLICY_STANDING_CA_FILE` (trusted PEM CA file; default
+system CA bundle). No raw policy data, JWT, or token is included in the report.
+
+The expectation contains exactly `policySha256`, `releaseRevision`, `issuer`,
+`permitPrincipal`, `denyPrincipal`, `messageRef`. The operator independently
+binds the expected policy bytes and release label, and selects an existing
+permitted and a different denied Cloudflare Principal against the same exact
+message read. This is a read-only decision canary, not impersonation at Host
+or an Agent-authentication receipt. Never infer these inputs from the returned
+PDP witness. The fixed local HTTPS evaluation endpoint uses no proxy or
+redirects. Missing, stale, malformed, mismatched or contradictory evidence
+keeps NO_GO. A matching pair observes two decisions against the same instance
+and data commitment; it is not a general grant inventory, an attestation of
+running Git bytes, or a future authorization.
+
+R2.1: I = independently qualified expectation, two request/response captures
+and observation window; O = bounded paired observation or UNKNOWN; S =
+request-local only; pre = exact read target, trusted TLS and client credential;
+post = exact decision, correlation, input and policy/release match, same
+instance/data commitment, fresh ordered pair; inv = no Owner action or grant
+and no release GO from this witness; eff = two authenticated read-only PDP
+evaluations; c = at most two calls, bounded retained bytes; epsilon = no
+external Agent/Host ingress migration, future currentness, independent
+operator provisioning, or systemd process attestation proof. The existing
+protected release gate remains fail-closed pending independent migration
+evidence.
+
+For explicit producer/consumer qualification, extract the exact Security
+SourceCut to a private directory and run:
+```bash
+uv run --locked python packaging/qualify_policy_standing.py \
+  --producer-root /absolute/qualified/gateway-authzen \
+  --producer-revision "$SECURITY_SOURCE_COMMIT" \
+  --opa /absolute/qualified/opa
+```
+The qualifier creates only disposable TLS keys, fixture principals/grants,
+loopback listener and temporary inputs; it requires native OPA and OpenSSL and
+fails rather than silently skips. Bind the external producer SourceCut before
+running; the revision argument by itself is only a path label.

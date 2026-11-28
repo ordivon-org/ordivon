@@ -197,7 +197,7 @@ print(scope)
     # Only independent Owner/Ingress/Security migration/unknown physical
     # conditions enter the original B gate, which remains fail-closed.
     "$RELEASE/.venv/bin/python" "$RELEASE/packaging/check_live_host_admission.py" \
-      --policy-data "/run/credentials/ordivon-security-gateway-authzen.service/trusted-issuer"
+      --gateway-unit ordivon-gateway.service
   fi
 fi
 

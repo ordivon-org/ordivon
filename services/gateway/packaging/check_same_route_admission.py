@@ -48,6 +48,8 @@ STABLE_SECURITY_SOURCE = (
     "src/ordivon_gateway/transport/__init__.py",
     "src/ordivon_gateway/security/access_auth.py",
     "src/ordivon_gateway/security/authzen_authorizer.py",
+    "src/ordivon_gateway/security/policy_standing.py",
+    "src/ordivon_gateway/security/standing_transport.py",
     "src/ordivon_gateway/security/authorization_targets.py",
     "src/ordivon_gateway/security/capability_authz.py",
     "src/ordivon_gateway/security/http_ingress_guard.py",
