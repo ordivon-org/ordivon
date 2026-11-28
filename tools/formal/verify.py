@@ -284,18 +284,10 @@ def observed_z3_elf_dependencies(executable: Path) -> dict[str, object]:
 def qualified_timeout_adapter_fragment() -> dict[str, object]:
     """Source-bound AST *anchor* observation for ONE Python timeout seam.
 
-    R2.1 responsibility: identify model-relevant source anchors, without
-    granting an unproved semantic source-to-Lean refinement.
-    I = exact Python source & one Option Nat model profile;
-    O = anchor observation, unknown code-refinement standing;
-    S = task-local inspected source snapshot (no retained mutable state);
-    pre = parseable source with matching named methods and anchors;
-    post = anchor matches, never a proof of all accepted Python executions;
-    inv = caller rebinds, alias mutations and effects are not inferred away;
-    eff = read-only source observation; c = AST traversal, bound UNKNOWN;
-    epsilon = semantic-model correspondence UNKNOWN;
-    prov = exact Git source check by qualified_source_cut, external to this call;
-    unfold = existing Lean TimeoutConnection and actual Harness/Gateway methods.
+    Read the exact Python source and observe anchors for the local Option Nat
+    timeout model. This does not establish semantic refinement. Caller
+    rebinds, alias mutations, effect scope and installed behavior are
+    independent obligations; the source digest is qualified separately.
     Raw JSON admission precedes the Lean Option Nat domain: missing timeoutMs
     maps to none, whereas an explicit null is invalid and must be rejected.
     Acceptance: in-memory semantic mutants must never get CODE_REFINED.
