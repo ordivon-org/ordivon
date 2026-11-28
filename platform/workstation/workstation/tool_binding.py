@@ -66,7 +66,10 @@ def resolve_windows_path(configured: str, *, users_root: Path = WINDOWS_USERS_RO
 
 
 def _linux_package_version(package: str) -> dict[str, Any]:
-    proc = subprocess.run(["/usr/bin/pacman", "-Q", package], capture_output=True, text=True, check=False, timeout=10)
+    try:
+        proc = subprocess.run(["/usr/bin/pacman", "-Q", package], capture_output=True, text=True, check=False, timeout=10)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return {"standing": "UNKNOWN", "source": "pacman-local-db", "reason": str(error)[:500]}
     if proc.returncode != 0:
         return {"standing": "UNKNOWN", "source": "pacman-local-db", "reason": (proc.stderr or proc.stdout).strip()[:500]}
     fields = proc.stdout.strip().split(maxsplit=1)
@@ -89,7 +92,10 @@ def _windows_file_version(path: Path) -> dict[str, Any]:
     escaped = native.replace("'", "''")
     command = "$ErrorActionPreference='Stop'; [System.Diagnostics.FileVersionInfo]::GetVersionInfo('" + escaped + "').FileVersion"
     encoded = base64.b64encode(command.encode("utf-16le")).decode("ascii")
-    proc = subprocess.run([str(WINDOWS_POWERSHELL), "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded], capture_output=True, text=True, check=False, timeout=15)
+    try:
+        proc = subprocess.run([str(WINDOWS_POWERSHELL), "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded], capture_output=True, text=True, check=False, timeout=15)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return {"standing": "UNKNOWN", "source": "windows-file-version", "reason": str(error)[:500]}
     value = proc.stdout.strip()
     if proc.returncode != 0 or not value:
         return {"standing": "UNKNOWN", "source": "windows-file-version", "reason": (proc.stderr or proc.stdout).strip()[:500] or f"exit-{proc.returncode}"}
