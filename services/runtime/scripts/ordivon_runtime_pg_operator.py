@@ -18,6 +18,7 @@ import runpy
 import stat
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Any
@@ -50,6 +51,10 @@ EFFECT = re.compile(r"^[a-f0-9]{64}$")
 REQUEST_DIGEST = re.compile(r"^runtime-release-v1:sha256:[a-f0-9]{64}$")
 ADMISSION_LOCK = 79245017
 DISPATCH_EVENT = "RELEASE_OPERATOR_DISPATCH_ISSUED"
+
+
+class PreDispatchNoPhysicalEffect(RuntimeError):
+    """Deterministic read-only preflight rejection before dispatch ownership."""
 
 
 def canonical_json(value: Any) -> str:
@@ -436,18 +441,23 @@ def physical_preflight(args: argparse.Namespace, effect: dict[str, Any]) -> tupl
         blockers.append("operator expectedToolCount differs from committed release")
     if args.confirm_commit != args.commit:
         blockers.append("operator confirm-commit does not match committed source")
-    # A configured Unit can be healthy and expose the same MCP catalog while
-    # executing a *different* binary from a last-wins systemd drop-in.
-    # Fail BEFORE committing the one-use dispatch identity or touching systemd.
-    qualified_service_executable_path(args)
-    qualified_runner_binding(args)
     for spec in specs:
         name = str(spec["name"])
         path = args.install_dir / name
         if not path.is_file() or path.is_symlink():
             blockers.append(f"installed Runtime artifact missing/unsafe: {name}")
     if blockers:
-        raise RuntimeError("PG release preflight rejected: " + "; ".join(blockers))
+        # Candidate/source/installed-byte qualification is complete and read-only.
+        # Do not let an already-proven NO-GO be shadowed by later service probes.
+        raise PreDispatchNoPhysicalEffect(
+            "PG release preflight rejected: " + "; ".join(blockers)
+        )
+    # A configured Unit can be healthy and expose the same MCP catalog while
+    # executing a *different* binary from a last-wins systemd drop-in.
+    # These live service probes remain ordinary fail-closed reconciliation
+    # boundaries in this P0 repair; do not silently broaden zero-effect policy.
+    qualified_service_executable_path(args)
+    qualified_runner_binding(args)
     return specs, summary
 
 
@@ -531,8 +541,13 @@ def dispatch_claim(
 
 def active_executions(conn: psycopg.Connection, release_job_id: str) -> list[str]:
     rows = conn.execute(
-        "SELECT job_id FROM jobs WHERE resolution IS NULL AND job_id <> %s "
-        "ORDER BY created_at_ms LIMIT 64", (release_job_id,),
+        # Resolved orphans can retain a reservation; use the same consumer
+        # predicate as PG Workspace retirement, including all Attempts.
+        "SELECT j.job_id FROM jobs j WHERE j.job_id <> %s AND ("
+        "j.resolution IS NULL OR EXISTS (SELECT 1 FROM attempts a "
+        "JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id "
+        "WHERE a.job_id=j.job_id AND r.state IN ('active','held_orphaned'))) "
+        "ORDER BY j.created_at_ms, j.job_id LIMIT 64", (release_job_id,),
     ).fetchall()
     return [row["job_id"] for row in rows]
 
@@ -781,6 +796,59 @@ def operator_fenced_install(
         raise RuntimeError(f"PG release {status}: {failure}") from failure
 
 
+def expected_release_dispatch_count(result: dict[str, Any]) -> int:
+    """Only a proven pre-dispatch not-committed receipt may have zero dispatches."""
+    if (
+        result.get("status") == "not_committed"
+        and result.get("preDispatchNoPhysicalEffect") is True
+    ):
+        return 0
+    return 1
+
+
+def write_pre_dispatch_no_go_receipt(
+    args: argparse.Namespace,
+    request: dict[str, Any],
+    failure: PreDispatchNoPhysicalEffect,
+) -> dict[str, Any]:
+    """Persist one auditable zero-effect result before any dispatch/host mutation."""
+    receipt = args.receipt_root / f"effect-{args.effect_id}"
+    result = {
+        "schemaVersion": 2,
+        "status": "not_committed",
+        "commit": args.commit,
+        "finishedAtMs": int(time.time() * 1000),
+        "deploymentError": str(failure),
+        "preDispatchNoPhysicalEffect": True,
+        "receipt": str(receipt),
+        "releaseEffect": request,
+        "pgSourceEpoch": None,
+    }
+    # Reuse the existing atomic JSON writer; publish the complete directory,
+    # never an authoritative half-receipt. The existing operator lock owns
+    # this publication. Sync the directory before and after the rename.
+    receipt.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".pre-dispatch-", dir=receipt.parent) as temporary:
+        staged = Path(temporary) / "receipt"
+        staged.mkdir()
+        DEPLOY["write_json_atomic"](staged / "effect-request.json", request)
+        DEPLOY["write_json_atomic"](staged / "result.json", result)
+        fd = os.open(staged, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+        if receipt.exists() or receipt.is_symlink():
+            raise RuntimeError("RECONCILIATION_REQUIRED: release receipt already exists")
+        staged.rename(receipt)
+        fd = os.open(receipt.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+    return result
+
+
 def finalize_receipted_release(
     conn: psycopg.Connection,
     args: argparse.Namespace,
@@ -854,7 +922,12 @@ def finalize_receipted_release(
             "SELECT count(*) AS n FROM job_events WHERE job_id=%s AND event_type=%s",
             (row["job_id"], DISPATCH_EVENT),
         ).fetchone()["n"]
-        if issued != 1:
+        expected_dispatches = expected_release_dispatch_count(result)
+        if issued != expected_dispatches:
+            if expected_dispatches == 0:
+                raise RuntimeError(
+                    "pre-dispatch not-committed receipt conflicts with operator dispatch evidence"
+                )
             raise RuntimeError("no independently committed operator dispatch evidence")
         if row["resolution"] is not None:
             # Recover a lost response from the exact immutable operator receipt.
@@ -872,12 +945,17 @@ def finalize_receipted_release(
         ).rowcount
         if changed != 1:
             raise RuntimeError("release Attempt no longer accepted")
+        release_reason = (
+            "RELEASE_EFFECT_PRE_DISPATCH_NOT_COMMITTED"
+            if expected_dispatches == 0
+            else "RELEASE_EFFECT_RECEIPTED"
+        )
         conn.execute(
             "UPDATE concurrency_reservations SET state='released',"
             "released_at_ms=%s,state_observed_at_ms=%s,"
-            "release_reason='RELEASE_EFFECT_RECEIPTED' "
+            "release_reason=%s "
             "WHERE attempt_id=%s AND state='active'",
-            (observed,observed,row["attempt_id"]),
+            (observed,observed,release_reason,row["attempt_id"]),
         )
         changed = conn.execute(
             "UPDATE jobs SET resolution=%s,current_attempt_id=NULL,"
@@ -896,6 +974,7 @@ def finalize_receipted_release(
                 "receiptDigest":result_digest,
                 "effectId":bound["effectId"],
                 "requestDigest":bound["requestDigest"],
+                "preDispatchNoPhysicalEffect": expected_dispatches == 0,
             }),
             ("JOB_TERMINAL","SYSTEM_DERIVED",{"resolution":terminal}),
         ]
@@ -1046,7 +1125,25 @@ def apply_release(args: argparse.Namespace) -> dict[str, Any]:
                 verified_release_consumer(args, final)
                 return final
             qualified_operator(conn,args.source_sha256,lock=False)
-            physical_preflight(args,bound)
+            try:
+                physical_preflight(args,bound)
+            except PreDispatchNoPhysicalEffect as failure:
+                # Preflight is read-only and dispatch has not been claimed. Persist
+                # a normal not_committed receipt against this SAME ReleaseEffect,
+                # then reuse the existing PG terminalization/readback path. Any
+                # dispatch evidence makes finalize_receipted_release fail closed.
+                already_dispatched = conn.execute(
+                    "SELECT 1 FROM job_events WHERE job_id=%s AND event_type=%s",
+                    (row["job_id"], DISPATCH_EVENT),
+                ).fetchone()
+                if already_dispatched is not None:
+                    raise RuntimeError(
+                        "RECONCILIATION_REQUIRED: operator dispatch was already committed"
+                    ) from failure
+                write_pre_dispatch_no_go_receipt(args,request,failure)
+                final = finalize_receipted_release(conn,args,request)
+                verified_release_consumer(args, final)
+                return final
             dispatch_claim(conn,args)
             # No exceptions or retries across an uncertain dispatch COMMIT.
             receipt.mkdir(parents=True,exist_ok=False)
