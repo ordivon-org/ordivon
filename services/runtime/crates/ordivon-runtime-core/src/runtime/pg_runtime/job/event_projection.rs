@@ -111,6 +111,42 @@ mod event_projection_tests {
             ).unwrap();
         }
         db.batch_execute("INSERT INTO job_events VALUES('other',1,'x','DISPATCH_ISSUED','SYSTEM_DERIVED',NULL,NULL,'TEST',101)").unwrap();
+        // Journal sequence orders recorded events, not their source timestamps.
+        // Reproduce the observed Windows PG ordering: a later persisted exit
+        // observation carries an earlier timestamp than the drain observation.
+        db.batch_execute("UPDATE job_events SET observed_at_ms=120 WHERE job_id='job' AND event_sequence=6; UPDATE job_events SET observed_at_ms=107 WHERE job_id='job' AND event_sequence=7").unwrap();
+        let (_, full, truncated) = read_job_events(&mut db, "job", 100, 100).unwrap();
+        assert!(!truncated);
+        assert_eq!(
+            (
+                full[5].sequence,
+                full[5].observed_at_ms,
+                full[5].elapsed_ms,
+                full[5].delta_ms
+            ),
+            (6, 120, 20, 15)
+        );
+        assert_eq!(
+            (
+                full[6].sequence,
+                full[6].observed_at_ms,
+                full[6].elapsed_ms,
+                full[6].delta_ms
+            ),
+            (7, 107, 7, 0)
+        );
+        let (_, prefix, truncated) = read_job_events(&mut db, "job", 100, 6).unwrap();
+        assert!(truncated);
+        assert_eq!(
+            serde_json::to_value(&prefix).unwrap(),
+            serde_json::to_value(&full[..6]).unwrap()
+        );
+        // The clamped delta is NOT an additive elapsed duration.
+        assert_eq!(
+            full[..7].iter().map(|event| event.delta_ms).sum::<u64>(),
+            20
+        );
+        assert_eq!(full[6].elapsed_ms, 7);
         for limit in [0, 1, 5, 10, 100] {
             let (summary, events, truncated) = read_job_events(&mut db, "job", 100, limit).unwrap();
             assert_eq!(summary.dispatches, 3);
@@ -129,6 +165,30 @@ mod event_projection_tests {
             if limit >= 5 {
                 assert_eq!(events[1].attempt_id.as_deref(), Some("old"));
                 assert_eq!(events[3].attempt_id.as_deref(), Some("new"));
+            }
+        }
+        // A nullable attempt identity is a distinct GROUP BY class. This is
+        // a projection fixture, not evidence that such dispatches are valid.
+        for (index, attempt) in [None, None, Some(""), Some("x"), Some("x")]
+            .into_iter()
+            .enumerate()
+        {
+            let sequence = i64::try_from(index + 1).unwrap();
+            db.execute(
+                "INSERT INTO job_events VALUES('nullable',$1,$2,'DISPATCH_ISSUED','SYSTEM_DERIVED',NULL,NULL,'TEST',$1::bigint+100)",
+                &[&sequence, &attempt],
+            ).unwrap();
+        }
+        for limit in [0, 1, 5, 100] {
+            let (summary, events, truncated) =
+                read_job_events(&mut db, "nullable", 100, limit).unwrap();
+            assert_eq!(summary.dispatches, 5);
+            assert_eq!(summary.duplicate_dispatches, 2);
+            assert_eq!(events.len(), usize::try_from(limit.min(5)).unwrap());
+            assert_eq!(truncated, limit < 5);
+            if limit >= 5 {
+                assert_eq!(events[0].attempt_id, None);
+                assert_eq!(events[2].attempt_id.as_deref(), Some(""));
             }
         }
         let (summary, events, truncated) = read_job_events(&mut db, "missing", 100, 0).unwrap();
