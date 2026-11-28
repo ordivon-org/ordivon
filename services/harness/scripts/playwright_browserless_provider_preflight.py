@@ -13,12 +13,9 @@ import json
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from chatgpt_provider_gate import challenge_gated
+from chatgpt_provider_gate import auth_required, challenge_gated
 
 PROMPT_SELECTOR = "#prompt-textarea"
-CHALLENGE_SELECTOR = 'iframe[src*="challenges.cloudflare.com"], [id*="challenge"]'
-LOGIN_SELECTOR = "text=/^Log in$/i"
-SIGNUP_SELECTOR = "text=/^Sign up$/i"
 PROVIDER_RATE_LIMIT_SELECTOR = '[data-testid="modal-conversation-history-rate-limit"]'
 
 
@@ -133,7 +130,7 @@ def main() -> int:
                         )
                         return 0
 
-                if challenge_gated(page, CHALLENGE_SELECTOR):
+                if challenge_gated(page):
                     print(
                         json.dumps(
                             result(a.endpoint_id, "CHALLENGE_GATED", page_url=page.url),
@@ -153,7 +150,7 @@ def main() -> int:
                 deadline = a.observe_ms
                 elapsed = 0
                 while elapsed < deadline:
-                    if challenge_gated(page, CHALLENGE_SELECTOR):
+                    if challenge_gated(page):
                         print(
                             json.dumps(
                                 result(a.endpoint_id, "CHALLENGE_GATED", page_url=page.url),
@@ -176,7 +173,7 @@ def main() -> int:
                             )
                         )
                         return 0
-                    if visible(page, LOGIN_SELECTOR) or visible(page, SIGNUP_SELECTOR):
+                    if auth_required(page):
                         print(
                             json.dumps(
                                 result(a.endpoint_id, "AUTH_REQUIRED", page_url=page.url),
@@ -190,13 +187,13 @@ def main() -> int:
                     page.wait_for_timeout(step)
                     elapsed += step
 
-                if challenge_gated(page, CHALLENGE_SELECTOR):
+                if challenge_gated(page):
                     standing = "CHALLENGE_GATED"
                 elif visible(page, PROVIDER_RATE_LIMIT_SELECTOR):
                     standing = "PROVIDER_RATE_LIMITED"
                 elif visible(page, PROMPT_SELECTOR):
                     standing = "READY"
-                elif visible(page, LOGIN_SELECTOR) or visible(page, SIGNUP_SELECTOR):
+                elif auth_required(page):
                     standing = "AUTH_REQUIRED"
                 else:
                     standing = "COMPOSER_UNAVAILABLE"

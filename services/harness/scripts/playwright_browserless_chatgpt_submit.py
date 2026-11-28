@@ -16,7 +16,7 @@ import time
 import urllib.parse
 from pathlib import Path
 
-from chatgpt_provider_gate import challenge_gated
+from chatgpt_provider_gate import provider_blocker
 from chatgpt_provider_resource import chatgpt_resource_from_page_url
 from provider_boundary_diagnosis import (
     PROVIDER_ACTION_HOLD,
@@ -48,9 +48,6 @@ def authenticated_connection_endpoint(
 PROMPT_SELECTOR = "#prompt-textarea"
 SEND_SELECTOR = 'button[data-testid="send-button"]'
 STOP_SELECTOR = 'button[data-testid="stop-button"]'
-CHALLENGE_SELECTOR = 'iframe[src*="challenges.cloudflare.com"], [id*="challenge"]'
-LOGIN_SELECTOR = "text=/^Log in$/i"
-SIGNUP_SELECTOR = "text=/^Sign up$/i"
 PRE_EFFECT_BLOCKER_SELECTOR = '[data-testid="modal-conversation-history-rate-limit"]'
 NEW_CHAT_URL = "https://chatgpt.com/"
 PRE_EFFECT_BLOCKED_EXIT = 42
@@ -174,14 +171,6 @@ def wait_for_canonical_after_send(
     return chatgpt_resource_from_page_url(page.url)
 
 
-def human_blocker(page) -> str | None:
-    if challenge_gated(page, CHALLENGE_SELECTOR):
-        return "challenge-gated"
-    if visible(page, LOGIN_SELECTOR) or visible(page, SIGNUP_SELECTOR):
-        return "auth-required"
-    return None
-
-
 def route_provider_blocker(page, a, blocker: str) -> tuple[str, bool]:
     """Fail closed for any provider gate observed after leased worker preflight."""
     standing = {
@@ -282,7 +271,7 @@ def main() -> int:
             browser.close()
             return PRE_EFFECT_BLOCKED_EXIT
 
-        blocker = human_blocker(page)
+        blocker = provider_blocker(page)
         if blocker is not None:
             decision, _ = route_provider_blocker(page, a, blocker)
             if decision == "failed":
@@ -293,7 +282,7 @@ def main() -> int:
         try:
             composer.wait_for(state="visible", timeout=20_000)
         except Exception as error:
-            blocker = human_blocker(page)
+            blocker = provider_blocker(page)
             if blocker is not None:
                 decision, _ = route_provider_blocker(page, a, blocker)
                 if decision == "failed":
