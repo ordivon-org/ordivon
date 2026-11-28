@@ -913,3 +913,22 @@ structuredReleaseConfigured=false means NOT_READY, while malformed fields
 remain UNKNOWN. It is forbidden to satisfy a requested release by sending
 a generic execution.linux shell installer. R13 only changes SourceCut,
 package version and routeDigest, NOT the MCP tool schema or Surface Epoch 12.
+
+### Native tool ABI comparison boundary
+
+The existing release gate exports the actual tools/list schemas of the old and
+candidate environments, then runs the structural comparator inside the locked
+candidate environment. The early manifest/version check still uses only the
+OS standard library. The comparator uses JSON Schema Draft 2020-12 validation;
+it preserves business names and JSON literals, strips only schema-position
+prose, and rejects ambiguous, malformed or oversized wire representations.
+
+For a compatible schema evolution the old input language must be contained in
+the new input language and the new output language in the old output language.
+The implemented rule is conservative: unchanged shared schemas; a local,
+reference-free object fragment for newly declared properties; reject unknown
+shape/ref changes. It does not solve arbitrary JSON Schema implication, resolve
+remote references, certify actual SDK behavior, or qualify an installed Agent.
+A narrower numeric domain remains an incompatibility even when all valid
+business-domain samples are preserved. Never remove integer bounds or waive
+the installer gate to hide it; qualify a versioned consumer migration instead.

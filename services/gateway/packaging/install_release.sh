@@ -125,7 +125,7 @@ if [ -f "$PREFIX/current/mcp-surface.json" ]; then
   trap 'rm -f -- "$ABI_OLD" "$ABI_NEW"' EXIT
   "$PREFIX/current/.venv/bin/python" "$RELEASE/packaging/verify_tool_surface.py" --emit-native > "$ABI_OLD"
   "$RELEASE/.venv/bin/python" "$RELEASE/packaging/verify_tool_surface.py" --emit-native > "$ABI_NEW"
-  if /usr/bin/python3 "$RELEASE/packaging/verify_tool_surface.py" --compare-native "$ABI_OLD" "$ABI_NEW"; then
+  if "$RELEASE/.venv/bin/python" "$RELEASE/packaging/verify_tool_surface.py" --compare-native "$ABI_OLD" "$ABI_NEW"; then
     printf 'native_public_abi=COMPATIBLE\n'
   else
     abi_status=$?
