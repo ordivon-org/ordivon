@@ -47,6 +47,7 @@ cargo kani --version
 cargo kani -p ordivon-runtime-core --lib --no-default-features --features postgres-registry-admission --harness proof_pg_terminal_transition_matches_contract --default-unwind 32
 cargo kani -p ordivon-runtime-core --lib --no-default-features --features transactional-runtime --harness proof_actual_attempt_terminal_absorbing_and_resolution_equivalence --default-unwind 32
 cargo kani -p ordivon-runtime-core --lib --no-default-features --features transactional-runtime --harness proof_actual_attempt_cancel_is_transition_or_stopping_replay --default-unwind 32
+cargo kani -p ordivon-runtime-core --lib --no-default-features --features transactional-runtime --harness proof_terminal_evidence_is_exact_conjunction --default-unwind 32
 cargo kani -p ordivon-runtime-core --lib --no-default-features --features transactional-runtime --harness proof_actual_terminal_reservation_target_preserves_held_orphan_fence --default-unwind 32
 cargo kani -p ordivon-runtime-core --lib --no-default-features --features transactional-runtime --harness proof_actual_terminal_reservation_target_fails_closed_on_incomplete_evidence --default-unwind 32
 cargo kani -p ordivon-runtime-core --lib --no-default-features --features transactional-runtime --harness proof_actual_terminal_reservation_target_rejects_mismatched_job_resolution --default-unwind 32
