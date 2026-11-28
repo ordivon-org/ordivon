@@ -181,12 +181,14 @@ def test_social_commands_compose_single_checkout_and_rollback(pooled):
         assert first_ack["cursor"] == posted["sequence"]
         assert one(ack) == {**first_ack, "admission": "existing"}
 
+        original_topic = store.resume_topic(topic)["topic"]
         close = lambda: store.set_topic_state(
             topic_ref=topic,
             actor_ref=actor,
             state="closed",
             expected_state="open",
             expected_high_sequence=posted["sequence"],
+            expected_change_sequence=original_topic["changeSequence"],
             client_request_id=f"close:{token}",
         )
         closed = one(close)

@@ -73,6 +73,7 @@ class SocialStore(HostPostgresConnections):
         state: Literal["open", "closed", "archived"],
         expected_state: Literal["open", "closed", "archived"],
         expected_high_sequence: int,
+        expected_change_sequence: int,
         client_request_id: str,
     ) -> dict[str, Any]:
         return SocialTopicCommands(self._connect).set_topic_state(
@@ -81,6 +82,7 @@ class SocialStore(HostPostgresConnections):
             state=state,
             expected_state=expected_state,
             expected_high_sequence=expected_high_sequence,
+            expected_change_sequence=expected_change_sequence,
             client_request_id=client_request_id,
         )
 

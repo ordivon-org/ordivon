@@ -63,6 +63,14 @@ def test_host_server_identity_and_exact_social_work_surface() -> None:
             topic_state = by_name["topic.state.set"].input_schema
             assert set(topic_state["properties"]["state"]["enum"]) == {"open", "closed", "archived"}
             assert set(topic_state["properties"]["expectedState"]["enum"]) == {"open", "closed", "archived"}
+            assert "expectedChangeSequence" in topic_state["required"]
+            assert topic_state["properties"]["expectedChangeSequence"]["minimum"] == 1
+            resume = by_name["topic.resume"].output_schema
+            assert resume is not None
+            coordinates = resume["$defs"]["TopicResumeCoordinate"]
+            assert {"state", "changeSequence", "topicHighSequence"} <= set(coordinates["required"])
+            assert coordinates["properties"]["changeSequence"]["minimum"] == 1
+            assert coordinates["properties"]["topicHighSequence"]["minimum"] == 0
             attention = by_name["attention.delta"].input_schema
             assert set(attention["required"]) == {"actorRef", "afterSequence"}
             assert "actorRef" in attention["properties"]

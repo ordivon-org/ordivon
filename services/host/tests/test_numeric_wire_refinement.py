@@ -21,7 +21,11 @@ SAFE = (1 << 53) - 1
     }),
     ("topic.state.set", "expectedHighSequence", {
         "topicRef": "topic:boundary", "actorRef": "actor:boundary",
-        "state": "closed", "expectedState": "open",
+        "state": "closed", "expectedState": "open", "expectedChangeSequence": 1,
+    }),
+    ("topic.state.set", "expectedChangeSequence", {
+        "topicRef": "topic:boundary", "actorRef": "actor:boundary",
+        "state": "closed", "expectedState": "open", "expectedHighSequence": 0,
     }),
     ("attention.ack", "cursor", {"actorRef": "actor:boundary"}),
     ("topic.cursor.ack", "cursor", {"actorRef": "actor:boundary", "topicRef": "topic:boundary"}),
@@ -60,7 +64,7 @@ def test_native_mcp_numeric_schema_and_invalid_inputs(monkeypatch, operation, fi
             expected_max = SAFE - 1 if operation == "work.snapshot.commit" else SAFE
             # Test the real SDK, not the annotation's appearance in a source file.
             assert spec.get("maximum") == expected_max
-            assert spec.get("minimum") == (1 if operation.startswith("work.") or operation == "message.search" else 0)
+            assert spec.get("minimum") == (1 if operation.startswith("work.") or operation == "message.search" or field == "expectedChangeSequence" else 0)
             for invalid in (True, 1.0, "1", spec.get("minimum") - 1, expected_max + 1):
                 result = await client.call_tool(operation, {**arguments, field: invalid})
                 assert result.is_error
@@ -77,6 +81,7 @@ def test_native_mcp_numeric_schema_and_invalid_inputs(monkeypatch, operation, fi
             else:
                 name = {
                     "expectedHighSequence": "expected_high_sequence",
+                    "expectedChangeSequence": "expected_change_sequence",
                     "expectedRevision": "expected_revision",
                     "afterSequence": "after_sequence",
                     "cursor": "cursor",

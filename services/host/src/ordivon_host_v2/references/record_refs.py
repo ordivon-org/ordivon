@@ -38,7 +38,7 @@ class RecordReferenceLookup:
         for_no_key_update: bool = False,
     ) -> dict[str, Any]:
         row = conn.execute(
-            "SELECT topic_ref,space_ref,title,state,created_by_actor_ref,created_at,updated_at "
+            "SELECT topic_ref,space_ref,title,state,created_by_actor_ref,created_at,updated_at,change_sequence "
             "FROM topics WHERE topic_ref=%s" + (" FOR NO KEY UPDATE" if for_no_key_update else ""),
             (topic_ref,),
         ).fetchone()

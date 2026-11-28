@@ -70,7 +70,16 @@ domain Goal. Do not terminalize records because they have been idle for N days.
   archived; archived rejects posts and is hidden from default topic.list.
   topic.list(includeArchived=true) exposes it, and topic.resume still reads
   its original messages. Explicit restoration: archived -> closed -> open,
-  each transition rechecking the topic's message horizon.
+  each transition rechecking the topic's message horizon and lifecycle occurrence.
+  Epoch 9 / Host 0.11.0: read `topic.resume`'s `topic.changeSequence` and
+  `topic.topicHighSequence` in the same snapshot, then supply
+  `expectedChangeSequence`, `expectedHighSequence` and `expectedState`
+  to `topic.state.set`. The positive change coordinate is an exact identity
+  of the Topic row lifecycle, not an Attention ACK or a message cursor.
+  Repeated close/reopen at an unchanged message horizon must use a fresh
+  observed change coordinate; an exact old request is a historical receipt
+  replay and cannot close the current Topic. An unversioned legacy request is
+  rejected rather than silently replaying a different occurrence.
 - Message: Messages are immutable. Their logical archive tier is inherited
   from the Topic; message.get(messageRef, expectedDigest) still retrieves the
   exact content after Topic archive. Existing direct search and historical
