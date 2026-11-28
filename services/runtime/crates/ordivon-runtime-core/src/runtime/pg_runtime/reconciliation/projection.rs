@@ -4,8 +4,8 @@
 use super::{
     active_log_window, error, io, needs_recovery_observation, output_projection_relative_path, pg,
     pg_delivery_disposition, pg_read_error, universal, verified_terminal_log_window,
-    JobObservation, JobObserveRequest, PgAdmissionStore, PgJobReadback, PgRuntime, RuntimeError,
-    RuntimeErrorCode, RuntimeResult,
+    JobObservation, JobObserveRequest, PgAdmissionStore, PgJobReadback, PgJobSnapshot, PgRuntime,
+    RuntimeError, RuntimeErrorCode, RuntimeResult,
 };
 use serde_json::json;
 use std::path::Path;
@@ -16,6 +16,18 @@ impl PgRuntime {
         db: &mut PgAdmissionStore,
         request: &JobObserveRequest,
     ) -> RuntimeResult<JobObservation> {
+        self.project_with_verified_snapshot(db, request)
+            .map(|(observation, _)| observation)
+    }
+
+    /// Reuse the exact coherent PG snapshot for domain projections that
+    /// must compare external evidence with the committed Attempt digest.
+    /// Never reselect an independently current Attempt for that comparison.
+    pub(in crate::runtime::pg_runtime) fn project_with_verified_snapshot(
+        &self,
+        db: &mut PgAdmissionStore,
+        request: &JobObserveRequest,
+    ) -> RuntimeResult<(JobObservation, Box<PgJobSnapshot>)> {
         let snapshot = match db
             .observe_job_readonly(&request.job_id, &self.config.source_sha256)
             .map_err(pg)?
@@ -95,6 +107,7 @@ impl PgRuntime {
                 value[format!("{kind}Eof")] = json!(end == available);
             }
         }
-        serde_json::from_value(value).map_err(io)
+        let observation = serde_json::from_value(value).map_err(io)?;
+        Ok((observation, snapshot))
     }
 }
