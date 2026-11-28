@@ -41,23 +41,13 @@ Authoritative references:
 
 Responsibility split: Game specifies domain properties and its native test entry. Composition can deterministically project requirements. Runtime runs and records operations. Harness can orchestrate a chosen agent. GitHub native CI supplies independent checkout and check status. Artifact/Distribution publish binaries. Neither Composition nor Harness decides gameplay quality.
 
-## 4. Effective R2.1 contract — G11 cold-start refinement
+## 4. G11 cold-start refinement
 
-This is a **task-local proposed refinement with explicit proof duties against existing G11**, not new LEGO G12. Source carrier: `planning/lego-plan-r1.json` G11 `recursiveLegoR21`; actual implementation `scripts/agent_episode_acceptance.py` and `mise.toml`.
+This is a **task-local proposed refinement with explicit proof duties against existing G11**, not new LEGO G12. Source carrier: G11 in `planning/lego-plan-r1.json`; actual implementation `scripts/agent_episode_acceptance.py` and `mise.toml`.
 
-| Coordinate | Task-local realization |
-| --- | --- |
-| I | Immutable source tree, pinned Godot CLI, Room Encounter scenes/resources/addons; zero existing `.godot` cache; bounded 0–64 action sequence |
-| O | Native schema-v2 episode receipts and Game test verdict; explicit nonzero/FAIL on import/script/parse failure |
-| S | One native scene and its EncounterRules state per process; editor import cache is an *environmental prerequisite*, not hidden task history |
-| pre | Godot executable and source available; importer may be run at test entry; native action limits remain unchanged |
-| post | Running the documented `mise run test:agent-episode` from a clean checkout imports required resources then executes unchanged native episodes and checks receipt semantics |
-| inv | EncounterRules owns combat; UI-only default vs debug opt-in preserved; no second simulator; no success inferred from plain exit=0 when script errors exist |
-| eff | Godot editor import into ignored local cache, headless native scene effects, stdout/exit; no player-visible new gameplay effects |
-| c | Additional bounded editor import on test invocation; actual wall-clock/resource cost is unmeasured |
-| epsilon | Interactive hardware player experience and graphical rendering remain UNKNOWN; import+episode tests do not resolve those properties |
-| prov | Game Git source cut, Godot pin in Game `mise.toml`, native test transcript, upstream Godot CLI docs |
-| unfold | `mise.toml`, `agent_episode_acceptance.py`, `agent_episode.gd`, Dialogue Manager addon, Game native CI |
+A clean immutable checkout uses the pinned Godot CLI, Room Encounter scenes and addons, with no existing `.godot` cache. Import the required resources before running the unchanged native episodes (0–64 actions). The importer may write its ignored cache, but must not change native action limits. Each process has one native scene and EncounterRules state; combat ownership, UI-only default, and explicit debug opt-in remain unchanged.
+
+The native schema-v2 receipts and Game verdict must report import, script or parse failures; exit zero alone cannot establish success. Review the source cut, Godot pin, transcript and native CI. Headless execution does not establish player-visible effects or interactive graphical acceptance. Import overhead remains unmeasured.
 
 The actual external contract is one command, not a private preparatory ritual:
 `cd domains/game && mise run test:agent-episode`.

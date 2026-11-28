@@ -62,17 +62,17 @@ Read-only scratch checks against the actual Research test fixture, without sourc
 
 Responsibility `L_DataSelectedEvidence` is a **provisional independent contractual LEGO**, NOT a new runtime or registry.
 
-- I: qualified product identity/version, selected output `(portName, portVersion?)`, owner-declared ODPS and bound source manifest, allowed local root, observation context, source revision.
-- O: scoped verdict/typed failure, exact per-port digest observations, provenance; does not contain Research conclusion.
-- S: no durable mutable registry; temporary read/projection state, native Git SourceCut and producer-owned artifacts.
-- pre: uniquely resolved selected name+version within a qualified product (or unique name when version omitted), producer metadata, read root and valid catalog; current authority known to caller.
-- post: `VERIFIED` iff selected digest matches actual read bytes under these assumptions; result scoped to observed file/instant. No claim about any unselected port.
-- inv: `UNKNOWN != FALSIFIED`; absent/duplicate selection is not PASS; unrelated well-formed ports cannot change selected standing; no claimed domain acceptance.
-- eff: selected read/check/hash only, no deletion, publication, data rights, finance/Research decision, and no extra service.
-- c: `UNKNOWN[scope=I/O/analysis cost; obligation=measure if workload makes it relevant]`.
-- epsilon: `UNKNOWN[scope=hash collision and timestamp/path race/rights; obligation=separate physical readback and authority checks]`.
-- prov: `main@a7d70e` + `PR#1970@78b70db` + exact producer ODPS + Lean artifact + Python native test + Research receipt; refresh at implementation.
-- unfold: select exact key -> producer binding -> local evidence -> physical read -> domain consumer readback -> explicit business verdict.
+- Inputs: qualified product identity/version, selected output `(portName, portVersion?)`, owner-declared ODPS and bound source manifest, allowed local root, observation context, source revision.
+- Results: scoped verdict/typed failure, exact per-port digest observations, provenance; does not contain Research conclusion.
+- State: no durable mutable registry; temporary read/projection state, native Git SourceCut and producer-owned artifacts.
+- Assumptions: uniquely resolved selected name+version within a qualified product (or unique name when version omitted), producer metadata, read root and valid catalog; current authority known to caller.
+- Required behavior: `VERIFIED` iff selected digest matches actual read bytes under these assumptions; result scoped to observed file/instant. No claim about any unselected port.
+- Preserved properties: `UNKNOWN != FALSIFIED`; absent/duplicate selection is not PASS; unrelated well-formed ports cannot change selected standing; no claimed domain acceptance.
+- Effects: selected read/check/hash only, no deletion, publication, data rights, finance/Research decision, and no extra service.
+- Resource observations: `UNKNOWN[scope=I/O/analysis cost; obligation=measure if workload makes it relevant]`.
+- Limits of the claim: `UNKNOWN[scope=hash collision and timestamp/path race/rights; obligation=separate physical readback and authority checks]`.
+- Evidence: `main@a7d70e` + `PR#1970@78b70db` + exact producer ODPS + Lean artifact + Python native test + Research receipt; refresh at implementation.
+- Implementation and verification: select exact key -> producer binding -> local evidence -> physical read -> domain consumer readback -> explicit business verdict.
 
 Declaration is not formal admission. Lean kernel passing = `MODEL_PROVED` on named theorem only; tests and consumer integration are independently required; installed production remains UNKNOWN.
 

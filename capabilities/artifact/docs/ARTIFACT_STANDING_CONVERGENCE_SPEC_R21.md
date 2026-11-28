@@ -31,17 +31,17 @@ A Standing **claim** is a bounded assertion, not an overall success bit. A **Pro
 
 Artifact-specific semantic obligations:
 
-- I: immutable Subject/Profile commitments; already-admitted native observations; required claim keys; optional explicitly bound consumer requirement.
-- O: typed ClaimCoverage and scoped Standing vector; no domain success assertion.
-- S: Unit (pure evaluator, no durable state).
-- pre: canonical Profile is checked; input evidence identities/bindings are verified by their natural Owner; malformed inputs report explicit error, not PASS.
-- post: decision explicitly identifies missing, failed, not-evaluated, contradictory and supported claims.
-- inv: missing/unknown/failed/self-witnessed or contradictory required claims cannot yield complete qualification; no authority derived from aggregate native PASS; no implicit trust, install or consumer success.
-- eff: empty for pure kernel; all I/O stays in existing adapters.
-- c: computational cost upper-bound UNKNOWN until measured; no fabricated constant.
-- epsilon: approximation 0 for deterministic local projection under its explicit assumptions; semantic adequacy of native observations remains an independent obligation.
-- prov: exact SourceCut + profile/subject/native observation identity + checked validator and consumer evidence where available.
-- unfold: L0 decision and non-claims; L1 required keys and statuses; L2 raw observations/provenance and counterexamples; L3 native adapter internals, only when needed.
+- Inputs: immutable Subject/Profile commitments; already-admitted native observations; required claim keys; optional explicitly bound consumer requirement.
+- Results: typed ClaimCoverage and scoped Standing vector; no domain success assertion.
+- State: Unit (pure evaluator, no durable state).
+- Assumptions: canonical Profile is checked; input evidence identities/bindings are verified by their natural Owner; malformed inputs report explicit error, not PASS.
+- Required behavior: decision explicitly identifies missing, failed, not-evaluated, contradictory and supported claims.
+- Preserved properties: missing/unknown/failed/self-witnessed or contradictory required claims cannot yield complete qualification; no authority derived from aggregate native PASS; no implicit trust, install or consumer success.
+- Effects: empty for pure kernel; all I/O stays in existing adapters.
+- Resource observations: computational cost upper-bound UNKNOWN until measured; no fabricated constant.
+- Limits of the claim: approximation 0 for deterministic local projection under its explicit assumptions; semantic adequacy of native observations remains an independent obligation.
+- Evidence: exact SourceCut + profile/subject/native observation identity + checked validator and consumer evidence where available.
+- Implementation and verification: L0 decision and non-claims; L1 required keys and statuses; L2 raw observations/provenance and counterexamples; L3 native adapter internals, only when needed.
 
 Safety law, under well-formed inputs: `complete => all_required_supported_by_nonself_matching_native_evidence AND no_identity_contradiction`. Also `DOMAIN_ACCEPTED` cannot be derived by this evaluator. No theorem about actual native tool honesty, toolchain closure, transport effects, or target applications is claimed.
 

@@ -49,10 +49,10 @@ A: native G11 red->green repair
 **Files**: Add these two Game docs; modify `domains/game/docs/factory-pipeline.md` or `domains/game/AGENTS.md` only if needed to correct a directly consumed obsolete instruction. No new test runner.
 
 **Interface**
-- Input: G11 full R2.1 in existing Game planning JSON; existing Game `mise` checks and exact Git source.
+- Input: G11 consumer requirements in existing Game planning JSON; existing Game `mise` checks and exact Git source.
 - Output: scoped `G11-AC-001..005` acceptance reference usable by Game Agent/CI; non-claims stated explicitly.
 
-- [ ] B1. Review changed native entry against `recursiveLegoR21.pre/post/inv/eff/prov`. Do not automatically mark all 11 properties mathematically proved.
+- [ ] B1. Review changed native entry against the actual cold-start requirements and acceptance evidence. Distinguish tested behavior from mathematical proof.
 - [ ] B2. State the clean-checkout entry in the real Game factory guide only if its consumers benefit; link this spec rather than duplicating it.
 - [ ] B3. Run `pnpm check` and Game-native relevant suite. Preserve existing test counts and result forms.
 - [ ] B4. Check `.github/workflows/game-factory.yml` `native-g11-contract` on pull requests: clean checkout, native Godot import and existing 19-episode acceptance; `actionlint .github/workflows/game-factory.yml` must pass. Preserve main-push preview packaging as a separate job. Record GitHub check state and exact SHA separately from local verification.

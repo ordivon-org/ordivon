@@ -84,25 +84,25 @@ Neither Bridge owns Runtime, Host, Provider or domain truth.
 
 **Recursive LEGO R2.1 (source representation):**
 
-- `I`: exact `HarnessRunContract`, `HarnessStore` port, clock and optional
+- Inputs: exact `HarnessRunContract`, `HarnessStore` port, clock and optional
   caller-bound Runtime binding / Tool grant
-- `O`: Provider, Tool and Run snapshot records, dispatch fences and receipts
+- Results: Provider, Tool and Run snapshot records, dispatch fences and receipts
   or an explicit UNKNOWN recovery requirement
-- `S`: event-sourced Run revisions, leases, claim/dispatch/commit state,
+- State: event-sourced Run revisions, leases, claim/dispatch/commit state,
   Tool step and WorkingSet projections
-- `pre`: matching Run/Contract digest, qualified Store, current lease and
+- Assumptions: matching Run/Contract digest, qualified Store, current lease and
   revision, and exact Tool authorization
-- `post`: exact event/receipt identity; response loss never permits blind
+- Required behavior: exact event/receipt identity; response loss never permits blind
   redispatch or unqualified domain success
-- `inv`: scoped Provider Claim model invariants on dispatch, acknowledgement,
+- Preserved properties: scoped Provider Claim model invariants on dispatch, acknowledgement,
   leases and privacy, with deliberately reachable counterexample probes
-- `eff`: existing Store transactions and caller-supplied Runtime/Provider
+- Effects: existing Store transactions and caller-supplied Runtime/Provider
   effects; no new registry or authority
-- `c`: UNKNOWN for general execution cost without real measurement
-- `epsilon`: UNKNOWN until Python/SQL refinement and deployed execution
+- Resource observations: UNKNOWN for general execution cost without real measurement
+- Limits of the claim: UNKNOWN until Python/SQL refinement and deployed execution
   are independently qualified
-- `prov`: `formal/ProviderClaimR1.tla`, native tests, and exact Git SourceCut
-- `unfold`: specification -> TLC bounded model -> implementation/Store
+- Evidence: `formal/ProviderClaimR1.tla`, native tests, and exact Git SourceCut
+- Implementation and verification: specification -> TLC bounded model -> implementation/Store
   readset -> real PostgreSQL and Runtime/Provider consumers
 
 **Human:** use `ordivon-harness doctor` with `HARNESS_PG_DSN` and an
