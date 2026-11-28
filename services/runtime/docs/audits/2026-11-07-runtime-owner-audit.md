@@ -82,7 +82,7 @@ Boundary contracts for capability/idea LEGOs:
 - Resource/lifecycle policy (known owner, capacity, source validity, consumer reachability).
 - Structured release (deployment receipt, not process exit as release proof).
 
-Each LEGO definition should record `I, O, S, pre, post, inv, eff, c, epsilon, prov, unfold`, link the *actual consuming* implementation, and distinguish specification, model/validator, implementation. An unproved equivalence is not a migration permission.
+The historical audit's prescribed declaration format is no longer normative. Link the *actual consuming* implementation and justify the mathematical structure and verification obligations from the consumer's problem. Distinguish specification, model/validator, and implementation wherever those claims are made. An unproved equivalence is not a migration permission.
 
 ## Mature implementation and theory references
 
