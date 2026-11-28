@@ -30,7 +30,7 @@ from ordivon_harness.working_view import (
     compile_working_view,
 )
 
-from tests.test_p0_sqlite_agent_loop import FixedClock, budget, contract
+from tests.agent_loop_test_support import FixedClock, budget, contract
 
 
 def private_contract(suffix: str):

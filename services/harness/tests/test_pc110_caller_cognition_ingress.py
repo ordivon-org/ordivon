@@ -18,7 +18,7 @@ from ordivon_harness.working_view import (
     WorkingSetViewProjector,
 )
 
-from tests.test_p0_sqlite_agent_loop import FailIfInvokedAdapter
+from tests.agent_loop_test_support import FailIfInvokedAdapter
 from tests.test_p0_sqlite_runtime_bridge import FakeRuntime, FixedClock, execution_binding
 from tests.test_pc13_agent_owned_working_set import cognition_budget, cognition_contract
 from tests.test_pc14_candidate_discovery_overlay import transition_turn

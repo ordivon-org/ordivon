@@ -28,7 +28,7 @@ from ordivon_harness.structured_result_conformance import (
 )
 
 from tests.pg_test_support import isolated_harness_schema
-from tests.test_p0_sqlite_agent_loop import FixedClock, contract as base_contract
+from tests.agent_loop_test_support import FixedClock, contract as base_contract
 from tests.test_p1_procedural_capital import PROCEDURE_RESULT_SCHEMA
 
 

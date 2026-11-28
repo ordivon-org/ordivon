@@ -64,7 +64,7 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         from pathlib import Path
         from unittest.mock import patch
         from ordivon_harness.cli import main as cli_main
-        from tests.test_p0_sqlite_agent_loop import (
+        from tests.agent_loop_test_support import (
             contract as cli_contract, needs_input_result, completed_result,
         )
 

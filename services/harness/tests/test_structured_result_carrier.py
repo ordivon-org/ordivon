@@ -23,7 +23,7 @@ from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.postgres_store import PostgresHarnessStore
 from ordivon_harness.standalone import StandaloneHarnessRunner
 from tests.pg_test_support import isolated_harness_schema
-from tests.test_p0_sqlite_agent_loop import FixedClock
+from tests.agent_loop_test_support import FixedClock
 from tests.test_structured_result_conformance import completion, contract
 
 

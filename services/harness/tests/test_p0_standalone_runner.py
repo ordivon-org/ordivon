@@ -26,7 +26,7 @@ from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.standalone import StandaloneHarnessRunner
 from ordivon_harness.store import HarnessRunStatus
 
-from tests.test_p0_sqlite_agent_loop import (
+from tests.agent_loop_test_support import (
     FixedClock,
     budget,
     completed_result,

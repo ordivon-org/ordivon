@@ -15,7 +15,7 @@ from ordivon_harness.ordivon.run_store_port import HarnessProviderCallRecoveryRe
 from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
-from tests.test_p0_sqlite_agent_loop import FixedClock, budget, contract
+from tests.agent_loop_test_support import FixedClock, budget, contract
 
 
 class DeadlineHandle:

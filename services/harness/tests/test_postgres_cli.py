@@ -19,7 +19,7 @@ from ordivon_harness.cli import build_parser, main
 from ordivon_harness.postgres_store import PostgresHarnessStore
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
 from tests.test_p0_sqlite_store import run_contract
-from tests.test_p0_sqlite_agent_loop import needs_input_result, contract
+from tests.agent_loop_test_support import needs_input_result, contract
 
 
 @unittest.skipUnless(os.environ.get("HARNESS_PG_TEST_DSN"), "real PG DSN needed")
