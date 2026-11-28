@@ -6,6 +6,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from ordivon_capital.binance_sdk import unwrap_sdk_oneof
+
 WRITE_CAPABLE_PERMISSION_FIELDS = (
     "enable_withdrawals",
     "enable_internal_transfer",
@@ -23,21 +25,6 @@ class BinanceUsdmPrivateCaptureError(RuntimeError):
     pass
 
 
-def _dump(value: Any) -> Any:
-    if hasattr(value, "model_dump"):
-        return value.model_dump()
-    if isinstance(value, list):
-        return [_dump(v) for v in value]
-    return value
-
-
-def _oneof(value: Any) -> Any:
-    data = _dump(value)
-    if isinstance(data, dict) and "actual_instance" in data:
-        return data["actual_instance"]
-    return data
-
-
 def permission_gate(permission: dict[str, Any]) -> dict[str, Any]:
     reading = permission.get("enable_reading") is True
     writes = {name: permission.get(name) is True for name in WRITE_CAPABLE_PERMISSION_FIELDS}
@@ -53,7 +40,7 @@ def permission_gate(permission: dict[str, Any]) -> dict[str, Any]:
 
 def _call(name: str, fn: Callable[..., Any], **kwargs: Any) -> dict[str, Any]:
     try:
-        return {"ok": True, "data": _oneof(fn(**kwargs).data())}
+        return {"ok": True, "data": unwrap_sdk_oneof(fn(**kwargs).data())}
     except Exception as exc:
         return {
             "ok": False,
@@ -210,9 +197,9 @@ def capture(
 
 def qualification_summary(result: dict[str, Any]) -> dict[str, Any]:
     calls = result.get("calls") or {}
-    position_data = (calls.get("position_information_v3") or {}).get("data")
-    if isinstance(position_data, dict) and isinstance(position_data.get("actual_instance"), list):
-        position_data = position_data["actual_instance"]
+    position_data = unwrap_sdk_oneof(
+        (calls.get("position_information_v3") or {}).get("data")
+    )
     positions = position_data if isinstance(position_data, list) else []
     orders_data = (calls.get("current_all_open_orders") or {}).get("data")
     orders = orders_data if isinstance(orders_data, list) else []
