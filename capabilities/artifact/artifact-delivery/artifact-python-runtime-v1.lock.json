@@ -16,6 +16,7 @@
     "python-pptx": "1.0.2",
     "referencing": "0.37.0",
     "rpds-py": "2026.9.1",
+    "six": "1.17.0",
     "temporalio": "1.37.0",
     "types-protobuf": "7.35.1.20261122",
     "typing-extensions": "4.16.0",
