@@ -70,8 +70,35 @@ class NativeReceiptQualificationTests(unittest.TestCase):
             ]
             for i, (profile, source, count) in enumerate(sources):
                 with self.subTest(profile=profile):
-                    _, _, result = self.native(profile, source, root / f"out-{i}")
+                    plan, receipt, result = self.native(profile, source, root / f"out-{i}")
                     self.assertEqual(len(result["verifiedFiles"]), count)
+                    assertions = receipt.parent / "assertions.json"
+                    original = assertions.read_bytes()
+                    raw_receipt = receipt.read_bytes()
+                    checks = json.loads(original)["checks"]
+                    variants = [
+                        checks[:-1],
+                        [checks[0]] * len(checks),
+                        [{"name": "unrelated", "ok": True}],
+                        [{**checks[0], "expected": {"foreign": True}}, *checks[1:]],
+                        [{**checks[0], "actual": None}, *checks[1:]],
+                        [{**checks[0], "actual": True}, *checks[1:]],
+                    ]
+                    for invalid in variants:
+                        assertions.write_text(json.dumps({**json.loads(original), "checks": invalid}))
+                        updated = json.loads(raw_receipt)
+                        updated["evidence"]["assertionsDigest"] = digest(assertions)
+                        receipt.write_text(json.dumps(updated))
+                        with self.assertRaises(ValueError):
+                            self.qualify(plan, 0, digest(receipt))
+                    # Order is not identity: a permutation preserves the contract.
+                    assertions.write_text(json.dumps({**json.loads(original), "checks": list(reversed(checks))}))
+                    updated = json.loads(raw_receipt)
+                    updated["evidence"]["assertionsDigest"] = digest(assertions)
+                    receipt.write_text(json.dumps(updated))
+                    self.assertTrue(self.qualify(plan, 0, digest(receipt))["mechanicalOk"])
+                    assertions.write_bytes(original)
+                    receipt.write_bytes(raw_receipt)
             bad = root / "bad.mp4"
             subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i",
                             "color=c=black:s=320x240:r=30:d=0.3",
@@ -83,6 +110,54 @@ class NativeReceiptQualificationTests(unittest.TestCase):
             root = Path(temp)
             source = ROOT / "productions/runtime-introduction/timed-text/standard/narration.en.ttml"
             plan, receipt, _ = self.native("timed-text-runtime-introduction-en.json", source, root / "evidence")
+            # Mutate the selected plan, not the native provider or its retained bytes.
+            expected = digest(receipt)
+            from ordivon_studio.processing_plan_identity import closure_digest
+
+            def remove_helper_and_rebind(value):
+                closure = value["sourceClosureBinding"]
+                removed = next(row for row in closure["files"] if row["path"].endswith("strict_json.py"))
+                closure["files"].remove(removed)
+                closure["digest"] = closure_digest(closure["files"])
+                value["execution"]["hostDependencies"] = [
+                    row for row in value["execution"]["hostDependencies"]
+                    if not row["path"].endswith("/" + removed["path"])
+                ]
+
+            def extra_helper_and_rebind(value):
+                closure = value["sourceClosureBinding"]
+                extra = {"path": "unselected.py", "digest": "sha256:" + "0" * 64}
+                closure["files"].append(extra)
+                closure["files"].sort(key=lambda row: row["path"])
+                closure["digest"] = closure_digest(closure["files"])
+                host = value["execution"]["hostDependencies"]
+                host.append({"path": str(ROOT / extra["path"]), "expectedDigest": extra["digest"]})
+                host.sort(key=lambda row: row["path"])
+
+            mutants = {
+                "empty closure": lambda p: p["sourceClosureBinding"].update(files=[]),
+                "missing host commitments": lambda p: p["execution"].pop("hostDependencies"),
+                "wrong adapter": lambda p: p.update(adapterDigest="sha256:" + "0" * 64),
+                "wrong closure": lambda p: p["sourceClosureBinding"].update(digest="sha256:" + "0" * 64),
+                "missing helper coherently rehashed": remove_helper_and_rebind,
+                "foreign helper coherently rehashed": extra_helper_and_rebind,
+                "duplicate closure path": lambda p: p["sourceClosureBinding"]["files"].append(
+                    p["sourceClosureBinding"]["files"][0]),
+                "noncanonical order": lambda p: p["sourceClosureBinding"]["files"].reverse(),
+                "duplicate commitment": lambda p: p["execution"]["hostDependencies"].append(
+                    p["execution"]["hostDependencies"][0]),
+                "wrong commitment digest": lambda p: p["execution"]["hostDependencies"][0].update(
+                    expectedDigest="sha256:" + "0" * 64),
+                "wrong closure scope": lambda p: p["sourceClosureBinding"].update(scope="runtime-witness"),
+                "path alias": lambda p: p["execution"]["args"].__setitem__(1, str(source.parent) + "/./" + source.name),
+            }
+            for name, mutate in mutants.items():
+                with self.subTest(plan_mutation=name):
+                    wrong = copy.deepcopy(plan)
+                    mutate(wrong)
+                    with self.assertRaises(ValueError):
+                        self.qualify(wrong, 0, expected)
+            self.assertTrue(self.qualify(plan, 0, expected)["mechanicalOk"])
             original = receipt.read_bytes()
             expected = digest(receipt)
             self.assertEqual(self.qualify(plan, None, expected)["standing"], "UNKNOWN")

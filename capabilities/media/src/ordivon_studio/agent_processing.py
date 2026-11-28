@@ -8,10 +8,15 @@ installs equipment, duplicates profiles or becomes a second asset registry.
 from __future__ import annotations
 
 import hashlib
-import json
 from pathlib import Path
 from typing import Any
 
+from .processing_plan_identity import (
+    add_input_commitment,
+    closure_digest,
+    commitment_rows,
+    source_commitments,
+)
 from .strict_json import decode_profile
 
 # Profile kinds retain current wire contracts despite the stable processing directory.
@@ -37,6 +42,10 @@ _SOURCE_DEPENDENCIES = {
 }
 
 
+def required_source_paths(kind: str) -> set[str]:
+    return {"src/ordivon_studio/strict_json.py", *_SOURCE_DEPENDENCIES.get(kind, ())}
+
+
 def _byte_digest(raw: bytes) -> str:
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
@@ -46,7 +55,7 @@ def _source_closure(root: Path, kind: str, profile_path: str, profile_digest: st
     if adapter_path is None:
         return [], None
     entries = {profile_path: profile_digest, adapter_path: adapter_digest}
-    for relative in ("src/ordivon_studio/strict_json.py", *_SOURCE_DEPENDENCIES.get(kind, ())):
+    for relative in required_source_paths(kind):
         path = root / relative
         try:
             entries[relative] = _byte_digest(path.read_bytes()) if path.is_file() else None
@@ -55,8 +64,7 @@ def _source_closure(root: Path, kind: str, profile_path: str, profile_digest: st
     files = [{"path": path, "digest": value} for path, value in sorted(entries.items())]
     if any(item["digest"] is None for item in files):
         return files, None
-    payload = json.dumps({"schemaVersion": 1, "files": files}, sort_keys=True, separators=(",", ":"))
-    return files, _byte_digest(payload.encode())
+    return files, closure_digest(files)
 
 
 def processing_profiles(root: Path) -> dict[str, Any]:
@@ -196,12 +204,7 @@ def processing_probe_plan(
 
     # Use the native Runtime commitment mechanism; no separate execution broker.
     if expected_input_digest is not None or expected_source_closure_digest is not None:
-        dependencies = {}
-        for item in selected["sourceDependencies"]:
-            path = str((root / item["path"]).resolve(strict=True))
-            if path in dependencies and dependencies[path] != item["digest"]:
-                raise ValueError("conflicting Media source closure path identity")
-            dependencies[path] = item["digest"]
+        dependencies = source_commitments(root, selected["sourceDependencies"], observe=True)
     else:
         dependencies = {}
 
@@ -229,9 +232,7 @@ def processing_probe_plan(
         # the actual processed file digest for the consuming Production.
         plan["execution"]["args"][1] = str(source)
         source_path = str(source)
-        if source_path in dependencies and dependencies[source_path] != expected_input_digest:
-            raise ValueError("selected Media input conflicts with source closure")
-        dependencies[source_path] = expected_input_digest
+        add_input_commitment(dependencies, source_path, expected_input_digest)
         plan["inputByteBinding"] = {
             "inputPath": str(source),
             "expectedDigest": expected_input_digest,
@@ -244,7 +245,5 @@ def processing_probe_plan(
             ),
         }
     if dependencies:
-        plan["execution"]["hostDependencies"] = [
-            {"path": path, "expectedDigest": value} for path, value in sorted(dependencies.items())
-        ]
+        plan["execution"]["hostDependencies"] = commitment_rows(dependencies)
     return plan
