@@ -377,6 +377,23 @@ filesystem give a snapshot merely through `fstat`.
 - [Di谩taxis](https://diataxis.fr/): make Human how-tos, Agent interface
   reference, and architectural explanation serve different reader jobs.
 
+## 2026-11-28: one grounded-observer answer contract
+
+R5 text comprehension and R6 browser-grounded observers now both consume
+`research/grounded_contracts.py::qa_result_schema`. The two private schema
+constructors are removed; the existing provider-independent contract module
+owns the shared answer representation. Experiment protocols, observer inputs,
+oracles and scoring remain separate. Each caller receives a fresh schema object.
+
+Decision: reuse the existing contract module instead of an observer-to-observer
+dependency, a generic schema factory, or a new package. Five exact serialized
+schema inputs (including empty and reordered identifiers), the complete R5
+comprehension task output and the six-task R6 synthetic receipt fixture remain
+byte-identical to the pre-change baseline. The existing Creative Alpha test
+now checks both consumer paths, required constraints and independent mutable
+outputs. This is source-level behavioral parity, not fresh browser observation
+or a claim of human comprehension. Protected CI and merge remain distinct.
+
 ## Prioritized consumer-driven follow-ups
 
 - **P0, implemented in this change:** remove identical Production source
