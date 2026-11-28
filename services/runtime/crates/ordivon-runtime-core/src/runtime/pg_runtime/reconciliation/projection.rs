@@ -20,17 +20,26 @@ impl PgRuntime {
             .map(|(observation, _)| observation)
     }
 
-    /// Reuse the exact coherent PG snapshot for domain projections that
-    /// must compare external evidence with the committed Attempt digest.
-    /// Never reselect an independently current Attempt for that comparison.
+    /// Return the same qualified snapshot used for all SQL projection fields,
+    /// so the release reader can bind the immutable native receipt to it.
     pub(in crate::runtime::pg_runtime) fn project_with_verified_snapshot(
         &self,
         db: &mut PgAdmissionStore,
         request: &JobObserveRequest,
     ) -> RuntimeResult<(JobObservation, Box<PgJobSnapshot>)> {
-        let snapshot = match db
-            .observe_job_readonly(&request.job_id, &self.config.source_sha256)
-            .map_err(pg)?
+        let mut tx = db
+            .client
+            .build_transaction()
+            .isolation_level(postgres::IsolationLevel::RepeatableRead)
+            .read_only(true)
+            .start()
+            .map_err(pg_read_error)?;
+        let snapshot = match PgAdmissionStore::observe_job_snapshot(
+            &mut tx,
+            &request.job_id,
+            &self.config.source_sha256,
+        )
+        .map_err(pg)?
         {
             PgJobReadback::Observed(s) => s,
             PgJobReadback::Inconclusive => {
@@ -43,9 +52,11 @@ impl PgRuntime {
                 .with_operation_id(&request.job_id))
             }
         };
-        let (a, p, operation, exit) = self.readback_attempt(db, &snapshot)?;
+        let (a, p, operation, exit) = self.readback_attempt(&mut tx, &snapshot)?;
         let terminal = snapshot.resolution.is_some();
-        let rows=db.client.query("SELECT artifact_id,kind,digest,byte_length,truncated,relative_path FROM artifacts WHERE job_id=$1 ORDER BY artifact_id", &[&request.job_id]).map_err(pg_read_error)?;
+        let rows=tx.query("SELECT artifact_id,kind,digest,byte_length,truncated,relative_path FROM artifacts WHERE job_id=$1 ORDER BY artifact_id", &[&request.job_id]).map_err(pg_read_error)?;
+        // SQL projection is coherent; native stream I/O remains outside the transaction.
+        tx.commit().map_err(pg_read_error)?;
         let artifacts=rows.iter().map(|r|json!({"artifactId":r.get::<_,String>(0),"attemptId":a.attempt_id,"kind":r.get::<_,String>(1),"digest":r.get::<_,String>(2),"retainedBytes":r.get::<_,i64>(3),"truncated":r.get::<_,bool>(4)})).collect::<Vec<_>>();
         // Preserve the existing projection for historical terminal variants.
         // An OS-only LOST reconciliation is the new explicit exception:
