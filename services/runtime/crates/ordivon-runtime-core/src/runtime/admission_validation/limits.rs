@@ -9,6 +9,18 @@ pub(in crate::runtime) fn validate_new_admission_policy(
     max_runtime_ms: u64,
     max_output_bytes: u64,
 ) -> RuntimeResult<()> {
+    if request
+        .execution
+        .budget
+        .scheduling
+        .as_ref()
+        .is_some_and(|s| s.resources.storage_peak_bytes.is_some())
+    {
+        return Err(RuntimeError::invalid(
+            "declared storage commitments require PG allocation authority",
+            "execution.budget.scheduling.resources.storagePeakBytes",
+        ));
+    }
     if request.execution.timeout_ms > max_runtime_ms {
         return Err(RuntimeError::invalid(
             format!("timeoutMs exceeds configured maximum {max_runtime_ms}"),

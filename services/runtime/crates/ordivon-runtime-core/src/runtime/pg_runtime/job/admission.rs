@@ -255,6 +255,14 @@ impl PgRuntime {
         #[cfg(windows)]
         self.bind_native_windows_plan(proposal, &mut plan)?;
         let mut contract = self.scheduling_contract(&plan)?;
+        if contract.resources.storage_peak_bytes.is_some()
+            && self.config.workspace_headroom.is_empty()
+        {
+            return Err(RuntimeError::invalid(
+                "declared storage commitments require configured carrier headroom",
+                "execution.budget.scheduling.resources.storagePeakBytes",
+            ));
+        }
         #[cfg(windows)]
         {
             if !contract.workspace_access.exclusive()

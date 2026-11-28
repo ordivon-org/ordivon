@@ -70,9 +70,17 @@ impl PgRuntime {
         let mut cpu = 0_u64;
         let mut unspent_memory = 0_u64;
         let mut unspent_pids = 0_u64;
+        let mut storage_commitment = spec.resources.storage_peak_bytes;
         for row in rows {
             let resources: ResourceRequest = decode(&row.get::<_, String>(1))?;
             let access: WorkspaceAccess = decode(&row.get::<_, String>(2))?;
+            let Ok(combined) = crate::resource_fit::combine_storage_peak(
+                storage_commitment,
+                resources.storage_peak_bytes,
+            ) else {
+                return Ok(false);
+            };
+            storage_commitment = combined;
             if row.get::<_, String>(3) == plan.workspace_id
                 && access.conflicts(&spec.workspace_access)
             {
@@ -97,6 +105,24 @@ impl PgRuntime {
         }
         if !node.fits(cpu, &spec.resources, unspent_memory, unspent_pids) {
             return Ok(false);
+        }
+        if let Some(committed_bytes) = storage_commitment {
+            // Same qualified PG allocation lock as CPU/memory/PIDs.
+            // An existing active Allocation returned above is never
+            // blocked here: recovery does not acquire a second budget.
+            match crate::runtime::workspace_headroom::ensure_workspace_headroom_with_commitment(
+                &self.config.workspace_headroom,
+                committed_bytes,
+            ) {
+                Ok(()) => {}
+                Err(error)
+                    if error.code
+                        == crate::runtime::RuntimeErrorCode::WorkspaceCapacityExceeded =>
+                {
+                    return Ok(false);
+                }
+                Err(error) => return Err(error),
+            }
         }
         tx.execute("INSERT INTO job_allocations(attempt_id,resources_json,workspace_access_json,owner,state,acquired_at_ms) VALUES($1,$2,$3,$4,'active',$5)",
             &[&a.attempt_id,&encode(&spec.resources)?,&encode(&spec.workspace_access)?,&spec.owner,&now()?]).map_err(io)?;

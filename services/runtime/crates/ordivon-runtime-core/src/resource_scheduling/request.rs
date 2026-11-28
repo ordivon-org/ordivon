@@ -10,6 +10,11 @@ pub struct ResourceRequest {
     pub cpu_millis: u32,
     pub memory_bytes: u64,
     pub pids: u32,
+    /// Declared upper bound on additional bytes on each configured storage
+    /// carrier. None means unqualified demand, not a zero-byte reservation.
+    /// This is a scheduling estimate, not an OS write quota.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub storage_peak_bytes: Option<u64>,
     #[serde(default)]
     pub io_intensive: bool,
 }
@@ -19,6 +24,7 @@ impl Default for ResourceRequest {
             cpu_millis: 100,
             memory_bytes: 128 * 1024 * 1024,
             pids: 16,
+            storage_peak_bytes: None,
             io_intensive: false,
         }
     }
@@ -46,6 +52,7 @@ impl ResourceScheduling {
         if self.resources.memory_bytes == 0
             || self.resources.memory_bytes > i64::MAX as u64
             || self.resources.pids == 0
+            || self.resources.storage_peak_bytes == Some(0)
             || self.owner.len() > 128
             || self.owner.contains(['\0', '\n'])
         {
@@ -84,6 +91,26 @@ impl ResourceScheduling {
 #[cfg(test)]
 mod resource_request_business_tests {
     use super::*;
+
+    #[test]
+    fn storage_peak_is_opt_in_and_historical_wire_shape_is_unchanged() {
+        let historical = serde_json::json!({
+            "cpuMillis": 100, "memoryBytes": 134217728,
+            "pids": 16, "ioIntensive": false
+        });
+        let request: ResourceRequest = serde_json::from_value(historical.clone()).unwrap();
+        assert_eq!(request.storage_peak_bytes, None);
+        assert_eq!(serde_json::to_value(&request).unwrap(), historical);
+        let mut scheduling = ResourceScheduling::default();
+        scheduling.resources.storage_peak_bytes = Some(0);
+        assert!(scheduling.validate().is_err());
+        scheduling.resources.storage_peak_bytes = Some(1024);
+        assert!(scheduling.validate().is_ok());
+        assert_eq!(
+            serde_json::to_value(&scheduling.resources).unwrap()["storagePeakBytes"],
+            1024
+        );
+    }
 
     #[test]
     fn scoped_writer_may_use_normal_subtrees_but_never_git_metadata() {

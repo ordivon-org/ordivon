@@ -4,7 +4,7 @@
 //! runner dispatch, process-tree ownership, bounded results and Artifacts,
 //! reconciliation, Runtime inspection, and administrative repair semantics.
 
-#[cfg(feature = "postgres-registry-admission")]
+#[cfg(feature = "runtime-contract")]
 mod resource_fit;
 pub mod resource_scheduling;
 
