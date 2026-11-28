@@ -15,6 +15,13 @@ python3 -m unittest discover -s services/harness/tests -p test_eval_harness_docu
 The test checks every one of the 32 possible deletion subsets of five files,
 plus report-only, false receipt, content tampering and unrelated addition.
 The positive candidate deletes exactly the two historical stage documents.
+Task version 2 qualifies the exact typed tree: a replacement directory is not
+an absent retired path, additional empty directories are rejected, and
+unsupported nodes or incomplete enumeration are UNKNOWN. Version 1 remains
+reproducible from its original Git source and oracle digest; its earlier
+evidence is not silently upgraded. The fixture must remain quiescent during
+observation; this oracle does not supply a live reclamation fence.
+
 
 This checks **only the fixed test fixture**. It does not certify actual external
 consumers, broad Agent navigation, provenance at a live SourceCut, model

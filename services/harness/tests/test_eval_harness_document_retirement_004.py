@@ -91,6 +91,81 @@ class DocumentRetirementAcceptanceTests(unittest.TestCase):
         protected.symlink_to(FIXTURE / "docs/OPERATOR.md")
         self.assertEqual(self.evaluate()["standing"], "UNKNOWN")
 
+    def test_retired_path_replaced_by_directory_is_not_absent(self) -> None:
+        self.remove_target()
+        (self.workspace / "docs/MIGRATION-R1.md").mkdir()
+        self.assertEqual(self.evaluate()["standing"], "REJECTED")
+
+    def test_unrelated_empty_directory_is_not_a_clean_retirement(self) -> None:
+        self.remove_target()
+        (self.workspace / "new-empty-authority").mkdir()
+        self.assertEqual(self.evaluate()["standing"], "REJECTED")
+
+    def test_retired_path_replaced_by_fifo_is_unknown(self) -> None:
+        import os
+
+        self.remove_target()
+        os.mkfifo(self.workspace / "docs/OLD-PHASE.md")
+        self.assertEqual(self.evaluate()["standing"], "UNKNOWN")
+
+    def test_same_paths_different_original_bytes_are_not_the_frozen_fixture(self) -> None:
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as root:
+            changed = Path(root) / "baseline"
+            shutil.copytree(FIXTURE, changed)
+            protected = "docs/OPERATOR.md"
+            value = b"mutated independent baseline, same paths"
+            (changed / protected).write_bytes(value)
+            (self.workspace / protected).write_bytes(value)
+            self.remove_target()
+            with patch.object(verifier, "FIXTURE", changed):
+                self.assertEqual(self.evaluate()["standing"], "UNKNOWN")
+
+    def test_task_manifest_drift_is_unknown(self) -> None:
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "task.json"
+            task = json.loads((EVAL / "task.json").read_text())
+            task["objective"] += " silently replaced"
+            path.write_text(json.dumps(task))
+            self.remove_target()
+            with patch.object(verifier, "TASK", path):
+                self.assertEqual(self.evaluate()["standing"], "UNKNOWN")
+
+    def test_malformed_manifest_is_unknown_not_false_acceptance_or_crash(self) -> None:
+        from unittest.mock import patch
+
+        self.remove_target()
+        original = (EVAL / "task.json").read_text()
+        malformed = {
+            "null-root": "null",
+            "duplicate-key": original.replace(
+                '{', '{"taskId":"wrong earlier occurrence",', 1),
+        }
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "task.json"
+            with patch.object(verifier, "TASK", path):
+                for label, raw in malformed.items():
+                    with self.subTest(label=label):
+                        path.write_text(raw)
+                        self.assertEqual(self.evaluate()["standing"], "UNKNOWN")
+
+    def test_incomplete_census_is_unknown_not_empty(self) -> None:
+        from unittest.mock import patch
+
+        self.remove_target()
+        original = Path.iterdir
+
+        def unreadable(path):
+            if path == self.workspace / "docs":
+                raise PermissionError("fixture scan denied")
+            return original(path)
+
+        with patch.object(Path, "iterdir", unreadable):
+            self.assertEqual(self.evaluate()["standing"], "UNKNOWN")
+
     def test_exhaustive_fixture_deletion_subsets(self) -> None:
         """All 2^5 deletion subsets are checked at the real verifier boundary."""
         names = sorted(
@@ -115,6 +190,7 @@ class DocumentRetirementAcceptanceTests(unittest.TestCase):
         task = json.loads((EVAL / "task.json").read_text(encoding="utf-8"))
         self.assertEqual(task["taskId"], "HARNESS-DOC-RETIREMENT-004")
         self.assertEqual(task["kind"], "ordivon.evaluation-task")
+        self.assertEqual(task["taskVersion"], 2)
         self.assertFalse(VERIFIER.is_relative_to(FIXTURE))
 
         self.assertFalse((EVAL / "task.json").is_relative_to(FIXTURE))

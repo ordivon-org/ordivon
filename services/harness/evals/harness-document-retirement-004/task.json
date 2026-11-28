@@ -1,9 +1,11 @@
 {
   "acceptanceContract": {
     "assertions": [
-      "both superseded documents are absent in the candidate workspace",
+      "original fixture bytes and oracle match the versioned task manifest",
+      "both superseded paths are absent as filesystem nodes",
       "all retained current files remain byte-identical",
-      "no unrelated source file was added or modified",
+      "retained directory topology is unchanged; no unrelated node added or modified",
+      "unsupported nodes or incomplete filesystem census yield UNKNOWN",
       "agent claims and reports never construct acceptance"
     ],
     "verifierId": "HARNESS-DOC-RETIREMENT-004-independent-verifier"
@@ -33,13 +35,15 @@
   "integrity": {
     "algorithm": "sha256",
     "canonicalization": "ordivon-canonical-json-v1",
-    "payloadDigest": "sha256:a3cc599d1e07802982cd43b4f609c75fd90af0f4121029ca2fd58b9a6e3fa204"
+    "payloadDigest": "sha256:b145d9f88b83e4fe6375198bb1d0c598cd7ac7ecdade88642b26140b573cbcd8"
   },
   "kind": "ordivon.evaluation-task",
   "knownLimitations": [
     "A deterministic miniature fixture, not proof that arbitrary repository consumers are absent.",
     "No live provider or cross-model execution was performed by this test.",
-    "Verifier is external to the candidate workspace; production admission is not covered."
+    "Verifier is external to the candidate workspace; production admission is not covered.",
+    "The typed-tree observation assumes a quiescent fixture; it does not fence concurrent physical mutation.",
+    "The caller must bind the task manifest to its exact immutable source; internal manifest consistency is not authentication."
   ],
   "labels": [
     "harness-v0",
@@ -49,7 +53,7 @@
   ],
   "objective": "Retire two unconsumed migration-stage documents while preserving the current operator contract and machine-consumed fixture. A report or completion claim is not a substitute for deleting the obsolete files.",
   "oracle": {
-    "digest": "sha256:14385eec26a562e7e196dbe26de0b8650158046a4ade780bd402bd25d635714d",
+    "digest": "sha256:7e7ed801e642b9df80b2c6aca37f1e09862fccf5037aa932f9f39214bd662139",
     "kind": "independent-consumer-verifier",
     "path": "evals/harness-document-retirement-004/verifier.py"
   },
@@ -59,5 +63,5 @@
   },
   "schemaVersion": 1,
   "taskId": "HARNESS-DOC-RETIREMENT-004",
-  "taskVersion": 1
+  "taskVersion": 2
 }
