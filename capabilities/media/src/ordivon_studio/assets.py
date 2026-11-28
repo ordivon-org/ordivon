@@ -58,9 +58,13 @@ def hash_file(path: Path, chunk_size: int = 1024 * 1024) -> BlobInfo:
 
 def r2_object_key(digest: str) -> str:
     algorithm, separator, hexadecimal = digest.partition(":")
-    if separator != ":" or algorithm != "sha256" or len(hexadecimal) != 64:
+    if (
+        separator != ":"
+        or algorithm != "sha256"
+        or len(hexadecimal) != 64
+        or any(character not in "0123456789abcdef" for character in hexadecimal)
+    ):
         raise ValueError(f"unsupported digest: {digest}")
-    int(hexadecimal, 16)
     return f"objects/sha256/{hexadecimal[:2]}/{hexadecimal}"
 
 
@@ -76,6 +80,8 @@ def archive_blob(path: Path, cache_root: Path) -> dict[str, object]:
     destination = cache_root / object_key
     destination.parent.mkdir(parents=True, exist_ok=True)
 
+    if destination.is_symlink():
+        raise RuntimeError(f"content-addressed destination must not be a symbolic link: {destination}")
     if destination.exists():
         existing = hash_file(destination)
         if existing.digest != blob.digest or existing.size_bytes != blob.size_bytes:
@@ -133,6 +139,8 @@ def materialize_blob(digest: str, cache_root: Path, destination: Path) -> dict[s
     """
     object_key = r2_object_key(digest)
     source = cache_root / object_key
+    if source.is_symlink():
+        raise RuntimeError(f"cached object must not be a symbolic link: {source}")
     if not source.is_file():
         raise FileNotFoundError(source)
 
@@ -141,7 +149,11 @@ def materialize_blob(digest: str, cache_root: Path, destination: Path) -> dict[s
         raise RuntimeError(f"cached object does not match requested digest: {source}")
 
     destination.parent.mkdir(parents=True, exist_ok=True)
+    if destination.is_symlink():
+        raise RuntimeError(f"materialization destination must not be a symbolic link: {destination}")
     if destination.exists():
+        if os.path.samefile(source, destination):
+            raise RuntimeError("materialization destination must not alias the cached Blob")
         existing = hash_file(destination)
         if existing.digest != digest or existing.size_bytes != archived.size_bytes:
             raise RuntimeError(f"materialization destination contains different bytes: {destination}")

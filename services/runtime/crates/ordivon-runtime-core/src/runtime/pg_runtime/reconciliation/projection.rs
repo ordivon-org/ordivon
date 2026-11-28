@@ -31,18 +31,10 @@ impl PgRuntime {
                 .with_operation_id(&request.job_id))
             }
         };
-        let (a, p, operation) = self.readback_attempt(db, &snapshot)?;
+        let (a, p, operation, exit) = self.readback_attempt(db, &snapshot)?;
         let terminal = snapshot.resolution.is_some();
         let rows=db.client.query("SELECT artifact_id,kind,digest,byte_length,truncated,relative_path FROM artifacts WHERE job_id=$1 ORDER BY artifact_id", &[&request.job_id]).map_err(pg_read_error)?;
         let artifacts=rows.iter().map(|r|json!({"artifactId":r.get::<_,String>(0),"attemptId":a.attempt_id,"kind":r.get::<_,String>(1),"digest":r.get::<_,String>(2),"retainedBytes":r.get::<_,i64>(3),"truncated":r.get::<_,bool>(4)})).collect::<Vec<_>>();
-        let exit: Option<i32> = db
-            .client
-            .query_one(
-                "SELECT exit_code FROM attempts WHERE attempt_id=$1",
-                &[&a.attempt_id],
-            )
-            .map_err(pg_read_error)?
-            .get(0);
         // Preserve the existing projection for historical terminal variants.
         // An OS-only LOST reconciliation is the new explicit exception:
         // it has a committed native-stop Artifact, not a Runner result.json.
