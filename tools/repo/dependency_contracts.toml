@@ -1,11 +1,12 @@
 schema_version = 1
 kind = "ordivon.repo-owner-dependency-contracts"
 truth_role = "repository-boundary-policy-not-domain-authority"
-scan_mode = "active-source-literal-seams"
+scan_mode = "active-source-and-manifest-dependency-seams"
 # The existing Owner boundary checker also parses active Python AST imports
-# against Owner-owned src/<package>/__init__.py roots. Public Python import
-# exceptions require this same exact source_glob + full module + contract_ref;
-# a comment or longer module prefix cannot qualify a private import.
+# plus internal NPM/Cargo package dependencies derived from Owner-owned
+# manifests. Every exception still uses this same exact source_glob +
+# allowed_fragment + contract_ref seam; package names do not create implicit
+# cross-Owner permission.
 
 # Source globs match complete, slash-delimited path segments; '*' cannot cross directories.
 # These declarations authorize only the named literal seam in the named source files.

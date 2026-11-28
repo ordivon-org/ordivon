@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ast
 import fnmatch
+import json
 import subprocess
 import tomllib
 from collections.abc import Callable
@@ -56,7 +57,7 @@ def load_policy(path: Path = POLICY) -> tuple[Seam, ...]:
         raise ValueError("dependency policy schema_version must be 1")
     if data.get("truth_role") != "repository-boundary-policy-not-domain-authority":
         raise ValueError("dependency policy truth_role must remain repository-boundary-only")
-    if data.get("scan_mode") != "active-source-literal-seams":
+    if data.get("scan_mode") != "active-source-and-manifest-dependency-seams":
         raise ValueError("unexpected dependency policy scan_mode")
     rows = data.get("seams", [])
     if not isinstance(rows, list):
@@ -293,6 +294,150 @@ def python_package_owners(
     return packages
 
 
+def _record_package_owner(
+    packages: dict[str, str],
+    package_name: str,
+    owner_name: str,
+    *,
+    ecosystem: str,
+) -> None:
+    previous = packages.get(package_name)
+    if previous is not None and previous != owner_name:
+        raise AssertionError(
+            f"ambiguous {ecosystem} package owner: {package_name} "
+            f"({previous}, {owner_name})"
+        )
+    packages[package_name] = owner_name
+
+
+def package_manifest_owners(
+    tracked_paths: tuple[str, ...],
+    owners: tuple[Owner, ...],
+) -> tuple[dict[str, str], dict[str, str]]:
+    """Derive internal NPM and Cargo package names from Owner-owned manifests."""
+    npm: dict[str, str] = {}
+    cargo: dict[str, str] = {}
+    for path in tracked_paths:
+        owner = owner_for_path(path, owners)
+        if owner is None:
+            continue
+        name = Path(path).name
+        if name == "package.json":
+            value = json.loads((ROOT / path).read_text(encoding="utf-8"))
+            package_name = value.get("name")
+            if isinstance(package_name, str) and package_name:
+                _record_package_owner(
+                    npm, package_name, owner.name, ecosystem="NPM"
+                )
+        elif name == "Cargo.toml":
+            value = tomllib.loads((ROOT / path).read_text(encoding="utf-8"))
+            package = value.get("package")
+            package_name = package.get("name") if isinstance(package, dict) else None
+            if isinstance(package_name, str) and package_name:
+                _record_package_owner(
+                    cargo, package_name, owner.name, ecosystem="Cargo"
+                )
+    return npm, cargo
+
+
+def _manifest_line(source_text: str, token: str) -> tuple[int, str]:
+    lines = source_text.splitlines()
+    for line_number, line in enumerate(lines, start=1):
+        if token in line:
+            return line_number, line.strip()
+    return 1, token
+
+
+def package_dependency_findings_for_text(
+    source_path: str,
+    source_text: str,
+    owners: tuple[Owner, ...],
+    npm_packages: dict[str, str],
+    cargo_packages: dict[str, str],
+) -> tuple[Finding, ...]:
+    """Find internal package dependencies that do not expose Owner paths.
+
+    Package names come from current Owner-owned manifests, so workspace or
+    version-only dependencies cannot bypass dependency_contracts.toml by
+    omitting a repository path literal.
+    """
+    source = owner_for_path(source_path, owners)
+    if source is None:
+        return ()
+
+    findings: list[Finding] = []
+    manifest_name = Path(source_path).name
+    if manifest_name == "package.json":
+        value = json.loads(source_text)
+        for field in (
+            "dependencies",
+            "devDependencies",
+            "peerDependencies",
+            "optionalDependencies",
+        ):
+            dependencies = value.get(field)
+            if not isinstance(dependencies, dict):
+                continue
+            for package_name in dependencies:
+                target = npm_packages.get(package_name)
+                if target is None or target == source.name:
+                    continue
+                line, rendered = _manifest_line(source_text, f'"{package_name}"')
+                findings.append(Finding(
+                    source_path=source_path,
+                    line=line,
+                    from_owner=source.name,
+                    to_owner=target,
+                    text=rendered,
+                ))
+    elif manifest_name == "Cargo.toml":
+        value = tomllib.loads(source_text)
+        tables: list[dict[str, object]] = []
+        for field in ("dependencies", "dev-dependencies", "build-dependencies"):
+            table = value.get(field)
+            if isinstance(table, dict):
+                tables.append(table)
+
+        workspace = value.get("workspace")
+        if isinstance(workspace, dict):
+            table = workspace.get("dependencies")
+            if isinstance(table, dict):
+                tables.append(table)
+
+        targets = value.get("target")
+        if isinstance(targets, dict):
+            for target in targets.values():
+                if not isinstance(target, dict):
+                    continue
+                for field in (
+                    "dependencies", "dev-dependencies", "build-dependencies"
+                ):
+                    table = target.get(field)
+                    if isinstance(table, dict):
+                        tables.append(table)
+
+        for dependencies in tables:
+            for alias, specification in dependencies.items():
+                package_name = (
+                    specification.get("package", alias)
+                    if isinstance(specification, dict)
+                    else alias
+                )
+                if not isinstance(package_name, str):
+                    continue
+                target = cargo_packages.get(package_name)
+                if target is None or target == source.name:
+                    continue
+                line, rendered = _manifest_line(source_text, str(alias))
+                findings.append(Finding(
+                    source_path=source_path,
+                    line=line,
+                    from_owner=source.name,
+                    to_owner=target,
+                    text=rendered,
+                ))
+    return tuple(findings)
+
 def python_import_findings_for_text(
     source_path: str,
     source_text: str,
@@ -348,16 +493,22 @@ def main() -> int:
 
     all_findings: list[Finding] = []
     active_paths = tracked_active_files()
-    packages = python_package_owners(active_paths, owners)
+    python_packages = python_package_owners(active_paths, owners)
+    npm_packages, cargo_packages = package_manifest_owners(active_paths, owners)
     for source_path in active_paths:
         source = owner_for_path(source_path, owners)
         if source is None:
             continue
         text = (ROOT / source_path).read_text(encoding="utf-8", errors="ignore")
-        findings = (
+        findings = tuple(dict.fromkeys((
             *findings_for_text(source_path, text, owners),
-            *python_import_findings_for_text(source_path, text, owners, packages),
-        )
+            *python_import_findings_for_text(
+                source_path, text, owners, python_packages
+            ),
+            *package_dependency_findings_for_text(
+                source_path, text, owners, npm_packages, cargo_packages
+            ),
+        )))
         all_findings.extend(findings)
 
     # Check both directions of the source/consumer relation in one pass.
@@ -369,8 +520,10 @@ def main() -> int:
 
     print(
         "owner boundary source references: valid "
-        f"(active_files={len(active_paths)}, packages={len(packages)}, seams={len(seams)}, "
-        f"references={len(all_findings)}, kinds={dict(sorted(kinds.items()))})"
+        f"(active_files={len(active_paths)}, python_packages={len(python_packages)}, "
+        f"npm_packages={len(npm_packages)}, cargo_packages={len(cargo_packages)}, "
+        f"seams={len(seams)}, references={len(all_findings)}, "
+        f"kinds={dict(sorted(kinds.items()))})"
     )
     return 0
 

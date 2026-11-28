@@ -2,15 +2,16 @@
 
 Source implementation: `tools/repo/check_owner_boundaries.py`, policy: `tools/repo/dependency_contracts.toml`.
 
-Updated: 2026-11-10. Status: **IMPLEMENTED** — bounded source-literal and public Python AST dependency check.
+Updated: 2026-11-28. Status: **IMPLEMENTED** — bounded source-literal, public Python AST, and internal NPM/Cargo manifest dependency check.
 
 ## Contract
 
 Repository co-location confers neither ownership nor permission to import an
 Owner's private implementation. Cross-Owner consumption follows an explicitly
 named public contract or narrow observed source seam. The existing guard scans
-active tracked code/config and rejects undeclared literal references and stale
-or overlapping policy exceptions.
+active tracked code/config and rejects undeclared literal references, public
+Python package imports, internal NPM/Cargo package dependencies, and stale or
+overlapping policy exceptions.
 
 ## Observed seams (2026-11-10; main ef17d6879d12faa61fff3bb762b0d500d73c9113)
 
@@ -28,7 +29,7 @@ or overlapping policy exceptions.
 | Data | Capital | Test-only ODPS source contract |
 | Composition | Capital | Test-only Finance public source contracts |
 
-The table is a **dated, source-qualified illustration** from Git SourceCut `ef17d6879d12faa61fff3bb762b0d500d73c9113`, not a permanent count or exception registry. For the **actual currently selected source revision**, run the existing `python3 tools/repo/check_owner_boundaries.py`. Its `active_files`, `packages`, `seams` and `references` output is derived from that revision's tracked source, Owner manifest and dependency contracts; it can change as files are retired or public seams are corrected. A PASS proves only the bounded source-literal/public-Python-AST policy. It is not proof of installed or dynamic consumer reachability.
+The table is a **dated, source-qualified illustration** from Git SourceCut `ef17d6879d12faa61fff3bb762b0d500d73c9113`, not a permanent count or exception registry. For the **actual currently selected source revision**, run the existing `python3 tools/repo/check_owner_boundaries.py`. Its `active_files`, language package counts, `seams` and `references` output is derived from that revision's tracked source, Owner manifest and dependency contracts; it can change as files are retired or public seams are corrected. A PASS proves only the bounded source-literal/public-Python-AST/internal-package-manifest policy. It is not proof of installed or dynamic consumer reachability.
 
 ## Retired ownership
 
@@ -39,7 +40,9 @@ Composition, Skills, Authority Catalog, Studies and domain-specific modules.
 
 ## Limits
 
-The check covers literal source paths, not all package-resolver imports,
-constructed paths, runtime calls, generated code or semantic consumer behavior.
+The check covers literal source paths, public Python package imports and internal
+NPM/Cargo package dependencies whose package names are declared in the current
+repository. It does not prove dynamic imports, constructed paths, external
+registry packages, runtime calls, generated code or semantic consumer behavior.
 Language-native and runtime consumer checks remain with the affected Owner.
 This bounded policy is preferable to inventing a global dependency registry.

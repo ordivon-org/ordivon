@@ -237,14 +237,22 @@ class OwnerBoundaryTests(unittest.TestCase):
         """Reuse the production scanner's literal AND Python import consumer graph."""
         findings = []
         active = MODULE.tracked_active_files()
-        packages = MODULE.python_package_owners(active, OWNERS)
+        python_packages = MODULE.python_package_owners(active, OWNERS)
+        npm_packages, cargo_packages = MODULE.package_manifest_owners(active, OWNERS)
         for path in active:
             if MODULE.owner_for_path(path, OWNERS) is None:
                 continue
             source = (MODULE.ROOT / path).read_text(encoding="utf-8", errors="ignore")
             findings.extend(MODULE.findings_for_text(path, source, OWNERS))
             findings.extend(
-                MODULE.python_import_findings_for_text(path, source, OWNERS, packages)
+                MODULE.python_import_findings_for_text(
+                    path, source, OWNERS, python_packages
+                )
+            )
+            findings.extend(
+                MODULE.package_dependency_findings_for_text(
+                    path, source, OWNERS, npm_packages, cargo_packages
+                )
             )
         from unittest.mock import patch
 
@@ -336,6 +344,69 @@ class OwnerBoundaryTests(unittest.TestCase):
             MODULE.python_package_owners(paths, OWNERS),
             {"ordivon_host_v2": "host", "ordivon_harness": "harness"},
         )
+
+    def test_internal_npm_dependency_cannot_hide_behind_package_name(self) -> None:
+        path = "apps/web/package.json"
+        source = '''{
+  "name": "@ordivon/web",
+  "dependencies": {
+    "@ordivon/visuals": "workspace:*"
+  }
+}
+'''
+        findings = MODULE.package_dependency_findings_for_text(
+            path, source, OWNERS, {"@ordivon/visuals": "media"}, {}
+        )
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(
+            (findings[0].from_owner, findings[0].to_owner), ("web", "media")
+        )
+        self.assertIn("@ordivon/visuals", findings[0].text)
+        self.assertFalse(MODULE._allowed(findings[0], SEAMS))
+
+    def test_internal_cargo_dependency_cannot_hide_behind_crate_name(self) -> None:
+        path = "services/runtime/Cargo.toml"
+        source = '''[package]
+name = "runtime-probe"
+
+[target.'cfg(unix)'.dev-dependencies]
+harness = { package = "ordivon-harness-core", version = "0.1" }
+'''
+        findings = MODULE.package_dependency_findings_for_text(
+            path, source, OWNERS, {}, {"ordivon-harness-core": "harness"}
+        )
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(
+            (findings[0].from_owner, findings[0].to_owner), ("runtime", "harness")
+        )
+        self.assertIn("ordivon-harness-core", findings[0].text)
+        self.assertFalse(MODULE._allowed(findings[0], SEAMS))
+
+    def test_manifest_package_owner_names_are_single_source(self) -> None:
+        import json
+        import tempfile
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            first = root / "apps/web/package.json"
+            second = root / "capabilities/media/package.json"
+            first.parent.mkdir(parents=True)
+            second.parent.mkdir(parents=True)
+            payload = {"name": "@ordivon/shared"}
+            first.write_text(json.dumps(payload), encoding="utf-8")
+            second.write_text(json.dumps(payload), encoding="utf-8")
+            with patch.object(MODULE, "ROOT", root):
+                with self.assertRaisesRegex(
+                    AssertionError, "ambiguous NPM package owner"
+                ):
+                    MODULE.package_manifest_owners(
+                        (
+                            "apps/web/package.json",
+                            "capabilities/media/package.json",
+                        ),
+                        OWNERS,
+                    )
 
     def test_ast_catches_cross_owner_import_without_path_literal(self) -> None:
         path = "services/harness/src/ordivon_harness/foreign_effect.py"
