@@ -4742,6 +4742,7 @@ fn resource_queue_shared_workspace_restart_and_native_write_leases() {
 #[ignore = "real PostgreSQL/systemd dominant-share and idle borrowing"]
 fn resource_queue_owner_fairness_and_idle_borrowing() {
     let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
     let repo = fixture.repo();
     let endpoint = fixture.endpoint();
     let opened = call(
