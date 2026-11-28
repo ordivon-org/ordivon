@@ -39,7 +39,7 @@ No new generalized `FinanceTask` engine, persistent task-status taxonomy, permis
 
 ## 5. Representation and formal contract
 
-The existing R2.1 representation is binding: `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`; no extra LEGO registry.
+Choose a problem-specific mathematical model and existing native consumer contract; no extra LEGO registry.
 
 ### F01. Finance task acceptance seam (composition of existing responsibilities)
 
@@ -110,7 +110,7 @@ For each ticket: read exact SourceCut, objective and consumers → identify exis
 
 - No separate `FinanceAgent`, scheduler, general verifier, method registry, status database, broad ECC hooks installation, language migration, superpowers clone or Skill copy.
 - No automatic Live trading, broker effect, capital grant, custom optimizer, artificial future return or invented provider availability.
-- No requirement that every file have an eleven-coordinate LEGO record.
+- No mandatory declaration shape.
 - No per-change universal checklist of all formal tools; verify the affected owner and actual consumer.
 - No weak-model experiment. Use normal business-domain contract tests and independent negative controls.
 
@@ -156,13 +156,7 @@ For an accepted implementation `M`, discharge `M |= (A => G)`.
 A replacement requires a declared observational/refinement relation and
 corresponding proof or independent consumer evidence.
 
-R2.1 is the already adopted application profile. Map its eleven typed
-coordinates to the exact problem-specific semantics: `I/O` are the typed
-interface; `S,pre,post,inv` the state and behavioral obligation; `eff`
-the effect boundary; `c,epsilon` scoped cost and approximation;
-`prov` the evidence/source identity; `unfold` the permitted
-realization/decomposition. The profile is **not** eleven new schemas.
-A declared tuple is not a checked mathematical proof.
+Select the mathematical structures appropriate to the financial problem. The property, assumptions, proof and actual consumer acceptance are independent obligations.
 
 Application: Portfolio's conservation proof does not establish Broker fill,
 Accounting reconciliation, or investment utility; compose only at the
@@ -464,7 +458,7 @@ native pytest/jsonschema; subsequent native tests must be observed anew.
 ### Six-axis review for every selected ticket
 
 Record one concrete PASS/CHANGE/HOLD for each: (1) mathematical
-semantics and R2.1 eleven typed coordinates; (2) owner/effect/acceptance
+semantics and relevant mathematical obligations; (2) owner/effect/acceptance
 boundaries and proof-to-consumer refinement; (3) user economic value and
 lack of unnecessary conservatism; (4) Matt SPEC/tracer bullets, ECC
 native TDD, Superpowers fresh verification; (5) duplication and

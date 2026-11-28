@@ -9,7 +9,7 @@ Reuse existing owner truth: AGENTS.md; services/harness/docs/authority.md; servi
 
 Distinguish dimensions, not brands. Formal-First states the behavioral obligations and evidence scope. LEGO-First discovers replaceable, goal-conditioned responsibilities without presuming a globally minimum or sufficient representation. Models, skills, tools, harnesses and runtimes are concrete mechanisms implementing or consuming these responsibilities, not additional universal top-level owners.
 
-A LEGO is NOT synonymous with a file, package, agent, tool, skill, runtime object or MCP server. For a needed responsibility name identity, responsibility, inputs, outputs, behavioral contract and acceptance. Only add authority/effects/state/provenance where they change the real decision.
+A LEGO is NOT synonymous with a file, package, agent, tool, skill, runtime object or MCP server. For a needed responsibility choose the representation appropriate to its property and consumer. Include decision-critical assumptions, effects and evidence where relevant.
 
 ## Minimal new-Agent decision boundary
 
@@ -56,7 +56,7 @@ A LEGO is NOT synonymous with a file, package, agent, tool, skill, runtime objec
 
 ## Optional functional LEGO role projection (revisable)
 
-R2.1 continues to define LEGO by **identity, responsibility, inputs, outputs, contract, acceptance**. These are nonexclusive, consumer-relative roles, **not** a second ontology or executable admission contract. See the native scoped recursive-lego-calculus Skill for the working definitions:
+OL uses problem-relative responsibilities and mathematical structures; the following are optional descriptive lenses. These are nonexclusive, consumer-relative roles, **not** a second ontology or executable admission contract. See the native scoped recursive-lego-calculus Skill for the working definitions:
 
 - **Capability / operator:** actual owner Tool/API or algorithm implementation performs bounded computation/read/authorized effects (Git, FFmpeg, Z3, Godot/Bevy).
 - **Method / strategy:** advisory Skill or scientific/engineering method teaches an Agent how to frame, select, compose and validate capabilities (CEGAR, inverse synthesis, experiment design).
@@ -137,7 +137,7 @@ No new Agent role, new Skill, registry, approval loop, scheduler or formal DSL i
 
 ## Human direction — Formal LEGO R2.1 as mathematics-backed representation; agent environment hygiene (2026-10-24)
 
-**Standing:** scoped architecture/working-method decision from the Human, not a new LEGO definition, source of runtime truth, proof of whole-system conformance, or authorization to add infrastructure. The exact formal vocabulary remains the project Skill `project-ordivon-next/recursive-lego-calculus` and its version-bound `references/formal-model.md` (observed model SHA-256 `cc3cd10cdaa4ef882df64eb9b994632b93a4518f1a310cd40be2978cad149b45` (source-bound reference refreshed 2026-11-01 after checked sequential contract refinement; the 2026-10-24 historical broadcast remains historical)). The current source incorporates the mature-theory mapping, model-only transition-invariant closure and the scoped stateful/effect-bearing safety-plus-progress refinement profile; this source revision does not requalify earlier implementation or installed evidence. Historical space broadcast: `space:ordivon-whole-system-optimization-r1:20261002`, topic `topic:ordivon-whole-system-optimization:mature-engineering-loop-r1:20261006`, message `message:recursive-lego-r21-math-kernels-agent-environment-decision:20261024`.
+**Standing:** historical working-method discussion. Current guidance is Ordivon LEGO (OL) in the existing project Skill and its formal reference. No fixed declaration format is required. Historical source and evidence remain recoverable at original Git cuts; this document does not requalify earlier implementation or installed evidence.
 
 **Why:** An Agent's observations and available actions are strongly shaped by paths, refs, tool exposure, installed versions, workspace contents and historical artifacts. The Agent then modifies those same surroundings. Stale sources, missing tools, repeated local patches, uncleared workspaces and unintegrated commits can therefore compound across Agent runs. Environment correctness is a prerequisite for trustworthy reasoning *and* actual effect execution; cleanup prevents feedback-driven duplication. This is a causal hypothesis to test on concrete runs, not a proof about all Agents.
 
@@ -207,29 +207,14 @@ qualification. See `.agents/skills/recursive-lego-calculus/references/formal-mod
 for the precise CEGAR safety assumptions and stop conditions. No parallel
 registry, solver, mandatory workflow or global MSR verifier is introduced.
 
-## R2.1 mathematical kernel: existing mathematics at the Owner boundary (2026-10-25)
+## OL: existing mathematics at the Owner boundary (2026-10-25)
 
-**Standing:** scoped refinement of the already accepted recursive LEGO calculus,
+**Standing:** scoped application of existing mathematical theories,
 not a new schema, all-Owner registry, proof kernel, default Workflow or source
 of runtime authority. This section is useful only when a *named current
 consumer* needs a contract that its natural Owner can actually verify.
 
-The *only* canonical LEGO identity remains the original six-part contract
-already specified above:
-
-\[
-L = (identity, responsibility, inputs, outputs, contract, acceptance).
-\]
-
-Here **identity** and **responsibility** belong to the existing natural Owner;
-**acceptance** is a named current consumer's observable predicate. Do not
-rename a consumer set, state machine or mathematical proof into a competing
-LEGO object. When a named consumer B and goal g require more precision,
-interpret—not replace—that LEGO with an **optional semantic view**:
-
-\[
-\mathrm{Semantics}(L)_{g,B}=(S,Init,Next,A,G,\pi_B).
-\]
+Choose the mathematical carrier for the particular question. For a stateful consumer, state sets, initial states, transitions, assumptions, guarantees and an observation map can be useful. These are ingredients of that model, not a definition of all responsibilities.
 
 - \(S,Init,Next\) are existing Owner state and transition semantics; they are
   absent for a stateless LEGO. \(I,O\) retain their native interface types.

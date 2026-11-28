@@ -4,9 +4,7 @@
 
 ## Mature mathematical core
 
-LEGO 2.1 treats a LEGO as a **consumer-conditioned replaceable responsibility**, rather than automatically a file, Tool, Skill or Agent. Every independently formally **DECLARED or ADMITTED LEGO** requires the complete typed R2.1 contract (I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold), as mandated by the root AGENTS.md and .agents/skills/recursive-lego-calculus/SKILL.md. Consult its references/formal-model.md for precise semantics. Unknown coordinates require a scoped typed UNKNOWN(reason, scope, obligation), never an omitted or fabricated value.
-
-Only the **views selected for a particular task** are optional: raw source, incomplete discovery candidates, and this bounded four-owner model do not each become independent declared LEGOs. Complete declaration is not MODEL_PROVED, CODE_REFINED, INSTALLED_CURRENT or CONSUMER_ACCEPTED. Preserve checker/version/provenance, implementation refinement, external effects and real consumer evidence as separate obligations. This guidance adds no registry, checker or Owner authority.
+Ordivon LEGO (OL) chooses mathematical structures from the actual composition and its consumer. No uniform declaration shape or field count is required. Use the existing foundational methods reference in `.agents/skills/recursive-lego-calculus/references/formal-model.md`. Keep model proof, implementation refinement, installed currentness and consumer acceptance separate; relevant unsupported claims remain UNKNOWN.
 
 For this owner boundary, reuse the standard typed transition-system model `(S, Init, Next)`, invariant checking by TLC, and **assume–guarantee** contracts on its seams. The existing `packages/composition` Cognitive Circuit, JSON Schema and Verification Obligation remain responsible for typed ports, caller-authored gate requirements, exact digests and bound verifier identities. This model is not their replacement.
 

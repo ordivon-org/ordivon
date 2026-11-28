@@ -65,9 +65,7 @@ https://developers.cloudflare.com/r2/examples/rclone/ .
 - Superpowers worktree, writing-plans, executing-plans, verification-before-completion: isolate changes, inspect actual diff, run existing native checks, do not infer success from narration.
 - ECC: reference only for change-impact, contract-first and peer review; do NOT install foreign hook bundles, prompt router, or duplicate agent roles.
 
-## 6. Full R2.1 contract for one actual responsibility: Artifact Stock Convergence
-
-ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)
+## 6. Artifact-specific obligations: Artifact Stock Convergence
 
 - I: immutable Git SourceCut; tracked files and SHA ledger; current imports/CLI/binding/systemd facts; current consumer evidence; approved deletion scope.
 - O: source tree minus obsolete carriers; clarified current navigation; verified unaffected native interfaces; release-ready ordinary Git diff.

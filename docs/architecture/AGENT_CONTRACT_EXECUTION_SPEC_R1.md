@@ -28,23 +28,7 @@ The repositories are methodology **providers**, not execution/truth/permission a
 
 ## 3. Representation: goal-conditioned effective R2.1 LEGO
 
-For independently admitted responsibility \(\ell\), use the canonical full typed tuple:
-
-`ell = (I, O, S, pre, post, inv, eff, c, epsilon, prov, unfold)`.
-
-| Coordinate | Meaning for the execution reform |
-| --- | --- |
-| `I` | Typed Goal/Consumer/SourceCut/Authority and qualified input evidence. |
-| `O` | Candidate result, scoped execution observation, consumer acceptance or evidenced noncompletion; never conflate them. |
-| `S` | Existing Host Work/Agent Run/Runtime Job/owner-domain states, not another global state database. |
-| `pre` | Relevant input/source/authority assumptions checked by the natural owner. |
-| `post` | Action-level or consumer-level behavioral guarantee owned by its producer. |
-| `inv` | History preservation, effect identity, evidence non-promotion and domain acceptance separation. |
-| `eff` | Explicit potential physical/external effects; a Skill has no implied effect authorization. |
-| `c` | Scoped resource/time/verification cost or typed `UNKNOWN`, never invented zero. |
-| `epsilon` | Explicit approximation/error bound or typed `UNKNOWN`; `0` only where proven exact. |
-| `prov` | Model/source/contract/observation version, toolchain and evidence identity. |
-| `unfold` | Bounded L0-to-L3 disclosure of assumptions, errors, proof gaps, implementation only as needed. |
+Choose a problem-specific mathematical model and state the relevant consumer properties, assumptions and evidence. No universal declaration is required.
 
 A procedure such as Matt's `to-spec` is a **method candidate**: this plan does not automatically admit it as an independent runtime LEGO. A method becomes an independently contractable LEGO only if its real consumer and replaceable interface justify it; then every coordinate must be instantiated with typed evidence, including UNKNOWN. Do not invent one record per file or per workflow stage.
 
@@ -143,7 +127,7 @@ Each slice has a native Owner, observable result, a negative example and a check
 | --- | --- | --- |
 | Valid Spec/readable Skill | current Git bytes, working references, Skills MCP path resolve/read when installed | Agent followed instructions; domain outcome |
 | Native RED→GREEN | bad counterexample rejected, good case accepted through Owner public seam | complete correctness across all inputs |
-| R2.1 model | complete typed contract, named theorem/model verdict, assumptions | implementation refinement or real effect |
+| Mathematical model | relevant property, named theorem/model verdict, assumptions | implementation refinement or real effect |
 | Code/consumer refinement | current implementation behavior checked against property at the target seam | semantics beyond exercised scope |
 | PR / CI | exact SHA, review, required job results, Merge Queue | deployed owner version |
 | Real usage | provider readback/effect receipt, consumer acceptance currentness | all possible future domain success |
@@ -202,7 +186,7 @@ The `docs/start/tasks.md` link is a navigation projection, not new task authorit
 
 ## 11. Mathematical and computer-science foundation: adopted thought-LEGO profiles
 
-**Evidence update, 2026-11-09.** This section extends the existing R2.1 contract; it does not supersede the eleven-coordinate definition or proclaim a theorem about installed code. The sources below are primary papers, official reference implementations, and existing Ordivon-native theorem/consumer paths. These are selectively activated **method lenses**, not eleven new runtime modules.
+**Evidence update, 2026-11-09.** These are problem-specific mathematical methods, not a universal representation or a theorem about installed code. The sources below are primary papers, official reference implementations, and existing Ordivon-native theorem/consumer paths. These are selectively activated **method lenses**, not eleven new runtime modules.
 
 | Decision / thought LEGO | Mathematical foundation and precise question | Existing Ordivon carrier / executable obligation | Explicit non-claim |
 | --- | --- | --- | --- |
@@ -228,7 +212,7 @@ The `docs/start/tasks.md` link is a navigation projection, not new task authorit
 - **Realization and V&V:** [NASA Systems Engineering Handbook](https://www.nasa.gov/wp-content/uploads/2018/09/nasa_systems_engineering_handbook_0.pdf); [AWS durable execution idempotency/retry guide](https://docs.aws.amazon.com/durable-execution/patterns/best-practices/idempotency/) for distinguishing replay/at-least-once from external effect truth.
 - **Engineering procedures:** upstream [Matt `to-tickets`](https://github.com/mattpocock/skills/blob/main/docs/engineering/to-tickets.md), [ECC Hooks](https://github.com/affaan-m/ECC/blob/main/hooks/README.md), [Superpowers writing-plans](https://github.com/obra/superpowers/blob/main/skills/writing-plans/SKILL.md). Version-qualified source pins remain section 2. These are NOT formal proof systems and do not confer execution authority.
 
-**Method selection:** use `method-router` to choose the smallest method that can change a decision. For example, a missing producer/consumer assumption calls for T11.2, not all ten methods. A cancellation/retry defect calls for T11.6 plus T11.8. An incomplete evidence claim calls for T11.4 plus T11.10. Only formalize an independently contractable replacement as the complete R2.1 `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`; other lenses are borrowed mature methods, not automatically admitted new LEGOs.
+**Method selection:** use `method-router` to choose the smallest method that can change a decision. For example, a missing producer/consumer assumption calls for T11.2, not all ten methods. A cancellation/retry defect calls for T11.6 plus T11.8. An incomplete evidence claim calls for T11.4 plus T11.10. Select the mathematical representation for the specific property; no fixed declaration is required.
 
 ## 12. Precise refinement calculus and proof duties (no new calculus)
 
@@ -291,7 +275,7 @@ The existing T0–T5 are a **task DAG**, not sequential theater. Treat dependenc
 1. **Spec the actual negative:** from the existing Work/issue/SourceCut, state one consumer-visible failure, pre/post, errors, assumption and evidence target; if the consumer is already satisfied, retire the proposed custom change.
 2. **Select a deep seam:** identify the highest stable public Owner interface. Do not split work by technical layers; a ticket includes everything required to witness one behavior end-to-end.
 3. **Negative before change:** run the observed bad input against the old source (RED). Ensure the oracle is independently derived from consumer semantics, not the candidate code's own status bits.
-4. **REUSE first:** select mature upstream contract/model checker or existing Owner-native primitive; avoid a new schema/runtime/agent. Use full eleven-coordinate profile only when an independently admitted responsibility truly needs it.
+4. **REUSE first:** select mature upstream contract/model checker or existing Owner-native primitive; avoid a new schema/runtime/agent. Use only the mathematical structure required by the actual property.
 5. **Green and narrow:** implement at the natural Owner, cover the original counterexample and one positive valid operation; use existing unit/PG/stateful tests and optional formal checker when it materially strengthens this claim.
 6. **Independent review:** review spec compliance *and* code/standards against exact base; compare actual effect/readback, run native `mise` and retain negative result as a regression.
 7. **Integrate and consume:** send exact PR/commit/Job or readback to the corresponding Space Topic, deduplicate overlapping PRs, use GitHub Merge Queue; separate MERGED from installed, executed and DomainAccepted.

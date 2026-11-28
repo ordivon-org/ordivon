@@ -33,7 +33,7 @@ Authoritative references:
 
 - **Product objective:** game behavior or player-visible artifact sought by the consumer. Only Game/product evidence can revise it.
 - **LEGO:** goal-conditioned independently contractable responsibility, not a file/Skill/Tool/Agent.
-- **R2.1 contract admission:** a declared/admitted responsibility requires a typed eleven-coordinate contract. The historical G07–G11 contracts carry eleven named coordinates, but textual cost/approximation/provenance fields are NOT machine-checked formal types or implementation proofs. Missing G01–G06 coordinates must not be invented.
+- **Mathematical obligation:** choose the model for the actual Game consumer property; a declaration is not a proof. Unsupported claims remain UNKNOWN.
 - **Verification obligation:** bounded condition, source scope and evidence owned by the actual verifier. Existing Composition `verification-obligation-set-v1` is *non-authoritative* and does not execute checks.
 - **Mechanical result:** Runtime Job/process/test exit and receipts, not product truth.
 - **Domain acceptance:** current Game consumer-observed effect with the specified scope. Automated Game PASS is not player delight or Windows physical gameplay.
@@ -250,7 +250,7 @@ Agent-generated code and agent-generated assertions can both drift. For conseque
 - Matt to-tickets / implement-spec: model implementation as dependency-DAG tracer bullets with an executable frontier. Keep one Game delivery branch and use actual native CI; do not require multiple agents for narrow changes.
 - ECC intent-driven-development / contract-first: each material acceptance criterion describes scenario, trigger, observable result, prohibited side effect and actual verifier; keep one canonical provider/consumer wire authority.
 - Superpowers writing-plans / test-driven-development / verification-before-completion: exact file/path/command, watch a valid RED then GREEN, preserve negative controls, and make no completion statement without fresh result.
-- Recursive LEGO R2.1: express the *retained independent responsibility* with all eleven typed coordinates; UNKNOWN is scoped, not fabricated. Only decompose when a real consumer can replace or validate the resulting component.
+- OL: express the actual consumer property using the appropriate mathematical structure; UNKNOWN is scoped, not fabricated. Only decompose when a real consumer can replace or validate the resulting component.
 - Native engine/CI: owns real effects, builds, visible UI and independent execution receipts. Thinking methods cannot establish domain success.
 
 **Do not install ECC stop hooks blindly:** its generic transcript regex / last-edited-learning-file criteria may reward the wrong work. Do not fork the Matt issue tracker, copy all Superpowers rules into the repository root, or add another Composition task schema.

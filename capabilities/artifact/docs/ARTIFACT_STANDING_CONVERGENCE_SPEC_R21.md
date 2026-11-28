@@ -29,7 +29,7 @@ One small, pure, provenance-aware Standing qualification semantics shared by exi
 
 A Standing **claim** is a bounded assertion, not an overall success bit. A **Profile** supplies required claims. An **Observation** supplies an identified native result, including explicit PASS/FAIL/NOT_EVALUATED and independent evidence pointers where required. A **Decision** derives no stronger assertion than what evidence supports. A **Consumer Acceptance** is external to the Artifact kernel. A historical or shadow capability binding is not present-node availability evidence.
 
-Formal archetype: `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`.
+Artifact-specific semantic obligations:
 
 - I: immutable Subject/Profile commitments; already-admitted native observations; required claim keys; optional explicitly bound consumer requirement.
 - O: typed ClaimCoverage and scoped Standing vector; no domain success assertion.
@@ -247,7 +247,7 @@ Current candidate: PR #1974 HEAD 9e0797afcb28de920abb7aeac1f11e1d4065f4e8; T1–
 
 ### Six independent review axes and pre-implementation decisions
 
-1. **Theory:** R2.1 eleven-coordinate archetype, not an extra service. A required claim must be supported by a semantically applicable native observation under source/identity assumptions. Generic aggregate PASS without claim semantics violates the intended assume–guarantee contract. Verdict: FAIL at v2 pointer seam.
+1. **Theory:** Artifact-specific claim semantics, not an extra service. A required claim must be supported by a semantically applicable native observation under source/identity assumptions. Generic aggregate PASS without claim semantics violates the intended assume–guarantee contract. Verdict: FAIL at v2 pointer seam.
 2. **Skill method:** Matt public seam TDD/dual-axis review; Superpowers RED/GREEN/fresh verification; ECC selected review only, not global hooks. Existing seams: v1 execute_verify_stage, v2 verify_request and assess_required_evidence. Verdict: selected, no new workflow.
 3. **Overconservatism:** v1 executed_failures are appended to a general integrity issues list; the common evaluator reports UNKNOWN even for a witnessed required gate FAIL. Verdict: FAIL; recover scoped falsification.
 4. **Surface-only:** new status names, comments, a standalone plan, or a duplicate evaluator cannot fix either counterexample. Verdict: REJECT; require production behavior changed at existing seam.

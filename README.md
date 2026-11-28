@@ -54,7 +54,7 @@ Choose the **current natural owner** by the fact or effect it controls; the repo
 | ChatGPT Skill MCP compatibility | [skills](extensions/chatgpt-skills-mcp/README.md) | Not Skill source authority |
 | Attendance session and browser action | [chaoxing-autosign](apps/chaoxing-autosign/README.md) | Application outcome |
 
-The table is a human navigation view, not a new registry. The source of truth for ownership paths and verification tasks is [owners.toml](tools/repo/owners.toml). The canonical advisory [method router](.agents/skills/method-router/SKILL.md) and [Recursive LEGO R2.1](.agents/skills/recursive-lego-calculus/SKILL.md) are separate from executable owner tools.
+The table is a human navigation view, not a new registry. The source of truth for ownership paths and verification tasks is [owners.toml](tools/repo/owners.toml). The canonical advisory [method router](.agents/skills/method-router/SKILL.md) and [Ordivon LEGO (OL)](.agents/skills/recursive-lego-calculus/SKILL.md) are separate from executable owner tools.
 
 ### For Humans: from a goal to a verified outcome
 

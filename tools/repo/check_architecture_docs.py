@@ -1977,19 +1977,8 @@ def validate_formal_issue_census(
 
 
 
-def validate_r21_lego_vocabulary(document: str, *, root: Path = ROOT) -> None:
-    """Keep the already accepted six-role LEGO interface distinct from optional math.
-
-    This is a documentation/source-bound gate, not a universal proof schema.
-    Consumer paths must name existing Owner-native falsification witnesses.
-    """
-    canonical = "L = (identity, responsibility, inputs, outputs, contract, acceptance)"
-    if document.count(canonical) != 1:
-        raise ArchitectureDocsError("R2.1 canonical LEGO contract must be unique")
-    if re.search(r"\bL\s*=\s*\(\s*(?:C\s*,\s*I\s*,\s*O\s*,\s*S\s*,|I\s*,\s*O\s*,\s*A\s*,)", document):
-        raise ArchitectureDocsError("R2.1 competing LEGO mathematical definition")
-    if r"\mathrm{Semantics}(L)" not in document:
-        raise ArchitectureDocsError("R2.1 optional semantics must be distinct from LEGO")
+def validate_architecture_consumer_witnesses(document: str, *, root: Path = ROOT) -> None:
+    """Verify explicitly named source witnesses, not a mathematical representation."""
     disabled = {
         "unittest.skip", "unittest.skipIf", "unittest.skipUnless",
         "pytest.mark.skip", "pytest.mark.skipif", "pytest.mark.xfail",
@@ -2233,7 +2222,7 @@ def validate_repository(root: Path = ROOT) -> None:
     method_router = root / METHOD_ROUTER.relative_to(ROOT)
 
     validate_architecture_snapshot_document(current.read_text(encoding="utf-8"))
-    validate_r21_lego_vocabulary(
+    validate_architecture_consumer_witnesses(
         (root / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md").read_text(
             encoding="utf-8"
         ),
