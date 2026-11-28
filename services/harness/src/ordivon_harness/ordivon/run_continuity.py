@@ -8,6 +8,10 @@ from anc_canonical import JsonValue, canonical_digest, validate_json_value
 
 from ..agent_tool_observation import HarnessToolObservation
 from ..core_contracts import HarnessRunContract
+from ..independent_result_projection import (
+    doctor_independent_result,
+    load_independent_terminal_result,
+)
 from ..protocol import (
     HarnessDispatchFence,
     HarnessProviderCallFailureReceipt,
@@ -2652,7 +2656,6 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         owner's proof, not a fact this Harness PostgreSQL Journal can certify.
         UNKNOWN remains unresolved even on a terminal Run projection.
         """
-        from ..independent_result import IndependentRunRecorder
         from .continuity_guards import inspect_all_unsettled_effect_sources
 
         projection = self.store.load_run(self.harness_run_id)
@@ -2712,9 +2715,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             or events[-1].run_revision != projection.revision
         ):
             raise ValueError("finalization Run terminal projection differs from Journal")
-        terminal = IndependentRunRecorder(
-            self.store, self.contract, self.binding, clock_ms=self.clock_ms
-        ).load_terminal_result()
+        terminal = load_independent_terminal_result(self.store, self.contract)
         provider_ids, tool_digests = inspect_all_unsettled_effect_sources(
             events,
             store=self.store,
@@ -2795,14 +2796,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                 previous_working_set = spec
                 previous_working_set_event = event
                 working_sets += 1
-        from ..independent_result import IndependentRunRecorder
-
-        independent = IndependentRunRecorder(
-            self.store,
-            self.contract,
-            self.binding,
-            clock_ms=self.clock_ms,
-        ).doctor()
+        independent = doctor_independent_result(self.store, self.contract)
         return {
             "schemaVersion": 1,
             "kind": "ordivon.harness-continuity-doctor",
