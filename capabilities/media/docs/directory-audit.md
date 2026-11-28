@@ -7,6 +7,15 @@ The source baseline was observed on 2026-11-07; the change branch is cut from
 `origin/main`. Re-observe the working tree and consumers before effectful
 deletion. The archived standalone Media repository is not a release target.
 
+## Research representation decision (2026-11-28)
+
+The existing research/grounded_contracts.py owns strict nonempty trimmed
+text. Grounded evidence, registration and trial ledger consume it directly,
+retiring the two duplicate validators and the ledger's private registration
+dependency. Preserve exact rejection semantics. Existing PRs #2989 and
+#2990 own the vector/digest and QA schema migrations respectively; this
+slice excludes those changes to avoid duplicate integration.
+
 ## Decision rule
 
 Keep a file because a current consumer needs its exact bytes or semantics, not

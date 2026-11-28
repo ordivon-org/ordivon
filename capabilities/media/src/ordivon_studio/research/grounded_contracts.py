@@ -7,6 +7,13 @@ import json
 from collections.abc import Sequence
 from typing import Any
 
+
+def strict_text(value: object, label: str) -> str:
+    if not isinstance(value, str) or not value.strip() or value != value.strip():
+        raise ValueError(f"{label} must be a non-empty trimmed string")
+    return value
+
+
 RELATION_LABELS = (
     "CAUSES",
     "ENABLES",

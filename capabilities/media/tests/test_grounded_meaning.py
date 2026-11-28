@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import json
 import unittest
 from pathlib import Path
@@ -7,7 +8,7 @@ from pathlib import Path
 from jsonschema import validate
 
 from ordivon_studio.research.grounded_av_tasks import narration_evidence, parse_runtime_scenes
-from ordivon_studio.research.grounded_contracts import canonical_digest
+from ordivon_studio.research.grounded_contracts import canonical_digest, strict_text
 from ordivon_studio.research.grounded_evidence import validate_grounded_result
 from ordivon_studio.research.grounded_provider import build_provider_bundle
 from ordivon_studio.research.grounded_scoring import score_provider_receipt
@@ -16,6 +17,20 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class GroundedMeaningTest(unittest.TestCase):
+    def test_research_text_contract_has_one_authoritative_definition(self) -> None:
+        research = ROOT / "src/ordivon_studio/research"
+        definitions = []
+        for path in research.glob("*.py"):
+            for node in ast.parse(path.read_text(encoding="utf-8")).body:
+                if isinstance(node, ast.FunctionDef) and node.name in ("strict_text", "_strict_text"):
+                    definitions.append((path.name, node.name))
+        self.assertEqual(definitions, [("grounded_contracts.py", "strict_text")])
+        self.assertEqual(strict_text("a b", "example"), "a b")
+        for invalid in (None, 0, "", " ", " a", "a ", "a\n"):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(ValueError, "^example must be a non-empty trimmed string$"):
+                    strict_text(invalid, "example")
+
     def test_runtime_scene_source_is_time_grounded(self) -> None:
         source = (ROOT / "apps/motion-remotion/src/runtime-introduction-master-composition.tsx").read_text(encoding="utf-8")
         scenes = parse_runtime_scenes(source)
