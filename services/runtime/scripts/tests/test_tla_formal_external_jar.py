@@ -113,6 +113,43 @@ class TlaFormalExternalJarTests(unittest.TestCase):
         self.assertIn("PASS", result.stdout)
         self.assertFalse(self.cache.exists())
 
+    def test_resolve_prints_verified_external_path_without_workspace_cache(self):
+        self.assertFalse(self.cache.exists())
+        result = self.invoke(command="resolve", jar=self.external)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), str(self.external))
+        self.assertFalse(self.cache.exists())
+        self.assertFalse(self.java_log.exists())
+
+    def test_resolve_prints_verified_default_cache_path(self):
+        self.cache.parent.mkdir(parents=True)
+        self.cache.write_bytes(self.external.read_bytes())
+        result = self.invoke(command="resolve")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), str(self.cache))
+        self.assertFalse(self.java_log.exists())
+
+    def test_ensure_bootstraps_missing_default_cache_and_returns_path(self):
+        fake_curl = Path(self.env["PATH"].split(os.pathsep)[0]) / "curl"
+        fake_curl.write_text(
+            '#!/bin/sh\n'
+            'while [ "$#" -gt 0 ]; do\n'
+            '  if [ "$1" = "-o" ]; then shift; cp "$BOOTSTRAP_FIXTURE" "$1"; exit $?; fi\n'
+            '  shift\n'
+            'done\n'
+            'exit 2\n',
+            encoding="utf-8",
+        )
+        fake_curl.chmod(0o755)
+        env = dict(self.env)
+        env["BOOTSTRAP_FIXTURE"] = str(self.external)
+        result = self.invoke(command="ensure", env=env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), str(self.cache))
+        self.assertEqual(self.cache.read_bytes(), self.external.read_bytes())
+        self.assertIn("materialized and verified", result.stderr)
+        self.assertFalse(self.java_log.exists())
+
     def test_external_check_invokes_java_using_exact_path(self):
         result = self.invoke(command="check", jar=self.external)
         self.assertEqual(result.returncode, 0, result.stderr)

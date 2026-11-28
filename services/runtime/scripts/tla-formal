@@ -58,6 +58,18 @@ bootstrap() {
   echo "TLA+ tools $VERSION materialized and verified at $LOCAL_JAR"
 }
 
+resolve_jar() {
+  verify_jar
+  printf '%s\n' "$JAR"
+}
+
+ensure_jar() {
+  if [[ "${ORDIVON_TLA_TOOLS_JAR+x}" != x && ! -f "$LOCAL_JAR" ]]; then
+    bootstrap >&2
+  fi
+  resolve_jar
+}
+
 check_runtime_dispatch() {
   verify_jar
   java -XX:+UseParallelGC -cp "$JAR" tla2sany.SANY "$ROOT/formal/RuntimeDispatchR1.tla"
@@ -1641,6 +1653,8 @@ PY_CRASH_ABSENCE
 
 case "${1:-check}" in
   bootstrap) bootstrap ;;
+  resolve) resolve_jar ;;
+  ensure) ensure_jar ;;
   verify) verify_jar; echo "TLA+ toolchain digest verification PASS" ;;
   check-issuer-revoke-ack) check_issuer_revoke_ack_formal ;;
   falsify-issuer-revoke-ack) falsify_issuer_revoke_ack_formal ;;
@@ -1665,7 +1679,7 @@ case "${1:-check}" in
   falsify) check_runtime_counterexample; check_local_cancel_evidence_counterexamples; check_terminal_pointer_counterexample; check_partial_output_counterexample; check_foreign_result_recovery_counterexample; check_workspace_consumer_close_counterexamples; falsify_workspace_multi_agent_release; check_windows_pg_attempt_counterexample; falsify_runtime_resource_queue; falsify_pg_build_cache_eviction; falsify_runner_bound; falsify_workspace_cross_database_claim; falsify_issuer_spawn_formal; falsify_issuer_revoke_ack_formal; falsify_issuer_revoke_epoch_formal ;;
   falsify-historical) check_pg_cutover_counterexample; check_windows_first_pg_falsifiers ;;
   *)
-    echo "usage: scripts/tla-formal [bootstrap|verify|check|falsify|check-historical|falsify-historical|check-runner-bound|falsify-runner-bound|check-issuer-revoke-ack|falsify-issuer-revoke-ack|check-issuer-revoke-epoch|falsify-issuer-revoke-epoch]" >&2
+    echo "usage: scripts/tla-formal [bootstrap|resolve|ensure|verify|check|falsify|check-historical|falsify-historical|check-runner-bound|falsify-runner-bound|check-issuer-revoke-ack|falsify-issuer-revoke-ack|check-issuer-revoke-epoch|falsify-issuer-revoke-epoch]" >&2
     exit 2
     ;;
 esac

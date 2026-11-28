@@ -2989,3 +2989,37 @@ def test_owner_phase_finite_interval_grid_conserves_all_costs():
         assert row["runnerWaitSeconds"] == 1
     schema = json.loads((SCHEMA_DIR / "convergence-ci-observation-v1.schema.json").read_text())
     jsonschema.validate(ci_module.project(ci_module.normalize(snapshot)), schema)
+
+
+def test_runtime_tla_toolchain_selection_is_single_authority() -> None:
+    """Repository TLA consumers reuse Runtime's verified tool-path boundary."""
+    import tomllib
+
+    runtime = (ROOT / "services/runtime/scripts/tla-formal").read_text(encoding="utf-8")
+    assert "resolve) resolve_jar ;;" in runtime
+    assert "ensure) ensure_jar ;;" in runtime
+
+    root_tasks = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))["tasks"]
+    for task_name in (
+        "gateway:formal:verify",
+        "host:formal:attention-reentry",
+        "web:formal:effect-response",
+    ):
+        run = root_tasks[task_name]["run"]
+        assert run.count('services/runtime/scripts/tla-formal" resolve') == 1
+        assert "tla2tools-v1.7.4.jar" not in run
+        assert 'sha256sum -- "$jar"' not in run
+        assert "services/runtime/formal/toolchain.lock.json" not in run
+
+    for owner in ("packages/composition", "services/harness"):
+        manifest = tomllib.loads((ROOT / owner / "mise.toml").read_text(encoding="utf-8"))
+        run = manifest["tasks"]["formal:verify"]["run"]
+        assert run.count('scripts/tla-formal" ensure') == 1
+        assert "cacheRelativePath" not in run
+
+    # Composition legitimately fingerprints the Runtime lock as part of its
+    # SourceCut; that is evidence identity, not a second tool-selection path.
+    composition = tomllib.loads(
+        (ROOT / "packages/composition/mise.toml").read_text(encoding="utf-8")
+    )["tasks"]["formal:verify"]["run"]
+    assert '"$runtime_root/formal/toolchain.lock.json"' in composition

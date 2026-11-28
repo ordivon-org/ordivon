@@ -39,22 +39,7 @@ description = "Check all four LEGO 2.1 Owner boundary modes with pinned upstream
 run = """
 set -euo pipefail
 runtime_root="$(realpath ../../services/runtime)"
-cached_jar="$(python3 - "$runtime_root" <<'PY_RUNTIME_JAR'
-import json
-import pathlib
-import sys
-root = pathlib.Path(sys.argv[1])
-lock = json.loads((root / "formal/toolchain.lock.json").read_text(encoding="utf-8"))
-print((root / lock["cacheRelativePath"]).resolve())
-PY_RUNTIME_JAR
-)"
-if ! printenv ORDIVON_TLA_TOOLS_JAR >/dev/null; then
-  if [[ ! -f "$cached_jar" ]]; then
-    "$runtime_root/scripts/tla-formal" bootstrap
-  fi
-  export ORDIVON_TLA_TOOLS_JAR="$cached_jar"
-fi
-"$runtime_root/scripts/tla-formal" verify
+export ORDIVON_TLA_TOOLS_JAR="$("$runtime_root/scripts/tla-formal" ensure)"
 (
   cd formal
   # Local bounded temporal input fence. The Runtime formal tool verifies the
