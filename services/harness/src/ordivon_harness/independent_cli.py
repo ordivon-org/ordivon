@@ -76,7 +76,10 @@ def dispatch(args, *, clock_ms) -> dict[str, object]:
             }
     if command == "inspect":
         with store_factory() as store:
-            return _inspect(store, args.harness_run_id, schema=schema, clock_ms=clock_ms)
+            return _inspect(
+                store, args.harness_run_id, schema=schema, clock_ms=clock_ms,
+                allow_legacy_read=True,
+            )
     if command == "explain":
         with store_factory() as store:
             inspected = _inspect(store, args.harness_run_id, schema=schema, clock_ms=clock_ms)
@@ -281,13 +284,44 @@ def _inspect(
     *,
     schema: str,
     clock_ms,
+    allow_legacy_read: bool = False,
 ) -> dict[str, object]:
     projection = store.load_run(harness_run_id)
-    continuity = EventSourcedRunContinuity.open(
-        store,
-        harness_run_id,
-        clock_ms=clock_ms,
-    )
+    try:
+        continuity = EventSourcedRunContinuity.open(
+            store,
+            harness_run_id,
+            clock_ms=clock_ms,
+        )
+    except ValueError:
+        if not allow_legacy_read:
+            raise
+        raw = store.get_object(
+            projection.contract_object_digest, expected_kind="harness-run-contract"
+        )
+        if not isinstance(raw, dict) or raw.get("schemaVersion") is not True:
+            raise
+        legacy = store.inspect_legacy_run(harness_run_id)
+        if legacy is None:
+            raise
+        original_projection, original_contract = legacy
+        return {
+            "ok": True,
+            "kind": "ordivon.harness-legacy-run-inspection",
+            "authority": "independent-harness-run",
+            "backend": "postgresql",
+            "stateRoot": None,
+            "storageBackend": "postgresql",
+            "schema": schema,
+            "run": original_projection.to_dict(),
+            "contract": original_contract,
+            "historyCompatibility": "legacy-read-only",
+            "currentAdmissionValid": False,
+            "proofBoundary": (
+                "Exact historical Contract and Journal integrity only; "
+                "typed continuation, external effects and domain completion are not qualified"
+            ),
+        }
     recorder = IndependentRunRecorder(
         store,
         continuity.contract,
