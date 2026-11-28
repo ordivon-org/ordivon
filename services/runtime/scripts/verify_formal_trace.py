@@ -26,7 +26,7 @@ REQUIRED_SEAMS = {
 REQUIRED_TESTS = {
     "RuntimeDispatch.registryDispatchCAS",
     "RuntimeDispatch.ambiguityHeld",
-    "ExecutionProvider.guaranteeNegativeControl",
+    "ExecutionProvider.runnerPathNegativeControl",
     "RuntimeDispatch.terminalEvidence",
     "RuntimeDispatch.parallelAdmissionUnique",
 }
@@ -37,7 +37,7 @@ REQUIRED_OPT_IN_TESTS = {
     "RuntimeDispatch.ambiguityNoRedrive",
 }
 REQUIRED_SUPPORTING_CONTRACTS = {
-    "ExecutionProvider.assumeGuarantee",
+    "ExecutionProvider.runnerPathGuard",
 }
 REQUIRED_MODEL_BINDINGS = {
     "RuntimeDispatch.Dispatch",
@@ -56,10 +56,10 @@ NATIVE_PROFILE_FEATURES = {"legacy": "transactional-runtime", "pg": "postgres-re
 # Stable semantic test symbols, not file layout; changing the obligation
 # mapping requires explicit review of the independent verification contract.
 PG_WITNESS_CONTRACTS = {
-    'PG.providerContract': (
+    'PG.runnerPathGuard': (
         'always-on',
-        'provider_replacement_cannot_weaken_r1_guarantees',
-        frozenset({'ExecutionProvider.assumeGuarantee'}),
+        'native_formal_runner_path_guard_rejects_directory_and_missing_runner',
+        frozenset({'ExecutionProvider.runnerPathGuard'}),
     ),
     'PG.terminalContract': (
         'always-on',
@@ -294,12 +294,12 @@ NATIVE_CONTRACT_WITNESSES = {
         "dispatch_attempt",
         "runtime::engine::native_formal_runtime_dispatch_methods_contract",
     ),
-    "ExecutionProvider.assumeGuarantee": (
+    "ExecutionProvider.runnerPathGuard": (
         "crates/ordivon-runtime-core/src/runtime/execution_provider.rs",
-        "trait",
-        "ExecutionProviderSpi",
-        "realize",
-        "runtime::execution_provider::local_linux_adapter_tests::native_formal_execution_provider_spi_contract",
+        "impl",
+        "LocalLinuxProvider",
+        "snapshot",
+        "runtime::execution_provider::local_linux_adapter_tests::native_formal_runner_path_guard_rejects_directory_and_missing_runner",
     ),
 }
 

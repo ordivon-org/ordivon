@@ -320,7 +320,7 @@
       "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
-        "private static ExecutionProviderSpi contract commit fd3f166024587e9c943207fc8987cff436f43098",
+        "historical test-only SPI at fd3f166024587e9c943207fc8987cff436f43098 (retired); actual Runner path guard and provider snapshot are the current bounded witnesses",
         "SPI obligations: capabilities, validate, realize, observe, cancel, reconcile",
         "R1 guarantees fail closed on weakening of committed provider identity, physical Attempt ownership, terminal observation, process-tree cancellation, crash/restart reconciliation, or scoped evidence",
         "Linux and Windows provider probes satisfy the same obligations with distinct owner/observation/evidence types; no false OS-mechanism equivalence",

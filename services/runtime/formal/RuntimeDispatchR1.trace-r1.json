@@ -115,11 +115,11 @@
       ]
     },
     {
-      "id": "ExecutionProvider.guaranteeNegativeControl",
+      "id": "ExecutionProvider.runnerPathNegativeControl",
       "path": "crates/ordivon-runtime-core/src/runtime/execution_provider.rs",
-      "symbol": "provider_replacement_cannot_weaken_r1_guarantees",
+      "symbol": "native_formal_runner_path_guard_rejects_directory_and_missing_runner",
       "proves": [
-        "ExecutionProvider.assumeGuarantee"
+        "ExecutionProvider.runnerPathGuard"
       ]
     },
     {
@@ -176,13 +176,13 @@
   ],
   "supportingContracts": [
     {
-      "id": "ExecutionProvider.assumeGuarantee",
+      "id": "ExecutionProvider.runnerPathGuard",
       "path": "crates/ordivon-runtime-core/src/runtime/execution_provider.rs",
-      "ownerKind": "trait",
-      "owner": "ExecutionProviderSpi",
+      "ownerKind": "impl",
+      "owner": "LocalLinuxProvider",
       "symbolKind": "method",
-      "symbol": "realize",
-      "relation": "The provider SPI names the replaceable realization obligation; it is supporting contract evidence rather than a claim that every current production provider is dynamically dispatched through this trait."
+      "symbol": "snapshot",
+      "relation": "The historical provider snapshot calls the shared validate_runner filesystem guard, also called by PG admission, recovery and node describe. The native test exercises both the shared guard and this actual snapshot, not a claim of physical realization or all provider guarantees."
     }
   ],
   "conditionalAcceptanceTests": [
@@ -203,14 +203,14 @@
   ],
   "pgNativeWitnesses": [
     {
-      "id": "PG.providerContract",
+      "id": "PG.runnerPathGuard",
       "path": "crates/ordivon-runtime-core/src/runtime/execution_provider.rs",
-      "symbol": "provider_replacement_cannot_weaken_r1_guarantees",
+      "symbol": "native_formal_runner_path_guard_rejects_directory_and_missing_runner",
       "evidenceMode": "always-on",
       "modelRelations": [
-        "ExecutionProvider.assumeGuarantee"
+        "ExecutionProvider.runnerPathGuard"
       ],
-      "scope": "shared pure provider replacement contract"
+      "scope": "shared native Runner path admission guard and legacy snapshot; not physical launch or full provider refinement"
     },
     {
       "id": "PG.terminalContract",

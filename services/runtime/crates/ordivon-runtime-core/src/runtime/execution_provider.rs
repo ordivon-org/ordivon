@@ -17,45 +17,6 @@ use crate::universal::{sha256_file, UniversalExecutorConfig};
 use std::path::Path;
 use std::process::Output;
 
-/// Guarantees every R1 execution provider must preserve. A later provider replacement may add
-/// stronger internal mechanisms, but it may not weaken any of these obligations.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct ExecutionProviderGuarantees {
-    pub exact_committed_provider_identity: bool,
-    pub single_physical_attempt_owner: bool,
-    pub terminal_observation: bool,
-    pub process_tree_cancellation: bool,
-    pub crash_restart_reconciliation: bool,
-    pub scoped_evidence: bool,
-}
-
-impl ExecutionProviderGuarantees {
-    pub(crate) const REQUIRED_R1: Self = Self {
-        exact_committed_provider_identity: true,
-        single_physical_attempt_owner: true,
-        terminal_observation: true,
-        process_tree_cancellation: true,
-        crash_restart_reconciliation: true,
-        scoped_evidence: true,
-    };
-}
-
-/// Fail closed if a proposed provider adapter weakens an R1 guarantee. This validation is kept
-/// independent from OS mechanism so Local Linux and Windows Native can use different ownership
-/// and evidence types while satisfying the same Runtime-level contract.
-pub(crate) fn validate_provider_guarantees(
-    guarantees: ExecutionProviderGuarantees,
-) -> RuntimeResult<()> {
-    let required = ExecutionProviderGuarantees::REQUIRED_R1;
-    if guarantees != required {
-        return Err(RuntimeError::invalid(
-            "execution provider does not satisfy the complete R1 assume/guarantee contract",
-            "executionProvider",
-        ));
-    }
-    Ok(())
-}
-
 /// Current Local Linux provider descriptor/admission adapter.
 ///
 /// R10-A1 moves Linux capability, immutable provider commitment, and plan-target validation out of
@@ -169,7 +130,6 @@ impl<'a> LocalLinuxProvider<'a> {
                 "execution.executionTarget",
             ));
         }
-        validate_provider_guarantees(ExecutionProviderGuarantees::REQUIRED_R1)?;
         let _ = self.snapshot()?;
         Ok(())
     }
@@ -225,226 +185,6 @@ impl<'a> LocalLinuxProvider<'a> {
         self.ensure_linux_node()?;
         let (expected, observed) = observe_linux_process_owner(attempt)?;
         Ok(LocalLinuxBoundObservation { expected, observed })
-    }
-}
-
-/// Static, internal SPI for physical execution providers.
-///
-/// Associated owner/observation/evidence types are intentional: the SPI shares obligations, not
-/// Linux systemd or Windows Job Object implementation shape. R10/R11 will move current physical
-/// mechanisms behind this seam without changing public Tool schemas or adding dynamic discovery.
-pub(crate) trait ExecutionProviderSpi {
-    type Owner;
-    type Observation;
-    type Evidence;
-
-    fn contract(&self) -> ExecutionProviderContract;
-    fn guarantees(&self) -> ExecutionProviderGuarantees;
-    fn capabilities(&self) -> RuntimeResult<RuntimeExecutionTargetCapability>;
-    fn snapshot(&self) -> RuntimeResult<ExecutionProviderSnapshot>;
-    fn validate(&self, plan: &RuntimeExecutionPlan) -> RuntimeResult<()>;
-    fn realize(
-        &self,
-        plan: &RuntimeExecutionPlan,
-        attempt: &AttemptRecord,
-    ) -> RuntimeResult<Self::Owner>;
-    fn observe(&self, owner: &Self::Owner) -> RuntimeResult<Self::Observation>;
-    fn cancel(&self, owner: &Self::Owner) -> RuntimeResult<()>;
-    fn reconcile(
-        &self,
-        owner: &Self::Owner,
-        evidence: &Self::Evidence,
-    ) -> RuntimeResult<Self::Observation>;
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::runtime::{
-        ExecutionProfile, ExecutionTarget, WindowsExecutionContextRequest,
-        WindowsExecutionIdentity, WindowsPayloadPrivilege,
-    };
-
-    #[derive(Clone, Debug, Eq, PartialEq)]
-    struct LinuxOwner {
-        unit_name: String,
-    }
-
-    #[derive(Clone, Debug, Eq, PartialEq)]
-    struct WindowsOwner {
-        job_name: String,
-        launcher_pid: u32,
-    }
-
-    struct LinuxContractProbe;
-    struct WindowsContractProbe;
-
-    fn linux_capability() -> RuntimeExecutionTargetCapability {
-        RuntimeExecutionTargetCapability {
-            target: ExecutionTarget::LocalLinux,
-            configured: true,
-            available: true,
-            execution_profiles: vec![
-                ExecutionProfile::TrustedLocal,
-                ExecutionProfile::ContainedLocal,
-            ],
-            windows_authorities: Vec::new(),
-            windows_contexts: Vec::new(),
-            windows_immutable_input_authorities: Vec::new(),
-            windows_privileged_profiles: Vec::new(),
-            windows_maintenance_fence_configured: false,
-            structured_plan: true,
-            immutable_inputs: true,
-            host_dependency_commitments: true,
-            host_dependency_continuity_scope: Some(
-                "runtime_host_namespace_path_witness".to_string(),
-            ),
-            execution_provider: None,
-            availability_issue: None,
-        }
-    }
-
-    fn windows_capability() -> RuntimeExecutionTargetCapability {
-        RuntimeExecutionTargetCapability {
-            target: ExecutionTarget::WindowsNative,
-            configured: true,
-            available: true,
-            execution_profiles: vec![ExecutionProfile::TrustedLocal],
-            windows_authorities: Vec::new(),
-            windows_contexts: vec![WindowsExecutionContextRequest::new(
-                WindowsExecutionIdentity::Service,
-                WindowsPayloadPrivilege::Limited,
-            )],
-            windows_immutable_input_authorities: Vec::new(),
-            windows_privileged_profiles: Vec::new(),
-            windows_maintenance_fence_configured: false,
-            structured_plan: false,
-            immutable_inputs: true,
-            host_dependency_commitments: false,
-            host_dependency_continuity_scope: None,
-            execution_provider: None,
-            availability_issue: None,
-        }
-    }
-
-    impl ExecutionProviderSpi for LinuxContractProbe {
-        type Owner = LinuxOwner;
-        type Observation = &'static str;
-        type Evidence = &'static str;
-
-        fn contract(&self) -> ExecutionProviderContract {
-            ExecutionProviderContract::LocalLinuxRunnerV1
-        }
-        fn guarantees(&self) -> ExecutionProviderGuarantees {
-            ExecutionProviderGuarantees::REQUIRED_R1
-        }
-        fn capabilities(&self) -> RuntimeResult<RuntimeExecutionTargetCapability> {
-            Ok(linux_capability())
-        }
-        fn snapshot(&self) -> RuntimeResult<ExecutionProviderSnapshot> {
-            unreachable!()
-        }
-        fn validate(&self, _: &RuntimeExecutionPlan) -> RuntimeResult<()> {
-            unreachable!()
-        }
-        fn realize(
-            &self,
-            _: &RuntimeExecutionPlan,
-            _: &AttemptRecord,
-        ) -> RuntimeResult<Self::Owner> {
-            unreachable!()
-        }
-        fn observe(&self, _: &Self::Owner) -> RuntimeResult<Self::Observation> {
-            unreachable!()
-        }
-        fn cancel(&self, _: &Self::Owner) -> RuntimeResult<()> {
-            unreachable!()
-        }
-        fn reconcile(
-            &self,
-            _: &Self::Owner,
-            _: &Self::Evidence,
-        ) -> RuntimeResult<Self::Observation> {
-            unreachable!()
-        }
-    }
-
-    impl ExecutionProviderSpi for WindowsContractProbe {
-        type Owner = WindowsOwner;
-        type Observation = u32;
-        type Evidence = Vec<u8>;
-
-        fn contract(&self) -> ExecutionProviderContract {
-            ExecutionProviderContract::WindowsNativeLauncherV1
-        }
-        fn guarantees(&self) -> ExecutionProviderGuarantees {
-            ExecutionProviderGuarantees::REQUIRED_R1
-        }
-        fn capabilities(&self) -> RuntimeResult<RuntimeExecutionTargetCapability> {
-            Ok(windows_capability())
-        }
-        fn snapshot(&self) -> RuntimeResult<ExecutionProviderSnapshot> {
-            unreachable!()
-        }
-        fn validate(&self, _: &RuntimeExecutionPlan) -> RuntimeResult<()> {
-            unreachable!()
-        }
-        fn realize(
-            &self,
-            _: &RuntimeExecutionPlan,
-            _: &AttemptRecord,
-        ) -> RuntimeResult<Self::Owner> {
-            unreachable!()
-        }
-        fn observe(&self, _: &Self::Owner) -> RuntimeResult<Self::Observation> {
-            unreachable!()
-        }
-        fn cancel(&self, _: &Self::Owner) -> RuntimeResult<()> {
-            unreachable!()
-        }
-        fn reconcile(
-            &self,
-            _: &Self::Owner,
-            _: &Self::Evidence,
-        ) -> RuntimeResult<Self::Observation> {
-            unreachable!()
-        }
-    }
-
-    #[test]
-    fn linux_and_windows_share_obligations_without_sharing_owner_shape() {
-        let linux = LinuxContractProbe;
-        let windows = WindowsContractProbe;
-        assert_eq!(
-            linux.contract(),
-            ExecutionProviderContract::LocalLinuxRunnerV1
-        );
-        assert_eq!(
-            windows.contract(),
-            ExecutionProviderContract::WindowsNativeLauncherV1
-        );
-        validate_provider_guarantees(linux.guarantees()).unwrap();
-        validate_provider_guarantees(windows.guarantees()).unwrap();
-        assert_eq!(
-            linux.capabilities().unwrap().target,
-            ExecutionTarget::LocalLinux
-        );
-        assert_eq!(
-            windows.capabilities().unwrap().target,
-            ExecutionTarget::WindowsNative
-        );
-        let _: Option<LinuxOwner> = None;
-        let _: Option<WindowsOwner> = None;
-    }
-
-    #[test]
-    fn provider_replacement_cannot_weaken_r1_guarantees() {
-        let weakened = ExecutionProviderGuarantees {
-            crash_restart_reconciliation: false,
-            ..ExecutionProviderGuarantees::REQUIRED_R1
-        };
-        let error = validate_provider_guarantees(weakened).unwrap_err();
-        assert_eq!(error.field.as_deref(), Some("executionProvider"));
     }
 }
 
@@ -572,13 +312,27 @@ mod local_linux_adapter_tests {
     }
 
     #[test]
-    fn native_formal_execution_provider_spi_contract() {
-        // The generic body is typechecked against the SPI contract even
-        // before choosing any concrete Linux/Windows implementation.
-        #[allow(dead_code)]
-        fn check<T: ExecutionProviderSpi>() {
-            let _: fn(&T, &RuntimeExecutionPlan, &AttemptRecord) -> RuntimeResult<T::Owner> =
-                T::realize;
+    fn native_formal_runner_path_guard_rejects_directory_and_missing_runner() {
+        // PG admission/recovery/describe and the historical provider snapshot
+        // use the same actual filesystem guard. This is not an OS launch proof.
+        let directory = tempfile::tempdir().unwrap();
+        let missing = directory.path().join("missing-runner");
+        let real_runner = std::fs::canonicalize(std::env::current_exe().unwrap()).unwrap();
+        assert_eq!(validate_runner(&real_runner).unwrap(), real_runner);
+        for path in [directory.path(), missing.as_path()] {
+            assert!(validate_runner(path).is_err());
+            let config = executor(Some(path.to_str().unwrap()));
+            let provider = LocalLinuxProvider::new(RuntimeNodePlatform::Linux, &config);
+            assert!(provider.snapshot().is_err());
         }
+        let config = executor(None);
+        let provider = LocalLinuxProvider::new(RuntimeNodePlatform::Linux, &config);
+        assert_eq!(
+            provider
+                .validate_plan(&plan(ExecutionTarget::LocalLinux))
+                .unwrap_err()
+                .code,
+            RuntimeErrorCode::ToolUnavailable
+        );
     }
 }

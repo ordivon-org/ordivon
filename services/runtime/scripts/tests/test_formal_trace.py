@@ -100,10 +100,10 @@ class FormalTraceContractTests(unittest.TestCase):
         self.assertEqual(seam["owner"], "Runtime")
         self.assertEqual(seam["symbol"], "dispatch_attempt")
         supporting = next(
-            item for item in trace["supportingContracts"] if item["id"] == "ExecutionProvider.assumeGuarantee"
+            item for item in trace["supportingContracts"] if item["id"] == "ExecutionProvider.runnerPathGuard"
         )
-        self.assertEqual(supporting["owner"], "ExecutionProviderSpi")
-        self.assertEqual(supporting["symbol"], "realize")
+        self.assertEqual(supporting["owner"], "LocalLinuxProvider")
+        self.assertEqual(supporting["symbol"], "snapshot")
 
     def test_unknown_proving_target_fails_closed(self):
         trace, invariants = manifests()
@@ -721,7 +721,7 @@ class FormalTraceContractTests(unittest.TestCase):
         changed = {"services/runtime/crates/ordivon-runtime-core/src/runtime/execution_provider.rs"}
         result = self.module.project_proving_test_source_impact(trace, invariants, changed)
         statuses = {row["id"]: row["standing"] for row in result["standingByWitness"]}
-        self.assertEqual(statuses["ExecutionProvider.guaranteeNegativeControl"], "RECHECK_REQUIRED")
+        self.assertEqual(statuses["ExecutionProvider.runnerPathNegativeControl"], "RECHECK_REQUIRED")
         self.assertEqual(statuses["RuntimeDispatch.ambiguityHeld"], "UNKNOWN")
         self.assertEqual(result["unindexedRuntimeChanges"], [])
         self.assertIn("not proof PASS", result["nonClaims"][0])
@@ -1052,7 +1052,7 @@ class FormalTraceContractTests(unittest.TestCase):
         }
         result = self.module.project_proving_test_source_impact(trace, invariants, changed)
         statuses = {row["id"]: row["standing"] for row in result["standingByWitness"]}
-        self.assertEqual(statuses["ExecutionProvider.guaranteeNegativeControl"], "RECHECK_REQUIRED")
+        self.assertEqual(statuses["ExecutionProvider.runnerPathNegativeControl"], "RECHECK_REQUIRED")
         self.assertEqual(statuses["RuntimeDispatch.ambiguityHeld"], "UNKNOWN")
 
     def test_runtime_formal_source_impact_shared_toolchain_changes_unknown(self):
@@ -1082,7 +1082,7 @@ class FormalTraceContractTests(unittest.TestCase):
         }
         result = self.module.project_proving_test_source_impact(trace, invariants, changed)
         statuses = {row["id"]: row["standing"] for row in result["standingByWitness"]}
-        self.assertEqual(statuses["ExecutionProvider.guaranteeNegativeControl"], "RECHECK_REQUIRED")
+        self.assertEqual(statuses["ExecutionProvider.runnerPathNegativeControl"], "RECHECK_REQUIRED")
         self.assertEqual(statuses["RuntimeDispatch.ambiguityHeld"], "UNKNOWN")
 
     def test_runtime_formal_source_impact_unrelated_repository_change_only_local_hint(self):
@@ -1359,7 +1359,7 @@ class FormalTraceContractTests(unittest.TestCase):
         self.assertEqual(
             {x["symbol"] for x in selected["provingTests"]},
             {
-                "provider_replacement_cannot_weaken_r1_guarantees",
+                "native_formal_runner_path_guard_rejects_directory_and_missing_runner",
                 "terminal_evidence_requires_result_finish_matching_resolution_and_no_current_attempt",
                 "terminal_requires_corresponding_attempt_evidence_and_released_capacity",
                 "orphan_never_projects_as_released_capacity",
@@ -1411,14 +1411,14 @@ class FormalTraceContractTests(unittest.TestCase):
         trace, invariants = manifests()
         evidence = self.module.project_proving_test_source_readsets(trace, invariants, profile="pg")
         rows = {row["id"]: row["sourcePaths"] for row in evidence["items"]}
-        self.assertIn("services/runtime/mise.toml", rows["proof:runtime:PG.providerContract"])
+        self.assertIn("services/runtime/mise.toml", rows["proof:runtime:PG.runnerPathGuard"])
         for path in (
             "services/runtime/scripts/pg_disposable_physical.py",
             "services/runtime/scripts/tests/test_pg_physical_verification_contract.py",
             "services/runtime/scripts/tests/test_pg_disposable_physical.py",
         ):
             self.assertIn(path, rows["proof:runtime:PG.dispatchCAS"])
-            self.assertNotIn(path, rows["proof:runtime:PG.providerContract"])
+            self.assertNotIn(path, rows["proof:runtime:PG.runnerPathGuard"])
 
     def test_pg_profile_rejects_missing_or_relabelled_witness(self):
         trace, invariants = manifests()
