@@ -96,6 +96,12 @@ if [[ "${HARNESS_B_BOUND_PG_DOMAIN:-}" == 1 ]]; then
       -p ordivon-harness-loop-b-probe --test pg_provider_head -- --ignored --nocapture
   HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run --project services/harness --offline --locked python \
     services/harness/rust-migration/b-loop-probe/tests/pg_provider_v4_python_store.py verify-native
+  # Original public Run and owner-validated paused State: synthetic test data only.
+  export HARNESS_RUST_TEST_BUDGET_FIXTURE="$ROOT/budget.json"
+  (cd services/harness && HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run --offline --locked python \
+    -m rust-migration.b-loop-probe.tests.pg_resume_budget_python_store)
+  cargo test --manifest-path services/harness/Cargo.toml --locked --offline \
+    -p ordivon-harness-loop-b-probe --test pg_resume_budget -- --ignored --nocapture
 fi
 
 # Independent optional Writer semantic gate falsification, not production.
