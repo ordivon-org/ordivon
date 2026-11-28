@@ -11,7 +11,7 @@ import hmac
 import json
 import math
 import os
-import subprocess
+import secrets
 import uuid
 from pathlib import Path
 
@@ -19,6 +19,9 @@ from starlette.applications import Starlette
 from starlette.requests import ClientDisconnect, Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
+
+from .policy_evaluation import EvaluationUnavailable
+from .policy_evaluation import evaluate_policy as _opa_decision
 
 MAX_REQUEST_BYTES = 8192
 
@@ -91,44 +94,13 @@ async def _read_evaluation(request: Request) -> str:
     return encoded
 
 
-class EvaluationUnavailable(Exception):
-    pass
-
-
-def _opa_decision(payload: str, opa: str, policy: str, data: str) -> bool:
-    try:
-        result = subprocess.run(
-            [
-                opa,
-                "eval",
-                "--stdin-input",
-                "--format",
-                "raw",
-                "--data",
-                policy,
-                "--data",
-                data,
-                "data.ordivon.security.gateway_artifact.allow",
-            ],
-            input=payload,
-            encoding="utf-8",
-            text=True,
-            capture_output=True,
-            timeout=2.0,
-            check=True,
-        )
-    except (OSError, subprocess.SubprocessError) as exc:
-        raise EvaluationUnavailable("OPA decision unavailable") from exc
-    output = result.stdout.strip()
-    if output not in ("true", "false"):
-        raise EvaluationUnavailable("OPA returned a nonboolean result")
-    return output == "true"
-
-
 def make_app(*, token_path: str, policy: str, policy_data: str, opa: str) -> Starlette:
     for value in (token_path, policy, policy_data, opa):
         if not Path(value).is_absolute():
             raise ValueError("Security AuthZEN inputs must be absolute paths")
+
+    instance_id = str(uuid.uuid4())
+    commitment_key = secrets.token_bytes(32)
 
     async def health(_request: Request) -> JSONResponse:
         return JSONResponse({"status": "ok", "owner": "security", "policyEngine": "opa"})
@@ -140,7 +112,11 @@ def make_app(*, token_path: str, policy: str, policy_data: str, opa: str) -> Sta
             expected = Path(token_path).read_text(encoding="utf-8").strip()
         except OSError, UnicodeError:
             return JSONResponse({"error": "credential_unavailable"}, status_code=503)
-        if len(expected) < 32 or not supplied or not hmac.compare_digest(supplied, expected):
+        if (
+            len(expected) < 32
+            or not supplied
+            or not hmac.compare_digest(supplied.encode("utf-8"), expected.encode("utf-8"))
+        ):
             return JSONResponse({"error": "unauthorized"}, status_code=401)
         request_id = request.headers.get("x-request-id", "")
         try:
@@ -158,11 +134,23 @@ def make_app(*, token_path: str, policy: str, policy_data: str, opa: str) -> Sta
             return JSONResponse({"error": "invalid_evaluation"}, status_code=400)
         except ValueError, UnicodeDecodeError, RecursionError, ClientDisconnect:
             return JSONResponse({"error": "invalid_json"}, status_code=400)
+        standing_request = request.headers.getlist("x-ordivon-policy-standing")
+        if standing_request not in ([], ["v1"]):
+            return JSONResponse({"error": "invalid_standing_version"}, status_code=400)
         try:
-            permitted = await asyncio.to_thread(_opa_decision, payload, opa, policy, policy_data)
+            observation = await asyncio.to_thread(
+                _opa_decision, payload, opa, policy, policy_data, commitment_key
+            )
         except EvaluationUnavailable:
             return JSONResponse({"error": "decision_unavailable"}, status_code=503)
-        return JSONResponse({"decision": permitted}, headers={"X-Request-ID": request_id})
+        body: dict[str, object] = {"decision": observation.decision}
+        if standing_request:
+            body["context"] = {
+                "ordivonPolicyStanding": observation.standing(
+                    request_id=request_id, instance_id=instance_id
+                )
+            }
+        return JSONResponse(body, headers={"X-Request-ID": request_id, "Cache-Control": "no-store"})
 
     return Starlette(
         routes=[
