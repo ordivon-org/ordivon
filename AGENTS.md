@@ -98,6 +98,7 @@ handoff is required.
 ### Live local-tool discovery
 
 - For local executables, start at [Workstation inventory](platform/workstation/inventory/README.md); probe the **actual node and Runtime execution identity** on demand, not a dated machine snapshot or another user's PATH.
+- Before declaring a project tool or dependency unavailable, use the existing inventory probe with `--mise` from the actual owner's directory (or native `mise which`), then the owner's locked environment/provider and actual invocation. A PATH miss, system-Python import failure, offline-cache miss or wrong execution identity is not installation absence. Repair or use the existing qualified route before recording a concrete blocker; never bypass trust or install duplicate tooling blindly.
 - Classify the needed capability via [Capability Catalog](catalogs/capabilities/README.md), then read the selected Owner's README, closer AGENTS.md (if present), and relevant Skill; see [Agent first-run](docs/start/agent-first-run.md).
 - Resolve callable operations from live MCP tool definitions, Owner-native CLI help or `mise tasks ls`; do not reconstruct interfaces from prose. A trusted Skill, installed application, discovered command and authorized domain effect are distinct evidence.
 - Do not copy tool inventory into this file or create a second tool registry. Verify actual provider readback and the final consuming task.

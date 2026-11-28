@@ -15,12 +15,36 @@ import platform
 import re
 import shutil
 import socket
+import subprocess
 from datetime import UTC, datetime
+from pathlib import Path
 
 _SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$")
 
 
-def observe(names: list[str], *, path: str | None = None) -> dict:
+def _mise_observation(name: str, mise: str | None, cwd: Path, path: str) -> dict:
+    """Ask the existing owner toolchain resolver; never install or trust config."""
+    if mise is None:
+        return {"resolution": "resolver_unavailable", "executablePath": None}
+    try:
+        result = subprocess.run(
+            [mise, "which", name], cwd=cwd, capture_output=True,
+            text=True, timeout=5, check=False, stdin=subprocess.DEVNULL,
+            env=os.environ | {"PATH": path},
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return {"resolution": "resolver_error", "executablePath": None}
+    if result.returncode:
+        return {"resolution": "unresolved", "executablePath": None,
+                "exitCode": result.returncode}
+    selected = Path(result.stdout.strip())
+    if not selected.is_absolute() or not selected.is_file() or not os.access(selected, os.X_OK):
+        return {"resolution": "unverified_path", "executablePath": None}
+    return {"resolution": "resolved", "executablePath": str(selected)}
+
+
+def observe(names: list[str], *, path: str | None = None,
+            mise_scope: bool = False) -> dict:
     """Return a bounded current-process command lookup observation."""
     if not names or len(names) > 128:
         raise ValueError("provide 1..128 executable names")
@@ -29,17 +53,22 @@ def observe(names: list[str], *, path: str | None = None) -> dict:
             raise ValueError(f"invalid executable name: {name!r}")
 
     effective_path = os.environ.get("PATH", "") if path is None else path
+    if mise_scope and len(names) > 16:
+        raise ValueError("provide at most 16 names for scoped mise resolution")
+    cwd = Path.cwd()
+    mise = shutil.which("mise", path=effective_path) if mise_scope else None
     observations = []
     for name in names:
         found = shutil.which(name, path=effective_path)
-        observations.append(
-            {
-                "name": name,
-                "resolution": "on_path" if found else "not_on_path",
-                "executablePath": os.path.abspath(found) if found else None,
-            }
-        )
-    return {
+        row = {
+            "name": name,
+            "resolution": "on_path" if found else "not_on_path",
+            "executablePath": os.path.abspath(found) if found else None,
+        }
+        if mise_scope:
+            row["mise"] = _mise_observation(name, mise, cwd, effective_path)
+        observations.append(row)
+    report = {
         "kind": "ordivon.workstation.executable-path-observation",
         "schemaVersion": 1,
         "observedAt": datetime.now(UTC).isoformat(),
@@ -50,14 +79,23 @@ def observe(names: list[str], *, path: str | None = None) -> dict:
         "verificationBoundary": "PATH_resolution_only_not_installed_or_authorized_or_executable_success",
         "commands": observations,
     }
+    if mise_scope:
+        report["miseScope"] = {
+            "cwd": str(cwd),
+            "resolverPath": mise,
+            "verificationBoundary": "mise_which_resolution_only_not_installation_or_execution_success",
+        }
+    return report
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("names", nargs="+", help="simple executable names; no shell expressions")
+    parser.add_argument("--mise", action="store_true",
+                        help="also resolve via mise which in the current project directory; no install")
     args = parser.parse_args()
     try:
-        result = observe(args.names)
+        result = observe(args.names, mise_scope=args.mise)
     except ValueError as exc:
         parser.error(str(exc))
     print(json.dumps(result, sort_keys=True, ensure_ascii=False))

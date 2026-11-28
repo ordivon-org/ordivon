@@ -85,3 +85,40 @@ def test_windows_native_probe_reports_identity_and_rejects_command_expression() 
         timeout=15,
     )
     assert bad.returncode != 0
+
+
+def test_scoped_mise_recovers_path_miss_without_changing_path_observation(tmp_path) -> None:
+    from subprocess import CompletedProcess
+
+    binary = tmp_path / "pnpm"
+    binary.write_text("fixture")
+    binary.chmod(0o755)
+    with patch.object(probe.shutil, "which", side_effect=lambda name, path: (
+        "/usr/bin/mise" if name == "mise" else None
+    )), patch.object(probe.subprocess, "run", return_value=CompletedProcess(
+        [], 0, str(binary) + "\n", ""
+    )) as run:
+        result = probe.observe(["pnpm"], path="service", mise_scope=True)
+    row = result["commands"][0]
+    assert row["resolution"] == "not_on_path"
+    assert row["executablePath"] is None
+    assert row["mise"] == {"resolution": "resolved", "executablePath": str(binary)}
+    assert run.call_args.args[0] == ["/usr/bin/mise", "which", "pnpm"]
+    assert run.call_args.kwargs["cwd"] == Path.cwd()
+    assert run.call_args.kwargs["env"]["PATH"] == "service"
+    assert result["miseScope"]["verificationBoundary"].startswith("mise_which_resolution_only")
+
+
+def test_scoped_mise_failure_is_not_a_missing_installation_verdict() -> None:
+    from subprocess import CompletedProcess, TimeoutExpired
+
+    with patch.object(probe.shutil, "which", return_value=None):
+        result = probe.observe(["z3"], mise_scope=True)
+    assert result["commands"][0]["mise"]["resolution"] == "resolver_unavailable"
+    with patch.object(probe.shutil, "which", return_value="/usr/bin/mise"):
+        with patch.object(probe.subprocess, "run", return_value=CompletedProcess([], 1, "", "untrusted")):
+            assert probe.observe(["z3"], mise_scope=True)["commands"][0]["mise"]["resolution"] == "unresolved"
+        with patch.object(probe.subprocess, "run", side_effect=TimeoutExpired("mise", 5)):
+            assert probe.observe(["z3"], mise_scope=True)["commands"][0]["mise"]["resolution"] == "resolver_error"
+    with pytest.raises(ValueError):
+        probe.observe(["z3"] * 17, mise_scope=True)
