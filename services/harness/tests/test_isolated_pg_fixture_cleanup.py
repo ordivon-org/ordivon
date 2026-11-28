@@ -1,9 +1,11 @@
 """Exercise the actual isolated PG shell entrypoint without a database or build."""
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -35,6 +37,10 @@ elif name == "pg_ctl":
     marker = root / "running"
     if action == "start":
         marker.touch()
+        if mode == "start_signal":
+            import time
+            (root / "start_ready").touch()
+            time.sleep(30)
         if mode == "start_failure":
             sys.exit(17)
     elif action == "status":
@@ -62,7 +68,7 @@ else:
 
 @unittest.skipUnless(os.name == "posix" and shutil.which("bash"), "requires Bash")
 class IsolatedPGFixtureCleanupTests(unittest.TestCase):
-    def run_fixture(self, mode):
+    def run_fixture(self, mode, interrupt=None):
         with tempfile.TemporaryDirectory() as scratch:
             scratch = Path(scratch)
             root = scratch / "owned-cluster"
@@ -75,8 +81,25 @@ class IsolatedPGFixtureCleanupTests(unittest.TestCase):
                 command.chmod(0o700)
             env = dict(os.environ, PATH=f"{bin_dir}{os.pathsep}{os.environ['PATH']}",
                        FIXTURE_ROOT=str(root), FIXTURE_TRACE=str(trace), FIXTURE_MODE=mode)
-            result = subprocess.run(["bash", str(SCRIPT)], env=env, capture_output=True, text=True, timeout=15)
-            return result.returncode, root.exists(), trace.read_text().splitlines() if trace.exists() else [], result.stderr
+            if interrupt is None:
+                result = subprocess.run(["bash", str(SCRIPT)], env=env, capture_output=True, text=True, timeout=15)
+                code, stderr = result.returncode, result.stderr
+            else:
+                with subprocess.Popen(["bash", str(SCRIPT)], env=env, stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE, text=True, start_new_session=True) as proc:
+                    try:
+                        deadline = time.monotonic() + 5
+                        while not (root / "start_ready").exists() and proc.poll() is None and time.monotonic() < deadline:
+                            time.sleep(0.02)
+                        self.assertTrue((root / "start_ready").exists(), "fixture did not start")
+                        os.killpg(proc.pid, interrupt)
+                        _, stderr = proc.communicate(timeout=8)
+                        code = proc.returncode
+                    finally:
+                        if proc.poll() is None:
+                            os.killpg(proc.pid, signal.SIGKILL)
+                            proc.communicate(timeout=5)
+            return code, root.exists(), trace.read_text().splitlines() if trace.exists() else [], stderr
 
     def test_confirmed_stop_reclaims_owned_fixture(self):
         code, retained, trace, _ = self.run_fixture("normal")
@@ -112,3 +135,12 @@ class IsolatedPGFixtureCleanupTests(unittest.TestCase):
                 self.assertNotEqual(code, 0)
                 self.assertFalse(retained)
                 self.assertEqual(trace, [])
+
+
+    def test_interrupted_start_still_stops_owned_process(self):
+        for interrupt in (signal.SIGTERM, signal.SIGINT):
+            with self.subTest(interrupt=interrupt):
+                code, retained, trace, _ = self.run_fixture("start_signal", interrupt)
+                self.assertIn(code, (-interrupt, 128 + interrupt))
+                self.assertFalse(retained)
+                self.assertEqual(trace, ["start", "status", "stop", "status"])
