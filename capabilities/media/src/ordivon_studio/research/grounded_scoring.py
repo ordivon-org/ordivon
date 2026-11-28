@@ -203,12 +203,23 @@ def score_provider_receipt(bundle: Mapping[str, Any], receipt: Mapping[str, Any]
             grounding_rates = []
             for record in records:
                 events = record["result"].get("events", [])
-                mapped = {
-                    str(item.get("eventId")): item for item in events if isinstance(item, dict)
-                }
+                mapped = {}
+                duplicates = set()
+                for item in events:
+                    if isinstance(item, dict):
+                        event_id = item.get("eventId")
+                        if not isinstance(event_id, str):
+                            continue
+                        if event_id in mapped:
+                            duplicates.add(event_id)
+                        mapped[event_id] = item
+                # Missing, malformed or ambiguous observations are not explicit absence.
                 accuracies.append(
                     sum(
-                        bool(mapped.get(event, {}).get("present")) == present
+                        event not in duplicates
+                        and event in mapped
+                        and type(mapped[event].get("present")) is bool
+                        and mapped[event]["present"] is present
                         for event, present in expected.items()
                     )
                     / len(expected)

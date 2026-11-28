@@ -33,6 +33,22 @@ def _finite_float(value: str) -> float:
     return number
 
 
+def _validate_unicode_scalars(value: Any) -> None:
+    """Reject strings that cannot round-trip through the native UTF-8 boundary."""
+    if isinstance(value, str):
+        try:
+            value.encode("utf-8")
+        except UnicodeEncodeError as exc:
+            raise ValueError("JSON string contains an unpaired Unicode surrogate") from exc
+    elif isinstance(value, list):
+        for item in value:
+            _validate_unicode_scalars(item)
+    elif isinstance(value, dict):
+        for key, item in value.items():
+            _validate_unicode_scalars(key)
+            _validate_unicode_scalars(item)
+
+
 def decode_object(raw: bytes) -> dict[str, Any]:
     value = json.loads(
         raw.decode("utf-8"),
@@ -40,6 +56,7 @@ def decode_object(raw: bytes) -> dict[str, Any]:
         parse_constant=_reject_constant,
         parse_float=_finite_float,
     )
+    _validate_unicode_scalars(value)
     if not isinstance(value, dict):
         raise TypeError("expected one JSON object")
     return value

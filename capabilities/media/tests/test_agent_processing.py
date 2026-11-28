@@ -91,6 +91,29 @@ class ProcessingDiscoveryTests(unittest.TestCase):
                 item["name"] for item in surface_projection()["tools"]
             ])
 
+    def test_processing_profiles_reject_unpaired_unicode_surrogates(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profiles = root / "processing/profiles"
+            profiles.mkdir(parents=True)
+            copy_decoder(root)
+            profile = profiles / "unicode.json"
+
+            profile.write_bytes(
+                b'{"schemaVersion":1,"kind":"custom-experimental","id":"good\\uD83D\\uDE00"}'
+            )
+            self.assertEqual(processing_profiles(root)["profiles"][0]["id"], "good😀")
+
+            for escaped in (b"\\uDEAD", b"\\uD83D"):
+                with self.subTest(escaped=escaped):
+                    profile.write_bytes(
+                        b'{"schemaVersion":1,"kind":"custom-experimental","id":"bad'
+                        + escaped
+                        + b'"}'
+                    )
+                    with self.assertRaisesRegex(ValueError, "unpaired Unicode surrogate"):
+                        processing_profiles(root)
+
     def test_unknown_profiles_are_visible_without_fabricating_adapters(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

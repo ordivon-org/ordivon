@@ -152,17 +152,17 @@ fn native_pg_terminal_verified_readback_does_not_reauthorize_historical_effects(
                 attempt_id text PRIMARY KEY, job_id text,
                 attempt_number bigint, state text, termination_intent text,
                 launch_token_digest text, bundle_path text, unit_name text,
-                created_at_ms bigint, row_version bigint, bundle_digest text);
+                created_at_ms bigint, row_version bigint, bundle_digest text, exit_code integer);
              INSERT INTO jobs VALUES
                 ('terminal-a',NULL,'succeeded',8,'{}','op-a'),
                 ('accepted-b','attempt-b',NULL,2,'{}','op-b');
              INSERT INTO attempts VALUES
                 ('terminal-verified','terminal-a',4,'succeeded','natural',
-                    'launch-a','/tmp/a','unit-a',10,7,NULL),
+                    'launch-a','/tmp/a','unit-a',10,7,NULL,0),
                 ('later-unverified','terminal-a',5,'running','natural',
-                    'launch-future','/tmp/future','unit-future',11,0,NULL),
+                    'launch-future','/tmp/future','unit-future',11,0,NULL,19),
                 ('attempt-b','accepted-b',1,'accepted','natural',
-                    'launch-b','/tmp/b','unit-b',12,0,NULL);",
+                    'launch-b','/tmp/b','unit-b',12,0,NULL,NULL);",
     )
     .unwrap();
 
@@ -202,6 +202,7 @@ fn native_pg_terminal_verified_readback_does_not_reauthorize_historical_effects(
         .unwrap();
     assert_eq!(row.get::<_, String>(0), "terminal-verified");
     assert_eq!(row.get::<_, i64>(11), 4);
+    assert_eq!(row.get::<_, Option<i32>>(12), Some(0));
     assert!(
         db.query_opt(RECOVERY_CURRENT_ATTEMPT_SQL, &[&"terminal-a"])
             .unwrap()
@@ -278,6 +279,7 @@ fn native_pg_terminal_verified_readback_does_not_reauthorize_historical_effects(
         )
         .unwrap();
     assert_eq!(current.get::<_, String>(0), "attempt-b");
+    assert_eq!(current.get::<_, Option<i32>>(12), None);
     db.execute(
         "UPDATE jobs SET current_attempt_id=NULL WHERE job_id='accepted-b'",
         &[],
