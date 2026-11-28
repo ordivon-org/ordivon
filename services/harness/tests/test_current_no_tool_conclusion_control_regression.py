@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-import tempfile
 import unittest
 
 from anc_canonical import canonical_digest
@@ -20,7 +18,8 @@ from ordivon_harness.ordivon.agent_bridge import (
     HarnessAgentBridge,
 )
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from ordivon_harness.postgres_store import PostgresHarnessStore
+from tests.pg_test_support import isolated_harness_schema
 
 DIGEST_A = "sha256:" + "a" * 64
 DIGEST_B = "sha256:" + "b" * 64
@@ -105,9 +104,10 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             max_tool_corrections=0,
             max_conclusion_corrections=1,
         )
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            store = SQLiteHarnessStore.initialize(root)
+        with (
+            isolated_harness_schema() as (dsn, schema),
+            PostgresHarnessStore(dsn, schema=schema) as store,
+        ):
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(store, run_contract)
             bridge = HarnessAgentBridge(run_contract, continuity)
@@ -134,7 +134,6 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
                 and "conclusion" in message["content"].lower()
             ]
             self.assertTrue(correction_messages)
-            store.close()
 
     def test_invalid_json_conclusion_control_uses_conclusion_budget(self) -> None:
         run_contract = contract()
@@ -169,9 +168,10 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             max_tool_corrections=0,
             max_conclusion_corrections=1,
         )
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            store = SQLiteHarnessStore.initialize(root)
+        with (
+            isolated_harness_schema() as (dsn, schema),
+            PostgresHarnessStore(dsn, schema=schema) as store,
+        ):
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(store, run_contract)
             result = OrdivonAgentLoop(
@@ -189,7 +189,6 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             self.assertEqual(result.tool_calls, 0)
             self.assertEqual(result.usage["toolCorrections"], 0)
             self.assertEqual(result.usage["conclusionCorrections"], 1)
-            store.close()
 
     def test_mixed_conclusion_control_and_runtime_tool_is_not_silently_dropped(self) -> None:
         run_contract = contract()
@@ -233,9 +232,10 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             max_tool_corrections=0,
             max_conclusion_corrections=1,
         )
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            store = SQLiteHarnessStore.initialize(root)
+        with (
+            isolated_harness_schema() as (dsn, schema),
+            PostgresHarnessStore(dsn, schema=schema) as store,
+        ):
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(store, run_contract)
             result = OrdivonAgentLoop(
@@ -252,7 +252,6 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             self.assertEqual(result.model_calls, 1)
             self.assertEqual(result.usage["conclusionCorrections"], 0)
             self.assertEqual(len(adapter.requests), 1)
-            store.close()
 
     def test_unavailable_provider_tool_on_no_tool_surface_is_correction_not_runtime_history(self) -> None:
         run_contract = contract()
@@ -287,9 +286,10 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             max_tool_corrections=1,
             max_conclusion_corrections=1,
         )
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            store = SQLiteHarnessStore.initialize(root)
+        with (
+            isolated_harness_schema() as (dsn, schema),
+            PostgresHarnessStore(dsn, schema=schema) as store,
+        ):
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(store, run_contract)
             result = OrdivonAgentLoop(
@@ -311,7 +311,6 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             self.assertEqual(adapter.requests[0].tools, ())
             self.assertEqual(adapter.requests[1].tools, ())
             self.assertFalse(any(message.get("role") == "tool" for message in result.messages))
-            store.close()
 
     def test_multiple_unavailable_provider_actions_are_one_no_tool_correction(self) -> None:
         run_contract = contract()
@@ -355,9 +354,10 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             max_tool_corrections=1,
             max_conclusion_corrections=1,
         )
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            store = SQLiteHarnessStore.initialize(root)
+        with (
+            isolated_harness_schema() as (dsn, schema),
+            PostgresHarnessStore(dsn, schema=schema) as store,
+        ):
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(store, run_contract)
             result = OrdivonAgentLoop(
@@ -375,7 +375,6 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             self.assertEqual(result.tool_calls, 0)
             self.assertEqual(result.usage["toolCorrections"], 1)
             self.assertFalse(any(message.get("role") == "tool" for message in result.messages))
-            store.close()
 
     def test_repeated_unavailable_provider_turns_are_bounded_by_tool_corrections(self) -> None:
         run_contract = contract()
@@ -418,9 +417,10 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             max_tool_corrections=1,
             max_conclusion_corrections=1,
         )
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            store = SQLiteHarnessStore.initialize(root)
+        with (
+            isolated_harness_schema() as (dsn, schema),
+            PostgresHarnessStore(dsn, schema=schema) as store,
+        ):
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(store, run_contract)
             result = OrdivonAgentLoop(
@@ -438,7 +438,6 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             self.assertEqual(result.tool_calls, 0)
             self.assertEqual(result.usage["toolCorrections"], 1)
             self.assertFalse(any(message.get("role") == "tool" for message in result.messages))
-            store.close()
 
     def test_repeated_malformed_conclusion_is_bounded_by_conclusion_budget(self) -> None:
         run_contract = contract()
@@ -474,9 +473,10 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             max_tool_corrections=0,
             max_conclusion_corrections=1,
         )
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            store = SQLiteHarnessStore.initialize(root)
+        with (
+            isolated_harness_schema() as (dsn, schema),
+            PostgresHarnessStore(dsn, schema=schema) as store,
+        ):
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(store, run_contract)
             result = OrdivonAgentLoop(
@@ -495,7 +495,6 @@ class P6NoToolConclusionControlTests(unittest.TestCase):
             self.assertEqual(result.usage["conclusionCorrections"], 1)
             self.assertEqual(result.usage["toolCorrections"], 0)
             self.assertEqual(len(adapter.requests), 2)
-            store.close()
 
 
 if __name__ == "__main__":
