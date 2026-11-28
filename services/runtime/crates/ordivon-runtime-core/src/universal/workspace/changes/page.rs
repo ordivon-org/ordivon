@@ -4,38 +4,19 @@ use super::{
     WorkspaceChangeEntry, WorkspaceChangeKind, WorkspaceChangePageRequest,
 };
 use super::{Digest, Sha256};
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-struct ChangeOrderKey {
-    path: String,
-    kind: WorkspaceChangeKind,
-}
-
-impl ChangeOrderKey {
-    fn from_entry(entry: &WorkspaceChangeEntry) -> Self {
-        Self {
-            path: entry.path.clone(),
-            kind: entry.kind,
-        }
-    }
-
-    fn from_cursor(cursor: &WorkspaceChangeCursor) -> Self {
-        Self {
-            path: cursor.after_path.clone(),
-            kind: cursor.after_kind,
-        }
-    }
+fn entry_order_key(entry: &WorkspaceChangeEntry) -> (&str, WorkspaceChangeKind) {
+    (&entry.path, entry.kind)
 }
 
 #[derive(Debug)]
 struct ChangeCandidate {
-    order_key: ChangeOrderKey,
     encoded: Vec<u8>,
     entry: WorkspaceChangeEntry,
 }
 
 impl PartialEq for ChangeCandidate {
     fn eq(&self, other: &Self) -> bool {
-        self.order_key == other.order_key && self.encoded == other.encoded
+        entry_order_key(&self.entry) == entry_order_key(&other.entry) && self.encoded == other.encoded
     }
 }
 
@@ -49,8 +30,8 @@ impl PartialOrd for ChangeCandidate {
 
 impl Ord for ChangeCandidate {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.order_key
-            .cmp(&other.order_key)
+        entry_order_key(&self.entry)
+            .cmp(&entry_order_key(&other.entry))
             .then_with(|| self.encoded.cmp(&other.encoded))
     }
 }
@@ -89,20 +70,23 @@ impl ChangeSetAccumulator {
 }
 
 pub(super) struct ChangePageCollector {
-    after_key: Option<ChangeOrderKey>,
+    after_key: Option<WorkspaceChangeEntry>,
     after_key_seen: bool,
     limit: usize,
     max_bytes: u64,
     candidates: BinaryHeap<ChangeCandidate>,
     candidate_bytes: u64,
     eligible_count: u64,
-    smallest_oversized_key: Option<ChangeOrderKey>,
+    smallest_oversized_key: Option<WorkspaceChangeEntry>,
     accumulator: ChangeSetAccumulator,
 }
 
 impl ChangePageCollector {
     pub(super) fn new(request: &WorkspaceChangePageRequest) -> Result<Self, UniversalExecError> {
-        let after_key = request.cursor.as_ref().map(ChangeOrderKey::from_cursor);
+        let after_key = request.cursor.as_ref().map(|cursor| WorkspaceChangeEntry {
+            path: cursor.after_path.clone(),
+            kind: cursor.after_kind,
+        });
         Ok(Self {
             after_key_seen: after_key.is_none(),
             after_key,
@@ -129,14 +113,14 @@ impl ChangePageCollector {
             )
         })?;
         self.accumulator.observe(&encoded);
-        let order_key = ChangeOrderKey::from_entry(&entry);
-        if self.after_key.as_ref() == Some(&order_key) {
+        let order_key = entry_order_key(&entry);
+        if self.after_key.as_ref().map(entry_order_key) == Some(order_key) {
             self.after_key_seen = true;
         }
         if self
             .after_key
             .as_ref()
-            .is_some_and(|after| &order_key <= after)
+            .is_some_and(|after| order_key <= entry_order_key(after))
         {
             return Ok(());
         }
@@ -145,18 +129,14 @@ impl ChangePageCollector {
             if self
                 .smallest_oversized_key
                 .as_ref()
-                .is_none_or(|current| &order_key < current)
+                .is_none_or(|current| order_key < entry_order_key(current))
             {
-                self.smallest_oversized_key = Some(order_key);
+                self.smallest_oversized_key = Some(entry);
             }
             return Ok(());
         }
         self.candidate_bytes = self.candidate_bytes.saturating_add(encoded.len() as u64);
-        self.candidates.push(ChangeCandidate {
-            order_key,
-            encoded,
-            entry,
-        });
+        self.candidates.push(ChangeCandidate { encoded, entry });
         let memory_budget = self.max_bytes.saturating_mul(2);
         while self.candidates.len() > self.limit.saturating_add(1)
             || (self.candidate_bytes > memory_budget && self.candidates.len() > 1)
@@ -199,11 +179,10 @@ impl ChangePageCollector {
         let oversized_boundary = self.smallest_oversized_key;
         let mut entries = Vec::with_capacity(self.limit);
         let mut entry_bytes = 0_u64;
-        let mut last_key = None;
         for candidate in candidates {
             if oversized_boundary
                 .as_ref()
-                .is_some_and(|boundary| &candidate.order_key > boundary)
+                .is_some_and(|boundary| entry_order_key(&candidate.entry) > entry_order_key(boundary))
             {
                 break;
             }
@@ -212,7 +191,6 @@ impl ChangePageCollector {
                 break;
             }
             entry_bytes = entry_bytes.saturating_add(cost);
-            last_key = Some(candidate.order_key);
             entries.push(candidate.entry);
         }
         if entries.is_empty() && self.eligible_count > 0 {
@@ -228,7 +206,7 @@ impl ChangePageCollector {
         let next_cursor = if complete {
             None
         } else {
-            let last_key = last_key.ok_or_else(|| {
+            let last_entry = entries.last().ok_or_else(|| {
                 UniversalExecError::new(
                     UniversalExecErrorCode::ToolFailed,
                     "change page could not establish a continuation key",
@@ -238,8 +216,8 @@ impl ChangePageCollector {
             })?;
             Some(WorkspaceChangeCursor {
                 change_set_digest: change_set_digest.clone(),
-                after_path: last_key.path,
-                after_kind: last_key.kind,
+                after_path: last_entry.path.clone(),
+                after_kind: last_entry.kind,
             })
         };
         Ok(WorkspaceChangePageSelection {
