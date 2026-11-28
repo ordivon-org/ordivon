@@ -78,7 +78,7 @@ Progress matters too: a trace of more model turns is not progress. When there is
 | PG5 | Run candidate completion is not domain acceptance | successful Runtime Job or final model text becomes task accepted | independent domain/consumer evaluator (T5) |
 | PG6 | Same checks reject weak-Agent failure paths and still allow good changes | reject-all gate achieves perfect interception but zero useful output | adversarial holdout trajectories and outcome comparison (T6) |
 
-PG1–PG6 are desired obligations, not currently all proven. Independent proof of `PgRunSourceAuthority` must not be inferred from docs, even if the complete eleven-coordinate declaration exists.
+PG1–PG6 are desired obligations, not currently all proven. Independent proof of `PgRunSourceAuthority` must not be inferred from docs, even if the design is documented.
 
 ## 4. Implementation tickets: tracer-bullet DAG
 
