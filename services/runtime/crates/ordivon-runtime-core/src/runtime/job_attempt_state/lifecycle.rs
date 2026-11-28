@@ -17,15 +17,7 @@ impl AttemptLifecycleContract {
     }
 
     pub(crate) fn is_terminal(state: AttemptState) -> bool {
-        matches!(
-            state,
-            AttemptState::Succeeded
-                | AttemptState::Failed
-                | AttemptState::TimedOut
-                | AttemptState::Cancelled
-                | AttemptState::Lost
-                | AttemptState::Orphaned
-        )
+        Self::resolution(state).is_some()
     }
 
     pub(crate) fn can_transition(state: AttemptState, next: AttemptState) -> bool {

@@ -160,6 +160,7 @@ fn terminal_resolution_is_total_only_for_terminal_attempt_states() {
         (AttemptState::Orphaned, JobResolution::Orphaned),
     ];
     for (state, resolution) in mappings {
+        assert!(AttemptLifecycleContract::is_terminal(state));
         assert_eq!(
             AttemptLifecycleContract::resolution(state),
             Some(resolution)
@@ -176,6 +177,7 @@ fn terminal_resolution_is_total_only_for_terminal_attempt_states() {
         AttemptState::Stopping,
         AttemptState::Recovering,
     ] {
+        assert!(!AttemptLifecycleContract::is_terminal(state));
         assert_eq!(AttemptLifecycleContract::resolution(state), None);
         let error = AttemptLifecycleContract::require_terminal_resolution(state).unwrap_err();
         assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
