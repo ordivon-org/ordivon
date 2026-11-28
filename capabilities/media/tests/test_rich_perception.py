@@ -104,6 +104,18 @@ class RichPerceptionTest(unittest.TestCase):
         self.assertTrue(report["strictSeparation"])
         self.assertGreater(report["separationRatio"], 10)
 
+    def test_media_intervention_report_requires_both_experiment_arms(self) -> None:
+        baseline = {"technical": {"durationSeconds": 2.0}, "structuralVector": [0.0, 0.0, 0.0]}
+        perturbation = {"technical": {"durationSeconds": 2.0}, "structuralVector": [1.0, -1.0, 1.0]}
+        for controls, perturbations in (
+            ([], [("change", perturbation)]),
+            ([("same", baseline)], []),
+            ([], []),
+        ):
+            with self.subTest(controls=controls, perturbations=perturbations):
+                with self.assertRaisesRegex(ValueError, "control and perturbation"):
+                    media_intervention_report(baseline=baseline, controls=controls, perturbations=perturbations)
+
     def test_cue_and_crossmodal_metrics_are_explicitly_structural(self) -> None:
         audio = {
             "technical": {"durationSeconds": 4.0},
