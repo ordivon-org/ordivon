@@ -19,7 +19,7 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-# One native Cargo selection for the disposable and explicit physical lanes.
+# One native Cargo build profile for every PG lane. Selection uses native inventory.
 CARGO_ARGS = (
     "test",
     "--locked",
@@ -29,23 +29,18 @@ CARGO_ARGS = (
     "--no-default-features",
     "--features",
     "postgres-registry-admission",
-    "pg18_",
-    "--",
-    "--ignored",
-    "--nocapture",
-    "--test-threads=1",
 )
 # Independent Windows PG witness consumer; same disposable PG18 fixture, not
 # a Windows production Writer or a second persistent test authority.
 WINDOWS_PG_WITNESS_CASE = "windows_pg_bundle_consumer_reads_real_admission_without_claiming_process"
 STAGE_CASE = "historical_pg_stage_is_not_an_admission_authority"
 
+# Distinct native capability lanes, not an allowlist of PG test names.
+# Every other ignored test in the compiled PG-only Core is part of the
+# disposable PG portfolio, even when its module or business name changes.
+SYSTEMD_ONLY_CASE = "native_systemctl_missing_unit_is_explicit_negative_evidence"
+SEPARATE_LANES = frozenset({STAGE_CASE, WINDOWS_PG_WITNESS_CASE, SYSTEMD_ONLY_CASE})
 
-def single_case_args(case: str) -> tuple[str, ...]:
-    return tuple(case if arg == "pg18_" else arg for arg in CARGO_ARGS)
-
-
-WINDOWS_PG_WITNESS_ARGS = single_case_args(WINDOWS_PG_WITNESS_CASE)
 PG18_LISTED_CASE = re.compile(r"^(\S+): test$", re.M)
 PG18_EXECUTED_CASE = re.compile(r"^test (\S+) \.\.\. ok$", re.M)
 PG18_RESULT = re.compile(r"^test result: ok\. (\d+) passed; 0 failed; 0 ignored;", re.M)
@@ -74,11 +69,22 @@ def cargo_environment(original: dict[str, str]) -> dict[str, str]:
 
 
 def listed_pg18_tests(output: str) -> frozenset[str]:
-    """Trust Cargo's exact --ignored --list test identity, not a frozen count."""
+    """Partition the compiled ignored inventory, not a test-name prefix.
+
+    PG-only Core has explicit historical-stage, Windows database witness,
+    and systemd-only lanes. New ordinary ignored tests cannot silently
+    escape by changing their names. Duplicate separate lanes fail closed.
+    """
     cases = PG18_LISTED_CASE.findall(output)
-    if not cases or len(cases) != len(set(cases)) or any("pg18_" not in case for case in cases):
-        raise ValueError("physical PG18 native Cargo inventory missing, duplicate or out of scope")
-    return frozenset(cases)
+    if not cases or len(cases) != len(set(cases)):
+        raise ValueError("physical PG18 native inventory missing or duplicate")
+    excluded = [case for case in cases if case.rsplit("::", 1)[-1] in SEPARATE_LANES]
+    if len(excluded) != len({case.rsplit("::", 1)[-1] for case in excluded}):
+        raise ValueError("physical PG18 separate lane identity is ambiguous")
+    expected = frozenset(cases) - set(excluded)
+    if not expected:
+        raise ValueError("physical PG18 native inventory contains no PG portfolio tests")
+    return expected
 
 
 def exact_test_count(output: str, expected: frozenset[str]) -> int:
@@ -126,26 +132,79 @@ def required_pg_physical_witnesses(inventory: frozenset[str]) -> frozenset[str]:
     )
 
 
-def verify_native_selection(
-    cargo: str, args: tuple[str, ...], env: dict[str, str], *, identity: str | None = None
-) -> int:
-    """Require nonempty native inventory and one PASS for every same named test."""
-    listing_args = [*args[:args.index("--")], "--", "--ignored", "--list"]
-    listed = subprocess.run(
-        [cargo, *listing_args], cwd=ROOT, env=env, capture_output=True,
-        text=True, timeout=400,
+def compile_pg_test_binary(cargo: str, env: dict[str, str]) -> tuple[Path, str]:
+    """Build once using Cargo's original artifact identity; no test DSN at build time."""
+    if __package__:
+        from .verify_formal_trace import _native_cargo_test_artifact, sha256
+    else:
+        from verify_formal_trace import _native_cargo_test_artifact, sha256
+
+    build_env = dict(env)
+    build_env.pop("ORDIVON_PG_TEST_DSN", None)
+    build_env.pop("ORDIVON_PG_STAGE_TEST_DSN", None)
+    built = subprocess.run(
+        [cargo, *CARGO_ARGS, "--no-run", "--message-format=json"], cwd=ROOT,
+        env=build_env, capture_output=True, text=True, timeout=400,
     )
+    if built.returncode:
+        raise RuntimeError(f"native Cargo compilation failed (exit={built.returncode})")
+    artifact = _native_cargo_test_artifact(built.stdout, "pg")
+    expected_source = ROOT / "crates/ordivon-runtime-core/src/lib.rs"
+    if Path(artifact["target"]["src_path"]).resolve() != expected_source.resolve():
+        raise ValueError("Cargo emitted an unexpected PG artifact source module")
+    binary = Path(artifact["executable"])
+    target = Path(env.get("CARGO_TARGET_DIR", str(ROOT / "target")))
+    if not target.is_absolute():
+        target = ROOT / target
+    if (
+        not binary.is_absolute() or not binary.is_file() or binary.is_symlink()
+        or not binary.resolve().is_relative_to(target.resolve())
+    ):
+        raise ValueError("Cargo emitted PG artifact outside qualified build target")
+    return binary, sha256(binary)
+
+
+def verify_native_selection(
+    compiled: tuple[Path, str], env: dict[str, str],
+    *, identity: str | None = None,
+) -> int:
+    """List and execute one Cargo-selected libtest artifact without rebuilding."""
+    if __package__:
+        from .verify_formal_trace import sha256
+    else:
+        from verify_formal_trace import sha256
+
+    binary, digest = compiled
+    # Keep upstream libtest capture enabled: test-body diagnostics are
+    # not execution receipts. Ignore inherited opt-out as well as explicit flags.
+    test_env = dict(env)
+    test_env.pop("RUST_TEST_NOCAPTURE", None)
+
+    def unchanged() -> None:
+        if binary.is_symlink() or sha256(binary) != digest:
+            raise ValueError("PG native artifact changed after compilation")
+
+    def run(*libtest_args: str) -> subprocess.CompletedProcess[str]:
+        unchanged()
+        result = subprocess.run(
+            [str(binary), *libtest_args],
+            cwd=ROOT / "crates/ordivon-runtime-core", env=test_env,
+            capture_output=True, text=True, timeout=400,
+        )
+        unchanged()
+        return result
+
+    # Discover all ignored cases of this exact binary before partitioning.
+    # The explicit historical-stage/Windows witness remains a single lane.
+    listed = run(*([identity] if identity is not None else []), "--ignored", "--list")
     if listed.returncode:
-        raise RuntimeError(f"native Cargo inventory failed (exit={listed.returncode})")
+        raise RuntimeError(f"native libtest inventory failed (exit={listed.returncode})")
     expected = (
         listed_pg18_tests(listed.stdout) if identity is None
         else listed_single_case(listed.stdout, identity)
     )
     required = required_pg_physical_witnesses(expected) if identity is None else frozenset()
-    result = subprocess.run(
-        [cargo, *args], cwd=ROOT, env=env, capture_output=True,
-        text=True, timeout=400,
-    )
+    result = run(*sorted(expected), "--exact", "--ignored", "--test-threads=1")
     # libtest execution evidence comes from stdout, never compiler stderr.
     for line in result.stdout.splitlines():
         if line.startswith("test ") or line.startswith("test result:"):
@@ -153,6 +212,7 @@ def verify_native_selection(
     if result.returncode:
         raise RuntimeError(f"native PostgreSQL test failed (exit={result.returncode})")
     count = exact_test_count(result.stdout, expected)
+    print(f"PG_LIBTEST_ARTIFACT_SHA256={digest}")
     if required:
         print(f"PG_FORMAL_CONDITIONAL_WITNESSES_PASS={len(required)}/{len(required)}")
     return count
@@ -170,7 +230,7 @@ def explicit_lane(lane: str) -> int:
     env = cargo_environment(os.environ)
     env.pop("ORDIVON_PG_TEST_DSN" if stage else "ORDIVON_PG_STAGE_TEST_DSN", None)
     count = verify_native_selection(
-        cargo, single_case_args(STAGE_CASE) if stage else CARGO_ARGS,
+        compile_pg_test_binary(cargo, env),
         env, identity=STAGE_CASE if stage else None,
     )
     print(f"{'STAGE' if stage else 'PHYSICAL'}_PG18_PASS={count}/{count}")
@@ -186,6 +246,42 @@ def run_checked(command: list[str], *, timeout: int = 90) -> None:
         )
 
 
+def prepare_harness_python(original: dict[str, str], private_root: Path) -> dict[str, str]:
+    """Resolve the real Harness source fixture without using a global Python site."""
+    env = dict(original)
+    python = env.get("HARNESS_PG_PYTHON", "").strip()
+    if not python:
+        uv = shutil.which("uv", path=env.get("PATH"))
+        if uv is None:
+            raise RuntimeError("Harness fixture requires uv or explicit HARNESS_PG_PYTHON")
+        project_env = private_root / "venv"
+        sync_env = {**env, "UV_PROJECT_ENVIRONMENT": str(project_env)}
+        result = subprocess.run(
+            [uv, "sync", "--project", str(ROOT.parent / "harness"), "--locked",
+             "--no-default-groups", "--no-install-project"],
+            env=sync_env, capture_output=True, text=True, timeout=120,
+        )
+        if result.returncode:
+            raise RuntimeError(
+                f"Harness locked fixture environment unavailable (exit={result.returncode}): "
+                f"{result.stderr[-1500:]}"
+            )
+        python = str(project_env / "bin" / "python")
+    # The original fixture supplies its own source PYTHONPATH. Qualify the
+    # actual dependencies in isolation before creating a PostgreSQL instance.
+    result = subprocess.run(
+        [python, "-I", "-c", "import jsonschema, psycopg, httpx"],
+        env=env, capture_output=True, text=True, timeout=20,
+    )
+    if result.returncode:
+        raise RuntimeError(
+            f"Harness fixture interpreter dependencies unavailable (exit={result.returncode}): "
+            f"{result.stderr[-1500:]}"
+        )
+    env["HARNESS_PG_PYTHON"] = python
+    return env
+
+
 def main() -> int:
     if sys.platform != "linux":
         raise RuntimeError("disposable PG18 fixture supports Linux only")
@@ -195,7 +291,11 @@ def main() -> int:
     if not all((initdb, pg_ctl, cargo)):
         raise RuntimeError("initdb, pg_ctl and cargo must be installed")
     prefix: list[str] = []
-    with tempfile.TemporaryDirectory(prefix="ordivon-pg18-", dir="/var/tmp") as raw:
+    with (
+        tempfile.TemporaryDirectory(prefix="ordivon-pg18-", dir="/var/tmp") as raw,
+        tempfile.TemporaryDirectory(prefix="ordivon-pg18-harness-", dir="/var/tmp") as python_root,
+    ):
+        qualified_env = prepare_harness_python(dict(os.environ), Path(python_root))
         root = Path(raw)
         if os.geteuid() == 0:
             import pwd
@@ -246,11 +346,12 @@ def main() -> int:
             source = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
             dirty = bool(subprocess.check_output(["git", "-C", str(ROOT), "status", "--porcelain"], text=True).strip())
             print(f"sourceCut={source} standing={'DIRTY_UNQUALIFIED' if dirty else 'CLEAN'}")
-            fixture_env = fixture_environment(os.environ, root, port)
-            n = verify_native_selection(cargo, CARGO_ARGS, fixture_env)
+            fixture_env = fixture_environment(qualified_env, root, port)
+            compiled = compile_pg_test_binary(cargo, fixture_env)
+            n = verify_native_selection(compiled, fixture_env)
             print(f"DISPOSABLE_PG18_PASS={n}/{n}")
             n = verify_native_selection(
-                cargo, WINDOWS_PG_WITNESS_ARGS, fixture_env, identity=WINDOWS_PG_WITNESS_CASE
+                compiled, fixture_env, identity=WINDOWS_PG_WITNESS_CASE
             )
             print(f"DISPOSABLE_WINDOWS_PG_WITNESS_PASS={n}/{n}")
         finally:

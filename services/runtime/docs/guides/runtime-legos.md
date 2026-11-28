@@ -455,7 +455,13 @@ duplicate execution, and nonzero native exits cannot qualify. The fresh PG
 lanes additionally require every named PG physical-opt-in witness from
 `formal/RuntimeDispatchR1.trace-r1.json` to occur in the native inventory
 and execute successfully; a nonempty remainder cannot hide a missing required
-obligation. The stage lane
+obligation. The physical lane selects one PG-only Cargo libtest artifact,
+lists ignored witnesses and executes their exact full names from that same
+artifact, and compares its digest at execution boundaries. The disposable PG
+and Windows data-reader cases reuse that artifact. Database DSNs are withheld
+from compilation; each execution receives only its intended test DSN. This is
+bounded observed artifact identity, not a proof of exhaustive build closure or
+immutable execution against arbitrary concurrent writers. The stage lane
 must select exactly its one named witness; its passing result is not a
 fresh-epoch or Windows production acceptance. An operator DSN is not supplied
 by default and is never inherited by the disposable fixture.
@@ -465,7 +471,11 @@ existing Legacy trace and the explicit PG-only profile. Query the current
 implementation with
 `python3 scripts/verify_formal_trace.py --native-profile pg --native-witnesses`.
 The PG profile separately names always-on native code witnesses, shared typed
-contracts, and compiled-but-not-executed physical PostgreSQL witnesses. Do not
+contracts, and compiled-but-not-executed physical PostgreSQL witnesses. Its
+stable witness symbols, model relations and execution roles are independently
+checked; relocation requires an updated source binding, not retention of an
+obsolete file. The concurrent PG dispatch witness establishes a bounded
+one-issuer database CAS case, not native OS settlement. Do not
 substitute one profile for the other. For incremental source impact, use the
 same profile plus `--impact-base <ancestor-commit> --impact-head <checkout-commit>`
 and optionally `--impact-compiler`. The compiler's exact tracked PG SQL inputs,
