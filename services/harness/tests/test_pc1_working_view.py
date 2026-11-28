@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
-from pathlib import Path
-import tempfile
 import threading
 import unittest
 
@@ -12,7 +10,8 @@ from ordivon_harness.core_contracts import HarnessPrivacyPolicy
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
 from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from ordivon_harness.postgres_store import PostgresHarnessStore
+from tests.pg_test_support import isolated_harness_schema
 from ordivon_harness.store import HarnessEventAdmission
 from ordivon_harness.working_view import (
     HarnessWorkingSetPin,
@@ -58,11 +57,10 @@ class WorkingViewPrototypeTests(unittest.TestCase):
         return source, stored
 
     def test_metadata_only_contract_rejects_working_set_content_persistence(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with isolated_harness_schema() as (dsn, schema):
             clock = FixedClock()
             run_contract = contract("pc11-working-metadata-only")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with PostgresHarnessStore(dsn, schema=schema) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -72,11 +70,10 @@ class WorkingViewPrototypeTests(unittest.TestCase):
                     continuity.record_working_set(spec)
 
     def test_model_only_contract_rejects_tool_content_in_working_set_source(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with isolated_harness_schema() as (dsn, schema):
             clock = FixedClock()
             run_contract = _private_content_contract("pc12a-working-tool-content")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with PostgresHarnessStore(dsn, schema=schema) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -115,11 +112,10 @@ class WorkingViewPrototypeTests(unittest.TestCase):
                     continuity.record_working_set(spec)
 
     def test_replace_commit_replan_preserves_history_and_exact_sources(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with isolated_harness_schema() as (dsn, schema):
             clock = FixedClock()
             run_contract = _private_content_contract("pc11-working-set")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with PostgresHarnessStore(dsn, schema=schema) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -192,11 +188,10 @@ class WorkingViewPrototypeTests(unittest.TestCase):
                 )
 
     def test_continuity_doctor_rejects_semantically_broken_working_set_history(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with isolated_harness_schema() as (dsn, schema):
             clock = FixedClock()
             run_contract = _private_content_contract("pc11-working-doctor")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with PostgresHarnessStore(dsn, schema=schema) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -247,11 +242,10 @@ class WorkingViewPrototypeTests(unittest.TestCase):
                     continuity.doctor()
 
     def test_concurrent_working_set_writers_cannot_both_advance_one_revision(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with isolated_harness_schema() as (dsn, schema):
             run_contract = _private_content_contract("pc11-working-race")
             clock = FixedClock()
-            with SQLiteHarnessStore.initialize(root) as store:
+            with PostgresHarnessStore(dsn, schema=schema) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -285,7 +279,7 @@ class WorkingViewPrototypeTests(unittest.TestCase):
 
             def write(spec: HarnessWorkingSetSpec) -> str:
                 try:
-                    with SQLiteHarnessStore(root) as store:
+                    with PostgresHarnessStore(dsn, schema=schema) as store:
                         local = EventSourcedRunContinuity.open(
                             store, run_contract.harness_run_id, clock_ms=FixedClock()
                         )
@@ -298,7 +292,7 @@ class WorkingViewPrototypeTests(unittest.TestCase):
             with ThreadPoolExecutor(max_workers=2) as pool:
                 outcomes = list(pool.map(write, (candidate_a, candidate_b)))
             self.assertEqual(outcomes.count("created"), 1, outcomes)
-            with SQLiteHarnessStore(root) as store:
+            with PostgresHarnessStore(dsn, schema=schema) as store:
                 continuity = EventSourcedRunContinuity.open(
                     store, run_contract.harness_run_id, clock_ms=FixedClock()
                 )
@@ -313,11 +307,10 @@ class WorkingViewPrototypeTests(unittest.TestCase):
                 self.assertTrue(continuity.doctor()["healthy"])
 
     def test_metadata_only_provider_call_does_not_persist_exact_request(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with isolated_harness_schema() as (dsn, schema):
             clock = FixedClock()
             run_contract = contract("pc11-provider-metadata-only")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with PostgresHarnessStore(dsn, schema=schema) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -354,11 +347,10 @@ class WorkingViewPrototypeTests(unittest.TestCase):
                 )
 
     def test_current_provider_call_v4_retains_exact_agent_request(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with isolated_harness_schema() as (dsn, schema):
             clock = FixedClock()
             run_contract = _private_content_contract("pc11-provider-v3")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with PostgresHarnessStore(dsn, schema=schema) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -411,7 +403,7 @@ class WorkingViewPrototypeTests(unittest.TestCase):
                 )
 
             # Fresh process/store object reconstruction does not need caller transcript.
-            with SQLiteHarnessStore(root) as reopened_store:
+            with PostgresHarnessStore(dsn, schema=schema) as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store, run_contract.harness_run_id, clock_ms=clock
                 )
