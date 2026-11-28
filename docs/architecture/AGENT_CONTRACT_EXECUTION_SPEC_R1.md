@@ -143,7 +143,7 @@ Each slice has a native Owner, observable result, a negative example and a check
 | --- | --- | --- |
 | Valid Spec/readable Skill | current Git bytes, working references, Skills MCP path resolve/read when installed | Agent followed instructions; domain outcome |
 | Native RED→GREEN | bad counterexample rejected, good case accepted through Owner public seam | complete correctness across all inputs |
-| R2.1 model | complete typed contract, named theorem/model verdict, assumptions | implementation refinement or real effect |
+| Mathematical model | local specification, named theorem/model verdict, assumptions | implementation refinement or real effect |
 | Code/consumer refinement | current implementation behavior checked against property at the target seam | semantics beyond exercised scope |
 | PR / CI | exact SHA, review, required job results, Merge Queue | deployed owner version |
 | Real usage | provider readback/effect receipt, consumer acceptance currentness | all possible future domain success |

@@ -25,7 +25,7 @@ Natural owner truth remains authoritative. Host stores semantic continuity, soci
 
 ## 1. LEGO property law
 
-Every promoted Social Work LEGO must define Identity, Owner, Truth role, Mutability, Lifecycle, Ordering, Bounds, Replay and Authority non-claim.
+For Host social-work objects, establish the relevant identity, ownership, lifecycle, mutation, ordering, bounds, replay and authority properties from their actual domain behavior, not from a universal declaration.
 
 Canonical R2 objects:
 

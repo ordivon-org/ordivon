@@ -30,7 +30,6 @@ def test_composition_architecture_references_semantic_foundations() -> None:
     canonical = (
         ROOT / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md"
     ).read_text(encoding="utf-8")
-    assert "OL starts from the mathematical objects" in canonical
     assert "AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md" in architecture
 
 

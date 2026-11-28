@@ -6,7 +6,7 @@
 
 A Network LEGO is a replaceable semantic responsibility with a consumer, not an individual script, file or Task. Prefer DELETE unconsumed custom code → REUSE upstream-native capabilities → COMPOSE bounded Lego → CREATE only for a witnessed missing contract.
 
-When formally declaring/admitting a LEGO, use the existing Recursive LEGO R2.1 type and canonical repository Skill; do not invent a local calculus.
+For OL reasoning choose the mathematical semantics required by the actual problem; use existing mature mathematics and native interfaces.
 
 For each consequential change, independently record:
 - SOURCE: exact upstream Git commit, relevant files and source hash.

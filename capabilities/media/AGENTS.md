@@ -269,8 +269,8 @@ The installed scripting README is the API authority; the semantic
    checking current source, Production and Output consumers; use native Git
    and provider GC. Preserve selected editable masters and unique evidence.
 
-Each operation is a R2.1 LEGO with an externally owned effect, specific
-pre/post/invariants, content digests and observable result. A successful
+Each operation has an externally owned effect and the domain-specific
+conditions, content digests and observable result needed for its consumer. A successful
 Runtime process does not establish semantic acceptance or release.
 
 ## Native grade and actual media proof obligations

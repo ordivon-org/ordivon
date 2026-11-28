@@ -109,7 +109,7 @@ end FormalLoaderFrame
 #print axioms OrdivonR21.FormalLoaderFrame.qualified_binary_and_loader_frame_preserves_verdict
 
 
--- Interface output alone is NOT full R2.1 behavior: an adapter may return
+-- Interface output alone does not determine behavior: an adapter may return
 -- the same Unit response while its external-effect flag changes from
 -- "not authorized" to "effect performed". The existing contract refinement
 -- law rejects this as a substitution for the old consumer.

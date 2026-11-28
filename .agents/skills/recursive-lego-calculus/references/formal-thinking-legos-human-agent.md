@@ -243,9 +243,8 @@ second. The normal user need not reproduce every solver invocation.
    reuse stale reports as observations. Discover existing Skills first.
 2. **Represent the obligation:** freeze `phi`, state `S`, legal inputs,
    environment `Gamma`, transition/effect boundary and the smallest
-   relevant R2.1 projection. For an independent declared LEGO, bind all
-   eleven typed coordinates; for a candidate keep `INCOMPLETE`/
-   `UNKNOWN`, not fabricated formal standing.
+   relevant mathematical model. Keep unsupported properties `UNKNOWN`,
+   rather than fabricating formal standing.
 3. **Select via the table:** classify proof as algebraic, state, temporal,
    relational, implementation or cross-provider. Use only the provider
    with a real matching contract. Check scope, type widths, fairness,

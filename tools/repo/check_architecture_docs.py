@@ -1977,7 +1977,7 @@ def validate_formal_issue_census(
 
 
 
-def validate_r21_lego_vocabulary(document: str, *, root: Path = ROOT) -> None:
+def validate_architecture_consumer_witnesses(document: str, *, root: Path = ROOT) -> None:
     """Validate source-bound consumer witnesses, not a prescribed mathematical representation."""
     disabled = {
         "unittest.skip", "unittest.skipIf", "unittest.skipUnless",
@@ -2222,7 +2222,7 @@ def validate_repository(root: Path = ROOT) -> None:
     method_router = root / METHOD_ROUTER.relative_to(ROOT)
 
     validate_architecture_snapshot_document(current.read_text(encoding="utf-8"))
-    validate_r21_lego_vocabulary(
+    validate_architecture_consumer_witnesses(
         (root / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md").read_text(
             encoding="utf-8"
         ),

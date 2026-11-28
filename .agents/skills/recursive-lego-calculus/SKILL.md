@@ -195,7 +195,7 @@ Prefer mature Owner model checkers, type systems and replay for real obligations
 
 ## Essential distinctions
 
-- All declared/admitted independent Method, Capability and Composite LEGOs require complete typed R2.1 coordinates; an unfinished candidate remains explicitly unadmitted.
+- Choose the representation and verification obligations appropriate to the problem; no declaration shape determines proof or acceptance.
 - External value acceptance is separate from resource cost c and approximation epsilon: bind the named goal/consumer, observable predicate or metric, baseline or fixed specification, checker/instrument, decision threshold, guardrails, current evidence and UNKNOWN. A mathematical architecture goal is not an installed product result. Test-only self-consuming cycles do not establish terminal use.
 - Agent public information may hide implementation but cannot conceal decision-critical errors, effects, authority limits, proof standing or source currentness. Actual invocation still needs separate Owner authorization.
 
