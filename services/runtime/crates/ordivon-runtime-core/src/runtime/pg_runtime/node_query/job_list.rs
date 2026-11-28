@@ -1,5 +1,6 @@
 //! Original principal-scoped qualified-epoch PostgreSQL Job cursor, one repeatable-read transaction.
 use super::super::{error, io, pg, PgRuntime, RuntimeError, RuntimeJobListRequest, RuntimeResult};
+use postgres::types::Type;
 use serde_json::json;
 
 impl PgRuntime {
@@ -57,7 +58,7 @@ impl PgRuntime {
         // The selected Attempt join is at most one row per Job (Attempt PK).
         // Filter and order depend only on Job; materialize limit+1 before
         // enriching it, then retain the same final order and null semantics.
-        let rows=tx.query(
+        let rows=tx.query_typed(
             "WITH page AS MATERIALIZED (SELECT j.* FROM jobs j WHERE j.principal=$1              AND ($2::text IS NULL OR j.client_request_id=$2::text)              AND ($3::text IS NULL OR j.workspace_id=$3::text)              AND ($4::bigint IS NULL OR (j.created_at_ms,j.job_id)<($4::bigint,$5::text)) ORDER BY j.created_at_ms DESC,j.job_id DESC LIMIT $6)
               SELECT j.job_id,j.operation_digest,j.client_request_id,j.workspace_id,j.created_at_ms,              j.desired_state,j.resolution,a.attempt_id,a.state,a.termination_intent,a.exit_code,              a.started_at_ms,a.finished_at_ms,j.execution_plan_json,              (SELECT count(*) FROM artifacts r WHERE r.job_id=j.job_id), EXISTS(SELECT 1 FROM artifacts z WHERE z.job_id=j.job_id AND z.attempt_id=a.attempt_id AND z.kind='execution_result'), EXISTS(SELECT 1 FROM job_allocations x WHERE x.attempt_id=a.attempt_id AND x.state='active'),
               CASE WHEN j.resolution IS NOT NULL AND a.state=j.resolution AND a.finished_at_ms IS NOT NULL
@@ -66,7 +67,14 @@ impl PgRuntime {
                    FROM job_events e WHERE e.job_id=j.job_id AND e.attempt_id=a.attempt_id AND e.event_type='JOB_TERMINAL')
               END              FROM page j LEFT JOIN attempts a ON a.attempt_id=COALESCE(j.current_attempt_id,              (SELECT last.attempt_id FROM attempts last WHERE last.job_id=j.job_id              ORDER BY last.attempt_number DESC LIMIT 1)) AND a.job_id=j.job_id
               ORDER BY j.created_at_ms DESC,j.job_id DESC",
-            &[&principal,&request.client_request_id,&request.workspace_id,&cursor_at,&cursor_id,&limit]
+            &[
+                (&principal, Type::TEXT),
+                (&request.client_request_id, Type::TEXT),
+                (&request.workspace_id, Type::TEXT),
+                (&cursor_at, Type::INT8),
+                (&cursor_id, Type::TEXT),
+                (&limit, Type::INT8),
+            ]
         ).map_err(io)?;
         tx.commit().map_err(io)?;
         let more = rows.len() > request.limit as usize;
