@@ -290,7 +290,8 @@ fn interrupted_open_dependency_scope_is_not_global() {
             source_repo: source.to_string_lossy().into_owned(),
             source_revision: "HEAD".to_string(),
         },
-    ).unwrap();
+    )
+    .unwrap();
     let commit = git_text(&source, ["rev-parse", "HEAD"]);
     let record = config.workspace_record_path(peer_id);
     let mut intent = serde_json::json!({
@@ -302,10 +303,23 @@ fn interrupted_open_dependency_scope_is_not_global() {
         "createdUnixMs": 99
     });
     write_json_atomic(&record, &intent).unwrap();
-    assert!(workspace_cleanup_dependents(&config, parent_id).unwrap().is_empty());
+    assert!(workspace_cleanup_dependents(&config, parent_id)
+        .unwrap()
+        .is_empty());
     let target = config.workspace_path(peer_id);
-    run_git(&source, ["worktree", "add", "--detach", target.to_str().unwrap(), "HEAD"]);
-    assert!(workspace_cleanup_dependents(&config, parent_id).unwrap().is_empty());
+    run_git(
+        &source,
+        [
+            "worktree",
+            "add",
+            "--detach",
+            target.to_str().unwrap(),
+            "HEAD",
+        ],
+    );
+    assert!(workspace_cleanup_dependents(&config, parent_id)
+        .unwrap()
+        .is_empty());
     let unique = target.join("unshipped.txt");
     fs::write(&unique, b"unique unshipped content").unwrap();
     assert!(workspace_cleanup_dependents(&config, parent_id).is_err());
@@ -313,7 +327,9 @@ fn interrupted_open_dependency_scope_is_not_global() {
     fs::remove_file(unique).unwrap();
     run_git(&source, ["worktree", "remove", target.to_str().unwrap()]);
     // A real independent Git source inside the parent remains a dependency.
-    let nested = config.workspace_path(&parent.workspace_id).join("nested-source");
+    let nested = config
+        .workspace_path(&parent.workspace_id)
+        .join("nested-source");
     fs::create_dir_all(&nested).unwrap();
     init_git_repo(&nested);
     let nested_commit = git_text(&nested, ["rev-parse", "HEAD"]);
@@ -321,7 +337,10 @@ fn interrupted_open_dependency_scope_is_not_global() {
     intent["sourceRevision"] = serde_json::json!(nested_commit);
     intent["requestedRevision"] = serde_json::json!(nested_commit);
     write_json_atomic(&record, &intent).unwrap();
-    assert_eq!(workspace_cleanup_dependents(&config, parent_id).unwrap(), vec![peer_id.to_string()]);
+    assert_eq!(
+        workspace_cleanup_dependents(&config, parent_id).unwrap(),
+        vec![peer_id.to_string()]
+    );
     // Missing source authority is UNKNOWN and must block closure.
     intent["sourceRepo"] = serde_json::json!(sandbox.root.join("missing-source").to_string_lossy());
     write_json_atomic(&record, &intent).unwrap();
