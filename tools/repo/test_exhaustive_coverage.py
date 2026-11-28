@@ -129,7 +129,8 @@ class FullCoverageTests(unittest.TestCase):
         tasks = tomllib.loads((ROOT / "mise.toml").read_text())["tasks"]
         ci = tasks["repo:ci"]["run"]
         assert "tools/repo/test_affected_owners.py" in ci
-        assert "tools/repo/migration/test-integrate-main.sh" in ci
+        assert "mise run repo:integration:test" in ci
+        assert "tools/repo/migration/test-integrate-main.sh" in tasks["repo:integration:test"]["run"]
         assert "tools/repo/check_owner_boundaries.py" in ci
         assert M.source_partition("tools/nonexistent.py", policy)["standing"] == (
             "UNASSIGNED")

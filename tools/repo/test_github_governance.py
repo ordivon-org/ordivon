@@ -383,6 +383,30 @@ class GovernanceAcceptanceTests(unittest.TestCase):
         )
         self.assertIn("mise run repo:ci", mechanics)
 
+    def test_repo_ci_reuses_canonical_sql_and_integration_lanes(self) -> None:
+        import tomllib
+
+        tasks = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))["tasks"]
+        ci = tasks["repo:ci"]["run"].splitlines()
+        lanes = {
+            "repo:sql:verify": (
+                "tools/repo/test_sql_dialects.py",
+                "tools/repo/check_sql_dialects.py",
+            ),
+            "repo:integration:test": (
+                "tools/repo/migration/test-integrate-main.sh",
+                "tools/repo/migration/test-check-publication-main.sh",
+                "tools/repo/migration/test-git-pack-preservation.sh",
+            ),
+        }
+        for lane, consumers in lanes.items():
+            with self.subTest(lane=lane):
+                self.assertEqual(ci.count(f"mise run {lane}"), 1)
+                native = tasks[lane]["run"].splitlines()
+                for consumer in consumers:
+                    self.assertEqual(sum(consumer in line for line in native), 1)
+                    self.assertFalse(any(consumer in line for line in ci))
+
     def test_root_mise_retry_runs_only_native_install_and_preserves_failures(self) -> None:
         """A finite upstream outage retries missing tools and never masks exhaustion."""
         import os
