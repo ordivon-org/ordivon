@@ -13,15 +13,24 @@ import subprocess
 from pathlib import Path
 
 from .git_identity import (
+    _MAX_OBJECTS,
     partition_object_batches,
     qualify_batch_sizes,
     verify_object_batch,
 )
+from .git_transport import capture_git_output
 
 _OBJECT_ID = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}\Z")
+_MAX_LISTING_BYTES = 16 * 1024 * 1024
+_MAX_SCALAR_BYTES = 64 * 1024
 
 
-def _git(repo: Path, *args: str, input_bytes: bytes | None = None) -> bytes:
+def _git(
+    repo: Path,
+    *args: str,
+    input_bytes: bytes | None = None,
+    max_output: int = _MAX_SCALAR_BYTES,
+) -> bytes:
     # Clear foreign repository selectors, then explicitly install this
     # observer's local-only policy. Do not inherit a caller's fetch policy.
     env = {
@@ -29,21 +38,13 @@ def _git(repo: Path, *args: str, input_bytes: bytes | None = None) -> bytes:
     }
     env.update(GIT_NO_LAZY_FETCH="1", GIT_OPTIONAL_LOCKS="0")
     try:
-        result = subprocess.run(
+        return capture_git_output(
             ["/usr/bin/git", "--no-replace-objects", "-C", str(repo), *args],
-            check=True,
-            capture_output=True,
-            input=input_bytes,
+            input_bytes=input_bytes,
+            max_output=max_output,
             timeout=20,
             env=env,
         )
-        # A partial native listing with diagnostics is not a complete cut,
-        # even when the command exits successfully.
-        if result.stderr:
-            raise ValueError(
-                "committed ODPS source cannot be resolved: native diagnostic"
-            )
-        return result.stdout
     except (OSError, subprocess.SubprocessError) as error:
         raise ValueError("committed ODPS source cannot be resolved") from error
 
@@ -60,7 +61,9 @@ def _require_repo_root(repo: Path) -> Path:
 def tracked_owner_products(repo: Path) -> list[Path]:
     """Discover tracked paths in the same explicit checkout, not foreign Git env."""
     root = _require_repo_root(repo)
-    paths = _git(root, "ls-files", "-z", "--", "*/odps.json")
+    paths = _git(
+        root, "ls-files", "-z", "--", "*/odps.json", max_output=_MAX_LISTING_BYTES
+    )
     return sorted(root / path.decode("utf-8") for path in paths.split(b"\0") if path)
 
 
@@ -86,7 +89,16 @@ def committed_owner_products(repo: Path, revision: str) -> tuple[str, list[bytes
     root_tree = (
         _git(repo, "rev-parse", "--verify", commit + "^{tree}").decode("ascii").strip()
     )
-    tree = _git(repo, "ls-tree", "-r", "-t", "-z", "--full-tree", commit)
+    tree = _git(
+        repo,
+        "ls-tree",
+        "-r",
+        "-t",
+        "-z",
+        "--full-tree",
+        commit,
+        max_output=_MAX_LISTING_BYTES,
+    )
     tree_ids = {root_tree}
     objects: list[tuple[str, str]] = []
     for entry in tree.split(b"\x00"):
@@ -110,6 +122,8 @@ def committed_owner_products(repo: Path, revision: str) -> tuple[str, list[bytes
     # not an atomic snapshot across separate Git commands.
     algorithm = _git(repo, "rev-parse", "--show-object-format").decode("ascii").strip()
     blob_ids = sorted({oid for _, oid in objects})
+    if 1 + len(tree_ids) + len(blob_ids) > _MAX_OBJECTS:
+        raise ValueError("Git cut exceeds bounded object count")
     expected = [
         (commit, "commit"),
         *((oid, "tree") for oid in sorted(tree_ids)),
@@ -117,7 +131,13 @@ def committed_owner_products(repo: Path, revision: str) -> tuple[str, list[bytes
     ]
     request = "".join(oid + "\n" for oid, _ in expected).encode("ascii")
     headers = qualify_batch_sizes(
-        _git(repo, "cat-file", "--batch-check", input_bytes=request),
+        _git(
+            repo,
+            "cat-file",
+            "--batch-check",
+            input_bytes=request,
+            max_output=len(expected) * (len(commit) + 17),
+        ),
         expected,
         algorithm,
     )
@@ -130,7 +150,13 @@ def committed_owner_products(repo: Path, revision: str) -> tuple[str, list[bytes
         )
         blobs.update(
             verify_object_batch(
-                _git(repo, "cat-file", "--batch", input_bytes=batch_request),
+                _git(
+                    repo,
+                    "cat-file",
+                    "--batch",
+                    input_bytes=batch_request,
+                    max_output=sum(len(header) + size + 2 for header, size in batch),
+                ),
                 batch,
                 algorithm,
                 commit=commit,
