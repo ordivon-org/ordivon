@@ -8,6 +8,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tempfile
 import xml.etree.ElementTree as ET
 from fractions import Fraction
@@ -16,9 +17,12 @@ from typing import Any
 
 import jsonschema
 
+ROOT = Path(__file__).resolve().parents[1]
+if __name__ == "__main__" and str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from artifact_core.contracts import FileCommitment
 
-ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_SCHEMA = ROOT / "artifact-delivery/shadow-contracts/moving-image-ffv1-contract-v1.schema.json"
 MEDIACONCH = Path(os.environ.get("ARTIFACT_MEDIACONCH", "/opt/ordivon/external/mediaconch/25.04-1/mediaconch"))
 FFMPEG = Path(os.environ.get("ARTIFACT_FFMPEG", "/usr/bin/ffmpeg"))

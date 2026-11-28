@@ -14,15 +14,19 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any
 
 import jsonschema
 
+ROOT = Path(__file__).resolve().parents[1]
+if __name__ == "__main__" and str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from artifact_core.contracts import FileCommitment
 
-ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_SCHEMA = ROOT / "artifact-delivery/shadow-contracts/geospatial-vector-contract-v1.schema.json"
 GDAL = Path(os.environ.get("ARTIFACT_GDAL_GPKG", "/opt/ordivon/external/python-gdal/3.13.3-2/gdal"))
 SQLITE = Path(os.environ.get("ARTIFACT_SQLITE", "/opt/ordivon/external/sqlite/3.53.4-1/sqlite3"))

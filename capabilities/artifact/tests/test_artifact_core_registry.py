@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -58,6 +61,24 @@ class ArtifactCoreRegistryTests(unittest.TestCase):
                 actual_sha = fact.get("sha256", fact.get("digest", {}).get("sha256"))
                 self.assertEqual(actual_sha, hashlib.sha256(original).hexdigest())
                 self.assertEqual(subject.read_bytes(), replacement)
+
+    def test_file_fact_verifiers_keep_direct_cli_without_pythonpath(self) -> None:
+        env = {key: value for key, value in os.environ.items() if key != "PYTHONPATH"}
+        with tempfile.TemporaryDirectory() as directory:
+            for family in ("audio", "dataset", "eda", "geospatial", "moving_image", "spice"):
+                with self.subTest(family=family):
+                    script = ROOT / "scripts" / f"artifact_{family}.py"
+                    result = subprocess.run(
+                        [sys.executable, "-B", str(script), "--help"],
+                        cwd=directory,
+                        env=env,
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
+                        check=False,
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertIn("usage:", result.stdout.lower())
 
     def test_profile_registry_normalizes_v1_and_native_v2_to_one_shape(self) -> None:
         registry = ProfileRegistry(ART)

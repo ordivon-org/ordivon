@@ -13,15 +13,19 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any
 
 import jsonschema
 
+ROOT = Path(__file__).resolve().parents[1]
+if __name__ == "__main__" and str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from artifact_core.contracts import FileCommitment
 
-ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_SCHEMA = ROOT / "artifact-delivery/shadow-contracts/dataset-contract-v1.schema.json"
 DUCKDB = Path(os.environ.get("ARTIFACT_DUCKDB", "/opt/ordivon/external/duckdb/1.5.5-1/duckdb"))
 PYARROW_PYTHON = Path(os.environ.get("ARTIFACT_PYARROW_PYTHON", "/opt/ordivon/external/pyarrow/25.0.1/python"))
