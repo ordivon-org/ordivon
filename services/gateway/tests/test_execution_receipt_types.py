@@ -164,3 +164,32 @@ def test_owner_receipt_preserves_job_summary_when_attempt_state_differs(
     assert result.state == job_status
     assert result.terminal is False
     assert len(caller.calls) == 1
+
+
+@pytest.mark.parametrize("method", [submit, cancel])
+def test_agent_receipt_rejects_whitespace_only_owner_job_identity(method) -> None:
+    caller = OwnerReceiptCaller(
+        {
+            "jobId": " \t ",
+            "status": "succeeded",
+            "executionTerminal": True,
+            "deliveryDisposition": "committed",
+        }
+    )
+    with pytest.raises(GatewayError, match="owner response omitted jobId"):
+        method(caller)
+    assert len(caller.calls) == 1
+
+
+def test_operation_ref_rejects_whitespace_only_native_identity_before_owner_call() -> None:
+    caller = OwnerReceiptCaller(
+        {
+            "jobId": "job-receipt-contract",
+            "status": "succeeded",
+            "executionTerminal": True,
+            "deliveryDisposition": "committed",
+        }
+    )
+    with pytest.raises(GatewayError, match="unsupported execution operationRef owner"):
+        asyncio.run(GatewayService(caller).execution_cancel("ordivon-exec:v1:runtime.linux: \t "))
+    assert caller.calls == []
