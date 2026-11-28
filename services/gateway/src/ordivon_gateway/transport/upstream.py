@@ -38,7 +38,7 @@ from ..security import (
 from ..security import (
     _validate_windows_private_secret_file as _validate_windows_private_secret_file,
 )
-from .owner_endpoint_config import owner_endpoints_from_env
+from .owner_endpoint_config import harness_profile_configuration_error, owner_endpoints_from_env
 from .owner_error_decode import extract_owner_tool_error as _extract_owner_tool_error
 
 _LOG = logging.getLogger("ordivon_gateway.upstream")
@@ -146,6 +146,10 @@ class McpOwnerCaller:
         endpoint = self._owners.get(owner_id)
         if endpoint is None:
             return "owner endpoint is not configured"
+        if owner_id == "runtime.harness":
+            error = harness_profile_configuration_error(endpoint, self._owners.get("runtime.linux"))
+            if error is not None:
+                return error
         identity_required = owner_id.startswith("runtime.") or owner_id in {
             "skills",
             "host",

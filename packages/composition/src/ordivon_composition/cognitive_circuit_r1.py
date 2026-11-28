@@ -257,12 +257,12 @@ def evaluate_gate_results(
     unresolved = sorted(manifest["unresolvedAssumptions"])
 
     if unsatisfied:
-        standing = "COMPOSITION_GATES_UNSATISFIED"
+        standing = "COMPOSITION_GATES_REPORTED_UNSATISFIED"
     elif not required or missing or unknown or unresolved:
         # An empty required Gate set contains no verified cross-owner property.
         standing = "COMPOSITION_GATES_OPEN"
     else:
-        standing = "COMPOSITION_GATES_SATISFIED"
+        standing = "COMPOSITION_GATES_REPORTED_SATISFIED"
 
     projection: dict[str, Any] = {
         "schemaVersion": 1,
@@ -277,12 +277,17 @@ def evaluate_gate_results(
         "unknownGateIds": unknown,
         "missingGateIds": missing,
         "unresolvedAssumptions": unresolved,
-        "mechanicalClosure": standing == "COMPOSITION_GATES_SATISFIED",
+        # The caller controls the statuses, verifierOwnerId and evidence refs.
+        # Matching manifest metadata is not evidence that an Owner verified it.
+        "reportedGateClosure": standing == "COMPOSITION_GATES_REPORTED_SATISFIED",
+        "evidenceVerificationStanding": "UNKNOWN",
+        "mechanicalClosure": False,
         "domainAcceptanceEstablished": False,
         "claimBoundary": (
-            "Mechanical closure means only that all required task-local composition "
-            "obligations have verifier-owned SATISFIED records and no unresolved "
-            "manifest assumptions remain. It does not establish domain success."
+            "Reported gate closure means only that all required task-local composition "
+            "obligations have caller-declared SATISFIED records and no unresolved "
+            "manifest assumptions remain. Owner authentication, native verifier "
+            "execution, evidence verification, domain success and effects are NOT established."
         ),
     }
     projection["projectionDigest"] = canonical_digest(projection)

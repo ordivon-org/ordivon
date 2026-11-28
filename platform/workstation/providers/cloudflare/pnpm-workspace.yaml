@@ -11,4 +11,4 @@ strictDepBuilds: true
 allowBuilds:
   'esbuild@0.28.1': true
   'esbuild@0.28.2': true
-  'workerd@1.20261019.1': true
+  'workerd@1.20261123.1': true

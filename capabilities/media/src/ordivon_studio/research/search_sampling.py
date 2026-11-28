@@ -30,6 +30,13 @@ def adaptive_family_count(budget: int) -> int:
     return min(16, max(2, budget // 8))
 
 
+def static_search_values(seed: str, budget: int) -> Iterator[float]:
+    """Canonical static draw stream, without unused trial metadata."""
+    rng = _rng(seed, "static-visible-search")
+    for _ in range(budget):
+        yield rng.gauss(0.0, 1.0)
+
+
 def search_samples(mode: str, seed: str, budget: int) -> Iterator[TrialSample]:
     """One sampling policy for registered search and null replay.
 
@@ -37,9 +44,8 @@ def search_samples(mode: str, seed: str, budget: int) -> Iterator[TrialSample]:
     running-mean arithmetic are part of the historical protocol.
     """
     if mode == "static":
-        rng = _rng(seed, "static-visible-search")
-        for sequence in range(1, budget + 1):
-            yield TrialSample(sequence, None, sequence, rng.gauss(0.0, 1.0), None)
+        for sequence, z in enumerate(static_search_values(seed, budget), start=1):
+            yield TrialSample(sequence, None, sequence, z, None)
         return
     if mode != "adaptive":
         raise ValueError(mode)
@@ -49,17 +55,17 @@ def search_samples(mode: str, seed: str, budget: int) -> Iterator[TrialSample]:
     scale = math.sqrt(1.0 - 0.60)
     sums = [0.0] * count
     counts = [0] * count
+    # Only the sampled family changes. Preserve the first-index tie rule.
+    means = [float("-inf")] * count
     for sequence in range(1, budget + 1):
         if sequence <= count:
             family = sequence - 1
         elif rng.random() < 0.82:
-            family = max(
-                range(count),
-                key=lambda item: sums[item] / counts[item] if counts[item] else float("-inf"),
-            )
+            family = means.index(max(means))
         else:
             family = rng.randrange(count)
         z = latent[family] + rng.gauss(0.0, scale)
         sums[family] += z
         counts[family] += 1
-        yield TrialSample(sequence, family, counts[family], z, sums[family] / counts[family])
+        means[family] = sums[family] / counts[family]
+        yield TrialSample(sequence, family, counts[family], z, means[family])

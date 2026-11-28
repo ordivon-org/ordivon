@@ -1,5 +1,7 @@
 //! Original PG resource reservation under the single qualified-writer transaction.
-use super::native_capacity::{native_resource_error, unspent_native_allocation};
+use super::native_capacity::native_resource_error;
+#[cfg(not(windows))]
+use super::native_capacity::unspent_native_allocation;
 use super::{
     decode, encode, io, now, AttemptRecord, PgAdmissionStore, PgRuntime, RuntimeError,
     RuntimeExecutionPlan, RuntimeResult,
@@ -7,6 +9,7 @@ use super::{
 use crate::resource_scheduling::{
     NodeResources, ResourceRequest, ResourceScheduling, WorkspaceAccess,
 };
+#[cfg(not(windows))]
 use std::path::Path;
 
 impl PgRuntime {
@@ -76,28 +79,23 @@ impl PgRuntime {
                 return Ok(false);
             }
             cpu = cpu.saturating_add(u64::from(resources.cpu_millis));
-            let attempt: String = row.get(0);
-            let group = Path::new("/sys/fs/cgroup/system.slice")
-                .join(format!("ordivon-pg-{attempt}.service"));
-            let (memory, pids) = unspent_native_allocation(&group, &resources)
-                .map_err(|e| e.with_operation_id(&a.job_id))?;
+            #[cfg(not(windows))]
+            let (memory, pids) = {
+                let attempt: String = row.get(0);
+                let group = Path::new("/sys/fs/cgroup/system.slice")
+                    .join(format!("ordivon-pg-{attempt}.service"));
+                unspent_native_allocation(&group, &resources)
+                    .map_err(|e| e.with_operation_id(&a.job_id))?
+            };
+            // Until a qualified JobObject usage read is available, reserve the
+            // whole existing request; conservative double-counting is not
+            // an assertion of zero Windows usage or a new capacity authority.
+            #[cfg(windows)]
+            let (memory, pids) = (resources.memory_bytes, u64::from(resources.pids));
             unspent_memory = unspent_memory.saturating_add(memory);
             unspent_pids = unspent_pids.saturating_add(pids);
         }
-        let reserve = (node.memory_total_bytes / 20).max(64 * 1024 * 1024);
-        if !crate::resource_fit::fits(
-            cpu,
-            u64::from(spec.resources.cpu_millis),
-            node.cpu_millis,
-            spec.resources.memory_bytes,
-            node.memory_available_bytes
-                .saturating_sub(reserve)
-                .saturating_sub(unspent_memory),
-            u64::from(spec.resources.pids),
-            node.pids_available
-                .saturating_sub(unspent_pids)
-                .saturating_sub(64),
-        ) {
+        if !node.fits(cpu, &spec.resources, unspent_memory, unspent_pids) {
             return Ok(false);
         }
         tx.execute("INSERT INTO job_allocations(attempt_id,resources_json,workspace_access_json,owner,state,acquired_at_ms) VALUES($1,$2,$3,$4,'active',$5)",

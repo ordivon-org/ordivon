@@ -580,3 +580,64 @@ end OrdivonR21.CausalReply
 #print axioms OrdivonR21.CausalReply.unguarded_self_reply_is_cyclic
 #print axioms OrdivonR21.CausalReply.decision_implements_model
 #print axioms OrdivonR21.CausalReply.python_rejection_predicate_iff_model_not_permitted
+
+namespace OrdivonR21.SemanticQueryKey
+
+/-- An incremental query key is adequate for a particular consumer observation
+    only if equal keys imply equal observations. This is not a claim that
+    a digest, a facet set, or a declared source graph is adequate. -/
+def Adequate {Input Key Observation : Type}
+    (key : Input → Key) (observe : Input → Observation) : Prop :=
+  ∀ before after, key before = key after → observe before = observe after
+
+/-- If every observation property can be transported by key equality,
+    the key must distinguish every change visible to that consumer.
+    Conversely, adequacy suffices for property transport.
+    No cache engine, proof database, or installed refinement is asserted. -/
+theorem adequate_iff_all_properties_transport {Input Key Observation : Type}
+    (key : Input → Key) (observe : Input → Observation) :
+    Adequate key observe ↔
+      ∀ before after, key before = key after →
+        ∀ property : Observation → Prop,
+          property (observe before) → property (observe after) := by
+  constructor
+  · intro adequate before after same property oldProof
+    exact adequate before after same ▸ oldProof
+  · intro transport before after same
+    exact (transport before after same (fun o => observe before = o) rfl)
+
+/-- A finer key may reuse a qualified coarser key, but not conversely. -/
+theorem refinement_preserves_adequacy {Input Coarse Fine Observation : Type}
+    (coarse : Input → Coarse) (fine : Input → Fine)
+    (observe : Input → Observation)
+    (refinesKey : ∀ before after, fine before = fine after →
+      coarse before = coarse after)
+    (qualified : Adequate coarse observe) : Adequate fine observe := by
+  intro before after same
+  exact qualified before after (refinesKey before after same)
+
+-- Model of the Research G07c counterexample (#31628): equal reachable
+-- facets need not preserve an independent consumer gate.
+-- The first coordinate models reachability; the second models the gate.
+def facetKey (input : Bool × Bool) : Bool := input.1
+
+def gatedObservation (input : Bool × Bool) : Bool := input.1 && input.2
+
+theorem facet_only_key_not_adequate :
+    ¬ Adequate facetKey gatedObservation := by
+  intro qualified
+  have impossible : (true : Bool) = false :=
+    qualified (true, true) (true, false) rfl
+  cases impossible
+
+theorem full_model_key_adequate :
+    Adequate (fun input : Bool × Bool => input) gatedObservation := by
+  intro before after same
+  exact congrArg gatedObservation same
+
+end OrdivonR21.SemanticQueryKey
+
+#print axioms OrdivonR21.SemanticQueryKey.adequate_iff_all_properties_transport
+#print axioms OrdivonR21.SemanticQueryKey.refinement_preserves_adequacy
+#print axioms OrdivonR21.SemanticQueryKey.facet_only_key_not_adequate
+#print axioms OrdivonR21.SemanticQueryKey.full_model_key_adequate
