@@ -391,3 +391,21 @@ def test_lost_submit_response_rejects_foreign_gateway_resolution_identity(
     assert [name for name, _ in client.calls] == [
         "execution.submit", "execution.resolve"
     ]
+
+
+@pytest.mark.parametrize('omit', (False, True))
+def test_terminal_recovery_unknown_is_not_consumer_terminal(omit):
+    class UnknownRecovery(FakeGateway):
+        def call_tool(self, name, arguments):
+            is_error, value = super().call_tool(name, arguments)
+            if name == 'execution.get':
+                if omit:
+                    value.pop('recovery_required')
+                else:
+                    value['recovery_required'] = None
+            return is_error, value
+
+    client = UnknownRecovery()
+    with pytest.raises(GatewayExecutionError, match='recoveryRequired'):
+        GatewayExecutionPort(client).execute(request())
+    assert [name for name, _ in client.calls] == ['execution.submit', 'execution.get']
