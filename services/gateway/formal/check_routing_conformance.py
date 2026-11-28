@@ -13,10 +13,12 @@ import sys
 from dataclasses import replace
 from itertools import product
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from ordivon_gateway.logic import routing as routing_module  # noqa: E402
 from ordivon_gateway.logic.execution_refs import (  # noqa: E402
     GatewayError,
     format_execution_ref,
@@ -41,6 +43,23 @@ def explore() -> dict[str, int]:
         isinstance(value, CapabilityRoute) and key == value.capability
         for key, value in default.items()
     )
+
+    # Default route composition has multiple source domains. A new Research
+    # projection must never silently replace a natural Owner route merely by
+    # reusing its capability key.
+    research = routing_module.research_capabilities()
+    collision = replace(next(iter(research.values())), capability="execution.linux")
+    with patch.object(
+        routing_module,
+        "research_capabilities",
+        return_value={"research.synthetic.nonmatching-key": collision},
+    ):
+        try:
+            routing_module.default_routes()
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("duplicate default capability silently replaced natural Owner")
 
     caller = NoOwner()
     # None means default; {} must never silently fall back to the default.
