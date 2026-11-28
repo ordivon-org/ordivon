@@ -69,7 +69,7 @@ Do not duplicate the checker as a new Skill or service.
 
 ## Practical rule
 
-A LEGO is one **goal-conditioned, replaceable responsibility** with identity, inputs, outputs, behavioral contract and acceptance. It is not a file, Agent, Skill, Tool or required runtime object.
+A LEGO is a **goal-conditioned, replaceable responsibility**. Describe it using whatever mathematical structures and native interfaces its actual problem requires; identity, inputs, outputs, behavioral contracts and acceptance are possible descriptions, not required fields. It is not a file, Agent, Skill, Tool or required runtime object.
 
 Use whichever of these questions changes the current decision. They are **not** a mandatory checklist, fixed order or Agent organization:
 
