@@ -8,15 +8,20 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any
 
 import jsonschema
 
+ROOT = Path(__file__).resolve().parents[1]
+if __name__ == "__main__" and str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from artifact_core.contracts import FileCommitment
 from artifact_core.json_validation import load_json
 
-ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_SCHEMA = ROOT / "artifact-delivery/shadow-contracts/audio-flac-contract-v1.schema.json"
 FLAC = Path(os.environ.get("ARTIFACT_FLAC", "/opt/ordivon/external/flac/1.5.0-1/flac"))
 METAFLAC = Path(os.environ.get("ARTIFACT_METAFLAC", "/opt/ordivon/external/flac/1.5.0-1/metaflac"))
@@ -52,7 +57,8 @@ def canonical_digest(value: Any) -> str:
 
 
 def artifact_fact(path: Path) -> dict[str, Any]:
-    return {"path": str(path.resolve()), "name": path.name, "size": path.stat().st_size, "sha256": sha256_file(path)}
+    commitment = FileCommitment.from_path(path)
+    return {"path": str(commitment.path), "name": path.name, "size": commitment.size, "sha256": commitment.sha256}
 
 
 def _claim_result(

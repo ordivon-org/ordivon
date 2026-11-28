@@ -124,6 +124,13 @@ duplicating or downloading it into every Workspace:
     ORDIVON_TLA_TOOLS_JAR=/absolute/path/to/tla2tools-v1.7.4.jar scripts/tla-formal verify
     ORDIVON_TLA_TOOLS_JAR=/absolute/path/to/tla2tools-v1.7.4.jar scripts/tla-formal check
 
+For repository consumers that only need the verified tool path, use
+`scripts/tla-formal resolve`; it never downloads. Consumers that already had
+bootstrap-if-missing behavior may use `scripts/tla-formal ensure`, which materializes
+only the Runtime-owned ignored cache when no external override is supplied, then
+returns the same digest-verified absolute path. These commands are the canonical
+toolchain-selection boundary; Owner-specific models and invariants remain Owner-owned.
+
 The override must be an absolute regular non-symlink file, and both upstream-locked
 digests are checked before execution. Runtime callers should additionally bind the
 same path and locked SHA-256 through `execution.hostDependencies` to fence admission

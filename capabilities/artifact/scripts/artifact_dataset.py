@@ -10,17 +10,22 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import math
 import os
-from pathlib import Path
 import re
 import subprocess
+import sys
 import tempfile
+from pathlib import Path
 from typing import Any
 
 import jsonschema
 
 ROOT = Path(__file__).resolve().parents[1]
+if __name__ == "__main__" and str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from artifact_core.contracts import FileCommitment
+
 CONTRACT_SCHEMA = ROOT / "artifact-delivery/shadow-contracts/dataset-contract-v1.schema.json"
 DUCKDB = Path(os.environ.get("ARTIFACT_DUCKDB", "/opt/ordivon/external/duckdb/1.5.5-1/duckdb"))
 PYARROW_PYTHON = Path(os.environ.get("ARTIFACT_PYARROW_PYTHON", "/opt/ordivon/external/pyarrow/25.0.1/python"))
@@ -47,7 +52,8 @@ def run(argv: list[str], *, timeout: int = 90) -> subprocess.CompletedProcess[st
 
 
 def artifact_fact(path: Path) -> dict[str, Any]:
-    return {"path": str(path.resolve()), "name": path.name, "size": path.stat().st_size, "sha256": sha256(path)}
+    commitment = FileCommitment.from_path(path)
+    return {"path": str(commitment.path), "name": path.name, "size": commitment.size, "sha256": commitment.sha256}
 
 
 def canonical_bytes(value: Any) -> bytes:

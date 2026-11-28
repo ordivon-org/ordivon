@@ -342,14 +342,8 @@ uv run python formal/check_owner_status_contract.py
 [tasks."gateway:formal:verify"]
 run = """
 set -euo pipefail
-jar="${ORDIVON_TLA_TOOLS_JAR:-$PWD/services/runtime/target/formal-tools/tla2tools-v1.7.4.jar}"
-if [[ "$jar" != /* || ! -f "$jar" || -L "$jar" ]]; then
-  echo "Gateway TLC needs a pinned absolute, regular TLA+ JAR" >&2
-  exit 2
-fi
-expected=$(python3 -c 'import json;print(json.load(open("services/runtime/formal/toolchain.lock.json"))["sha256"])')
-observed=$(sha256sum -- "$jar" | cut -d' ' -f1)
-test "$observed" = "$expected" || { echo "Unqualified TLA+ JAR digest" >&2; exit 2; }
+repo_root="$(git rev-parse --show-toplevel)"
+jar="$("$repo_root/services/runtime/scripts/tla-formal" resolve)"
 cd services/gateway/formal
 java -cp "$jar" tla2sany.SANY GatewayRoutingR1.tla
 routing_positive=$(java -cp "$jar" tlc2.TLC -workers 1 -config GatewayRoutingR1.cfg GatewayRoutingR1.tla)
@@ -456,14 +450,7 @@ description = "TLC: coherent re-entry, exact cursor receipts and negative contro
 run = """
 set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
-jar="${ORDIVON_TLA_TOOLS_JAR:-$repo_root/services/runtime/target/formal-tools/tla2tools-v1.7.4.jar}"
-if [[ "$jar" != /* || ! -f "$jar" || -L "$jar" ]]; then
-  echo "Host Attention TLC requires the existing pinned absolute TLA+ JAR" >&2
-  exit 2
-fi
-expected="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sha256"])' "$repo_root/services/runtime/formal/toolchain.lock.json")"
-observed="$(sha256sum -- "$jar" | cut -d' ' -f1)"
-test "$observed" = "$expected" || { echo "Host Attention TLA+ toolchain digest mismatch" >&2; exit 2; }
+jar="$("$repo_root/services/runtime/scripts/tla-formal" resolve)"
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 cp "$repo_root/services/host/formal/"HostAttentionReentryR1.* "$scratch/"
@@ -495,14 +482,7 @@ done
 run = """
 set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
-jar="${ORDIVON_TLA_TOOLS_JAR:-$repo_root/services/runtime/target/formal-tools/tla2tools-v1.7.4.jar}"
-if [[ "$jar" != /* || ! -f "$jar" || -L "$jar" ]]; then
-  echo "Web effect response TLC requires the existing pinned absolute TLA+ JAR" >&2
-  exit 2
-fi
-expected="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sha256"])' "$repo_root/services/runtime/formal/toolchain.lock.json")"
-observed="$(sha256sum -- "$jar" | cut -d' ' -f1)"
-test "$observed" = "$expected" || { echo "TLA+ toolchain digest mismatch" >&2; exit 2; }
+jar="$("$repo_root/services/runtime/scripts/tla-formal" resolve)"
 cd "$repo_root/apps/web/formal"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT

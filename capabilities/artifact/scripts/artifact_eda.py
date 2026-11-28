@@ -11,8 +11,15 @@ import hashlib
 import json
 import re
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+if __name__ == "__main__" and str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from artifact_core.contracts import FileCommitment
 
 KICAD = Path("/usr/bin/kicad-cli")
 
@@ -26,7 +33,8 @@ def sha256_file(path: Path) -> str:
 
 
 def file_fact(path: Path) -> dict[str, Any]:
-    return {"path": str(path), "sha256": sha256_file(path), "size": path.stat().st_size}
+    commitment = FileCommitment.from_path(path)
+    return {"path": str(path), "sha256": commitment.sha256, "size": commitment.size}
 
 
 def run(args: list[str]) -> subprocess.CompletedProcess[str]:

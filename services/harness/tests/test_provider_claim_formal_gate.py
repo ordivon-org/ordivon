@@ -11,7 +11,7 @@ def test_harness_queue_and_verify_require_formal_claim_model():
     for mode in ("verify", "queue"):
         assert "mise run formal:verify" in tasks[mode]["run"]
     formal = tasks["formal:verify"]["run"]
-    assert '"$runtime_root/scripts/tla-formal" verify' in formal
+    assert 'export ORDIVON_TLA_TOOLS_JAR="$("$runtime_root/scripts/tla-formal" ensure)"' in formal
     assert "ProviderClaimR1.cfg" in formal
     assert "tlc2.TLC" in formal
     for label, invariant in (

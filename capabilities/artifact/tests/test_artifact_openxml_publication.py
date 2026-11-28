@@ -1,3 +1,6 @@
+
+from artifact_core.contracts import sha256_file
+
 """Generation reuse and pointer safety, independent of Nix installation."""
 
 import hashlib
@@ -203,7 +206,7 @@ def test_native_materialization_independent_of_enclosing_git_context(tmp_path):
         gid, final, binding = m.build_generation(base, lock, dotnet, rows)
         m.qualify_materialization(base, final, m.generation_spec(lock, dotnet, rows))
         corpus = m.verify_external_evidence(final / "bin/validate-openxml")
-        files = {p.name: m.sha(p) for p in (final / "validator").iterdir() if p.is_file()}
+        files = {p.name: sha256_file(p) for p in (final / "validator").iterdir() if p.is_file()}
         for name in ("ArtifactOpenXmlValidator.dll", "ArtifactOpenXmlValidator.pdb"):
             data = (final / "validator" / name).read_bytes()
             assert revision.encode() not in data

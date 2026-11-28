@@ -36,8 +36,9 @@ The Composition Owner native verify now requires the Formal task and checks all 
 The Runtime owner pins both TLA+ tools digests in `services/runtime/formal/toolchain.lock.json`. Use the digest-verified tool; **no extra formal checker or package is introduced**.
 
 ```bash
-export ORDIVON_TLA_TOOLS_JAR=/absolute/path/to/tla2tools-v1.7.4.jar
-services/runtime/scripts/tla-formal verify
+# Optional: set ORDIVON_TLA_TOOLS_JAR to an absolute external JAR first.
+# `ensure` verifies either that override or Runtime's pinned local cache.
+export ORDIVON_TLA_TOOLS_JAR="$(services/runtime/scripts/tla-formal ensure)"
 (
   cd packages/composition/formal
   java -cp "$ORDIVON_TLA_TOOLS_JAR" tla2sany.SANY Lego21OwnerBoundary.tla

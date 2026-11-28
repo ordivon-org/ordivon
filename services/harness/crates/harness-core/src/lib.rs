@@ -5,6 +5,9 @@
 //! until a versioned consumer migration has been proven.
 #![forbid(unsafe_code)]
 
+pub mod run_budget;
+pub mod token_usage;
+
 use sha2::{Digest, Sha256};
 use std::collections::{btree_map::Entry, BTreeMap};
 use std::fmt;
