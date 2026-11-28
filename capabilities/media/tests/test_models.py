@@ -276,16 +276,17 @@ class ModelTests(unittest.TestCase):
 
         from ordivon_studio import models
 
-        load = models._load
+        read_bytes = Path.read_bytes
         for field, invalid in (("execution", []), ("presentation", None), ("diff", {"changedPaths": [{}]})):
             with self.subTest(field=field):
                 receipt = copy.deepcopy(RECEIPT)
                 receipt[field] = invalid
 
-                def selected_load(path: Path):
-                    return receipt if path.name == "runtime-demo.receipt.json" else load(path)
+                def selected_read(path: Path):
+                    return (json.dumps(receipt).encode() if path.name == "runtime-demo.receipt.json"
+                            else read_bytes(path))
 
-                with patch.object(models, "_load", side_effect=selected_load):
+                with patch.object(Path, "read_bytes", selected_read):
                     errors = models.validate_repository()
                 self.assertTrue(any("runtime-demo.receipt.json" in error for error in errors), errors)
 

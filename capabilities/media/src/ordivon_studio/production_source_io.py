@@ -41,12 +41,19 @@ def canonical_relative_file_path(value: object) -> bool:
     )
 
 
+def local_source_path(root: Path, selected: str) -> Path:
+    """Resolve a canonical Production-local reference before any file read."""
+    # Keep escaping references distinct from lexical aliases.
+    resolved = relative_child(root, selected)
+    if not canonical_relative_file_path(selected):
+        raise ValueError(f"invalid Production-local source path: {selected}")
+    return resolved
+
+
 def claims_source_path(root: Path, production: dict[str, Any]) -> Path:
     """Resolve the one claim set explicitly selected by the Production."""
     sources = production.get("sources")
     selected = sources.get("claims") if isinstance(sources, dict) else None
     if not isinstance(selected, str) or not selected:
         raise TypeError("Production must reference one claims source")
-    if not canonical_relative_file_path(selected):
-        raise ValueError(f"invalid claims source path: {selected}")
-    return relative_child(root, selected)
+    return local_source_path(root, selected)

@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from .cognition_sections import extract_learning
-from .production_source_io import read_bound_bytes, read_bound_object, relative_child
+from .production_source_io import local_source_path, read_bound_bytes, read_bound_object
 
 
 def _production_learning_records(root: Path) -> list[dict[str, Any]]:
@@ -19,7 +19,7 @@ def _production_learning_records(root: Path) -> list[dict[str, Any]]:
         sources = production.get("sources")
         if not isinstance(sources, dict) or not isinstance(sources.get("cognition"), str):
             continue
-        cognition_path = relative_child(production_root, sources["cognition"])
+        cognition_path = local_source_path(production_root, sources["cognition"])
         if not cognition_path.is_file():
             continue
         cognition_bytes, cognition_digest = read_bound_bytes(cognition_path)
