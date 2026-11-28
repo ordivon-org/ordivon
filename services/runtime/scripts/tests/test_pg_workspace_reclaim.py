@@ -61,10 +61,6 @@ class PgWorkspaceReclaimTests(unittest.TestCase):
         self.assertFalse(mod.eligible(**{**self.params, "created_ms": 6_000_000}))
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class PgOperatorRetentionPolicyTests(unittest.TestCase):
     """Reuse the actual Git storage and retention contract, not fake a close."""
 
@@ -683,3 +679,6 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
         )
         self.assertEqual(self.git("show", f"{self.head}:new-work"),
                          "valuable isolated research work")
+
+if __name__ == "__main__":
+    unittest.main()
