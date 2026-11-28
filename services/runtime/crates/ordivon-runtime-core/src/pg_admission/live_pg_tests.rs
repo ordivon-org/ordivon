@@ -123,3 +123,5 @@ mod terminal_cases;
 
 mod stateful_model_cases;
 mod windows_native_cases;
+
+mod history_cases;
