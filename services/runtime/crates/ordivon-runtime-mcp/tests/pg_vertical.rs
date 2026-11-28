@@ -3332,7 +3332,7 @@ fn failed_retained_pg_transient_auto_converges_to_lost_and_releases_capacity() {
     let raw_stderr = PathBuf::from(&bundle).join("stderr.log");
     // Actual child process, not the original Runner (which is already
     // quiescent). All paths are confined to this disposable native fixture.
-    assert!(Path::new(&bundle).starts_with(&fixture.root));
+    assert!(PathBuf::from(&bundle).starts_with(&fixture.root));
     let writer = Command::new("/usr/bin/sh")
         .args([
             "-c",
