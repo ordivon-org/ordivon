@@ -3,6 +3,7 @@ rust = { version = "1.99.1", components = "clippy,rustfmt" }
 powershell = "7.6.8"
 python = "3.15.1"
 uv = "latest"
+
 # Existing Harness source is the actual consumer of the R2.1 StrictLego21
 # optional-timeout expression. CrossHair performs solver-backed source-path
 # checking under the explicit preconditions, not a deployed Runtime proof.
