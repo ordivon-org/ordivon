@@ -574,6 +574,79 @@ class NativePgReleaseOperator(unittest.TestCase):
             for thread in workers:
                 thread.join(timeout=3)
 
+    def test_release_drain_preserves_orphaned_reservation(self) -> None:
+        """A resolved orphan is not a quiescent Job while its reservation is held."""
+        seeded = []
+        try:
+            with self.db.transaction():
+                for state, reservation_state in (
+                    ("orphaned", "held_orphaned"), ("succeeded", "released"),
+                ):
+                    job = "job-test-drain-" + uuid.uuid4().hex
+                    attempt = "attempt-test-drain-" + uuid.uuid4().hex
+                    seeded.append((job, attempt))
+                    self.db.execute(
+                        "INSERT INTO jobs(job_id,principal,client_request_id,request_digest,"
+                        "operation_digest,workspace_id,workspace_snapshot_json,"
+                        "execution_plan_json,execution_plan_digest,created_at_ms,"
+                        "desired_state,resolution,current_attempt_id) "
+                        "SELECT %s,principal,%s,request_digest,operation_digest,workspace_id,"
+                        "'{}',execution_plan_json,execution_plan_digest,created_at_ms,"
+                        "'run',%s,NULL FROM jobs WHERE job_id=%s",
+                        (job, job, state, self.job_id),
+                    )
+                    self.db.execute(
+                        "INSERT INTO attempts(attempt_id,job_id,attempt_number,state,"
+                        "termination_intent,launch_token_digest,bundle_path,unit_name,"
+                        "created_at_ms,finished_at_ms) "
+                        "VALUES(%s,%s,1,%s,'natural',%s,%s,%s,123,124)",
+                        (attempt, job, state, "sha256:" + "e" * 64,
+                         str(self.work / attempt), attempt + ".service"),
+                    )
+                    self.db.execute(
+                        "INSERT INTO concurrency_reservations(reservation_id,attempt_id,"
+                        "global_limit,state,acquired_at_ms,state_observed_at_ms,released_at_ms) "
+                        "VALUES(%s,%s,1,%s,123,124,%s)",
+                        ("reservation-" + uuid.uuid4().hex, attempt, reservation_state,
+                         124 if reservation_state == "released" else None),
+                    )
+            held_job, held_attempt = seeded[0]
+            self.assertEqual(op.active_executions(self.db, self.job_id), [held_job])
+            self.args.drain_seconds = 0.3
+            calls = []
+            with patch.dict(op.DEPLOY, {"run": lambda command: calls.append(command)}), \
+                 patch.object(op, "verified_release_consumer"):
+                with self.assertRaisesRegex(RuntimeError, "PG execution drain timed out"):
+                    op.apply_release(self.args)
+            self.assertEqual(calls, [], "held orphan must prevent service stop")
+            self.assertEqual((self.install / "ordivon-runtime-pg").read_bytes(),
+                             b"old-pg-runtime")
+            self.assertEqual((self.install / "ordivon-runtime-runner").read_bytes(),
+                             b"old-runner")
+            self.assertEqual(self.db.execute(
+                "SELECT state FROM concurrency_reservations WHERE attempt_id=%s",
+                (held_attempt,),
+            ).fetchone()["state"], "held_orphaned")
+            self.assertEqual(self.db.execute(
+                "SELECT count(*) AS n FROM job_events WHERE job_id=%s AND event_type=%s",
+                (self.job_id, op.DISPATCH_EVENT),
+            ).fetchone()["n"], 1)
+            self.assertEqual(self.db.execute(
+                "SELECT resolution FROM jobs WHERE job_id=%s", (self.job_id,),
+            ).fetchone()["resolution"], "failed")
+            receipt = json.loads(
+                (self.args.receipt_root / f"effect-{self.args.effect_id}" /
+                 "result.json").read_text()
+            )
+            self.assertEqual(receipt["status"], "not_committed")
+            self.assertFalse(receipt.get("preDispatchNoPhysicalEffect", False))
+        finally:
+            for job, attempt in seeded:
+                self.db.execute("DELETE FROM concurrency_reservations WHERE attempt_id=%s",
+                                (attempt,))
+                self.db.execute("DELETE FROM attempts WHERE attempt_id=%s", (attempt,))
+                self.db.execute("DELETE FROM jobs WHERE job_id=%s", (job,))
+
     def test_pg_reclaimer_helper_installs_with_native_pair_and_receipt(self) -> None:
         """The same PG ReleaseEffect must own every installed consumer byte."""
         self.args.include_pg_reclaimer = True
@@ -662,12 +735,23 @@ class NativePgReleaseOperator(unittest.TestCase):
         (self.candidate / "ordivon-runtime-pg-reclaim").write_bytes(
             b"candidate-changed-after-manifest"
         )
-        with self.assertRaisesRegex(RuntimeError, "release artifact"):
-            op.apply_release(self.args)
+        with patch.object(op, "verified_release_consumer") as consumer:
+            result = op.apply_release(self.args)
+        consumer.assert_called_once()
+        self.assertEqual(result["status"], "not_committed")
+        self.assertEqual(result["pgTerminal"], "failed")
+        self.assertIn("release artifact", result["deploymentError"])
         self.assertEqual((self.install / "ordivon-runtime-pg-reclaim").read_bytes(),
                          b"old-qualified-pg-reclaimer")
-        self.assertFalse((self.args.receipt_root /
-                          f"effect-{self.args.effect_id}").exists())
+        receipt = self.args.receipt_root / f"effect-{self.args.effect_id}"
+        self.assertTrue((receipt / "result.json").is_file())
+        self.assertEqual(self.db.execute(
+            "SELECT resolution FROM jobs WHERE job_id=%s", (self.job_id,)
+        ).fetchone()["resolution"], "failed")
+        self.assertEqual(self.db.execute(
+            "SELECT state FROM concurrency_reservations WHERE attempt_id=%s",
+            (self.attempt_id,)
+        ).fetchone()["state"], "released")
         self.assertEqual(
             self.db.execute(
                 "SELECT count(*) AS n FROM job_events WHERE job_id=%s "
@@ -953,6 +1037,124 @@ class NativePgReleaseOperator(unittest.TestCase):
                             (self.job_id,)).fetchone()["resolution"],None)
         self.assertEqual((self.install/"ordivon-runtime-pg").read_bytes(),b"old-pg-runtime")
 
+    def test_required_ref_no_go_terminalizes_same_effect_without_dispatch(self) -> None:
+        """A deterministic protected-ref rejection must not become a permanent cordon."""
+        subprocess.run(
+            [
+                binary("git"), "-C", str(self.repo),
+                "-c", "user.name=operator-test",
+                "-c", "user.email=operator@test.invalid",
+                "commit", "--allow-empty", "-m", "protected-ref-advanced",
+            ],
+            check=True,
+            capture_output=True,
+        )
+        self.args.require_ref = "HEAD"
+        with patch.object(op, "verified_release_consumer"):
+            result = op.apply_release(self.args)
+        self.assertEqual(result["status"], "not_committed")
+        self.assertEqual(result["pgTerminal"], "failed")
+        self.assertIs(result["preDispatchNoPhysicalEffect"], True)
+        self.assertEqual(
+            self.db.execute(
+                "SELECT count(*) AS n FROM job_events WHERE job_id=%s AND event_type=%s",
+                (self.job_id, op.DISPATCH_EVENT),
+            ).fetchone()["n"],
+            0,
+        )
+        self.assertEqual(
+            self.db.execute(
+                "SELECT resolution FROM jobs WHERE job_id=%s", (self.job_id,)
+            ).fetchone()["resolution"],
+            "failed",
+        )
+        self.assertEqual(
+            self.db.execute(
+                "SELECT state FROM attempts WHERE attempt_id=%s", (self.attempt_id,)
+            ).fetchone()["state"],
+            "failed",
+        )
+        reservation = self.db.execute(
+            "SELECT state,release_reason FROM concurrency_reservations WHERE attempt_id=%s",
+            (self.attempt_id,),
+        ).fetchone()
+        self.assertEqual(reservation["state"], "released")
+        self.assertEqual(
+            reservation["release_reason"],
+            "RELEASE_EFFECT_PRE_DISPATCH_NOT_COMMITTED",
+        )
+        self.assertEqual((self.install / "ordivon-runtime-pg").read_bytes(), b"old-pg-runtime")
+        self.assertEqual((self.install / "ordivon-runtime-runner").read_bytes(), b"old-runner")
+        receipt = self.args.receipt_root / f"effect-{self.args.effect_id}"
+        recorded = json.loads((receipt / "result.json").read_text(encoding="utf-8"))
+        self.assertEqual(recorded["status"], "not_committed")
+        self.assertIs(recorded["preDispatchNoPhysicalEffect"], True)
+        pending = self.db.execute(
+            "SELECT count(*) AS n FROM job_runtime_release_effects r "
+            "JOIN jobs j ON j.job_id=r.job_id "
+            "JOIN attempts a ON a.job_id=j.job_id "
+            "JOIN concurrency_reservations c ON c.attempt_id=a.attempt_id "
+            "WHERE r.job_id=%s AND (j.resolution IS NULL OR c.state IN ('active','held_orphaned'))",
+            (self.job_id,),
+        ).fetchone()["n"]
+        self.assertEqual(pending, 0, "terminal zero-effect release must clear the admission cordon")
+        with patch.object(op, "verified_release_consumer"):
+            replay = op.apply_release(self.args)
+        self.assertTrue(replay["replayed"])
+        self.assertEqual(replay["pgTerminal"], "failed")
+        before = (receipt / "result.json").read_bytes()
+        with patch.object(op, "verified_release_consumer", side_effect=RuntimeError(
+            "RECONCILIATION_REQUIRED: independent consumer unavailable"
+        )):
+            with self.assertRaisesRegex(RuntimeError, "independent consumer unavailable"):
+                op.apply_release(self.args)
+        self.assertEqual((receipt / "result.json").read_bytes(), before)
+
+    def test_zero_effect_receipt_cannot_override_committed_dispatch(self) -> None:
+        """After dispatch ownership exists, missing physical evidence remains reconciliation."""
+        with op.pg_connection(self.dsn, "fresh") as conn:
+            row, bound = op.inspect_effect(
+                conn,
+                principal=self.args.principal,
+                client_request_id=self.args.client_request_id,
+                effect_id=self.args.effect_id,
+                commit=self.args.commit,
+                candidate_manifest_digest=self.args.candidate_manifest_digest,
+                receipt_root=self.args.receipt_root,
+            )
+            request = op.effect_request(self.args, bound)
+            op.dispatch_claim(conn, self.args)
+            op.write_pre_dispatch_no_go_receipt(
+                self.args,
+                request,
+                op.PreDispatchNoPhysicalEffect("injected forged pre-dispatch marker"),
+            )
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "pre-dispatch not-committed receipt conflicts with operator dispatch evidence",
+            ):
+                op.finalize_receipted_release(conn, self.args, request)
+        self.assertEqual(
+            self.db.execute(
+                "SELECT resolution FROM jobs WHERE job_id=%s", (self.job_id,)
+            ).fetchone()["resolution"],
+            None,
+        )
+        self.assertEqual(
+            self.db.execute(
+                "SELECT state FROM concurrency_reservations WHERE attempt_id=%s",
+                (self.attempt_id,),
+            ).fetchone()["state"],
+            "active",
+        )
+        self.assertEqual(
+            self.db.execute(
+                "SELECT count(*) AS n FROM job_events WHERE job_id=%s AND event_type=%s",
+                (self.job_id, op.DISPATCH_EVENT),
+            ).fetchone()["n"],
+            1,
+        )
+
     def test_release_qualification_revocation_blocks_dispatch(self) -> None:
         self.db.execute(
             "UPDATE _stage_control SET promotion_allowed=false WHERE id='release'"
@@ -973,6 +1175,41 @@ class NativePgReleaseOperator(unittest.TestCase):
             op.apply_release(self.args)
         self.assertEqual((self.install/"ordivon-runtime-pg").read_bytes(),b"old-pg-runtime")
         self.assertFalse((self.args.receipt_root/f"effect-{self.args.effect_id}").exists())
+        subprocess.run([
+            binary("git"), "-C", str(self.repo), "-c", "user.name=Operator Test",
+            "-c", "user.email=operator@test.invalid", "commit", "--allow-empty",
+            "-m", "protected-ref-advanced-after-dispatch"
+        ], check=True, capture_output=True)
+        self.args.require_ref = "HEAD"
+        with self.assertRaisesRegex(RuntimeError, "RECONCILIATION_REQUIRED"):
+            op.apply_release(self.args)
+        self.assertFalse((self.args.receipt_root/f"effect-{self.args.effect_id}").exists())
+
+    def test_pre_dispatch_receipt_interrupted_publication_is_not_authoritative(self) -> None:
+        with op.pg_connection(self.dsn, "fresh") as conn:
+            _, bound = op.inspect_effect(
+                conn, principal=self.args.principal,
+                client_request_id=self.args.client_request_id,
+                effect_id=self.args.effect_id, commit=self.args.commit,
+                candidate_manifest_digest=self.args.candidate_manifest_digest,
+                receipt_root=self.args.receipt_root,
+            )
+        request = op.effect_request(self.args, bound)
+        write = op.DEPLOY["write_json_atomic"]
+        def interrupted(path, value):
+            if path.name == "result.json":
+                raise OSError("injected test publication interruption")
+            write(path, value)
+        with patch.dict(op.DEPLOY, {"write_json_atomic": interrupted}):
+            with self.assertRaisesRegex(OSError, "publication interruption"):
+                op.write_pre_dispatch_no_go_receipt(
+                    self.args, request, op.PreDispatchNoPhysicalEffect("fixture NO-GO")
+                )
+        self.assertFalse((self.args.receipt_root / f"effect-{self.args.effect_id}").exists())
+        self.assertEqual(list(self.args.receipt_root.glob(".pre-dispatch-*")), [])
+        self.assertIsNone(self.db.execute(
+            "SELECT resolution FROM jobs WHERE job_id=%s", (self.job_id,)
+        ).fetchone()["resolution"])
 
     def test_wrong_manifest_and_receipt_root_fail_before_dispatch(self) -> None:
         bad=Namespace(**vars(self.args))
@@ -988,6 +1225,122 @@ class NativePgReleaseOperator(unittest.TestCase):
             self.db.execute("SELECT count(*) AS n FROM job_events "
                             "WHERE job_id=%s AND event_type=%s",
                             (self.job_id,op.DISPATCH_EVENT)).fetchone()["n"],0)
+
+    @unittest.skipUnless(
+        os.environ.get("ORDIVON_RUN_NATIVE_PG_SYSTEMD_RELEASE") == "1",
+        "requires explicitly built native PG Runtime and Runner",
+    )
+    def test_actual_native_predispatch_rejection_mcp_readback(self) -> None:
+        """A real Rust receipt consumer verifies deterministic refusal without installation."""
+        import socket
+
+        target = Path(os.environ.get("CARGO_TARGET_DIR", str(SCRIPTS.parent / "target"))).resolve()
+        pg_binary = target / "debug/ordivon-runtime-pg"
+        runner = target / "debug/ordivon-runtime-runner"
+        if not pg_binary.is_file() or not runner.is_file():
+            raise RuntimeError("build native PG Runner and MCP binaries before test")
+
+        # Only the existing disposable fixture owns this role, database and store.
+        self.db.execute("CREATE ROLE runtime_reader_app LOGIN")
+        self.db.execute("GRANT USAGE ON SCHEMA fresh TO runtime_reader_app")
+        self.db.execute("GRANT ALL ON ALL TABLES IN SCHEMA fresh TO runtime_reader_app")
+        self.db.execute("REVOKE ALL ON fresh._stage_control FROM runtime_reader_app")
+        self.db.execute("GRANT SELECT,UPDATE(id) ON fresh._stage_control TO runtime_reader_app")
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.bind(("127.0.0.1", 0))
+            bind = f"127.0.0.1:{sock.getsockname()[1]}"
+        token = "p" * 32  # disposable loopback fixture only
+        config = {
+            "ORDIVON_PG_DSN": f"host={self.root} user=runtime_reader_app dbname=postgres",
+            "ORDIVON_PG_SCHEMA": "fresh",
+            "ORDIVON_PG_SOURCE_SHA256": self.source_sha,
+            "ORDIVON_PG_STORE_ROOT": str(self.work / "pg-store"),
+            "ORDIVON_PG_RUNNER": str(runner),
+            "ORDIVON_PG_EXECUTABLE_ROOTS_JSON": '["/usr/bin","/bin"]',
+            "ORDIVON_PG_BIND": bind,
+            "ORDIVON_PG_TOKEN": token,
+            "ORDIVON_PG_PRINCIPAL": self.args.principal,
+        }
+        self.env_file.write_text(
+            f"ORDIVON_PG_BIND={bind}\nORDIVON_PG_TOKEN={token}\n", encoding="utf-8"
+        )
+        self.args.wait_seconds = 10.
+        environment = {"PATH": "/usr/bin:/bin", "HOME": str(self.work), "LANG": "C.UTF-8", **config}
+        log = self.work / "native-reader.log"
+        with log.open("wb") as output:
+            process = subprocess.Popen(
+                [str(pg_binary)], env=environment, stdout=output, stderr=output,
+            )
+            try:
+                client = op.McpClient(
+                    f"http://{bind}/mcp", token, "isolated-predispatch-receipt-test", timeout=2.,
+                )
+                deadline = time.monotonic() + 12
+                last = None
+                while time.monotonic() < deadline:
+                    try:
+                        if process.poll() is not None:
+                            raise RuntimeError(f"native reader exited: {process.returncode}")
+                        client.discover()
+                        client.call_tool("runtime.describe", {"schemaVersion": 1})
+                        break
+                    except Exception as error:
+                        last = error
+                        if process.poll() is not None:
+                            raise
+                        time.sleep(.1)
+                else:
+                    raise RuntimeError(f"native reader not ready: {last}")
+                key = {"clientRequestId": self.args.client_request_id}
+                before = client.call_tool("release.get", key)
+                self.assertEqual(before["effectDisposition"], "admitted")
+                self.assertFalse(before["receiptAvailable"])
+                subprocess.run([
+                    binary("git"), "-C", str(self.repo), "-c", "user.name=Operator Test",
+                    "-c", "user.email=operator@test.invalid", "commit", "--allow-empty",
+                    "-m", "protected-ref-advanced",
+                ], check=True, capture_output=True)
+                self.args.require_ref = "HEAD"
+                # No mocked release.get: apply_release itself requires this native consumer.
+                result = op.apply_release(self.args)
+                after = client.call_tool("release.get", key)
+                self.assertEqual(result["status"], "not_committed")
+                self.assertEqual(after["effectDisposition"], "not_committed")
+                self.assertEqual(after["executionDisposition"], "failed")
+                self.assertTrue(after["effectTerminal"])
+                self.assertTrue(after["receiptAvailable"])
+                self.assertEqual(after["receiptDigest"], result["resultDigest"])
+                self.assertFalse(after["recoveryRequired"])
+                self.assertFalse(after["semanticCompletionEvaluated"])
+                replay = op.apply_release(self.args)
+                self.assertEqual(replay["resultDigest"], result["resultDigest"])
+                self.assertEqual(self.db.execute(
+                    "SELECT count(*) AS n FROM job_events WHERE job_id=%s AND event_type=%s",
+                    (self.job_id, op.DISPATCH_EVENT),
+                ).fetchone()["n"], 0)
+                self.assertEqual(self.db.execute(
+                    "SELECT state FROM concurrency_reservations WHERE attempt_id=%s",
+                    (self.attempt_id,),
+                ).fetchone()["state"], "released")
+                self.assertEqual((self.install / "ordivon-runtime-pg").read_bytes(), b"old-pg-runtime")
+                op.qualified_service_executable_path.assert_not_called()
+                op.qualified_runner_binding.assert_not_called()
+                print(json.dumps({
+                    "before": before["effectDisposition"], "after": after["effectDisposition"],
+                    "receiptDigest": after["receiptDigest"], "terminal": after["effectTerminal"],
+                    "dispatches": 0, "reservation": "released", "replayExact": True,
+                }), flush=True)
+            except Exception:
+                print(log.read_text(errors="replace")[-4000:], file=sys.stderr)
+                raise
+            finally:
+                if process.poll() is None:
+                    process.terminate()
+                    try:
+                        process.wait(timeout=8)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        process.wait(timeout=5)
 
     @unittest.skipUnless(
         os.environ.get("ORDIVON_RUN_NATIVE_PG_SYSTEMD_RELEASE")=="1",

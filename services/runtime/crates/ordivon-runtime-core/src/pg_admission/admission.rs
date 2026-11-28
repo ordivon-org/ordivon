@@ -165,11 +165,37 @@ impl PgAdmissionStore {
                 return Err(PgAdmissionError::Unqualified);
             }
         }
-        // This predicate fences new writer effects, not read-only replay of a
-        // previously committed identity. Resolving the exact idempotency key
-        // must precede transient pending-Effect and capacity admission gates.
-        let pending:bool=tx.query_one(
-            "SELECT EXISTS(SELECT 1 FROM job_runtime_release_effects r JOIN jobs j ON j.job_id=r.job_id WHERE j.resolution IS NULL OR EXISTS(SELECT 1 FROM attempts a JOIN concurrency_reservations c ON c.attempt_id=a.attempt_id WHERE a.job_id=j.job_id AND c.state IN ('active','held_orphaned')))",&[])?.get(0);
+        // A merely admitted ReleaseEffect is durable intent, not yet a
+        // physical release boundary. The independent operator performs all
+        // deterministic preflight checks before committing
+        // RELEASE_OPERATOR_DISPATCH_ISSUED. Only that committed dispatch
+        // boundary fences new writer effects; otherwise a permanently invalid
+        // preflight (for example, a commit not authorized by requiredRef)
+        // would deadlock the Runtime even though no host effect was attempted.
+        //
+        // The operator uses this same advisory lock when committing the
+        // dispatch event. Therefore an ordinary admission either commits
+        // before that boundary and is drained by the release operator, or
+        // observes the dispatch event here and fails closed.
+        let pending: bool = if release.is_some() {
+            // Release admission remains single-flight. Exact replay was
+            // resolved above, so a second distinct ReleaseEffect must not
+            // create an ambiguous operator queue while another release is
+            // still unresolved.
+            tx.query_one(
+                "SELECT EXISTS(SELECT 1 FROM job_runtime_release_effects r JOIN jobs j ON j.job_id=r.job_id WHERE j.resolution IS NULL OR EXISTS(SELECT 1 FROM attempts a JOIN concurrency_reservations c ON c.attempt_id=a.attempt_id WHERE a.job_id=j.job_id AND c.state IN ('active','held_orphaned')))",
+                &[],
+            )?
+            .get(0)
+        } else {
+            // Ordinary work is fenced only after the independent operator has
+            // committed the physical release dispatch boundary.
+            tx.query_one(
+                "SELECT EXISTS(SELECT 1 FROM job_runtime_release_effects r JOIN jobs j ON j.job_id=r.job_id WHERE EXISTS(SELECT 1 FROM job_events e WHERE e.job_id=j.job_id AND e.event_type='RELEASE_OPERATOR_DISPATCH_ISSUED') AND (j.resolution IS NULL OR EXISTS(SELECT 1 FROM attempts a JOIN concurrency_reservations c ON c.attempt_id=a.attempt_id WHERE a.job_id=j.job_id AND c.state IN ('active','held_orphaned'))))",
+                &[],
+            )?
+            .get(0)
+        };
         if pending {
             return Err(PgAdmissionError::PendingEffect);
         }

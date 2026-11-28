@@ -13,6 +13,16 @@ fn windows_pg_bundle_consumer_reads_real_admission_without_claiming_process() {
     scratch.qualify();
     let temp = tempfile::tempdir().unwrap();
     let mut input = payload("win-native-witness", "job-win-witness", "workspace-win", 2);
+    // The native witness validates the frozen Plan bytes and output limits.
+    input.execution_plan_json = serde_json::json!({
+        "stdoutLimitBytes": 4096,
+        "stderrLimitBytes": 4096
+    })
+    .to_string();
+    input.execution_plan_digest = format!(
+        "sha256:{}",
+        hex::encode(Sha256::digest(input.execution_plan_json.as_bytes()))
+    );
     let attempt = input.attempt_id.clone();
     let bundle = temp.path().join("pg-attempts").join(&attempt);
     fs::create_dir_all(&bundle).unwrap();
@@ -284,17 +294,20 @@ fn pg18_native_atomic_admission_replay_fence_and_rollback() {
         store.admit(&conflicting_during_effect),
         Err(PgAdmissionError::IdempotencyConflict)
     ));
+    // A corrupted side row is still rejected for the original operation,
+    // but without an independently committed operator dispatch it cannot
+    // acquire global authority over unrelated ordinary Jobs.
     assert!(matches!(
         store.admit(&payload(
             "new-during-effect",
-            "job-forbidden",
+            "job-not-globally-fenced",
             "other-ws",
             2
         )),
-        Err(PgAdmissionError::PendingEffect)
+        Ok(PgAdmissionOutcome::Created(_))
     ));
-    assert_eq!(scratch.count("jobs"), 1);
-    assert_eq!(scratch.count("job_events"), 3);
+    assert_eq!(scratch.count("jobs"), 2);
+    assert_eq!(scratch.count("job_events"), 6);
     scratch
         .admin
         .execute(
@@ -335,18 +348,170 @@ fn pg18_native_atomic_admission_replay_fence_and_rollback() {
         store.admit(&duplicate_attempt),
         Err(PgAdmissionError::Database(_))
     ));
-    assert_eq!(scratch.count("jobs"), 3);
-    assert_eq!(scratch.count("attempts"), 3);
-    assert_eq!(scratch.count("idempotency_keys"), 3);
-    assert_eq!(scratch.count("job_events"), 9);
+    assert_eq!(scratch.count("jobs"), 4);
+    assert_eq!(scratch.count("attempts"), 4);
+    assert_eq!(scratch.count("idempotency_keys"), 4);
+    assert_eq!(scratch.count("job_events"), 12);
     assert_eq!(
         store
             .admit(&payload("request-D", "job-D", "workspace-B", 2))
             .unwrap(),
         PgAdmissionOutcome::Created("job-D".into())
     );
-    assert_eq!(scratch.count("jobs"), 4);
-    assert_eq!(scratch.count("job_events"), 12);
+    assert_eq!(scratch.count("jobs"), 5);
+    assert_eq!(scratch.count("job_events"), 15);
+}
+
+#[test]
+#[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+fn pg18_release_effect_fences_ordinary_admission_only_after_operator_dispatch() {
+    use crate::runtime::{
+        runtime_release_effect_id, runtime_release_request_identity_digest, RuntimeReleaseContract,
+        RuntimeReleaseEffectBinding, RuntimeReleaseRequest, RUNTIME_SCHEMA_VERSION,
+    };
+    use std::path::Path;
+
+    let dsn = physical_pg_test_dsn();
+    let mut scratch = Scratch::new(&dsn);
+    scratch.qualify();
+    scratch
+        .admin
+        .execute(
+            "INSERT INTO _stage_control VALUES('release','QUALIFIED_RELEASE',$1,true)",
+            &[&"a".repeat(64)],
+        )
+        .unwrap();
+
+    let mut release = payload(
+        "release-pre-dispatch",
+        "job-release-pre-dispatch",
+        "workspace-release-pre-dispatch",
+        0,
+    );
+    let request = RuntimeReleaseRequest {
+        schema_version: RUNTIME_SCHEMA_VERSION,
+        client_request_id: release.client_request_id.clone(),
+        principal: release.principal.clone(),
+        workspace_id: release.workspace_id.clone(),
+        commit: "b".repeat(40),
+        candidate_manifest_digest: format!("sha256:{}", "c".repeat(64)),
+        expected_tool_count: 23,
+    };
+    release.request_digest = runtime_release_request_identity_digest(&request).unwrap();
+    let receipt_path = format!(
+        "/nonproduction/runtime-release-tests/effect-{}",
+        runtime_release_effect_id(&request)
+    );
+    let binding = RuntimeReleaseEffectBinding {
+        contract: RuntimeReleaseContract::RuntimeReleaseV1,
+        effect_id: runtime_release_effect_id(&request),
+        request_digest: release.request_digest.clone(),
+        workspace_id: release.workspace_id.clone(),
+        commit: request.commit.clone(),
+        candidate_manifest_digest: request.candidate_manifest_digest.clone(),
+        expected_tool_count: request.expected_tool_count,
+        receipt_path: receipt_path.clone(),
+    };
+    let binding_json = serde_json::to_string(&binding).unwrap();
+    let binding_digest = format!(
+        "sha256:{}",
+        hex::encode(Sha256::digest(binding_json.as_bytes()))
+    );
+    release.workspace_snapshot_json =
+        serde_json::json!({"runtimeReleaseEffectDigest":binding_digest}).to_string();
+
+    let mut owner = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+    assert_eq!(
+        owner
+            .admit_release_effect(&release, &request, Path::new(&receipt_path))
+            .unwrap(),
+        PgAdmissionOutcome::Created(release.job_id.clone())
+    );
+    // Exact replay is resolved before the release single-flight fence.
+    assert_eq!(
+        owner
+            .admit_release_effect(&release, &request, Path::new(&receipt_path))
+            .unwrap(),
+        PgAdmissionOutcome::Existing(release.job_id.clone())
+    );
+
+    // A distinct ReleaseEffect is still single-flight fenced even before the
+    // first operator dispatch. Unblocking ordinary work must not create an
+    // ambiguous release queue.
+    let mut second = payload(
+        "release-pre-dispatch-second",
+        "job-release-pre-dispatch-second",
+        "workspace-release-pre-dispatch-second",
+        0,
+    );
+    let second_request = RuntimeReleaseRequest {
+        schema_version: RUNTIME_SCHEMA_VERSION,
+        client_request_id: second.client_request_id.clone(),
+        principal: second.principal.clone(),
+        workspace_id: second.workspace_id.clone(),
+        commit: "d".repeat(40),
+        candidate_manifest_digest: format!("sha256:{}", "e".repeat(64)),
+        expected_tool_count: 23,
+    };
+    second.request_digest = runtime_release_request_identity_digest(&second_request).unwrap();
+    let second_receipt_path = format!(
+        "/nonproduction/runtime-release-tests/effect-{}",
+        runtime_release_effect_id(&second_request)
+    );
+    let second_binding = RuntimeReleaseEffectBinding {
+        contract: RuntimeReleaseContract::RuntimeReleaseV1,
+        effect_id: runtime_release_effect_id(&second_request),
+        request_digest: second.request_digest.clone(),
+        workspace_id: second.workspace_id.clone(),
+        commit: second_request.commit.clone(),
+        candidate_manifest_digest: second_request.candidate_manifest_digest.clone(),
+        expected_tool_count: second_request.expected_tool_count,
+        receipt_path: second_receipt_path.clone(),
+    };
+    let second_binding_json = serde_json::to_string(&second_binding).unwrap();
+    let second_binding_digest = format!(
+        "sha256:{}",
+        hex::encode(Sha256::digest(second_binding_json.as_bytes()))
+    );
+    second.workspace_snapshot_json =
+        serde_json::json!({"runtimeReleaseEffectDigest":second_binding_digest}).to_string();
+    assert!(matches!(
+        owner.admit_release_effect(&second, &second_request, Path::new(&second_receipt_path)),
+        Err(PgAdmissionError::PendingEffect)
+    ));
+
+    // Durable release intent is not yet a physical cutover boundary.
+    assert!(matches!(
+        owner.admit(&payload(
+            "ordinary-before-release-dispatch",
+            "job-before-release-dispatch",
+            "workspace-before-release-dispatch",
+            1
+        )),
+        Ok(PgAdmissionOutcome::Created(_))
+    ));
+
+    // dispatch_claim commits this exact event while holding the same
+    // advisory lock as ordinary admission. From this boundary onward,
+    // subsequent Jobs must fail closed until the release is terminal.
+    scratch
+        .admin
+        .execute(
+            "INSERT INTO job_events(event_id,job_id,attempt_id,event_sequence,event_type,origin,previous_state,new_state,reason_code,detail_json,detail_digest,observed_at_ms) VALUES('event-release-dispatch-valid-fixture',$1,$2,4,'RELEASE_OPERATOR_DISPATCH_ISSUED','OPERATOR_DERIVED',NULL,NULL,'RELEASE_OPERATOR_DISPATCH_COMMITTED','{}','sha256:fixture',$3)",
+            &[&release.job_id, &release.attempt_id, &(release.created_at_ms + 1)],
+        )
+        .unwrap();
+    assert!(matches!(
+        owner.admit(&payload(
+            "ordinary-after-release-dispatch",
+            "job-after-release-dispatch",
+            "workspace-after-release-dispatch",
+            1
+        )),
+        Err(PgAdmissionError::PendingEffect)
+    ));
+    assert_eq!(scratch.count("jobs"), 2);
+    assert_eq!(scratch.count("job_events"), 7);
 }
 
 #[test]

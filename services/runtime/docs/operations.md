@@ -857,9 +857,11 @@ restores the original bytes; uncertainty suppresses unsafe rollback.
 An unknown dispatch COMMIT or missing result receipt is NEVER
 auto-redispatched. A verified immutable operator result is committed as
 the distinct RELEASE_EFFECT_RECEIPTED event rather than pretending
-the normal Runner observed a PROCESS_EXITED event. PG terminalization
-requires exact installed artifact digests and live MCP tool catalog;
-release.get is a separate authenticated read/receipt verification.
+the normal Runner observed a PROCESS_EXITED event. PG terminalization of a successful installation requires exact installed
+artifact digests and live MCP tool catalog. A qualified deterministic
+pre-dispatch refusal has a distinct no-install failure receipt; uncertain
+physical effects still require reconciliation. In both cases release.get
+is a separate authenticated read/receipt verification.
 An already-terminal exact replay does not repeat systemd or reinstall,
 including if new-release qualification was later revoked.
 
@@ -880,9 +882,12 @@ partial file replace, systemd start failure and exact replay.
 Runtime can report `structuredReleaseConfigured=true` and accept a
 `release.apply` as one durable ReleaseEffect while the independent Root
 dispatcher is configured, without replacing the live Server/Runner. The
-existing PostgreSQL admission transaction already cordons **new** Jobs
-while that Effect is pending; do not create a second cordon or hold its
-source/transaction lock while older Jobs need to terminalize. A release
+source candidate distinguishes durable release intent from the independent
+operator's dispatch boundary: before that boundary ordinary Jobs can
+continue; after it new ordinary admission is fenced until qualified
+settlement. This candidate contract must not be mistaken for installed
+production behavior. Do not create a second cordon or hold the source/
+transaction lock while older Jobs need to terminalize. A release
 can still finish `not_committed` when previously admitted Agent Jobs
 exceed the Root Operator's finite `drainSeconds` budget.
 
