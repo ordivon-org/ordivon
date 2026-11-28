@@ -144,3 +144,93 @@ fn native_writer_keeps_all_ten_python_valid_contract_variants() {
     assert_eq!(checked, 10, "missing Python source valid Contract cases");
     println!("PG18_WRITER_ACCEPTED_PYTHON_VALID_CONTRACTS=10");
 }
+
+/// A historically valid representation is inspectable, not currently
+/// admissible for native continuation. A physical lease does not change
+/// the Contract version, and rejection must not persist a partial write.
+#[test]
+#[ignore = "disposable PG18 historical Contract fixture"]
+fn historical_boolean_contract_cannot_extend_native_journal() {
+    use ordivon_harness_core::{canonical_bytes, digest_bytes};
+    use ordivon_harness_pg::ReadError;
+
+    let dsn = std::env::var("HARNESS_RUST_TEST_PG_DSN").unwrap();
+    let schema = std::env::var("HARNESS_RUST_TEST_SCHEMA").unwrap();
+    assert!(schema.starts_with("hpg_rust_isolated_a_"));
+    let run_id = std::env::var("HARNESS_RUST_TEST_LEGACY_BOOLEAN_RUN_ID").unwrap();
+    let mut db = Client::connect(&dsn, NoTls).unwrap();
+    let readback = read_run_readonly(&mut db, &schema, &run_id);
+    assert!(matches!(
+        readback,
+        Err(ReadError::UnsupportedLegacyRepresentation(_))
+    ));
+    let state_sql = format!(
+        "SELECT r.revision,r.status,r.contract_object_digest,o.content,          (SELECT count(*) FROM {schema}.run_events e WHERE e.harness_run_id=r.harness_run_id),          (SELECT count(*) FROM {schema}.run_object_refs x WHERE x.harness_run_id=r.harness_run_id)          FROM {schema}.runs r JOIN {schema}.objects o ON o.digest=r.contract_object_digest          WHERE r.harness_run_id=$1"
+    );
+    let state = |db: &mut Client| {
+        let row = db.query_one(&state_sql, &[&run_id]).unwrap();
+        (
+            row.get::<_, i64>(0),
+            row.get::<_, String>(1),
+            row.get::<_, String>(2),
+            row.get::<_, Vec<u8>>(3),
+            row.get::<_, i64>(4),
+            row.get::<_, i64>(5),
+        )
+    };
+    let before = state(&mut db);
+    assert_eq!(before.0, 1);
+    let lease = acquire_run_lease(
+        &mut db,
+        &schema,
+        &run_id,
+        "test:historical-contract-writer-gate",
+        10_000,
+        1000,
+        Some(1),
+    )
+    .unwrap();
+    let ev = trace("event:historical-boolean-contract-writer-gate", 1200);
+    // Reconstruct the existing canonical payload envelope solely to observe
+    // whether a rejected transaction leaked its new immutable CAS object.
+    let payload = CanonicalDocument::object(vec![
+        (
+            "schemaVersion".into(),
+            CanonicalDocument::integer_from_decimal("1").unwrap(),
+        ),
+        (
+            "kind".into(),
+            CanonicalDocument::string("ordivon.harness-run-event-payload"),
+        ),
+        (
+            "eventKind".into(),
+            CanonicalDocument::string(&ev.event_kind),
+        ),
+        ("data".into(), ev.data.clone()),
+    ])
+    .unwrap();
+    let digest = digest_bytes(&canonical_bytes(&payload));
+    let cas_count = |db: &mut Client| {
+        db.query_one(
+            &format!("SELECT count(*) FROM {schema}.objects WHERE digest=$1"),
+            &[&digest],
+        )
+        .unwrap()
+        .get::<_, i64>(0)
+    };
+    assert_eq!(cas_count(&mut db), 0);
+    let result = append_events(&mut db, &schema, &run_id, &[ev], 1, &lease, 1100);
+    assert!(matches!(
+        result,
+        Err(WriteError::Read(ReadError::Corruption(_)))
+    ));
+    drop(db);
+    let mut db = Client::connect(&dsn, NoTls).unwrap();
+    assert_eq!(state(&mut db), before);
+    assert_eq!(cas_count(&mut db), 0);
+    assert!(matches!(
+        read_run_readonly(&mut db, &schema, &run_id),
+        Err(ReadError::UnsupportedLegacyRepresentation(_))
+    ));
+    println!("PG18_HISTORICAL_BOOLEAN_CONTRACT_WRITER_REJECTED_ATOMICALLY");
+}
