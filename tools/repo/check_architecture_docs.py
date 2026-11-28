@@ -1978,18 +1978,11 @@ def validate_formal_issue_census(
 
 
 def validate_r21_lego_vocabulary(document: str, *, root: Path = ROOT) -> None:
-    """Keep the already accepted six-role LEGO interface distinct from optional math.
+    """Check source-bound native consumer witness references, not a LEGO definition.
 
-    This is a documentation/source-bound gate, not a universal proof schema.
-    Consumer paths must name existing Owner-native falsification witnesses.
+    Mathematical representations are chosen by the relevant problem and
+    consumer. No canonical tuple or notation is required.
     """
-    canonical = "L = (identity, responsibility, inputs, outputs, contract, acceptance)"
-    if document.count(canonical) != 1:
-        raise ArchitectureDocsError("R2.1 canonical LEGO contract must be unique")
-    if re.search(r"\bL\s*=\s*\(\s*(?:C\s*,\s*I\s*,\s*O\s*,\s*S\s*,|I\s*,\s*O\s*,\s*A\s*,)", document):
-        raise ArchitectureDocsError("R2.1 competing LEGO mathematical definition")
-    if r"\mathrm{Semantics}(L)" not in document:
-        raise ArchitectureDocsError("R2.1 optional semantics must be distinct from LEGO")
     disabled = {
         "unittest.skip", "unittest.skipIf", "unittest.skipUnless",
         "pytest.mark.skip", "pytest.mark.skipif", "pytest.mark.xfail",
