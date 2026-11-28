@@ -497,8 +497,13 @@ def dispatch_claim(
 
 def active_executions(conn: psycopg.Connection, release_job_id: str) -> list[str]:
     rows = conn.execute(
-        "SELECT job_id FROM jobs WHERE resolution IS NULL AND job_id <> %s "
-        "ORDER BY created_at_ms LIMIT 64", (release_job_id,),
+        # Resolved orphans can retain a reservation; use the same consumer
+        # predicate as PG Workspace retirement, including all Attempts.
+        "SELECT j.job_id FROM jobs j WHERE j.job_id <> %s AND ("
+        "j.resolution IS NULL OR EXISTS (SELECT 1 FROM attempts a "
+        "JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id "
+        "WHERE a.job_id=j.job_id AND r.state IN ('active','held_orphaned'))) "
+        "ORDER BY j.created_at_ms, j.job_id LIMIT 64", (release_job_id,),
     ).fetchall()
     return [row["job_id"] for row in rows]
 
