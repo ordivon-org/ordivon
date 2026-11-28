@@ -167,6 +167,30 @@ mod event_projection_tests {
                 assert_eq!(events[3].attempt_id.as_deref(), Some("new"));
             }
         }
+        // A nullable attempt identity is a distinct GROUP BY class. This is
+        // a projection fixture, not evidence that such dispatches are valid.
+        for (index, attempt) in [None, None, Some(""), Some("x"), Some("x")]
+            .into_iter()
+            .enumerate()
+        {
+            let sequence = i64::try_from(index + 1).unwrap();
+            db.execute(
+                "INSERT INTO job_events VALUES('nullable',$1,$2,'DISPATCH_ISSUED','SYSTEM_DERIVED',NULL,NULL,'TEST',$1::bigint+100)",
+                &[&sequence, &attempt],
+            ).unwrap();
+        }
+        for limit in [0, 1, 5, 100] {
+            let (summary, events, truncated) =
+                read_job_events(&mut db, "nullable", 100, limit).unwrap();
+            assert_eq!(summary.dispatches, 5);
+            assert_eq!(summary.duplicate_dispatches, 2);
+            assert_eq!(events.len(), usize::try_from(limit.min(5)).unwrap());
+            assert_eq!(truncated, limit < 5);
+            if limit >= 5 {
+                assert_eq!(events[0].attempt_id, None);
+                assert_eq!(events[2].attempt_id.as_deref(), Some(""));
+            }
+        }
         let (summary, events, truncated) = read_job_events(&mut db, "missing", 100, 0).unwrap();
         assert_eq!(summary.dispatches, 0);
         assert!(events.is_empty());
