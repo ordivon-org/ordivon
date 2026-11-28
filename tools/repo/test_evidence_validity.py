@@ -468,7 +468,7 @@ def test_selector_control_inputs_use_actual_git_blobs(monkeypatch, tmp_path):
     for relative in policy.CONTROL_INPUTS:
         path = repo / relative
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("control input " + relative + "\n")
+        path.write_text("seams = []\n" if relative.endswith("dependency_contracts.toml") else "control input " + relative + "\n")
     git("add", ".")
     git("commit", "-qm", "exact policy fixture")
     cut = git("rev-parse", "HEAD")
@@ -496,6 +496,66 @@ def test_selector_control_inputs_use_actual_git_blobs(monkeypatch, tmp_path):
     with pytest.raises(ValueError, match="not a regular Git file"):
         policy.qualify_current_selector(repo, cut)
     path.write_bytes(original)
+    policy.qualify_current_selector(repo, cut)
+
+
+def test_selector_seam_inputs_derive_from_native_manifest(monkeypatch, tmp_path):
+    import subprocess
+
+    import evidence_source_policy as policy
+    from pg_issuer_consumer import RUNTIME_PG_CORE_ROOT
+
+    repo = tmp_path.resolve()
+    monkeypatch.setattr(policy, "__file__", str(repo / "tools/repo/evidence_source_policy.py"))
+
+    def git(*args):
+        return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+
+    def write(relative, content):
+        path = repo / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content)
+        return path
+
+    git("init", "-q")
+    git("config", "user.name", "Evidence Test")
+    git("config", "user.email", "evidence-test@example.invalid")
+    for relative in policy.CONTROL_INPUTS:
+        write(relative, "control input\n")
+    source = write("services/gateway/tests/consumer.py", "provider fragment\n")
+    contract = write("services/harness/contract.md", "contract\n")
+    provider = write("services/harness/provider.py", "provider\n")
+    rust = write(RUNTIME_PG_CORE_ROOT + "issuer.rs", "// scanner input\n")
+    unrelated = write("docs/unrelated.md", "unrelated\n")
+    write("tools/repo/dependency_contracts.toml", f'''[[seams]]
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+source_glob = "services/gateway/tests/consumer.py"
+contract_ref = "services/harness/contract.md"
+allowed_fragment = "services/harness/provider.py"
+[[seams]]
+kind = "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
+source_glob = "{RUNTIME_PG_CORE_ROOT}"
+contract_ref = "services/harness/contract.md"
+''')
+    git("add", ".")
+    git("commit", "-qm", "exact seam fixture")
+    cut = git("rev-parse", "HEAD")
+    policy.qualify_current_selector(repo, cut)
+    for path in (source, contract, rust):
+        original = path.read_bytes()
+        path.write_bytes(original + b"changed")
+        with pytest.raises(ValueError, match="differs from SourceCut"):
+            policy.qualify_current_selector(repo, cut)
+        path.write_bytes(original)
+    provider.unlink()
+    with pytest.raises(ValueError):
+        policy.qualify_current_selector(repo, cut)
+    provider.write_text("provider\n")
+    extra = write(RUNTIME_PG_CORE_ROOT + "untracked.rs", "// unexpected scanner input\n")
+    with pytest.raises(ValueError, match="membership"):
+        policy.qualify_current_selector(repo, cut)
+    extra.unlink()
+    unrelated.write_text("unrelated edit\n")
     policy.qualify_current_selector(repo, cut)
 
 

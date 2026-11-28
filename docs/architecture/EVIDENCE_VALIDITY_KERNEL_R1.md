@@ -57,8 +57,12 @@ For cross-cut impact only, require the local selector checkout to be the
 requested current SourceCut, and qualify known direct control-input blobs
 before and after the native plan. A mismatch yields UNKNOWN_SOURCE_RELATION;
 it does not invalidate a separately observed exact-SHA provider receipt.
-Dynamic source seams, external data, security-advisory freshness and full
-proof-input closure are not established by this finite check.
+The scoped test-only seam source and contract files are derived from the
+existing dependency contract manifest, including the Runtime issuer locator
+Rust scan membership and exact file bytes. Unrelated dirty paths do not
+invalidate this bounded projection. External data, other dynamic source
+seams, security-advisory freshness and full proof-input closure are not
+established by this finite check.
 
 ## Native Formal declared source-readset consumer (R2)
 
