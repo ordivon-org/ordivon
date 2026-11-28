@@ -13,7 +13,7 @@ import os
 import re
 import subprocess
 import time
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -191,7 +191,10 @@ def _safe_configuration_projection(spec: Mapping[str, Any]) -> list[dict[str, An
     return results
 
 
-def discover_equipment(world: Mapping[str, Any]) -> dict[str, Any]:
+def discover_equipment(
+    world: Mapping[str, Any], *,
+    observe_binding: Callable[[str, str, dict[str, Any]], None] | None = None,
+) -> dict[str, Any]:
     records: list[dict[str, Any]] = []
     for item in world.get("equipment", []):
         candidates: list[dict[str, Any]] = []
@@ -205,6 +208,8 @@ def discover_equipment(world: Mapping[str, Any]) -> dict[str, Any]:
                     mode=binding_mode,
                 )
                 if binding is not None:
+                    if observe_binding is not None:
+                        observe_binding(str(item["id"]), str(spec["equipmentId"]), binding)
                     path = Path(str(binding["executable"]))
                     version = _run_version(path, spec.get("versionArgs", ["--version"]), _binding_environment(binding))
                     candidates.append({
