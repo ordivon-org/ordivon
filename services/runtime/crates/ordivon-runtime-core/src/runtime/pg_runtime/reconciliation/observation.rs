@@ -48,6 +48,15 @@ pub(super) fn runner_result_still_absent(path: &Path) -> RuntimeResult<bool> {
 /// Artifact digest check in project() and must still verify all committed bytes.
 pub(super) type LogWindow = (Vec<u8>, u64, u64, u64);
 
+// A byte interval is independent of whether its backing bytes are mutable
+// preview or committed evidence. Bound length before adding to avoid overflow.
+fn log_window_bounds(available: u64, offset: Option<u64>, limit: u64) -> (u64, u64) {
+    let begin = offset
+        .unwrap_or(available.saturating_sub(limit))
+        .min(available);
+    (begin, begin + limit.min(available - begin))
+}
+
 pub(super) fn active_log_window(
     path: &Path,
     output_ceiling: u64,
@@ -72,10 +81,7 @@ pub(super) fn active_log_window(
     if available > output_ceiling {
         return Err(error("output exceeds retained ceiling"));
     }
-    let begin = offset
-        .unwrap_or(available.saturating_sub(limit))
-        .min(available);
-    let end = begin.saturating_add(limit).min(available);
+    let (begin, end) = log_window_bounds(available, offset, limit);
     file.seek(SeekFrom::Start(begin)).map_err(io)?;
     let mut window = vec![0; usize::try_from(end - begin).map_err(io)?];
     file.read_exact(&mut window).map_err(io)?;
@@ -105,10 +111,7 @@ pub(super) fn verified_terminal_log_window(
     };
     let expected = u64::try_from(expected_length).ok();
     let available = expected.unwrap_or(0);
-    let begin = offset
-        .unwrap_or(available.saturating_sub(limit))
-        .min(available);
-    let end = begin.saturating_add(limit).min(available);
+    let (begin, end) = log_window_bounds(available, offset, limit);
     let mut window = Vec::new();
     let mut hash = Sha256::new();
     let mut count = 0_u64;
@@ -147,7 +150,10 @@ pub(super) fn verified_terminal_log_window(
 
 #[cfg(test)]
 mod terminal_output_path_selection_tests {
-    use super::{output_projection_relative_path, verified_terminal_log_window};
+    use super::{
+        active_log_window, log_window_bounds, output_projection_relative_path,
+        verified_terminal_log_window,
+    };
     use crate::runtime::RuntimeErrorCode;
     use crate::universal::sha256_bytes;
 
@@ -164,9 +170,12 @@ mod terminal_output_path_selection_tests {
         assert!(output_projection_relative_path("stdout", true, Some("../escape")).is_err());
     }
     #[test]
-    fn streaming_terminal_window_matches_original_full_read_oracle() {
+    fn active_and_streaming_terminal_windows_match_original_full_read_oracle() {
         let bytes: Vec<u8> = (0..(2 * 65536 + 17)).map(|i| (i % 251) as u8).collect();
+        let directory = tempfile::TempDir::new().unwrap();
+        let preview = directory.path().join("stdout.log");
         for data in [&bytes[..], &bytes[..65537], &bytes[..2], &bytes[..0]] {
+            std::fs::write(&preview, data).unwrap();
             let length = data.len() as u64;
             let digest = sha256_bytes(data);
             for offset in [
@@ -189,15 +198,39 @@ mod terminal_output_path_selection_tests {
                         limit,
                     )
                     .unwrap();
-                    assert_eq!(
-                        got,
-                        (
-                            data[begin as usize..end as usize].to_vec(),
-                            begin,
-                            end,
-                            length
-                        )
+                    let expected = (
+                        data[begin as usize..end as usize].to_vec(),
+                        begin,
+                        end,
+                        length,
                     );
+                    assert_eq!(got, expected);
+                    assert_eq!(
+                        active_log_window(&preview, length, offset, limit).unwrap(),
+                        Some(expected)
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn log_window_bounds_preserve_saturated_interval_and_tail_laws() {
+        let values = [0, 1, 2, 65535, 65536, u64::MAX - 1, u64::MAX];
+        for available in values {
+            for offset in std::iter::once(None).chain(values.into_iter().map(Some)) {
+                for limit in values {
+                    let (begin, end) = log_window_bounds(available, offset, limit);
+                    let old_begin = offset
+                        .unwrap_or(available.saturating_sub(limit))
+                        .min(available);
+                    let old_end = old_begin.saturating_add(limit).min(available);
+                    assert_eq!((begin, end), (old_begin, old_end));
+                    assert!(begin <= end && end <= available);
+                    assert_eq!(end - begin, limit.min(available - begin));
+                    if offset.is_none() {
+                        assert_eq!(end, available);
+                    }
                 }
             }
         }
