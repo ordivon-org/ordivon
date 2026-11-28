@@ -2,7 +2,6 @@
 import argparse
 import hashlib
 import json
-import os
 from pathlib import Path
 import re
 import shutil
@@ -10,7 +9,7 @@ import struct
 import subprocess
 import tempfile
 
-from native_process import verify_process
+from native_process import private_player_environment, verify_process
 
 FRAMES = 8
 FPS = 30
@@ -72,11 +71,7 @@ def consume(executable, expected_sha, product):
         output = directory / "frames"
         output.mkdir()
         # Do not read/write the normal player's app data.
-        env = os.environ.copy()
-        for name in ("XDG_DATA_HOME", "XDG_CONFIG_HOME", "XDG_CACHE_HOME"):
-            path = directory / name
-            path.mkdir()
-            env[name] = str(path)
+        env = private_player_environment(directory)
         proc = subprocess.run(
             ["xvfb-run", "-a", str(executable), "--rendering-method", "gl_compatibility",
              "--audio-driver", "Dummy", "--resolution", f"{width}x{height}",
