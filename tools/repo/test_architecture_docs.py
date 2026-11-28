@@ -2296,25 +2296,6 @@ def test_formal_lego21_runtime_dependency_relation_is_typed(
         module.validate_formal_issue_census(census, plans)
 
 
-def test_recursive_lego_r21_source_digest_matches_current_declared_contract() -> None:
-    """A referenced formal source must exist and match its exact declared provenance."""
-    document = (
-        ROOT / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md"
-    ).read_text(encoding="utf-8")
-    declared = re.search(r"observed model SHA-256 .([0-9a-f]{64}).", document)
-    assert declared is not None, "R2.1 declaration must bind a source digest"
-
-    skill_root = ROOT / ".agents/skills/recursive-lego-calculus"
-    skill = skill_root / "SKILL.md"
-    reference = skill_root / "references/formal-model.md"
-    assert skill.is_file() and reference.is_file(), (
-        "R2.1 original Skill/model disappeared while the live architecture names it"
-    )
-    assert "name: recursive-lego-calculus" in skill.read_text(encoding="utf-8")
-    assert hashlib.sha256(reference.read_bytes()).hexdigest() == declared.group(1)
-
-
-
 def test_formal_r21_empty_host_owner_graph_must_not_pass_owner_admission() -> None:
     """Host R1 is a declared 2.1 Owner; an empty DAG cannot witness its five contracts."""
     plan = json.loads((ROOT / "services/host/planning/lego-plan-r1.json").read_text())
@@ -2370,7 +2351,7 @@ def test_r21_architecture_cannot_call_an_empty_file_native_consumer_evidence(
                 encoding="utf-8",
             )
     with pytest.raises(module.ArchitectureDocsError, match="consumer witness"):
-        module.validate_r21_lego_vocabulary(document, root=tmp_path)
+        module.validate_architecture_consumer_witnesses(document, root=tmp_path)
 
 
 @pytest.mark.parametrize(
@@ -2408,7 +2389,7 @@ def test_r21_noop_python_witness_cannot_claim_native_acceptance(
             source = "".join(lines)
         output.write_text(source, encoding="utf-8")
     with pytest.raises(module.ArchitectureDocsError, match="non-executable consumer witness"):
-        module.validate_r21_lego_vocabulary(document, root=tmp_path)
+        module.validate_architecture_consumer_witnesses(document, root=tmp_path)
 
 
 def test_r21_duplicate_python_witness_name_is_not_an_unambiguous_proof(
@@ -2434,26 +2415,17 @@ def test_r21_duplicate_python_witness_name_is_not_an_unambiguous_proof(
             )
         path.write_text(source, encoding="utf-8")
     with pytest.raises(module.ArchitectureDocsError, match="consumer witness"):
-        module.validate_r21_lego_vocabulary(document, root=tmp_path)
+        module.validate_architecture_consumer_witnesses(document, root=tmp_path)
 
 
-def test_r21_single_six_role_contract_enforced_at_repository_admission() -> None:
-    """R2.1 semantic lenses must never silently replace the original LEGO interface."""
+def test_architecture_witnesses_do_not_require_a_fixed_definition() -> None:
     vocabulary = (
         ROOT / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md"
     ).read_text(encoding="utf-8")
-    module.validate_r21_lego_vocabulary(vocabulary)
-    canonical = "L = (identity, responsibility, inputs, outputs, contract, acceptance)"
-    assert vocabulary.count(canonical) == 1
-
-    with pytest.raises(module.ArchitectureDocsError, match="canonical"):
-        module.validate_r21_lego_vocabulary(vocabulary.replace(canonical, "L=(C,I,O,S,R,A,G,V)"))
-    with pytest.raises(module.ArchitectureDocsError, match="competing"):
-        module.validate_r21_lego_vocabulary(
-            vocabulary + "\nL = (I, O, A, G, E, V)\n"
-        )
+    module.validate_architecture_consumer_witnesses(vocabulary)
+    module.validate_architecture_consumer_witnesses(vocabulary + "\nL = (I, O, A, G, E, V)\n")
     with pytest.raises(module.ArchitectureDocsError, match="consumer"):
-        module.validate_r21_lego_vocabulary(
+        module.validate_architecture_consumer_witnesses(
             vocabulary.replace(
                 "services/host/tests/test_social_work_fabric_postgres.py",
                 "services/host/tests/test_unverified_nonexistent_contract.py",
@@ -2540,7 +2512,7 @@ def test_r21_source_witness_cannot_be_explicitly_disabled(
             assert changed == 1
         candidate.write_text(contents, encoding="utf-8")
     with pytest.raises(module.ArchitectureDocsError, match="disabled.*consumer witness"):
-        module.validate_r21_lego_vocabulary(document, root=tmp_path)
+        module.validate_architecture_consumer_witnesses(document, root=tmp_path)
 
 
 
@@ -2566,7 +2538,7 @@ def test_r21_skipped_python_test_class_cannot_witness_owner_acceptance(
             source = source.replace(marker, '@unittest.skip("disabled class")\n' + marker)
         path.write_text(source, encoding="utf-8")
     with pytest.raises(module.ArchitectureDocsError, match="disabled consumer witness"):
-        module.validate_r21_lego_vocabulary(document, root=tmp_path)
+        module.validate_architecture_consumer_witnesses(document, root=tmp_path)
 
 
 
@@ -2606,9 +2578,9 @@ def test_r21_module_level_pytestmark_must_not_forge_always_on_consumer_witness(
         candidate.write_text(source, encoding="utf-8")
     if disabled:
         with pytest.raises(module.ArchitectureDocsError, match="disabled.*consumer witness"):
-            module.validate_r21_lego_vocabulary(document, root=tmp_path)
+            module.validate_architecture_consumer_witnesses(document, root=tmp_path)
     else:
-        module.validate_r21_lego_vocabulary(document, root=tmp_path)
+        module.validate_architecture_consumer_witnesses(document, root=tmp_path)
 
 def test_runtime_storage_retention_problem_is_registered_without_deletion_authority() -> None:
     """Disk pressure is a typed owner problem, not evidence to delete recovery."""

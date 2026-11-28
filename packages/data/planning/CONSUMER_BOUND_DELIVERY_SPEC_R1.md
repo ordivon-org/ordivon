@@ -31,20 +31,11 @@ Use the existing producer ODPS 1.1 and bounded DCAT 3 projection; no conversion 
 
 `FALSIFIED` stays a negative observation within its own identity/scope and is never turned into PASS; `UNKNOWN` is neither FALSE nor PASS. Structural catalog errors, product duplicate IDs, malformed checksum binding and conflicting digests on the same distribution remain rejection conditions *before* deciding the selected subset. A selected-only CLI result must expose both global and selected verdicts.
 
-One independent responsibility (LEGO candidate) is **Selected Data-Product Integrity Admission**. R2.1 instantiation at this boundary:
-- I: list of product/version/distribution identity requests and catalog observations under qualified local allowed roots;
-- O: typed selected admission result, observed per-port verdicts and global context;
-- S: read-only in-memory discovery projection; no durable registry;
-- pre: exact, nonempty, unique selected identities and structurally valid catalog;
-- post: selected PASS iff every exact selected port is currently VERIFIED; global observations preserved;
-- inv: missing/unbound is UNKNOWN; unrelated observations do not modify selection standing; selected FALSIFIED cannot pass;
-- eff: local file reads, hashing, CLI output and exit status only; no publishing, deletion or domain authorization;
-- c: UNKNOWN(scope=per-run I/O and catalog-size cost, obligation=measure only if relevant);
-- epsilon: UNKNOWN(scope=hash collision resistance, source-path continuity and external semantic uncertainty; no universal byte/rights proof);
-- prov: exact Git SourceCut, producing ODPS, Python implementation, Lean abstract model and independent Research receipt;
-- unfold: Data catalog/inspection CLI -> producer evidence adapter -> selected consumer read-back; external domain truth and artifact effect are separate.
+Selected Data-Product Integrity Admission is a local read-only operation over the qualified catalog and requested identities. It returns selected and global observations; it owns no durable registry. For a structurally valid catalog and nonempty, unique requests, selected PASS holds exactly when every selected port is currently VERIFIED. Unbound observations remain UNKNOWN; unrelated observations cannot change selected standing; selected FALSIFIED cannot pass.
 
-This is an R2.1 *declared semantic boundary*, not an admission claim of installed universal Data service. Lean proofs cover abstract selection invariants, not Python refinement or filesystem/TOCTOU behavior; native tests and consumer read-back discharge those additional obligations.
+The effect is limited to local file reads, hashing and CLI output/exit status, not publishing, deletion or domain authorization. Measure I/O and catalog-size cost only when relevant; hash collision resistance, source-path continuity and external semantic uncertainty bound the conclusions. The exact Git SourceCut, producer ODPS, Python implementation, Lean abstract model and independent Research receipt supply distinct evidence. The catalog/CLI and producer adapter lead to consumer readback without transferring domain or Artifact authority.
+
+Lean proves abstract selection invariants, not Python refinement or filesystem/TOCTOU behavior; native tests and consumer readback address those additional obligations.
 
 ### Explicit implementation decisions
 

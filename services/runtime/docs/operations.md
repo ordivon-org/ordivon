@@ -584,7 +584,7 @@ scripts/ordivon-runtime-cache prune \
 
 `scripts/ordivon-runtime-pressure-control` is a thin feedback controller over existing Runtime-owned cache and Workspace-reclaim actuators. Its cheap observation path reads host free bytes plus the bounded Runtime Core `registry-status` projection and persists a bounded sample/backoff state; it does not interpret Registry tables or gain Workspace deletion authority. The default policy separates a 20 GiB hard floor from a 28 GiB soft trigger, estimates time-to-floor from recent physical free-space consumption, wakes on material Registry activity, and exponentially backs off after low-yield expensive probes. Cache pruning runs before semantic Workspace reclaim; the latter is attempted only when physical free space remains below the soft trigger. Subordinate cache/reclaim receipts remain the effect authority. The packaged five-minute timer is therefore a cheap sampling cadence, not a five-minute full semantic scan.
 
-### Storage-pressure input/type refinement (LEGO R2.1 / CEGAR)
+### Storage-pressure input/type refinement (CEGAR)
 
 Natural Owner: Runtime storage-pressure controller; consumers are the
 existing five-minute observation and guarded cache-then-Workspace-reclaim

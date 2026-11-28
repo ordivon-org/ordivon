@@ -13,8 +13,7 @@
    Produce a new qualified projection for a substantive metadata correction.
 6. Do not delete other owners' data, active Workspace/Job state, retained evidence
    or recovery obligations. Check consumer reachability and owner-native disposal.
-7. For formal LEGO admission, use the repo's Recursive LEGO R2.1 Skill and
-   typed eleven-field contract, rather than inventing a private data calculus.
+7. For OL reasoning, use the task-specific native mathematical structure and consumer contract rather than a fixed declaration or private data calculus.
 8. Formal-first proof chain: `docs/FORMAL_VERIFICATION.md` is the scoped
    specification/model/implementation/consumer map; run `mise run
    data:formal:verify`, then `mise run data:verify` and the affected native

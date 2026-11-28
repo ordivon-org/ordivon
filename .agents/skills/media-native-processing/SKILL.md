@@ -103,7 +103,7 @@ existing processing/tests/smoke.sh, processing/tests/audio-smoke.sh,
 processing/tests/otio-smoke.sh or processing/tests/timedtext-smoke.sh
 only when changing that adapter or disputing its contract; avoid cosmetic tests.
 
-As an R2.1 LEGO composition, discovery supplies source-bound IDs and digests;
+Discovery supplies source-bound IDs and digests;
 the compiler consumes those IDs and produces a Runtime proposal; Runtime
 produces effect evidence; the consumer checks the real postconditions.
 The key invariant is **technical QC does not entail aesthetic, semantic,
