@@ -38,5 +38,5 @@
 - `待验证`: static graph cannot establish it; don't invent outcome.
 - Prioritization: BLOCKING = proven harm to existing consumer; HIGH = correctness or unchangeable dependency; MEDIUM = maintainability; LOW = stylistic/representation.
 - The contract-preserving goal is `Obs_c(Traces(P_after,E)) = Obs_c(Traces(P_before,E))` for a named current consumer and environment, with explicit UNKNOWN for unavailable installed/external observations. A passing test is a bounded witness, not universal trace equivalence.
-- Recursive LEGO R2.1 `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)` describes independently contractable responsibility, not a file, script or arbitrary checklist item.
+- OL examines independently contractable responsibility, not a file, script or arbitrary checklist item.
 - Default action order `DELETE > REUSE > COMPOSE > REFACTOR > KEEP`, but do not delete merely because static references or line count are zero.

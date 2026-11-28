@@ -217,34 +217,11 @@ acceptance); these are engineering descriptors, not six mathematical axioms.
 | c, epsilon | measured cost / explicitly defined approximation bounds | neither is a universal truth or compatibility metric |
 | prov, acceptance | source-bound evidence and requirement-specific acceptance | metadata and test outcomes are not component semantics |
 
-The R2.1 formal admission tuple
+### Select the mathematical structure from the property
 
-`ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`
+No universal declaration or admission record is required. Define a carrier and the operations or relations relevant to the question, specify lawful contexts and observations, and choose the appropriate proof notion. A function needs no artificial state; a relation need not have a cost model; a stateful protocol needs the actual transition and effect semantics. Quantify over relevant behaviors, including failures and recovery. Use separate source and consumer evidence for claims about implementations or real effects.
 
-is **mandatory, in full, for every independent formally DECLARED or ADMITTED LEGO**, whether method, capability, composite or ordinary domain responsibility, including when no property has yet been proved. DECLARATION_COMPLETE is not MODEL_PROVED. Raw source, exploratory evidence and incomplete candidates are not independently admitted LEGOs.
-Its six practical identity/responsibility/interface/contract/acceptance roles
-remain mandatory too. Do not omit a coordinate because it is awkward; give it
-an exact typed interpretation and a relevant checked obligation. For genuinely
-stateless, effect-free or exact components use `S=Unit`, empty effects or
-`epsilon=0` **only with a justified semantic argument**. `c` needs a named
-unit and scope; `prov` binds the exact implementation/model and evidence;
-`unfold` identifies the actual connected/hidden children (possibly an
-explicitly justified atomic leaf). If a coordinate's value or evidence is unknown, declare a typed UNKNOWN(reason,
-unit/scope where relevant, unfulfilled obligation); this is a present field,
-not a numeric 0 or a proof. UNKNOWN blocks only propositions relying on it.
-Proof standing for an unrelated verified property may still be MODEL_PROVED,
-but CODE_REFINED or INSTALLED_CURRENT requires its own qualified bridge.
-The existing Lean fields c : Nat and epsilon : Nat are a scoped numeric
-model, not a general representation of unknown empirical cost or error. The tuple is a typed declaration with separate mathematical obligations, not
-an automatic theorem, new runtime object, metadata registry, invented
-universal calculus or proof that every repository file is a LEGO. Acceptance
-also declares the consumer/goal and observation or Boolean theorem, a
-comparable baseline or fixed specification, instrument, decision predicate,
-guardrails and evidence/UNKNOWN; cost c and error epsilon do not substitute
-for domain outcome. An explicitly requested verified architecture theorem can
-be a scoped architecture milestone, never by itself a deployed product claim.
-Keep existing names and natural consumer APIs; check each applicable coordinate
-in the existing mature Lean/Pacti/TLA+/SMT/implementation proof carrier.
+For a reachable semantic core, take the closure of legitimate generators under the selected operations (including external inputs and recovery when applicable). For a quotient, prove the relevant equivalence is compatible with the allowed contexts and operations. A reachable subalgebra need not be observationally minimal. For replacement, prove the direction of refinement and the assumptions under which observations are preserved. These are task-relative mathematical obligations, not a new universal object.
 
 ### Behavioral assume–guarantee profile
 
@@ -284,12 +261,7 @@ satisfaction vacuous without solving the intended architectural obligation.
 ### Stateful observable-step refinement: safety AND enabled progress
 
 Existing native Lean owner: tools/formal/RecursiveLegoRefinement.lean.
-This is a restricted semantic **profile of the same canonical R2.1 11-tuple**,
-not an alternate LEGO definition. ObservableStep instantiates the typed
-input I, output O, state S, enabled pre, transition post and one visible
-effect label from eff. The inv, full eff/authority policy, c, epsilon, prov
-and unfold coordinates retain their separate typed declarations and qualified
-proof obligations. They are not defaulted to empty or zero.
+ObservableStep is a local transition relation with explicit enabled inputs and visible outputs/effects. Other properties are modeled separately when the actual consumer requires them.
 
 Fix a relation R between NEW concrete and OLD abstract states (not
 necessarily a function), identical consumer input alphabet, and an explicit
@@ -368,11 +340,8 @@ refinement holds but global refinement fails. Thus replacing a
 contract/LEGO merely because both parts passed is unsound.
 
 This side condition is sufficient, not claimed necessary. The theorem
-concerns the restricted input/output contract projection **only**; when
-instantiating the full unique 11-coordinate R2.1 LEGO, the S, inv,
-eff, c, epsilon, prov and unfold coordinates retain independent
-typed obligations (in particular a hidden effect or installed authority
-cannot be erased by this projection). Implementation-to-model refinement,
+concerns the restricted input/output contract projection **only**; hidden effects or installed authority cannot be erased by that projection.
+Implementation-to-model refinement,
 evidence readset closure and deployment currentness require separate
 consumer verification. To recheck, run Lean from tools/formal/ with
 mise exec -- lean RecursiveLegoRefinement.lean and inspect the

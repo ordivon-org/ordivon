@@ -23,7 +23,7 @@ def test_recursive_lego_math_method_is_found_only_in_qualified_project_scope() -
     assert expected not in unscoped
 
 
-def test_strict_declared_r21_is_retrieved_by_real_skill_consumer() -> None:
+def test_ol_foundations_are_retrieved_by_real_skill_consumer() -> None:
     repo = Path(__file__).resolve().parents[3]
     catalog = SkillCatalog.scan([
         SkillSource(
@@ -39,15 +39,15 @@ def test_strict_declared_r21_is_retrieved_by_real_skill_consumer() -> None:
         expected_snapshot_revision=resolution.snapshot_revision,
         projection="raw",
     ).content
-    assert "formally DECLARED or ADMITTED" in source
-    assert "ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)" in source
-    assert "DECLARATION_COMPLETE" in catalog.read_text(
+    assert "Ordivon LEGO (OL)" in source
+    reference = catalog.read_text(
         resolution.resolved.skill_id,
         relative_path="references/formal-model.md",
         context=context,
         expected_snapshot_revision=resolution.snapshot_revision,
         projection="raw",
     ).content
-    assert "same full effective R2.1 contract" in source
+    assert "contextual equivalence" in source
+    assert "reachable semantic core" in reference
     assert "current principal, grant, scope" in source
     assert "READ_MORE/UNFOLD or refusal" in source

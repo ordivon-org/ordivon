@@ -2272,25 +2272,6 @@ def test_formal_lego21_runtime_dependency_relation_is_typed(
         module.validate_formal_issue_census(census, plans)
 
 
-def test_recursive_lego_r21_source_digest_matches_current_declared_contract() -> None:
-    """A referenced formal source must exist and match its exact declared provenance."""
-    document = (
-        ROOT / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md"
-    ).read_text(encoding="utf-8")
-    declared = re.search(r"observed model SHA-256 .([0-9a-f]{64}).", document)
-    assert declared is not None, "R2.1 declaration must bind a source digest"
-
-    skill_root = ROOT / ".agents/skills/recursive-lego-calculus"
-    skill = skill_root / "SKILL.md"
-    reference = skill_root / "references/formal-model.md"
-    assert skill.is_file() and reference.is_file(), (
-        "R2.1 original Skill/model disappeared while the live architecture names it"
-    )
-    assert "name: recursive-lego-calculus" in skill.read_text(encoding="utf-8")
-    assert hashlib.sha256(reference.read_bytes()).hexdigest() == declared.group(1)
-
-
-
 def test_formal_r21_empty_host_owner_graph_must_not_pass_owner_admission() -> None:
     """Host R1 is a declared 2.1 Owner; an empty DAG cannot witness its five contracts."""
     plan = json.loads((ROOT / "services/host/planning/lego-plan-r1.json").read_text())

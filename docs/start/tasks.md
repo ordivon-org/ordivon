@@ -25,7 +25,7 @@ Neither grants authority, exclusive execution rights or sign-off power, and neit
    SourceCut, public contract, native tests and actual final consumer.
 2. Reuse the existing [method router](../../.agents/skills/method-router/SKILL.md)
    when the analysis method is uncertain. Use the
-   [Recursive LEGO R2.1 Skill](../../.agents/skills/recursive-lego-calculus/SKILL.md)
+   [Ordivon LEGO (OL) Skill](../../.agents/skills/recursive-lego-calculus/SKILL.md)
    only for independently contractable responsibilities, not every file
    or Tool. For executable work, follow the
    [agent first-run](agent-first-run.md).

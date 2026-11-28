@@ -12,9 +12,7 @@ A LEGO is a goal-conditioned, independently replaceable responsibility with
 identity, inputs, outputs, behavioral contract and real consumer acceptance.
 The method/capability distinction describes responsibilities, **not** an
 automatic Skill/Tool type system. A discovered file, paper or provider is only
-a candidate. A separately DECLARED/ADMITTED LEGO uses the complete typed
-`ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)` contract; state and
-effect may be genuinely empty and unknown fields remain typed UNKNOWN.
+a candidate. Select the native mathematical contract that the decision needs; unknown relevant facts remain UNKNOWN.
 Never infer production adoption from a test-only consumer or a source commit.
 
 ## Human guide — outcomes instead of infrastructure
@@ -49,8 +47,7 @@ rather than a raw database deletion or a new custom lifecycle service.
    uncertain method selection. Bounded Context determines authority;
    `design-structure-matrix` checks observed edges and cycles;
    `compositional-contracts` checks assumptions and substitutability.
-3. **Bind one responsibility.** For independent LEGO declarations instantiate
-   all eleven typed R2.1 coordinates; candidate/UNKNOWN is not PROVED.
+3. **Bind one responsibility.** Use the smallest appropriate native semantics; candidate/UNKNOWN is not PROVED.
    Do not create per-file LEGO cards or a new central index.
 4. **Qualify external providers using existing evidence.** Check version/commit,
    license, maintenance, interface, authority, effect, negative control and

@@ -38,9 +38,7 @@ Runtime target and principal observation → actual consumer acceptance
 
 The first public seam is **the Ansible playbook execution surface**, not an invented WSL wrapper. Its task list must contain the Linux distro/systemd convergence but no writer to Windows-user global `.wslconfig`. Use Ansible native `--syntax-check`/`--list-tasks` and current pytest; an independent read-only native observation is required when claiming deployed state.
 
-## 5. Typed R2.1 contract — responsibility, not source file
-
-`ell = (I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`
+## 5. Local Linux/Windows boundary contract
 
 | Coordinate | Typed interpretation |
 | --- | --- |

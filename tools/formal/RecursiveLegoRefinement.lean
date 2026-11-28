@@ -1258,48 +1258,29 @@ theorem runtime_default_can_exceed_caller_grant :
 -- Strict, task-local R2.1 LEGO profile demanded for this admitted K1
 -- responsibility. I/O/S are ACTUAL Lean types, not untyped JSON labels.
 -- Extra identity, responsibility, and acceptance retain the six practical
--- roles; each of the eleven historical coordinates is mandatory HERE.
+-- Only the relations actually used in the following proofs are modeled.
 -- This structure is a formal model, not a new registry/runtime or proof
 -- that an arbitrary Python/Rust binary implements it.
-structure StrictLego21 (I O S : Type) where
-  identity : String
-  responsibility : String
+structure TransitionContract (I O S : Type) where
   pre : S → I → Prop
   post : S → I → O → S → Prop
   inv : S → Prop
   eff : S → I → O → S → Prop
-  c : S → I → Nat
-  epsilon : Nat
-  prov : String
-  unfold : List String
   accept : S → I → O → S → Prop
 
--- Coordinates, in order:
--- I = Option Nat (the optional Agent timeout),
--- O = Nat (explicit forwarded timeout), S = Nat (the caller grant).
--- pre = admitted, post = exact forwarding and preserved grant,
--- inv = positive and bounded grant, eff = this adapter has no state change,
--- c = one ABSTRACT projection step, epsilon = zero numeric approximation,
--- prov = source-level traceability (NOT installed currentness),
--- unfold = one existing Harness adapter responsibility.
-def strictTimeout : StrictLego21 (Option Nat) Nat Nat where
-  identity := "harness.gateway.execution.timeout-bound-r21"
-  responsibility := "preserve caller timeout grant across optional Agent port"
+-- Local timeout relation: exact forwarding and preserved caller grant.
+def strictTimeout : TransitionContract (Option Nat) Nat Nat where
   pre := fun grant requested => admitted grant requested
   post := fun grant requested outgoing next =>
     outgoing = forwarded grant requested ∧ next = grant
   inv := fun grant => 0 < grant ∧ grant ≤ 900000
   eff := fun grant _ _ next => next = grant
-  c := fun _ _ => 1
-  epsilon := 0
-  prov := "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
-  unfold := ["PluginGatewayExecutionGrant", "GatewayMcpRuntimeAdapter"]
   accept := fun grant requested outgoing next =>
     outgoing = forwarded grant requested ∧
     next = grant ∧
     0 < outgoing ∧ outgoing ≤ grant
 
-def asIOContract {I O S : Type} (lego : StrictLego21 I O S) :
+def asIOContract {I O S : Type} (lego : TransitionContract I O S) :
     IOContract (S × I) (O × S) where
   assume := fun x => lego.inv x.1 ∧ lego.pre x.1 x.2
   guarantee := fun x y =>
@@ -1307,28 +1288,24 @@ def asIOContract {I O S : Type} (lego : StrictLego21 I O S) :
     lego.eff x.1 x.2 y.1 y.2 ∧
     lego.accept x.1 x.2 y.1 y.2
 
--- INVARIANT-CLOSURE OBLIGATION of the EXISTING 11-coordinate R2.1 LEGO.
--- The old asIOContract checks inv at the *input* but its guarantee does
--- not imply inv at the resulting state. No extra LEGO registry/type is
--- needed: this is a predicate on the canonical tuple itself.
--- Neither an AST shape nor declaring "inv" proves this property.
-def PreservesInvariant {I O S : Type} (lego : StrictLego21 I O S) : Prop :=
+-- Invariant closure is a property of this selected transition contract, not a declaration shape.
+def PreservesInvariant {I O S : Type} (lego : TransitionContract I O S) : Prop :=
   ∀ s i o next,
     lego.inv s → lego.pre s i →
     lego.post s i o next → lego.eff s i o next →
     lego.accept s i o next → lego.inv next
 
--- A derived view, not a replacement definition of the 11-tuple.
+-- A derived consumer-observable guarantee.
 -- This makes the next-state obligation a consumer-observable guarantee.
 def asInvariantClosedContract {I O S : Type}
-    (lego : StrictLego21 I O S) :
+    (lego : TransitionContract I O S) :
     IOContract (S × I) (O × S) where
   assume := (asIOContract lego).assume
   guarantee := fun x y =>
     (asIOContract lego).guarantee x y ∧ lego.inv y.2
 
 theorem invariant_closed_contract_refines_existing {I O S : Type}
-    (lego : StrictLego21 I O S) :
+    (lego : TransitionContract I O S) :
     Refines (asInvariantClosedContract lego) (asIOContract lego) := by
   constructor
   · intro x h
@@ -1340,7 +1317,7 @@ theorem invariant_closed_contract_refines_existing {I O S : Type}
 -- implementation relation transports invariants to every produced state.
 -- This is a MODEL theorem; installed code still needs refinement evidence.
 theorem invariant_preserved_by_qualified_implementation {I O S : Type}
-    (lego : StrictLego21 I O S)
+    (lego : TransitionContract I O S)
     (behavior : (S × I) → (O × S) → Prop)
     (hImpl : Implements (asIOContract lego) behavior)
     (hClosed : PreservesInvariant lego) :
@@ -1355,10 +1332,10 @@ theorem invariant_preserved_by_qualified_implementation {I O S : Type}
 
 -- Checked upgrade: an existing total implementation is admitted under the
 -- stronger consumer-observable contract IF its LEGO separately proves
--- invariant closure. This is not a universal property of all R2.1 tuples.
+-- invariant closure. This is not a universal property of transitions.
 theorem qualified_implementation_implements_invariant_closed_contract
     {I O S : Type}
-    (lego : StrictLego21 I O S)
+    (lego : TransitionContract I O S)
     (behavior : (S × I) → (O × S) → Prop)
     (hImpl : Implements (asIOContract lego) behavior)
     (hClosed : PreservesInvariant lego) :
@@ -1373,23 +1350,17 @@ theorem qualified_implementation_implements_invariant_closed_contract
 -- NONVACUOUS NEGATIVE WITNESS: a component can be total on every
 -- admitted input and satisfy all of the original post/eff/accept checks
 -- while still moving from a valid state to one violating its own inv.
--- This prevents claiming invariant preservation from the 11 field names.
+-- Input invariants do not imply next-state invariants.
 theorem input_only_invariant_is_insufficient :
-    ∃ (L : StrictLego21 Unit Unit Bool)
+    ∃ (L : TransitionContract Unit Unit Bool)
       (behavior : (Bool × Unit) → (Unit × Bool) → Prop),
       Implements (asIOContract L) behavior ∧
       ¬ PreservesInvariant L := by
-  let L : StrictLego21 Unit Unit Bool := {
-    identity := "formal-negative.invariant-drop"
-    responsibility := "counterexample to input-only invariant"
+  let L : TransitionContract Unit Unit Bool := {
     pre := fun _ _ => True
     post := fun _ _ _ next => next = false
     inv := fun s => s = true
     eff := fun _ _ _ _ => True
-    c := fun _ _ => 1
-    epsilon := 0
-    prov := "finite-lean-countermodel-not-installed-code"
-    unfold := []
     accept := fun _ _ _ _ => True
   }
   let behavior : (Bool × Unit) → (Unit × Bool) → Prop :=
@@ -1446,7 +1417,7 @@ theorem strictTimeout_refines_existing_consumer :
 -- A genuine old consumer admits every established owner-grant value.
 -- Shrinking the candidate's invariant must NOT shrink that old admission.
 -- This is a permanent independent negative refinement witness.
-def narrowedTimeout : StrictLego21 (Option Nat) Nat Nat :=
+def narrowedTimeout : TransitionContract (Option Nat) Nat Nat :=
   { strictTimeout with inv := fun grant => grant = 10000 }
 
 theorem narrowed_candidate_is_nonvacuous :
@@ -1475,7 +1446,7 @@ theorem old_consumer_admits_explicit_50000 :
 -- The new candidate remains realizable but rejects a previously admissible
 -- explicit timeout, so substitution must fail even when the grant invariant
 -- itself is unchanged.
-def narrowedRequestTimeout : StrictLego21 (Option Nat) Nat Nat :=
+def narrowedRequestTimeout : TransitionContract (Option Nat) Nat Nat :=
   { strictTimeout with
     pre := fun grant requested =>
       admitted grant requested ∧
@@ -1531,7 +1502,7 @@ theorem strictTimeout_preserves_invariant
   exact hInv
 
 -- Reuse the PREEXISTING native state-invariant theorem to discharge
--- the new general eleven-coordinate closure obligation. Do not duplicate
+-- the local transition-closure obligation. Do not duplicate
 -- the responsibility-level proof or infer actual Python installed behavior.
 theorem strictTimeout_has_transition_invariant_closure :
     PreservesInvariant strictTimeout := by
@@ -1544,14 +1515,6 @@ theorem timeout_model_implements_invariant_closed_contract :
   qualified_implementation_implements_invariant_closed_contract
     strictTimeout modeledBehavior modeledBehavior_implements_strictTimeout
     strictTimeout_has_transition_invariant_closure
-
--- The cost/approximation coordinates are intentionally abstract: a single
--- projection step, with no mathematical approximation of the timeout value.
--- They are not latency, monetary cost, installed effects or proof reliability.
-theorem strictTimeout_abstract_cost_and_epsilon
-    (grant : Nat) (requested : Option Nat) :
-    strictTimeout.c grant requested = 1 ∧ strictTimeout.epsilon = 0 :=
-  ⟨rfl, rfl⟩
 
 -- The admitted mathematical realization exactly matches the declared
 -- effect/acceptance relation, not just the old bounded consumer guarantee.
@@ -1606,7 +1569,6 @@ end OrdivonR21.TimeoutConnection
 #print axioms OrdivonR21.TimeoutConnection.invariant_preserved_by_qualified_implementation
 #print axioms OrdivonR21.TimeoutConnection.strictTimeout_has_transition_invariant_closure
 #print axioms OrdivonR21.TimeoutConnection.timeout_model_implements_invariant_closed_contract
-#print axioms OrdivonR21.TimeoutConnection.strictTimeout_abstract_cost_and_epsilon
 #print axioms OrdivonR21.TimeoutConnection.strictTimeout_transition_meets_acceptance
 
 #print axioms OrdivonR21.TimeoutConnection.accepted_request_preserves_grant
@@ -1662,22 +1624,8 @@ end OrdivonR21.NumericRepresentation
 #print axioms OrdivonR21.NumericRepresentation.unchecked_numeric_alias_is_possible
 
 -- R2.1 K1/Cross-Agent evidence message LEGO, one scoped responsibility.
--- ell_M = (I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold):
--- I=(ref,digest) of an already authenticated, open-topic message;
--- O=(success status, unchanged or appended ledger); S=ref→(digest,seq), nextSeq;
--- pre=ref and digest nonempty; authorized writer/open topic/transactional
---      admission are externally required preconditions, not proven by Lean;
--- post=matching replay returns existing, conflicting digest refuses mutation,
---      unseen ref appends exactly once, no other ref is changed;
--- inv=previously committed digest and order never silently change;
--- eff=one append or none (not downstream execution);
--- c=one abstract atomic insertion; epsilon=0 in this exact finite-step model;
--- prov=Host v2 social_store.post_message ON CONFLICT/transaction sourcecut;
--- unfold=(Gateway.message_post, Host.post_message, Host.topic_resume).
--- These are mandatory *for this instantiated LEGO*; this namespace is NOT a
--- universal metadata registry. SQL isolation, network authentication, the
--- actual Python implementation, installed revision, and result-currentness
--- are independent K2 refinement obligations, NOT claimed here.
+-- Durable message admission is modeled by its ledger transition and replay guarantees.
+-- SQL isolation, authentication and installed implementation remain separate obligations.
 namespace OrdivonR21.MessageEvidence
 
 -- This ledger is a LOGICAL successful-commit projection: nextSeq is
@@ -1828,7 +1776,7 @@ theorem overwrite_breaks_existing_immutability :
   have hConflict := (h.1 "old" 0 rfl).2
   simp at hConflict
 
--- Instantiate the EXISTING R2.1 typed 11-coordinate component carrier
+-- Reuse the local transition contract
 -- from TimeoutConnection. This models one real collaboration responsibility;
 -- it does not create another transport, registry, framework or evaluator.
 def LedgerInvariant (s : Ledger) : Prop :=
@@ -1866,10 +1814,8 @@ theorem deliver_preserves_ledger_invariant (s : Ledger) (ref digest : String)
       · simpa [h, same] using hInv
 
 def strictMessage :
-    OrdivonR21.TimeoutConnection.StrictLego21
+    OrdivonR21.TimeoutConnection.TransitionContract
       (String × String) Admission Ledger where
-  identity := "host.space.message.post-and-replay-r21"
-  responsibility := "atomic durable message admission with immutable identity"
   pre := fun _ request => request.1 ≠ "" ∧ request.2 ≠ ""
   post := fun s request admission next =>
     deliver s request.1 request.2 = (next, admission)
@@ -1877,11 +1823,6 @@ def strictMessage :
   eff := fun s _ admission next =>
     (admission = .committed → next.nextSeq = s.nextSeq + 1) ∧
     (admission ≠ .committed → next = s)
-  c := fun _ _ => 1
-  epsilon := 0
-  prov := "services/host/src/ordivon_host_v2/social_store.py:post_message"
-  unfold := ["Gateway.message_post", "Host.social_store.post_message",
-             "Host.topic_resume"]
   accept := fun s request admission next =>
     Guarantees (s, request.1, request.2) (next, admission)
 
@@ -1996,10 +1937,7 @@ theorem strict_message_has_admitted_state_and_request :
       cases h
   · exact ⟨by decide, by decide⟩
 
-theorem strict_message_abstract_cost_and_zero_error
-    (s : Ledger) (request : String × String) :
-    strictMessage.c s request = 1 ∧ strictMessage.epsilon = 0 :=
-  ⟨rfl, rfl⟩
+
 
 end OrdivonR21.MessageEvidence
 
@@ -2010,7 +1948,6 @@ end OrdivonR21.MessageEvidence
 #print axioms OrdivonR21.MessageEvidence.strict_message_model_preserves_invariant
 #print axioms OrdivonR21.MessageEvidence.strict_message_has_transition_invariant_closure
 #print axioms OrdivonR21.MessageEvidence.strict_message_implements_invariant_closed_contract
-#print axioms OrdivonR21.MessageEvidence.strict_message_abstract_cost_and_zero_error
 #print axioms OrdivonR21.MessageEvidence.strict_message_has_admitted_state_and_request
 
 #print axioms OrdivonR21.MessageEvidence.same_ref_digest_replay_is_state_preserving
@@ -2109,9 +2046,7 @@ end OrdivonR21.RetirementClosure
 #print axioms OrdivonR21.RetirementClosure.new_edge_invalidates_old_negative_observation
 #print axioms OrdivonR21.RetirementClosure.new_live_consumer_invalidates_old_negative_observation
 
--- Stateful/effectful profile of the *same* R2.1 11-tuple, not a new calculus.
--- I,O,S,pre,post,visible eff are instantiated here. Invariants, cost,
--- epsilon, provenance, unfold and installed environment remain separate.
+-- Observable transition relations for stateful/effectful substitution.
 namespace OrdivonR21
 
 structure ObservableStep (σ ι ο ε : Type) where
