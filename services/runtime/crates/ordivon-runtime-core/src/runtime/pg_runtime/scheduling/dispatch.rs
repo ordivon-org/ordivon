@@ -157,8 +157,8 @@ impl PgRuntime {
                 let active: bool = db
                     .client
                     .query_one(
-                        "SELECT EXISTS(SELECT 1 FROM job_allocations x JOIN attempts a ON a.attempt_id=x.attempt_id WHERE a.job_id=$1 AND x.state='active')",
-                        &[&job],
+                        super::CONFIRMED_CURRENT_ALLOCATION_SQL,
+                        &[&job, &attempt_id],
                     )
                     .map_err(io)?
                     .get(0);
