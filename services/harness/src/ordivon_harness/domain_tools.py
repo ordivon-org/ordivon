@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, Protocol
 
-from anc_canonical import JsonValue, canonical_digest, validate_json_value
+from anc_canonical import JsonValue, canonical_digest, validate_json_value, validate_digest
 
 from .ordivon.control import CancellationToken as _CancellationToken, RunDeadline
 from .ordivon.events import HarnessRunEvent
@@ -37,17 +37,6 @@ def _text(value: str, label: str, *, prefix: str | None = None) -> str:
         raise ValueError(f"{label} exceeds 300 UTF-8 bytes")
     if prefix is not None and not value.startswith(prefix + ":"):
         raise ValueError(f"{label} must start with {prefix}:")
-    return value
-
-
-def _digest(value: str, label: str) -> str:
-    if (
-        not isinstance(value, str)
-        or len(value) != 71
-        or not value.startswith("sha256:")
-        or any(character not in "0123456789abcdef" for character in value[7:])
-    ):
-        raise ValueError(f"{label} must be sha256:<64 lowercase hex>")
     return value
 
 
@@ -123,7 +112,7 @@ class DomainToolLoopPlan:
     def __post_init__(self) -> None:
         _text(self.harness_run_id, "Harness Run identity", prefix="harness-run")
         _text(self.assignment_id, "Assignment identity", prefix="assignment")
-        _digest(self.context_digest, "domain loop Context digest")
+        validate_digest(self.context_digest, "domain loop Context digest")
         if not self.initial_messages:
             raise ValueError("domain loop requires at least one initial message")
         for message in self.initial_messages:
