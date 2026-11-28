@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / "scripts/ordivon-runtime-pressure-control"
@@ -184,13 +185,80 @@ class PressureControlTests(unittest.TestCase):
                     state["nextExpensiveProbeAfterMs"], 10_000
                 )
 
+    def test_pg_carrier_rejects_legacy_cycle_before_lock_or_actuation(self):
+        cycle = self.module["cycle"]
+        namespace = cycle.__globals__
+        with (
+            patch.object(namespace["subprocess"], "run", return_value=SimpleNamespace(returncode=0, stdout="123\n")),
+            patch.object(namespace["os"], "readlink", return_value="/usr/local/libexec/ordivon/ordivon-runtime-pg"),
+            patch.dict(namespace, {"exclusive_lock": lambda _path: self.fail("legacy cycle acquired its lock on PG")}),
+            self.assertRaisesRegex(RuntimeError, "legacy Runtime authority"),
+        ):
+            cycle(SimpleNamespace(lock_file=Path("/unused-pressure-lock")))
+
+    def test_legacy_authority_requires_stable_native_pid_and_image(self):
+        check = self.module["require_legacy_runtime_authority"]
+        namespace = check.__globals__
+        legacy = "/usr/local/libexec/ordivon/ordivon-runtime"
+        pg = legacy + "-pg"
+        for pids, images, accepted in (
+            (["123", "123"], [legacy, legacy], True),
+            (["123"], [pg], False),
+            (["123", "124"], [legacy], False),
+            (["123", "123"], [legacy, pg], False),
+            (["0"], [], False),
+            (["unknown"], [], False),
+        ):
+            with self.subTest(pids=pids, images=images):
+                with (
+                    patch.object(
+                        namespace["subprocess"], "run",
+                        side_effect=[SimpleNamespace(returncode=0, stdout=pid) for pid in pids],
+                    ),
+                    patch.object(namespace["os"], "readlink", side_effect=images),
+                ):
+                    if accepted:
+                        check()
+                    else:
+                        with self.assertRaisesRegex(RuntimeError, "legacy Runtime authority"):
+                            check()
+
+    def test_pg_drift_after_cache_does_not_admit_legacy_reclaim(self):
+        actuate = self.module["actuate"]
+        calls = []
+        def require_legacy():
+            if calls:
+                raise RuntimeError("legacy Runtime authority drift")
+
+        with patch.dict(actuate.__globals__, {
+            "require_legacy_runtime_authority": require_legacy,
+            "run_json": lambda command, _accepted: calls.append(command) or {"status": "completed"},
+            "physical_free_bytes": lambda _path: 1,
+            "operator_program": lambda name: Path("/fake") / name,
+        }):
+            with tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                args = SimpleNamespace(
+                    database=root / "registry.sqlite3",
+                    registry_root=root,
+                    runtime_store_root=root / "runtime",
+                    env_file=root / "runtime.env",
+                    cache_lock_file=root / "cache.lock",
+                    reclaim_lock_file=root / "reclaim.lock",
+                )
+                with self.assertRaisesRegex(RuntimeError, "legacy Runtime authority"):
+                    actuate(args, self.policy, root / "receipt", 1)
+        self.assertEqual(len(calls), 1)
+        self.assertIn("ordivon-runtime-cache", " ".join(map(str, calls[0])))
+
     def test_actuator_tries_cache_before_semantic_reclaim_and_skips_reclaim_when_enough(self):
         actuate = self.module["actuate"]
         globals_ = actuate.__globals__
-        saved = {name: globals_[name] for name in ("run_json", "physical_free_bytes", "operator_program")}
+        saved = {name: globals_[name] for name in ("run_json", "physical_free_bytes", "operator_program", "require_legacy_runtime_authority")}
         calls = []
         free_values = iter((31 * 1024**3, 31 * 1024**3))
         try:
+            globals_["require_legacy_runtime_authority"] = lambda: None
             globals_["run_json"] = lambda command, accepted: calls.append(command) or {"status": "completed"}
             globals_["physical_free_bytes"] = lambda _path: next(free_values)
             globals_["operator_program"] = lambda name: Path("/fake") / name

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cheap host-storage feedback controller for existing Runtime reclaim/cache actuators."""
+"""Legacy SQLite host-storage feedback controller for Runtime reclaim/cache actuators."""
 
 from __future__ import annotations
 
@@ -140,6 +140,36 @@ def operator_program(name: str) -> Path:
     if repository.is_file() and not repository.is_symlink():
         return repository
     raise RuntimeError(f"{name} is unavailable")
+
+
+def require_legacy_runtime_authority() -> None:
+    """Refuse the SQLite actuator unless the packaged legacy service is running.
+
+    This is a point-in-time native preflight, not a cross-backend maintenance
+    fence. An operator must still quiesce the old carrier before PG cutover.
+    """
+
+    def main_pid() -> int:
+        result = subprocess.run(
+            ["/usr/bin/systemctl", "show", "--property=MainPID", "--value", "ordivon-runtime.service"],
+            check=False,
+            text=True,
+            capture_output=True,
+            timeout=5,
+        )
+        raw = result.stdout.strip()
+        if result.returncode or not raw.isascii() or not raw.isdecimal() or int(raw) <= 0:
+            raise ValueError("service MainPID is unavailable")
+        return int(raw)
+
+    expected = "/usr/local/libexec/ordivon/ordivon-runtime"
+    try:
+        pid = main_pid()
+        image = f"/proc/{pid}/exe"
+        if os.readlink(image) != expected or main_pid() != pid or os.readlink(image) != expected:
+            raise ValueError("running service is not the packaged legacy Runtime")
+    except (OSError, ValueError, subprocess.SubprocessError) as exc:
+        raise RuntimeError(f"legacy Runtime authority unavailable: {exc}") from exc
 
 
 def registry_signal(database: Path, busy_timeout_ms: int) -> dict[str, int]:
@@ -357,6 +387,7 @@ def run_json(command: list[str], accepted_codes: tuple[int, ...]) -> dict[str, o
 
 
 def actuate(args: argparse.Namespace, policy: dict[str, object], receipt: Path, before_free: int) -> dict[str, object]:
+    require_legacy_runtime_authority()
     cache = run_json(
         [
             sys.executable,
@@ -383,6 +414,7 @@ def actuate(args: argparse.Namespace, policy: dict[str, object], receipt: Path, 
     after_cache_free = physical_free_bytes(host_path)
     reclaim: dict[str, object] | None = None
     if after_cache_free <= int(policy["softTriggerBytes"]):
+        require_legacy_runtime_authority()
         reclaim = run_json(
             [
                 sys.executable,
@@ -484,6 +516,7 @@ def observe(args: argparse.Namespace) -> dict[str, object]:
 
 
 def cycle(args: argparse.Namespace) -> dict[str, object]:
+    require_legacy_runtime_authority()
     with exclusive_lock(args.lock_file):
         policy = load_policy(args.policy_file)
         host_path = Path(str(policy["hostStoragePath"]))
