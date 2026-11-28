@@ -5,27 +5,10 @@ import math
 import shutil
 import subprocess
 import tempfile
-from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
-
-def _fraction(value: str) -> Fraction:
-    try:
-        return Fraction(value)
-    except (ValueError, ZeroDivisionError) as error:
-        raise ValueError(f"invalid rational value: {value!r}") from error
-
-
-def _int_field(value: object, *, field: str) -> int | None:
-    if value is None:
-        return None
-    if isinstance(value, bool):
-        raise ValueError(f"{field} must be an integer")
-    try:
-        return int(value)
-    except (TypeError, ValueError) as error:
-        raise ValueError(f"{field} must be an integer, found {value!r}") from error
+from .qc_numeric import exact_integer, observed_rate, rates_equal
 
 
 def validate_video_probe(
@@ -70,13 +53,13 @@ def validate_video_probe(
     ]
     for field, expected in expectations:
         actual = video.get(field)
-        if actual != expected:
+        if actual != expected or (field in {"width", "height"} and type(actual) is not int):
             errors.append(f"video {field}: expected {expected!r}, found {actual!r}")
 
-    actual_rate = video.get("avg_frame_rate") or video.get("r_frame_rate")
+    actual_rate = observed_rate(video)
     if not isinstance(actual_rate, str):
         errors.append("video frame rate is missing")
-    elif _fraction(actual_rate) != _fraction(frame_rate):
+    elif not rates_equal(actual_rate, frame_rate):
         errors.append(f"video frame rate: expected {frame_rate}, found {actual_rate}")
 
     if expect_audio and not audios:
@@ -107,7 +90,7 @@ def validate_video_probe(
                 )
             if audio_sample_rate is not None:
                 try:
-                    actual_sample_rate = _int_field(audio.get("sample_rate"), field="audio sample_rate")
+                    actual_sample_rate = exact_integer(audio.get("sample_rate"), field="audio sample_rate")
                 except ValueError as error:
                     errors.append(str(error))
                 else:
@@ -117,7 +100,7 @@ def validate_video_probe(
                         )
             if audio_channels is not None:
                 try:
-                    actual_channels = _int_field(audio.get("channels"), field="audio channels")
+                    actual_channels = exact_integer(audio.get("channels"), field="audio channels")
                 except ValueError as error:
                     errors.append(str(error))
                 else:

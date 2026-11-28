@@ -28,7 +28,7 @@ _ADAPTERS = {
 # Only owner-local source files directly selected by these adapter paths.
 # This is not a claim about the complete transitive installed environment.
 _SOURCE_DEPENDENCIES = {
-    "ordivon.media.v2.av-profile": ("processing/bin/native-input.sh",),
+    "ordivon.media.v2.av-profile": ("processing/bin/native-input.sh", "src/ordivon_studio/qc_numeric.py"),
     "ordivon.media.v2.audio-profile": ("processing/bin/native-input.sh",),
     "ordivon.media.v2.otio-profile": (".python-version", "mise.toml"),
     "ordivon.media.v2.timed-text-profile": (
