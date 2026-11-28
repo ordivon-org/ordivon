@@ -6,11 +6,12 @@ fn node() -> NodeResources {
         cpu_millis: 1_000,
         memory_total_bytes: 1_000,
         memory_available_bytes: 1_000,
-        pid_capacity: 1_000,
-        pids_available: 1_000,
-        cpu_pressure: 0.0,
-        memory_pressure: 0.0,
-        io_pressure: 0.0,
+        pid_capacity: Some(1_000),
+        pids_available: Some(1_000),
+        cpu_pressure: Some(0.0),
+        memory_pressure: Some(0.0),
+        io_pressure: Some(0.0),
+        kernel_low_memory: None,
     }
 }
 
@@ -36,11 +37,12 @@ fn realistic_node() -> NodeResources {
         cpu_millis: 1_000,
         memory_total_bytes: 2 * 1024 * 1024 * 1024,
         memory_available_bytes: 1024 * 1024 * 1024,
-        pid_capacity: 10_000,
-        pids_available: 9_000,
-        cpu_pressure: 0.0,
-        memory_pressure: 0.0,
-        io_pressure: 0.0,
+        pid_capacity: Some(10_000),
+        pids_available: Some(9_000),
+        cpu_pressure: Some(0.0),
+        memory_pressure: Some(0.0),
+        io_pressure: Some(0.0),
+        kernel_low_memory: None,
     }
 }
 
@@ -161,7 +163,7 @@ fn preflight_filters_only_known_infeasible_candidates() {
 
     preflight.reserved_cpu = 0;
     let mut pressured = realistic_node();
-    pressured.memory_pressure = 6.0;
+    pressured.memory_pressure = Some(6.0);
     assert!(!preflight.allows(&elsewhere, &pressured));
     assert!(preflight.allows(&first, &pressured));
     let mut no_memory = realistic_node();
@@ -374,6 +376,7 @@ fn native_pg_scheduling_uses_current_attempt_not_highest_attempt_number() {
                attempt_id text PRIMARY KEY, job_id text, attempt_number bigint, state text
              );
              CREATE TEMP TABLE job_allocations (attempt_id text, state text);
+             CREATE TEMP TABLE job_events (job_id text, attempt_id text, event_type text);
              INSERT INTO jobs VALUES ('job-r3','{}','attempt-current','run',NULL);
              INSERT INTO attempts VALUES ('attempt-current','job-r3',1,'accepted'),
                  ('attempt-later','job-r3',2,'running');",
@@ -383,4 +386,56 @@ fn native_pg_scheduling_uses_current_attempt_not_highest_attempt_number() {
     assert_eq!(row.get::<_, Option<String>>(1).as_deref(), Some("accepted"));
     assert_eq!(row.get::<_, String>(3), "run");
     assert!(row.get::<_, Option<String>>(4).is_none());
+    assert!(!row.get::<_, bool>(5));
+    // Foreign Job, other Attempt and non-issue event must not erase UNKNOWN.
+    db.batch_execute(
+        "INSERT INTO job_events VALUES
+        ('job-foreign','attempt-current','SCHEDULER_ISSUE'),
+        ('job-r3','attempt-later','SCHEDULER_ISSUE'),
+        ('job-r3','attempt-current','OTHER');",
+    )
+    .unwrap();
+    let read_issue = |db: &mut postgres::Client| -> bool {
+        db.query_one(SCHEDULING_READBACK_SQL, &[&"job-r3"])
+            .unwrap()
+            .get(5)
+    };
+    assert!(!read_issue(&mut db));
+    db.batch_execute(
+        "INSERT INTO job_events VALUES ('job-r3','attempt-current','SCHEDULER_ISSUE');",
+    )
+    .unwrap();
+    assert!(read_issue(&mut db));
+    db.batch_execute("UPDATE jobs SET desired_state='cancelled' WHERE job_id='job-r3';")
+        .unwrap();
+    assert!(!read_issue(&mut db));
+    db.batch_execute(
+        "UPDATE jobs SET desired_state='run',current_attempt_id=NULL WHERE job_id='job-r3';",
+    )
+    .unwrap();
+    assert!(!read_issue(&mut db)); // fallback selects later running Attempt
+    db.batch_execute("UPDATE jobs SET current_attempt_id='missing' WHERE job_id='job-r3';")
+        .unwrap();
+    assert!(!read_issue(&mut db));
+}
+
+#[test]
+fn windows_native_supply_uses_observed_dimensions_and_rejects_low_memory() {
+    let mut n = realistic_node();
+    n.pid_capacity = None;
+    n.pids_available = None;
+    n.cpu_pressure = None;
+    n.memory_pressure = None;
+    n.io_pressure = None;
+    n.kernel_low_memory = Some(false);
+    let c = candidate("a", 0, 0);
+    let preflight = SchedulerPreflight::default();
+    assert!(preflight.allows(&c, &n));
+    let json = serde_json::to_value(&n).unwrap();
+    assert!(json["pidCapacity"].is_null());
+    assert!(json["cpuPressure"].is_null());
+    n.kernel_low_memory = Some(true);
+    assert!(!preflight.allows(&c, &n));
+    n.kernel_low_memory = None;
+    assert!(!preflight.allows(&c, &n));
 }

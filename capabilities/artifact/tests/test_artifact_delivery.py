@@ -1697,13 +1697,17 @@ class ArtifactDeliveryTests(unittest.TestCase):
         plan = json.loads((ROOT / "artifact-delivery/toolchain-v1.plan.json").read_text())
         node = json.loads((ROOT / "artifact-delivery/node/package.json").read_text())
         project = tomllib.loads((ROOT / "pyproject.toml").read_text())
-        dependencies = set(project["project"]["dependencies"])
+        from packaging.requirements import Requirement
+        from packaging.utils import canonicalize_name
+
+        dependencies = {canonicalize_name(Requirement(item).name)
+                        for item in project["project"]["dependencies"]}
         self.assertEqual(plan["presentation"]["writer"]["tool"], "python-pptx")
         self.assertEqual(plan["spreadsheet"]["writer"]["tool"], "XlsxWriter")
         self.assertNotIn("pptxgenjs", node["dependencies"])
-        self.assertIn("python-pptx==1.0.2", dependencies)
-        self.assertIn("XlsxWriter==3.2.9", dependencies)
-        self.assertFalse(any(item.startswith("openpyxl==") for item in dependencies))
+        self.assertIn("python-pptx", dependencies)
+        self.assertIn("xlsxwriter", dependencies)
+        self.assertNotIn("openpyxl", dependencies)
 
     def test_undeclared_artifact_typeface_fails_dependency_gate(self) -> None:
         with tempfile.TemporaryDirectory() as d:

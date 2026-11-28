@@ -10,7 +10,61 @@ import json
 from pathlib import Path
 from typing import Any
 
-TERMINAL = {"succeeded", "failed", "timed_out", "cancelled", "lost", "orphaned"}
+# Vocabulary of the archived v1 demonstration, not today's Runtime state machine.
+DEMO_IN_PROGRESS = {"accepted", "queued", "starting", "running", "working"}
+
+
+def _trace_errors(execution: dict[str, Any]) -> list[str]:
+    """Refine the schema-validated trace in a single ordered pass."""
+    errors: list[str] = []
+    observations = execution["observations"]
+    total = observations[0]["totalSteps"]
+    previous = None
+    for index, current in enumerate(observations):
+        label = f"observations[{index}]"
+        if current["attemptId"] != execution["attemptId"]:
+            errors.append(f"{label}: attemptId does not match execution")
+        expected = {execution["status"]} if index == len(observations) - 1 else DEMO_IN_PROGRESS
+        if current["status"] not in expected:
+            errors.append(f"{label}: invalid status for trace position")
+        if current["totalSteps"] != total or current["completedSteps"] > total:
+            errors.append(f"{label}: inconsistent step count")
+        if "currentStepIndex" in current and current["currentStepIndex"] >= total:
+            errors.append(f"{label}: current step index out of range")
+        if previous is not None:
+            for field in ("elapsedMs", "progressRevision", "completedSteps"):
+                if current[field] < previous[field]:
+                    errors.append(f"{label}: {field} regressed")
+        previous = current
+    terminal = observations[-1]
+    if terminal["completedSteps"] != total:
+        errors.append("terminal observation: steps incomplete")
+    for field in ("exitCode", "elapsedMs"):
+        if terminal.get(field) != execution[field]:
+            errors.append(f"terminal observation: {field} does not match execution")
+    return errors
+
+
+def _terminal_claim_errors(evidence: dict[str, Any]) -> list[str]:
+    """Check v1 naming and disposition claims, never authenticate an Artifact."""
+    errors: list[str] = []
+    attempt = evidence["attemptId"]
+    for field, expected in (
+        ("executionDisposition", "succeeded"),
+        ("deliveryDisposition", "committed"),
+        ("processTreeDisposition", "terminal_clean"),
+    ):
+        if evidence[field] != expected:
+            errors.append(f"evidence: {field} contradicts passed demonstration")
+    artifact_ids = set(evidence["terminalArtifactIds"])
+    if not all(item.startswith(attempt + ".") for item in artifact_ids):
+        errors.append("evidence: terminalArtifactIds contain a foreign attempt")
+    if not {f"{attempt}.{kind}" for kind in ("stdout", "stderr", "result")}.issubset(artifact_ids):
+        errors.append("evidence: required terminal artifact claims are absent")
+    expected_id = f"{attempt}.terminal-evidence.{evidence['digest'].removeprefix('sha256:')}"
+    if evidence["artifactId"] != expected_id:
+        errors.append("evidence: artifactId does not match attempt and declared digest")
+    return errors
 
 
 def _validate_receipt_envelope(path: Path, receipt: dict[str, Any]) -> list[str]:
@@ -24,6 +78,8 @@ def _validate_receipt_envelope(path: Path, receipt: dict[str, Any]) -> list[str]
 
 
 def _validate_runtime_receipt(path: Path, receipt: dict[str, Any]) -> list[str]:
+    # Caller must first establish the v1 JSON Schema shape. An empty result
+    # means internal consistency only; native ownership and readback are separate.
     errors: list[str] = []
     execution = receipt.get("execution", {})
     evidence = receipt.get("evidence", {})
@@ -44,11 +100,8 @@ def _validate_runtime_receipt(path: Path, receipt: dict[str, Any]) -> list[str]:
         if left != right:
             errors.append(f"{path}: {label} does not match")
 
-    observations = execution.get("observations", [])
-    if isinstance(observations, list) and not any(
-        isinstance(item, dict) and item.get("status") not in TERMINAL for item in observations
-    ):
-        errors.append(f"{path}: receipt contains no non-terminal observation")
+    errors.extend(f"{path}: {error}" for error in _trace_errors(execution))
+    errors.extend(f"{path}: {error}" for error in _terminal_claim_errors(evidence))
 
     changed = set(diff.get("changedPaths", [])) if isinstance(diff.get("changedPaths"), list) else set()
     modified = set(diff.get("modifiedPaths", [])) if isinstance(diff.get("modifiedPaths"), list) else set()

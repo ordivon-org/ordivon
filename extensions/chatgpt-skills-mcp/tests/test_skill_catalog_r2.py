@@ -902,5 +902,40 @@ class SkillDiscoveryRelevanceTests(unittest.TestCase):
             )
 
 
+class ScannerCoverageBoundaryTests(unittest.TestCase):
+    def test_oversized_resource_cannot_receive_clean_scan_or_implicit_invocation(self) -> None:
+        from ordivon_skills.scanner import ScanState, scan_skill_package
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "skills"
+            skill_root = root / "sample"
+            skill_root.mkdir(parents=True)
+            (skill_root / "SKILL.md").write_text(
+                "---\nname: sample\ndescription: Synthetic scan-boundary fixture\n---\n# Sample\n",
+                encoding="utf-8",
+            )
+            (skill_root / "data.txt").write_bytes(b"A" * (1024 * 1024 + 1))
+            scan = scan_skill_package(skill_root)
+            self.assertEqual(scan.state, ScanState.WARN)
+            self.assertIn("UNSCANNED_RESOURCE", scan.risk_tags)
+            catalog = SkillCatalog.scan([SkillSource("demo", root, "user", 1, TrustState.APPROVED)])
+            [record] = catalog.inventory
+            self.assertEqual(record.scan_state, "WARN")
+            self.assertIn("UNSCANNED_RESOURCE", record.risk_tags)
+            self.assertFalse(record.implicit_invocation)
+            self.assertTrue(record.explicit_invocation)
+            self.assertEqual(catalog.view(invocation_mode="implicit").records, ())
+
+    def test_small_clean_resource_remains_scannable(self) -> None:
+        from ordivon_skills.scanner import ScanState, scan_skill_package
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "sample.txt").write_text("safe sample", encoding="utf-8")
+            scan = scan_skill_package(root)
+            self.assertEqual(scan.state, ScanState.PASS)
+            self.assertEqual(scan.risk_tags, ())
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -18,6 +18,7 @@ mod host_dependency;
 mod inspection;
 mod inspection_contract;
 mod job_attempt_state;
+pub(crate) use job_attempt_state::AttemptLifecycleContract;
 #[cfg(feature = "transactional-runtime")]
 mod lifecycle_locks;
 mod operation_circuit;
@@ -147,7 +148,10 @@ mod integration_tests;
 #[cfg(all(test, feature = "transactional-runtime"))]
 mod tests;
 
-#[cfg(all(feature = "postgres-registry-admission", target_os = "linux"))]
+#[cfg(all(
+    feature = "postgres-registry-admission",
+    any(target_os = "linux", windows)
+))]
 pub mod pg_runtime;
 
 pub use workspace_headroom::WorkspaceHeadroomConfig;

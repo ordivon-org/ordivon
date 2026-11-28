@@ -1,8 +1,8 @@
 [tools]
 powershell = "7.6.8"
 node = "26.12.1"
-python = "3.15.1"
-uv = "0.13.5"
+python = "3.15.2"
+uv = "0.13.10"
 pnpm = "12.16.1"
 shellcheck = "0.11.0"
 
@@ -21,5 +21,5 @@ git ls-files -z -- '*.sh' | xargs -0 -r shellcheck
 run = """
 set -euo pipefail
 test -n "${ORDIVON_MEDIA_TRIAL_TEST_DSN:-}" || { echo 'PG test DSN required; skipped tests do not qualify' >&2; exit 2; }
-.venv/bin/python -m unittest discover -s tests -p 'test_research_validity.py' -v
+.venv/bin/python scripts/run-unittest.py tests --pattern 'test_research_validity.py' --strict
 """

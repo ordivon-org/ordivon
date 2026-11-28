@@ -203,49 +203,51 @@ def query_creative_index(index: Mapping[str, Any], term: str) -> dict[str, Any]:
     all_nodes = [node for node in index.get("nodes", []) if isinstance(node, Mapping)]
     all_relations = [relation for relation in index.get("relations", []) if isinstance(relation, Mapping)]
     node_kind = {str(node.get("id")): str(node.get("kind")) for node in all_nodes}
-    selected_ids = {
-        str(node["id"])
-        for node in all_nodes
-        if needle in json.dumps(node, ensure_ascii=False, sort_keys=True).casefold()
-    }
-    frontier = {node_id for node_id in selected_ids if node_kind.get(node_id) != "Source"}
-    selected_relations: dict[tuple[str, str, str, str], Mapping[str, Any]] = {}
+    # Every returned relation must be closed over returned node identities.
+    # Apply the node budget to seeds and all neighbors, including Source nodes.
     max_depth = 3
     max_nodes = 250
     max_relations = 500
-    truncated = False
+    matches = sorted({
+        str(node["id"])
+        for node in all_nodes
+        if needle in json.dumps(node, ensure_ascii=False, sort_keys=True).casefold()
+    })
+    selected_ids = set(matches[:max_nodes])
+    truncated = len(matches) > max_nodes
+    frontier = {node_id for node_id in selected_ids if node_kind.get(node_id) != "Source"}
+    selected_relations: dict[tuple[str, str, str, str], Mapping[str, Any]] = {}
     for _ in range(max_depth):
         if not frontier:
             break
-        next_frontier: set[str] = set()
+        next_ids: set[str] = set()
         for relation in all_relations:
-            source = relation.get("from")
-            target = relation.get("to")
+            source, target = relation.get("from"), relation.get("to")
             if source not in frontier and target not in frontier:
                 continue
-            key = (str(source), str(relation.get("type")), str(target), str(relation.get("evidence")))
-            selected_relations[key] = relation
             for endpoint in (source, target):
-                if isinstance(endpoint, str) and endpoint not in selected_ids:
-                    if node_kind.get(endpoint) == "Source":
-                        selected_ids.add(endpoint)
-                    else:
-                        next_frontier.add(endpoint)
-            if len(selected_relations) >= max_relations:
-                truncated = True
-                break
-        if truncated:
-            break
+                if isinstance(endpoint, str) and endpoint in node_kind and endpoint not in selected_ids:
+                    next_ids.add(endpoint)
         room = max_nodes - len(selected_ids)
-        if room <= 0:
-            truncated = True
-            break
-        ordered = sorted(next_frontier)
+        ordered = sorted(next_ids)
         if len(ordered) > room:
-            ordered = ordered[:room]
             truncated = True
-        selected_ids.update(ordered)
-        frontier = set(ordered)
+        retained = set(ordered[:room])
+        selected_ids.update(retained)
+        # Only retain edges after the endpoint budget has been applied.
+        for relation in all_relations:
+            source, target = relation.get("from"), relation.get("to")
+            if source not in frontier and target not in frontier:
+                continue
+            if source not in selected_ids or target not in selected_ids:
+                truncated = True
+                continue
+            key = (str(source), str(relation.get("type")), str(target), str(relation.get("evidence")))
+            if key not in selected_relations and len(selected_relations) >= max_relations:
+                truncated = True
+                continue
+            selected_relations[key] = relation
+        frontier = {node_id for node_id in retained if node_kind.get(node_id) != "Source"}
     nodes = [node for node in all_nodes if node.get("id") in selected_ids]
     relation_rows = sorted(selected_relations.values(), key=lambda row: (str(row.get("from")), str(row.get("type")), str(row.get("to")), str(row.get("evidence"))))
     return {

@@ -265,186 +265,34 @@ where
     T: Serialize + JsonSchema + Send + 'static,
 {
     fn into_call_tool_result(self) -> Result<CallToolResponse, McpError> {
-        let (ok, value, compatibility_text) = match self {
+        let result = match self {
             Self::Success(result) => {
                 let value = serde_json::to_value(result).map_err(|error| {
                     McpError::internal_error(format!("cannot serialize tool result: {error}"), None)
                 })?;
-                (true, value, "ok".to_string())
+                let mut response = CallToolResult::success(Vec::new());
+                response.structured_content = Some(value);
+                response
             }
-            Self::Error(error) => {
-                let compatibility_text = error.message.clone();
-                (false, json!({ "error": error }), compatibility_text)
-            }
+            Self::Error(error) => tool_error_call_result(error),
         };
-        let mut result = if ok {
-            CallToolResult::success(Vec::new())
-        } else {
-            CallToolResult::error(vec![ContentBlock::text(compatibility_text)])
-        };
-        result.structured_content = Some(value);
         Ok(result.into())
     }
 }
 
-fn artifact_content_projection_metadata(
-    result: &ArtifactContentReadResult,
-) -> ArtifactContentProjectionMetadata {
-    let registered = result.metadata.media_type.clone();
-    let valid_registered_media_type = registered.contains('/')
-        && registered.len() <= 256
-        && registered.bytes().all(|byte| byte.is_ascii_graphic() || byte == b' ');
-    let (media_type, media_type_standing) = if valid_registered_media_type {
-        (
-            registered.clone(),
-            "REGISTERED_METADATA_UNVERIFIED".to_string(),
-        )
-    } else {
-        (
-            "application/octet-stream".to_string(),
-            "REGISTERED_METADATA_INVALID_FALLBACK".to_string(),
-        )
-    };
-    let digest_hex = result
-        .metadata
-        .digest
-        .strip_prefix("sha256:")
-        .unwrap_or(result.metadata.digest.as_str());
-    ArtifactContentProjectionMetadata {
-        job_id: result.metadata.job_id.clone(),
-        artifact_id: result.metadata.artifact_id.clone(),
-        digest: result.metadata.digest.clone(),
-        byte_length: result.metadata.byte_length,
-        truncated: result.metadata.truncated,
-        registered_media_type: registered,
-        media_type,
-        media_type_standing,
-        resource_uri: format!("ordivon://artifact/sha256/{digest_hex}"),
-    }
+fn tool_error_call_result(error: ToolError) -> CallToolResult {
+    let message = error.message.clone();
+    let structured = json!({ "error": error });
+    let mut response = CallToolResult::error(vec![ContentBlock::text(message)]);
+    response.structured_content = Some(structured);
+    response
 }
 
-fn artifact_content_call_result(
-    outcome: ToolOutcome<ArtifactContentReadResult>,
-) -> Result<CallToolResult, McpError> {
-    match outcome {
-        ToolOutcome::Success(result) => {
-            let metadata = artifact_content_projection_metadata(&result);
-            let structured = serde_json::to_value(&metadata).map_err(|error| {
-                McpError::internal_error(
-                    format!("cannot serialize Artifact content metadata: {error}"),
-                    None,
-                )
-            })?;
-            let resource = ResourceContents::BlobResourceContents {
-                uri: metadata.resource_uri.clone(),
-                mime_type: Some(metadata.media_type.clone()),
-                blob: BASE64_STANDARD.encode(&result.bytes),
-                meta: None,
-            };
-            let mut response = CallToolResult::success(vec![ContentBlock::resource(resource)]);
-            response.structured_content = Some(structured);
-            Ok(response)
-        }
-        ToolOutcome::Error(error) => {
-            let message = error.message.clone();
-            let structured = json!({ "error": error });
-            let mut response = CallToolResult::error(vec![ContentBlock::text(message)]);
-            response.structured_content = Some(structured);
-            Ok(response)
-        }
-    }
-}
-
-fn workspace_file_projection_metadata(
-    result: &WorkspaceFileReadResult,
-    media_type: String,
-    media_type_standing: String,
-) -> WorkspaceFileProjectionMetadata {
-    let digest_hex = result
-        .metadata
-        .digest
-        .strip_prefix("sha256:")
-        .unwrap_or(result.metadata.digest.as_str());
-    WorkspaceFileProjectionMetadata {
-        workspace_id: result.metadata.workspace_id.clone(),
-        relative_path: result.metadata.relative_path.clone(),
-        digest: result.metadata.digest.clone(),
-        byte_length: result.metadata.byte_length,
-        media_type,
-        media_type_standing,
-        resource_uri: format!(
-            "ordivon://workspace/{}/sha256/{digest_hex}",
-            result.metadata.workspace_id
-        ),
-    }
-}
-
-fn workspace_file_call_result(
-    outcome: ToolOutcome<WorkspaceFileReadResult>,
-    media_type: String,
-    media_type_standing: String,
-) -> Result<CallToolResult, McpError> {
-    match outcome {
-        ToolOutcome::Success(result) => {
-            let metadata = workspace_file_projection_metadata(
-                &result,
-                media_type,
-                media_type_standing,
-            );
-            let structured = serde_json::to_value(&metadata).map_err(|error| {
-                McpError::internal_error(
-                    format!("cannot serialize workspace file metadata: {error}"),
-                    None,
-                )
-            })?;
-            let resource = ResourceContents::BlobResourceContents {
-                uri: metadata.resource_uri.clone(),
-                mime_type: Some(metadata.media_type.clone()),
-                blob: BASE64_STANDARD.encode(&result.bytes),
-                meta: None,
-            };
-            let mut response = CallToolResult::success(vec![ContentBlock::resource(resource)]);
-            response.structured_content = Some(structured);
-            Ok(response)
-        }
-        ToolOutcome::Error(error) => {
-            let message = error.message.clone();
-            let structured = json!({ "error": error });
-            let mut response = CallToolResult::error(vec![ContentBlock::text(message)]);
-            response.structured_content = Some(structured);
-            Ok(response)
-        }
-    }
-}
-
-fn workspace_content_call_result(
-    outcome: ToolOutcome<ordivon_runtime_core::WorkspaceContentReadResult>,
-) -> Result<CallToolResult, McpError> {
-    match outcome {
-        ToolOutcome::Success(result) => {
-            let structured = serde_json::to_value(&result.metadata).map_err(|error| {
-                McpError::internal_error(
-                    format!("cannot serialize workspace content metadata: {error}"),
-                    None,
-                )
-            })?;
-            let block = ContentBlock::image(
-                BASE64_STANDARD.encode(&result.bytes),
-                result.metadata.media_type.clone(),
-            );
-            let mut response = CallToolResult::success(vec![block]);
-            response.structured_content = Some(structured);
-            Ok(response)
-        }
-        ToolOutcome::Error(error) => {
-            let message = error.message.clone();
-            let structured = json!({ "error": error });
-            let mut response = CallToolResult::error(vec![ContentBlock::text(message)]);
-            response.structured_content = Some(structured);
-            Ok(response)
-        }
-    }
-}
+#[path = "content_projection.rs"]
+mod content_projection;
+use content_projection::{
+    artifact_content_call_result, workspace_content_call_result, workspace_file_call_result,
+};
 
 #[cfg(test)]
 mod authorization_tests {

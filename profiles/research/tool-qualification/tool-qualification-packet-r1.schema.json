@@ -190,7 +190,8 @@
           "effectClass": {
             "enum": [
               "external_mutation",
-              "publication_submission"
+              "publication_submission",
+              "other_separately_authorized"
             ]
           }
         },
