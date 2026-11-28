@@ -159,12 +159,12 @@ def assert_source_and_cache(root: Path, wid: str, head: str) -> Path:
 
 def external_processes_using(path: Path, proc_root: Path = Path("/proc")) -> list[str]:
     # Advisory OS-consumer guard *in addition* to the PG Job admission fence.
-    # A compiler can hold an open artifact FD while cwd is outside its cache.
-    # Permission-denied observation is UNKNOWN, never evidence of no consumer.
+    # Executables and mapped artifacts can remain in use independently of
+    # cwd and open FDs. Permission denied is UNKNOWN, not consumer absence.
     target = str(path) + os.sep
     matches = set()
     for proc in proc_root.glob("[0-9]*"):
-        links = [proc / "cwd"]
+        links = [proc / name for name in ("cwd", "root", "exe")]
         try:
             links.extend((proc / "fd").iterdir())
         except (FileNotFoundError, ProcessLookupError):
@@ -180,8 +180,20 @@ def external_processes_using(path: Path, proc_root: Path = Path("/proc")) -> lis
                 continue
             except PermissionError as error:
                 raise RuntimeError("external process path is unreadable") from error
-            except OSError:
-                continue  # A non-path FD or an exited process.
+            except OSError as error:
+                raise RuntimeError("external process path observation failed") from error
+        try:
+            with (proc / "maps").open(encoding="utf-8", errors="surrogateescape") as maps:
+                for line in maps:
+                    fields = line.rstrip("\n").split(maxsplit=5)
+                    if len(fields) == 6:
+                        loc = fields[5]
+                        if loc == str(path) or loc.startswith(target):
+                            matches.add(proc.name)
+        except (FileNotFoundError, ProcessLookupError):
+            continue  # Process exited during observation.
+        except OSError as error:
+            raise RuntimeError("external process mappings are unreadable") from error
     return sorted(matches)
 
 

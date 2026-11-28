@@ -140,6 +140,67 @@ class OpenFdConsumerTests(unittest.TestCase):
                 consumers = evict.external_processes_using(cache, proc_root)
                 self.assertIn(pid, consumers)
 
+    def test_mapped_cache_file_is_visible_without_fd_observation(self):
+        import mmap
+        import os
+
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = Path(tmp) / "build"
+            cache.mkdir()
+            artifact = cache / "mapped output"
+            artifact.write_bytes(b"compiler-output")
+            pid = str(os.getpid())
+            proc_root = Path(tmp) / "proc"
+            proc = proc_root / pid
+            proc.mkdir(parents=True)
+            (proc / "cwd").symlink_to(Path.cwd())
+            (proc / "fd").mkdir()
+            (proc / "maps").symlink_to(Path("/proc") / pid / "maps")
+            with artifact.open("rb") as file, mmap.mmap(
+                file.fileno(), 0, access=mmap.ACCESS_READ
+            ):
+                self.assertIn(pid, evict.external_processes_using(cache, proc_root))
+
+    def test_executable_reference_is_a_consumer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = Path(tmp) / "build"
+            cache.mkdir()
+            proc_root = Path(tmp) / "proc"
+            proc = proc_root / "123"
+            proc.mkdir(parents=True)
+            (proc / "cwd").symlink_to(Path.cwd())
+            (proc / "fd").mkdir()
+            (proc / "exe").symlink_to(cache / "program")
+            (proc / "maps").write_text("")
+            self.assertEqual(evict.external_processes_using(cache, proc_root), ["123"])
+
+    def test_unreadable_mappings_fail_closed(self):
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = Path(tmp) / "build"
+            cache.mkdir()
+            proc_root = Path(tmp) / "proc"
+            proc = proc_root / "123"
+            proc.mkdir(parents=True)
+            (proc / "fd").mkdir()
+            with patch.object(Path, "open", side_effect=PermissionError):
+                with self.assertRaisesRegex(RuntimeError, "mappings are unreadable"):
+                    evict.external_processes_using(cache, proc_root)
+
+    def test_root_reference_is_a_consumer_and_sibling_is_not(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = Path(tmp) / "build"
+            cache.mkdir()
+            proc_root = Path(tmp) / "proc"
+            for pid, root in (("123", cache), ("124", cache.with_name("build-other"))):
+                proc = proc_root / pid
+                proc.mkdir(parents=True)
+                (proc / "root").symlink_to(root)
+                (proc / "fd").mkdir()
+                (proc / "maps").write_text("")
+            self.assertEqual(evict.external_processes_using(cache, proc_root), ["123"])
+
 
 if __name__ == "__main__":
     unittest.main()
