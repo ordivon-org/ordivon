@@ -1702,6 +1702,12 @@ impl HostMcp {
 impl ServerHandler for HostMcp {
     fn get_info(&self) -> ServerConfig {
         ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
+            // The official Gateway Owner canary binds the public MCP server
+            // identity to the existing Host, not to this Rust crate's name.
+            .with_server_info(rmcp::model::Implementation::new(
+                "ordivon-host-v2",
+                env!("CARGO_PKG_VERSION"),
+            ))
             .with_instructions(
                 "STAGING ONLY: Rust Host migration; schema13, Work/Social/Attention and full integrity/history Doctor. Not yet a production 31-tool parity replacement."
             )
@@ -1711,6 +1717,18 @@ impl ServerHandler for HostMcp {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // Real Gateway Host-owner canary rejects a serverInfo.name other than
+    // "ordivon-host-v2". The Rust successor must keep that public MCP identity
+    // even though its Cargo package is named ordivon-host-rust.
+    #[test]
+    fn rust_host_initialize_identity_matches_gateway_owner_contract() {
+        let pg = HostPg::try_new("host=127.0.0.1 user=test dbname=test")
+            .expect("construct a lazy pool without connecting to PostgreSQL");
+        let info = HostMcp::new(pg).get_info();
+        assert_eq!(info.server_info.name, "ordivon-host-v2");
+        assert!(!info.server_info.version.is_empty());
+    }
 
     #[test]
     fn python_outer_extra_ignore_but_nested_snapshot_is_strict() {
