@@ -114,12 +114,29 @@ def observe_mise_installed(names: list[str]) -> dict:
             raise ValueError("unexpected mise inventory")
         versions = {}
         unmatched = []
+        provider_keys = {}
+        remaining_alias_lookups = 16
         for name in names:
-            if name not in records:
-                # Supplier identifiers are not executable names (e.g. Lean).
+            provider = name if name in records else None
+            if provider is None and remaining_alias_lookups:
+                remaining_alias_lookups -= 1
+                try:
+                    lookup = subprocess.run(
+                        [supplier, "which", name, "--plugin"],
+                        capture_output=True, stdin=subprocess.DEVNULL, text=True,
+                        timeout=5, check=False,
+                        env=os.environ | {"MISE_OFFLINE": "1", "MISE_AUTO_INSTALL": "false"},
+                    )
+                    lines = lookup.stdout.strip().splitlines()
+                    if lookup.returncode == 0 and len(lines) == 1 and lines[0] in records:
+                        provider = lines[0]
+                except (OSError, subprocess.SubprocessError, UnicodeError):
+                    pass
+            if provider is None:
                 unmatched.append(name)
                 continue
-            rows = records[name]
+            provider_keys[name] = provider
+            rows = records[provider]
             if not isinstance(rows, list) or any(
                 not isinstance(row, dict)
                 or not isinstance(row.get("version"), str)
@@ -132,6 +149,7 @@ def observe_mise_installed(names: list[str]) -> dict:
             "state": "observed",
             "installedVersions": versions,
             "unmatchedNames": unmatched,
+            "providerKeys": provider_keys,
         }
     except (OSError, subprocess.SubprocessError, ValueError):
         return {"state": "unknown", "reason": "mise_inventory_failed"}
