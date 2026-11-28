@@ -34,23 +34,9 @@ next executable delta: one concrete native tool/test/action, no speculative PR
 result: evidence IDs, unchanged consumers, residual UNKNOWN, reopen triggers
 ```
 
-## R2.1 auxiliary method LEGO profile (DECLARED_CANDIDATE, not a new calculus)
+## Handoff semantics
 
-`ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`:
-
-- I: typed SpaceRef, WorkRef, optional ActorRef/cursor, authorized Skill catalog view.
-- O: bounded TaskPacket or explicit UNKNOWN/BLOCKED; never execution success.
-- S: Host Work/Topic/cursor *read-only projections* plus versioned Skill view; helper owns no durable database.
-- pre: valid refs and permitted Host/Skill reads; fresh versions must be checked.
-- post: packet points to present Work/Topic and required owner readbacks; missing facts remain UNKNOWN.
-- inv: social membership is never IAM, assignment, or domain authority; Skill prose never grants tool permissions.
-- eff: permitted reads and optional, separately authorized Work/Topic updates after verification; no implicit execution.
-- c: bounded tool calls/messages/bytes, measured cost otherwise typed UNKNOWN.
-- epsilon: packet summary is not semantics-equivalent to owner truth; omitted edges are UNKNOWN and block proof reuse.
-- prov: exact Work revision, Skill instruction/package/snapshot digests, native source/build/Job evidence pointers.
-- unfold: Level-0 task context -> Level-1 selected Skill body -> Level-2 named references -> Level-3 owner-native execution evidence on demand.
-
-This is a consumer-grounded draft profile for the method Skill, **not** proof of runtime hooks or automatic entry injection.
+This method reads the current Host Work/Topic and qualified Skill view; it owns no durable state. Missing or omitted facts remain UNKNOWN and do not justify proof reuse. A packet is navigation, not owner truth or execution success. Revalidate source, Work revision, and Skill instruction/package/snapshot digests when relevant to the receiver. Bound reads by the actual task; load further owner evidence only when needed. Any Work/Topic update requires separate authorization. Social membership and Skill prose never grant assignment, IAM, or effect authority.
 
 ## Cold-agent acceptance
 
