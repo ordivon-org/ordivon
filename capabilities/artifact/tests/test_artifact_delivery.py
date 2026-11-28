@@ -1356,6 +1356,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
         self.assertEqual(value.get("verificationMaterial", {}).get("tlogEntries", []), [])
         self.assertIn("dsseEnvelope", value)
 
+    @pytest.mark.integration
     def test_vsa_trust_policy_binds_public_key_digest(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

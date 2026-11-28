@@ -16,6 +16,8 @@ import wave
 from pathlib import Path
 from unittest import mock
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("artifact_verify_consumer", ROOT / "scripts/artifact_verify.py")
 SERVICE = importlib.util.module_from_spec(SPEC)
@@ -91,6 +93,7 @@ class ArtifactConsumerServiceTests(unittest.TestCase):
             if not tool.is_file():
                 raise unittest.SkipTest(f"native executable unavailable: {tool}")
 
+    @pytest.mark.integration
     def test_wave_game_asset_native_consumer_readback(self):
         from scripts import artifact_wave as wave_verifier
         self.require(
@@ -114,6 +117,7 @@ class ArtifactConsumerServiceTests(unittest.TestCase):
                 self.assertEqual(consumer.readframes(4800), raw)
             self.assertEqual(json.loads((root / "artifact-evidence/service-result.json").read_text())["status"], "PASS")
 
+    @pytest.mark.integration
     def test_flac_native_media_consumer_decoded_pcm_readback(self):
         from scripts import artifact_audio as flac_verifier
         self.require(
@@ -140,6 +144,7 @@ class ArtifactConsumerServiceTests(unittest.TestCase):
             self.assertEqual(consumer.returncode, 0, consumer.stderr.decode(errors="replace"))
             self.assertEqual(consumer.stdout, raw)
 
+    @pytest.mark.integration
     def test_png_media_display_consumer_pixel_readback(self):
         from scripts import artifact_still_image as png_verifier
         self.require(
@@ -163,6 +168,7 @@ class ArtifactConsumerServiceTests(unittest.TestCase):
                 self.assertEqual(consumer.size, (6, 5))
                 self.assertEqual(consumer.convert("RGB").getpixel((0, 0)), (68, 136, 204))
 
+    @pytest.mark.integration
     def test_parquet_research_dataset_readback_is_not_profile_claim_promotion(self):
         from scripts import artifact_dataset as dataset
         self.require(dataset.PYARROW_PYTHON, dataset.DUCKDB)

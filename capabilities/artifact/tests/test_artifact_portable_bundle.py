@@ -15,6 +15,8 @@ import wave
 import zipfile
 from pathlib import Path
 
+import pytest
+
 from artifact_operations.portable_bundle import build_bundle, verify_bundle
 from scripts import artifact_verify, artifact_wave
 
@@ -86,6 +88,7 @@ class PortableBundleConsumerTests(unittest.TestCase):
                 else:
                     replacement.writestr(member, original.read(member))
 
+    @pytest.mark.integration
     def test_moved_bundle_reverifies_with_original_workspace_deleted(self):
         self.require_native()
         with tempfile.TemporaryDirectory() as scratch:
@@ -111,6 +114,7 @@ class PortableBundleConsumerTests(unittest.TestCase):
             self.assertTrue(checked["profileVerificationComplete"])
             self.assertEqual(checked["consumer"]["id"], "independent-native-wave-consumer")
 
+    @pytest.mark.integration
     def test_changed_subject_fails_even_if_original_report_claimed_pass(self):
         self.require_native()
         with tempfile.TemporaryDirectory() as scratch:
@@ -123,6 +127,7 @@ class PortableBundleConsumerTests(unittest.TestCase):
             self.assertEqual(checked["status"], "FAIL", checked)
             self.assertFalse(checked.get("profileVerificationComplete", False))
 
+    @pytest.mark.integration
     def test_missing_required_object_contract_fails(self):
         self.require_native()
         with tempfile.TemporaryDirectory() as scratch:
@@ -134,6 +139,7 @@ class PortableBundleConsumerTests(unittest.TestCase):
             checked = verify_bundle(changed)
             self.assertEqual(checked["status"], "FAIL", checked)
 
+    @pytest.mark.integration
     def test_embedded_profile_cannot_replace_canonical_authority(self):
         self.require_native()
         with tempfile.TemporaryDirectory() as scratch:
@@ -155,6 +161,7 @@ class PortableBundleConsumerTests(unittest.TestCase):
             self.assertEqual(checked["status"], "FAIL", checked)
             self.assertFalse(checked.get("profileVerificationComplete", False))
 
+    @pytest.mark.integration
     def test_original_request_is_provenance_only_not_reexecution_authority(self):
         self.require_native()
         with tempfile.TemporaryDirectory() as scratch:
@@ -169,6 +176,7 @@ class PortableBundleConsumerTests(unittest.TestCase):
             verified = verify_bundle(bundle)
             self.assertEqual(verified["status"], "PASS", verified)
 
+    @pytest.mark.integration
     def test_forged_provenance_cannot_relabel_verified_bundle(self):
         self.require_native()
         with tempfile.TemporaryDirectory() as scratch:
@@ -191,16 +199,17 @@ class PortableBundleConsumerTests(unittest.TestCase):
             self.assertIn("identity", " ".join(result["failures"]))
 
     def test_packaging_cannot_promote_a_stale_source_pass(self):
-        self.require_native()
+        # The source identity rejection precedes native verification.
         with tempfile.TemporaryDirectory() as scratch:
             root = Path(scratch)
             request = self.producer(root / "producer")
             (root / "producer" / "asset.wav").write_bytes(b"this file has changed")
             output = root / "stale.zip"
-            with self.assertRaises(ValueError):
+            with self.assertRaisesRegex(ValueError, "subject bytes differ from request digest"):
                 build_bundle(request, output)
             self.assertFalse(output.exists())
 
+    @pytest.mark.integration
     def test_zip_with_unsafe_relative_member_is_rejected(self):
         self.require_native()
         with tempfile.TemporaryDirectory() as scratch:
