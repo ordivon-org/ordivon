@@ -85,7 +85,6 @@ def build_index() -> dict:
     catalog = records()
     validate_catalog_semantics(catalog)
     entries = []
-    digest_material = []
     for authority_id in sorted(catalog):
         path, record = catalog[authority_id]
         record_digest = sha256_bytes(path.read_bytes())
@@ -116,18 +115,21 @@ def build_index() -> dict:
             "observationDigest": obs_digest,
         }
         entries.append(entry)
-        digest_material.append(
-            {
-                "id": authority_id,
-                "recordDigest": record_digest,
-                "observationDigest": obs_digest,
-            }
-        )
     return {
         "schemaVersion": 1,
         "kind": "ordivon.external-authority-discovery-index",
         "recordCount": len(entries),
-        "recordsDigest": sha256_bytes(canonical_bytes(digest_material)),
+        "recordsDigest": sha256_bytes(
+            canonical_bytes(
+                [
+                    {
+                        key: entry[key]
+                        for key in ("id", "recordDigest", "observationDigest")
+                    }
+                    for entry in entries
+                ]
+            )
+        ),
         "entries": entries,
         "boundary": "Generated Level-0 discovery projection only. It does not establish task applicability, compliance, certification, authorization or domain acceptance.",
     }

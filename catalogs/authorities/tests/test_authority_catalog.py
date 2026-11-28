@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import unittest
 from pathlib import Path
@@ -17,6 +18,39 @@ class AuthorityCatalogTests(unittest.TestCase):
         ids = [x["id"] for x in first["entries"]]
         self.assertEqual(ids, sorted(ids))
         self.assertEqual(first["recordCount"], len(ids))
+
+    def test_index_digest_binds_emitted_entries_and_source_bytes(self):
+        index = catalog.build_index()
+        source_records = catalog.records()
+        material = []
+        for entry in index["entries"]:
+            authority_id = entry["id"]
+            path, _ = source_records[authority_id]
+            latest = catalog.latest_observation(authority_id)
+            record_digest = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+            observation_digest = (
+                "sha256:" + hashlib.sha256(latest[0].read_bytes()).hexdigest()
+                if latest is not None
+                else None
+            )
+            self.assertEqual(entry["recordDigest"], record_digest)
+            self.assertEqual(entry["observationDigest"], observation_digest)
+            material.append(
+                {
+                    "id": authority_id,
+                    "recordDigest": record_digest,
+                    "observationDigest": observation_digest,
+                }
+            )
+        raw = (
+            json.dumps(
+                material, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+            )
+            + "\n"
+        ).encode("utf-8")
+        self.assertEqual(
+            index["recordsDigest"], "sha256:" + hashlib.sha256(raw).hexdigest()
+        )
 
     def test_discovery_does_not_require_a_generated_file(self):
         from unittest.mock import patch

@@ -38,6 +38,8 @@ authorities/generated/authority-index.json
 
 The index is disposable and reproducible. It contains only Level-0 discovery metadata and exact source digests. `list` and `find` derive it from records/observations at call time; no committed generated file is required. The explicit `build` command can write a local, ignored file for downstream tools that need a materialized projection.
 
+The aggregate `recordsDigest` is derived from the ordered emitted entries' IDs and exact source digests, not a separately maintained list. The wire representation remains unchanged.
+
 ### Progressive loading
 
 - **Level 0 — discovery index:** id, title, issuer, kind, version, aliases/topics, latest lifecycle observation.
