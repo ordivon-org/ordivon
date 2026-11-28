@@ -14,11 +14,60 @@ from ordivon_harness.ordivon.turn_projection import (
 from ordivon_harness.working_view import (
     HarnessWorkingSetPin,
     HarnessWorkingSetSourceRef,
+    HarnessWorkingSetSpec,
     HarnessWorkingView,
+    HarnessWorkingViewSource,
+    compile_working_view_with_refs,
 )
 
 
 class R2TurnProjectionKernelTests(unittest.TestCase):
+    def test_equal_message_projection_does_not_identify_working_set_selection(self) -> None:
+        source = HarnessWorkingViewSource(
+            logical_ref="source://r2/shared",
+            logical_generation="g1",
+            messages=({"role": "user", "content": "same selected bytes"},),
+        )
+
+        class Objects:
+            def get_object(self, digest, *, expected_kind=None):
+                if (
+                    digest != source.digest
+                    or expected_kind != "harness-working-view-source"
+                ):
+                    raise KeyError(digest)
+                return source.to_dict()
+
+        def selection(slot):
+            return HarnessWorkingSetSpec.initial(
+                "working-attempt:r2-selection",
+                pins=(
+                    HarnessWorkingSetPin(
+                        slot=slot,
+                        logical_ref=source.logical_ref,
+                        logical_generation=source.logical_generation,
+                        resolved_digest=source.digest,
+                    ),
+                ),
+            )
+
+        a, b = selection("a"), selection("b")
+        a_view, a_refs = compile_working_view_with_refs(a.commit("select"), Objects())
+        b_view, b_refs = compile_working_view_with_refs(b.commit("select"), Objects())
+        self.assertEqual(a_view.messages, b_view.messages)
+        self.assertNotEqual(a_view.digest, b_view.digest)
+        self.assertNotEqual(a_refs, b_refs)
+        # A legal mutation of the mutable selections also separates their future
+        # committed message projections. Current bytes are not a congruence.
+        a_next, _ = compile_working_view_with_refs(
+            a.remove_pin("a").commit("select"), Objects()
+        )
+        b_next, _ = compile_working_view_with_refs(
+            b.remove_pin("a").commit("select"), Objects()
+        )
+        self.assertEqual(a_next.messages, ())
+        self.assertEqual(b_next.messages, source.messages)
+
     def test_nonprojected_turn_preserves_canonical_request_shape_and_runtime_tools(self) -> None:
         canonical = ({"role": "user", "content": "canonical"},)
         tool = AgentToolDefinition(
