@@ -67,10 +67,10 @@ def main() -> int:
             run("check-jsonschema", "--schemafile", str(OBS_SCHEMA), *observation_files)
         built = catalog.build_index()
         temp_index = temp / "authority-index.json"
-        temp_index.write_text(
-            json.dumps(built, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
+        # Validate the same serialized artifact emitted by the real build CLI.
+        catalog.write_index(built, temp_index)
+        if catalog.read_json(temp_index) != built:
+            fail("serialized discovery index changed its projected content")
         run("check-jsonschema", "--schemafile", str(INDEX_SCHEMA), str(temp_index))
 
     dogfood = json.loads(DOGFOOD.read_text(encoding="utf-8"))
