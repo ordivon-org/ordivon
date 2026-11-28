@@ -6,7 +6,7 @@ registry, new verifier or parallel release process. Use the natural Owner and
 existing `method-router`, `compositional-contracts` and
 `references/formal-model.md`. A *thinking LEGO* is an independently
 replaceable **method responsibility** only once it has a real consumer and
-an admitted full R2.1 contract; the families below are **selection patterns**,
+a defensible contribution to that consumer; the families below are **selection patterns**,
 not a predeclared population of LEGOs.
 
 ## First principles: what a formal thinking LEGO must accomplish
@@ -17,17 +17,7 @@ or provider changes**, not more math notation or more test files. Start with:
 and environment assumptions; (3) a cheaper/more trustworthy method than the
 existing alternative; (4) a falsifiable completion or rejection condition.
 
-For a genuinely declared/admitted method responsibility retain the full typed
-`ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`. Interpret
-`I` as problem/source/consumer/evidence, `O` as a *scoped* choice,
-obligation or witness, `S` as method/decision state (or justified Unit),
-`pre` as validity and currentness assumptions, `post` as its promised
-*reasoning* result, `inv` as properties preserved during refinement,
-`eff` as real side effects or empty effects, `c` as qualified cost,
-`epsilon` as scoped approximation or genuine zero (not fabricated),
-`prov` as exact theory/tool/version/source/evidence, and `unfold` as
-optional deeper model, proof or implementation. Record typed
-`UNKNOWN(reason, scope, obligation)` for unsupported facts.
+Choose the smallest mathematical structure and evidence needed for the actual reasoning problem. Preserve relevant uncertainty, assumptions and source currentness; no universal declaration is required.
 
 Do not claim a theorem about the world from an encoding without a bridge:
 `Spec -> Model -> Check/Proof -> Source refinement -> Installed consumer`
@@ -38,7 +28,7 @@ automatically verified PostgreSQL transaction or distributed service.
 
 The following six **reusable reasoning patterns** are derived from documented
 engineering practices. They are *not* a newly mandatory lifecycle, separate
-prover, Owner, Agent role or six automatically admitted R2.1 LEGOs.
+prover, Owner, Agent role or six required mathematical objects.
 A method choice is useful only when it changes the next real consumer decision.
 
 | Core mode | Grounded industrial practice | What Human decides / what Agent actually delivers |
@@ -253,9 +243,8 @@ second. The normal user need not reproduce every solver invocation.
    reuse stale reports as observations. Discover existing Skills first.
 2. **Represent the obligation:** freeze `phi`, state `S`, legal inputs,
    environment `Gamma`, transition/effect boundary and the smallest
-   relevant R2.1 projection. For an independent declared LEGO, bind all
-   eleven typed coordinates; for a candidate keep `INCOMPLETE`/
-   `UNKNOWN`, not fabricated formal standing.
+   relevant mathematical model. Keep unsupported properties `UNKNOWN`,
+   rather than fabricating formal standing.
 3. **Select via the table:** classify proof as algebraic, state, temporal,
    relational, implementation or cross-provider. Use only the provider
    with a real matching contract. Check scope, type widths, fairness,

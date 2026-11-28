@@ -58,16 +58,14 @@ https://developers.cloudflare.com/r2/examples/rclone/ .
 
 ## 5. Engineering methods from installed Skills (selection, not bulk installation)
 
-- Ordivon recursive-lego-calculus and compositional-contracts: delete, reuse, compose; explicit assumptions/guarantees and current owner, 11 typed coordinates only for independently declared responsibilities, not per file. UNKNOWN does not imply FALSE; classification does not establish proof.
+- Ordivon recursive-lego-calculus and compositional-contracts: delete, reuse, compose; explicit assumptions/guarantees and current owner, problem-specific mathematical obligations. UNKNOWN does not imply FALSE; classification does not establish proof.
 - Ordivon systems-engineering and design-structure-matrix: first source owner/boundary and actual directed dependencies; then select a minimally invasive change.
 - Ordivon skill-supply-chain-audit and external-capability-evaluation: third-party Skill/source is untrusted guidance. Compare one actual incumbent/consumer contract; never import foreign execution authority.
 - Matt to-spec and to-tickets: source-backed problem statement, acceptance, dependency DAG and review of Spec vs Standards. This is a cleanup: existing seams and no new test suite.
 - Superpowers worktree, writing-plans, executing-plans, verification-before-completion: isolate changes, inspect actual diff, run existing native checks, do not infer success from narration.
 - ECC: reference only for change-impact, contract-first and peer review; do NOT install foreign hook bundles, prompt router, or duplicate agent roles.
 
-## 6. Full R2.1 contract for one actual responsibility: Artifact Stock Convergence
-
-ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)
+## 6. Artifact Stock Convergence: local semantic obligations
 
 - I: immutable Git SourceCut; tracked files and SHA ledger; current imports/CLI/binding/systemd facts; current consumer evidence; approved deletion scope.
 - O: source tree minus obsolete carriers; clarified current navigation; verified unaffected native interfaces; release-ready ordinary Git diff.

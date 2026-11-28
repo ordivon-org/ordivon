@@ -10,7 +10,7 @@
 
 ## Global constraints
 
-R2.1 `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`; UNKNOWN cannot become PASS; don't infer consumer success; compatibility expand–migrate–contract; don't touch running Temporal/Zot service configuration; native Owner `mise run verify`; no weak-model trials.
+Use problem-specific claim semantics; UNKNOWN cannot become PASS; don't infer consumer success; compatibility expand–migrate–contract; don't touch running Temporal/Zot service configuration; native Owner `mise run verify`; no weak-model trials.
 
 ### T1. Shared requirement-coverage projection (first implementation slice)
 **Files:** modify `artifact_verification/claim_coverage.py`, `artifact_verification/stage.py`, `scripts/artifact_verify.py`; add `tests/test_artifact_standing_common.py`.

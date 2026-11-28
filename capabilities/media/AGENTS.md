@@ -82,7 +82,7 @@ The `agent_surface_contracts.tool_definitions()` schema is the wire contract; di
 
 ## Composition and evidence
 
-Use the existing R2.1 definition `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)` when a LEGO is formally admitted. For formal-first change selection, inspect `formal/README.md` and `tools/formal/verify.py` first. Use existing Lean and Z3 sources; name source-bound SPECIFICATION, MODEL, PROOF, implementation-refinement witness and actual consumer separately. A formal model result alone does not authorize deletion of an external-effect or unrefined Python regression. For an actual selected composition, check at least: For selected caption delivery, source ticks remain canonical while SRT/WebVTT has only millisecond precision. Call `timed_text.validate_timed_text_delivery`, reject collapsed output intervals, preserve source cues, and keep Lean model proof distinct from native FFprobe/ttconv and semantic caption evidence.
+Use OL with the mathematical structure appropriate to the actual property. For formal-first change selection, inspect `formal/README.md` and `tools/formal/verify.py` first. Use existing Lean and Z3 sources; name source-bound SPECIFICATION, MODEL, PROOF, implementation-refinement witness and actual consumer separately. A formal model result alone does not authorize deletion of an external-effect or unrefined Python regression. For an actual selected composition, check at least: For selected caption delivery, source ticks remain canonical while SRT/WebVTT has only millisecond precision. Call `timed_text.validate_timed_text_delivery`, reject collapsed output intervals, preserve source cues, and keep Lean model proof distinct from native FFprobe/ttconv and semantic caption evidence.
 
 - `pre`: source identity/currentness, chosen input bytes, compatible profile and installed tool or explicitly UNKNOWN readiness.
 - `post`: exact output/receipt observed by the selected consumer; do not upgrade process exit to consumer acceptance.
@@ -269,8 +269,8 @@ The installed scripting README is the API authority; the semantic
    checking current source, Production and Output consumers; use native Git
    and provider GC. Preserve selected editable masters and unique evidence.
 
-Each operation is a R2.1 LEGO with an externally owned effect, specific
-pre/post/invariants, content digests and observable result. A successful
+Each operation has an externally owned effect and the domain-specific
+conditions, content digests and observable result needed for its consumer. A successful
 Runtime process does not establish semantic acceptance or release.
 
 ## Native grade and actual media proof obligations

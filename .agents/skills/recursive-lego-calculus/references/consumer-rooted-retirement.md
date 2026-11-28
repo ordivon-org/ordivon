@@ -39,7 +39,7 @@ RETIRE_PR_ONLY, RETIRE_REMOTE_REF_AFTER_CAS or
 RETIRE_SOURCE_AFTER_OWNER_VERIFY. Closing PR != removing deployed code;
 closing detached Workspace != deleting its reachable Git commit.
 
-## Existing method LEGO instance — full R2.1, not a new Skill/provider
+## Local retirement model
 
 ell = (I, O, S, pre, post, inv, eff, c, epsilon, prov, unfold)
 
@@ -67,8 +67,7 @@ ell = (I, O, S, pre, post, inv, eff, c, epsilon, prov, unfold)
   effects -> replacement and counterexample -> native Owner verification ->
   exact CAS operation -> terminal readback.
 
-Any unobserved coordinate must be typed UNKNOWN(reason, scope, obligation),
-not an invented zero. A declaration is not a theorem or current deployment.
+Unknown observations remain UNKNOWN with scope and reason, not invented zero. A local model is not a current deployment witness.
 
 ## Independent counterexamples before retirement
 

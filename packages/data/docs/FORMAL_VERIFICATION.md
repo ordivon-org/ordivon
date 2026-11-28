@@ -1,8 +1,7 @@
 # Data Formal Verification — property-first, consumer-bound
 
 This is a **scoped method and evidence map**, not a new verification calculus,
-registry, security policy, or claim of universal correctness. The canonical
-Recursive LEGO R2.1 contracts and shared formal toolchain already exist at
+registry, security policy, or claim of universal correctness. The OL guidance and shared formal toolchain exist at
 `.agents/skills/recursive-lego-calculus/SKILL.md` and `tools/formal/`.
 
 ## Current proof chain
