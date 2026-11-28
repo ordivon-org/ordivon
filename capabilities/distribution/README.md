@@ -57,7 +57,9 @@ is a live provider-write permission or publication receipt.
 
 Run `mise run verify` in this owner. It validates retained JSON profiles and the
 consumed R7 fixture, checks retired surfaces are not wired into forward scripts,
-and runs native ShellCheck.
+and runs native ShellCheck. The OpenAPI Generator smoke reads its default image
+from `external-lock.json`; an explicit `OPENAPI_GENERATOR_IMAGE` still overrides it.
+The source check exercises both paths without invoking a real container.
 
 `bash scripts/test-external-carriers.sh` remains an optional observation of the
 provider/tool interfaces. It is separate from deterministic source verification
