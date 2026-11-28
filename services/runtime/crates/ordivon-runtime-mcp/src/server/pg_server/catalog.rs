@@ -64,7 +64,7 @@ impl PgRuntimeServer {
             let description = match t.name.as_ref() {
                 "runtime.describe" => "Describe only the executable PostgreSQL Runtime capabilities and native Linux runner provider.",
                 "job.list" => "Principal-scoped, newest-first PostgreSQL Job listing with exact cursor and no historical SQLite IDs.",
-                "workspace.get" => "Read exact current Git source identity and PG-bound active Job identities for one fresh-epoch Workspace.",
+                "workspace.get" => "Read exact current Git source identity and PG-protected Job identities (active, held or settlement unqualified; not proof of physical liveness) for one fresh-epoch Workspace.",
                 "workspace.list" => "List fresh-epoch Git Workspaces in stable creation-time order, without SQLite history.",
                 "workspace.diff" => "Read bounded Git diff with mature Workspace source authority; no SQLite state.",
                 "workspace.changes" => "Page exact changed Workspace paths using the existing bounded Workspace diff implementation.",
