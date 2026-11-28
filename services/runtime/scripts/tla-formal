@@ -1173,7 +1173,27 @@ PY_UNGUARDED_PG_BUILD
       tail -n 25 "$dir/unqualified.log" >&2
       exit 1
     fi
-    echo 'PG build-cache eviction legal effect reachable and unqualified detach falsified PASS'
+    cp "$ROOT/formal/RuntimePgBuildCacheEvictionR1.tla" "$dir/"
+    python3 - "$dir/RuntimePgBuildCacheEvictionR1.tla" <<'PY_HIDDEN_PG_ROOT'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+source = p.read_text(encoding="utf-8")
+guard = '    /\\ hiddenRoot = "none"\n'
+assert source.count(guard) == 1, "PG build cache hidden-root guard drifted"
+p.write_text(source.replace(guard, '', 1), encoding="utf-8")
+PY_HIDDEN_PG_ROOT
+    set +e
+    (cd "$dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+      -config RuntimePgBuildCacheEvictionR1.cfg RuntimePgBuildCacheEvictionR1.tla) > "$dir/hidden-root.log" 2>&1
+    code=$?
+    set -e
+    if [[ "$code" -ne 12 ]] || ! grep -Fq 'Invariant DetachedHasNoHiddenRoot is violated' "$dir/hidden-root.log"; then
+      echo 'PG build-cache eviction hidden-root negative FAILED' >&2
+      tail -n 25 "$dir/hidden-root.log" >&2
+      exit 1
+    fi
+    echo 'PG build-cache eviction legal effect reachable, unqualified detach and hidden roots falsified PASS'
   )
 }
 

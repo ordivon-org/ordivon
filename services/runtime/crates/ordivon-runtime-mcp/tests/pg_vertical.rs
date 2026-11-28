@@ -8266,3 +8266,228 @@ fn pg_job_list_exact_key_does_not_substitute_historical_result() {
         "reconciliation_required"
     );
 }
+
+/// Real MCP/PG integration for the cache operator's existing source fence.
+/// The fixture owns every database row, Git worktree, cache and endpoint.
+/// No installed Runtime, native dispatch, or production cache is involved.
+#[test]
+#[ignore = "requires disposable PG18, native MCP and owner-locked Python psycopg"]
+fn pg_buildcache_operator_uses_native_workspace_get_under_admission_fence() {
+    let mut fixture = Fixture::new();
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let workspace_id = "ws-buildcache-native-mcp";
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":workspace_id,"sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let initial = call(
+        &endpoint,
+        "workspace.get",
+        json!({"workspaceId":workspace_id}),
+    );
+    assert_ne!(initial["isError"], true, "{initial}");
+    let witness = &initial["structuredContent"];
+    let head = witness["currentHeadRevision"].as_str().unwrap();
+    let digest = witness["sourceStateDigest"].as_str().unwrap();
+    assert_eq!(witness["activeJobIds"], json!([]));
+
+    // A real MCP GET must complete while a different database connection
+    // holds the existing admission lock. Never release early to make it pass.
+    let mut holder = fixture.db.transaction().unwrap();
+    holder
+        .query_one("SELECT pg_advisory_xact_lock($1)", &[&79245017_i64])
+        .unwrap();
+    let (tx, rx) = std::sync::mpsc::sync_channel(1);
+    let target = endpoint.clone();
+    let started = Instant::now();
+    let reader = thread::spawn(move || {
+        let value = call(
+            &target,
+            "workspace.get",
+            json!({"workspaceId":workspace_id}),
+        );
+        tx.send(value).ok();
+    });
+    let result = rx.recv_timeout(Duration::from_secs(10));
+    let lock_held_ms = started.elapsed().as_millis();
+    holder.rollback().unwrap();
+    let observed = result.expect("native workspace.get blocked on admission fence");
+    reader.join().unwrap();
+    assert_ne!(observed["isError"], true, "{observed}");
+    assert_eq!(observed["structuredContent"]["sourceStateDigest"], digest);
+    assert_eq!(observed["structuredContent"]["currentHeadRevision"], head);
+    println!("NATIVE_MCP_GET_UNDER_PG_LOCK_MS={lock_held_ms}");
+
+    // Qualify only old, settled fixture history using the canonical schema.
+    let old: i64 = fixture
+        .db
+        .query_one(
+            "SELECT (EXTRACT(EPOCH FROM clock_timestamp())*1000)::bigint - 18000000",
+            &[],
+        )
+        .unwrap()
+        .get(0);
+    fixture.db.execute(
+        "INSERT INTO fresh.jobs(job_id,principal,client_request_id,request_digest,operation_digest,workspace_id,workspace_snapshot_json,execution_plan_json,execution_plan_digest,created_at_ms,desired_state,resolution)
+         VALUES('cache-j','pg-consumer','cache-r','req','op',$1,'{}','{}','plan',$2,'run','succeeded')",
+        &[&workspace_id, &old],
+    ).unwrap();
+    fixture.db.execute(
+        "INSERT INTO fresh.attempts(attempt_id,job_id,attempt_number,state,termination_intent,launch_token_digest,bundle_path,unit_name,created_at_ms,finished_at_ms,result_digest)
+         VALUES('cache-a','cache-j',1,'succeeded','natural','launch','fixture','fixture-unit',$1,$1,'result')",
+        &[&old],
+    ).unwrap();
+    fixture.db.execute(
+        "INSERT INTO fresh.concurrency_reservations(reservation_id,attempt_id,global_limit,state,acquired_at_ms,state_observed_at_ms,released_at_ms)
+         VALUES('cache-res','cache-a',1,'released',$1,$1,$1)",
+        &[&old],
+    ).unwrap();
+    let root = fixture.root.join("store");
+    let cache = root.join("cache/build").join(workspace_id);
+    let other = root.join("cache/build/other-fixture");
+    fs::create_dir_all(&cache).unwrap();
+    fs::create_dir_all(&other).unwrap();
+    fs::create_dir_all(root.join("lifecycle-receipts")).unwrap();
+    fs::write(cache.join("object.o"), b"rebuildable fixture bytes").unwrap();
+    fs::write(other.join("object.o"), b"other fixture bytes").unwrap();
+    let config = fixture.root.join("cache-fixture.env");
+    let bind = endpoint
+        .strip_prefix("http://")
+        .unwrap()
+        .strip_suffix("/mcp")
+        .unwrap();
+    fs::write(
+        &config,
+        format!(
+            "ORDIVON_PG_STORE_ROOT={}\nORDIVON_PG_SOURCE_SHA256={}\nORDIVON_PG_DSN=host={} user=postgres dbname=postgres\nORDIVON_PG_SCHEMA=fresh\nORDIVON_PG_BIND={}\nORDIVON_PG_TOKEN={}\n",
+            root.display(), "a".repeat(64), fixture.root.display(), bind, "p".repeat(32)
+        ),
+    ).unwrap();
+    fs::set_permissions(&config, fs::Permissions::from_mode(0o600)).unwrap();
+    let script = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../scripts/ordivon-runtime-pg-buildcache-evict");
+    let run_operator = |expected: &str, apply: bool| {
+        let mut command = Command::new("python3");
+        command
+            .arg("-B")
+            .arg(&script)
+            .arg("--env-file")
+            .arg(&config)
+            .arg("--store-root")
+            .arg(&root)
+            .arg("--workspace-id")
+            .arg(workspace_id)
+            .arg("--expected-head")
+            .arg(head)
+            .arg("--expected-source-state-digest")
+            .arg(expected);
+        if apply {
+            command.arg("--apply");
+        }
+        command
+            .output()
+            .expect("owner-locked Python and native cache operator")
+    };
+    let wrong = format!("sha256:{}", "f".repeat(64));
+    assert_ne!(digest, wrong);
+    let refused = run_operator(&wrong, true);
+    assert_eq!(refused.status.code(), Some(2));
+    assert!(cache.is_dir(), "stale native source must not detach cache");
+    let dry = run_operator(digest, false);
+    assert!(
+        dry.status.success(),
+        "{}",
+        String::from_utf8_lossy(&dry.stderr)
+    );
+    let dry_receipt: Value = serde_json::from_slice(&dry.stdout).unwrap();
+    assert_eq!(dry_receipt["effect"], "not_requested");
+    assert!(cache.is_dir());
+    // Measure the actual operator's lock occupancy, not its process total.
+    // Sample the independent private PG lock view without acquiring that lock.
+    use std::sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    };
+    let stop = Arc::new(AtomicBool::new(false));
+    let monitor_stop = stop.clone();
+    let dsn = format!(
+        "host={} user=postgres dbname=postgres",
+        fixture.root.display()
+    );
+    let (ready_tx, ready_rx) = std::sync::mpsc::sync_channel(1);
+    let monitor = thread::spawn(move || {
+        let mut probe = Client::connect(&dsn, NoTls).unwrap();
+        let origin = Instant::now();
+        let mut samples = Vec::new();
+        loop {
+            let begin = origin.elapsed().as_micros();
+            let held: bool = probe.query_one(
+                "SELECT EXISTS(SELECT 1 FROM pg_locks WHERE locktype='advisory' AND granted AND classid=0 AND objid=79245017 AND objsubid=1 AND database=(SELECT oid FROM pg_database WHERE datname=current_database()))",
+                &[],
+            ).unwrap().get(0);
+            samples.push((begin, origin.elapsed().as_micros(), held));
+            if samples.len() == 1 {
+                assert!(!held, "private lock must be free before operator starts");
+                ready_tx.send(()).unwrap();
+            }
+            if monitor_stop.load(Ordering::Acquire) && !held {
+                break;
+            }
+            thread::sleep(Duration::from_millis(2));
+        }
+        samples
+    });
+    ready_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    let effect_started = Instant::now();
+    let applied = run_operator(digest, true);
+    let effect_total_ms = effect_started.elapsed().as_millis();
+    stop.store(true, Ordering::Release);
+    let samples = monitor.join().unwrap();
+    let first = samples
+        .iter()
+        .position(|s| s.2)
+        .expect("operator PG lock not observed");
+    let last = samples.iter().rposition(|s| s.2).unwrap();
+    assert!(
+        first > 0 && last + 1 < samples.len(),
+        "lock episode not bounded"
+    );
+    assert!(
+        samples[first..=last].iter().all(|s| s.2),
+        "unexpected separated lock episodes"
+    );
+    // PostgreSQL's observation instant lies within each query's interval.
+    // Report a conservative sample lower/upper bound rather than fake precision.
+    let lower = samples[last].0.saturating_sub(samples[first].1);
+    let upper = samples[last + 1].1 - samples[first - 1].0;
+    println!(
+        "NATIVE_CACHE_LOCK_OCCUPANCY_US=[{lower},{upper}] samples={}",
+        samples.len()
+    );
+    assert!(
+        applied.status.success(),
+        "{}",
+        String::from_utf8_lossy(&applied.stderr)
+    );
+    let receipt: Value = serde_json::from_slice(&applied.stdout).unwrap();
+    assert_eq!(receipt["effect"], "evicted");
+    assert_eq!(receipt["sourceStateDigest"], digest);
+    assert!(!cache.exists());
+    assert_eq!(
+        fs::read(other.join("object.o")).unwrap(),
+        b"other fixture bytes"
+    );
+    let after = call(
+        &endpoint,
+        "workspace.get",
+        json!({"workspaceId":workspace_id}),
+    );
+    assert_ne!(after["isError"], true, "{after}");
+    assert_eq!(after["structuredContent"]["sourceStateDigest"], digest);
+    assert_eq!(after["structuredContent"]["currentHeadRevision"], head);
+    assert_eq!(after["structuredContent"]["activeJobIds"], json!([]));
+    println!("NATIVE_CACHE_OPERATOR_APPLY_TOTAL_MS={}", effect_total_ms);
+}

@@ -84,7 +84,7 @@ def pg_qualification(conn, schema, source: str, workspace_id: str) -> tuple[int,
     query = sql.SQL("""
         SELECT
         (SELECT MAX(created_at_ms) FROM {s}.jobs WHERE workspace_id=%s),
-        (SELECT MAX(a.finished_at_ms) FROM {s}.attempts a JOIN {s}.jobs j
+        (SELECT MAX(GREATEST(a.created_at_ms,a.finished_at_ms)) FROM {s}.attempts a JOIN {s}.jobs j
             ON j.job_id=a.job_id WHERE j.workspace_id=%s),
         (SELECT MAX(e.observed_at_ms) FROM {s}.job_events e JOIN {s}.jobs j
             ON j.job_id=e.job_id WHERE j.workspace_id=%s),
@@ -95,18 +95,57 @@ def pg_qualification(conn, schema, source: str, workspace_id: str) -> tuple[int,
             WHERE j.workspace_id=%s AND r.state IN ('active','held_orphaned')),
         (SELECT resolution FROM {s}.jobs WHERE workspace_id=%s
             ORDER BY created_at_ms DESC,job_id DESC LIMIT 1),
+        (SELECT COUNT(*) FROM {s}.attempts a
+            JOIN {s}.jobs j ON j.job_id=a.job_id
+            LEFT JOIN {s}.concurrency_reservations r ON r.attempt_id=a.attempt_id
+            WHERE j.workspace_id=%s AND (
+                a.state NOT IN ('succeeded','failed','timed_out','cancelled','lost')
+                OR a.finished_at_ms IS NULL OR a.finished_at_ms < 0
+                OR a.result_digest IS NULL OR a.result_digest = ''
+                OR r.state IS DISTINCT FROM 'released'
+                OR r.released_at_ms IS NULL OR r.released_at_ms < 0)),
+        (SELECT COUNT(*) FROM {s}.job_allocations al
+            JOIN {s}.attempts a ON a.attempt_id=al.attempt_id
+            JOIN {s}.jobs j ON j.job_id=a.job_id
+            WHERE j.workspace_id=%s AND (
+                al.state IS DISTINCT FROM 'released'
+                OR al.released_at_ms IS NULL OR al.released_at_ms < 0)),
+        (SELECT COUNT(*) FROM {s}.jobs j WHERE j.workspace_id=%s AND (
+            j.current_attempt_id IS NOT NULL
+            OR j.resolution IS DISTINCT FROM (
+                SELECT a.state FROM {s}.attempts a WHERE a.job_id=j.job_id
+                ORDER BY a.attempt_number DESC LIMIT 1))),
+        (SELECT MAX(GREATEST(r.acquired_at_ms,r.state_observed_at_ms,r.released_at_ms))
+            FROM {s}.concurrency_reservations r
+            JOIN {s}.attempts a ON a.attempt_id=r.attempt_id
+            JOIN {s}.jobs j ON j.job_id=a.job_id WHERE j.workspace_id=%s),
+        (SELECT MAX(GREATEST(al.acquired_at_ms,al.released_at_ms))
+            FROM {s}.job_allocations al
+            JOIN {s}.attempts a ON a.attempt_id=al.attempt_id
+            JOIN {s}.jobs j ON j.job_id=a.job_id WHERE j.workspace_id=%s),
         (EXTRACT(EPOCH FROM clock_timestamp())*1000)::bigint
     """).format(s=s)
-    j, a, e, unresolved, held, latest, now = conn.execute(
-        query, (workspace_id,) * 6
+    (j, a, e, unresolved, held, latest, unsettled, allocated,
+     incoherent_jobs, reservation_activity, allocation_activity, now) = conn.execute(
+        query, (workspace_id,) * 11
     ).fetchone()
-    last = max((v or 0) for v in (j, a, e))
+    # Quiet time starts after the last observed lifecycle/resource change,
+    # not merely after the latest Job result or event.
+    last = max((v or 0) for v in (j, a, e, reservation_activity, allocation_activity))
     result = {"lastActivityUnixMs": int(last), "nowUnixMs": int(now),
               "unresolvedJobs": int(unresolved), "heldReservations": int(held),
               "lastJobResolution": latest,
+              "unsettledAttempts": int(unsettled),
+              "unreleasedAllocations": int(allocated),
+              "incoherentJobs": int(incoherent_jobs),
               "idleHours": round((int(now) - last) / 3600000, 2) if last else None}
-    if not qualified_quiet(int(last), int(now), int(unresolved), int(held), latest):
-        raise RuntimeError("Workspace has recent, unresolved, held or unqualified PG Job activity")
+    # The newest successful Job is not a complete root census. Inspect every
+    # Attempt, including older detached rows, and the independent allocation.
+    # Missing/unknown reservation or orphaned state is not proven settlement.
+    # This remains a PG prerequisite, not native OS/consumer release evidence.
+    if (not qualified_quiet(int(last), int(now), int(unresolved), int(held), latest)
+            or unsettled != 0 or allocated != 0 or incoherent_jobs != 0):
+        raise RuntimeError("Workspace has recent, unresolved, held or unqualified PG Job/Attempt/allocation activity")
     return int(now), result
 
 
@@ -206,15 +245,22 @@ def run(args) -> dict:
     environment_source = environment["ORDIVON_PG_SOURCE_SHA256"]
     if len(environment_source) != 64 or not all(v in "0123456789abcdef" for v in environment_source):
         raise RuntimeError("invalid installed PG source identity")
-    native_workspace_snapshot(environment, args.workspace_id,
-                              args.expected_head, args.expected_source_state_digest, root)
     import psycopg
     with psycopg.connect(environment["ORDIVON_PG_DSN"], connect_timeout=8) as conn:
         with conn.transaction():
+            # Match Runtime workspace effect isolation: acquire the lock
+            # before taking the qualification statement snapshot. A DSN with
+            # REPEATABLE READ could otherwise see a pre-lock-wait snapshot.
+            conn.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
             conn.execute("SET LOCAL statement_timeout='30000ms'")
             conn.execute("SELECT pg_advisory_xact_lock(%s)", (ADMISSION_LOCK,))
             now, pg_status = pg_qualification(conn, environment["ORDIVON_PG_SCHEMA"],
                                               environment_source, args.workspace_id)
+            # Bind the exact native source identity after acquiring the same
+            # fence used by Workspace mutation and Job admission. A clean
+            # HEAD alone does not commit the complete source-state digest.
+            native_workspace_snapshot(environment, args.workspace_id,
+                                      args.expected_head, args.expected_source_state_digest, root)
             cache = assert_source_and_cache(root, args.workspace_id, args.expected_head)
             if external_processes_using(cache):
                 raise RuntimeError("an external process is currently using the build cache")
