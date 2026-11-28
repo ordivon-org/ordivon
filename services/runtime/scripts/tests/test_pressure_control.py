@@ -414,7 +414,7 @@ class PressureControlTests(unittest.TestCase):
     def test_pg_observation_native_qualified_epoch_counts_and_no_effect(self):
         # Reuse the existing native release fixture's private socket-only PG
         # cluster and exact Runtime schema, not a production connection.
-        from test_pg_operator_release import NativePgReleaseOperator
+        from scripts.tests.test_pg_operator_release import NativePgReleaseOperator
 
         class ScratchPg(NativePgReleaseOperator):
             root = db = postgres = log = None
