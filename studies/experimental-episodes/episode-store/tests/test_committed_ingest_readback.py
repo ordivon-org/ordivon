@@ -21,7 +21,7 @@ import pytest
 from psycopg import sql
 from test_ingest_contract import episode, sha
 
-from ordivon_experimental_episode_store import ingest
+from ordivon_experimental_episode_store import analysis, ingest
 from ordivon_experimental_episode_store.ingest import (
     EpisodeStoreError,
     _frozen_source,
@@ -648,3 +648,34 @@ def test_pg_source_readback_rejects_missing_or_extra_projected_rows(
         readback(pg_dsn, receipt, file)
     with pytest.raises(EpisodeStoreError, match=expected_table):
         admit(pg_dsn, file, corpus=tmp_path.name)
+
+
+def test_analysis_observes_one_snapshot_during_concurrent_ingest(
+    pg_dsn: str, tmp_path: Path
+) -> None:
+    source = populated_input(tmp_path, "analysis-snapshot.jsonl")
+    record = json.loads(source.read_text(encoding="utf-8"))
+    record["dimensions"].append({"name": "runtime.execution_state", "value": "failed"})
+    source.write_text(json.dumps(record, sort_keys=True) + "\n", encoding="utf-8")
+    before = analysis.analyze_store(pg_dsn)
+    original_fetch = analysis._fetch_dimensions
+    admitted = False
+
+    def ingest_after_population_read(db, profile_id):
+        nonlocal admitted
+        if not admitted:
+            admit(pg_dsn, source, corpus=tmp_path.name)
+            admitted = True
+        return original_fetch(db, profile_id)
+
+    with patch.object(analysis, "_fetch_dimensions", ingest_after_population_read):
+        during = analysis.analyze_store(pg_dsn)
+
+    assert admitted
+    assert during == before
+    after = analysis.analyze_store(pg_dsn)
+    assert after["population"]["episodes"] == before["population"]["episodes"] + 1
+    assert after["failure"]["terminalUnsuccessfulEpisodes"] == (
+        before["failure"]["terminalUnsuccessfulEpisodes"] + 1
+    )
+    assert after["analysisDigest"] != before["analysisDigest"]

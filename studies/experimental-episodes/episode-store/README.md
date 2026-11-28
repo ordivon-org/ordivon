@@ -49,17 +49,25 @@ No raw owner payload, prompt, workspace snapshot, execution plan, event payload,
   explicit SQL test checks persisted fields, and eight receipt mutations
   cover all identity fields, standing and Episode count. Existing identity,
   receipt shape and PostgreSQL transaction semantics remain unchanged.
-- Progress: all three source consolidations are committed; disposable
-  PostgreSQL 18.7 qualification now passes 72 tests with no skips. No database
-  migration, deployment or new runtime dependency was introduced.
+- Analysis uses a single PostgreSQL REPEATABLE READ READ ONLY snapshot
+  for every aggregate and evidence observation. An independently committed
+  ingest between the population and dimensions queries must not enter that
+  analysis; a new analysis observes it. Native deterministic RED/GREEN
+  regression preserves the historical empty analysis digest.
+- Progress: three source consolidations and one analysis snapshot repair;
+  disposable PostgreSQL 18.7 qualification passes 73 tests with no skips.
+  No database migration, deployment or new runtime dependency was introduced.
 - Verification caveat: the prior swap-and-restore mutation experiment left
   stale Python bytecode in the Runtime's workspace cache despite correct
   source bytes. A fresh `PYTHONPYCACHEPREFIX` independently restored correct
   execution and passed the full baseline and candidate. Use distinct caches
   for temporary source mutations and their subsequent verification.
-- Next candidates: evaluate repeated analysis aggregation only against a
-  real consumer; review runtime cache invalidation with its natural owner.
-  Preserve independent SQL oracles; do not substitute shared assertions.
+- Next candidates: determine the analysis population contract for multiple
+  projection digests under one episode ID. Existing SQL counts projections
+  while dimension/measure maps use episode ID alone; do not silently select
+  latest or change historical analytical units without a consumer decision.
+  Review Runtime cache invalidation with its natural owner. Preserve
+  independent SQL oracles; do not substitute shared assertions.
 
 ## Migration law
 

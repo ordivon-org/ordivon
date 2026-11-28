@@ -124,6 +124,8 @@ def analyze_store(
     intervention_contract_ref: str | None = None,
 ) -> dict[str, Any]:
     with psycopg.connect(dsn, row_factory=dict_row) as conn:
+        # Every aggregate and evidence observation must describe the same cut.
+        conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
         profile_rows = conn.execute(
             """
             SELECT profile_id, data_class, count(*) AS n
