@@ -7,7 +7,7 @@ use std::io::{Read, Write};
 #[cfg(unix)]
 use std::os::fd::{AsRawFd, FromRawFd};
 #[cfg(unix)]
-use std::os::unix::fs::OpenOptionsExt;
+use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
 #[cfg(windows)]
 use std::os::windows::ffi::OsStrExt as WindowsOsStrExt;
 use std::path::{Component, Path, PathBuf};
@@ -35,6 +35,54 @@ const RESOLVE_NO_MAGICLINKS: u64 = 0x02;
 const RESOLVE_NO_SYMLINKS: u64 = 0x04;
 #[cfg(unix)]
 const RESOLVE_BENEATH: u64 = 0x08;
+
+/// Serialize the trusted PG Attempt's cancellation marker publication with
+/// the native Runner's last cancel check and user Command::spawn.
+#[cfg(unix)]
+pub(crate) fn lock_attempt_spawn_fence(task_dir: &Path) -> Result<File, UniversalExecError> {
+    let control_root =
+        fs::symlink_metadata(task_dir).map_err(|error| io_error(task_dir, "stat", error))?;
+    // A lock inode is stable only if the payload cannot replace its parent
+    // directory entry. The PG issuer owns the root-only control directory.
+    if !control_root.is_dir() || control_root.uid() != 0 || control_root.mode() & 0o077 != 0 {
+        return Err(UniversalExecError::new(
+            UniversalExecErrorCode::MetadataCorrupt,
+            "PG Attempt spawn fence requires a root-owned private control directory",
+            Some("taskDir"),
+            false,
+        ));
+    }
+    let path = task_dir.join(".spawn-fence.lock");
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .mode(0o600)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
+        .open(&path)
+        .map_err(|error| io_error(&path, "open", error))?;
+    let metadata = file
+        .metadata()
+        .map_err(|error| io_error(&path, "stat", error))?;
+    // The PG control root is UID0-owned and 0700; contained child is
+    // independently nonroot. Never follow or accept a replaceable lock inode.
+    if !metadata.is_file()
+        || metadata.uid() != 0
+        || metadata.mode() & 0o077 != 0
+        || metadata.nlink() != 1
+    {
+        return Err(UniversalExecError::new(
+            UniversalExecErrorCode::MetadataCorrupt,
+            "PG Attempt spawn fence must be a single-link root-owned private file",
+            Some("taskDir"),
+            false,
+        ));
+    }
+    file.lock()
+        .map_err(|error| io_error(&path, "lock", error))?;
+    Ok(file)
+}
 
 #[cfg(unix)]
 pub(crate) fn open_directory_nofollow(path: &Path) -> std::io::Result<File> {
@@ -88,7 +136,153 @@ pub(crate) fn open_regular_file_beneath(
     Ok(file)
 }
 
-#[cfg(not(unix))]
+#[cfg(windows)]
+pub(crate) fn open_directory_nofollow(path: &Path) -> std::io::Result<File> {
+    use std::os::windows::fs::{MetadataExt, OpenOptionsExt};
+    use windows_sys::Win32::Storage::FileSystem::{
+        FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT,
+    };
+    let file = OpenOptions::new()
+        .read(true)
+        .custom_flags(FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT)
+        .open(path)?;
+    let metadata = file.metadata()?;
+    if !metadata.is_dir() || metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "authority must be a native directory without a reparse point",
+        ));
+    }
+    Ok(file)
+}
+
+/// Mutable previews may coexist with an existing writer, but never acquire
+/// write access themselves. Keep the sealed Artifact policy unchanged.
+pub(crate) fn open_active_preview_beneath(
+    root_file: &File,
+    relative: &Path,
+) -> std::io::Result<File> {
+    #[cfg(windows)]
+    {
+        open_windows_regular_file_beneath(root_file, relative, true)
+    }
+    #[cfg(not(windows))]
+    {
+        open_regular_file_beneath(root_file, relative, true)
+    }
+}
+
+#[cfg(windows)]
+pub(crate) fn open_regular_file_beneath(
+    root_file: &File,
+    relative: &Path,
+    _deny_parent_symlinks: bool,
+) -> std::io::Result<File> {
+    open_windows_regular_file_beneath(root_file, relative, false)
+}
+
+#[cfg(windows)]
+fn open_windows_regular_file_beneath(
+    root_file: &File,
+    relative: &Path,
+    active_preview: bool,
+) -> std::io::Result<File> {
+    use std::os::windows::fs::MetadataExt;
+    use std::os::windows::io::{AsRawHandle, FromRawHandle};
+    use windows_sys::Wdk::Foundation::OBJECT_ATTRIBUTES;
+    use windows_sys::Wdk::Storage::FileSystem::{
+        NtCreateFile, FILE_NON_DIRECTORY_FILE, FILE_OPEN, FILE_OPEN_REPARSE_POINT,
+        FILE_SYNCHRONOUS_IO_NONALERT,
+    };
+    use windows_sys::Win32::Foundation::{
+        RtlNtStatusToDosError, OBJ_CASE_INSENSITIVE, OBJ_DONT_REPARSE, UNICODE_STRING,
+    };
+    use windows_sys::Win32::Storage::FileSystem::{
+        FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_REPARSE_POINT, FILE_READ_ATTRIBUTES, FILE_READ_DATA,
+        FILE_SHARE_READ, FILE_SHARE_WRITE, SYNCHRONIZE,
+    };
+    use windows_sys::Win32::System::IO::IO_STATUS_BLOCK;
+    let invalid = || {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "invalid Windows authority-relative file path",
+        )
+    };
+    let mut path = Vec::new();
+    for component in relative.components() {
+        let Component::Normal(part) = component else {
+            return Err(invalid());
+        };
+        if !path.is_empty() {
+            path.push(b'\x5c' as u16);
+        }
+        for unit in part.encode_wide() {
+            // Reject ADS and NUL. Component validation already excluded rooted paths and traversal.
+            if unit == 0 || unit == b':' as u16 {
+                return Err(invalid());
+            }
+            path.push(unit);
+        }
+    }
+    let length =
+        u16::try_from(path.len().checked_mul(2).ok_or_else(invalid)?).map_err(|_| invalid())?;
+    if length == 0 {
+        return Err(invalid());
+    }
+    let mut name = UNICODE_STRING {
+        Length: length,
+        MaximumLength: length,
+        Buffer: path.as_mut_ptr(),
+    };
+    let attributes = OBJECT_ATTRIBUTES {
+        Length: std::mem::size_of::<OBJECT_ATTRIBUTES>() as u32,
+        RootDirectory: root_file.as_raw_handle(),
+        ObjectName: &mut name,
+        Attributes: OBJ_CASE_INSENSITIVE | OBJ_DONT_REPARSE,
+        SecurityDescriptor: std::ptr::null_mut(),
+        SecurityQualityOfService: std::ptr::null_mut(),
+    };
+    let mut status_block = IO_STATUS_BLOCK::default();
+    let mut handle = std::ptr::null_mut();
+    // SAFETY: owned directory handle and stable counted UTF-16 buffer.
+    // Directory-relative name resolution and no-reparse are enforced by NT.
+    let status = unsafe {
+        NtCreateFile(
+            &mut handle,
+            FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+            &attributes,
+            &mut status_block,
+            std::ptr::null(),
+            FILE_ATTRIBUTE_NORMAL,
+            if active_preview {
+                FILE_SHARE_READ | FILE_SHARE_WRITE
+            } else {
+                FILE_SHARE_READ
+            },
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_REPARSE_POINT,
+            std::ptr::null(),
+            0,
+        )
+    };
+    if status < 0 {
+        return Err(std::io::Error::from_raw_os_error(
+            unsafe { RtlNtStatusToDosError(status) } as i32,
+        ));
+    }
+    if handle.is_null() {
+        return Err(std::io::Error::other("NT opened no file handle"));
+    }
+    // SAFETY: success transfers this newly opened handle to File.
+    let file = unsafe { File::from_raw_handle(handle) };
+    let metadata = file.metadata()?;
+    if !metadata.is_file() || metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+        return Err(invalid());
+    }
+    Ok(file)
+}
+
+#[cfg(not(any(unix, windows)))]
 pub(crate) fn open_directory_nofollow(_path: &Path) -> std::io::Result<File> {
     Err(std::io::Error::new(
         std::io::ErrorKind::Unsupported,
@@ -96,7 +290,7 @@ pub(crate) fn open_directory_nofollow(_path: &Path) -> std::io::Result<File> {
     ))
 }
 
-#[cfg(not(unix))]
+#[cfg(not(any(unix, windows)))]
 pub(crate) fn open_regular_file_beneath(
     _root_file: &File,
     _relative: &Path,
@@ -492,6 +686,59 @@ fn sync_rename_parents(source: &Path, destination: &Path) -> Result<(), Universa
     Ok(())
 }
 
+/// Normalize DOS paths before crossing the raw Win32 rename boundary.
+/// Rust's file APIs already accept long paths; MoveFileExW requires an
+/// explicit verbatim carrier when the staging name exceeds MAX_PATH.
+#[cfg(windows)]
+fn windows_rename_path(path: &Path) -> std::io::Result<Vec<u16>> {
+    use std::ffi::OsString;
+    use std::path::Prefix;
+
+    let absolute = std::path::absolute(path)?;
+    let extended = match absolute.components().next() {
+        Some(Component::Prefix(prefix)) => match prefix.kind() {
+            Prefix::Disk(_) => {
+                let mut value = OsString::from(r"\\?\");
+                value.push(absolute.as_os_str());
+                value
+            }
+            Prefix::UNC(_, _) => {
+                let mut value = OsString::from(r"\\?\UNC\");
+                let tail: OsString = std::os::windows::ffi::OsStringExt::from_wide(
+                    &absolute
+                        .as_os_str()
+                        .encode_wide()
+                        .skip(2)
+                        .collect::<Vec<_>>(),
+                );
+                value.push(tail);
+                value
+            }
+            Prefix::VerbatimDisk(_) | Prefix::VerbatimUNC(_, _) => absolute.into_os_string(),
+            _ => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "rename requires a filesystem drive or UNC path",
+                ));
+            }
+        },
+        _ => {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "rename requires an absolute Windows filesystem path",
+            ));
+        }
+    };
+    // NUL must never truncate the native authority path.
+    if extended.encode_wide().any(|unit| unit == 0) {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "rename path contains NUL",
+        ));
+    }
+    Ok(extended.encode_wide().chain(std::iter::once(0)).collect())
+}
+
 fn rename_path_native(
     source: &Path,
     destination: &Path,
@@ -502,16 +749,8 @@ fn rename_path_native(
         use windows_sys::Win32::Storage::FileSystem::{
             MoveFileExW, MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH,
         };
-        let source_wide = source
-            .as_os_str()
-            .encode_wide()
-            .chain(std::iter::once(0))
-            .collect::<Vec<_>>();
-        let destination_wide = destination
-            .as_os_str()
-            .encode_wide()
-            .chain(std::iter::once(0))
-            .collect::<Vec<_>>();
+        let source_wide = windows_rename_path(source)?;
+        let destination_wide = windows_rename_path(destination)?;
         let mut flags = MOVEFILE_WRITE_THROUGH;
         if replace_existing {
             flags |= MOVEFILE_REPLACE_EXISTING;
@@ -663,6 +902,24 @@ mod durable_publication_tests {
         assert_eq!(fs::read(target).unwrap(), b"new");
     }
 
+    #[cfg(windows)]
+    #[test]
+    fn long_path_atomic_publication_preserves_no_replace_and_explicit_replace() {
+        let root = tempfile::tempdir().unwrap();
+        let mut parent = root.path().to_path_buf();
+        while parent.as_os_str().encode_wide().count() < 270 {
+            parent.push("nested-long-path-0123456789");
+        }
+        fs::create_dir_all(&parent).unwrap();
+        let target = parent.join("cancel-requested.json");
+        assert!(write_bytes_atomic_if_absent(&target, b"first").unwrap());
+        assert!(!write_bytes_atomic_if_absent(&target, b"loser").unwrap());
+        assert_eq!(fs::read(&target).unwrap(), b"first");
+        write_bytes_atomic(&target, b"replacement").unwrap();
+        assert_eq!(fs::read(&target).unwrap(), b"replacement");
+        assert_eq!(fs::read_dir(&parent).unwrap().count(), 1);
+    }
+
     #[test]
     fn exclusive_publication_has_one_winner_and_cleans_losing_stages() {
         use std::sync::{Arc, Barrier};
@@ -695,5 +952,159 @@ mod durable_publication_tests {
         assert!(!write_bytes_atomic_if_absent(&target, b"different").unwrap());
         assert_eq!(fs::read(&target).unwrap(), [winners[0].0]);
         assert_eq!(fs::read_dir(dir.path()).unwrap().count(), 1);
+    }
+}
+
+#[cfg(all(test, windows))]
+mod windows_beneath_file_tests {
+    use super::*;
+    use std::io::Read;
+
+    #[test]
+    fn native_artifact_bytes_and_escape_rejection() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("attempt");
+        fs::create_dir(&root).unwrap();
+        fs::create_dir(root.join("nested")).unwrap();
+        fs::write(
+            root.join("nested").join("stdout.log"),
+            b"registered exact bytes",
+        )
+        .unwrap();
+        fs::write(temp.path().join("foreign.log"), b"outside").unwrap();
+        let handle = open_directory_nofollow(&root).unwrap();
+        let mut file =
+            open_regular_file_beneath(&handle, Path::new("nested/stdout.log"), true).unwrap();
+        let mut bytes = vec![];
+        file.read_to_end(&mut bytes).unwrap();
+        assert_eq!(bytes, b"registered exact bytes");
+        for path in [
+            "../foreign.log",
+            "nested",
+            "nested/stdout.log:alternate",
+            "",
+            "nested/missing",
+            "C:/Windows/win.ini",
+        ] {
+            assert!(
+                open_regular_file_beneath(&handle, Path::new(path), true).is_err(),
+                "accepted {path}"
+            );
+        }
+        // A directory junction uses a real Windows reparse point without
+        // needing symbolic-link creation privilege.
+        let target = temp.path().join("outside");
+        fs::create_dir(&target).unwrap();
+        fs::write(target.join("stdout.log"), b"foreign").unwrap();
+        let junction = root.join("junction");
+        let output = std::process::Command::new("cmd.exe")
+            .args(["/d", "/c", "mklink", "/J"])
+            .arg(&junction)
+            .arg(&target)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "junction creation failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(open_directory_nofollow(&junction).is_err());
+        assert!(
+            open_regular_file_beneath(&handle, Path::new("junction/stdout.log"), true).is_err()
+        );
+        assert!(
+            open_regular_file_beneath(&handle, Path::new("junction/stdout.log"), false).is_err()
+        );
+        fs::remove_dir(&junction).unwrap();
+    }
+}
+
+#[cfg(all(test, unix))]
+mod native_attempt_spawn_fence_tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+    use std::sync::mpsc;
+    use std::thread;
+    use std::time::Duration;
+
+    #[test]
+    fn cancellation_marker_publication_waits_for_step_spawn_fence() {
+        let dir =
+            std::env::temp_dir().join(format!("ordivon-native-spawn-fence-{}", Uuid::now_v7()));
+        fs::create_dir(&dir).unwrap();
+        if unsafe { libc::geteuid() } == 0 {
+            fs::set_permissions(&dir, fs::Permissions::from_mode(0o700)).unwrap();
+        }
+        if unsafe { libc::geteuid() } != 0 {
+            // Unprivileged CI cannot manufacture an authentic UID0 PG
+            // Attempt control directory. Reject the unowned substitute.
+            assert!(lock_attempt_spawn_fence(&dir).is_err());
+            fs::remove_dir_all(&dir).unwrap();
+            return;
+        }
+        let running_spawn = lock_attempt_spawn_fence(&dir).unwrap();
+        let lock_path = dir.join(".spawn-fence.lock");
+        let competing = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&lock_path)
+            .unwrap();
+        assert!(matches!(
+            competing.try_lock(),
+            Err(std::fs::TryLockError::WouldBlock)
+        ));
+        drop(competing);
+        let (started_tx, started_rx) = mpsc::channel();
+        let (committed_tx, committed_rx) = mpsc::channel();
+        let child_dir = dir.clone();
+        let cancel = thread::spawn(move || {
+            started_tx.send(()).unwrap();
+            let _cancel_fence = lock_attempt_spawn_fence(&child_dir).unwrap();
+            fs::write(child_dir.join("cancel-requested.json"), b"{}").unwrap();
+            committed_tx.send(()).unwrap();
+        });
+        started_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        assert!(matches!(
+            committed_rx.recv_timeout(Duration::from_millis(70)),
+            Err(mpsc::RecvTimeoutError::Timeout)
+        ));
+        assert!(!dir.join("cancel-requested.json").exists());
+        drop(running_spawn);
+        committed_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        cancel.join().unwrap();
+        // A newly started Runner must observe the marker while holding
+        // the SAME root-controlled lock; it cannot start another step.
+        let _next_spawn_fence = lock_attempt_spawn_fence(&dir).unwrap();
+        assert!(dir.join("cancel-requested.json").is_file());
+        drop(_next_spawn_fence);
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn attempt_spawn_fence_rejects_world_writable_or_symlinked_inodes() {
+        let dir =
+            std::env::temp_dir().join(format!("ordivon-native-spawn-inode-{}", Uuid::now_v7()));
+        fs::create_dir(&dir).unwrap();
+        if unsafe { libc::geteuid() } == 0 {
+            fs::set_permissions(&dir, fs::Permissions::from_mode(0o700)).unwrap();
+        }
+        if unsafe { libc::geteuid() } != 0 {
+            assert!(lock_attempt_spawn_fence(&dir).is_err());
+        } else {
+            let owned = lock_attempt_spawn_fence(&dir).unwrap();
+            drop(owned);
+            fs::set_permissions(&dir, fs::Permissions::from_mode(0o755)).unwrap();
+            assert!(lock_attempt_spawn_fence(&dir).is_err());
+            fs::set_permissions(&dir, fs::Permissions::from_mode(0o700)).unwrap();
+            let path = dir.join(".spawn-fence.lock");
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o666)).unwrap();
+            assert!(lock_attempt_spawn_fence(&dir).is_err());
+            fs::remove_file(&path).unwrap();
+            let innocent = dir.join("ordinary-file");
+            fs::write(&innocent, b"synthetic").unwrap();
+            std::os::unix::fs::symlink(&innocent, &path).unwrap();
+            assert!(lock_attempt_spawn_fence(&dir).is_err());
+        }
+        fs::remove_dir_all(&dir).unwrap();
     }
 }

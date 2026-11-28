@@ -47,6 +47,10 @@ jq -e '
   (if has("requireNonemptyPackets") then (.requireNonemptyPackets | type) == "boolean" else true end)
 ' "$profile" >/dev/null || { echo "invalid timed-text profile" >&2; exit 65; }
 
+# shellcheck source=processing/bin/native-input.sh
+source "$root/processing/bin/native-input.sh"
+input_custody_start "$input" "$out"
+
 mkdir -p "$out/raw"
 normalized="$out/raw/normalized.vtt"
 packets="$out/raw/ffprobe-subtitle-packets.json"
@@ -58,13 +62,13 @@ actual_language=""
 case "$format" in
   ttml)
     command -v xmllint >/dev/null
-    xmllint --noout "$input"
-    actual_language=$(xmllint --xpath 'string(/*/@xml:lang)' "$input")
-    "$ttconv" convert -i "$input" -o "$normalized" --otype VTT \
+    xmllint --noout "$input_snapshot"
+    actual_language=$(xmllint --xpath 'string(/*/@xml:lang)' "$input_snapshot")
+    "$ttconv" convert -i "$input_snapshot" -o "$normalized" --otype VTT \
       --config '{"general":{"progress_bar":false,"log_level":"WARN"},"vtt_writer":{"cue_id":true}}'
     ;;
   vtt)
-    cp "$input" "$normalized"
+    cp "$input_snapshot" "$normalized"
     ;;
   *)
     echo "unsupported timed-text profile format: $format" >&2
@@ -74,8 +78,9 @@ esac
 
 ffprobe -v error -show_packets -select_streams s -of json "$normalized" > "$packets"
 
-input_sha="sha256:$(sha256sum "$input" | awk '{print $1}')"
-input_bytes=$(stat -c '%s' "$input")
+input_custody_finish
+input_sha=$input_digest
+input_bytes=$input_size
 profile_sha="sha256:$(sha256sum "$profile" | awk '{print $1}')"
 normalized_sha="sha256:$(sha256sum "$normalized" | awk '{print $1}')"
 packets_sha="sha256:$(sha256sum "$packets" | awk '{print $1}')"
@@ -133,7 +138,7 @@ jq -n \
     evidenceDirectory:$evidenceDirectory,
     kind:"ordivon.media.v2.external-timed-text-evidence",
     truthRole:"mechanical-timed-text-delivery-evidence-not-semantic-caption-completeness-or-imsc-conformance",
-    input:{path:$input,digest:$inputDigest,sizeBytes:$inputBytes},
+    input:{path:$input,digest:$inputDigest,sizeBytes:$inputBytes,observationMode:"attempt-private-copy-retired"},
     profile:{path:$profile,digest:$profileDigest,snapshotPath:"profile.json"},
     tools:{ttconv:{version:"1.2.3",role:"format-conversion"},ffprobe:{version:$ffprobeVersion,role:"subtitle-packet-timing"},xmllint:{role:"xml-well-formedness-and-language-when-ttml"}},
     evidence:{normalizedVttDigest:$normalizedDigest,packetEvidenceDigest:$packetEvidenceDigest,assertionsDigest:$assertionsDigest},

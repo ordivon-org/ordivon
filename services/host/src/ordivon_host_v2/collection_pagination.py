@@ -4,6 +4,7 @@ from collections.abc import Callable, Sequence
 from typing import Any
 
 from .canonical_json import canonical_bytes
+from .errors import InvalidArgumentError
 
 DEFAULT_COLLECTION_MAX_BYTES = 262_144
 DEFAULT_MESSAGE_COLLECTION_MAX_BYTES = 524_288
@@ -16,7 +17,7 @@ MIN_SPACE_MAX_BYTES = 1_048_576
 
 def validate_max_bytes(max_bytes: int, *, minimum: int = MIN_COLLECTION_MAX_BYTES) -> None:
     if type(max_bytes) is not int or not minimum <= max_bytes <= MAX_COLLECTION_MAX_BYTES:
-        raise ValueError(f"max_bytes must be in [{minimum},{MAX_COLLECTION_MAX_BYTES}]")
+        raise InvalidArgumentError(f"max_bytes must be in [{minimum},{MAX_COLLECTION_MAX_BYTES}]")
 
 
 def bounded_page[T](
@@ -52,7 +53,7 @@ def bounded_page[T](
         metadata = metadata_for(None, False)
         result = {**metadata, collection_key: []}
         if len(canonical_bytes(result)) > max_bytes:
-            raise ValueError("max_bytes cannot fit the empty response envelope")
+            raise InvalidArgumentError("max_bytes cannot fit the empty response envelope")
         return result
 
     for index, item in enumerate(items):
@@ -62,7 +63,7 @@ def bounded_page[T](
         size = len(canonical_bytes({**metadata, collection_key: []})) + next_array_bytes
         if size > max_bytes:
             if accepted_metadata is None:
-                raise ValueError("max_bytes cannot fit one legal item plus response envelope")
+                raise InvalidArgumentError("max_bytes cannot fit one legal item plus response envelope")
             return {**accepted_metadata, collection_key: page}
         page.append(item)
         array_bytes = next_array_bytes

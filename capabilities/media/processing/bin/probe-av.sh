@@ -51,15 +51,20 @@ jq -es '
     (.audio.presence | . == "forbidden" or . == "required" or . == "optional"))
 ' "$profile" >/dev/null || { echo "invalid av profile" >&2; exit 65; }
 
+# shellcheck source=processing/bin/native-input.sh
+source "$root/processing/bin/native-input.sh"
+input_custody_start "$artifact" "$out"
+
 mkdir -p "$out/raw"
 probe="$out/raw/ffprobe.json"
 assertions="$out/assertions.json"
 evidence="$out/evidence.json"
 
-ffprobe -v error -show_format -show_streams -of json "$artifact" > "$probe"
+ffprobe -v error -show_format -show_streams -of json "$input_snapshot" > "$probe"
 
-artifact_sha="sha256:$(sha256sum "$artifact" | awk '{print $1}')"
-artifact_bytes=$(stat -c '%s' "$artifact")
+input_custody_finish
+artifact_sha=$input_digest
+artifact_bytes=$input_size
 profile_sha="sha256:$(sha256sum "$profile" | awk '{print $1}')"
 probe_sha="sha256:$(sha256sum "$probe" | awk '{print $1}')"
 ffprobe_version=$(ffprobe -version | head -n1)
@@ -107,7 +112,7 @@ jq -n \
     evidenceDirectory:$evidenceDirectory,
     kind:"ordivon.media.v2.external-qc-evidence",
     truthRole:"mechanical-profile-evidence-not-semantic-or-aesthetic-approval",
-    artifact:{path:$artifact,digest:$artifactDigest,sizeBytes:$artifactBytes},
+    artifact:{path:$artifact,digest:$artifactDigest,sizeBytes:$artifactBytes,observationMode:"attempt-private-copy-retired"},
     profile:{path:$profile,digest:$profileDigest,snapshotPath:"profile.json"},
     tools:{ffprobe:{version:$ffprobeVersion}},
     evidence:{rawProbeDigest:$rawProbeDigest,assertionsDigest:$assertionsDigest},

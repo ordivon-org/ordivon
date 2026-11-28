@@ -78,10 +78,55 @@ impl PgRuntime {
                 } else {
                     None
                 };
+            let (issuer_schema, issuer_principal) =
+                if let Some((principal, schema)) = &self.config.harness_dispatch_issuer {
+                    (Some(schema.as_str()), Some(principal.as_str()))
+                } else {
+                    (self.config.harness_issuer_schema.as_deref(), None)
+                };
+            #[cfg(target_os = "linux")]
+            let issuer_spawn_fence = {
+                if let Some(schema) = issuer_schema {
+                    let principal: String = db
+                        .client
+                        .query_one("SELECT principal FROM jobs WHERE job_id=$1", &[&job])
+                        .map_err(io)?
+                        .get(0);
+                    if issuer_principal.is_none_or(|expected| expected == principal) {
+                        let path = self
+                            .config
+                            .harness_spawn_dsn_file
+                            .as_deref()
+                            .ok_or_else(|| error("issuer receiver DSN file missing"))?;
+                        if crate::pg_admission::read_private_spawn_dsn(path).map_err(io)?
+                            != self.config.dsn
+                        {
+                            return Err(error("issuer receiver DSN no longer matches Runtime"));
+                        }
+                        Some(universal::RunnerIssuerSpawnFence {
+                            dsn_file: path
+                                .to_str()
+                                .ok_or_else(|| error("issuer DSN path not UTF-8"))?
+                                .to_owned(),
+                            runtime_schema: self.config.schema.clone(),
+                            issuer_schema: schema.to_owned(),
+                            source_sha256: self.config.source_sha256.clone(),
+                            principal,
+                        })
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            };
+            #[cfg(not(target_os = "linux"))]
+            let issuer_spawn_fence = None;
             if !self.claim_resources(db, a, plan)? {
                 return Ok(false);
             }
             let req = RunnerRequest {
+                issuer_spawn_fence,
                 workspace_read_paths: plan.budget.scheduling.as_ref().and_then(|s| {
                     if s.workspace_access.read_paths.is_empty() {
                         None
@@ -205,12 +250,6 @@ impl PgRuntime {
                 return Err(error("bundle digest mismatch"));
             }
             // This commit is intent only. Never reissue a physical launch after this boundary.
-            let (issuer_schema, issuer_principal) =
-                if let Some((principal, schema)) = &self.config.harness_dispatch_issuer {
-                    (Some(schema.as_str()), Some(principal.as_str()))
-                } else {
-                    (self.config.harness_issuer_schema.as_deref(), None)
-                };
             let issued_version = db
                 .mark_dispatch_issued_pg(
                     &PgDispatchIssued {
@@ -232,7 +271,7 @@ impl PgRuntime {
                 .settle_cancel_before_native_handoff(&PgDispatchIssued {
                     attempt_id: a.attempt_id.clone(),
                     expected_row_version: issued_version,
-                    expected_bundle_digest: digest,
+                    expected_bundle_digest: digest.clone(),
                     observed_at_ms: now()?,
                     expected_source_sha256: self.config.source_sha256.clone(),
                 })
@@ -240,6 +279,16 @@ impl PgRuntime {
             {
                 return Ok(false);
             }
+            #[cfg(windows)]
+            self.launch_native_windows_attempt(
+                a,
+                plan,
+                &digest,
+                provider["executionProvider"]["executableDigest"]
+                    .as_str()
+                    .ok_or_else(|| error("native provider digest absent"))?,
+            )?;
+            #[cfg(not(windows))]
             let output = super::platform::systemd_run(&super::platform::SystemdRunSpec {
                 unit_name: &a.unit_name,
                 runner: self
@@ -270,6 +319,7 @@ impl PgRuntime {
                 execution_profile: plan.execution_profile,
                 environment: &plan.env,
             })?;
+            #[cfg(not(windows))]
             if !output.status.success() {
                 return Err(RuntimeError::new(
                     RuntimeErrorCode::DispatchOutcomeUnknown,
@@ -290,7 +340,10 @@ impl PgRuntime {
             if a.termination_intent == AttemptTerminationIntent::StopRequested
                 && !a.state.is_terminal()
             {
+                #[cfg(not(windows))]
                 let _ = super::platform::stop_unit_no_block(&a.unit_name)?;
+                #[cfg(windows)]
+                self.publish_native_windows_stop(a)?;
             }
         }
         Ok(true)

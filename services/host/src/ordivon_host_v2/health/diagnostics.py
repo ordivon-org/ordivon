@@ -13,6 +13,7 @@ import psycopg
 from rfc8785 import CanonicalizationError
 
 from ..canonical_json import canonical_digest
+from ..errors import InvalidArgumentError
 from ..postgres_connections import HostPostgresConnections
 from .receipt_roots import count_invalid_work_receipt_roots
 
@@ -68,7 +69,7 @@ class HostStatusQueries(HostPostgresConnections):
 
     def status(self, detail: str = "summary") -> dict[str, Any]:
         if detail not in {"summary", "integrity", "history"}:
-            raise ValueError("detail must be summary, integrity, or history")
+            raise InvalidArgumentError("detail must be summary, integrity, or history")
         observed_at_ms = time.time_ns() // 1_000_000
         with self._connect() as conn:
             # Every detail mode is a read-only observation of one native cut.

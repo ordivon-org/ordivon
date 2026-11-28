@@ -397,3 +397,14 @@ source_glob = "services/runtime/crates/ordivon-runtime-mcp/tests/pg_vertical.rs"
 allowed_fragment = "repo_root.join(\"services/harness\")"
 kind = "TEST_ONLY_NATIVE_RUNTIME_CONSUMER"
 contract_ref = "services/harness/tests/original_pg_issuer_native_fixture.py"
+
+# Media's native equipment-binding compatibility test invokes precisely one
+# Workstation provider source, not a production owner dependency.
+[[seams]]
+from_owner = "media"
+to_owner = "workstation"
+source_glob = "capabilities/media/tests/test_equipment_binding_admission.py"
+allowed_fragment = "platform/workstation/workstation/equipment_binding.py"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "PATH"
+contract_ref = "capabilities/media/planning/media-equipment-binding-admission-r18.md"

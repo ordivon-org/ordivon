@@ -43,8 +43,8 @@ pub use workspace_mutation::{
 mod runner_protocol;
 pub(crate) use runner_protocol::{
     CapturedOutput, RunnerExecutionStep, RunnerHostDependencyCommitment, RunnerInputCommitment,
-    RunnerPayloadConfig, RunnerProgress, RunnerRequest, RunnerResult, RunnerStartEvidence,
-    RunnerStepResult, RunnerTerminalStatus,
+    RunnerIssuerSpawnFence, RunnerPayloadConfig, RunnerProgress, RunnerRequest, RunnerResult,
+    RunnerStartEvidence, RunnerStepResult, RunnerTerminalStatus,
 };
 
 fn is_false(value: &bool) -> bool {

@@ -57,6 +57,14 @@
         mode: "0644"
       notify: Reload systemd
 
+    - name: Install inactive pgBackRest transition utility
+      ansible.builtin.copy:
+        src: ../postgresql/backup_transition.py
+        dest: /usr/local/bin/ordivon-pgbackrest-transition
+        owner: root
+        group: root
+        mode: "0755"
+
     - name: Install pgBackRest backup service
       ansible.builtin.copy:
         src: ../postgresql/ordivon-postgresql-backup.service

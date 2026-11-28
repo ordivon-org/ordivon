@@ -545,3 +545,127 @@ operation, or incomplete/relabelled update rolls back the whole maintenance
 operation, even if its caller catches the error. Only after every batch is
 qualified does the existing legacy-only fence become active. The caller
 still controls the outer transaction and timeouts.
+
+### Dual-mode Work receipt writer (source candidate; default unchanged)
+
+The existing MCP process composition accepts a strict
+`ORDIVON_HOST_V2_COMPACT_WORK_RECEIPTS` option (0 by default, 1 requests
+compact writes). This option does not authorize a migration or remove the
+native legacy-only constraint. When the option is disabled the original
+full-receipt write path incurs no extra database statements. When enabled,
+the existing idempotency claim already holds ROW EXCLUSIVE until commit:
+the writer observes the native fence inside that transaction, never caches
+the mode, and writes full receipts when the validated fence is present.
+An absent fence alone is insufficient: compact writes require the exact
+validated and enforced schema-17 shape and root FK contracts, with the
+PG18 deparsed definitions serving as independent qualification oracles.
+A weak/unrecognized contract fails closed. Exact replay is validated before
+atomically finalizing the tag and native pin in the same claim transaction.
+
+Rollback takes the existing exclusive lock, expands all exact roots in a
+savepoint and restores the validated legacy-only fence. Waiting opted-in
+READ COMMITTED writers reobserve the fence after claim admission and fall
+back to full receipts; no restart is required for that fallback.
+The source option is not a production activation procedure. Before any
+activation, qualify the installed schema, real consumer/rollback reader
+fleet, recovery cut and release admission. No automatic DDL or historical
+deletion is introduced.
+
+Native root qualification also observes the four internal PostgreSQL FK
+triggers (insert/update checks and target delete/update restrictions).
+The ordinary origin session must see all four exact native signatures
+enabled for origin or always. Catalog constraint definitions alone do
+not prove active enforcement. This is a qualification of the observed
+schema under the existing transaction, not a claim that a privileged
+administrator cannot subsequently change database configuration.
+
+### Point replay observes the persisted root
+
+The Work command path reuses the generic idempotency claim arbiter and
+conflict validation, then observes the stored receipt row and schema
+version in a single SQL statement. A legacy response must have no native
+pin; a compact response must have the exact persisted native work/revision
+identity, agreeing with the requested context and immutable envelope.
+The shared codec verifies the exact indexed historical target. The
+ordinary two-statement legacy replay and three-statement compact replay
+(including the claim) are preserved, without an extra schema query.
+A whole-row projection also preserves the explicitly tested schema-16
+rollback compatibility; missing pin columns under schema >=17 are errors.
+Bulk audit/maintenance retains its set-oriented root projection.
+
+The batch expansion effect is qualified independently of UPDATE RETURNING.
+For each bounded batch, a subsequent native set readback checks the exact
+identity set, JSONB response, original operation and request digest, and
+both cleared pin coordinates. Only identifiers and qualification booleans
+are returned to the application; the expected encoded responses are sent
+once for the update and again for the comparison. This catches ordinary
+BEFORE and AFTER trigger rewrites of the batch's rows; it does not claim
+protection against arbitrary later privileged DDL or unrelated trigger
+side effects. The original exclusive lock and whole-operation savepoint
+remain in force. No new payload admission limit or storage authority is
+introduced.
+
+### Complete suite qualification
+
+The queue entrypoint is distinct from portable/focused tests. It consumes
+the native pytest collection and setup/call/teardown reports, rejects skips,
+xfail/xpass, deselection, missing phases and empty suites, and preserves
+native nonzero outcomes. The queue clears inherited PYTEST_ADDOPTS so a
+developer's selection or collect-only option cannot masquerade as complete
+qualification. It uses strict pytest marker/config validation.
+
+An explicit caller-supplied test DSN without all dedicated boundary,
+migration and receipt fixtures is not sufficient for complete qualification;
+any missing native obligations must fail rather than be counted as passing.
+Portable/focused pytest retains native skip behavior. This gate qualifies
+the observed collected suite, not the existence of every possible semantic
+test, the installed production consumer, or a hostile test plugin.
+
+Caller-provisioned complete queue runs must supply all ten distinct database
+fixtures before migration. The queue compares PostgreSQL server major,
+native cluster system identifier and database OID through read-only catalog
+queries, not DSN spelling. Missing, aliased, wrong-major or unobservable
+identities fail before Alembic or test execution. Caller-provisioned
+fixtures still require an explicitly disposable test fleet; catalog
+identity does not prove that a database is safe to mutate. The native
+identity query must be available to the test role. Fresh owned-container
+runs provision their own fixture fleet as before.
+
+The complete queue additionally compares the source test-file obligations
+under the Host tests root (pytest's default test_*.py and *_test.py naming)
+against native item discovery. Each named test file must contribute at
+least one native test. Native itemcollected multiplicity must equal final
+selection, with unique node IDs. Every parent test must report exactly
+one successful setup, call and teardown in that order. Native subtests
+are separate evidence, not duplicate parent call reports; non-passing
+subtests still disqualify the complete run. Reordering tests is allowed,
+silent removals, duplicate executions/reports and rerun reports are not.
+This consumes the public pytest 9.2 subtest report API, not a parallel
+runner; it cannot establish unexpressed semantic obligations or defend
+against arbitrary malicious plugins. Report behavior is qualified on
+the actual locked pytest version.
+
+### Native attempt evidence (opt-in)
+
+Set ORDIVON_HOST_QUEUE_EVIDENCE_DIR to a fresh, non-existent directory
+outside the checkout, under an existing private parent, before invoking
+the complete Host queue. The queue consumes the destination at its own
+boundary and clears inherited pytest selection/plugin environment
+variables. It invokes the existing native pytest runner with JUnit XML
+and a small optional attempt-evidence plugin. It does not retry tests or
+replace the complete-suite verdict. Both the native JUnit and receipt
+are private, non-overwriting artifacts; failure traces may contain
+sensitive fixture information and must not be automatically published.
+
+The receipt records an invocation UUID, observed clean Git commit/Host
+tree and lock digest before and after, actual Python and pytest versions,
+native report outcome counts, nonpassing node IDs, the exit status after
+the complete-suite gate, and native JUnit digest and bytes. A missing
+report or changed source cannot turn a zero exit into qualification.
+A later passing attempt does not replace the earlier nonpass artifact.
+GitHub environment values are only provider declarations, with source
+matching required; actual provider check/run/attempt and Runtime artifact
+identity must be independently read back by the consumer. Before/after
+source observations do not prove immutability during execution, complete
+environment equivalence, or protection from hostile plugins. A killed
+or interrupted process may leave no complete receipt; absence is UNKNOWN.

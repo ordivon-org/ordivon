@@ -8,9 +8,13 @@ mod resource_receipt;
 mod runner;
 mod types;
 mod workspace;
+#[cfg(windows)]
+pub(crate) use workspace::git_cli_path;
 
 pub use config::{UniversalExecutorConfig, MAX_WORKSPACE_IO_BYTES, UNIVERSAL_EXEC_SCHEMA_VERSION};
 pub use error::{UniversalExecError, UniversalExecErrorCode};
+#[cfg(unix)]
+pub(crate) use fsutil::lock_attempt_spawn_fence;
 pub use fsutil::{
     ENVIRONMENT_VARIABLE_NAME_PATTERN, WORKSPACE_ID_MAX_LENGTH, WORKSPACE_ID_MIN_LENGTH,
     WORKSPACE_ID_PATTERN,
@@ -49,10 +53,10 @@ pub(crate) use workspace::{remove_git_workspace, write_workspace_text};
 
 pub(crate) use config::canonical_directory;
 pub(crate) use fsutil::{
-    invalid, io_error, now_unix_ms, open_directory_nofollow, open_regular_file_beneath,
-    parse_sha256_digest, rename_path_durable, sha256_bytes, sha256_file, sync_directory,
-    validate_env, validate_exec_payload, validate_id, validate_relative_path, write_bytes_atomic,
-    write_bytes_atomic_if_absent, write_json_atomic,
+    invalid, io_error, now_unix_ms, open_active_preview_beneath, open_directory_nofollow,
+    open_regular_file_beneath, parse_sha256_digest, rename_path_durable, sha256_bytes, sha256_file,
+    sync_directory, validate_env, validate_exec_payload, validate_id, validate_relative_path,
+    write_bytes_atomic, write_bytes_atomic_if_absent, write_json_atomic,
 };
 #[cfg(test)]
 pub(crate) use fsutil::{
@@ -72,8 +76,8 @@ pub(crate) use resource_receipt::{
 pub(crate) use types::RunnerStepResult;
 pub(crate) use types::{
     CapturedOutput, RunnerExecutionStep, RunnerHostDependencyCommitment, RunnerInputCommitment,
-    RunnerPayloadConfig, RunnerProgress, RunnerRequest, RunnerResult, RunnerStartEvidence,
-    RunnerTerminalStatus,
+    RunnerIssuerSpawnFence, RunnerPayloadConfig, RunnerProgress, RunnerRequest, RunnerResult,
+    RunnerStartEvidence, RunnerTerminalStatus,
 };
 #[cfg(feature = "runtime-contract")]
 pub(crate) use workspace::resolve_workspace_cwd;
@@ -90,5 +94,8 @@ pub(crate) use workspace::workspace_source_readset_digest_at;
 #[cfg(unix)]
 pub(crate) use workspace::workspace_source_state_digest_at;
 
-#[cfg(test)]
+// These fixtures execute the Linux systemd/cgroup Runner and Unix file
+// permissions; they cannot be compiled as Windows-native unit tests.
+// Keep all existing Linux verification unchanged.
+#[cfg(all(test, unix))]
 mod tests;

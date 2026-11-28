@@ -54,9 +54,14 @@ def main() -> int:
     )
     action_dirs = {"/", *("/" + Path(path).parent.as_posix() for path in action_manifests)}
     assert configured_dirs(github_actions) == action_dirs, "GitHub Actions dependency coverage drift"
-    assert github_actions.get("groups", {}).get("same-dependency") == {
+    action_groups = github_actions.get("groups", {})
+    assert action_groups.get("same-dependency") == {
         "patterns": ["*"], "group-by": "dependency-name",
     }, "GitHub Actions shared dependency updates must use native grouping"
+    assert (
+        next(iter(action_groups), None) == "codeql-release"
+        and action_groups.get("codeql-release") == {"patterns": ["github/codeql-action/*"]}
+    ), "CodeQL release family must be grouped before per-dependency updates"
 
     # Renovate PEP 621 is the single Python manifest + uv.lock update owner.
     # Keep this check against the actual tracked consumers, not a duplicate list.
