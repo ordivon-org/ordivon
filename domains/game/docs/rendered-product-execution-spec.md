@@ -1,8 +1,7 @@
 # Game V6 R11 — consumer-bound architecture execution specification
 
 Status: proposed execution cut; R1–R7 merged, #2809 remains under required checks.
-Host: Game factory topic, #31596, #31607, #32559, #32644. R2.1:
-(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold). No inferred owner votes.
+Host: Game factory topic, #31596, #31607, #32559, #32644. No inferred owner votes.
 
 ## Goal / reality / change
 

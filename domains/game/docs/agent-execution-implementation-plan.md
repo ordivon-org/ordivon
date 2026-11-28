@@ -1,12 +1,12 @@
 # Game LEGO-Constrained Execution — Implementation Plan R1.1
 
-> Agent workers: read [spec](agent-execution-contract-spec.md), root `AGENTS.md`, Game `AGENTS.md`, and existing G11 R2.1 before changing code. Use Superpowers' small red/green steps and verification-before-completion where applicable; this plan is not a new authority or runtime.
+> Agent workers: read [spec](agent-execution-contract-spec.md), root `AGENTS.md`, Game `AGENTS.md`, and existing G11 native behavior before changing code. Use Superpowers' small red/green steps and verification-before-completion where applicable; this plan is not a new authority or runtime.
 
 > **Current standing (2026-11-15):** This is the 2026-11-09 implementation history, not the next Game work queue. The native clean-checkout import and receipt checks described in Tasks A–C/E are already present in current source and must be re-verified with `mise run test:agent-episode` for affected changes. Historical unchecked boxes remain provenance, not instructions to redo them. Task D is conditional on a real cross-Owner consumer; publication, current CI, and Human acceptance are independent facts.
 
 **Goal:** Make the actual G11 Room Encounter episode acceptance independently executable in a clean Game checkout, while retaining source-bound LEGO evidence and recording the future natural-Owner adoption seams.
-**Architecture:** Extend the existing native `mise` entry using upstream Godot import. Reuse the existing G11 R2.1 declaration, Game real scene tests and GitHub native pipeline; do not add a schema, verifier executor, registry or mandatory Agent workflow.
-**Tech stack:** Godot 4.7.2, Python 3, Rust/Bevy 0.20.1 as existing separate product, mise, GitHub Actions, Game G11 R2.1.
+**Architecture:** Extend the existing native `mise` entry using upstream Godot import. Reuse the existing G11 native behavior, Game real scene tests and GitHub native pipeline; do not add a schema, verifier executor, registry or mandatory Agent workflow.
+**Tech stack:** Godot 4.7.2, Python 3, Rust/Bevy 0.20.1 as existing separate product, mise, GitHub Actions, Game G11.
 **Spec:** `domains/game/docs/agent-execution-contract-spec.md`.
 **Frozen test seam:** `cd domains/game && mise run test:agent-episode`, in an isolated checkout without `examples/room-encounter/.godot`.
 
@@ -14,7 +14,7 @@
 
 - Use exact current Game source tree `7157e18d3bee2765205687380953dfabf72688a0` as the initial design basis; record any future diff.
 - Retain Godot-native `PackedScene`/`EncounterRules`/Dialogue Manager and native action/observation semantics; do not simulate action execution in Python.
-- Retain the 11-coordinate existing G11 `recursiveLegoR21` contract and its original authority split.
+- Preserve G11 native action/observation behavior and its original authority split.
 - No new global evaluator, workflow/verification database, native scene shim, Weak-Model experiment or ECC Stop Hook.
 - Do not claim Player acceptance from headless checks; do not claim Git merged/installed when it is only a local branch.
 - For claims requiring a clean import, remove ignored generated cache only inside a disposable isolated worktree. Never delete production or other agents' worktrees.
@@ -49,10 +49,10 @@ A: native G11 red->green repair
 **Files**: Add these two Game docs; modify `domains/game/docs/factory-pipeline.md` or `domains/game/AGENTS.md` only if needed to correct a directly consumed obsolete instruction. No new test runner.
 
 **Interface**
-- Input: G11 full R2.1 in existing Game planning JSON; existing Game `mise` checks and exact Git source.
+- Input: G11 responsibility, native behavior and evidence in existing Game planning JSON; existing Game `mise` checks and exact Git source.
 - Output: scoped `G11-AC-001..005` acceptance reference usable by Game Agent/CI; non-claims stated explicitly.
 
-- [ ] B1. Review changed native entry against `recursiveLegoR21.pre/post/inv/eff/prov`. Do not automatically mark all 11 properties mathematically proved.
+- [ ] B1. Review the changed native entry against the five task-specific G11 acceptance obligations in the spec, preserving actual source and consumer evidence. Do not infer a mathematical proof from documentation.
 - [ ] B2. State the clean-checkout entry in the real Game factory guide only if its consumers benefit; link this spec rather than duplicating it.
 - [ ] B3. Run `pnpm check` and Game-native relevant suite. Preserve existing test counts and result forms.
 - [ ] B4. Check `.github/workflows/game-factory.yml` `native-g11-contract` on pull requests: clean checkout, native Godot import and existing 19-episode acceptance; `actionlint .github/workflows/game-factory.yml` must pass. Preserve main-push preview packaging as a separate job. Record GitHub check state and exact SHA separately from local verification.

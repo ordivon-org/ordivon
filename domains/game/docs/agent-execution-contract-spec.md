@@ -10,7 +10,7 @@ The Game Factory already states that a real consumer, selected Godot/Bevy engine
 
 The larger failure mode is *semantic goal substitution*: an implementer can replace a consumer outcome with a planning artifact, framework, model-only PASS, test-count growth, or its own completion narrative. More prompts cannot establish independent domain truth.
 
-**Outcome:** Game tasks bind product intent and the relevant existing R2.1 responsibilities (historical G07 archived) to native, source-identified, independently observable consumer obligations. A model may change implementation, not redefine what evidence discharges the obligation. Reuse existing Owner tooling and packages; never create a second workflow/LEGO/verifier service.
+**Outcome:** Game tasks bind product intent and the relevant existing Game responsibilities (historical G07 archived) to native, source-identified, independently observable consumer obligations. A model may change implementation, not redefine what evidence discharges the obligation. Reuse existing Owner tooling and packages; never create a second workflow/LEGO/verifier service.
 
 ## 2. Upstream methods adopted, not installed wholesale
 
@@ -33,7 +33,7 @@ Authoritative references:
 
 - **Product objective:** game behavior or player-visible artifact sought by the consumer. Only Game/product evidence can revise it.
 - **LEGO:** goal-conditioned independently contractable responsibility, not a file/Skill/Tool/Agent.
-- **R2.1 contract admission:** a declared/admitted responsibility requires a typed eleven-coordinate contract. The historical G07–G11 contracts carry eleven named coordinates, but textual cost/approximation/provenance fields are NOT machine-checked formal types or implementation proofs. Missing G01–G06 coordinates must not be invented.
+- **Mathematical representation:** choose the structure and verification obligations required by the actual Game behavior and consumer. A declaration or prose description is not a machine-checked implementation proof.
 - **Verification obligation:** bounded condition, source scope and evidence owned by the actual verifier. Existing Composition `verification-obligation-set-v1` is *non-authoritative* and does not execute checks.
 - **Mechanical result:** Runtime Job/process/test exit and receipts, not product truth.
 - **Domain acceptance:** current Game consumer-observed effect with the specified scope. Automated Game PASS is not player delight or Windows physical gameplay.
@@ -41,23 +41,29 @@ Authoritative references:
 
 Responsibility split: Game specifies domain properties and its native test entry. Composition can deterministically project requirements. Runtime runs and records operations. Harness can orchestrate a chosen agent. GitHub native CI supplies independent checkout and check status. Artifact/Distribution publish binaries. Neither Composition nor Harness decides gameplay quality.
 
-## 4. Effective R2.1 contract — G11 cold-start refinement
+## 4. G11 cold-start behavior and refinement
 
-This is a **task-local proposed refinement with explicit proof duties against existing G11**, not new LEGO G12. Source carrier: `planning/lego-plan-r1.json` G11 `recursiveLegoR21`; actual implementation `scripts/agent_episode_acceptance.py` and `mise.toml`.
+This is a **task-local proposed refinement with explicit proof duties against existing G11**, not new LEGO G12. Source carrier: G11 in `planning/lego-plan-r1.json`; actual implementation `scripts/agent_episode_acceptance.py` and `mise.toml`.
 
-| Coordinate | Task-local realization |
-| --- | --- |
-| I | Immutable source tree, pinned Godot CLI, Room Encounter scenes/resources/addons; zero existing `.godot` cache; bounded 0–64 action sequence |
-| O | Native schema-v2 episode receipts and Game test verdict; explicit nonzero/FAIL on import/script/parse failure |
-| S | One native scene and its EncounterRules state per process; editor import cache is an *environmental prerequisite*, not hidden task history |
-| pre | Godot executable and source available; importer may be run at test entry; native action limits remain unchanged |
-| post | Running the documented `mise run test:agent-episode` from a clean checkout imports required resources then executes unchanged native episodes and checks receipt semantics |
-| inv | EncounterRules owns combat; UI-only default vs debug opt-in preserved; no second simulator; no success inferred from plain exit=0 when script errors exist |
-| eff | Godot editor import into ignored local cache, headless native scene effects, stdout/exit; no player-visible new gameplay effects |
-| c | Additional bounded editor import on test invocation; actual wall-clock/resource cost is unmeasured |
-| epsilon | Interactive hardware player experience and graphical rendering remain UNKNOWN; import+episode tests do not resolve those properties |
-| prov | Game Git source cut, Godot pin in Game `mise.toml`, native test transcript, upstream Godot CLI docs |
-| unfold | `mise.toml`, `agent_episode_acceptance.py`, `agent_episode.gd`, Dialogue Manager addon, Game native CI |
+A clean immutable checkout supplies the pinned Godot CLI, Room Encounter
+scenes/resources/addons and a bounded 0–64 action sequence. The editor import
+cache is an environmental prerequisite, not hidden task history. Import may
+run at test entry, writing only the ignored local cache. The real native
+episode uses one scene and its EncounterRules state per process; action limits
+and combat ownership remain unchanged. Default observation is player-visible
+UI, with debug information available only by explicit opt-in. No second
+simulator is permitted.
+
+The documented native entry imports required resources, executes the unchanged
+episodes and checks native schema-v2 receipts. Import, script or parse failure
+must yield a nonzero/FAIL result rather than a stale PASS; process exit alone
+does not establish episode success. No new player-visible gameplay effect is
+introduced. The additional editor import cost is unmeasured, and interactive
+hardware experience and graphical rendering remain UNKNOWN from these tests.
+Evidence comes from the exact Git source, Godot pin in `mise.toml`, native test
+transcript and upstream Godot CLI documentation. Actual implementation paths
+are `mise.toml`, `agent_episode_acceptance.py`, `agent_episode.gd`, Dialogue
+Manager and Game native CI.
 
 The actual external contract is one command, not a private preparatory ritual:
 `cd domains/game && mise run test:agent-episode`.
@@ -122,12 +128,12 @@ Do not infer rightward acceptance from leftward activity alone. Explicitly rejec
 
 ## 7. Scope and execution sequence
 
-**In:** Game-native G11 cold start, exact R2.1 refinement, one source-bound acceptance entry, planned cross-owner natural acceptance handoffs, terminal proof/evidence semantics, independent CI check on the actual change.
+**In:** Game-native G11 cold start, exact native behavior refinement, one source-bound acceptance entry, planned cross-owner natural acceptance handoffs, terminal proof/evidence semantics, independent CI check on the actual change.
 
-**Out:** Weak-model comparisons, prompts-only training, universal Ordivon validator, retrofitting all G01–G06 into invented R2.1 contract text, new game framework, forced prior approval for ordinary code edits, production-money effects, claims of human play evidence.
+**Out:** Weak-model comparisons, prompts-only training, universal Ordivon validator, inventing declarations for G01–G06, new game framework, forced prior approval for ordinary code edits, production-money effects, claims of human play evidence.
 
 1. **Slice A:** reproduce missing import in clean Game checkout; fix native `mise` test entry via official Godot import; re-run native G11 and relevant pipeline tasks.
-2. **Slice B:** tie assertions and test evidence to the existing G11 R2.1 responsibility and native factory entry, updating only Game docs/tests that have real consumers; verify the independent `native-g11-contract` GitHub PR job in the existing `.github/workflows/game-factory.yml` on a clean checkout. The pre-existing push-to-main preview packaging remains distinct.
+2. **Slice B:** tie assertions and test evidence to the existing G11 responsibility and native factory entry, updating only Game docs/tests that have real consumers; verify the independent `native-g11-contract` GitHub PR job in the existing `.github/workflows/game-factory.yml` on a clean checkout. The pre-existing push-to-main preview packaging remains distinct.
 3. **Slice C:** when a concrete cross-owner producer/consumer needs it, project requirements via existing Composition obligation schema; no cross-owner implementation until the particular owner contract is accepted.
 4. **Slice D:** real product deliveries and player evidence remain independent from mechanical Game test acceptance.
 
@@ -250,7 +256,7 @@ Agent-generated code and agent-generated assertions can both drift. For conseque
 - Matt to-tickets / implement-spec: model implementation as dependency-DAG tracer bullets with an executable frontier. Keep one Game delivery branch and use actual native CI; do not require multiple agents for narrow changes.
 - ECC intent-driven-development / contract-first: each material acceptance criterion describes scenario, trigger, observable result, prohibited side effect and actual verifier; keep one canonical provider/consumer wire authority.
 - Superpowers writing-plans / test-driven-development / verification-before-completion: exact file/path/command, watch a valid RED then GREEN, preserve negative controls, and make no completion statement without fresh result.
-- Recursive LEGO R2.1: express the *retained independent responsibility* with all eleven typed coordinates; UNKNOWN is scoped, not fabricated. Only decompose when a real consumer can replace or validate the resulting component.
+- Use the mathematical structure justified by the retained Game responsibility and its real consumers; UNKNOWN is scoped, not fabricated. Only decompose when a real consumer can replace or validate the resulting component.
 - Native engine/CI: owns real effects, builds, visible UI and independent execution receipts. Thinking methods cannot establish domain success.
 
 **Do not install ECC stop hooks blindly:** its generic transcript regex / last-edited-learning-file criteria may reward the wrong work. Do not fork the Matt issue tracker, copy all Superpowers rules into the repository root, or add another Composition task schema.
@@ -259,7 +265,7 @@ Agent-generated code and agent-generated assertions can both drift. For conseque
 
 | Stage | Existing carrier | Evidence / completion | Failure consequence |
 | --- | --- | --- | --- |
-| P0 source and consumer | Git, Game Agent, G11 effective R2.1 | SHA, playable/episode objective | STOP if no actual consumer |
+| P0 source and consumer | Git, Game Agent, G11 native behavior | SHA, playable/episode objective | STOP if no actual consumer |
 | P1 specify the seam | This scoped Game spec + G11 contract | explicit observable obligations | retain UNKNOWN on missing assumptions |
 | P2 native realization | Godot episode + Python reader + mise task | RED → GREEN against actual engine | repair/replace native interface |
 | P3 trace refinement testing | Game acceptance reader, not standalone simulation | chain, rejection, terminal, player/public shape + negative mutations | fail on incoherent native receipt |
