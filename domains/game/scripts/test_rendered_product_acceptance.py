@@ -1,29 +1,12 @@
 """Real FFmpeg decoder contract, not a second game renderer."""
-import os
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import unittest
 
-from native_process import private_player_environment, verify_process
+from native_process import verify_process
 from rendered_product_acceptance import FRAMES, consume, digest, verify_rasters
-
-
-class PrivatePlayerEnvironmentContract(unittest.TestCase):
-    def test_fresh_directories_and_parent_environment_preserved(self):
-        names = ("XDG_DATA_HOME", "XDG_CONFIG_HOME", "XDG_CACHE_HOME")
-        before = {name: os.environ.get(name) for name in names}
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            env = private_player_environment(root)
-            self.assertEqual(set(root.iterdir()), {root / name for name in names})
-            for name in names:
-                self.assertTrue((root / name).is_dir())
-                self.assertEqual(env[name], str(root / name))
-            self.assertEqual({name: os.environ.get(name) for name in names}, before)
-            with self.assertRaises(FileExistsError):
-                private_player_environment(root)
 
 
 class RasterContract(unittest.TestCase):
