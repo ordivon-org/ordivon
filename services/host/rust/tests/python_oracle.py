@@ -1,19 +1,17 @@
 """Migration-only Python <-> Rust Work compatibility oracle.
 
 Use only with a *disposable loopback* PostgreSQL 18 database prepared by the
-original Host Alembic 0001..0013 migrations.
+explicitly selected Host Alembic schema13 (historical) or schema17 (current)
+fixture. This does not change Rust service admission.
 
-From services/host:
-    HOST_RUST_TEST_DSN=postgresql://... uv run --locked python \
-      rust/tests/python_oracle.py seed /tmp/host-work-oracle.json
-Then from the repository root:
-    HOST_RUST_TEST_DSN=... HOST_RUST_PYTHON_ORACLE_PATH=/tmp/host-work-oracle.json \
-      cargo test --manifest-path services/host/rust/Cargo.toml \
-      --test work_pg -- --ignored --test-threads=1
-    HOST_RUST_TEST_DSN=... HOST_RUST_PYTHON_ORACLE_PATH=/tmp/host-work-oracle.json \
-      cargo test --manifest-path services/host/rust/Cargo.toml \
-      --test work_python_parity -- --ignored
-Finally run this script with 'verify' against the same disposable DB.
+First run work_pg --ignored --test-threads=1 against the disposable fixture
+to create the Rust writer samples. Then seed the Python oracle on the same DB,
+run work_python_parity --ignored with HOST_RUST_PYTHON_ORACLE_PATH pointing to
+the saved JSON, and finally run this script with 'verify'. No fixture writes
+may intervene between Python oracle capture and the Rust comparison:
+they would change the list cursor/hasMore observations.
+Set HOST_RUST_TEST_SCHEMA=17 for the current schema17 Python profile;
+the default remains the historical schema13 profile.
 
 The script is explicitly a temporary *old implementation oracle*, not a new
 Host production dependency or a second database authority.
@@ -59,8 +57,11 @@ def _dsn() -> str:
         schema = conn.execute(
             "SELECT schema_version FROM host_v2_schema WHERE singleton"
         ).fetchone()
-        if schema is None or schema[0] != 13:
-            raise RuntimeError("Python/Rust oracle requires original Host schema13")
+        expected_schema = os.environ.get("HOST_RUST_TEST_SCHEMA", "13")
+        if expected_schema not in {"13", "17"}:
+            raise RuntimeError("unsupported Python/Rust fixture schema")
+        if schema is None or schema[0] != int(expected_schema):
+            raise RuntimeError("Python/Rust oracle fixture schema differs from explicit expected schema")
     return dsn
 
 
@@ -84,7 +85,13 @@ def _second_snapshot() -> WorkSnapshotInput:
 
 def seed(dsn: str, path: Path) -> None:
     store = WorkStore(dsn)
-    store.declare_actor(
+    if os.environ.get("HOST_RUST_TEST_SCHEMA", "13") == "17":
+        from ordivon_host_v2.references.actor_store import ActorReferenceStore
+
+        actor_store = ActorReferenceStore(dsn)
+    else:
+        actor_store = store
+    actor_store.declare_actor(
         ActorRefInput(actor_ref=ACTOR, actor_kind=ActorKind.AGENT),
         client_request_id="request:test:python:declare-parity",
     )
