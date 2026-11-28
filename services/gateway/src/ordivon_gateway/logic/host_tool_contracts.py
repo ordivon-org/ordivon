@@ -2,33 +2,29 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Mapping
-from contextlib import contextmanager
-from contextvars import ContextVar
+import json
 from typing import Annotated, Any
 
 from pydantic import Field
 
-# A request-local identity witness, NOT another authentication/authorization
-# authority. The already installed MCP Security middleware binds the public
-# Tool and its original args for precisely the duration of call_next(ctx).
-# Natural Host and Security continue to own domain effects and PDP decisions.
-_PUBLIC_TOOL_CALL: ContextVar[tuple[str, Mapping[str, Any]] | None] = ContextVar(
-    "ordivon_gateway_public_tool_call", default=None
-)
+# Stable compatibility exports for the request-local public call binding.
+from .public_tool_binding import bind_public_tool_call as bind_public_tool_call
+from .public_tool_binding import current_public_tool_call as current_public_tool_call
 
 
-@contextmanager
-def bind_public_tool_call(tool_name: str, arguments: Mapping[str, Any]) -> Iterator[None]:
-    token = _PUBLIC_TOOL_CALL.set((tool_name, dict(arguments)))
+def canonical_request_bytes(value: Any) -> bytes:
+    """Existing Host digest representation, preserving JSON scalar kinds."""
+    return json.dumps(
+        value, ensure_ascii=False, sort_keys=True, allow_nan=False, separators=(",", ":")
+    ).encode("utf-8")
+
+
+def same_request_value(left: Any, right: Any) -> bool:
+    """Equality of the digest representation, not Python numeric equality."""
     try:
-        yield
-    finally:
-        _PUBLIC_TOOL_CALL.reset(token)
-
-
-def current_public_tool_call() -> tuple[str, Mapping[str, Any]] | None:
-    return _PUBLIC_TOOL_CALL.get()
+        return canonical_request_bytes(left) == canonical_request_bytes(right)
+    except TypeError, ValueError, OverflowError, RecursionError:
+        return False
 
 
 HostCollectionBytes = Annotated[int, Field(ge=16_384, le=4_194_304)]

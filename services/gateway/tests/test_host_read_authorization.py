@@ -307,9 +307,10 @@ def test_real_opa_gateway_pep_consumer_rejects_cross_principal_and_revocation(
                 headers: dict[str, str],
                 timeout: float,
                 allow_redirects: bool,
+                stream: bool,
             ) -> Any:
                 assert url == "https://127.0.0.1:18787/access/v1/evaluation"
-                assert timeout > 0 and allow_redirects is False
+                assert timeout > 0 and allow_redirects is False and stream is True
                 response = pdp.post("/access/v1/evaluation", json=json, headers=headers)
                 error_code = response.json().get("error") if response.status_code != 200 else None
                 pdp_outcomes.append((response.status_code, error_code))
@@ -319,7 +320,16 @@ def test_real_opa_gateway_pep_consumer_rejects_cross_principal_and_revocation(
                 assert response.headers.get("X-Request-ID") == headers["X-Request-ID"], (
                     "test-owned PDP did not echo the exact authenticated request ID"
                 )
-                return response
+                # Preserve actual Security response bytes/headers in the
+                # requests transport response consumed by the real PEP.
+                import requests
+
+                wire = requests.Response()
+                wire.status_code = response.status_code
+                wire.headers.update(response.headers)
+                wire._content = response.content
+                wire._content_consumed = True
+                return wire
 
         middleware = GatewayCapabilityAuthorizationMiddleware(
             AuthZenPrincipalAuthorizer(

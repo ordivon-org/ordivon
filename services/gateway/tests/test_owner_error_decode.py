@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 import json
 from types import SimpleNamespace
 
@@ -138,3 +139,40 @@ def test_unqualified_owner_cannot_promote_raw_error_into_gateway_truth():
         )
         is None
     )
+
+
+def test_runtime_error_evidence_requires_congruent_carriers():
+    states = ("committed", "not_committed", "unknown")
+    for a, b, c in itertools.product(states, repeat=3):
+        errors = [_runtime(commitState=state) for state in (a, b, c)]
+        expected = errors[0] if a == b == c else None
+        for structured in (None, {"error": errors[0]}):
+            texts = errors if structured is None else errors[1:]
+            result = SimpleNamespace(
+                structured_content=structured,
+                content=[SimpleNamespace(text=json.dumps({"error": e})) for e in texts],
+            )
+            assert (
+                extract_owner_tool_error(
+                    result, owner_id="runtime.linux", tool_name="workspace.exec"
+                )
+                == expected
+            )
+
+
+def test_runtime_duplicate_json_members_are_not_evidence():
+    raw = json.dumps({"error": _runtime()})
+    ambiguous = raw.replace(
+        '"commitState": "not_committed"',
+        '"commitState": "unknown", "commitState": "not_committed"',
+    )
+    assert ambiguous != raw
+    for structured in (None, {"error": _runtime()}):
+        assert (
+            extract_owner_tool_error(
+                _result(structured=structured, message=ambiguous),
+                owner_id="runtime.linux",
+                tool_name="workspace.exec",
+            )
+            is None
+        )

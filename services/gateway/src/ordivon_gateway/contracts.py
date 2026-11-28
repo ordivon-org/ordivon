@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 @dataclass(frozen=True)
@@ -84,7 +84,6 @@ class CapabilityDescriptor(StrictModel):
     tags: list[str] = Field(default_factory=list)
 
     readiness_state: Literal["ready", "not_ready", "unknown"] = "unknown"
-    _readiness_inquiry: ReadinessInquiry | None = PrivateAttr(default=None)
 
     @model_validator(mode="after")
     def derive_readiness_state(self) -> CapabilityDescriptor:

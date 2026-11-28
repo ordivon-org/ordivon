@@ -9,10 +9,7 @@ No additional Owner RPC or automatic effect retry occurs in this module.
 
 from __future__ import annotations
 
-import hashlib
-import json
 from collections.abc import Mapping
-from typing import Any
 
 from ..contracts import (
     CapabilityDescriptor,
@@ -22,263 +19,9 @@ from ..contracts import (
     ReadinessInquiry,
     ReadinessOwnerStatusWitness,
 )
-from .runtime_status import (
-    valid_runtime_execution_context_inventory,
-    valid_runtime_status_envelope,
-    valid_runtime_target_inventory,
-)
-
-OwnerObservation = tuple[dict[str, Any] | None, str | None]
-OwnerConfiguration = tuple[bool, str | None]
-
-
-def status_witness(
-    owner_id: str,
-    tool_name: str,
-    *,
-    configured: bool,
-    observation: OwnerObservation,
-) -> ReadinessOwnerStatusWitness:
-    """Bind native result bytes without returning unchecked/sensitive Owner JSON."""
-    response, _error = observation
-    if not configured:
-        return ReadinessOwnerStatusWitness(
-            owner_id=owner_id,
-            tool_name=tool_name,  # type: ignore[arg-type]
-            disposition="skipped_unconfigured",
-        )
-    if response is None:
-        return ReadinessOwnerStatusWitness(
-            owner_id=owner_id,
-            tool_name=tool_name,  # type: ignore[arg-type]
-            disposition="no_result",
-        )
-    try:
-        payload = json.dumps(
-            response,
-            sort_keys=True,
-            allow_nan=False,
-            ensure_ascii=False,
-            separators=(",", ":"),
-        ).encode("utf-8")
-    except TypeError, ValueError, OverflowError:
-        return ReadinessOwnerStatusWitness(
-            owner_id=owner_id,
-            tool_name=tool_name,  # type: ignore[arg-type]
-            disposition="no_result",
-        )
-    return ReadinessOwnerStatusWitness(
-        owner_id=owner_id,
-        tool_name=tool_name,  # type: ignore[arg-type]
-        disposition="response_received",
-        payload_digest="sha256:" + hashlib.sha256(payload).hexdigest(),
-        payload_bytes=len(payload),
-    )
-
-
-def _fact(owner_id: str, predicate: str, state: str, source: str) -> ReadinessFact:
-    return ReadinessFact(
-        owner_id=owner_id,
-        predicate=predicate,
-        state=state,  # type: ignore[arg-type]
-        source=source,
-    )
-
-
-def _check(
-    direction: str,
-    owner_id: str,
-    action: str,
-    predicate: str,
-    *,
-    request: dict[str, Any] | None = None,
-    effect: str = "read_only",
-) -> ReadinessCheck:
-    return ReadinessCheck(
-        direction=direction,  # type: ignore[arg-type]
-        owner_id=owner_id,
-        action=action,
-        expected_evidence=predicate,
-        request=request,
-        effect=effect,  # type: ignore[arg-type]
-    )
-
-
-def _runtime_facts(
-    owner_id: str,
-    target_name: str | None,
-    configured: OwnerConfiguration,
-    observed: OwnerObservation,
-    facts: list[ReadinessFact],
-    unresolved: list[str],
-    checks: list[ReadinessCheck],
-    candidates: list[str],
-) -> None:
-    """Inspect each raw observation as separate predicates, never Python truthiness."""
-    gateway_configured, _config_error = configured
-    facts.append(
-        _fact(
-            owner_id,
-            "gateway.owner_endpoint_qualified",
-            "supported" if gateway_configured else "refuted",
-            "gateway.configuration",
-        )
-    )
-    response, error = observed
-    if not gateway_configured:
-        facts.append(_fact(owner_id, "owner.status_observed", "unobserved", "runtime.describe"))
-        unresolved.append(f"{owner_id}: natural Owner readiness not observed")
-        candidates.append(f"{owner_id}: route or Owner credential is not configured at Gateway")
-        checks.append(
-            _check(
-                "forward",
-                owner_id,
-                "inspect_owner_configuration",
-                "Gateway endpoint and machine identity exist",
-            )
-        )
-        return
-
-    if response is None:
-        facts.append(_fact(owner_id, "owner.status_observed", "unobserved", "runtime.describe"))
-        unresolved.append(f"{owner_id}: Runtime status unavailable; physical readiness unverified")
-        if error and error.startswith("TimeoutError:"):
-            candidates.extend(
-                (
-                    f"{owner_id}: status exceeded observation deadline",
-                    f"{owner_id}: MCP connection or negotiation stalled",
-                )
-            )
-        elif error:
-            candidates.append(f"{owner_id}: owner transport or protocol may have failed")
-        else:
-            candidates.append(f"{owner_id}: no Runtime status result was obtained")
-        checks.append(
-            _check(
-                "reverse",
-                owner_id,
-                "runtime.describe",
-                "Independent owner status response with target inventory",
-                request={"schemaVersion": 1},
-            )
-        )
-        return
-
-    facts.append(_fact(owner_id, "owner.status_observed", "supported", "runtime.describe"))
-    if not valid_runtime_status_envelope(response):
-        facts.append(_fact(owner_id, "owner.status_envelope_valid", "invalid", "runtime.describe"))
-        unresolved.append(f"{owner_id}: Runtime status envelope is missing/invalid version 1")
-        checks.append(
-            _check(
-                "reverse",
-                owner_id,
-                "runtime.describe",
-                "Native Runtime schemaVersion=1 status contract",
-                request={"schemaVersion": 1},
-            )
-        )
-        return
-    facts.append(_fact(owner_id, "owner.status_envelope_valid", "supported", "runtime.describe"))
-    targets = response.get("targets")
-    if not isinstance(targets, list):
-        facts.append(_fact(owner_id, "owner.target_inventory_valid", "invalid", "runtime.describe"))
-        unresolved.append(f"{owner_id}: target inventory is malformed; readiness unverified")
-        checks.append(
-            _check(
-                "reverse",
-                owner_id,
-                "runtime.describe",
-                "Versioned owner target inventory is well formed",
-                request={"schemaVersion": 1},
-            )
-        )
-        return
-
-    facts.append(_fact(owner_id, "owner.target_inventory_is_list", "supported", "runtime.describe"))
-    if not valid_runtime_target_inventory(targets):
-        facts.append(
-            _fact(owner_id, "owner.target_inventory_consistent", "invalid", "runtime.describe")
-        )
-        unresolved.append(f"{owner_id}: strict target inventory is invalid")
-
-    all_rows = [item for item in targets if isinstance(item, dict)]
-    # Inventory identity uniqueness is a *global* Owner contract, even if
-    # this capability uses only one selected target. A duplicate sibling
-    # target must not be hidden by an otherwise healthy selected target.
-    unique_names = {row.get("target") for row in all_rows if isinstance(row.get("target"), str)}
-    duplicates = len(unique_names) < len(all_rows)
-    if target_name is None:
-        # Artifact is dynamic; preserve all rows while never selecting an
-        # arbitrary duplicated target as the preferred evidence witness.
-        matches = all_rows
-    else:
-        matches = [row for row in all_rows if row.get("target") == target_name]
-        facts.append(
-            _fact(
-                owner_id,
-                f"owner.target_advertised:{target_name}",
-                "supported" if matches else "refuted",
-                "runtime.describe",
-            )
-        )
-    if duplicates:
-        facts.append(
-            _fact(owner_id, "owner.target_identity_unique", "contradictory", "runtime.describe")
-        )
-        unresolved.append(f"{owner_id}: duplicate target identities; select no preferred duplicate")
-        candidates.append(f"{owner_id}: Owner target inventory may violate uniqueness")
-    elif target_name is not None and not matches:
-        unresolved.append(f"{owner_id}: intended target absent from advertised inventory")
-        candidates.append(f"{owner_id}: route target and Owner inventory may disagree")
-
-    for index, target in enumerate(matches[:16]):
-        label = target_name or str(target.get("target", f"index-{index}"))[:64]
-        if target_name is None and not isinstance(target.get("target"), str):
-            facts.append(
-                _fact(owner_id, f"owner.target_identity:{label}", "invalid", "runtime.describe")
-            )
-        for field in ("configured", "available"):
-            value = target.get(field)
-            facts.append(
-                _fact(
-                    owner_id,
-                    f"owner.target_{field}:{label}",
-                    ("supported" if value else "refuted") if type(value) is bool else "invalid",
-                    "runtime.describe",
-                )
-            )
-        if target.get("available") is True and target.get("configured") is False:
-            facts.append(
-                _fact(
-                    owner_id,
-                    f"owner.target_consistent:{label}",
-                    "contradictory",
-                    "runtime.describe",
-                )
-            )
-            unresolved.append(f"{owner_id}: reported available=True with configured=False")
-        if not valid_runtime_execution_context_inventory(target, label):
-            facts.append(
-                _fact(owner_id, f"owner.context_inventory:{label}", "invalid", "runtime.describe")
-            )
-            unresolved.append(f"{owner_id}: invalid context inventory {label}")
-
-    if len(matches) > 16:
-        unresolved.append(f"{owner_id}: additional target rows omitted from bounded inquiry")
-    if (
-        (target_name is not None and not matches)
-        or duplicates
-        or any(f.state in {"invalid", "contradictory"} and f.owner_id == owner_id for f in facts)
-    ):
-        checks.append(
-            _check(
-                "reverse",
-                owner_id,
-                "runtime.describe",
-                "Confirm target identity and strict boolean/status contract",
-                request={"schemaVersion": 1},
-            )
-        )
+from .readiness_evidence import OwnerConfiguration, OwnerObservation, _check, _fact, status_witness
+from .readiness_runtime import append_runtime_facts
+from .runtime_status import runtime_ready_target_observed, valid_runtime_status_envelope
 
 
 def project_readiness_inquiry(
@@ -298,7 +41,7 @@ def project_readiness_inquiry(
 
     if route.category in {"execution", "release"}:
         owner_id = route.owner_id
-        _runtime_facts(
+        append_runtime_facts(
             owner_id,
             route.execution_target,
             owner_configurations.get(owner_id, (False, "owner unconfigured")),
@@ -318,7 +61,11 @@ def project_readiness_inquiry(
         )
         if route.category == "release":
             response, _error = owner_observations.get(owner_id, (None, None))
-            configured = response.get("structuredReleaseConfigured") if response else None
+            configured = (
+                response.get("structuredReleaseConfigured")
+                if valid_runtime_status_envelope(response) and isinstance(response, dict)
+                else None
+            )
             facts.append(
                 _fact(
                     owner_id,
@@ -387,7 +134,7 @@ def project_readiness_inquiry(
                     observation=owner_observations.get(owner_id, (None, None)),
                 )
             )
-            _runtime_facts(
+            append_runtime_facts(
                 owner_id,
                 None,
                 owner_configurations.get(owner_id, (False, "owner unconfigured")),
@@ -398,14 +145,12 @@ def project_readiness_inquiry(
                 candidates,
             )
             response, error = owner_observations.get(owner_id, (None, None))
-            if response is not None and error is None:
-                targets = response.get("targets")
-                if (
-                    valid_runtime_target_inventory(targets)
-                    and targets
-                    and any(t["available"] and t["configured"] for t in targets)
-                ):
-                    ready_owners += 1
+            if (
+                owner_configurations.get(owner_id, (False, None))[0]
+                and error is None
+                and runtime_ready_target_observed(response)
+            ):
+                ready_owners += 1
         facts.append(
             _fact(
                 "runtime.dynamic",

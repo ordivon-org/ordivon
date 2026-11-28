@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
-import json
-from dataclasses import asdict
+from dataclasses import dataclass
 from importlib.metadata import version as package_version
 
 from ..contracts import (
@@ -13,14 +11,23 @@ from ..contracts import (
     CapabilityResolution,
     CapabilityRoute,
     CapabilitySearchProjection,
-    OwnerDescriptor,
     SystemDescription,
 )
-from ..logic.capability_projection import (
-    candidate_routes_for_search,
+from ..logic.capability_matching import (
+    CapabilitySearchIndex,
+    SearchQuery,
     project_capability_search,
+)
+from ..logic.capability_projection import (
     project_execution_capability,
     project_native_release_capability,
+)
+from ..logic.catalog_identity import project_system_description, route_digest
+from ..logic.catalog_projection import (
+    assemble_catalog_projection,
+    project_artifact_capability,
+    project_host_capability,
+    project_static_capability,
 )
 from ..logic.execution_refs import GatewayError
 from ..logic.host_tool_contracts import host_read_transport_route
@@ -30,19 +37,19 @@ from ..logic.readiness_confirmation import (
     compare_readiness_observations,
     status_probe_owners,
 )
+from ..logic.readiness_evidence import OwnerConfiguration, OwnerObservation
 from ..logic.readiness_inquiry import project_readiness_inquiry
-from ..logic.runtime_status import valid_runtime_status_envelope, valid_runtime_target_inventory
 from .owner_observation import OwnerStatusObserver
 from .research import resolve_research_capability
 
-_OWNER_ROLES = {
-    "runtime.linux": "physical execution owner",
-    "runtime.windows": "physical execution owner",
-    "runtime.harness": "issuer-fenced execution profile of the Linux Runtime owner",
-    "host": "external semantic continuity owner",
-    "skills": "procedural Skill discovery and exact binding owner",
-    "research.composition": "non-authoritative Research composition metadata",
-}
+
+@dataclass(frozen=True, slots=True)
+class _CatalogRead:
+    """Internal request-local evidence; no private state on public descriptors."""
+
+    projection: CapabilityProjection
+    owner_configurations: dict[str, OwnerConfiguration]
+    owner_observations: dict[str, OwnerObservation]
 
 
 class CapabilityCatalog:
@@ -61,48 +68,26 @@ class CapabilityCatalog:
         self._caller = caller
         self._routes = routes
         self._projection_timeout_seconds = projection_timeout_seconds
-        # Hash only the immutable route contract, not transient observation errors,
-        # identity-bearing endpoint configuration, or Owner status.
-        route_payload = [asdict(routes[key]) for key in sorted(routes)]
-        self._route_digest = (
-            "sha256:"
-            + hashlib.sha256(
-                json.dumps(
-                    route_payload,
-                    sort_keys=True,
-                    separators=(",", ":"),
-                    ensure_ascii=False,
-                ).encode("utf-8")
-            ).hexdigest()
-        )
+        self._route_digest = route_digest(routes)
+        self._search_index = CapabilitySearchIndex(routes)
 
     def system_describe(self) -> SystemDescription:
-        owners = [
-            OwnerDescriptor(
-                owner_id=owner_id,
-                role=role,
-                configured=(
-                    True
-                    if owner_id == "research.composition"
-                    else (
-                        _configured(self._caller, "host")
-                        or (
-                            host_read_transport_route(self._caller) == "host.read"
-                            and _configured(self._caller, "host.read")
-                        )
-                        if owner_id == "host"
-                        else _configured(self._caller, owner_id)
-                    )
-                ),
-            )
-            for owner_id, role in _OWNER_ROLES.items()
-        ]
-        capabilities = set(self._routes)
-        return SystemDescription(
+        # Endpoint configuration is observed here; the identity projection is pure.
+        configs = {
+            owner_id: _configured(self._caller, owner_id)
+            for owner_id in ("runtime.linux", "runtime.windows", "runtime.harness")
+        }
+        configs["host"] = _configured(self._caller, "host") or (
+            host_read_transport_route(self._caller) == "host.read"
+            and _configured(self._caller, "host.read")
+        )
+        configs["skills"] = _configured(self._caller, "skills")
+        configs["research.composition"] = True
+        return project_system_description(
+            self._routes,
             gateway_version=package_version("ordivon-gateway"),
-            route_digest=self._route_digest,
-            owners=owners,
-            capabilities=sorted(capabilities),
+            route_identity=self._route_digest,
+            owner_configured=configs,
         )
 
     async def capability_describe(self, capability: str | None = None) -> CapabilityProjection:
@@ -114,9 +99,9 @@ class CapabilityCatalog:
             selected = [route]
         else:
             selected = [self._routes[key] for key in sorted(self._routes)]
-        return await self._describe_routes(selected)
+        return (await self._observe_routes(selected)).projection
 
-    async def _describe_routes(self, selected: list[CapabilityRoute]) -> CapabilityProjection:
+    async def _observe_routes(self, selected: list[CapabilityRoute]) -> _CatalogRead:
         # A search can restrict observations to matching routes before any I/O.
         # Normalize order independently from search ranking for stable digests.
         selected = sorted(selected, key=lambda route: route.capability)
@@ -185,123 +170,33 @@ class CapabilityCatalog:
                 continue
 
             if route.category == "research":
-                values.append(
-                    CapabilityDescriptor(
-                        capability=route.capability,
-                        owner_id=route.owner_id,
-                        category=route.category,
-                        configured=True,
-                        # Local Research metadata is queryable/resolvable; this
-                        # does not establish live provider readiness.
-                        available=False,
-                        context_mode=route.context_mode,  # type: ignore[arg-type]
-                        observation_error=(
-                            "Research composition route only; live provider readiness "
-                            "UNKNOWN. Use capability.resolve for advisory selection."
-                        ),
-                        truth_boundary=route.truth_boundary,
-                    )
-                )
+                values.append(project_static_capability(route))
                 continue
 
             if route.capability == "continuity.external":
                 configured = _configured(self._caller, host_status_route)
-                available = False
-                error: str | None = None
-                if host_probe is not None:
-                    result, error = host_probe.result()
-                    if result is not None:
-                        # Host is the status contract owner: arbitrary JSON is not
-                        # evidence of a live, qualified Host status response.
-                        available = (
-                            isinstance(result, dict)
-                            and type(result.get("schemaVersion")) is int
-                            and result["schemaVersion"] == 3
-                            and result.get("kind") == "ordivon.host-status"
-                        )
-                        if not available:
-                            error = "invalid Host status projection"
+                result, error = host_probe.result() if host_probe is not None else (None, None)
                 values.append(
-                    CapabilityDescriptor(
-                        capability=route.capability,
-                        owner_id=route.owner_id,
-                        category=route.category,
-                        configured=configured,
-                        available=available,
-                        context_mode=route.context_mode,  # type: ignore[arg-type]
-                        observation_error=error,
-                        truth_boundary=route.truth_boundary,
+                    project_host_capability(
+                        route, configured=configured, result=result, error=error
                     )
                 )
                 continue
 
             if route.capability == "artifact.runtime":
-                nodes: list[str] = []
-                available = False
-                any_configured = False
-                errors: list[str] = []
+                observations = []
                 for owner_id in ("runtime.linux", "runtime.windows"):
-                    if not _configured(self._caller, owner_id):
-                        configuration_error = _configuration_error(self._caller, owner_id)
-                        if configuration_error is not None:
-                            errors.append(f"{owner_id}: {configuration_error}")
-                        continue
-                    any_configured = True
-                    result, error = await runtime_description(owner_id)
-                    if error is not None:
-                        errors.append(f"{owner_id}: {error}")
-                        continue
-                    if result is None:
-                        continue
-                    node = result.get("node")
-                    node_id = (
-                        str(node["nodeId"])
-                        if isinstance(node, dict) and isinstance(node.get("nodeId"), str)
-                        else None
+                    configured = _configured(self._caller, owner_id)
+                    result, error = (
+                        await runtime_description(owner_id)
+                        if configured
+                        else (None, _configuration_error(self._caller, owner_id))
                     )
-                    targets = result.get("targets")
-                    if not valid_runtime_status_envelope(result):
-                        errors.append(f"{owner_id}: invalid versioned Runtime status envelope")
-                        continue
-                    # An ill-typed or contradictory Owner projection is UNKNOWN.
-                    # Never promote truthy strings or integers into Runtime truth.
-                    if not valid_runtime_target_inventory(targets):
-                        errors.append(f"{owner_id}: invalid Runtime target status projection")
-                        continue
-                    owner_available = any(
-                        item["configured"] is True and item["available"] is True for item in targets
-                    )
-                    if owner_available:
-                        available = True
-                        if node_id is not None:
-                            nodes.append(node_id)
-                values.append(
-                    CapabilityDescriptor(
-                        capability=route.capability,
-                        owner_id=route.owner_id,
-                        category=route.category,
-                        configured=any_configured,
-                        available=available,
-                        context_mode=route.context_mode,  # type: ignore[arg-type]
-                        owner_node_ids=sorted(set(nodes)),
-                        observation_error="; ".join(errors) if errors else None,
-                        truth_boundary=route.truth_boundary,
-                    )
-                )
+                    observations.append((owner_id, configured, result, error))
+                values.append(project_artifact_capability(route, observations=observations))
                 continue
 
-            values.append(
-                CapabilityDescriptor(
-                    capability=route.capability,
-                    owner_id=route.owner_id,
-                    category=route.category,
-                    configured=False,
-                    available=False,
-                    context_mode=route.context_mode,  # type: ignore[arg-type]
-                    observation_error="no projection adapter for capability",
-                    truth_boundary=route.truth_boundary,
-                )
-            )
+            values.append(project_static_capability(route))
 
         # The one request-scoped observation cache is also the input to a
         # falsifiable inquiry: do not rerun Owner calls or replace UNKNOWN with
@@ -328,40 +223,12 @@ class CapabilityCatalog:
         owner_configs["host.write"] = owner_configs["host"]
         if host_status_route == "host.read":
             owner_configs["host"] = owner_configs["host.read"]
-        enriched: list[CapabilityDescriptor] = []
-        for value in values:
-            route = self._routes.get(value.capability)
-            if route is None:
-                enriched.append(value)
-                continue
-            descriptor = value.model_copy(
-                update={"description": route.description, "tags": list(route.tags)}
-            )
-            descriptor._readiness_inquiry = project_readiness_inquiry(
-                descriptor,
-                route,
-                owner_configurations=owner_configs,
-                owner_observations=observed_owner_status,
-            )
-            enriched.append(descriptor)
-        values = enriched
-
-        payload = [value.model_dump(mode="json") for value in values]
-        digest = (
-            "sha256:"
-            + hashlib.sha256(
-                json.dumps(
-                    payload,
-                    sort_keys=True,
-                    separators=(",", ":"),
-                    ensure_ascii=False,
-                ).encode("utf-8")
-            ).hexdigest()
-        )
-        return CapabilityProjection(
-            projection_digest=digest,
-            route_digest=self._route_digest,
-            capabilities=values,
+        return _CatalogRead(
+            projection=assemble_catalog_projection(
+                values, self._routes, route_identity=self._route_digest
+            ),
+            owner_configurations=owner_configs,
+            owner_observations=observed_owner_status,
         )
 
     async def capability_inquire(
@@ -375,11 +242,15 @@ class CapabilityCatalog:
             raise GatewayError(f"unknown capability: {capability}")
 
         async def once() -> CapabilityInquiryProjection:
-            projection = await self.capability_describe(capability)
+            read = await self._observe_routes([route])
+            projection = read.projection
             descriptor = projection.capabilities[0]
-            inquiry = descriptor._readiness_inquiry
-            if inquiry is None:
-                raise GatewayError("Gateway readiness inquiry was not assembled")
+            inquiry = project_readiness_inquiry(
+                descriptor,
+                route,
+                owner_configurations=read.owner_configurations,
+                owner_observations=read.owner_observations,
+            )
             return CapabilityInquiryProjection(
                 capability=descriptor.capability,
                 owner_id=descriptor.owner_id,
@@ -451,13 +322,12 @@ class CapabilityCatalog:
         # A miss (or a Research-only match) cannot be delayed by unrelated
         # Windows/Host observations. Filtering on real availability still occurs
         # AFTER observing every matching route, so UNKNOWN is never guessed FALSE.
-        candidates = candidate_routes_for_search(
-            self._routes,
-            query=query,
+        candidates = self._search_index.candidates(
+            SearchQuery.compile(query),
             category=category,
             owner_id=owner_id,
         )
-        projection = await self._describe_routes(candidates)
+        projection = (await self._observe_routes(candidates)).projection
         return project_capability_search(
             projection,
             query=query,
@@ -465,6 +335,7 @@ class CapabilityCatalog:
             owner_id=owner_id,
             limit=limit,
             include_unavailable=include_unavailable,
+            index=self._search_index,
         )
 
     async def capability_resolve(

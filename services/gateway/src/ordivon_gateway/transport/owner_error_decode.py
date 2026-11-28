@@ -66,15 +66,37 @@ def _qualified_error(error: object, owner_id: str) -> dict[str, Any] | None:
     return None
 
 
+class _DuplicateJsonMember(ValueError):
+    """A text carrier does not identify a unique JSON value."""
+
+
+def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise _DuplicateJsonMember
+        result[key] = value
+    return result
+
+
+def _same_evidence(left: dict[str, Any], right: dict[str, Any]) -> bool:
+    # JSON equality is type-sensitive (Python bool == int is not).
+    return json.dumps(left, sort_keys=True) == json.dumps(right, sort_keys=True)
+
+
 def extract_owner_tool_error(
     result: Any, *, owner_id: str, tool_name: str
 ) -> dict[str, Any] | None:
-    """Extract only a typed Owner error; never infer effect non-execution."""
+    """Require congruent Runtime evidence; preserve Host's structured-first ABI."""
+    require_congruence = owner_id.startswith("runtime.")
+    selected: dict[str, Any] | None = None
     structured = getattr(result, "structured_content", None)
     if isinstance(structured, dict):
         candidate = _qualified_error(structured.get("error"), owner_id)
         if candidate is not None:
-            return candidate
+            if not require_congruence:
+                return candidate
+            selected = candidate
 
     prefix = f"Error executing tool {tool_name}: "
     for item in getattr(result, "content", ()):
@@ -90,8 +112,16 @@ def extract_owner_tool_error(
         else:
             continue
         try:
-            value = json.loads(candidate_text)
-        except json.JSONDecodeError:
+            value = (
+                json.loads(candidate_text, object_pairs_hook=_unique_json_object)
+                if require_congruence
+                else json.loads(candidate_text)
+            )
+        except _DuplicateJsonMember:
+            if require_congruence:
+                return None
+            continue
+        except json.JSONDecodeError, RecursionError, ValueError:
             continue
         if owner_id.startswith("runtime."):
             if not isinstance(value, dict) or set(value) != {"error"}:
@@ -101,5 +131,9 @@ def extract_owner_tool_error(
             error = value
         candidate = _qualified_error(error, owner_id)
         if candidate is not None:
-            return candidate
-    return None
+            if not require_congruence:
+                return candidate
+            if selected is not None and not _same_evidence(selected, candidate):
+                return None
+            selected = candidate
+    return selected

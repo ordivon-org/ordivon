@@ -44,6 +44,17 @@ def valid_runtime_status_envelope(response: object) -> bool:
     )
 
 
+def runtime_ready_target_observed(response: object) -> bool:
+    """Positive target evidence requires a versioned, globally valid inventory."""
+    if not valid_runtime_status_envelope(response):
+        return False
+    assert isinstance(response, dict)
+    targets = response.get("targets")
+    if not valid_runtime_target_inventory(targets):
+        return False
+    return any(row["configured"] is True and row["available"] is True for row in targets)
+
+
 def valid_runtime_execution_context_inventory(target: dict, target_name: str | None) -> bool:
     """Canonical Windows inventory is authoritative when present, even when empty.
 

@@ -9,7 +9,8 @@ from typing import Any, Protocol
 from mcp.server.context import CallNext, HandlerResult, ServerRequestContext
 from mcp_types import CallToolResult, TextContent
 
-from ..logic.host_tool_contracts import bind_public_tool_call
+from ..logic.host_tool_contracts import same_request_value
+from ..logic.public_tool_binding import bind_public_tool_call
 from .authorization_targets import (
     AuthorizationTargetResolver,
     CapabilityAuthorizationTargetError,
@@ -145,9 +146,9 @@ class GatewayCapabilityAuthorizationMiddleware:
                 principal_id=principal,
                 issuer=issuer,
                 requested_capability=capability,
-                requested_resource=resource,
+                requested_resource=deepcopy(resource),
                 tool_name=tool_name,
-                arguments=arguments,
+                arguments=deepcopy(arguments),
                 request_state=state,
             )
         except Exception:
@@ -171,7 +172,7 @@ class GatewayCapabilityAuthorizationMiddleware:
             or decision.get("principalId") != principal
             or decision.get("issuer") != issuer
             or decision.get("requestedCapability") != capability
-            or decision.get("requestedResource") != resource
+            or not same_request_value(decision.get("requestedResource"), resource)
             or decision.get("qualificationTarget") is not True
         ):
             return _error(

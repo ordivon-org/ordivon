@@ -13,10 +13,11 @@ from ...logic.host_tool_contracts import (
     HOST_READ_SELECTORS,
     HOST_READ_TOOLS,
     SOCIAL_WORK_HOST_TOOLS,
-    current_public_tool_call,
     host_read_transport_route,
+    same_request_value,
 )
 from ...logic.owner_protocol import OwnerToolCaller
+from ...logic.public_tool_binding import current_public_tool_call
 
 
 class HostContinuityAdapter:
@@ -36,18 +37,19 @@ class HostContinuityAdapter:
             if public_action != tool_name:
                 raise GatewayError("Gateway public action does not match delegated Owner tool")
             for selector in HOST_READ_SELECTORS.get(tool_name, ()):
-                if (
-                    selector in public_arguments
-                    and arguments.get(selector) != public_arguments[selector]
-                ):
+                # Optional read selectors default to None in the native
+                # public Tool registry. An omitted selector is not permission
+                # to substitute a new reference in downstream code.
+                if not same_request_value(arguments.get(selector), public_arguments.get(selector)):
                     raise GatewayError(
                         "Gateway authorized Host selector changed before Owner dispatch"
                     )
-            for key, value in public_arguments.items():
-                if key not in arguments or arguments[key] != value:
-                    raise GatewayError(
-                        "Gateway public Host arguments changed before Owner dispatch"
-                    )
+            # Compare the original public keys in one canonical projection,
+            # preserving JSON numeric representation and nested values.
+            if not public_arguments.keys() <= arguments.keys() or not same_request_value(
+                dict(public_arguments), {key: arguments[key] for key in public_arguments}
+            ):
+                raise GatewayError("Gateway public Host arguments changed before Owner dispatch")
         # A declared protected read URL is sticky: if its credentials or
         # connection fail, DO NOT retry against the legacy writable Host.
         owner_route = (

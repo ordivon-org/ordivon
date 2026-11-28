@@ -29,59 +29,17 @@ def preflight() -> Any:
     return module
 
 
-def _operator_data(grants: list[dict[str, Any]]) -> dict[str, Any]:
-    return {
-        "ordivon": {
-            "security": {
-                "gateway_artifact_config": {"cf_issuer": "https://issuer.test"},
-                "gateway_host_actor_grants": grants,
-            }
-        }
-    }
-
-
-def _grant() -> dict[str, Any]:
-    return {
-        "active": True,
-        "principalId": "principal:cf-access:" + "a" * 64,
-        "issuer": "https://issuer.test",
-        "actorRef": "actor:ordivon:agent",
-        "notBeforeEpochSeconds": 1_000,
-        "expiresAtEpochSeconds": 9_000,
-        "allowedTools": ["topic.resume", "message.post"],
-        "exactRefs": ["topic:ordivon:test"],
-    }
-
-
-def test_existing_agent_actor_reference_is_a_qualified_grant_candidate(preflight: Any) -> None:
-    """The Security policy accepts exact Agent ActorRefs, not only actor: aliases.
-
-    This preflight is necessary-condition detection, never the PDP's ALLOW.
-    A real Host collaboration actor already uses the agent: namespace.
-    """
-    grant = {**_grant(), "actorRef": "agent:chatgpt:gpt6-host-continuation"}
-    observed = preflight.assess(
-        _operator_data([grant]),
-        (
-            "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
-            "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
-        ),
-        now=1_500,
-        anonymous_host_initialize_denied=True,
-    )
-    assert observed["activeHostDelegationCount"] == 1
-    assert "HOST_OPERATOR_DELEGATIONS_ABSENT_OR_INACTIVE" not in observed["reasons"]
+def _observed_pair():
+    return {"standing": "OBSERVED_FOR_EXACT_READ_PAIR"}
 
 
 def test_real_missing_operator_grants_and_owner_credential_are_blocked(preflight: Any) -> None:
-    result = preflight.assess(
-        _operator_data([]), "", now=1_500, anonymous_host_initialize_denied=True
-    )
+    result = preflight.assess(None, "", anonymous_host_initialize_denied=True)
     assert result["status"] == "NO_GO"
-    assert result["activeHostDelegationCount"] == 0
+    assert result["effectivePolicyStanding"] is None
     assert result["hostOwnerCredentialDeclared"] is False
     assert result["reasons"] == [
-        "HOST_OPERATOR_DELEGATIONS_ABSENT_OR_INACTIVE",
+        "HOST_SECURITY_POLICY_STANDING_UNOBSERVED",
         "GATEWAY_HOST_OWNER_CREDENTIAL_NOT_CONFIGURED",
         "HOST_OWNER_ROUTE_NOT_QUALIFIED_FOR_LOCAL_CANARY",
     ]
@@ -89,51 +47,18 @@ def test_real_missing_operator_grants_and_owner_credential_are_blocked(preflight
 
 def test_bounded_promotion_prerequisites_are_distinct_from_authorization(preflight: Any) -> None:
     result = preflight.assess(
-        _operator_data([_grant()]),
+        _observed_pair(),
         (
             "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
             "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
         ),
-        now=1_500,
         anonymous_host_initialize_denied=True,
     )
     assert result["status"] == "NECESSARY_PRECONDITIONS_PRESENT"
-    assert result["activeHostDelegationCount"] == 1
+    assert result["effectivePolicyStanding"] == _observed_pair()
     assert result["hostOwnerCredentialDeclared"] is True
     assert "actual Principal-to-Actor and resource authorization" in result["unverified"]
     assert "direct Host MCP connector migration" in result["unverified"]
-
-
-@pytest.mark.parametrize(
-    "mutation",
-    [
-        {"active": False},
-        {"principalId": ""},
-        {"issuer": ""},
-        {"actorRef": ""},
-        {"notBeforeEpochSeconds": 2_000},
-        {"expiresAtEpochSeconds": 1_499},
-        {"expiresAtEpochSeconds": True},
-        {"allowedTools": ["unrelated.capability"]},
-        {"allowedTools": "message.post"},
-    ],
-)
-def test_nonqualified_grants_cannot_unblock_live_release(
-    preflight: Any, mutation: dict[str, Any]
-) -> None:
-    grant = {**_grant(), **mutation}
-    assert (
-        preflight.assess(
-            _operator_data([grant]),
-            (
-                "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
-                "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=/run/credentials/gateway/host"
-            ),
-            now=1_500,
-            anonymous_host_initialize_denied=True,
-        )["status"]
-        == "NO_GO"
-    )
 
 
 @pytest.mark.parametrize(
@@ -150,21 +75,11 @@ def test_missing_or_unqualified_owner_identity_remains_no_go(
     preflight: Any, environment: str
 ) -> None:
     assert not preflight._declares_host_owner_identity(environment)
-    result = preflight.assess(_operator_data([_grant()]), environment, now=1_500)
+    result = preflight.assess(
+        _observed_pair(),
+        environment,
+    )
     assert "GATEWAY_HOST_OWNER_CREDENTIAL_NOT_CONFIGURED" in result["reasons"]
-
-
-def test_operator_data_file_has_no_symlink_fallback(preflight: Any, tmp_path: Path) -> None:
-    path = tmp_path / "policy.json"
-    path.write_text(json.dumps(_operator_data([_grant()])))
-    symlink = tmp_path / "alias.json"
-    symlink.symlink_to(path)
-    assert preflight._policy_data(path) == _operator_data([_grant()])
-    with pytest.raises(ValueError, match="unavailable"):
-        preflight._policy_data(symlink)
-    path.write_text("[]")
-    with pytest.raises(ValueError, match="object"):
-        preflight._policy_data(path)
 
 
 def test_official_production_promotion_consumer_checks_before_atomic_switch() -> None:
@@ -172,7 +87,9 @@ def test_official_production_promotion_consumer_checks_before_atomic_switch() ->
     needle = '"$RELEASE/.venv/bin/python" "$RELEASE/packaging/check_live_host_admission.py"'
     assert needle in installer
     assert '"$(realpath -m "$PREFIX")" = "/opt/ordivon/gateway"' in installer
-    assert "/run/credentials/ordivon-security-gateway-authzen.service/trusted-issuer" in installer
+    assert (
+        "/run/credentials/ordivon-security-gateway-authzen.service/trusted-issuer" not in installer
+    )
     assert installer.index(needle) < installer.index('ln -sfn "releases/$COMMIT"')
     assert installer.index(needle) > installer.index("service_user_preflight=pass")
 
@@ -261,9 +178,8 @@ def test_gateway_must_route_to_exact_negatively_probed_host(
     env = f"ORDIVON_GATEWAY_HOST_URL={host_owner_url} "
     env += "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=/run/gateway/host"
     result = preflight.assess(
-        _operator_data([_grant()]),
+        _observed_pair(),
         env,
-        now=1_500,
         anonymous_host_initialize_denied=True,
     )
     assert result["status"] == "NO_GO"
@@ -280,13 +196,12 @@ def test_host_direct_anonymous_denial_cannot_be_inferred_from_grants(
     )
     for observed in (None, False):
         result = preflight.assess(
-            _operator_data([_grant()]),
+            _observed_pair(),
             env,
-            now=1_500,
             anonymous_host_initialize_denied=observed,
         )
         assert result["status"] == "NO_GO"
-        assert result["activeHostDelegationCount"] == 1
+        assert result["effectivePolicyStanding"] == _observed_pair()
         assert result["hostOwnerCredentialDeclared"] is True
         assert result["hostOwnerRouteQualified"] is True
         assert result["anonymousHostInitializeDenied"] is False
@@ -329,10 +244,9 @@ def test_observed_cloudflare_host_socket_is_release_counterexample(
     classes = preflight._observed_non_gateway_host_tcp_clients()
     assert classes == ["cloudflared"]
     result = preflight.assess(
-        _operator_data([_grant()]),
+        _observed_pair(),
         "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
         "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer",
-        now=1_500,
         anonymous_host_initialize_denied=True,
         observed_non_gateway_host_tcp_clients=classes,
     )
@@ -384,10 +298,9 @@ def test_host_socket_falsifier_uses_exact_gateway_pid_endpoint_and_established_s
 
 def test_absent_socket_is_not_claimed_as_cloudflare_migration_proof(preflight: Any) -> None:
     qualified = preflight.assess(
-        _operator_data([_grant()]),
+        _observed_pair(),
         "ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp "
         "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer",
-        now=1_500,
         anonymous_host_initialize_denied=True,
         observed_non_gateway_host_tcp_clients=[],
     )
@@ -460,9 +373,8 @@ def test_active_second_gateway_without_host_bearer_blocks_release(
         "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
     )
     result = preflight.assess(
-        _operator_data([_grant()]),
+        _observed_pair(),
         env,
-        now=1500,
         anonymous_host_initialize_denied=True,
         unqualified_active_host_consumers=peer_units,
     )
@@ -549,9 +461,8 @@ def test_release_necessary_conditions_are_conjunctive_for_all_64_boolean_states(
     if main_bearer:
         env += " " + bearer_env
     result = preflight.assess(
-        _operator_data([_grant()] if grant else []),
+        _observed_pair() if grant else None,
         env,
-        now=1500,
         anonymous_host_initialize_denied=host_anonymous_denied,
         observed_non_gateway_host_tcp_clients=[] if no_live_direct else ["cloudflared"],
         unqualified_active_host_consumers=()
@@ -560,7 +471,7 @@ def test_release_necessary_conditions_are_conjunctive_for_all_64_boolean_states(
     )
     reasons = []
     if not grant:
-        reasons.append("HOST_OPERATOR_DELEGATIONS_ABSENT_OR_INACTIVE")
+        reasons.append("HOST_SECURITY_POLICY_STANDING_UNOBSERVED")
     if not main_bearer:
         reasons.append("GATEWAY_HOST_OWNER_CREDENTIAL_NOT_CONFIGURED")
     if not exact_route:
@@ -717,7 +628,7 @@ def test_primary_gateway_admission_fails_closed_on_unobserved_envfile_override(
     import sys
 
     monkeypatch.setattr(sys, "argv", ["check_live_host_admission.py"])
-    monkeypatch.setattr(preflight, "_policy_data", lambda _path: _operator_data([_grant()]))
+    monkeypatch.setattr(preflight, "observe_configured_pair", lambda: _observed_pair())
     monkeypatch.setattr(preflight, "_qualified_systemd_environment", lambda _unit: None)
 
     result = preflight.main()
@@ -742,7 +653,7 @@ def test_installer_called_preflight_cannot_promote_on_only_necessary_conditions(
         "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
     )
     monkeypatch.setattr(sys, "argv", ["check_live_host_admission.py"])
-    monkeypatch.setattr(preflight, "_policy_data", lambda _p: _operator_data([_grant()]))
+    monkeypatch.setattr(preflight, "observe_configured_pair", lambda: _observed_pair())
     monkeypatch.setattr(preflight, "_qualified_systemd_environment", lambda _unit: env)
     monkeypatch.setattr(preflight, "_rejects_unauthenticated_host_initialize", lambda: True)
     monkeypatch.setattr(
@@ -755,7 +666,6 @@ def test_installer_called_preflight_cannot_promote_on_only_necessary_conditions(
         lambda *, anonymous_denied: (),
     )
     monkeypatch.setattr(preflight, "_installed_security_host_read_surface_qualified", lambda: True)
-    monkeypatch.setattr(preflight.time, "time", lambda: 1_500)
     monkeypatch.setattr(
         preflight.subprocess,
         "run",
@@ -806,9 +716,8 @@ def test_secure_parallel_host_route_requires_live_systemd_owner(
         "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
     )
     standing = preflight.assess(
-        _operator_data([_grant()]),
+        _observed_pair(),
         env,
-        now=1_500,
         anonymous_host_initialize_denied=True,
     )
     assert standing["hostOwnerRouteQualified"] is native_owner_verified
@@ -955,7 +864,7 @@ def test_real_release_main_still_refuses_promotion_for_fully_qualified_parallel_
         "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE=%d/host-mcp-bearer"
     )
     monkeypatch.setattr(sys, "argv", ["check_live_host_admission.py"])
-    monkeypatch.setattr(preflight, "_policy_data", lambda _p: _operator_data([_grant()]))
+    monkeypatch.setattr(preflight, "observe_configured_pair", lambda: _observed_pair())
     monkeypatch.setattr(preflight, "_qualified_systemd_environment", lambda _unit: env)
     monkeypatch.setattr(preflight, "_protected_host_service_owns_listener", lambda: True)
     monkeypatch.setattr(
@@ -975,7 +884,6 @@ def test_real_release_main_still_refuses_promotion_for_fully_qualified_parallel_
         lambda *, anonymous_denied, primary_host_port: (),
     )
     monkeypatch.setattr(preflight, "_installed_security_host_read_surface_qualified", lambda: True)
-    monkeypatch.setattr(preflight.time, "time", lambda: 1_500)
     monkeypatch.setattr(
         preflight.subprocess,
         "run",

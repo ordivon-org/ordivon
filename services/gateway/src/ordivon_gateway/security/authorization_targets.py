@@ -27,6 +27,7 @@ from ..logic.host_tool_contracts import (
 from ..logic.host_tool_contracts import (
     SOCIAL_WORK_HOST_TOOLS as _SOCIAL_WORK_HOST_TOOLS,
 )
+from ..logic.host_tool_contracts import canonical_request_bytes
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,14 +112,8 @@ def _qualified_host_reference(
 def _host_request_sha256(arguments: Mapping[str, Any], *, capability: str, action: str) -> str:
     """Bind the complete request, including paging/filter fields, to one PDP ALLOW."""
     try:
-        canonical = json.dumps(
-            arguments,
-            ensure_ascii=False,
-            sort_keys=True,
-            allow_nan=False,
-            separators=(",", ":"),
-        ).encode("utf-8")
-    except (TypeError, ValueError, OverflowError) as exc:
+        canonical = canonical_request_bytes(arguments)
+    except (TypeError, ValueError, OverflowError, RecursionError) as exc:
         raise CapabilityAuthorizationTargetError(
             "CAPABILITY_AUTHZ_TARGET_INVALID",
             f"Host {action} requires a JSON-compatible request.",

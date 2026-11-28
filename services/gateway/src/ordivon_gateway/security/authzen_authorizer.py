@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import ipaddress
+import time
 import uuid
 from collections.abc import Callable, Mapping
 from typing import Any
@@ -9,9 +10,18 @@ from urllib.parse import urlsplit
 
 import requests
 
+from .pdp_wire import decode_object, read_response
+
 
 class AuthZenAuthorizerError(RuntimeError):
     pass
+
+
+def _decode_response(content: bytes) -> dict[str, Any]:
+    try:
+        return decode_object(content)
+    except ValueError as exc:
+        raise AuthZenAuthorizerError("AuthZEN PDP returned invalid JSON") from exc
 
 
 def _validate_endpoint(endpoint: str, *, allow_insecure_loopback: bool) -> str:
@@ -103,8 +113,9 @@ class AuthZenPrincipalAuthorizer:
                 "properties": {"gatewayTool": tool_name},
             },
         }
+        deadline = time.monotonic() + self._timeout_seconds
         try:
-            response = self._session.post(
+            with self._session.post(
                 self._endpoint,
                 json=payload,
                 headers={
@@ -115,21 +126,21 @@ class AuthZenPrincipalAuthorizer:
                 },
                 timeout=self._timeout_seconds,
                 allow_redirects=False,
-            )
+                stream=True,
+            ) as response:
+                if response.status_code != 200:
+                    raise AuthZenAuthorizerError(
+                        f"AuthZEN PDP returned unexpected HTTP status {response.status_code}"
+                    )
+                response_request_id = response.headers.get("X-Request-ID")
+                if response_request_id != request_id:
+                    raise AuthZenAuthorizerError("AuthZEN PDP did not echo the exact X-Request-ID")
+                body = _decode_response(read_response(response, deadline=deadline))
         except requests.RequestException as exc:
             raise AuthZenAuthorizerError("AuthZEN PDP transport failed") from exc
-
-        if response.status_code != 200:
-            raise AuthZenAuthorizerError(
-                f"AuthZEN PDP returned unexpected HTTP status {response.status_code}"
-            )
-        response_request_id = response.headers.get("X-Request-ID")
-        if response_request_id != request_id:
-            raise AuthZenAuthorizerError("AuthZEN PDP did not echo the exact X-Request-ID")
-        try:
-            body = response.json()
         except ValueError as exc:
-            raise AuthZenAuthorizerError("AuthZEN PDP returned invalid JSON") from exc
+            raise AuthZenAuthorizerError("AuthZEN PDP returned invalid JSON response") from exc
+
         if not isinstance(body, dict) or not isinstance(body.get("decision"), bool):
             raise AuthZenAuthorizerError("AuthZEN PDP returned an invalid evaluation response")
 
