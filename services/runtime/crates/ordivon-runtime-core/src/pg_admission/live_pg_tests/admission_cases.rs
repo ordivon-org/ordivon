@@ -506,6 +506,194 @@ fn pg18_clean_epoch_needs_no_old_sqlite_requests() {
     assert_eq!(scratch.count("job_events"), 3);
 }
 
+/// Distinct queued admissions conserve durable identity without claiming
+/// physical allocation or imposing the historical SQLite global slot cap.
+#[test]
+#[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+fn pg18_sixteen_distinct_concurrent_admissions_conserve_queued_identity() {
+    let dsn = physical_pg_test_dsn();
+    let mut scratch = Scratch::new(&dsn);
+    scratch.qualify();
+    let gate = Arc::new(Barrier::new(17));
+    let tasks = (0..16)
+        .map(|n| {
+            let store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+            let request = payload(
+                &format!("distinct-request-{n}"),
+                &format!("distinct-job-{n}"),
+                &format!("distinct-workspace-{n}"),
+                16,
+            );
+            (store, request)
+        })
+        .collect::<Vec<_>>();
+    let workers = tasks
+        .into_iter()
+        .map(|(mut store, request)| {
+            let gate = gate.clone();
+            thread::spawn(move || {
+                gate.wait();
+                let result = store.admit(&request);
+                (request, result)
+            })
+        })
+        .collect::<Vec<_>>();
+    gate.wait();
+    let mut committed = Vec::new();
+    let mut aborted = Vec::new();
+    for worker in workers {
+        let (request, result) = worker.join().unwrap();
+        match result {
+            Ok(PgAdmissionOutcome::Created(id)) => {
+                assert_eq!(id, request.job_id);
+                committed.push(request);
+            }
+            Err(PgAdmissionError::Database(error))
+                if error.code() == Some(&postgres::error::SqlState::T_R_SERIALIZATION_FAILURE) =>
+            {
+                // Explicit pre-COMMIT abort only; UNKNOWN is never retried.
+                aborted.push(request);
+            }
+            unexpected => panic!("unexpected distinct admission result: {unexpected:?}"),
+        }
+    }
+    let known = committed.len() as i64;
+    eprintln!(
+        "DISTINCT_CONCURRENT_INITIAL created={known} known_aborted={}",
+        aborted.len()
+    );
+    assert_eq!(committed.len() + aborted.len(), 16);
+    for table in [
+        "jobs",
+        "attempts",
+        "idempotency_keys",
+        "concurrency_reservations",
+    ] {
+        assert_eq!(scratch.count(table), known, "{table}");
+    }
+    assert_eq!(scratch.count("job_events"), 3 * known);
+    assert_eq!(scratch.count("job_allocations"), 0);
+    let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+    // Reuse the independent readback contract before any second write.
+    let mut observer = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+    for request in &committed {
+        assert_eq!(
+            observer.observe_admission(request).unwrap(),
+            PgAdmissionObservation::Confirmed(request.job_id.clone())
+        );
+    }
+    for request in &aborted {
+        assert_eq!(
+            observer.observe_admission(request).unwrap(),
+            PgAdmissionObservation::Inconclusive
+        );
+    }
+    for request in aborted {
+        assert_eq!(
+            store.admit(&request).unwrap(),
+            PgAdmissionOutcome::Created(request.job_id.clone())
+        );
+        committed.push(request);
+    }
+    // The old cap was a slot constraint. PG admission creates queued intent.
+    let next = payload(
+        "distinct-request-16",
+        "distinct-job-16",
+        "distinct-workspace-16",
+        16,
+    );
+    assert_eq!(
+        store.admit(&next).unwrap(),
+        PgAdmissionOutcome::Created(next.job_id.clone())
+    );
+    committed.push(next);
+    for request in &committed {
+        assert_eq!(
+            store.admit(request).unwrap(),
+            PgAdmissionOutcome::Existing(request.job_id.clone())
+        );
+    }
+    for table in [
+        "jobs",
+        "attempts",
+        "idempotency_keys",
+        "concurrency_reservations",
+    ] {
+        assert_eq!(scratch.count(table), 17, "{table}");
+    }
+    assert_eq!(scratch.count("job_events"), 51);
+    assert_eq!(scratch.count("job_allocations"), 0);
+    let active: i64 = scratch
+        .admin
+        .query_one(
+            "SELECT count(*) FROM concurrency_reservations WHERE state='active'",
+            &[],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(active, 17);
+    eprintln!("DISTINCT_CONSERVATION_PASS jobs=17 attempts=17 keys=17 reservations=17 events=51 allocations=0");
+    for request in &committed {
+        assert_eq!(
+            observer.observe_admission(request).unwrap(),
+            PgAdmissionObservation::Confirmed(request.job_id.clone())
+        );
+    }
+    // A valid foreign Attempt ID is insufficient for the event's Job.
+    // The ordinary replay and cardinality projection do not witness this.
+    let a = &committed[0];
+    let b = &committed[1];
+    assert_ne!(a.attempt_id, b.attempt_id);
+    assert_eq!(
+        scratch
+            .admin
+            .execute(
+                "UPDATE job_events SET attempt_id=$1 WHERE job_id=$2 AND event_sequence=2",
+                &[&b.attempt_id, &a.job_id],
+            )
+            .unwrap(),
+        1
+    );
+    for table in [
+        "jobs",
+        "attempts",
+        "idempotency_keys",
+        "concurrency_reservations",
+    ] {
+        assert_eq!(scratch.count(table), 17, "{table}");
+    }
+    assert_eq!(scratch.count("job_events"), 51);
+    assert_eq!(scratch.count("job_allocations"), 0);
+    assert_eq!(
+        store.admit(a).unwrap(),
+        PgAdmissionOutcome::Existing(a.job_id.clone())
+    );
+    assert_eq!(
+        observer.observe_admission(a).unwrap(),
+        PgAdmissionObservation::Inconclusive,
+        "same cardinality and successful replay must not qualify a foreign event subject"
+    );
+    assert_eq!(
+        observer.observe_admission(b).unwrap(),
+        PgAdmissionObservation::Confirmed(b.job_id.clone())
+    );
+    assert_eq!(
+        scratch
+            .admin
+            .execute(
+                "UPDATE job_events SET attempt_id=$1 WHERE job_id=$2 AND event_sequence=2",
+                &[&a.attempt_id, &a.job_id],
+            )
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        observer.observe_admission(a).unwrap(),
+        PgAdmissionObservation::Confirmed(a.job_id.clone())
+    );
+    eprintln!("DISTINCT_EXACT_IDENTITY_PASS 17/17; CROSS_JOB_EVENT_COUNTERMODEL_REJECTED");
+}
+
 #[test]
 #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
 fn pg18_concurrent_duplicate_never_creates_second_job() {
