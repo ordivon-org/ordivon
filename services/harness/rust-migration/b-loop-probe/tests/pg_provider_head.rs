@@ -3,15 +3,17 @@
 //! model requests. A readonly DB role is enforced by the shared PG runner.
 use std::{fs, path::Path};
 
-use ordivon_harness_core::{loads_strict, CanonicalDocument, CanonicalRef};
+use ordivon_harness_core::{
+    canonical_bytes, digest_bytes, loads_strict, CanonicalDocument, CanonicalRef,
+};
 use ordivon_harness_loop_b_probe::pg_domain_read::{
     inspect_pg_provider_head, ExpectedModel, PgDomainInspectionError, PgProviderRecoveryError,
 };
-use ordivon_harness_loop_b_probe::provider_head::{ProviderStatus, RecoveryPosture};
+use ordivon_harness_loop_b_probe::provider_head::{build_v4, ProviderStatus, RecoveryPosture};
 use ordivon_harness_pg::{
     journal_write::{
-        append_events, observe_exact_batch, Admission, EventWrite, JournalObservation, StoredRef,
-        WriteError,
+        append_events, append_events_with_objects, observe_exact_batch, Admission, EventWrite,
+        JournalObservation, StoredRef, WriteError,
     },
     lease::acquire_run_lease,
     read_run_readonly, ReadError,
@@ -193,8 +195,8 @@ fn source_python_provider_v4_cas_head_recovery_does_not_dispatch_or_blind_retry(
 }
 
 /// The cross-Owner proof omitted by separately green Writer and Provider tests:
-/// Python source authors CAS Provider V4 Records; only Rust owns the Event
-/// commit; after the writer connection disappears Rust read-only recovery
+/// Python supplies an independent oracle; Rust owns Provider V4 CAS and Event
+/// commits; after the writer connection disappears Rust read-only recovery
 /// observes UNKNOWN without dispatching or inferring a safe retry. Finally,
 /// the original Python Store validates the same immutable Journal.
 #[test]
@@ -220,8 +222,46 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
     let events = native.get("events").unwrap();
     assert_eq!(events.as_borrowed().array_len(), Some(3));
     let mut batch = Vec::new();
+    let mut records = Vec::new();
+    let mut previous_digest = CanonicalDocument::null();
     for n in 0..3 {
         let source = events.index(n).unwrap();
+        // Python provides semantic inputs and expected metadata, not CAS bytes.
+        // Rust derives the ID, canonical bytes and prior record link.
+        let field_bytes = source.field("recordFields").unwrap().canonical_bytes();
+        let fields = loads_strict(std::str::from_utf8(&field_bytes).unwrap()).unwrap();
+        assert_eq!(fields.get("previousRecordDigest").unwrap(), previous_digest);
+        let record = build_v4(
+            fields
+                .object_entries()
+                .unwrap()
+                .map(|(key, _)| {
+                    let value = if key == "previousRecordDigest" {
+                        previous_digest.clone()
+                    } else {
+                        fields.get(key).unwrap()
+                    };
+                    (key.to_owned(), value)
+                })
+                .collect(),
+        )
+        .unwrap();
+        let bytes = canonical_bytes(&record);
+        let built_digest = digest_bytes(&bytes);
+        let data = source.field("data").unwrap();
+        assert_eq!(
+            built_digest,
+            data.field("providerCallRecordDigest")
+                .and_then(CanonicalRef::as_str)
+                .unwrap()
+        );
+        assert_eq!(
+            built_digest,
+            data.field("providerCallRecordObjectDigest")
+                .and_then(CanonicalRef::as_str)
+                .unwrap()
+        );
+        previous_digest = CanonicalDocument::string(&built_digest);
         let references = source.field("references").unwrap();
         let mut refs = Vec::new();
         for i in 0..references.array_len().unwrap() {
@@ -245,6 +285,14 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
                     .unwrap(),
             });
         }
+        let record_ref = refs
+            .iter()
+            .find(|r| r.kind == "harness-provider-call-record")
+            .unwrap();
+        assert_eq!(record_ref.digest, built_digest);
+        assert_eq!(record_ref.byte_length, i64::try_from(bytes.len()).unwrap());
+        println!("PG18_NATIVE_PROVIDER_RECORD_BUILT stage={n} digest={built_digest}");
+        records.push(record);
         let event_data_ref = source.field("data").unwrap();
         let event_data =
             loads_strict(std::str::from_utf8(&event_data_ref.canonical_bytes()).unwrap()).unwrap();
@@ -271,29 +319,182 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
         });
     }
 
-    // The actual persistent effect here is a PG Journal transaction only.
-    // Even the UNKNOWN Provider Event is a record, not evidence that a model
-    // request was sent; this fixture makes no Provider or Runtime API call.
-    let mut writer = Client::connect(&writer_dsn, NoTls).unwrap();
-    let lease = acquire_run_lease(
-        &mut writer,
-        &schema,
-        run_id,
-        "test:rust-native-provider-journal",
-        30_000,
-        1008,
-        Some(1),
-    )
-    .unwrap();
-    assert_eq!(
-        append_events(&mut writer, &schema, run_id, &batch, 1, &lease, 1008).unwrap(),
-        Admission::Created
-    );
-    // Simulate disappearing write connection / lost commit response:
-    // only a fresh read-only authoritative snapshot can tell whether the
-    // exact Journal batch committed. It cannot prove a physical effect.
-    drop(writer);
+    // A real Provider call cannot be represented by one transaction spanning
+    // CLAIMED, DISPATCHING and UNKNOWN: the external transport lies between
+    // durable states. Exercise each commit/reconnect boundary without sending
+    // a model request, and retain the exact original Event identities.
     let mut readonly = Client::connect(&readonly_dsn, NoTls).unwrap();
+    let object_exists = |db: &mut Client, digest: &str| -> bool {
+        assert!(schema.starts_with("hpg_rust_isolated_a_"));
+        db.query_one(
+            &format!("SELECT EXISTS(SELECT 1 FROM {schema}.objects WHERE digest=$1)"),
+            &[&digest],
+        )
+        .unwrap()
+        .get(0)
+    };
+    let mut prior_lease = None;
+    for (index, (status, posture)) in [
+        (
+            ProviderStatus::Claimed,
+            RecoveryPosture::RecheckClaimAndDurableFence,
+        ),
+        (
+            ProviderStatus::Dispatching,
+            RecoveryPosture::ReconcileWithProviderOwner,
+        ),
+        (
+            ProviderStatus::Unknown,
+            RecoveryPosture::RetainUnknownAndReconcile,
+        ),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let revision = 1 + i64::try_from(index).unwrap();
+        let event = &batch[index..index + 1];
+        let now = event[0].recorded_at_ms;
+        let digest = text(&event[0].data, "providerCallRecordDigest");
+        let new_objects = [("harness-provider-call-record", &records[index])];
+        assert!(
+            !object_exists(&mut readonly, digest),
+            "oracle must not preseed CAS"
+        );
+        assert_eq!(
+            observe_exact_batch(&mut readonly, &schema, run_id, revision, event).unwrap(),
+            JournalObservation::NotObserved
+        );
+        // Absence of this Journal Event says nothing about external effects.
+        let mut writer = Client::connect(&writer_dsn, NoTls).unwrap();
+        if let Some(stale) = &prior_lease {
+            assert!(matches!(
+                append_events_with_objects(
+                    &mut writer,
+                    &schema,
+                    run_id,
+                    (event, &new_objects),
+                    revision,
+                    stale,
+                    now
+                ),
+                Err(WriteError::Fenced)
+            ));
+        }
+        let lease = acquire_run_lease(
+            &mut writer,
+            &schema,
+            run_id,
+            "test:rust-native-provider-journal",
+            30_000,
+            now,
+            Some(revision),
+        )
+        .unwrap();
+        // Existing API cannot succeed before CAS exists.
+        assert!(matches!(
+            append_events(&mut writer, &schema, run_id, event, revision, &lease, now),
+            Err(WriteError::Conflict(_))
+        ));
+        let mut invalid = event.to_vec();
+        invalid[0].recorded_at_ms = 0;
+        assert!(matches!(
+            append_events_with_objects(
+                &mut writer,
+                &schema,
+                run_id,
+                (&invalid, &new_objects),
+                revision,
+                &lease,
+                now
+            ),
+            Err(WriteError::Invalid("timestamp regressed"))
+        ));
+        assert!(
+            !object_exists(&mut readonly, digest),
+            "failed transaction must not leave CAS"
+        );
+        let wrong_kind = [("wrong-kind", &records[index])];
+        assert!(matches!(
+            append_events_with_objects(
+                &mut writer,
+                &schema,
+                run_id,
+                (event, &wrong_kind),
+                revision,
+                &lease,
+                now
+            ),
+            Err(WriteError::Invalid("new CAS object not referenced"))
+        ));
+        assert_eq!(
+            append_events_with_objects(
+                &mut writer,
+                &schema,
+                run_id,
+                (event, &new_objects),
+                revision,
+                &lease,
+                now
+            )
+            .unwrap(),
+            Admission::Created
+        );
+        drop(writer);
+        // Reconnect rather than rely on the previous writer's memory.
+        readonly = Client::connect(&readonly_dsn, NoTls).unwrap();
+        assert!(object_exists(&mut readonly, digest));
+        assert_eq!(
+            observe_exact_batch(&mut readonly, &schema, run_id, revision, event).unwrap(),
+            JournalObservation::ExactCommitted
+        );
+        let head = inspect_pg_provider_head(&mut readonly, &schema, run_id, model)
+            .unwrap()
+            .expect("committed Provider head");
+        assert_eq!(head.run_revision(), revision + 1);
+        assert_eq!(head.event_id(), event[0].event_id);
+        assert_eq!(
+            head.record_digest(),
+            text(&event[0].data, "providerCallRecordDigest")
+        );
+        assert_eq!(head.status(), status);
+        assert_eq!(head.recovery_posture(), posture);
+        if index < 2 {
+            assert!(matches!(
+                observe_exact_batch(&mut readonly, &schema, run_id, 1, &batch),
+                Err(WriteError::Conflict(_))
+            ));
+        }
+        // Exact Journal re-observation/replay is not permission to resend.
+        let mut retry = Client::connect(&writer_dsn, NoTls).unwrap();
+        assert_eq!(
+            append_events_with_objects(
+                &mut retry,
+                &schema,
+                run_id,
+                (event, &new_objects),
+                revision,
+                &lease,
+                now
+            )
+            .unwrap(),
+            Admission::Existing
+        );
+        assert_eq!(
+            read_run_readonly(&mut readonly, &schema, run_id)
+                .unwrap()
+                .projection
+                .revision,
+            revision + 1
+        );
+        prior_lease = Some(lease);
+        println!(
+            "PG18_NATIVE_PROVIDER_BOUNDARY status={} revision={} posture={:?}",
+            status.as_str(),
+            revision + 1,
+            posture
+        );
+    }
+    let lease = prior_lease.expect("last consumed lease");
     assert_eq!(
         observe_exact_batch(&mut readonly, &schema, run_id, 1, &batch).unwrap(),
         JournalObservation::ExactCommitted

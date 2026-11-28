@@ -165,6 +165,23 @@ fn cas_require(tx: &mut Transaction<'_>, d: &str, kind: &str, len: i64) -> Resul
     )?;
     Ok(())
 }
+// One insertion path for Event payloads and newly referenced objects.
+fn cas_insert(
+    tx: &mut Transaction<'_>,
+    digest: &str,
+    kind: &str,
+    bytes: &[u8],
+    recorded_at_ms: i64,
+) -> Result<(), WriteError> {
+    let len = i64::try_from(bytes.len()).map_err(|_| WriteError::Overflow)?;
+    tx.execute(
+        "INSERT INTO objects(digest,kind,byte_length,content,first_seen_at_ms) \
+         VALUES($1,$2,$3,$4,$5) ON CONFLICT(digest) DO NOTHING",
+        &[&digest, &kind, &len, &bytes, &recorded_at_ms],
+    )?;
+    cas_require(tx, digest, kind, len)
+}
+
 /// Reuse the Reader's ONE versioned Contract semantic validator under the
 /// SAME locked Run transaction. CAS hashes and lease identity alone are not
 /// proof that a Python-invalid Contract can be extended by the Rust Writer.
@@ -292,6 +309,31 @@ pub fn append_events(
     lease: &RunLease,
     lease_checked_at_ms: i64,
 ) -> Result<Admission, WriteError> {
+    append_events_with_objects(
+        db,
+        schema,
+        run,
+        (events, &[]),
+        expected_revision,
+        lease,
+        lease_checked_at_ms,
+    )
+}
+
+/// Admit new referenced CAS objects with the existing Event transaction.
+/// New objects must match an actual reference in this batch. Exact replay
+/// verifies existing bytes instead of repairing missing committed history.
+/// Neither the object nor Event admission grants an external effect.
+pub fn append_events_with_objects(
+    db: &mut Client,
+    schema: &str,
+    run: &str,
+    batch: (&[EventWrite], &[(&str, &CanonicalDocument)]),
+    expected_revision: i64,
+    lease: &RunLease,
+    lease_checked_at_ms: i64,
+) -> Result<Admission, WriteError> {
+    let (events, objects) = batch;
     if !valid_schema(schema) {
         return Err(WriteError::Invalid("schema"));
     }
@@ -327,26 +369,38 @@ pub fn append_events(
             bytes,
         });
     }
+    let mut new_objects = Vec::with_capacity(objects.len());
+    let mut new_ids = BTreeSet::new();
+    for (kind, document) in objects {
+        if kind.is_empty()
+            || kind
+                .trim_matches(|c: char| c.is_whitespace() || ('\u{001c}'..='\u{001f}').contains(&c))
+                != *kind
+        {
+            return Err(WriteError::Invalid("CAS kind"));
+        }
+        let bytes = canonical_bytes(document);
+        let digest = digest_bytes(&bytes);
+        let len = i64::try_from(bytes.len()).map_err(|_| WriteError::Overflow)?;
+        if !new_ids.insert(digest.clone()) {
+            return Err(WriteError::Invalid("duplicate new CAS object"));
+        }
+        let when = events
+            .iter()
+            .filter(|event| {
+                event.referenced_objects.iter().any(|reference| {
+                    reference.digest == digest
+                        && reference.kind == *kind
+                        && reference.byte_length == len
+                })
+            })
+            .map(|event| event.recorded_at_ms)
+            .min()
+            .ok_or(WriteError::Invalid("new CAS object not referenced"))?;
+        new_objects.push((digest, *kind, bytes, when));
+    }
     let mut tx = db.transaction()?;
     check_schema(&mut tx, schema)?;
-    for p in &prepared {
-        let n = i64::try_from(p.bytes.len()).map_err(|_| WriteError::Overflow)?;
-        tx.execute(
-            "INSERT INTO objects(digest,kind,byte_length,content,first_seen_at_ms) \
-                    VALUES($1,$2,$3,$4,$5) ON CONFLICT(digest) DO NOTHING",
-            &[
-                &p.digest,
-                &EVENT_PAYLOAD_KIND,
-                &n,
-                &p.bytes,
-                &p.source.recorded_at_ms,
-            ],
-        )?;
-        cas_require(&mut tx, &p.digest, EVENT_PAYLOAD_KIND, n)?;
-        for r in &p.source.referenced_objects {
-            cas_require(&mut tx, &r.digest, &r.kind, r.byte_length)?;
-        }
-    }
     let row = tx
         .query_opt(
             "SELECT * FROM runs WHERE harness_run_id=$1 FOR UPDATE",
@@ -365,6 +419,11 @@ pub fn append_events(
             return Err(WriteError::Conflict("partially committed batch".into()));
         }
         for (i, p) in prepared.iter().enumerate() {
+            let len = i64::try_from(p.bytes.len()).map_err(|_| WriteError::Overflow)?;
+            cas_require(&mut tx, &p.digest, EVENT_PAYLOAD_KIND, len)?;
+            for r in &p.source.referenced_objects {
+                cas_require(&mut tx, &r.digest, &r.kind, r.byte_length)?;
+            }
             let rev = expected_revision
                 .checked_add(i64::try_from(i).map_err(|_| WriteError::Overflow)? + 1)
                 .ok_or(WriteError::Overflow)?;
@@ -380,6 +439,22 @@ pub fn append_events(
         return Err(WriteError::Terminal);
     }
     require_lease(&mut tx, run, expected_revision, lease, lease_checked_at_ms)?;
+    // Never publish a new object separately from its authoritative Event.
+    for (digest, kind, bytes, when) in &new_objects {
+        cas_insert(&mut tx, digest, kind, bytes, *when)?;
+    }
+    for p in &prepared {
+        cas_insert(
+            &mut tx,
+            &p.digest,
+            EVENT_PAYLOAD_KIND,
+            &p.bytes,
+            p.source.recorded_at_ms,
+        )?;
+        for r in &p.source.referenced_objects {
+            cas_require(&mut tx, &r.digest, &r.kind, r.byte_length)?;
+        }
+    }
     let mut status = current.status.as_str();
     let mut when = current.updated_at_ms;
     let mut terminal: Option<&str> = None;

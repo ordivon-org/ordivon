@@ -593,10 +593,11 @@ pub fn read_run_readonly(
     // event's payload reference is a persisted edge. Qualify the relationship
     // without interpreting any effect/Provider-specific referenced content.
     let edges = tx.query(
-        "SELECT r.event_id,r.digest,r.role,o.kind AS object_kind, \
-         o.byte_length AS object_byte_length,o.content AS object_content \
-         FROM run_object_refs r LEFT JOIN objects o ON o.digest=r.digest \
-         WHERE r.harness_run_id=$1 ORDER BY r.event_id,r.digest",
+        "SELECT r.event_id,r.digest,r.role,r.harness_run_id AS reference_run_id, \
+         o.kind AS object_kind,o.byte_length AS object_byte_length,o.content AS object_content \
+         FROM run_object_refs r JOIN run_events e ON e.event_id=r.event_id \
+         LEFT JOIN objects o ON o.digest=r.digest \
+         WHERE e.harness_run_id=$1 OR r.harness_run_id=$1 ORDER BY r.event_id,r.digest",
         &[&run_id],
     )?;
     let known: BTreeMap<&str, &str> = events
@@ -617,6 +618,8 @@ pub fn read_run_readonly(
         .map(|e| e.event_id.as_str())
         .collect();
     let mut payload_edges = BTreeSet::new();
+    let creation_event_id = events[0].event_id.as_str();
+    let mut creation_contract_reference = false;
     let mut provider_record_references = Vec::new();
     let mut provider_failure_references = Vec::new();
     let mut verified_reference_links = Vec::new();
@@ -626,6 +629,10 @@ pub fn read_run_readonly(
         let event_id: String = row.get("event_id");
         let digest: String = row.get("digest");
         let role: String = row.get("role");
+        let reference_run_id: String = row.get("reference_run_id");
+        if reference_run_id != projection.harness_run_id {
+            return Err(corrupted("CAS reference edge belongs to another Run"));
+        }
         let expected = known
             .get(event_id.as_str())
             .ok_or_else(|| corrupted("CAS edge references another Run or unknown Event"))?;
@@ -635,6 +642,14 @@ pub fn read_run_readonly(
             }
         } else if role != "reference" || *expected == digest {
             return Err(corrupted("invalid CAS reference edge role/digest"));
+        }
+        // Creation is the one reference set whose completeness is determined
+        // by the persisted Run projection, not inferred from opaque events.
+        if event_id == creation_event_id && role == "reference" {
+            if digest != projection.contract_object_digest {
+                return Err(corrupted("Run creation Contract reference differs"));
+            }
+            creation_contract_reference = true;
         }
         let kind: Option<String> = row.get("object_kind");
         let len: Option<i64> = row.get("object_byte_length");
@@ -732,6 +747,9 @@ pub fn read_run_readonly(
     }
     if payload_edges.len() != events.len() {
         return Err(corrupted("Run Event lacks CAS payload reference edge"));
+    }
+    if !creation_contract_reference {
+        return Err(corrupted("Run creation Contract reference missing"));
     }
     tx.commit()?;
     Ok(Readback {

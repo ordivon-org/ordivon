@@ -54,6 +54,7 @@ for i in range(8):
         issued_at_ms=100, expires_at_ms=500, recorded_at_ms=600,
     )
     source = record.to_dict()
+    print("\t".join(("B", canonical_bytes(source).hex())))
     emit(source)
     changes = {
         "schemaVersion": [3, False, "4"],
