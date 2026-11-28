@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import re
 import shutil
 import subprocess
@@ -8,6 +7,8 @@ from pathlib import Path
 from typing import Any
 
 from PIL import Image, ImageChops
+
+from .attestation import sha256_file
 
 
 class PublicationVisualProbeError(RuntimeError):
@@ -19,14 +20,6 @@ def _tool(name: str) -> str:
     if value is None:
         raise PublicationVisualProbeError(f"required mature visual tool is unavailable: {name}")
     return value
-
-
-def _sha256(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
 
 
 def _natural_page_key(path: Path) -> tuple[int, str]:
@@ -86,7 +79,7 @@ def raster_manifest(page_paths: tuple[Path, ...], *, ink_threshold: int = 245) -
                 {
                     "page": page_number,
                     "file": path.name,
-                    "sha256": "sha256:" + _sha256(path),
+                    "sha256": sha256_file(path),
                     "sizePx": [width, height],
                     "marginsPx": margins,
                     "blank": blank,

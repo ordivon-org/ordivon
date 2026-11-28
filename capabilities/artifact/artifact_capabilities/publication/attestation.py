@@ -1,19 +1,18 @@
 from __future__ import annotations
 
-import hashlib
 import re
 from pathlib import Path
 from typing import Any
+
+from artifact_core.file_stream import observe_stream
 
 _SHA = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 
 def sha256_file(path: Path) -> str:
-    h = hashlib.sha256()
     with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            h.update(chunk)
-    return "sha256:" + h.hexdigest()
+        digest, _ = observe_stream(handle)
+    return "sha256:" + digest
 
 
 def build_publication_carrier_attestation(

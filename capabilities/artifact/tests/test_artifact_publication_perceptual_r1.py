@@ -484,3 +484,14 @@ class PublicationPerceptualR1Tests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_publication_file_digest_has_one_implementation(tmp_path: Path) -> None:
+    from artifact_capabilities.publication import attestation, probe, visual
+
+    payload = (b"publication-fixture\x00" * 70_000) + b"tail"
+    path = tmp_path / "carrier.bin"
+    path.write_bytes(payload)
+    assert attestation.sha256_file(path) == "sha256:" + hashlib.sha256(payload).hexdigest()
+    assert probe.sha256_file is attestation.sha256_file
+    assert visual.sha256_file is attestation.sha256_file
