@@ -51,6 +51,15 @@ BINDING_SET_SCHEMA = ROOT / "schemas" / "verifier-binding-set-v1.schema.json"
 RESOLUTION_SCHEMA = ROOT / "schemas" / "verifier-resolution-v1.schema.json"
 
 
+def _load_git_source_delta(path: Path) -> dict[str, Any]:
+    return _load_json(
+        path,
+        git_byte_path_fields=frozenset(
+            {"queryPrefix", "addedPaths", "removedPaths", "changedValuePaths"}
+        ),
+    )
+
+
 def _load_task_local_json_list(path: Path) -> list[Any]:
     """Reject ambiguous proof/unknown-ref input before impact selection.
 
@@ -748,7 +757,9 @@ def main() -> int:
                 "proofReuseAdmissible": False,
             }
         elif args.command == "select-impact":
-            qualified = _requalify_git_source_delta(args.repo, _load_json(args.git_source_delta))
+            qualified = _requalify_git_source_delta(
+                args.repo, _load_git_source_delta(args.git_source_delta)
+            )
             obligations = _load_task_local_json_list(args.obligations)
             unknown = _load_task_local_json_list(args.unknown_refs) if args.unknown_refs else None
             result = select_impacted_obligations(
@@ -762,16 +773,11 @@ def main() -> int:
             # Keep all non-path JSON values on the strict Unicode-scalar lane.
             qualified = _requalify_git_source_delta(
                 args.repo,
-                _load_json(
-                    args.git_source_delta,
-                    git_byte_path_fields=frozenset(
-                        {"addedPaths", "removedPaths", "changedValuePaths"}
-                    ),
-                ),
+                _load_git_source_delta(args.git_source_delta),
             )
             evidence = _load_json(
                 args.source_readset_evidence,
-                git_byte_path_fields=frozenset({"sourcePaths"}),
+                git_byte_path_fields=frozenset({"scopePrefix", "sourcePaths"}),
             )
             result = select_source_readset_impacts(
                 git_source_delta=qualified,
