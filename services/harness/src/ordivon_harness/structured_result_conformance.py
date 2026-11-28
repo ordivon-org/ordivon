@@ -6,8 +6,12 @@ from typing import Any
 from anc_canonical import JsonValue, validate_json_value
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import SchemaError, ValidationError
+from referencing import Registry, Resource
+from referencing.exceptions import Unresolvable
+from referencing.jsonschema import DRAFT202012
 
 JSON_SCHEMA_DRAFT_2020_12_URI = "https://json-schema.org/draft/2020-12/schema"
+_LOCAL_SCHEMA_ROOT_URI = "urn:ordivon:harness:structured-result:root"
 LEGACY_LOCAL_JSON_SCHEMA_DRAFT_2020_12_PROFILE_V1 = (
     "local-json-schema-draft-2020-12-profile-v1"
 )
@@ -123,6 +127,46 @@ def _require_legacy_profile_schema(
         )
 
 
+def _local_draft202012_registry(
+    schema: dict[str, JsonValue],
+) -> tuple[Resource[JsonValue], Registry[JsonValue]]:
+    """Build one local-only resource graph; the default Registry never retrieves remote URIs."""
+
+    root = Resource.from_contents(schema, default_specification=DRAFT202012)
+    registry = Registry().with_resource(_LOCAL_SCHEMA_ROOT_URI, root).crawl()
+    return root, registry
+
+
+def _require_local_reference_closure(
+    resource: Resource[JsonValue],
+    resolver: Any,
+) -> None:
+    contents = resource.contents
+    if isinstance(contents, Mapping):
+        for keyword in ("$ref", "$dynamicRef"):
+            reference = contents.get(keyword)
+            if reference is None:
+                continue
+            if not isinstance(reference, str):
+                # Draft202012Validator.check_schema owns keyword shape validation.
+                raise ValueError(
+                    f"structured completion resultSchema {keyword} must be a string"
+                )
+            try:
+                resolver.lookup(reference)
+            except Unresolvable as error:
+                raise ValueError(
+                    "structured completion resultSchema contains an unresolvable "
+                    f"local {keyword}: {reference!r}"
+                ) from error
+
+    for subresource in resource.subresources():
+        _require_local_reference_closure(
+            subresource,
+            resolver.in_subresource(subresource),
+        )
+
+
 def validate_structured_result_schema(
     completion_contract: Mapping[str, Any],
 ) -> None:
@@ -142,6 +186,8 @@ def validate_structured_result_schema(
         raise ValueError(
             f"structured completion resultSchema is invalid under Draft 2020-12: {error.message}"
         ) from error
+    root, registry = _local_draft202012_registry(projected)
+    _require_local_reference_closure(root, registry.resolver_with_root(root))
 
 
 def validate_structured_result_instance(
@@ -156,8 +202,9 @@ def validate_structured_result_instance(
     schema = _json_projection(raw_schema)
     assert isinstance(schema, dict)
     validate_json_value(result)
+    _, registry = _local_draft202012_registry(schema)
     try:
-        Draft202012Validator(schema).validate(result)
+        Draft202012Validator(schema, registry=registry).validate(result)
     except ValidationError as error:
         location = "$result"
         if error.absolute_path:

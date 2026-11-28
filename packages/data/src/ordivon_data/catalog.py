@@ -6,12 +6,12 @@ Missing, remote, malformed and unbound data remain UNKNOWN rather than FAIL.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlsplit
 
 from .local_files import scoped_sha256
+from .metadata_json import read_metadata
 from .verification import digest_verdict
 
 
@@ -117,9 +117,9 @@ def inspect_catalog(
     verify_local: bool = False,
     allowed_roots: tuple[Path, ...] = (),
 ) -> dict[str, Any]:
-    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    catalog = read_metadata(catalog_path.read_text(encoding="utf-8"))
     # This checks the known compact JSON-LD projection shape; it is not RDF validation.
-    if catalog.get("@type") != "dcat:Catalog" or not isinstance(
+    if not isinstance(catalog, dict) or catalog.get("@type") != "dcat:Catalog" or not isinstance(
         catalog.get("dcat:dataset"), list
     ):
         raise ValueError("not a supported DCAT compact JSON-LD Catalog projection")
@@ -149,6 +149,13 @@ def inspect_catalog(
             not isinstance(item, dict) for item in distributions
         ):
             raise TypeError("dataset distributions must be a list of objects")
+        # Explicit distribution identity is a structural contract before
+        # byte verification. Distinct IDs may refer to identical payloads;
+        # anonymous distributions do not establish a stable selection key.
+        ids = [item["@id"] for item in distributions
+               if isinstance(item.get("@id"), str) and item["@id"]]
+        if len(set(ids)) != len(ids):
+            raise ValueError("duplicate distribution identity within product version")
         products.append(
             {
                 "id": product_id,

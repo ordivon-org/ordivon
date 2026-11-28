@@ -15,26 +15,18 @@ from typing import Any
 from jsonschema import Draft202012Validator
 
 from .assets import UnstableBlobError, hash_file
-from .production_source_io import read_bound_object
+from .production_source_io import canonical_relative_file_path, read_bound_object, relative_child
 
 _KIND = "ordivon.media.operation-lineage"
 _NAME = "operation-lineage.json"
 
 
 def _read_production_file(root: Path, relative: str) -> Path:
-    """No absolute paths, .., Windows separators or Production symlink escape."""
-    if not isinstance(relative, str) or not relative or "\\" in relative:
-        raise ValueError("invalid operation lineage relative path")
-    path = Path(relative)
-    if (
-        path.is_absolute()
-        or ":" in relative.split("/")[0]
-        or any(part in ("", ".", "..") for part in relative.split("/"))
-    ):
+    """Resolve one canonical Production file, not the Production directory."""
+    if not canonical_relative_file_path(relative):
         raise ValueError(f"operation lineage path is not safely relative: {relative}")
-    resolved_root = root.resolve()
-    candidate = (resolved_root / path).resolve()
-    if candidate == resolved_root or not candidate.is_relative_to(resolved_root):
+    candidate = relative_child(root, relative)
+    if candidate == root.resolve():
         raise ValueError(f"operation lineage path escapes Production root: {relative}")
     return candidate
 

@@ -3,8 +3,9 @@ from __future__ import annotations
 import json
 import os
 import subprocess
-import tempfile
+import shutil
 import textwrap
+import tempfile
 import sys
 import unittest
 from pathlib import Path
@@ -12,6 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import affected_owners
 import ci_owner_shards
+import ci_owner_toolroots
 
 
 def task_group_fixture():
@@ -226,11 +228,8 @@ class ShardQueueTests(unittest.TestCase):
         # without adding unrelated Owner tools to other shards.
         root = Path(__file__).resolve().parents[2]
         workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-        prefix = """python3 - "$selected_roots" <<'PYOWNERS'"""
+        prefix = 'python3 tools/repo/ci_owner_toolroots.py "$selected_roots"'
         self.assertEqual(workflow.count(prefix), 1)
-        source = textwrap.dedent(
-            workflow.split(prefix + "\n", 1)[1].split("\n          PYOWNERS", 1)[0]
-        )
         for selected, wanted in (
             (["gateway:verify"], 1),
             (["gateway:verify", "security:verify"], 1),
@@ -243,7 +242,7 @@ class ShardQueueTests(unittest.TestCase):
                 env = os.environ.copy()
                 env["OWNER_TASKS_JSON"] = json.dumps(selected)
                 observed = subprocess.run(
-                    [sys.executable, "-c", source, str(target)],
+                    [sys.executable, "tools/repo/ci_owner_toolroots.py", str(target)],
                     cwd=root,
                     env=env,
                     capture_output=True,
@@ -255,6 +254,132 @@ class ShardQueueTests(unittest.TestCase):
                 roots = target.read_text(encoding="utf-8").splitlines()
                 self.assertEqual(roots.count("platform/security"), wanted)
                 self.assertEqual(len(roots), len(set(roots)))
+
+    def test_toolroot_projection_contract(self) -> None:
+        by_task = {"a:verify": "a", "b:verify": "b", "gateway:verify": "gateway"}
+        manifests = {
+            "a": {"tasks": {"verify": {"run": ["echo hello", "cd ../../tools/formal"]}}},
+            "b": {"tasks": {"verify": {"run": "echo b"}}},
+            "tools/formal": {"tools": {"lean": "current"}},
+            "platform/security": {"tools": {"opa": "current"}},
+        }
+        read = manifests.get
+        for tasks, expected in (
+            ([], []),
+            (["b:verify"], ["b"]),
+            (["a:verify", "b:verify"], ["a", "tools/formal", "b"]),
+            (["gateway:verify"], ["platform/security"]),
+            (["gateway:verify", "a:verify"], ["a", "tools/formal", "platform/security"]),
+        ):
+            with self.subTest(tasks=tasks):
+                self.assertEqual(ci_owner_toolroots.project(tasks, by_task, read), expected)
+        for tasks in ({}, ["a:verify", "a:verify"], ["unknown"], [True]):
+            with self.subTest(tasks=tasks), self.assertRaises(ValueError):
+                ci_owner_toolroots.project(tasks, by_task, read)
+        for root, task in (("tools/formal", "a:verify"), ("platform/security", "gateway:verify")):
+            missing = dict(manifests)
+            del missing[root]
+            with self.subTest(root=root), self.assertRaises(ValueError):
+                ci_owner_toolroots.project([task], by_task, missing.get)
+        for opa in ("", None, []):
+            bad = dict(manifests, **{"platform/security": {"tools": {"opa": opa}}})
+            with self.subTest(opa=opa), self.assertRaises(ValueError):
+                ci_owner_toolroots.project(["gateway:verify"], by_task, bad.get)
+
+    def test_toolroot_actual_git_source_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td)
+            (repo / "a").mkdir()
+            manifest = repo / "a/mise.toml"
+            original = b'[tools]\npython = "current"\n'
+            manifest.write_bytes(original)
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(["git", "-C", str(repo), "-c", "user.name=Test",
+                            "-c", "user.email=test@local.invalid", "commit", "-qm", "fixture"],
+                           check=True)
+            head = subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip()
+            tracked = {"a/mise.toml": b"100644"}
+            read = lambda root: ci_owner_toolroots.read_at_checkout(repo, head, tracked, root)
+            self.assertEqual(read("a"), {"tools": {"python": "current"}})
+            self.assertIsNone(read("missing"))
+            with self.assertRaises(ValueError):
+                ci_owner_toolroots.read_at_checkout(
+                    repo, head, {"a/mise.toml": b"120000"}, "a"
+                )
+            for variant in ("dirty", "missing", "symlink", "untracked"):
+                with self.subTest(variant=variant):
+                    if manifest.exists() or manifest.is_symlink():
+                        manifest.unlink()
+                    if variant == "dirty":
+                        manifest.write_bytes(original + b"# drift")
+                    elif variant == "symlink":
+                        target = repo / "original.toml"
+                        target.write_bytes(original)
+                        manifest.symlink_to(target)
+                    elif variant == "untracked":
+                        manifest.write_bytes(original)
+                    with self.assertRaises(ValueError):
+                        if variant == "untracked":
+                            ci_owner_toolroots.read_at_checkout(repo, head, {}, "a")
+                        else:
+                            read("a")
+
+    def test_actual_preinstall_rejects_drift_before_native_install(self) -> None:
+        root = Path(__file__).resolve().parents[2]
+        workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        section = workflow.split("      - name: Preinstall selected Owner tools with native mise\n", 1)[1]
+        script = textwrap.dedent(section.split("        run: |\n", 1)[1].split(
+            "\n      - name: Verify affected owners", 1
+        )[0])
+        with tempfile.TemporaryDirectory() as td:
+            temp = Path(td)
+            repo = temp / "repo"
+            registry = repo / "tools/repo"
+            registry.mkdir(parents=True)
+            for name in ("ci_owner_toolroots.py", "affected_owners.py", "owners.toml"):
+                shutil.copy2(root / "tools/repo" / name, registry / name)
+            runtime = repo / "services/runtime/mise.toml"
+            runtime.parent.mkdir(parents=True)
+            runtime.write_text('[tools]\npython = "current"\n')
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(["git", "-C", str(repo), "-c", "user.name=Test",
+                            "-c", "user.email=test@local.invalid", "commit", "-qm", "fixture"],
+                           check=True)
+            binary = temp / "bin"
+            binary.mkdir()
+            mock = binary / "mise"
+            mock.write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$*" >> "$TRACE"\n')
+            mock.chmod(0o755)
+            trace = temp / "trace"
+            env = dict(os.environ, PATH=str(binary) + os.pathsep + os.environ["PATH"],
+                       RUNNER_TEMP=str(temp), TRACE=str(trace),
+                       OWNER_TASKS_JSON=json.dumps(["runtime:verify"]))
+            env.pop("GITHUB_SHA", None)
+            def invoke():
+                trace.write_text("")
+                result = subprocess.run(["bash", "-c", script], cwd=repo, env=env,
+                                        capture_output=True, text=True, timeout=12)
+                return result, trace.read_text().splitlines()
+            result, calls = invoke()
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(calls, ["--cd services/runtime install"])
+            for path in (runtime, registry / "ci_owner_toolroots.py",
+                         registry / "affected_owners.py", registry / "owners.toml"):
+                with self.subTest(path=path.name):
+                    original = path.read_bytes()
+                    try:
+                        path.write_bytes(original + b"\n# source drift\n")
+                        result, calls = invoke()
+                        self.assertEqual(result.returncode, 43, result.stderr)
+                        self.assertEqual(calls, [])
+                    finally:
+                        path.write_bytes(original)
+            env["GITHUB_SHA"] = "0" * 40
+            result, calls = invoke()
+            self.assertEqual(result.returncode, 43, result.stderr)
+            self.assertEqual(calls, [])
 
     def test_full_owner_closure_is_exactly_preserved(self) -> None:
         selected = [owner.queue_task for owner in affected_owners.OWNERS]

@@ -25,9 +25,9 @@
    selected port. Selected FALSIFIED fails, selected UNKNOWN is unestablished.
    Run the actual selected-port CLI and independent Research acceptance in
    data:verify before claiming this behavior.
-10. For ongoing R1 source changes, follow planning/CONSUMER_BOUND_DELIVERY_SPEC_R1.md.
-    This is a temporary consumer-backed implementation spec, not an extra
-    authority, universal workflow, or permanent onboarding dependency.
+10. R1/R2 delivery plans under planning/ are historical design and counterexample
+    evidence, not current task obligations. Recover live obligations from
+    current source, the formal evidence map, actual consumers and existing Host Work.
 11. Capture the final consumer's constraints, exact source/port version, accepted
     semantics and rights. For reproducible metadata use `project_owned_products.py
     --at-commit REVISION`; capture the resolved commit. It does not freeze

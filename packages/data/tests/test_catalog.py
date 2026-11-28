@@ -320,6 +320,78 @@ class CatalogProjectionTests(TestCase):
             with self.assertRaisesRegex(ValueError, "identifier and version"):
                 inspect_catalog(path)
 
+    def test_ambiguous_catalog_member_cannot_pass_integrity_gate(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            payload = root / "payload.json"
+            payload.write_bytes(b"payload")
+            row = {"@id": "urn:fixture:port",
+                   "dcat:accessURL": {"@id": payload.as_uri()},
+                   "dct:identifier": "sha256:" + hashlib.sha256(payload.read_bytes()).hexdigest()}
+            valid = json.dumps({"@type": "dcat:Catalog", "dcat:dataset": [
+                {"@type": "dcat:Dataset", "dct:identifier": "fixture",
+                 "dcat:version": "v1", "dcat:distribution": [row]}]})
+            cases = [
+                valid.replace('{', '{"dcat:dataset":[],', 1),
+                valid.replace('"dct:identifier": "fixture"',
+                              '"dct:identifier":"wrong","dct:identifier":"fixture"', 1),
+                valid.replace('"@id": "urn:fixture:port"',
+                              '"@id":"urn:wrong","@id":"urn:fixture:port"', 1),
+                valid.replace('{', '{"unused":Infinity,', 1),
+                valid.replace('{', '{"unused":-1e9999,', 1),
+            ]
+            path = root / "catalog.json"
+            for index, text in enumerate(cases):
+                with self.subTest(index=index):
+                    self.assertNotEqual(text, valid)
+                    path.write_text(text)
+                    with self.assertRaisesRegex(ValueError, "duplicate JSON member|non-finite JSON number"):
+                        inspect_catalog(path, verify_local=True, allowed_roots=(root,))
+                    result = subprocess.run(
+                        [sys.executable, str(DATA_ROOT / "scripts/inspect_federation.py"),
+                         "--catalog", str(path), "--allow-root", str(root),
+                         "--verify-local", "--require-verified"],
+                        capture_output=True, text=True, check=False, timeout=10,
+                    )
+                    self.assertEqual(result.returncode, 2, result.stdout)
+            path.write_text(valid)
+            self.assertEqual(inspect_catalog(path, verify_local=True, allowed_roots=(root,))[
+                "products"][0]["distributions"][0]["verification"], "VERIFIED")
+
+    def test_duplicate_distribution_identity_cannot_pass_global_gate(self):
+        """Equal payload is not evidence that distinct declarations are unique."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "sample.json"
+            source.write_bytes(b"same payload")
+            row = {
+                "@id": "urn:fixture:port",
+                "dcat:accessURL": {"@id": source.as_uri()},
+                "dct:identifier": "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest(),
+            }
+            dataset = {
+                "@type": "dcat:Dataset", "dct:identifier": "fixture",
+                "dcat:version": "v1", "dcat:distribution": [row, dict(row)],
+            }
+            path = root / "catalog.json"
+            def write():
+                path.write_text(json.dumps({"@type": "dcat:Catalog", "dcat:dataset": [dataset]}))
+            write()
+            with self.assertRaisesRegex(ValueError, "duplicate distribution identity"):
+                inspect_catalog(path, verify_local=True, allowed_roots=(root,))
+            result = subprocess.run(
+                [sys.executable, str(DATA_ROOT / "scripts/inspect_federation.py"),
+                 "--catalog", str(path), "--allow-root", str(root), "--verify-local",
+                 "--require-verified"], capture_output=True, text=True, check=False, timeout=10,
+            )
+            self.assertEqual(result.returncode, 2, result.stdout)
+            # Distinct logical ports may legitimately refer to the same bytes.
+            dataset["dcat:distribution"][1]["@id"] = "urn:fixture:another-port"
+            write()
+            observed = inspect_catalog(path, verify_local=True, allowed_roots=(root,))
+            self.assertEqual([d["verification"] for d in observed["products"][0]["distributions"]],
+                             ["VERIFIED", "VERIFIED"])
+
     def test_cli_integrity_gate_distinguishes_unknown_from_verified(self):
         """CLI process success does not certify an unverified distribution."""
         with TemporaryDirectory() as tmp:

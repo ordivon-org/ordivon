@@ -48,6 +48,7 @@ fn pg_artifact_page_preserves_valid_byte_cursor_boundaries() {
 
 /// An authorized Job's registration cannot redirect either read path into a
 /// different Job's Attempt, even when the retained bytes match the digest.
+#[cfg(target_os = "linux")]
 #[test]
 #[ignore = "requires explicitly disposable Unix-only ORDIVON_PG_TEST_DSN"]
 fn pg18_artifact_readers_reject_cross_job_attempt_origin() {

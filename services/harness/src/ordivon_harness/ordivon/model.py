@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Protocol
 
-from anc_canonical import JsonValue, canonical_bytes, canonical_digest, validate_json_value
+from anc_canonical import JsonValue, canonical_bytes, canonical_digest, loads_strict, validate_json_value
 
 from ..tool_program_contract import HarnessToolProgramAction
 
@@ -174,16 +174,22 @@ class AgentToolCall:
 _MAX_AGENT_STRUCTURED_RESULT_BYTES = 1_048_576
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, init=False)
 class AgentStructuredResult:
-    """Versioned bounded carrier for a caller-owned structured completion result."""
+    """Versioned bounded immutable snapshot of a caller-owned structured result."""
 
-    value: JsonValue
+    _value_bytes: bytes = field(repr=False)
 
-    def __post_init__(self) -> None:
-        validate_json_value(self.value)
-        if len(canonical_bytes(self.value)) > _MAX_AGENT_STRUCTURED_RESULT_BYTES:
+    def __init__(self, value: JsonValue) -> None:
+        validate_json_value(value)
+        encoded = canonical_bytes(value)
+        if len(encoded) > _MAX_AGENT_STRUCTURED_RESULT_BYTES:
             raise ValueError("Agent structured result exceeds one MiB")
+        object.__setattr__(self, "_value_bytes", encoded)
+
+    @property
+    def value(self) -> JsonValue:
+        return loads_strict(self._value_bytes)
 
     @property
     def digest(self) -> str:

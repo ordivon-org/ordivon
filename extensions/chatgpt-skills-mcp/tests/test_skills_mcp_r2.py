@@ -147,6 +147,29 @@ class SkillsMcpSurfaceTests(unittest.TestCase):
             self.assertTrue(tool.annotations.read_only_hint)
             self.assertFalse(tool.annotations.destructive_hint)
 
+    def test_legacy_list_pagination_exposes_detectable_snapshot_drift(self) -> None:
+        td, base, provider, _token = self.make_fixture()
+        self.addCleanup(td.cleanup)
+        server = build_server(provider)
+        tools = {tool.name: tool for tool in server._tool_manager.list_tools()}
+        description = tools["skills.list"].description
+        self.assertIn("retain the first page snapshotRevision", description)
+        self.assertIn("restart from cursor 0", description)
+        self.assertIn("standard skills/list", description)
+
+        first = asyncio.run(tools["skills.list"].fn(cursor=0, limit=1))
+        self.assertEqual(first.structured_content["skills"][0]["name"], "alpha")
+        first_revision = first.structured_content["snapshotRevision"]
+
+        # Insert a record before alpha and force a refresh between pages. The
+        # legacy integer offset can now duplicate alpha, but the existing
+        # snapshotRevision changes, so a conforming caller can discard/restart
+        # instead of accepting a mixed-snapshot result.
+        write_skill(base / "user", "aardvark", "aardvark", "Earlier visible skill")
+        second = asyncio.run(tools["skills.list"].fn(cursor=1, limit=1, forceRefresh=True))
+        self.assertEqual(second.structured_content["skills"][0]["name"], "alpha")
+        self.assertNotEqual(second.structured_content["snapshotRevision"], first_revision)
+
     def test_model_surface_marks_skill_text_as_untrusted_procedural_content(self) -> None:
         td, _base, provider, _token = self.make_fixture()
         self.addCleanup(td.cleanup)

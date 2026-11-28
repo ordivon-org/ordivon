@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-import json
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
 from artifact_core.contracts import file_fact, sha256_file
-
-
-def load_json(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"))
+from artifact_core.json_validation import load_json
 
 
 def verify_file_fact(fact: dict[str, Any]) -> dict[str, Any]:

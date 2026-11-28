@@ -408,3 +408,14 @@ allowed_fragment = "platform/workstation/workstation/equipment_binding.py"
 kind = "TEST_ONLY_SOURCE_CONTRACT"
 selection_scope = "PATH"
 contract_ref = "capabilities/media/planning/media-equipment-binding-admission-r18.md"
+
+# Skills' existing handoff parity test observes one Host-owned wire bound.
+# This is a test-only source contract, not a production dependency or grant.
+[[seams]]
+from_owner = "skills"
+to_owner = "host"
+source_glob = "extensions/chatgpt-skills-mcp/tests/test_task_space_obligation_handoff.py"
+allowed_fragment = "services/host/src/ordivon_host_v2/postgres_bounds.py"
+kind = "TEST_ONLY_SOURCE_CONTRACT"
+selection_scope = "PATH"
+contract_ref = "services/host/src/ordivon_host_v2/postgres_bounds.py"

@@ -198,11 +198,12 @@ def validate_archive(wheel: Path) -> str:
         "httpx==0.28.1",
         "jsonschema<5,>=4.26",
         "psycopg[binary]>=3.3",
+        "referencing<1,>=0.37",
         'mcp==2.3.0; extra == "mcp"',
     }
     if set(requirements) != expected_requirements:
         fail(
-            "wheel dependencies must be exact base HTTPX/psycopg/jsonschema plus "
+            "wheel dependencies must be exact base HTTPX/psycopg/jsonschema/referencing plus "
             f"the official MCP v2 adapter extra: {requirements}"
         )
     if tuple(metadata.get_all("Provides-Extra", [])) != ("mcp",):

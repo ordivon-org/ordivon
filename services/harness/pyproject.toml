@@ -18,12 +18,16 @@ dependencies = [
   "httpx==0.28.1",
   "psycopg[binary]>=3.3",
   "jsonschema>=4.26,<5",
+  "referencing>=0.37,<1",
 ]
 
 [project.optional-dependencies]
 mcp = ["mcp==2.3.0"]
 
 [dependency-groups]
+# Keep the PEP 517 backend outside runtime/default groups while locking the
+# exact version selected for owner-native wheel verification.
+build = ["setuptools>=68"]
 dev = ["ruff==0.17.2"]
 formal = [
     "crosshair-tool==0.0.112",

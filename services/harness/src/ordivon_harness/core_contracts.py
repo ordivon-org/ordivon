@@ -237,7 +237,9 @@ class HarnessRunContract:
             raise ValueError(
                 "structured completion conformancePolicy requires structured-result-v1"
             )
-        object.__setattr__(self, "budget", MappingProxyType(dict(self.budget)))
+        budget_snapshot = _thaw_json(self.budget)
+        assert isinstance(budget_snapshot, dict)
+        object.__setattr__(self, "budget", _freeze_json(budget_snapshot))
         completion_snapshot = _thaw_json(self.completion_contract)
         assert isinstance(completion_snapshot, dict)
         object.__setattr__(
@@ -245,7 +247,7 @@ class HarnessRunContract:
             "completion_contract",
             _freeze_json(completion_snapshot),
         )
-        if self._schema_version not in {1, 2}:
+        if type(self._schema_version) is not int or self._schema_version not in {1, 2}:
             raise ValueError("Harness Run Contract schema version is unsupported")
         if self._schema_version == 1:
             if self._legacy_correlation is None:
@@ -288,7 +290,7 @@ class HarnessRunContract:
             "requestedModelId": self.requested_model_id,
             "toolCatalogDigest": self.tool_catalog_digest,
             "toolGrantDigest": self.tool_grant_digest,
-            "budget": dict(self.budget),
+            "budget": _thaw_json(self.budget),
             "completionContract": _thaw_json(self.completion_contract),
             "systemManifestRef": self.system_manifest_ref.to_dict(),
             "createdAtMs": self.created_at_ms,
@@ -306,7 +308,11 @@ class HarnessRunContract:
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> HarnessRunContract:
         schema_version = value.get("schemaVersion")
-        if schema_version not in {1, 2} or value.get("kind") != "ordivon.harness-run-contract":
+        if (
+            type(schema_version) is not int
+            or schema_version not in {1, 2}
+            or value.get("kind") != "ordivon.harness-run-contract"
+        ):
             raise ValueError("HarnessRunContract version or kind is invalid")
         expected = {
             "schemaVersion",

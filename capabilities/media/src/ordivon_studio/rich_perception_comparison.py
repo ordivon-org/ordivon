@@ -156,6 +156,8 @@ def media_intervention_report(
     controls: Sequence[tuple[str, dict[str, Any]]],
     perturbations: Sequence[tuple[str, dict[str, Any]]],
 ) -> dict[str, Any]:
+    if not controls or not perturbations:
+        raise ValueError("at least one control and perturbation are required")
     control_distances = [
         {"id": name, "distance": structural_distance(baseline, features)}
         for name, features in controls
@@ -164,13 +166,9 @@ def media_intervention_report(
         {"id": name, "distance": structural_distance(baseline, features)}
         for name, features in perturbations
     ]
-    max_control = max((item["distance"] for item in control_distances), default=0.0)
-    min_perturbation = min((item["distance"] for item in perturbation_distances), default=0.0)
-    median_perturbation = (
-        statistics.median([item["distance"] for item in perturbation_distances])
-        if perturbation_distances
-        else 0.0
-    )
+    max_control = max(item["distance"] for item in control_distances)
+    min_perturbation = min(item["distance"] for item in perturbation_distances)
+    median_perturbation = statistics.median(item["distance"] for item in perturbation_distances)
     return {
         "technicalBaseline": technical_fingerprint(baseline),
         "controls": control_distances,

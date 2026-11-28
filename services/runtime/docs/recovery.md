@@ -2,6 +2,10 @@
 
 > Backend scope (2026-11-07): the Doctor/Repair, `--database` and `PRAGMA` procedures below describe the **legacy SQLite Registry**, not the independent PostgreSQL-native Runtime. The active 2026-11-07 Linux Runtime executables are both PG-native, irrespective of historical systemd unit names. A PG endpoint must use its own PG admission/readback, epoch qualification, native supervisor evidence and restart recovery verification. Do not execute these SQLite repair commands against PG, and do not preserve obsolete SQLite operational history merely for migration. Before retiring the old service, prove no live writer/reader depends on it. See [`audits/2026-11-07-runtime-owner-audit.md`](audits/2026-11-07-runtime-owner-audit.md).
 
+## Choose the current backend before recovery
+
+For a PostgreSQL-native Runtime, use the existing [isolated PostgreSQL backup recovery](operations.md#postgresql-backup-recovery-verified-isolated-consumer-path) and [recovery branch qualification](operations.md#postgresql-runtime-recovery-branch-qualification-source-candidate) guidance. The legacy SQLite commands below are not a fallback for a failed PostgreSQL Runtime. Recovery of the execution substrate must be possible through the independently authorized operator path even when normal Runtime admission is unavailable. Restoring a database or starting a service does not by itself authorize production execution: retain the existing single-writer, source/epoch qualification and external-effect reconciliation requirements. Do not replay unresolved work to test recovery.
+
 This protocol is for Registry inconsistency, ambiguous terminal state, backup, administrative repair, or restore. Ordinary task failure should be corrected through normal source, tests, Git, and Runtime operation.
 
 ## Recovery sequence

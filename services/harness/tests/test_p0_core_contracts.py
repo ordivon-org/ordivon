@@ -51,6 +51,28 @@ class HarnessCoreContractTests(unittest.TestCase):
         self.assertEqual(HarnessRunContract.from_dict(value.to_dict()).digest, value.digest)
         self.assertTrue(value.digest.startswith("sha256:"))
 
+    def test_schema_version_requires_exact_integer_representation(self) -> None:
+        current = contract().to_dict()
+        malformed_v2 = dict(current)
+        malformed_v2["schemaVersion"] = 2.0
+        with self.assertRaisesRegex(ValueError, "version or kind"):
+            HarnessRunContract.from_dict(malformed_v2)
+
+        legacy = dict(current)
+        legacy["schemaVersion"] = 1
+        legacy["correlation"] = {"traceparent": None, "tracestate": None, "links": []}
+        for alias in (1.0, True):
+            with self.subTest(alias=alias):
+                malformed_v1 = dict(legacy)
+                malformed_v1["schemaVersion"] = alias
+                with self.assertRaisesRegex(ValueError, "version or kind"):
+                    HarnessRunContract.from_dict(malformed_v1)
+
+        for alias in (1.0, 2.0, True):
+            with self.subTest(constructor_alias=alias):
+                with self.assertRaisesRegex(ValueError, "schema version"):
+                    replace(contract(), _schema_version=alias)  # type: ignore[arg-type]
+
 
     def test_no_tool_budget_may_bind_zero_tool_calls(self) -> None:
         value = RunBudget(
@@ -116,8 +138,13 @@ class HarnessCoreContractTests(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, rendered)
 
-    def test_authority_maps_are_snapshotted_and_top_level_immutable(self) -> None:
-        original_budget = {"maxModelCalls": 2, "maxToolCalls": 1}
+    def test_authority_maps_are_deeply_snapshotted_and_immutable(self) -> None:
+        original_budget = {
+            "maxModelCalls": 2,
+            "maxToolCalls": 1,
+            "limits": {"maxTokens": 100},
+            "phases": [{"name": "primary", "calls": 1}],
+        }
         original_completion = {"mode": "record"}
         run_contract = HarnessRunContract(
             harness_run_id="harness-run:p0-core-immutable",
@@ -140,17 +167,27 @@ class HarnessCoreContractTests(unittest.TestCase):
         )
         digest = run_contract.digest
         original_budget["maxModelCalls"] = 99
+        original_budget["limits"]["maxTokens"] = 999  # type: ignore[index]
+        original_budget["phases"][0]["calls"] = 9  # type: ignore[index]
         original_completion["mode"] = "changed"
         self.assertEqual(run_contract.budget["maxModelCalls"], 2)
+        self.assertEqual(run_contract.budget["limits"]["maxTokens"], 100)  # type: ignore[index]
+        self.assertEqual(run_contract.budget["phases"][0]["calls"], 1)  # type: ignore[index]
         self.assertEqual(run_contract.completion_contract["mode"], "record")
         self.assertEqual(run_contract.digest, digest)
         with self.assertRaises(TypeError):
             run_contract.budget["maxModelCalls"] = 99  # type: ignore[index]
         with self.assertRaises(TypeError):
+            run_contract.budget["limits"]["maxTokens"] = 999  # type: ignore[index]
+        with self.assertRaises(TypeError):
             run_contract.completion_contract["mode"] = "changed"  # type: ignore[index]
         exported = run_contract.to_dict()
         exported["budget"]["maxModelCalls"] = 77
+        exported["budget"]["limits"]["maxTokens"] = 777  # type: ignore[index]
+        exported["budget"]["phases"][0]["calls"] = 7  # type: ignore[index]
         exported["completionContract"]["mode"] = "export-mutated"
+        self.assertEqual(run_contract.budget["limits"]["maxTokens"], 100)  # type: ignore[index]
+        self.assertEqual(run_contract.budget["phases"][0]["calls"], 1)  # type: ignore[index]
         self.assertEqual(run_contract.digest, digest)
 
     def test_exact_decode_rejects_host_projection_injection(self) -> None:

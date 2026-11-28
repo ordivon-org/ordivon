@@ -16,15 +16,17 @@ class RepositoryBoundaryTests(unittest.TestCase):
     def test_harness_has_no_host_dependency_or_compatibility_package(self) -> None:
         project = tomllib.loads((ROOT / "pyproject.toml").read_text())
         requirements = project["project"]["dependencies"]
-        self.assertEqual(len(requirements), 3)
+        self.assertEqual(len(requirements), 4)
         self.assertIn("httpx==0.28.1", requirements)
         self.assertIn("psycopg[binary]>=3.3", requirements)
         self.assertIn("jsonschema>=4.26,<5", requirements)
+        self.assertIn("referencing>=0.37,<1", requirements)
         self.assertFalse(any("ordivon-protocol" in requirement for requirement in requirements))
         self.assertEqual(project["project"].get("optional-dependencies"), {"mcp": ["mcp==2.3.0"]})
         self.assertEqual(
             project.get("dependency-groups"),
             {
+                "build": project["build-system"]["requires"],
                 "dev": ["ruff==0.17.2"],
                 "formal": ["crosshair-tool==0.0.112"],
                 "test": [
@@ -91,6 +93,14 @@ class RepositoryBoundaryTests(unittest.TestCase):
                 self.assertIn(audit_action, source)
                 self.assertIn("uv run --locked ruff check src tests scripts", source)
                 self.assertNotIn("uvx ruff==", source)
+        for name in ("queue", "verify"):
+            with self.subTest(build_consumer=name):
+                source = sources[name]
+                self.assertIn("uv sync --locked --group build", source)
+                self.assertIn(
+                    'uv build --offline --no-build-isolation --wheel --out-dir "$tmp"',
+                    source,
+                )
         self.assertFalse((ROOT / "requirements-audit.txt").exists())
 
     def test_source_tree_contains_no_ordivon_host_imports(self) -> None:

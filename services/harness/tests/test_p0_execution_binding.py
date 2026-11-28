@@ -332,6 +332,12 @@ class HarnessExecutionBindingTests(unittest.TestCase):
             ),
         )
 
+    def test_decode_rejects_non_integer_schema_version_representation(self) -> None:
+        value = binding().to_dict()
+        value["schemaVersion"] = 2.0
+        with self.assertRaisesRegex(ValueError, "version or kind"):
+            HarnessExecutionBinding.from_dict(value)
+
     def test_references_must_be_unique_and_sorted(self) -> None:
         value = binding().to_dict()
         value["runtimeReferences"] = list(reversed(value["runtimeReferences"]))

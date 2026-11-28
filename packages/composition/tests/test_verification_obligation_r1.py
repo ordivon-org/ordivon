@@ -112,9 +112,16 @@ def test_source_readset_namespace_membership_is_explicit_and_selective():
     assert result["proofReuseAdmissible"] is False
 
 
-def test_native_git_membership_add_and_delete_recheck_only_enumerator(tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    "scope_name", ["source", "source space", "source%20space", "源", "source-\udcff", "source-%FF"]
+)
+def test_native_git_membership_add_and_delete_recheck_only_enumerator(
+    tmp_path, monkeypatch, scope_name
+):
     """Actual Git objects: newly appearing/disappearing members are dependencies."""
+    import json
     import subprocess
+    import sys
     from pathlib import Path
 
     source_repo = Path(__file__).resolve().parents[3]
@@ -127,48 +134,123 @@ def test_native_git_membership_add_and_delete_recheck_only_enumerator(tmp_path, 
     git("init", "-q")
     git("config", "user.name", "Ordivon graph-test")
     git("config", "user.email", "source-graph@example.invalid")
-    scope = tmp_path / "source"
+    scope = tmp_path / scope_name
+    prefix = scope_name + "/"
     scope.mkdir()
     (scope / "existing.txt").write_text("unchanged\n", encoding="utf-8")
-    git("add", ".")
+    git("add", "--", scope_name)
     git("commit", "-qm", "before")
     first = git("rev-parse", "HEAD")
 
     def select(old, new):
-        delta = source_membership_delta(tmp_path, old, new, "source/")
+        delta = source_membership_delta(tmp_path, old, new, prefix)
         proof = {
             "kind": "ordivon.source-readset-evidence",
             "sourceCut": new,
-            "scopePrefix": "source/",
+            "scopePrefix": prefix,
             "dependencyQualification": "TASK_LOCAL_GIT_EXAMPLE_ONLY",
             "proofReuseAdmissible": False,
             "items": [
                 {
                     "id": "proof:consumer:namespace",
-                    "sourcePaths": ["source/existing.txt"],
+                    "sourcePaths": [prefix + "existing.txt"],
                     "dependsOnScopeMembership": True,
                     "dependenciesComplete": True,
                 },
                 {
                     "id": "proof:consumer:single-file",
-                    "sourcePaths": ["source/existing.txt"],
+                    "sourcePaths": [prefix + "existing.txt"],
                     "dependenciesComplete": True,
                 },
             ],
         }
+        from urllib.parse import quote_from_bytes
+
+        expected = (
+            delta["sourceScopeRef"]
+            + ":members:"
+            + quote_from_bytes(prefix.encode("utf-8", "surrogateescape"), safe="/")
+        )
+        assert delta["membershipRef"] == expected
         selected = select_source_readset_impacts(
             git_source_delta=delta, source_readset_evidence=proof
         )
+        assert selected["proofReuseAdmissible"] is False
+        assert selected["proofAcceptanceEstablished"] is False
+        if expected != delta["sourceScopeRef"] + ":members:" + prefix:
+            # Even if the caller adds the forged spelling to authorityRefs,
+            # the bridge must use the producer's exact encoded query identity.
+            forged = {**delta, "membershipRef": delta["sourceScopeRef"] + ":members:" + prefix}
+            forged["authorityRefs"] = [*delta["authorityRefs"], forged["membershipRef"]]
+            with pytest.raises(CircuitContractError, match="exact native Git scope reference"):
+                select_source_readset_impacts(
+                    git_source_delta=forged, source_readset_evidence=proof
+                )
+        # Exercise the supported CLI too: requalification of real native Git
+        # evidence must preserve the exact encoded scope.
+        delta_file = tmp_path / "delta.json"
+        proof_file = tmp_path / "readsets.json"
+        delta_file.write_text(json.dumps(delta), encoding="utf-8")
+        proof_file.write_text(json.dumps(proof), encoding="utf-8")
+        cli = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "ordivon_composition.verification_obligation_r1",
+                "impact-readsets",
+                str(delta_file),
+                str(proof_file),
+                "--repo",
+                str(tmp_path),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert cli.returncode == 0, cli.stderr
+        assert json.loads(cli.stdout) == selected
+        graph_file = tmp_path / "graph.json"
+        graph_file.write_text(
+            json.dumps(
+                [
+                    {
+                        "id": "proof:consumer:namespace",
+                        "dependsOn": [expected],
+                        "dependenciesComplete": True,
+                    }
+                ]
+            ),
+            encoding="utf-8",
+        )
+        generic = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "ordivon_composition.verification_obligation_r1",
+                "select-impact",
+                str(delta_file),
+                str(graph_file),
+                "--repo",
+                str(tmp_path),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert generic.returncode == 0, generic.stderr
+        assert json.loads(generic.stdout)["standingByObligation"] == [
+            {"id": "proof:consumer:namespace", "standing": "RECHECK_REQUIRED"}
+        ]
         return delta, {
             row["id"]: row["standing"] for row in selected["selection"]["standingByObligation"]
         }
 
     (scope / "new.txt").write_text("added\n", encoding="utf-8")
-    git("add", ".")
+    git("add", "--", scope_name)
     git("commit", "-qm", "add member")
     second = git("rev-parse", "HEAD")
     delta, statuses = select(first, second)
-    assert delta["addedPaths"] == ["source/new.txt"]
+    assert delta["addedPaths"] == [prefix + "new.txt"]
     assert delta["membershipChanged"] is True
     assert statuses == {
         "proof:consumer:namespace": "RECHECK_REQUIRED",
@@ -180,12 +262,83 @@ def test_native_git_membership_add_and_delete_recheck_only_enumerator(tmp_path, 
     git("commit", "-qm", "remove member")
     third = git("rev-parse", "HEAD")
     delta, statuses = select(second, third)
-    assert delta["removedPaths"] == ["source/new.txt"]
+    assert delta["removedPaths"] == [prefix + "new.txt"]
     assert delta["membershipChanged"] is True
     assert statuses == {
         "proof:consumer:namespace": "RECHECK_REQUIRED",
         "proof:consumer:single-file": "REUSE_CANDIDATE",
     }
+
+
+def test_git_byte_scope_digest_preserves_legacy_scalar_and_exact_byte_identity():
+    import hashlib
+    import json
+    from urllib.parse import quote_from_bytes
+
+    from ordivon_composition.json_evidence import _git_scope_projection_digest
+
+    # Every single high byte is represented losslessly, not by replacement
+    # characters or the display spelling of a percent escape.
+    digests = set()
+    identities = set()
+    for raw in [bytes([i]) for i in range(128, 256)] + [
+        b"%FF",
+        b"\\udcff",
+        "é".encode(),
+        "e\u0301".encode(),
+        "源".encode(),
+    ]:
+        path = (b"source-" + raw + b"/").decode("utf-8", "surrogateescape")
+        assert path.encode("utf-8", "surrogateescape") == b"source-" + raw + b"/"
+        body = {"queryPrefix": path, "ordinary": "中文"}
+        # Independent fixed JSON skeleton; escape the path using the standard
+        # JSON scalar encoder only, then encode the separately known field.
+        path_json = json.dumps(path, ensure_ascii=False)
+        expected = (
+            b'{"ordinary":"'
+            + "中文".encode()
+            + b'","queryPrefix":'
+            + path_json.encode("utf-8", "backslashreplace")
+            + b"}"
+        )
+        digest = _git_scope_projection_digest(body)
+        assert digest == "sha256:" + hashlib.sha256(expected).hexdigest()
+        if not any(0xDC80 <= ord(c) <= 0xDCFF for c in path):
+            assert digest == canonical_digest(body)
+        digests.add(digest)
+        identities.add(quote_from_bytes(path.encode("utf-8", "surrogateescape"), safe="/"))
+    assert len(digests) == len(identities) == 133
+
+    with pytest.raises(CircuitContractError, match="non-Unicode scalar"):
+        canonical_digest({"queryPrefix": "source-\udcff/"})
+    for bad in ({"ordinary": "\udcff"}, {"nested": {"queryPrefix": "\udcff"}}):
+        with pytest.raises(CircuitContractError, match="invalid Unicode scalar"):
+            _git_scope_projection_digest({"queryPrefix": "source-\udcff/", **bad})
+    with pytest.raises(CircuitContractError, match="non-JSON representation"):
+        _git_scope_projection_digest({"queryPrefix": "source-\udcff/", "ordinary": (1, 2)})
+    for malformed in ("\ud800", "\udc00"):
+        with pytest.raises(CircuitContractError, match="invalid Unicode scalar"):
+            _git_scope_projection_digest({"queryPrefix": malformed})
+    with pytest.raises(CircuitContractError, match="noncanonical Git byte path"):
+        _git_scope_projection_digest({"queryPrefix": "\udcc3\udca9/"})
+    cycle = []
+    cycle.append(cycle)
+    with pytest.raises(CircuitContractError):
+        _git_scope_projection_digest({"queryPrefix": "source-\udcff/", "ordinary": cycle})
+
+
+def test_source_readset_byte_scope_rejects_noncanonical_alias_and_malformed_path():
+    delta, evidence = _source_readset_fixture()
+    for invalid in ("\ud800", "\udc00", "\udcc3\udca9"):
+        mutated_delta = {**delta, "queryPrefix": invalid + "/"}
+        mutated_evidence = {**evidence, "scopePrefix": invalid + "/"}
+        with pytest.raises(CircuitContractError, match="Unicode scalar|noncanonical Git byte path"):
+            select_source_readset_impacts(
+                git_source_delta=mutated_delta, source_readset_evidence=mutated_evidence
+            )
+    evidence["items"][0]["sourcePaths"] = ["owner/\ud800.py"]
+    with pytest.raises(CircuitContractError, match="invalid Unicode scalar"):
+        select_source_readset_impacts(git_source_delta=delta, source_readset_evidence=evidence)
 
 
 def test_source_readset_namespace_membership_rejects_malformed_claim():
@@ -227,8 +380,10 @@ def test_source_readset_impact_fails_closed_on_unqualified_bridge(mutation):
         )
 
 
-@pytest.mark.parametrize("bad_path", [{"unexpected": "object"}, ["nested", "array"]])
-def test_source_readset_impact_rejects_nonstring_unhashable_paths(bad_path):
+@pytest.mark.parametrize(
+    "bad_path", [{"unexpected": "object"}, ["nested", "array"], "owner/\ud800.py"]
+)
+def test_source_readset_impact_rejects_invalid_paths(bad_path):
     delta, evidence = _source_readset_fixture()
     evidence["items"][0]["sourcePaths"] = [bad_path]
     with pytest.raises(CircuitContractError):
@@ -2907,11 +3062,11 @@ def test_shared_c04_gateway_cli_rejects_invalid_proof_graph_without_traceback(tm
     import subprocess
     import sys
 
-    op = "ordivon-exec:v1:external.pull:operation-one"
+    op = "ordivon-exec:v1:runtime.windows:operation-one"
     obs = {
         "kind": "ordivon.gateway-execution-observation",
         "schema_version": 1,
-        "owner_id": "external.pull",
+        "owner_id": "runtime.windows",
         "native_id": "operation-one",
         "operation_ref": op,
         "capability": "muse.shell.echo",

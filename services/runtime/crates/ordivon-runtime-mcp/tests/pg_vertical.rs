@@ -3395,6 +3395,54 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
     let finished: i64 = times.get::<_, Option<i64>>(1).expect("terminal witness");
     let inspection = call(&endpoint, "job.get", json!({"jobId":completed_job}));
     assert_ne!(inspection["isError"], true, "{inspection}");
+    // Independent direct SQL oracle for the fused artifact projection:
+    // compare the actual durable native Job's full totals and kind counts.
+    let expected = fixture
+        .db
+        .query_one(
+            "SELECT count(*),COALESCE(sum(byte_length),0)::bigint,
+                count(*) FILTER(WHERE truncated)
+         FROM artifacts WHERE job_id=$1",
+            &[&completed_job],
+        )
+        .unwrap();
+    let mut expected_kinds = serde_json::Map::new();
+    for row in fixture
+        .db
+        .query(
+            "SELECT kind,count(*) FROM artifacts WHERE job_id=$1 GROUP BY kind",
+            &[&completed_job],
+        )
+        .unwrap()
+    {
+        expected_kinds.insert(row.get::<_, String>(0), json!(row.get::<_, i64>(1)));
+    }
+    let expected_summary = json!({
+        "count":expected.get::<_,i64>(0),
+        "bytes":expected.get::<_,i64>(1),
+        "truncated":expected.get::<_,i64>(2),
+        "byKind":expected_kinds,
+    });
+    assert!(
+        expected.get::<_, i64>(0) > 0,
+        "actual native artifact witness required"
+    );
+    assert_eq!(
+        inspection["structuredContent"]["artifacts"],
+        expected_summary
+    );
+    let observed_attempt = &inspection["structuredContent"]["attempts"][0];
+    assert_eq!(observed_attempt["artifactCount"], expected_summary["count"]);
+    assert_eq!(observed_attempt["artifactBytes"], expected_summary["bytes"]);
+    assert_eq!(
+        observed_attempt["truncatedArtifacts"],
+        expected_summary["truncated"]
+    );
+    assert_eq!(observed_attempt["resultAvailable"], true);
+    println!(
+        "FUSED_ARTIFACT_NATIVE_RECIPIENT_MATCH=1 COUNT={}",
+        expected.get::<_, i64>(0)
+    );
     // The public MCP projection must agree with the real native Job journal,
     // independently of how many timeline events the caller requests.
     let dispatch_count: i64 = fixture
@@ -3427,6 +3475,8 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         }
     }
     let attempt = &inspection["structuredContent"]["attempts"][0];
+    assert_eq!(attempt["exitCode"], 0);
+    assert_eq!(exec["structuredContent"]["exitCode"], attempt["exitCode"]);
     assert_eq!(attempt["startedAtMs"], started);
     assert_eq!(attempt["finishedAtMs"], finished);
     assert!(
@@ -7773,6 +7823,40 @@ fn pg_job_list_exact_key_does_not_substitute_historical_result() {
     assert_eq!(before["resultAvailable"], true);
     assert_eq!(before["deliveryDisposition"], "committed");
     assert_eq!(before["executionReasonCode"], "PROCESS_EXIT_ZERO");
+    let at_max = call(
+        &endpoint,
+        "job.list",
+        json!({"clientRequestId":key,"limit":2,"cursor":{"createdAtMs":i64::MAX as u64,"jobId":"z"}}),
+    );
+    assert_ne!(at_max["isError"], true, "{at_max}");
+    assert_eq!(
+        at_max["structuredContent"]["jobs"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    for bad_time in [i64::MAX as u64 + 1, u64::MAX] {
+        let bad = call(
+            &endpoint,
+            "job.list",
+            json!({"clientRequestId":key,"limit":2,"cursor":{"createdAtMs":bad_time,"jobId":"z"}}),
+        );
+        eprintln!("CURSOR_UNREPRESENTABLE {bad_time} => {bad}");
+        assert_eq!(
+            bad["isError"], true,
+            "unrepresentable cursor must not become an empty success: {bad}"
+        );
+        assert_eq!(
+            bad["structuredContent"]["error"]["code"], "INVALID_REQUEST",
+            "{bad}"
+        );
+        assert_eq!(
+            bad["structuredContent"]["error"]["field"], "cursor.createdAtMs",
+            "{bad}"
+        );
+    }
+
     let prior = format!("r6-previous-{}", Uuid::now_v7());
     let prior_bundle = fixture.root.join("store/pg-attempts").join(&prior);
     let row=fixture.db.query_one("SELECT artifact_id,relative_path,byte_length,digest FROM artifacts WHERE job_id=$1 AND attempt_id=$2 AND kind='execution_result'",&[&job,&current]).unwrap();

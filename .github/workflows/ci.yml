@@ -55,6 +55,10 @@ jobs:
 
       - name: Setup root verification
         uses: ./.github/actions/setup-root-verification
+        with:
+          # Preflight selects and checks source/formal/supply-chain obligations.
+          # SQL dialect verification remains in independent repo-mechanics.
+          sql-verifiers: 'false'
 
       - name: Select affected owners
         id: affected
@@ -345,7 +349,13 @@ jobs:
           # Consumer-owned finite proof obligations. Exit 0 and a subset are not enough.
           EXPECTED_PROBES = {
               "Lean kernel R2.1 relational composition": 0,
+              "Leanchecker replays R2.1 core declarations": 0,
               "Lean kernel qualified variation frame and countermodels": 0,
+              "Lean kernel consumer-owned R2.1 retirement closure challenge": 0,
+              "Leanchecker replays consumer-owned retirement challenge": 0,
+              "Leanchecker replays R2.1 variation declarations": 0,
+              "Lean compiler accepts forged axiom-free proof when kernel skipped": 0,
+              "Leanchecker rejects forged false declaration": 1,
               "Lean kernel Media processing admission model": 0,
               "Lean kernel Media Creative Library Catalog acceptance": 0,
               "Lean kernel Media TimedText delivery precision": 0,
@@ -377,6 +387,7 @@ jobs:
               "tools/repo/test_formal_source_contract.py",
               "tools/formal/RecursiveLegoRefinement.lean",
               "tools/formal/RecursiveLegoVariationFrame.lean",
+              "tools/formal/RecursiveLegoRetirementChallenge.lean",
               "capabilities/media/formal/MediaNativeProcessingAdmission.lean",
               "capabilities/media/formal/CreativeLibraryAcceptance.lean",
               "capabilities/media/formal/TimedTextDeliveryPrecision.lean",
@@ -415,7 +426,7 @@ jobs:
               "tools/formal/Proof.als",
               "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
           }
-          REQUIRED_TOOLS = {"lean", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy"}
+          REQUIRED_TOOLS = {"lean", "leanchecker", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy"}
 
           def reject_duplicate_keys(pairs):
               value = {}
@@ -526,16 +537,19 @@ jobs:
                   # A well-formed digest string does not identify an installed binary.
                   # Rehash the *actual recorded executable*, not just its claimed SHA.
                   executable = Path(record["path"])
+                  selected_name = "lean" if name == "leanchecker" else name
                   selected_path = subprocess.check_output(
-                      ["mise", "which", name],
+                      ["mise", "which", selected_name],
                       cwd=Path("tools/formal"), text=True, stderr=subprocess.PIPE,
                       timeout=20,
                   ).strip()
                   selected_version = subprocess.check_output(
-                      ["mise", "which", "--version", name],
+                      ["mise", "which", "--version", selected_name],
                       cwd=Path("tools/formal"), text=True, stderr=subprocess.PIPE,
                       timeout=20,
                   ).strip()
+                  if name == "leanchecker" and selected_path:
+                      selected_path = str(Path(selected_path).resolve(strict=True).with_name("leanchecker"))
                   if (not selected_path or not selected_version
                           or str(Path(selected_path).resolve(strict=True)) != str(executable)
                           or record["version"] != selected_version):
@@ -757,72 +771,16 @@ jobs:
           # Owner selection was admitted by the source-qualified preflight.
           # Only resolve native tool manifests for the exact selected tasks.
           selected_roots="$RUNNER_TEMP/ordivon-selected-owner-toolroots.txt"
-          python3 - "$selected_roots" <<'PYOWNERS'
-          import json
-          import os
-          import sys
-          import tomllib
-          from pathlib import Path
-
-          sys.path.insert(0, "tools/repo")
-          from affected_owners import OWNERS
-
-          tasks = json.loads(os.environ["OWNER_TASKS_JSON"])
-          if not isinstance(tasks, list) or not all(isinstance(t, str) for t in tasks):
-              raise SystemExit("invalid selected Owner task list")
-          if len(tasks) != len(set(tasks)):
-              raise SystemExit("duplicate selected Owner task")
-          by_task = {owner.queue_task: owner.root.rstrip("/") for owner in OWNERS}
-          if any(task not in by_task for task in tasks):
-              raise SystemExit("unregistered selected Owner task")
-          roots = []
-          for task in tasks:
-              root = by_task[task]
-              # Some Owners use a root-managed task rather than an adjacent
-              # native mise.toml. Those do not gain an invented manifest.
-              manifest = Path(root) / "mise.toml"
-              if not manifest.is_file():
-                  continue
-              if root not in roots:
-                  roots.append(root)
-              # Read existing native task commands, not an invented Owner
-              # graph: a selected task may invoke a second scoped Mise
-              # manifest. Capital invokes mise exec in tools/formal; that
-              # auto-installer caps release metadata timeouts to 3 seconds.
-              # An explicit native mise install here uses normal HTTP retry,
-              # exact pinned versions and this scoped read-only GH token.
-              native_tasks = tomllib.loads(manifest.read_text(encoding="utf-8")).get("tasks", {})
-              if any(
-                  isinstance(row, dict)
-                  and isinstance(row.get("run"), str)
-                  and "tools/formal" in row["run"]
-                  for row in native_tasks.values()
-              ):
-                  if not (Path("tools/formal") / "mise.toml").is_file():
-                      raise SystemExit("selected nested tools/formal source missing")
-                  if "tools/formal" not in roots:
-                      roots.append("tools/formal")
-          # The Gateway test suite has an existing, governed test-only seam
-          # to Security's OPA policy and exact version in platform/security/mise.toml.
-          # A Gateway-only merge group otherwise omits that Owner toolchain:
-          # "mise where opa@<Security pin>" fails though the test is valid.
-          # Preinstall the existing provider when that consumer is selected;
-          # never hard-code an alternate OPA pin or weaken the test.
-          if "gateway:verify" in tasks:
-              security_manifest = Path("platform/security/mise.toml")
-              if not security_manifest.is_file():
-                  raise SystemExit("Gateway OPA test needs Security Owner toolchain")
-              tools = tomllib.loads(
-                  security_manifest.read_text(encoding="utf-8")
-              ).get("tools", {})
-              if not isinstance(tools.get("opa"), str):
-                  raise SystemExit("Gateway OPA test needs Security-pinned OPA")
-              if "platform/security" not in roots:
-                  roots.append("platform/security")
-          Path(sys.argv[1]).write_text(
-              "".join(root + "\n" for root in roots), encoding="utf-8"
-          )
-          PYOWNERS
+          # Source-qualify the selector before using it for native installs.
+          for source in tools/repo/ci_owner_toolroots.py tools/repo/affected_owners.py tools/repo/owners.toml; do
+            if [[ ! -f "$source" || -L "$source" ]] ||
+               ! git --no-replace-objects ls-tree HEAD -- "$source" | grep -Eq '^100(644|755) blob [[:xdigit:]]{40,64}[[:space:]]' ||
+               ! git --no-replace-objects show "HEAD:$source" | cmp -s - "$source"; then
+              echo "ERROR: selected Owner toolroot source differs from exact Git HEAD: $source" >&2
+              exit 43
+            fi
+          done
+          python3 tools/repo/ci_owner_toolroots.py "$selected_roots"
           while IFS= read -r root || [[ -n "$root" ]]; do
             [[ -z "$root" ]] && continue
             # mise install is idempotent: a retry visits only missing pinned

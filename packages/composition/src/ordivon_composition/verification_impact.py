@@ -13,6 +13,7 @@ from typing import Any
 from urllib.parse import quote_from_bytes
 
 from .cognitive_circuit_r1 import CircuitContractError, canonical_digest, compile_manifest
+from .json_evidence import _git_path_bytes, _git_scope_projection_digest
 
 
 class _GateSourceIndex:
@@ -241,7 +242,15 @@ def select_source_readset_impacts(
     ):
         raise CircuitContractError("source readset evidence must bind the exact current Git scope")
 
+    _git_path_bytes(git_source_delta["queryPrefix"])
     authority = set(git_source_delta["authorityRefs"])
+
+    def source_ref(kind: str, name: str) -> str:
+        # Match Git's native byte-preserving identity for both path and
+        # membership edges. An already encoded percent sign is literal input.
+        encoded = quote_from_bytes(_git_path_bytes(name), safe="/")
+        return f"{git_source_delta['sourceScopeRef']}:{kind}:{encoded}"
+
     # An enumerating consumer depends on the *set* of source members, not
     # merely the bytes of the files that happened to exist at the prior cut.
     # Reuse the native Git delta's existing members: ref; no second graph.
@@ -279,17 +288,14 @@ def select_source_readset_impacts(
                 or any(part in {"", ".", ".."} for part in path.split("/"))
             ):
                 raise CircuitContractError("source readset path escapes qualified Git scope")
-            encoded = quote_from_bytes(path.encode("utf-8", "surrogateescape"), safe="/")
-            ref = f"{git_source_delta['sourceScopeRef']}:path:{encoded}"
+            ref = source_ref("path", path)
             if ref not in authority:
                 raise CircuitContractError(
                     "source readset path is absent from exact Git authority refs"
                 )
             refs.append(ref)
         if item.get("dependsOnScopeMembership", False):
-            expected = (
-                f"{git_source_delta['sourceScopeRef']}:members:{git_source_delta['queryPrefix']}"
-            )
+            expected = source_ref("members", git_source_delta["queryPrefix"])
             if membership_ref != expected or membership_ref not in authority:
                 raise CircuitContractError(
                     "scope membership edge requires the exact native Git scope reference"
@@ -325,7 +331,7 @@ def select_source_readset_impacts(
             "No implementation refinement, installed currentness, effect authority, or domain acceptance is established.",
         ],
     }
-    result["projectionDigest"] = canonical_digest(result)
+    result["projectionDigest"] = _git_scope_projection_digest(result)
     return result
 
 

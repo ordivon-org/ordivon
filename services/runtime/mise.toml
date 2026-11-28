@@ -47,6 +47,7 @@ cargo kani --version
 cargo kani -p ordivon-runtime-core --lib --no-default-features --features postgres-registry-admission --harness proof_pg_terminal_transition_matches_contract --default-unwind 32
 cargo kani -p ordivon-runtime-core --lib --no-default-features --features transactional-runtime --harness proof_actual_attempt_terminal_absorbing_and_resolution_equivalence --default-unwind 32
 cargo kani -p ordivon-runtime-core --lib --no-default-features --features transactional-runtime --harness proof_actual_attempt_cancel_is_transition_or_stopping_replay --default-unwind 32
+cargo kani -p ordivon-runtime-core --lib --no-default-features --features transactional-runtime --harness proof_terminal_evidence_is_exact_conjunction --default-unwind 32
 cargo kani -p ordivon-runtime-core --lib --no-default-features --features transactional-runtime --harness proof_actual_terminal_reservation_target_preserves_held_orphan_fence --default-unwind 32
 cargo kani -p ordivon-runtime-core --lib --no-default-features --features transactional-runtime --harness proof_actual_terminal_reservation_target_fails_closed_on_incomplete_evidence --default-unwind 32
 cargo kani -p ordivon-runtime-core --lib --no-default-features --features transactional-runtime --harness proof_actual_terminal_reservation_target_rejects_mismatched_job_resolution --default-unwind 32
@@ -62,6 +63,8 @@ set -euo pipefail
 cargo fmt --check
 scripts/owner-environment test
 cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+# Check the standalone Runner dependency closure before larger feature sets can mask it.
+cargo check --locked -p ordivon-runtime-core --no-default-features --features universal-executor --bin ordivon-runtime-runner
 # Match the deployed Linux feature boundary, separately from all-features and legacy.
 cargo test --locked -p ordivon-runtime-core --no-default-features --features postgres-registry-admission --lib
 cargo test --locked -p ordivon-runtime-core --no-default-features --features transactional-runtime -- --skip request_identity_and_terminal_winner_match_reference_model

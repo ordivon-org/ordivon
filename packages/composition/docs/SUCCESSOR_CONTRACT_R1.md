@@ -1,7 +1,7 @@
-# Successor Contract R1 — Verified Recursive Succession
+# Successor Contract R1 — Declaration-only Succession Boundary
 
 Date: 2026-09-22
-Status: **R1 CANDIDATE / GENERIC MECHANICAL SUCCESSION ONLY**
+Status: **R1 SOURCE CONTRACT / DECLARED GATE SUMMARY; PROOF UNKNOWN**
 
 ## Decision
 
@@ -22,7 +22,7 @@ verifier-owned succession gates
         ↓
 Successor Contract R1
         ↓
-mechanical succession projection
+declaration-only succession projection
 ```
 
 R1 does **not** create an RSI Controller, search service, evaluator service, scheduler,
@@ -110,7 +110,7 @@ SATISFIED | UNSATISFIED | UNKNOWN
 
 A SATISFIED/UNSATISFIED record requires evidence. UNKNOWN may be evidence-empty.
 
-Mechanical successor closure requires:
+Reported gate closure (not verifier-qualified proof) requires:
 
 1. every required gate result exists;
 2. every required result is SATISFIED;
@@ -122,12 +122,18 @@ Mechanical successor closure requires:
 Even then:
 
 ```text
-mechanicalSuccessorClosure = true
+declaredGateClosure = true
+evidenceVerificationStanding = "UNKNOWN"
+mechanicalSuccessorClosure = false
 promotionAuthorityEstablished = false
 domainImprovementEstablished = false
 ```
 
-This is deliberate.
+This is deliberate: this module only schema-validates the **caller's** report. Matching
+`verifierOwnerId`, anchors, and `evidenceRefs` cannot independently establish
+who issued the record or whether a verifier ran. Actual satisfaction belongs to
+the natural owner verifier and must be consumed from its native, source-bound
+result; never turn this projection into a promotion or execution gate.
 
 ## Authority separation
 
@@ -171,7 +177,7 @@ Successor Contract
       ↓
 verifier-owned gates
       ↓
-mechanical succession closure
+declared gate summary (verification UNKNOWN)
       ↓
 external promotion owner (if any)
 ```

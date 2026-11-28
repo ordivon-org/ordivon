@@ -82,6 +82,8 @@ The model-facing tools `skills.list`, `skills.search`, `skills.resolve` and `ski
 
 On this compatibility surface, `snapshotRevision` is a context-and-invocation-view currentness fence, not a resource-content digest. Responses expose `snapshotInvocationMode` so callers can see whether the snapshot describes the implicit discovery view or the explicit activation view. `skills.read` has no routing mode of its own, so it accepts a still-current explicit-view snapshot, or a still-current implicit-view snapshot when that implicit view actually contains the target Skill; older or target-mismatched snapshots fail closed. Exact Skill bytes remain independently fenced by `instructionDigest` and `packageRevision`, so this ergonomic compatibility does not weaken resource identity or package-drift checks.
 
+`skills.list` retains its legacy integer offset cursor for ChatGPT compatibility; that cursor is not snapshot-bound and must not grow another private pagination protocol. A caller that follows `nextCursor` must retain the first page `snapshotRevision`, compare every later page before accepting the combined result, and discard/restart from cursor `0` if the revision changes. Clients that require server-enforced stale-cursor rejection must use the standards `skills/list` method, whose cursor already carries `catalogRevision:offset`.
+
 The compatibility `skill://` resource form is not a universal Skill URI standard. SEP-2640 resource digests plus local catalog/currentness fences protect the temporary bridge; they must not grow into a permanent Ordivon-wide version/CAS platform.
 
 Project/workspace Skills are not projected from model-supplied filesystem paths. Workspace/source identity is control-plane configuration, never prompt authority.

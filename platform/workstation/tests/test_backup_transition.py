@@ -135,20 +135,52 @@ def test_execution_args_have_no_expiry_or_shell():
                        "--log-level-console=info","backup")
 
 
-@pytest.mark.parametrize("case", ["deleted","changed","extra","wrong-kind","wrong-prior"])
-def test_native_postcondition_detects_drift(case):
-    before=inventory();append(before,1,"incr")
-    now=at(2);plan=policy.choose_kind(before,now)
-    after=deepcopy(before);append(after,2,"incr")
-    assert policy.check_additive(before,after,plan,now)==after[0]["backup"][-1]["label"]
-    if case=="deleted":after[0]["backup"].pop(0)
-    elif case=="changed":after[0]["backup"][0]["info"]["size"]+=1
-    elif case=="extra":append(after,3,"incr")
-    elif case=="wrong-kind":
-        after=deepcopy(before);append(after,2,"diff")
-    elif case=="wrong-prior":after[0]["backup"][-1]["prior"]=before[0]["backup"][0]["label"]
-    with pytest.raises(policy.Unqualified):
-        policy.check_additive(before,after,plan,now)
+@pytest.mark.parametrize(("case", "reason"), [
+    ("deleted", "old inventory changed"),
+    ("changed", "old inventory changed"),
+    ("extra", "old inventory changed"),
+    ("wrong-kind", "native selected type differs"),
+    ("wrong-prior", "increment prior changed"),
+])
+def test_native_postcondition_detects_drift(case, reason):
+    # Keep both generations valid so a missing old generation is not
+    # rejected merely because its incremental base disappeared.
+    before = inventory()
+    append(before, 1, "full")
+    append(before, 2, "incr")
+    now = at(3)
+    plan = policy.choose_kind(before, now)
+    assert plan["type"] == "incr"
+    after = deepcopy(before)
+    append(after, 3, "incr")
+    assert policy.check_additive(before, after, plan, now) == after[0]["backup"][-1]["label"]
+    backups = after[0]["backup"]
+    if case == "deleted":
+        backups.pop(0)
+    elif case == "changed":
+        backups[0]["info"]["size"] += 1
+    elif case == "extra":
+        # A distinct, already completed same-day increment: not a future backup.
+        extra = deepcopy(backups[-1])
+        extra["prior"] = backups[-1]["label"]
+        extra["label"] = plan["full"] + "_" + (
+            BASE + timedelta(days=3, minutes=2)
+        ).strftime("%Y%m%d-%H%M%S") + "I"
+        extra["timestamp"] = {
+            k: v + 120 for k, v in extra["timestamp"].items()
+        }
+        backups.append(extra)
+    elif case == "wrong-kind":
+        after = deepcopy(before)
+        append(after, 3, "diff")
+    elif case == "wrong-prior":
+        backups[-1]["prior"] = before[0]["backup"][1]["label"]
+
+    # Every negative is an independently valid native inventory; rejection
+    # must come from the specific additive-transition postcondition.
+    policy.valid_inventory(after, now)
+    with pytest.raises(policy.Unqualified, match=reason):
+        policy.check_additive(before, after, plan, now)
 
 
 def test_plan_never_dispatches(monkeypatch,capfd):

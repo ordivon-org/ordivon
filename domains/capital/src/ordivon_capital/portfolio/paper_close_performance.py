@@ -34,7 +34,12 @@ def _minor(value: Any, label: str) -> int:
 
 
 def _receipt(value: Any, label: str) -> tuple[dict[str, Any], str, date, int, int]:
-    if type(value) is not dict or value.get("schema_version") != 1 or value.get("mode") != "PAPER":
+    if (
+        type(value) is not dict
+        or type(value.get("schema_version")) is not int
+        or value["schema_version"] != 1
+        or value.get("mode") != "PAPER"
+    ):
         raise PaperPerformanceError(f"{label} is not an Accounting Paper receipt")
     account = value.get("account_key")
     digest = value.get("request_sha256")
@@ -155,7 +160,8 @@ def summarize_paper_period(
 def render_paper_daily_markdown(summary: dict[str, Any]) -> str:
     """Human display of the existing Portfolio/Risk result, never another NAV."""
     if (
-        summary.get("schemaVersion") != 1
+        type(summary.get("schemaVersion")) is not int
+        or summary["schemaVersion"] != 1
         or summary.get("kind") != "ordivon.finance.portfolio.paper-close-economic-summary"
         or summary.get("standing") != "READ_ONLY_ACCOUNTING_RECEIPT_CONSUMER"
         or summary.get("capitalAuthority") != "SIMULATION_ONLY"

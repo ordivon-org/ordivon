@@ -35,6 +35,13 @@ class WorkSnapshotInput(BaseModel):
     next_actions: list[str] = Field(default_factory=list, max_length=128, alias="nextActions")
     reference_refs: list[str] = Field(default_factory=list, max_length=256, alias="referenceRefs")
 
+    @field_validator("objective", "frontier")
+    @classmethod
+    def validate_postgres_jsonb_text(cls, value: str) -> str:
+        if "\x00" in value:
+            raise ValueError("snapshot text must not contain NUL")
+        return value
+
     @field_validator(
         "established",
         "unresolved",
@@ -48,6 +55,8 @@ class WorkSnapshotInput(BaseModel):
         for value in values:
             if not value or value != value.strip():
                 raise ValueError("snapshot list entries must be non-empty trimmed text")
+            if "\x00" in value:
+                raise ValueError("snapshot list entries must not contain NUL")
         return values
 
     def canonical_payload(self) -> dict[str, Any]:

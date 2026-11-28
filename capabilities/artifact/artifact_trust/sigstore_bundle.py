@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import base64
-import json
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
 from artifact_core.contracts import file_fact
-from artifact_core.json_validation import load_json
+from artifact_core.json_validation import decode_json, load_json
 from artifact_trust.trust_policy import SIGSTORE_BUNDLE_V03
 
 INTOTO_DSSE_PAYLOAD_TYPE = "application/vnd.in-toto+json"
@@ -44,7 +43,7 @@ def verify_sigstore_vsa_bundle_shape(
         else:
             try:
                 decoded = base64.b64decode(payload, validate=True)
-                signed_statement = json.loads(decoded)
+                signed_statement = decode_json(decoded.decode("utf-8"))
             except Exception as error:
                 failures.append(f"DSSE payload is not valid base64 JSON: {error}")
     if signed_statement is not None and signed_statement != statement:

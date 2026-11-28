@@ -11,6 +11,7 @@ import psycopg
 
 from .canonical_json import canonical_bytes
 from .collection_pagination import DEFAULT_SPACE_MAX_BYTES, MIN_SPACE_MAX_BYTES, validate_max_bytes
+from .errors import InvalidArgumentError
 from .social_errors import SpaceNotFound
 
 
@@ -108,6 +109,6 @@ def read_space_in_tx(
         elif subjects:
             subjects.pop()
         else:
-            raise ValueError("max_bytes cannot fit the Space response envelope")
+            raise InvalidArgumentError("max_bytes cannot fit the Space response envelope")
         result = build()
     return result

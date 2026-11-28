@@ -103,6 +103,15 @@ class PaperReceiptReadbackSemanticTests(unittest.TestCase):
         self.assertEqual(_read(first, None, key), first[3])
         self.assertEqual(_read(second, first, key), second[3])
 
+    def test_receipt_schema_version_requires_literal_integer_v1(self):
+        key, first, _ = _scenario()
+        forged = deepcopy(first)
+        forged[3]["schema_version"] = True
+        with self.assertRaisesRegex(
+            ValueError, "committed paper receipt and stored request disagree"
+        ):
+            _read(forged, None, key)
+
     def test_request_bound_receipt_cannot_lie_about_economics(self):
         for field in (
             "coordinated_cash_and_nav",
