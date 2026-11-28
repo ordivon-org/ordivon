@@ -191,6 +191,56 @@ test("lease takeover increments generation and fences the stale executor", async
   assert.equal(stored?.execution.lease_generation, 2);
 });
 
+test("receipt execution provenance must exactly match the admitted lease", async () => {
+  for (const [field, forgedValue] of [
+    ["worker_version_id", "worker-forged"],
+    ["worker_version_tag", "forged-tag"],
+    ["worker_version_timestamp", "2099-01-01T00:00:00.000Z"]
+  ] as const) {
+    const memory = new MemoryR2();
+    const bucket = memory.asBucket();
+    const requestId = `request_provenance_${field}`;
+    const begun = await beginRequest({
+      bucket,
+      requestId,
+      requestDigest: DIGEST,
+      operation: "fetch",
+      policyVersion: TEST_POLICY_VERSION,
+      workerVersion: WORKER_VERSION,
+      now: new Date("2026-07-27T00:00:00.000Z"),
+      tokenFactory: () => "provenance-lease"
+    });
+    if (begun.kind !== "acquired") assert.fail("expected provenance lease");
+
+    const key = `fetch/v2/${requestId}/g1/body`;
+    const receipt = createReceipt({
+      operation: "fetch",
+      status: "succeeded",
+      requestDigest: DIGEST,
+      receiptId: requestId,
+      startedAt: new Date(begun.lease.acquired_at),
+      completedAt: new Date("2026-07-27T00:00:01.000Z"),
+      execution: { ...begun.lease, [field]: forgedValue },
+      artifact: artifact(key),
+      artifacts: [artifact(key)],
+      fetch: {
+        requested_url: "https://allowed.example.org/provenance",
+        final_url: "https://allowed.example.org/provenance",
+        http_status: 200,
+        redirect_count: 0
+      }
+    });
+
+    await assert.rejects(
+      commitReceipt({ bucket, lease: begun.lease, receipt, artifactKeys: [key] }),
+      (error: unknown) => errorCode(error) === "receipt_lease_mismatch",
+      field
+    );
+    const current = await loadReceiptRecord(bucket, requestId);
+    assert.equal(current?.status, "pending", field);
+  }
+});
+
 test("commit failure removes newly written artifacts and preserves pending state", async () => {
   const memory = new MemoryR2();
   const environment = makeEnv(memory);
