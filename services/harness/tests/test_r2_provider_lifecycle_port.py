@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 
 from anc_canonical import canonical_digest
 
 from ordivon_harness.ordivon.control import CancellationToken, ExecutionControl, RunDeadline
+from ordivon_harness.ordivon.loop import OrdivonAgentLoop, RunBudget, RunStopCode
 from ordivon_harness.ordivon.model import (
     AgentRunConclusion,
     AgentTurnAdapterError,
+    AgentTurnDispatchSafety,
     AgentTurnFailureCode,
     AgentTurnRequest,
     AgentTurnResult,
@@ -87,6 +90,85 @@ class R2ProviderLifecyclePortTests(unittest.TestCase):
                     control.clamp_timeout_seconds(bad)
         self.assertEqual(control.clamp_timeout_seconds(2.5), 2.5)
         self.assertEqual(control.clamp_timeout_seconds(20), 10.0)
+
+    def test_retry_deadline_can_expire_between_gate_and_backoff(self) -> None:
+        class NoEffectBridge:
+            catalog_digest = canonical_digest({"r2": "no-effect"})
+
+            def definitions(self):
+                return ()
+
+            def execute(self, call, *, step_id):
+                raise AssertionError("No Tool effect expected")
+
+        class FailOnceAdapter(IdentityAdapter):
+            calls = 0
+
+            def invoke(self, req):
+                self.calls += 1
+                raise AgentTurnAdapterError(
+                    "synthetic transport failure",
+                    failure_code=AgentTurnFailureCode.TRANSPORT_FAILED,
+                    dispatch_safety=AgentTurnDispatchSafety.PRE_DISPATCH_SAFE,
+                )
+
+        now = 100
+        armed = False
+
+        def monotonic():
+            nonlocal now, armed
+            observed = now
+            if armed:
+                # First read after failure leaves 2ms; time then advances
+                # before the backoff calculation makes its own observation.
+                now = 125
+                armed = False
+            return observed
+
+        def record_failure(event):
+            nonlocal now, armed
+            if event.kind == "model_call_attempt_failed":
+                now = 123
+                armed = True
+
+        adapter = FailOnceAdapter()
+        loop = OrdivonAgentLoop(
+            adapter,
+            NoEffectBridge(),
+            budget=RunBudget(
+                max_model_calls=3,
+                max_tool_calls=0,
+                max_observation_bytes=16_384,
+                max_wall_time_ms=2_000,
+                max_total_tokens=10_000,
+                max_model_retries=1,
+                max_tool_corrections=0,
+                max_conclusion_corrections=0,
+            ),
+            clock_ms=lambda: 100,
+            monotonic_ms=monotonic,
+            event_sink=record_failure,
+        )
+        with patch("ordivon_harness.ordivon.loop.time.sleep") as sleep:
+            result = loop.run(
+                harness_run_id="harness-run:r2-retry-clock",
+                assignment_id="assignment:r2-retry-clock",
+                context_digest=canonical_digest({"r2": "retry-clock"}),
+                initial_messages=({"role": "user", "content": "complete"},),
+                deadline=RunDeadline(125, monotonic),
+            )
+        self.assertEqual(result.stop_code, RunStopCode.BUDGET_EXHAUSTED)
+        self.assertEqual(adapter.calls, 1)
+        self.assertEqual(result.tool_calls, 0)
+        self.assertEqual(
+            [
+                event.payload["delayMs"]
+                for event in result.trace.events
+                if event.kind == "model_call_retry_scheduled"
+            ],
+            [0],
+        )
+        sleep.assert_not_called()
 
     def test_plain_tool_surface_has_no_durable_provider_authority(self) -> None:
         class PlainBridge:
