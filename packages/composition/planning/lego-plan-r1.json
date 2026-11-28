@@ -274,7 +274,7 @@
       ],
       "behavioralContract": "Never retries, dispatches, grants permission or certifies an external provider effect. Runtime executionTerminal=true, exitCode=0 and deliveryDisposition=committed still require provider-owned effect confirmation. Missing unindexed effect references broaden UNKNOWN through C04 instead of producing an empty impact.",
       "acceptance": [
-        "tests/test_effect_reconciliation_r1.py verifies the native Runtime Linux/Windows/Harness reconciliation_required delivery, legacy synthetic external.pull started uncertainty, terminal committed-but-effect-unknown, unrelated proof isolation and absent dynamic effect UNKNOWN.",
+        "tests/test_effect_reconciliation_r1.py verifies the native Runtime Linux/Windows/Harness reconciliation_required delivery, retired external.pull rejection, native-owner started uncertainty, terminal committed-but-effect-unknown, unrelated proof isolation and absent dynamic effect UNKNOWN.",
         "Rejects forged native operation identity, false-like JSON terminality/recovery values and malformed caller inputs; CLI preserves same negative behavior."
       ],
       "evidence": [

@@ -166,8 +166,10 @@ fourth Runtime delivery state rather than reporting a protocol error. The
 result is still read-only and has `automaticRetryAdmissible=false`,
 `providerEffectEstablished=false` and `proofReuseAdmissible=false`. Gateway's
 native route owners are `runtime.linux`, `runtime.windows`, and
-`runtime.harness`; C06's older `external.pull` fixture is **caller-shaped
-synthetic** and is not a native Gateway route claim.
+`runtime.harness`. C06 now rejects the retired `external.pull` route even
+when the caller supplies a matching reference. The former synthetic fixture
+uses a native Runtime owner identity; historical evidence is not rewritten.
+This is current source admission, not an installed or archive-consumer proof.
 
 The existing finite TLA+ `EffectReplayFence.tla` has four delivery variants.
 The pinned TLC gate includes one new deliberately false fourth-state
