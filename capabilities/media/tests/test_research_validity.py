@@ -27,6 +27,25 @@ PG_DSN = os.environ.get("ORDIVON_MEDIA_TRIAL_TEST_DSN")
 
 
 class ResearchValidityTest(unittest.TestCase):
+    def test_research_text_contract_has_one_owner(self) -> None:
+        from ordivon_studio.research import (
+            grounded_contracts,
+            grounded_evidence,
+            trial_ledger,
+            trial_registration,
+        )
+
+        validate = grounded_contracts.strict_text
+        for consumer in (grounded_evidence, trial_registration, trial_ledger):
+            self.assertIs(consumer.strict_text, validate)
+        for value in ("a", "中文", "a b", "a\nb"):
+            with self.subTest(value=value):
+                self.assertEqual(validate(value, "field"), value)
+        for value in (None, 1, True, "", " ", " a", "a ", "\u3000a"):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, "field must be a non-empty trimmed string"):
+                    validate(value, "field")
+
     def registration(self, *, mode: str = "static", budget: int = 200) -> dict:
         return build_null_registration(
             mode=mode,

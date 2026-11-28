@@ -14,8 +14,7 @@ from typing import Any
 
 import psycopg
 
-from .grounded_contracts import canonical_digest
-from .trial_registration import _strict_text
+from .grounded_contracts import canonical_digest, strict_text
 
 EVENT_TYPES = (
     "trial.proposed",
@@ -39,7 +38,7 @@ class TrialLedger:
     def __init__(self, dsn: str, *, search_id: str):
         if not isinstance(dsn, str) or not dsn.startswith(("postgresql://", "postgres://")):
             raise ValueError("TrialLedger requires a PostgreSQL DSN, not a SQLite path")
-        self.search_id = _strict_text(search_id, "search_id")
+        self.search_id = strict_text(search_id, "search_id")
         self.db = psycopg.connect(dsn, autocommit=True)
         try:
             self._create_schema()
@@ -204,8 +203,8 @@ class TrialLedger:
             yield
 
     def append(self, attempt_id: str, candidate_id: str, event_type: str, payload: Mapping[str, Any]) -> str:
-        _strict_text(attempt_id, "attempt_id")
-        _strict_text(candidate_id, "candidate_id")
+        strict_text(attempt_id, "attempt_id")
+        strict_text(candidate_id, "candidate_id")
         if event_type not in EVENT_TYPES:
             raise ValueError(f"unsupported trial event type: {event_type}")
         with self.search_transaction():
