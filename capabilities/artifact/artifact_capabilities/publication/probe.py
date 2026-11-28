@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import hashlib
 import re
 import shutil
 import subprocess
 from pathlib import Path
+
+from artifact_core.contracts import sha256_file
 
 from .contract import CarrierObservation
 
@@ -28,14 +29,6 @@ def _run(args: list[str]) -> subprocess.CompletedProcess[str]:
         text=True,
         errors="replace",
     )
-
-
-def _sha256(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
 
 
 def _parse_page_count(pdfinfo: str) -> int:
@@ -118,7 +111,7 @@ def probe_pdf_carrier(
     )
 
     return CarrierObservation(
-        pdf_sha256=_sha256(pdf),
+        pdf_sha256=sha256_file(pdf),
         page_count=page_count,
         text=text.stdout,
         pages=pages,

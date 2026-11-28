@@ -6,17 +6,23 @@ import argparse
 import hashlib
 import json
 import os
-from fractions import Fraction
-from pathlib import Path
 import re
 import subprocess
+import sys
 import tempfile
-from typing import Any
 import xml.etree.ElementTree as ET
+from fractions import Fraction
+from pathlib import Path
+from typing import Any
 
 import jsonschema
 
 ROOT = Path(__file__).resolve().parents[1]
+if __name__ == "__main__" and str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from artifact_core.contracts import FileCommitment
+
 CONTRACT_SCHEMA = ROOT / "artifact-delivery/shadow-contracts/moving-image-ffv1-contract-v1.schema.json"
 MEDIACONCH = Path(os.environ.get("ARTIFACT_MEDIACONCH", "/opt/ordivon/external/mediaconch/25.04-1/mediaconch"))
 FFMPEG = Path(os.environ.get("ARTIFACT_FFMPEG", "/usr/bin/ffmpeg"))
@@ -43,7 +49,8 @@ def canonical_digest(value: Any) -> str:
 
 
 def artifact_fact(path: Path) -> dict[str,Any]:
-    return {'path':str(path.resolve()),'name':path.name,'size':path.stat().st_size,'sha256':sha256_file(path)}
+    commitment = FileCommitment.from_path(path)
+    return {'path':str(commitment.path),'name':path.name,'size':commitment.size,'sha256':commitment.sha256}
 
 
 def validate_contract(contract: dict[str,Any]) -> list[str]:
