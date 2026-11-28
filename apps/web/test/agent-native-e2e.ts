@@ -35,13 +35,19 @@ const issuerText = env(
   "http://127.0.0.1:18080/realms/agent-admission-lab",
 );
 const chromiumExecutable = env("ORDIVON_WEB_CHROMIUM_EXECUTABLE");
+// The shell fixture binds its synthetic issuer audience to the same port.
+const webPortText = env("ORDIVON_WEB_AGENT_E2E_PORT", "8791");
+const webPort = /^[1-9][0-9]*$/.test(webPortText) ? Number(webPortText) : NaN;
+if (!Number.isSafeInteger(webPort) || webPort > 65535) {
+  throw new Error("ORDIVON_WEB_AGENT_E2E_PORT must be a positive TCP port");
+}
 const clientId = "agent-research-17";
 const clientSecret = "lab-only-agent-secret";
 
 const config: WebConfig = {
   host: "127.0.0.1",
-  port: 8791,
-  origin: "http://localhost:8791",
+  port: webPort,
+  origin: "http://localhost:" + webPort,
   rpID: "localhost",
   rpName: "Ordivon Agent-Native E2E",
   databasePath: ":memory:",
