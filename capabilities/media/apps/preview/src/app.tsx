@@ -1,12 +1,7 @@
-import {RuntimeFlow, runtimeStages, type RuntimeStage} from '@ordivon/visuals';
+import {compactProofValue, RuntimeFlow, runtimeStages, type RuntimeStage} from '@ordivon/visuals';
 import {useState} from 'react';
 import production from '../../../productions/runtime-introduction/production.json';
 import receipt from '../../../productions/runtime-introduction/evidence/runtime-demo.receipt.json';
-
-function compact(value: string, head = 14, tail = 8): string {
-  if (value.length <= head + tail + 1) return value;
-  return `${value.slice(0, head)}…${value.slice(-tail)}`;
-}
 
 export function App() {
   const [activeStage, setActiveStage] = useState<RuntimeStage>('job');
@@ -66,28 +61,28 @@ export function App() {
             <p className="eyebrow">Validated live receipt</p>
             <h2>Recovery proof, not a mockup</h2>
           </div>
-          <code>{compact(receipt.toolCatalogDigest)}</code>
+          <code>{compactProofValue(receipt.toolCatalogDigest)}</code>
         </div>
         <div className="receipt-grid">
           <article>
             <span>Exact replay</span>
             <strong>{receipt.execution.sameJobAfterReplay ? 'same Job' : 'failed'}</strong>
-            <code>{compact(receipt.execution.jobId, 20, 10)}</code>
+            <code>{compactProofValue(receipt.execution.jobId, 20, 10)}</code>
           </article>
           <article>
             <span>Recorded Attempt</span>
             <strong>{receipt.execution.status}</strong>
-            <code>{compact(receipt.execution.attemptId, 20, 10)}</code>
+            <code>{compactProofValue(receipt.execution.attemptId, 20, 10)}</code>
           </article>
           <article>
             <span>Terminal evidence</span>
             <strong>{receipt.execution.elapsedMs / 1000}s</strong>
-            <code>{compact(receipt.evidence.digest)}</code>
+            <code>{compactProofValue(receipt.evidence.digest)}</code>
           </article>
           <article>
             <span>Compare-and-close</span>
             <strong>{receipt.close.exactStateMatched ? 'exact match' : 'blocked'}</strong>
-            <code>{compact(receipt.close.sourceStateDigest)}</code>
+            <code>{compactProofValue(receipt.close.sourceStateDigest)}</code>
           </article>
         </div>
       </section>

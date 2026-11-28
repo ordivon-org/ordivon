@@ -4,7 +4,8 @@ import '@ordivon/identity/tokens.css';
 import {ExactCloseComposition} from './exact-close-composition.tsx';
 import {RequestReplayComposition} from './request-replay-composition.tsx';
 import {RuntimeFlowComposition} from './runtime-flow-composition.tsx';
-import {compactProofValue, runtimeDemoReceipt} from './runtime-demo-receipt.ts';
+import {compactProofValue} from '@ordivon/visuals';
+import {runtimeDemoReceipt} from './runtime-demo-receipt.ts';
 
 const mono: CSSProperties = {
   fontFamily: 'var(--ordivon-font-mono)',

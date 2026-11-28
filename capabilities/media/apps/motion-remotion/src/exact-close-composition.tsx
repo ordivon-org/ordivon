@@ -1,7 +1,8 @@
 import type {CSSProperties} from 'react';
 import {AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import '@ordivon/identity/tokens.css';
-import {compactProofValue, runtimeDemoReceipt} from './runtime-demo-receipt.ts';
+import {compactProofValue} from '@ordivon/visuals';
+import {runtimeDemoReceipt} from './runtime-demo-receipt.ts';
 
 const digestCard: CSSProperties = {
   padding: 32,

@@ -67,8 +67,3 @@ export interface RuntimeDemoReceipt {
 }
 
 export const runtimeDemoReceipt = rawReceipt as RuntimeDemoReceipt;
-
-export function compactProofValue(value: string, head = 14, tail = 8): string {
-  if (value.length <= head + tail + 1) return value;
-  return `${value.slice(0, head)}…${value.slice(-tail)}`;
-}
