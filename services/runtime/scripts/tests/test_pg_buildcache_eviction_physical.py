@@ -149,6 +149,25 @@ class NativeBuildCacheEvictionTests(unittest.TestCase):
                         self.assertTrue(cache.is_dir())
                         db.execute("UPDATE jobs SET resolution='succeeded'")
                         self.assertEqual(list((root / "lifecycle-receipts").iterdir()), [])
+
+                        # Native mapped consumer survives closing its original FD.
+                        import mmap
+                        pid = str(os.getpid())
+                        proc = root / "proc" / pid
+                        proc.mkdir()
+                        for name in ("cwd", "fd", "exe", "maps"):
+                            (proc / name).symlink_to(Path("/proc") / pid / name)
+                        with (cache / "object.o").open("rb") as stream:
+                            mapping = mmap.mmap(
+                                stream.fileno(), 0, access=mmap.ACCESS_READ, trackfd=False
+                            )
+                        with mapping:
+                            self.assertEqual(mapping[:], b"rebuildable")
+                            with self.assertRaisesRegex(RuntimeError, "external process"):
+                                evict.run(args)
+                            self.assertTrue(cache.is_dir())
+                            self.assertEqual(list((root / "lifecycle-receipts").iterdir()), [])
+                        self.assertEqual(original_scan(cache, root / "proc"), [])
                         with (
                             patch.object(evict.os, "rename", side_effect=rename_under_fence),
                             patch.object(evict.shutil, "rmtree", side_effect=unlink_outside_fence),
