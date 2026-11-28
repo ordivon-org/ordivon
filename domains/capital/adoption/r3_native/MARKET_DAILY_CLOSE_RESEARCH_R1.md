@@ -54,7 +54,7 @@ precommitted held-out hypotheses, matched benchmarks and independent
 economic/forecast verification. UNKNOWN stays UNKNOWN.
 
 
-## Real consumer graph / scoped R2.1 LEGO contract
+## Real consumer graph and research constraints
 
 External Cboe, Nasdaq -> existing Markets natural data boundaries ->
 operator-private capture bytes and exchange session calendar ->
@@ -65,19 +65,25 @@ existing Research experiment freeze / independent holdout review.
 There is NO verified consumer edge to PortfolioIntent, Accounting
 PostgresPaperClose, independent risk budget, or Trading/live effects.
 
-| Contract | Current bounded implementation and limitations |
-| --- | --- |
-| I | Private close-only CSV plus manifest, source SHA-256, exchange dates and provider origin split |
-| O | Date-aligned prices, QQQ EMA200, relative QQQ/SPY and SMH/QQQ, Mag7 breadth, VXN/VIX and evidence limits |
-| S | None except local private input files; no new PG or external state |
-| pre | Input digests match, symbol/date completeness, XNYS sessions, explicit research-only source and unknowns |
-| post | Returned descriptive facts inherit exact local source identity, never assert forecasting, trade profitability or authority |
-| inv | Missing does not mean zero; source-timing UNKNOWN never means qualified; no synthetic holidays or implicit fills |
-| eff | Read-only file/CPU only, zero Paper/live/venue effect |
-| c | Two inputs bounded at 8 MB each, O(asset_count × sessions) evaluation, default 43 by 971 |
-| epsilon | Uncertain rights, PIT, total return, issuer revisions, provider OHLC and volume discrepancies retained |
-| prov | Source file digests, repo commit, private source receipts, native consumer evidence and test suite |
-| unfold | Human question -> Markets authority -> Research read -> optional experiment freeze -> independent future evaluation |
+The descriptive consumer takes private close-only CSV and a manifest.
+It checks SHA-256, source origin, symbol/date completeness and XNYS
+sessions, retaining explicit research-only standing and unknowns. Its
+observations are date-aligned prices, QQQ EMA200, relative QQQ/SPY and
+SMH/QQQ, Mag7 breadth, VXN/VIX, and evidence limits. Missing observations
+are not zero; unknown source timing is not qualified. No synthetic
+holidays or implicit fills are allowed.
+
+The calculation reads local private inputs only, with no new PG or
+external state and no Paper/live/venue effect. Two inputs are bounded
+at 8 MB each; evaluation is O(asset_count × sessions), default 43 by
+971. Returned descriptive facts inherit exact local source identity;
+they establish neither forecasts, trade profitability nor authority.
+
+Rights, PIT, total return, issuer revisions, provider OHLC and volume
+discrepancies remain unresolved. Evidence is bound to source file
+digests, repo commit, private source receipts, native consumer evidence
+and tests. An optional Research experiment freeze and independent
+future evaluation remain distinct from this descriptive read.
 
 The actual planned CA01 in planning/lego-plan-r1.json currently
 describes bounded public market stream qualification (in its existing
