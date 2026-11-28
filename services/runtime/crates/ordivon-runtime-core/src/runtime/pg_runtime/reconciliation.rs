@@ -36,8 +36,4 @@ use scan::{
     scan_reconciliation_page,
 };
 
-/// Preserve original SQLSTATE rather than translating PG failures into generic I/O.
-fn pg_read_error(error: postgres::Error) -> RuntimeError {
-    pg(PgAdmissionError::Database(error))
-}
 use crate::PgJobSnapshot;

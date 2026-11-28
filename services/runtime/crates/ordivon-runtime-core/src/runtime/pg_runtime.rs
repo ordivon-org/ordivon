@@ -149,6 +149,11 @@ fn transient_pg_transaction_abort(code: Option<&postgres::error::SqlState>) -> b
     })
 }
 
+/// Preserve SQLSTATE for direct PostgreSQL reads through the shared error taxonomy.
+fn pg_read_error(error: postgres::Error) -> RuntimeError {
+    pg(PgAdmissionError::Database(error))
+}
+
 fn pg(e: PgAdmissionError) -> RuntimeError {
     let issuer_not_current = matches!(&e, PgAdmissionError::IssuerNotCurrent);
     let aborted = matches!(
