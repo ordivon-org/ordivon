@@ -193,3 +193,118 @@ impl ReservationState {
         }
     }
 }
+
+#[cfg(test)]
+mod db_wire_contract_tests {
+    use super::*;
+
+    #[test]
+    fn desired_state_db_and_wire_labels_agree() {
+        for (state, label) in [
+            (JobDesiredState::Run, "run"),
+            (JobDesiredState::Cancelled, "cancelled"),
+        ] {
+            assert_eq!(state.as_db(), label);
+            assert_eq!(JobDesiredState::parse(label).unwrap(), state);
+            assert_eq!(serde_json::to_value(state).unwrap(), label);
+            assert_eq!(
+                serde_json::from_value::<JobDesiredState>(label.into()).unwrap(),
+                state
+            );
+        }
+        for invalid in ["", "RUN", "cancelled ", "canceled", "unknown"] {
+            assert_eq!(
+                JobDesiredState::parse(invalid)
+                    .unwrap_err()
+                    .field
+                    .as_deref(),
+                Some("desiredState")
+            );
+            assert!(serde_json::from_value::<JobDesiredState>(invalid.into()).is_err());
+        }
+    }
+
+    #[test]
+    fn resolution_db_and_wire_labels_agree() {
+        for (state, label) in [
+            (JobResolution::Succeeded, "succeeded"),
+            (JobResolution::Failed, "failed"),
+            (JobResolution::TimedOut, "timed_out"),
+            (JobResolution::Cancelled, "cancelled"),
+            (JobResolution::Lost, "lost"),
+            (JobResolution::Orphaned, "orphaned"),
+        ] {
+            assert_eq!(state.as_db(), label);
+            assert_eq!(JobResolution::parse(label).unwrap(), state);
+            assert_eq!(serde_json::to_value(state).unwrap(), label);
+            assert_eq!(
+                serde_json::from_value::<JobResolution>(label.into()).unwrap(),
+                state
+            );
+        }
+        for invalid in ["", "running", "timedOut", "LOST", "unknown"] {
+            assert_eq!(
+                JobResolution::parse(invalid).unwrap_err().field.as_deref(),
+                Some("resolution")
+            );
+            assert!(serde_json::from_value::<JobResolution>(invalid.into()).is_err());
+        }
+    }
+
+    #[test]
+    fn termination_intent_db_and_wire_labels_agree() {
+        for (state, label) in [
+            (AttemptTerminationIntent::Natural, "natural"),
+            (AttemptTerminationIntent::StopRequested, "stop_requested"),
+            (
+                AttemptTerminationIntent::DeadlineExceeded,
+                "deadline_exceeded",
+            ),
+        ] {
+            assert_eq!(state.as_db(), label);
+            assert_eq!(AttemptTerminationIntent::parse(label).unwrap(), state);
+            assert_eq!(serde_json::to_value(state).unwrap(), label);
+            assert_eq!(
+                serde_json::from_value::<AttemptTerminationIntent>(label.into()).unwrap(),
+                state
+            );
+        }
+        for invalid in ["", "cancelled", "stopRequested", "NATURAL", "unknown"] {
+            assert_eq!(
+                AttemptTerminationIntent::parse(invalid)
+                    .unwrap_err()
+                    .field
+                    .as_deref(),
+                Some("terminationIntent")
+            );
+            assert!(serde_json::from_value::<AttemptTerminationIntent>(invalid.into()).is_err());
+        }
+    }
+
+    #[test]
+    fn reservation_state_db_and_wire_labels_agree() {
+        for (state, label) in [
+            (ReservationState::Active, "active"),
+            (ReservationState::HeldOrphaned, "held_orphaned"),
+            (ReservationState::Released, "released"),
+        ] {
+            assert_eq!(state.as_db(), label);
+            assert_eq!(ReservationState::parse(label).unwrap(), state);
+            assert_eq!(serde_json::to_value(state).unwrap(), label);
+            assert_eq!(
+                serde_json::from_value::<ReservationState>(label.into()).unwrap(),
+                state
+            );
+        }
+        for invalid in ["", "heldOrphaned", "orphaned", "RELEASED", "unknown"] {
+            assert_eq!(
+                ReservationState::parse(invalid)
+                    .unwrap_err()
+                    .field
+                    .as_deref(),
+                Some("reservationState")
+            );
+            assert!(serde_json::from_value::<ReservationState>(invalid.into()).is_err());
+        }
+    }
+}
