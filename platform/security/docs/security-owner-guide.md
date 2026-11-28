@@ -97,23 +97,26 @@ Human: check the exact scan target/revision, clean checkout, required native pro
 
 Agent: invoke the native policy with an exact subject and actual provider reports. Preserve `CURRENT`, `BLOCKED`, `PROVIDER_ERROR`, `STALE_EVIDENCE` and `INCOMPLETE_EVIDENCE` separately. Never invent a zero exit status, a missing Boolean, a digest, or an unseen scan.
 
-## Formal contract and proof frontier — Product Admission (R2.1)
+## Formal contract and proof frontier — Product Admission
 
-The Security Product Admission responsibility is modeled as a **stateless decision LEGO**, not a new verification engine or a file-by-file LEGO registry. Its eleven effective coordinates are grounded in the existing native artifacts:
+Product Admission is a stateless decision over the existing native GateInput.
+The relevant mathematical structure is a predicate over a finite provider
+set, qualified evidence, and source-revision equality. External scanner
+snapshots and emission of local unsigned VSAs are separate boundaries.
 
-| Coordinate | Effective value and evidence obligation |
-| --- | --- |
-| `I` | Typed `GateInput` with source/observed Git revisions, Gitleaks/Semgrep/Trivy/Syft/OSV-Scanner evidence references, native exit-code status and optional runner reference |
-| `O` | `decision {allow, standing, evidenceComplete, resultsComplete, provider sets, revisions}`; local unsigned VSA is a separate downstream output |
-| `S` | `Unit` for pure OPA evaluation; external provider/report snapshot state is **not** included |
-| `pre` | Native scanner profile known; status and report references supplied by source-observing adapter; caller authority trust remains externally checked |
-| `post` | `allow ⇔ authority="security-verification" ∧ evidenceComplete ∧ resultsComplete ∧ mechanicalSound ∧ revisionsCurrent ∧ noBlockingProviders` |
-| `inv` | No `CURRENT` for missing/duplicate/malformed provider, incomplete hash, inconsistent native exit classification, or stale/unknown revision |
-| `eff` | Empty for OPA decision; evidence emission writes files and belongs to a separate effectful boundary |
-| `c` | `UNKNOWN(cost model not measured, Security admission scope)`; no invented complexity bound |
-| `epsilon` | `UNKNOWN(implementation/spec conformance not machine-proved over all Rego inputs)`; do not claim a proven zero approximation |
-| `prov` | Pinned source revision + `policies/admission.rego` digest + exact native OPA version/test receipt |
-| `unfold` | `policies/admission.rego`, `scripts/scan_product.sh`, `scripts/assemble_gate_input.py`, `src/ordivon_security_v2/evidence.py` and signed/unsigned attestation provider semantics |
+The decision permits admission exactly when the supplied authority is
+security-verification, evidence and results are complete, mechanical
+classification is sound, revisions are current, and no provider blocks.
+Missing, duplicate or malformed providers, incomplete hashes, inconsistent
+exit classification, and stale or unknown revisions cannot establish CURRENT.
+Caller authority is checked externally. The OPA decision itself does not
+write files; the evidence emitter owns that effect.
+
+The existing implementation is in `policies/admission.rego`,
+`scripts/scan_product.sh`, `scripts/assemble_gate_input.py` and
+`src/ordivon_security_v2/evidence.py`. Bind claims to the exact source revision,
+policy digest, native OPA version and test receipt. Admission cost is not
+measured here; universal Rego implementation refinement remains unknown.
 
 **Human-checkable set lemma:** let `P` be the five required providers, and `R` an array of records whose provider names are all in `P`. If `|R|=|P|` and `set(provider(R))=P`, every required provider occurs exactly once. Likewise, an evidence array `E` containing only `P ∪ {ordivon-runner}`, with `|E|=|set(provider(E))|`, `P ⊆ set(provider(E))`, and `5 ≤ |E| ≤ 6`, has exactly one evidence item per required provider and at most one runner. These are finite-set consequences, not yet a machine-checked proof that native OPA implements all intended predicates. The test suite provides source refinement/negative counterexample coverage, not universal proof.
 
