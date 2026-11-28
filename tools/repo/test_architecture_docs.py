@@ -2394,21 +2394,16 @@ def test_r21_duplicate_python_witness_name_is_not_an_unambiguous_proof(
         module.validate_r21_lego_vocabulary(document, root=tmp_path)
 
 
-def test_r21_single_six_role_contract_enforced_at_repository_admission() -> None:
-    """R2.1 semantic lenses must never silently replace the original LEGO interface."""
+def test_consumer_witnesses_allow_any_mathematical_representation() -> None:
+    """A native consumer witness does not depend on a universal LEGO shape."""
     vocabulary = (
         ROOT / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md"
     ).read_text(encoding="utf-8")
-    module.validate_r21_lego_vocabulary(vocabulary)
     canonical = "L = (identity, responsibility, inputs, outputs, contract, acceptance)"
-    assert vocabulary.count(canonical) == 1
-
-    with pytest.raises(module.ArchitectureDocsError, match="canonical"):
-        module.validate_r21_lego_vocabulary(vocabulary.replace(canonical, "L=(C,I,O,S,R,A,G,V)"))
-    with pytest.raises(module.ArchitectureDocsError, match="competing"):
-        module.validate_r21_lego_vocabulary(
-            vocabulary + "\nL = (I, O, A, G, E, V)\n"
-        )
+    for representation in ("", "L=(C,I,O,S,R,A,G,V)", "L = (I, O, A, G, E, V)"):
+        candidate = vocabulary.replace(canonical, representation)
+        candidate = candidate.replace(r"\mathrm{Semantics}(L)", "interpretation")
+        module.validate_r21_lego_vocabulary(candidate)
     with pytest.raises(module.ArchitectureDocsError, match="consumer"):
         module.validate_r21_lego_vocabulary(
             vocabulary.replace(
