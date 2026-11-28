@@ -85,6 +85,21 @@ from that **same** identity. When Python is available, the script works for both
 Windows and Linux. Do not run the inventory under an interactive account and
 apply the result to a service account or vice versa.
 
+For a PATH miss in a trusted repository, request the existing mise provider's
+resolution from the intended Owner working directory (no requested-tool execution):
+
+```bash
+cd platform/workstation
+python3 inventory/probe_executables.py --mise gh pnpm uv
+```
+
+The optional `mise` result is separate from PATH: `resolved` means mise
+returned one materialized absolute path for this directory; `unknown` means
+the lookup did not establish that fact. It does not install tools, grant Runtime
+admission, or attest successful invocation. At most 16 PATH misses are queried
+with a three-second timeout each. Use the intended Runtime's existing approved
+invocation method and the tool's native version/help to verify execution.
+
 An `on_path` result is only command resolution; `not_on_path` is **not**
 an installation verdict. Windows installed applications are separately observed
 from WinGet/uninstall registry, Linux packages from the actual package manager,

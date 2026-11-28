@@ -98,6 +98,7 @@ handoff is required.
 ### Live local-tool discovery
 
 - For local executables, start at [Workstation inventory](platform/workstation/inventory/README.md); probe the **actual node and Runtime execution identity** on demand, not a dated machine snapshot or another user's PATH.
+- Before concluding a required local command is unavailable, use the existing live executable probe in that execution context; for a PATH miss, query the relevant managed toolchain (for mise, the probe's `--mise` option in the Owner directory). Distinguish missing connector, PATH miss, unresolved managed tool, and rejected execution; report the scoped observation rather than a global absence claim.
 - Classify the needed capability via [Capability Catalog](catalogs/capabilities/README.md), then read the selected Owner's README, closer AGENTS.md (if present), and relevant Skill; see [Agent first-run](docs/start/agent-first-run.md).
 - Resolve callable operations from live MCP tool definitions, Owner-native CLI help or `mise tasks ls`; do not reconstruct interfaces from prose. A trusted Skill, installed application, discovered command and authorized domain effect are distinct evidence.
 - Do not copy tool inventory into this file or create a second tool registry. Verify actual provider readback and the final consuming task.

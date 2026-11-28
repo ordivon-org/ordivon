@@ -85,3 +85,49 @@ def test_windows_native_probe_reports_identity_and_rejects_command_expression() 
         timeout=15,
     )
     assert bad.returncode != 0
+
+
+def test_mise_lookup_distinguishes_managed_tool_from_path_miss(tmp_path) -> None:
+    import subprocess
+
+    managed = tmp_path / "pnpm"
+    managed.write_text("fixture", encoding="utf-8")
+    managed.chmod(0o755)
+    with patch.object(probe.shutil, "which", side_effect=lambda name, path: (
+        "/usr/bin/mise" if name == "mise" else None
+    )), patch.object(subprocess, "run", return_value=subprocess.CompletedProcess(
+        ["/usr/bin/mise", "which", "pnpm"], 0, stdout=str(managed) + "\n", stderr=""
+    )) as run:
+        report = probe.observe(["pnpm"], path="/usr/bin", include_mise=True)
+    assert report["commands"][0]["resolution"] == "not_on_path"
+    assert report["commands"][0]["mise"]["resolution"] == "resolved"
+    assert report["commands"][0]["mise"]["executablePath"] == str(managed)
+    assert run.call_args.args[0] == ["/usr/bin/mise", "which", "pnpm"]
+
+
+def test_mise_lookup_failure_remains_unknown_and_does_not_run_requested_tool() -> None:
+    import subprocess
+
+    with patch.object(probe.shutil, "which", side_effect=lambda name, path: (
+        "/usr/bin/mise" if name == "mise" else None
+    )), patch.object(subprocess, "run", return_value=subprocess.CompletedProcess(
+        ["/usr/bin/mise", "which", "missing"], 1, stdout="", stderr="not configured"
+    )):
+        row = probe.observe(["missing"], path="/usr/bin", include_mise=True)["commands"][0]
+    assert row["resolution"] == "not_on_path"
+    assert row["mise"]["resolution"] == "unknown"
+    assert row["mise"]["executablePath"] is None
+
+
+def test_mise_lookup_is_bounded_and_skips_path_hits() -> None:
+    import subprocess
+
+    with patch.object(probe.shutil, "which", side_effect=lambda name, path: (
+        "/usr/bin/" + name if name in {"mise", "gh"} else None
+    )), patch.object(subprocess, "run", side_effect=subprocess.TimeoutExpired("mise", 3)) as run:
+        rows = probe.observe(["gh", *[f"missing{i}" for i in range(17)]],
+                             path="/usr/bin", include_mise=True)["commands"]
+    assert "mise" not in rows[0]
+    assert run.call_count == 16
+    assert rows[1]["mise"]["reason"] == "mise_observation_failed"
+    assert rows[-1]["mise"]["reason"] == "lookup_budget_exhausted"
