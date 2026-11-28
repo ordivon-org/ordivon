@@ -5,22 +5,9 @@ import json
 from pathlib import Path
 from typing import Any
 
+from ordivon_capital.binance_sdk import dump_sdk_model, unwrap_sdk_oneof
+
 from .binance_usdm_reference import normalize_exchange_symbol
-
-
-def _dump(value: Any) -> Any:
-    if hasattr(value, "model_dump"):
-        return value.model_dump()
-    if isinstance(value, list):
-        return [_dump(v) for v in value]
-    return value
-
-
-def _oneof(value: Any) -> Any:
-    data = _dump(value)
-    if isinstance(data, dict) and "actual_instance" in data:
-        return data["actual_instance"]
-    return data
 
 
 def _current_and_next_session(schedule: dict[str, Any], now_ms: int) -> dict[str, Any]:
@@ -83,20 +70,20 @@ def capture(symbol: str) -> dict[str, Any]:
         config_rest_api=ConfigurationRestAPI(api_key="", api_secret="", timeout=10_000)
     ).rest_api
 
-    exchange = _dump(api.exchange_information().data())
+    exchange = dump_sdk_model(api.exchange_information().data())
     contract = normalize_exchange_symbol(exchange, symbol)
-    mark = _oneof(api.mark_price(symbol=symbol).data())
-    funding_rows = _dump(api.get_funding_rate_info().data())
+    mark = unwrap_sdk_oneof(api.mark_price(symbol=symbol).data())
+    funding_rows = dump_sdk_model(api.get_funding_rate_info().data())
     funding = next(
         (row for row in funding_rows if isinstance(row, dict) and row.get("symbol") == symbol),
         None,
     )
-    oi = _dump(api.open_interest(symbol=symbol).data())
-    book = _dump(api.order_book(symbol=symbol, limit=100).data())
-    schedule = _dump(api.trading_schedule().data())
-    adl = _oneof(api.adl_risk(symbol=symbol).data())
-    insurance = _oneof(api.query_insurance_fund_balance_snapshot(symbol=symbol).data())
-    constituents = _dump(api.query_index_price_constituents(symbol=symbol).data())
+    oi = dump_sdk_model(api.open_interest(symbol=symbol).data())
+    book = dump_sdk_model(api.order_book(symbol=symbol, limit=100).data())
+    schedule = dump_sdk_model(api.trading_schedule().data())
+    adl = unwrap_sdk_oneof(api.adl_risk(symbol=symbol).data())
+    insurance = unwrap_sdk_oneof(api.query_insurance_fund_balance_snapshot(symbol=symbol).data())
+    constituents = dump_sdk_model(api.query_index_price_constituents(symbol=symbol).data())
 
     now_ms = int(mark["time"])
     constituent_rows = constituents.get("constituents") or []
