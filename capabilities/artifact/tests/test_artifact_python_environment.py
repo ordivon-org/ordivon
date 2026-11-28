@@ -57,9 +57,13 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
         lock = M.load_lock()
         root = ROOT / "artifact-delivery/python-uv"
         raw = (root / "uv.lock").read_bytes()
-        observed = {row["name"]: row["version"] for row in tomllib.loads(raw.decode())["package"]}
-        for name, version in lock["pythonPackages"].items():
-            self.assertEqual(observed[name.lower().replace("_", "-")], version)
+        rows = tomllib.loads(raw.decode())["package"]
+        registry_rows = [row for row in rows if "registry" in row["source"]]
+        observed = {row["name"]: row["version"] for row in registry_rows}
+        expected = {name.lower().replace("_", "-"): version for name, version in lock["pythonPackages"].items()}
+        self.assertEqual(len(observed), len(registry_rows), "ambiguous registry package names")
+        self.assertEqual(len(expected), len(lock["pythonPackages"]), "ambiguous manifest package names")
+        self.assertEqual(expected, observed)
         self.assertEqual(lock["uvProject"]["uvLockSha256"], "sha256:" + hashlib.sha256(raw).hexdigest())
         self.assertEqual(lock["uvProject"]["pyprojectSha256"], "sha256:" + hashlib.sha256((root / "pyproject.toml").read_bytes()).hexdigest())
         runtime = tomllib.loads((root / "pyproject.toml").read_text())["project"]
