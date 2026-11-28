@@ -1,5 +1,4 @@
 //! Original Git tracked + untracked process streaming into page collector.
-use super::change_page::ChangePageCollector;
 use super::change_parse::{read_nul_field, tracked_change_entry, utf8_change_path};
 use super::BufReader;
 use super::{
@@ -10,7 +9,7 @@ use std::path::Path;
 use std::process::Stdio;
 pub(super) fn scan_tracked_changes(
     workspace: &Path,
-    collector: &mut ChangePageCollector,
+    mut observe: impl FnMut(WorkspaceChangeEntry) -> Result<(), UniversalExecError>,
 ) -> Result<(), UniversalExecError> {
     let mut command = workspace_git_command();
     command
@@ -60,7 +59,7 @@ pub(super) fn scan_tracked_changes(
             finish_stream_child(child, stderr, "git diff --name-status", false)?;
             return Ok(());
         };
-        if let Err(error) = collector.observe(candidate) {
+        if let Err(error) = observe(candidate) {
             let _ = finish_stream_child(child, stderr, "git diff --name-status", true);
             return Err(error);
         }
@@ -69,7 +68,7 @@ pub(super) fn scan_tracked_changes(
 
 pub(super) fn scan_untracked_changes(
     workspace: &Path,
-    collector: &mut ChangePageCollector,
+    mut observe: impl FnMut(WorkspaceChangeEntry) -> Result<(), UniversalExecError>,
 ) -> Result<(), UniversalExecError> {
     let mut command = workspace_git_command();
     command
@@ -115,7 +114,7 @@ pub(super) fn scan_untracked_changes(
             kind: WorkspaceChangeKind::Untracked,
             path: utf8_change_path(raw, "untracked Git path")?,
         };
-        if let Err(error) = collector.observe(entry) {
+        if let Err(error) = observe(entry) {
             let _ = finish_stream_child(child, stderr, "git ls-files", true);
             return Err(error);
         }
