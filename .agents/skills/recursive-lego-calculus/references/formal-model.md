@@ -197,25 +197,25 @@ acceptance, not its apparent size.
 
 ## LEGO contract — adopted component semantics
 
-Treat R2.1 as an application profile of established module/interface and
-contract theories, not a new universal calculus. Preserve the six practical
-roles (identity, responsibility, inputs, outputs, behavioral contract,
-acceptance); these are engineering descriptors, not six mathematical axioms.
+Established mathematical theories offer alternative, problem-specific models
+for composition and replacement. The following examples illustrate when a
+particular structure or distinction is useful, not a declaration template,
+field inventory or universal definition.
 
 ### Semantic mapping
 
-| Existing R2.1 coordinate | Adopted interpretation | Required distinction |
+| Example mathematical or engineering question | Possible representation | Distinction to justify |
 | --- | --- | --- |
-| identity / responsibility | scoped component identity and requirement allocation | identity is not semantic equivalence |
-| I, O | typed signatures / ports with declared direction and visibility | shape compatibility is not behavioral substitutability |
-| S, pre, post, inv | transition systems and Hoare-style obligations | invariant satisfiability is not invariant preservation |
-| behavioral contract | assume–guarantee contract with explicit behavior universe | a specification is distinct from its implementations |
-| compose / unfold | theory-specific composition and hiding / architectural decomposition | hiding is not generally invertible |
-| replacement | contract refinement or contextual/observational relation | declare the relation and its direction |
-| rho, alpha, gamma, beta | abstraction and property-preserving realization relations | arbitrary encoding is not automatically a Galois connection |
-| eff | observable effects and environment/authority assumptions | a proof never grants execution permission |
-| c, epsilon | measured cost / explicitly defined approximation bounds | neither is a universal truth or compatibility metric |
-| prov, acceptance | source-bound evidence and requirement-specific acceptance | metadata and test outcomes are not component semantics |
+| Component identification | scoped component identity and requirement allocation | identity is not semantic equivalence |
+| Interface compatibility | typed signatures / ports with declared direction and visibility | shape compatibility is not behavioral substitutability |
+| Stateful behavior | transition systems and Hoare-style obligations | invariant satisfiability is not invariant preservation |
+| Behavioral specification | assume–guarantee contract with explicit behavior universe | a specification is distinct from its implementations |
+| Composition and decomposition | theory-specific composition and hiding / architectural decomposition | hiding is not generally invertible |
+| Replacement | contract refinement or contextual/observational relation | declare the relation and its direction |
+| Abstraction | abstraction and property-preserving realization relations | arbitrary encoding is not automatically a Galois connection |
+| External effects | observable effects and environment/authority assumptions | a proof never grants execution permission |
+| Cost or approximation | measured cost / explicitly defined approximation bounds | neither is a universal truth or compatibility metric |
+| Evidence and acceptance | source-bound evidence and requirement-specific acceptance | metadata and test outcomes are not component semantics |
 
 ### Select the mathematical structure from the property
 
@@ -437,8 +437,8 @@ implementation-refinement theorem.
 
 ### Historical evidence provenance: content-addressed DAG versus transport (R15)
 
-Reuse the canonical R2.1 `prov` coordinate; do **not** create a new LEGO
-tuple, historical-source registry or evidence signing layer. For an archived
+Use the existing native source-evidence mechanisms; do **not** introduce
+a new historical-source registry or evidence signing layer. For an archived
 original repository, the natural native Git consumer must establish
 
 \[
