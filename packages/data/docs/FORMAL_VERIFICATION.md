@@ -1,8 +1,7 @@
 # Data Formal Verification — property-first, consumer-bound
 
 This is a **scoped method and evidence map**, not a new verification calculus,
-registry, security policy, or claim of universal correctness. The canonical
-Recursive LEGO R2.1 contracts and shared formal toolchain already exist at
+registry, security policy, or claim of universal correctness. The OL foundational methods and shared formal toolchain already exist at
 `.agents/skills/recursive-lego-calculus/SKILL.md` and `tools/formal/`.
 
 ## Current proof chain
@@ -221,7 +220,7 @@ tests and require domain/Persistence/consumer GC evidence before auto-delete.
   differing bound/observed digests; absent, invalid, remote or unobservable
   evidence is `UNKNOWN`. The model starts only *after* URI/scope/format gates.
 - **Composition:** a Data producer's guarantee must imply the consumer's
-  assumption under the current contract; reuse the existing R2.1
+  assumption under the current contract; reuse the existing
   `IOContract` and sequential refinement lemmas. Passing a file hash
   does not discharge domain semantics or a reader's compatibility guarantee.
 - **Explicit integrity gate:** `scripts/inspect_federation.py` now separates

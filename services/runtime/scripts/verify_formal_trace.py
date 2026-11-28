@@ -1393,7 +1393,7 @@ def qualify_native_witnesses(trace: dict[str, Any], profile: str = "legacy") -> 
         "locked": True,
         "offline": True,
     }
-    # Reuse original R2.1 evidence qualification: an unchanged executable
+    # An unchanged executable
     # alone cannot establish unchanged compilation assumptions.
     context = {
         "sourceHead": source_head,

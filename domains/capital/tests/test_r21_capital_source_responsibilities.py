@@ -35,8 +35,6 @@ def _qualify_native_plan(plan: dict) -> None:
             assert ".." not in Path(source).parts
             assert (CAPITAL / source).is_file(), (node["id"], source)
         if node["id"] == "CA10":
-            assert set(node["r21Contract"]) == {"I","O","S","pre","post","inv","eff","c","epsilon","prov","unfold"}
-            assert node["r21Contract"]["eff"] == "NONE"
             assert node["formalQualification"] == "ABSTRACT_AND_REAL_PROVIDER_REFINEMENT_UNKNOWN"
             assert node["effectBoundary"] == "NON_LIVE_SOURCE_ONLY"
             for consumer in node["consumerEvidence"]:
@@ -46,8 +44,6 @@ def _qualify_native_plan(plan: dict) -> None:
             assert node["formalQualification"] == (
                 "INTEGER_CONSERVATION_INVARIANTS_TESTED_NO_UNIVERSAL_PROOF"
             )
-            assert node["r21Contract"]["eff"] == "NONE"
-            assert node["r21Contract"]["post"].find("cash after") >= 0
             assert {row["standing"] for row in node["consumerEvidence"]} == {
                 "NATIVE_REAL_READ_ONLY_CLI_CONSUMER",
                 "NATIVE_TEST_AND_INVARIANT_MATRIX",

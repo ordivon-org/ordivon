@@ -160,7 +160,7 @@ class FormalTraceContractTests(unittest.TestCase):
         self.assertTrue(any("formal source drift" in error for error in errors), errors)
 
     def test_terminal_evidence_math_kernel_has_one_native_owner_witness(self):
-        """R2.1 consumer seam: terminal standing requires committed physical evidence."""
+        """Terminal standing requires committed physical evidence."""
         trace, invariants = manifests()
         bindings = {item["id"] for item in trace["formalSpecification"]["modelBindings"]}
         self.assertIn("RuntimeDispatch.TerminalEvidenceIsCommitted", bindings)
@@ -273,7 +273,7 @@ class FormalTraceContractTests(unittest.TestCase):
                 )
 
     def test_new_model_invariant_cannot_be_claimed_without_a_tlc_check(self):
-        # An independently added R2.1 invariant must be checked, not merely
+        # An independently added invariant must be checked, not merely
         # named in a proof manifest. No extra schema or proof engine is needed.
         config = (ROOT / "formal/RuntimeDispatchR1.cfg").read_text(encoding="utf-8")
         missing = self.module.check_tlc_config_obligations(config, {"NewlyClaimedFormalInvariant"})

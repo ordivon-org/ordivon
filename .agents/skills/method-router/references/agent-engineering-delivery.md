@@ -19,7 +19,7 @@ Upstream snapshots reviewed 2026-11-09: Matt `4ae2317ddb22b046e264`; ECC `d2ef26
 ## Contract and execution separation
 
 1. Select consumer, current source and natural Owner; ask whether the whole responsibility can be deleted or served by a mature existing provider.
-2. For a **formally admitted independently replaceable LEGO**, disclose the full typed `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)` from the existing `recursive-lego-calculus` Skill. Otherwise use only the needed typed Owner interface; do not create eleven records for every file.
+2. Use the smallest native interface and mathematical structure adequate for the actual consumer and property. No universal declaration or field checklist.
 3. Identify `pre`, `post`, `inv`, effects and errors at the real public seam. In tests, a locally successful model/Job is a distinct observation from downstream `ConsumerAcceptance`.
 4. Use a real bad/real good case, test before changing production behavior, implement one vertical slice, run affected Owner verification, inspect independent receipt and review the fixed-base diff.
 5. Preserve UNKNOWN and historical witnesses. A green check does not establish semantic truth beyond its explicit assumptions.

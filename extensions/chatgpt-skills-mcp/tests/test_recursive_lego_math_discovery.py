@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 from ordivon_skills.catalog import SkillCatalog
@@ -23,7 +24,7 @@ def test_recursive_lego_math_method_is_found_only_in_qualified_project_scope() -
     assert expected not in unscoped
 
 
-def test_strict_declared_r21_is_retrieved_by_real_skill_consumer() -> None:
+def test_ol_foundations_are_retrieved_by_real_skill_consumer() -> None:
     repo = Path(__file__).resolve().parents[3]
     catalog = SkillCatalog.scan([
         SkillSource(
@@ -33,24 +34,32 @@ def test_strict_declared_r21_is_retrieved_by_real_skill_consumer() -> None:
     ])
     context = SkillContext(workspace_path=repo)
     resolution = catalog.resolve("recursive-lego-calculus", context=context)
-    source = catalog.read_text(
-        resolution.resolved.skill_id,
-        context=context,
-        expected_snapshot_revision=resolution.snapshot_revision,
-        projection="raw",
-    ).content
-    assert "formally DECLARED or ADMITTED" in source
-    assert "ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)" in source
-    assert "DECLARATION_COMPLETE" in catalog.read_text(
-        resolution.resolved.skill_id,
-        relative_path="references/formal-model.md",
-        context=context,
-        expected_snapshot_revision=resolution.snapshot_revision,
-        projection="raw",
-    ).content
-    assert "same full effective R2.1 contract" in source
-    assert "current principal, grant, scope" in source
-    assert "READ_MORE/UNFOLD or refusal" in source
+    record = resolution.resolved
+    assert record.skill_id == "project-ordivon-next/recursive-lego-calculus"
+    skill_root = repo / ".agents" / "skills" / "recursive-lego-calculus"
+    # Qualify the actual discovery/read contract, not mutable wording or a
+    # mandatory mathematical representation in advisory documentation.
+    for path in ("SKILL.md", "references/formal-model.md"):
+        expected = (skill_root / path).read_bytes()
+        digest = "sha256:" + hashlib.sha256(expected).hexdigest()
+        result = catalog.read_text(
+            record.skill_id,
+            relative_path=path,
+            context=context,
+            expected_snapshot_revision=resolution.snapshot_revision,
+            expected_instruction_digest=record.instruction_digest,
+            expected_package_revision=record.package_revision,
+            projection="raw",
+        )
+        assert result.skill_id == record.skill_id
+        assert result.path == path
+        assert result.projection == "RAW"
+        assert result.content.encode("utf-8") == expected
+        assert result.raw_digest == result.digest == digest
+        assert result.raw_size == result.size == len(expected)
+        assert result.next_offset is None
+        assert result.instruction_digest == record.instruction_digest
+        assert result.package_revision == record.package_revision
 
 
 def test_topic_retirement_contract_reaches_qualified_skill_consumer() -> None:

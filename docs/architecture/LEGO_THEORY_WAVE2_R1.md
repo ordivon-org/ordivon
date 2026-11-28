@@ -121,7 +121,7 @@ Observed first-wave results:
 - **FMEA / FTA — PROSPECTIVELY_VALIDATED_RELIABILITY_LENS.** Continuation UNKNOWN is safely non-repeatable but lacks an explicit turn-level convergence owner.
 - **Information Flow — PROSPECTIVELY_VALIDATED_INFORMATION_BOUNDARY_LENS.** the historical Agent Service R14 "secret-free locator" wording was corrected: opaque credential locators may themselves be sensitive even though resolved credential/header material remains external.
 
-No finding enters LEGO Core from one case, and Wave 2 introduced no common schema field.
+A finding from one case does not establish a general mathematical result. Wave 2 introduced no common schema field; its methods remain optional, selected by the actual problem.
 
 
 ## Relationship to Agent Security LEGO cross-domain validation

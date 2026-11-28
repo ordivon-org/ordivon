@@ -32,11 +32,9 @@ The actual owner graph is Host(Work/Social/Attention), Runtime(Job/Attempt), Git
 
 ## 3. R2.1 contract obligations (three independently contractable responsibilities)
 
-A formal `DECLARED` LEGO must include all eleven coordinates; typed UNKNOWN blocks only the dependent proof.
+Use the native mathematical structures needed for these specific Host properties; UNKNOWN blocks only dependent claims.
 
 ### H01 — WorkContinuityCAS (existing implementation; preserve)
-
-`ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`
 
 - `I`: typed `(workRef, expectedRevision: int64, snapshot: WorkSnapshotInput, actorRef, clientRequestId, continuityDisposition)`.
 - `O`: committed/existing typed Work response or typed conflict.
@@ -136,7 +134,7 @@ The upstream Skill is a **method**: installed Skill provenance, actual source, a
 
 ## 9. Mathematical foundations and proof boundary (2026-11-09 refinement)
 
-This section **refines H01–H03**, not a new LEGO calculus or Agent controller. The existing R2.1 `ell` eleven-coordinate tuple is the semantic carrier; each theorem or test has an exact owner, hypothesis and witness. The notation describes *obligations to discharge*, not already proved implementation facts.
+This section **refines H01–H03**, not a new LEGO calculus or Agent controller. The actual Host transition and observation relations are the semantic carriers; each theorem or test has an exact owner, hypothesis and witness. The notation describes *obligations to discharge*, not already proved implementation facts.
 
 ### 9.1 Safety and conditional liveness (Lamport)
 

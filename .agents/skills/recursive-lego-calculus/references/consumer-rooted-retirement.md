@@ -39,36 +39,9 @@ RETIRE_PR_ONLY, RETIRE_REMOTE_REF_AFTER_CAS or
 RETIRE_SOURCE_AFTER_OWNER_VERIFY. Closing PR != removing deployed code;
 closing detached Workspace != deleting its reachable Git commit.
 
-## Existing method LEGO instance — full R2.1, not a new Skill/provider
+## Local retirement contract
 
-ell = (I, O, S, pre, post, inv, eff, c, epsilon, prov, unfold)
-
-- I: (RepoId, MainSha, CandidateSha, ChangeSet, RootSet, ObligationSet).
-- O: RetirementDecision x Evidence x NegativeWitness x UnknownSet.
-- S: immutable Git snapshot x observed installed/runtime snapshot x
-  proof identity, no new persistent state store.
-- pre: exact reachable Git objects, observed entry roots, scoped SourceCut,
-  dynamic consumers enumerated or UNKNOWN, current effect authority checked.
-- post: only the named effect authorized; equal Git blobs never by themselves
-  authorize deletion of executable/installed consumers.
-- inv: UNKNOWN != FALSE; test-only/history-only cycles do not prove terminal
-  production value; model proof != code refinement != installed acceptance;
-  archived pull ref != live mutable branch.
-- eff: read-only assessment; optional explicitly authorized GitHub PR close,
-  CAS remote ref delete, protected-queue source merge, native Runtime
-  workspace.close(force=false), each independently.
-- c: Git diff plus observed readset traversal O(changed_paths + |V| + |E|);
-  external dynamic root discovery cost UNKNOWN.
-- epsilon: scoped immutable Git path mode/blob equality exact; external
-  consumer coverage and implementation behavioral error UNKNOWN.
-- prov: exact main/candidate/branch SHA, Owner/native terminal Job ID,
-  verified installed root, checker inputs/result and GitHub readback.
-- unfold: full PR diff -> real loader/config/owner consumer -> downstream
-  effects -> replacement and counterexample -> native Owner verification ->
-  exact CAS operation -> terminal readback.
-
-Any unobserved coordinate must be typed UNKNOWN(reason, scope, obligation),
-not an invented zero. A declaration is not a theorem or current deployment.
+Use exact reachable Git source, real consumer roots and current authority for the specific effect. Read-only analysis does not authorize deletion. Distinguish immutable source identity, current installed behavior and consumer coverage; missing coverage remains UNKNOWN. Preserve unique evidence and independently verify the resulting native effect.
 
 ## Independent counterexamples before retirement
 

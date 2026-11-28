@@ -1,6 +1,6 @@
 ---
 name: method-router
-description: "Route substantial Agent engineering, source-bound Spec-to-implementation, and complex system analysis to the smallest useful canonical method: R2.1 LEGO contracts, system boundaries, causal reasoning and native verification. Not a mandatory workflow or execution authority."
+description: "Route substantial Agent engineering, source-bound Spec-to-implementation, and complex system analysis to the smallest useful canonical method: OL task-specific mathematical contracts, system boundaries, causal reasoning and native verification. Not a mandatory workflow or execution authority."
 compatibility: Cross-platform. Routes among existing project Agent Skills; it does not execute tools, grant authority, or prove a method's conclusions.
 metadata:
   source-authority: Agent Skills progressive disclosure plus Ordivon standards-backed method Skills

@@ -4,7 +4,7 @@ description: "Use when an Ordivon agent enters, resumes, or accepts work from a 
 compatibility: "Ordivon Host Work/Space re-entry and existing Agent Skills clients; advisory-only context preparation, not an automatic Space event hook."
 metadata:
   ordivon-category: general
-  source-authority: "Host Social Work Fabric R2, Agent Skills progressive disclosure, Recursive LEGO R2.1"
+  source-authority: "Host Social Work Fabric R2, Agent Skills progressive disclosure, Ordivon LEGO (OL)"
 ---
 
 # Task Space Re-entry — bounded handoff

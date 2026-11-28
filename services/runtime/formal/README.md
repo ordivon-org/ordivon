@@ -57,7 +57,7 @@ Static review note (2026-09-19): `dispatchCount` intentionally permits `0..2` in
   admitted/running/ambiguous; an explicitly reconciled **lost** predecessor may
   coexist with an independently admitted retry.
 
-## R2.1 compositional state obligation
+## Compositional state obligation
 
 Use the existing TLA+ relational/transition-system math kernel. For the
 finite set of Attempts, define Live(a) when an Attempt is admitted, running or
@@ -168,7 +168,7 @@ unbounded induction proof, a retry quota, external effect exactly-once proof,
 or machine-checked Rust refinement. The historical two-Attempt acceptance
 above is preserved as a dated receipt rather than overwritten.
 
-## LEGO R2.1: evidence is typed by execution boundary
+## Evidence is typed by execution boundary
 
 Reuse the current upstream TLA+/TLC transition-system checker for the **finite
 model**; use Rust Registry CAS and orphan-state tests as **always-on owner
@@ -207,7 +207,7 @@ SQL/CAS correctness for the production database, or a mechanized forward
 simulation from Rust into this abstraction. Other lifecycle transitions
 remain outside this local mapping and MUST NOT be reported as covered.
 
-## R2.1 consumer-slice: terminal evidence provenance (TLA+ + Rust)
+## Terminal evidence provenance (TLA+ + Rust)
 
 The mature transition-system kernel supplies states, steps, invariants, weak
 fairness and finite-state counterexamples; no new Ordivon algebra or verifier
@@ -243,7 +243,7 @@ refinement. Actual provider completion and semantic Work acceptance are
 outside this model. Consumers of terminal standing must still enforce their
 domain acceptance predicate.
 
-## LEGO R2.1: selected-live and held-orphan identity semantics
+## Selected-live and held-orphan identity semantics
 
 The bounded Runtime dispatch model now distinguishes selected live Attempt
 (admitted/running/ambiguous with currentAttempt identity) from a physically

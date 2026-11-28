@@ -121,27 +121,15 @@ JSON safe integer maximum, while Work.snapshot.commit requires a strictly lower
 expectedRevision so an increment can be represented; both the native MCP
 input and the WorkStore boundary enforce these domains.
 
-### R2.1 declaration: Host Work snapshot compare-and-swap
+### Host Work snapshot compare-and-swap semantics
 
-This is **one independent formally DECLARED implementation-backed capability
-LEGO**, not a declaration of all Host functions or an admission registry. The
-effective contract is the existing `WorkStore.commit_snapshot` public behavior:
+The existing `WorkStore.commit_snapshot` operation is a PostgreSQL transaction over works, snapshots, actor references and command receipts. Its public input includes a WorkRef, exact expected revision in [1, 2^53-2], snapshot, actor, work state and client request identity. A new commit requires a valid payload/actor, an open Work and equality of current and expected revisions.
 
-| Typed R2.1 coordinate | Host Work snapshot CAS interpretation |
-| --- | --- |
-| I | WorkRef, exact expectedRevision: int in [1, 2^53-2], WorkSnapshotInput, ActorRef, WorkState, ClientRequestId |
-| O | Work readback with committed/existing admission, or a typed conflict/error; no claim of semantic Work completion |
-| S | Actual Host PostgreSQL works, work_snapshots, actor_refs and command receipt rows in one transaction |
-| pre | Exact bounded integer, valid typed payload/actor; a new commit requires current revision = expected and current state = open |
-| post | On new commit revision increments by exactly one and current snapshot digest matches the canonical payload; exact replay or matching next revision yields existing, incompatible request conflicts |
-| inv | At most one *different* snapshot can win the same expected revision; current Work pointer and immutable snapshot row agree; terminal Work cannot be reopened through a new commit |
-| eff | Atomic PostgreSQL row-lock/CAS, snapshot insert and durable idempotency receipt; no Runtime Job or external domain effect |
-| c | UNKNOWN(reason=unmeasured transaction latency under realistic contention, scope=Host PG18 Work CAS, obligation=record consumer-relevant cost if optimizing) |
-| epsilon | UNKNOWN(reason=no general quantified external availability/failure bound, scope=database/deployment effects, obligation=qualify installed PG consumer); pure revision arithmetic is exact |
-| prov | Actual code in `src/ordivon_host_v2/work_store.py` and `work_queries.py`; locked CrossHair 0.0.112 source contract, real PostgreSQL 18 Alembic/pytest via `mise run test:postgres:disposable`, exact SourceCut is the tested Git revision |
-| unfold | `WorkStore.commit_snapshot` -> claim_command_receipt -> next_work_revision / canonical_digest -> PostgreSQL conditional UPDATE / INSERT -> read_work_in_tx -> record_command_receipt |
+A successful new commit increments revision exactly once and binds the current snapshot digest to the canonical payload. Exact replay or matching next revision returns the existing admission; incompatible requests conflict. At most one different snapshot may win the same expected revision. Current pointers and immutable snapshot rows must agree, and terminal Work cannot be reopened by a new commit. Row locking/CAS, snapshot insertion and durable receipt are atomic; no Runtime Job or external domain completion is implied.
 
-Evidence standing is **DECLARATION_COMPLETE** for this scoped contract; the
+The native implementation is `src/ordivon_host_v2/work_store.py` and `work_queries.py`. Evidence includes locked CrossHair 0.0.112 revision checks and PostgreSQL 18 Alembic/pytest via `mise run test:postgres:disposable`, scoped to the tested Git revision. Realistic contention latency and general availability bounds remain unknown.
+
+This is a scoped mathematical contract; the
 native CrossHair confirms the called revision arithmetic only, while the
 disposable PostgreSQL 18 test suite covers **specific actual transaction and
 consumer scenarios**. Neither provides a universal deductive proof of

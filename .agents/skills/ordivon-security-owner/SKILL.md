@@ -24,7 +24,7 @@ From `platform/security/`, run `mise run verify` for the full owner task or `MIS
 
 ## Refactor and delete
 
-Trace source -> contract -> tests/CI -> real consumer -> deployment. Never treat code that references itself as a real consumer, but check direct and configured external users before removing a public name. Preserve exact R2.1 pre/post/inv/effect assumptions when replacing an implementation; use the existing `recursive-lego-calculus` Skill for formal contract/refinement work, not a duplicate theory. Report retired source paths and unproven deployment explicitly.
+Trace source -> contract -> tests/CI -> real consumer -> deployment. Never treat code that references itself as a real consumer, but check direct and configured external users before removing a public name. Preserve the actual consumer contract, authority boundary and relevant behavioral properties when replacing an implementation; use the existing `recursive-lego-calculus` Skill for formal contract/refinement work, not a duplicate theory. Report retired source paths and unproven deployment explicitly.
 
 ## Human and Agent usage
 

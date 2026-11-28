@@ -75,11 +75,11 @@ P2：继续按实际 SDK schema、Git/安装服务和用户消费来退役空壳
 - Capability：只协调对外功能和必要的只读观察，绝不接管自然 Owner 的物理事实。
 - Logic：无 I/O 的契约验证、映射、状态精化。错误类型也保持独立于 MCP。
 
-### R2.1 LEGO 与正式实践
+### 实际观察、解码与发布检查的语义
 
-- 观察 LEGO：`I=(Owner, status tool, observation budget)`，`O=(response?,error?)`，`pre=explicit metadata read`，`post=only same request owner observations`，`inv=timeout!⇒not_executed`（记号含义：超时**不能推导**未执行），`eff=bounded status RPC`，`prov=source consumer tests`。
-- 错误解码 LEGO：`I=(authenticated transport owner, actual MCP tool, output envelope)`；`O=(qualified error | None)`；`inv=qualified⇒versioned owner-matching envelope`；未知的错误继续 UNKNOWN，不从错误消息推断外部效果。
-- 发布检查 LEGO：`I=Runtime describe targets`；`post=only entire valid inventory may reach release.apply`；`inv=malformed sibling cannot be hidden`；Runtime 和 Security 保留最终决定权。
+- 观察：在明确的读取授权和预算内调用指定 Owner 状态接口，仅返回与原请求及 Owner 一致的观察或错误。超时不能推出操作未执行。
+- 错误解码：依据已认证的传输 Owner、实际 MCP Tool 和响应内容判定是否为有资格的错误。只有版本与 Owner 一致的有效响应才可分类；未知错误保持 UNKNOWN，不据错误文字推断物理效果。
+- 发布检查：只有完整且有效的 Runtime 目标库存可以进入 release.apply，不能忽略同一库存中矛盾或畸形的条目。Runtime 与 Security 保留各自最终决定权。
 - 参考成熟实践：Ports & Adapters（AWS Prescriptive Guidance `https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html`），MCP 官方工具错误与结构化内容 `https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/server/tools.mdx`。有目的地解耦，不为无消费者逻辑额外建立运行时服务。
 
 ### 验收与剩余约束

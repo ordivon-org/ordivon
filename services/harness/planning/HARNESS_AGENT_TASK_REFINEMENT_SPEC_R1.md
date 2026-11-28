@@ -78,7 +78,7 @@ Progress matters too: a trace of more model turns is not progress. When there is
 | PG5 | Run candidate completion is not domain acceptance | successful Runtime Job or final model text becomes task accepted | independent domain/consumer evaluator (T5) |
 | PG6 | Exact SourceCut, model, code, wheel, installed and actual consumer witnesses remain distinct, with no vacuous verification | simulated/green model proof upgrades an untested binary or missing production DSN to DOMAIN_ACCEPTED | independent source-bound receipt and falsifying native consumer (T6) |
 
-PG1–PG6 are desired obligations, not currently all proven. Independent proof of `PgRunSourceAuthority` must not be inferred from docs, even if the complete eleven-coordinate declaration exists.
+PG1–PG6 are desired obligations, not currently all proven. Independent proof of `PgRunSourceAuthority` must not be inferred from docs, even if the local contract is documented.
 
 ## 3A. Adopted mathematical / computer-science foundations (theory -> native obligation)
 

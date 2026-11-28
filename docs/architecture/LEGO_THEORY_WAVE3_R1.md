@@ -12,7 +12,7 @@ Wave 3 extends LEGO from analysis of an existing system toward disciplined creat
 3. evolutionary search — how candidate populations can vary and be selected without collapsing fitness into truth;
 4. organizational cybernetics — how semi-autonomous units coordinate, adapt, and preserve identity under environmental complexity.
 
-No Wave 3 concept is a mandatory LEGO Core field.
+Wave 3 concepts are optional mathematical and engineering methods, not fields of a universal declaration. Select them only when their assumptions and results address the actual problem.
 
 ## W3-1 Exploration Policy
 
