@@ -9,7 +9,6 @@ semantics do not require a second program ledger.
 
 from __future__ import annotations
 
-import copy
 from dataclasses import dataclass
 
 from anc_canonical import JsonValue, canonical_digest, validate_json_value
@@ -131,7 +130,7 @@ def recover_tool_program_action(
 
     # Check admission identity before constructing an effect-free recovery image.
     action.require_admitted_snapshot()
-    action = HarnessToolProgramAction.from_dict(copy.deepcopy(action.to_dict()))
+    action = HarnessToolProgramAction.from_dict(action.to_dict())
     if len(observations) > len(action.program.steps):
         raise ValueError("ToolProgram durable observation prefix exceeds program length")
 
@@ -229,7 +228,7 @@ class HarnessToolProgramActionExecutor:
         # Verify admission identity, then snapshot for the entire effect batch.
         # Callbacks may mutate the caller's object without changing our copy.
         action.require_admitted_snapshot()
-        action = HarnessToolProgramAction.from_dict(copy.deepcopy(action.to_dict()))
+        action = HarnessToolProgramAction.from_dict(action.to_dict())
         if action.physical_tool_calls > remaining_tool_calls:
             raise ValueError("ToolProgram exceeds remaining Tool Call budget")
         denied = sorted({step.tool_name for step in action.program.steps} - self.admitted_tools)
