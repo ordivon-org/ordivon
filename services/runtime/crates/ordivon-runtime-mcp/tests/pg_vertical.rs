@@ -3325,6 +3325,7 @@ fn failed_retained_pg_transient_auto_converges_to_lost_and_releases_capacity() {
     }
 
     let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
     let repo = fixture.repo();
     let endpoint = fixture.endpoint();
     let opened = call(
@@ -3484,6 +3485,99 @@ fn failed_retained_pg_transient_auto_converges_to_lost_and_releases_capacity() {
         .unwrap()
         .get(0);
     assert_eq!(count, 1, "native recovery must not relaunch the attempt");
+    // #1191: the terminal OS-only receipt is immutable; raw stream files
+    // have no qualified Artifact identity. A separate fixture-owned writer
+    // after the real LOST transition cannot change that distinction.
+    let terminal = &final_observation["structuredContent"];
+    let attempt = terminal["attemptId"].as_str().unwrap();
+    let inventory = terminal["artifacts"].as_array().unwrap();
+    assert_eq!(inventory.len(), 1, "{terminal}");
+    assert_eq!(inventory[0]["kind"], "native_stop_evidence");
+    let evidence_id = inventory[0]["artifactId"].as_str().unwrap();
+    let read_evidence = || {
+        let result = call(
+            &endpoint,
+            "artifact.read",
+            json!({"jobId":job_id,"artifactId":evidence_id,"offset":0,"maxBytes":4096}),
+        );
+        assert_ne!(result["isError"], true, "{result}");
+        let value = result["structuredContent"].clone();
+        assert_eq!(value["eof"], true);
+        assert_eq!(value["digest"], inventory[0]["digest"]);
+        value
+    };
+    let original_evidence = read_evidence();
+    let raw_stdout = PathBuf::from(&bundle).join("stdout.log");
+    let raw_stderr = PathBuf::from(&bundle).join("stderr.log");
+    // Actual child process, not the original Runner (which is already
+    // quiescent). All paths are confined to this disposable native fixture.
+    assert!(PathBuf::from(&bundle).starts_with(&fixture.root));
+    let writer = Command::new("/usr/bin/sh")
+        .args([
+            "-c",
+            "printf late-stdout >> \"$1\"; printf late-stderr >> \"$2\"",
+            "fixture-writer",
+        ])
+        .arg(&raw_stdout)
+        .arg(&raw_stderr)
+        .status()
+        .unwrap();
+    assert!(writer.success());
+    assert!(fs::read(&raw_stdout).unwrap().ends_with(b"late-stdout"));
+    assert!(fs::read(&raw_stderr).unwrap().ends_with(b"late-stderr"));
+    let observed = call(
+        &endpoint,
+        "job.observe",
+        json!({"jobId":job_id,"waitMs":0,"stdoutTailBytes":500,"stderrTailBytes":500}),
+    );
+    assert_ne!(observed["isError"], true, "{observed}");
+    let after = &observed["structuredContent"];
+    assert_eq!(after["attemptId"], attempt);
+    assert_eq!(after["executionDisposition"], "lost");
+    assert_eq!(after["deliveryDisposition"], "unknown");
+    assert_eq!(after["resultAvailable"], false);
+    assert_eq!(after["artifacts"], terminal["artifacts"]);
+    assert!(!after["stdoutTail"]
+        .as_str()
+        .unwrap_or("")
+        .contains("late-stdout"));
+    assert!(!after["stderrTail"]
+        .as_str()
+        .unwrap_or("")
+        .contains("late-stderr"));
+    assert_eq!(read_evidence(), original_evidence);
+    let exact = call(
+        &endpoint,
+        "workspace.exec",
+        json!({"clientRequestId":"pg-failed-transient-exact-runner",
+               "execution":{"workspaceId":"ws-pg-failed-transient",
+                            "executable":"/usr/bin/sleep","args":["60"],
+                            "cwdRelative":".","timeoutMs":9000},
+               "waitMs":0}),
+    );
+    assert_ne!(exact["isError"], true, "{exact}");
+    assert_eq!(exact["structuredContent"]["jobId"], job_id);
+    assert_eq!(exact["structuredContent"]["attemptId"], attempt);
+    assert_eq!(exact["structuredContent"]["executionDisposition"], "lost");
+    let row = fixture
+        .db
+        .query_one(
+            "SELECT (SELECT count(*) FROM attempts WHERE job_id=$1),
+                (SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'),
+                (SELECT count(*) FROM artifacts WHERE job_id=$1)",
+            &[&job_id],
+        )
+        .unwrap();
+    assert_eq!(
+        (
+            row.get::<_, i64>(0),
+            row.get::<_, i64>(1),
+            row.get::<_, i64>(2)
+        ),
+        (1, 1, 1)
+    );
+    assert_eq!(read_evidence(), original_evidence);
+    println!("LOST_LATE_WRITER_RAW_MUTATED=2 IMMUTABLE_RECEIPT_UNCHANGED=1 DISPATCHES=1");
 
     // The systemd failed Unit must be retained until the PG terminal commit,
     // then unloaded by the EXISTING terminal-only cleanup, not by the
