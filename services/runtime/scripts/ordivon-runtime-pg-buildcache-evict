@@ -158,30 +158,46 @@ def assert_source_and_cache(root: Path, wid: str, head: str) -> Path:
 
 
 def external_processes_using(path: Path, proc_root: Path = Path("/proc")) -> list[str]:
-    # Advisory OS-consumer guard *in addition* to the PG Job admission fence.
-    # A compiler can hold an open artifact FD while cwd is outside its cache.
-    # Permission-denied observation is UNKNOWN, never evidence of no consumer.
+    # Advisory path observation in the visible Linux namespace, not a semantic
+    # release proof. Reuse the mapped-root observation in the PG reclaimer.
     target = str(path) + os.sep
     matches = set()
+
+    def remember(pid: str, location: str) -> None:
+        location = location.removesuffix(" (deleted)")
+        if location == str(path) or location.startswith(target):
+            matches.add(pid)
+
     for proc in proc_root.glob("[0-9]*"):
-        links = [proc / "cwd"]
+        links = [proc / "cwd", proc / "exe"]
         try:
             links.extend((proc / "fd").iterdir())
         except (FileNotFoundError, ProcessLookupError):
-            continue  # Process exited during the bounded observation.
+            continue
         except PermissionError as error:
             raise RuntimeError("external process FD inventory is unreadable") from error
         for link in links:
             try:
-                loc = os.readlink(link)
-                if loc == str(path) or loc.startswith(target):
-                    matches.add(proc.name)
+                remember(proc.name, os.readlink(link))
             except (FileNotFoundError, ProcessLookupError):
                 continue
             except PermissionError as error:
                 raise RuntimeError("external process path is unreadable") from error
-            except OSError:
-                continue  # A non-path FD or an exited process.
+        # A retained file-backed mapping can outlive the original descriptor.
+        # Linux maps escapes newline path bytes; retain both interpretations.
+        try:
+            with (proc / "maps").open("rb") as mappings:
+                for line in mappings:
+                    fields = line.rstrip(b"\n").split(None, 5)
+                    if len(fields) != 6 or not fields[5].startswith(b"/"):
+                        continue
+                    location = os.fsdecode(fields[5])
+                    remember(proc.name, location)
+                    remember(proc.name, location.replace(r"\012", "\n"))
+        except (FileNotFoundError, ProcessLookupError):
+            continue
+        except PermissionError as error:
+            raise RuntimeError("external process mapping inventory is unreadable") from error
     return sorted(matches)
 
 
