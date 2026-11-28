@@ -106,6 +106,8 @@ def test_scoped_mise_recovers_path_miss_without_changing_path_observation(tmp_pa
     assert run.call_args.args[0] == ["/usr/bin/mise", "which", "pnpm"]
     assert run.call_args.kwargs["cwd"] == Path.cwd()
     assert run.call_args.kwargs["env"]["PATH"] == "service"
+    assert run.call_args.kwargs["env"]["MISE_OFFLINE"] == "1"
+    assert run.call_args.kwargs["env"]["MISE_AUTO_INSTALL"] == "false"
     assert result["miseScope"]["verificationBoundary"].startswith("mise_which_resolution_only")
 
 
@@ -142,6 +144,8 @@ def test_mise_inventory_distinguishes_off_path_installation() -> None:
     assert run.call_args.args[0] == [
         "/usr/bin/mise", "ls", "--installed", "--json",
     ]
+    assert run.call_args.kwargs["env"]["MISE_OFFLINE"] == "1"
+    assert run.call_args.kwargs["env"]["MISE_AUTO_INSTALL"] == "false"
 
 
 def test_mise_inventory_failure_is_unknown_not_absence() -> None:

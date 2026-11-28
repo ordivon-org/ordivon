@@ -30,7 +30,7 @@ def _mise_observation(name: str, mise: str | None, cwd: Path, path: str) -> dict
         result = subprocess.run(
             [mise, "which", name], cwd=cwd, capture_output=True,
             text=True, timeout=5, check=False, stdin=subprocess.DEVNULL,
-            env=os.environ | {"PATH": path},
+            env=os.environ | {"PATH": path, "MISE_OFFLINE": "1", "MISE_AUTO_INSTALL": "false"},
         )
     except (OSError, subprocess.TimeoutExpired, UnicodeError):
         return {"resolution": "resolver_error", "executablePath": None}
@@ -107,6 +107,7 @@ def observe_mise_installed(names: list[str]) -> dict:
             text=True,
             check=True,
             timeout=15,
+            env=os.environ | {"MISE_OFFLINE": "1", "MISE_AUTO_INSTALL": "false"},
         )
         records = json.loads(result.stdout)
         if not isinstance(records, dict):
