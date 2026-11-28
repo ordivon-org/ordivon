@@ -195,6 +195,27 @@ jobs:
             formal=true
           fi
           printf 'formal=%s\n' "$formal" >> "$GITHUB_OUTPUT"
+          # Gateway's TLC gate is owner-scoped. A missing delta is not proof
+          # of unchanged inputs; malformed delta must fail rather than skip.
+          gateway_formal=true
+          if [[ "$EVENT_NAME" != "workflow_dispatch" && "$EVENT_NAME" != "schedule" &&
+                -f "$RUNNER_TEMP/ordivon-convergence-plan.json" ]]; then
+            gateway_formal="$(python3 - "$RUNNER_TEMP/ordivon-convergence-plan.json" <<'PY'
+          import json
+          import sys
+
+          sys.path.insert(0, "tools/repo")
+          from affected_owners import requires_gateway_formal_verification
+
+          with open(sys.argv[1], encoding="utf-8") as handle:
+              paths = json.load(handle)["changedPaths"]
+          if not isinstance(paths, list) or any(not isinstance(p, str) for p in paths):
+              raise ValueError("changedPaths must be a list of strings")
+          print("true" if requires_gateway_formal_verification(paths) else "false")
+          PY
+            )"
+          fi
+          printf 'gateway_formal=%s\n' "$gateway_formal" >> "$GITHUB_OUTPUT"
           {
             echo "### Affected owners"
             if (("${#owners[@]}" == 0)); then
@@ -216,6 +237,55 @@ jobs:
               echo '~~~'
             } >> "$GITHUB_STEP_SUMMARY"
           fi
+
+      - name: Verify changed Gateway Formal source
+        if: steps.affected.outputs.gateway_formal == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Bind the existing owner entry, model files and public tool inputs
+          # to the tested checkout. The Runtime bootstrap verifies both hashes.
+          qualify_gateway_formal_source() {
+            [[ "$(git --no-replace-objects rev-parse HEAD)" == "$GITHUB_SHA" ]] || return 1
+            local rel
+            for rel in mise.toml services/gateway/formal/verify.sh \
+                services/runtime/formal/toolchain.lock.json \
+                services/runtime/scripts/tla-formal services/runtime/mise.toml; do
+              [[ -f "$rel" && ! -L "$rel" ]] || return 1
+              git --no-replace-objects show "HEAD:$rel" | cmp -s - "$rel" || return 1
+            done
+            git --no-replace-objects diff --quiet HEAD -- services/gateway/formal/ || return 1
+            [[ -z "$(git --no-replace-objects ls-files --others --exclude-standard -- services/gateway/formal/)" ]] || return 1
+            # Ignored TLC artifacts are not model authority. Refuse additional
+            # model/config inputs even when Git ignore would hide their presence.
+            [[ -z "$(git --no-replace-objects ls-files --others --ignored --exclude-standard -- \
+                'services/gateway/formal/*.tla' 'services/gateway/formal/*.cfg')" ]] || return 1
+            # Qualify the actual native task resolution rather than just its name.
+            mise tasks info --json gateway:formal:verify | python3 -c '
+          import json
+          from pathlib import Path
+          import sys
+
+          task = json.load(sys.stdin)
+          root = Path.cwd()
+          if (
+              task.get("source") != str(root / "mise.toml")
+              or task.get("dir") != str(root)
+              or task.get("run") != ["bash services/gateway/formal/verify.sh"]
+              or any(task.get(key) for key in (
+                  "depends", "depends_post", "daemons", "wait_for", "env",
+                  "skip_if", "outputs", "sources", "file", "tools",
+              ))
+              or task.get("cache", {}).get("enabled")
+          ):
+              raise ValueError("effective Gateway Formal task differs from qualified root entry")
+          ' || return 1
+          }
+          qualify_gateway_formal_source
+          unset ORDIVON_TLA_TOOLS_JAR
+          (cd services/runtime && scripts/tla-formal bootstrap)
+          mise run gateway:formal:verify
+          qualify_gateway_formal_source
 
       - name: Verify changed core Formal source
         if: steps.affected.outputs.formal == 'true'

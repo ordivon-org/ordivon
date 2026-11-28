@@ -64,8 +64,9 @@ or `host_*_tools.py` modules simply to follow an obsolete path in a handoff.
 
 ## Human
 Pin Git revision. Compare released tool surface with live system.describe and
-the installed service. Run mise run gateway:formal:verify for TLC and the Python
-bounded routing checker; run mise run gateway:verify for native consumers.
+the installed service. Run mise run gateway:formal:verify for the Gateway-owned
+TLC entry (formal/verify.sh); run mise run gateway:verify for native consumers
+and the Python bounded routing and owner-status checkers.
 Do not interpret a model-check result as deployed authorization proof.
 
 ## Agent

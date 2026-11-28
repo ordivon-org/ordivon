@@ -97,6 +97,35 @@ class AffectedOwnersTests(unittest.TestCase):
             self.queue_tasks("tools/formal/RecursiveLegoRefinement.lean"), []
         )
 
+
+    def test_gateway_formal_only_model_and_invocation_inputs(self) -> None:
+        select = MODULE.requires_gateway_formal_verification
+        for path in (
+            "services/gateway/formal/GatewayHostCutoverR1.tla",
+            "services/gateway/formal/GatewayCapabilityAuthzR1.unsafe-obligation.cfg",
+            "services/gateway/formal/verify.sh",
+            "services/runtime/formal/toolchain.lock.json",
+            "services/runtime/scripts/tla-formal",
+            "services/runtime/mise.toml",
+            "mise.toml",
+            ".github/workflows/ci.yml",
+            "tools/repo/convergence_plan.py",
+        ):
+            with self.subTest(path=path):
+                self.assertTrue(select([path]))
+        for path in (
+            "services/gateway/src/ordivon_gateway/service.py",
+            "services/gateway/formal/check_routing_conformance.py",
+            "services/gateway/formal/README.md",
+            "services/runtime/src/lib.rs",
+            "services/host/formal/Other.tla",
+        ):
+            with self.subTest(path=path):
+                self.assertFalse(select([path]))
+        self.assertFalse(select([]))
+        with self.assertRaises(ValueError):
+            select(["mise.toml", "../outside"])
+
     def test_harness_timeout_proof_input_selects_existing_formal_task(self) -> None:
         # The native Formal source readset consumes this exact Harness adapter.
         # A Harness-only change must invalidate the proof task as well.

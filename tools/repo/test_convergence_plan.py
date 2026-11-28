@@ -1808,6 +1808,36 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(runtime["verificationOwners"], ["composition", "runtime"])
         self.assertEqual(runtime["taskLocalTestConsumers"], ["composition"])
 
+    def test_gateway_formal_public_checker_does_not_expand_business_edges(self) -> None:
+        graph = MODULE.load_dependency_graph()
+        self.assertNotIn("runtime", graph["gateway"])
+        self.assertNotIn("gateway", graph["runtime"])
+        model = MODULE.build_plan(changed_files=["services/gateway/formal/verify.sh"])
+        self.assertIn("gateway", model["verificationOwners"])
+        self.assertNotIn("runtime", model["verificationOwners"])
+        lock = MODULE.build_plan(changed_files=["services/runtime/formal/toolchain.lock.json"])
+        self.assertIn("gateway", lock["taskLocalTestConsumers"])
+        self.assertIn("gateway", lock["verificationOwners"])
+        runtime = MODULE.build_plan(
+            changed_files=["services/runtime/crates/ordivon-runtime-core/src/lib.rs"]
+        )
+        self.assertNotIn("gateway", runtime["taskLocalTestConsumers"])
+        self.assertNotIn("gateway", runtime["verificationOwners"])
+
+    def test_gateway_formal_toolchain_seam_cannot_cover_other_sources(self) -> None:
+        original = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
+        known = 'source_glob = "services/gateway/formal/verify.sh"'
+        self.assertEqual(original.count(known), 2)
+        for mutation in (
+            'source_glob = "services/gateway/**"',
+            'source_glob = "services/gateway/src/ordivon_gateway/service.py"',
+        ):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
+                shadow = Path(directory) / "dependency_contracts.toml"
+                shadow.write_text(original.replace(known, mutation), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "unapproved upstream toolchain-only seam"):
+                    MODULE.load_dependency_graph(path=shadow)
+
     def test_formal_toolchain_exception_rejects_unapproved_consumer_paths(self) -> None:
         """The tool-only exemption is an exact named file, not owner authority."""
         policy = MODULE.DEPENDENCY_PATH.read_text(encoding="utf-8")
@@ -1928,23 +1958,29 @@ class OwnerSelectorFailClosedRegression(unittest.TestCase):
 
     @staticmethod
     def selection_shell():
-        import textwrap
+        # This direct unittest entry has no YAML dependency. Bind to the
+        # unique step and its own indentation boundary, not its successor's
+        # name. The YAML-enabled governance suite independently checks parity.
         path = Path(__file__).resolve().parents[2] / ".github/workflows/ci.yml"
         workflow = path.read_text(encoding="utf-8")
-        start = workflow.index("      - name: Select affected owners\n")
-        end = workflow.index("      - name: Verify changed core Formal source\n", start)
-        section = workflow[start:end]
+        marker = "      - name: Select affected owners\n"
+        assert workflow.count(marker) == 1
+        start = workflow.index(marker)
+        end = workflow.find("\n      - ", start + len(marker))
+        section = workflow[start:end if end >= 0 else len(workflow)]
+        assert section.count("        id: affected\n") == 1
         assert section.count("        run: |\n") == 1
-        return textwrap.dedent(section.split("        run: |\n", 1)[1])
+        body = textwrap.dedent(section.split("        run: |\n", 1)[1])
+        assert body.strip()
+        return body
 
     def run_selection(self, event, program):
-        import os
-        import subprocess
         with tempfile.TemporaryDirectory() as scratch:
             folder = Path(scratch)
             fake = folder / "python3"
             fake.write_text("#!/bin/sh\n" + program, encoding="utf-8")
             fake.chmod(0o755)
+            root = Path(__file__).resolve().parents[2]
             env = {
                 **os.environ,
                 "PATH": str(folder) + os.pathsep + os.environ["PATH"],
@@ -1954,39 +1990,70 @@ class OwnerSelectorFailClosedRegression(unittest.TestCase):
                 "RUNNER_TEMP": str(folder),
                 "GITHUB_OUTPUT": str(folder / "output"),
                 "GITHUB_STEP_SUMMARY": str(folder / "summary"),
+                "GITHUB_SHA": subprocess.check_output(
+                    ["git", "rev-parse", "HEAD"], cwd=root, text=True
+                ).strip(),
             }
-            return subprocess.run(
+            result = subprocess.run(
                 ["/usr/bin/bash", "-c", self.selection_shell()],
-                cwd=Path(__file__).resolve().parents[2],
+                cwd=root,
                 env=env,
                 capture_output=True,
                 text=True,
-                timeout=12,
+                timeout=20,
             )
+            output = folder / "output"
+            return result, output.read_text() if output.is_file() else ""
 
     def test_failing_owner_selector_never_becomes_empty_green_scope(self):
         stub = (
             'if [ "$1" = "tools/repo/convergence_plan.py" ]; then\n'
-            '  echo \'{"verificationOwners":["runtime"],"queueVerifyTasks":["runtime:verify"]}\'\n'
+            '  echo \'{"verificationOwners":["runtime"],"queueVerifyTasks":["runtime:verify"],"changedPaths":[]}\'\n'
             '  exit 0\n'
             'fi\n'
             'exit 29\n'
         )
         for event in ("workflow_dispatch", "pull_request"):
             with self.subTest(event=event):
-                outcome = self.run_selection(event, stub)
-                self.assertNotEqual(outcome.returncode, 0, outcome.stdout+outcome.stderr)
+                outcome, output = self.run_selection(event, stub)
+                self.assertEqual(outcome.returncode, 29, outcome.stdout + outcome.stderr)
+                self.assertNotIn("has_owner_tasks=", output)
 
     def test_selected_owner_without_executable_queue_task_is_rejected(self):
+        import shlex
+
         stub = (
             'if [ "$1" = "tools/repo/convergence_plan.py" ]; then\n'
-            '  echo \'{"verificationOwners":["runtime"],"queueVerifyTasks":[]}\'\n'
+            '  echo \'{"verificationOwners":["runtime"],"queueVerifyTasks":[],"changedPaths":[]}\'\n'
             '  exit 0\n'
             'fi\n'
-            'exec /usr/bin/python3 "$@"\n'
+            f'exec {shlex.quote(sys.executable)} "$@"\n'
         )
-        result = self.run_selection("pull_request", stub)
+        result, output = self.run_selection("pull_request", stub)
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("queue task selection must match canonical owner tasks", result.stderr)
+        self.assertNotIn("has_owner_tasks=", output)
+
+    def test_valid_owner_selection_reaches_native_output(self):
+        import shlex
+
+        plan = MODULE.build_plan(
+            changed_files=["services/runtime/crates/ordivon-runtime-core/src/runtime/pg_runtime/job.rs"]
+        )
+        self.assertIn("runtime", plan["verificationOwners"])
+        stub = (
+            'if [ "$1" = "tools/repo/convergence_plan.py" ]; then\n'
+            f"  printf '%s\\n' {shlex.quote(json.dumps(plan))}\n"
+            '  exit 0\n'
+            'fi\n'
+            f'exec {shlex.quote(sys.executable)} "$@"\n'
+        )
+        result, output = self.run_selection("pull_request", stub)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("owners=" + ",".join(plan["verificationOwners"]) + "\n", output)
+        self.assertIn("has_owner_tasks=true\n", output)
+        self.assertIn("gateway_formal=false\n", output)
+        self.assertIn("shards=", output)
 
 
 

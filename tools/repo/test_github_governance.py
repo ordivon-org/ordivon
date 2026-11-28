@@ -754,6 +754,134 @@ exit 0
         self.assertIn("mise run formal:verify", formal["run"])
         self.assertNotIn("GITHUB_TOKEN", steps["Verify affected owners"].get("env", {}))
 
+
+    def test_gateway_formal_source_gate_uses_actual_workflow_selection(self) -> None:
+        import os
+        import yaml
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = {step["name"]: step for step in required_ci_steps(workflow)}
+        select = steps["Select affected owners"]["run"]
+        start = select.index("gateway_formal=true")
+        end = select.index('>> "$GITHUB_OUTPUT"', select.index("printf 'gateway_formal=", start))
+        selection = select[start:end + len('>> "$GITHUB_OUTPUT"')]
+        step = steps["Verify changed Gateway Formal source"]
+        self.assertEqual(step["if"], "steps.affected.outputs.gateway_formal == 'true'")
+        self.assertEqual(step["run"].count("mise run gateway:formal:verify"), 1)
+        self.assertIn("scripts/tla-formal bootstrap", step["run"])
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            plan = folder / "ordivon-convergence-plan.json"
+            output = folder / "output"
+            cases = (
+                ("pull_request", ["services/gateway/formal/GatewayHostCutoverR1.cfg"], "true"),
+                ("merge_group", ["services/runtime/formal/toolchain.lock.json"], "true"),
+                ("push", ["services/gateway/src/ordivon_gateway/service.py"], "false"),
+                ("pull_request", [], "false"),
+                ("workflow_dispatch", [], "true"),
+                ("schedule", [], "true"),
+                ("pull_request", None, "true"),
+                ("pull_request", "malformed", None),
+                ("pull_request", [123], None),
+                ("pull_request", ["../escape"], None),
+            )
+            for event, paths, expected in cases:
+                with self.subTest(event=event, paths=paths):
+                    plan.unlink(missing_ok=True)
+                    output.unlink(missing_ok=True)
+                    if paths is not None:
+                        plan.write_text(json.dumps({"changedPaths": paths}))
+                    run = subprocess.run(
+                        ["bash", "-euo", "pipefail", "-c", selection],
+                        cwd=ROOT, text=True, capture_output=True, check=False,
+                        env={**os.environ, "EVENT_NAME": event, "RUNNER_TEMP": directory,
+                             "GITHUB_OUTPUT": str(output)},
+                    )
+                    if expected is None:
+                        self.assertNotEqual(run.returncode, 0)
+                        self.assertFalse(output.exists())
+                    else:
+                        self.assertEqual(run.returncode, 0, run.stderr)
+                        self.assertEqual(output.read_text().strip(), "gateway_formal=" + expected)
+
+    def test_native_selector_regression_executes_exact_yaml_step(self) -> None:
+        import yaml
+        from tools.repo.test_convergence_plan import OwnerSelectorFailClosedRegression
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = [
+            step for step in required_ci_steps(workflow)
+            if step.get("id") == "affected"
+        ]
+        self.assertEqual(len(steps), 1)
+        self.assertEqual(steps[0]["name"], "Select affected owners")
+        self.assertEqual(
+            OwnerSelectorFailClosedRegression.selection_shell().rstrip("\n"),
+            steps[0]["run"].rstrip("\n"),
+        )
+
+    def test_gateway_formal_guard_rejects_unqualified_effective_input(self) -> None:
+        import os
+        import yaml
+
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = {step["name"]: step for step in required_ci_steps(workflow)}
+        run = steps["Verify changed Gateway Formal source"]["run"]
+        guard = run.split("\nqualify_gateway_formal_source\n", 1)[0]
+        guard += "\nqualify_gateway_formal_source\n"
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = Path(directory)
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", directory, *args], text=True,
+                    stderr=subprocess.PIPE,
+                )
+            git("init", "-q")
+            for rel, content in {
+                "mise.toml": '[tasks."gateway:formal:verify"]\nrun = "bash services/gateway/formal/verify.sh"\n',
+                "services/gateway/formal/verify.sh": "#!/bin/bash\n",
+                "services/gateway/formal/Model.tla": "fixture\n",
+                "services/runtime/formal/toolchain.lock.json": "{}",
+                "services/runtime/scripts/tla-formal": "#!/bin/bash\n",
+                "services/runtime/mise.toml": "",
+            }.items():
+                path = fixture / rel
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content)
+            git("add", ".")
+            git("-c", "user.name=fixture", "-c", "user.email=fixture@example.invalid",
+                "commit", "-qm", "fixture")
+            env = {
+                **os.environ,
+                "GITHUB_SHA": git("rev-parse", "HEAD").strip(),
+                "MISE_TRUSTED_CONFIG_PATHS": directory,
+            }
+
+            def check(expected):
+                result = subprocess.run(
+                    ["bash", "-c", guard], cwd=fixture, env=env,
+                    text=True, capture_output=True, check=False,
+                )
+                self.assertEqual(result.returncode == 0, expected, result.stderr)
+
+            check(True)
+            model = fixture / "services/gateway/formal/Model.tla"
+            model.write_text("changed\n")
+            check(False)
+            model.write_text("fixture\n")
+            ignored = fixture / "services/gateway/formal/Ignored.tla"
+            (fixture / ".git/info/exclude").write_text("Ignored.tla\n")
+            ignored.write_text("fixture\n")
+            check(False)
+            ignored.unlink()
+            override = fixture / "mise.local.toml"
+            override.write_text(
+                '[tasks."gateway:formal:verify"]\nrun = "echo alternate fixture"\n'
+            )
+            check(False)
+            override.unlink()
+            check(True)
+
     def test_selected_formal_has_one_isolated_real_invocation_and_owner_failures_propagate(self) -> None:
         """Execute the real GitHub queue shell and dedicated Formal step."""
         import os
