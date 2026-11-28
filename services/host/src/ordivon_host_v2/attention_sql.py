@@ -4,7 +4,10 @@ No duplicated event ledger, subscription ranking, or scheduler state.
 """
 
 ATTENTION_DELTA_SQL = """
-        WITH relevant AS (
+        WITH actor_subs AS MATERIALIZED (
+            SELECT target_kind,target_ref,change_sequence
+            FROM subscriptions WHERE actor_ref=%(actor_ref)s
+        ), relevant AS (
             SELECT ws.change_sequence, 'work_snapshot'::text AS event_kind,
                    ws.work_ref::text AS source_ref, ws.revision::text AS context_ref,
                    true AS followed_work, false AS followed_space, false AS followed_topic,
@@ -61,22 +64,50 @@ ATTENTION_DELTA_SQL = """
                    bool_or(mc.mentioned), bool_or(mc.replied_to_me),
                    false, false, 'topic', mc.topic_ref
             FROM (
-                SELECT m.change_sequence,m.message_ref,m.topic_ref,
-                       false AS followed_space,true AS followed_topic,
-                       false AS mentioned,false AS replied_to_me
-                FROM subscriptions s
-                JOIN messages m ON m.topic_ref=s.target_ref
-                WHERE s.actor_ref=%(actor_ref)s AND s.target_kind='topic'
-                  AND m.change_sequence > %(after_sequence)s AND m.change_sequence <= %(high)s
-                  AND m.change_sequence > s.change_sequence
+                -- A Message belongs to one Topic and one Space, and each
+                -- (actor, target_kind, target_ref) subscription is unique.
+                -- Taking the first K rows from each followed target, then K
+                -- from the match class, preserves the globally first K
+                -- Message identities. Mention/reply matches remain unbounded
+                -- so the final bool_or retains every reason for each result.
+                SELECT * FROM (
+                    SELECT m.change_sequence,m.message_ref,m.topic_ref,
+                           false AS followed_space,true AS followed_topic,
+                           false AS mentioned,false AS replied_to_me
+                    FROM subscriptions s
+                    CROSS JOIN LATERAL (
+                        SELECT change_sequence,message_ref,topic_ref
+                        FROM messages m
+                        WHERE m.topic_ref=s.target_ref
+                          AND m.change_sequence > %(after_sequence)s
+                          AND m.change_sequence <= %(high)s
+                          AND m.change_sequence > s.change_sequence
+                        ORDER BY m.change_sequence
+                        LIMIT %(limit)s
+                    ) m
+                    WHERE s.actor_ref=%(actor_ref)s AND s.target_kind='topic'
+                    ORDER BY m.change_sequence
+                    LIMIT %(limit)s
+                ) topic_candidates
                 UNION ALL
-                SELECT m.change_sequence,m.message_ref,m.topic_ref,
-                       true,false,false,false
-                FROM subscriptions s
-                JOIN messages m ON m.space_ref=s.target_ref
-                WHERE s.actor_ref=%(actor_ref)s AND s.target_kind='space'
-                  AND m.change_sequence > %(after_sequence)s AND m.change_sequence <= %(high)s
-                  AND m.change_sequence > s.change_sequence
+                SELECT * FROM (
+                    SELECT m.change_sequence,m.message_ref,m.topic_ref,
+                           true,false,false,false
+                    FROM subscriptions s
+                    CROSS JOIN LATERAL (
+                        SELECT change_sequence,message_ref,topic_ref
+                        FROM messages m
+                        WHERE m.space_ref=s.target_ref
+                          AND m.change_sequence > %(after_sequence)s
+                          AND m.change_sequence <= %(high)s
+                          AND m.change_sequence > s.change_sequence
+                        ORDER BY m.change_sequence
+                        LIMIT %(limit)s
+                    ) m
+                    WHERE s.actor_ref=%(actor_ref)s AND s.target_kind='space'
+                    ORDER BY m.change_sequence
+                    LIMIT %(limit)s
+                ) space_candidates
                 UNION ALL
                 SELECT m.change_sequence,m.message_ref,m.topic_ref,
                        false,false,true,false
@@ -99,26 +130,25 @@ ATTENTION_DELTA_SQL = """
             SELECT mr.change_sequence, 'message_relation',
                    mr.source_message_ref || ':' || mr.relation || ':' || mr.target_ref, mr.relation,
                    false,
-                   EXISTS (SELECT 1 FROM subscriptions s WHERE s.actor_ref=%(actor_ref)s
-                     AND s.target_kind='space' AND s.target_ref=source_message.space_ref
-                     AND mr.change_sequence>s.change_sequence),
-                   EXISTS (SELECT 1 FROM subscriptions s WHERE s.actor_ref=%(actor_ref)s
-                     AND s.target_kind='topic' AND s.target_ref=source_message.topic_ref
-                     AND mr.change_sequence>s.change_sequence),
+                   (fs.target_ref IS NOT NULL),
+                   (ft.target_ref IS NOT NULL),
                    (mr.relation='mentions' AND mr.target_ref=%(actor_ref)s),
                    (mr.relation='reply_to' AND target_message.author_actor_ref=%(actor_ref)s),
                    false, false, 'topic', source_message.topic_ref
             FROM message_relations mr
             JOIN messages source_message ON source_message.message_ref=mr.source_message_ref
             LEFT JOIN messages target_message ON target_message.message_ref=mr.target_ref
+            -- The subscription natural key makes each scoped join at most 1:1.
+            -- Keep the relation's own follow horizon, not the source message's.
+            LEFT JOIN actor_subs fs ON fs.target_kind='space' AND fs.target_ref=source_message.space_ref
+              AND mr.change_sequence>fs.change_sequence
+            LEFT JOIN actor_subs ft ON ft.target_kind='topic' AND ft.target_ref=source_message.topic_ref
+              AND mr.change_sequence>ft.change_sequence
             WHERE mr.change_sequence > %(after_sequence)s AND mr.change_sequence <= %(high)s
               AND (
                 (mr.relation='mentions' AND mr.target_ref=%(actor_ref)s)
                 OR (mr.relation='reply_to' AND target_message.author_actor_ref=%(actor_ref)s)
-                OR EXISTS (SELECT 1 FROM subscriptions s WHERE s.actor_ref=%(actor_ref)s
-                  AND ((s.target_kind='topic' AND s.target_ref=source_message.topic_ref)
-                    OR (s.target_kind='space' AND s.target_ref=source_message.space_ref))
-                  AND mr.change_sequence>s.change_sequence)
+                OR (ft.target_ref IS NOT NULL OR fs.target_ref IS NOT NULL)
               )
             UNION ALL
             SELECT p.change_sequence, 'participation_change', p.space_ref || ':' || p.actor_ref,

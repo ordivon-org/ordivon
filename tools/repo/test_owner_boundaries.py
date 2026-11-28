@@ -96,14 +96,133 @@ class OwnerBoundaryTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "ambiguous dependency seam"):
             MODULE.validate_consumed_seams((real, alias), (observed,))
 
-    def test_current_declared_source_consumers_are_literal_matched(self) -> None:
-        """This is a bounded source-text witness, not live consumer semantics."""
+    def test_sibling_prefix_does_not_create_cross_owner_dependency(self) -> None:
+        source = "platform/security/mise.toml"
+        for path in (
+            "services/gateway-authzen",
+            "services/gateway_extra",
+            "services/gateway2",
+            "prefixservices/gateway-src",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(
+                    MODULE.findings_for_text(source, f'run = "{path}"', OWNERS),
+                    (),
+                )
+
+    def test_real_gateway_path_still_requires_cross_owner_contract(self) -> None:
+        observed = MODULE.findings_for_text(
+            "platform/security/mise.toml",
+            'command = "services/gateway/src/ordivon_gateway/mcp_server.py"',
+            OWNERS,
+        )
+        self.assertEqual(len(observed), 1)
+        self.assertEqual(observed[0].to_owner, "gateway")
+
+    def test_native_harness_issuer_behavior_follows_module_move_but_never_grants_directory(self) -> None:
+        """Real one-test consumer, not a source-file-name or directory permission."""
+        import tempfile
+        from unittest.mock import patch
+
+        seams = tuple(
+            s for s in SEAMS
+            if s.source_glob == MODULE.pg_issuer_consumer.RUNTIME_PG_CORE_ROOT
+        )
+        self.assertEqual(len(seams), 3)
+        code = chr(10).join((
+            '#[test]',
+            '#[ignore = "requires isolated PG18"]',
+            'fn pg18_original_harness_store_real_issuer_same_job_late_revoke() {',
+            'let fixture = root.join("services/harness/tests/original_pg_issuer_native_fixture.py");',
+            'let source = root.join("services/harness/src");',
+            'let project = root.join("services/harness");',
+            '}',
+        )) + chr(10)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pg = root / MODULE.pg_issuer_consumer.RUNTIME_PG_CORE_ROOT
+            pg.mkdir(parents=True)
+            first = pg / "issuer_original.rs"
+            first.write_text(code, encoding="utf-8")
+
+            def observed(path: Path):
+                relative = path.relative_to(root).as_posix()
+                return MODULE.findings_for_text(
+                    relative, path.read_text(encoding="utf-8"), OWNERS
+                )
+
+            with patch.object(MODULE, "ROOT", root):
+                known = observed(first)
+                self.assertEqual(len(known), 3)
+                self.assertEqual(
+                    len(MODULE.validate_consumed_seams(seams, known)), 3
+                )
+                # No blanket permission for unrelated Runtime files, even
+                # when those files textually import this Harness provider.
+                foreign = pg / "unrelated_production.rs"
+                foreign.write_text(
+                    'let dep = root.join("services/harness/src");',
+                    encoding="utf-8",
+                )
+                self.assertFalse(
+                    any(MODULE._allowed(row, seams) for row in observed(foreign))
+                )
+
+                # Refactor the actual executable test into a deeper module.
+                moved = pg / "issuer" / "new_runtime_contract.rs"
+                moved.parent.mkdir()
+                first.rename(moved)
+                moved_evidence = observed(moved)
+                self.assertEqual(
+                    len(MODULE.validate_consumed_seams(seams, moved_evidence)), 3
+                )
+                self.assertFalse(
+                    any(MODULE._allowed(row, seams) for row in known),
+                    "the superseded source location is not a consumer",
+                )
+
+                # A duplicated source test is an invalid, ambiguous witness.
+                duplicate = pg / "issuer_copy.rs"
+                duplicate.write_text(code, encoding="utf-8")
+                with self.assertRaisesRegex(AssertionError, "stale dependency"):
+                    MODULE.validate_consumed_seams(seams, moved_evidence)
+                duplicate.unlink()
+
+                # Without its actual Harness publisher/source references,
+                # a test name and #[test] annotation grant nothing.
+                moved.write_text(
+                    code.replace('root.join("services/harness/src")', '"not-the-provider"'),
+                    encoding="utf-8",
+                )
+                with self.assertRaisesRegex(AssertionError, "stale dependency"):
+                    MODULE.validate_consumed_seams(seams, observed(moved))
+                moved.write_text(code, encoding="utf-8")
+
+                # A symlink into another directory is not a native owned test.
+                moved.unlink()
+                external = root / "foreign.rs"
+                external.write_text(code, encoding="utf-8")
+                moved.symlink_to(external)
+                with self.assertRaisesRegex(AssertionError, "stale dependency"):
+                    MODULE.validate_consumed_seams(
+                        seams, MODULE.findings_for_text(
+                            moved.relative_to(root).as_posix(), code, OWNERS,
+                        ),
+                    )
+
+    def test_current_declared_source_consumers_are_exact_source_matched(self) -> None:
+        """Reuse the production scanner's literal AND Python import consumer graph."""
         findings = []
-        for path in MODULE.tracked_active_files():
+        active = MODULE.tracked_active_files()
+        packages = MODULE.python_package_owners(active, OWNERS)
+        for path in active:
             if MODULE.owner_for_path(path, OWNERS) is None:
                 continue
             source = (MODULE.ROOT / path).read_text(encoding="utf-8", errors="ignore")
             findings.extend(MODULE.findings_for_text(path, source, OWNERS))
+            findings.extend(
+                MODULE.python_import_findings_for_text(path, source, OWNERS, packages)
+            )
         witnessed = MODULE.validate_consumed_seams(SEAMS, tuple(findings))
         self.assertEqual(set(witnessed), set(SEAMS))
         self.assertTrue(all(witnessed.values()))

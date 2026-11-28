@@ -3,12 +3,12 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from ordivon_gateway.capability_projection import (
+from ordivon_gateway.contracts import CapabilityDescriptor, CapabilityProjection
+from ordivon_gateway.logic.capability_projection import (
     project_capability_search,
     project_execution_capability,
 )
-from ordivon_gateway.contracts import CapabilityDescriptor, CapabilityProjection
-from ordivon_gateway.routing import default_routes
+from ordivon_gateway.logic.routing import default_routes
 from ordivon_gateway.service import GatewayService
 
 
@@ -253,8 +253,11 @@ def test_capability_search_is_deterministic_bounded_discovery_not_authorization(
     filtered = asyncio.run(
         service.capability_search(query="runtime", owner_id="runtime.linux", limit=1)
     )
-    assert filtered.total_matches == 1
-    assert [match.capability.capability for match in filtered.matches] == ["execution.linux"]
+    # The new native ReleaseEffect route ranks ahead of the generic Linux
+    # execution adapter: lexical discovery is not an execution permission.
+    assert filtered.total_matches == 2
+    assert [match.capability.capability for match in filtered.matches] == ["runtime.release.linux"]
+    assert filtered.matches[0].capability.available is False
     assert filtered.projection_digest.startswith("sha256:")
 
     owner_tools = [tool for _, tool, _ in caller.calls]
@@ -280,11 +283,16 @@ def test_capability_search_does_not_misclassify_observation_error_as_proven_unav
             include_unavailable=False,
         )
     )
-    assert result.total_matches == 1
-    item = result.matches[0].capability
-    assert item.available is False
-    assert item.observation_error is not None
-    assert "synthetic transport observation failure" in item.observation_error
+    assert result.total_matches == 2
+    assert {match.capability.capability for match in result.matches} == {
+        "execution.linux",
+        "runtime.release.linux",
+    }
+    for match in result.matches:
+        item = match.capability
+        assert item.available is False
+        assert item.observation_error is not None
+        assert "synthetic transport observation failure" in item.observation_error
 
 
 def test_capability_search_rejects_invalid_bounds_without_owner_calls() -> None:
@@ -302,18 +310,20 @@ def test_capability_search_rejects_invalid_bounds_without_owner_calls() -> None:
 def test_execution_descriptor_is_pure_and_preserves_owner_observation() -> None:
     route = default_routes()["execution.windows"]
     owner_response = {
+        "schemaVersion": 1,
         "node": {"nodeId": "Windows-A"},
         "targets": [
             {
                 "target": "windows_native",
                 "configured": True,
                 "available": True,
-                "windowsContexts": [{"identity": "active_user", "privilege": "limited"}, "invalid"],
+                "windowsContexts": [{"identity": "active_user", "privilege": "limited"}],
                 "windowsAuthorities": ["limited"],
             }
         ],
     }
     original = {
+        "schemaVersion": 1,
         "node": dict(owner_response["node"]),
         "targets": [
             {
@@ -357,7 +367,10 @@ def test_projection_preserves_unconfigured_and_missing_target_distinction() -> N
     mismatched = project_execution_capability(
         route,
         configured_at_gateway=True,
-        owner_response={"targets": [{"target": "windows_native"}]},
+        owner_response={
+            "schemaVersion": 1,
+            "targets": [{"target": "windows_native", "configured": True, "available": True}],
+        },
     )
     assert not mismatched.configured
     assert mismatched.observation_error == "owner did not advertise the routed execution target"
@@ -455,3 +468,168 @@ def test_pure_search_projection_does_not_confer_execution_authority() -> None:
     assert result.total_matches == 1
     assert result.truth_role == "rebuildable-non-authoritative-discovery-projection"
     assert result.matches[0].capability.observation_error == "owner unavailable"
+
+
+def test_execution_projection_cannot_promote_ambiguous_or_malformed_runtime_targets() -> None:
+    """An untrusted Owner inventory is not an ordered preference list."""
+    for capability in ("execution.linux", "execution.windows"):
+        route = default_routes()[capability]
+        target_name = route.execution_target
+        ready_target = {"target": target_name, "configured": True, "available": True}
+        for targets in (
+            None,
+            {"target": target_name},
+            "not-a-target-list",
+            [ready_target, ready_target],
+            [ready_target, {"target": target_name, "configured": False, "available": False}],
+        ):
+            item = project_execution_capability(
+                route,
+                configured_at_gateway=True,
+                owner_response={"targets": targets},
+            )
+            assert item.available is False
+            assert item.readiness_state == "unknown"
+            assert item.observation_error
+
+
+def test_bad_runtime_inventory_does_not_hide_an_independent_healthy_runtime() -> None:
+    """Broken Linux capability metadata must not destroy Windows discovery."""
+    caller = ProjectionCaller(
+        {
+            ("runtime.linux", "runtime.describe"): {
+                "schemaVersion": 1,
+                "node": {"nodeId": "linux-pg", "platform": "linux", "native": True},
+                "targets": None,
+            },
+            ("runtime.windows", "runtime.describe"): {
+                "schemaVersion": 1,
+                "node": {
+                    "nodeId": "windows-main-r6-candidate",
+                    "platform": "windows",
+                    "native": True,
+                },
+                "targets": [
+                    {
+                        "target": "windows_native",
+                        "configured": True,
+                        "available": True,
+                        "windowsContexts": [{"identity": "service", "privilege": "limited"}],
+                    }
+                ],
+            },
+        },
+        {"runtime.linux", "runtime.windows"},
+    )
+    items = asyncio.run(GatewayService(caller).capability_describe()).capabilities
+    by_name = {item.capability: item for item in items}
+    assert by_name["execution.linux"].readiness_state == "unknown"
+    assert by_name["execution.windows"].available is True
+    assert by_name["execution.windows"].readiness_state == "ready"
+
+
+def test_execution_projection_malformed_contexts_are_unknown_not_global_discovery_errors() -> None:
+    """Malformed context lists from an Owner cannot crash all capability discovery."""
+    for capability, bad_field in (
+        ("execution.linux", "executionProfiles"),
+        ("execution.windows", "windowsAuthorities"),
+    ):
+        route = default_routes()[capability]
+        descriptor = project_execution_capability(
+            route,
+            configured_at_gateway=True,
+            owner_response={
+                "targets": [
+                    {
+                        "target": route.execution_target,
+                        "configured": True,
+                        "available": True,
+                        bad_field: None,
+                    }
+                ]
+            },
+        )
+        assert descriptor.available is False
+        assert descriptor.readiness_state == "unknown"
+        assert descriptor.observation_error
+
+
+def test_windows_explicit_empty_canonical_contexts_never_resurrect_legacy_authority():
+    route = default_routes()["execution.windows"]
+    for available in (False, True):
+        descriptor = project_execution_capability(
+            route,
+            configured_at_gateway=True,
+            owner_response={
+                "schemaVersion": 1,
+                "node": {"nodeId": "windows-pg", "platform": "windows", "native": True},
+                "targets": [
+                    {
+                        "target": "windows_native",
+                        "configured": True,
+                        "available": available,
+                        "windowsContexts": [],
+                        "windowsAuthorities": ["active_user"],
+                    }
+                ],
+            },
+        )
+        assert descriptor.contexts == []
+        assert descriptor.available is False
+        assert descriptor.readiness_state == ("unknown" if available else "not_ready")
+
+
+def test_windows_malformed_canonical_contexts_are_unknown_not_legacy_fallback():
+    route = default_routes()["execution.windows"]
+    valid = {"identity": "service", "privilege": "limited"}
+    for contexts in ([valid, "invalid"], [{}], [valid, valid]):
+        descriptor = project_execution_capability(
+            route,
+            configured_at_gateway=True,
+            owner_response={
+                "schemaVersion": 1,
+                "node": {"nodeId": "windows-pg", "platform": "windows", "native": True},
+                "targets": [
+                    {
+                        "target": "windows_native",
+                        "configured": True,
+                        "available": True,
+                        "windowsContexts": contexts,
+                        "windowsAuthorities": ["limited", "active_user"],
+                    }
+                ],
+            },
+        )
+        assert descriptor.contexts == []
+        assert descriptor.available is False
+        assert descriptor.readiness_state == "unknown"
+
+
+def test_windows_canonical_context_is_independent_of_legacy_alias_values():
+    # Change only the compatibility DP; the canonical Owner observation,
+    # node and readiness must remain identical across the selected domain.
+    route = default_routes()["execution.windows"]
+    context = {"identity": "service", "privilege": "limited"}
+    for canonical, available in (([context], True), ([], False), ([], True)):
+        target = {
+            "target": "windows_native",
+            "configured": True,
+            "available": available,
+            "windowsContexts": canonical,
+        }
+        response = {
+            "schemaVersion": 1,
+            "node": {"nodeId": "windows-pg", "platform": "windows", "native": True},
+            "targets": [target],
+        }
+        reference = project_execution_capability(
+            route, configured_at_gateway=True, owner_response=response
+        )
+        for aliases in ([], ["limited"], ["active_user"], ["elevated", "active_user"]):
+            changed = {**response, "targets": [{**target, "windowsAuthorities": aliases}]}
+            observed = project_execution_capability(
+                route, configured_at_gateway=True, owner_response=changed
+            )
+            assert observed == reference
+        # Explicit absence is a separate legacy representation domain.
+        assert reference.contexts == canonical

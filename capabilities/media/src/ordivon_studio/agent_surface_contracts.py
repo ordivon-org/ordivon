@@ -74,7 +74,7 @@ def tool_definitions() -> list[dict[str, Any]]:
         },
         {
             "name": "studio_processing_probe_plan",
-            "description": "Compile an exact read-only Runtime proposal from an existing processing profile and adapter, both SHA-256 pinned by a previous Studio discovery. Does not execute, acquire tools or decide publication.",
+            "description": "Compile a read-only Runtime proposal from a SHA-256-pinned processing profile and adapter. Optionally select the declared local source closure digest and bind a materialized exact input digest to Runtime hostDependencies; the Runtime witness does not prove provider consumption or the installed environment. Does not execute or decide publication.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -83,8 +83,24 @@ def tool_definitions() -> list[dict[str, Any]]:
                     "expectedAdapterDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
                     "inputPath": {"type": "string", "minLength": 1},
                     "evidenceDirectory": {"type": "string", "minLength": 1},
+                    "expectedInputDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+                    "expectedSourceClosureDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
                 },
                 "required": ["profileId", "expectedProfileDigest", "expectedAdapterDigest", "inputPath", "evidenceDirectory"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "studio_processing_receipt_qualify",
+            "description": "Qualify exact local native processing evidence against a caller-selected bound plan, observed exit code and receipt digest. Checks identity and retained bytes, not Runtime witness, signer or publication. Missing evidence remains UNKNOWN.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "plan": {"type": "object"},
+                    "exitCode": {"type": ["integer", "null"]},
+                    "expectedReceiptDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+                },
+                "required": ["plan", "exitCode", "expectedReceiptDigest"],
                 "additionalProperties": False,
             },
         },
@@ -111,7 +127,7 @@ def surface_projection() -> dict[str, Any]:
         "kind": "ordivon.studio-agent-tool-surface",
         "truthRole": "studio-domain-semantic-actions",
         "domainId": "domain:ordivon-studio",
-        "revision": "studio-agent-surface-processing-probe-plan-v1",
+        "revision": "studio-agent-surface-processing-receipt-v1",
         "tools": tool_definitions(),
         "runtimeOwnsPhysicalExecution": True,
         "harnessMayAdmitSubsetOnly": True,

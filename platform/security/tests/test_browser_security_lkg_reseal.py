@@ -207,6 +207,38 @@ class BrowserSecurityLkgResealTests(unittest.TestCase):
         self.assertEqual(new_index["reseal"]["observedStanding"], "GLOBAL_DRIFT")
         self.assertEqual(len(new_index["carriers"]), 3)
         self.assertTrue(all(row["browserBinaryDigest"] == BROWSER_NEW for row in new_index["carriers"]))
+        # New generation is selected through the one atomic index;
+        # previously committed per-carrier fixtures remain unchanged.
+        reseal._load_index(self.index, self.fixture)
+        for carrier in self.carriers:
+            suffix = carrier.rsplit("-", 1)[-1]
+            historical = self.fixture / f"harness-r2-live-lkg-carrier{suffix}-manifest.json"
+            self.assertEqual(json.loads(historical.read_text()), self.old_manifests[carrier])
+        self.assertTrue(all("lkg-generations/" in row["bundle"] for row in new_index["carriers"]))
+
+    def test_reseal_failed_index_switch_preserves_old_complete_generation(self):
+        self.write_run()
+        old_digest = sha(self.index)
+        old_index = json.loads(self.index.read_text())
+        real_replace = reseal.os.replace
+
+        def fail_index_switch(source, destination):
+            if Path(destination) == self.index:
+                raise OSError("simulated interruption before index switch")
+            return real_replace(source, destination)
+
+        with mock.patch.object(reseal.os, "replace", side_effect=fail_index_switch):
+            with self.assertRaisesRegex(OSError, "simulated interruption"):
+                reseal.reseal(
+                    self.run_root,
+                    expected_harness_revision=HARNESS,
+                    expected_old_index_sha256=old_digest,
+                    fixture_root=self.fixture,
+                    index_path=self.index,
+                )
+        self.assertEqual(sha(self.index), old_digest)
+        self.assertEqual(json.loads(self.index.read_text()), old_index)
+        reseal._load_index(self.index, self.fixture)
 
     def test_reseal_accepts_no_observed_drift_refresh(self):
         classification = self.write_run(

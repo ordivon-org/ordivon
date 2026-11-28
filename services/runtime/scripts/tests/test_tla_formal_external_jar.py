@@ -133,9 +133,34 @@ class TlaFormalExternalJarTests(unittest.TestCase):
         self.assertGreaterEqual(modes.count("tla2sany.SANY"), 2)
         self.assertGreaterEqual(modes.count("tlc2.TLC"), 2)
         self.assertIn("RuntimeDispatchR1.tla", observed)
+        self.assertIn("WorkspaceConsumerCloseR1.tla", observed)
+        self.assertIn("RuntimeRunnerBoundR1.tla", observed)
+        # Retired rollout assumptions must not consume default PG Runtime proof time.
+        self.assertNotIn("RuntimePgCutoverR1.tla", observed)
+        self.assertNotIn("RuntimeWindowsFirstPgR1.tla", observed)
+
+    def test_historical_rollout_models_remain_explicitly_reproducible(self):
+        result = self.invoke(command="check-historical", jar=self.external)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        observed = self.java_log.read_text(encoding="utf-8")
         self.assertIn("RuntimePgCutoverR1.tla", observed)
         self.assertIn("RuntimeWindowsFirstPgR1.tla", observed)
-        self.assertIn("WorkspaceConsumerCloseR1.tla", observed)
+        self.assertNotIn("RuntimeDispatchR1.tla", observed)
+        args = observed.splitlines()
+        self.assertGreaterEqual(args.count("tlc2.TLC"), 2)
+        self.assertEqual(args.count(str(self.external)), len([
+            item for item in args if item in ("tlc2.TLC", "tla2sany.SANY")
+        ]))
+
+    def test_historical_rollout_falsifiers_remain_fail_closed(self):
+        # The independent historical source is available, but fake Java cannot
+        # produce a real named TLC violation. Keep that negative gate alive.
+        for name in ("RuntimePgCutoverR1.tla", "RuntimePgCutoverR1.cfg"):
+            shutil.copyfile(SCRIPT.parent.parent / "formal" / name,
+                            self.script.parent.parent / "formal" / name)
+        result = self.invoke(command="falsify-historical", jar=self.external)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("negative control FAILED", result.stderr)
 
     def test_scoped_dispatch_only_calls_pinned_tlc_and_sany(self):
         result = self.invoke(command="check-dispatch", jar=self.external)

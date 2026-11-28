@@ -22,6 +22,7 @@ from ordivon_host_v2.collaboration_inputs import (
 )
 from ordivon_host_v2.coordination_inputs import CoordinationIntentInput
 from ordivon_host_v2.errors import ConflictError
+from ordivon_host_v2.references.actor_store import ActorReferenceStore
 from ordivon_host_v2.service import REQUIRED_SCHEMA_VERSION
 from ordivon_host_v2.social_store import SocialStore
 from ordivon_host_v2.work_inputs import (
@@ -60,7 +61,7 @@ def snapshot(frontier: str) -> WorkSnapshotInput:
 
 
 def declare_actor(store: WorkStore, actor_ref: str) -> None:
-    store.declare_actor(
+    ActorReferenceStore(store.dsn).declare_actor(
         ActorRefInput(actor_ref=actor_ref, actor_kind=ActorKind.AGENT),
         client_request_id=f"actor:{actor_ref}",
     )
@@ -198,21 +199,98 @@ def test_work_parent_cycle_fails_closed() -> None:
 
 
 
-def test_concurrent_reciprocal_work_relations_cannot_commit_cycle() -> None:
+def test_composed_relation_reference_receipt_and_attention_consumer() -> None:
+    """Actual reference failure, transaction replay and natural Attention readback."""
+    from ordivon_host_v2.errors import ActorRefNotFound, WorkNotFound
+
+    assert DSN is not None
+    store = WorkStore(DSN)
+    attention = AttentionStore(DSN)
+    actor, a = refs("relation-composition")
+    missing_actor, b = refs("relation-composition-target")
+    declare_actor(store, actor)
+    with pytest.raises(ActorRefNotFound):
+        store.create_work(
+            WorkCreateInput(
+                work_ref=a, kind="task", actor_ref=missing_actor, initial_snapshot=snapshot("open")
+            ),
+            client_request_id=f"missing-actor:{a}",
+        )
+    store.create_work(
+        WorkCreateInput(
+            work_ref=a, kind="task", actor_ref=actor, initial_snapshot=snapshot("open")
+        ),
+        client_request_id=f"create:{a}",
+    )
+    with pytest.raises(ActorRefNotFound):
+        store.commit_snapshot(
+            a,
+            expected_revision=1,
+            snapshot=snapshot("unadmitted"),
+            actor_ref=missing_actor,
+            client_request_id=f"missing-commit-actor:{a}",
+        )
+    assert store.get_work(a)["revision"] == 1
+    relation = WorkRelationInput(
+        source_work_ref=a, relation=WorkRelationKind.PARENT_OF, target_work_ref=b, actor_ref=actor
+    )
+    relation_id = f"rel:{a}:{b}"
+    with pytest.raises(WorkNotFound):
+        store.add_relation(relation, client_request_id=relation_id)
+    # The failed prerequisite must roll back its reservation, so the same ID
+    # can succeed once the missing natural record exists.
+    store.create_work(
+        WorkCreateInput(
+            work_ref=b, kind="task", actor_ref=actor, initial_snapshot=snapshot("open")
+        ),
+        client_request_id=f"create:{b}",
+    )
+    attention.follow(
+        actor_ref=actor, target_kind="work", target_ref=a, client_request_id=f"follow:{a}"
+    )
+    baseline = attention.delta(actor, after_sequence=0)["snapshotHighSequence"]
+    result = store.add_relation(relation, client_request_id=relation_id)
+    replay = store.add_relation(relation, client_request_id=relation_id)
+    assert result["admission"] == "committed"
+    assert replay == {**result, "admission": "existing"}
+    with pytest.raises(ConflictError):
+        store.add_relation(
+            relation.model_copy(update={"relation": WorkRelationKind.DEPENDS_ON}),
+            client_request_id=relation_id,
+        )
+    delta = attention.delta(actor, after_sequence=baseline)
+    relevant = [e for e in delta["events"] if e["eventKind"] == "work_relation"]
+    assert len(relevant) == 1
+    assert relevant[0]["sourceRef"] == f"{a}:parent_of:{b}"
+    assert relevant[0]["navigationRef"] == a
+    with psycopg.connect(DSN) as conn:
+        assert conn.execute(
+            "SELECT count(*) FROM command_receipts WHERE client_request_id IN (%s,%s)",
+            (f"missing-actor:{a}", f"missing-commit-actor:{a}"),
+        ).fetchone() == (0,)
+        assert conn.execute(
+            "SELECT count(*) FROM work_relations WHERE source_work_ref=%s AND target_work_ref=%s",
+            (a, b),
+        ).fetchone() == (1,)
+
+
+def test_concurrent_reciprocal_work_relations_cannot_commit_cycle(monkeypatch) -> None:
     """Two Agent writers cannot each validate on a stale graph then commit a cycle."""
     assert DSN is not None
     actor, a = refs("concurrent-cycle-a")
     _, b = refs("concurrent-cycle-b")
 
-    class DelayedAfterCycleCheck(WorkStore):
-        def _reject_cycle(self, conn, relation):
-            super()._reject_cycle(conn, relation)
-            # Two independent requests race after reading the same empty DAG.
-            # The sleep is deliberately after the real SQL cycle check, not
-            # a mock of the storage transaction or its visible contract.
-            sleep(0.35)
+    from ordivon_host_v2.work_relation_commands import WorkRelationCommands
 
-    store = DelayedAfterCycleCheck(DSN)
+    reject_cycle = WorkRelationCommands._reject_cycle
+
+    def delayed_after_cycle_check(self, conn, relation):
+        reject_cycle(self, conn, relation)
+        # Keep the original live SQL race oracle, not a WorkStore MRO contract.
+        sleep(0.35)
+
+    monkeypatch.setattr(WorkRelationCommands, "_reject_cycle", delayed_after_cycle_check)
+    store = WorkStore(DSN)
     declare_actor(store, actor)
     for ref in (a, b):
         store.create_work(
@@ -256,6 +334,7 @@ def test_concurrent_reciprocal_work_relations_cannot_commit_cycle() -> None:
             (a, a),
         ).fetchall()
     assert len(edges) == 1
+
 
 def test_space_can_link_multiple_works_without_becoming_work_container() -> None:
     assert DSN is not None
@@ -1450,3 +1529,70 @@ def test_concurrent_agents_rebase_unique_work_evidence_after_real_host_cas_race(
     assert final["snapshot"]["established"] == [winner, loser]
     assert final["snapshot"]["referenceRefs"] == [shared_effect]
     assert store.get_work(work_ref, revision=2)["snapshot"]["established"] == [winner]
+
+
+def test_subscription_desired_state_serializes_opposing_commands_for_one_actor() -> None:
+    """Actor-row arbitration prevents a stale fallback SELECT during follow/unfollow races.
+
+    PostgreSQL FOR NO KEY UPDATE does not block the FK's KEY SHARE alone, so
+    this deliberately checks the subscription operation's explicit arbiter.
+    """
+    from concurrent.futures import TimeoutError as FutureTimeoutError
+    from threading import Event
+
+    assert DSN is not None
+    work = WorkStore(DSN)
+    social = SocialStore(DSN)
+    attention = AttentionStore(DSN)
+    actor_ref, _ = refs("subscription-order")
+    declare_actor(work, actor_ref)
+    space_ref = f"space:subscription-order:{uuid4().hex}"
+    topic_ref = f"topic:subscription-order:{uuid4().hex}"
+    social.create_space(
+        SpaceInput(space_ref=space_ref, purpose="subscription serialization", actor_ref=actor_ref),
+        client_request_id=f"create:{space_ref}",
+    )
+    social.create_topic(
+        TopicInput(topic_ref=topic_ref, space_ref=space_ref, title="race", actor_ref=actor_ref),
+        client_request_id=f"create:{topic_ref}",
+    )
+
+    def exercise(method: str) -> dict[str, object]:
+        entered = Event()
+
+        def command() -> dict[str, object]:
+            entered.set()
+            return getattr(attention, method)(
+                actor_ref=actor_ref,
+                target_kind="topic",
+                target_ref=topic_ref,
+                client_request_id=f"{method}:{topic_ref}",
+            )
+
+        with psycopg.connect(DSN) as blocker:
+            blocker.execute(
+                "SELECT 1 FROM actor_refs WHERE actor_ref=%s FOR NO KEY UPDATE",
+                (actor_ref,),
+            )
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(command)
+                assert entered.wait(timeout=5)
+                with pytest.raises(FutureTimeoutError):
+                    future.result(timeout=0.25)
+                blocker.commit()
+                return future.result(timeout=10)
+
+    first = exercise("follow")
+    assert first["admission"] == "committed"
+    removed = exercise("unfollow")
+    assert removed["admission"] == "committed"
+    # Desired-state semantics: invoking follow again is a new command even
+    # when its content-derived legacy request identity is unchanged.
+    second = attention.follow(
+        actor_ref=actor_ref,
+        target_kind="topic",
+        target_ref=topic_ref,
+        client_request_id=f"follow:{topic_ref}",
+    )
+    assert second["admission"] == "committed"
+    assert int(second["changeSequence"]) > int(first["changeSequence"])

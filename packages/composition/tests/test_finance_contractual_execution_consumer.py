@@ -153,8 +153,29 @@ def _consumer_result(manifest: dict, request: dict, observed: dict | None) -> di
             allocation = observed["allocationsMinor"]
             holdings = request["holdingsMinor"]
             projected = observed["projectedHoldingsMinor"]
+            # Integer cents are a type contract, not Python numeric equality:
+            # 40000.0 == 40000 and True == 1 must not certify a receipt.
             valid = (
-                set(observed) == PLAN_FIELDS
+                all(
+                    type(observed[field]) is int
+                    for field in (
+                        "cashAfterMinor",
+                        "protectedReserveMinor",
+                        "contributionMinor",
+                        "projectedInvestmentMinor",
+                    )
+                )
+                and all(
+                    type(value) is int
+                    for field in (
+                        "currentHoldingsMinor",
+                        "projectedHoldingsMinor",
+                        "allocationsMinor",
+                        "targetWeightsBps",
+                    )
+                    for value in observed[field].values()
+                )
+                and set(observed) == PLAN_FIELDS
                 and observed["schemaVersion"] == 1
                 and observed["currency"] == request["currency"] == "USD"
                 and observed["unit"] == "minor"
@@ -247,8 +268,10 @@ def test_real_finance_output_closes_only_scoped_composition_obligation() -> None
     assert resolution["domainAcceptanceEstablished"] is False
 
     evaluated = evaluate_gate_results(manifest, [result])
-    assert evaluated["standing"] == "COMPOSITION_GATES_SATISFIED"
-    assert evaluated["mechanicalClosure"] is True
+    assert evaluated["standing"] == "COMPOSITION_GATES_REPORTED_SATISFIED"
+    assert evaluated["mechanicalClosure"] is False
+    assert evaluated["reportedGateClosure"] is True
+    assert evaluated["evidenceVerificationStanding"] == "UNKNOWN"
     assert evaluated["domainAcceptanceEstablished"] is False
 
 
@@ -261,7 +284,17 @@ def test_unknown_and_false_economic_receipts_do_not_close_composition() -> None:
     assert absent["standing"] == "COMPOSITION_GATES_OPEN"
     assert absent["domainAcceptanceEstablished"] is False
 
-    for corruption in ("broker", "cash", "holdings", "risk", "extra-permission"):
+    for corruption in (
+        "broker",
+        "cash",
+        "holdings",
+        "risk",
+        "extra-permission",
+        "cash-float",
+        "holding-float",
+        "total-float",
+        "allocation-float",
+    ):
         tampered = copy.deepcopy(observed)
         if corruption == "broker":
             tampered["executionAuthorized"] = True
@@ -271,11 +304,23 @@ def test_unknown_and_false_economic_receipts_do_not_close_composition() -> None:
             tampered["projectedHoldingsMinor"]["BOND_CORE"] += 1
         elif corruption == "risk":
             tampered["riskStanding"] = "APPROVED"
-        else:
+        elif corruption == "extra-permission":
             tampered["externalWriteAllowed"] = True
+        elif corruption == "cash-float":
+            tampered["cashAfterMinor"] = float(tampered["cashAfterMinor"])
+        elif corruption == "holding-float":
+            tampered["projectedHoldingsMinor"]["BOND_CORE"] = float(
+                tampered["projectedHoldingsMinor"]["BOND_CORE"]
+            )
+        elif corruption == "total-float":
+            tampered["projectedInvestmentMinor"] = float(tampered["projectedInvestmentMinor"])
+        else:
+            tampered["allocationsMinor"]["BOND_CORE"] = float(
+                tampered["allocationsMinor"]["BOND_CORE"]
+            )
         result = _consumer_result(manifest, request, tampered)
         assert result["standing"] == "UNSATISFIED", corruption
         rejected = evaluate_gate_results(manifest, [result])
-        assert rejected["standing"] == "COMPOSITION_GATES_UNSATISFIED"
+        assert rejected["standing"] == "COMPOSITION_GATES_REPORTED_UNSATISFIED"
         assert rejected["mechanicalClosure"] is False
         assert rejected["domainAcceptanceEstablished"] is False

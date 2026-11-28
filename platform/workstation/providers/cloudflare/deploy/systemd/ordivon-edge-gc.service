@@ -1,5 +1,5 @@
 [Unit]
-Description=Ordivon Edge deferred Artifact garbage collection
+Description=Ordivon Edge deferred Artifact cleanup audit
 After=network-online.target
 Wants=network-online.target
 ConditionPathExists=/root/.config/ordivon/secrets/cloudflare.json

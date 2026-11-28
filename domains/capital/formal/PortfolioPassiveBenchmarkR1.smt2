@@ -88,3 +88,27 @@
              (> strategyReturn0 0) (not (= relativeWealth 0))))
 (check-sat)
 (pop 1)
+
+; A positive duplicate fund expense strictly depresses already-net NAV
+; total return when starting capital and the return factor are positive.
+; This is an arithmetic consequence, not proof that any vendor netted fees.
+(declare-const duplicateFundExpense Real)
+(define-fun correctlyNetFundWealth () Real
+  (* strategyStart0 (+ 1 strategyReturn0)))
+(define-fun doubleChargedFundWealth () Real
+  (* strategyStart0 (- 1 duplicateFundExpense) (+ 1 strategyReturn0)))
+(push 1)
+(assert (and (> strategyStart0 0) (> (+ 1 strategyReturn0) 0)
+             (> duplicateFundExpense 0) (<= duplicateFundExpense 1)))
+(assert (>= doubleChargedFundWealth correctlyNetFundWealth))
+(check-sat)
+(pop 1)
+; Anti-vacuity: duplicate charging can reverse a genuine relative ranking.
+(push 1)
+(assert (and (= opening 10000) (= deposit0 0)
+             (= strategyReturn0 0.001) (= benchmarkReturn0 0)
+             (= duplicateFundExpense 0.002)
+             (> correctlyNetFundWealth benchmarkStart0)
+             (< doubleChargedFundWealth benchmarkStart0)))
+(check-sat)
+(pop 1)

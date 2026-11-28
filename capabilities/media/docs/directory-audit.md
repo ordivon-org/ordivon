@@ -309,6 +309,44 @@ Mature tools such as CrossHair, Kani, Verus, Quint and Pacti remain conditional
 choices driven by a concrete property and available implementation-refinement
 path, not mandatory installations.
 
+## 2026-11-08 VFR frame identity audit and native consumer
+
+The existing perception pipeline multiplied `pts_time` by an average FPS
+and rounded to recover a purported original frame number. This fails for
+VFR sources and can invent frames beyond the actual decoder count.
+`perception_video_io.py` now recovers frame identity from the native
+source-owned selection-step/filter-output index, and preserves the
+original native `pts_time` for sampled change peaks. Both
+`perception.py` and `rich_perception.py` share the thin rational
+`perception_timing.py` representation. Missing container `nb_frames`
+triggers native FFprobe `-count_frames` at execution rather than
+promoting duration*average-rate to exact count.
+
+Real FFmpeg VFR counterexample (20 decoded frames with PTS gap at frame
+10): original estimate 40, native frame count 20, exact sampled indexes
+5/10/15 and PTS 0.5/3.0/3.5. Native media/perception selected output
+and rich profile both consumed this source. Other selected frames not
+present in the sampled native metadata remain labeled
+`average-rate-estimate-not-source-pts`. Correctness is **bounded to
+the exact FFmpeg filter graph and native readback**; this is not a
+general VFR timecode engine, not a universal source decoder proof, and
+not a reason to add a separate media task runner.
+## P0 TimedText precision 鈥?2026-11-08
+
+A real `10000 Hz, ticks 1..2` source Cue exposed an invalid conversion to
+`00:00:00.000 --> 00:00:00.000`, violating the W3C WebVTT requirement
+that output end time exceed start. `timed_text.py` now converts using
+exact `Fraction` arithmetic and uses one shared positive-delivery guard
+in validator, WebVTT and SRT. The source ticks are not edited.
+
+Proof chain: specification (W3C cue order) -> Lean abstract quotient/
+remainder model `formal/TimedTextDeliveryPrecision.lean` -> bounded
+independent `divmod` Python implementation witness -> real
+`runtime-introduction` nine-Cue captions parsed by FFprobe, plus
+existing pinned `ttconv` smoke. Model proof does not establish general
+Python correctness, FFmpeg soundness, accessibility or publication.
+The existing R2.1 RenderQC contract and exact Git SourceCut remain the
+single capability/proof authority: no new engine or registry.
 ## 2026-11-08: exact Blob identity from one observed byte stream
 
 `assets.hash_file` used to hash one file handle, then read size via

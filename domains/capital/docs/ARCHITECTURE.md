@@ -2,8 +2,10 @@
 
 ## Finance Agent roles / Security authorization composition (2026-11-08)
 
-Finance retains seven source owners. Dynamic Agent roles are task
-instructions, not deployment identities or financial authority. A Research
+Finance has no required seven-Owner architecture. The seven existing Python
+source directories describe brownfield implementation, not a permanent Finance
+LEGO taxonomy. Dynamic Agent roles are task instructions, not deployment
+identities or financial authority. A Research
 Director may schedule Discovery, Quant Researcher, Independent Reviewer,
 Portfolio/Risk Challenger and Operations tasks through existing Harness
 and Runtime. No Finance Agent registry, policy engine, new role-owned database
@@ -105,7 +107,13 @@ Risk-data architecture uses BCBS 239 principles as the reference for source iden
 
 ## Composition-first rule
 
-Ordivon Capital owner domains adopt a mechanism only after contract-equivalent qualification. Venue APIs own market/account/order reality. The current bounded US-equity feasibility contract is owned by the small local fee-aware sizer after zero-mismatch differential qualification against current LEAN; LEAN remains an isolated historical/general trading-engine challenger because its latest candidate is functionally green but supply-chain blocked. NautilusTrader is likewise a challenger rather than a canonical core owner. Its rc4 executable qualification tools are isolated under tools/nautilus_rc4; canonical public-data, private-read preflight, and OKX provider-audit gates do not execute rc4. Nautilus-specific episode normalization/effect-matrix adapters are likewise candidate tools; the current non-live effect admission contract is provider-neutral and retains rc4 only as historical qualification evidence. FIX Latest / FIX Orchestra remains the order-semantic reference. The current legacy FIX 4.4 mechanics projection is a bounded local sessionless TagValue projector after 120/120 byte-exact QuickFIX/n comparisons; QuickFIX/n is retained only as a differential oracle and future real-session candidate. PostgreSQL 18.6 through psycopg 3 is the current **native-qualified Accounting implementation owner** in the source census, while installed-service cutover remains a distinct observed fact; legacy SQLite is confined to disposable historical regression consumers, and TigerBeetle remains a separately qualified distributed-accounting challenger. Prometheus 3.14.0 is a Capital observability candidate rather than a current owner. A 2026-09-21 live census found the old Market-Capital node-exporter/shared-Prometheus island inactive and the active Network v2 Prometheus had zero Capital series; the stale renderer/rules/textfile/drop-in were therefore retired instead of preserved as compatibility debt. Grafana/OpenTelemetry/OpenLineage likewise remain candidates until an active contract exists. See docs/COMPOSITION_FIRST_2026-09-14.md.
+Ordivon Capital owner domains adopt a mechanism only after contract-equivalent qualification. Venue APIs own market/account/order reality. The current bounded US-equity feasibility contract is owned by the small local fee-aware sizer after zero-mismatch differential qualification against current LEAN; LEAN remains an isolated historical/general trading-engine challenger because its latest candidate is functionally green but supply-chain blocked. NautilusTrader remains a non-live challenger, not a canonical live or broker engine.
+The pinned `nonlive` uv group uses NautilusTrader 2.0.0rc9 with the existing
+BacktestEngine-to-Capital reconciliation matrix under Finance Python 3.15.1:
+`mise run verify:nonlive:nautilus`. The explicit zero-rate fee schedule only
+qualifies order lifecycle and effect disposition; it is not a market-cost,
+ETF-execution, custody, settlement or profitability claim. Historical rc4 remains
+an isolated, separately pinned qualification for exact regression comparison. Its rc4 executable qualification tools are isolated under tools/nautilus_rc4; canonical public-data, private-read preflight, and OKX provider-audit gates do not execute rc4. Nautilus-specific episode normalization/effect-matrix adapters are likewise candidate tools; the current non-live effect admission contract is provider-neutral and retains rc4 only as historical qualification evidence. FIX Latest / FIX Orchestra remains the order-semantic reference. The current legacy FIX 4.4 mechanics projection is a bounded local sessionless TagValue projector after 120/120 byte-exact QuickFIX/n comparisons; QuickFIX/n is retained only as a differential oracle and future real-session candidate. PostgreSQL 18.6 through psycopg 3 is the current **native-qualified Accounting implementation owner** in the source census, while installed-service cutover remains a distinct observed fact; the old SQLite implementation and differential-only tests were retired, while TigerBeetle remains an external distributed-accounting candidate recorded in historical evidence rather than an executable current Owner. Prometheus 3.14.0 is a Capital observability candidate rather than a current owner. A 2026-09-21 live census found the old Market-Capital node-exporter/shared-Prometheus island inactive and the active Network v2 Prometheus had zero Capital series; the stale renderer/rules/textfile/drop-in were therefore retired instead of preserved as compatibility debt. Grafana/OpenTelemetry/OpenLineage likewise remain candidates until an active contract exists. See docs/COMPOSITION_FIRST_2026-09-14.md.
 
 ### Capital accounting substrate
 ### Capital accounting substrate
@@ -125,8 +133,36 @@ canonical Capital Accounting.
 Neither internal accounting substrate proves exchange settlement, legal
 ownership, withdrawability or venue trade reality. Reconciliation still
 distinguishes unknown effect (`NO_MUTATION`), authoritative proven no-effect
-(`VOID_PENDING_TRANSFER`) and positive execution
-(`POST_PENDING_TRANSFER`) without resurrecting terminal history.
+(`VOID_PENDING_TRANSFER`) and **fully reconciled exact-quantity execution**
+(`POST_PENDING_TRANSFER`) without resurrecting terminal history. A positive
+**partial** execution is PARTIAL_EXECUTION_UNSETTLED -> NO_MUTATION, including
+partial-fill-then-cancel: it must not post an entire pending reservation or
+void a reservation whose venue effect is positive. Trading retains the
+authoritative fill/remaining-quantity evidence until a separately qualified,
+amount-aware Accounting consumer exists. Venue trade IDs are deduplicated and
+an ambiguous reused client order ID never selects an arbitrary order.
+**One-time amount-aware terminal resolution (TigerBeetle two-phase contract).**
+The current Accounting PostgreSQL owner accepts a POST_PENDING_TRANSFER with
+an exact integer posted_amount in (0, reserved] and atomically removes the
+*entire reserved amount* from pending while posting only the observed amount.
+The difference becomes available headroom, not an independent phantom credit.
+POSTED is terminal even when the posted amount is smaller than reserved:
+another POST, VOID, or amount-changing replay cannot post again.
+DurableReservationHistory(CONSUMED, posted_amount=...) must match the exact
+read-back amount; absent explicit amount means the historical full-post case.
+Durable PG refinement requires the original pending transfer and terminal
+resolution to carry their actual persisted statuses; missing or inconsistent
+status is not a successful MATCH. Independent Z3 model obligations and
+disposable PostgreSQL concurrency
+tests cover this bounded invariant, not venue or source authenticity.
+
+Trading still returns PARTIAL_EXECUTION_UNSETTLED / NO_MUTATION for an
+incomplete or unauthenticated partial fill. Neither venue qty * price nor
+Accounting's accepted numeric posted_amount is financial truth by itself:
+only after Trading qualifies terminal fill/fee/currency evidence may an
+external effect consumer request a one-time amount-aware resolution. Live
+and Demo providers are **not automatically connected to this new authority**.
+
 For installed truth, inspect the actual Accounting owner/Runtime release
 and live service rather than inferring it from this architecture page.
 
@@ -169,7 +205,7 @@ Completion is not `send()` or an HTTP/FIX acknowledgement. The operational bound
 
 Expected and authoritative state must reconcile; otherwise the pending accounting state remains unchanged and recovery/reconciliation is required.
 
-PFMI and ISO 20022 remain reference semantics for external post-trade infrastructure. The Trading/Accounting domains do not implement a private clearing or settlement system absent a demonstrated substitution failure. Historical LEAN Wave-B runners and their algorithm build payload, plus TigerBeetle/Nautilus qualification runners, are isolated under tools as replay/candidate surfaces; their legacy class names and stable provider IDs are preserved for reproducibility but are not current scripts or runtime owners. The frozen wave_b/fixtures/wave_a_target_portfolio.json path remains intentionally retained as a provenance/regression identity.
+PFMI and ISO 20022 remain reference semantics for external post-trade infrastructure. The Trading/Accounting domains do not implement a private clearing or settlement system absent a demonstrated substitution failure. Historical LEAN Wave-B and TigerBeetle replay runners and their build payload were retired from the current tree after the source consumer audit: their exact code and historical IDs remain retrievable from Git revision ef17d6879d12faa61fff3bb762b0d500d73c9113. Nautilus rc4 qualification tools remain isolated under tools as a historical candidate pending a separate current-consumer decision. None is a current canonical runtime owner. The frozen wave_b/fixtures/wave_a_target_portfolio.json path remains intentionally retained as a provenance/regression identity.
 
 
 ## 7. Crypto venue lane
@@ -219,3 +255,71 @@ by a retrospective paper replay or by this repository.
 unreferenced as execution/acceptance contracts; retain current source
 contracts and observed consumers instead of updating long historical
 status paragraphs every time one vendor version or network route changes.
+
+## Finance R3 isolated scientific/native Paper qualification (2026-11-12)
+
+The existing `adoption/r3_native/` subtree is a **research and disposable-test**
+consumer of mature OpenBB, Qlib, NautilusTrader, Riskfolio and PostgreSQL
+capabilities. It does not declare these packages canonical production owners,
+and it does not replace Capital's existing Trading OMS, Accounting ledger,
+Portfolio or Security authorization. Logical LEGO responsibilities are not
+service or mandatory agent boundaries.
+
+The Qlib H5/H20 next-open labels and Nautilus simulated BUY/HOLD/SELL are
+economically time-aligned for the fixed historical test, and the same Paper
+Session inputs are replayed through `PostgresPaperClose` in a disposable test
+instance with physical stop/restart and receipt readback. These tests consume
+retrospectively collected, unadjusted ETF bars and test-only synthetic quote
+spreads / caller-supplied valuation marks. They do not prove historical
+point-in-time availability, source redistribution rights, calibrated forecasts,
+production account binding, real brokerage effects, or investment authority.
+
+**Accounting authority remains in `src/ordivon_capital/accounting/`:** the
+canonical PostgreSQL Paper reader validates predecessor receipt commitments,
+recomputes the persisted valuation and compares head cash to the ledger; no
+research-side weaker implementation may replace these controls. Review
+`adoption/r3_native/PR_REVIEW_NATIVE_PG_R5.md` for precise native Jobs and
+remaining UNKNOWNs. An isolated test is not a deployment or live-money grant.
+
+## Finance implementation update — 2026-11-21, current Git source
+
+The original 2026-11-16 Architecture R1 section is preserved in Git history,
+not in the current execution guide. Its former proposals are not a work queue. Its report that Qlib consumers select the
+first arbitrary CSV value is now RESOLVED: current native and Accounting
+consumers require the named NEXT_OPEN score and matching H5/H20 exit semantics.
+
+The adopted Finance module boundary is now narrower and agent-navigable:
+risk/risk_limit_evaluation.py owns numeric risk limits;
+portfolio/scenario_evidence.py owns read-only scenario evidence completeness;
+governance/live_test_account.py owns read-only Live test-account qualification;
+governance/policy_decision.py owns actual execution permission;
+governance/decision_inputs.py owns only shared input parsing and error types.
+Risk and Portfolio calculation no longer load external-write policy files.
+The applications/ package is a composition layer, not an eighth Capital
+domain: applications/paper_simulation_run.py composes Portfolio mandate +
+Governance NON_LIVE decision + Accounting PG close, while
+applications/nautilus_paper_bridge.py translates native Nautilus effects to
+the Paper accounting input. No old import-only shims remain.
+The follow-up read-only Paper entrypoint split keeps
+risk/paper_close_risk.py, portfolio/paper_close_performance.py and
+portfolio/paper_contribution_plan.py free of direct PG/CLI I/O; application
+consumers paper_risk_cli, paper_performance_cli and paper_contribution_cli
+own CLI parsing, source readback and presentation orchestration.
+
+
+Regression acceptance is based on observable economic outcomes, source/cut
+semantics, PG idempotency, and an actual acyclic core-domain AST dependency
+graph. A source-file inventory test is not a behavioral acceptance criterion.
+For any future baseline, re-run the dependency graph and tests on the current
+main, not on this historical document.
+
+## 2026-11-21 PIT-to-Portfolio boundary extraction (source candidate)
+
+The evidence-only Research producer remains `research/pit_joint_forecast.py` and
+retains `from_json_payload`, while `applications/pit_portfolio.py` consumes its
+optimizer-input contract and invokes the existing `portfolio.multistage_policy`
+solver. The original mixed Research `--solve` CLI moves to the application
+entrypoint; the Research CLI remains evidence-only. No optimizer, PG ledger,
+market provider, execution or order authority is duplicated. Qualification
+requires existing PIT/ETF consumer tests and a regression on forecast evidence
+and conditional allocation; historical PIT and alpha remain unproven.

@@ -35,6 +35,8 @@ def invalid(s,x):
 ({**good_tool(),"nonClaims":[]},False),
 ({**good_tool(),"reuseDisposition":"PROMOTE_LEGO"},False),
 ({**good_tool(),"effectClass":"external_mutation"},False),
+({**good_tool(),"effectClass":"other_separately_authorized"},False),
+({**good_tool(),"effectClass":"other_separately_authorized","effectAuthorizationOwnerRef":"owner:effect"},True),
 ])
 def test_tool_qualification_packet_contract(ts,x,ok):
     (valid if ok else invalid)(ts,x)

@@ -1,0 +1,11 @@
+{
+  "kind": "ordivon.network.historical-consumer-trial-hints",
+  "observedAtUtc": "2026-11-13T18:56:00Z",
+  "expiresAtUtc": "2026-11-20T18:56:00Z",
+  "candidates": [],
+  "coldTrialCountries": [
+    "Singapore",
+    "Japan",
+    "Malaysia"
+  ]
+}

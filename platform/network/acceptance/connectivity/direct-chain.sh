@@ -75,11 +75,22 @@ test "$(sha256sum "$TMP/5m.download" | awk '{print $1}')" = "$ORIGIN_SHA"
 printf 'deterministic-longflow %s\n' "$meta"
 
 # Concurrent connection admission: no request may silently fall out of the proxy.
+probe_pids=()
 for i in 1 2 3 4; do
   (curl --fail --silent --show-error --proxy http://127.0.0.1:28081 --connect-timeout 5 --max-time 20 \
      -o "$TMP/c.$i" https://example.com/ && grep -qi 'Example Domain' "$TMP/c.$i") &
+  probe_pids+=("$!")
 done
-wait
+probe_failures=0
+for pid in "${probe_pids[@]}"; do
+  if ! wait "$pid"; then
+    probe_failures=$((probe_failures + 1))
+  fi
+done
+if (( probe_failures > 0 )); then
+  printf 'concurrent-admission=FAIL failed=%s\n' "$probe_failures" >&2
+  exit 1
+fi
 
 start_sb "$SB4_UNIT" "$TMP/v4.json" 28082
 probe_example 28082

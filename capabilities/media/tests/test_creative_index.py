@@ -97,8 +97,14 @@ class CreativeIndexTests(unittest.TestCase):
         # Real consumers need to navigate a digest to its declaring Work even
         # when the bytes live in external CAS/R2 rather than this Git tree.
         index = build_creative_index(ROOT)
+        current_runtime = json.loads(
+            (ROOT / "productions/runtime-introduction/production.json").read_text(encoding="utf-8")
+        )
+        runtime_output = next(
+            item for item in current_runtime["outputs"] if item["id"] == "runtime-film-en-landscape"
+        )
         examples = {
-            "7d994f80627968f4e64a3a53c08d5241bb8f398e17d52c24080f935e7c716430": "runtime-introduction",
+            runtime_output["blobDigest"].removeprefix("sha256:"): "runtime-introduction",
             "22ba47ac9c66514dcd0c20520db9fa6b4d377d912dd1cc5aa3c90306ad70f3a9": "ordivon-book-v0",
             "174654d531bf75459d9627f73ac6daab1a13a212f09d36e1a17a328dda84a5f7": "ordivon-book-v0",
         }
@@ -546,6 +552,37 @@ class CreativeIndexTests(unittest.TestCase):
         ids = {row["id"] for row in result["nodes"]}
         self.assertIn("source:x", ids)
         self.assertNotIn("evidence:unrelated", ids)
+
+    def test_query_is_bounded_and_endpoint_closed(self) -> None:
+        for kind in ("Work", "Source"):
+            with self.subTest(kind=kind):
+                index = {
+                    "nodes": [{"id": "hub", "kind": "Work", "name": "needle"}] + [
+                        {"id": f"leaf:{i:03}", "kind": kind} for i in range(260)
+                    ],
+                    "relations": [
+                        {"from": "hub", "to": f"leaf:{i:03}", "type": "related", "evidence": "x"}
+                        for i in range(260)
+                    ],
+                }
+                result = query_creative_index(index, "needle")
+                ids = {node["id"] for node in result["nodes"]}
+                self.assertEqual(len(ids), 250)
+                self.assertTrue(result["truncated"])
+                self.assertTrue(all(r["from"] in ids and r["to"] in ids for r in result["relations"]))
+                self.assertEqual(len(result["relations"]), 249)
+
+    def test_query_caps_initial_matches_and_relation_budget(self) -> None:
+        nodes = [{"id": f"n:{i:03}", "kind": "Work", "name": "needle"} for i in range(260)]
+        relations = [
+            {"from": "n:000", "to": "n:001", "type": "related", "evidence": str(i)}
+            for i in range(501)
+        ]
+        result = query_creative_index({"nodes": nodes, "relations": relations}, "needle")
+        self.assertEqual(len(result["nodes"]), 250)
+        self.assertLessEqual(len(result["relations"]), 500)
+        self.assertTrue(result["truncated"])
+        self.assertEqual(result, query_creative_index({"nodes": nodes, "relations": relations}, "needle"))
 
     def test_query_returns_matching_nodes_and_bounded_neighbors(self) -> None:
         index = build_creative_index(ROOT)

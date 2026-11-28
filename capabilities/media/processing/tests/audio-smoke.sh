@@ -2,9 +2,7 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/../.." && pwd)
-work="$root/.tmp/processing-audio-smoke"
-rm -rf "$work"
-mkdir -p "$work"
+work=$(mktemp -d "${TMPDIR:-/tmp}/ordivon-media-audio-smoke.XXXXXX")
 trap 'rm -rf "$work"' EXIT
 
 profile="$root/processing/profiles/audio-program-48k-mono-lufs23.json"

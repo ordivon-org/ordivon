@@ -1,0 +1,13 @@
+[ordivon]
+pg1-path={{ operations_postgres_data_dir }}
+pg1-port={{ operations_postgres_port }}
+pg1-socket-path={{ operations_postgres_socket }}
+
+[global]
+repo1-path=/var/lib/pgbackrest
+repo1-retention-full=7
+start-fast=y
+process-max=2
+compress-type=zst
+compress-level=3
+log-path=/var/log/pgbackrest

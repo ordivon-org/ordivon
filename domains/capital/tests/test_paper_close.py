@@ -1,5 +1,6 @@
 """Observable paper cash, fill and valuation invariants across a restart."""
 
+import json
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from datetime import date, datetime
@@ -39,6 +40,86 @@ def test_paper_cash_settlement_does_not_create_or_destroy_nav():
     assert settled.cash_minor == 899_900
     assert settled.payable_minor == 0
     assert settled.protected_minor == 300_000
+
+
+def test_paper_cash_formal_equations_refine_mixed_buy_sell_settlement() -> None:
+    """Actual value_session consumer witnesses the one-step SMT field map.
+
+    The SMT model proves aggregate integer algebra; this test witnesses one
+    concrete code path with old/new payables and receivables simultaneously.
+    It is not a universal Python-to-SMT refinement theorem. Explicit dates
+    are synthetic pure-Accounting inputs, not qualified US ETF settlements.
+    """
+    start = date(2026, 1, 6)
+    buy_day = date(2026, 1, 7)
+    sale_day = date(2026, 1, 8)
+    both_due = date(2026, 1, 9)
+
+    def buy(fill_id: str, prev_date: date, day: date, amount: int, due: date):
+        return paper_close.PaperBuy(
+            fill_id, "ETF", amount, 10_000, 100,
+            datetime.fromisoformat(f"{prev_date}T16:15:00-05:00"),
+            datetime.fromisoformat(f"{day}T09:30:00-05:00"),
+            settlement_date=due,
+        )
+
+    def sell(fill_id: str, prev_date: date, day: date, due: date):
+        return paper_close.PaperSell(
+            fill_id, "ETF", 1, 12_000, 100,
+            datetime.fromisoformat(f"{prev_date}T16:15:00-05:00"),
+            datetime.fromisoformat(f"{day}T09:30:00-05:00"),
+            settlement_date=due,
+        )
+
+    opening = paper_close.value_session(
+        None, paper_close.PaperSession(start, None, 150_000, 20_000, {}, ())
+    )
+    first = paper_close.value_session(
+        opening, paper_close.PaperSession(
+            buy_day, start, 0, 0, {"ETF": 10_000},
+            (buy("buy-old", start, buy_day, 5, both_due),),
+        )
+    )
+    before = paper_close.value_session(
+        first, paper_close.PaperSession(
+            sale_day, buy_day, 0, 0, {"ETF": 12_000}, (),
+            sells=(sell("sale-old", buy_day, sale_day, both_due),),
+        )
+    )
+    day = paper_close.PaperSession(
+        both_due, sale_day, 0, 0, {"ETF": 12_000},
+        (buy("buy-new", sale_day, both_due, 1, date(2026, 1, 13)),),
+        sells=(sell("sale-new", sale_day, both_due, date(2026, 1, 13)),),
+    )
+    after = paper_close.value_session(before, day)
+    due_buy = sum(before.payable_due_on(day.session).values())
+    due_sale = sum(before.receivable_due_on(day.session).values())
+    new_buy = sum(fill.cost_minor for fill in day.buys)
+    new_sale = sum(fill.proceeds_minor for fill in day.sells)
+    before_mark = before.nav_minor - before.cash_minor + before.payable_minor - before.receivable_minor
+    after_mark = sum(shares * day.marks[symbol] for symbol, shares in after.positions.items())
+
+    assert due_buy == 50_100 and due_sale == 11_900
+    assert after.cash_minor == before.cash_minor - due_buy + due_sale
+    assert after.payable_minor == before.payable_minor - due_buy + new_buy
+    assert after.receivable_minor == before.receivable_minor - due_sale + new_sale
+    assert after.protected_minor == before.protected_minor
+    assert (
+        after.nav_minor - before.nav_minor
+        == -new_buy + new_sale + after_mark - before_mark
+    )
+    assert after.cash_minor - after.payable_minor - due_sale >= after.protected_minor
+    # The incorrect guard would admit this buy using 11,900 cents settling
+    # today, even though they were not buying power at the intraday fill.
+    too_early = buy("buy-too-early", sale_day, both_due, 9, date(2026, 1, 13))
+    hypothetical_cash = before.cash_minor - due_buy + due_sale
+    hypothetical_payable = before.payable_minor - due_buy + too_early.cost_minor
+    assert hypothetical_cash - hypothetical_payable >= before.protected_minor
+    assert hypothetical_cash - hypothetical_payable - due_sale < before.protected_minor
+    with pytest.raises(ValueError, match="protected cash"):
+        paper_close.value_session(
+            before, replace(day, buys=(too_early,), sells=())
+        )
 
 
 def test_paper_valuation_must_fit_the_risk_receipt_integer_domain():
@@ -230,7 +311,25 @@ def test_postgres_paper_receipt_binds_admitted_market_bytes():
     assert receipt["valuation"]["nav_minor"] == 1_001_900
     with pytest.raises(ValueError, match="inline marks"):
         store.close_session(account, day1, mark_snapshot=snapshot)
-    changed_binding = admit("2026-01-09T18:00:00Z")
+    # A caller cannot change the real XNYS close time to manufacture a
+    # new admissible source. Retain the original PG conflict test by
+    # changing an independently hash-bound synthetic PRICE instead.
+    with pytest.raises(ValueError, match="XNYS"):
+        admit("2026-01-09T18:00:00Z")
+    revised = json.loads(raw)
+    revised["marks"][0]["priceMinor"] += 1
+    revised["supersedesSha256"] = digest
+    revised_raw = dumps(revised).encode()
+    changed_binding = admit_etf_eod_snapshot(
+        revised_raw,
+        expected_sha256="sha256:" + sha256(revised_raw).hexdigest(),
+        expected_source_id="synthetic-fixture",
+        expected_rights_ref="fixture",
+        expected_corporate_actions_ref="fixture",
+        expected_instruments=["ETF"],
+        expected_session_closes={"2026-01-09": close_at},
+        decision_at=observed_at,
+    )
     with pytest.raises(ValueError, match="conflicting"):
         store.close_session(account, replace(day1, marks={}), mark_snapshot=changed_binding)
 
@@ -381,3 +480,47 @@ def test_paper_open_payable_cannot_be_reidentified_as_sale_receivable():
         paper_close.value_session(
             purchased, replace(day2, sells=(sale,), marks={}),
         )
+
+
+
+def test_disposable_pg_rejects_a_forged_etf_session_before_ledger_write():
+    """A typed dataclass without Markets admission cannot invent exchange days."""
+    dsn = environ.get("ORDIVON_CAPITAL_PAPER_PG_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable paper PostgreSQL DSN required")
+    from datetime import UTC
+
+    from ordivon_capital.accounting.postgres_paper_close import (
+        PostgresPaperClose,
+        read_latest_committed_paper_close,
+    )
+    from ordivon_capital.markets.etf_eod_snapshot import (
+        AdmittedEtfEodSnapshot,
+        EtfCloseMark,
+    )
+
+    account = "fake-xnys-" + uuid4().hex
+    store = PostgresPaperClose(dsn)
+    captured = datetime.fromisoformat("2026-11-14T08:00:00+00:00")
+    assert captured.utcoffset() == UTC.utcoffset(captured)
+
+    for day, operator_close in (
+        ("2025-05-26", "2025-05-26T20:00:00+00:00"),  # US market closed
+        ("2025-11-28", "2025-11-28T21:00:00+00:00"),  # early close 18:00Z
+    ):
+        mark = EtfCloseMark(
+            day, "SPY", 10_000, datetime.fromisoformat(operator_close),
+            captured, "FIRST_OBSERVED",
+        )
+        # A caller can instantiate a dataclass directly. The Paper consumer
+        # must NEVER assume type membership authenticates the market calendar.
+        forged = AdmittedEtfEodSnapshot(
+            "sha256:" + "1" * 64, "forged-only", "test", "test",
+            captured, captured, None, (mark,),
+        )
+        paper_day = paper_close.PaperSession(
+            date.fromisoformat(day), None, 1_000_000, 900_000, {}, (),
+        )
+        with pytest.raises(ValueError, match="XNYS"):
+            store.close_session(account, paper_day, mark_snapshot=forged)
+        assert read_latest_committed_paper_close(dsn, account) is None

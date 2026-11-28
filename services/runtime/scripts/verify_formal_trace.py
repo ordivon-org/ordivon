@@ -50,6 +50,73 @@ REQUIRED_MODEL_BINDINGS = {
 }
 REQUIRED_RUNTIME_INVARIANT_BINDINGS = {"I05", "I11"}
 
+# The PG-native slice observes bounded contracts, not full model refinement.
+# Keep one verifier; the original trace remains the explicit legacy slice.
+NATIVE_PROFILE_FEATURES = {"legacy": "transactional-runtime", "pg": "postgres-registry-admission"}
+PG_WITNESS_ROLES = {
+    "PG.providerContract": "always-on",
+    "PG.terminalContract": "always-on",
+    "PG.terminalProjection": "always-on",
+    "PG.orphanProjection": "always-on",
+    "PG.dispatchCAS": "physical-opt-in",
+    "PG.admissionUnique": "physical-opt-in",
+    "PG.terminalOrphanCAS": "physical-opt-in",
+    "PG.staleTerminal": "physical-opt-in",
+    "PG.composedTerminal": "physical-opt-in",
+}
+
+
+def native_profile_trace(trace: dict[str, Any], profile: str) -> dict[str, Any]:
+    if profile == "legacy":
+        return trace
+    if profile != "pg":
+        raise ValueError(f"unknown native witness profile: {profile}")
+    rows = trace["pgNativeWitnesses"]
+    return {
+        "contractSeams": [],
+        "supportingContracts": trace["supportingContracts"],
+        "provingTests": [row for row in rows if row["evidenceMode"] == "always-on"],
+        "conditionalAcceptanceTests": [row for row in rows if row["evidenceMode"] == "physical-opt-in"],
+    }
+
+
+def validate_pg_witnesses(trace: dict[str, Any]) -> list[str]:
+    rows = trace.get("pgNativeWitnesses")
+    if not isinstance(rows, list) or len(rows) != len(PG_WITNESS_ROLES) or set(_ids(rows)) != set(PG_WITNESS_ROLES):
+        return ["PG native witness identities missing or duplicated"]
+    errors = []
+    identities = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            return ["PG native witness is not an object"]
+        identity = row["id"]
+        mode = row.get("evidenceMode")
+        if mode != PG_WITNESS_ROLES[identity]:
+            errors.append(f"PG native witness {identity} has invalid evidence role")
+        path, symbol = row.get("path"), row.get("symbol")
+        if not isinstance(path, str) or not isinstance(symbol, str):
+            errors.append(f"PG native witness {identity} has incomplete source identity")
+            continue
+        if (path, symbol) in identities:
+            errors.append(f"PG native witness {identity} duplicates another native case")
+        identities.add((path, symbol))
+        errors.extend(require_test_source(ROOT / path, symbol))
+        relations = row.get("modelRelations")
+        if not isinstance(relations, list) or not relations or any(
+            not isinstance(x, str) or x not in REQUIRED_MODEL_BINDINGS | REQUIRED_SUPPORTING_CONTRACTS
+            for x in relations
+        ):
+            errors.append(f"PG native witness {identity} has invalid model relations")
+        if not isinstance(row.get("scope"), str) or not row["scope"].strip():
+            errors.append(f"PG native witness {identity} lacks bounded scope")
+        if mode == "physical-opt-in":
+            if not symbol.startswith("pg18_"):
+                errors.append(f"PG native witness {identity} is not selected by physical PG18 lane")
+            if not isinstance(row.get("condition"), str) or not row["condition"].strip():
+                errors.append(f"PG native witness {identity} lacks physical qualification condition")
+    return errors
+
+
 
 # These are the actual existing RuntimeDispatchR1.cfg obligations, not a
 # substitute for TLC. Their independent currentness check prevents a
@@ -487,6 +554,7 @@ def validate(trace: dict[str, Any], invariant_manifest: dict[str, Any]) -> list[
     ):
         errors.append("trace manifest lost explicit refinement non-claim")
 
+    errors.extend(validate_pg_witnesses(trace))
     return errors
 
 
@@ -503,6 +571,35 @@ _ROOT_BUILD_INPUTS = frozenset(
         "mise.lock",
     }
 )
+
+
+# Cargo/rustup/mise may resolve inputs in ancestors between the owner root
+# and repository root, even when those paths did not exist at the base cut.
+# Keep one scope for both change projection and physical checkout checks.
+_ANCESTOR_BUILD_INPUTS = frozenset(
+    prefix + name for prefix in ("", "services/") for name in _ROOT_BUILD_INPUTS
+)
+_ANCESTOR_CARGO_DIRS = (".cargo", "services/.cargo")
+
+
+def _ancestor_build_input(path: str) -> bool:
+    return path in _ANCESTOR_BUILD_INPUTS or any(
+        path == directory or path.startswith(directory + "/")
+        for directory in _ANCESTOR_CARGO_DIRS
+    )
+
+
+def _exact_source_git_environment() -> dict[str, str]:
+    """Bind Git to the explicit checkout and literal ancestry, not parent overrides."""
+    import os
+
+    # Same native Git semantics as tools/repo/source_history_legos.py:
+    # inherited GIT_WORK_TREE/GIT_DIR/GIT_INDEX_FILE/config may redirect source.
+    # Disable local graft ancestry and replacement semantics in child processes.
+    env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+    env["GIT_GRAFT_FILE"] = os.devnull
+    env["GIT_NO_REPLACE_OBJECTS"] = "1"
+    return env
 
 
 def _native_libtest_depfile_receipt(executable: Path, source_head: str) -> dict[str, Any]:
@@ -534,22 +631,66 @@ def _native_libtest_depfile_receipt(executable: Path, source_head: str) -> dict[
         raise ValueError("compiler depfile libtest target/readset mismatch")
     if not first_sources or len(first_sources) != len(set(first_sources)) or len(first_sources) > 4096:
         raise ValueError("compiler depfile source cardinality invalid")
-    phony_rules = [line for line in lines[1:] if line and not line.startswith(str(executable) + ": ")]
+    # Cargo's parse_rustc_dep_info recognizes '# env-dep:' separately
+    # from file rules. Qualify the one observed PG source-build dependency
+    # against the actual checkout, rather than silently dropping comments.
+    # Unreviewed environment variables remain UNKNOWN; do not leak values.
+    compiler_environment = {}
+    phony_rules = []
+    for line in lines[1:]:
+        if not line or line.startswith(str(executable) + ": "):
+            continue
+        if line.startswith("# env-dep:"):
+            name, separator, value = line.removeprefix("# env-dep:").partition("=")
+            if (
+                name != "CARGO_MANIFEST_DIR"
+                or not separator
+                or name in compiler_environment
+                or value != str(ROOT.resolve(strict=True) / "crates/ordivon-runtime-core")
+            ):
+                raise ValueError("compiler environment dependency unqualified")
+            compiler_environment[name] = hashlib.sha256(value.encode("utf-8")).hexdigest()
+        else:
+            phony_rules.append(line)
     if sorted(phony_rules) != sorted(f"{source}:" for source in first_sources):
         raise ValueError("compiler depfile phony source rules disagree")
     # rustc -Z binary-dep-depinfo is not assumed: generated sources/build.rs,
     # toolchain and dynamic directory membership remain independent obligations.
     repo = ROOT.parents[1]
-    rows = []
+    rows = {}
+    raw_paths_by_git_path = {}
     for name in first_sources:
-        if not name.startswith("crates/") or os.path.isabs(name) or "\\" in name:
+        if "\\" in name:
             raise ValueError("compiler dependency outside accepted Runtime source")
-        relative = os.path.normpath(name)
+        if os.path.isabs(name):
+            # rustc records absolute include_str! input when Cargo's
+            # package manifest directory was embedded in the expression.
+            # Only the exactly bound current package, with no lexical
+            # alias/parent traversal, is an admissible absolute input.
+            package = ROOT.resolve(strict=True) / "crates/ordivon-runtime-core"
+            if (
+                "CARGO_MANIFEST_DIR" not in compiler_environment
+                or not name.startswith(str(package) + "/")
+                or name != os.path.normpath(name)
+            ):
+                raise ValueError("compiler absolute dependency outside qualified package")
+            relative = str(Path(name).relative_to(ROOT.resolve(strict=True)))
+        elif name.startswith("crates/"):
+            relative = os.path.normpath(name)
+        else:
+            raise ValueError("compiler dependency outside accepted Runtime source")
         absolute = ROOT / relative
         if not relative.startswith("crates/") or not absolute.is_file() or absolute.is_symlink():
             raise ValueError("compiler dependency absent or outside Runtime source")
-        if absolute.resolve(strict=True) != ROOT.resolve(strict=True) / relative:
-            raise ValueError("compiler source path alias")
+        canonical_absolute = ROOT.resolve(strict=True) / relative
+        # Resolve the original spelling as well as its normalized path.
+        # Otherwise a symlink before ".." can be erased by normpath.
+        try:
+            raw_absolute = Path(name) if os.path.isabs(name) else ROOT / name
+            if absolute.resolve(strict=True) != canonical_absolute or raw_absolute.resolve(strict=True) != canonical_absolute:
+                raise ValueError("compiler source path alias")
+        except OSError as error:
+            raise ValueError("compiler dependency absent or path alias") from error
         git_path = "services/runtime/" + relative.replace(os.sep, "/")
         found = subprocess.run(
             ["git", "--no-replace-objects", "-C", str(repo), "ls-tree", source_head, "--", git_path],
@@ -557,6 +698,7 @@ def _native_libtest_depfile_receipt(executable: Path, source_head: str) -> dict[
             text=True,
             check=True,
             timeout=20,
+            env=_exact_source_git_environment(),
         ).stdout.rstrip("\n")
         parts = found.split("\t", 1)
         if len(parts) != 2 or parts[1] != git_path:
@@ -567,25 +709,43 @@ def _native_libtest_depfile_receipt(executable: Path, source_head: str) -> dict[
         committed = subprocess.check_output(
             ["git", "--no-replace-objects", "-C", str(repo), "show", f"{source_head}:{git_path}"],
             timeout=20,
+            env=_exact_source_git_environment(),
         )
         if hashlib.sha256(absolute.read_bytes()).digest() != hashlib.sha256(committed).digest():
             raise ValueError("compiler dependency physical/Git blob mismatch")
-        rows.append((git_path, header[2]))
-    if len({path for path, _ in rows}) != len(rows):
-        raise ValueError("compiler depfile source path normalization collision")
-    canonical = json.dumps(sorted(rows), separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        spellings = raw_paths_by_git_path.setdefault(git_path, [])
+        if spellings:
+            # One exact absolute/relative pair is an observed rustc
+            # include_str representation, not a second source. Both
+            # spellings independently passed physical and Git blob checks.
+            # Unreviewed alias multiplicities and conflicting blobs fail.
+            if (
+                len(spellings) != 1
+                or os.path.isabs(spellings[0]) == os.path.isabs(name)
+                or rows[git_path] != header[2]
+            ):
+                raise ValueError("compiler depfile source path normalization collision")
+        spellings.append(name)
+        rows[git_path] = header[2]
+    canonical = json.dumps(sorted(rows.items()), separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    aliases = {path: sorted(names) for path, names in raw_paths_by_git_path.items() if len(names) > 1}
     return {
         "sourceHead": source_head,
         "executableSha256": hashlib.sha256(executable.read_bytes()).hexdigest(),
         "depfileSha256": hashlib.sha256(contents.encode("utf-8")).hexdigest(),
         "sourceGitBlobsDigest": hashlib.sha256(canonical).hexdigest(),
-        "sourcePaths": sorted(path for path, _ in rows),
+        "compilerEnvironmentDigest": _native_execution_context_digest(compiler_environment),
+        "compilerEnvironmentNames": sorted(compiler_environment),
+        "rawSourcePathCount": len(first_sources),
+        "canonicalAliasPaths": sorted(aliases),
+        "compilerSourceAliasDigest": _native_execution_context_digest(aliases),
+        "sourcePaths": sorted(rows),
         "scope": "one-cargo-libtest-rustc-depfile; external/build/dynamic-completeness-UNKNOWN",
         "proofReuseAdmissible": False,
     }
 
 
-def _qualify_current_compiler_readset(source_head: str) -> dict[str, Any]:
+def _qualify_current_compiler_readset(source_head: str, profile: str = "legacy") -> dict[str, Any]:
     """Reuse the existing Cargo artifact selector for one bound libtest depfile."""
     import os
     import subprocess
@@ -606,7 +766,7 @@ def _qualify_current_compiler_readset(source_head: str) -> dict[str, Any]:
             "ordivon-runtime-core",
             "--no-default-features",
             "--features",
-            "transactional-runtime",
+            NATIVE_PROFILE_FEATURES[profile],
             "--lib",
             "--no-run",
             "--message-format=json",
@@ -616,12 +776,12 @@ def _qualify_current_compiler_readset(source_head: str) -> dict[str, Any]:
         text=True,
         timeout=180,
         check=False,
-        env={**os.environ, "CARGO_TERM_COLOR": "never"},
+        env={**_exact_source_git_environment(), "CARGO_TERM_COLOR": "never"},
         pass_fds=fds,
     )
     if result.returncode:
         raise ValueError("native compiler artifact selection failed")
-    artifact = _native_cargo_test_artifact(result.stdout)
+    artifact = _native_cargo_test_artifact(result.stdout, profile)
     expected = (ROOT / "crates/ordivon-runtime-core/src/lib.rs").resolve(strict=True)
     if Path(artifact["target"]["src_path"]).resolve(strict=True) != expected:
         raise ValueError("Cargo selected unexpected libtest source")
@@ -630,6 +790,7 @@ def _qualify_current_compiler_readset(source_head: str) -> dict[str, Any]:
     if not binary.resolve(strict=True).is_relative_to(expected_root):
         raise ValueError("Cargo libtest artifact outside target directory")
     receipt = _native_libtest_depfile_receipt(binary, source_head)
+    receipt["implementationProfile"] = profile
     if _qualified_native_source_head() != source_head:
         raise ValueError("compiler source changed during Cargo artifact selection")
     return receipt
@@ -641,6 +802,7 @@ def project_proving_test_source_readsets(
     compiler_inputs: set[str] | None = None,
     *,
     source_cut: str | None = None,
+    profile: str = "legacy",
 ) -> dict[str, Any]:
     """Project Runtime-owned source readsets without making an impact decision.
 
@@ -670,6 +832,16 @@ def project_proving_test_source_readsets(
         owned("planning/invariants-r1.json"),
         owned("scripts/verify_formal_trace.py"),
         owned("scripts/tests/test_formal_trace.py"),
+        # The actual Cargo --locked workspace invocation consumes these
+        # positive build inputs even though rustc dep-info only names the
+        # selected libtest source files. This is deliberately conservative:
+        # the workspace lock/manifest may affect resolution without changing
+        # a particular compiled witness's behavior.
+        owned("Cargo.lock"),
+        owned("Cargo.toml"),
+        owned("rust-toolchain.toml"),
+        owned("crates/ordivon-runtime-core/Cargo.toml"),
+        owned("crates/ordivon-runtime-mcp/Cargo.toml"),
         # The formal model evidence is consumed through the pinned TLC runner.
         # These shared checker inputs are distinct from individual Rust witnesses.
         owned("formal/toolchain.lock.json"),
@@ -678,22 +850,30 @@ def project_proving_test_source_readsets(
         owned(trace["formalSpecification"]["modulePath"]),
         owned(trace["formalSpecification"]["configPath"]),
     }
-    for item in invariant_manifest.get("invariants", []):
-        if item.get("id") in REQUIRED_RUNTIME_INVARIANT_BINDINGS:
-            for ref in item.get("proof", []):
-                if isinstance(ref, str) and "::" in ref:
-                    common.add(owned(ref.split("::", 1)[0]))
+    if profile == "legacy":
+        for item in invariant_manifest.get("invariants", []):
+            if item.get("id") in REQUIRED_RUNTIME_INVARIANT_BINDINGS:
+                for ref in item.get("proof", []):
+                    if isinstance(ref, str) and "::" in ref:
+                        common.add(owned(ref.split("::", 1)[0]))
 
+    selected = native_profile_trace(trace, profile)
     carriers = {
         item["id"]: owned(item["path"])
         for key in ("contractSeams", "supportingContracts")
-        for item in trace[key]
+        for item in selected[key]
     }
     readsets: dict[str, set[str]] = {}
-    for witness in trace["provingTests"]:
+    witnesses = selected["provingTests"]
+    if profile == "pg":
+        witnesses = [*witnesses, *selected["conditionalAcceptanceTests"]]
+    for witness in witnesses:
         files = set(common)
         files.add(owned(witness["path"]))
-        files.update(carriers[target] for target in witness["proves"] if target in carriers)
+        targets = witness["modelRelations"] if profile == "pg" else witness["proves"]
+        files.update(carriers[target] for target in targets if target in carriers)
+        if profile == "pg" and witness["evidenceMode"] == "physical-opt-in":
+            files.add(owned("scripts/pg_disposable_physical.py"))
         readsets[witness["id"]] = files
 
     if compiler_inputs is not None:
@@ -712,6 +892,7 @@ def project_proving_test_source_readsets(
 
     evidence: dict[str, Any] = {
         "kind": "ordivon.source-readset-evidence",
+        "implementationProfile": profile,
         "truthRole": "runtime-owner-source-readsets-not-proof-or-consumer-authority",
         "scopePrefix": prefix,
         "items": [
@@ -748,6 +929,8 @@ def project_proving_test_source_impact(
     invariant_manifest: dict[str, Any],
     changed_paths: set[str],
     compiler_inputs: set[str] | None = None,
+    *,
+    profile: str = "legacy",
 ) -> dict[str, Any]:
     """Rebuild one Runtime-owned Git-source impact projection, never proof reuse."""
 
@@ -763,7 +946,7 @@ def project_proving_test_source_impact(
         raise ValueError("impact changed paths must be exact normalized Git paths")
 
     readset_evidence = project_proving_test_source_readsets(
-        trace, invariant_manifest, compiler_inputs
+        trace, invariant_manifest, compiler_inputs, profile=profile
     )
     readsets = {
         item["id"].removeprefix("proof:runtime:"): set(item["sourcePaths"])
@@ -777,7 +960,7 @@ def project_proving_test_source_impact(
     crosscutting_assumption_changes = {
         path
         for path in changed_paths
-        if path in _ROOT_BUILD_INPUTS or path.startswith(".cargo/")
+        if _ancestor_build_input(path)
     }
     rows = []
     for witness_id, readset in sorted(readsets.items()):
@@ -799,6 +982,7 @@ def project_proving_test_source_impact(
         )
     return {
         "kind": "ordivon.runtime-formal-source-impact",
+        "implementationProfile": profile,
         "truthRole": "non-authoritative-exact-git-source-projection",
         "standingByWitness": rows,
         "sourceReadsetEvidence": readset_evidence,
@@ -810,7 +994,7 @@ def project_proving_test_source_impact(
         ),
         "crosscuttingAssumptionChanges": sorted(crosscutting_assumption_changes),
         "changedPaths": sorted(changed_paths),
-        "scope": "Runtime tracked Git source plus declared root build/toolchain assumption guards ONLY; no installed/configured/physical/runtime consumer claims",
+        "scope": "Runtime tracked Git source plus declared ancestor build/toolchain assumption guards ONLY; no installed/configured/physical/runtime consumer claims",
         "proofReuseAdmissible": False,
         "nonClaims": [
             "REUSE_CANDIDATE is not proof PASS, implementation refinement, or installed acceptance.",
@@ -830,21 +1014,32 @@ def _git_source_changes(base: str, head: str) -> set[str]:
         raise ValueError("impact base/head must be exact 40-hex Git commits")
     repo = ROOT.parents[1]
 
+    env = _exact_source_git_environment()
+
     def git(*args: str) -> bytes:
         return subprocess.run(
-            ["git", "-C", str(repo), *args],
+            ["git", "--no-replace-objects", "-C", str(repo), *args],
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            env=env,
         ).stdout
 
+    # A replacement ref can make a nominal commit identify different bytes
+    # and even hide a real source delta. Reject it rather than mix identities
+    # with Cargo or other subprocesses that may use ordinary Git semantics.
+    if git("for-each-ref", "--format=%(refname)", "refs/replace"):
+        raise ValueError("impact Git replace refs invalidate exact SourceCut")
+    top = Path(git("rev-parse", "--show-toplevel").decode().removesuffix("\n"))
+    if top.resolve(strict=True) != repo.resolve(strict=True):
+        raise ValueError("impact Git worktree is not the actual source checkout")
     actual_head = git("rev-parse", "HEAD").decode().strip()
     if head != actual_head:
         raise ValueError(f"impact HEAD is not checkout HEAD: {head} != {actual_head}")
     # Git status can hide edited tracked files when the index carries
     # assume-unchanged or skip-worktree bits. Such flags defeat a source
     # currentness claim even when --porcelain reports an empty worktree.
-    source_scope = ("services/runtime", *sorted(_ROOT_BUILD_INPUTS), ".cargo")
+    source_scope = ("services/runtime", *sorted(_ANCESTOR_BUILD_INPUTS), *_ANCESTOR_CARGO_DIRS)
     index_rows = git("ls-files", "-v", "-z", "--", *source_scope)
     if any(not row.startswith(b"H ") for row in index_rows.split(b"\x00") if row):
         raise ValueError("impact Runtime/formal build tracked source has unsafe Git index flags")
@@ -882,8 +1077,9 @@ def _qualified_native_source_head() -> str:
     try:
         head = (
             subprocess.check_output(
-                ["git", "-C", str(repo), "rev-parse", "HEAD"],
+                ["git", "--no-replace-objects", "-C", str(repo), "rev-parse", "HEAD"],
                 stderr=subprocess.PIPE,
+                env=_exact_source_git_environment(),
             )
             .decode("ascii")
             .strip()
@@ -936,8 +1132,10 @@ def _require_exact_native_pass(output: str) -> None:
         raise ValueError("native test must execute exactly one PASS and no ignored tests")
 
 
-def _native_cargo_test_artifact(stdout: str) -> dict[str, Any]:
+def _native_cargo_test_artifact(stdout: str, profile: str = "legacy") -> dict[str, Any]:
     """Select one Cargo-emitted compiler artifact, never guess target/deps names."""
+    feature = NATIVE_PROFILE_FEATURES[profile]
+    other_features = set(NATIVE_PROFILE_FEATURES.values()) - {feature}
     artifacts = []
     for line in stdout.splitlines():
         try:
@@ -951,12 +1149,13 @@ def _native_cargo_test_artifact(stdout: str) -> dict[str, Any]:
             and target.get("name") == "ordivon_runtime_core"
             and target.get("kind") == ["lib"]
             and row.get("profile", {}).get("test") is True
-            and "transactional-runtime" in row.get("features", [])
+            and feature in row.get("features", [])
+            and not other_features.intersection(row.get("features", []))
             and isinstance(row.get("executable"), str)
         ):
             artifacts.append(row)
     if len(artifacts) != 1:
-        raise ValueError("Cargo must identify exactly one transactional-runtime libtest binary")
+        raise ValueError(f"Cargo must identify exactly one {feature} libtest binary")
     return artifacts[0]
 
 
@@ -990,7 +1189,7 @@ def _native_cargo_build_environment(env: dict[str, str]) -> dict[str, str]:
     return {key: env.get(key, "") for key in sorted(keys)}
 
 
-def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
+def qualify_native_witnesses(trace: dict[str, Any], profile: str = "legacy") -> dict[str, Any]:
     """Compile once, execute the exact Cargo-provided binary, bind one native receipt.
 
     The executable and its Cargo target/profile are source-local CODE evidence,
@@ -999,6 +1198,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
     import os
     import subprocess
 
+    feature = NATIVE_PROFILE_FEATURES[profile]
     cargo = [
         "cargo",
         "test",
@@ -1008,13 +1208,13 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
         "ordivon-runtime-core",
         "--no-default-features",
         "--features",
-        "transactional-runtime",
+        feature,
         "--lib",
         "--no-run",
         "--message-format=json",
     ]
     pre_execution_head = _qualified_native_source_head()
-    env = dict(os.environ)
+    env = _exact_source_git_environment()
     env["CARGO_TERM_COLOR"] = "never"
     target_dir = env.get("CARGO_TARGET_DIR", str(ROOT / "target"))
     # A Runtime-issued target directory may be an fd-bound path. Preserve it
@@ -1043,14 +1243,15 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
     def provenance(command: list[str]) -> str:
         return run(command, timeout=20).strip()
 
-    source_head = provenance(["git", "rev-parse", "HEAD"])
+    source_head = pre_execution_head
     # Reuse the existing Runtime Git readset guard: this includes indexed root
     # toolchains/.cargo and detects hidden assume-unchanged/skip-worktree flags.
     _git_source_changes(source_head, source_head)
 
     manifest_path = ROOT / "crates/ordivon-runtime-core/src/lib.rs"
     cargo_json = run(cargo)
-    artifact = _native_cargo_test_artifact(cargo_json)
+    artifact = _native_cargo_test_artifact(cargo_json, profile)
+    selected = native_profile_trace(trace, profile)
     if Path(artifact["target"]["src_path"]).resolve() != manifest_path.resolve():
         raise ValueError("Cargo emitted an unexpected test source module")
     test_binary = Path(artifact["executable"])
@@ -1071,7 +1272,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
     }
     contract_rows = []
     tested_contract_names: set[str] = set()
-    for binding in [*trace["contractSeams"], *trace["supportingContracts"]]:
+    for binding in [*selected["contractSeams"], *selected["supportingContracts"]]:
         native_name = native_contract_expected(binding)
         if native_name not in registered or native_name in ignored_names:
             raise ValueError(f"compiler-owned contract witness absent/ignored: {native_name}")
@@ -1087,7 +1288,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
         )
 
     witness_rows = []
-    for witness in trace["provingTests"]:
+    for witness in selected["provingTests"]:
         name = _require_native_test_role(
             witness,
             registered,
@@ -1100,11 +1301,12 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
                 "id": witness["id"],
                 "nativeName": name,
                 "standing": "EXECUTED_PASS",
+                **({key: witness[key] for key in ("modelRelations", "scope")} if profile == "pg" else {}),
             }
         )
 
     opt_in_rows = []
-    for witness in trace["conditionalAcceptanceTests"]:
+    for witness in selected["conditionalAcceptanceTests"]:
         name = _require_native_test_role(
             witness,
             registered,
@@ -1116,6 +1318,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
                 "id": witness["id"],
                 "nativeName": name,
                 "standing": "COMPILED_IGNORED_NOT_EXECUTED",
+                **({key: witness[key] for key in ("modelRelations", "scope", "condition")} if profile == "pg" else {}),
             }
         )
 
@@ -1130,7 +1333,7 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
     rustc_version = provenance(["rustc", "-vV"])
     cargo_profile = {
         "package": "ordivon-runtime-core",
-        "feature": "transactional-runtime",
+        "feature": feature,
         "noDefaultFeatures": True,
         "lib": True,
         "locked": True,
@@ -1151,11 +1354,14 @@ def qualify_native_witnesses(trace: dict[str, Any]) -> dict[str, Any]:
         # formatting, into the exact proof-evidence identity.
         "compilerSourceReadset": {
             "sourceGitBlobsDigest": compiler_inputs["sourceGitBlobsDigest"],
+            "compilerEnvironmentDigest": compiler_inputs["compilerEnvironmentDigest"],
+            "compilerSourceAliasDigest": compiler_inputs["compilerSourceAliasDigest"],
             "scope": compiler_inputs["scope"],
         },
     }
     return {
         "kind": "ordivon.runtime-native-test-witness",
+        "implementationProfile": profile,
         "truthRole": "scoped-code-test-evidence-not-formal-refinement",
         "witnesses": witness_rows,
         "conditionalOptInWitnesses": opt_in_rows,
@@ -1192,6 +1398,7 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--native-witnesses", action="store_true")
+    parser.add_argument("--native-profile", choices=tuple(NATIVE_PROFILE_FEATURES), default="legacy")
     parser.add_argument("--impact-compiler", action="store_true")
     parser.add_argument("--impact-base", help="exact Git source base SHA")
     parser.add_argument("--impact-head", help="exact Git source HEAD SHA")
@@ -1223,19 +1430,21 @@ def main(argv: list[str] | None = None) -> int:
     if args.impact_base:
         try:
             delta = _git_source_changes(args.impact_base, args.impact_head)
-            compiler = _qualify_current_compiler_readset(args.impact_head) if args.impact_compiler else None
+            compiler = _qualify_current_compiler_readset(args.impact_head, args.native_profile) if args.impact_compiler else None
             compiler_inputs = set(compiler["sourcePaths"]) if compiler else None
             projection = project_proving_test_source_impact(
                 trace,
                 invariant_manifest,
                 delta,
                 compiler_inputs=compiler_inputs,
+                profile=args.native_profile,
             )
             projection["sourceReadsetEvidence"] = project_proving_test_source_readsets(
                 trace,
                 invariant_manifest,
                 compiler_inputs,
                 source_cut=args.impact_head,
+                profile=args.native_profile,
             )
             if compiler:
                 projection["compilerEvidence"] = compiler
@@ -1248,16 +1457,20 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     try:
-        receipt = qualify_native_witnesses(trace)
+        receipt = qualify_native_witnesses(trace, args.native_profile)
     except (OSError, ValueError, __import__("subprocess").TimeoutExpired) as error:
         print(f"formal native witness: UNKNOWN ({error})", file=sys.stderr)
         return 1
     if args.native_witnesses:
         print(json.dumps(receipt, sort_keys=True))
     else:
+        selected = native_profile_trace(trace, args.native_profile)
+        executed = len(selected["provingTests"])
+        typed = len(selected["contractSeams"]) + len(selected["supportingContracts"])
+        ignored = len(selected["conditionalAcceptanceTests"])
         print(
-            "formal trace: PASS (scoped manifest, Cargo native 5/5 executed "
-            "tests, 4/4 typed seams, 2 opt-in ignored; no Rust-to-TLA proof)"
+            f"formal trace: PASS (profile={args.native_profile}, Cargo native {executed}/{executed} executed "
+            f"tests, {typed}/{typed} typed seams, {ignored} opt-in ignored; no Rust-to-TLA proof)"
         )
     return 0
 

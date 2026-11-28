@@ -15,12 +15,12 @@
   },
   "kind": "artifact-cad-toolchain-lock",
   "occtInspector": {
-    "binarySha256": "529b9e38508030a9e3db0e7b84e3ad185dd0cb2ea5d2e365657991a5adcdc652",
-    "occtPackage": "opencascade 1:7.9.3-3",
-    "path": "/opt/ordivon/external/occt-step-inspector/1/cad_step_inspect",
+    "binarySha256": "43d308194dec51d6b119d51c6465157c3f14ef08e0e860aefe91a218f1b1f704",
+    "occtPackage": "opencascade 1:7.9.3-4",
+    "path": "/opt/ordivon/external/occt-step-inspector/2/cad_step_inspect",
     "sourcePath": "scripts/cad_step_inspect.cpp",
     "sourceSha256": "923d8f71f529a9f5cf420d71aad5cd2cfc188b79016e62c48408b543b1af3fb6",
-    "version": "1"
+    "version": "2"
   },
   "profileId": "design-3d-step-solid-r1",
   "schemaVersion": 1

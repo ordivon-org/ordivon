@@ -12,16 +12,17 @@
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test test/contracts.test.ts test/transactions.test.ts test/worker.test.ts",
     "check:python": "python3 -m py_compile scripts/ordivon_edge_client.py scripts/ordivon_edge_release.py scripts/ordivon_edge_gc.py scripts/ordivon_cloudflare_tofu_handoff.py scripts/check-policy-config.py scripts/configure_r2_lifecycle.py && python3 -m unittest discover -s test -p 'client_test.py' && python3 -m unittest discover -s test -p 'release_controller_test.py' && python3 -m unittest discover -s test -p 'gc_test.py' && python3 -m unittest discover -s test -p 'lifecycle_test.py' && python3 -m unittest discover -s test -p 'handoff_tofu_test.py'",
+    "formal:verify": "bash formal/verify.sh",
     "check:operations": "scripts/check-operations",
     "check:policy": "python3 scripts/check-policy-config.py",
-    "build": "node scripts/wrangler-dry-run.mjs",
+    "build": "wrangler deploy --dry-run --outdir dist",
     "ci": "pnpm typecheck && pnpm test && pnpm check:python && pnpm check:policy && pnpm check:operations && pnpm build"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "5.20261021.1",
-    "@types/node": "26.6.5",
+    "@cloudflare/workers-types": "5.20261125.1",
+    "@types/node": "26.6.10",
     "tsx": "4.23.15",
     "typescript": "7.0.2",
-    "wrangler": "4.152.0"
+    "wrangler": "4.168.0"
   }
 }

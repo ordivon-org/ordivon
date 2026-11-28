@@ -6,8 +6,8 @@ import asyncio
 from dataclasses import replace
 from typing import Any
 
-from ordivon_gateway.capability_projection import project_capability_search
-from ordivon_gateway.routing import default_routes
+from ordivon_gateway.logic.capability_projection import project_capability_search
+from ordivon_gateway.logic.routing import default_routes
 from ordivon_gateway.service import GatewayService
 
 
@@ -27,6 +27,7 @@ class ProbingCaller:
         if owner == "host":
             return {"schemaVersion": 3, "kind": "ordivon.host-status"}
         return {
+            "schemaVersion": 1,
             "node": {"nodeId": owner},
             "targets": [
                 {

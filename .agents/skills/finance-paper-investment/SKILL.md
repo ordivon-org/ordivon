@@ -53,6 +53,7 @@ test the historical source consumer when it is available:
 | Intention | Natural Owner | Native entrypoint | Actual standing |
 |---|---|---|---|
 | Allocate caller-defined new virtual contribution while protecting cash | Portfolio | `scripts/run-strategic-contribution-brief` | Stateless, no orders |
+| Derive cash reserve from dated outstanding needs before allocating a contribution | Portfolio / Applications | same CLI with goal-funded request kind; see `examples/goal_funded_contribution_r1.json` | Read-only; no future-income assumption |
 | Compare equal-cashflow strategy and passive benchmark | Portfolio | `python -m ordivon_capital.portfolio.passive_benchmark --input replay.json` under Capital toolchain | Read-only economic description |
 | Replay a qualified historical source from a pinned snapshot | Portfolio | `scripts/run-paper-etf-replay-r1 --request request.json --source source.csv [--output private-receipt.json]` | Historical simulation only |
 | Compare the economic effect of two source vintages | Portfolio | `scripts/run-paper-etf-vintage-compare-r1 --reference-request ... --reference-source ... --candidate-request ... --candidate-source ...` | Descriptive revision sensitivity |
@@ -64,6 +65,31 @@ test the historical source consumer when it is available:
 
 All command paths above are relative to `domains/capital` except the direct reference to the other canonical Skill. Before using one, check its exact option interface (`--help`) and latest source/contract version.
 
+
+## Compare fund total returns without double charging fees
+
+For issuer-published USD fund NAV total returns already net of fund
+expenses, use the existing passive benchmark CLI with schemaVersion 2:
+`examples/fund_nav_benchmark_202609_r2.json`.
+Require identical, contiguous return intervals for each leg; use only
+explicit external investor costs. Do not insert gross index, market-price,
+unqualified adjusted-close, annualized multi-year or price-only returns
+into this NAV basis. A source reference is not historical PIT attestation.
+See `domains/capital/docs/FINANCE_FUND_NAV_BENCHMARK_R2.md`.
+Do not rewrite frozen legacy results based on unverified fee semantics.
+
+## Protect dated obligations before contributing
+
+Use the existing strategic contribution CLI with
+`examples/goal_funded_contribution_r1.json` as the request shape. Supply
+caller-confirmed outstanding obligations, as-of date, reserve-through date,
+distinct emergency cash and desired contribution in USD cents.
+Do not assume future earnings, market gains or asset sales. A
+`RESERVE_SHORTFALL` result contains no allocation plan; a
+`CONTRIBUTION_CAPPED` result shows the unallocated requested amount.
+Obligations outside the horizon are disclosed, not funded. No result
+authenticates account balances or grants execution. Read
+`domains/capital/docs/FINANCE_GOAL_RESERVE_R1.md` for the exact scope.
 
 ## Algebraic investment research is not Paper settlement
 
@@ -134,6 +160,26 @@ Do not import the old experimental `unit_r_dca` defaults (40%, 45%,
 7%, margin cushions) as issuer/broker finance requirements.
 Formal: `mise run //domains/capital:verify:formal:broker-liquidation`.
 Tests: `tests/test_broker_margin_evidence.py`.
+
+## PostgreSQL Paper publication/read-isolation qualification
+
+Use the existing Accounting `postgres_paper_close.py` transactional close
+and `read_committed_paper_close` / `read_latest_committed_paper_close`
+readers. Do NOT introduce a second transaction manager or Data registry.
+A `SERIALIZABLE` write and a `REPEATABLE READ READ ONLY` reader have
+separate commit/visibility semantics. PostgreSQL requires retrying the
+**entire transaction** on SQLSTATE 40001, never only its last SQL command.
+
+For source-to-PG refinement, supply an isolated disposable PostgreSQL
+18-compatible database named `ordivon_paper`, set
+`ORDIVON_CAPITAL_PAPER_PG_TEST_DSN` to **that disposable instance only**,
+and execute `uv run --locked --group test pytest -q
+tests/test_paper_head_readback.py`. The test exercises actual uncommitted
+receipt invisibility, stable reader snapshots, same-key two-writer
+conflict, forced termination of its own uncommitted backend, and replay.
+A missing DSN causes SKIP, **not** VERIFIED. Never reuse the production
+`ORDIVON_CAPITAL_PAPER_PG_DSN` for this destructive acceptance exercise.
+Provider timestamps, external files and real broker state remain separate.
 
 ## Markets capture admission: never backdate downloaded adjusted prices
 
@@ -472,3 +518,33 @@ absent, record \`NATIVE_CONSUMER_UNKNOWN\`, never promote a skip to PASS.
 Account-state snapshots and original pending transfer status can be
 updated by the current PG implementation; do not falsely assume
 TigerBeetle's immutable-original-transfer storage model.
+
+
+## Monthly Paper account → native contribution plan (read-only, 2026-11-13)
+
+When a user asks "Given my **current committed Paper account**, where
+could this month's already-deposited virtual cash go without selling anything?",
+use the existing `portfolio.paper_contribution_plan` consumer. This is
+not a new allocator: it delegates to Accounting
+`read_latest_committed_paper_close`, Markets
+`admit_etf_eod_snapshot`, Risk `review_paper_close_risk`, and Portfolio
+`plan_strategic_contribution`.
+
+For exact CLI usage see `domains/capital/docs/FINANCE_HUMAN_GUIDE_R1.md`.
+Provide account, matching private EOD snapshot and binding,
+caller-chosen target-weight bps map, and `--invest-minor` amount
+already posted to Paper; choose `--format markdown` for users.
+Do **not** interpret the amount as a fresh bank deposit.
+The original Portfolio operator keeps protected cash untouched;
+Risk excludes uncommitted purchase payables and unsettled sale receivables.
+Plans for assets lacking quotes explicitly report unpriced targets.
+No share count, broker order, or investment advice is inferred.
+
+The published module's direct projection is offline and reports
+accountingPersistenceReverified=false; only its actual Paper PG CLI
+sets it true after reading the native account head.
+Market-license/PIT/corporate action evidence is still operator-bound,
+not independently attested. UNSET risk is not approval. This is
+`SIMULATION_ONLY` and `executionAuthorized=false`.
+Run `tests/test_paper_contribution_plan.py` with the disposable
+`ordivon_paper` database for real consumer acceptance.

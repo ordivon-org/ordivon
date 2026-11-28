@@ -56,7 +56,7 @@ def test_agent_engineering_reference_is_readable_through_project_skill_api() -> 
 def _referenced_agent_specs(entrypoint: Path, content: str) -> set[Path]:
     """Resolve actual Agent delivery Spec paths relative to the current caller."""
     relative_paths = re.findall(
-        r"(?:\.\./)*(?:[A-Za-z0-9._-]+/)*AGENT_(?:CONTRACT|OUTCOME)[A-Z0-9_]*\.md",
+        r"(?:\.\./)*(?:[A-Za-z0-9._-]+/)*AGENT_[A-Z0-9_]*_SPEC[A-Z0-9_]*\.md",
         content,
     )
     return {(entrypoint.parent / relative).resolve() for relative in relative_paths}
@@ -77,15 +77,26 @@ def test_current_delivery_spec_single_consumer() -> None:
         content = path.read_text(encoding="utf-8")
         assert _referenced_agent_specs(path, content) == {canonical}, path
 
-    # The historical research carrier exists, but is not a current execution Spec.
-    # Even a valid, existent file is an invalid replacement for the current route.
+    # A retired Spec path remains invalid even when its historical file is absent.
+    # This negative route tests the selected path, not the old document bytes.
     reference = ROUTER / "references/agent-engineering-delivery.md"
     alternative = "AGENT_OUTCOME_REALIZATION_R21_SPEC_20261109.md"
-    assert (repo / "docs/architecture" / alternative).is_file()
     wrong_content = reference.read_text(encoding="utf-8").replace(canonical.name, alternative)
     assert _referenced_agent_specs(reference, wrong_content) == {
         (repo / "docs/architecture" / alternative).resolve()
     }
+
+
+def test_other_formal_delivery_spec_cannot_hide_from_current_navigation() -> None:
+    """An alternate formal-delivery Spec route must be observable by the existing guard."""
+    repo = ROOT.parents[1]
+    entrypoint = repo / "docs/start/tasks.md"
+    canonical = (repo / "docs/architecture/AGENT_CONTRACT_EXECUTION_SPEC_R1.md").resolve()
+    competing = (repo / "docs/architecture/AGENT_FORMAL_DELIVERY_SPEC_R1.md").resolve()
+    original = entrypoint.read_text(encoding="utf-8")
+    assert _referenced_agent_specs(entrypoint, original) == {canonical}
+    mutated = original + "\n[extra formal delivery](../architecture/AGENT_FORMAL_DELIVERY_SPEC_R1.md)\n"
+    assert _referenced_agent_specs(entrypoint, mutated) == {canonical, competing}
 
 def test_method_router_targets_existing_canonical_methods() -> None:
     text = (ROUTER / "references" / "method-map.md").read_text(encoding="utf-8")
