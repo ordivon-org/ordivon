@@ -100,6 +100,7 @@ handoff is required.
 - For local executables, start at [Workstation inventory](platform/workstation/inventory/README.md); probe the **actual node and Runtime execution identity** on demand, not a dated machine snapshot or another user's PATH.
 - Classify the needed capability via [Capability Catalog](catalogs/capabilities/README.md), then read the selected Owner's README, closer AGENTS.md (if present), and relevant Skill; see [Agent first-run](docs/start/agent-first-run.md).
 - Resolve callable operations from live MCP tool definitions, Owner-native CLI help or `mise tasks ls`; do not reconstruct interfaces from prose. A trusted Skill, installed application, discovered command and authorized domain effect are distinct evidence.
+- Before declaring a required local tool missing, distinguish a Gateway discovery miss, a PATH miss, supplier inventory, and actual execution/admission failure. Use the existing Workstation probe with `--mise-installed` for managed tools; a failed supplier observation is UNKNOWN, not absence. Do not reinstall or broaden execution authority just to resolve a discovery miss.
 - Do not copy tool inventory into this file or create a second tool registry. Verify actual provider readback and the final consuming task.
 
 - Use the Human and Agent owner navigation in README.md, mechanically backed by tools/repo/owners.toml. Choose the Owner by the actual **fact or effect**, not where a helper happens to live. Nearest scoped AGENTS.md instructions take precedence for local methods, not Owner authority.

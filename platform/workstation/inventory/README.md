@@ -93,6 +93,14 @@ from the actual provider. Use `mise which`, `mise tasks ls`, provider-native
 `--version`/health, or locked toolchain commands as relevant, without silently
 upgrading inventory into a global capability result.
 
+For managed tools, add `--mise-installed` to the same probe. The optional
+`miseInventory` section reads the existing mise inventory, even for commands
+not on PATH. An empty version list is only absence from that supplier;
+`state=unknown` means the supplier could not be observed. Neither result
+establishes machine-wide absence. Do not install another copy based solely on
+a PATH miss or a Gateway semantic-capability search miss. Select the existing
+Owner toolchain and verify the actual consumer using its approved entrypoint.
+
 Agent routing: [root AGENTS.md](../../../AGENTS.md) →
 [Capability Catalog](../../../catalogs/capabilities/README.md) →
 natural Owner's own CLI/MCP/Skill → provider and consumer readback.
