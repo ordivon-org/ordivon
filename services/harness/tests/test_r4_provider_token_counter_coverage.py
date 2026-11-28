@@ -15,6 +15,7 @@ from ordivon_harness.ordivon.loop import (
     _provider_token_counter_coverage,
     _usage_total_tokens,
 )
+from ordivon_harness.ordivon.control import CancellationToken
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
 from tests.pg_test_support import PostgresAgentRunCase
 from tests.test_r3_supported_agent_run import (
@@ -138,3 +139,54 @@ class ProviderTokenCounterCoveragePgTests(PostgresAgentRunCase, unittest.TestCas
         terminal = reopened.inspect_terminal()
         self.assertEqual(terminal.receipt.usage["tokenCounterCoverage"], coverage)
         self.assertEqual(terminal.receipt.usage["totalTokens"], 5)
+
+    def test_terminal_stop_retains_reported_provider_usage(self) -> None:
+        for stop in ("cancelled", "budget_exhausted"):
+            with self.subTest(stop=stop):
+                clock = FixedClock()
+                monotonic = FixedClock()
+                cancellation = CancellationToken(monotonic_ms=monotonic)
+                turn = replace(
+                    completed("model-call:coverage-terminal-" + stop),
+                    usage={"inputTokens": 10, "outputTokens": 5},
+                )
+
+                class StopOnReturnAdapter(ScriptedTurnAdapter):
+                    def invoke(self, request):
+                        result = super().invoke(request)
+                        if stop == "cancelled":
+                            cancellation.cancel()
+                        else:
+                            monotonic.value += 10_001
+                        return result
+
+                adapter = StopOnReturnAdapter((turn,))
+                run = self.create_pg(
+                    Path("."), contract("coverage-terminal-" + stop), lambda _: adapter,
+                    clock_ms=clock, monotonic_ms=monotonic,
+                )
+                result = run.run(
+                    ({"role": "user", "content": "start"},), cancellation=cancellation
+                ).loop_result
+                self.assertEqual(result.stop_code.value, stop)
+                self.assertIsNone(result.conclusion)
+                self.assertEqual(result.tool_calls, 0)
+                self.assertEqual(len(adapter.requests), 1)
+                self.assertEqual(result.usage["totalTokens"], 15)
+                self.assertEqual(result.model_calls, 1)
+                self.assertEqual(
+                    result.usage["tokenCounterCoverage"],
+                    {
+                        "status": "all_countable",
+                        "completedCalls": 1,
+                        "countableCalls": 1,
+                        "uncountableCalls": 0,
+                    },
+                )
+                terminal = run.inspect_terminal()
+                self.assertEqual(terminal.receipt.usage["totalTokens"], 15)
+                self.assertEqual(
+                    terminal.receipt.usage["tokenCounterCoverage"],
+                    result.usage["tokenCounterCoverage"],
+                )
+                self.assertTrue(run.doctor()["healthy"])
