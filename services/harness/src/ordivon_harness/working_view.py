@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-from anc_canonical import JsonValue, canonical_digest, validate_json_value
+from anc_canonical import JsonValue, canonical_digest, validate_json_value, validate_digest
 
 WORKING_SET_HISTORY_CONTROL_NAME = "inspect_working_set_history"
 
@@ -30,17 +30,6 @@ def _text(value: Any, label: str, *, max_bytes: int = 500) -> str:
         raise ValueError(f"{label} must be non-empty and trimmed")
     if len(value.encode("utf-8")) > max_bytes:
         raise ValueError(f"{label} exceeds {max_bytes} UTF-8 bytes")
-    return value
-
-
-def _digest(value: Any, label: str) -> str:
-    if (
-        not isinstance(value, str)
-        or len(value) != 71
-        or not value.startswith("sha256:")
-        or any(character not in "0123456789abcdef" for character in value[7:])
-    ):
-        raise ValueError(f"{label} must be sha256:<64 lowercase hex>")
     return value
 
 
@@ -115,7 +104,7 @@ class HarnessWorkingSetPin:
         _text(self.slot, "Working Set slot", max_bytes=160)
         _text(self.logical_ref, "Working Set logical reference")
         _text(self.logical_generation, "Working Set logical generation")
-        _digest(self.resolved_digest, "Working Set resolved source object digest")
+        validate_digest(self.resolved_digest, "Working Set resolved source object digest")
 
     def to_dict(self) -> dict[str, JsonValue]:
         return {
@@ -327,7 +316,7 @@ class HarnessWorkingSetSpec:
         if type(self.revision) is not int or self.revision < 1:
             raise ValueError("Working Set revision must be positive")
         if self.previous_digest is not None:
-            _digest(self.previous_digest, "previous Working Set digest")
+            validate_digest(self.previous_digest, "previous Working Set digest")
         if self.parent_attempt_id is not None:
             _text(self.parent_attempt_id, "parent Working Set attempt identity")
         slots = [pin.slot for pin in self.pins]
@@ -483,7 +472,7 @@ class HarnessWorkingView:
 
     def __post_init__(self) -> None:
         _text(self.attempt_id, "Working View attempt identity")
-        _digest(self.working_set_digest, "Working Set digest")
+        validate_digest(self.working_set_digest, "Working Set digest")
         for message in self.messages:
             validate_json_value(message)
 

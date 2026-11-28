@@ -87,14 +87,15 @@ def digest_text(value: str) -> str:
     return digest_bytes(value.encode("utf-8"))
 
 
-def validate_digest(value: str) -> str:
+def validate_digest(value: object, label: str = "digest") -> str:
+    """Validate the canonical SHA-256 identity with the caller's diagnostic label."""
     if (
         not isinstance(value, str)
         or len(value) != 71
         or not value.startswith("sha256:")
         or any(character not in "0123456789abcdef" for character in value[7:])
     ):
-        raise ValueError("digest must be sha256:<64 lowercase hex>")
+        raise ValueError(f"{label} must be sha256:<64 lowercase hex>")
     return value
 
 

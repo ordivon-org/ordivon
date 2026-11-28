@@ -10,12 +10,12 @@ from anc_canonical import (
     JsonValue,
     canonical_bytes,
     canonical_digest,
+    validate_digest,
     validate_json_value,
 )
 
 from .structured_result_conformance import validate_structured_result_schema
 
-_DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 _TRACEPARENT_RE = re.compile(r"^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$")
 _CONTENT_POLICIES = {"metadata-only", "bounded-private-content"}
 STRUCTURED_COMPLETION_MODE = "structured-result-v1"
@@ -39,12 +39,6 @@ def _identity(value: str, prefix: str, label: str) -> str:
     _text(value, label, max_bytes=300)
     if not value.startswith(prefix + ":"):
         raise ValueError(f"{label} must start with {prefix}:")
-    return value
-
-
-def _digest(value: str, label: str) -> str:
-    if not isinstance(value, str) or _DIGEST_RE.fullmatch(value) is None:
-        raise ValueError(f"{label} must be sha256:<64 lowercase hex>")
     return value
 
 
@@ -87,7 +81,7 @@ class HarnessBoundReference:
     def __post_init__(self) -> None:
         _text(self.ref, "Harness reference", max_bytes=1_024)
         _text(self.kind, "Harness reference kind", max_bytes=200)
-        _digest(self.digest, "Harness reference digest")
+        validate_digest(self.digest, "Harness reference digest")
 
     def to_dict(self) -> dict[str, JsonValue]:
         return {"ref": self.ref, "kind": self.kind, "digest": self.digest}
@@ -214,8 +208,8 @@ class HarnessRunContract:
         _text(self.provider_id, "Harness Provider identity", max_bytes=300)
         _text(self.adapter_id, "Harness Adapter identity", max_bytes=300)
         _text(self.requested_model_id, "Harness requested model identity", max_bytes=300)
-        _digest(self.tool_catalog_digest, "Harness Tool catalog digest")
-        _digest(self.tool_grant_digest, "Harness Tool grant digest")
+        validate_digest(self.tool_catalog_digest, "Harness Tool catalog digest")
+        validate_digest(self.tool_grant_digest, "Harness Tool grant digest")
         _json_object(self.budget, "Harness budget")
         _json_object(self.completion_contract, "Harness completion contract")
         if self.completion_contract.get("mode") == STRUCTURED_COMPLETION_MODE:

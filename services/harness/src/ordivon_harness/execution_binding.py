@@ -2,14 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-import re
 from types import MappingProxyType
 from typing import Any
 import unicodedata
 
-from anc_canonical import JsonValue, canonical_digest
+from anc_canonical import JsonValue, canonical_digest, validate_digest
 
-_DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 
 def _text(value: str, label: str, *, max_bytes: int = 300) -> str:
@@ -17,12 +15,6 @@ def _text(value: str, label: str, *, max_bytes: int = 300) -> str:
         raise ValueError(f"{label} must be non-empty and trimmed")
     if len(value.encode("utf-8")) > max_bytes:
         raise ValueError(f"{label} exceeds {max_bytes} UTF-8 bytes")
-    return value
-
-
-def _digest(value: str, label: str) -> str:
-    if not isinstance(value, str) or _DIGEST_RE.fullmatch(value) is None:
-        raise ValueError(f"{label} must be sha256:<64 lowercase hex>")
     return value
 
 
@@ -144,7 +136,7 @@ class HarnessExecutionBinding:
 
     def patch_request_id(self, step_id: str, tool_call_digest: str) -> str:
         _text(step_id, "Harness Runtime step identity", max_bytes=200)
-        _digest(tool_call_digest, "Tool Call digest")
+        validate_digest(tool_call_digest, "Tool Call digest")
         token = canonical_digest(
             {
                 "schemaVersion": 2,

@@ -7,6 +7,7 @@ from anc_canonical import (
     JsonValue,
     canonical_bytes,
     canonical_digest,
+    validate_digest,
     validate_json_value,
 )
 
@@ -25,17 +26,6 @@ class RunStateObjects(Protocol):
     def inspect(self, digest: str) -> RunStateStoredObject: ...
 
     def get(self, digest: str, *, expected_kind: str | None = None) -> JsonValue: ...
-
-
-def _stored_digest(value: Any, label: str) -> str:
-    if (
-        not isinstance(value, str)
-        or len(value) != 71
-        or not value.startswith("sha256:")
-        or any(character not in "0123456789abcdef" for character in value[7:])
-    ):
-        raise ValueError(f"{label} must be sha256:<64 lowercase hex>")
-    return value
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,12 +56,12 @@ class HarnessRunState:
         validate_json_value(list(self.observations))
         validate_json_value(self.remaining_budget)
         if self.retained_messages_digest is not None:
-            _stored_digest(self.retained_messages_digest, "retained messages digest")
+            validate_digest(self.retained_messages_digest, "retained messages digest")
             if self.messages:
                 raise ValueError("redacted Harness Run messages cannot retain content")
         if self.retained_observation_digests is not None:
             for digest in self.retained_observation_digests:
-                _stored_digest(digest, "retained Tool Observation digest")
+                validate_digest(digest, "retained Tool Observation digest")
             if self.observations:
                 raise ValueError("redacted Harness Run observations cannot retain content")
         if self.active_elapsed_ms is not None and (
@@ -267,12 +257,12 @@ def state_from_dict(value: dict[str, Any], *, harness_run_id: str) -> HarnessRun
             raise ValueError("Harness Run messages must be an array or null")
         if raw_observations is not None and not isinstance(raw_observations, list):
             raise ValueError("Harness Run observations must be an array or null")
-        messages_digest = _stored_digest(value["messagesDigest"], "messages digest")
+        messages_digest = validate_digest(value["messagesDigest"], "messages digest")
         raw_observation_digests = value["observationDigests"]
         if not isinstance(raw_observation_digests, list):
             raise ValueError("Harness Run observation digests are invalid")
         observation_digests = tuple(
-            _stored_digest(item, "Tool Observation digest")
+            validate_digest(item, "Tool Observation digest")
             for item in raw_observation_digests
         )
         retained_messages_digest = None if raw_messages is not None else messages_digest

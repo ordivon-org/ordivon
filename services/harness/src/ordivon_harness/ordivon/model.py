@@ -7,6 +7,7 @@ from typing import Any, Protocol
 from anc_canonical import JsonValue, canonical_bytes, canonical_digest, validate_json_value
 
 from ..tool_program_contract import HarnessToolProgramAction
+from anc_canonical import validate_digest
 
 from ..working_view import (
     AgentCallerIngressPromotionProposal,
@@ -25,17 +26,6 @@ def _text(value: Any, label: str, *, max_bytes: int = 2_000) -> str:
         raise ValueError(f"{label} must be non-empty and trimmed")
     if len(value.encode("utf-8")) > max_bytes:
         raise ValueError(f"{label} exceeds {max_bytes} UTF-8 bytes")
-    return value
-
-
-def _digest(value: Any, label: str) -> str:
-    if (
-        not isinstance(value, str)
-        or len(value) != 71
-        or not value.startswith("sha256:")
-        or any(character not in "0123456789abcdef" for character in value[7:])
-    ):
-        raise ValueError(f"{label} must be sha256:<64 lowercase hex>")
     return value
 
 
@@ -109,7 +99,7 @@ class AgentToolCall:
             assert self.raw_arguments_digest is not None
             assert self.raw_arguments_preview is not None
             _text(self.argument_error, "Tool Call argument error", max_bytes=300)
-            _digest(self.raw_arguments_digest, "raw Tool Call arguments digest")
+            validate_digest(self.raw_arguments_digest, "raw Tool Call arguments digest")
             if len(self.raw_arguments_preview.encode("utf-8")) > 2_048:
                 raise ValueError("raw Tool Call arguments preview exceeds 2048 bytes")
 
@@ -403,8 +393,8 @@ class AgentTurnRequest:
         _text(self.assignment_id, "Assignment identity", max_bytes=300)
         if self.sequence < 1:
             raise ValueError("Agent turn sequence must be positive")
-        _digest(self.context_digest, "Agent turn Context digest")
-        _digest(self.tool_catalog_digest, "Agent turn Tool catalog digest")
+        validate_digest(self.context_digest, "Agent turn Context digest")
+        validate_digest(self.tool_catalog_digest, "Agent turn Tool catalog digest")
         for message in self.messages:
             validate_json_value(message)
         names = [tool.name for tool in self.tools]
@@ -581,7 +571,7 @@ class AgentTurnResult:
             )
         validate_json_value(self.usage)
         _text(self.finish_reason, "model finish reason", max_bytes=300)
-        _digest(self.raw_response_digest, "raw model response digest")
+        validate_digest(self.raw_response_digest, "raw model response digest")
         if self.effective_model_id is not None:
             _text(self.effective_model_id, "effective model identity", max_bytes=300)
 
