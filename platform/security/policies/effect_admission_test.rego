@@ -134,3 +134,60 @@ test_missing_contract_version_is_not_a_downgrade_path if {
   result.admitted == false
   result.reason == "unsupported-contract-version"
 }
+
+# A direct OPA caller cannot interpret malformed identity and effect shape as ALLOW.
+test_malformed_request_digest_is_a_defined_deny if {
+  req := request({"requestDigest": "not-a-sha256"})
+  result := decision with input as input_for(req)
+  result.admitted == false
+  result.reason == "invalid-input"
+  result.requestDigest == "not-a-sha256"
+}
+
+test_non_string_effect_type_is_a_defined_deny if {
+  req := request({"effectType": 7})
+  result := decision with input as input_for(req)
+  result.admitted == false
+  result.reason == "invalid-input"
+  result.effectType == null
+}
+
+test_missing_request_identity_is_a_defined_deny if {
+  req := object.remove(request({}), {"requestId", "requestDigest"})
+  result := decision with input as input_for(req)
+  result.admitted == false
+  result.reason == "invalid-input"
+  result.requestId == null
+  result.requestDigest == null
+}
+
+test_extra_request_fields_are_rejected if {
+  req := object.union(request({}), {"shadowAuthority": "untrusted"})
+  result := decision with input as input_for(req)
+  result.admitted == false
+  result.reason == "invalid-input"
+}
+
+test_direct_opa_collection_shapes_fail_closed if {
+  base := input_for(request({}))
+  authority_with_extra := object.union(base_authorities[0], {"shadowAuthority": "untrusted"})
+  authority_with_object_zones := object.union(base_authorities[0], {"zoneRefs": {"zone:battlefield": true}})
+  authority_with_object_capabilities := object.union(base_authorities[0], {"capabilities": {"range-network": true}})
+
+  cases := [
+    object.union(base, {"actorIds": {"actor:red": true}}),
+    object.union(base, {"actorIds": ["actor:red", 7]}),
+    object.union(base, {"authorities": {"red": base_authorities[0]}}),
+    object.union(base, {"authorities": [base_authorities[0], 7]}),
+    object.union(base, {"authorities": [authority_with_object_zones, base_authorities[1]]}),
+    object.union(base, {"authorities": [authority_with_object_capabilities, base_authorities[1]]}),
+    object.union(base, {"authorities": [authority_with_extra, base_authorities[1]]}),
+    object.union(base, {"shadowRoot": "untrusted"}),
+  ]
+
+  every bad_input in cases {
+    result := decision with input as bad_input
+    result.admitted == false
+    result.reason == "invalid-input"
+  }
+}
