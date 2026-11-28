@@ -16,6 +16,22 @@ def validate_monorepo_codeql(source: str) -> None:
     for event in ("pull_request", "merge_group", "push", "workflow_dispatch", "schedule"):
         if event not in triggers:
             raise AssertionError(f"CodeQL missing active {event} event")
+    for event in ("pull_request", "merge_group", "push", "workflow_dispatch"):
+        config = triggers[event]
+        if config is not None and not isinstance(config, dict):
+            raise AssertionError(f"CodeQL {event} event has invalid configuration")
+    schedule = triggers["schedule"]
+    if (
+        not isinstance(schedule, list)
+        or not schedule
+        or any(
+            not isinstance(item, dict)
+            or not isinstance(item.get("cron"), str)
+            or not item["cron"].strip()
+            for item in schedule
+        )
+    ):
+        raise AssertionError("CodeQL schedule event has no active cron")
     if workflow.get("permissions", {}).get("security-events") != "write":
         raise AssertionError("CodeQL cannot upload security results")
     jobs = workflow.get("jobs", {})
