@@ -1,20 +1,13 @@
 from __future__ import annotations
 
-from hashlib import sha256
 from pathlib import Path
 from typing import Any
+
+from .digests import sha256_file_hex as sha256_file
 
 STATEMENT_TYPE = "https://in-toto.io/Statement/v1"
 REFERENCE_PREDICATE = "https://in-toto.io/attestation/reference/v0.1"
 VSA_PREDICATE = "https://slsa.dev/verification_summary/v1"
-
-
-def sha256_file(path: Path) -> str:
-    digest = sha256()
-    with path.open("rb") as source:
-        while chunk := source.read(1024 * 1024):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def subject_descriptor(*, name: str, git_commit: str) -> dict[str, Any]:
