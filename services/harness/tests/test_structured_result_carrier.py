@@ -47,6 +47,27 @@ class StructuredResultCarrierTests(unittest.TestCase):
                 {"payload": "x" * 9_000},
             )
 
+    def test_carrier_value_is_an_immutable_digest_snapshot(self) -> None:
+        source = {"nested": {"items": [{"id": "original"}]}}
+        carrier = AgentStructuredResult(source)
+        original_digest = carrier.digest
+
+        source["nested"]["items"][0]["id"] = "caller-mutated"
+        reader_view = carrier.value
+        reader_view["nested"]["items"].append({"id": "reader-mutated"})
+        serialized_view = carrier.to_dict()
+        serialized_view["value"]["nested"]["items"].clear()
+
+        self.assertEqual(carrier.digest, original_digest)
+        self.assertEqual(
+            carrier.value,
+            {"nested": {"items": [{"id": "original"}]}},
+        )
+        self.assertEqual(
+            carrier.to_dict()["value"],
+            {"nested": {"items": [{"id": "original"}]}},
+        )
+
     def test_large_result_survives_terminal_store_without_entering_summary(self) -> None:
         completion_contract = completion(
             {
