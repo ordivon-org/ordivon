@@ -12,7 +12,7 @@
 
 形式化目标可以写成：在现有消费者可观察行为、权限与外部副作用不扩大约束下，最小化已有系统的维护复杂度、重复实现、跨边界变更和人/Agent 理解成本。没有测量的维护收益、性能变化、风险改善一律 UNKNOWN，不能凭主观编造百分比。
 
-文件是审计单位，不是 LEGO。正式声明的独立责任才使用 R2.1 完整 (I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)；没有证据时带来源/范围标明 UNKNOWN。历史回执、Git 存在、字面无引用分别都不能自动推出业务完成、当前部署或可删权限。
+文件是审计单位，不是 LEGO。根据实际问题选择数学表达；没有证据时带来源/范围标明 UNKNOWN。历史回执、Git 存在、字面无引用分别都不能自动推出业务完成、当前部署或可删权限。
 
 **正向允许**：DELETE / CONSOLIDATE / RENAME / MOVE / REFACTOR（行为保持）/ REPAIR 已知缺陷；优先复用既有测试与 Owner native verification；当已有测试不能区分真实反例与正确实现时，允许增加或替换最小充分的验证。**反向禁止**：无消费者的新能力、无根据扩大 API、重复测试/消费者链、新通用 Verifier、第二个源码/状态权威、没有真实收益的大爆炸重写。
 
@@ -116,7 +116,7 @@ T1 已完成上述 R3 历史 SourceCut 的机械清单；T2 后续按 Owner 分�
 9. **消费者和避碰**：是否真实引用、动态加载或外部消费？有没有现存 PR、并行 Agent、唯一不可恢复字节？
 10. **动作与反例**：精确 source path、单一可执行下一步、已有 native command、负面证据和 GO/REVISE/NO-GO 是什么？
 
-裁决类别：KEEP、DELETE、MERGE、REFACTOR、REPAIR、HOLD(reason,scope,evidence)。历史 Git 证据留在 Git；无需每个文件单独写一份十一坐标证明或建立计划数据库。
+裁决类别：KEEP、DELETE、MERGE、REFACTOR、REPAIR、HOLD(reason,scope,evidence)。历史 Git 证据留在 Git；无需每个文件单独写一份格式化证明或建立计划数据库。
 
 ## 7. 当前协作及真实执行
 

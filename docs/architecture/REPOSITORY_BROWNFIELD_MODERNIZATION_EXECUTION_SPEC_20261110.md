@@ -52,7 +52,7 @@ Additional mature and mathematically grounded references: Martin Fowler *Refacto
 
 ## 4. Formal, semantic and architecture constraints
 
-Use canonical R2.1 only for an independently contractable responsibility, `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`. A file, a test or an incidental import is not automatically a LEGO. Existing implementation and its natural Owner continue to own the contract.
+Choose the representation appropriate to each problem and property. A file, a test or an incidental import is not automatically a LEGO. Existing implementation and its natural Owner continue to own the contract.
 
 Let P denote an implementation, E a stated environment, c an existing named observer, Obs_c the observer's projection of input/output, failures, temporal effects and ordering. A behavior-preserving refactor should discharge the scoped obligation:
 

@@ -34,9 +34,9 @@ next executable delta: one concrete native tool/test/action, no speculative PR
 result: evidence IDs, unchanged consumers, residual UNKNOWN, reopen triggers
 ```
 
-## R2.1 auxiliary method LEGO profile (DECLARED_CANDIDATE, not a new calculus)
+## Local task-packet reasoning model
 
-`ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`:
+The following describes this specific task-packet seam, not a general component definition:
 
 - I: typed SpaceRef, WorkRef, optional ActorRef/cursor, authorized Skill catalog view.
 - O: bounded TaskPacket or explicit UNKNOWN/BLOCKED; never execution success.

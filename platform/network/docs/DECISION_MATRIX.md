@@ -39,7 +39,7 @@ Reuse the upstream mechanism before constructing a new Ordivon wrapper.
 | Knowledge/architecture | Existing Human/Agent docs | DSM, C4 and Diataxis | Consumer can find owner, task and verification without a second registry |
 
 For an ADMITTED formal LEGO, use the repository Recursive LEGO R2.1 typed
-contract (I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold), not a new local
+problem-specific contract, not a new local
 calculus. A concrete mobile example: I is the authorized Tailscale peer and
 selected Provider; O is proxied IPv4 traffic and a recorded failure; pre is
 approved Exit Node plus healthy provider; inv is no second VPN identity and
