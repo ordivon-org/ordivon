@@ -394,7 +394,7 @@ def populated_input(tmp_path: Path, name: str) -> Path:
             "truncatedCount": 0,
         }
     ]
-    item["dimensions"] = [{"name": "settings", "value": {"list": [1, "two"]}}]
+    item["dimensions"] = [{"name": "settings", "value": "strict"}]
     item["measures"] = [{"name": "cost", "value": 2.5, "unit": "seconds"}]
     source.write_text(json.dumps(item, sort_keys=True) + "\n", encoding="utf-8")
     return source
@@ -474,7 +474,7 @@ def test_pg_projection_columns_match_independent_sql_contract(
             key,
         ).fetchall() == [
             ("nullable", None, False),
-            ("settings", {"list": [1, "two"]}, False),
+            ("settings", "strict", False),
         ]
         assert db.execute(
             """
