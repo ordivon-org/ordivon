@@ -245,8 +245,6 @@ def run(args) -> dict:
     environment_source = environment["ORDIVON_PG_SOURCE_SHA256"]
     if len(environment_source) != 64 or not all(v in "0123456789abcdef" for v in environment_source):
         raise RuntimeError("invalid installed PG source identity")
-    native_workspace_snapshot(environment, args.workspace_id,
-                              args.expected_head, args.expected_source_state_digest, root)
     import psycopg
     with psycopg.connect(environment["ORDIVON_PG_DSN"], connect_timeout=8) as conn:
         with conn.transaction():
@@ -258,6 +256,11 @@ def run(args) -> dict:
             conn.execute("SELECT pg_advisory_xact_lock(%s)", (ADMISSION_LOCK,))
             now, pg_status = pg_qualification(conn, environment["ORDIVON_PG_SCHEMA"],
                                               environment_source, args.workspace_id)
+            # Bind the exact native source identity after acquiring the same
+            # fence used by Workspace mutation and Job admission. A clean
+            # HEAD alone does not commit the complete source-state digest.
+            native_workspace_snapshot(environment, args.workspace_id,
+                                      args.expected_head, args.expected_source_state_digest, root)
             cache = assert_source_and_cache(root, args.workspace_id, args.expected_head)
             if external_processes_using(cache):
                 raise RuntimeError("an external process is currently using the build cache")

@@ -208,6 +208,7 @@ class NativePgReclamationRootTests(unittest.TestCase):
                             conn.execute(restore)
                         evict.pg_qualification(conn, schema, source, "ws")
                 self.assert_post_lock_snapshot(conn, dsn, schema, source)
+                self.assert_source_identity_after_lock(conn, dsn, schema, source)
             finally:
                 conn.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(schema)))
 
@@ -266,6 +267,66 @@ class NativePgReclamationRootTests(unittest.TestCase):
                 finally:
                     conn.execute("UPDATE attempts SET state='lost' WHERE attempt_id='earlier'")
                 self.assertTrue(cache.is_dir())
+                self.assertEqual(evict.run(args)["effect"], "not_requested")
+
+
+    def assert_source_identity_after_lock(self, conn, dsn, schema, source):
+        """A current source observation must not precede the admission fence."""
+        from concurrent.futures import ThreadPoolExecutor
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        import time
+        import psycopg
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name in ("cache/build/ws", "workspace-records", "workspaces/ws"):
+                (root / name).mkdir(parents=True)
+            cache = root / "cache/build/ws"
+            args = SimpleNamespace(workspace_id="ws", expected_head=HEAD,
+                expected_source_state_digest=DIGEST, env_file=root / "unused",
+                env_overlay=[], store_root=root, apply=False)
+            env = {"ORDIVON_PG_STORE_ROOT": str(root), "ORDIVON_PG_SOURCE_SHA256": source,
+                   "ORDIVON_PG_DSN": dsn, "ORDIVON_PG_SCHEMA": schema,
+                   "ORDIVON_PG_BIND": "fixture", "ORDIVON_PG_TOKEN": "fixture"}
+            observed = {"workspaceId": "ws", "currentHeadRevision": HEAD,
+                        "sourceStateDigest": DIGEST, "dirty": False,
+                        "activeJobIds": [], "sourceRepo": str(root)}
+
+            def read_source(tool, request):
+                self.assertEqual(tool, "workspace.get")
+                self.assertEqual(request["workspaceId"], "ws")
+                return dict(observed)
+
+            with (patch.object(evict, "effective_environment", return_value=env),
+                  patch.object(evict, "connect_compatible",
+                               return_value=SimpleNamespace(call_tool=read_source)),
+                  patch.object(evict, "assert_source_and_cache", return_value=cache),
+                  patch.object(evict, "external_processes_using", return_value=[]),
+                  ThreadPoolExecutor(max_workers=1) as pool):
+                # A different source digest can coexist with the same HEAD and
+                # clean projection (e.g. changed Git index flags). The original
+                # source observation is stale once this holder commits.
+                with conn.transaction():
+                    conn.execute("SELECT pg_advisory_xact_lock(%s)", (evict.ADMISSION_LOCK,))
+                    future = pool.submit(evict.run, args)
+                    with psycopg.connect(dsn, autocommit=True) as monitor:
+                        deadline = time.monotonic() + 8
+                        while True:
+                            waiters = monitor.execute(
+                                "SELECT count(*) FROM pg_locks WHERE locktype='advisory' AND NOT granted"
+                            ).fetchone()[0]
+                            if waiters:
+                                break
+                            if time.monotonic() >= deadline:
+                                self.fail("candidate never waited on the native admission lock")
+                            time.sleep(0.02)
+                    observed["sourceStateDigest"] = "sha256:" + "f" * 64
+                    self.assertNotEqual(observed["sourceStateDigest"], DIGEST)
+                with self.assertRaisesRegex(RuntimeError, "Workspace witness changed"):
+                    future.result(timeout=10)
+                self.assertTrue(cache.is_dir())
+                observed["sourceStateDigest"] = DIGEST
                 self.assertEqual(evict.run(args)["effect"], "not_requested")
 
 
