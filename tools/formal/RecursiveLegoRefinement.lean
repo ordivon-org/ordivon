@@ -1255,128 +1255,74 @@ theorem runtime_default_can_exceed_caller_grant :
       forwarded grant none ≤ grant ∧ ¬ runtimeDefault ≤ grant := by
   exact ⟨10000, 86400000, by decide, by decide, by decide, by decide⟩
 
--- Strict, task-local R2.1 LEGO profile demanded for this admitted K1
--- responsibility. I/O/S are ACTUAL Lean types, not untyped JSON labels.
--- Extra identity, responsibility, and acceptance retain the six practical
--- Only the relations actually used in the following proofs are modeled.
--- This structure is a formal model, not a new registry/runtime or proof
--- that an arbitrary Python/Rust binary implements it.
-structure TransitionContract (I O S : Type) where
-  pre : S → I → Prop
-  post : S → I → O → S → Prop
-  inv : S → Prop
-  eff : S → I → O → S → Prop
-  accept : S → I → O → S → Prop
+-- Invariance is a property of an admitted relation, not of a component record.
+def PreservesInvariant {I O S : Type}
+    (contract : IOContract (S × I) (O × S)) (inv : S → Prop) : Prop :=
+  ∀ x y, contract.assume x → contract.guarantee x y → inv y.2
 
--- Local timeout relation: exact forwarding and preserved caller grant.
-def strictTimeout : TransitionContract (Option Nat) Nat Nat where
-  pre := fun grant requested => admitted grant requested
-  post := fun grant requested outgoing next =>
-    outgoing = forwarded grant requested ∧ next = grant
-  inv := fun grant => 0 < grant ∧ grant ≤ 900000
-  eff := fun grant _ _ next => next = grant
-  accept := fun grant requested outgoing next =>
-    outgoing = forwarded grant requested ∧
-    next = grant ∧
-    0 < outgoing ∧ outgoing ≤ grant
-
-def asIOContract {I O S : Type} (lego : TransitionContract I O S) :
-    IOContract (S × I) (O × S) where
-  assume := fun x => lego.inv x.1 ∧ lego.pre x.1 x.2
-  guarantee := fun x y =>
-    lego.post x.1 x.2 y.1 y.2 ∧
-    lego.eff x.1 x.2 y.1 y.2 ∧
-    lego.accept x.1 x.2 y.1 y.2
-
--- Invariant closure is a property of this selected transition contract, not a declaration shape.
-def PreservesInvariant {I O S : Type} (lego : TransitionContract I O S) : Prop :=
-  ∀ s i o next,
-    lego.inv s → lego.pre s i →
-    lego.post s i o next → lego.eff s i o next →
-    lego.accept s i o next → lego.inv next
-
--- A derived consumer-observable guarantee.
--- This makes the next-state obligation a consumer-observable guarantee.
 def asInvariantClosedContract {I O S : Type}
-    (lego : TransitionContract I O S) :
+    (contract : IOContract (S × I) (O × S)) (inv : S → Prop) :
     IOContract (S × I) (O × S) where
-  assume := (asIOContract lego).assume
-  guarantee := fun x y =>
-    (asIOContract lego).guarantee x y ∧ lego.inv y.2
+  assume := contract.assume
+  guarantee := fun x y => contract.guarantee x y ∧ inv y.2
 
 theorem invariant_closed_contract_refines_existing {I O S : Type}
-    (lego : TransitionContract I O S) :
-    Refines (asInvariantClosedContract lego) (asIOContract lego) := by
-  constructor
-  · intro x h
-    exact h
-  · intro _ _ _ h
-    exact h.1
+    (contract : IOContract (S × I) (O × S)) (inv : S → Prop) :
+    Refines (asInvariantClosedContract contract inv) contract := by
+  exact ⟨fun _ h => h, fun _ _ _ h => h.1⟩
 
--- A proved preservation property plus the already-required nonvacuous
--- implementation relation transports invariants to every produced state.
--- This is a MODEL theorem; installed code still needs refinement evidence.
 theorem invariant_preserved_by_qualified_implementation {I O S : Type}
-    (lego : TransitionContract I O S)
+    (contract : IOContract (S × I) (O × S)) (inv : S → Prop)
     (behavior : (S × I) → (O × S) → Prop)
-    (hImpl : Implements (asIOContract lego) behavior)
-    (hClosed : PreservesInvariant lego) :
-    ∀ s i o next,
-      lego.inv s → lego.pre s i →
-      behavior (s, i) (o, next) → lego.inv next := by
-  intro s i o next hInv hPre hBehavior
-  have hGuarantee := hImpl.1 (s, i) (o, next)
-    ⟨hInv, hPre⟩ hBehavior
-  exact hClosed s i o next hInv hPre
-    hGuarantee.1 hGuarantee.2.1 hGuarantee.2.2
+    (hImpl : Implements contract behavior)
+    (hClosed : PreservesInvariant contract inv) :
+    ∀ x y, contract.assume x → behavior x y → inv y.2 := by
+  intro x y hA hB
+  exact hClosed x y hA (hImpl.1 x y hA hB)
 
--- Checked upgrade: an existing total implementation is admitted under the
--- stronger consumer-observable contract IF its LEGO separately proves
--- invariant closure. This is not a universal property of transitions.
 theorem qualified_implementation_implements_invariant_closed_contract
     {I O S : Type}
-    (lego : TransitionContract I O S)
+    (contract : IOContract (S × I) (O × S)) (inv : S → Prop)
     (behavior : (S × I) → (O × S) → Prop)
-    (hImpl : Implements (asIOContract lego) behavior)
-    (hClosed : PreservesInvariant lego) :
-    Implements (asInvariantClosedContract lego) behavior := by
+    (hImpl : Implements contract behavior)
+    (hClosed : PreservesInvariant contract inv) :
+    Implements (asInvariantClosedContract contract inv) behavior := by
   constructor
-  · intro ⟨s, i⟩ ⟨o, next⟩ hAssume hBehavior
-    have hOld := hImpl.1 (s, i) (o, next) hAssume hBehavior
-    exact ⟨hOld, hClosed s i o next hAssume.1 hAssume.2
-      hOld.1 hOld.2.1 hOld.2.2⟩
+  · intro x y hA hB
+    exact ⟨hImpl.1 x y hA hB, hClosed x y hA (hImpl.1 x y hA hB)⟩
   · exact hImpl.2
 
--- NONVACUOUS NEGATIVE WITNESS: a component can be total on every
--- admitted input and satisfy all of the original post/eff/accept checks
--- while still moving from a valid state to one violating its own inv.
--- Input invariants do not imply next-state invariants.
 theorem input_only_invariant_is_insufficient :
-    ∃ (L : TransitionContract Unit Unit Bool)
-      (behavior : (Bool × Unit) → (Unit × Bool) → Prop),
-      Implements (asIOContract L) behavior ∧
-      ¬ PreservesInvariant L := by
-  let L : TransitionContract Unit Unit Bool := {
-    pre := fun _ _ => True
-    post := fun _ _ _ next => next = false
-    inv := fun s => s = true
-    eff := fun _ _ _ _ => True
-    accept := fun _ _ _ _ => True
+    ∃ (contract : IOContract (Bool × Unit) (Unit × Bool))
+      (inv : Bool → Prop) (behavior : (Bool × Unit) → (Unit × Bool) → Prop),
+      Implements contract behavior ∧
+      (∀ x, contract.assume x → inv x.1) ∧ ¬ PreservesInvariant contract inv := by
+  let contract : IOContract (Bool × Unit) (Unit × Bool) := {
+    assume := fun x => x.1 = true
+    guarantee := fun _ y => y.2 = false
   }
-  let behavior : (Bool × Unit) → (Unit × Bool) → Prop :=
-    fun _ y => y = ((), false)
-  refine ⟨L, behavior, ?_, ?_⟩
+  let inv : Bool → Prop := fun s => s = true
+  let behavior : (Bool × Unit) → (Unit × Bool) → Prop := fun _ y => y = ((), false)
+  refine ⟨contract, inv, behavior, ?_, ?_, ?_⟩
   · constructor
-    · intro x y _ hBehavior
-      change y = ((), false) at hBehavior
+    · intro x y _ h
+      change y = ((), false) at h
       subst y
-      exact ⟨rfl, trivial, trivial⟩
+      rfl
     · intro _ _
       exact ⟨((), false), rfl⟩
-  · intro hClosed
-    have hInvalid : L.inv false :=
-      hClosed true () () false rfl trivial rfl trivial trivial
-    exact Bool.noConfusion hInvalid
+  · intro _ h
+    exact h
+  · intro h
+    have hBad : false = true := h (true, ()) ((), false) rfl rfl
+    cases hBad
+
+def timeoutInvariant (grant : Nat) : Prop := 0 < grant ∧ grant ≤ 900000
+
+def timeoutContract : IOContract (Nat × Option Nat) (Nat × Nat) where
+  assume := fun x => timeoutInvariant x.1 ∧ admitted x.1 x.2
+  guarantee := fun x y =>
+    y.1 = forwarded x.1 x.2 ∧ y.2 = x.1 ∧ 0 < y.1 ∧ y.1 ≤ x.1
 
 -- The OLD contract is owned by existing Harness consumers, independent of
 -- the replacement candidate's invariant/precondition definitions. Without
@@ -1399,148 +1345,92 @@ def modeledBehavior :
     (Nat × Option Nat) → (Nat × Nat) → Prop :=
   fun x y => y = (forwarded x.1 x.2, x.1)
 
-theorem strictTimeout_refines_existing_consumer :
-    Refines (asIOContract strictTimeout) oldConsumerContract := by
+theorem timeout_refines_existing_consumer :
+    Refines timeoutContract oldConsumerContract := by
   constructor
   · intro ⟨grant, requested⟩ hOld
-    dsimp [oldConsumerContract] at hOld
     rcases hOld with ⟨hGrant, hRequest⟩
     refine ⟨hGrant, ?_⟩
     cases requested with
     | none => exact hGrant.1
     | some t => exact hRequest
-  · intro x y hOld hNew
-    rcases hNew with ⟨_hPost, hEff, hAccept⟩
-    rcases hAccept with ⟨_hExact, _hState, hPositive, hBounded⟩
-    exact ⟨hPositive, hBounded, hEff⟩
+  · intro x y _ hNew
+    exact ⟨hNew.2.2.1, hNew.2.2.2, hNew.2.1⟩
 
--- A genuine old consumer admits every established owner-grant value.
--- Shrinking the candidate's invariant must NOT shrink that old admission.
--- This is a permanent independent negative refinement witness.
-def narrowedTimeout : TransitionContract (Option Nat) Nat Nat :=
-  { strictTimeout with inv := fun grant => grant = 10000 }
+def narrowedTimeout : IOContract (Nat × Option Nat) (Nat × Nat) :=
+  { timeoutContract with assume := fun x => x.1 = 10000 ∧ admitted x.1 x.2 }
 
 theorem narrowed_candidate_is_nonvacuous :
-    ∃ (grant : Nat) (requested : Option Nat),
-      narrowedTimeout.inv grant ∧ narrowedTimeout.pre grant requested := by
-  exact ⟨10000, none, rfl, (by change 0 < 10000; decide)⟩
+    ∃ x, narrowedTimeout.assume x := by
+  refine ⟨(10000, none), rfl, ?_⟩
+  change 0 < 10000
+  decide
 
 theorem narrowed_candidate_cannot_replace_old_consumer :
-    ¬ Refines (asIOContract narrowedTimeout) oldConsumerContract := by
+    ¬ Refines narrowedTimeout oldConsumerContract := by
   intro hRef
   have hOld : oldConsumerContract.assume (300000, none) := by
     change (0 < 300000 ∧ 300000 ≤ 900000) ∧ True
-    exact ⟨⟨by decide, by decide⟩, trivial⟩
+    decide
   have hNew := hRef.1 (300000, none) hOld
-  have wrong : (300000 : Nat) = 10000 := hNew.1
-  exact (by decide : (300000 : Nat) ≠ 10000) wrong
+  exact (by decide : (300000 : Nat) ≠ 10000) hNew.1
 
--- The old contract must ALSO retain explicitly requested timeouts.
--- Candidate precondition drift must never change old consumer eligibility.
 theorem old_consumer_admits_explicit_50000 :
     oldConsumerContract.assume (300000, some 50000) := by
-  change (0 < 300000 ∧ 300000 ≤ 900000) ∧
-    (0 < 50000 ∧ 50000 ≤ 300000)
+  change (0 < 300000 ∧ 300000 ≤ 900000) ∧ (0 < 50000 ∧ 50000 ≤ 300000)
   decide
 
--- The new candidate remains realizable but rejects a previously admissible
--- explicit timeout, so substitution must fail even when the grant invariant
--- itself is unchanged.
-def narrowedRequestTimeout : TransitionContract (Option Nat) Nat Nat :=
-  { strictTimeout with
-    pre := fun grant requested =>
-      admitted grant requested ∧
-        match requested with
-        | none => True
-        | some timeout => timeout ≤ 10000 }
+def narrowedRequestTimeout : IOContract (Nat × Option Nat) (Nat × Nat) :=
+  { timeoutContract with assume := fun x =>
+      timeoutContract.assume x ∧
+      match x.2 with
+      | none => True
+      | some timeout => timeout ≤ 10000 }
 
 theorem narrowedRequestTimeout_has_admitted_input :
-    ∃ (grant : Nat) (requested : Option Nat),
-      narrowedRequestTimeout.inv grant ∧
-        narrowedRequestTimeout.pre grant requested := by
-  refine ⟨10000, some 5000, ?_, ?_⟩
-  · change 0 < 10000 ∧ 10000 ≤ 900000
-    decide
-  · change (0 < 5000 ∧ 5000 ≤ 10000) ∧ 5000 ≤ 10000
-    decide
+    ∃ x, narrowedRequestTimeout.assume x := by
+  refine ⟨(10000, some 5000), ?_⟩
+  change ((0 < 10000 ∧ 10000 ≤ 900000) ∧ (0 < 5000 ∧ 5000 ≤ 10000)) ∧ 5000 ≤ 10000
+  decide
 
 theorem narrowedRequestTimeout_cannot_replace_oldConsumer :
-    ¬ Refines (asIOContract narrowedRequestTimeout) oldConsumerContract := by
+    ¬ Refines narrowedRequestTimeout oldConsumerContract := by
   intro hRef
-  have hNew := hRef.1 (300000, some 50000)
-    old_consumer_admits_explicit_50000
-  have hBound : (50000 : Nat) ≤ 10000 := hNew.2.2
-  exact (by decide : ¬ ((50000 : Nat) ≤ 10000)) hBound
+  have hNew := hRef.1 (300000, some 50000) old_consumer_admits_explicit_50000
+  exact (by decide : ¬ ((50000 : Nat) ≤ 10000)) hNew.2
 
-theorem modeledBehavior_implements_strictTimeout :
-    Implements (asIOContract strictTimeout) modeledBehavior := by
+theorem modeledBehavior_implements_timeout :
+    Implements timeoutContract modeledBehavior := by
   constructor
-  · intro x y hAssume hBehavior
+  · intro x y hA hB
+    change y = (forwarded x.1 x.2, x.1) at hB
     subst y
-    dsimp [asIOContract, strictTimeout, modeledBehavior] at *
-    refine ⟨⟨rfl, rfl⟩, rfl, ⟨rfl, rfl, ?_⟩⟩
-    exact accepted_request_preserves_grant x.1 x.2 hAssume.2
+    exact ⟨rfl, rfl, accepted_request_preserves_grant x.1 x.2 hA.2⟩
   · intro x _
     exact ⟨(forwarded x.1 x.2, x.1), rfl⟩
 
 theorem modeledBehavior_preserves_old_consumer :
     Implements oldConsumerContract modeledBehavior :=
-  refinement_preserves_implementation
-    (asIOContract strictTimeout) oldConsumerContract modeledBehavior
-    modeledBehavior_implements_strictTimeout
-    strictTimeout_refines_existing_consumer
+  refinement_preserves_implementation timeoutContract oldConsumerContract modeledBehavior
+    modeledBehavior_implements_timeout timeout_refines_existing_consumer
 
--- This obligation is stronger than mere invariant satisfiability:
--- every accepted modeled step preserves its state invariant.
-theorem strictTimeout_preserves_invariant
-    (grant : Nat) (requested : Option Nat)
-    (outgoing next : Nat)
-    (hInv : strictTimeout.inv grant)
-    (hPost : strictTimeout.post grant requested outgoing next) :
-    strictTimeout.inv next := by
-  rw [hPost.2]
-  exact hInv
-
--- Reuse the PREEXISTING native state-invariant theorem to discharge
--- the local transition-closure obligation. Do not duplicate
--- the responsibility-level proof or infer actual Python installed behavior.
-theorem strictTimeout_has_transition_invariant_closure :
-    PreservesInvariant strictTimeout := by
-  intro grant requested outgoing next hInv _ hPost _ _
-  exact strictTimeout_preserves_invariant grant requested outgoing next
-    hInv hPost
+theorem timeout_has_transition_invariant_closure :
+    PreservesInvariant timeoutContract timeoutInvariant := by
+  intro x y hA hG
+  change timeoutInvariant y.2
+  rw [hG.2.1]
+  exact hA.1
 
 theorem timeout_model_implements_invariant_closed_contract :
-    Implements (asInvariantClosedContract strictTimeout) modeledBehavior :=
+    Implements (asInvariantClosedContract timeoutContract timeoutInvariant) modeledBehavior :=
   qualified_implementation_implements_invariant_closed_contract
-    strictTimeout modeledBehavior modeledBehavior_implements_strictTimeout
-    strictTimeout_has_transition_invariant_closure
+    timeoutContract timeoutInvariant modeledBehavior modeledBehavior_implements_timeout
+    timeout_has_transition_invariant_closure
 
--- The admitted mathematical realization exactly matches the declared
--- effect/acceptance relation, not just the old bounded consumer guarantee.
-theorem strictTimeout_transition_meets_acceptance
-    (grant : Nat) (requested : Option Nat)
-    (_hInv : strictTimeout.inv grant)
-    (hPre : strictTimeout.pre grant requested) :
-    strictTimeout.post grant requested
-      (forwarded grant requested) grant ∧
-    strictTimeout.eff grant requested
-      (forwarded grant requested) grant ∧
-    strictTimeout.accept grant requested
-      (forwarded grant requested) grant := by
-  have hBound := accepted_request_preserves_grant grant requested hPre
-  exact ⟨⟨rfl, rfl⟩, rfl, ⟨rfl, rfl, hBound⟩⟩
-
--- Exact, non-vacuous admitted source input, so success cannot be obtained
--- merely because the input assumptions are contradictory.
-theorem strictTimeout_has_admitted_input :
-    ∃ (grant : Nat) (requested : Option Nat),
-      strictTimeout.inv grant ∧ strictTimeout.pre grant requested := by
-  refine ⟨10000, none, ?_, ?_⟩
-  · change 0 < 10000 ∧ 10000 ≤ 900000
-    exact ⟨by decide, by decide⟩
-  · change admitted 10000 none
-    exact (by decide : 0 < 10000)
+theorem timeout_has_admitted_input : ∃ x, timeoutContract.assume x := by
+  refine ⟨(10000, none), ?_⟩
+  change (0 < 10000 ∧ 10000 ≤ 900000) ∧ 0 < 10000
+  decide
 
 -- An uncontrolled downstream default violates the old consumer guarantee.
 -- The countermodel is concrete and cannot be disguised as a compatible
@@ -1559,17 +1449,15 @@ end OrdivonR21.TimeoutConnection
 #print axioms OrdivonR21.TimeoutConnection.narrowedRequestTimeout_cannot_replace_oldConsumer
 #print axioms OrdivonR21.TimeoutConnection.narrowed_candidate_is_nonvacuous
 #print axioms OrdivonR21.TimeoutConnection.narrowed_candidate_cannot_replace_old_consumer
-#print axioms OrdivonR21.TimeoutConnection.modeledBehavior_implements_strictTimeout
-#print axioms OrdivonR21.TimeoutConnection.strictTimeout_refines_existing_consumer
+#print axioms OrdivonR21.TimeoutConnection.modeledBehavior_implements_timeout
+#print axioms OrdivonR21.TimeoutConnection.timeout_refines_existing_consumer
 #print axioms OrdivonR21.TimeoutConnection.modeledBehavior_preserves_old_consumer
-#print axioms OrdivonR21.TimeoutConnection.strictTimeout_has_admitted_input
+#print axioms OrdivonR21.TimeoutConnection.timeout_has_admitted_input
 #print axioms OrdivonR21.TimeoutConnection.unbounded_default_not_a_refinement
-#print axioms OrdivonR21.TimeoutConnection.strictTimeout_preserves_invariant
 #print axioms OrdivonR21.TimeoutConnection.input_only_invariant_is_insufficient
 #print axioms OrdivonR21.TimeoutConnection.invariant_preserved_by_qualified_implementation
-#print axioms OrdivonR21.TimeoutConnection.strictTimeout_has_transition_invariant_closure
+#print axioms OrdivonR21.TimeoutConnection.timeout_has_transition_invariant_closure
 #print axioms OrdivonR21.TimeoutConnection.timeout_model_implements_invariant_closed_contract
-#print axioms OrdivonR21.TimeoutConnection.strictTimeout_transition_meets_acceptance
 
 #print axioms OrdivonR21.TimeoutConnection.accepted_request_preserves_grant
 #print axioms OrdivonR21.TimeoutConnection.absent_request_uses_caller_grant
@@ -1624,8 +1512,22 @@ end OrdivonR21.NumericRepresentation
 #print axioms OrdivonR21.NumericRepresentation.unchecked_numeric_alias_is_possible
 
 -- R2.1 K1/Cross-Agent evidence message LEGO, one scoped responsibility.
--- Durable message admission is modeled by its ledger transition and replay guarantees.
--- SQL isolation, authentication and installed implementation remain separate obligations.
+-- Message model: concrete input, output and state relations.
+-- I=(ref,digest) of an already authenticated, open-topic message;
+-- O=(success status, unchanged or appended ledger); S=ref→(digest,seq), nextSeq;
+-- pre=ref and digest nonempty; authorized writer/open topic/transactional
+--      admission are externally required preconditions, not proven by Lean;
+-- post=matching replay returns existing, conflicting digest refuses mutation,
+--      unseen ref appends exactly once, no other ref is changed;
+-- inv=previously committed digest and order never silently change;
+-- eff=one append or none (not downstream execution);
+-- c=one abstract atomic insertion; epsilon=0 in this exact finite-step model;
+-- prov=Host v2 social_store.post_message ON CONFLICT/transaction sourcecut;
+-- unfold=(Gateway.message_post, Host.post_message, Host.topic_resume).
+-- These are mandatory *for this instantiated LEGO*; this namespace is NOT a
+-- universal metadata registry. SQL isolation, network authentication, the
+-- actual Python implementation, installed revision, and result-currentness
+-- are independent K2 refinement obligations, NOT claimed here.
 namespace OrdivonR21.MessageEvidence
 
 -- This ledger is a LOGICAL successful-commit projection: nextSeq is
@@ -1776,9 +1678,7 @@ theorem overwrite_breaks_existing_immutability :
   have hConflict := (h.1 "old" 0 rfl).2
   simp at hConflict
 
--- Reuse the local transition contract
--- from TimeoutConnection. This models one real collaboration responsibility;
--- it does not create another transport, registry, framework or evaluator.
+-- Ledger invariance follows from the actual message relation.
 def LedgerInvariant (s : Ledger) : Prop :=
   0 < s.nextSeq ∧
     ∀ ref digest seq, s.messages ref = some (digest, seq) →
@@ -1813,18 +1713,13 @@ theorem deliver_preserves_ledger_invariant (s : Ledger) (ref digest : String)
       · simpa [h, same] using hInv
       · simpa [h, same] using hInv
 
-def strictMessage :
-    OrdivonR21.TimeoutConnection.TransitionContract
-      (String × String) Admission Ledger where
-  pre := fun _ request => request.1 ≠ "" ∧ request.2 ≠ ""
-  post := fun s request admission next =>
-    deliver s request.1 request.2 = (next, admission)
-  inv := LedgerInvariant
-  eff := fun s _ admission next =>
-    (admission = .committed → next.nextSeq = s.nextSeq + 1) ∧
-    (admission ≠ .committed → next = s)
-  accept := fun s request admission next =>
-    Guarantees (s, request.1, request.2) (next, admission)
+def messageContract : IOContract (Ledger × String × String) (Admission × Ledger) where
+  assume := fun x => LedgerInvariant x.1 ∧ x.2.1 ≠ "" ∧ x.2.2 ≠ ""
+  guarantee := fun x y =>
+    deliver x.1 x.2.1 x.2.2 = (y.2, y.1) ∧
+    ((y.1 = .committed → y.2.nextSeq = x.1.nextSeq + 1) ∧
+     (y.1 ≠ .committed → y.2 = x.1)) ∧
+    Guarantees (x.1, x.2.1, x.2.2) (y.2, y.1)
 
 def oldMessageConsumer : IOContract
     (Ledger × String × String) (Admission × Ledger) where
@@ -1833,7 +1728,7 @@ def oldMessageConsumer : IOContract
   guarantee := fun x y =>
     Guarantees (x.1, x.2.1, x.2.2) (y.2, y.1)
 
-def strictMessageBehavior (x : Ledger × String × String)
+def messageBehavior (x : Ledger × String × String)
     (y : Admission × Ledger) : Prop :=
   deliver x.1 x.2.1 x.2.2 = (y.2, y.1)
 
@@ -1851,10 +1746,10 @@ theorem admitted_delivery_effect (s : Ledger) (ref digest : String) :
       · simp [deliver, h, same]
       · simp [deliver, h, same]
 
-theorem strict_message_model_implements_contract :
+theorem message_model_implements_contract :
     Implements
-      (OrdivonR21.TimeoutConnection.asIOContract strictMessage)
-      strictMessageBehavior := by
+      messageContract
+      messageBehavior := by
   constructor
   · intro ⟨s, ref, digest⟩ ⟨admission, next⟩ hAssume hBehavior
     change deliver s ref digest = (next, admission) at hBehavior
@@ -1879,9 +1774,9 @@ theorem strict_message_model_implements_contract :
   · intro ⟨s, ref, digest⟩ _
     exact ⟨((deliver s ref digest).2, (deliver s ref digest).1), rfl⟩
 
-theorem strict_message_refines_existing_consumer :
+theorem message_refines_existing_consumer :
     Refines
-      (OrdivonR21.TimeoutConnection.asIOContract strictMessage)
+      messageContract
       oldMessageConsumer := by
   constructor
   · intro x hOld
@@ -1889,66 +1784,46 @@ theorem strict_message_refines_existing_consumer :
   · intro x y _ hNew
     exact hNew.2.2
 
-theorem strict_message_preserves_existing_consumers :
-    Implements oldMessageConsumer strictMessageBehavior :=
+theorem message_preserves_existing_consumers :
+    Implements oldMessageConsumer messageBehavior :=
   refinement_preserves_implementation
-    (OrdivonR21.TimeoutConnection.asIOContract strictMessage)
-    oldMessageConsumer strictMessageBehavior
-    strict_message_model_implements_contract
-    strict_message_refines_existing_consumer
+    messageContract
+    oldMessageConsumer messageBehavior
+    message_model_implements_contract
+    message_refines_existing_consumer
 
-theorem strict_message_model_preserves_invariant
-    (s : Ledger) (ref digest : String)
-    (hInv : strictMessage.inv s) :
-    strictMessage.inv (deliver s ref digest).1 :=
-  deliver_preserves_ledger_invariant s ref digest hInv
+theorem message_has_transition_invariant_closure :
+    OrdivonR21.TimeoutConnection.PreservesInvariant messageContract LedgerInvariant := by
+  intro x y hA hG
+  have hNext : (deliver x.1 x.2.1 x.2.2).1 = y.2 := congrArg Prod.fst hG.1
+  exact hNext ▸ deliver_preserves_ledger_invariant x.1 x.2.1 x.2.2 hA.1
 
--- Connect the second REAL consumer model to the exact same canonical
--- R2.1 invariant-closure proposition. Reuse the existing Host message
--- invariant theorem, rather than create a parallel tuple or proof engine.
-theorem strict_message_has_transition_invariant_closure :
-    OrdivonR21.TimeoutConnection.PreservesInvariant strictMessage := by
-  intro s request admission next hInv _ hPost _ _
-  have hPrior :=
-    strict_message_model_preserves_invariant
-      s request.1 request.2 hInv
-  have hNext :
-      (deliver s request.1 request.2).1 = next :=
-    congrArg Prod.fst hPost
-  exact hNext ▸ hPrior
-
-theorem strict_message_implements_invariant_closed_contract :
+theorem message_implements_invariant_closed_contract :
     Implements
-      (OrdivonR21.TimeoutConnection.asInvariantClosedContract strictMessage)
-      strictMessageBehavior :=
+      (OrdivonR21.TimeoutConnection.asInvariantClosedContract messageContract LedgerInvariant)
+      messageBehavior :=
   OrdivonR21.TimeoutConnection.qualified_implementation_implements_invariant_closed_contract
-    strictMessage strictMessageBehavior
-    strict_message_model_implements_contract
-    strict_message_has_transition_invariant_closure
+    messageContract LedgerInvariant messageBehavior
+    message_model_implements_contract message_has_transition_invariant_closure
 
--- Nonvacuity of the full typed invariant and admission precondition.
-theorem strict_message_has_admitted_state_and_request :
-    ∃ (s : Ledger) (ref digest : String),
-      strictMessage.inv s ∧ strictMessage.pre s (ref, digest) := by
-  refine ⟨{ messages := fun _ => none, nextSeq := 1 }, "ref", "digest", ?_, ?_⟩
+theorem message_has_admitted_state_and_request :
+    ∃ x, messageContract.assume x := by
+  refine ⟨({ messages := fun _ => none, nextSeq := 1 }, "ref", "digest"), ?_, ?_⟩
   · constructor
     · exact (by decide : 0 < (1 : Nat))
     · intro ref digest seq h
       cases h
   · exact ⟨by decide, by decide⟩
 
-
-
 end OrdivonR21.MessageEvidence
 
 #print axioms OrdivonR21.MessageEvidence.admitted_delivery_effect
-#print axioms OrdivonR21.MessageEvidence.strict_message_model_implements_contract
-#print axioms OrdivonR21.MessageEvidence.strict_message_refines_existing_consumer
-#print axioms OrdivonR21.MessageEvidence.strict_message_preserves_existing_consumers
-#print axioms OrdivonR21.MessageEvidence.strict_message_model_preserves_invariant
-#print axioms OrdivonR21.MessageEvidence.strict_message_has_transition_invariant_closure
-#print axioms OrdivonR21.MessageEvidence.strict_message_implements_invariant_closed_contract
-#print axioms OrdivonR21.MessageEvidence.strict_message_has_admitted_state_and_request
+#print axioms OrdivonR21.MessageEvidence.message_model_implements_contract
+#print axioms OrdivonR21.MessageEvidence.message_refines_existing_consumer
+#print axioms OrdivonR21.MessageEvidence.message_preserves_existing_consumers
+#print axioms OrdivonR21.MessageEvidence.message_has_transition_invariant_closure
+#print axioms OrdivonR21.MessageEvidence.message_implements_invariant_closed_contract
+#print axioms OrdivonR21.MessageEvidence.message_has_admitted_state_and_request
 
 #print axioms OrdivonR21.MessageEvidence.same_ref_digest_replay_is_state_preserving
 #print axioms OrdivonR21.MessageEvidence.different_digest_conflict_is_state_preserving
@@ -2046,7 +1921,9 @@ end OrdivonR21.RetirementClosure
 #print axioms OrdivonR21.RetirementClosure.new_edge_invalidates_old_negative_observation
 #print axioms OrdivonR21.RetirementClosure.new_live_consumer_invalidates_old_negative_observation
 
--- Observable transition relations for stateful/effectful substitution.
+-- Stateful/effectful relation for this particular model.
+-- I,O,S,pre,post,visible eff are instantiated here. Invariants, cost,
+-- epsilon, provenance, unfold and installed environment remain separate.
 namespace OrdivonR21
 
 structure ObservableStep (σ ι ο ε : Type) where
