@@ -29,6 +29,7 @@ from .model import (
     AgentTurnCallHandle,
     AgentTurnDispatchSafety,
     AgentTurnFailureCode,
+    AgentTurnResult,
 )
 from .provider_lifecycle import ProviderCallLifecycle, ProviderLifecycleError
 from .run_contract import AgentLoopResult, RunBudget, RunStopCode
@@ -196,12 +197,14 @@ class OrdivonAgentLoop:
         )
 
     @staticmethod
-    def _cancel_and_drain_model_call(handle: AgentTurnCallHandle) -> None:
+    def _cancel_and_drain_model_call(
+        handle: AgentTurnCallHandle,
+    ) -> AgentTurnResult | None:
         handle.cancel()
         try:
-            handle.poll(0.5)
+            return handle.poll(0.5)
         except Exception:  # noqa: BLE001 - cancellation drain is best effort.
-            return
+            return None
 
     def _run(
         self,
@@ -1444,6 +1447,7 @@ class OrdivonAgentLoop:
                 },
             )
             provider_attempt = 0
+            provider_stop_observed = False
             while result is None:
                 failure_was_replayed = replayed_failure is not None
                 provider_attempt += 1
@@ -1509,7 +1513,10 @@ class OrdivonAgentLoop:
                         handle = start_invoke(request, control)
                         while True:
                             if cancellation.cancelled or execution_deadline_expired():
-                                self._cancel_and_drain_model_call(handle)
+                                provider_stop_observed = True
+                                result = self._cancel_and_drain_model_call(handle)
+                                if result is not None:
+                                    break
                                 interrupted = AgentTurnAdapterError(
                                     (
                                         "Provider cancellation outcome is unknown"
@@ -1684,7 +1691,7 @@ class OrdivonAgentLoop:
                     RunStopCode.CANCELLED,
                     detail="cancellation was requested during the Provider call",
                 )
-            if execution_deadline_expired():
+            if provider_stop_observed or execution_deadline_expired():
                 return stop(
                     RunStopCode.BUDGET_EXHAUSTED,
                     detail="wall-time deadline expired during the Provider call",
