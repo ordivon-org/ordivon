@@ -2740,3 +2740,25 @@ def test_r11_original_pg_qualified_native_port_cannot_be_swapped_after_runbirth(
         with pytest.raises(ToolBridgeError, match="Factory|admission|policy|drift"):
             factory.build(contract, continuity)
     assert client.calls == []
+
+
+def test_job_wide_artifact_inventory_never_guesses_ambiguous_stdout() -> None:
+    class HistoricalStreams(GatewayTextArtifacts):
+        def call_tool(self, name, arguments):
+            if name == "artifact.read":
+                raise AssertionError("ambiguous stream must not be read")
+            is_error, payload = super().call_tool(name, arguments)
+            if name == "execution.get":
+                payload["artifact_ids"] = ["attempt-a.stdout", "attempt-b.stdout"]
+                payload["artifact_count"] = 2
+            return is_error, payload
+
+    client = HistoricalStreams()
+    factory = _factory(client)
+    adapter = GatewayMcpRuntimeAdapter(
+        factory.component, client, factory.execution_grant, artifact_read_enabled=True,
+    )
+    adapter._operation_requests[client.native_id] = "request:historical-artifact"
+    with pytest.raises(HarnessRuntimeClientError, match="multiple stdout Artifact identities"):
+        adapter._observe_operation(client.operation_ref, client.native_id, wait_ms=0)
+    assert not any(name == "artifact.read" for name, _ in client.calls)
