@@ -22,6 +22,8 @@ jobs:
       id-token: write
       attestations: write
       artifact-metadata: write
+    outputs:
+      repository_commit: ${{ steps.release.outputs.repository_commit }}
     steps:
       - name: Checkout exact tagged revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -143,6 +145,9 @@ jobs:
               --candidate-dir "$root/target/release" \
               --candidate-manifest "$root/candidate-manifest.json" \
               --cargo "$(command -v cargo)" \
+              --binary ordivon-runtime-pg \
+              --binary ordivon-runtime-runner \
+              --include-pg-reclaimer \
               --pretty > "$root/prepare.json"
           )
           python3 - <<'PY'
@@ -193,9 +198,22 @@ jobs:
                           canonical[target.id] = ast.literal_eval(node.value)
           if set(canonical) != {"DEFAULT_BINARIES", "DEFAULT_OPERATOR_ARTIFACTS"}:
               raise SystemExit("native Runtime release artifact declarations unavailable")
-          expected_names = set(canonical["DEFAULT_BINARIES"]) | {
+          # This tagged release is for the native PostgreSQL installation
+          # cohort, not the legacy full-Workspace/SQLite default build.
+          pg_binaries = {"ordivon-runtime-pg", "ordivon-runtime-runner"}
+          pg_operators = {
               entry[0] for entry in canonical["DEFAULT_OPERATOR_ARTIFACTS"]
+              if entry[0] == "ordivon-runtime-pg-reclaim"
           }
+          if pg_operators != {"ordivon-runtime-pg-reclaim"}:
+              raise SystemExit("native PG release reclaimer not declared")
+          expected_names = pg_binaries | pg_operators
+          binaries = manifest.get("binaries")
+          if (not isinstance(binaries, list)
+              or {item.get("name") for item in binaries if isinstance(item, dict)}
+                 != pg_binaries
+              or len(binaries) != len(pg_binaries)):
+              raise SystemExit("tagged Runtime binary cohort is not native PostgreSQL")
           if not isinstance(artifacts, list) or len(artifacts) != len(expected_names):
               raise SystemExit("canonical Runtime release artifact cardinality differs from native deployer")
           if manifest.get("sourceOwnerPrefix") != "services/runtime":
