@@ -8,6 +8,7 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 HERE = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location(
@@ -50,6 +51,30 @@ class ResearchOutcomeDelegationTest(unittest.TestCase):
             "SELECTED_OUTPUT_PORT_ONLY_NOT_WHOLE_PRODUCT",
         )
         self.assertEqual(result["feedback"]["standing"], "NO_DATA_CORRECTION_REQUIRED")
+
+    def test_product_identity_and_projection_digest_share_one_snapshot(self) -> None:
+        product_path = self.root / delivery.PRODUCT
+        original = product_path.read_bytes()
+        changed = json.loads(original)
+        changed["version"] = "2.0.0"
+        replacement = json.dumps(changed).encode()
+        native_project = delivery.project_odps
+
+        def swap_then_project(source, **kwargs):
+            # A distinct producer revision appears between consumer parsing
+            # and projection. Neither manifest nor receipt has changed.
+            product_path.write_bytes(replacement)
+            return native_project(source, **kwargs)
+
+        with patch.object(delivery, "project_odps", side_effect=swap_then_project):
+            result = delivery.deliver(self.root)
+        info = result["deliveredInformation"]
+        self.assertEqual(info["productVersion"], json.loads(original)["version"])
+        self.assertEqual(
+            info["productSourceDigest"], "sha256:" + delivery.digest(original)
+        )
+        self.assertEqual(result["decision"]["standing"], "HOLD")
+        self.assertEqual(product_path.read_bytes(), replacement)
 
     def test_irrelevant_unavailable_parquet_does_not_block_selected_json(self) -> None:
         self.assertFalse((self.root / "episode-index.parquet").exists())

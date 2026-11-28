@@ -56,7 +56,10 @@ def deliver(root: Path = ROOT) -> dict[str, Any]:
     """Execute one owner-accepted information delegation, no human tool selection."""
     root = root.resolve(strict=True)
     product_path = root / PRODUCT
-    product = json.loads(product_path.read_bytes())
+    # Identity, projection and receipt comparison refer to the same observed
+    # metadata bytes. A later pathname read could refer to a different version.
+    product_bytes = product_path.read_bytes()
+    product = json.loads(product_bytes)
     product_id = product["id"]
     version = product["version"]
 
@@ -70,7 +73,7 @@ def deliver(root: Path = ROOT) -> dict[str, Any]:
         owner_root=root,
         port_version=MANIFEST_PORT_VERSION,
     )
-    projected, product_source_digest = project_odps(product_path, bindings=(binding,))
+    projected, product_source_digest = project_odps(product_bytes, bindings=(binding,))
     candidates = [
         port
         for port in projected["dcat:distribution"]
