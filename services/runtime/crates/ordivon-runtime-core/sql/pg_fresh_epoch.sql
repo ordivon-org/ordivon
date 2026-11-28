@@ -23,6 +23,8 @@ CREATE TABLE jobs(
  desired_state text NOT NULL CHECK(desired_state IN ('run','cancelled')),
  resolution text, current_attempt_id text, row_version bigint NOT NULL DEFAULT 0,
  UNIQUE(principal,client_request_id));
+-- Shared ordered lookup for pending admission and cancellation/recovery scans.
+CREATE INDEX idx_jobs_unresolved_created ON jobs(created_at_ms,job_id) WHERE resolution IS NULL;
 CREATE TABLE attempts(
  attempt_id text PRIMARY KEY, job_id text NOT NULL REFERENCES jobs(job_id),
  attempt_number bigint NOT NULL CHECK(attempt_number >= 1),
