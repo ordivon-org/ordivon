@@ -1,5 +1,30 @@
 # REFACTOR_PLAN — exact-source, maintenance-only execution
 
+## 2026-11-28 current-source continuation
+
+This existing plan remains the progress SSOT for the brownfield convergence loop; do not create a parallel entropy backlog or owner registry. The current continuation is source-qualified against remote main 5ccd9fc8144de1a1349b21636a69108068c3ee67 in isolated Runtime Workspace ws-gpt56-architecture-entropy-20261128.
+
+Fresh mechanical baseline on that SourceCut:
+
+- source census observed 336 Rust, 108 TypeScript/TSX and 1,789 Python files; the counts are discovery evidence, not a reason to rewrite by language or line count;
+- python3 tools/repo/check_owner_boundaries.py PASS (active_files=3001, 10 public packages, 44 declared seams);
+- python3 tools/repo/check_structure_r2.py PASS;
+- python3 tools/repo/check_architecture_docs.py PASS;
+- exact production-file duplicate scan found only Security package-local tsconfig.json / pnpm-workspace.yaml copies already covered by R10's independent-package boundary;
+- production Python import-SCC scan found only the already-known Capital OKX late-binding pair plus the Harness independent_result / run_continuity pair. Neither is a deletion claim.
+
+Consumer-falsified candidates must remain out of implementation until their real seam is migrated:
+
+| Candidate | Current verdict | Consumer / falsifier |
+| --- | --- | --- |
+| Runtime #1968 SQLite cache / storage-pressure retirement | **HOLD — cross-Owner migration required** | ordivon-runtime-pressure-control still invokes ordivon-runtime-cache; Workstation D-drive compact R3 unconditionally stops/restores ordivon-runtime-storage-pressure.timer and verifies exact enablement. A Runtime-only deletion would break a current maintenance transaction. Evidence was written to issue #1968 on 2026-11-28; no prototype source was retained. |
+| Runtime #1871 SQLite concurrent-admission retirement | **HOLD — existing successor in flight** | Native PG identity witness is already being adopted by PR #2992, while Windows PG retirement remains an explicit outstanding consumer/physical gate. Do not create a competing deletion PR. |
+| Skills four-tool compatibility surface | **KEEP — real external consumer** | extensions/chatgpt-skills-mcp/docs/chatgpt-skills-mcp-registration.md identifies ChatGPT as the evidence-backed retained consumer and readiness requires exactly skills.list/search/resolve/read; SEP-2640 is canonical standards transport but does not yet erase that consumer contract. |
+| Artifact OpenXML/Python tree-digest copies | **KEEP — carrier-local duplication** | Runtime wrappers are copied into immutable generations and intentionally execute without repository package imports. Sharing the helper would add a runtime carrier dependency; duplicate bytes here are not duplicate authority. |
+
+These results are Deletion-Test outcomes, not exemptions from future cleanup: revisit a HOLD/KEEP only when its cited consumer contract changes. Continue by selecting a non-overlapping natural-Owner slice with a behavior-preserving reduction; current open PR paths take precedence over creating parallel implementations.
+
+
 **Phase 3:** complete planning against `ef17d6879d12faa61fff3bb762b0d500d73c9113`, existing `AUDIT_REPORT.md` findings F01–F12.
 **Execution:** original/current tests and native source reads, not a new test suite or consumer route. Use the already existing `docs/architecture/REPOSITORY_BROWNFIELD_MODERNIZATION_EXECUTION_SPEC_20261110.md` proposed in PR #2012; this file is the specific Phase 3 execution breakdown, not a new authority registry.
 **Explicit prohibition:** new features, tests, new consumer lines, new dependencies or broad cross-Owner migrations.
