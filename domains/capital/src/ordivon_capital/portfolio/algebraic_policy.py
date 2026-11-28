@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from fractions import Fraction
 from typing import Any
 
 
@@ -81,53 +82,80 @@ def merton_single_risky_crra(
     rates, and *no constraint* are caller/model-owned. No invented leverage
     constant or backtest-derived empirical floor is inserted.
     """
-    if not all(math.isfinite(x) for x in (
+    if not all(_finite_economic_number(x) for x in (
         expected_return, cash_rate, borrowing_rate, variance, gamma,
     )):
         raise AlgebraicPolicyError("finite diffusion coefficients required")
     if not (gamma > 0 and variance > 0 and borrowing_rate >= cash_rate):
         raise AlgebraicPolicyError("gamma/variance positive and borrow >= lend required")
-    lending_opt = (expected_return - cash_rate) / (gamma * variance)
-    borrowing_opt = (expected_return - borrowing_rate) / (gamma * variance)
+    # Scalar closed form: use exact ratios of the represented inputs so an
+    # intermediate gamma*variance overflow/underflow cannot change the kink.
+    drift, lend, borrow, var, aversion = map(
+        Fraction, (expected_return, cash_rate, borrowing_rate, variance, gamma)
+    )
+    lending_opt = (drift - lend) / (aversion * var)
+    borrowing_opt = (drift - borrow) / (aversion * var)
     if lending_opt <= 1:
-        return max(0.0, lending_opt)
-    if borrowing_opt >= 1:
-        return borrowing_opt
-    return 1.0
+        optimum = max(Fraction(0), lending_opt)
+    elif borrowing_opt >= 1:
+        optimum = borrowing_opt
+    else:
+        optimum = Fraction(1)
+    try:
+        represented = float(optimum)
+    except OverflowError as exc:
+        raise AlgebraicPolicyError("unrepresentable diffusion optimum") from exc
+    if optimum > 0 and represented == 0:
+        raise AlgebraicPolicyError("unrepresentable diffusion optimum")
+    return represented
+
+
+def _finite_economic_number(value: object) -> bool:
+    """Economic scalar input, not an implicitly coerced boolean/string.
+
+    The numerical solver uses floating-point arithmetic; out-of-range
+    integers must fail at admission rather than in the optimizer.
+    """
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return False
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        return False
 
 
 def _validate(problem: OnePeriodProblem) -> None:
     n = len(problem.initial_margin)
     if n == 0 or len(problem.turnover_cost) != n or len(problem.old_weights) != n:
         raise AlgebraicPolicyError("nonempty, aligned asset vector required")
-    if not math.isfinite(problem.gamma) or problem.gamma <= 0:
+    if not _finite_economic_number(problem.gamma) or problem.gamma <= 0:
         raise AlgebraicPolicyError("positive finite CRRA gamma required")
     for margin in problem.initial_margin:
-        if not math.isfinite(margin) or not 0 < margin <= 1:
+        if not _finite_economic_number(margin) or not 0 < margin <= 1:
             raise AlgebraicPolicyError("broker initial margin must be in (0,1]")
-    if any(not math.isfinite(x) or x < 0 for x in problem.turnover_cost):
+    if any(not _finite_economic_number(x) or x < 0 for x in problem.turnover_cost):
         raise AlgebraicPolicyError("nonnegative turnover costs required")
-    if any(not math.isfinite(x) or x < 0 for x in problem.old_weights):
+    if any(not _finite_economic_number(x) or x < 0 for x in problem.old_weights):
         raise AlgebraicPolicyError("long-only existing risky weights required")
     if not problem.scenarios:
         raise AlgebraicPolicyError("conditional outcome distribution required")
     probability_sum = 0.0
     for s in problem.scenarios:
         if not (
-            math.isfinite(s.probability)
-            and s.probability > 0
+            _finite_economic_number(s.probability)
+            and 0 < s.probability <= 1
             and len(s.risky_gross_returns) == n
             and len(s.maintenance) == n
-            and math.isfinite(s.cash_gross_return)
-            and math.isfinite(s.debt_gross_return)
+            and _finite_economic_number(s.cash_gross_return)
+            and _finite_economic_number(s.debt_gross_return)
             and s.cash_gross_return > 0
             and s.debt_gross_return >= s.cash_gross_return
         ):
             raise AlgebraicPolicyError("scenario probability/shape/financing invalid")
         probability_sum += s.probability
-        if any(not math.isfinite(x) or x < 0 for x in s.risky_gross_returns):
+        if any(not _finite_economic_number(x) or x < 0 for x in s.risky_gross_returns):
             raise AlgebraicPolicyError("nonnegative finite risky gross returns required")
-        if any(not math.isfinite(x) or not 0 <= x <= 1 for x in s.maintenance):
+        if any(not _finite_economic_number(x) or not 0 <= x <= 1 for x in s.maintenance):
             raise AlgebraicPolicyError("invalid provider maintenance requirement")
     if not math.isclose(probability_sum, 1.0, rel_tol=1e-10, abs_tol=1e-12):
         raise AlgebraicPolicyError("scenario probabilities must sum to one")
@@ -142,13 +170,26 @@ def unitize_external_contribution(
     New investment unit count = contribution_r / unit_nav_before.
     The identical unit NAV after contribution is mathematically invariant.
     """
-    if not all(math.isfinite(x) for x in (
+    if not all(_finite_economic_number(x) for x in (
         unit_nav_before, outstanding_units, contribution_r,
     )):
         raise AlgebraicPolicyError("finite equity and capital flow required")
     if unit_nav_before <= 0 or outstanding_units < 0 or contribution_r < 0:
         raise AlgebraicPolicyError("invalid unit NAV or negative contribution")
-    new_units = outstanding_units + contribution_r / unit_nav_before
+    if contribution_r == 0:
+        # The identity transition must not round an unchanged integer count.
+        return unit_nav_before, outstanding_units
+    # Reconstruct the unit identity exactly for the supplied scalar values,
+    # then round once at the existing float boundary. A positive cash flow
+    # must not be silently recorded as zero newly issued units.
+    old_units = Fraction(outstanding_units)
+    exact_units = old_units + Fraction(contribution_r) / Fraction(unit_nav_before)
+    try:
+        new_units = float(exact_units)
+    except OverflowError as exc:
+        raise AlgebraicPolicyError("unrepresentable outstanding units") from exc
+    if contribution_r > 0 and Fraction(new_units) <= old_units:
+        raise AlgebraicPolicyError("positive contribution not representable in units")
     return unit_nav_before, new_units
 
 

@@ -2,10 +2,9 @@
 
 ## Finance Agent roles / Security authorization composition (2026-11-08)
 
-Finance has no required seven-Owner architecture. The seven existing Python
-source directories describe brownfield implementation, not a permanent Finance
-LEGO taxonomy. Dynamic Agent roles are task instructions, not deployment
-identities or financial authority. A Research
+Finance has no required Owner count. The source domains describe the current
+implementation, not a permanent Finance LEGO taxonomy. Dynamic Agent roles
+are task instructions, not deployment identities or financial authority. A Research
 Director may schedule Discovery, Quant Researcher, Independent Reviewer,
 Portfolio/Risk Challenger and Operations tasks through existing Harness
 and Runtime. No Finance Agent registry, policy engine, new role-owned database
@@ -34,7 +33,7 @@ market execution. Human and Agent procedure is in the existing
 
 ## Finance investment program — source boundary (2026-11-06)
 
-The Finance economic program **reuses** Capital's seven real source owners.
+The Finance economic program **reuses** Capital's existing source owners.
 The existing `strategic_contribution.py` and `passive_benchmark.py` are the
 current Investment Mode mechanics. No second passive-index simulator is added.
 The current `investment_candidate.py` owns byte-bound economic candidate
@@ -76,9 +75,7 @@ timestamp attestation remains UNKNOWN. The native acceptance uses
 
 Ordivon Capital is a composition/control plane, not a new financial framework. External standards define semantics and providers own authoritative external reality. Mature implementations are candidates for mechanics until they pass current language, semantic, executable and comparative qualification gates. Ordivon keeps local mechanisms when no external candidate is admitted, while minimizing them to the exact bounded contract.
 
-The currently instantiated Python source-owner packages are Markets, Trading, Portfolio, Risk, Research, Governance, and Accounting. The former monolithic ordivon_capital.market package is retired with no compatibility shim.
-
-Ordivon Capital is the umbrella. The currently instantiated source-owner domains are `markets/`, `trading/`, `portfolio/`, `risk/`, `research/`, `governance/`, and `accounting/`. No empty Treasury/Compute/Human/etc. packages are created merely to mirror a conceptual taxonomy. `config/capital_domain_taxonomy.json` defines the source-owner taxonomy and `config/external_owner_census.json` is the machine-readable implementation-ownership audit.
+The source-owner set is defined in [capital_domain_taxonomy.json](../config/capital_domain_taxonomy.json), with implementation qualifications in [external_owner_census.json](../config/external_owner_census.json). Inspect the actual packages and run `tests/test_capital_domain_taxonomy.py` for current import boundaries; this page does not maintain a second directory list. Applications compose the business domains without becoming another business authority. The former monolithic `ordivon_capital.market` package is retired without a shim; do not create empty packages to mirror a conceptual taxonomy.
 
 `Markets` owns observable public market/reference facts, microstructure and streaming qualification. `Trading` owns provider/private reality, order intent, execution feasibility, FIX projection and reconciliation. `Portfolio` owns caller-supplied portfolio counterfactuals and deterministic contribution-only strategic allocation; `Risk` owns exposure and risk measurement; `Research` owns model/evidence validation; `Governance` owns authorization/policy gates; `Accounting` owns durable ledger mechanics. `Execution` is therefore a capability inside Trading rather than a synonym for Capital or Markets.
 
@@ -115,7 +112,6 @@ qualifies order lifecycle and effect disposition; it is not a market-cost,
 ETF-execution, custody, settlement or profitability claim. Historical rc4 remains
 an isolated, separately pinned qualification for exact regression comparison. Its rc4 executable qualification tools are isolated under tools/nautilus_rc4; canonical public-data, private-read preflight, and OKX provider-audit gates do not execute rc4. Nautilus-specific episode normalization/effect-matrix adapters are likewise candidate tools; the current non-live effect admission contract is provider-neutral and retains rc4 only as historical qualification evidence. FIX Latest / FIX Orchestra remains the order-semantic reference. The current legacy FIX 4.4 mechanics projection is a bounded local sessionless TagValue projector after 120/120 byte-exact QuickFIX/n comparisons; QuickFIX/n is retained only as a differential oracle and future real-session candidate. PostgreSQL 18.6 through psycopg 3 is the current **native-qualified Accounting implementation owner** in the source census, while installed-service cutover remains a distinct observed fact; the old SQLite implementation and differential-only tests were retired, while TigerBeetle remains an external distributed-accounting candidate recorded in historical evidence rather than an executable current Owner. Prometheus 3.14.0 is a Capital observability candidate rather than a current owner. A 2026-09-21 live census found the old Market-Capital node-exporter/shared-Prometheus island inactive and the active Network v2 Prometheus had zero Capital series; the stale renderer/rules/textfile/drop-in were therefore retired instead of preserved as compatibility debt. Grafana/OpenTelemetry/OpenLineage likewise remain candidates until an active contract exists. See docs/COMPOSITION_FIRST_2026-09-14.md.
 
-### Capital accounting substrate
 ### Capital accounting substrate
 
 The canonical source authority is
