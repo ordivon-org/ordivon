@@ -121,9 +121,14 @@ def build_profile(receipt_paths: Iterable[Path], expected_attempts: int | None) 
     paths = sorted({Path(path).resolve() for path in receipt_paths}, key=lambda value: value.as_posix())
     if not paths:
         raise ValueError("at least one receipt is required")
-    receipt_files = [(path, _read_receipt(path)) for path in paths]
     receipts_by_identity: dict[tuple[str, str], tuple[Path, dict[str, object]]] = {}
-    for path, receipt in receipt_files:
+    conflict: ValueError | None = None
+    for path in paths:
+        receipt = _read_receipt(path)
+        # Continue validating files so a later invalid receipt retains the
+        # same precedence over an identity conflict as eager validation.
+        if conflict is not None:
+            continue
         identity = (str(receipt["jobId"]), str(receipt["attemptId"]))
         previous = receipts_by_identity.get(identity)
         if previous is None:
@@ -131,10 +136,12 @@ def build_profile(receipt_paths: Iterable[Path], expected_attempts: int | None) 
             continue
         previous_path, previous_receipt = previous
         if receipt != previous_receipt:
-            raise ValueError(
+            conflict = ValueError(
                 "conflicting receipts for identity "
                 f"jobId={identity[0]} attemptId={identity[1]}: {previous_path} vs {path}"
             )
+    if conflict is not None:
+        raise conflict
     receipts = [receipt for _, receipt in receipts_by_identity.values()]
     receipt_count = len(receipts)
 

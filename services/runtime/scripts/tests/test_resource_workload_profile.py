@@ -196,5 +196,25 @@ class ResourceWorkloadProfileTests(unittest.TestCase):
                 MODULE.build_profile([first, second], expected_attempts=1)
 
 
+    def test_later_invalid_receipt_takes_precedence_over_identity_conflict(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            first, conflict, invalid = (root / name for name in ("a.json", "b.json", "c.json"))
+            write_receipt(first, receipt(cpu=1, memory=2, read=3, write=4))
+            write_receipt(conflict, receipt(cpu=9, memory=2, read=3, write=4))
+            invalid.write_text("{invalid", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "invalid receipt"):
+                MODULE.build_profile([first, conflict, invalid], expected_attempts=None)
+
+    def test_first_identity_conflict_is_preserved_after_validating_remaining_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            first, conflict, later = (root / name for name in ("a.json", "b.json", "c.json"))
+            for path, value in ((first, 1), (conflict, 9), (later, 13)):
+                write_receipt(path, receipt(cpu=value, memory=2, read=3, write=4))
+            with self.assertRaisesRegex(ValueError, r"a\.json vs .*b\.json"):
+                MODULE.build_profile([later, conflict, first], expected_attempts=None)
+
+
 if __name__ == "__main__":
     unittest.main()
