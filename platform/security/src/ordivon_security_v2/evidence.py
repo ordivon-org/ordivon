@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass
-from hashlib import sha256
 from pathlib import Path
+
+from .digests import sha256_file_hex_and_size
 
 
 @dataclass(frozen=True, slots=True)
@@ -16,18 +17,13 @@ class EvidenceRef:
 
     @classmethod
     def from_path(cls, *, provider: str, format: str, path: Path) -> EvidenceRef:
-        digest = sha256()
-        length = 0
-        with path.open("rb") as source:
-            while chunk := source.read(1024 * 1024):
-                digest.update(chunk)
-                length += len(chunk)
+        digest, byte_length = sha256_file_hex_and_size(path)
         return cls(
             provider=provider,
             format=format,
             path=str(path),
-            sha256="sha256:" + digest.hexdigest(),
-            byte_length=length,
+            sha256="sha256:" + digest,
+            byte_length=byte_length,
         )
 
     def to_dict(self) -> dict[str, object]:

@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import hashlib
 import json
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-
-def _sha256(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+from .digests import sha256_file as _sha256
 
 
 def validate_scorecard_report(

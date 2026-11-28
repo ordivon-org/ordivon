@@ -30,6 +30,7 @@ from ordivon_security_v2 import (
     build_browser_security_witness_bundle,
     compare_browser_security_pool,
 )
+from ordivon_security_v2.digests import sha256_file
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_ROOT = ROOT / "fixtures/browser-security"
@@ -51,14 +52,6 @@ MANIFEST_FIELDS = {
 
 class ResealError(RuntimeError):
     pass
-
-
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as source:
-        while chunk := source.read(1024 * 1024):
-            digest.update(chunk)
-    return "sha256:" + digest.hexdigest()
 
 
 def _canonical_bytes(value: object) -> bytes:

@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import base64
 import json
-from hashlib import sha256
 from pathlib import Path
 from typing import Any
+
+from .digests import sha256_bytes as sha256_bytes
+from .digests import sha256_file as sha256_file
 
 VSA_PREDICATE = "https://slsa.dev/verification_summary/v1"
 DSSE_PAYLOAD_TYPE = "application/vnd.in-toto+json"
@@ -21,18 +23,6 @@ def _parse_unique_json(data: bytes | str) -> Any:
         return values
 
     return json.loads(data, object_pairs_hook=unique_mapping)
-
-
-def sha256_bytes(data: bytes) -> str:
-    return "sha256:" + sha256(data).hexdigest()
-
-
-def sha256_file(path: Path) -> str:
-    digest = sha256()
-    with path.open("rb") as source:
-        while chunk := source.read(1024 * 1024):
-            digest.update(chunk)
-    return "sha256:" + digest.hexdigest()
 
 
 def decode_bundle_statement(bundle_path: Path) -> tuple[dict[str, Any], bytes]:

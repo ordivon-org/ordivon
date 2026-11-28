@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
+
+from .digests import sha256_file as _sha256
 
 _ALLOWED_STATES = {
     "resolved",
@@ -25,10 +26,6 @@ _ALLOWED_JUSTIFICATIONS = {
     "protected_at_perimeter",
     "protected_by_mitigating_control",
 }
-
-
-def _sha256(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _uuid_from_serial(serial: str) -> str:

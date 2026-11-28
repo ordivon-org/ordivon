@@ -4,10 +4,10 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from ordivon_security_v2.digests import sha256_file
 from ordivon_security_v2.signed_vsa import (
     decode_bundle_statement,
     load_trust_mapping,
-    sha256_file,
     verify_vsa_semantics,
 )
 

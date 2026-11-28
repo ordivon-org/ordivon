@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from hashlib import sha256
 from pathlib import Path
 from typing import Any, Literal, TypedDict
 
 from .attestations import STATEMENT_TYPE
+from .digests import sha256_file_hex as _sha256
 
 SLSA_PROVENANCE_PREDICATE = "https://slsa.dev/provenance/v1"
 
@@ -19,14 +19,6 @@ class ProvenanceContentBinding(TypedDict):
     builderId: str
     buildType: str
     authenticated: Literal[False]
-
-
-def _sha256(path: Path) -> str:
-    digest = sha256()
-    with path.open("rb") as source:
-        while chunk := source.read(1024 * 1024):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def verify_build_provenance(

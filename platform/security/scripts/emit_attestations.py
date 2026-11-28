@@ -12,10 +12,10 @@ from pathlib import Path
 
 from ordivon_security_v2.attestations import (
     reference_statement,
-    sha256_file,
     subject_descriptor,
     vsa_statement,
 )
+from ordivon_security_v2.digests import sha256_file_hex
 from ordivon_security_v2.evidence import verified_evidence_path
 
 
@@ -186,7 +186,7 @@ def main() -> int:
         verifier_versions=versions,
         resource_uri=f"git+file://{args.subject_name}@{gate['subjectRevision']}",
         policy_uri=args.policy.resolve().as_uri(),
-        policy_sha256=sha256_file(args.policy),
+        policy_sha256=sha256_file_hex(args.policy),
         input_attestations=reference_descriptors,
         passed=decision.get("standing") == "CURRENT" and decision.get("allow") is True,
     )
