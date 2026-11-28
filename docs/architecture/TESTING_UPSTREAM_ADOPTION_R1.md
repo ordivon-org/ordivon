@@ -38,8 +38,8 @@ engine, orchestration service, or mandatory global gate. The claim is
 
 1. **Specification** — identify a precise contract, environment assumptions,
    allowed effects, state projection, source revision, and counterexample.
-   For a declared Recursive LEGO R2.1 responsibility use all eleven existing
-   typed coordinates: I/O/S/pre/post/inv/eff/c/epsilon/prov/unfold.
+   Choose only the mathematical structure and assumptions needed to express
+   the property under study; no universal declaration shape is required.
 2. **Model** — choose the smallest faithful state machine, relation, refinement
    type or assume-guarantee contract. State finite bounds, fairness and
    abstraction explicitly; UNKNOWN is not FALSE.

@@ -121,34 +121,29 @@ JSON safe integer maximum, while Work.snapshot.commit requires a strictly lower
 expectedRevision so an increment can be represented; both the native MCP
 input and the WorkStore boundary enforce these domains.
 
-### R2.1 declaration: Host Work snapshot compare-and-swap
+### Host Work snapshot compare-and-swap
 
-This is **one independent formally DECLARED implementation-backed capability
-LEGO**, not a declaration of all Host functions or an admission registry. The
-effective contract is the existing `WorkStore.commit_snapshot` public behavior:
+The existing `WorkStore.commit_snapshot` behavior is a transactional state
+transition. A new commit requires a valid typed request and actor,
+an open Work, and equality of the current revision and the exact expected
+integer revision in [1, 2^53-2]. It increments the revision by one and binds
+the current snapshot to the canonical payload digest. Exact replay or a
+matching next revision returns existing; incompatible requests conflict.
 
-| Typed R2.1 coordinate | Host Work snapshot CAS interpretation |
-| --- | --- |
-| I | WorkRef, exact expectedRevision: int in [1, 2^53-2], WorkSnapshotInput, ActorRef, WorkState, ClientRequestId |
-| O | Work readback with committed/existing admission, or a typed conflict/error; no claim of semantic Work completion |
-| S | Actual Host PostgreSQL works, work_snapshots, actor_refs and command receipt rows in one transaction |
-| pre | Exact bounded integer, valid typed payload/actor; a new commit requires current revision = expected and current state = open |
-| post | On new commit revision increments by exactly one and current snapshot digest matches the canonical payload; exact replay or matching next revision yields existing, incompatible request conflicts |
-| inv | At most one *different* snapshot can win the same expected revision; current Work pointer and immutable snapshot row agree; terminal Work cannot be reopened through a new commit |
-| eff | Atomic PostgreSQL row-lock/CAS, snapshot insert and durable idempotency receipt; no Runtime Job or external domain effect |
-| c | UNKNOWN(reason=unmeasured transaction latency under realistic contention, scope=Host PG18 Work CAS, obligation=record consumer-relevant cost if optimizing) |
-| epsilon | UNKNOWN(reason=no general quantified external availability/failure bound, scope=database/deployment effects, obligation=qualify installed PG consumer); pure revision arithmetic is exact |
-| prov | Actual code in `src/ordivon_host_v2/work_store.py` and `work_queries.py`; locked CrossHair 0.0.112 source contract, real PostgreSQL 18 Alembic/pytest via `mise run test:postgres:disposable`, exact SourceCut is the tested Git revision |
-| unfold | `WorkStore.commit_snapshot` -> claim_command_receipt -> next_work_revision / canonical_digest -> PostgreSQL conditional UPDATE / INSERT -> read_work_in_tx -> record_command_receipt |
+At most one different snapshot wins the same expected revision. The Work
+pointer and immutable snapshot row must agree; a terminal Work cannot be
+reopened by a new commit. PostgreSQL row locking, conditional UPDATE/INSERT,
+snapshot readback and durable idempotency receipts implement that boundary.
+It does not create a Runtime Job or establish external goal completion.
 
-Evidence standing is **DECLARATION_COMPLETE** for this scoped contract; the
-native CrossHair confirms the called revision arithmetic only, while the
-disposable PostgreSQL 18 test suite covers **specific actual transaction and
-consumer scenarios**. Neither provides a universal deductive proof of
-PostgreSQL concurrency, a Rust/TLA-style refinement of all SQL operations,
-an installed production SourceCut witness, or DOMAIN_ACCEPTED. Preserve these
-distinct proof obligations; do not delete the real CAS/race/replay tests merely
-because the revision increment has a source-level proof.
+The native implementation is in `src/ordivon_host_v2/work_store.py` and
+`work_queries.py`. The locked CrossHair 0.0.112 check concerns revision
+arithmetic only, while `mise run test:postgres:disposable` covers specific
+actual PostgreSQL 18 transaction and consumer scenarios. Neither provides
+a universal proof of PostgreSQL concurrency, refinement of all SQL
+operations, installed production source currentness, or DOMAIN_ACCEPTED.
+Realistic contention latency and external availability bounds remain unknown.
+Preserve real CAS/race/replay tests independently of the arithmetic proof.
 
 ## First-principles Host logic and capability composition
 
