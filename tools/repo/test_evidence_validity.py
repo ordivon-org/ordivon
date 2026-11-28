@@ -5,6 +5,8 @@ from __future__ import annotations
 import importlib.util
 import itertools
 import re
+import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -16,6 +18,22 @@ SPEC = importlib.util.spec_from_file_location("evidence_validity", SOURCE)
 assert SPEC is not None and SPEC.loader is not None
 module = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(module)
+
+def test_check_evidence_uses_native_reader_without_ci_telemetry():
+    # Check evidence must not load the unrelated CI economic/phase projection.
+    # Block its import in an independent interpreter, not a warmed test module.
+    subprocess.run(
+        [
+            sys.executable, "-c",
+            "import sys; sys.modules['ci_telemetry'] = None; "
+            "import evidence_validity, evidence_github_checks; "
+            "from github_workflow_observation import GitHubWorkflowReader; "
+            "assert evidence_validity.GitHubWorkflowReader is GitHubWorkflowReader; "
+            "assert evidence_github_checks.GitHubWorkflowReader is GitHubWorkflowReader",
+        ],
+        cwd=SOURCE.parent, check=True,
+    )
+
 
 PREVIOUS = "a" * 40
 CURRENT = "b" * 40

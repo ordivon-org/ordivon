@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 import convergence_plan
-from ci_telemetry import Gh
+from github_workflow_observation import GitHubWorkflowReader
 from evidence_check_decision import _decision, _standing
 from evidence_formal_archive import (
     ARCHIVE_PROVENANCE,
@@ -54,7 +54,7 @@ def decide(
     current_sha: str,
     prior_sha: str | None = None,
     check_name: str = "root-verification",
-    github: Gh | None = None,
+    github: GitHubWorkflowReader | None = None,
     current_workflow_run_id: int | None = None,
     prior_workflow_run_id: int | None = None,
 ) -> dict[str, Any]:
@@ -65,7 +65,7 @@ def decide(
     current_sha = _exact_commit(current_sha)
     if prior_sha is not None:
         prior_sha = _exact_commit(prior_sha)
-    gh = github or Gh(repo)
+    gh = github or GitHubWorkflowReader(repo)
     current = _select_check(
         _provider_checks(gh, repo, current_sha),
         sha=current_sha,
@@ -405,7 +405,7 @@ def compare_formal_execution_inputs_to_candidate(
 
 def _workflow_formal_artifact(
     *,
-    gh: Gh,
+    gh: GitHubWorkflowReader,
     repo: str,
     run_id: str,
     head_sha: str,
@@ -490,7 +490,7 @@ def fetch_original_formal_report(
     *,
     repo: str,
     source_sha: str,
-    github: Gh | None = None,
+    github: GitHubWorkflowReader | None = None,
     candidate_sha: str | None = None,
     workflow_run_id: int | None = None,
 ) -> dict[str, Any]:
@@ -502,7 +502,7 @@ def fetch_original_formal_report(
     source_sha = _exact_commit(source_sha)
     if repo != DEFAULT_REPOSITORY:
         raise ValueError("historical Formal report requires canonical repository")
-    gh = github or Gh(repo)
+    gh = github or GitHubWorkflowReader(repo)
     check = _select_check(
         _provider_checks(gh, repo, source_sha),
         sha=source_sha,
@@ -584,7 +584,7 @@ def decide_with_optional_formal_source_delta(
     prior_sha: str | None,
     check_name: str,
     include_formal_source_delta: bool,
-    github: Gh | None = None,
+    github: GitHubWorkflowReader | None = None,
     git_repo: Path | None = None,
     current_workflow_run_id: int | None = None,
     prior_workflow_run_id: int | None = None,

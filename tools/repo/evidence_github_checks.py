@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Any
 from urllib.parse import urlsplit
 
-from ci_telemetry import Gh
+from github_workflow_observation import GitHubWorkflowReader
 
 MAX_CHECK_ROWS = 2000
 MAX_REFERENCE_SUITES = 1000
@@ -25,7 +25,7 @@ class CheckObservationError(ValueError):
 
 
 def bounded_provider_rows(
-    gh: Gh, endpoint: str, *, key: str, label: str, max_rows: int = MAX_CHECK_ROWS
+    gh: GitHubWorkflowReader, endpoint: str, *, key: str, label: str, max_rows: int = MAX_CHECK_ROWS
 ) -> list[dict[str, Any]]:
     """Validate bounded native pagination; not an atomic provider snapshot."""
     rows: list[dict[str, Any]] = []
@@ -68,7 +68,7 @@ def bounded_provider_rows(
     raise ValueError(f"{label} listing is truncated or inconsistent")
 
 
-def _check_suite_count(gh: Gh, repo: str, sha: str) -> tuple[int, int | None]:
+def _check_suite_count(gh: GitHubWorkflowReader, repo: str, sha: str) -> tuple[int, int | None]:
     # GitHub's commit Check Runs endpoint observes at most 1000 suites.
     # A small returned Check Run count is not evidence the suite cap was not hit.
     payload = gh.api(f"repos/{repo}/commits/{sha}/check-suites?per_page=1")
@@ -93,7 +93,7 @@ def _check_suite_count(gh: Gh, repo: str, sha: str) -> tuple[int, int | None]:
     return count, first["id"] if first else None
 
 
-def _provider_checks(gh: Gh, repo: str, sha: str) -> list[dict[str, Any]]:
+def _provider_checks(gh: GitHubWorkflowReader, repo: str, sha: str) -> list[dict[str, Any]]:
     """Read bounded all-attempts listing and qualify native suite coverage."""
     before = _check_suite_count(gh, repo, sha)
     rows = bounded_provider_rows(
@@ -127,7 +127,7 @@ def _context(row: dict[str, Any], repo: str) -> tuple[int, int]:
 
 
 def _native_attempt_selection(
-    gh: Gh, repo: str, sha: str, check_name: str, selected: list[dict[str, Any]]
+    gh: GitHubWorkflowReader, repo: str, sha: str, check_name: str, selected: list[dict[str, Any]]
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Join Check Run, Workflow Run and latest native Attempt Job identity."""
     contexts = {_context(row, repo) for row in selected}
@@ -208,7 +208,7 @@ def _native_attempt_selection(
 
 
 def _select_check(
-    rows: list[dict[str, Any]], *, sha: str, check_name: str, gh: Gh, repo: str,
+    rows: list[dict[str, Any]], *, sha: str, check_name: str, gh: GitHubWorkflowReader, repo: str,
     workflow_run_id: int | None = None,
 ) -> dict[str, Any] | None:
     selected: list[dict[str, Any]] = []
