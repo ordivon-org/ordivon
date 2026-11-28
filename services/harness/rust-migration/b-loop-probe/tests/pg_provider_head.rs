@@ -271,29 +271,104 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
         });
     }
 
-    // The actual persistent effect here is a PG Journal transaction only.
-    // Even the UNKNOWN Provider Event is a record, not evidence that a model
-    // request was sent; this fixture makes no Provider or Runtime API call.
-    let mut writer = Client::connect(&writer_dsn, NoTls).unwrap();
-    let lease = acquire_run_lease(
-        &mut writer,
-        &schema,
-        run_id,
-        "test:rust-native-provider-journal",
-        30_000,
-        1008,
-        Some(1),
-    )
-    .unwrap();
-    assert_eq!(
-        append_events(&mut writer, &schema, run_id, &batch, 1, &lease, 1008).unwrap(),
-        Admission::Created
-    );
-    // Simulate disappearing write connection / lost commit response:
-    // only a fresh read-only authoritative snapshot can tell whether the
-    // exact Journal batch committed. It cannot prove a physical effect.
-    drop(writer);
+    // A real Provider call cannot be represented by one transaction spanning
+    // CLAIMED, DISPATCHING and UNKNOWN: the external transport lies between
+    // durable states. Exercise each commit/reconnect boundary without sending
+    // a model request, and retain the exact original Event identities.
     let mut readonly = Client::connect(&readonly_dsn, NoTls).unwrap();
+    let mut prior_lease = None;
+    for (index, (status, posture)) in [
+        (
+            ProviderStatus::Claimed,
+            RecoveryPosture::RecheckClaimAndDurableFence,
+        ),
+        (
+            ProviderStatus::Dispatching,
+            RecoveryPosture::ReconcileWithProviderOwner,
+        ),
+        (
+            ProviderStatus::Unknown,
+            RecoveryPosture::RetainUnknownAndReconcile,
+        ),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let revision = 1 + i64::try_from(index).unwrap();
+        let event = &batch[index..index + 1];
+        let now = event[0].recorded_at_ms;
+        assert_eq!(
+            observe_exact_batch(&mut readonly, &schema, run_id, revision, event).unwrap(),
+            JournalObservation::NotObserved
+        );
+        // Absence of this Journal Event says nothing about external effects.
+        let mut writer = Client::connect(&writer_dsn, NoTls).unwrap();
+        if let Some(stale) = &prior_lease {
+            assert!(matches!(
+                append_events(&mut writer, &schema, run_id, event, revision, stale, now),
+                Err(WriteError::Fenced)
+            ));
+        }
+        let lease = acquire_run_lease(
+            &mut writer,
+            &schema,
+            run_id,
+            "test:rust-native-provider-journal",
+            30_000,
+            now,
+            Some(revision),
+        )
+        .unwrap();
+        assert_eq!(
+            append_events(&mut writer, &schema, run_id, event, revision, &lease, now).unwrap(),
+            Admission::Created
+        );
+        drop(writer);
+        // Reconnect rather than rely on the previous writer's memory.
+        readonly = Client::connect(&readonly_dsn, NoTls).unwrap();
+        assert_eq!(
+            observe_exact_batch(&mut readonly, &schema, run_id, revision, event).unwrap(),
+            JournalObservation::ExactCommitted
+        );
+        let head = inspect_pg_provider_head(&mut readonly, &schema, run_id, model)
+            .unwrap()
+            .expect("committed Provider head");
+        assert_eq!(head.run_revision(), revision + 1);
+        assert_eq!(head.event_id(), event[0].event_id);
+        assert_eq!(
+            head.record_digest(),
+            text(&event[0].data, "providerCallRecordDigest")
+        );
+        assert_eq!(head.status(), status);
+        assert_eq!(head.recovery_posture(), posture);
+        if index < 2 {
+            assert!(matches!(
+                observe_exact_batch(&mut readonly, &schema, run_id, 1, &batch),
+                Err(WriteError::Conflict(_))
+            ));
+        }
+        // Exact Journal re-observation/replay is not permission to resend.
+        let mut retry = Client::connect(&writer_dsn, NoTls).unwrap();
+        assert_eq!(
+            append_events(&mut retry, &schema, run_id, event, revision, &lease, now).unwrap(),
+            Admission::Existing
+        );
+        assert_eq!(
+            read_run_readonly(&mut readonly, &schema, run_id)
+                .unwrap()
+                .projection
+                .revision,
+            revision + 1
+        );
+        prior_lease = Some(lease);
+        println!(
+            "PG18_NATIVE_PROVIDER_BOUNDARY status={} revision={} posture={:?}",
+            status.as_str(),
+            revision + 1,
+            posture
+        );
+    }
+    let lease = prior_lease.expect("last consumed lease");
     assert_eq!(
         observe_exact_batch(&mut readonly, &schema, run_id, 1, &batch).unwrap(),
         JournalObservation::ExactCommitted
