@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from .assets import BlobInfo, hash_file
+from .input_custody import private_input_observation
 from .perception import build_video_perception_bundle
 from .production_source_io import read_bound_bytes
 from .qc import probe_media, validate_video_probe
@@ -77,41 +78,42 @@ def build_video_review_packet(
     height = canvas.get("height")
     numerator = frame_rate.get("numerator")
     denominator = frame_rate.get("denominator")
-    if not all(isinstance(value, int) and value > 0 for value in (width, height, numerator, denominator)):
+    if not all(type(value) is int and value > 0 for value in (width, height, numerator, denominator)):
         raise ValueError("Production video dimensions/frame rate are invalid")
     expected_frame_rate = f"{numerator}/{denominator}"
 
     repo = repository_root or production_root.resolve().parents[1]
     video_path = video_path.resolve()
-    probe = probe_media(video_path, ffprobe)
-    video_blob = hash_file(video_path)
-    qc_errors = validate_video_probe(
-        probe,
-        width=width,
-        height=height,
-        frame_rate=expected_frame_rate,
-        codec=codec,
-        pixel_format=pixel_format,
-        color_space=color_space,
-        color_range=color_range,
-        expect_audio=expect_audio,
-    )
-    if qc_errors:
-        raise ValueError("video review QC failed: " + "; ".join(qc_errors))
+    with private_input_observation(video_path) as (snapshot, video_blob):
+        probe = probe_media(snapshot, ffprobe)
+        qc_errors = validate_video_probe(
+            probe,
+            width=width,
+            height=height,
+            frame_rate=expected_frame_rate,
+            codec=codec,
+            pixel_format=pixel_format,
+            color_space=color_space,
+            color_range=color_range,
+            expect_audio=expect_audio,
+        )
+        if qc_errors:
+            raise ValueError("video review QC failed: " + "; ".join(qc_errors))
 
-    source_records: list[dict[str, Any]] = []
-    for source_path in source_paths:
-        resolved = source_path.resolve()
-        blob = hash_file(resolved)
-        source_records.append({"path": _repository_relative(resolved, repo), "blob": blob.as_dict()})
+        source_records: list[dict[str, Any]] = []
+        for source_path in source_paths:
+            resolved = source_path.resolve()
+            blob = hash_file(resolved)
+            source_records.append({"path": _repository_relative(resolved, repo), "blob": blob.as_dict()})
 
-    perception = build_video_perception_bundle(
-        video_path=video_path,
-        probe=probe,
-        output_directory=output_directory,
-        requested_frames=list(dict.fromkeys(int(frame) for frame in frames)),
-        ffmpeg=ffmpeg,
-    )
+        perception = build_video_perception_bundle(
+            video_path=snapshot,
+            probe=probe,
+            output_directory=output_directory,
+            requested_frames=list(dict.fromkeys(int(frame) for frame in frames)),
+            ffmpeg=ffmpeg,
+            ffprobe=ffprobe,
+        )
     sources = production.get("sources")
     cognition = sources.get("cognition") if isinstance(sources, dict) else None
     claims = sources.get("claims") if isinstance(sources, dict) else None
@@ -145,6 +147,8 @@ def build_video_review_packet(
         "reviewedArtifact": {
             "path": _repository_relative(video_path, repo),
             "blob": video_blob.as_dict(),
+            "observationMode": "attempt-private-copy-retired",
+            "pathStanding": "source-label-reverify-before-playback",
             "technical": _normalized_video_summary(probe),
         },
         "technicalQc": {
