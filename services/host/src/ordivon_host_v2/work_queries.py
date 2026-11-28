@@ -65,9 +65,12 @@ def read_work_in_tx(
         "kind": "ordivon.host-work",
         "workRef": work["work_ref"],
         "workKind": work["kind"],
+        # Reuse the authority row that selected and checked this revision.
+        # The public reader uses REPEATABLE READ; mutation callers own the
+        # Work row lock. Historical lifecycle state remains explicitly unknown.
         "state": work["state"]
-        if revision is None
-        else _state_at_revision(conn, work_ref, target_revision),
+        if target_revision == current_revision
+        else "historical_state_unknown",
         "revision": target_revision,
         "snapshotDigest": snapshot["snapshot_digest"],
         "snapshot": payload,
@@ -78,21 +81,6 @@ def read_work_in_tx(
         "truthBoundary": "Host semantic Work continuity only; Runtime/Git/domain truth must be revalidated",
     }
 
-
-def _state_at_revision(
-    conn: psycopg.Connection[dict[str, Any]], work_ref: str, revision: int
-) -> str:
-    current = conn.execute(
-        "SELECT state,current_revision FROM works WHERE work_ref=%s", (work_ref,)
-    ).fetchone()
-    if current is None:
-        raise WorkNotFound(work_ref)
-    # Historical snapshots deliberately do not pretend to reconstruct lifecycle state
-    # until a dedicated work-event history is earned. Only the current revision has a
-    # durable lifecycle standing.
-    if int(current["current_revision"]) == revision:
-        return str(current["state"])
-    return "historical_state_unknown"
 
 
 class WorkReadQueries:
