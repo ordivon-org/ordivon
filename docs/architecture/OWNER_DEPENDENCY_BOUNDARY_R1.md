@@ -43,3 +43,21 @@ The check covers literal source paths, not all package-resolver imports,
 constructed paths, runtime calls, generated code or semantic consumer behavior.
 Language-native and runtime consumer checks remain with the affected Owner.
 This bounded policy is preferable to inventing a global dependency registry.
+
+## Typed Owner manifest reuse (2026-11-28)
+
+At source cut `5ccd9fc8144de1a1349b21636a69108068c3ee67`,
+repository navigation and source history used the same Owner manifest but
+materialized Git text into a temporary file and independently decoded task
+fields again during path inspection. Retain the existing Owner validator,
+separate the pure text parser from file I/O, and reuse typed rows for both
+consumers. The repo-mechanics fallback stays a navigation projection, not
+an extra registered Owner. No change to source selection, verification task
+authority, dependency policy, Git transport or runtime effects.
+
+Native verification: 47 affected-owner and 30 source-history tests, four
+selected Agent path-query tests, and the architecture docs checker passed.
+The wider convergence-plan suite exceeded a 90-second execution budget;
+full-suite acceptance and independent peer review are unestablished.
+PRs #2931 and #2909 touch separate functions in the source-history file;
+reconcile against their actual final heads at integration.

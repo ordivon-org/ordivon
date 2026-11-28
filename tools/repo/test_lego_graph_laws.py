@@ -2173,6 +2173,30 @@ def test_agent_native_unknown_path_does_not_upgrade_no_consumer() -> None:
     assert plugin["proofReuseAdmissible"] is False
 
 
+def test_agent_native_owner_query_uses_typed_task_and_fallback() -> None:
+    import subprocess
+
+    revision = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    host = module.inspect_owner_source_path(
+        source_revision=revision, source_path="services/host/README.md", root=ROOT,
+    )
+    assert host["ownerPartitions"] == [{
+        "name": "host", "root": "services/host/",
+        "registrationStanding": "REGISTERED_VERIFICATION_OWNER_AT_SOURCECUT",
+        "verifyTask": "host:verify", "queueVerifyTask": "host:queue",
+    }]
+    mechanics = module.inspect_owner_source_path(
+        source_revision=revision, source_path="tools/repo/affected_owners.py", root=ROOT,
+    )
+    assert mechanics["ownerPartitions"] == [{
+        "name": "tools/repo", "root": "tools/repo/",
+        "registrationStanding": "REPO_MECHANICS_FALLBACK_NOT_REGISTERED",
+        "verifyTask": "repo:ci", "queueVerifyTask": "repo:ci",
+    }]
+
+
 def test_agent_native_path_rejects_unqualified_identity_or_mode() -> None:
     import subprocess
 
