@@ -19,12 +19,25 @@ def fail(message: str) -> None:
 def main() -> int:
     raw = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     project = raw["project"]
-    expected_dependencies = ["httpx==0.28.1", "psycopg[binary]>=3.3", "jsonschema>=4.26,<5"]
+    expected_dependencies = [
+        "httpx==0.28.1",
+        "psycopg[binary]>=3.3",
+        "jsonschema>=4.26,<5",
+        "referencing>=0.37,<1",
+    ]
     if project.get("dependencies") != expected_dependencies:
-        fail("base dependencies must contain HTTPX, PostgreSQL wake provider, and jsonschema")
+        fail(
+            "base dependencies must contain HTTPX, PostgreSQL wake provider, "
+            "jsonschema, and referencing"
+        )
     if project.get("optional-dependencies") != {"mcp": ["mcp==2.3.0"]}:
         fail("Harness may expose only the official MCP v2 standards-adapter extra")
+    build_requirements = list((raw.get("build-system") or {}).get("requires") or [])
+    if not build_requirements:
+        fail("build-system.requires must declare the PEP 517 backend")
     expected_groups = {
+        # Build tooling is locked but remains outside runtime/default groups.
+        "build": build_requirements,
         "dev": ["ruff==0.17.2"],
         # Formal solver is isolated from the default dev/test/runtime closure.
         "formal": ["crosshair-tool==0.0.112"],
@@ -37,7 +50,7 @@ def main() -> int:
         ],
     }
     if raw.get("dependency-groups") != expected_groups:
-        fail("Harness dependency groups must preserve exact dev/test/formal isolation")
+        fail("Harness dependency groups must preserve exact build/dev/test/formal isolation")
 
     # The Temporal worker installs a small requirements carrier separately
     # from the Harness wheel. It must consume this same owner pin, never retain
@@ -76,7 +89,8 @@ def main() -> int:
 
     print(
         "dependency contract: valid canonical=owner-local-compat host=absent "
-        "runtime=httpx+psycopg+jsonschema adapter=mcp2.3 dev=ruff test=agent-mcp+playwright+pytest"
+        "runtime=httpx+psycopg+jsonschema+referencing adapter=mcp2.3 build=setuptools "
+        "dev=ruff test=agent-mcp+playwright+pytest"
     )
     return 0
 
