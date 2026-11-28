@@ -43,7 +43,12 @@ At the beginning of an operation, call `runtime.describe` on the **specific node
 
 Git-clean is **not** equivalent to disposable. Git ignores build caches and
 potentially valuable outputs in paths such as target/ and __pycache__/.
-Even **workspace.close(force=false)** may remove ignored files. The
+**workspace.get** and **workspace.list** report source cleanliness: ignored
+outputs are excluded from **dirty** and **sourceStateDigest**. Non-force
+**workspace.close** independently rejects observed ignored paths as well as
+tracked changes and nonignored untracked paths. Git itself may remove ignored
+files during worktree removal, which is why Runtime keeps this additional
+fence. This is not proof that out-of-band writers or consumers are absent. The
 **consumerReleased=true** flag is a caller assertion, not identity proof,
 consumer consent, delivery evidence, or proof that external readers are gone.
 
