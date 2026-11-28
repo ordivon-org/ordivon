@@ -24,6 +24,10 @@ def make_video(path: Path, size: str, color: str) -> None:
 
 
 class ReviewInputCustodyTests(unittest.TestCase):
+    @unittest.skipUnless(
+        Path("/usr/bin/ffmpeg").is_file() and Path("/usr/bin/ffprobe").is_file(),
+        "native FFmpeg equipment unavailable",
+    )
     def test_real_probe_and_perception_use_same_video_after_source_replacement(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
