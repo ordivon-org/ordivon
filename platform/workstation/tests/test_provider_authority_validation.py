@@ -23,9 +23,9 @@ def test_authority_validator_preserves_r2_binding_fields():
     ):
         assert field in text
 
-def test_authority_materializer_is_content_addressed():
+def test_authority_materializer_uses_canonical_content_addressed_helper():
     text=MAT.read_text().lower()
-    assert "sha256" in text
+    assert "single_file_materialization" in text
     assert "authorityvalidationprovider" in text
-    assert '"issuesauthority":false' in text.replace(" ","")
-    assert '"renewsauthority":false' in text.replace(" ","")
+    assert '"issuesauthority": false' in text
+    assert '"renewsauthority": false' in text

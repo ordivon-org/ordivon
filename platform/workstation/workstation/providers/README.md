@@ -50,3 +50,15 @@ materializers now target C:\ProgramData\Ordivon\Workstation\Providers. Acceptanc
 still contain the former ExecutionFabric path/kind because it is immutable historical evidence
 of the environment in which that acceptance run occurred. Do not rewrite historical evidence.
 The old ProgramData carrier is removed only during the final unified deployment/migration window.
+
+## Canonical single-file materialization
+
+Single-file PowerShell providers that are published as content-addressed Workstation provider
+bytes must use single_file_materialization.py for the shared lifecycle. The concrete provider
+entry point owns only its source path, destination root, receipt path, provider-specific receipt
+facts, and any status kind. Digest calculation, content-addressed target selection, conflict
+detection, receipt publication, status projection, and CLI command shape have one canonical
+implementation.
+
+This is intentionally Workstation-local infrastructure rather than a cross-owner utility. Multi-file
+providers and providers with distinct publication semantics should not be forced through this helper.
