@@ -317,6 +317,22 @@ pub fn validate_contract(doc: &CanonicalDocument) -> Result<(), ReadError> {
     let version = schema_version
         .integer_text()
         .ok_or_else(|| invalid("schemaVersion integer"))?;
+    validate_contract_version(root, version)
+}
+
+/// Historical Boolean v1 was admitted by the old Python source. This is a
+/// representation classification for a verified history, never write admission.
+pub(crate) fn validate_contract_for_history(doc: &CanonicalDocument) -> Result<bool, ReadError> {
+    let root = doc.as_borrowed();
+    if required(root, "schemaVersion")?.as_bool() == Some(true) {
+        validate_contract_version(root, "1")?;
+        return Ok(true);
+    }
+    validate_contract(doc)?;
+    Ok(false)
+}
+
+fn validate_contract_version(root: CanonicalRef<'_>, version: &str) -> Result<(), ReadError> {
     if !matches!(version, "1" | "2") {
         return Err(invalid("schemaVersion"));
     }
