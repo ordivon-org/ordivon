@@ -12,7 +12,7 @@ def test_h04_pg_role_cutover_is_in_queue_and_verify_with_nonvacuity() -> None:
     assert "mise run formal:verify" in tasks["queue"]["run"]
     assert "mise run formal:verify" in tasks["verify"]["run"]
     gate = tasks["formal:verify"]["run"]
-    assert '"$runtime_root/scripts/tla-formal" verify' in gate
+    assert 'export ORDIVON_TLA_TOOLS_JAR="$("$runtime_root/scripts/tla-formal" ensure)"' in gate
     assert "ConversationBindingCutoverR1.cfg" in gate
     for label, invariant in (
         ("admission", "PgAdmissionIsUnreachable"),

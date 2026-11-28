@@ -86,10 +86,10 @@ def test_foreign_terminal_receipt_is_represented_and_rejected_not_vacuously():
         )
 
 
-def test_formal_toolchain_is_digest_checked_and_explicitly_admitted():
+def test_formal_toolchain_uses_runtime_verified_public_admission():
     tasks = tomllib.loads((ROOT / "mise.toml").read_text(encoding="utf-8"))["tasks"]
     formal = tasks["formal:verify"]["run"]
-    assert '"$runtime_root/scripts/tla-formal" verify' in formal
+    assert 'export ORDIVON_TLA_TOOLS_JAR="$("$runtime_root/scripts/tla-formal" ensure)"' in formal
     repo = ROOT.parents[1]
     policy = tomllib.loads((repo / "tools/repo/dependency_contracts.toml").read_text())
     assert any(
