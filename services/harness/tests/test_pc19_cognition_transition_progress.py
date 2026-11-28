@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
-import tempfile
 import unittest
 
 from ordivon_harness.ordivon.loop import OrdivonAgentLoop, RunStopCode
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from ordivon_harness.postgres_store import PostgresHarnessStore
 from ordivon_harness.working_view import (
     AgentWorkingSetTransitionProposal,
     HarnessWorkingSetPin,
@@ -17,6 +15,7 @@ from ordivon_harness.working_view import (
     WorkingSetViewProjector,
 )
 
+from tests.pg_test_support import isolated_harness_schema
 from tests.test_p0_sqlite_runtime_bridge import FakeRuntime, FixedClock, execution_binding
 from tests.test_pc14_candidate_discovery_overlay import transition_turn
 from tests.test_pc15_epistemic_control import (
@@ -31,7 +30,7 @@ from tests.test_pc15_epistemic_control import (
 class CognitionTransitionProgressTests(unittest.TestCase):
     @staticmethod
     def initialize(
-        root: Path,
+        store: PostgresHarnessStore,
         suffix: str,
         *,
         max_model_calls: int,
@@ -43,7 +42,6 @@ class CognitionTransitionProgressTests(unittest.TestCase):
             max_model_calls=max_model_calls,
             max_tool_calls=max_tool_calls,
         )
-        store = SQLiteHarnessStore.initialize(root)
         store.create_run(run_contract)
         clock = FixedClock()
         continuity = EventSourcedRunContinuity(
@@ -112,7 +110,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
         )
 
     def test_same_selection_attempt_reset_does_not_reopen_closed_soft_effect_gate(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with isolated_harness_schema() as (dsn, schema), PostgresHarnessStore(dsn, schema=schema) as store:
             runtime = FakeRuntime("direct")
             (
                 store,
@@ -126,7 +124,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                 pin_a,
                 _pin_b,
             ) = self.initialize(
-                Path(directory) / "state",
+                store,
                 "same-selection-gate",
                 max_model_calls=3,
                 max_tool_calls=3,
@@ -181,10 +179,9 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                 same.next_attempt_id,
             )
             self.assertTrue(continuity.doctor()["healthy"])
-            store.close()
 
     def test_selection_change_reopens_closed_soft_gate(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with isolated_harness_schema() as (dsn, schema), PostgresHarnessStore(dsn, schema=schema) as store:
             runtime = FakeRuntime("direct")
             (
                 store,
@@ -198,7 +195,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                 pin_a,
                 pin_b,
             ) = self.initialize(
-                Path(directory) / "state",
+                store,
                 "changed-selection-gate",
                 max_model_calls=4,
                 max_tool_calls=3,
@@ -256,10 +253,9 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                 (pin_a, pin_b),
             )
             self.assertTrue(continuity.doctor()["healthy"])
-            store.close()
 
     def test_same_selection_attempt_reset_still_discards_transient_tool_exchange(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with isolated_harness_schema() as (dsn, schema), PostgresHarnessStore(dsn, schema=schema) as store:
             runtime = FakeRuntime("direct")
             (
                 store,
@@ -273,7 +269,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                 pin_a,
                 _pin_b,
             ) = self.initialize(
-                Path(directory) / "state",
+                store,
                 "same-selection-transient",
                 max_model_calls=3,
                 max_tool_calls=2,
@@ -327,11 +323,9 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                 same.next_attempt_id,
             )
             self.assertTrue(continuity.doctor()["healthy"])
-            store.close()
 
     def test_fresh_resume_reconstructs_closed_soft_gate_without_new_caller_input(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with isolated_harness_schema() as (dsn, schema), PostgresHarnessStore(dsn, schema=schema) as store:
             runtime = FakeRuntime("direct")
             (
                 store,
@@ -345,7 +339,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                 _pin_a,
                 _pin_b,
             ) = self.initialize(
-                root,
+                store,
                 "resume-soft-gate",
                 max_model_calls=4,
                 max_tool_calls=3,
@@ -388,7 +382,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
             retained = continuity.load_current_snapshot()
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with PostgresHarnessStore(dsn, schema=schema) as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
@@ -436,8 +430,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                 self.assertTrue(reopened.doctor()["healthy"])
 
     def test_projected_resume_input_resets_gate_once_model_visible(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with isolated_harness_schema() as (dsn, schema), PostgresHarnessStore(dsn, schema=schema) as store:
             runtime = FakeRuntime("direct")
             (
                 store,
@@ -451,7 +444,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                 _pin_a,
                 _pin_b,
             ) = self.initialize(
-                root,
+                store,
                 "resume-new-input",
                 max_model_calls=4,
                 max_tool_calls=3,
@@ -492,7 +485,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
             retained = continuity.load_current_snapshot()
             store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with PostgresHarnessStore(dsn, schema=schema) as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
@@ -553,7 +546,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
 
 
     def test_same_selection_reset_does_not_clear_soft_progress_before_gate_closes(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with isolated_harness_schema() as (dsn, schema), PostgresHarnessStore(dsn, schema=schema) as store:
             runtime = FakeRuntime("direct")
             (
                 store,
@@ -567,7 +560,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                 pin_a,
                 _pin_b,
             ) = self.initialize(
-                Path(directory) / "state",
+                store,
                 "same-selection-counter",
                 max_model_calls=4,
                 max_tool_calls=3,
@@ -622,10 +615,9 @@ class CognitionTransitionProgressTests(unittest.TestCase):
             self.assertEqual(adapter.requests[3].remaining_budget["observationOnlyTurns"], 0)
             self.assertEqual(adapter.requests[3].tools, ())
             self.assertTrue(continuity.doctor()["healthy"])
-            store.close()
 
     def test_selection_change_never_reopens_exhausted_hard_tool_budget(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with isolated_harness_schema() as (dsn, schema), PostgresHarnessStore(dsn, schema=schema) as store:
             runtime = FakeRuntime("direct")
             (
                 store,
@@ -639,7 +631,7 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                 pin_a,
                 pin_b,
             ) = self.initialize(
-                Path(directory) / "state",
+                store,
                 "hard-budget-selection-change",
                 max_model_calls=3,
                 max_tool_calls=1,
@@ -690,7 +682,6 @@ class CognitionTransitionProgressTests(unittest.TestCase):
                 (pin_a, pin_b),
             )
             self.assertTrue(continuity.doctor()["healthy"])
-            store.close()
 
 
 if __name__ == "__main__":
