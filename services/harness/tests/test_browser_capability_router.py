@@ -316,6 +316,26 @@ class BrowserCapabilityRouterTests(unittest.TestCase):
         self.assertEqual(value["standing"], "CREDENTIAL_MISSING")
         self.assertEqual(value["missingEnvironment"], ["TYPESAFE_API_KEY"])
 
+    def test_json_object_reader_is_the_browser_subsystem_source_of_truth(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "object.json"
+            path.write_text("\ufeff{\"value\": 1}", encoding="utf-8")
+            self.assertEqual(R.read_json_object(path), {"value": 1})
+            path.write_text("[1]", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "expected JSON object"):
+                R.read_json_object(path)
+
+    def test_browser_benchmark_consumers_reuse_router_json_reader(self):
+        for name in (
+            "browser_benchmark_contract.py",
+            "browser_benchmark_runtime_handoff.py",
+            "browser_benchmark_runner.py",
+            "browser_benchmark_route_adapter.py",
+        ):
+            source = (ROOT / "scripts" / name).read_text(encoding="utf-8")
+            self.assertNotIn("def _read_json(", source, name)
+            self.assertIn("router.read_json_object(", source, name)
+
     def test_policy_is_browser_domain_local_not_global_registry(self):
         text = (ROOT / "scripts/browser_capability_router.py").read_text()
         self.assertIn("global_capability_registry", text)
@@ -362,7 +382,7 @@ class BrowserCapabilityRouterTests(unittest.TestCase):
         with (
             mock.patch.object(R.Path, "is_file", return_value=True),
             mock.patch.object(R.os, "access", return_value=True),
-            mock.patch.object(R, "_read_json", return_value=fake_config),
+            mock.patch.object(R, "read_json_object", return_value=fake_config),
             mock.patch.dict(
                 sys.modules,
                 {"browserless_substrate": mock.Mock(BrowserlessPool=Pool)},
@@ -449,7 +469,7 @@ class BrowserUsePolicyReadinessTests(unittest.TestCase):
         )
         with (
             mock.patch.object(R.Path, "is_file", return_value=True),
-            mock.patch.object(R, "_read_json", return_value=fake_config),
+            mock.patch.object(R, "read_json_object", return_value=fake_config),
             mock.patch.dict(
                 sys.modules,
                 {"browserless_substrate": mock.Mock(BrowserlessPool=Pool)},

@@ -38,12 +38,6 @@ RECEIPT_STANDINGS = frozenset({"READY", "PREEXEC_BLOCKED", "EXECUTED"})
 OUTCOME_STANDINGS = frozenset({"NOT_EXECUTED", "UNVERIFIED", "PASS", "FAIL"})
 
 
-def _read_json(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8-sig"))
-    if not isinstance(value, dict):
-        raise ValueError(f"expected JSON object: {path}")
-    return value
-
 
 def _trimmed(value: object, field: str) -> str:
     if not isinstance(value, str) or not value or value != value.strip():
@@ -105,7 +99,7 @@ def load_suite(
     path: Path = DEFAULT_SUITE, *, policy: Mapping[str, Any] | None = None
 ) -> dict[str, Any]:
     policy = policy or router.load_policy()
-    value = _read_json(path)
+    value = router.read_json_object(path)
     if value.get("schemaVersion") != 1 or value.get("kind") != "ordivon.browser-benchmark-suite":
         raise ValueError("browser benchmark suite identity mismatch")
     benchmark_id = _trimmed(value.get("benchmarkId"), "benchmarkId")
@@ -493,7 +487,7 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "validate-receipt":
-        receipt = _read_json(args.receipt_file)
+        receipt = router.read_json_object(args.receipt_file)
         validate_receipt(receipt)
         print(
             json.dumps(

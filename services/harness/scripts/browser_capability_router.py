@@ -25,7 +25,7 @@ def canonical_digest(value: Any) -> str:
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
-def _read_json(path: Path) -> dict[str, Any]:
+def read_json_object(path: Path) -> dict[str, Any]:
     value = json.loads(path.read_text(encoding="utf-8-sig"))
     if not isinstance(value, dict):
         raise ValueError(f"expected JSON object: {path}")
@@ -33,7 +33,7 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 
 def load_policy(path: Path = DEFAULT_ROUTE_CONFIG) -> dict[str, Any]:
-    value = _read_json(path)
+    value = read_json_object(path)
     if value.get("schemaVersion") != 1 or value.get("kind") != "ordivon.browser-domain-route-policy":
         raise ValueError("browser route policy identity mismatch")
     raw_routes = value.get("routes")
@@ -228,7 +228,7 @@ def _probe_browser_use(route: Mapping[str, Any]) -> dict[str, Any]:
     if not path.is_file():
         return {"ready": False, "standing": "CONFIG_UNAVAILABLE"}
     try:
-        value = _read_json(path)
+        value = read_json_object(path)
         executable = Path(str(value.get("browserUseExecutable") or ""))
         pool = BrowserlessPool.from_dict(value.get("browserSubstrate"))
         executable_ready = executable.is_file() and os.access(executable, os.X_OK)
@@ -409,7 +409,7 @@ def _probe_agent_automation(route: Mapping[str, Any]) -> dict[str, Any]:
     if not path.is_file():
         return {"ready": False, "standing": "CONFIG_UNAVAILABLE"}
     try:
-        service = BrowserlessAutomationService(BrowserlessAutomationConfig.from_dict(_read_json(path)))
+        service = BrowserlessAutomationService(BrowserlessAutomationConfig.from_dict(read_json_object(path)))
         doctor = service.doctor()
     except Exception as error:
         return {
@@ -621,7 +621,7 @@ def main() -> int:
     if args.command == "doctor":
         value = doctor(policy=policy)
     else:
-        value = plan_route(_read_json(args.request_file), policy=policy)
+        value = plan_route(read_json_object(args.request_file), policy=policy)
     print(json.dumps(value, sort_keys=True, ensure_ascii=False))
     return 0
 

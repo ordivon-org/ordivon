@@ -33,12 +33,6 @@ DEFAULT_STATE_ROOT = Path(
 JEV_PROVIDER_STATUS = Path("/root/tools/bin/workstation-windows-jev-provider")
 
 
-def _read_json(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8-sig"))
-    if not isinstance(value, dict):
-        raise ValueError(f"expected JSON object: {path}")
-    return value
-
 
 def _sha256_file(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
@@ -47,7 +41,7 @@ def _sha256_file(path: Path) -> str:
 def _atomic_json(path: Path, value: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
-        current = _read_json(path)
+        current = router.read_json_object(path)
         if current != value:
             raise RuntimeError(f"benchmark state conflict: {path}")
         return
@@ -137,7 +131,7 @@ def _execution_proposal(
     windows_path_fn: Callable[[Path], str] = _default_windows_path,
 ) -> dict[str, Any]:
     route_id = case["routeId"]
-    route_request = _read_json(request_path)
+    route_request = router.read_json_object(request_path)
     run_id = route_request.get("runId")
     route_request_digest = route_request.get("requestDigest")
     if not isinstance(run_id, str) or not route_adapter.RUN_ID.fullmatch(run_id):
