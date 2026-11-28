@@ -2,13 +2,12 @@
 import argparse
 import hashlib
 import json
-import os
 from pathlib import Path
 import struct
 import subprocess
 import time
 
-from native_process import verify_process
+from native_process import private_player_environment, verify_process
 from rendered_product_acceptance import digest, require
 from x11_interaction_acceptance import (
     WIDTH, HEIGHT, XTest, require_private_display, run_private, status_strip,
@@ -76,11 +75,7 @@ def decode_frame(path):
 
 def record(x, executable, root, key):
     root.mkdir()
-    env = os.environ.copy()
-    for var in ("XDG_DATA_HOME", "XDG_CACHE_HOME", "XDG_CONFIG_HOME"):
-        path = root / var
-        path.mkdir()
-        env[var] = str(path)
+    env = private_player_environment(root)
     p = subprocess.Popen([str(executable), "--resolution", f"{WIDTH}x{HEIGHT}", "--position", "0,0",
                           "--audio-driver", "Dummy", "--write-movie", str(root / "frame.png"),
                           "--fixed-fps", str(FPS), "--quit-after", str(FRAMES)],

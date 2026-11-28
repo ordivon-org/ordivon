@@ -1,4 +1,6 @@
 """Shared native Godot process qualification; no game-rule or receipt authority."""
+import os
+from pathlib import Path
 import re
 import subprocess
 import sys
@@ -8,6 +10,16 @@ STRICT_FAILURES = re.compile(
     r"ObjectDB instances were leaked|resources still in use at exit|(?:^|\s)ERROR:",
     re.MULTILINE,
 )
+
+
+def private_player_environment(root: Path) -> dict[str, str]:
+    """Create fresh XDG player directories without changing the parent environment."""
+    env = os.environ.copy()
+    for name in ("XDG_DATA_HOME", "XDG_CONFIG_HOME", "XDG_CACHE_HOME"):
+        path = root / name
+        path.mkdir()
+        env[name] = str(path)
+    return env
 
 
 def verify_process(exit_code: int, stdout: str, stderr: str, *, allowed_exit_codes=(0,)):

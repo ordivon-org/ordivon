@@ -13,7 +13,7 @@ import sys
 import tempfile
 import time
 
-from native_process import verify_process
+from native_process import private_player_environment, verify_process
 from rendered_product_acceptance import PRODUCT_SIZES, digest, require
 
 WIDTH, HEIGHT = PRODUCT_SIZES["room-encounter"]
@@ -207,14 +207,10 @@ def run_private(executable, expected_sha, child_script, *, timeout=80):
         require(shutil.which(command), f"missing {command}")
     with tempfile.TemporaryDirectory(prefix="game-x11-") as tmp:
         root = Path(tmp)
-        env = os.environ.copy()
+        env = private_player_environment(root)
         env.pop("DISPLAY", None)
         env.pop("XAUTHORITY", None)
         env["GAME_X11_PRIVATE_ROOT"] = tmp
-        for name in ("XDG_DATA_HOME", "XDG_CONFIG_HOME", "XDG_CACHE_HOME"):
-            path = root / name
-            path.mkdir()
-            env[name] = str(path)
         args = ["xvfb-run", "-a", "-f", str(root / "authority"), "-s",
                 "-screen 0 1280x800x24 -nolisten tcp", sys.executable,
                 str(child_script.resolve()), "--executable", str(executable),
