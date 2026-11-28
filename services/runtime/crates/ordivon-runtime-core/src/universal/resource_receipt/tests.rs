@@ -77,3 +77,21 @@ fn extension_counters_preserve_values_and_duplicate_diagnostics() {
     assert_eq!(io.read_bytes, 1);
     assert_eq!(io.discard_bytes, 0);
 }
+
+#[test]
+fn io_duplicate_device_identity_is_not_counted_twice() {
+    let row = "8:0 rbytes=13 wbytes=4 rios=2 wios=1";
+    let duplicate = format!("{row}\n{row}\n");
+    let error = parse_cgroup_io_stat(&duplicate).expect_err("one device has one row");
+    assert_eq!(error.code, UniversalExecErrorCode::InvalidRequest);
+    assert!(error.message.contains("duplicated"));
+}
+
+#[test]
+fn io_aggregation_is_independent_of_device_row_order() {
+    let first = "8:0 rbytes=13 wbytes=4 rios=2 wios=1 dbytes=7 dios=3";
+    let second = "8:1 rbytes=2 wbytes=9 rios=4 wios=5 dbytes=8 dios=6";
+    let forward = parse_cgroup_io_stat(&format!("{first}\n{second}")).unwrap();
+    let reverse = parse_cgroup_io_stat(&format!("{second}\n{first}")).unwrap();
+    assert_eq!(forward, reverse);
+}
