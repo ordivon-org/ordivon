@@ -19,6 +19,7 @@ BROKER = "ordivon-windows-privileged-broker.exe"
 OPERATOR_FILES = (
     "packaging/windows/materialize-ordivon-runtime-service.ps1",
     "packaging/windows/activate-ordivon-runtime-pg-service.ps1",
+    "packaging/windows/windows-pg-release-provenance.ps1",
     "scripts/windows-native-runtime-r6c-acceptance.ps1",
 )
 

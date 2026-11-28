@@ -1,4 +1,5 @@
 import os
+import runpy
 import subprocess
 import unittest
 from pathlib import Path
@@ -187,6 +188,26 @@ def test_pg_service_materializer_is_explicit_digest_bound_disabled_start_without
     assert "Start-Service" not in text
     assert "ORDIVON_REGISTRY_ROOT','ORDIVON_BIND','ORDIVON_BEARER_TOKEN'" in text
     assert "PG environment does not bind the planned service" in text
+
+
+def test_windows_pg_release_archive_contains_operator_provenance_dependency():
+    # The real release builder derives both the ZIP member set and file
+    # commitments from OPERATOR_FILES. Both shipped consumers dot-source
+    # this sibling before doing any staging or activation work.
+    builder = runpy.run_path(str(ROOT / "scripts" / "prepare_windows_pg_release.py"))
+    members = builder["OPERATOR_FILES"]
+    helper = "packaging/windows/windows-pg-release-provenance.ps1"
+    assert len(members) == len(set(members))
+    assert all((ROOT / member).is_file() for member in members)
+    for consumer in (
+        "packaging/windows/materialize-ordivon-runtime-service.ps1",
+        "packaging/windows/activate-ordivon-runtime-pg-service.ps1",
+    ):
+        assert consumer in members
+        assert "Join-Path $PSScriptRoot 'windows-pg-release-provenance.ps1'" in (
+            ROOT / consumer
+        ).read_text(encoding="utf-8")
+        assert helper in members, f"{consumer} requires its packaged sibling {helper}"
 
 
 def test_pg_materializer_preserves_build_manifest_provenance_for_activation():
