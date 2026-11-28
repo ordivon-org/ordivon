@@ -2,11 +2,20 @@
 from __future__ import annotations
 
 import argparse
-import copy
 import json
 from pathlib import Path
 import sys
 from typing import Any
+
+from ordivon_harness._historical_receipt_validation import (
+    require_all_true as _all_true,
+    require_array as _array,
+    require_integer as _integer,
+    require_object as _object,
+    require_sha256 as _sha256,
+    require_string as _string,
+    verify_integrity,
+)
 
 from anc_canonical import canonical_digest
 
@@ -81,51 +90,6 @@ FORBIDDEN_COMPACT_KEYS = {
     "reasoning_content",
     "thoughtText",
 }
-
-
-def _object(value: Any, label: str) -> dict[str, Any]:
-    if not isinstance(value, dict):
-        raise ValueError(f"{label} must be an object")
-    return value
-
-
-def _array(value: Any, label: str) -> list[Any]:
-    if not isinstance(value, list):
-        raise ValueError(f"{label} must be an array")
-    return value
-
-
-def _string(value: Any, label: str) -> str:
-    if not isinstance(value, str) or not value:
-        raise ValueError(f"{label} must be a non-empty string")
-    return value
-
-
-def _integer(value: Any, label: str, *, minimum: int = 0) -> int:
-    if type(value) is not int or value < minimum:
-        raise ValueError(f"{label} must be an integer >= {minimum}")
-    return value
-
-
-def _sha256(value: Any, label: str) -> str:
-    text = _string(value, label)
-    if (
-        len(text) != 71
-        or not text.startswith("sha256:")
-        or any(character not in "0123456789abcdef" for character in text[7:])
-    ):
-        raise ValueError(f"{label} must be sha256:<64 lowercase hex>")
-    return text
-
-
-def _all_true(value: Any, expected: set[str], label: str) -> dict[str, Any]:
-    checks = _object(value, label)
-    if set(checks) != expected:
-        raise ValueError(f"{label} set differs")
-    failed = sorted(name for name, result in checks.items() if result is not True)
-    if failed:
-        raise ValueError(f"{label} failed: {failed}")
-    return checks
 
 
 def _walk_keys(value: Any, path: str = "receipt") -> None:
@@ -536,15 +500,7 @@ def validate_receipt(path: str | Path = DEFAULT_RECEIPT) -> dict[str, Any]:
         raise ValueError("source receipt payload digest differs")
     _all_true(receipt.get("checks"), EXPECTED_TOP_CHECKS, "portfolio checks")
 
-    integrity = _object(receipt.get("integrity"), "receipt integrity")
-    if integrity.get("algorithm") != "sha256":
-        raise ValueError("receipt integrity algorithm differs")
-    if integrity.get("canonicalization") != "ordivon-canonical-json-v1":
-        raise ValueError("receipt canonicalization differs")
-    payload = copy.deepcopy(receipt)
-    payload.pop("integrity")
-    if integrity.get("payloadDigest") != canonical_digest(payload):
-        raise ValueError("receipt integrity digest differs")
+    integrity = verify_integrity(receipt, "receipt integrity")
     _walk_keys(receipt)
 
     trajectories = _array(receipt.get("trajectories"), "replacement trajectories")
