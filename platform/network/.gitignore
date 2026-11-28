@@ -4,3 +4,4 @@
 lab/.generated/
 __pycache__/
 *.pyc
+.venv/

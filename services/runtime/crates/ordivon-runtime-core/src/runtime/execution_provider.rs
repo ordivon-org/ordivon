@@ -550,6 +550,7 @@ mod local_linux_adapter_tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn local_linux_provider_rejects_symlink_runner_without_relaxing_contract() {
         use std::os::unix::fs::symlink;

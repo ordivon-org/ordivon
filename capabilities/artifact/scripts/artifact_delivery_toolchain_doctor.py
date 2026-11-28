@@ -37,6 +37,7 @@ GLOBAL_COSIGN = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "cosign/3.1.3/bin/cosign"
 GLOBAL_NODE_PACKAGE_ROOT = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "node/1.63.0"
 LOCK = json.loads((ROOT / "artifact-delivery/toolchain-v1.lock.json").read_text())
 OPENXML_LOCK = json.loads((ROOT / "artifact-delivery/openxml-runtime-v1.lock.json").read_text())
+PYTHON_LOCK = json.loads((ROOT / "artifact-delivery/artifact-python-runtime-v1.lock.json").read_text())
 
 
 def run(
@@ -98,10 +99,10 @@ def main() -> int:
     if proc.returncode == 0:
         observed = json.loads(proc.stdout)
         expected = {
-            "jsonschema": LOCK["python"]["jsonschema"],
-            "python-pptx": LOCK["python"]["python-pptx"],
-            "XlsxWriter": LOCK["python"]["XlsxWriter"],
-            "opentelemetry-sdk": LOCK["python"]["opentelemetry-sdk"],
+            "jsonschema": PYTHON_LOCK["pythonPackages"]["jsonschema"],
+            "python-pptx": PYTHON_LOCK["pythonPackages"]["python-pptx"],
+            "XlsxWriter": PYTHON_LOCK["pythonPackages"]["XlsxWriter"],
+            "opentelemetry-sdk": PYTHON_LOCK["pythonPackages"]["opentelemetry-sdk"],
         }
         record(checks, "python-packages", observed == expected, observed=observed, expected=expected)
     else:

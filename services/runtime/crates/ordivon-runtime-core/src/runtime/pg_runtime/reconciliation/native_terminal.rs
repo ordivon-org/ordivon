@@ -84,149 +84,165 @@ impl PgRuntime {
         )? {
             return Ok(());
         }
-        let path = PathBuf::from(&a.bundle_path);
-        // DISPATCH_ISSUED is intent, not a physical start. Only the native
-        // Runner start receipt bound to the live systemd InvocationID, PID
-        // and cgroup may advance this Attempt from starting to running.
-        if a.state == AttemptState::Starting
-            && a.termination_intent == AttemptTerminationIntent::Natural
+        #[cfg(windows)]
         {
-            let start_path = Path::new(&a.bundle_path).join("runner-start.json");
-            match fs::symlink_metadata(&start_path) {
-                Ok(metadata) if metadata.file_type().is_file() => {
-                    let bytes = fs::read(&start_path).map_err(io)?;
-                    let start: RunnerStartEvidence = serde_json::from_slice(&bytes).map_err(io)?;
-                    let native = super::platform::systemctl_show(&a.unit_name)?;
-                    // systemd MainPID is in the host namespace. PrivatePIDs
-                    // may make RunnerStart.namespace_pid equal 1: never read
-                    // host /proc/1 as though it were this Runner.
-                    let host_pid = native
-                        .get("MainPID")
-                        .and_then(|pid| pid.parse::<u32>().ok())
-                        .filter(|pid| *pid != 0);
-                    let host_process_start = host_pid.and_then(super::platform::process_identity);
-                    let namespace_pid = host_pid.and_then(observed_namespace_pid);
-                    if native_running_witness(
-                        &start,
-                        &native,
-                        job,
-                        &a.attempt_id,
-                        &a.launch_token_digest,
-                        NativePidReadback {
-                            host_pid,
-                            namespace_pid,
-                            process_start: host_process_start.as_deref(),
-                        },
-                        provider["executionProvider"]["executableDigest"]
-                            .as_str()
-                            .unwrap_or(""),
-                    ) {
-                        let input = crate::pg_admission::PgRunnerBound {
-                            attempt_id: a.attempt_id.clone(),
-                            expected_row_version: a.row_version as i64,
-                            expected_bundle_digest: a
-                                .bundle_digest
-                                .clone()
-                                .ok_or_else(|| error("issued Attempt omitted bundle digest"))?,
-                            runner_start_digest: universal::sha256_bytes(&bytes),
-                            native_invocation_id: start.invocation_id,
-                            observed_at_ms: now()?,
-                            expected_source_sha256: self.config.source_sha256.clone(),
-                        };
-                        match db.mark_runner_bound_pg(&input) {
-                            Ok(new_version) => {
-                                a.state = AttemptState::Running;
-                                a.row_version = new_version as u64;
-                            }
-                            Err(PgAdmissionError::Blocked | PgAdmissionError::UnknownCommit) => {
-                                // A concurrent cancellation/terminal won. Read its
-                                // original PG Attempt; never redispatch or revive it.
-                                a = self.attempt(db, job)?.0;
-                            }
-                            Err(err) => return Err(pg(err)),
-                        }
-                    }
-                }
-                Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
-                Ok(_) => return Err(error("Runner start evidence is not a regular file")),
-                Err(err) => return Err(io(err)),
-            }
-        }
-        if !a.state.is_terminal() && path.join("result.json").exists() {
-            // Reuse native identity, stdout/stderr digest and result validators.
-            let start: RunnerStartEvidence =
-                serde_json::from_slice(&fs::read(path.join("runner-start.json")).map_err(io)?)
-                    .map_err(io)?;
-            if start.job_id != job
-                || start.attempt_id != a.attempt_id
-                || start.launch_token_digest != a.launch_token_digest
-                || start.unit_name != a.unit_name
-                || start.invocation_id.is_empty()
-            {
-                return Err(error("runner start identity mismatch"));
-            }
-            let properties = super::platform::systemctl_show(&a.unit_name)?;
-            if super::platform::unit_is_active(&properties)
-                || super::platform::unit_has_pending_job(&properties)
-            {
+            if a.state == AttemptState::Accepted {
                 return Ok(());
             }
-            if super::platform::nonempty_property(&properties, "InvocationID")
-                .is_some_and(|v| v != start.invocation_id)
-                || super::platform::cgroup_has_processes(&start.control_group)?
-            {
-                return Err(error("runner process ownership has not converged"));
-            }
-            if start.runner_executable_digest.as_deref()
-                != provider["executionProvider"]["executableDigest"].as_str()
-            {
-                return Err(error("runner evidence provider mismatch"));
-            }
-            let mut terminal = super::evidence::prepare_runner_terminal_from_bundle(&a)?;
-            if let Some(artifact) = super::evidence::validate_workspace_source_observation_artifact(
-                &a,
-                plan.workspace_source_digest.as_deref(),
-                true,
-                super::evidence::SourceObservationRequirement::for_terminal(
-                    terminal.state,
-                    &terminal.reason_code,
-                ),
-            )? {
-                terminal.artifacts.push(artifact);
-            }
-            let input = PgTerminalNoArtifacts {
-                attempt_id: a.attempt_id.clone(),
-                expected_row_version: a.row_version as i64,
-                terminal_state: terminal.state.as_db().into(),
-                result_digest: terminal.result_digest,
-                reason_code: terminal.reason_code,
-                exit_code: terminal.exit_code,
-                finished_at_ms: terminal.finished_at_ms as i64,
-                expected_source_sha256: self.config.source_sha256.clone(),
-            };
-            let artifacts = terminal
-                .artifacts
-                .into_iter()
-                .map(|v| PgArtifactRegistration {
-                    artifact_id: v.artifact_id,
-                    kind: v.kind,
-                    relative_path: v.relative_path,
-                    digest: v.digest,
-                    media_type: v.media_type,
-                    byte_length: v.byte_length as i64,
-                    truncated: v.truncated,
-                    created_at_ms: input.finished_at_ms,
-                })
-                .collect::<Vec<_>>();
-            db.commit_terminal_with_artifacts(&input, &artifacts)
-                .map_err(pg)?;
-            // Reuse Universal Runtime's existing terminal-only systemd cleanup.
-            // Preserve the failed Unit/InvocationID until the durable PG
-            // terminal+Artifact+reservation transaction has committed.
-            super::platform::release_terminal_unit(&a.unit_name);
-        } else if !a.state.is_terminal() {
-            self.reconcile_absent_runner_result(db, job, &a, &provider, &path)?;
+            return self.reconcile_native_windows_attempt(db, &a, &plan);
         }
-        Ok(())
+        #[cfg(not(windows))]
+        {
+            let path = PathBuf::from(&a.bundle_path);
+            // DISPATCH_ISSUED is intent, not a physical start. Only the native
+            // Runner start receipt bound to the live systemd InvocationID, PID
+            // and cgroup may advance this Attempt from starting to running.
+            if a.state == AttemptState::Starting
+                && a.termination_intent == AttemptTerminationIntent::Natural
+            {
+                let start_path = Path::new(&a.bundle_path).join("runner-start.json");
+                match fs::symlink_metadata(&start_path) {
+                    Ok(metadata) if metadata.file_type().is_file() => {
+                        let bytes = fs::read(&start_path).map_err(io)?;
+                        let start: RunnerStartEvidence =
+                            serde_json::from_slice(&bytes).map_err(io)?;
+                        let native = super::platform::systemctl_show(&a.unit_name)?;
+                        // systemd MainPID is in the host namespace. PrivatePIDs
+                        // may make RunnerStart.namespace_pid equal 1: never read
+                        // host /proc/1 as though it were this Runner.
+                        let host_pid = native
+                            .get("MainPID")
+                            .and_then(|pid| pid.parse::<u32>().ok())
+                            .filter(|pid| *pid != 0);
+                        let host_process_start =
+                            host_pid.and_then(super::platform::process_identity);
+                        let namespace_pid = host_pid.and_then(observed_namespace_pid);
+                        if native_running_witness(
+                            &start,
+                            &native,
+                            job,
+                            &a.attempt_id,
+                            &a.launch_token_digest,
+                            NativePidReadback {
+                                host_pid,
+                                namespace_pid,
+                                process_start: host_process_start.as_deref(),
+                            },
+                            provider["executionProvider"]["executableDigest"]
+                                .as_str()
+                                .unwrap_or(""),
+                        ) {
+                            let input = crate::pg_admission::PgRunnerBound {
+                                attempt_id: a.attempt_id.clone(),
+                                expected_row_version: a.row_version as i64,
+                                expected_bundle_digest: a
+                                    .bundle_digest
+                                    .clone()
+                                    .ok_or_else(|| error("issued Attempt omitted bundle digest"))?,
+                                runner_start_digest: universal::sha256_bytes(&bytes),
+                                native_invocation_id: start.invocation_id,
+                                observed_at_ms: now()?,
+                                expected_source_sha256: self.config.source_sha256.clone(),
+                            };
+                            match db.mark_runner_bound_pg(&input) {
+                                Ok(new_version) => {
+                                    a.state = AttemptState::Running;
+                                    a.row_version = new_version as u64;
+                                }
+                                Err(
+                                    PgAdmissionError::Blocked | PgAdmissionError::UnknownCommit,
+                                ) => {
+                                    // A concurrent cancellation/terminal won. Read its
+                                    // original PG Attempt; never redispatch or revive it.
+                                    a = self.attempt(db, job)?.0;
+                                }
+                                Err(err) => return Err(pg(err)),
+                            }
+                        }
+                    }
+                    Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+                    Ok(_) => return Err(error("Runner start evidence is not a regular file")),
+                    Err(err) => return Err(io(err)),
+                }
+            }
+            if !a.state.is_terminal() && path.join("result.json").exists() {
+                // Reuse native identity, stdout/stderr digest and result validators.
+                let start: RunnerStartEvidence =
+                    serde_json::from_slice(&fs::read(path.join("runner-start.json")).map_err(io)?)
+                        .map_err(io)?;
+                if start.job_id != job
+                    || start.attempt_id != a.attempt_id
+                    || start.launch_token_digest != a.launch_token_digest
+                    || start.unit_name != a.unit_name
+                    || start.invocation_id.is_empty()
+                {
+                    return Err(error("runner start identity mismatch"));
+                }
+                let properties = super::platform::systemctl_show(&a.unit_name)?;
+                if super::platform::unit_is_active(&properties)
+                    || super::platform::unit_has_pending_job(&properties)
+                {
+                    return Ok(());
+                }
+                if super::platform::nonempty_property(&properties, "InvocationID")
+                    .is_some_and(|v| v != start.invocation_id)
+                    || super::platform::cgroup_has_processes(&start.control_group)?
+                {
+                    return Err(error("runner process ownership has not converged"));
+                }
+                if start.runner_executable_digest.as_deref()
+                    != provider["executionProvider"]["executableDigest"].as_str()
+                {
+                    return Err(error("runner evidence provider mismatch"));
+                }
+                let mut terminal = super::evidence::prepare_runner_terminal_from_bundle(&a)?;
+                if let Some(artifact) =
+                    super::evidence::validate_workspace_source_observation_artifact(
+                        &a,
+                        plan.workspace_source_digest.as_deref(),
+                        true,
+                        super::evidence::SourceObservationRequirement::for_terminal(
+                            terminal.state,
+                            &terminal.reason_code,
+                        ),
+                    )?
+                {
+                    terminal.artifacts.push(artifact);
+                }
+                let input = PgTerminalNoArtifacts {
+                    attempt_id: a.attempt_id.clone(),
+                    expected_row_version: a.row_version as i64,
+                    terminal_state: terminal.state.as_db().into(),
+                    result_digest: terminal.result_digest,
+                    reason_code: terminal.reason_code,
+                    exit_code: terminal.exit_code,
+                    finished_at_ms: terminal.finished_at_ms as i64,
+                    expected_source_sha256: self.config.source_sha256.clone(),
+                };
+                let artifacts = terminal
+                    .artifacts
+                    .into_iter()
+                    .map(|v| PgArtifactRegistration {
+                        artifact_id: v.artifact_id,
+                        kind: v.kind,
+                        relative_path: v.relative_path,
+                        digest: v.digest,
+                        media_type: v.media_type,
+                        byte_length: v.byte_length as i64,
+                        truncated: v.truncated,
+                        created_at_ms: input.finished_at_ms,
+                    })
+                    .collect::<Vec<_>>();
+                db.commit_terminal_with_artifacts(&input, &artifacts)
+                    .map_err(pg)?;
+                // Reuse Universal Runtime's existing terminal-only systemd cleanup.
+                // Preserve the failed Unit/InvocationID until the durable PG
+                // terminal+Artifact+reservation transaction has committed.
+                super::platform::release_terminal_unit(&a.unit_name);
+            } else if !a.state.is_terminal() {
+                self.reconcile_absent_runner_result(db, job, &a, &provider, &path)?;
+            }
+            Ok(())
+        }
     }
 }

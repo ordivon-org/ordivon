@@ -17,7 +17,7 @@ pub(super) const RELEASE_CURRENT_ATTEMPT_STATE_SQL: &str = "SELECT a.state FROM 
 // clears current_attempt_id after its terminal Attempt and events are committed.
 // Bind read-only projection to the exact Attempt already qualified by
 // observe_job_readonly(), never to an unverified newest historical Attempt.
-pub(super) const READBACK_VERIFIED_ATTEMPT_SQL: &str = "SELECT a.attempt_id,a.state,a.termination_intent,a.launch_token_digest,a.bundle_path,a.unit_name,a.created_at_ms,a.row_version,a.bundle_digest,j.execution_plan_json,j.operation_digest,a.attempt_number FROM jobs j JOIN attempts a ON a.job_id=j.job_id AND a.attempt_id=$2 WHERE j.job_id=$1 AND j.row_version=$3 AND a.row_version=$4 AND j.resolution IS NOT DISTINCT FROM $5::TEXT AND (($5::TEXT IS NULL AND j.current_attempt_id=a.attempt_id) OR ($5::TEXT IS NOT NULL AND j.current_attempt_id IS NULL AND a.state=$5::TEXT))";
+pub(super) const READBACK_VERIFIED_ATTEMPT_SQL: &str = "SELECT a.attempt_id,a.state,a.termination_intent,a.launch_token_digest,a.bundle_path,a.unit_name,a.created_at_ms,a.row_version,a.bundle_digest,j.execution_plan_json,j.operation_digest,a.attempt_number,a.exit_code FROM jobs j JOIN attempts a ON a.job_id=j.job_id AND a.attempt_id=$2 WHERE j.job_id=$1 AND j.row_version=$3 AND a.row_version=$4 AND j.resolution IS NOT DISTINCT FROM $5::TEXT AND (($5::TEXT IS NULL AND j.current_attempt_id=a.attempt_id) OR ($5::TEXT IS NOT NULL AND j.current_attempt_id IS NULL AND a.state=$5::TEXT))";
 // Both native release control and normal native reconciliation use the
 // existing one PG query to detect completed work. It never authorizes an
 // external effect based on a historical Attempt.
@@ -94,7 +94,7 @@ impl PgRuntime {
         &self,
         db: &mut PgAdmissionStore,
         snapshot: &PgJobSnapshot,
-    ) -> RuntimeResult<(AttemptRecord, RuntimeExecutionPlan, String)> {
+    ) -> RuntimeResult<(AttemptRecord, RuntimeExecutionPlan, String, Option<i32>)> {
         let row = db
             .client
             .query_opt(
@@ -117,7 +117,8 @@ impl PgRuntime {
             )
             .with_operation_id(&snapshot.job_id)
         })?;
-        self.decode_attempt_record(&row, &snapshot.job_id)
+        let (attempt, plan, operation) = self.decode_attempt_record(&row, &snapshot.job_id)?;
+        Ok((attempt, plan, operation, row.get(12)))
     }
 
     /// A committed cancel is an OS control operation against the qualified

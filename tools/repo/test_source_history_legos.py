@@ -73,6 +73,55 @@ class SourceHistoryGitEnvironmentTests(unittest.TestCase):
                         )
 
 
+class ExactCommitIdentityTests(unittest.TestCase):
+    def test_ancestry_rejects_peeled_tag_object_at_either_cut(self):
+        """A full Git object ID is not necessarily an exact commit ID."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-exact-commit-") as temp:
+            repo = Path(temp)
+            git(repo, "init", "-q", "-b", "main")
+            git(repo, "config", "user.name", "SourceCut Test")
+            git(repo, "config", "user.email", "cdc@example.invalid")
+            git(repo, "commit", "--allow-empty", "-qm", "base")
+            before = git(repo, "rev-parse", "HEAD")
+            git(repo, "tag", "-a", "-m", "before", "before")
+            before_tag = git(repo, "rev-parse", "before")
+            git(repo, "commit", "--allow-empty", "-qm", "next")
+            after = git(repo, "rev-parse", "HEAD")
+            git(repo, "tag", "-a", "-m", "after", "after")
+            after_tag = git(repo, "rev-parse", "after")
+            require = source_history_legos.require_ancestral_source_cuts
+            require(repo, before, after)
+            require(repo, after, after)
+            for left, right in (
+                (before_tag, after),
+                (before, after_tag),
+                (before_tag, after_tag),
+            ):
+                with self.subTest(left=left, right=right):
+                    with self.assertRaisesRegex(ValueError, "exact.*commit"):
+                        require(repo, left, right)
+
+    def test_exact_membership_rejects_noncommit_and_missing_object(self):
+        with tempfile.TemporaryDirectory(prefix="ordivon-exact-object-") as temp:
+            repo = Path(temp)
+            git(repo, "init", "-q", "-b", "main")
+            git(repo, "config", "user.name", "SourceCut Test")
+            git(repo, "config", "user.email", "cdc@example.invalid")
+            git(repo, "commit", "--allow-empty", "-qm", "base")
+            commit = git(repo, "rev-parse", "HEAD")
+            tree = git(repo, "rev-parse", "HEAD^{tree}")
+            for bad in (tree, "0" * len(commit)):
+                with self.subTest(bad=bad):
+                    with self.assertRaisesRegex(ValueError, "exact.*commit"):
+                        source_history_legos.source_membership_query(
+                            repo, bad, "sources/"
+                        )
+                    with self.assertRaisesRegex(ValueError, "exact.*commit"):
+                        source_history_legos.require_ancestral_source_cuts(
+                            repo, bad, commit
+                        )
+
+
 class NativeGitGraftIsolationTests(unittest.TestCase):
     def test_native_source_ancestry_ignores_graft_overlay(self):
         """Exact source DAG must ignore the deprecated Git graft overlay."""

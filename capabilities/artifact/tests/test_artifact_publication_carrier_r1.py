@@ -94,6 +94,15 @@ class PublicationCarrierR1Tests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 load_publication_contract(p)
 
+    def test_contract_loader_rejects_unknown_must_follow_heading(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "contract.json"
+            value = self._contract()
+            value["pageRules"]["headings"][1]["mustFollow"] = "missing-heading"
+            p.write_text(json.dumps(value))
+            with self.assertRaisesRegex(ValueError, "references unknown heading: missing-heading"):
+                load_publication_contract(p)
+
     def test_old_paper3_like_carrier_fails_semantic_production_gates(self) -> None:
         contract = self._contract()
         pages = (

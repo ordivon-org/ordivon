@@ -158,6 +158,35 @@ class R2Tests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "local digest address contains different bytes"):
                     restore_r2_blob(blob.digest, cache, bucket="bucket-one", credentials_path=credentials)
 
+    def test_restore_rejects_symlink_local_digest_address(self) -> None:
+        payload = b"remote selected bytes"
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            credentials = self._credentials(root)
+            source = root / "source.bin"
+            source.write_bytes(payload)
+            blob = hash_file(source)
+            cache = root / "cache"
+            destination = cache / r2_object_key(blob.digest)
+            destination.parent.mkdir(parents=True)
+            external = root / "external.bin"
+            external.write_bytes(payload)
+            try:
+                destination.symlink_to(external)
+            except OSError as exc:
+                self.skipTest(f"symbolic links unavailable: {exc}")
+
+            def download(**kwargs: object) -> tuple[int, Path | None]:
+                target = root / "remote-download.bin"
+                target.write_bytes(payload)
+                return 200, target
+
+            with patch("ordivon_studio.cloudflare_r2._verified_remote_download", side_effect=download):
+                with self.assertRaisesRegex(RuntimeError, "must not be a symbolic link"):
+                    restore_r2_blob(
+                        blob.digest, cache, bucket="bucket-one", credentials_path=credentials
+                    )
+
     def test_restore_rejects_missing_remote_object(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

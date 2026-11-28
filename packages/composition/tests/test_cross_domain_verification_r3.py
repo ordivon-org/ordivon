@@ -278,7 +278,9 @@ def test_research_artifact_real_paper3_dogfood_satisfies_bounded_gate() -> None:
     projection = evaluate_gate_results(manifest, [result])
 
     assert result["standing"] == "SATISFIED"
-    assert projection["mechanicalClosure"] is True
+    assert projection["mechanicalClosure"] is False
+    assert projection["reportedGateClosure"] is True
+    assert projection["evidenceVerificationStanding"] == "UNKNOWN"
     assert projection["domainAcceptanceEstablished"] is False
 
 
@@ -358,7 +360,9 @@ def test_web_security_real_native_e2e_satisfies_bounded_gate() -> None:
     projection = evaluate_gate_results(manifest, [result])
 
     assert result["standing"] == "SATISFIED"
-    assert projection["mechanicalClosure"] is True
+    assert projection["mechanicalClosure"] is False
+    assert projection["reportedGateClosure"] is True
+    assert projection["evidenceVerificationStanding"] == "UNKNOWN"
     assert projection["domainAcceptanceEstablished"] is False
 
 
@@ -539,7 +543,9 @@ def test_research_artifact_gate_runs_through_verification_obligation_r1() -> Non
     assert resolution["standing"] == "VERIFIER_BINDINGS_RESOLVED"
     assert resolution["executionAuthorityGranted"] is False
     assert result["standing"] == "SATISFIED"
-    assert projection["mechanicalClosure"] is True
+    assert projection["mechanicalClosure"] is False
+    assert projection["reportedGateClosure"] is True
+    assert projection["evidenceVerificationStanding"] == "UNKNOWN"
     assert projection["domainAcceptanceEstablished"] is False
 
 
@@ -579,5 +585,7 @@ def test_web_security_gate_runs_through_verification_obligation_r1() -> None:
     assert resolution["standing"] == "VERIFIER_BINDINGS_RESOLVED"
     assert resolution["executionAuthorityGranted"] is False
     assert result["standing"] == "SATISFIED"
-    assert projection["mechanicalClosure"] is True
+    assert projection["mechanicalClosure"] is False
+    assert projection["reportedGateClosure"] is True
+    assert projection["evidenceVerificationStanding"] == "UNKNOWN"
     assert projection["domainAcceptanceEstablished"] is False

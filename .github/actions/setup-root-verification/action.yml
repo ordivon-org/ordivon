@@ -1,22 +1,45 @@
 name: Setup root verification
 description: Acquire verified tools and install the root CI toolchain only.
+inputs:
+  sql-verifiers:
+    description: Install isolated SQL validation CLIs; false is reserved for root preflight.
+    required: false
+    default: 'true'
 runs:
   using: composite
   steps:
+    - name: Validate SQL tool scope
+      shell: bash
+      env:
+        SQL_VERIFIERS: ${{ inputs.sql-verifiers }}
+      run: |
+        set -euo pipefail
+        case "$SQL_VERIFIERS" in
+          true|false) ;;
+          *) echo "Invalid SQL verifier setup scope" >&2; exit 2 ;;
+        esac
+
     - name: Network - acquire verified Python via official GitHub API
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
       run: python3 platform/network/consumers/developer-egress/github_release_mise.py --python
 
+    - name: Cache signed mise release material
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/ordivon-mise-signed-pair
+        key: mise-signed-pair-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('platform/network/consumers/developer-egress/github_release_mise.py') }}
+
     - name: Network - acquire verified mise via official GitHub API
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
+        ORDIVON_MISE_SIGNED_PAIR_CACHE_DIR: ${{ runner.temp }}/ordivon-mise-signed-pair
       run: python3 platform/network/consumers/developer-egress/github_release_mise.py
 
     - name: Install monorepo toolchain
-      uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5.2.10
+      uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
       with:
         version: 2026.9.12
         sha256: e79ae57945034903aee8aa2ea66b4c7ca9cd4f4edd5a8a78a589cbae6d0f428a
@@ -48,14 +71,32 @@ runs:
           sleep $((attempt * 3))
         done
 
+    - name: Cache verified GNU Bash source bytes
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/ordivon-bash-distribution
+        key: bash-distribution-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/repo/bash-5.3.20.sha256', 'tools/repo/install_latest_stable_bash.sh') }}
+
     - name: Install verified GNU Bash 5.3.20
+      env:
+        ORDIVON_BASH_DIST_CACHE_DIR: ${{ runner.temp }}/ordivon-bash-distribution
       shell: bash
       run: |
         set -euo pipefail
         tools/repo/install_latest_stable_bash.sh "$RUNNER_TEMP/ordivon-bash-5.3.20"
         echo "$RUNNER_TEMP/ordivon-bash-5.3.20/bin" >> "$GITHUB_PATH"
 
+    - name: Cache verified SQL distribution bytes
+      if: inputs.sql-verifiers == 'true'
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/ordivon-sql-distributions
+        key: sql-distributions-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools/repo/install_sql_verifiers.sh') }}
+
     - name: Install pinned SQL validation CLIs
+      if: inputs.sql-verifiers == 'true'
+      env:
+        ORDIVON_SQL_DIST_CACHE_DIR: ${{ runner.temp }}/ordivon-sql-distributions
       shell: bash
       run: |
         set -euo pipefail

@@ -134,3 +134,16 @@ async fn scheduler_panic_is_not_hidden_by_shutdown() {
     let result = tokio::task::spawn_blocking(|| panic!("synthetic scheduler panic")).await;
     assert!(scheduler_exit_result(true, result).is_err());
 }
+
+#[cfg(windows)]
+#[tokio::test]
+async fn runtime_listener_cannot_be_inherited_by_native_launcher() {
+    use std::os::windows::io::AsRawSocket;
+    use windows_sys::Win32::Foundation::{GetHandleInformation, HANDLE_FLAG_INHERIT};
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let mut flags = 0;
+    let inspected = unsafe { GetHandleInformation(listener.as_raw_socket() as _, &mut flags) };
+    assert_ne!(inspected, 0, "{}", std::io::Error::last_os_error());
+    assert_eq!(flags & HANDLE_FLAG_INHERIT, 0);
+}

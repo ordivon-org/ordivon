@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -184,16 +185,40 @@ class MonorepoCodeQLTests(unittest.TestCase):
             source.replace("python, javascript-typescript, rust", "python, javascript-typescript", 1),
             source.replace("  merge_group:\n", "  skipped_merge_group:\n", 1),
             source.replace("security-events: write", "security-events: read", 1),
-            source.replace(
-                "github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd",
-                "github/codeql-action/analyze@v4", 1
-            ),
+            re.sub(r"github/codeql-action/analyze@[0-9a-f]{40}",
+                   "github/codeql-action/analyze@v4", source, count=1),
         )
         for corrupt in corruptions:
             self.assertNotEqual(corrupt, source)
             with self.subTest(mutant=corrupt[:120]):
                 with self.assertRaises(AssertionError):
                     module.validate_monorepo_codeql(corrupt)
+
+
+    def test_codeql_release_family_is_coherent_not_frozen(self) -> None:
+        from tools.repo.github_governance.codeql import validate_monorepo_codeql
+
+        source = (ROOT / ".github/workflows/codeql.yml").read_text(encoding="utf-8")
+        pins = re.findall(r"github/codeql-action/(?:init|analyze)@([0-9a-f]{40})", source)
+        self.assertEqual(len(pins), 2)
+        self.assertEqual(len(set(pins)), 1)
+        alternative = "a" * 40 if pins[0] != "a" * 40 else "b" * 40
+        updated = source.replace(pins[0], alternative)
+        validate_monorepo_codeql(updated)
+        for mutant in (
+            source.replace(pins[0], alternative, 1),
+            updated.replace(alternative, "v4", 1),
+            updated.replace(alternative, alternative[:-1], 1),
+            source.replace(
+                "      - name: Analyze code",
+                "      - name: Duplicate init\n        uses: github/codeql-action/init@"
+                + pins[0] + "\n      - name: Analyze code",
+                1,
+            ),
+        ):
+            with self.subTest(mutant=mutant):
+                with self.assertRaisesRegex(AssertionError, "CodeQL init/analyze SHA"):
+                    validate_monorepo_codeql(mutant)
 
 
 class GovernanceAcceptanceTests(unittest.TestCase):
@@ -560,6 +585,7 @@ exit 0
                 )
                 env = os.environ.copy()
                 env.pop("ORDIVON_SQL_DIST_DIR", None)
+                env.pop("ORDIVON_SQL_DIST_CACHE_DIR", None)
                 env.update({
                     "PATH": str(folder) + os.pathsep + env.get("PATH", ""),
                     "RECORD": str(record),
@@ -591,6 +617,102 @@ exit 0
                 unavailable = invoke()
                 self.assertNotEqual(unavailable.returncode, 0)
                 self.assertEqual(len(record.read_text().splitlines()), 2)
+    def test_sql_distribution_cache_is_acceleration_not_authority(self) -> None:
+        import hashlib
+        import os
+
+        source = (ROOT / "tools/repo/install_sql_verifiers.sh").read_text()
+        function = "download() {" + source.split("download() {", 1)[1].split(
+            "\ndownload \\", 1
+        )[0]
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            cache = folder / "cache"
+            cache.mkdir()
+            record = folder / "calls"
+            destination = folder / "package.deb"
+            cached = cache / destination.name
+            payload = b"exact upstream test bytes"
+            curl = folder / "curl"
+            curl.write_text(
+                '#!/usr/bin/env bash\n'
+                'printf "network\\n" >> "$RECORD"\n'
+                'while [[ $# -gt 0 ]]; do if [[ "$1" == -o ]]; then shift; dst="$1"; fi; shift; done\n'
+                '[[ "$NETWORK_AVAILABLE" == 1 ]] || exit 28\n'
+                'printf "%s" "$PAYLOAD" > "$dst"\n',
+                encoding="utf-8",
+            )
+            curl.chmod(0o755)
+            script = "set -euo pipefail\n" + function + "\n" + (
+                'download https://publisher.invalid/p.deb "$DEST" "$EXPECTED"'
+            )
+            env = os.environ.copy()
+            env.pop("ORDIVON_SQL_DIST_DIR", None)
+            env.update({
+                "PATH": str(folder) + os.pathsep + env["PATH"],
+                "ORDIVON_SQL_DIST_CACHE_DIR": str(cache),
+                "RECORD": str(record), "DEST": str(destination),
+                "PAYLOAD": payload.decode(), "EXPECTED": hashlib.sha256(payload).hexdigest(),
+                "NETWORK_AVAILABLE": "1",
+            })
+            def invoke():
+                return subprocess.run(["/usr/bin/bash", "-c", script], env=env,
+                                      capture_output=True, text=True, timeout=15)
+
+            cold = invoke()
+            self.assertEqual(cold.returncode, 0, cold.stderr)
+            self.assertEqual(cached.read_bytes(), payload)
+            self.assertEqual(destination.read_bytes(), payload)
+            self.assertEqual(record.read_text().splitlines(), ["network"])
+            destination.unlink()
+            env["NETWORK_AVAILABLE"] = "0"
+            warm = invoke()
+            self.assertEqual(warm.returncode, 0, warm.stderr)
+            self.assertEqual(destination.read_bytes(), payload)
+            self.assertEqual(record.read_text().splitlines(), ["network"])
+
+            cached.write_bytes(b"corrupt")
+            destination.unlink()
+            bad = invoke()
+            self.assertNotEqual(bad.returncode, 0)
+            self.assertFalse(destination.exists() and destination.read_bytes() == payload)
+            self.assertEqual(cached.read_bytes(), b"corrupt")
+            env["NETWORK_AVAILABLE"] = "1"
+            repaired = invoke()
+            self.assertEqual(repaired.returncode, 0, repaired.stderr)
+            self.assertEqual(cached.read_bytes(), payload)
+
+            # Explicit offline input is a strict source, not a cache hint.
+            offline = folder / "offline"
+            offline.mkdir()
+            (offline / destination.name).write_bytes(b"wrong")
+            env["ORDIVON_SQL_DIST_DIR"] = str(offline)
+            calls = record.read_text()
+            rejected = invoke()
+            self.assertEqual(rejected.returncode, 7, rejected.stderr)
+            self.assertEqual(record.read_text(), calls)
+
+    def test_sql_cache_action_uses_exact_inputs_without_execution_bypass(self) -> None:
+        import yaml
+
+        action = yaml.safe_load((ROOT / ".github/actions/setup-root-verification/action.yml").read_text())
+        steps = action["runs"]["steps"]
+        restore = next(step for step in steps if step.get("name") == "Cache verified SQL distribution bytes")
+        install = next(step for step in steps if step.get("name") == "Install pinned SQL validation CLIs")
+        self.assertLess(steps.index(restore), steps.index(install))
+        self.assertRegex(restore["uses"], r"^actions/cache@[a-f0-9]{40}$")
+        self.assertIn("hashFiles('tools/repo/install_sql_verifiers.sh')", restore["with"]["key"])
+        self.assertNotIn("restore-keys", restore["with"])
+        self.assertEqual(restore["with"]["path"], install["env"]["ORDIVON_SQL_DIST_CACHE_DIR"])
+        # Qualification is consumer-scoped, never cache-hit-scoped. The
+        # default and exact callers are independently checked below.
+        self.assertEqual(action["inputs"]["sql-verifiers"]["default"], "true")
+        expected_scope = "inputs.sql-verifiers == 'true'"
+        for step in (restore, install):
+            self.assertEqual(step.get("if"), expected_scope)
+            self.assertNotIn("continue-on-error", step)
+        self.assertIn("install_sql_verifiers.sh", install["run"])
+
     def test_root_mise_installs_get_scoped_native_github_token(self) -> None:
         """Keep bootstrap authenticated without exporting token to Owner code."""
         import yaml
@@ -1008,6 +1130,8 @@ exit 0
                          fixture_registry / "affected_owners.py")
             shutil.copy2(ROOT / "tools/repo/owners.toml",
                          fixture_registry / "owners.toml")
+            shutil.copy2(ROOT / "tools/repo/ci_mise_source_witness.py",
+                         fixture_registry / "ci_mise_source_witness.py")
             # The real verifier consumes a declared source readset; the disposable
             # Git fixture must contain the same declared source universe.
             for rel in _FORMAL_SOURCE_FILES:
@@ -1134,6 +1258,18 @@ exit 0
             self.assertIn("root task checkout differs from provider GITHUB_SHA", refused.stderr)
             self.assertEqual(record.read_text(), "")
             env.pop("GITHUB_SHA", None)
+
+            # The extracted verifier itself is an executable input.
+            witness = fixture_registry / "ci_mise_source_witness.py"
+            exact_witness = witness.read_bytes()
+            try:
+                witness.write_bytes(exact_witness + b"\n# changed witness\n")
+                denied_witness = invoke(queue_script)
+                self.assertEqual(denied_witness.returncode, 43, denied_witness.stderr)
+                self.assertIn("exact Git HEAD: witness", denied_witness.stderr)
+                self.assertEqual(record.read_text(), "")
+            finally:
+                witness.write_bytes(exact_witness)
 
             # Source-qualify nested Owner task manifests as well as root.
             nested_bytes = nested_game.read_bytes()
@@ -2142,6 +2278,177 @@ exit 0
             with self.assertRaisesRegex(AssertionError, "GitHub Actions dependency coverage drift"):
                 governance.main()
 
+    def test_codeql_dependency_group_is_atomic(self) -> None:
+        import importlib.util
+        from unittest import mock
+
+        sys.path.insert(0, str(SCRIPT.parent))
+        spec = importlib.util.spec_from_file_location("governance_codeql_group_test", SCRIPT)
+        assert spec is not None and spec.loader is not None
+        governance = importlib.util.module_from_spec(spec)
+        try:
+            spec.loader.exec_module(governance)
+        finally:
+            sys.path.pop(0)
+        old_read = Path.read_text
+        group = '      codeql-release:\n        patterns: ["github/codeql-action/*"]\n'
+        catchall = '      same-dependency:\n        patterns: ["*"]\n        group-by: dependency-name\n'
+        for label, replacement in (
+            ("missing", catchall),
+            ("late", catchall + group),
+            ("split", group + "        group-by: dependency-name\n" + catchall),
+        ):
+            with self.subTest(case=label):
+                def read(path, *args, **kwargs):
+                    text = old_read(path, *args, **kwargs)
+                    if path == DEPENDABOT:
+                        self.assertIn(group + catchall, text)
+                        return text.replace(group + catchall, replacement, 1)
+                    return text
+
+                with mock.patch.object(Path, "read_text", read):
+                    with self.assertRaisesRegex(AssertionError, "CodeQL release family"):
+                        governance.main()
+
+    def test_bash_source_cache_does_not_promote_target_or_unverified_bytes(self) -> None:
+        import hashlib
+        import os
+        import shutil
+
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            repo = folder / "repo"
+            tools = repo / "tools/repo"
+            tools.mkdir(parents=True)
+            script = tools / "install_latest_stable_bash.sh"
+            shutil.copyfile(ROOT / "tools/repo/install_latest_stable_bash.sh", script)
+            upstream = folder / "upstream"
+            upstream.mkdir()
+            names = ["bash-5.3.tar.gz", *(f"bash53-{i:03d}" for i in range(1, 21))]
+            manifest = []
+            for name in names:
+                content = ("exact input " + name).encode()
+                (upstream / name).write_bytes(content)
+                manifest.append(hashlib.sha256(content).hexdigest() + "  " + name)
+            (tools / "bash-5.3.20.sha256").write_text("\n".join(manifest) + "\n")
+            bin_dir = folder / "bin"
+            bin_dir.mkdir()
+            calls = folder / "curl-calls"
+            marker = folder / "extraction"
+            target_marker = folder / "unqualified-target-executed"
+            target = folder / "target"
+            (target / "bin").mkdir(parents=True)
+            fake = target / "bin/bash"
+            fake.write_text('#!/bin/sh\ntouch "$TARGET_MARKER"\nexit 0\n')
+            fake.chmod(0o755)
+            curl = bin_dir / "curl"
+            curl.write_text(
+                '#!/usr/bin/env bash\n'
+                'printf "network\\n" >> "$CALLS"\n'
+                '[[ "$NETWORK" == 1 ]] || exit 28\n'
+                'while [[ $# -gt 0 ]]; do if [[ "$1" == -o ]]; then shift; dst="$1"; fi; shift; done\n'
+                'cp "$UPSTREAM/$(basename "$dst")" "$dst"\n'
+            )
+            curl.chmod(0o755)
+            tar = bin_dir / "tar"
+            # Observe only the source-to-build boundary. The native build is
+            # qualified separately with genuine publisher bytes.
+            tar.write_text('#!/bin/sh\ntouch "$MARKER"\nexit 42\n')
+            tar.chmod(0o755)
+            cache = folder / "cache"
+            env = os.environ.copy()
+            env.pop("ORDIVON_BASH_DIST_DIR", None)
+            env.update({
+                "PATH": str(bin_dir) + os.pathsep + env["PATH"],
+                "ORDIVON_BASH_DIST_CACHE_DIR": str(cache),
+                "RUNNER_TEMP": str(folder), "UPSTREAM": str(upstream),
+                "CALLS": str(calls), "NETWORK": "1",
+                "MARKER": str(marker), "TARGET_MARKER": str(target_marker),
+            })
+            def invoke():
+                marker.unlink(missing_ok=True)
+                return subprocess.run(["/usr/bin/bash", str(script), str(target)],
+                                      env=env, capture_output=True, text=True, timeout=30)
+
+            cold = invoke()
+            self.assertEqual(cold.returncode, 42, cold.stderr)
+            self.assertTrue(marker.exists())
+            self.assertFalse(target_marker.exists())
+            self.assertEqual(len(calls.read_text().splitlines()), 21)
+            self.assertEqual({p.name for p in cache.iterdir()}, set(names))
+            env["NETWORK"] = "0"
+            warm = invoke()
+            self.assertEqual(warm.returncode, 42, warm.stderr)
+            self.assertTrue(marker.exists())
+            self.assertEqual(len(calls.read_text().splitlines()), 21)
+
+            (cache / names[-1]).write_bytes(b"wrong")
+            rejected = invoke()
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertFalse(marker.exists())
+            env["NETWORK"] = "1"
+            repaired = invoke()
+            self.assertEqual(repaired.returncode, 42, repaired.stderr)
+            self.assertEqual((cache / names[-1]).read_bytes(), (upstream / names[-1]).read_bytes())
+
+            # Explicit offline source overrides even a valid cache and may
+            # not fall through to official mirrors on invalid bytes.
+            offline = folder / "offline"
+            shutil.copytree(upstream, offline)
+            (offline / names[0]).write_bytes(b"wrong")
+            env["ORDIVON_BASH_DIST_DIR"] = str(offline)
+            count = calls.read_text()
+            bad_offline = invoke()
+            self.assertEqual(bad_offline.returncode, 7, bad_offline.stderr)
+            self.assertFalse(marker.exists())
+            self.assertEqual(calls.read_text(), count)
+            self.assertFalse(target_marker.exists())
+
+    def test_mise_signed_pair_cache_is_source_bound_and_reverified(self) -> None:
+        import yaml
+
+        steps = yaml.safe_load((ROOT / ".github/actions/setup-root-verification/action.yml")
+                               .read_text())["runs"]["steps"]
+        cache = next(step for step in steps if step.get("name") == "Cache signed mise release material")
+        install = next(step for step in steps if step.get("name") ==
+                       "Network - acquire verified mise via official GitHub API")
+        toolchain = next(step for step in steps if step.get("name") == "Install monorepo toolchain")
+        self.assertLess(steps.index(cache), steps.index(install))
+        self.assertLess(steps.index(install), steps.index(toolchain))
+        self.assertRegex(cache["uses"], r"^actions/cache@[a-f0-9]{40}$")
+        self.assertIn("hashFiles('platform/network/consumers/developer-egress/github_release_mise.py')",
+                      cache["with"]["key"])
+        self.assertNotIn("restore-keys", cache["with"])
+        self.assertEqual(cache["with"]["path"],
+                         install["env"]["ORDIVON_MISE_SIGNED_PAIR_CACHE_DIR"])
+        self.assertNotIn("if", install)
+        self.assertNotIn("continue-on-error", install)
+        self.assertIn("github_release_mise.py", install["run"])
+
+        # A tagged publishing consumer still performs signed acquisition from
+        # official upstream; it must not restore PR-writable caches.
+        release = yaml.safe_load((ROOT / ".github/workflows/runtime-release.yml")
+                                 .read_text())["jobs"]["runtime-release"]["steps"]
+        release_install = next(step for step in release if step.get("name") ==
+                               "Network - acquire verified mise via official GitHub API")
+        self.assertNotIn("ORDIVON_MISE_SIGNED_PAIR_CACHE_DIR", release_install["env"])
+        self.assertFalse(any("actions/cache@" in step.get("uses", "") for step in release))
+
+    def test_bash_source_cache_action_is_manifest_bound(self) -> None:
+        import yaml
+
+        steps = yaml.safe_load((ROOT / ".github/actions/setup-root-verification/action.yml")
+                               .read_text())["runs"]["steps"]
+        restore = next(step for step in steps if step.get("name") == "Cache verified GNU Bash source bytes")
+        install = next(step for step in steps if step.get("name") == "Install verified GNU Bash 5.3.20")
+        self.assertLess(steps.index(restore), steps.index(install))
+        self.assertRegex(restore["uses"], r"^actions/cache@[a-f0-9]{40}$")
+        self.assertIn("tools/repo/bash-5.3.20.sha256", restore["with"]["key"])
+        self.assertIn("tools/repo/install_latest_stable_bash.sh", restore["with"]["key"])
+        self.assertEqual(restore["with"]["path"], install["env"]["ORDIVON_BASH_DIST_CACHE_DIR"])
+        self.assertNotIn("restore-keys", restore["with"])
+        self.assertNotIn("if", install)
+
     def test_optimized_mode_refuses_assert_based_governance_verification(self) -> None:
         result = self.run_contract(invalid=False, optimized=True)
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -2311,6 +2618,54 @@ exit 0
 
 
 
+class RootSetupConsumerScopeTests(unittest.TestCase):
+    """Native setup resource scope is not permission to omit verification."""
+
+    def test_sql_tools_only_preflight_can_explicitly_opt_out(self) -> None:
+        import os
+        import yaml
+
+        action = yaml.safe_load(
+            (ROOT / ".github/actions/setup-root-verification/action.yml").read_text()
+        )
+        self.assertEqual(action["inputs"]["sql-verifiers"]["default"], "true")
+        steps = action["runs"]["steps"]
+        guard = next(s for s in steps if s["name"] == "Validate SQL tool scope")
+        self.assertEqual(guard["env"]["SQL_VERIFIERS"], "$" + "{{ inputs.sql-verifiers }}")
+        self.assertNotIn("if", guard)
+        self.assertNotIn("continue-on-error", guard)
+        for value, expected in (("true", 0), ("false", 0), ("", 2),
+                                ("False", 2), ("typo", 2), ("true; exit 0", 2)):
+            with self.subTest(value=value):
+                result = subprocess.run(
+                    ["bash", "-c", guard["run"]],
+                    env=dict(os.environ, SQL_VERIFIERS=value),
+                    capture_output=True, text=True, timeout=5,
+                )
+                self.assertEqual(result.returncode, expected, result.stderr)
+        sql_steps = [s for s in steps if s["name"] in (
+            "Cache verified SQL distribution bytes", "Install pinned SQL validation CLIs")]
+        self.assertEqual(len(sql_steps), 2)
+        for step in sql_steps:
+            self.assertEqual(step["if"], "inputs.sql-verifiers == 'true'")
+            self.assertLess(steps.index(guard), steps.index(step))
+        jobs = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())["jobs"]
+        for name in ("root-preflight", "repo-mechanics", "owner-verification"):
+            caller = next(s for s in jobs[name]["steps"]
+                          if s.get("uses") == "./.github/actions/setup-root-verification")
+            with self.subTest(job=name):
+                self.assertNotIn("if", caller)
+                self.assertEqual(caller.get("with", {}).get("sql-verifiers", "true"),
+                                 "false" if name == "root-preflight" else "true")
+        # The independent repository mechanics job still runs its original
+        # real SQL oracle as part of repo:ci; do not turn a setup opt-out into
+        # a test opt-out.
+        self.assertIn("mise run repo:ci", next(s["run"] for s in jobs["repo-mechanics"]["steps"]
+                         if s.get("name") == "Repository mechanics"))
+        self.assertIn("python tools/repo/check_sql_dialects.py",
+                      (ROOT / "mise.toml").read_text())
+
+
 class ParallelRootVerificationTests(unittest.TestCase):
     """Protect the real GitHub required check and native task partition."""
 
@@ -2349,6 +2704,17 @@ class ParallelRootVerificationTests(unittest.TestCase):
         self.assertIn("git --no-replace-objects show HEAD:mise.toml",
                       runner["run"])
         self.assertIn("paper_postgres", owners["services"])
+        image = owners["services"]["paper_postgres"]["image"]
+        # Native matrix predicate is intentionally restricted to the two
+        # branches which consume the dynamically assigned service port.
+        condition, image_value = image.split(" && ", 1)
+        self.assertEqual(condition, "$" + "{{ (contains(matrix.tasks, 'capital:verify') || "
+                         "contains(matrix.tasks, 'harness:queue'))")
+        # Verify the selection contract rather than freeze a historical PG version.
+        self.assertRegex(image_value, r"^'postgres:[0-9][^'\s]*' \|\| '' \}\}$")
+        self.assertEqual(runner["env"]["PAPER_PG_PORT"],
+                         "$" + "{{ job.services.paper_postgres.ports['5432'] }}")
+        self.assertEqual(runner["run"].count("port=$PAPER_PG_PORT"), 4)
         self.assertNotIn("services", preflight)
         mechanics = jobs["repo-mechanics"]
         self.assertNotIn("needs", mechanics)
@@ -2357,6 +2723,81 @@ class ParallelRootVerificationTests(unittest.TestCase):
                       [step["name"] for step in mechanics["steps"]])
         self.assertNotIn("Repository mechanics",
                          [step["name"] for step in preflight["steps"]])
+
+    def test_owner_pg_service_port_is_required_only_by_its_consumers(self) -> None:
+        import os
+        import shutil
+        import yaml
+
+        jobs = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())["jobs"]
+        step = next(x for x in jobs["owner-verification"]["steps"]
+                    if x["name"] == "Verify affected owners")
+        script = step["run"].replace("$" + "{{ needs.root-preflight.outputs.formal }}", "false")
+        script = script.replace("$" + "{{ github.run_id }}", "12345")
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            repo = folder / "repo"
+            registry = repo / "tools/repo"
+            registry.mkdir(parents=True)
+            for name in ("affected_owners.py", "owners.toml", "ci_mise_source_witness.py"):
+                if (ROOT / "tools/repo" / name).exists():
+                    shutil.copy2(ROOT / "tools/repo" / name, registry / name)
+            (repo / "mise.toml").write_text('[tasks.verify]\nrun = "echo fixture"\n')
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(["git", "-C", str(repo), "-c", "user.name=Test",
+                            "-c", "user.email=test@local.invalid", "commit", "-qm", "fixture"],
+                           check=True)
+            binary = folder / "bin"
+            binary.mkdir()
+            native = shutil.which("mise")
+            self.assertIsNotNone(native)
+            mock = binary / "mise"
+            mock.write_text(
+                '#!/usr/bin/env bash\n'
+                'set -euo pipefail\n'
+                'if [[ "$1" == --cd && "$3" == config && "$4" == ls ]]; then '
+                'exec "$NATIVE_MISE" "$@"; fi\n'
+                'if [[ "$*" == "run capital:verify" ]]; then\n'
+                '  [[ "$ORDIVON_CAPITAL_PG_TEST_DSN" == *" port=45432 "* ]]\n'
+                '  [[ "$ORDIVON_CAPITAL_PAPER_PG_TEST_DSN" == *" port=45432 "* ]]\n'
+                'elif [[ "$*" == "--cd domains/capital run verify:nonlive:nautilus" ]]; then\n'
+                '  [[ "$ORDIVON_CAPITAL_PAPER_PG_TEST_DSN" == *" port=45432 "* ]]\n'
+                '  [[ "$ORDIVON_FINANCE_REQUIRE_PHYSICAL_PG" == 1 ]]\n'
+                'elif [[ "$*" == "run harness:queue" ]]; then\n'
+                '  [[ "$HARNESS_PG_TEST_DSN" == *" port=45432 "* ]]\n'
+                'fi\n'
+                'printf "%s\n" "$*" >> "$TRACE"\n')
+            mock.chmod(0o755)
+            trace = folder / "trace"
+            env = dict(os.environ, PATH=str(binary)+os.pathsep+os.environ["PATH"],
+                       RUNNER_TEMP=str(folder), NATIVE_MISE=native, TRACE=str(trace),
+                       MISE_TRUSTED_CONFIG_PATHS=str(repo))
+            env.pop("GITHUB_SHA", None)
+
+            def run(task, port):
+                trace.write_text("")
+                result = subprocess.run(
+                    ["/usr/bin/bash", "-c", script], cwd=repo,
+                    env=dict(env, OWNER_TASKS_JSON=json.dumps([task]), PAPER_PG_PORT=port),
+                    capture_output=True, text=True, timeout=15)
+                return result, trace.read_text().splitlines()
+
+            for task in ("capital:verify", "harness:queue"):
+                for invalid in ("", "0", "65536", "bad"):
+                    with self.subTest(task=task, port=invalid):
+                        result, calls = run(task, invalid)
+                        self.assertEqual(result.returncode, 44, result.stderr)
+                        self.assertEqual(calls, [])
+                result, calls = run(task, "45432")
+                self.assertEqual(result.returncode, 0, result.stderr)
+                expected = ["run " + task]
+                if task == "capital:verify":
+                    expected.append("--cd domains/capital run verify:nonlive:nautilus")
+                self.assertEqual(calls, expected)
+            result, calls = run("runtime:verify", "")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(calls, ["run runtime:verify"])
 
     def test_required_check_fails_on_any_failed_or_skipped_required_lane(self) -> None:
         import os

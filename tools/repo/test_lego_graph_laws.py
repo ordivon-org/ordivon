@@ -2735,3 +2735,183 @@ def test_host_r3_semantic_alignment_fails_closed(mutation: str, tmp_path: Path) 
         module.validate_host_r3_semantic_alignment(
             tmp_path, json.loads(r3_path.read_text())
         )
+
+
+
+def test_exact_graph_read_ignores_foreign_git_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The explicit repository is the authority, not the caller Git environment."""
+    import subprocess
+
+    source = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    expected = module.project_owner_lego_source_graph(ROOT, source_revision=source)
+    foreign = tmp_path / "foreign"
+    foreign.mkdir()
+    subprocess.run(["git", "init", "-q", str(foreign)], check=True)
+    monkeypatch.setenv("GIT_DIR", str(foreign / ".git"))
+    assert module.project_owner_lego_source_graph(ROOT, source_revision=source) == expected
+    node_ref = expected["vertices"][0]["ref"]
+    assert module.inspect_owner_lego_contract(
+        root=ROOT, source_revision=source, node_ref=node_ref,
+    )
+
+
+def test_graph_delta_preserves_native_non_utf8_path_and_unknown(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import os
+    import subprocess
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-C", str(tmp_path), *args], text=True,
+        ).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Graph test")
+    git("config", "user.email", "graph@example.invalid")
+    git("commit", "--allow-empty", "-qm", "before")
+    before = git("rev-parse", "HEAD")
+    owner = tmp_path / "example"
+    owner.mkdir()
+    raw_path = b"example/non-utf8-\xff"
+    with open(os.fsencode(tmp_path) + b"/" + raw_path, "wb") as stream:
+        stream.write(b"new")
+    git("add", ".")
+    git("commit", "-qm", "after")
+    after = git("rev-parse", "HEAD")
+    ref = "example/planning/lego-plan-r1.json#A"
+    monkeypatch.setattr(
+        module, "project_owner_lego_source_graph",
+        lambda root, *, source_revision: {
+            "sourcePlans": [], "relations": [],
+            "vertices": [{"ref": ref, "sourceAnchors": []}],
+        },
+    )
+    result = module.project_owner_lego_source_change(
+        root=tmp_path, before_revision=before, after_revision=after,
+    )
+    assert [os.fsencode(path) for path in result["changedGitPaths"]] == [raw_path]
+    assert result["unindexedChangedPaths"] == result["changedGitPaths"]
+    assert result["standingByDeclaredNode"] == [
+        {"ref": ref, "sourceImpactStanding": "UNKNOWN"},
+    ]
+    assert result["proofReuseAdmissible"] is False
+    assert json.loads(json.dumps(result)) == result
+
+
+
+def test_extracted_owner_graph_contract_source_membership(tmp_path: Path) -> None:
+    """The extracted pure graph contract remains a declared source dependency."""
+    import subprocess
+
+    from tools.repo import owner_lego_graph_contract as leaf
+
+    plan_path = "tools/repo/planning/lego-plan-r1.json"
+    leaf_path = "tools/repo/owner_lego_graph_contract.py"
+    ref = f"{plan_path}#RG2_OWNER"
+    plan = json.loads((ROOT / plan_path).read_text(encoding="utf-8"))
+    node = next(n for n in plan["nodes"] if n["id"] == "RG2_OWNER")
+    assert leaf_path in plan["project"]["sourceEvidence"]
+    assert Path(leaf_path).name in node["evidence"]
+    assert module.ArchitectureDocsError is leaf.ArchitectureDocsError
+    assert module.validate_owner_lego_graph is leaf.validate_owner_lego_graph
+    for name in {plan_path, *plan["project"]["sourceEvidence"],
+                 "tools/repo/check_architecture_docs.py"}:
+        target = tmp_path / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((ROOT / name).read_bytes())
+    registry = tmp_path / "tools/repo/check_architecture_docs.py"
+    registry.write_text(f"OWNER_LEGO_PLANS = ({plan_path!r},)\n", encoding="utf-8")
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-c", "maintenance.auto=false", "-C", str(tmp_path), *args],
+            text=True,
+        ).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Graph source membership")
+    git("config", "user.email", "test@example.invalid")
+    git("add", ".")
+    git("commit", "-qm", "declared extracted leaf")
+    before = git("rev-parse", "HEAD")
+    target = tmp_path / leaf_path
+    target.write_bytes(target.read_bytes() + b"\n# source identity change\n")
+    git("add", leaf_path)
+    git("commit", "-qm", "leaf-only source change")
+    after = git("rev-parse", "HEAD")
+    delta = module.project_owner_lego_source_change(
+        root=tmp_path, before_revision=before, after_revision=after,
+    )
+    assert delta["changedGitPaths"] == [leaf_path]
+    assert delta["unindexedChangedPaths"] == []
+    assert ref in delta["directChangedRefs"]
+    assert delta["proofReuseAdmissible"] is False
+    git("rm", leaf_path)
+    git("commit", "-qm", "missing declared leaf")
+    with pytest.raises(module.ArchitectureDocsError, match="sourceEvidence absent/nonregular"):
+        module.project_owner_lego_source_graph(
+            tmp_path, source_revision=git("rev-parse", "HEAD"),
+        )
+
+
+@pytest.mark.parametrize("surface", ["node", "slice"])
+@pytest.mark.parametrize(
+    "field",
+    [
+        "deletionAuthorized",
+        "effectAuthorized",
+        "promotionAuthorized",
+        "deploymentAuthorized",
+        "domainAccepted",
+        "proofReuseAdmissible",
+    ],
+)
+def test_source_only_plans_cannot_promote_authority_flags(surface: str, field: str) -> None:
+    """Planning R2.1 projections cannot self-authorize external effects or outcomes."""
+    plan = json.loads(
+        (ROOT / "tools/repo/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+    entries = plan["nodes"] if surface == "node" else plan["slices"]
+    assert entries, "The known current repository plan must exercise this real surface"
+    injected = copy.deepcopy(plan)
+    target = injected["nodes"][0] if surface == "node" else injected["slices"][0]
+    target[field] = True
+    with pytest.raises(module.ArchitectureDocsError, match="source-only LEGO.*authority"):
+        module.validate_owner_lego_graph(injected)
+
+
+@pytest.mark.parametrize("surface", ["node", "slice"])
+@pytest.mark.parametrize(
+    "field",
+    ["deletionAuthorized", "effectAuthorized", "promotionAuthorized",
+     "deploymentAuthorized", "domainAccepted", "proofReuseAdmissible"],
+)
+def test_source_only_plans_admit_explicit_negative_authority(surface: str, field: str) -> None:
+    """A false claim remains valid; absence is not silently rewritten as FAIL."""
+    plan = json.loads(
+        (ROOT / "tools/repo/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+    allowed = copy.deepcopy(plan)
+    target = allowed["nodes"][0] if surface == "node" else allowed["slices"][0]
+    target[field] = False
+    module.validate_owner_lego_graph(allowed)
+
+
+@pytest.mark.parametrize("unqualified", [1, "true", None, {"standing": "PASS"}])
+@pytest.mark.parametrize("surface", ["node", "slice"])
+def test_source_only_authority_claims_reject_truthy_type_smuggling(
+    surface: str, unqualified: object,
+) -> None:
+    """Only exact false is an explicit nonclaim; unknown is not authorization."""
+    plan = json.loads(
+        (ROOT / "tools/repo/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+    target = plan["nodes"][0] if surface == "node" else plan["slices"][0]
+    target["effectAuthorized"] = unqualified
+    with pytest.raises(module.ArchitectureDocsError, match="source-only LEGO.*authority"):
+        module.validate_owner_lego_graph(plan)

@@ -89,6 +89,10 @@
             "null"
           ]
         },
+        "workflowPath": {
+          "type": ["string", "null"],
+          "description": "Provider-reported workflow path; optional for older observations."
+        },
         "workflowName": {
           "type": [
             "string",
@@ -175,6 +179,10 @@
         },
         "economicReason": {
           "type": "string"
+        },
+        "economicAnnotation": {
+          "type": "object",
+          "description": "Declared source-bound annotation; validate separately using convergence-ci-economic-annotation-v1.schema.json. Not causal attestation."
         },
         "jobs": {
           "type": "array",

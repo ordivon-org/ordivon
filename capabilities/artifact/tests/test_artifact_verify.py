@@ -2,6 +2,7 @@ import binascii
 import hashlib
 import importlib.util
 import json
+import re
 import struct
 import subprocess
 import tempfile
@@ -23,32 +24,25 @@ def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def historical_game_source_digests(relative_path: str) -> set[str]:
-    """Read retired Game producer bytes from Git, never from an active game.
-
-    A removal commit is not a source revision for the removed path. Limit
-    candidates to revisions where the tracked file was added/modified; the
-    frozen Artifact acceptance receipt remains unchanged and historical.
-    """
+def historical_game_source_digest(relative_path: str, source_revision: str) -> str:
+    """Read exact imported Git bytes without scanning or reviving retired source."""
     relative = Path(relative_path)
     if relative.is_absolute() or ".." in relative.parts or not relative.parts:
         raise ValueError("invalid historical Game source path")
+    if not re.fullmatch(r"[0-9a-f]{40}", source_revision):
+        raise ValueError("historical Game source must use a full Git commit identity")
     source_path = (GAME_ROOT.relative_to(MONOREPO_ROOT) / relative).as_posix()
-    revisions = subprocess.check_output(
-        ["git", "-C", str(MONOREPO_ROOT), "log", "--diff-filter=AM",
-         "--format=%H", "HEAD", "--", source_path],
-        text=True, timeout=25,
-    ).splitlines()
-    if not revisions:
-        raise AssertionError(f"no committed Game source history for {relative_path}")
-    digests = set()
-    for revision in revisions:
+    try:
         source = subprocess.check_output(
-            ["git", "-C", str(MONOREPO_ROOT), "show", f"{revision}:{source_path}"],
-            timeout=15,
+            ["git", "-C", str(MONOREPO_ROOT), "show", f"{source_revision}:{source_path}"],
+            timeout=25,
         )
-        digests.add(hashlib.sha256(source).hexdigest())
-    return digests
+    except subprocess.CalledProcessError as error:
+        raise AssertionError(
+            f"UNKNOWN historical Game source: {source_revision}:{source_path}; "
+            "retrieve the exact Git object before qualification"
+        ) from error
+    return hashlib.sha256(source).hexdigest()
 
 
 def chunk(kind: bytes, payload: bytes) -> bytes:
@@ -198,6 +192,42 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             self.assertFalse(result["requiredEvidenceAssessment"]["complete"])
             self.assertFalse(result["profileVerificationComplete"])
             self.assertEqual(result["standingCoverage"]["verificationStatus"], "UNKNOWN")
+
+    def test_mixed_native_witnesses_cannot_promote_profile_standing(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.png"
+            minimal_png(subject)
+            request_path, request = self.request(root, subject)
+            profile = json.loads(Path(request["profile"]["path"]).read_text())
+            names = [
+                name for name, row in profile["requiredEvidence"].items() if row["required"]
+            ]
+            native = {
+                "status": "PASS", "failures": [],
+                "profileId": request["profile"]["id"],
+                "artifact": {"sha256": sha(subject), "size": subject.stat().st_size},
+                "observations": {name: {"status": "PASS"} for name in names},
+                "claimResults": {
+                    name: {"status": "PASS", "nativePointers": [f"/observations/{name}"]}
+                    for name in names
+                },
+            }
+            with mock.patch.object(M, "load_function", return_value=(
+                lambda *_args: native, "f" * 64
+            )):
+                good = M.verify_request(request_path)
+                self.assertTrue(good["profileVerificationComplete"], good)
+                native["observations"]["contradiction"] = {
+                    "status": "FAIL", "supportsClaims": [names[0]],
+                }
+                native["claimResults"][names[0]]["nativePointers"].append(
+                    "/observations/contradiction"
+                )
+                bad = M.verify_request(request_path)
+                self.assertEqual(bad["status"], "FAIL", bad)
+                self.assertEqual(bad["standingCoverage"]["verificationStatus"], "UNKNOWN")
+                self.assertFalse(bad["profileVerificationComplete"])
 
     def test_native_pass_with_explicit_failures_is_not_promoted(self):
         with tempfile.TemporaryDirectory() as d:
@@ -473,9 +503,13 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         # Game no longer owns the old Station Zero executable/evidence path.
         # Recheck its exact historical bytes, not a revived active game.
         game_evidence = receipt['gameAcceptance']
-        self.assertIn(
+        # The original consumerRevision belongs to the historical Game
+        # authority; the monorepo import commit preserves its exact bytes.
+        self.assertEqual(
             game_evidence['sha256'],
-            historical_game_source_digests(game_evidence['relativePath']),
+            historical_game_source_digest(
+                game_evidence['relativePath'], '6847ebff6e0ed92b63dda3c2b67f94fb97ee3d70',
+            ),
         )
         self.assertEqual(len(receipt['subjects']),3)
         self.assertTrue(all(x['serviceCandidateStatus']=='PASS' for x in receipt['subjects']))
@@ -506,8 +540,17 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         self.assertEqual(receipt['nativeCrossFormatRoundTrip']['status'],'PASS')
         self.assertEqual(receipt['nativeRasterReadback']['status'],'PASS')
         self.assertEqual(receipt['gameMigrationEvidence']['layoutDigest'],'21efdf5b69858953aaef55abd0bb143f5eb24f5be8f3a3c3bcfe6cb86cc5b527')
-        for value in receipt['artifactOwnedAuthorities'].values():
-            path=ROOT/value['relativePath'];self.assertEqual(sha(path),value['sha256'],value['relativePath'])
+        # Imported monorepo source cut independently matched all four frozen
+        # Artifact authority digests. It is a retained witness, not the
+        # original external repository revision or a current-source constraint.
+        revision = "e2757345aae3e4d38330d0f07c8eef45bbdf998f"
+        for value in receipt["artifactOwnedAuthorities"].values():
+            path = (ROOT / value["relativePath"]).relative_to(MONOREPO_ROOT).as_posix()
+            source = subprocess.check_output(
+                ["git", "-C", str(MONOREPO_ROOT), "show", f"{revision}:{path}"],
+                timeout=25,
+            )
+            self.assertEqual(hashlib.sha256(source).hexdigest(), value["sha256"], path)
 
     def test_frozen_aseprite_game_consumer_smoke_separates_native_and_game_owned_metadata(self):
         receipt=json.loads((ROOT/'artifact-delivery/consumer-acceptance/game-station-zero-aseprite-horizontal-sheet-r1.json').read_text())
@@ -539,8 +582,15 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             self.assertEqual(receipt["verification"]["assimpStatus"],"PASS")
             self.assertEqual(receipt["verification"]["blenderStatus"],"PASS")
             self.assertEqual(receipt["verification"]["godotStatus"],"PASS")
+            # Historical source identity, not a permanent pin on the current verifier.
+            revision = "e2757345aae3e4d38330d0f07c8eef45bbdf998f"
             for value in receipt["artifactOwnedAuthorities"].values():
-                path=ROOT/value["relativePath"];self.assertEqual(sha(path),value["sha256"],value["relativePath"])
+                path = (ROOT / value["relativePath"]).relative_to(MONOREPO_ROOT).as_posix()
+                source = subprocess.check_output(
+                    ["git", "-C", str(MONOREPO_ROOT), "show", f"{revision}:{path}"],
+                    timeout=25,
+                )
+                self.assertEqual(hashlib.sha256(source).hexdigest(), value["sha256"], path)
             self.assertEqual(receipt["externalSubject"]["identityStanding"],"EXACT_BYTES_OBSERVED_AT_CONSUMER_REVISION_NOT_ARTIFACT_OWNED")
 
     def test_frozen_game_godot_linux_elf_release_preserves_producer_and_artifact_authorities(self):
@@ -579,16 +629,11 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             receipt['producerEvidence']['harness'],
             receipt['producerEvidence']['acceptedReproducibilityBoundary'],
         ):
-            observed=historical_game_source_digests(evidence['relativePath'])
-            if evidence['sha256'] not in observed:
-                self.skipTest(
-                    'UNKNOWN historical Game producer source: '
-                    + evidence['relativePath']
-                    + '; current monorepo has no matching Git bytes, '
-                      'so this archived release cannot be requalified'
-                )
-            self.assertIn(evidence['sha256'], observed)
-            self.assertNotIn('0'*64, observed)
+            observed = historical_game_source_digest(
+                evidence['relativePath'], 'a6b1a0a7c6a6c3ce6fdb5a6ae42259159f1d3c30',
+            )
+            self.assertEqual(observed, evidence['sha256'], evidence['relativePath'])
+
 
     def test_unrouted_profile_fails_closed(self):
         with tempfile.TemporaryDirectory() as d:

@@ -17,14 +17,15 @@ from .collection_pagination import (
     DEFAULT_COLLECTION_MAX_BYTES,
     DEFAULT_MESSAGE_COLLECTION_MAX_BYTES,
     MIN_MESSAGE_COLLECTION_MAX_BYTES,
-    bounded_prefix,
+    bounded_page,
     validate_max_bytes,
 )
+from .errors import InvalidArgumentError
 from .postgres_bounds import HOST_WIRE_INT_MAX
 from .references.actor_refs import ActorReferenceLookup
 from .references.record_refs import RecordReferenceLookup
 from .social_errors import TopicResumeCursorAhead
-from .social_message_records import verify_message_content_digest
+from .social_message_records import verified_message_wire
 from .topic_cursor_records import get_topic_cursor_in_tx, topic_high_sequence_in_tx
 
 
@@ -46,10 +47,10 @@ class SocialTopicReadQueries:
         include_archived: bool = False,
     ) -> dict[str, Any]:
         if type(limit) is not int or not 1 <= limit <= 500:
-            raise ValueError("limit must be in [1,500]")
+            raise InvalidArgumentError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
         if type(include_archived) is not bool:
-            raise ValueError("include_archived must be a boolean")
+            raise InvalidArgumentError("include_archived must be a boolean")
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             RecordReferenceLookup._require_space(conn, space_ref)
@@ -73,30 +74,26 @@ class SocialTopicReadQueries:
                 for row in rows[:limit]
             ]
 
-            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+            def envelope(last: dict[str, Any] | None, has_more: bool) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-topic-list",
                     "spaceRef": space_ref,
-                    "topics": page,
-                    "hasMore": True,
-                    "nextAfterTopicRef": None if not page else page[-1]["topicRef"],
+                    "hasMore": has_more,
+                    "nextAfterTopicRef": last["topicRef"]
+                    if has_more and last is not None
+                    else None,
                     "rankingApplied": False,
                     "truthBoundary": "conversation-axis inventory only; not Work lifecycle or priority",
                 }
 
-            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
-            has_more = sql_more or byte_more
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-topic-list",
-                "spaceRef": space_ref,
-                "topics": page,
-                "hasMore": has_more,
-                "nextAfterTopicRef": page[-1]["topicRef"] if has_more and page else None,
-                "rankingApplied": False,
-                "truthBoundary": "conversation-axis inventory only; not Work lifecycle or priority",
-            }
+            return bounded_page(
+                candidates,
+                max_bytes=max_bytes,
+                collection_key="topics",
+                envelope=envelope,
+                source_has_more=sql_more,
+            )
 
     def resume_topic(
         self,
@@ -107,9 +104,9 @@ class SocialTopicReadQueries:
         max_bytes: int = DEFAULT_MESSAGE_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
         if type(limit) is not int or not 1 <= limit <= 500:
-            raise ValueError("limit must be in [1,500]")
+            raise InvalidArgumentError("limit must be in [1,500]")
         if type(after_sequence) is not int or not 0 <= after_sequence <= HOST_WIRE_INT_MAX:
-            raise ValueError("after_sequence must be non-negative within JSON safe integer range")
+            raise InvalidArgumentError("after_sequence must be non-negative within JSON safe integer range")
         validate_max_bytes(max_bytes, minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES)
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
@@ -129,21 +126,7 @@ class SocialTopicReadQueries:
                 (topic_ref, after_sequence, limit + 1),
             ).fetchall()
             sql_more = len(rows) > limit
-            for row in rows[:limit]:
-                verify_message_content_digest(row)
-            candidates = [
-                {
-                    "sequence": int(row["sequence"]),
-                    "messageRef": row["message_ref"],
-                    "authorActorRef": row["author_actor_ref"],
-                    "messageKind": row["message_kind"],
-                    "body": row["body"],
-                    "messageDigest": row["message_digest"],
-                    "recordedAtMs": int(row["recorded_at_ms"]),
-                    "createdAt": row["created_at"].isoformat(),
-                }
-                for row in rows[:limit]
-            ]
+            candidates = [verified_message_wire(row, include_scope=False) for row in rows[:limit]]
             topic_wire = {
                 "topicRef": topic["topic_ref"],
                 "spaceRef": topic["space_ref"],
@@ -151,33 +134,24 @@ class SocialTopicReadQueries:
                 "state": topic["state"],
             }
 
-            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+            def envelope(last: dict[str, Any] | None, has_more: bool) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-topic-resume",
                     "topic": topic_wire,
-                    "messages": page,
-                    "hasMore": True,
-                    "nextAfterSequence": after_sequence if not page else int(page[-1]["sequence"]),
+                    "hasMore": has_more,
+                    "nextAfterSequence": after_sequence if last is None else int(last["sequence"]),
                     "truthBoundary": "bounded topic conversation only; message claims require owner-native verification",
                 }
 
-            page, byte_more = bounded_prefix(
+            return bounded_page(
                 candidates,
                 max_bytes=max_bytes,
+                collection_key="messages",
                 envelope=envelope,
                 minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES,
+                source_has_more=sql_more,
             )
-            has_more = sql_more or byte_more
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-topic-resume",
-                "topic": topic_wire,
-                "messages": page,
-                "hasMore": has_more,
-                "nextAfterSequence": after_sequence if not page else int(page[-1]["sequence"]),
-                "truthBoundary": "bounded topic conversation only; message claims require owner-native verification",
-            }
 
     def get_topic_cursor(self, *, actor_ref: str, topic_ref: str) -> dict[str, Any]:
         with self._connect() as conn, conn.transaction():

@@ -18,13 +18,15 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 
 RUNTIME = Path(__file__).resolve().parents[2]
 SOURCE_SQL = RUNTIME / "crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"
-SCHEMA_SHA = "bc6ad5d04b37fa0a8beb5b3eb1938064e803ef205c7cc2d3c346cca4f57626b9"
+SCHEMA_SHA = "4dea42b4bda1842780e969ad1cd9cd7417169e1478c12e68e77ae7c683a4386b"
 SCHEMA = "ordivon_recovery_r1"
 PG = "/usr/bin/"
 RUNUSER = "/usr/sbin/runuser"
@@ -53,6 +55,25 @@ def chown_tree(path: Path) -> None:
         os.chown(directory, uid, gid)
         for name in files:
             os.chown(Path(directory) / name, uid, gid)
+
+
+def stop_scratch_clusters(
+    root: Path, stop: Callable[[str], None], uncertain_starts: set[str]
+) -> None:
+    names = ("pitr", "sibling", "restore", "primary")
+    failures: list[Exception] = []
+    for name in names:
+        try:
+            stop(name)
+        except Exception as error:
+            failures.append(error)
+    residual = [name for name in names if (root / name / "postmaster.pid").exists()]
+    if failures or uncertain_starts or residual:
+        raise RuntimeError(
+            "isolated PostgreSQL stop not confirmed; preserving scratch "
+            f"(stop failures={len(failures)}, uncertain starts={sorted(uncertain_starts)}, "
+            f"residual pid files={residual})"
+        ) from (failures[0] if failures else None)
 
 
 def execute(root: Path) -> dict[str, object]:
@@ -99,14 +120,24 @@ def execute(root: Path) -> dict[str, object]:
         )
 
     active: set[str] = set()
+    uncertain_starts: set[str] = set()
 
     def start(name: str, port: int, *, pitr: bool = False) -> None:
+        uncertain_starts.add(name)
         ctl(name, port=port, pitr=pitr)
         active.add(name)
+        uncertain_starts.remove(name)
 
     def stop(name: str) -> None:
         if name in active:
+            pidfile = root / name / "postmaster.pid"
+            identity = pidfile.read_text().splitlines()
+            require(
+                len(identity) > 1 and identity[1] == str(root / name),
+                "scratch PostgreSQL PID file does not bind the owned data directory",
+            )
             ctl(name)
+            require(not pidfile.exists(), "scratch PostgreSQL PID file remains after stop")
             active.remove(name)
 
     def sql(port: int, query: str, db: str = "recovery_lab", *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -176,7 +207,12 @@ def execute(root: Path) -> dict[str, object]:
             input_text=source_bytes.decode(),
         )
         require(
-            value(55491, f"SELECT count(*) FROM information_schema.tables WHERE table_schema='{SCHEMA}'") == "8",
+            value(
+                55491,
+                f"SELECT string_agg(table_name, ',' ORDER BY table_name) "
+                f"FROM information_schema.tables WHERE table_schema='{SCHEMA}'",
+            ) == "_stage_control,artifacts,attempts,concurrency_reservations,idempotency_keys,"
+                 "job_allocations,job_events,job_runtime_release_effects,jobs,workspace_consumer_claims",
             "schema tables",
         )
         sql(55491, insert("job-base", "request-base", 100))
@@ -195,6 +231,18 @@ def execute(root: Path) -> dict[str, object]:
             55491,
             "INSERT INTO _stage_control(id,state,source_sha256,promotion_allowed)"
             " VALUES('lab','STAGED','sha256:lab',false)",
+        )
+
+        # A held consumer claim is independent of terminal Job state and must
+        # survive backup/restore.  All rows below belong to this scratch DB.
+        sql(
+            55491,
+            "INSERT INTO workspace_consumer_claims"
+            "(claim_id,principal,client_request_id,store_root,workspace_id,"
+            "run_ref,source_repo,source_revision,source_state_digest,state,"
+            "created_at_ms,updated_at_ms) VALUES"
+            "('claim-base','actor','request-claim','/scratch','ws-lab',"
+            "'run-lab','repo-lab','revision-lab','sha256:state','held',100,100)",
         )
 
         # Deliberately seal the operator-owned "source" qualification BEFORE
@@ -268,6 +316,28 @@ def execute(root: Path) -> dict[str, object]:
         sql(55491, insert("job-pre-target", "request-pre-target", 200))
         sql(55491, "SELECT pg_create_restore_point('ordivon_after_first_extra')")
         sql(55491, insert("job-post-target", "request-post-target", 300))
+        # Claim changes after the restore point are intentionally outside the
+        # recovered history. A recovered ledger must not be treated as current
+        # consumer standing without independent reconciliation.
+        sql(
+            55491,
+            "UPDATE workspace_consumer_claims SET state='released',updated_at_ms=300 "
+            "WHERE claim_id='claim-base'",
+        )
+        sql(
+            55491,
+            "INSERT INTO workspace_consumer_claims"
+            "(claim_id,principal,client_request_id,store_root,workspace_id,"
+            "run_ref,source_repo,source_revision,source_state_digest,state,"
+            "created_at_ms,updated_at_ms) VALUES"
+            "('claim-post-target','actor','request-claim-post','/scratch','ws-post',"
+            "'run-post','repo-lab','revision-lab','sha256:post','held',300,300)",
+        )
+        require(
+            value(55491, "SELECT state FROM workspace_consumer_claims WHERE claim_id='claim-base'") == "released"
+            and value(55491, "SELECT state FROM workspace_consumer_claims WHERE claim_id='claim-post-target'") == "held",
+            "primary claim changes after target were not committed",
+        )
         # Runtime Release has a specific real effect_id UNIQUE constraint.
         # Persist this after the recovery point so PITR will erase the binding.
         sql(
@@ -326,6 +396,10 @@ def execute(root: Path) -> dict[str, object]:
         require(value(55492, "SELECT count(*) FROM jobs") == "2", "base backup leaked post-backup changes")
         require(value(55492, "SELECT count(*) FROM attempts") == "1", "attempt missing")
         require(value(55492, "SELECT count(*) FROM artifacts") == "1", "artifact missing")
+        require(
+            value(55492, "SELECT state FROM workspace_consumer_claims WHERE claim_id='claim-base'") == "held",
+            "base restore lost held consumer claim",
+        )
         duplicate = sql(55492, insert("duplicate", "request-base", 400), check=False)
         require(duplicate.returncode != 0, "unique request accepted")
         sql(55492, insert("job-crash", "request-crash", 500))
@@ -362,6 +436,14 @@ def execute(root: Path) -> dict[str, object]:
             "WAL after target wrongly replayed",
         )
         require(value(55493, "SELECT count(*) FROM jobs") == "2", "PITR cut wrong")
+        require(
+            value(55493, "SELECT state FROM workspace_consumer_claims WHERE claim_id='claim-base'") == "held",
+            "PITR lost pre-existing held consumer claim",
+        )
+        require(
+            value(55493, "SELECT count(*) FROM workspace_consumer_claims WHERE claim_id='claim-post-target'") == "0",
+            "PITR unexpectedly retained post-target claim",
+        )
 
         new_timeline = int(value(55493, "SELECT timeline_id FROM pg_control_checkpoint()"))
         require(
@@ -433,6 +515,8 @@ def execute(root: Path) -> dict[str, object]:
             "checks": [
                 "manifest_tamper_rejected",
                 "base_job_attempt_artifact_readback",
+                "held_consumer_claim_survives_base_restore_and_pitr",
+                "post_target_claim_changes_require_external_reconciliation",
                 "unique_request_conflict",
                 "crash_wal_replay",
                 "concurrent_single_winner",
@@ -462,19 +546,22 @@ def execute(root: Path) -> dict[str, object]:
             "productionRpoRto": "UNKNOWN",
         }
     finally:
-        for name in ("pitr", "sibling", "restore", "primary"):
-            try:
-                stop(name)
-            except Exception:
-                pass
+        stop_scratch_clusters(root, stop, uncertain_starts)
 
 
 def main() -> None:
     if os.geteuid() != 0:
         raise SystemExit("Requires root to initialize postgres-owned *scratch* clusters")
-    with tempfile.TemporaryDirectory(prefix="ordivon-pg-pitr-r1-", dir="/var/tmp") as name:
-        root = Path(name)
-        print(json.dumps(execute(root), sort_keys=True))
+    root = Path(tempfile.mkdtemp(prefix="ordivon-pg-pitr-r1-", dir="/var/tmp"))
+    try:
+        result = execute(root)
+    except BaseException:
+        # Never delete a possibly live scratch cluster after an uncertain stop.
+        print(f"Recovery probe failed; preserving owned scratch: {root}", file=sys.stderr)
+        raise
+    shutil.rmtree(root)
+    result["scratchCleanup"] = "confirmed"
+    print(json.dumps(result, sort_keys=True))
 
 
 if __name__ == "__main__":

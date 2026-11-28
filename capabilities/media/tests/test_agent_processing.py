@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -10,6 +11,18 @@ from pathlib import Path
 
 from ordivon_studio.agent_processing import processing_profiles
 from ordivon_studio.agent_surface import execute_surface_action, surface_projection
+
+ROOT = Path(__file__).resolve().parents[1]
+DECODER = "src/ordivon_studio/strict_json.py"
+
+
+def copy_decoder(root: Path) -> None:
+    target = root / DECODER
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(ROOT / DECODER, target)
+    helper = root / "processing/bin/native-input.sh"
+    helper.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(ROOT / "processing/bin/native-input.sh", helper)
 
 
 class ProcessingDiscoveryTests(unittest.TestCase):
@@ -51,6 +64,7 @@ class ProcessingDiscoveryTests(unittest.TestCase):
             adapters = root / "processing/bin"
             profiles.mkdir(parents=True)
             adapters.mkdir(parents=True)
+            copy_decoder(root)
             data = {
                 "schemaVersion": 1,
                 "kind": "ordivon.media.v2.av-profile",
@@ -76,6 +90,29 @@ class ProcessingDiscoveryTests(unittest.TestCase):
             self.assertIn("studio_processing_profiles", [
                 item["name"] for item in surface_projection()["tools"]
             ])
+
+    def test_processing_profiles_reject_unpaired_unicode_surrogates(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profiles = root / "processing/profiles"
+            profiles.mkdir(parents=True)
+            copy_decoder(root)
+            profile = profiles / "unicode.json"
+
+            profile.write_bytes(
+                b'{"schemaVersion":1,"kind":"custom-experimental","id":"good\\uD83D\\uDE00"}'
+            )
+            self.assertEqual(processing_profiles(root)["profiles"][0]["id"], "good😀")
+
+            for escaped in (b"\\uDEAD", b"\\uD83D"):
+                with self.subTest(escaped=escaped):
+                    profile.write_bytes(
+                        b'{"schemaVersion":1,"kind":"custom-experimental","id":"bad'
+                        + escaped
+                        + b'"}'
+                    )
+                    with self.assertRaisesRegex(ValueError, "unpaired Unicode surrogate"):
+                        processing_profiles(root)
 
     def test_unknown_profiles_are_visible_without_fabricating_adapters(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -126,6 +163,24 @@ class ProcessingDiscoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "profile digest changed"):
             execute_surface_action("studio_processing_probe_plan", args, root=root)
 
+    def test_all_native_plans_require_attempt_specific_evidence_directory(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        profiles = execute_surface_action("studio_processing_profiles", {}, root=root)["profiles"]
+        self.assertEqual(len(profiles), 4)
+        for profile in profiles:
+            with self.subTest(profile=profile["id"]):
+                result = execute_surface_action("studio_processing_probe_plan", {
+                    "profileId": profile["id"],
+                    "expectedProfileDigest": profile["profileDigest"],
+                    "expectedAdapterDigest": profile["adapterDigest"],
+                    "inputPath": "selected-input",
+                    "evidenceDirectory": "out/attempt-specific/evidence",
+                }, root=root)
+                self.assertEqual(result["expectedReceipt"], "out/attempt-specific/evidence/evidence.json")
+                self.assertEqual(result["execution"]["args"][-1], "out/attempt-specific/evidence")
+                self.assertEqual(result["evidenceDirectoryPolicy"]["mode"], "new-directory-per-attempt")
+                self.assertEqual(result["evidenceDirectoryPolicy"]["onExisting"], "reject-preserve-prior-evidence")
+
     def test_source_byte_drift_rebinds_both_profile_and_adapter(self) -> None:
         """One real compiler-consumer trace, not a claim of mathematical code refinement."""
         from ordivon_studio.agent_processing import processing_probe_plan
@@ -136,6 +191,7 @@ class ProcessingDiscoveryTests(unittest.TestCase):
             adapter = root / "processing/bin/probe-av.sh"
             profile.parent.mkdir(parents=True)
             adapter.parent.mkdir(parents=True)
+            copy_decoder(root)
             value = {
                 "schemaVersion": 1,
                 "kind": "ordivon.media.v2.av-profile",
@@ -189,6 +245,7 @@ class ProcessingDiscoveryTests(unittest.TestCase):
             adapters = root / "processing/bin"
             profiles.mkdir(parents=True)
             adapters.mkdir(parents=True)
+            copy_decoder(root)
             (profiles / "av.json").write_text(json.dumps({
                 "schemaVersion": 1, "kind": "ordivon.media.v2.av-profile",
                 "id": "bound-av",
@@ -209,13 +266,15 @@ class ProcessingDiscoveryTests(unittest.TestCase):
             plan = processing_probe_plan(root, **arguments)
             execution = plan["execution"]
             self.assertEqual(execution["args"][1], str(selected_file.resolve()))
-            self.assertEqual(len(execution["hostDependencies"]), 3)
+            self.assertEqual(len(execution["hostDependencies"]), 5)
             self.assertEqual(
                 {entry["path"]: entry["expectedDigest"] for entry in execution["hostDependencies"]},
                 {
                     str(selected_file.resolve()): digest,
                     str((profiles / "av.json").resolve()): row["profileDigest"],
                     str((adapters / "probe-av.sh").resolve()): row["adapterDigest"],
+                    str((root / DECODER).resolve()): "sha256:" + hashlib.sha256((root / DECODER).read_bytes()).hexdigest(),
+                    str((adapters / "native-input.sh").resolve()): "sha256:" + hashlib.sha256((adapters / "native-input.sh").read_bytes()).hexdigest(),
                 },
             )
             self.assertEqual(plan["inputByteBinding"]["status"], "proposed-not-executed")

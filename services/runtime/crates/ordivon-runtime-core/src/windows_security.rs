@@ -6,9 +6,9 @@ use std::ptr::{null, null_mut};
 
 use windows_sys::Win32::Foundation::{CloseHandle, LocalFree, HANDLE};
 use windows_sys::Win32::Security::Authorization::{
-    GetExplicitEntriesFromAclW, GetNamedSecurityInfoW, SetEntriesInAclW, SetNamedSecurityInfoW,
-    EXPLICIT_ACCESS_W, GRANT_ACCESS, SET_ACCESS, SE_FILE_OBJECT, TRUSTEE_IS_SID,
-    TRUSTEE_IS_UNKNOWN, TRUSTEE_W,
+    ConvertStringSidToSidW, GetExplicitEntriesFromAclW, GetNamedSecurityInfoW, GetSecurityInfo,
+    SetEntriesInAclW, SetNamedSecurityInfoW, SetSecurityInfo, EXPLICIT_ACCESS_W, GRANT_ACCESS,
+    SET_ACCESS, SE_FILE_OBJECT, SE_KERNEL_OBJECT, TRUSTEE_IS_SID, TRUSTEE_IS_UNKNOWN, TRUSTEE_W,
 };
 use windows_sys::Win32::Security::{
     CreateWellKnownSid, EqualSid, GetSecurityDescriptorControl, GetTokenInformation, TokenUser,
@@ -16,8 +16,14 @@ use windows_sys::Win32::Security::{
     PROTECTED_DACL_SECURITY_INFORMATION, SECURITY_MAX_SID_SIZE, SE_DACL_PROTECTED,
     SUB_CONTAINERS_AND_OBJECTS_INHERIT, TOKEN_QUERY, TOKEN_USER,
 };
-use windows_sys::Win32::Storage::FileSystem::{FILE_ALL_ACCESS, FILE_GENERIC_READ};
-use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
+use windows_sys::Win32::Storage::FileSystem::{
+    FILE_ALL_ACCESS, FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_BACKUP_SEMANTICS,
+    FILE_FLAG_OPEN_REPARSE_POINT, FILE_GENERIC_EXECUTE, FILE_GENERIC_READ, FILE_GENERIC_WRITE,
+    READ_CONTROL, SYNCHRONIZE, WRITE_DAC,
+};
+use windows_sys::Win32::System::Threading::{
+    GetCurrentProcess, OpenProcessToken, PROCESS_QUERY_LIMITED_INFORMATION,
+};
 
 pub(crate) fn protect_private_directory(path: &Path) -> io::Result<()> {
     protect_private_path(path, true)
@@ -36,6 +42,89 @@ pub fn current_token_is_local_system() -> io::Result<bool> {
     let mut current = CurrentTokenUserSid::load()?;
     let mut system = WellKnownSid::new(WinLocalSystemSid)?;
     Ok(unsafe { EqualSid(current.as_mut_ptr(), system.as_mut_ptr()) } != 0)
+}
+
+/// Allow the original PG Launcher to identify an SCM restart of this exact
+/// virtual account. The previous service logon SID no longer grants access to
+/// the new process/token. The stable account receives only observation rights.
+pub fn prepare_windows_pg_service_observation() -> io::Result<()> {
+    let process = unsafe { GetCurrentProcess() };
+    let mut raw_token = null_mut();
+    if unsafe {
+        OpenProcessToken(
+            process,
+            TOKEN_QUERY | READ_CONTROL | WRITE_DAC,
+            &mut raw_token,
+        )
+    } == 0
+    {
+        return Err(io::Error::last_os_error());
+    }
+    let token = OwnedHandle(raw_token);
+    let mut principal = CurrentTokenUserSid::read(&token)?;
+    let sid = principal.as_mut_ptr();
+    grant_kernel_observation(token.0, sid, TOKEN_QUERY)?;
+    grant_kernel_observation(
+        process,
+        sid,
+        PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE,
+    )
+}
+
+fn grant_kernel_observation(
+    handle: HANDLE,
+    sid: windows_sys::Win32::Security::PSID,
+    rights: u32,
+) -> io::Result<()> {
+    let mut dacl = null_mut();
+    let mut descriptor = null_mut();
+    let result = unsafe {
+        GetSecurityInfo(
+            handle,
+            SE_KERNEL_OBJECT,
+            DACL_SECURITY_INFORMATION,
+            null_mut(),
+            null_mut(),
+            &mut dacl,
+            null_mut(),
+            &mut descriptor,
+        )
+    };
+    if result != 0 {
+        return Err(io::Error::from_raw_os_error(result as i32));
+    }
+    let _descriptor = LocalAcl(descriptor.cast());
+    if dacl.is_null() {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "Windows PG observation requires an existing object DACL",
+        ));
+    }
+
+    let mut entry = explicit_full_control(sid, NO_INHERITANCE);
+    entry.grfAccessMode = GRANT_ACCESS;
+    entry.grfAccessPermissions = rights;
+    let mut updated = null_mut();
+    let result = unsafe { SetEntriesInAclW(1, &entry, dacl, &mut updated) };
+    if result != 0 {
+        return Err(io::Error::from_raw_os_error(result as i32));
+    }
+    let _updated = LocalAcl(updated.cast());
+    let result = unsafe {
+        SetSecurityInfo(
+            handle,
+            SE_KERNEL_OBJECT,
+            DACL_SECURITY_INFORMATION,
+            null_mut(),
+            null_mut(),
+            updated,
+            null_mut(),
+        )
+    };
+    if result != 0 {
+        return Err(io::Error::from_raw_os_error(result as i32));
+    }
+    Ok(())
 }
 
 #[derive(Clone, Copy)]
@@ -264,8 +353,10 @@ impl CurrentTokenUserSid {
         if ok == 0 {
             return Err(io::Error::last_os_error());
         }
-        let token = OwnedHandle(token);
+        Self::read(&OwnedHandle(token))
+    }
 
+    fn read(token: &OwnedHandle) -> io::Result<Self> {
         let mut required = 0_u32;
         unsafe {
             let _ = GetTokenInformation(token.0, TokenUser, null_mut(), 0, &mut required);
@@ -316,6 +407,141 @@ impl Drop for LocalAcl {
             unsafe {
                 let _ = LocalFree(self.0);
             }
+        }
+    }
+}
+
+/// Syntax of a local/domain or Entra account SID, not a well-known SID.
+/// The PG open path separately requires the observed active-user token SID;
+/// the syntax alone cannot distinguish a domain group from a user.
+pub(crate) fn validate_interactive_account_sid(value: &str) -> io::Result<()> {
+    let parts: Vec<_> = value.split('-').collect();
+    let shape = parts.len() == 8
+        && matches!(&parts[..4], ["S", "1", "5", "21"] | ["S", "1", "12", "1"])
+        && parts[4..].iter().all(|part| {
+            !part.is_empty()
+                && part.bytes().all(|b| b.is_ascii_digit())
+                && part.parse::<u32>().is_ok()
+        });
+    if !shape {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "interactive workspace requires an explicit account SID",
+        ));
+    }
+    Ok(())
+}
+
+/// Protect only an already created, service-owned presentation leaf.
+/// Call under the original Workspace effect lock BEFORE returning a fresh open.
+/// The operator-owned parent is not rewritten and no private Store ACL changes.
+pub(crate) fn protect_interactive_workspace_leaf(path: &Path, account: &str) -> io::Result<()> {
+    use std::os::windows::{
+        fs::{MetadataExt, OpenOptionsExt},
+        io::AsRawHandle,
+    };
+    validate_interactive_account_sid(account)?;
+    // Deny reparse descendants before allowing native inheritable ACLs to
+    // propagate. The root was created under the existing operator-owned parent
+    // and no desktop write grant has yet been published.
+    let mut pending = vec![path.to_path_buf()];
+    while let Some(entry) = pending.pop() {
+        let meta = std::fs::symlink_metadata(&entry)?;
+        if meta.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "interactive workspace contains reparse point",
+            ));
+        }
+        if meta.is_dir() {
+            for child in std::fs::read_dir(entry)? {
+                pending.push(child?.path());
+            }
+        }
+    }
+    // READ_CONTROL | WRITE_DAC | FILE_READ_ATTRIBUTES. The handle, not a
+    // second path lookup, owns the DACL write.
+    let file = std::fs::OpenOptions::new()
+        .access_mode(0x0006_0080)
+        .custom_flags(FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT)
+        .open(path)?;
+    let meta = file.metadata()?;
+    if !meta.is_dir() || meta.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "interactive leaf is not a native directory",
+        ));
+    }
+    let mut sid = null_mut();
+    let wide = account
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect::<Vec<_>>();
+    if unsafe { ConvertStringSidToSidW(wide.as_ptr(), &mut sid) } == 0 {
+        return Err(io::Error::last_os_error());
+    }
+    let _sid = LocalAcl(sid.cast());
+    let mut system = WellKnownSid::new(WinLocalSystemSid)?;
+    let mut administrators = WellKnownSid::new(WinBuiltinAdministratorsSid)?;
+    let mut principal = CurrentTokenUserSid::load()?;
+    let inherit = SUB_CONTAINERS_AND_OBJECTS_INHERIT;
+    let mut interactive = explicit_full_control(sid, inherit);
+    // Modify (read/write/execute/delete), not WRITE_DAC/WRITE_OWNER.
+    interactive.grfAccessPermissions =
+        FILE_GENERIC_READ | FILE_GENERIC_WRITE | FILE_GENERIC_EXECUTE | 0x0001_0000;
+    let entries = [
+        explicit_full_control(system.as_mut_ptr(), inherit),
+        explicit_full_control(administrators.as_mut_ptr(), inherit),
+        explicit_full_control(principal.as_mut_ptr(), inherit),
+        interactive,
+    ];
+    let mut acl = null_mut();
+    let result =
+        unsafe { SetEntriesInAclW(entries.len() as u32, entries.as_ptr(), null(), &mut acl) };
+    if result != 0 {
+        return Err(io::Error::from_raw_os_error(result as i32));
+    }
+    let _acl = LocalAcl(acl.cast());
+    let result = unsafe {
+        SetSecurityInfo(
+            file.as_raw_handle() as HANDLE,
+            SE_FILE_OBJECT,
+            DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
+            null_mut(),
+            null_mut(),
+            acl,
+            null(),
+        )
+    };
+    if result != 0 {
+        return Err(io::Error::from_raw_os_error(result as i32));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod interactive_presentation_tests {
+    use super::*;
+
+    #[test]
+    fn interactive_identity_has_explicit_account_sid_shape() {
+        for valid in ["S-1-5-21-1-2-3-1001", "S-1-12-1-1-2-3-4"] {
+            assert!(validate_interactive_account_sid(valid).is_ok(), "{valid}");
+        }
+        for invalid in [
+            "",
+            "S-1-5-18",
+            "S-1-5-32-544",
+            "S-1-1-0",
+            "S-1-5-21-1-2-3-*",
+            "S-1-5-21-1-2-3-4294967296",
+            "S-1-5-21-1-2-3",
+            "S-1-5-80-1-2-3-4-5",
+        ] {
+            assert!(
+                validate_interactive_account_sid(invalid).is_err(),
+                "{invalid}"
+            );
         }
     }
 }

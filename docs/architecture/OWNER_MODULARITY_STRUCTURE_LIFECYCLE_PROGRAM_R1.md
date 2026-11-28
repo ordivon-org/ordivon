@@ -1,8 +1,8 @@
-# Ordivon 全仓存量现代化执行 Spec R3（2026-11-10）
+# Ordivon 全仓存量现代化执行 Spec R4（2026-11-26）
 
-> **当前执行范围**：重新核验本地源代码与远端主线，按实际责任对存量文件执行删除、合并、重命名、行为保持的内部重构和已知缺陷修补。**冻结新增功能、新测试/测试框架、新消费者线路、第二套治理/LEGO Registry/工作流。**此文件沿用唯一现有全仓 Program 入口，不新增独立框架。
+> **当前执行范围**：重新核验本地源代码与远端主线，按实际责任对存量文件执行删除、合并、重命名、行为保持的内部重构和已知缺陷修补。**冻结无明确消费者的新增功能、重复测试/测试框架、新消费者线路及第二套治理/LEGO Registry/工作流；允许为已确认缺陷、迁移与关键不变量补足风险驱动验证。**此文件沿用唯一现有全仓 Program 入口，不新增独立框架。
 >
-> **SourceCut**：本机 /root/projects/ordivon 的 main=93780417c71600873a0847f02c17d094f2416082（干净）；对照已 fetch origin/main=ef17d6879d12faa61fff3bb762b0d500d73c9113（2026-11-10），两者 **1 个本地独有提交 / 140 个远端新提交**。不得把本地主线误称远端权威、重置其独有改动或未经确认改其他 Agent 的工作树。实际代码 PR 以发起时最新远端 SourceCut 为准。
+> **历史 SourceCut（R3 基线，不是当前 main）**：本机 /root/projects/ordivon 的 main=93780417c71600873a0847f02c17d094f2416082（干净）；对照已 fetch origin/main=ef17d6879d12faa61fff3bb762b0d500d73c9113（2026-11-10），两者 **1 个本地独有提交 / 140 个远端新提交**。不得把本地主线误称远端权威、重置其独有改动或未经确认改其他 Agent 的工作树。实际代码 PR 以发起时最新远端 SourceCut 为准。
 >
 > **证据分级**：文件枚举/静态引用、代码行为、native verify、GitHub CI、MERGED、INSTALLED、CONSUMED 各有不同范围，UNKNOWN 不是 FALSE 也不是 PASS。
 
@@ -14,7 +14,7 @@
 
 文件是审计单位，不是 LEGO。正式声明的独立责任才使用 R2.1 完整 (I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)；没有证据时带来源/范围标明 UNKNOWN。历史回执、Git 存在、字面无引用分别都不能自动推出业务完成、当前部署或可删权限。
 
-**正向允许**：DELETE / CONSOLIDATE / RENAME / MOVE / REFACTOR（行为保持）/ REPAIR 已知缺陷；只运行既有测试与 Owner native verification。**反向禁止**：新能力、扩大 API、新测试或新消费者链、新通用 Verifier、第二个源码/状态权威、没有真实收益的大爆炸重写。
+**正向允许**：DELETE / CONSOLIDATE / RENAME / MOVE / REFACTOR（行为保持）/ REPAIR 已知缺陷；优先复用既有测试与 Owner native verification；当已有测试不能区分真实反例与正确实现时，允许增加或替换最小充分的验证。**反向禁止**：无消费者的新能力、无根据扩大 API、重复测试/消费者链、新通用 Verifier、第二个源码/状态权威、没有真实收益的大爆炸重写。
 
 ## 2. 理论、工程与管理学基础
 
@@ -27,7 +27,7 @@
 | Lean Muda / Theory of Constraints / A3-PDCA | 从全系统维护瓶颈下手，停止无效任务循环和重复 PR | 自造审批流程、统一硬 WIP 数量或持续堆积计划 |
 | Hoare/Assume-Guarantee/观察精化 | 现存公开契约和副作用不被新内部结构破坏 | DOC/MODEL 的结论升级为安装或领域业务证明 |
 
-复用已有 Ordivon 思想型 Skills：recursive-lego-calculus（DELETE→REUSE→COMPOSE）、project-kernel-decomposition / systems-engineering（自然 Owner）、design-structure-matrix（结构耦合）、external-capability-evaluation（外部成熟替代）、compositional-contracts（仅真实形式化 seam）。执行按 Matt code-review **Standards×Spec** 两轴，ECC brownfield-retrospective / orch-refine-code 的逆向现状与行为保持，Superpowers writing-plans / verification-before-completion 的精确提交与当前命令。显式跳过这些外部模板中与本轮冻结新功能/新测试相冲突的选项。外部出处：martinfowler.com/books/refactoring.html、nixos.org/guides/nix-pills/11-garbage-collector.html、lean.org/lexicon-terms/theory-of-constraints/、docs.cloud.google.com/docs/cloud-approach-to-change。
+复用已有 Ordivon 思想型 Skills：recursive-lego-calculus（DELETE→REUSE→COMPOSE）、project-kernel-decomposition / systems-engineering（自然 Owner）、design-structure-matrix（结构耦合）、external-capability-evaluation（外部成熟替代）、compositional-contracts（仅真实形式化 seam）。执行按 Matt code-review **Standards×Spec** 两轴，ECC brownfield-retrospective / orch-refine-code 的逆向现状与行为保持，Superpowers writing-plans / verification-before-completion 的精确提交与当前命令。显式跳过这些外部模板中与存量优先和风险分级验证相冲突的选项。外部出处：martinfowler.com/books/refactoring.html、nixos.org/guides/nix-pills/11-garbage-collector.html、lean.org/lexicon-terms/theory-of-constraints/、docs.cloud.google.com/docs/cloud-approach-to-change。
 
 ## 3. 当前真实文件盘点及解释
 
@@ -82,11 +82,26 @@
 | T1 逐文件机械审计 | git ls-files -z，文件类型、大小、哈希、符号链接、生成/历史分类、显式/动态入口风险 | 全部当前跟踪文件枚举，可重算；不建持久第二数据库 |
 | T2 语义切片深审 | 根入口→真实责任→现有代码/配置/CLI/Service/验证→自然 Owner；使用 DSM/Parnas/Fowler | 改动候选给出明确职责与代码/证据路径，不以名称/大小猜测死代码 |
 | T3 Space 交叉审计 | 使用既有 Whole-System Optimization Space，Matt Standards×Spec、ECC brownfield 及 Superpowers 当前验证 | 每个实质候选明确理论、保守性、表面化、表征、成熟替代、真实引用、SourceCut 与反例；Space 不是审批权威 |
-| T4 存量执行 | 只对不与活跃 PR 重叠的切片进行 DELETE/MERGE/REFACTOR/修补，尽量利用语言、Git、现有成熟工具 | 无新增功能/测试/消费者链；旧实现实物退出而不是只写新 README |
-| T5 原生验证 | 直接运行已有 owner:verify、编译/格式检查、受影响 repo:ci 与 Git 差量检查 | 限定实际测试/命令退出码，任何未运行状态明确 UNKNOWN |
+| T4 存量执行 | 只对不与活跃 PR 重叠的切片进行 DELETE/MERGE/REFACTOR/修补，尽量利用语言、Git、现有成熟工具 | 无无依据增量或重复验证；必要的回归/属性验证进入现有 Owner gate，旧实现实物退出而不是只写新 README |
+| T5 原生验证 | 直接运行已有 owner:verify、必要的风险驱动验证、编译/格式检查、受影响 repo:ci 与 Git 差量检查 | 限定实际测试/命令退出码，任何未运行状态明确 UNKNOWN |
 | T6 真实发布与退役 | GitHub PR、原生必需检查/merge queue、Git Main 读回、必要时 Owner 安装态核对 | SOURCE/CI/MERGED/INSTALLED/CONSUMED 分级，临时工作树和审计本身不永久扩张 |
 
-T1 已完成当前 SourceCut 的机械清单；T2 后续按 Owner 分片并行，T3 不得成为所有模块必须同步等待的中央委员会。已有成熟提交直接复用并按需独立审计；缺少一项边界证据只阻断该项相关删除，不能自动冻结全部工作。
+T1 已完成上述 R3 历史 SourceCut 的机械清单；T2 后续按 Owner 分片并行，T3 不得成为所有模块必须同步等待的中央委员会。已有成熟提交直接复用并按需独立审计；缺少一项边界证据只阻断该项相关删除，不能自动冻结全部工作。
+
+### T4–T6 的风险分级验证（GCA R1/R2）
+
+| 风险或义务 | 逻辑验证单元 | 既有能力及验收 |
+| --- | --- | --- |
+| 模块依赖、Schema、类型和权威边界 | Architecture fitness function | 既有 Owner 边界、类型及 Schema 检查；不以文件数代替职责 |
+| 纯算子、转换、代数性质 | Property / differential / metamorphic | 复用 proptest、fast-check、Hypothesis 或已有原生测试；证明反例、等价或不变量，不重复示例 |
+| 状态、并发、取消与恢复 | Model / stateful / fault injection | 现有状态机和 PG/OS/Owner 原生夹具；关键错误必须可被观测，模型结论不替代实现精化 |
+| 跨 Owner 迁移、发布、真实消费者 | Contract / native integration / consumer acceptance | 实际受影响的原生 gate、精确 Git SHA 和 merge_group 必需检查；真实安装与消费者验收另行绑定 |
+
+新增或替换测试须说明独特风险、当前缺口和反例或负控制；已有等价覆盖则复用或归并。保留必要的回归证据和有意义的冗余。优先把历史故障转化为属性、状态约束或可执行架构规则，而不是扩大无信息价值的测试集。定向 mutation 可以检验重要测试是否真的区分错误实现，但不得冒充全局 mutation score。依赖采用 Owner 现有生态、兼容范围及必要 lockfile；验证当前稳定版本和迁移兼容性，不为追新引入第二套框架。
+
+证据复用以原有 evidence-validity、实际读集、SourceCut、环境和消费者约束为边界；变更只使受影响证据失效。没有有效证据的义务保持 UNKNOWN；不得用旧 CI、其他 Agent 的完成声明或部分测试通过替代真实验收。受保护发布仍需当前 merge_group 的真实必需检查，不因复用旧证明而跳过。
+
+外部机制参考：[Evolutionary Architecture fitness functions](https://evolutionaryarchitecture.com/precis.html)、[Hypothesis stateful testing](https://hypothesis.readthedocs.io/en/latest/stateful.html)、[GitHub merge queue](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue)。不要求所有 Owner 引入所有候选工具。
 
 ## 6. 每个候选必经的十维交叉核验
 

@@ -4,6 +4,8 @@ import json
 import unittest
 from pathlib import Path
 
+from jsonschema import validate
+
 from ordivon_studio.research.grounded_av_tasks import narration_evidence, parse_runtime_scenes
 from ordivon_studio.research.grounded_contracts import canonical_digest
 from ordivon_studio.research.grounded_evidence import validate_grounded_result
@@ -136,6 +138,30 @@ class GroundedMeaningTest(unittest.TestCase):
         self.assertEqual(signals["agentObserverOrderInvariance"], 1.0)
         self.assertEqual(signals["noArtifactEpistemicAccuracy"], 1.0)
         self.assertEqual(signals["noArtifactUnsupportedAssertionRate"], 0.0)
+
+    def test_timeline_credit_requires_unique_explicit_boolean_observation(self) -> None:
+        bundle = build_provider_bundle(root=ROOT, replicates=1)
+        task = next(t for t in bundle["tasks"] if t["taskId"] == "r5b:runtime-recovery-omitted")
+        expected = task["oracle"]["presence"]
+        def event(event_id, present):
+            return {"eventId": event_id, "present": present, "summary": "observation",
+                    "evidenceIds": []}
+        def accuracy(events):
+            receipt = {"results": [{"taskId": task["taskId"], "replicate": 1,
+                                    "result": {"events": events}}]}
+            return score_provider_receipt(bundle, receipt)["taskScores"][task["taskId"]]["meanPresenceAccuracy"]
+        valid = [event(k, v) for k, v in expected.items()]
+        self.assertEqual(accuracy(valid), 1.0)
+        duplicate = [item for item in valid if item["eventId"] != "E_RECOVER"]
+        duplicate.append(dict(duplicate[0]))
+        # The native schema accepts equal length and legal IDs but does not ensure uniqueness.
+        validate({"events": duplicate}, task["resultSchema"])
+        self.assertEqual(accuracy(duplicate), 0.5)
+        self.assertEqual(accuracy([]), 0.0)
+        for value in (None, 0, "", "false", 1):
+            with self.subTest(value=value):
+                self.assertEqual(accuracy([event("E_RECOVER", value)]), 0.0)
+        self.assertEqual(accuracy([event("E_RECOVER", False)]), 0.25)
 
     def test_unsupported_no_artifact_assertions_are_separate_from_abstention_accuracy(self) -> None:
         bundle = build_provider_bundle(root=ROOT, replicates=1)

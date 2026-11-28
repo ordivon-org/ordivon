@@ -9,6 +9,7 @@ from ordivon_studio.observatory_analysis import (
     title_features,
 )
 from ordivon_studio.observatory_apple_music import collect_apple_music
+from ordivon_studio.observatory_contracts import _canonical_digest
 from ordivon_studio.observatory_guardian import collect_guardian
 from ordivon_studio.observatory_hacker_news import collect_hacker_news
 from ordivon_studio.observatory_source import CAPABILITIES
@@ -85,6 +86,17 @@ class CulturalObservatoryTest(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "GUARDIAN_API_KEY"):
                 collect_guardian(sections=["world"], newest_per_section=1)
 
+    def test_snapshot_digest_binds_actual_payload(self) -> None:
+        payload = {"schemaVersion": 1, "kind": "ordivon.studio-cultural-snapshot", "observations": []}
+        digest = _canonical_digest(payload)
+        self.assertEqual(analyze_snapshot(payload)["snapshotDigest"], digest)
+        self.assertEqual(analyze_snapshot({**payload, "snapshotDigest": digest})["snapshotDigest"], digest)
+        for bad in ("sha256:" + "0" * 64, "", None, 42):
+            with self.subTest(bad=bad), self.assertRaisesRegex(ValueError, "snapshotDigest"):
+                analyze_snapshot({**payload, "snapshotDigest": bad})
+        with self.assertRaisesRegex(ValueError, "snapshotDigest"):
+            analyze_snapshot({**payload, "observations": [], "failures": [{"provider": "x"}], "snapshotDigest": digest})
+
     def test_matched_analysis_is_explicitly_noncausal(self) -> None:
         def item(provider: str, basis: str, external_id: str, title: str, section: str = "") -> dict:
             return {
@@ -108,8 +120,10 @@ class CulturalObservatoryTest(unittest.TestCase):
         ]
         pairs = build_matched_pairs(observations)
         self.assertEqual(len(pairs), 2)
-        snapshot = {"schemaVersion": 1, "kind": "ordivon.studio-cultural-snapshot", "snapshotDigest": "sha256:test", "countsByProvider": {"hacker-news": 2, "guardian": 2}, "failures": [], "observations": observations}
+        snapshot = {"schemaVersion": 1, "kind": "ordivon.studio-cultural-snapshot", "countsByProvider": {"hacker-news": 2, "guardian": 2}, "failures": [], "observations": observations}
+        snapshot["snapshotDigest"] = _canonical_digest(snapshot)
         report = analyze_snapshot(snapshot, clusters=2)
+        self.assertEqual(report["snapshotDigest"], snapshot["snapshotDigest"])
         self.assertEqual(report["matchedControls"]["pairCount"], 2)
         self.assertTrue(any("do not identify causal" in line for line in report["interpretationBoundary"]))
         self.assertEqual(title_features(observations[0])["hasColon"], 0.0)

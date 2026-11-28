@@ -45,13 +45,39 @@ exact UNKNOWN instead of inventing completion, absence, or safe retry.
 **Observed architecture:** The Core crate owns contracts, the PostgreSQL writer,
 use-case logic and OS adapters; the MCP crate owns network/protocol presentation;
 Git, PostgreSQL, native OS and retained file bytes own different kinds of
-truth. The still-installed Windows R6 writer is not equivalent to Linux PG.
+truth. Installed backend identity must be observed from Runtime/operator
+evidence: source contains both PostgreSQL and historical transactional
+carriers, and source presence alone does not establish which writer is live.
 A PostgreSQL transaction cannot atomically commit with OS process launch,
 Windows Job Objects, Git worktrees or arbitrary external effects.
 
 **Change:** Remove hidden dependencies between contract validation, writer
 authority, transactional decisions and physical effects. Avoid a big-bang
 directory rename or a parallel framework.
+
+### OL consumer-indexed reduction rule
+
+Runtime reduction is consumer-relative, not file-relative. First restrict a
+candidate model to behavior reachable from admitted constructors and effects.
+Then compare internal states through the observations required by named
+consumers. A quotient is safe for composition only when the induced
+indistinguishability is a congruence for the compositions those consumers use.
+
+The Attempt lifecycle is a concrete negative control. `Starting` and
+`Recovering` are indistinguishable to several local projections (terminal
+status, resolution, cancellation target, deadline admissibility and native
+owner-binding targets), but their exact labelled transition behavior differs:
+`Starting -> Recovering` and `Recovering -> Starting` are allowed while the
+corresponding self-transitions are not. Collapsing them therefore introduces
+spurious two-step traces for exact event consumers. Keep both persisted states.
+
+Prefer a smaller shared supplier where one exists. Deadline termination,
+PostgreSQL cancellation after dispatch, and the historical transactional
+cancellation path share the dispatched-stop kernel
+`Starting|Running|Recovering|Stopping -> Stopping`; accepted cancellation has
+additional consumer-specific semantics and must not be folded into that kernel.
+This is the intended OL pattern: **reachable core -> consumer observations ->
+composition check -> only then representation deletion or sharing**.
 
 ### Three LEGO categories, two reasoning directions
 

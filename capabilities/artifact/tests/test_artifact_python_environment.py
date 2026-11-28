@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -26,6 +28,16 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
         self.assertEqual(command[0], '/opt/toolchain/bin/mise')
         self.assertEqual(command[1:], ['-C', str(ROOT), 'which', 'uv'])
 
+    def test_rolling_interpreter_cannot_rebind_an_exact_generation(self):
+        lock = M.load_lock()
+        with patch.object(M, "run") as probe:
+            probe.return_value.returncode = 0
+            probe.return_value.stdout = json.dumps({
+                "version": "3.15.99", "executable": str(M.SYSTEM_PYTHON),
+            })
+            with self.assertRaisesRegex(RuntimeError, "authority drifted"):
+                M.python_status(lock)
+
     def test_mise_absence_fails_closed_without_spawning(self):
         with patch.object(M.shutil, 'which', return_value=None):
             with patch.object(M.subprocess, 'run') as execute:
@@ -38,13 +50,37 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
 
     def test_lock_is_uv_owned_complete_python_package_closure(self):
         lock=json.loads((ROOT/'artifact-delivery/artifact-python-runtime-v1.lock.json').read_text())
-        self.assertEqual(lock['pythonRuntime'],'3.15.1');self.assertEqual(lock['pythonPackages']['lxml'],'6.1.3')
-        self.assertEqual(lock['pythonPackages']['Pillow'],'12.3.0');self.assertNotIn('vendoredEquipment',lock);self.assertNotIn('hostSystemPackages',lock);self.assertNotIn('hostFencedPackages',lock)
+        self.assertIn('lxml',lock['pythonPackages']);self.assertIn('temporalio',lock['pythonPackages'])
+        self.assertIn('Pillow',lock['pythonPackages']);self.assertNotIn('vendoredEquipment',lock);self.assertNotIn('hostSystemPackages',lock);self.assertNotIn('hostFencedPackages',lock)
         self.assertEqual(lock['uvProject']['path'],'artifact-delivery/python-uv');self.assertTrue(lock['uvProject']['uvLockSha256'].startswith('sha256:'))
-    def test_uv_project_pins_every_accepted_distribution(self):
-        lock=M.load_lock();text=(ROOT/'artifact-delivery/python-uv/pyproject.toml').read_text()
-        for name,version in lock['pythonPackages'].items():self.assertIn(f'{name}=={version}'.lower(),text.lower())
-        uvlock=(ROOT/'artifact-delivery/python-uv/uv.lock').read_text();self.assertIn('lxml',uvlock);self.assertIn('6.1.3',uvlock)
+    def test_uv_lock_binds_every_accepted_distribution(self):
+        lock = M.load_lock()
+        root = ROOT / "artifact-delivery/python-uv"
+        raw = (root / "uv.lock").read_bytes()
+        delivery_rows = tomllib.loads(raw.decode())["package"]
+        # This delivery lock has one virtual project root and one registry
+        # record per normalized distribution name. Use uv for resolution.
+        registry_rows = [row for row in delivery_rows if "registry" in row["source"]]
+        self.assertEqual(len(delivery_rows) - len(registry_rows), 1)
+        observed = {row["name"]: row["version"] for row in registry_rows}
+        self.assertEqual(len(observed), len(registry_rows))
+        expected = {name.lower().replace("_", "-"): version
+                    for name, version in lock["pythonPackages"].items()}
+        self.assertEqual(len(expected), len(lock["pythonPackages"]))
+        self.assertEqual(expected, observed)
+        self.assertEqual(lock["uvProject"]["uvLockSha256"], "sha256:" + hashlib.sha256(raw).hexdigest())
+        self.assertEqual(lock["uvProject"]["pyprojectSha256"], "sha256:" + hashlib.sha256((root / "pyproject.toml").read_bytes()).hexdigest())
+        runtime = tomllib.loads((root / "pyproject.toml").read_text())["project"]
+        development = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
+        self.assertEqual(runtime["dependencies"], development["dependencies"])
+        dev_rows = [row for row in tomllib.loads((ROOT / "uv.lock").read_text())["package"]
+                    if "registry" in row["source"]]
+        dev_packages = {row["name"]: row for row in dev_rows}
+        self.assertEqual(len(dev_packages), len(dev_rows))
+        self.assertTrue(registry_rows)
+        self.assertEqual({row["name"]: row for row in registry_rows},
+                         {name: dev_packages[name] for name in observed})
+
     def test_environment_has_no_isolated_equipment_or_host_libxslt_authority(self):
         source=(ROOT/'scripts/artifact_python_environment.py').read_text();wrapper=(ROOT/'scripts/artifact_python_wrapper.py').read_text()
         self.assertNotIn('isolated-equipment',source);self.assertNotIn('pacman',source);self.assertNotIn('libxslt.so',source);self.assertIn("'--frozen','--offline'",source);self.assertIn('venvTreeDigest',wrapper)
@@ -61,10 +97,10 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
             self.assertNotIn('.cache/artifact-delivery-venv',text,name)
             self.assertIn(stable,text,name)
         lock=M.load_lock()
-        self.assertEqual(lock['pythonPackages']['temporalio'],'1.34.0')
-        self.assertEqual(lock['pythonPackages']['nexus-rpc'],'1.4.0')
-        self.assertEqual(lock['pythonPackages']['protobuf'],'7.36.2')
-        self.assertEqual(lock['pythonPackages']['types-protobuf'],'7.35.1.20260906')
+        self.assertIn('temporalio',lock['pythonPackages'])
+        self.assertIn('nexus-rpc',lock['pythonPackages'])
+        self.assertIn('protobuf',lock['pythonPackages'])
+        self.assertIn('types-protobuf',lock['pythonPackages'])
     def test_published_stable_python_is_wrapper_not_internal_venv_interpreter(self):
         lock=M.load_lock();stable=lock['stablePython'];self.assertTrue(stable.endswith('/current/bin/python'));self.assertNotIn('/.venv/',stable)
         wrapper=(ROOT/'scripts/artifact_python_wrapper.py').read_text();self.assertIn("'PYTHONDONTWRITEBYTECODE':'1'",wrapper)
@@ -73,8 +109,8 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
             root=Path(d);(root/'pkg').mkdir();(root/'pkg/data').write_bytes(b'bytes');(root/'python').symlink_to('/bin/sh')
             self.assertEqual(M.tree_digest(root),W.tree_digest(root));first=W.tree_digest(root);(root/'pkg/data').write_bytes(b'drift');self.assertNotEqual(first,W.tree_digest(root))
     def test_generation_spec_binds_uv_and_interpreter_identity(self):
-        lock=M.load_lock();project={'project':'/x','pyprojectSha256':'sha256:p','uvLockSha256':'sha256:u'};python={'version':'3.15.1','requestedPath':'/toolchain/python','resolvedPath':'/toolchain/python3.15','sha256':'sha256:i'}
-        spec=M.generation_spec(lock,project,python);self.assertEqual(spec['uvLockSha256'],'sha256:u');self.assertEqual(spec['pythonExecutableSha256'],'sha256:i');self.assertEqual(spec['pythonPackages']['lxml'],'6.1.3');self.assertEqual(spec['pythonPackages']['temporalio'],'1.34.0')
+        lock=M.load_lock();project={'project':'/x','pyprojectSha256':'sha256:p','uvLockSha256':'sha256:u'};python={'version':lock['pythonRuntime'],'requestedPath':'/toolchain/python','resolvedPath':'/toolchain/python3.15','sha256':'sha256:i'}
+        spec=M.generation_spec(lock,project,python);self.assertEqual(spec['uvLockSha256'],'sha256:u');self.assertEqual(spec['pythonExecutableSha256'],'sha256:i');self.assertEqual(spec['pythonPackages'],lock['pythonPackages'])
     def test_read_only_tree_changes_mode_before_digest(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d);f=root/'x';f.write_text('x');f.chmod(0o644);M.make_read_only(root);self.assertEqual(root.stat().st_mode & 0o777,0o555);self.assertEqual(f.stat().st_mode & 0o777,0o444)
@@ -83,7 +119,6 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
     def test_generation_interpreter_is_pinned_and_survives_source_drift(self):
         # Local-main historical candidate b066c82: the published generation
         # must not depend on mutable external mise executable bytes.
-        import hashlib
         with tempfile.TemporaryDirectory(prefix="artifact-python-generation-") as temp:
             root = Path(temp)
             source = root / "external-mise-python"

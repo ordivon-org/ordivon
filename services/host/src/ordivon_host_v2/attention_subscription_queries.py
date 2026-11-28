@@ -8,7 +8,8 @@ from typing import Any, Literal
 
 import psycopg
 
-from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
+from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_page, validate_max_bytes
+from .errors import InvalidArgumentError
 from .references.actor_refs import ActorReferenceLookup
 
 TargetKind = Literal["work", "space", "topic"]
@@ -34,9 +35,9 @@ class AttentionSubscriptionQueries:
         max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
         if type(limit) is not int or not 1 <= limit <= 500:
-            raise ValueError("limit must be in [1,500]")
+            raise InvalidArgumentError("limit must be in [1,500]")
         if (after_target_kind is None) != (after_target_ref is None):
-            raise ValueError("after_target_kind and after_target_ref must be supplied together")
+            raise InvalidArgumentError("after_target_kind and after_target_ref must be supplied together")
         validate_max_bytes(max_bytes)
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
@@ -67,31 +68,27 @@ class AttentionSubscriptionQueries:
                 for row in rows[:limit]
             ]
 
-            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+            def envelope(last: dict[str, Any] | None, has_more: bool) -> dict[str, Any]:
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.host-subscription-list",
                     "actorRef": actor_ref,
-                    "subscriptions": page,
-                    "hasMore": True,
-                    "truncated": True,
-                    "nextAfterTargetKind": None if not page else page[-1]["targetKind"],
-                    "nextAfterTargetRef": None if not page else page[-1]["targetRef"],
+                    "hasMore": has_more,
+                    "truncated": has_more,
+                    "nextAfterTargetKind": last["targetKind"]
+                    if has_more and last is not None
+                    else None,
+                    "nextAfterTargetRef": last["targetRef"]
+                    if has_more and last is not None
+                    else None,
                     "rankingApplied": False,
                     "truthBoundary": "actor attention-routing preferences only; not assignment, priority, ownership, or authorization",
                 }
 
-            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
-            has_more = sql_more or byte_more
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.host-subscription-list",
-                "actorRef": actor_ref,
-                "subscriptions": page,
-                "hasMore": has_more,
-                "truncated": has_more,
-                "nextAfterTargetKind": page[-1]["targetKind"] if has_more and page else None,
-                "nextAfterTargetRef": page[-1]["targetRef"] if has_more and page else None,
-                "rankingApplied": False,
-                "truthBoundary": "actor attention-routing preferences only; not assignment, priority, ownership, or authorization",
-            }
+            return bounded_page(
+                candidates,
+                max_bytes=max_bytes,
+                collection_key="subscriptions",
+                envelope=envelope,
+                source_has_more=sql_more,
+            )

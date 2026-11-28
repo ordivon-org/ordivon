@@ -228,3 +228,29 @@ The Network reference CI definition is a **non-installed, standalone repository 
 ## Consumer lifecycle boundary
 
 Browserless provider/consumer migration may fail closed when an observed upper-layer workflow is actively using the path, but Network does not start, restart, enable, or require an Agent Automation/Temporal consumer service as part of network cutover or acceptance. Consumer lifecycle belongs to its own owner. A successful Network Browserless cutover proves the network/provider path and leaves upper-layer reconciliation to the consumer.
+
+
+### R14 — Native monitoring evidence graph contract
+
+The existing preflight CLI is the native I/O shell (source bytes, yq,
+local Prometheus and diagnostics); `scripts/monitoring_graph.py` holds
+the bounded loaded-config projection and active-target identity relation.
+A configured job name alone is not an observed independent probe.
+The loaded main-config projection includes label/timestamp trust,
+metric relabeling, redirects and environment proxy selection. Native
+active targets must match the declared role, pool, instance, discovered
+address, scheme, endpoint and complete request parameter mapping.
+The local API client does not inherit HTTP proxy environment variables.
+
+R2.1: I valid source job definitions and native API observations; O
+bounded graph match or rejection; S in-memory normalized projection;
+pre source owner validation; post unique identities and checked fields
+match; inv missing/ambiguous evidence never matches; eff read-only;
+c O(jobs + active targets + configuration fields); epsilon not a full
+Prometheus configuration equivalence proof (included fragment effective
+settings beyond the active target witness, rule expressions and timing
+need separate qualification), not liveness or physical independence;
+prov Host #32987 and native regression jobs; unfold source/native I/O
+-> projection/target identity -> existing CLI receipt. No new controller,
+registry or production deployment. Upstream configuration semantics:
+https://prometheus.io/docs/prometheus/latest/configuration/configuration/

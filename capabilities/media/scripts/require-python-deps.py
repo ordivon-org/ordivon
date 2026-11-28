@@ -1,21 +1,13 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import subprocess
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+from python_dependency_contract import INPUTS, ROOT, digest, environment_probe
+
 RECEIPT = ROOT / ".venv" / ".ordivon-materialization.json"
 PYTHON = ROOT / ".venv" / "bin" / "python"
-INPUTS = ("pyproject.toml", "uv.lock", ".python-version")
-EXPECTED_PYTHON = (ROOT / ".python-version").read_text(encoding="utf-8").strip()
-EXPECTED_JSONSCHEMA = "4.26.0"
-
-
-def digest(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def fail(message: str) -> int:
@@ -46,12 +38,8 @@ def main() -> int:
         current = digest(ROOT / name)
         if recorded.get(name) != current:
             return fail(f"{name} differs from the materialized receipt")
-    probe = [
-        "import importlib.metadata as m, platform",
-        f"assert platform.python_version() == {EXPECTED_PYTHON!r}",
-        f"assert m.version('jsonschema') == {EXPECTED_JSONSCHEMA!r}",
-    ]
-    result = subprocess.run([str(PYTHON), "-c", "; ".join(probe)], cwd=ROOT, capture_output=True, text=True, timeout=30, check=False)
+    probe = environment_probe()
+    result = subprocess.run([str(PYTHON), "-c", probe], cwd=ROOT, capture_output=True, text=True, timeout=30, check=False)
     if result.returncode != 0:
         return fail("installed Python package state does not satisfy the expected versions")
     print("studio_python_dependencies=ready")

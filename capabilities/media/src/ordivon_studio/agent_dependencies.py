@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -42,7 +44,8 @@ def _python_receipt_status(root: Path) -> dict[str, Any]:
     except (OSError, json.JSONDecodeError):
         result["reason"] = "PYTHON_RECEIPT_INVALID"
         return result
-    if receipt.get("schemaVersion") != 1 or receipt.get("kind") != "ordivon.studio-python-materialization-receipt":
+    if (not isinstance(receipt, dict) or receipt.get("schemaVersion") != 1
+            or receipt.get("kind") != "ordivon.studio-python-materialization-receipt"):
         result["reason"] = "PYTHON_RECEIPT_INVALID"
         return result
     inputs = receipt.get("inputs")
@@ -54,6 +57,28 @@ def _python_receipt_status(root: Path) -> dict[str, Any]:
         if not path.is_file() or inputs.get(name) != _digest(path):
             result["reason"] = "PYTHON_RECEIPT_STALE"
             return result
+    # The materialization receipt is a historical acquisition observation, not
+    # evidence of the current executable or its installed package state.
+    # Delegate to the same source-owned gate used by the ordinary Studio CLI.
+    gate = root / "scripts/require-python-deps.py"
+    result["environmentChecked"] = False
+    if not gate.is_file():
+        result["reason"] = "PYTHON_GATE_UNAVAILABLE"
+        return result
+    try:
+        probe = subprocess.run(
+            [sys.executable, "-E", "-s", str(gate.resolve())],
+            cwd=root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            env={key: value for key, value in os.environ.items() if key != "PYTHONOPTIMIZE"},
+            check=False, timeout=45,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        result["reason"] = "PYTHON_GATE_UNOBSERVED"
+        return result
+    result["environmentChecked"] = True
+    if probe.returncode != 0:
+        result["reason"] = "PYTHON_ENV_STALE_OR_UNAVAILABLE"
+        return result
     result["ready"] = True
     result["reason"] = "READY"
     result["pythonVersion"] = receipt.get("python")
@@ -79,40 +104,86 @@ def _js_status(root: Path) -> dict[str, Any]:
             "resolverChecked": False,
         }
     resolver = Path(resolver_name)
-    probe = subprocess.run(
-        [str(resolver), "exec", "node", "-e", "process.exit(0)"],
-        cwd=root,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        check=False,
-        timeout=10,
-    )
-    ready = probe.returncode == 0
-    return {
-        "ready": ready,
-        "reason": "READY" if ready else "JS_DEPENDENCIES_STALE_OR_UNAVAILABLE",
+    gate = root / "scripts/require-js-deps.mjs"
+    base = {
         "requiredPaths": [str(path.relative_to(root)) for path in required],
-        "resolverChecked": True,
         "resolver": str(resolver),
-        "boundary": "The project-pinned pnpm resolver performs a non-mutating fail-closed dependency-status check; Studio does not duplicate pnpm currentness semantics.",
+        "resolverChecked": False,
+        "environmentChecked": False,
+    }
+    if not gate.is_file():
+        return {**base, "ready": False, "reason": "JS_GATE_UNAVAILABLE"}
+    try:
+        probe = subprocess.run(
+            [str(resolver), "exec", "node", str(gate.resolve())],
+            cwd=root, capture_output=True, text=True, check=False, timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired, UnicodeError):
+        return {**base, "ready": False, "reason": "JS_RESOLVER_UNOBSERVED"}
+    # Only the source-owned gate's typed outcome can establish materialization
+    # failure. A resolver failure or an unrecognized response is UNKNOWN.
+    outcomes = {
+        (0, "studio_js_dependencies=ready"): "READY",
+        (2, "studio_js_dependencies=not-ready"): "JS_DEPENDENCIES_STALE_OR_UNAVAILABLE",
+        (3, "studio_js_dependencies=contract-invalid"): "JS_CONTRACT_INVALID",
+        (4, "studio_js_dependencies=unobserved"): "JS_GATE_UNOBSERVED",
+    }
+    markers = [line for line in probe.stdout.splitlines() if line.startswith("studio_js_dependencies=")]
+    reason = outcomes.get((probe.returncode, markers[0])) if len(markers) == 1 else None
+    if reason is None:
+        return {**base, "ready": False, "reason": "JS_GATE_UNOBSERVED"}
+    return {
+        **base,
+        "ready": reason == "READY",
+        "reason": reason,
+        "resolverChecked": True,
+        "environmentChecked": reason != "JS_GATE_UNOBSERVED",
+        "boundary": "Delegate to the project-pinned pnpm resolver and the same Studio CLI package identity gate; neither observation acquires dependencies.",
     }
 
 
+_UNOBSERVED_REASONS = {
+    "PYTHON_GATE_UNAVAILABLE", "PYTHON_GATE_UNOBSERVED",
+    "JS_RESOLVER_UNOBSERVED", "JS_RESOLVER_UNAVAILABLE", "JS_GATE_UNAVAILABLE", "JS_GATE_UNOBSERVED",
+}
+
+
+def _standing(status: dict[str, Any]) -> str:
+    if status["ready"]:
+        return "ready"
+    if status["reason"] in _UNOBSERVED_REASONS:
+        return "unknown"
+    return "not-ready"
+
+
 def dependency_status(root: Path = ROOT) -> dict[str, Any]:
+    js, python = _js_status(root), _python_receipt_status(root)
     return {
         "schemaVersion": 1,
         "kind": "ordivon.studio-dependency-status",
-        "js": _js_status(root),
-        "python": _python_receipt_status(root),
+        "js": {**js, "standing": _standing(js)},
+        "python": {**python, "standing": _standing(python)},
         "boundary": "Observation never acquires dependencies. Missing capability is repaired only through an explicit acquisition proposal.",
     }
 
 
 def dependency_proposal(target: str, root: Path = ROOT) -> dict[str, Any]:
-    status = dependency_status(root)
     if target not in {"js", "python"}:
         raise ValueError("dependency target must be js or python")
-    current = status[target]
+    current = _js_status(root) if target == "js" else _python_receipt_status(root)
+    standing = _standing(current)
+    current = {**current, "standing": standing}
+    if standing == "unknown" or current["reason"] == "JS_CONTRACT_INVALID":
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.studio-dependency-acquisition-proposal",
+            "target": target,
+            "ready": False,
+            "effectRequired": None,
+            "plan": None,
+            "status": current,
+            "authorityBoundary": "Observation is unavailable or the declared release contract is invalid; repair that boundary before proposing acquisition.",
+        }
     if current["ready"]:
         return {
             "schemaVersion": 1,

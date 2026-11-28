@@ -22,7 +22,8 @@ def test_final_coordinate_is_readable_and_next_write_rolls_back(domain: str) -> 
         pytest.skip("requires an explicitly dedicated empty boundary database")
 
     with psycopg.connect(dsn) as conn:
-        assert conn.execute("SELECT schema_version FROM host_v2_schema").fetchone() == (15,)
+        from ordivon_host_v2.service import REQUIRED_SCHEMA_VERSION
+        assert conn.execute("SELECT schema_version FROM host_v2_schema").fetchone() == (REQUIRED_SCHEMA_VERSION,)
         assert conn.execute("SELECT count(*) FROM actor_refs").fetchone() == (0,)
         assert conn.execute("SELECT count(*) FROM messages").fetchone() == (0,)
         assert conn.execute("SELECT count(*) FROM command_receipts").fetchone() == (0,)
