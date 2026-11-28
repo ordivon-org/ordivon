@@ -395,11 +395,62 @@ export class WebStore {
     return this.grants.resolveAgentGrant(agentId, audience, action, resource, now);
   }
 
-  getAgentEffect(effectId: string): AgentEffectReceipt | null {
-    const row = this.db
+  private readEffectRow(effectId: string): AgentEffectRow | undefined {
+    return this.db
       .prepare("SELECT * FROM agent_effects WHERE effect_id = ?")
       .get(effectId) as AgentEffectRow | undefined;
+  }
+
+  getAgentEffect(effectId: string): AgentEffectReceipt | null {
+    const row = this.readEffectRow(effectId);
     return row === undefined ? null : effectReceiptFromRow(row);
+  }
+
+  // Shared write/audit/readback sequence for the two local business
+  // transactions. The caller retains BEGIN/COMMIT/ROLLBACK authority.
+  private recordNewEffectReceipt(expected: AgentEffectRow): AgentEffectReceipt {
+    this.db
+      .prepare(`
+        INSERT INTO agent_effects (
+          effect_id, effect_digest, principal_id, agent_id, grant_id,
+          action, resource, result_json, committed_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `)
+      .run(
+        expected.effect_id, expected.effect_digest, expected.principal_id,
+        expected.agent_id, expected.grant_id, expected.action,
+        expected.resource, expected.result_json, expected.committed_at,
+      );
+    this.audit("agent.effect.committed", expected.committed_at, expected.principal_id,
+      "effect", expected.effect_id, {
+        agentId: expected.agent_id, grantId: expected.grant_id, action: expected.action,
+      });
+    return this.readWrittenEffectReceipt(expected);
+  }
+
+  // Owner-local write/readback invariant, not a general authenticity proof for
+  // historical receipts. Compare the exact bytes and all intended row fields
+  // while the caller still owns the business transaction.
+  private readWrittenEffectReceipt(expected: AgentEffectRow): AgentEffectReceipt {
+    const row = this.readEffectRow(expected.effect_id);
+    if (row === undefined) {
+      throw new WebProblem(500, "effect-receipt-missing", "Effect receipt missing",
+        "The newly written Effect has no readable owner receipt.");
+    }
+    const receipt = effectReceiptFromRow(row);
+    if (row.effect_id !== expected.effect_id ||
+        row.effect_digest !== expected.effect_digest ||
+        row.principal_id !== expected.principal_id ||
+        row.agent_id !== expected.agent_id ||
+        row.grant_id !== expected.grant_id ||
+        row.action !== expected.action ||
+        row.resource !== expected.resource ||
+        row.result_json !== expected.result_json ||
+        row.committed_at !== expected.committed_at) {
+      throw new WebProblem(500, "effect-receipt-mismatch", "Effect receipt mismatch",
+        "The newly written Effect does not match its intended owner receipt.");
+    }
+    return receipt;
   }
 
   resolveAgentEffectReplay(
@@ -658,31 +709,15 @@ export class WebStore {
         )
         .run(current.grantId, current.revision);
       const result = { note };
-      this.db
-        .prepare(`
-          INSERT INTO agent_effects (
-            effect_id, effect_digest, principal_id, agent_id, grant_id,
-            action, resource, result_json, committed_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `)
-        .run(
-          effect.effectId,
-          effect.effectDigest,
-          current.principalId,
-          agentId,
-          current.grantId,
-          effect.action,
-          effect.resource,
-          JSON.stringify(result),
-          now,
-        );
-      this.audit("agent.effect.committed", now, current.principalId, "effect", effect.effectId, {
-        agentId,
-        grantId: current.grantId,
-        action: effect.action,
+      // Missing, malformed or mismatched receipt rolls back the owner transaction.
+      const receipt = this.recordNewEffectReceipt({
+        effect_id: effect.effectId, effect_digest: effect.effectDigest,
+        principal_id: current.principalId, agent_id: agentId, grant_id: current.grantId,
+        action: effect.action, resource: effect.resource,
+        result_json: JSON.stringify(result), committed_at: now,
       });
       this.db.exec("COMMIT");
-      return { receipt: this.getAgentEffect(effect.effectId)!, replayed: false };
+      return { receipt, replayed: false };
     } catch (error) {
       this.db.exec("ROLLBACK");
       throw error;
@@ -763,31 +798,15 @@ export class WebStore {
         )
         .run(current.grantId, current.revision);
       const result = { note: noteFromRow({ ...noteRow, state: "PUBLISHED", published_at: now }) };
-      this.db
-        .prepare(`
-          INSERT INTO agent_effects (
-            effect_id, effect_digest, principal_id, agent_id, grant_id,
-            action, resource, result_json, committed_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `)
-        .run(
-          effect.effectId,
-          effect.effectDigest,
-          current.principalId,
-          agentId,
-          current.grantId,
-          effect.action,
-          effect.resource,
-          JSON.stringify(result),
-          now,
-        );
-      this.audit("agent.effect.committed", now, current.principalId, "effect", effect.effectId, {
-        agentId,
-        grantId: current.grantId,
-        action: effect.action,
+      // Missing, malformed or mismatched receipt rolls back the owner transaction.
+      const receipt = this.recordNewEffectReceipt({
+        effect_id: effect.effectId, effect_digest: effect.effectDigest,
+        principal_id: current.principalId, agent_id: agentId, grant_id: current.grantId,
+        action: effect.action, resource: effect.resource,
+        result_json: JSON.stringify(result), committed_at: now,
       });
       this.db.exec("COMMIT");
-      return { receipt: this.getAgentEffect(effect.effectId)!, replayed: false };
+      return { receipt, replayed: false };
     } catch (error) {
       this.db.exec("ROLLBACK");
       throw error;

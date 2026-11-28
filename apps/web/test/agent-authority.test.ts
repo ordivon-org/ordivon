@@ -620,3 +620,72 @@ test("committed approval evidence is terminal and remains consumed", async () =>
     f.store.close();
   }
 });
+
+for (const kind of ["create", "publish"] as const) {
+  for (const fault of ["malformed", "missing"] as const) {
+    test("WebStore " + kind + " rolls back when the written effect receipt is " + fault, async () => {
+      const f = await fixture();
+      try {
+        const note = kind === "publish"
+          ? f.store.createCanaryNote("principal:test", "receipt fault draft", f.now())
+          : null;
+        const effect = {
+          effectId: effectId("receipt-fault-" + kind + "-" + fault),
+          effectDigest: effectId("receipt-fault-content"),
+          action: "canary.note." + kind,
+          resource: note === null ? "/canary/notes" : "/canary/notes/" + note.noteId,
+          audience: config.origin, riskClass: "R2" as const,
+          effectType: "website.canary.note." + kind,
+        };
+        if (note !== null) {
+          f.store.putEffectApproval("principal:test", "credential:test",
+            effect.effectId, effect.effectDigest, f.now());
+        }
+        // Fault injection within this isolated SQLite owner transaction, not
+        // a production trigger or an arbitrary database-writer threat model.
+        f.store.db.exec("CREATE TEMP TRIGGER fault_receipt AFTER INSERT ON agent_effects BEGIN " +
+          (fault === "malformed"
+            ? "UPDATE agent_effects SET result_json = 'not-json' WHERE effect_id = NEW.effect_id;"
+            : "DELETE FROM agent_effects WHERE effect_id = NEW.effect_id;") + " END");
+        const commit = () => note === null
+          ? f.store.commitAgentCanaryCreate(f.grant, f.agent.agentId, effect, "fault draft", f.now())
+          : f.store.commitAgentCanaryPublish(f.grant, f.agent.agentId, effect, note.noteId, f.now());
+        let failure: unknown;
+        try { commit(); } catch (error) { failure = error; }
+        const raw = f.store.db.prepare("SELECT result_json FROM agent_effects WHERE effect_id = ?")
+          .get(effect.effectId);
+        const grant = f.store.getAgentGrant(f.grant.grantId);
+        const rows = f.store.db.prepare("SELECT state FROM canary_notes ORDER BY note_id").all();
+        assert.deepEqual({
+          failure: failure instanceof SyntaxError ? "malformed-json"
+            : failure instanceof Error && "code" in failure ? failure.code
+            : failure instanceof Error ? failure.message : null,
+          rawReceipt: raw?.result_json ?? null,
+          quota: grant.remainingEffects,
+          revision: grant.revision,
+          notes: rows.map(row => row.state),
+          approvalLive: note === null ? null : f.store.effectApproval("principal:test", effect, f.now()).verified,
+        }, {
+          failure: fault === "malformed" ? "malformed-json" : "effect-receipt-missing",
+          rawReceipt: null,
+          quota: f.grant.remainingEffects,
+          revision: f.grant.revision,
+          notes: note === null ? [] : ["DRAFT"],
+          approvalLive: note === null ? null : true,
+        });
+        assert.equal(f.store.getAgentEffect(effect.effectId), null);
+        assert.deepEqual(grant, f.grant);
+        f.store.db.exec("DROP TRIGGER fault_receipt");
+        const result = commit();
+        assert.equal(result.replayed, false);
+        assert.deepEqual(f.store.getAgentEffect(effect.effectId), result.receipt);
+        assert.equal(f.store.getAgentGrant(f.grant.grantId).remainingEffects,
+          f.grant.remainingEffects - 1);
+        assert.deepEqual(commit(), {receipt: result.receipt, replayed: true});
+      } finally {
+        await f.app.close();
+        f.store.close();
+      }
+    });
+  }
+}
