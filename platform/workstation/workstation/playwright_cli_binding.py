@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import tomllib
@@ -38,8 +39,13 @@ def select_workstation_node() -> Path:
         required = owner_tools["node"]
         if not isinstance(required, str) or not required:
             raise ValueError("invalid pinned node version")
+        # The caller environment owns the mise carrier (e.g. hosted CI or the
+        # installed Workstation); the selected Node must still match the owner pin.
+        mise = shutil.which("mise")
+        if mise is None or not Path(mise).is_absolute():
+            raise RuntimeError("mise executable is unavailable in the caller environment")
         result = subprocess.run(
-            ["/usr/bin/mise", "which", "node"],
+            [mise, "which", "node"],
             cwd=owner_dir,
             capture_output=True,
             text=True,

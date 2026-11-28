@@ -4,6 +4,7 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKSTATION = ROOT / "workstation"
@@ -95,12 +96,14 @@ def test_installed_binding_uses_bundled_mise_owner_not_source_checkout(monkeypat
         return SimpleNamespace(returncode=0, stdout=output, stderr="")
 
     monkeypatch.setattr(MODULE.subprocess, "run", fake_run)
-    selected = MODULE.select_workstation_node()
+    hosted_mise = str(tmp_path / "hosted-mise")
+    with patch("shutil.which", return_value=hosted_mise):
+        selected = MODULE.select_workstation_node()
 
     assert selected == node.resolve()
     args, invocation = observed[0]
     assert invocation["cwd"] == tmp_path
-    assert args[-2:] == ["which", "node"]
+    assert args == [hosted_mise, "which", "node"]
     assert invocation["env"]["MISE_AUTO_INSTALL"] == "false"
     assert invocation["env"]["MISE_OFFLINE"] == "1"
     playbook = (ROOT / "ansible" / "workstation-tool-bindings.yml").read_text()
