@@ -14,6 +14,8 @@ from .independent_result_projection import (
     doctor_independent_result,
     load_independent_terminal_result,
     require_sha256_digest,
+    stop_reason_for_stop_code,
+    terminal_event_kind_for_stop_code,
 )
 from .store_errors import HarnessTerminalConflict
 from .ordivon.events import HarnessRunEvent, HarnessTrace
@@ -29,25 +31,6 @@ from .store import (
 
 _STORE_LEASE_TTL_MS = 30_000
 _PAUSED_CODES = frozenset({RunStopCode.NEEDS_INPUT})
-_FAILED_CODES = frozenset(
-    {
-        RunStopCode.PROVIDER_FAILED,
-        RunStopCode.PROVIDER_TIMEOUT,
-        RunStopCode.PROVIDER_TRANSPORT_FAILED,
-        RunStopCode.PROVIDER_REJECTED,
-        RunStopCode.PROVIDER_UNAVAILABLE,
-        RunStopCode.INVALID_TOOL_CALL,
-        RunStopCode.INVALID_MODEL_OUTPUT,
-        RunStopCode.HARNESS_FAILED,
-    }
-)
-_UNKNOWN_CODES = frozenset(
-    {
-        RunStopCode.CANCEL_UNKNOWN,
-        RunStopCode.PROVIDER_STATE_UNKNOWN,
-        RunStopCode.RUNTIME_UNKNOWN,
-    }
-)
 
 
 class IndependentRunRecorder:
@@ -246,7 +229,7 @@ class IndependentRunRecorder:
                 self.store.append_event(
                     event_id=self._event_id("terminal", receipt.digest),
                     harness_run_id=self.contract.harness_run_id,
-                    event_kind=self._terminal_event_kind(result.stop_code),
+                    event_kind=terminal_event_kind_for_stop_code(result.stop_code),
                     data=self._terminal_data(
                         result,
                         receipt,
@@ -368,7 +351,7 @@ class IndependentRunRecorder:
             system_manifest_digest=self.contract.system_manifest_ref.digest,
             started_at_ms=started_at_ms,
             finished_at_ms=finished_at_ms,
-            stop_reason=self._stop_reason(result.stop_code),
+            stop_reason=stop_reason_for_stop_code(result.stop_code),
             termination_code=result.stop_code.value,
             trace_digest=retained_trace.digest,
             context_digests=tuple(item.digest for item in self.contract.context_refs),
@@ -450,24 +433,6 @@ class IndependentRunRecorder:
                 None if proposal_object is None else proposal_object.digest
             ),
         }
-
-    @staticmethod
-    def _terminal_event_kind(code: RunStopCode) -> str:
-        if code is RunStopCode.CANDIDATE_COMPLETED:
-            return "harness.run-completed"
-        if code in _FAILED_CODES:
-            return "harness.run-failed"
-        return "harness.run-stopped"
-
-    @staticmethod
-    def _stop_reason(code: RunStopCode) -> str:
-        if code is RunStopCode.CANDIDATE_COMPLETED:
-            return "completed"
-        if code in _FAILED_CODES:
-            return "failed"
-        if code in _UNKNOWN_CODES:
-            return "unknown"
-        return "stopped"
 
     def _acquire_lease(self, operation: str, token: str, *, now_ms: int):
         owner = canonical_digest(

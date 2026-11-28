@@ -17,11 +17,31 @@ from .agent_tool_observation import HarnessArtifactReference, HarnessToolObserva
 from .core_contracts import HarnessRunContract
 from .ordivon.events import HarnessTrace
 from .ordivon.model import AgentRunConclusion
+from .ordivon.run_contract import RunStopCode
 from .store import HarnessStore, StoredHarnessObject
 
 TRACE_EVENT_KIND = "harness.trace-recorded"
 TERMINAL_EVENT_KINDS = frozenset(
     {"harness.run-completed", "harness.run-stopped", "harness.run-failed"}
+)
+_FAILED_STOP_CODES = frozenset(
+    {
+        RunStopCode.PROVIDER_FAILED,
+        RunStopCode.PROVIDER_TIMEOUT,
+        RunStopCode.PROVIDER_TRANSPORT_FAILED,
+        RunStopCode.PROVIDER_REJECTED,
+        RunStopCode.PROVIDER_UNAVAILABLE,
+        RunStopCode.INVALID_TOOL_CALL,
+        RunStopCode.INVALID_MODEL_OUTPUT,
+        RunStopCode.HARNESS_FAILED,
+    }
+)
+_UNKNOWN_STOP_CODES = frozenset(
+    {
+        RunStopCode.CANCEL_UNKNOWN,
+        RunStopCode.PROVIDER_STATE_UNKNOWN,
+        RunStopCode.RUNTIME_UNKNOWN,
+    }
 )
 
 
@@ -396,12 +416,22 @@ def _required_digest(data: dict[str, JsonValue], field: str) -> str:
     return require_sha256_digest(value, f"Harness Event {field}")
 
 
-def _terminal_event_kind_for_receipt(receipt: IndependentHarnessRunReceipt) -> str:
-    if receipt.stop_reason == "completed":
+def terminal_event_kind_for_stop_code(code: RunStopCode) -> str:
+    if code is RunStopCode.CANDIDATE_COMPLETED:
         return "harness.run-completed"
-    if receipt.stop_reason == "failed":
+    if code in _FAILED_STOP_CODES:
         return "harness.run-failed"
     return "harness.run-stopped"
+
+
+def stop_reason_for_stop_code(code: RunStopCode) -> str:
+    if code is RunStopCode.CANDIDATE_COMPLETED:
+        return "completed"
+    if code in _FAILED_STOP_CODES:
+        return "failed"
+    if code in _UNKNOWN_STOP_CODES:
+        return "unknown"
+    return "stopped"
 
 
 def load_independent_terminal_result(
@@ -536,7 +566,9 @@ def load_independent_terminal_result(
         raise ValueError("authorized Completion Proposal content is missing")
     if not contract.privacy.allow_tool_content and observations:
         raise ValueError("metadata-only terminal evidence retained Tool content")
-    if terminal.event_kind != _terminal_event_kind_for_receipt(receipt):
+    if terminal.event_kind != terminal_event_kind_for_stop_code(
+        RunStopCode(receipt.termination_code)
+    ):
         raise ValueError("terminal Event kind differs from Run Receipt")
     return StoredIndependentRunResult(
         receipt=receipt,
@@ -594,4 +626,6 @@ __all__ = [
     "doctor_independent_result",
     "load_independent_terminal_result",
     "require_sha256_digest",
+    "stop_reason_for_stop_code",
+    "terminal_event_kind_for_stop_code",
 ]

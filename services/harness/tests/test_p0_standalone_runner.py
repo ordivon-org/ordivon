@@ -502,6 +502,83 @@ def test_reconstructed_trace_must_not_import_foreign_run_segments() -> None:
 
 
 
+@pytest.mark.parametrize(
+    ("stop_reason", "termination_code", "event_kind"),
+    [
+        ("stopped", RunStopCode.HARNESS_FAILED.value, "harness.run-stopped"),
+        ("failed", RunStopCode.NEEDS_INPUT.value, "harness.run-failed"),
+    ],
+)
+def test_terminal_event_kind_remains_bound_to_termination_code(
+    stop_reason: str,
+    termination_code: str,
+    event_kind: str,
+) -> None:
+    """Readback preserves the historical terminationCode authority."""
+    digest = "sha256:" + "a" * 64
+    run_id = "harness-run:termination-code-authority"
+    trace = HarnessTrace(
+        run_id,
+        (HarnessRunEvent(1, "run_started", 0, {"source": "exact-contract"}),),
+    )
+    receipt = IndependentHarnessRunReceipt(
+        harness_run_id=run_id,
+        caller_id="caller:test",
+        caller_run_ref="run:termination-code-authority",
+        contract_digest=digest,
+        harness_implementation_id="harness:local",
+        system_manifest_digest=digest,
+        started_at_ms=0,
+        finished_at_ms=1,
+        stop_reason=stop_reason,
+        termination_code=termination_code,
+        trace_digest=trace.digest,
+        context_digests=(digest,),
+        tool_catalog_digest=digest,
+        tool_grant_digest=digest,
+        runtime_job_refs=(),
+        artifact_refs=(),
+        usage={},
+    )
+    data = {
+        "runReceiptObjectDigest": receipt.digest,
+        "traceObjectDigest": trace.digest,
+        "observationsObjectDigest": digest,
+        "runReceiptDigest": receipt.digest,
+        "traceDigest": trace.digest,
+        "conclusionDigest": None,
+        "completionProposalDigest": None,
+    }
+
+    class MismatchedTerminalStore:
+        def list_run_events(self, harness_run_id: str):
+            assert harness_run_id == run_id
+            return (SimpleNamespace(event_kind=event_kind, data=data),)
+
+        def get_object(self, object_digest: str, *, expected_kind: str):
+            values = {
+                "independent-harness-run-receipt": (receipt.digest, receipt.to_dict()),
+                "harness-trace": (trace.digest, trace.to_dict()),
+                "harness-tool-observations": (digest, []),
+            }
+            expected_digest, value = values[expected_kind]
+            assert object_digest == expected_digest
+            return value
+
+        def inspect_object(self, object_digest: str):
+            return SimpleNamespace(digest=object_digest)
+
+    recorder = object.__new__(IndependentRunRecorder)
+    recorder.contract = SimpleNamespace(
+        harness_run_id=run_id,
+        digest=digest,
+        privacy=SimpleNamespace(allow_model_content=False, allow_tool_content=True),
+    )
+    recorder.store = MismatchedTerminalStore()
+    with pytest.raises(ValueError, match="terminal Event kind differs"):
+        recorder.load_terminal_result()
+
+
 def test_terminal_receipt_cannot_launder_foreign_trace_into_target_run() -> None:
     """Content- and receipt-digest agreement does not imply consumer identity."""
     digest = "sha256:" + "a" * 64
