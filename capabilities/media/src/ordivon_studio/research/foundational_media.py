@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from ..perception_profiles import vector_distance as vector_distance
+from .grounded_contracts import canonical_digest as canonical_digest
 
 M7_EVIDENCE_KIND = "ordivon.studio-m7-foundational-media-evidence"
 
@@ -23,11 +24,6 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return "sha256:" + digest.hexdigest()
-
-
-def canonical_digest(value: Any) -> str:
-    encoded = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    return "sha256:" + hashlib.sha256(encoded).hexdigest()
 
 
 def _probe_image(path: Path, ffprobe: str = "/usr/bin/ffprobe") -> dict[str, Any]:
