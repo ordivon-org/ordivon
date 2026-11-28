@@ -36,6 +36,8 @@ def test_task_space_reentry_materializes_bounded_fenced_guidance():
     for clause in (
         "work.get", "topic.resume", "attention.reentry", "UNKNOWN",
         "authority", "not automatic", "source",
+        "message_relation", "contextRef=mentions", "exact anchored suffix",
+        "message.relation.list", "changeSequence", "do not acknowledge",
     ):
         assert clause.lower() in skill.lower(), clause
     ref = catalog.read_text(
@@ -45,5 +47,10 @@ def test_task_space_reentry_materializes_bounded_fenced_guidance():
     ).content
     assert "space:ordivon-task-control-r1:20261101" in ref
     assert "space:ordivon-capability-task-forum-r1:20261101" in ref
-    assert "work:ordivon:capability-program-root-r1:20261101" in ref
+    assert "work.list" in ref
+    assert "work.get" in ref
+    assert "UNKNOWN" in ref
+    assert "NOT_FOUND" in ref and "HISTORICAL_REFERENCE_ONLY" in ref
+    assert "NOT_FOUND" in skill and "work.list" in skill
+    assert "work:ordivon:" not in ref
     assert "No task is assigned by Space participation" in ref
