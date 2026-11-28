@@ -30,7 +30,7 @@ related:
 
 This guide is a **consumer index**, not a second tool catalog or a new execution framework. Authoritative tools are discovered from the connected Runtime node, source truth comes from the specific Git revision, and physical results come from a Job/Attempt and provider evidence. The existing planning graph is [planning/lego-plan-r1.json](../../planning/lego-plan-r1.json); conceptual foundations are [Runtime Research](../../research/README.md).
 
-OL selects the necessary mathematical structures from each real execution responsibility: for example a transition relation, an identity invariant, a resource constraint, or an observation/refinement law. No universal declaration is required. Each entry must distinguish **specification**, **model/validator**, and **installed implementation**. The implementation and physical model are not proven equivalent merely because they share a name.
+Start from the actual consumer question and the mathematical structure needed to express it. Ordivon LEGO (OL) does not prescribe a universal object shape, field list, or admission checklist. Choose relations, transition systems, orders, algebraic operations, traces, or other established mathematical structures according to the problem; justify their assumptions and express only the distinctions that the relevant behavior and observations require. A proposed equivalence must preserve the applicable contexts, effects and evidence. Distinguish **specification**, **model/validator**, and **installed implementation** wherever those claims are made; sharing a name does not establish refinement.
 
 ## First-principles architecture: thought -> logic -> capability (2026-11-19)
 
@@ -79,7 +79,7 @@ additional consumer-specific semantics and must not be folded into that kernel.
 This is the intended OL pattern: **reachable core -> consumer observations ->
 composition check -> only then representation deletion or sharing**.
 
-### Three LEGO categories, two reasoning directions
+### Optional reasoning perspectives
 
 | Category | Role | Concrete Runtime instance |
 | --- | --- | --- |
@@ -88,9 +88,7 @@ composition check -> only then representation deletion or sharing**.
 | Logic | Reframe failure/requirements as a decision: inputs, state, rules, outputs, UNKNOWN and counterexamples | Admission/replay, scheduling, dispatch, reconciliation, consumer ownership, safe retirement |
 | Capability | Carry the decision on a mature concrete substrate, with explicit interface and truth owner | PostgreSQL tx/CAS, Git worktree, systemd/cgroup, Windows Job Object, native Runner, SHA-256 files, MCP |
 
-A LEGO is a contractable responsibility, not automatically one function,
-Tool, file, Agent, Skill or proof document. Use the existing typed R2.1
-fields only for a formally declared/admitted LEGO; do not duplicate registries.
+These categories are reasoning aids, not a classification or admission requirement. Choose the representation and granularity from the actual mathematical problem and consumer. Reuse the native implementation or existing proof when it suffices; do not introduce a wrapper, registry, fixed contract shape, or extra verification layer merely to label a responsibility.
 
 ### Essential questions and current implementation
 
