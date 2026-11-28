@@ -20,7 +20,8 @@ fn windows_pg_bundle_consumer_reads_real_admission_without_claiming_process() {
     })
     .to_string();
     input.execution_plan_digest = format!(
-        "sha256:{}", hex::encode(Sha256::digest(input.execution_plan_json.as_bytes()))
+        "sha256:{}",
+        hex::encode(Sha256::digest(input.execution_plan_json.as_bytes()))
     );
     let attempt = input.attempt_id.clone();
     let bundle = temp.path().join("pg-attempts").join(&attempt);
@@ -365,9 +366,8 @@ fn pg18_native_atomic_admission_replay_fence_and_rollback() {
 #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
 fn pg18_release_effect_fences_ordinary_admission_only_after_operator_dispatch() {
     use crate::runtime::{
-        runtime_release_effect_id, runtime_release_request_identity_digest,
-        RuntimeReleaseContract, RuntimeReleaseEffectBinding, RuntimeReleaseRequest,
-        RUNTIME_SCHEMA_VERSION,
+        runtime_release_effect_id, runtime_release_request_identity_digest, RuntimeReleaseContract,
+        RuntimeReleaseEffectBinding, RuntimeReleaseRequest, RUNTIME_SCHEMA_VERSION,
     };
     use std::path::Path;
 
@@ -476,11 +476,7 @@ fn pg18_release_effect_fences_ordinary_admission_only_after_operator_dispatch() 
     second.workspace_snapshot_json =
         serde_json::json!({"runtimeReleaseEffectDigest":second_binding_digest}).to_string();
     assert!(matches!(
-        owner.admit_release_effect(
-            &second,
-            &second_request,
-            Path::new(&second_receipt_path)
-        ),
+        owner.admit_release_effect(&second, &second_request, Path::new(&second_receipt_path)),
         Err(PgAdmissionError::PendingEffect)
     ));
 
