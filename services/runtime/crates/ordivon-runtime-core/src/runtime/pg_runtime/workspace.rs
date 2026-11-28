@@ -19,21 +19,45 @@ const WORKSPACE_EFFECT_ISOLATION: postgres::IsolationLevel =
 // the PG-only page already batches SQL and still needs current Git truth.
 const WORKSPACE_LIST_LIVE_GIT_PARALLELISM: usize = 4;
 
-// The same PG consumer definition must govern Workspace mutation/close
-// admission AND workspace.get/list projections. A resolved Job can still own
-// an active or held_orphaned Attempt reservation: projecting only unresolved
-// Jobs would incorrectly report activeJobIds=[] while close remains blocked.
-// Build only trusted static query fragments; values remain PostgreSQL bind args.
+// One conservative PG protection predicate for get/list/mutate/close.
+// A Job is absent from the protection set only when its resolution agrees
+// with a latest Attempt, it has no current pointer, every persisted Attempt
+// has a known settled state + terminal witnesses + released reservation,
+// and every recorded allocation has a release witness. An absent allocation
+// is permitted by the historical schema; a missing reservation is not.
+// These IDs are protection roots (including ambiguous durable state), NOT
+// a claim that each Job is physically running. Age is a separate retirement
+// prerequisite; a caller release never waives unsettled roots.
+// Use one set-shaped query scoped to the requested Workspace page; values
+// remain PostgreSQL bind arguments, and off-page history is not a root.
 const WORKSPACE_ACTIVE_OR_HELD: &str = "(
-    j.resolution IS NULL OR j.job_id IN (
-        SELECT a.job_id FROM attempts a
-        JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id
-        WHERE r.state IN ('active','held_orphaned')
+    j.resolution IS NULL OR j.current_attempt_id IS NOT NULL OR j.job_id IN (
+        SELECT a.job_id FROM attempts a JOIN scoped_jobs own ON own.job_id=a.job_id
+        LEFT JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id
+        WHERE a.state NOT IN ('succeeded','failed','timed_out','cancelled','lost')
+           OR a.finished_at_ms IS NULL OR a.finished_at_ms < 0
+           OR a.result_digest IS NULL OR a.result_digest = ''
+           OR r.state IS DISTINCT FROM 'released'
+           OR r.released_at_ms IS NULL OR r.released_at_ms < 0
+        UNION ALL
+        SELECT a.job_id FROM attempts a JOIN scoped_jobs own ON own.job_id=a.job_id JOIN job_allocations al
+            ON al.attempt_id=a.attempt_id
+        WHERE al.state IS DISTINCT FROM 'released'
+           OR al.released_at_ms IS NULL OR al.released_at_ms < 0
+        UNION ALL
+        SELECT owned.job_id FROM scoped_jobs owned LEFT JOIN (
+            SELECT DISTINCT ON (a.job_id) a.job_id,a.state FROM attempts a JOIN scoped_jobs own ON own.job_id=a.job_id
+            ORDER BY a.job_id,a.attempt_number DESC
+        ) latest ON latest.job_id=owned.job_id
+        WHERE owned.resolution IS DISTINCT FROM latest.state
     )
 )";
 
 fn workspace_consumer_sql(select: &str, scope: &str, order_by: &str) -> String {
-    format!("SELECT {select} FROM jobs j WHERE {scope} AND {WORKSPACE_ACTIVE_OR_HELD}{order_by}")
+    format!("WITH scoped_jobs AS MATERIALIZED (
+        SELECT j.job_id,j.workspace_id,j.resolution,j.current_attempt_id,j.created_at_ms,j.execution_plan_json
+        FROM jobs j WHERE {scope}
+    ) SELECT {select} FROM scoped_jobs j WHERE {WORKSPACE_ACTIVE_OR_HELD}{order_by}")
 }
 
 impl PgRuntime {
@@ -420,9 +444,9 @@ impl PgRuntime {
 mod workspace_active_consumer_tests {
     use super::*;
 
-    /// Check actual PostgreSQL joins, not a mock predicate. A terminal Job
-    /// with an orphaned/held reservation must appear in both consumer read
-    /// projections because Workspace.close and mutate still own that lease.
+    /// Check actual PostgreSQL joins, not a mock predicate. Terminal Job
+    /// labels cannot hide unresolved, malformed, or held resource roots.
+    /// All normal read/effect projections share this protection predicate.
     /// No production tables are touched; all fixture tables are TEMP.
     #[test]
     #[ignore = "requires explicitly disposable ORDIVON_PG_TEST_DSN"]
@@ -433,17 +457,34 @@ mod workspace_active_consumer_tests {
         pg.batch_execute(
             "CREATE TEMP TABLE jobs (
                 job_id TEXT PRIMARY KEY, workspace_id TEXT, resolution TEXT,
-                execution_plan_json TEXT, created_at_ms BIGINT
+                execution_plan_json TEXT, created_at_ms BIGINT, current_attempt_id TEXT
             );
-            CREATE TEMP TABLE attempts (attempt_id TEXT PRIMARY KEY, job_id TEXT);
-            CREATE TEMP TABLE concurrency_reservations (attempt_id TEXT, state TEXT);
+            CREATE TEMP TABLE attempts (
+                attempt_id TEXT PRIMARY KEY, job_id TEXT, attempt_number BIGINT,
+                state TEXT NOT NULL, finished_at_ms BIGINT, result_digest TEXT
+            );
+            CREATE TEMP TABLE concurrency_reservations (
+                attempt_id TEXT PRIMARY KEY, state TEXT NOT NULL, released_at_ms BIGINT
+            );
+            CREATE TEMP TABLE job_allocations (
+                attempt_id TEXT PRIMARY KEY, state TEXT NOT NULL, released_at_ms BIGINT
+            );
             INSERT INTO jobs VALUES
-                ('pending','ws-contract',NULL,'pending-plan',30),
-                ('held-terminal','ws-contract','succeeded','held-plan',20),
-                ('released-terminal','ws-contract','succeeded','released-plan',10);
-            INSERT INTO attempts VALUES ('a-held','held-terminal'),('a-released','released-terminal');
+                ('pending','ws-contract',NULL,'pending-plan',30,NULL),
+                ('held-terminal','ws-contract','succeeded','held-plan',20,NULL),
+                ('released-terminal','ws-contract','succeeded','released-plan',10,NULL),
+                ('unsettled-terminal','ws-contract','succeeded','unsettled-plan',15,NULL),
+                ('unrelated','ws-other','succeeded','unrelated-plan',35,NULL);
+            INSERT INTO attempts VALUES
+                ('a-held','held-terminal',1,'orphaned',1,'result'),
+                ('a-released','released-terminal',1,'succeeded',1,'result'),
+                ('a-old','unsettled-terminal',1,'running',NULL,NULL),
+                ('a-new','unsettled-terminal',2,'succeeded',1,'result'),
+                ('a-unrelated','unrelated',1,'running',NULL,NULL);
             INSERT INTO concurrency_reservations VALUES
-                ('a-held','held_orphaned'),('a-released','released');",
+                ('a-held','held_orphaned',NULL),('a-released','released',1),
+                ('a-old','released',1),('a-new','released',1),
+                ('a-unrelated','active',NULL);",
         )
         .unwrap();
 
@@ -490,15 +531,85 @@ mod workspace_active_consumer_tests {
             .iter()
             .map(|row| row.get::<_, String>(0))
             .collect::<Vec<_>>();
-        assert_eq!(exact, vec!["pending", "held-terminal"]);
+        assert_eq!(
+            exact,
+            vec!["pending", "held-terminal", "unsettled-terminal"]
+        );
         assert_eq!(list, exact, "get/list must not hide PG-held consumers");
         assert_eq!(
-            close_count, 2,
+            close_count, 3,
             "close must protect every projected consumer"
         );
-        assert_eq!(plans.len(), 2, "mutate must see the same PG consumers");
+        assert_eq!(plans.len(), 3, "mutate must see the same PG consumers");
         assert!(plans.contains(&"held-plan".to_string()));
         assert!(!plans.contains(&"released-plan".to_string()));
+
+        // Independent counterexamples: each mutation changes the durable
+        // evidence of a previously fully settled Job, not a file layout.
+        // Every restore must remove the extra protection root again.
+        for (change, restore) in [
+            (
+                "UPDATE attempts SET state='running' WHERE attempt_id='a-released'",
+                "UPDATE attempts SET state='succeeded' WHERE attempt_id='a-released'",
+            ),
+            (
+                "UPDATE attempts SET state='future_state' WHERE attempt_id='a-released'",
+                "UPDATE attempts SET state='succeeded' WHERE attempt_id='a-released'",
+            ),
+            (
+                "UPDATE attempts SET finished_at_ms=NULL WHERE attempt_id='a-released'",
+                "UPDATE attempts SET finished_at_ms=1 WHERE attempt_id='a-released'",
+            ),
+            (
+                "UPDATE attempts SET result_digest='' WHERE attempt_id='a-released'",
+                "UPDATE attempts SET result_digest='result' WHERE attempt_id='a-released'",
+            ),
+            (
+                "DELETE FROM concurrency_reservations WHERE attempt_id='a-released'",
+                "INSERT INTO concurrency_reservations VALUES ('a-released','released',1)",
+            ),
+            (
+                "UPDATE concurrency_reservations SET state='unknown' WHERE attempt_id='a-released'",
+                "UPDATE concurrency_reservations SET state='released' WHERE attempt_id='a-released'",
+            ),
+            (
+                "UPDATE concurrency_reservations SET released_at_ms=NULL WHERE attempt_id='a-released'",
+                "UPDATE concurrency_reservations SET released_at_ms=1 WHERE attempt_id='a-released'",
+            ),
+            (
+                "INSERT INTO job_allocations VALUES ('a-released','active',NULL)",
+                "DELETE FROM job_allocations WHERE attempt_id='a-released'",
+            ),
+            (
+                "INSERT INTO job_allocations VALUES ('a-released','released',NULL)",
+                "DELETE FROM job_allocations WHERE attempt_id='a-released'",
+            ),
+            (
+                "UPDATE jobs SET current_attempt_id='a-released' WHERE job_id='released-terminal'",
+                "UPDATE jobs SET current_attempt_id=NULL WHERE job_id='released-terminal'",
+            ),
+            (
+                "UPDATE attempts SET state='failed' WHERE attempt_id='a-released'",
+                "UPDATE attempts SET state='succeeded' WHERE attempt_id='a-released'",
+            ),
+            (
+                "INSERT INTO jobs VALUES ('missing-attempt','ws-contract','succeeded','plan',5,NULL)",
+                "DELETE FROM jobs WHERE job_id='missing-attempt'",
+            ),
+        ] {
+            let count = |pg: &mut postgres::Client| -> i64 {
+                pg.query_one(
+                    &workspace_consumer_sql("count(*)", "j.workspace_id=$1", ""),
+                    &[&"ws-contract"],
+                )
+                .unwrap()
+                .get(0)
+            };
+            pg.batch_execute(change).unwrap();
+            assert_eq!(count(&mut pg), 4, "{change}");
+            pg.batch_execute(restore).unwrap();
+            assert_eq!(count(&mut pg), 3, "{restore}");
+        }
     }
 
     #[test]
@@ -514,12 +625,13 @@ mod workspace_active_consumer_tests {
             ),
         ] {
             assert!(query.contains(WORKSPACE_ACTIVE_OR_HELD));
-            assert!(query.contains("r.state IN ('active','held_orphaned')"));
+            assert!(query.contains("r.state IS DISTINCT FROM 'released'"));
             assert!(query.contains("j.resolution IS NULL"));
             // PostgreSQL can hash this ownership set once for the bounded
             // Workspace page; a correlated EXISTS can degenerate into one
             // nested-loop probe per historical Job under a large ledger.
             assert!(query.contains("j.job_id IN ("));
+            assert!(query.contains("WITH scoped_jobs AS MATERIALIZED"));
         }
     }
 }
