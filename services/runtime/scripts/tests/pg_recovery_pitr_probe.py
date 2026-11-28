@@ -18,8 +18,10 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 
 RUNTIME = Path(__file__).resolve().parents[2]
@@ -53,6 +55,25 @@ def chown_tree(path: Path) -> None:
         os.chown(directory, uid, gid)
         for name in files:
             os.chown(Path(directory) / name, uid, gid)
+
+
+def stop_scratch_clusters(
+    root: Path, stop: Callable[[str], None], uncertain_starts: set[str]
+) -> None:
+    names = ("pitr", "sibling", "restore", "primary")
+    failures: list[Exception] = []
+    for name in names:
+        try:
+            stop(name)
+        except Exception as error:
+            failures.append(error)
+    residual = [name for name in names if (root / name / "postmaster.pid").exists()]
+    if failures or uncertain_starts or residual:
+        raise RuntimeError(
+            "isolated PostgreSQL stop not confirmed; preserving scratch "
+            f"(stop failures={len(failures)}, uncertain starts={sorted(uncertain_starts)}, "
+            f"residual pid files={residual})"
+        ) from (failures[0] if failures else None)
 
 
 def execute(root: Path) -> dict[str, object]:
@@ -99,14 +120,24 @@ def execute(root: Path) -> dict[str, object]:
         )
 
     active: set[str] = set()
+    uncertain_starts: set[str] = set()
 
     def start(name: str, port: int, *, pitr: bool = False) -> None:
+        uncertain_starts.add(name)
         ctl(name, port=port, pitr=pitr)
         active.add(name)
+        uncertain_starts.remove(name)
 
     def stop(name: str) -> None:
         if name in active:
+            pidfile = root / name / "postmaster.pid"
+            identity = pidfile.read_text().splitlines()
+            require(
+                len(identity) > 1 and identity[1] == str(root / name),
+                "scratch PostgreSQL PID file does not bind the owned data directory",
+            )
             ctl(name)
+            require(not pidfile.exists(), "scratch PostgreSQL PID file remains after stop")
             active.remove(name)
 
     def sql(port: int, query: str, db: str = "recovery_lab", *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -515,19 +546,22 @@ def execute(root: Path) -> dict[str, object]:
             "productionRpoRto": "UNKNOWN",
         }
     finally:
-        for name in ("pitr", "sibling", "restore", "primary"):
-            try:
-                stop(name)
-            except Exception:
-                pass
+        stop_scratch_clusters(root, stop, uncertain_starts)
 
 
 def main() -> None:
     if os.geteuid() != 0:
         raise SystemExit("Requires root to initialize postgres-owned *scratch* clusters")
-    with tempfile.TemporaryDirectory(prefix="ordivon-pg-pitr-r1-", dir="/var/tmp") as name:
-        root = Path(name)
-        print(json.dumps(execute(root), sort_keys=True))
+    root = Path(tempfile.mkdtemp(prefix="ordivon-pg-pitr-r1-", dir="/var/tmp"))
+    try:
+        result = execute(root)
+    except BaseException:
+        # Never delete a possibly live scratch cluster after an uncertain stop.
+        print(f"Recovery probe failed; preserving owned scratch: {root}", file=sys.stderr)
+        raise
+    shutil.rmtree(root)
+    result["scratchCleanup"] = "confirmed"
+    print(json.dumps(result, sort_keys=True))
 
 
 if __name__ == "__main__":
