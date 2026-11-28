@@ -142,12 +142,24 @@ class FullCoverageTests(unittest.TestCase):
             M.source_partition("services/runtime/main.rs", {"owners": [
                 {"name": "one", "root": "services/"}, {"name": "two", "root": "services/runtime/"}]})
 
-    def test_region_exclusion_protects_lego_core(self):
-        policy = {"owners": [], "source_regions": [
-            {"name": "methods", "paths": [".agents/skills/"],
-             "exclude": [".agents/skills/recursive-lego-calculus/"]}]}
-        self.assertEqual(M.source_partition(".agents/skills/recursive-lego-calculus/SKILL.md",
-                                             policy)["standing"], "UNASSIGNED")
+    def test_project_skill_source_regions_preserve_normative_boundary(self):
+        import tomllib
+        policy = tomllib.loads(
+            (ROOT / "tools/repo/owners.toml").read_text(encoding="utf-8"))
+
+        method = M.source_partition(".agents/skills/method-router/SKILL.md", policy)
+        calculus = M.source_partition(
+            ".agents/skills/recursive-lego-calculus/SKILL.md", policy)
+
+        self.assertEqual(method["standing"], "CLASSIFIED")
+        self.assertEqual(method["classification"], "REGION:agent-method-content")
+        self.assertEqual(calculus["standing"], "CLASSIFIED")
+        self.assertEqual(
+            calculus["classification"], "REGION:lego-specification-and-calculus")
+        self.assertFalse(any(
+            owner["root"].startswith(".agents/skills/")
+            for owner in policy["owners"]
+        ))
 
     def test_unlisted_region_overlap_fails_to_classify(self):
         regions = [{"name": s, "paths": ["meta/research/"]} for s in ("one", "two")]
