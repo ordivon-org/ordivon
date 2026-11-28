@@ -103,9 +103,10 @@ and locked `uv run` environment, not imports in system Python. If the lock
 is not materialized, use the owner's locked sync and verify the intended
 consumer; distinguish an offline cache miss from a missing installation.
 The optional `--mise-installed` view reports existing supplier records, even
-when a tool is not selected in the current project. An empty list means no exact command-name key in the supplier response, not
-absence of an installed executable: backend keys such as GitHub package names
-can differ from executable names. A supplier error is UNKNOWN.
+when a tool is not selected in the current project. `unmatchedNames` identifies
+executable names with no exact supplier-key match, not missing installations:
+for example, Lean and Lake are supplied by `github:leanprover/lean4`.
+Use scoped `mise which` for the executable; a supplier error is UNKNOWN.
 Do not install duplicate tools merely because PATH or Gateway discovery fails.
 
 An `on_path` result is only command resolution; `not_on_path` is **not**

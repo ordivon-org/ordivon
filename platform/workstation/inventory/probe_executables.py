@@ -113,8 +113,13 @@ def observe_mise_installed(names: list[str]) -> dict:
         if not isinstance(records, dict):
             raise ValueError("unexpected mise inventory")
         versions = {}
+        unmatched = []
         for name in names:
-            rows = records.get(name, [])
+            if name not in records:
+                # Supplier identifiers are not executable names (e.g. Lean).
+                unmatched.append(name)
+                continue
+            rows = records[name]
             if not isinstance(rows, list) or any(
                 not isinstance(row, dict)
                 or not isinstance(row.get("version"), str)
@@ -123,7 +128,11 @@ def observe_mise_installed(names: list[str]) -> dict:
             ):
                 raise ValueError("unexpected mise tool records")
             versions[name] = [row["version"] for row in rows]
-        return {"state": "observed", "installedVersions": versions}
+        return {
+            "state": "observed",
+            "installedVersions": versions,
+            "unmatchedNames": unmatched,
+        }
     except (OSError, subprocess.SubprocessError, ValueError):
         return {"state": "unknown", "reason": "mise_inventory_failed"}
 

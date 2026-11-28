@@ -133,13 +133,15 @@ def test_mise_inventory_distinguishes_off_path_installation() -> None:
     with (
         patch.object(probe.shutil, "which", return_value="/usr/bin/mise"),
         patch.object(probe.subprocess, "run", return_value=CompletedProcess(
-            [], 0, '{"pnpm":[{"version":"12.16.1","installed":true}]}', ""
+            [], 0, '{"pnpm":[{"version":"12.16.1","installed":true}],'
+            '"github:leanprover/lean4":[{"version":"4.35.0","installed":true}]}', ""
         )) as run,
     ):
-        report = probe.observe_mise_installed(["pnpm", "unlikely-tool"])
+        report = probe.observe_mise_installed(["pnpm", "lean", "unlikely-tool"])
     assert report == {
         "state": "observed",
-        "installedVersions": {"pnpm": ["12.16.1"], "unlikely-tool": []},
+        "installedVersions": {"pnpm": ["12.16.1"]},
+        "unmatchedNames": ["lean", "unlikely-tool"],
     }
     assert run.call_args.args[0] == [
         "/usr/bin/mise", "ls", "--installed", "--json",
