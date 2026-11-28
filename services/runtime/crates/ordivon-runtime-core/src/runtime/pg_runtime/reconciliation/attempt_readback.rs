@@ -89,14 +89,14 @@ impl PgRuntime {
     /// repeatable-read lifecycle, reservation and terminal-event verifier
     /// supplied its exact Attempt identifier. Re-bind the row to its owner,
     /// job/attempt versions, resolution, and current-or-terminal identity in
-    /// one new read snapshot; a concurrent transition must be inconclusive.
+    /// the caller's same read-only transaction. Preserve all identity/version
+    /// checks without treating normal concurrent progression as corruption.
     pub(in crate::runtime::pg_runtime) fn readback_attempt(
         &self,
-        db: &mut PgAdmissionStore,
+        tx: &mut postgres::Transaction<'_>,
         snapshot: &PgJobSnapshot,
     ) -> RuntimeResult<(AttemptRecord, RuntimeExecutionPlan, String, Option<i32>)> {
-        let row = db
-            .client
+        let row = tx
             .query_opt(
                 READBACK_VERIFIED_ATTEMPT_SQL,
                 &[
