@@ -10,6 +10,7 @@ def active_rooted_codeowners(source: str) -> dict[str, tuple[str, ...]]:
     grammar requires a source-bound owner test, not a guessed parser.
     """
     explicit: dict[str, tuple[str, ...]] = {}
+    saw_default = False
     for lineno, line in enumerate(source.splitlines(), start=1):
         line = line.strip()
         if not line or line.startswith("#"):
@@ -28,10 +29,11 @@ def active_rooted_codeowners(source: str) -> dict[str, tuple[str, ...]]:
         ):
             raise AssertionError(f"CODEOWNERS line {lineno} has no valid owner")
         if pattern == "*":
-            if explicit:
+            if saw_default or explicit:
                 raise AssertionError(
-                    "CODEOWNERS catch-all after explicit roots overrides them"
+                    "CODEOWNERS requires exactly one default catch-all before explicit roots"
                 )
+            saw_default = True
             continue
         if (
             not pattern.startswith("/")
@@ -56,4 +58,6 @@ def active_rooted_codeowners(source: str) -> dict[str, tuple[str, ...]]:
                 f"CODEOWNERS overlapping explicit root rule: {pattern}"
             )
         explicit[pattern] = owners
+    if not saw_default:
+        raise AssertionError("CODEOWNERS missing default catch-all rule")
     return explicit
