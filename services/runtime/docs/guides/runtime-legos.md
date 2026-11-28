@@ -88,9 +88,9 @@ composition check -> only then representation deletion or sharing**.
 | Logic | Reframe failure/requirements as a decision: inputs, state, rules, outputs, UNKNOWN and counterexamples | Admission/replay, scheduling, dispatch, reconciliation, consumer ownership, safe retirement |
 | Capability | Carry the decision on a mature concrete substrate, with explicit interface and truth owner | PostgreSQL tx/CAS, Git worktree, systemd/cgroup, Windows Job Object, native Runner, SHA-256 files, MCP |
 
-A LEGO is a contractable responsibility, not automatically one function,
-Tool, file, Agent, Skill or proof document. Use the existing typed R2.1
-fields only for a formally declared/admitted LEGO; do not duplicate registries.
+Runtime reasoning units follow actual consumer contracts, not automatically
+one function, Tool, file, Agent, Skill or proof document. Choose only the
+mathematical structure required by the responsibility; do not duplicate registries.
 
 ### Essential questions and current implementation
 
