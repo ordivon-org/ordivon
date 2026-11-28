@@ -800,7 +800,7 @@ fn rename_path_native(
     }
 }
 
-#[cfg(unix)]
+#[cfg(not(windows))]
 pub(crate) fn sync_directory(path: &Path) -> Result<(), UniversalExecError> {
     File::open(path)
         .and_then(|directory| directory.sync_all())
@@ -813,13 +813,6 @@ pub(crate) fn sync_directory(_path: &Path) -> Result<(), UniversalExecError> {
     // flushed before publication and rename durability is owned by MoveFileExW with
     // MOVEFILE_WRITE_THROUGH in rename_path_durable.
     Ok(())
-}
-
-#[cfg(not(any(unix, windows)))]
-pub(crate) fn sync_directory(path: &Path) -> Result<(), UniversalExecError> {
-    File::open(path)
-        .and_then(|directory| directory.sync_all())
-        .map_err(|error| io_error(path, "sync directory", error))
 }
 
 pub(crate) fn io_error(path: &Path, operation: &str, error: std::io::Error) -> UniversalExecError {
