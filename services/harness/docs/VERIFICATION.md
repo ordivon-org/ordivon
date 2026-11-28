@@ -108,6 +108,15 @@ The receipt must bind the exact implementation revision and prove 1,000 Runs, 10
 
 `evidence/index.json` classifies repository evidence. Existing Codex, Hermes, DeepSeek, Runtime and replacement/recovery receipts are historical because they bind commits before current `main`. They remain valuable evidence for those trajectories but must not be described as certification of current code.
 
+The H3 Codex, H4 Hermes and H5 replacement receipt readers share their
+mechanical JSON shape, digest syntax, exact check-set and integrity-envelope
+validation in `ordivon_harness._historical_receipt_validation`. Each reader
+retains its own frozen source, provider, Host, Runtime and workload acceptance
+conditions. Do not copy the mechanical validators or generalize a historical
+receipt into current acceptance. The existing receipt tests and
+`tests/test_historical_receipt_validation.py` guard this boundary; no frozen
+evidence bytes or CLI contracts change.
+
 ## Current live acceptance
 
 A current release-changing Provider, Runtime, recovery or completion path should produce a new receipt containing:
