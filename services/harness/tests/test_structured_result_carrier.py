@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import tempfile
 import unittest
 from dataclasses import replace
-from pathlib import Path
 
 from anc_canonical import canonical_digest
 
@@ -22,8 +20,9 @@ from ordivon_harness.ordivon.model import (
 )
 from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from ordivon_harness.postgres_store import PostgresHarnessStore
 from ordivon_harness.standalone import StandaloneHarnessRunner
+from tests.pg_test_support import isolated_harness_schema
 from tests.test_p0_sqlite_agent_loop import FixedClock
 from tests.test_structured_result_conformance import completion, contract
 
@@ -112,8 +111,10 @@ class StructuredResultCarrierTests(unittest.TestCase):
         )
         clock = FixedClock()
 
-        with tempfile.TemporaryDirectory() as directory:
-            store = SQLiteHarnessStore.initialize(Path(directory) / "state")
+        with (
+            isolated_harness_schema() as (dsn, schema),
+            PostgresHarnessStore(dsn, schema=schema) as store,
+        ):
             store.create_run(run_contract)
             continuity = EventSourcedRunContinuity(
                 store,
@@ -154,7 +155,6 @@ class StructuredResultCarrierTests(unittest.TestCase):
             self.assertLess(len(terminal.conclusion.summary.encode("utf-8")), 8_000)
             assert terminal.completion_proposal is not None
             self.assertEqual(terminal.completion_proposal.summary, summary)
-            store.close()
 
 
 if __name__ == "__main__":
