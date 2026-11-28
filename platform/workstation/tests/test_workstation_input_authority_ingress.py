@@ -282,6 +282,19 @@ class InputAuthorityIngressTests(unittest.TestCase):
         self.assertEqual(fetcher.calls, 0)
         self.assertEqual(self.destination().read_bytes(), b"foreign")
 
+    def test_tampered_durable_receipt_is_rejected_before_replay(self) -> None:
+        ingest(self.config, self.request, fetcher=FakeFetcher(self.payload))
+        _intent_path, receipt_path, _staging_path = _state_paths(
+            self.state, self.request["requestId"]
+        )
+        receipt = json.loads(receipt_path.read_text())
+        receipt["truthRole"] = "forged-domain-acceptance"
+        receipt_path.write_text(json.dumps(receipt))
+
+        with self.assertRaisesRegex(IngressConflict, "canonical digest"):
+            ingest(self.config, self.request, fetcher=FakeFetcher(b"must-not-fetch"))
+        self.assertEqual(self.destination().read_bytes(), self.payload)
+
     def test_same_request_id_with_changed_request_conflicts(self) -> None:
         fetcher = FakeFetcher(self.payload)
         ingest(self.config, self.request, fetcher=fetcher)
