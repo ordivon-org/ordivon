@@ -2974,6 +2974,95 @@ fn postgres_runtime_startup_requires_exact_qualified_writer() {
 
 #[test]
 #[ignore = "requires disposable PostgreSQL 18 and native systemd Runner"]
+fn pg_workspace_exec_reuses_trusted_uv_download_cache() {
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    let source = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let ids = ["ws-uv-cache-a", "ws-uv-cache-b"];
+    for id in ids {
+        let opened = call(
+            &endpoint,
+            "workspace.open",
+            json!({"workspaceId":id,"sourceRepo":source,"sourceRevision":"HEAD"}),
+        );
+        assert_ne!(opened["isError"], true, "{opened}");
+    }
+    let expected = fixture.root.join("store/cache/shared/uv");
+    let run = |id: &str, request: &str, script: &str| {
+        let result = call(
+            &endpoint,
+            "workspace.exec",
+            json!({"clientRequestId":request,"execution":{"workspaceId":id,
+                "executable":"/usr/bin/python3","args":["-c",script],"cwdRelative":".",
+                "timeoutMs":10000},"waitMs":15000,"stdoutTailBytes":2048}),
+        );
+        assert_ne!(result["isError"], true, "{result}");
+        assert_eq!(
+            result["structuredContent"]["executionDisposition"], "succeeded",
+            "{result}"
+        );
+        let stdout = result["structuredContent"]["stdoutTail"].as_str().unwrap();
+        let parts: Vec<_> = stdout.lines().collect();
+        assert_eq!(parts.len(), 2, "{stdout}");
+        assert_eq!(parts[0], expected.to_str().unwrap());
+        assert_eq!(
+            parts[1],
+            fixture
+                .root
+                .join("store/cache/workspaces")
+                .join(id)
+                .to_str()
+                .unwrap()
+        );
+    };
+    run(
+        ids[0],
+        "pg-uv-cache-a",
+        r#"import os
+from pathlib import Path
+p = Path(os.environ["UV_CACHE_DIR"])
+p.mkdir(parents=True, exist_ok=True)
+(p / "fixture-marker").write_text("SHARED")
+print(p)
+print(os.environ["XDG_CACHE_HOME"])
+"#,
+    );
+    let close = call(
+        &endpoint,
+        "workspace.close",
+        json!({"workspaceId":ids[0],"force":false,"consumerReleased":true}),
+    );
+    assert_eq!(close["structuredContent"]["removed"], true, "{close}");
+    assert_eq!(
+        fs::read_to_string(expected.join("fixture-marker")).unwrap(),
+        "SHARED"
+    );
+    run(
+        ids[1],
+        "pg-uv-cache-b",
+        r#"import os
+from pathlib import Path
+p = Path(os.environ["UV_CACHE_DIR"])
+assert (p / "fixture-marker").read_text() == "SHARED"
+print(p)
+print(os.environ["XDG_CACHE_HOME"])
+"#,
+    );
+    let close = call(
+        &endpoint,
+        "workspace.close",
+        json!({"workspaceId":ids[1],"force":false,"consumerReleased":true}),
+    );
+    assert_eq!(close["structuredContent"]["removed"], true, "{close}");
+    assert_eq!(
+        fs::read_to_string(expected.join("fixture-marker")).unwrap(),
+        "SHARED"
+    );
+}
+
+#[test]
+#[ignore = "requires disposable PostgreSQL 18 and native systemd Runner"]
 fn pg_workspace_exec_routes_cargo_target_to_private_reclaimable_cache() {
     let mut fixture = Fixture::new();
     let source = fixture.repo();

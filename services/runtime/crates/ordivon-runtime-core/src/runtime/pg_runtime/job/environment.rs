@@ -11,10 +11,20 @@ pub(super) fn pg_workspace_tool_environment(
     mut environment: std::collections::BTreeMap<String, String>,
     preserve_harness_fenced_request: bool,
     workspace_cache: &std::path::Path,
+    shared_package_cache: Option<&std::path::Path>,
 ) -> std::collections::BTreeMap<String, String> {
     // Qualified same-PG Harness dispatch fences bind the caller's exact source
     // environment. Never silently alter their immutable effect identity.
     if !preserve_harness_fenced_request {
+        // A private XDG_CACHE_HOME would otherwise also make uv's download
+        // cache private. Reuse the existing Runtime-owned trusted Linux
+        // package cache, while leaving project virtualenvs and generated
+        // outputs private. Contained jobs take their separate environment path.
+        if let Some(shared) = shared_package_cache {
+            environment
+                .entry("UV_CACHE_DIR".to_string())
+                .or_insert_with(|| shared.join("uv").to_string_lossy().into_owned());
+        }
         environment
             .entry("CARGO_TARGET_DIR".to_string())
             .or_insert_with(|| {
@@ -303,6 +313,7 @@ mod cargo_issuer_environment_tests {
             Default::default(),
             enabled,
             Path::new("/tmp/test-cache"),
+            None,
         );
         assert_eq!(
             actual.get("CARGO_TARGET_DIR").map(String::as_str),
@@ -330,7 +341,12 @@ mod cargo_issuer_environment_tests {
     fn issuer_bound_private_cargo_environment_keeps_exact_source_env() {
         let original = BTreeMap::from([("LANG".to_owned(), "C".to_owned())]);
         assert_eq!(
-            pg_workspace_tool_environment(original.clone(), true, Path::new("/tmp/test-cache")),
+            pg_workspace_tool_environment(
+                original.clone(),
+                true,
+                Path::new("/tmp/test-cache"),
+                None
+            ),
             original
         );
         let explicit = BTreeMap::from([(
@@ -338,7 +354,12 @@ mod cargo_issuer_environment_tests {
             "/proc/self/fd/198".to_owned(),
         )]);
         assert_eq!(
-            pg_workspace_tool_environment(explicit.clone(), true, Path::new("/tmp/test-cache")),
+            pg_workspace_tool_environment(
+                explicit.clone(),
+                true,
+                Path::new("/tmp/test-cache"),
+                None
+            ),
             explicit
         );
     }
@@ -346,7 +367,7 @@ mod cargo_issuer_environment_tests {
     #[test]
     fn ordinary_job_places_python_and_ruff_caches_outside_workspace_without_clobbering_intent() {
         let cache = Path::new("/runtime/cache/workspaces/ws-A");
-        let actual = pg_workspace_tool_environment(Default::default(), false, cache);
+        let actual = pg_workspace_tool_environment(Default::default(), false, cache, None);
         assert_eq!(actual["XDG_CACHE_HOME"], "/runtime/cache/workspaces/ws-A");
         assert_eq!(
             actual["PYTHONPYCACHEPREFIX"],
@@ -362,7 +383,7 @@ mod cargo_issuer_environment_tests {
             ("PYTHONPYCACHEPREFIX".to_string(), "/custom/pyc".to_string()),
             ("RUFF_CACHE_DIR".to_string(), "/custom/ruff".to_string()),
         ]);
-        let preserved = pg_workspace_tool_environment(custom.clone(), false, cache);
+        let preserved = pg_workspace_tool_environment(custom.clone(), false, cache, None);
         assert_eq!(preserved["XDG_CACHE_HOME"], custom["XDG_CACHE_HOME"]);
         assert_eq!(
             preserved["PYTHONPYCACHEPREFIX"],
@@ -373,6 +394,7 @@ mod cargo_issuer_environment_tests {
             Default::default(),
             false,
             Path::new("/runtime/cache/workspaces/ws-B"),
+            None,
         );
         assert_ne!(
             actual["PYTHONPYCACHEPREFIX"],
@@ -381,10 +403,56 @@ mod cargo_issuer_environment_tests {
     }
 
     #[test]
+    fn ordinary_linux_pg_jobs_reuse_uv_download_cache_across_workspaces() {
+        let shared = Path::new("/runtime/cache/shared");
+        let a = pg_workspace_tool_environment(
+            Default::default(),
+            false,
+            Path::new("/runtime/cache/workspaces/ws-A"),
+            Some(shared),
+        );
+        let b = pg_workspace_tool_environment(
+            Default::default(),
+            false,
+            Path::new("/runtime/cache/workspaces/ws-B"),
+            Some(shared),
+        );
+        assert_eq!(a["UV_CACHE_DIR"], "/runtime/cache/shared/uv");
+        assert_eq!(a["UV_CACHE_DIR"], b["UV_CACHE_DIR"]);
+        assert_ne!(a["XDG_CACHE_HOME"], b["XDG_CACHE_HOME"]);
+        assert!(!a.contains_key("UV_PROJECT_ENVIRONMENT"));
+
+        let explicit = BTreeMap::from([("UV_CACHE_DIR".into(), "/explicit/uv".into())]);
+        let kept = pg_workspace_tool_environment(
+            explicit.clone(),
+            false,
+            Path::new("/runtime/cache/workspaces/ws-A"),
+            Some(shared),
+        );
+        assert_eq!(kept["UV_CACHE_DIR"], "/explicit/uv");
+        assert_eq!(
+            pg_workspace_tool_environment(
+                explicit.clone(),
+                true,
+                Path::new("/tmp/private"),
+                Some(shared)
+            ),
+            explicit
+        );
+        let non_linux = pg_workspace_tool_environment(
+            Default::default(),
+            false,
+            Path::new("/tmp/private"),
+            None,
+        );
+        assert!(!non_linux.contains_key("UV_CACHE_DIR"));
+    }
+
+    #[test]
     fn ordinary_pg_job_reuses_native_private_cargo_default_without_overriding_explicit() {
         let empty = BTreeMap::new();
         assert_eq!(
-            pg_workspace_tool_environment(empty, false, Path::new("/tmp/test-cache"))
+            pg_workspace_tool_environment(empty, false, Path::new("/tmp/test-cache"), None)
                 ["CARGO_TARGET_DIR"],
             "/run/ordivon/cargo-target"
         );
@@ -392,8 +460,12 @@ mod cargo_issuer_environment_tests {
             "CARGO_TARGET_DIR".to_owned(),
             "/custom/agent/target".to_owned(),
         )]);
-        let actual =
-            pg_workspace_tool_environment(explicit.clone(), false, Path::new("/tmp/test-cache"));
+        let actual = pg_workspace_tool_environment(
+            explicit.clone(),
+            false,
+            Path::new("/tmp/test-cache"),
+            None,
+        );
         assert_eq!(actual["CARGO_TARGET_DIR"], explicit["CARGO_TARGET_DIR"]);
     }
 }
