@@ -68,6 +68,13 @@ def valid_runtime_execution_context_inventory(target: dict, target_name: str | N
     )
     if any(field in target and not isinstance(target[field], list) for field in fields):
         return False
+    string_field = "windowsAuthorities" if target_name == "windows_native" else "executionProfiles"
+    if string_field in target:
+        values = target[string_field]
+        if any(not isinstance(value, str) or not value.strip() for value in values):
+            return False
+        if len(values) != len(set(values)):
+            return False
     if target_name != "windows_native" or "windowsContexts" not in target:
         return True
     contexts = target["windowsContexts"]
