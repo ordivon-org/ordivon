@@ -34,7 +34,6 @@ ordivon-composition = { path = "../../../packages/composition" }
 
 [tool.uv]
 default-groups = ["test", "quality"]
-required-version = "==0.13.5"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

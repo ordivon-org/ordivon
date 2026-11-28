@@ -17,7 +17,6 @@ ordivon-composition = { path = "../../packages/composition" }
 [tool.uv]
 package = false
 default-groups = ["test", "quality", "authority", "security"]
-required-version = "==0.13.5"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

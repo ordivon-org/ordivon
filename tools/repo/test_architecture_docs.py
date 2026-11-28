@@ -2020,6 +2020,30 @@ def test_repo_test_function_names_are_unique() -> None:
         assert not duplicates, (source, duplicates)
 
 
+def test_mise_managed_uv_requests_follow_latest() -> None:
+    """Declared tool selection is independent of application dependency locks."""
+    import subprocess
+    import tomllib
+
+    tracked = subprocess.check_output(
+        ["git", "ls-files", "-z", "--", "*mise.toml"], cwd=ROOT
+    ).split(b"\0")
+    declared = {}
+    for path in tracked:
+        if not path:
+            continue
+        relative = path.decode("utf-8")
+        config = tomllib.loads((ROOT / relative).read_text(encoding="utf-8"))
+        request = config.get("tools", {}).get("uv")
+        if request is not None:
+            declared[relative] = request
+    assert declared.get("mise.toml") == "latest"
+    assert all(request == "latest" for request in declared.values()), declared
+    for owner in ("catalogs/authorities", "studies/experimental-episodes/episode-store"):
+        config = tomllib.loads((ROOT / owner / "pyproject.toml").read_text(encoding="utf-8"))
+        assert "required-version" not in config["tool"]["uv"]
+
+
 def test_git01_three_uv_owner_nonmerge_effects_use_current_verified_consumers() -> None:
     """Old uv 0.13.5 patches must not replace the current native Owner graph."""
     import tomllib
@@ -2052,7 +2076,7 @@ def test_git01_three_uv_owner_nonmerge_effects_use_current_verified_consumers() 
                 ROOT / owner / "evidence/r7-artifact-development-publication-intent.json"
             ).is_file()
         else:
-            assert tuple(map(int, mise["tools"]["uv"].split("."))) >= (0, 13, 5)
+            assert mise["tools"]["uv"] == "latest"
         assert task in mise["tasks"]
     module.validate_formal_issue_census(census, plans)
 
