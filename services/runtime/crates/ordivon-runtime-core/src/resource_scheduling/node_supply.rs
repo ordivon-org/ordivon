@@ -1,4 +1,4 @@
-//! Original native Linux cgroup/PSI supply observation and tightest-ancestor capacity.
+//! Native platform supply observation; absent Windows PID/PSI dimensions remain unobserved.
 use super::request::ResourceRequest;
 use serde::Serialize;
 use std::fs;
@@ -9,11 +9,12 @@ pub struct NodeResources {
     pub cpu_millis: u64,
     pub memory_total_bytes: u64,
     pub memory_available_bytes: u64,
-    pub pid_capacity: u64,
-    pub pids_available: u64,
-    pub cpu_pressure: f64,
-    pub memory_pressure: f64,
-    pub io_pressure: f64,
+    pub pid_capacity: Option<u64>,
+    pub pids_available: Option<u64>,
+    pub cpu_pressure: Option<f64>,
+    pub memory_pressure: Option<f64>,
+    pub io_pressure: Option<f64>,
+    pub kernel_low_memory: Option<bool>,
 }
 fn text(path: &str) -> Result<String, String> {
     fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))
@@ -93,6 +94,7 @@ impl ResourceBounds {
 }
 
 impl NodeResources {
+    #[cfg(not(windows))]
     pub fn observe() -> Result<Self, String> {
         let info = text("/proc/meminfo")?;
         let mem = |name: &str| -> Result<u64, String> {
@@ -135,17 +137,107 @@ impl NodeResources {
             cpu_millis: bounds.cpu_millis,
             memory_total_bytes: bounds.memory_total_bytes,
             memory_available_bytes: bounds.memory_available_bytes,
-            pid_capacity: bounds.pid_capacity,
-            pids_available: bounds.pids_available,
-            cpu_pressure: pressure("cpu", "some")?,
-            memory_pressure: pressure("memory", "full")?,
-            io_pressure: pressure("io", "full")?,
+            pid_capacity: Some(bounds.pid_capacity),
+            pids_available: Some(bounds.pids_available),
+            cpu_pressure: Some(pressure("cpu", "some")?),
+            memory_pressure: Some(pressure("memory", "full")?),
+            io_pressure: Some(pressure("io", "full")?),
+            kernel_low_memory: None,
+        })
+    }
+    #[cfg(windows)]
+    pub fn observe() -> Result<Self, String> {
+        use windows_sys::Win32::Foundation::CloseHandle;
+        use windows_sys::Win32::System::Memory::{
+            CreateMemoryResourceNotification, LowMemoryResourceNotification,
+            QueryMemoryResourceNotification,
+        };
+        use windows_sys::Win32::System::SystemInformation::{GlobalMemoryStatusEx, MEMORYSTATUSEX};
+        let mut memory = MEMORYSTATUSEX {
+            dwLength: std::mem::size_of::<MEMORYSTATUSEX>() as u32,
+            ..Default::default()
+        };
+        // SAFETY: correctly sized output storage, owned notification handle.
+        if unsafe { GlobalMemoryStatusEx(&mut memory) } == 0 || memory.ullTotalPhys == 0 {
+            return Err(std::io::Error::last_os_error().to_string());
+        }
+        let low = unsafe {
+            let handle = CreateMemoryResourceNotification(LowMemoryResourceNotification);
+            if handle.is_null() {
+                return Err(std::io::Error::last_os_error().to_string());
+            }
+            let mut state = 0;
+            let ok = QueryMemoryResourceNotification(handle, &mut state);
+            let result = if ok != 0 {
+                Ok(state != 0)
+            } else {
+                Err(std::io::Error::last_os_error().to_string())
+            };
+            CloseHandle(handle);
+            result?
+        };
+        let cpu = std::thread::available_parallelism()
+            .map_err(|e| e.to_string())?
+            .get() as u64;
+        Ok(Self {
+            cpu_millis: cpu.saturating_mul(1000),
+            memory_total_bytes: memory.ullTotalPhys,
+            memory_available_bytes: memory.ullAvailPhys.min(memory.ullAvailPageFile),
+            pid_capacity: None,
+            pids_available: None,
+            cpu_pressure: None,
+            memory_pressure: None,
+            io_pressure: None,
+            kernel_low_memory: Some(low),
         })
     }
     pub fn pressure_allows(&self, r: &ResourceRequest) -> bool {
-        self.memory_pressure < 5.0
-            && (r.cpu_millis == 0 || self.cpu_pressure < 70.0)
-            && (!r.io_intensive || self.io_pressure < 40.0)
+        match self.kernel_low_memory {
+            Some(low) => !low,
+            None => {
+                self.memory_pressure.is_some_and(|v| v < 5.0)
+                    && (r.cpu_millis == 0 || self.cpu_pressure.is_some_and(|v| v < 70.0))
+                    && (!r.io_intensive || self.io_pressure.is_some_and(|v| v < 40.0))
+            }
+        }
+    }
+    /// Admit against the observed dimensions, not a fabricated Windows PID cap.
+    /// Windows uses its native low-memory signal and CPU/memory; per-Job
+    /// process ceilings remain a separate JobObject contract.
+    #[cfg(feature = "postgres-registry-admission")]
+    pub fn fits(
+        &self,
+        cpu: u64,
+        r: &ResourceRequest,
+        unspent_memory: u64,
+        unspent_pids: u64,
+    ) -> bool {
+        let reserve = (self.memory_total_bytes / 20).max(64 * 1024 * 1024);
+        let memory_free = self
+            .memory_available_bytes
+            .saturating_sub(reserve)
+            .saturating_sub(unspent_memory);
+        match self.pids_available {
+            Some(pids) => crate::resource_fit::fits(
+                cpu,
+                u64::from(r.cpu_millis),
+                self.cpu_millis,
+                r.memory_bytes,
+                memory_free,
+                u64::from(r.pids),
+                pids.saturating_sub(unspent_pids).saturating_sub(64),
+            ),
+            None if self.kernel_low_memory.is_some() => crate::resource_fit::fits(
+                cpu,
+                u64::from(r.cpu_millis),
+                self.cpu_millis,
+                r.memory_bytes,
+                memory_free,
+                0,
+                0,
+            ),
+            None => false,
+        }
     }
 }
 
@@ -202,5 +294,24 @@ mod native_allocation_scope_tests {
         assert!(resources
             .constrain("unknown", "max", "0", "max", "1")
             .is_err());
+    }
+}
+
+#[cfg(all(test, windows))]
+mod native_windows_supply_tests {
+    use super::*;
+    #[test]
+    fn native_windows_observation_is_not_linux_procfs_or_fabricated_pid_budget() {
+        let observed = NodeResources::observe().expect("actual Win32 supply observation");
+        assert!(observed.cpu_millis > 0);
+        assert!(observed.memory_total_bytes > 0);
+        assert!(observed.memory_available_bytes <= observed.memory_total_bytes);
+        assert!(observed.kernel_low_memory.is_some());
+        assert_eq!(observed.pid_capacity, None);
+        assert_eq!(observed.pids_available, None);
+        assert_eq!(observed.cpu_pressure, None);
+        assert_eq!(observed.memory_pressure, None);
+        assert_eq!(observed.io_pressure, None);
+        println!("{}", serde_json::to_string(&observed).unwrap());
     }
 }

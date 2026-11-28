@@ -6,6 +6,8 @@ Specification:
   - Malformed/contradictory flags are UNKNOWN, never positive availability.
   - Source Owner target inventory must be a list with exactly one matching
     identity; explicitly supplied context inventories must be lists.
+  - Present canonical Windows inventory is authoritative. Ready requires a
+    nonempty valid canonical inventory when that representation is supplied.
   - Gateway does not create physical Owner truth.
 
 This enumerates a finite adversarial input domain. It is not a universal
@@ -133,7 +135,27 @@ async def check() -> dict[str, int]:
             },
             True,
         ),
-        ({"schemaVersion": 1, "targets": [{**qualified, "windowsContexts": []}]}, True),
+        ({"schemaVersion": 1, "targets": [{**qualified, "windowsContexts": []}]}, False),
+        (
+            {"schemaVersion": 1, "targets": [{**qualified, "windowsContexts": [{}]}]},
+            False,
+        ),
+        (
+            {"schemaVersion": 1, "targets": [{**qualified, "windowsContexts": ["invalid"]}]},
+            False,
+        ),
+        (
+            {
+                "schemaVersion": 1,
+                "targets": [
+                    {
+                        **qualified,
+                        "windowsContexts": [{"identity": "service", "privilege": "limited"}],
+                    }
+                ],
+            },
+            True,
+        ),
     ]
     malformed_inventories = 0
     for response, should_be_available in inventory_cases:

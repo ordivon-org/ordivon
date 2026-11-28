@@ -66,6 +66,7 @@ impl PgRuntime {
             "startedAtMs":started,"finishedAtMs":finished,
             "executionTerminal":resolution.is_some(),
             "executionDisposition":resolution,
+            "executionReasonCode":r.get::<_,Option<String>>(17),
             "deliveryDisposition":delivery,
             "recoveryRequired":finished.is_none() && r.get::<_,Option<String>>(8).as_deref().is_some_and(|state| matches!(state,"starting"|"stopping"|"recovering")),
             "semanticCompletionEvaluated":false,

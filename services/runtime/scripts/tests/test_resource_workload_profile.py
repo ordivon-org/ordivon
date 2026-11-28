@@ -14,7 +14,9 @@ MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
 
-def receipt(*, cpu: int, memory: int, read: int, write: int, swap: int | None = None) -> dict[str, object]:
+def receipt(
+    *, cpu: int, memory: int, read: int, write: int, swap: int | None = None, identity: int = 1
+) -> dict[str, object]:
     memory_payload: dict[str, object] = {
         "peakBytes": memory,
         "events": {"low": 0, "high": 0, "max": 0, "oom": 0, "oomKill": 0},
@@ -23,9 +25,9 @@ def receipt(*, cpu: int, memory: int, read: int, write: int, swap: int | None = 
         memory_payload["swapPeakBytes"] = swap
     return {
         "schemaVersion": 1,
-        "taskId": "attempt-1",
-        "jobId": "job-1",
-        "attemptId": "attempt-1",
+        "taskId": f"attempt-{identity}",
+        "jobId": f"job-{identity}",
+        "attemptId": f"attempt-{identity}",
         "launchTokenDigest": "sha256:" + "0" * 64,
         "observedUnixMs": 1,
         "scope": "attempt_cgroup_including_runner",
@@ -54,7 +56,10 @@ class ResourceWorkloadProfileTests(unittest.TestCase):
             paths = []
             for index, value in enumerate([10, 20, 30, 40, 50], start=1):
                 path = root / f"{index}.resource-receipt.json"
-                write_receipt(path, receipt(cpu=value, memory=value * 100, read=value * 2, write=value * 3))
+                write_receipt(
+                    path,
+                    receipt(cpu=value, memory=value * 100, read=value * 2, write=value * 3, identity=index),
+                )
                 paths.append(path)
 
             profile = MODULE.build_profile(paths, expected_attempts=10)
@@ -84,8 +89,8 @@ class ResourceWorkloadProfileTests(unittest.TestCase):
             root = Path(temporary)
             first = root / "a.resource-receipt.json"
             second = root / "b.resource-receipt.json"
-            write_receipt(first, receipt(cpu=1, memory=2, read=3, write=4, swap=None))
-            write_receipt(second, receipt(cpu=2, memory=3, read=4, write=5, swap=9))
+            write_receipt(first, receipt(cpu=1, memory=2, read=3, write=4, swap=None, identity=1))
+            write_receipt(second, receipt(cpu=2, memory=3, read=4, write=5, swap=9, identity=2))
 
             profile = MODULE.build_profile([first, second], expected_attempts=2)
 
@@ -98,8 +103,12 @@ class ResourceWorkloadProfileTests(unittest.TestCase):
             root = Path(temporary)
             nested = root / "nested"
             nested.mkdir()
-            write_receipt(nested / "b.resource-receipt.json", receipt(cpu=2, memory=2, read=2, write=2))
-            write_receipt(root / "a.resource-receipt.json", receipt(cpu=1, memory=1, read=1, write=1))
+            write_receipt(
+                nested / "b.resource-receipt.json", receipt(cpu=2, memory=2, read=2, write=2, identity=2)
+            )
+            write_receipt(
+                root / "a.resource-receipt.json", receipt(cpu=1, memory=1, read=1, write=1, identity=1)
+            )
             (root / "unrelated.json").write_text("{}", encoding="utf-8")
 
             discovered = MODULE.discover_receipts([root], max_files=10)
@@ -109,8 +118,12 @@ class ResourceWorkloadProfileTests(unittest.TestCase):
     def test_directory_discovery_fails_closed_when_bound_is_exceeded(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            write_receipt(root / "a.resource-receipt.json", receipt(cpu=1, memory=1, read=1, write=1))
-            write_receipt(root / "b.resource-receipt.json", receipt(cpu=2, memory=2, read=2, write=2))
+            write_receipt(
+                root / "a.resource-receipt.json", receipt(cpu=1, memory=1, read=1, write=1, identity=1)
+            )
+            write_receipt(
+                root / "b.resource-receipt.json", receipt(cpu=2, memory=2, read=2, write=2, identity=2)
+            )
 
             with self.assertRaisesRegex(ValueError, "max-files"):
                 MODULE.discover_receipts([root], max_files=1)
@@ -132,6 +145,34 @@ class ResourceWorkloadProfileTests(unittest.TestCase):
 
             with self.assertRaisesRegex(ValueError, "expected-attempts"):
                 MODULE.build_profile([path], expected_attempts=0)
+
+
+    def test_identical_copied_receipt_is_counted_once_by_attempt_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            first = root / "a.resource-receipt.json"
+            second = root / "b.resource-receipt.json"
+            payload = receipt(cpu=3, memory=5, read=7, write=11, identity=1)
+            write_receipt(first, payload)
+            write_receipt(second, payload)
+
+            profile = MODULE.build_profile([first, second], expected_attempts=1)
+
+            self.assertEqual(profile["receiptCount"], 1)
+            self.assertEqual(profile["coverage"]["receiptCount"], 1)
+            self.assertEqual(profile["coverage"]["basisPoints"], 10_000)
+            self.assertEqual(profile["memoryEventTotals"]["oom"], 0)
+
+    def test_conflicting_receipts_for_same_attempt_identity_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            first = root / "a.resource-receipt.json"
+            second = root / "b.resource-receipt.json"
+            write_receipt(first, receipt(cpu=3, memory=5, read=7, write=11, identity=1))
+            write_receipt(second, receipt(cpu=13, memory=5, read=7, write=11, identity=1))
+
+            with self.assertRaisesRegex(ValueError, "conflicting receipts for identity"):
+                MODULE.build_profile([first, second], expected_attempts=1)
 
 
 if __name__ == "__main__":

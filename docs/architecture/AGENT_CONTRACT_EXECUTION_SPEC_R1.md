@@ -59,6 +59,7 @@ Let `Accepted_c(x,w)` mean consumer `c` verifies outcome `x` with current scoped
 - **Safety S3:** historical registration content at date `t` is not rewritten merely because current navigation changed at `t'`.
 - **Safety S4:** `UNKNOWN` never silently becomes `FALSE`, `FAIL` or `PASS`.
 - **Effect S5:** a Skill/router/model belief never authorizes an effect; the executing Owner checks the current principal/operation/source.
+  At the source-only Owner LEGO node/slice boundary, the existing graph contract admits the six fields `deletionAuthorized`, `effectAuthorized`, `promotionAuthorized`, `deploymentAuthorized`, `domainAccepted`, and `proofReuseAdmissible` only when absent or exactly Boolean false. Absence is no claim; explicit false is a source-projection nonclaim, not proof of real-world negation. This validation neither grants authority nor establishes consumer acceptance.
 - **Progress P1 (conditional):** when a task has an available qualified action, finite resources and an admitted recovery path, it must reach a new observable frontier or explicit bounded blocker. No unbounded fairness guarantee or promise of eventual domain success is implied.
 
 Formal targets are selected only where they reduce a named defect. Separate (a) mathematical model proof, (b) implementation refinement, (c) current installation evidence and (d) domain acceptance. A Lean/Z3/TLA+/Quint PASS does not imply the other three. Use CEGAR to refine abstraction on counterexamples, without defaulting to claims of minimal sufficient representation.

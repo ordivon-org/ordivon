@@ -7,7 +7,8 @@ remain under their natural Catalog/Knowledge Owners.
 
 ## What is actually migrated
 
-The importer reads only these source families at an exact Git SourceCut:
+The importer reads only these source families from one frozen Git commit.
+Working-tree and index edits are intentionally excluded until committed:
 
 | Family | Role |
 | --- | --- |
@@ -88,6 +89,18 @@ python3 catalogs/capabilities/ele/studies.py search --query 'recovery'
 python3 catalogs/capabilities/ele/studies.py search --query 'qualification' --kind finance_qualification
 python3 catalogs/capabilities/ele/studies.py show --id provider:worktrunk
 python3 catalogs/capabilities/ele/studies.py links --id candidate_evidence:worktrunk-candidate-20261106
+```
+
+Catalog tests use the Catalog-owned locked uv environment. The normal
+`mise run capability-catalog:verify` task collects the PG test but skips it
+when `ORDIVON_ELE_TEST_DSN` is absent. To require the native PG case, supply
+a fresh disposable database named `ele_fixture` without an `ele` schema;
+never use the ordinary ELE database or its DSN:
+
+```sh
+: "${ORDIVON_ELE_TEST_DSN:?fresh disposable ele_fixture DSN required}"
+uv run --project catalogs/capabilities --locked python -m pytest -q \
+  catalogs/capabilities/tests/test_ele_pg_studies.py::test_native_pg_import_replay_retire_and_exact_cut_readback
 ```
 
 The importer requires the mature `psycopg 3` driver already used by

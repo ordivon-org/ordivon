@@ -1,5 +1,6 @@
 //! PostgreSQL admission owner: cancellation.
 use super::*;
+use crate::runtime::{AttemptLifecycleContract, AttemptState};
 
 impl PgAdmissionStore {
     /// Persist only a cancel/stop intent. Do not infer that a runner has
@@ -66,6 +67,8 @@ impl PgAdmissionStore {
             &[&attempt_id,&i.job_id],
         )?.ok_or(PgAdmissionError::Blocked)?;
         let previous: String = attempt.get(0);
+        let previous_state =
+            AttemptState::parse(&previous).map_err(|_| PgAdmissionError::Blocked)?;
         let stop_intent: String = attempt.get(1);
 
         // Never treat a lifecycle projection alone as evidence that a
@@ -82,17 +85,18 @@ impl PgAdmissionStore {
             if previous != "orphaned" || reservation_state != "held_orphaned" {
                 return Err(PgAdmissionError::Blocked);
             }
-        } else if !matches!(
-            previous.as_str(),
-            "accepted" | "starting" | "running" | "recovering" | "stopping"
-        ) || reservation_state != "active"
+        } else if !(previous_state == AttemptState::Accepted
+            || AttemptLifecycleContract::stopping_target_state(previous_state).is_some())
+            || reservation_state != "active"
         {
             return Err(PgAdmissionError::Blocked);
         }
 
         if desired == "cancelled"
             && stop_intent == "stop_requested"
-            && (is_orphan || matches!(previous.as_str(), "accepted" | "stopping"))
+            && (is_orphan
+                || previous_state == AttemptState::Accepted
+                || previous_state == AttemptState::Stopping)
         {
             tx.commit().map_err(|_| PgAdmissionError::UnknownCommit)?;
             return Ok(PgCancelOutcome::Existing(i.job_id.clone()));
@@ -115,11 +119,9 @@ impl PgAdmissionStore {
                 return Err(PgAdmissionError::Blocked);
             }
         }
-        let next_state = if matches!(previous.as_str(), "starting" | "running" | "recovering") {
-            "stopping"
-        } else {
-            previous.as_str()
-        };
+        let next_state = AttemptLifecycleContract::stopping_target_state(previous_state)
+            .map(AttemptState::as_db)
+            .unwrap_or(previous.as_str());
         let changed = tx.execute(
             "UPDATE attempts SET state=$1,termination_intent='stop_requested',row_version=row_version+1 WHERE attempt_id=$2 AND state=$3 AND termination_intent=$4",
             &[&next_state,&attempt_id,&previous,&stop_intent],

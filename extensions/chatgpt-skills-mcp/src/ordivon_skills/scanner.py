@@ -224,6 +224,9 @@ def scan_skill_package(root: Path) -> ScanResult:
         except OSError:
             continue
         if size > _MAX_SCAN_FILE_BYTES:
+            # Uninspected bytes cannot receive a clean scan verdict.
+            # Keep explicit discovery, but block automatic routing until reviewed.
+            flag("UNSCANNED_RESOURCE", f"resource exceeds scanner inspection limit: {relative}")
             continue
         try:
             raw = candidate.read_bytes()

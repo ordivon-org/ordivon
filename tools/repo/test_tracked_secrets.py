@@ -120,6 +120,10 @@ class SecretTriageTests(unittest.TestCase):
                     return "false\n"
                 if "status" in args:
                     return ""
+                if "merge-base" in args and "--is-ancestor" in args:
+                    if args[-2] != self.head:
+                        raise subprocess.CalledProcessError(1, args)
+                    return ""
                 return self.head + "\n"
             with patch("tools.repo.triage_git_secret_scan.subprocess.check_output",
                        side_effect=git_result):
@@ -137,6 +141,13 @@ class SecretTriageTests(unittest.TestCase):
         for code, rows in [(0, [self.row]), (17, []), (2, []),
                            (0, None), (17, [{}]), (0, {})]:
             self.assertEqual(self.scan(code, rows)[0], 2)
+
+    def test_unrelated_finding_commit_is_unknown(self):
+        row = dict(self.row)
+        row["Commit"] = "0" * 40
+        code, result = self.scan(17, [row])
+        self.assertEqual((code, result["status"]), (2, "unknown"))
+        self.assertEqual(result["findings"], [])
 
     def test_native_gitleaks_clean_and_synthetic_finding(self):
         code, result = observe(self.repo, self.head)
