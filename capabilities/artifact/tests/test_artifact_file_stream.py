@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import subprocess
 import sys
@@ -11,6 +12,7 @@ from pathlib import Path
 import pytest
 
 from artifact_core.contracts import FileCommitment, sha256_file
+from scripts import artifact_cad_step
 
 
 @pytest.mark.skipif(not hasattr(os, "O_NOFOLLOW"), reason="requires native final-link rejection")
@@ -60,3 +62,45 @@ def test_initial_alias_is_resolved_before_commitment():
         assert commitment.path == path
         assert commitment.sha256 == sha256_file(alias)
         assert commitment.verify() == commitment
+
+
+def test_cad_file_fact_reports_same_stream_after_path_drift(tmp_path, monkeypatch):
+    subject = tmp_path / "part.step"
+    original = b"original-step"
+    replacement = b"replacement-with-different-size"
+    subject.write_bytes(original)
+    native_sha256 = hashlib.sha256
+    expected = native_sha256(original).hexdigest()
+
+    class ReplaceAfterDigest:
+        def __init__(self):
+            self.digest = native_sha256()
+
+        def update(self, block):
+            self.digest.update(block)
+
+        def hexdigest(self):
+            value = self.digest.hexdigest()
+            subject.write_bytes(replacement)
+            return value
+
+    monkeypatch.setattr(hashlib, "sha256", ReplaceAfterDigest)
+    assert artifact_cad_step.fact(subject) == {
+        "path": str(subject),
+        "sha256": expected,
+        "size": len(original),
+    }
+    assert subject.read_bytes() == replacement
+
+
+def test_cad_file_fact_preserves_relative_path_and_digest_shape(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    subject = Path("part.step")
+    subject.write_bytes(b"step-data")
+    alias = Path("alias.step")
+    alias.symlink_to(subject)
+    assert artifact_cad_step.fact(alias) == {
+        "path": "alias.step",
+        "sha256": hashlib.sha256(b"step-data").hexdigest(),
+        "size": len(b"step-data"),
+    }
