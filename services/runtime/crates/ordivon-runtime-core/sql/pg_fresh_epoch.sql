@@ -48,7 +48,7 @@ CREATE TABLE job_allocations(
  resources_json text NOT NULL,workspace_access_json text NOT NULL,owner text NOT NULL,
  state text NOT NULL CHECK(state IN ('active','released')),
  acquired_at_ms bigint NOT NULL,released_at_ms bigint);
-CREATE INDEX idx_job_allocations_active ON job_allocations(state,attempt_id);
+CREATE INDEX idx_job_allocations_active ON job_allocations(attempt_id) WHERE state='active';
 -- A logical Run can outlive all of its terminal PG Jobs.
 -- The physical pin lives in the Runtime DB, not a separate Harness database:
 -- identical numeric advisory keys in two databases do not mutually exclude.
