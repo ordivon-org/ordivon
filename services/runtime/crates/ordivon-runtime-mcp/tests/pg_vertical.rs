@@ -7959,6 +7959,18 @@ fn pg_job_list_exact_key_does_not_substitute_historical_result() {
         .unwrap();
     assert_eq!(lookup()["executionReasonCode"], "PROCESS_EXIT_ZERO");
     let historical_only = lookup();
+    // Incomplete historical settlement cannot qualify exact lifecycle evidence.
+    let historical_observe = call(
+        &endpoint,
+        "job.observe",
+        json!({"jobId":job,"waitMs":0,"stdoutTailBytes":0,"stderrTailBytes":0}),
+    );
+    let historical_get = call(&endpoint, "job.get", json!({"jobId":job}));
+    assert_eq!(
+        historical_observe["structuredContent"]["error"]["code"],
+        "RECONCILIATION_REQUIRED"
+    );
+    assert_eq!(historical_get["isError"], true);
     // Restore the exact native registration before asserting the result.
     fixture
         .db
@@ -7981,4 +7993,58 @@ fn pg_job_list_exact_key_does_not_substitute_historical_result() {
         historical_only["deliveryDisposition"],
         "reconciliation_required"
     );
+    // Retain the exact current terminal manifest, add a
+    // settled synthetic prior Attempt with separately attributed evidence.
+    let historical_id = format!("historical-result-{}", Uuid::now_v7());
+    let mut tx = fixture.db.transaction().unwrap();
+    assert_eq!(tx.execute("INSERT INTO concurrency_reservations(reservation_id,attempt_id,global_limit,state,acquired_at_ms,state_observed_at_ms,released_at_ms,release_reason) SELECT $1,$2,global_limit,'released',acquired_at_ms,state_observed_at_ms,released_at_ms,release_reason FROM concurrency_reservations WHERE attempt_id=$3", &[&format!("reservation-{prior}"),&prior,&current]).unwrap(),1);
+    assert_eq!(tx.execute("INSERT INTO artifacts(artifact_id,job_id,attempt_id,kind,relative_path,digest,media_type,byte_length,truncated,created_at_ms) SELECT $1,job_id,$2,kind,relative_path,digest,media_type,byte_length,truncated,created_at_ms FROM artifacts WHERE artifact_id=$3", &[&historical_id,&prior,&artifact]).unwrap(),1);
+    let historical_stdout = format!("000-historical-stdout-{}", Uuid::now_v7());
+    let stdout_path: String = tx
+        .query_one(
+            "SELECT relative_path FROM artifacts WHERE attempt_id=$1 AND kind='stdout'",
+            &[&current],
+        )
+        .unwrap()
+        .get(0);
+    let prior_stdout = prior_bundle.join(&stdout_path);
+    assert!(prior_stdout.starts_with(&fixture.root));
+    fs::copy(&historical, &prior_stdout).unwrap();
+    assert_eq!(tx.execute("INSERT INTO artifacts(artifact_id,job_id,attempt_id,kind,relative_path,digest,media_type,byte_length,truncated,created_at_ms) SELECT $1,job_id,$2,'stdout',$3,digest,media_type,byte_length,truncated,created_at_ms FROM artifacts WHERE artifact_id=$4", &[&historical_stdout,&prior,&stdout_path,&artifact]).unwrap(),1);
+    tx.commit().unwrap();
+    let o = call(
+        &endpoint,
+        "job.observe",
+        json!({"jobId":job,"waitMs":0,"stdoutTailBytes":256,"stderrTailBytes":0}),
+    );
+    let g = call(&endpoint, "job.get", json!({"jobId":job}));
+    let l = lookup();
+    let oa = &o["structuredContent"]["artifacts"];
+    let ga = &g["structuredContent"]["attempts"][0];
+    let historical_projection = oa
+        .as_array()
+        .and_then(|rows| rows.iter().find(|row| row["artifactId"] == historical_id));
+    eprintln!("SETTLED_HISTORY observe_error={} get_error={} list_count={} job_count={} selected_count={} actual_historical_attempt={} projected_historical_attempt={}",o["isError"],g["isError"],l["artifactCount"],g["structuredContent"]["artifacts"]["count"],ga["artifactCount"],prior,historical_projection.map(|v|v["attemptId"].as_str().unwrap_or("missing")).unwrap_or("absent"));
+    assert_ne!(o["isError"], true, "{o}");
+    assert_ne!(g["isError"], true, "{g}");
+    assert_eq!(l["resultAvailable"], true);
+    let current_count = before["artifactCount"].as_u64().unwrap();
+    assert_eq!(l["artifactCount"], current_count + 2);
+    assert_eq!(
+        g["structuredContent"]["artifacts"]["count"],
+        current_count + 2
+    );
+    assert_eq!(ga["artifactCount"], current_count);
+    assert_eq!(historical_projection.unwrap()["attemptId"], prior);
+    assert_eq!(
+        oa.as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["artifactId"] == historical_stdout)
+            .unwrap()["attemptId"],
+        prior
+    );
+    assert_eq!(o["structuredContent"]["stdoutTail"], "R6_CURRENT_NATIVE");
+    assert_eq!(o["structuredContent"]["resultAvailable"], true);
+    assert_eq!(ga["resultAvailable"], true);
 }

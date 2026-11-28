@@ -34,7 +34,7 @@ impl PgRuntime {
                 &[&job],
             )
             .map_err(pg_read_error)?;
-        let artifacts = read_artifact_summary(&mut tx, job)?;
+        let (artifacts, attempt_artifacts) = read_artifact_summaries(&mut tx, job, &a.attempt_id)?;
         let created = j.get::<_, i64>(1) as u64;
         let (episodes, timeline, events_truncated) =
             event_projection::read_job_events(&mut tx, job, created, event_limit)?;
@@ -78,13 +78,14 @@ impl PgRuntime {
                 // Do not invent physical duration from mixed clock semantics.
                 duration_ms: None,
                 exit_code: exit,
-                result_available: terminal && artifacts.by_kind.contains_key("execution_result"),
+                result_available: terminal
+                    && attempt_artifacts.by_kind.contains_key("execution_result"),
                 reservation_state: ReservationState::parse(&snapshot.reservation_state)?,
                 reservation_release_reason: None,
                 conditions: vec![],
-                artifact_count: artifacts.count,
-                artifact_bytes: artifacts.bytes,
-                truncated_artifacts: artifacts.truncated,
+                artifact_count: attempt_artifacts.count,
+                artifact_bytes: attempt_artifacts.bytes,
+                truncated_artifacts: attempt_artifacts.truncated,
             }],
             attempts_truncated: false,
             artifacts,
@@ -95,42 +96,65 @@ impl PgRuntime {
     }
 }
 
-// Count and classification are observations of the same statement snapshot.
-// The empty grouping set guarantees a zero total even without any artifacts.
-fn read_artifact_summary(
+// Job inventory and selected Attempt evidence share one statement snapshot.
+// The empty grouping set guarantees zero totals even without artifacts.
+fn read_artifact_summaries(
     client: &mut impl postgres::GenericClient,
     job: &str,
-) -> RuntimeResult<RuntimeInspectionArtifactSummary> {
+    attempt: &str,
+) -> RuntimeResult<(
+    RuntimeInspectionArtifactSummary,
+    RuntimeInspectionArtifactSummary,
+)> {
     let rows = client
         .query(
             "SELECT kind,count(*),COALESCE(sum(byte_length),0)::bigint,
-                    count(*) FILTER(WHERE truncated),GROUPING(kind)
+                    count(*) FILTER(WHERE truncated),GROUPING(kind),
+                    count(*) FILTER(WHERE attempt_id=$2),
+                    COALESCE(sum(byte_length) FILTER(WHERE attempt_id=$2),0)::bigint,
+                    count(*) FILTER(WHERE truncated AND attempt_id=$2)
              FROM artifacts WHERE job_id=$1
              GROUP BY GROUPING SETS ((),(kind))",
-            &[&job],
+            &[&job, &attempt],
         )
         .map_err(pg_read_error)?;
-    let mut total = None;
-    let mut by_kind = std::collections::BTreeMap::new();
+    let mut totals = [None, None];
+    let mut kinds = [
+        std::collections::BTreeMap::new(),
+        std::collections::BTreeMap::new(),
+    ];
     for row in rows {
-        let count = row.get::<_, i64>(1) as u64;
-        if row.get::<_, i32>(4) == 1 {
-            total = Some((
-                count,
-                row.get::<_, i64>(2) as u64,
-                row.get::<_, i64>(3) as u64,
-            ));
-        } else {
-            by_kind.insert(row.get::<_, String>(0), count);
+        for (i, (count_col, bytes_col, truncated_col)) in [(1_usize, 2_usize, 3_usize), (5, 6, 7)]
+            .into_iter()
+            .enumerate()
+        {
+            let count = row.get::<_, i64>(count_col) as u64;
+            if row.get::<_, i32>(4) == 1 {
+                totals[i] = Some((
+                    count,
+                    row.get::<_, i64>(bytes_col) as u64,
+                    row.get::<_, i64>(truncated_col) as u64,
+                ));
+            } else if count > 0 {
+                kinds[i].insert(row.get::<_, String>(0), count);
+            }
         }
     }
-    let (count, bytes, truncated) = total.ok_or_else(|| error("missing artifact summary"))?;
-    Ok(RuntimeInspectionArtifactSummary {
-        count,
-        bytes,
-        truncated,
-        by_kind,
-    })
+    let summary = |total: Option<(u64, u64, u64)>, by_kind| {
+        let (count, bytes, truncated) = total.ok_or_else(|| error("missing artifact summary"))?;
+        Ok(RuntimeInspectionArtifactSummary {
+            count,
+            bytes,
+            truncated,
+            by_kind,
+        })
+    };
+    let [job_total, attempt_total] = totals;
+    let [job_kinds, attempt_kinds] = kinds;
+    Ok((
+        summary(job_total, job_kinds)?,
+        summary(attempt_total, attempt_kinds)?,
+    ))
 }
 
 #[cfg(test)]
@@ -143,19 +167,28 @@ mod artifact_summary_tests {
         let dsn = std::env::var("ORDIVON_PG_TEST_DSN").expect("disposable PG DSN");
         let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
         db.batch_execute(
-            "CREATE TEMP TABLE artifacts(job_id text NOT NULL, kind text NOT NULL,
+            "CREATE TEMP TABLE artifacts(job_id text NOT NULL, attempt_id text NOT NULL, kind text NOT NULL,
                 byte_length bigint NOT NULL CHECK(byte_length>=0), truncated boolean NOT NULL);
              INSERT INTO artifacts VALUES
-                ('j','stdout',0,false),('j','stdout',12,true),('j','stderr',3,false),
-                ('other','stdout',99,true);",
+                ('j','current','stdout',0,false),('j','current','stdout',12,true),('j','prior','stderr',3,false),
+                ('other','current','stdout',99,true);",
         )
         .unwrap();
-        let got = read_artifact_summary(&mut db, "j").unwrap();
+        let (got, selected) = read_artifact_summaries(&mut db, "j", "current").unwrap();
+        assert_eq!(
+            (selected.count, selected.bytes, selected.truncated),
+            (2, 12, 1)
+        );
+        assert_eq!(selected.by_kind.get("stdout"), Some(&2));
+        assert!(!selected.by_kind.contains_key("stderr"));
         assert_eq!((got.count, got.bytes, got.truncated), (3, 15, 1));
         assert_eq!(got.by_kind.get("stdout"), Some(&2));
         assert_eq!(got.by_kind.get("stderr"), Some(&1));
         assert_eq!(got.by_kind.values().sum::<u64>(), got.count);
-        let empty = read_artifact_summary(&mut db, "missing").unwrap();
+        let (empty, selected_empty) =
+            read_artifact_summaries(&mut db, "missing", "current").unwrap();
+        assert_eq!(selected_empty.count, 0);
+        assert!(selected_empty.by_kind.is_empty());
         assert_eq!((empty.count, empty.bytes, empty.truncated), (0, 0, 0));
         assert!(empty.by_kind.is_empty());
     }
