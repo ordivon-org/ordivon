@@ -106,19 +106,21 @@ for number in $(seq -f '%03g' 1 20); do
   patch --silent --directory="$scratch/src/bash-5.3" --strip=0 \
     < "$scratch/dist/bash53-$number"
 done
+binary="$scratch/src/bash-5.3/bash"
 (
   cd "$scratch/src/bash-5.3"
   ./configure --prefix="$scratch/prefix" --without-bash-malloc >/dev/null
-  make -j "${BASH_BUILD_JOBS:-4}" >/dev/null
-  make install >/dev/null
+  # The CI consumer publishes only the executable. Use GNU's native
+  # executable target and avoid building or installing the rest of the package.
+  make -j "${BASH_BUILD_JOBS:-4}" bash >/dev/null
 )
-[[ -x "$scratch/prefix/bin/bash" ]] || { echo "Bash binary missing" >&2; exit 8; }
+[[ -x "$binary" ]] || { echo "Bash binary missing" >&2; exit 8; }
 # The version variable must expand in the newly built child shell.
 # shellcheck disable=SC2016
-"$scratch/prefix/bin/bash" -c '[[ "$BASH_VERSION" == "5.3.20(1)-release" ]]' ||
+"$binary" -c '[[ "$BASH_VERSION" == "5.3.20(1)-release" ]]' ||
   { echo "Wrong Bash patchlevel" >&2; exit 9; }
 
 # Deploy the small isolated executable, not an OS package mutation.
 mkdir -p "$target/bin"
-install -m 755 "$scratch/prefix/bin/bash" "$target/bin/bash"
+install -m 755 "$binary" "$target/bin/bash"
 "$target/bin/bash" --version | head -1
