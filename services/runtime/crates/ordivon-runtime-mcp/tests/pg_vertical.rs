@@ -3310,6 +3310,251 @@ print(os.environ["CARGO_TARGET_DIR"])
 }
 
 #[test]
+#[ignore = "requires disposable PostgreSQL, systemd Runner and kernel lock observation"]
+fn pg_native_late_result_wins_at_stop_receipt_lock() {
+    use sha2::{Digest, Sha256};
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({
+            "workspaceId":"ws-late-result","sourceRepo":repo,"sourceRevision":"HEAD"
+        }),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let finish = fixture.root.join("allow-original-runner-finish");
+    let submitted = call(
+        &endpoint,
+        "workspace.exec",
+        json!({
+            "clientRequestId":"native-late-result-original",
+            "execution":{"workspaceId":"ws-late-result","executable":"/bin/bash",
+            "args":["-c","while [ ! -f \"$1\" ]; do sleep 0.1; done; printf late-result-native","fixture",finish],"cwdRelative":".","timeoutMs":60000},
+            "waitMs":1000
+        }),
+    );
+    assert_ne!(submitted["isError"], true, "{submitted}");
+    let job = submitted["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let attempt = submitted["structuredContent"]["attemptId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let row = fixture
+        .db
+        .query_one(
+            "SELECT bundle_path,unit_name FROM attempts WHERE attempt_id=$1 AND job_id=$2",
+            &[&attempt, &job],
+        )
+        .unwrap();
+    let bundle = PathBuf::from(row.get::<_, String>(0));
+    let unit: String = row.get(1);
+    assert_eq!(unit, format!("ordivon-pg-{attempt}.service"));
+    struct UnitCleanup(String);
+    impl Drop for UnitCleanup {
+        fn drop(&mut self) {
+            let _ = Command::new("systemctl").args(["stop", &self.0]).output();
+            let _ = Command::new("systemctl")
+                .args(["reset-failed", &self.0])
+                .output();
+        }
+    }
+    let _unit = UnitCleanup(unit.clone());
+    let deadline = Instant::now() + Duration::from_secs(35);
+    loop {
+        let running = call(
+            &endpoint,
+            "job.observe",
+            json!({
+                "jobId":job,"waitMs":1000,"stdoutTailBytes":0,"stderrTailBytes":0
+            }),
+        );
+        assert_ne!(running["isError"], true, "{running}");
+        if running["structuredContent"]["attemptState"] == "running" {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "original Runner not bound: {running}; endpoint log: {}",
+            fs::read_to_string(fixture.root.join("endpoint.log")).unwrap_or_default()
+        );
+        thread::sleep(Duration::from_millis(30));
+    }
+    // Only this fixture's MCP process stops. The actual native Runner
+    // completes, independently publishing its original verified result.
+    let mut old = fixture.endpoint.take().unwrap();
+    old.kill().unwrap();
+    old.wait().unwrap();
+    fs::write(&finish, b"finish").unwrap();
+    let result = bundle.join("result.json");
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        let status = Command::new("systemctl")
+            .args(["show", &unit, "--property=LoadState", "--value"])
+            .output()
+            .unwrap();
+        if result.is_file()
+            && status.status.success()
+            && String::from_utf8_lossy(&status.stdout).trim() == "not-found"
+        {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "original Runner result/quiescence missing"
+        );
+        thread::sleep(Duration::from_millis(50));
+    }
+    let bytes = fs::read(&result).unwrap();
+    let original: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(original["jobId"], job);
+    assert_eq!(original["attemptId"], attempt);
+    assert_eq!(original["status"], "COMPLETED");
+    assert_eq!(original["exitCode"], 0);
+    let digest = format!("sha256:{}", hex::encode(Sha256::digest(&bytes)));
+    let resolution: Option<String> = fixture
+        .db
+        .query_one("SELECT resolution FROM jobs WHERE job_id=$1", &[&job])
+        .unwrap()
+        .get(0);
+    assert!(resolution.is_none(), "old endpoint already reconciled");
+    // Controlled observation-order injection in the disposable bundle only.
+    // No invented result or changed bytes: delay visibility of the real,
+    // completed Runner receipt until the native stop writer is at its lock.
+    let withheld = bundle.join("test-withheld-original-result.json");
+    fs::rename(&result, &withheld).unwrap();
+    let path = bundle.join("native-stop-evidence.lock");
+    let lock = fs::OpenOptions::new()
+        .create(true)
+        .truncate(false)
+        .write(true)
+        .open(&path)
+        .unwrap();
+    lock.lock().unwrap();
+    let inode = lock.metadata().unwrap().ino();
+    let endpoint = fixture.endpoint();
+    let endpoint_pid = fixture.endpoint.as_ref().unwrap().id();
+    let observer_url = endpoint.clone();
+    let observer_job = job.clone();
+    let observer = thread::spawn(move || {
+        call(
+            &observer_url,
+            "job.observe",
+            json!({
+                "jobId":observer_job,"waitMs":0,"stdoutTailBytes":0,"stderrTailBytes":0
+            }),
+        )
+    });
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let waiter = loop {
+        let locks = fs::read_to_string("/proc/locks").unwrap();
+        let own_tasks: Vec<u32> = fs::read_dir(format!("/proc/{endpoint_pid}/task"))
+            .unwrap()
+            .filter_map(|entry| entry.ok()?.file_name().to_str()?.parse().ok())
+            .collect();
+        if let Some(line) = locks.lines().find(|line| {
+            let fields: Vec<_> = line.split_whitespace().collect();
+            fields.len() >= 9
+                && fields[1] == "->"
+                && fields[2] == "FLOCK"
+                && fields[5]
+                    .parse::<u32>()
+                    .is_ok_and(|pid| own_tasks.contains(&pid))
+                && fields[6]
+                    .rsplit(':')
+                    .next()
+                    .and_then(|x| x.parse::<u64>().ok())
+                    == Some(inode)
+        }) {
+            break Some(line.to_owned());
+        }
+        if Instant::now() >= deadline {
+            break None;
+        }
+        thread::sleep(Duration::from_millis(20));
+    };
+    // Restore the immutable original bytes before releasing our guard, even
+    // if the lock witness is unavailable, so no fixture can stay blocked.
+    assert!(!result.exists());
+    fs::rename(&withheld, &result).unwrap();
+    drop(lock);
+    let observed = observer.join().unwrap();
+    assert!(
+        waiter.is_some(),
+        "no actual native-stop lock waiter: {observed}"
+    );
+    println!("NATIVE_STOP_LOCK_WAITER_OBSERVED=1");
+    assert_eq!(fs::read(&result).unwrap(), bytes);
+    let deadline = Instant::now() + Duration::from_secs(15);
+    let terminal = loop {
+        let value = call(
+            &endpoint,
+            "job.observe",
+            json!({
+                "jobId":job,"waitMs":1000,"stdoutTailBytes":100,"stderrTailBytes":0
+            }),
+        );
+        assert_ne!(value["isError"], true, "{value}");
+        if value["structuredContent"]["executionTerminal"] == true {
+            break value;
+        }
+        assert!(Instant::now() < deadline, "receipt not reconciled: {value}");
+    };
+    let view = &terminal["structuredContent"];
+    assert_eq!(view["executionDisposition"], "succeeded", "{terminal}");
+    assert_eq!(view["attemptId"], attempt);
+    assert_eq!(view["resultAvailable"], true);
+    assert_eq!(view["stdoutTail"], "late-result-native");
+    assert!(!bundle.join("native-stop-evidence.json").exists());
+    let counters=fixture.db.query_one(
+        "SELECT COUNT(*) FILTER(WHERE event_type='DISPATCH_ISSUED'),COUNT(*) FILTER(WHERE event_type='JOB_TERMINAL'),COUNT(*) FILTER(WHERE reason_code='NATIVE_CGROUP_QUIESCENT_NO_TERMINAL_RESULT') FROM job_events WHERE job_id=$1",
+        &[&job],
+    ).unwrap();
+    assert_eq!(counters.get::<_, i64>(0), 1);
+    assert_eq!(counters.get::<_, i64>(1), 1);
+    assert_eq!(counters.get::<_, i64>(2), 0);
+    let stored=fixture.db.query_one(
+        "SELECT a.result_digest,r.state FROM attempts a JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id WHERE a.attempt_id=$1",
+        &[&attempt],
+    ).unwrap();
+    assert_eq!(stored.get::<_, String>(0), digest);
+    assert_eq!(stored.get::<_, String>(1), "released");
+    let artifact = view["artifacts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|a| a["kind"] == "stdout")
+        .unwrap();
+    let read = call(
+        &endpoint,
+        "artifact.read",
+        json!({
+            "jobId":job,"artifactId":artifact["artifactId"],"offset":0,"maxBytes":100
+        }),
+    );
+    assert_eq!(read["structuredContent"]["content"], "late-result-native");
+    assert_eq!(read["structuredContent"]["eof"], true);
+    println!("ORIGINAL_RUNNER_RESULT={digest}; DISPATCH=1 TERMINAL=1 LOST=0; RETAINED_STDOUT=PASS");
+    let workspace = call(
+        &endpoint,
+        "workspace.get",
+        json!({"workspaceId":"ws-late-result"}),
+    );
+    let closed = call(
+        &endpoint,
+        "workspace.close",
+        json!({"workspaceId":"ws-late-result","force":false,
+        "consumerReleased":true,"expectedSourceStateDigest":workspace["structuredContent"]["sourceStateDigest"]}),
+    );
+    assert_eq!(closed["structuredContent"]["removed"], true, "{closed}");
+}
+
+#[test]
 #[ignore = "real PostgreSQL18 + transient systemd timeout; verified LOST without reset-failed"]
 fn failed_retained_pg_transient_auto_converges_to_lost_and_releases_capacity() {
     struct TestUnitCleanup(String);
