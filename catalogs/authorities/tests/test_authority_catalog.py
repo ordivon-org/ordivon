@@ -272,7 +272,23 @@ class AuthorityCatalogTests(unittest.TestCase):
         self.assertEqual(
             changed_history(old, {**old, "new": relocated["authority"]}), []
         )
-        # Renaming a source file must not silently change historical identity.
+        # Historical identities remain represented even after later lifecycle changes.
+        self.assertEqual(
+            changed_history(old, {}),
+            ["authority: registered Authority identity removed"],
+        )
+        reidentified = {
+            "authority-v2": {
+                **old["authority"],
+                "registeredDate": "2026-11-27",
+                "registrationBasis": ["current/navigation.md"],
+            }
+        }
+        self.assertEqual(
+            changed_history(old, reidentified),
+            ["authority: registered Authority identity removed"],
+        )
+        # Renaming a source file while retaining the same identity is allowed.
         renamed = {"authority": {**old["authority"], "path": "new/path.json"}}
         self.assertEqual(changed_history(old, renamed), [])
 
