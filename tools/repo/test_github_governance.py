@@ -470,6 +470,10 @@ exit 0
             root = Path(tmp)
             fake = root / "mise"
             record = root / "calls"
+            delays = root / "delays"
+            fake_sleep = root / "sleep"
+            fake_sleep.write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$*" >> "$DELAYS"\n')
+            fake_sleep.chmod(0o755)
             fake.write_text(
                 '#!/usr/bin/env bash\n'
                 'if [[ "$1" != --cd || "$3" != install ]]; then exit 91; fi\n'
@@ -485,6 +489,7 @@ exit 0
                 "PATH": str(root) + os.pathsep + env.get("PATH", ""),
                 "RUNNER_TEMP": str(root),
                 "RECORD": str(record),
+                "DELAYS": str(delays),
                 "GITHUB_TOKEN": "bounded-test-read-only-token",
                 "OWNER_TASKS_JSON": json.dumps(["runtime:verify", "game:verify"]),
             })
@@ -501,6 +506,8 @@ exit 0
                     "2,45,token,domains/game",
                 ],
             )
+            self.assertEqual(delays.read_text().splitlines(), ["1"])
+            delays.write_text("")
             record.write_text("")
             env["ALWAYS_FAIL"] = "1"
             env["OWNER_TASKS_JSON"] = json.dumps(["runtime:verify"])
@@ -513,6 +520,8 @@ exit 0
                 record.read_text().splitlines(),
                 ["2,45,token,services/runtime"] * 3,
             )
+            self.assertEqual(delays.read_text().splitlines(), ["1", "2"])
+            delays.write_text("")
             record.write_text("")
             env["ALWAYS_FAIL"] = "0"
             env["OWNER_TASKS_JSON"] = json.dumps(["capital:verify"])
@@ -547,6 +556,7 @@ exit 0
             )
             self.assertEqual(empty.returncode, 0, empty.stderr)
             self.assertEqual(record.read_text(), "")
+            self.assertEqual(delays.read_text(), "", "successful installs must not back off")
 
     def test_sql_verifier_official_fallback_preserves_hash_and_fail_closed(self) -> None:
         """Execute the real native downloader with failed primary official endpoints."""
