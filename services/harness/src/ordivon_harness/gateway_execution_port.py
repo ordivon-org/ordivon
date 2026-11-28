@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from hashlib import sha256
 import time
 
 from anc_canonical import JsonValue, validate_json_value
@@ -269,6 +270,8 @@ class GatewayExecutionPort:
         artifact_id = stdout[0]
         offset = 0
         chunks: list[str] = []
+        hasher = sha256()
+        expected_digest: str | None = None
         while True:
             payload = self._call(
                 'artifact.read',
@@ -293,13 +296,39 @@ class GatewayExecutionPort:
             content = payload.get('content')
             if not isinstance(content, str):
                 raise GatewayExecutionError('Gateway artifact read omitted text content')
-            chunks.append(content)
             eof = payload.get('eof')
-            if eof is True:
-                return ''.join(chunks)
+            if type(eof) is not bool:
+                raise GatewayExecutionError('Gateway artifact eof is invalid')
             next_offset = _field(payload, 'next_offset', 'nextOffset')
-            if type(next_offset) is not int or next_offset <= offset:
-                raise GatewayExecutionError('Gateway artifact pagination did not advance')
+            try:
+                content_bytes = content.encode('utf-8')
+            except UnicodeEncodeError:
+                raise GatewayExecutionError('Gateway artifact content is not UTF-8') from None
+            if (
+                type(next_offset) is not int
+                or next_offset != offset + len(content_bytes)
+                or len(content_bytes) > max_bytes
+                or (not eof and next_offset == offset)
+            ):
+                raise GatewayExecutionError('Gateway artifact byte cursor is invalid')
+            digest = payload.get('digest')
+            if (
+                not isinstance(digest, str)
+                or len(digest) != 71
+                or not digest.startswith('sha256:')
+                or any(c not in '0123456789abcdef' for c in digest[7:])
+            ):
+                raise GatewayExecutionError('Gateway artifact digest is invalid')
+            if expected_digest is None:
+                expected_digest = digest
+            elif digest != expected_digest:
+                raise GatewayExecutionError('Gateway artifact digest changed across pages')
+            hasher.update(content_bytes)
+            chunks.append(content)
+            if eof:
+                if 'sha256:' + hasher.hexdigest() != expected_digest:
+                    raise GatewayExecutionError('Gateway artifact retained-byte digest mismatch')
+                return ''.join(chunks)
             offset = next_offset
 
 

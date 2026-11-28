@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from hashlib import sha256
+
 import pytest
 
 from ordivon_harness.gateway_execution_port import (
@@ -73,7 +75,8 @@ class FakeGateway:
                 'artifact_id': 'attempt-1.stdout',
                 'offset': 0,
                 'content': '{"standing":"bound"}\n',
-                'next_offset': 21,
+                'next_offset': len(b'{"standing":"bound"}\n'),
+                'digest': 'sha256:' + sha256(b'{"standing":"bound"}\n').hexdigest(),
                 'eof': True,
             }
         raise AssertionError(name)
@@ -115,6 +118,64 @@ def test_stdout_is_read_by_exact_artifact_identity():
     assert calls['artifact.read']['requestId'] == request().request_id
     assert calls['artifact.read']['capability'] == request().capability
 
+
+@pytest.mark.parametrize(
+    ("mutation", "reason"),
+    (
+        ({"next_offset": 999}, "cursor"),
+        ({"digest": None}, "digest"),
+        ({"digest": "sha256:" + "0" * 64}, "digest"),
+        ({"eof": 1}, "eof"),
+    ),
+)
+def test_stdout_rejects_unqualified_final_byte_commitment(mutation, reason):
+    class InvalidFinal(FakeGateway):
+        def call_tool(self, name, arguments):
+            error, value = super().call_tool(name, arguments)
+            if name == "artifact.read":
+                value.update(mutation)
+            return error, value
+
+    port = GatewayExecutionPort(InvalidFinal())
+    with pytest.raises(GatewayExecutionError, match=reason):
+        port.read_stdout(port.execute(request()))
+
+
+@pytest.mark.parametrize("change_digest", (False, True))
+def test_stdout_uses_utf8_byte_offsets_and_one_retained_digest(change_digest):
+    chunks = ("汉字", "🙂\n")
+    whole = "".join(chunks)
+    digest = "sha256:" + sha256(whole.encode("utf-8")).hexdigest()
+
+    class PagedGateway(FakeGateway):
+        def call_tool(self, name, arguments):
+            error, value = super().call_tool(name, arguments)
+            if name != "artifact.read":
+                return error, value
+            offset = arguments["offset"]
+            if offset == 0:
+                chunk = chunks[0]
+                eof = False
+            else:
+                assert offset == len(chunks[0].encode("utf-8"))
+                chunk = chunks[1]
+                eof = True
+            value.update(
+                offset=offset,
+                content=chunk,
+                next_offset=offset + len(chunk.encode("utf-8")),
+                eof=eof,
+                digest="sha256:" + "0" * 64 if eof and change_digest else digest,
+            )
+            return error, value
+
+    port = GatewayExecutionPort(PagedGateway())
+    result = port.execute(request())
+    if change_digest:
+        with pytest.raises(GatewayExecutionError, match="digest"):
+            port.read_stdout(result)
+    else:
+        assert port.read_stdout(result) == whole
 
 def test_absent_after_submit_response_loss_is_ambiguous_not_redispatched():
     client = FakeGateway(lose_submit=True, resolve_state='absent')
