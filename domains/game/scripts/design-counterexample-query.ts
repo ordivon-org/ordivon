@@ -29,14 +29,10 @@ export type DesignCounterexampleQueryResult = {
   notes: string[];
 };
 
-function readJson(path: string): any {
-  return readGameKnowledge(path);
-}
-
 function enrichCounterexamples(): any[] {
   return projectCounterexamples(
-    readJson(MEMORY_PATH).counterexamples,
-    readJson(EXPERIENCE_PATH).experiences,
+    readGameKnowledge(MEMORY_PATH).counterexamples,
+    readGameKnowledge(EXPERIENCE_PATH).experiences,
   );
 }
 
