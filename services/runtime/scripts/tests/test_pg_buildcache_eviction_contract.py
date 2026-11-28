@@ -162,6 +162,29 @@ class OpenFdConsumerTests(unittest.TestCase):
             (proc / "maps").write_text("")
             self.assertEqual(evict.external_processes_using(cache, proc_root), [])
 
+    def test_mapping_remains_a_consumer_after_fd_closes(self):
+        import mmap
+        import os
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cache = root / "build"
+            cache.mkdir()
+            artifact = cache / "mapped file.bin"
+            artifact.write_bytes(b"compiler-output")
+            pid = str(os.getpid())
+            proc = root / "proc" / pid
+            proc.mkdir(parents=True)
+            for name in ("cwd", "fd", "exe", "root", "maps"):
+                (proc / name).symlink_to(Path("/proc") / pid / name)
+            with artifact.open("rb") as stream:
+                mapping = mmap.mmap(stream.fileno(), 0, access=mmap.ACCESS_READ, trackfd=False)
+            with mapping:
+                self.assertEqual(mapping[:], b"compiler-output")
+                self.assertIn(str(artifact), (proc / "maps").read_text())
+                self.assertIn(pid, evict.external_processes_using(cache, root / "proc"))
+            self.assertNotIn(pid, evict.external_processes_using(cache, root / "proc"))
+
 
 if __name__ == "__main__":
     unittest.main()
