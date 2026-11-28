@@ -32,5 +32,9 @@ class HarnessObjectCorrupt(HarnessStoreError):
     pass
 
 
+class HarnessUnsupportedLegacyRepresentation(HarnessStoreError):
+    """An intact historical representation is not a current executable Contract."""
+
+
 class HarnessTerminalConflict(HarnessStoreError):
     pass

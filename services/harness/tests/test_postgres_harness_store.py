@@ -55,6 +55,95 @@ class PostgresHarnessStoreTests(unittest.TestCase):
         with psycopg.connect(self.dsn, autocommit=True) as conn:
             conn.execute(sql.SQL("DROP SCHEMA IF EXISTS {} CASCADE").format(sql.Identifier(self.schema)))
 
+    def test_historical_boolean_contract_inspection_is_read_only(self) -> None:
+        """Replay the already-qualified old wire representation, not a new admission."""
+        import contextlib
+        import io
+        import json
+        from unittest.mock import patch
+
+        from ordivon_harness.cli import main as cli_main
+        from ordivon_harness.core_contracts import HarnessRunContract
+        from ordivon_harness.store_errors import (
+            HarnessJournalCorruption, HarnessUnsupportedLegacyRepresentation,
+        )
+        from tests.test_p0_core_contracts import contract as core_contract
+
+        raw = core_contract().to_dict()
+        raw.update(
+            schemaVersion=1,
+            correlation={"traceparent": None, "tracestate": None, "links": []},
+        )
+        # Fixture-only reconstruction of the exact old writer representation.
+        # Current constructor and wire decoder must still reject the alias.
+        legacy = HarnessRunContract.from_dict(raw)
+        object.__setattr__(legacy, "_schema_version", True)
+        original = legacy.to_dict()
+        original_digest = canonical_digest(original)
+        self.assertEqual(self.store.create_run(legacy), HarnessEventAdmission.CREATED)
+        with self.assertRaises(ValueError):
+            HarnessRunContract.from_dict(original)
+        with self.assertRaises(HarnessUnsupportedLegacyRepresentation):
+            self.store.validate_run_history(legacy.harness_run_id)
+        with self.assertRaises(ValueError):
+            EventSourcedRunContinuity.open(self.store, legacy.harness_run_id)
+
+        readback = self.store.inspect_legacy_run(legacy.harness_run_id)
+        self.assertIsNotNone(readback)
+        projection, retained = readback
+        self.assertEqual(retained, original)
+        self.assertIs(retained["schemaVersion"], True)
+        self.assertEqual(projection.contract_digest, original_digest)
+        self.assertEqual(projection.revision, 1)
+
+        def invoke(command: str):
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                code = cli_main([command, legacy.harness_run_id])
+            return code, stdout.getvalue(), stderr.getvalue()
+
+        with patch.dict(os.environ, {
+            "ORDIVON_HARNESS_PG_ONLY": "1",
+            "ORDIVON_HARNESS_PG_DSN": self.dsn,
+            "ORDIVON_HARNESS_PG_SCHEMA": self.schema,
+        }), patch(
+            "ordivon_harness.independent_cli._adapter",
+            side_effect=AssertionError("historical inspection must not create a Provider"),
+        ) as adapter:
+            code, output, error = invoke("inspect")
+            self.assertEqual(code, 0, error)
+            inspection = json.loads(output)
+            self.assertEqual(inspection["kind"], "ordivon.harness-legacy-run-inspection")
+            self.assertFalse(inspection["currentAdmissionValid"])
+            self.assertEqual(inspection["historyCompatibility"], "legacy-read-only")
+            self.assertEqual(canonical_digest(inspection["contract"]), original_digest)
+            code, _, error = invoke("resume")
+            self.assertEqual(code, 1, error)
+            adapter.assert_not_called()
+
+        self.assertEqual(self.store.load_run(legacy.harness_run_id).revision, 1)
+        self.assertEqual(
+            canonical_digest(self.store.get_object(original_digest)), original_digest
+        )
+        # The legacy-only path is not a generic waiver of Contract semantics.
+        bad = HarnessRunContract.from_dict({
+            **raw, "harnessRunId": "harness-run:historical-malformed",
+            "callerRunRef": "trial:historical-malformed",
+        })
+        object.__setattr__(bad, "_schema_version", True)
+        object.__setattr__(bad, "provider_id", "")
+        self.assertEqual(self.store.create_run(bad), HarnessEventAdmission.CREATED)
+        with self.assertRaises(HarnessObjectCorrupt):
+            self.store.inspect_legacy_run(bad.harness_run_id)
+        # Historical status must not conceal a genuine inconsistent projection.
+        self.store.connection.execute(
+            "UPDATE runs SET revision=revision+1 WHERE harness_run_id=%s",
+            (legacy.harness_run_id,),
+        )
+        with self.assertRaises(HarnessJournalCorruption):
+            self.store.inspect_legacy_run(legacy.harness_run_id)
+
     def test_native_cli_pg_only_run_status_inspect_and_recovery(self) -> None:
         """CLI is a real consumer: no SQLite file can be created in PG-only mode."""
         import contextlib
