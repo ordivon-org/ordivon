@@ -16,7 +16,7 @@ impl PgRuntime {
     ) -> RuntimeResult<ArtifactContentReadResult> {
         if request.schema_version != 1
             || request.max_bytes == 0
-            || request.max_bytes > 4 * 1024 * 1024
+            || request.max_bytes > crate::runtime::MAX_ARTIFACT_READ_BYTES
         {
             return Err(RuntimeError::invalid(
                 "invalid artifact content bound",

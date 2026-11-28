@@ -177,6 +177,37 @@ fn pg18_artifact_readers_reject_cross_job_attempt_origin() {
         workspace_headroom: vec![],
     })
     .unwrap();
+    // Both request readers implement the same published request bound.
+    // The fixture is disposable and the valid boundary must retain exact bytes.
+    let limit = crate::runtime::MAX_ARTIFACT_READ_BYTES;
+    for max_bytes in [0, limit, limit + 1] {
+        let text = runtime.read_artifact(
+            "principalA",
+            &ArtifactReadRequest {
+                schema_version: 1,
+                job_id: "jobA".into(),
+                artifact_id: "artifactA".into(),
+                offset: 0,
+                max_bytes,
+            },
+        );
+        let content = runtime.read_artifact_content(
+            "principalA",
+            &ArtifactContentRequest {
+                schema_version: 1,
+                job_id: "jobA".into(),
+                artifact_id: "artifactA".into(),
+                max_bytes,
+            },
+        );
+        if max_bytes == limit {
+            assert_eq!(text.unwrap().content.as_bytes(), bytes);
+            assert_eq!(content.unwrap().bytes, bytes);
+        } else {
+            assert_eq!(text.unwrap_err().field.as_deref(), Some("maxBytes"));
+            assert_eq!(content.unwrap_err().field.as_deref(), Some("maxBytes"));
+        }
+    }
     let read_text = |principal: &str, job: &str, artifact: &str| {
         runtime.read_artifact(
             principal,
