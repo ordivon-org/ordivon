@@ -189,7 +189,7 @@ impl<'a> LocalLinuxProvider<'a> {
 }
 
 #[cfg(test)]
-mod local_linux_adapter_tests {
+mod tests {
     use super::*;
     use crate::runtime::{ExecutionBudget, WindowsAuthority};
     use std::collections::BTreeMap;
@@ -319,6 +319,13 @@ mod local_linux_adapter_tests {
         let missing = directory.path().join("missing-runner");
         let real_runner = std::fs::canonicalize(std::env::current_exe().unwrap()).unwrap();
         assert_eq!(validate_runner(&real_runner).unwrap(), real_runner);
+        let config = executor(Some(real_runner.to_str().unwrap()));
+        let provider = LocalLinuxProvider::new(RuntimeNodePlatform::Linux, &config);
+        let snapshot: ExecutionProviderSnapshot = provider.snapshot().unwrap();
+        assert_eq!(
+            snapshot.executable_digest,
+            sha256_file(&real_runner).unwrap()
+        );
         for path in [directory.path(), missing.as_path()] {
             assert!(validate_runner(path).is_err());
             let config = executor(Some(path.to_str().unwrap()));

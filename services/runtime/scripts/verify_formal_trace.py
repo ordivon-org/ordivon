@@ -299,7 +299,7 @@ NATIVE_CONTRACT_WITNESSES = {
         "impl",
         "LocalLinuxProvider",
         "snapshot",
-        "runtime::execution_provider::local_linux_adapter_tests::native_formal_runner_path_guard_rejects_directory_and_missing_runner",
+        "runtime::execution_provider::tests::native_formal_runner_path_guard_rejects_directory_and_missing_runner",
     ),
 }
 
