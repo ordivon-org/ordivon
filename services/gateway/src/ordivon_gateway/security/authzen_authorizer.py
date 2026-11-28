@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import ipaddress
+import json
+import math
 import uuid
 from collections.abc import Callable, Mapping
 from typing import Any
@@ -12,6 +14,41 @@ import requests
 
 class AuthZenAuthorizerError(RuntimeError):
     pass
+
+
+def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Reject ambiguous object members before projection into a mapping."""
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON member")
+        result[key] = value
+    return result
+
+
+def _finite_float(value: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ValueError("nonfinite JSON number")
+    return parsed
+
+
+def _reject_constant(value: str) -> Any:
+    raise ValueError("nonfinite JSON constant")
+
+
+def _decode_response(content: bytes) -> Any:
+    # Decode the original wire bytes, not requests' permissive charset fallback
+    # or a mapping that has already lost duplicate members.
+    try:
+        return json.loads(
+            content.decode("utf-8", errors="strict"),
+            object_pairs_hook=_unique_object,
+            parse_float=_finite_float,
+            parse_constant=_reject_constant,
+        )
+    except (ValueError, RecursionError) as exc:
+        raise AuthZenAuthorizerError("AuthZEN PDP returned invalid JSON") from exc
 
 
 def _validate_endpoint(endpoint: str, *, allow_insecure_loopback: bool) -> str:
@@ -126,10 +163,7 @@ class AuthZenPrincipalAuthorizer:
         response_request_id = response.headers.get("X-Request-ID")
         if response_request_id != request_id:
             raise AuthZenAuthorizerError("AuthZEN PDP did not echo the exact X-Request-ID")
-        try:
-            body = response.json()
-        except ValueError as exc:
-            raise AuthZenAuthorizerError("AuthZEN PDP returned invalid JSON") from exc
+        body = _decode_response(response.content)
         if not isinstance(body, dict) or not isinstance(body.get("decision"), bool):
             raise AuthZenAuthorizerError("AuthZEN PDP returned an invalid evaluation response")
 
