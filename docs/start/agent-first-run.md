@@ -25,6 +25,24 @@ version); `--mise-installed` distinguishes supplier inventory from selected
 version. Verify the actual tool and restore the locked environment as needed. A Windows service context
 and the interactive desktop user can have different tools and PATH entries.
 
+Do not diagnose an owner-managed tool from the monorepo root alone. For example,
+from the repository root, the existing Web toolchain can be inspected without
+installing anything:
+
+```sh
+command -v gh && gh --version
+(cd apps/web && MISE_OFFLINE=1 MISE_AUTO_INSTALL=false mise which pnpm)
+(cd apps/web && MISE_OFFLINE=1 MISE_AUTO_INSTALL=false mise exec -- pnpm --version)
+```
+
+If the actual workload needs a materialized locked environment, use the
+existing `bash tools/repo/workspace-ready <owner> -- <command> ...` consumer
+entrypoint, which selects the owner toolchain and preserves its lock and egress
+contracts. Do not install tools merely to inspect them. If execution is rejected
+before admission, report that admission failure; it is not a PATH observation.
+A missing captured MCP action is a separate client/server/authorization question,
+not a local executable failure.
+
 For semantic tool selection, use [Capability Catalog](../../catalogs/capabilities/README.md)
 and the natural Owner's native entrypoint. Skills search/resolve/read supplies
 **advisory procedures**; it does not install a CLI, establish connected MCP
