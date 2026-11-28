@@ -1923,6 +1923,131 @@ class OwnerVerificationExecutionTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 29, proc.stdout + proc.stderr)
         self.assertEqual(called, ["artifact:queue", "data:verify"])
 
+class PullRequestExecutionRangeTests(unittest.TestCase):
+    def test_native_merge_cut_and_conservative_scope(self):
+        import ci_pr_execution_range as ranges
+
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td)
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True,
+                    stderr=subprocess.PIPE, timeout=15,
+                ).strip()
+            git("init", "-q")
+            git("config", "user.name", "fixture")
+            git("config", "user.email", "fixture@local.invalid")
+            def commit(name, value):
+                (repo / name).write_text(value)
+                git("add", ".")
+                git("commit", "-qm", name)
+                return git("rev-parse", "HEAD")
+            base = commit("base.txt", "base")
+            git("switch", "-qc", "pr")
+            head = commit("feature.txt", "feature")
+            git("switch", "--detach", "-q", base)
+            parent = commit("advanced.txt", "main advanced")
+            git("merge", "--no-ff", "--no-edit", head)
+            cut = git("rev-parse", "HEAD")
+            self.assertEqual(ranges.resolve(repo, base, head, cut), (parent, cut))
+            # The original Base can be stale but cannot be divergent.
+            for b, h, c in ((head, head, cut), (base, parent, cut),
+                            (base, head, head), (base, head, "HEAD"),
+                            ("0" * 40, head, cut)):
+                with self.subTest(b=b, h=h, c=c), self.assertRaises(ValueError):
+                    ranges.resolve(repo, b, h, c)
+            # A merge resolution can change an additional path, invisible
+            # in original PR diff. Both orders of parent must be conserved.
+            (repo / "merge-only.txt").write_text("resolution")
+            git("add", ".")
+            git("commit", "--amend", "--no-edit", "-q")
+            extra = git("rev-parse", "HEAD")
+            self.assertIsNone(ranges.resolve(repo, base, head, extra))
+            # A different real merge cut, with valid parent identities,
+            # must not be accepted as the current execution checkout.
+            with self.assertRaisesRegex(ValueError, "checkout mismatch"):
+                ranges.resolve(repo, base, head, cut)
+            # Original PR change already present on new base: do not
+            # silently shrink prior obligation even if merge is a no-op.
+            git("switch", "--detach", "-q", base)
+            commit("feature.txt", "feature")
+            # Distinguish coincident same-second commit identities.
+            git("commit", "--amend", "-qm", "independent main copy")
+            git("merge", "--no-ff", "--no-edit", head)
+            self.assertIsNone(ranges.resolve(repo, base, head, git("rev-parse", "HEAD")))
+            # Raw immutable parents remain authoritative despite replace refs.
+            git("switch", "--detach", "-q", cut)
+            git("replace", cut, extra)
+            try:
+                self.assertEqual(ranges.resolve(repo, base, head, cut), (parent, cut))
+            finally:
+                git("replace", "-d", cut)
+
+
+    def test_actual_workflow_uses_execution_cut_or_all_obligations(self):
+        source = Path(__file__).resolve().parents[2]
+        with tempfile.TemporaryDirectory(prefix="ordivon-pr-execution-") as td:
+            root = Path(td)
+            repo = root / "repo"
+            subprocess.run(
+                ["git", "clone", "-q", "--shared", str(source), str(repo)],
+                check=True, timeout=35, capture_output=True,
+            )
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True,
+                    stderr=subprocess.PIPE, timeout=15,
+                ).strip()
+            git("config", "user.name", "CI fixture")
+            git("config", "user.email", "fixture@local.invalid")
+            base = git("rev-parse", "HEAD")
+            git("switch", "-qc", "fixture-pr")
+            (repo / "domains/game/r5-ci-fixture.txt").write_text("feature")
+            git("add", ".")
+            git("commit", "-qm", "feature")
+            head = git("rev-parse", "HEAD")
+            git("switch", "--detach", "-q", base)
+            (repo / "r5-ci-fixture.txt").write_text("advanced base")
+            git("add", ".")
+            git("commit", "-qm", "base advance")
+            parent = git("rev-parse", "HEAD")
+            git("merge", "--no-ff", "--no-edit", head)
+            cut = git("rev-parse", "HEAD")
+            env = dict(os.environ, EVENT_NAME="pull_request", PR_BASE=base, PR_HEAD=head,
+                       MISE_TRUSTED_CONFIG_PATHS=str(repo),
+                       RUNNER_TEMP=str(root), GITHUB_OUTPUT=str(root / "output"),
+                       GITHUB_STEP_SUMMARY=str(root / "summary"))
+            def invoke(c):
+                (root / "output").write_text("")
+                result = subprocess.run(
+                    ["bash", "-c", OwnerSelectorFailClosedRegression.selection_shell()],
+                    cwd=repo, env=dict(env, EVENT_HEAD=c, GITHUB_SHA=c),
+                    capture_output=True, text=True, timeout=30,
+                )
+                return result, (root / "output").read_text()
+            result, outputs = invoke(cut)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            plan = json.loads((root / "ordivon-convergence-plan.json").read_text())
+            self.assertEqual(plan["baseRevision"], parent)
+            self.assertEqual(plan["headRevision"], cut)
+            self.assertIn("game:verify", plan["queueVerifyTasks"])
+            # Deliberately leave the prior plan in place; fallback must
+            # clear it rather than silently reuse a stale exact-range plan.
+            (repo / "services/runtime/r5-ci-fixture.txt").write_text("merge-only")
+            git("add", ".")
+            git("commit", "--amend", "--no-edit", "-q")
+            extra = git("rev-parse", "HEAD")
+            result, outputs = invoke(extra)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse((root / "ordivon-convergence-plan.json").exists())
+            self.assertIn("formal=true", outputs)
+            tasks = (root / "ordivon-affected-tasks.txt").read_text().splitlines()
+            self.assertCountEqual(tasks, [owner.queue_task for owner in MODULE.affected_owners.OWNERS])
+            result, outputs = invoke(cut)
+            self.assertEqual(result.returncode, 43, result.stderr)
+            self.assertEqual(outputs, "")
+
+
 class OwnerSelectorFailClosedRegression(unittest.TestCase):
     """Run the actual protected GitHub Actions shell, not a Python stand-in."""
 
@@ -1951,6 +2076,7 @@ class OwnerSelectorFailClosedRegression(unittest.TestCase):
                 "EVENT_NAME": event,
                 "PR_BASE": "a" * 40,
                 "PR_HEAD": "b" * 40,
+                "EVENT_HEAD": "c" * 40,
                 "RUNNER_TEMP": str(folder),
                 "GITHUB_OUTPUT": str(folder / "output"),
                 "GITHUB_STEP_SUMMARY": str(folder / "summary"),
@@ -1966,6 +2092,10 @@ class OwnerSelectorFailClosedRegression(unittest.TestCase):
 
     def test_failing_owner_selector_never_becomes_empty_green_scope(self):
         stub = (
+            'if [ "$1" = "tools/repo/ci_pr_execution_range.py" ]; then\n'
+            '  printf "%s %s\\n" "$PR_BASE" "$EVENT_HEAD"\n'
+            '  exit 0\n'
+            'fi\n'
             'if [ "$1" = "tools/repo/convergence_plan.py" ]; then\n'
             '  echo \'{"verificationOwners":["runtime"],"queueVerifyTasks":["runtime:verify"]}\'\n'
             '  exit 0\n'
@@ -1979,8 +2109,12 @@ class OwnerSelectorFailClosedRegression(unittest.TestCase):
 
     def test_selected_owner_without_executable_queue_task_is_rejected(self):
         stub = (
+            'if [ "$1" = "tools/repo/ci_pr_execution_range.py" ]; then\n'
+            '  printf "%s %s\\n" "$PR_BASE" "$EVENT_HEAD"\n'
+            '  exit 0\n'
+            'fi\n'
             'if [ "$1" = "tools/repo/convergence_plan.py" ]; then\n'
-            '  echo \'{"verificationOwners":["runtime"],"queueVerifyTasks":[]}\'\n'
+            '  echo \'{"verificationOwners":["runtime"],"queueVerifyTasks":[],"changedPaths":[]}\'\n'
             '  exit 0\n'
             'fi\n'
             'exec /usr/bin/python3 "$@"\n'
