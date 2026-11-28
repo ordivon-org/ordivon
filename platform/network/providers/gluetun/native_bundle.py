@@ -8,12 +8,14 @@ not create a new WireGuard tunnel, daemon, proxy or source of credentials.
 from __future__ import annotations
 
 import argparse
-import filecmp
 import json
 import os
 from pathlib import Path
 import subprocess
 import sys
+
+from release_unit_evidence import (UNIT_PROPERTIES, require_calendar,
+                                   require_command, require_loaded_identity)
 
 SOURCE = Path(__file__).resolve().parent
 DEST = Path("/usr/local/libexec/network-v2/gluetun-native")
@@ -26,8 +28,11 @@ INSTALLED_TIMER = Path("/etc/systemd/system") / TIMER_NAME
 FILES = (
     "native_profile.py",
     "observe_active.py",
+    "active_observation.py",
     "quality_history.py",
+    "historical_observation.py",
     "native_switch.py",
+    "native_selection.py",
     "auth_profile.py",
     "config/exit-allowlist.json",
     "config/exit-selector.json",
@@ -40,6 +45,51 @@ def run(*args: str, timeout: int = 25) -> str:
     return subprocess.run(
         list(args), check=True, capture_output=True, text=True, timeout=timeout,
     ).stdout.strip()
+
+
+def read_unit_property(unit: str, interface: str, prop: str) -> object:
+    """Read an already-loaded unit through the native typed D-Bus interface."""
+    service = "org.freedesktop.systemd1"
+    base = ("/usr/bin/busctl", "--system", "--json=short")
+    result = json.loads(run(*base, "call", service, "/org/freedesktop/systemd1",
+                            service + ".Manager", "GetUnit", "s", unit))
+    if (not isinstance(result, dict) or set(result) != {"type", "data"}
+            or result["type"] != "o" or not isinstance(result["data"], list)
+            or len(result["data"]) != 1 or not isinstance(result["data"][0], str)
+            or not result["data"][0].startswith("/org/freedesktop/systemd1/unit/")):
+        raise ValueError("No unique native loaded unit identity")
+    return json.loads(run(*base, "get-property", service, result["data"][0],
+                          service + "." + interface, prop))
+
+
+def payload_file(root: Path, relative: str) -> Path:
+    """Check the declared tree, not a byte-identical external symlink.
+
+    This is a bounded readback precondition, not a concurrency or crash fence.
+    The generation owner must pin and protect the directory during activation.
+    """
+    path = Path(relative)
+    if path.is_absolute() or not path.parts or ".." in path.parts:
+        raise ValueError("Invalid native recovery relative path")
+    if root.is_symlink() or not root.is_dir():
+        raise ValueError("Unexpected native recovery bundle root")
+    current = root
+    for part in path.parts[:-1]:
+        current /= part
+        if current.is_symlink() or not current.is_dir():
+            raise ValueError(f"Native recovery directory mismatch: {relative}")
+    current /= path.parts[-1]
+    if current.is_symlink() or not current.is_file():
+        raise ValueError(f"Native recovery file mismatch: {relative}")
+    return current
+
+
+def require_equal_bytes(source: Path, installed: Path) -> None:
+    """No metadata-keyed comparison cache; read actual bytes on every call."""
+    if source.is_symlink() or installed.is_symlink():
+        raise ValueError("Native recovery source vs installed mismatch: symlink")
+    if not source.is_file() or not installed.is_file() or source.read_bytes() != installed.read_bytes():
+        raise ValueError(f"Native recovery source vs installed mismatch: {installed.name}")
 
 
 def validate_source() -> dict[str, object]:
@@ -59,15 +109,13 @@ def validate_source() -> dict[str, object]:
         "Unit=" + SVC_NAME not in calendar):
         raise ValueError("Existing native timer has unexpected recovery cadence")
     for name in FILES:
-        file = SOURCE / name
-        if not file.is_file() or file.is_symlink():
-            raise ValueError(f"Native recovery source is missing: {name}")
+        payload_file(SOURCE, name)
     # Source policy is also checked before production files are installed:
     # a bad geographic hint must never get as far as a real API action.
     import native_profile as profile
     import quality_history as history
     from datetime import datetime, timezone
-    allow = set(profile.parse_allowed_policy(profile.ALLOW_POLICY.read_text())["allowedCountries"])
+    allow = set(profile.read_selector_policy()["selectedCountries"])
     history.source_trial_hints(datetime.now(timezone.utc), allow)
     # Do not create a second custom VPN, cron or scheduler.
     if any(word in content for word in ("podman run ", "wg-quick", "sleep ", "http://0.0.0.0")):
@@ -90,22 +138,24 @@ def copy_payload(dest: Path = DEST) -> None:
 def verify(*, dest: Path = DEST, verify_systemd: bool = True) -> dict[str, object]:
     validate_source()
     for relative in FILES:
-        if not filecmp.cmp(SOURCE / relative, dest / relative, shallow=False):
-            raise ValueError(f"Native recovery source vs installed mismatch: {relative}")
+        require_equal_bytes(payload_file(SOURCE, relative), payload_file(dest, relative))
     if verify_systemd:
-        if not filecmp.cmp(SOURCE_SVC, INSTALLED_SVC, shallow=False):
-            raise ValueError("Native recovery systemd source vs installed mismatch")
-        if not filecmp.cmp(SOURCE_TIMER, INSTALLED_TIMER, shallow=False):
-            raise ValueError("Native recovery timer source vs installed mismatch")
-        loaded = run("/usr/bin/systemctl", "show", SVC_NAME, "-p", "ExecStartPost")
-        if EFFECT not in loaded or "--recover" not in loaded:
-            raise ValueError("New native recovery systemd unit not loaded")
-        calendar = run("/usr/bin/systemctl", "show", TIMER_NAME, "-p", "TimersCalendar")
-        if "OnCalendar=*-*-* *:*:00" not in calendar:
-            raise ValueError("Native recovery one-minute systemd timer not loaded")
+        require_equal_bytes(SOURCE_SVC, INSTALLED_SVC)
+        require_equal_bytes(SOURCE_TIMER, INSTALLED_TIMER)
+        for unit, fragment in ((SVC_NAME, INSTALLED_SVC), (TIMER_NAME, INSTALLED_TIMER)):
+            args = ["/usr/bin/systemctl", "show", unit, "--all"]
+            for prop in UNIT_PROPERTIES:
+                args.extend(("-p", prop))
+            require_loaded_identity(run(*args), fragment)
+        require_command(read_unit_property(SVC_NAME, "Service", "ExecStartPost"),
+                        ["/usr/bin/python3", EFFECT, "--recover"])
+        require_calendar(read_unit_property(TIMER_NAME, "Timer", "TimersCalendar"),
+                         "*-*-* *:*:00")
     return {"standing": "NATIVE_BUNDLE_INSTALLED_SOURCE_MATCH",
             "nonsecretFileCount": len(FILES),
-            "loadedSystemd": verify_systemd}
+            "loadedSystemd": verify_systemd,
+            "loadedIdentityChecked": verify_systemd,
+            "consumerExecutionProved": False}
 
 
 def install() -> dict[str, object]:

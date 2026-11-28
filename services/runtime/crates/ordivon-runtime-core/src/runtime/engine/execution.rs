@@ -420,7 +420,8 @@ impl Runtime {
             ));
         }
         let request = RunnerRequest {
- workspace_read_paths: None,
+            issuer_spawn_fence: None,
+            workspace_read_paths: None,
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             job_id: Some(job.job_id.clone()),
             attempt_id: Some(attempt.attempt_id.clone()),
@@ -546,12 +547,8 @@ impl Runtime {
                 write_bytes_synced(&staging.join(PLAN_FILE), &plan_bytes)?;
                 write_bytes_synced(&staging.join(BUNDLE_MANIFEST_FILE), &manifest_bytes)?;
                 sync_directory(&staging)?;
-                match durable_runtime_rename(
-                    &staging,
-                    &final_path,
-                    false,
-                    "commit Attempt bundle",
-                ) {
+                match durable_runtime_rename(&staging, &final_path, false, "commit Attempt bundle")
+                {
                     Ok(()) => {}
                     Err(error) if final_path.is_dir() => {
                         let _ = error;
@@ -588,6 +585,11 @@ impl Runtime {
     }
 
     fn dispatch_attempt(&self, attempt: &AttemptRecord) -> RuntimeResult<()> {
+        // Keep a pre-upgrade stored ContainedLocal plan from materializing a
+        // caller-chosen host bind after recovery. Deny before DISPATCH_ISSUED,
+        // preserving the original accepted identity for operator reconciliation.
+        let frozen = self.registry.execution_plan(&attempt.job_id)?;
+        self.verify_committed_contained_mount_environment(&frozen)?;
         let starting = self.registry.mark_dispatch_issued(
             &attempt.attempt_id,
             attempt.row_version,
@@ -660,64 +662,71 @@ impl Runtime {
                         "executionPlan.env",
                     )?)
                 };
-                let runner_request_digest =
-                    sha256_file(&bundle_path.join(RUNNER_REQUEST_FILE)).map_err(map_universal_error)?;
-                    let requested_windows_context = plan
-                        .windows_context
-                        .unwrap_or_else(|| plan.windows_authority.canonical_context());
-                    let dispatch = match spawn_windows_native(&WindowsNativeRunSpec {
-                        config: windows,
-                        bundle_path: &bundle_path,
-                        job_id: &starting.job_id,
-                        attempt_id: &starting.attempt_id,
-                        launch_token_digest: &starting.launch_token_digest,
-                        request_digest: &runner_request_digest,
-                        authority: plan.windows_authority,
-                        payload_privilege: requested_windows_context.privilege,
-                        expected_privileged_broker_digest: plan
-                            .windows_execution_context
-                            .as_ref()
-                            .and_then(|context| context.privileged_broker_digest.as_deref()),
-                        expected_user_sid: plan
-                            .windows_execution_context
-                            .as_ref()
-                            .filter(|_| requested_windows_context.identity == super::WindowsExecutionIdentity::ActiveUser)
-                            .map(|context| context.token_user_sid.as_str()),
-                        expected_session_id: plan
-                            .windows_execution_context
-                            .as_ref()
-                            .filter(|_| requested_windows_context.identity == super::WindowsExecutionIdentity::ActiveUser)
-                            .and_then(|context| context.session_id),
-                        executable: Path::new(&plan.executable),
-                        args: &plan.args,
-                        cwd: Path::new(&plan.cwd),
-                        environment: &plan.env,
-                        input_source_root: input_source_root.as_deref(),
-                        input_set_id: plan.input_set_id.as_deref(),
-                        input_presentation_root,
-                        input_bindings_digest: input_bindings_digest.as_deref(),
-                        budget: &plan.budget,
-                        timeout_ms: plan.timeout_ms,
-                        stdout_limit_bytes: plan.stdout_limit_bytes,
-                        stderr_limit_bytes: plan.stderr_limit_bytes,
-                    }) {
-                        Ok(dispatch) => dispatch,
-                        Err(error) => {
-                            self.commit_control_terminal(
-                                &starting,
-                                AttemptState::Failed,
-                                "RUNNER_START_FAILED",
-                                Some(format!(
-                                    "native Windows launcher spawn failed: {}",
-                                    error.message
-                                )),
-                            )?;
-                            return Ok(());
-                        }
-                    };
-                    let bound =
-                        self.bind_native_windows_dispatch_owner(&starting, &dispatch)?;
-                    return self.await_launch_evidence(&bound);
+                let runner_request_digest = sha256_file(&bundle_path.join(RUNNER_REQUEST_FILE))
+                    .map_err(map_universal_error)?;
+                let requested_windows_context = plan
+                    .windows_context
+                    .unwrap_or_else(|| plan.windows_authority.canonical_context());
+                let dispatch = match spawn_windows_native(&WindowsNativeRunSpec {
+                    config: windows,
+                    bundle_path: &bundle_path,
+                    job_id: &starting.job_id,
+                    attempt_id: &starting.attempt_id,
+                    launch_token_digest: &starting.launch_token_digest,
+                    request_digest: &runner_request_digest,
+                    authority: plan.windows_authority,
+                    payload_privilege: requested_windows_context.privilege,
+                    expected_privileged_broker_digest: plan
+                        .windows_execution_context
+                        .as_ref()
+                        .and_then(|context| context.privileged_broker_digest.as_deref()),
+                    expected_user_sid: plan
+                        .windows_execution_context
+                        .as_ref()
+                        .filter(|_| {
+                            requested_windows_context.identity
+                                == super::WindowsExecutionIdentity::ActiveUser
+                        })
+                        .map(|context| context.token_user_sid.as_str()),
+                    expected_session_id: plan
+                        .windows_execution_context
+                        .as_ref()
+                        .filter(|_| {
+                            requested_windows_context.identity
+                                == super::WindowsExecutionIdentity::ActiveUser
+                        })
+                        .and_then(|context| context.session_id),
+                    executable: Path::new(&plan.executable),
+                    args: &plan.args,
+                    cwd: Path::new(&plan.cwd),
+                    environment: &plan.env,
+                    input_source_root: input_source_root.as_deref(),
+                    input_set_id: plan.input_set_id.as_deref(),
+                    input_presentation_root,
+                    input_bindings_digest: input_bindings_digest.as_deref(),
+                    budget: &plan.budget,
+                    timeout_ms: plan.timeout_ms,
+                    stdout_limit_bytes: plan.stdout_limit_bytes,
+                    stderr_limit_bytes: plan.stderr_limit_bytes,
+                    #[cfg(windows)]
+                    pg_terminal_peer_pid: None,
+                }) {
+                    Ok(dispatch) => dispatch,
+                    Err(error) => {
+                        self.commit_control_terminal(
+                            &starting,
+                            AttemptState::Failed,
+                            "RUNNER_START_FAILED",
+                            Some(format!(
+                                "native Windows launcher spawn failed: {}",
+                                error.message
+                            )),
+                        )?;
+                        return Ok(());
+                    }
+                };
+                let bound = self.bind_native_windows_dispatch_owner(&starting, &dispatch)?;
+                return self.await_launch_evidence(&bound);
             }
         };
         if !output.status.success() {
@@ -814,7 +823,6 @@ impl Runtime {
         }
         Ok(terminal)
     }
-
 }
 
 #[cfg(test)]

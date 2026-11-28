@@ -19,9 +19,15 @@ import tomllib
 import urllib.error
 import urllib.request
 
+# Future immutable release consumers must launch from a retained physical
+# generation. Resolve once, not again at each child invocation.
+SOURCE_SCRIPT = Path(__file__).resolve()
+SOURCE_DIR = SOURCE_SCRIPT.parent
+
 import native_profile as native
+from native_selection import country_patch, project_settings, selected_snapshot
 import quality_history as quality
-import observe_active as observer
+from active_observation import receive_observation
 
 AUTH = Path("/var/lib/network-v2/gluetun/auth/config.toml")
 API_URL = "http://127.0.0.1:8000/v1/vpn/settings"
@@ -70,40 +76,6 @@ def protected_key() -> str:
     return token
 
 
-def country_patch(country: str, allowed: set[str]) -> dict:
-    if country not in allowed or country == "Hong Kong":
-        raise ValueError("Cannot apply a country outside policy")
-    return {"provider": {"server_selection": {"countries": [country]}}}
-
-
-def selected_snapshot(raw: dict, allowed: set[str]) -> dict:
-    if raw.get("type") != "wireguard":
-        raise ValueError("Unexpected VPN type")
-    provider = raw.get("provider", {})
-    if provider.get("name") != "surfshark":
-        raise ValueError("Unexpected VPN provider")
-    s = provider.get("server_selection", {})
-    countries = s.get("countries")
-    if not isinstance(countries, list) or not countries:
-        raise ValueError("Gluetun control country selection violates policy")
-    # Official Gluetun v3.41.3 lowercases source SERVER_COUNTRIES in its
-    # GET /v1/vpn/settings output. Compare with a case-folded permission map,
-    # but always return canonical source names for PUT and rollback.
-    canonical_names = {name.casefold(): name for name in allowed}
-    if len(canonical_names) != len(allowed):
-        raise ValueError("Ambiguous allowed countries after case normalization")
-    if any(not isinstance(c, str) or not c or c.casefold() not in canonical_names
-           or c.casefold() == "hong kong" for c in countries):
-        raise ValueError("Gluetun control country selection violates policy")
-    if any(s.get(field) for field in ("regions", "cities", "hostnames", "names",
-                                     "isps", "numbers")):
-        raise ValueError("Unexpected other native server selection filters")
-    canonical = [canonical_names[c.casefold()] for c in countries]
-    if len(canonical) != len(set(canonical)):
-        raise ValueError("Duplicate native selected country")
-    return {"countries": canonical, "vpn": raw.get("type"), "provider": provider.get("name")}
-
-
 def internal_http(method: str) -> int:
     # Run only in Gluetun's own loopback namespace. The API is NOT published.
     if method not in ("GET", "PUT"):
@@ -126,19 +98,8 @@ def internal_http(method: str) -> int:
             body = response.read(50000)
             status = response.status
         if method == "GET":
-            raw = json.loads(body)
-            # Only emit the schema fields needed, NEVER serialise VPN secrets.
-            p = raw.get("provider", {})
-            output = {
-                "status": status, "type": raw.get("type"),
-                "provider": {
-                    "name": p.get("name"), "server_selection": {
-                        x: p.get("server_selection", {}).get(x)
-                        for x in ("countries", "regions", "cities", "hostnames",
-                                  "names", "isps", "numbers")
-                    },
-                },
-            }
+            # The pure schema projection never serializes VPN secrets.
+            output = project_settings(json.loads(body), status)
         else:
             output = {"status": status, "outcome": body.decode(errors="replace")[:200]}
         print(json.dumps(output))
@@ -165,7 +126,7 @@ def container_pid() -> str:
 def api_call(method: str, payload: dict | None = None) -> dict:
     pid = container_pid()
     cmd = ["/usr/bin/nsenter", "-t", pid, "-n",
-           "/usr/bin/python3", str(Path(__file__).resolve()),
+           "/usr/bin/python3", str(SOURCE_SCRIPT),
            "--internal-api", method]
     receipt = subprocess.run(
         cmd, input=json.dumps(payload) if payload is not None else "",
@@ -177,6 +138,8 @@ def api_call(method: str, payload: dict | None = None) -> dict:
         data = json.loads(receipt.stdout)
     except (json.JSONDecodeError, ValueError):
         raise ValueError("Native VPN API returned no inspectable receipt") from None
+    if not isinstance(data, dict):
+        raise ValueError("Native VPN API returned no inspectable receipt")
     if receipt.returncode != 0:
         raise ValueError("Native VPN API not authorized or unavailable: "+str(data.get("standing","UNKNOWN")))
     return data
@@ -184,12 +147,12 @@ def api_call(method: str, payload: dict | None = None) -> dict:
 
 def initial_preflight() -> dict:
     subprocess.run(
-        ["/usr/bin/python3", str(Path(__file__).resolve().parent/"native_profile.py"), "--verify"],
+        ["/usr/bin/python3", str(SOURCE_DIR/"native_profile.py"), "--verify"],
         check=True, capture_output=True, timeout=20,
     )
     key = protected_key()  # do not log or expose
     del key
-    allowed = set(native.parse_allowed_policy(native.ALLOW_POLICY.read_text())["allowedCountries"])
+    allowed = set(native.read_selector_policy()["selectedCountries"])
     current = selected_snapshot(api_call("GET"), allowed)
     return {"standing": "NATIVE_API_AUTHORIZED_READONLY", "countryCount": len(current["countries"]),
             "forbiddenCountrySelected": False, "effectAttempted": False}
@@ -203,32 +166,115 @@ def bounded_consumer_observe(seconds: int = 25) -> dict[str, object]:
     """
     try:
         receipt = subprocess.run(
-            ["/usr/bin/python3", str(Path(__file__).resolve().with_name("observe_active.py"))],
+            ["/usr/bin/python3", str(SOURCE_DIR/"observe_active.py")],
             capture_output=True, text=True, timeout=seconds,
         )
-        data = json.loads(receipt.stdout)
-        if not isinstance(data, dict) or not isinstance(data.get("standing"), str):
-            raise ValueError("Unrecognized native consumer observation")
-        return data
+        return receive_observation(receipt.stdout, receipt.returncode)
     except (OSError, ValueError, subprocess.SubprocessError, json.JSONDecodeError):
         return {"standing": "UNKNOWN_BOUNDED_CONSUMER_OBSERVATION"}
 
 
+def native_health_state() -> bool | None:
+    """Official Gluetun health, independently of proxy HTTPS readiness.
+
+    Only a definite upstream HTTP 500 means unhealthy. A missing container,
+    timeout, or changed vendor response remains UNKNOWN, never permission to
+    restart a shared provider.
+    """
+    try:
+        receipt = subprocess.run(
+            ["/usr/bin/podman", "exec", CONTAINER,
+             "/gluetun-entrypoint", "healthcheck"],
+            capture_output=True, text=True, timeout=8,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if receipt.returncode == 0:
+        return True
+    if (receipt.returncode == 1 and
+        "HTTP response status is not OK: 500" in
+        (receipt.stdout + receipt.stderr)):
+        return False
+    return None
+
+
+def restart_existing_provider(*, timeout: int = 70,
+                              observe_seconds: int = 25, checks: int = 3) -> bool:
+    """One bounded restart of the SAME native provider, then business proof.
+
+    Reuse this capability for both partial native-health failure and a
+    confirmed total consumer outage whose Gluetun API trial/rollback cannot
+    be verified. This does not create a second service or VPN identity.
+    """
+    try:
+        subprocess.run(
+            ["/usr/bin/systemctl", "restart", "network-v2-gluetun-owned.service"],
+            capture_output=True, text=True, check=True, timeout=timeout,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    for attempt in range(checks):
+        if native_health_state() is True:
+            live = bounded_consumer_observe(seconds=observe_seconds)
+            if live.get("standing") == "QUALIFIED_ACTIVE_SAMPLE":
+                return True
+        if attempt + 1 < checks:
+            time.sleep(3)
+    return False
+
+
+def repair_partial_native_health() -> dict:
+    """One existing systemd service restart on a sustained partial outage.
+
+    The already-running 1m timer invokes this function only when three fresh
+    consumer lanes have NOT all failed. A native HTTP 500 then must persist,
+    host-direct underlay must work, and the existing 10m VPN-effect cooldown
+    must have expired. No new watchdog, selector, VPN or persistent registry.
+    """
+    first = native_health_state()
+    if first is True:
+        return {"standing": "HOLD_CONSUMER_HEALTHY_OR_PARTIAL", "effectAttempted": False}
+    if first is None:
+        return {"standing": "HOLD_NATIVE_HEALTH_UNKNOWN", "effectAttempted": False}
+    previous = last_attempt()
+    if previous is not None and datetime.now(timezone.utc)-previous < COOLDOWN:
+        return {"standing": "HOLD_COOLDOWN", "effectAttempted": False}
+    time.sleep(3)
+    if native_health_state() is not False:
+        return {"standing": "HOLD_NATIVE_HEALTH_RECOVERED_OR_UNKNOWN",
+                "effectAttempted": False}
+    # Two different *host-direct* origins, but one shared physical WAN.
+    if quality.direct_underlay_witness() is not True:
+        return {"standing": "HOLD_NATIVE_HEALTH_UNDERLAY_UNKNOWN_OR_DOWN",
+                "effectAttempted": False}
+    # The independent underlay probe may itself take several seconds.
+    if native_health_state() is not False:
+        return {"standing": "HOLD_NATIVE_HEALTH_RECOVERED_OR_UNKNOWN",
+                "effectAttempted": False}
+    mark_attempt()  # Before the first possible restart effect.
+    restored = restart_existing_provider()
+    return {"standing": ("NATIVE_HEALTH_RESTART_CONSUMED" if restored
+                         else "NATIVE_HEALTH_RESTART_UNQUALIFIED"),
+            "effectAttempted": True, "recoveryProved": restored}
+
+
 def guarded_recover() -> dict:
-    # An existing Prometheus 3-lane Blackbox witness is a much cheaper trigger
-    # than resampling a fully healthy VPN every two-minute systemd invocation.
-    # Only three observed failures in all lanes justify the slower real checks.
+    # The existing three-lane raw Blackbox witness separates two actions:
+    # total scoped outage -> existing country trial; partial/healthy lanes ->
+    # check for a *persistent native health failure* hidden by good HTTPS.
+    # Missing or stale series authorize neither action.
     try:
         recent = quality.recent_failure_witness(datetime.now(timezone.utc))
     except (OSError, ValueError):
         recent = None
-    if recent is not True:
-        return {"standing": ("HOLD_CONSUMER_HEALTHY_OR_PARTIAL" if recent is False
-                             else "HOLD_CONSUMER_OBSERVATION_UNKNOWN"),
+    if recent is None:
+        return {"standing": "HOLD_CONSUMER_OBSERVATION_UNKNOWN",
                 "effectAttempted": False}
+    if recent is False:
+        return repair_partial_native_health()
     # A one-shot guarded native settings change, not a second autonomous
     # provider or an unconditional "speed optimization" when users are healthy.
-    allowed = set(native.parse_allowed_policy(native.ALLOW_POLICY.read_text())["allowedCountries"])
+    allowed = set(native.read_selector_policy()["selectedCountries"])
     plan = quality.observe(hours=48)
     outcome = plan["recommended"]
     if outcome["decision"] != "TRIAL_ONLY_REQUIRES_NATIVE_AUTH_AND_POST_SWITCH_CONSUMER_PROOF":
@@ -271,13 +317,16 @@ def guarded_recover() -> dict:
             if time.monotonic() - started >= 118:
                 break
             trial_started = time.monotonic()
+            trial_phase = "PUT"
             try:
                 switched = True  # a timed-out PUT might still be applied
                 api_call("PUT", country_patch(country, allowed))
+                trial_phase = "GET"
                 if selected_snapshot(api_call("GET"), allowed)["countries"] != [country]:
                     raise ValueError("Native settings did not adopt requested candidate")
                 # The full provider proof includes kernel endpoint + 2 real
                 # TLS/HTTP consumers, not only the control-plane HTTP 200.
+                trial_phase = "CONSUMER"
                 while time.monotonic() - trial_started < 43:
                     try:
                         checked = bounded_consumer_observe(seconds=20)
@@ -297,6 +346,7 @@ def guarded_recover() -> dict:
                 trials.append({"country": country, "standing": "TRIAL_UNQUALIFIED"})
             except (OSError, ValueError, subprocess.SubprocessError) as exc:
                 trials.append({"country": country, "standing": "TRIAL_UNKNOWN",
+                               "failureStage": trial_phase,
                                "reasonClass": type(exc).__name__})
         raise ValueError("No recent-success candidate passed live business acceptance")
     except (OSError, ValueError, subprocess.SubprocessError) as exc:
@@ -311,6 +361,34 @@ def guarded_recover() -> dict:
                             else "READBACK_MISMATCH")
             except (OSError, ValueError, subprocess.SubprocessError):
                 rollback = "UNKNOWN_OR_FAILED"
+        # Real production counterexample, 2026-11-15: repeated authenticated
+        # native API trial errors with an UNKNOWN rollback during a *confirmed*
+        # VPN-only outage. Once both direct origins work and the three fresh
+        # consumer lanes still fail, the native service is the next mature
+        # recovery boundary. The existing cooldown was marked before PUT.
+        #
+        # Limit this to an early failed trial in the ORIGINAL 4-minute
+        # systemd one-shot, rather than adding a second long recovery loop.
+        if (switched and rollback == "UNKNOWN_OR_FAILED"
+                and any(x.get("standing") == "TRIAL_UNKNOWN" for x in trials)
+                and time.monotonic() - started <= 45):
+            try:
+                if (quality.recent_failure_witness(datetime.now(timezone.utc)) is True
+                        and quality.direct_underlay_witness() is True
+                        and bounded_consumer_observe(seconds=12).get("standing")
+                        == "NOT_QUALIFIED"):
+                    restored = restart_existing_provider(
+                        timeout=45, observe_seconds=18, checks=2,
+                    )
+                    return {
+                        "standing": ("NATIVE_SWITCH_RESTART_CONSUMED" if restored
+                                     else "NATIVE_SWITCH_RESTART_UNQUALIFIED"),
+                        "reasonClass": type(exc).__name__,
+                        "trials": trials, "rollback": rollback,
+                        "effectAttempted": True, "recoveryProved": restored,
+                    }
+            except (OSError, ValueError, subprocess.SubprocessError):
+                pass
         return {"standing": "NATIVE_SWITCH_FAILED", "reasonClass": type(exc).__name__,
                 "trials": trials, "rollback": rollback, "effectAttempted": switched}
 
@@ -336,7 +414,8 @@ def main() -> int:
     print(json.dumps(result, sort_keys=True))
     # Healthy/unknown hold is a successful NO-OP decision, not a service
     # failure. Auth/effect failure remains nonzero for native systemd callers.
-    if result["standing"] in ("NATIVE_API_AUTHORIZED_READONLY", "NATIVE_SWITCH_CONSUMED"):
+    if result["standing"] in ("NATIVE_API_AUTHORIZED_READONLY", "NATIVE_SWITCH_CONSUMED",
+                             "NATIVE_HEALTH_RESTART_CONSUMED", "NATIVE_SWITCH_RESTART_CONSUMED"):
         return 0
     if args.recover and result.get("effectAttempted") is False and (
         result["standing"].startswith("HOLD_")

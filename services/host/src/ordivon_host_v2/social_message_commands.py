@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from typing import Any
 
 import psycopg
@@ -12,9 +14,12 @@ from .collaboration_inputs import (
 )
 from .command_receipts import claim_command_receipt, record_command_receipt
 from .errors import ConflictError
+from .references.actor_refs import ActorReferenceLookup
+from .references.record_refs import RecordReferenceLookup
 from .social_errors import MessageNotFound as MessageNotFound
 from .social_errors import SpaceNotFound as SpaceNotFound
 from .social_errors import TopicNotFound as TopicNotFound
+from .social_message_records import message_content, require_message, verified_message_wire
 
 # Internal receipt only: the immutable Message row owns the large response body.
 # This marker is never returned over MCP.
@@ -35,19 +40,24 @@ def _reply_target_precedes_source(source_sequence: int, target_sequence: int) ->
 class SocialMessageCommands:
     """PostgreSQL commands through the sole Host SocialStore authority."""
 
+    def __init__(
+        self, connect: Callable[[], AbstractContextManager[psycopg.Connection[dict[str, Any]]]]
+    ) -> None:
+        self._connect = connect
+
     def post_message(self, value: MessageInput) -> dict[str, Any]:
         request = {"operation": "message.post", **value.model_dump(mode="json")}
         request_digest = canonical_digest(request)
         message_digest = canonical_digest(
-            {
-                "messageRef": value.message_ref,
-                "spaceRef": value.space_ref,
-                "topicRef": value.topic_ref,
-                "authorActorRef": value.author_actor_ref,
-                "messageKind": value.message_kind.value,
-                "body": value.body,
-                "recordedAtMs": value.recorded_at_ms,
-            }
+            message_content(
+                message_ref=value.message_ref,
+                space_ref=value.space_ref,
+                topic_ref=value.topic_ref,
+                author_actor_ref=value.author_actor_ref,
+                message_kind=value.message_kind.value,
+                body=value.body,
+                recorded_at_ms=value.recorded_at_ms,
+            )
         )
         with self._connect() as conn, conn.transaction():
             replay = claim_command_receipt(
@@ -59,7 +69,9 @@ class SocialMessageCommands:
                         replay.get("messageRef") != value.message_ref
                         or replay.get("messageDigest") != message_digest
                     ):
-                        raise RuntimeError("message receipt reference differs from committed request")
+                        raise RuntimeError(
+                            "message receipt reference differs from committed request"
+                        )
                     row = conn.execute(
                         "SELECT sequence,message_ref,space_ref,topic_ref,author_actor_ref,"
                         "message_kind,body,message_digest,recorded_at_ms,created_at "
@@ -68,19 +80,20 @@ class SocialMessageCommands:
                     ).fetchone()
                     if row is None or row["message_digest"] != message_digest:
                         raise RuntimeError("committed message receipt target is missing or changed")
-                    self._verify_message_content_digest(row)
                     return self._post_message_response(row, admission="existing")
                 return replay
-            self._require_actor(conn, value.author_actor_ref)
-            self._require_space(conn, value.space_ref)
+            ActorReferenceLookup._require_actor(conn, value.author_actor_ref)
+            RecordReferenceLookup._require_space(conn, value.space_ref)
             # The same-topic row fence precedes the IDENTITY default so a
             # later visible sequence cannot overtake a pending older one.
             # NO KEY UPDATE remains compatible with FK KEY SHARE on topics.
-            topic = self._require_topic(conn, value.topic_ref, for_no_key_update=True)
+            topic = RecordReferenceLookup._require_topic(
+                conn, value.topic_ref, for_no_key_update=True
+            )
             if topic["space_ref"] != value.space_ref:
                 raise ConflictError("topic does not belong to the supplied space")
             if topic["state"] != "open":
-                raise ConflictError("closed topic does not accept new messages")
+                raise ConflictError(f"{topic['state']} topic does not accept new messages")
             row = conn.execute(
                 "INSERT INTO messages(message_ref,client_request_id,space_ref,topic_ref,author_actor_ref,"
                 "message_kind,body,message_digest,recorded_at_ms) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) "
@@ -111,7 +124,6 @@ class SocialMessageCommands:
                 if row["message_digest"] != message_digest:
                     raise ConflictError("message_ref already exists with different content")
                 admission = "existing"
-            self._verify_message_content_digest(row)
             result = self._post_message_response(row, admission=admission)
             # Do not store a second copy of the (potentially large) Message
             # body in command_receipts. The immutable Message row plus its
@@ -136,16 +148,7 @@ class SocialMessageCommands:
             "schemaVersion": 1,
             "kind": "ordivon.host-message",
             "admission": admission,
-            "sequence": int(row["sequence"]),
-            "messageRef": row["message_ref"],
-            "spaceRef": row["space_ref"],
-            "topicRef": row["topic_ref"],
-            "authorActorRef": row["author_actor_ref"],
-            "messageKind": row["message_kind"],
-            "body": row["body"],
-            "messageDigest": row["message_digest"],
-            "recordedAtMs": int(row["recorded_at_ms"]),
-            "createdAt": row["created_at"].isoformat(),
+            **verified_message_wire(row),
             "truthBoundary": "durable collaboration message only; participation is not authorization and message content is not Work/domain truth",
         }
 
@@ -160,12 +163,13 @@ class SocialMessageCommands:
             )
             if replay is not None:
                 return replay
-            self._require_actor(conn, value.actor_ref)
-            source = self._require_message(conn, value.source_message_ref)
+            ActorReferenceLookup._require_actor(conn, value.actor_ref)
+            source = require_message(conn, value.source_message_ref)
             self._validate_relation_target(conn, source, value)
             row = conn.execute(
                 "INSERT INTO message_relations(source_message_ref,relation,target_ref,created_by_actor_ref) "
-                "VALUES (%s,%s,%s,%s) ON CONFLICT DO NOTHING RETURNING created_at",
+                "VALUES (%s,%s,%s,%s) ON CONFLICT DO NOTHING RETURNING "
+                "source_message_ref,relation,target_ref,created_by_actor_ref,created_at",
                 (
                     value.source_message_ref,
                     value.relation.value,
@@ -174,11 +178,13 @@ class SocialMessageCommands:
                 ),
             ).fetchone()
             admission = "committed" if row is not None else "existing"
-            existing = conn.execute(
-                "SELECT source_message_ref,relation,target_ref,created_by_actor_ref,created_at "
-                "FROM message_relations WHERE source_message_ref=%s AND relation=%s AND target_ref=%s",
-                (value.source_message_ref, value.relation.value, value.target_ref),
-            ).fetchone()
+            existing = row
+            if existing is None:
+                existing = conn.execute(
+                    "SELECT source_message_ref,relation,target_ref,created_by_actor_ref,created_at "
+                    "FROM message_relations WHERE source_message_ref=%s AND relation=%s AND target_ref=%s",
+                    (value.source_message_ref, value.relation.value, value.target_ref),
+                ).fetchone()
             if existing is None:
                 raise RuntimeError("message relation disappeared")
             result = {
@@ -208,7 +214,7 @@ class SocialMessageCommands:
             MessageRelationKind.ACKNOWLEDGES,
             MessageRelationKind.SUPERSEDES,
         }:
-            target = self._require_message(conn, value.target_ref)
+            target = require_message(conn, value.target_ref)
             if target["space_ref"] != source["space_ref"]:
                 raise ConflictError(f"{value.relation.value} cannot cross spaces")
             if (
@@ -229,5 +235,5 @@ class SocialMessageCommands:
             ):
                 raise ConflictError("message cannot supersede itself")
         elif value.relation == MessageRelationKind.MENTIONS:
-            self._require_actor(conn, value.target_ref)
+            ActorReferenceLookup._require_actor(conn, value.target_ref)
         # references/about intentionally accept opaque external refs; presence is not existence proof.

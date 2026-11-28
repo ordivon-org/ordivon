@@ -114,3 +114,53 @@ def test_agent_receipt_absent_optional_text_is_unknown_not_success() -> None:
     receipt = submit(caller)
     assert receipt.state == "unknown"
     assert receipt.delivery_disposition is None
+
+
+@pytest.mark.parametrize("method", [submit, cancel])
+@pytest.mark.parametrize("attempt_state", [7, None, ""])
+def test_owner_receipt_rejects_malformed_attempt_state_even_when_status_is_present(
+    method, attempt_state: Any
+) -> None:
+    """Separate semantic fields must each preserve their JSON wire type."""
+    caller = OwnerReceiptCaller(
+        {
+            "jobId": "job-receipt-contract",
+            "status": "succeeded",
+            "attemptState": attempt_state,
+            "executionTerminal": True,
+            "deliveryDisposition": "committed",
+        }
+    )
+    with pytest.raises(GatewayError, match="Runtime owner response"):
+        method(caller)
+    assert len(caller.calls) == 1
+
+
+@pytest.mark.parametrize("method", [submit, cancel])
+@pytest.mark.parametrize(
+    ("job_status", "attempt_state"),
+    [
+        ("queued", "accepted"),
+        ("queued", "starting"),
+        ("working", "running"),
+        ("working", "stopping"),
+        ("working", "recovering"),
+    ],
+)
+def test_owner_receipt_preserves_job_summary_when_attempt_state_differs(
+    method, job_status: str, attempt_state: str
+) -> None:
+    """Rust Runtime project_job defines status as a summary, not an Attempt alias."""
+    caller = OwnerReceiptCaller(
+        {
+            "jobId": "job-receipt-contract",
+            "status": job_status,
+            "attemptState": attempt_state,
+            "executionTerminal": False,
+            "deliveryDisposition": "in_progress",
+        }
+    )
+    result = method(caller)
+    assert result.state == job_status
+    assert result.terminal is False
+    assert len(caller.calls) == 1

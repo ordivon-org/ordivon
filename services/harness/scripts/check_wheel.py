@@ -136,6 +136,7 @@ CLI_COMMANDS = (
     "explain",
     "run",
     "resume",
+    "gateway-profile",
     "store-init",
     "store-doctor",
     "store-inspect",

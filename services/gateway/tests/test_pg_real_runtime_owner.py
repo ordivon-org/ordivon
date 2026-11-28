@@ -25,7 +25,7 @@ from mcp import Client
 
 from ordivon_gateway.mcp_server import build_server
 from ordivon_gateway.service import GatewayService
-from ordivon_gateway.upstream import McpOwnerCaller, OwnerCallError, OwnerEndpoint
+from ordivon_gateway.transport.upstream import McpOwnerCaller, OwnerCallError, OwnerEndpoint
 
 
 @pytest.mark.skipif(
@@ -203,6 +203,25 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
         tokenfile.chmod(0o600)
         assert stat.S_IMODE(tokenfile.stat().st_mode) == 0o600
         issuer_isolated = os.getenv("ORDIVON_GATEWAY_PG_E2E_ISSUER_ISOLATED") == "1"
+        contained_cutover = os.getenv("ORDIVON_GATEWAY_PG_E2E_CONTAINED_ONLY") == "1"
+        if contained_cutover:
+            # This isolated physical test cannot share the legacy Harness
+            # Source-currentness fixture (which requires trusted_local).
+            assert not issuer_isolated
+            assert os.getenv("ORDIVON_GATEWAY_PG_E2E_ISSUER_ADMISSION") != "1"
+            # The invoking native Job exposes CARGO_TARGET_DIR through its
+            # own private /run mount. systemd Manager's sibling PG Attempt
+            # cannot bind that path, even though this Python process can
+            # stat it (226/NAMESPACE). Reuse the original Native PG fixture's
+            # host-visible Runner copy, scoped to this disposable PG root.
+            host_runner = root / "ordivon-runtime-runner"
+            shutil.copy2(runner, host_runner)
+            host_runner.chmod(0o755)
+            assert (
+                hashlib.sha256(host_runner.read_bytes()).digest()
+                == hashlib.sha256(runner.read_bytes()).digest()
+            )
+            runner = host_runner
         if issuer_isolated:
             assert os.getenv("ORDIVON_GATEWAY_PG_E2E_ISSUER_ADMISSION") == "1"
             harness_tokenfile = root / "harness-private-bearer"
@@ -262,9 +281,23 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                 "ORDIVON_PG_PRINCIPAL": "pg-consumer",
             }
         )
+        if contained_cutover:
+            env["ORDIVON_PG_ORDINARY_EXECUTION_PROFILE"] = "contained_local"
+            # The native contained-only Runtime requires an operator-owned,
+            # non-root task identity even in a disposable PostgreSQL fixture.
+            # Use the same isolated nobody identity as the native PG18 tests;
+            # never borrow production Runtime or Gateway credentials.
+            env["ORDIVON_PG_WORKSPACE_UID"] = "65534"
+            env["ORDIVON_PG_WORKSPACE_GID"] = "65534"
         if os.getenv("ORDIVON_GATEWAY_PG_E2E_ISSUER_ADMISSION") == "1":
             # Same cluster and issuer, with either legacy strict whole-endpoint
             # policy or the distinct authenticated Harness route.
+            private = root / "issuer-receiver-private"
+            private.mkdir(mode=0o700)
+            dsn_file = private / "dsn"
+            dsn_file.write_text(env["ORDIVON_PG_DSN"], encoding="utf-8")
+            dsn_file.chmod(0o600)
+            env["ORDIVON_PG_DSN_FILE"] = str(dsn_file)
             env["ORDIVON_PG_HARNESS_ISSUER_SCHEMA"] = "harness_r22_source"
             if issuer_isolated:
                 assert harness_tokenfile is not None
@@ -404,6 +437,80 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                 },
             )
             assert workspace["workspaceId"] == "ws-gateway-native"
+            if contained_cutover:
+                assert discovered.capabilities[0].contexts == ["contained_local"]
+                request_id = "r61-gateway-profile-cutover-" + secrets.token_hex(6)
+                original_output = "R61_GATEWAY_REAL_CONTAINED_" + request_id
+                original = await gateway.execution_submit(
+                    capability="execution.linux",
+                    request_id=request_id,
+                    workspace_id="ws-gateway-native",
+                    executable="/usr/bin/printf",
+                    args=[original_output],
+                )
+                assert original.owner_id == "runtime.linux"
+                assert original.native_id.startswith("job-")
+                # This is a REAL original PG attempt, not a Gateway receipt.
+                # Once committed as contained_local, reattaching with no
+                # context first encounters the OLD trusted default, then the
+                # Runtime's exact-key conflict before the contained replay.
+                again = await gateway.execution_submit(
+                    capability="execution.linux",
+                    request_id=request_id,
+                    workspace_id="ws-gateway-native",
+                    executable="/usr/bin/printf",
+                    args=[original_output],
+                )
+                assert again.native_id == original.native_id
+                assert psql("SELECT count(*) FROM fresh.jobs").strip() == "1"
+                for _ in range(30):
+                    observed = await gateway.execution_get(original.operation_ref, wait_ms=1500)
+                    if observed.terminal:
+                        break
+                assert observed.terminal
+                assert observed.exit_code == 0
+                assert observed.execution_disposition == "succeeded"
+                assert observed.artifact_ids
+                chunks = [
+                    await gateway.artifact_read(original.operation_ref, artifact_id, max_bytes=1024)
+                    for artifact_id in observed.artifact_ids
+                ]
+                assert any(original_output in chunk.content for chunk in chunks)
+                with pytest.raises(OwnerCallError) as denied:
+                    await gateway.execution_submit(
+                        capability="execution.linux",
+                        request_id=request_id + "-manual-trusted",
+                        workspace_id="ws-gateway-native",
+                        executable="/usr/bin/printf",
+                        args=["SHOULD_NOT_RUN_AS_ROOT"],
+                        context="trusted_local",
+                    )
+                assert denied.value.error is not None
+                assert denied.value.error["code"] == "AUTHORIZATION_DENIED"
+                assert denied.value.error["commitState"] == "not_committed"
+                assert psql("SELECT count(*) FROM fresh.jobs").strip() == "1"
+
+                async with Client(build_server(gateway), raise_exceptions=True) as agent:
+                    north_request = request_id + "-agent"
+                    north_output = "R61_NORTHBOUND_AGENT_CONTAINED_" + north_request
+                    params = {
+                        "capability": "execution.linux",
+                        "requestId": north_request,
+                        "workspaceId": "ws-gateway-native",
+                        "executable": "/usr/bin/printf",
+                        "args": [north_output],
+                    }
+                    north = await agent.call_tool("execution.submit", params)
+                    assert not north.is_error, north.structured_content
+                    north_again = await agent.call_tool("execution.submit", params)
+                    assert not north_again.is_error, north_again.structured_content
+                    assert (
+                        north_again.structured_content["operation_ref"]
+                        == (north.structured_content["operation_ref"])
+                    )
+                assert psql("SELECT count(*) FROM fresh.jobs").strip() == "2"
+                print("R61_REAL_NATIVE_PG_GATEWAY_CONTAINED_NEW_AND_REPLAY_PASS")
+                return
             if issuer_isolated:
                 projection = await gateway.capability_describe("execution.harness")
                 assert projection.capabilities[0].available is True
@@ -985,7 +1092,7 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                                 break
                         assert not observed.is_error, observed.structured_content
                         assert observed.structured_content["terminal"]
-                        assert observed.structured_content["exit_code"] == 0
+                        assert observed.structured_content["exit_code"] != 0
                         observed_effect = False
                         for artifact_id in observed.structured_content["artifact_ids"]:
                             content = await agent.call_tool(
@@ -998,7 +1105,9 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                             )
                             assert not content.is_error, content.structured_content
                             observed_effect |= late_output in content.structured_content["content"]
-                        assert observed_effect, "native effect must occur after source revocation"
+                        assert not observed_effect, (
+                            "revoked native receiver must not produce payload effect"
+                        )
                         assert (
                             psql(
                                 "SELECT count(*) FROM fresh.job_events "
@@ -1006,7 +1115,7 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                             ).strip()
                             == "1"
                         ), "source revocation cannot create a second dispatch"
-                        print("R24_ISSUER_ON_SPAWN_CURRENT_COUNTEREXAMPLE_REPRODUCED")
+                        print("R24_ISSUER_ON_SPAWN_CURRENT_REVOKED_EFFECT_DENIED")
                 return
             request_id = "gateway-native-" + secrets.token_hex(6)
             output = "GATEWAY_NATIVE_PG_" + request_id
@@ -1288,13 +1397,26 @@ def test_actual_gateway_to_native_pg_mcp_job_and_artifact() -> None:
                     ).resolve(strict=True)
                     assert committed_after_terminal["args"] == source_execution["args"]
                     assert committed_after_terminal["timeoutMs"] == source_execution["timeoutMs"]
-                    # The issuer-free correlation route is not an exact Tool
-                    # authority. Native PG legitimately adds its private Cargo
-                    # target to the *effective* frozen Plan; the original
-                    # Harness request remains unchanged and provenance-only.
-                    # Preserve an explicitly authored target unchanged.
+                    # Issuer-free correlation does not authenticate the
+                    # original Harness intent. Runtime legitimately adds only
+                    # its known Workspace-private defaults to the frozen Plan.
+                    # A same-PG qualified issuer instead binds the exact
+                    # original environment: no synthesized defaults allowed.
+                    # setdefault preserves every explicitly authored value.
                     expected_effective_env = dict(source_execution["env"])
-                    expected_effective_env.setdefault("CARGO_TARGET_DIR", "/proc/self/fd/198")
+                    if not issuer_bound:
+                        expected_effective_env.setdefault(
+                            "CARGO_TARGET_DIR", "/run/ordivon/cargo-target"
+                        )
+                        workspace_cache = (
+                            root / "store" / "cache" / "workspaces" / "ws-gateway-native"
+                        )
+                        for name, path in (
+                            ("XDG_CACHE_HOME", workspace_cache),
+                            ("PYTHONPYCACHEPREFIX", workspace_cache / "python-bytecode"),
+                            ("RUFF_CACHE_DIR", workspace_cache / "ruff"),
+                        ):
+                            expected_effective_env.setdefault(name, str(path))
                     assert committed_after_terminal["env"] == expected_effective_env
                     # Runtime's source-faithful normalized Plan stores the
                     # *resolved* absolute workspace cwd, not the caller's

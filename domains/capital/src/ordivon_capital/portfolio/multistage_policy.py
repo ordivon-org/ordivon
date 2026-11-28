@@ -416,6 +416,14 @@ def main() -> int:
     import json
     import sys
 
+    def unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise AlgebraicPolicyError(f"duplicate JSON input key: {key}")
+            result[key] = value
+        return result
+
     parser = argparse.ArgumentParser(
         description="Read-only finite-scenario 1r CRRA multi-period research"
     )
@@ -423,12 +431,12 @@ def main() -> int:
     args = parser.parse_args()
     try:
         if args.input == "-":
-            payload = json.load(sys.stdin)
+            payload = json.load(sys.stdin, object_pairs_hook=unique_object)
         else:
             from pathlib import Path as _Path
 
             with _Path(args.input).open(encoding="utf-8") as f:
-                payload = json.load(f)
+                payload = json.load(f, object_pairs_hook=unique_object)
         allowed_payload = {
             "gamma", "nodes", "terminal_liabilities_r",
             "node_outflow_after_contribution_r",
@@ -439,7 +447,8 @@ def main() -> int:
             or set(payload) - allowed_payload
         ):
             raise AlgebraicPolicyError(
-                "expected only gamma and nodes (optional terminal_liabilities_r)"
+                "expected only gamma and nodes (optional terminal_liabilities_r, "
+                "node_outflow_after_contribution_r)"
             )
         if not isinstance(payload["nodes"], list):
             raise AlgebraicPolicyError("nodes must be a JSON list of information sets")

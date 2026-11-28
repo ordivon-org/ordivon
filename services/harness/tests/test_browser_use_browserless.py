@@ -165,7 +165,9 @@ class BrowserUseBrowserlessTests(unittest.TestCase):
             "doctor",
         ):
             self.assertIn(f'add_parser("{action}")', text)
-        click = launcher.program_click(2, "button", "Submit")
+        with self.assertRaisesRegex(ValueError, "positive integer"):
+            launcher.program_click(2, "button", "Submit")
+        click = launcher.program_click(2, "button", "Submit", expect_backend_dom_node_id=9)
         self.assertIn("affordance-changed", click)
         self.assertIn("Submit", click)
         with self.assertRaisesRegex(ValueError, "permits only"):
@@ -208,7 +210,7 @@ class BrowserUseBrowserlessTests(unittest.TestCase):
             "wait": lambda _seconds: None,
         }
         with self.assertRaises(AssertionError):
-            exec(launcher.program_click(0, "button", "Delete"), scope)
+            exec(launcher.program_click(0, "button", "Delete", expect_backend_dom_node_id=101), scope)
         self.assertEqual(clicked, [], "ambiguous same-name target must never receive a click")
 
 
@@ -230,6 +232,12 @@ class BrowserUseBrowserlessTests(unittest.TestCase):
             if command == "DOM.getBoxModel":
                 bid = kwargs["backendNodeId"]
                 return {"model": {"content": [bid, 0, bid, 0, bid, 0, bid, 0]}}
+            if command == "DOM.resolveNode":
+                return {"object": {"objectId": "target"}}
+            if command == "Runtime.callFunctionOn":
+                return {"result": {"type": "boolean", "value": True}}
+            if command == "Runtime.releaseObject":
+                return {}
             raise AssertionError(command)
 
         context = {
@@ -254,8 +262,8 @@ class BrowserUseBrowserlessTests(unittest.TestCase):
         self.assertEqual(json.loads(observed.getvalue())["standing"], "CLICKED")
 
         clicked.clear()
-        with self.assertRaisesRegex(AssertionError, "affordance-ambiguous"):
-            exec(launcher.program_input(0, "button", "Delete", "unsafe"), context)
+        with self.assertRaisesRegex(ValueError, "positive integer"):
+            launcher.program_input(0, "button", "Delete", "unsafe")
         self.assertEqual(clicked, [])
 
         for invalid in (-1, 0, True, "101"):
@@ -292,6 +300,70 @@ class BrowserUseBrowserlessTests(unittest.TestCase):
         with self.assertRaises((RuntimeError, ValueError, AssertionError)):
             exec(compile(action, "<browser-use-action>", "exec", optimize=1), scope)
         self.assertEqual(clicked, [])
+
+
+    def test_pointer_hit_target_blocks_overlay_before_any_effect_even_under_python_optimized(self):
+        """One physical node may remain identical while an overlay intercepts its click."""
+        import browser_use_browserless as launcher
+
+        for action_name in ("click", "input"):
+            with self.subTest(action_name=action_name):
+                calls, effects = [], []
+
+                def cdp(method, **kwargs):
+                    calls.append(method)
+                    if method == "Accessibility.getFullAXTree":
+                        return {"nodes": [{"role": {"value": "button"}, "name": {"value": "Submit"},
+                                           "backendDOMNodeId": 7}]}
+                    if method == "DOM.getBoxModel":
+                        return {"model": {"content": [20,20,200,20,200,100,20,100]}}
+                    if method == "DOM.resolveNode":
+                        return {"object": {"objectId": "target-7"}}
+                    if method == "Runtime.callFunctionOn":
+                        return {"result": {"type": "boolean", "value": False}}
+                    if method == "Runtime.releaseObject":
+                        return {}
+                    raise AssertionError(method)
+
+                scope = {"cdp": cdp, "click_at_xy": lambda x, y: effects.append(("click", x, y)),
+                         "wait": lambda t: None, "page_info": lambda: None,
+                         "press_key": lambda *a, **kw: effects.append(("key", a)),
+                         "type_text": lambda t: effects.append(("text", t))}
+                action = (launcher.program_click(0, "button", "Submit", expect_backend_dom_node_id=7)
+                          if action_name == "click" else
+                          launcher.program_input(0, "button", "Submit", "value",
+                                                 expect_backend_dom_node_id=7))
+                with self.assertRaisesRegex(AssertionError, "affordance-not-hit-target"):
+                    exec(compile(action, "<browser-effect>", "exec", optimize=1), scope)
+                self.assertEqual(effects, [])
+                self.assertIn("Runtime.releaseObject", calls)
+
+    def test_pointer_hit_target_allows_correct_target_and_releases_cdp_object(self):
+        import browser_use_browserless as launcher
+        calls, clicks = [], []
+
+        def cdp(method, **kwargs):
+            calls.append(method)
+            if method == "Accessibility.getFullAXTree":
+                return {"nodes": [{"role": {"value": "button"}, "name": {"value": "Submit"},
+                                   "backendDOMNodeId": 7}]}
+            if method == "DOM.getBoxModel":
+                return {"model": {"content": [20,20,200,20,200,100,20,100]}}
+            if method == "DOM.resolveNode":
+                return {"object": {"objectId": "target-7"}}
+            if method == "Runtime.callFunctionOn":
+                self.assertIn("elementFromPoint", kwargs["functionDeclaration"])
+                return {"result": {"type": "boolean", "value": True}}
+            if method == "Runtime.releaseObject":
+                return {}
+            raise AssertionError(method)
+
+        scope = {"cdp": cdp, "click_at_xy": lambda x, y: clicks.append((x,y)),
+                 "wait": lambda t: None, "page_info": lambda: None}
+        exec(launcher.program_click(0, "button", "Submit", expect_backend_dom_node_id=7), scope)
+        self.assertEqual(len(clicks), 1)
+        self.assertIn("Runtime.callFunctionOn", calls)
+        self.assertIn("Runtime.releaseObject", calls)
 
 
 if __name__ == "__main__":

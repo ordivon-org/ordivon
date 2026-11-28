@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "sourceRevision": "1da7d388e99676be36f3f9c20ac4cedc19e40fd4",
+  "runtimeJobId": "job-01a20c01-62d1-7482-a8f5-c3968f72f8d5",
+  "browser": "156.0.8078.4",
+  "node": "v26.12.1",
+  "host": {
+    "platform": "linux",
+    "arch": "x64",
+    "cpu": "AMD Ryzen 9 8940HX with Radeon Graphics",
+    "logicalCpus": 16,
+    "totalMemoryBytes": 10429001728
+  },
+  "metrics": "synchronous array update and DOM commit; excludes layout/paint, network and agent tokens; compiler configuration is not a proof of transform coverage",
+  "results": [
+    {
+      "name": "react-19",
+      "buildMs": 138,
+      "jsBytes": 220590,
+      "gzipBytes": 68231,
+      "loads": {
+        "1000": {
+          "mountMedianMs": 15.5,
+          "updateMedianMs": 1.3,
+          "updateP95Ms": 3.9,
+          "mountSamples": 5,
+          "updateSamples": 250
+        },
+        "5000": {
+          "mountMedianMs": 79.4,
+          "updateMedianMs": 8.6,
+          "updateP95Ms": 24,
+          "mountSamples": 5,
+          "updateSamples": 250
+        }
+      }
+    },
+    {
+      "name": "react-19-memo",
+      "buildMs": 89,
+      "jsBytes": 220602,
+      "gzipBytes": 68235,
+      "loads": {
+        "1000": {
+          "mountMedianMs": 15.3,
+          "updateMedianMs": 0.3,
+          "updateP95Ms": 1.2,
+          "mountSamples": 5,
+          "updateSamples": 250
+        },
+        "5000": {
+          "mountMedianMs": 79.5,
+          "updateMedianMs": 0.7,
+          "updateP95Ms": 2.4,
+          "mountSamples": 5,
+          "updateSamples": 250
+        }
+      }
+    },
+    {
+      "name": "react-19-native-compiler-configured",
+      "buildMs": 123,
+      "jsBytes": 221588,
+      "gzipBytes": 68678,
+      "loads": {
+        "1000": {
+          "mountMedianMs": 13.6,
+          "updateMedianMs": 0.5,
+          "updateP95Ms": 1.9,
+          "mountSamples": 5,
+          "updateSamples": 250
+        },
+        "5000": {
+          "mountMedianMs": 78.5,
+          "updateMedianMs": 2.3,
+          "updateP95Ms": 7,
+          "mountSamples": 5,
+          "updateSamples": 250
+        }
+      }
+    },
+    {
+      "name": "solid-2",
+      "buildMs": 119,
+      "jsBytes": 35098,
+      "gzipBytes": 14292,
+      "loads": {
+        "1000": {
+          "mountMedianMs": 17.4,
+          "updateMedianMs": 0,
+          "updateP95Ms": 0.2,
+          "mountSamples": 5,
+          "updateSamples": 250
+        },
+        "5000": {
+          "mountMedianMs": 49.9,
+          "updateMedianMs": 0.1,
+          "updateP95Ms": 0.4,
+          "mountSamples": 5,
+          "updateSamples": 250
+        }
+      }
+    }
+  ]
+}

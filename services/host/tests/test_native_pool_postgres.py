@@ -17,7 +17,7 @@ from psycopg_pool import ConnectionPool, PoolTimeout
 
 from ordivon_host_v2.attention_store import AttentionStore
 from ordivon_host_v2.mcp_server import build_server
-from ordivon_host_v2.service import HostV2
+from ordivon_host_v2.service import REQUIRED_SCHEMA_VERSION, HostV2
 from ordivon_host_v2.social_store import SocialStore
 from ordivon_host_v2.work_store import WorkStore
 
@@ -129,7 +129,7 @@ def test_one_pool_serves_mcp_work_social_attention_and_status() -> None:
             assert any(row["sourceRef"] == posted["messageRef"] for row in changes["events"])
             result = await call(client, "host.status", {"detail": "integrity"})
             assert result["doctor"]["healthy"] is True
-            assert result["authority"]["journalSchema"] == 13
+            assert result["authority"]["journalSchema"] == REQUIRED_SCHEMA_VERSION
 
     with ConnectionPool(
         DSN, min_size=1, max_size=1, kwargs={"row_factory": dict_row},
@@ -142,11 +142,12 @@ def test_one_pool_serves_mcp_work_social_attention_and_status() -> None:
 
 
 @pytest.mark.parametrize("transport", ["stdio", "streamable-http"])
+@pytest.mark.parametrize("compact_mode", [None, "0", "1"])
 def test_mcp_process_owns_and_closes_pool(
-    monkeypatch: pytest.MonkeyPatch, transport: str, tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch, transport: str, tmp_path: Path, compact_mode: str | None,
 ) -> None:
     """Native pool encloses STDIO or authenticated HTTP and closes on exit."""
-    from ordivon_host_v2 import mcp_server
+    from ordivon_host_v2 import http_transport, mcp_server
 
     events: list[object] = []
 
@@ -169,16 +170,28 @@ def test_mcp_process_owns_and_closes_pool(
             events.append(("app", kwargs))
             return object()
 
-    def fake_build_server(dsn: str, *, pool: FakePool) -> FakeServer:
+    def fake_build_server(
+        dsn: str, *, pool: FakePool, compact_work_receipts: bool
+    ) -> FakeServer:
         assert dsn == "postgresql://invalid.invalid/unused"
+        assert compact_work_receipts is (compact_mode == "1")
         events.append(("bound", pool))
         return FakeServer()
 
     monkeypatch.setenv("ORDIVON_HOST_V2_DSN", "postgresql://invalid.invalid/unused")
     monkeypatch.setenv("ORDIVON_HOST_V2_TRANSPORT", transport)
     monkeypatch.setenv("ORDIVON_HOST_V2_PG_POOL_MAX_SIZE", "2")
+    if compact_mode is None:
+        monkeypatch.delenv("ORDIVON_HOST_V2_COMPACT_WORK_RECEIPTS", raising=False)
+    else:
+        monkeypatch.setenv("ORDIVON_HOST_V2_COMPACT_WORK_RECEIPTS", compact_mode)
     monkeypatch.setattr(mcp_server, "ConnectionPool", FakePool)
     monkeypatch.setattr(mcp_server, "build_server", fake_build_server)
+
+    def readiness(service) -> None:
+        events.append(("ready", service._pool))
+
+    monkeypatch.setattr(mcp_server.HostV2, "initialize", readiness)
     if transport == "streamable-http":
         credential = tmp_path / "host-bearer"
         credential.write_text("t" * 48, encoding="utf-8")
@@ -195,21 +208,23 @@ def test_mcp_process_owns_and_closes_pool(
             assert host == "127.0.0.1" and port == 8898 and log_level == "info"
             events.append(("serve", app))
 
-        monkeypatch.setattr(mcp_server, "protect_host_http_app", fake_protect)
-        monkeypatch.setattr(mcp_server.uvicorn, "run", fake_serve)
+        monkeypatch.setattr(http_transport, "protect_host_http_app", fake_protect)
+        monkeypatch.setattr(http_transport.uvicorn, "run", fake_serve)
     mcp_server.main()
 
     assert events[1] == "open"
-    assert events[2][0] == "bound"
+    assert events[2][0] == "ready"
+    assert events[3][0] == "bound"
+    assert events[2][1] is events[3][1]
     assert events[0][1]["max_size"] == 2
     assert events[0][1]["open"] is False
     if transport == "stdio":
-        assert events[3][0] == "run"
-        assert events[4] == "close"
+        assert events[4][0] == "run"
+        assert events[5] == "close"
     else:
-        assert [e[0] for e in events[3:-1]] == ["app", "protect", "serve"]
-        assert events[3][1]["stateless_http"] is True
-        assert events[4][1] is events[5][1]
+        assert [e[0] for e in events[4:-1]] == ["app", "protect", "serve"]
+        assert events[4][1]["stateless_http"] is True
+        assert events[5][1] is events[6][1]
         assert events[-1] == "close"
 
 

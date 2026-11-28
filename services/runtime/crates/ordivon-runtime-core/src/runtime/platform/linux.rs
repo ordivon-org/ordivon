@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -122,6 +122,7 @@ pub(crate) struct SystemdRunSpec<'a> {
     pub(crate) bundle_path: &'a Path,
     pub(crate) workspace_path: &'a Path,
     pub(crate) workspace_git_common_dir: Option<&'a Path>,
+    pub(crate) cargo_target_mount: Option<&'a Path>,
     pub(crate) input_set_path: Option<&'a Path>,
     pub(crate) credential_source_root: Option<&'a Path>,
     pub(crate) credential_names: &'a [String],
@@ -209,6 +210,30 @@ pub(crate) fn build_systemd_run_command(spec: &SystemdRunSpec<'_>) -> RuntimeRes
     match execution_profile {
         crate::runtime::ExecutionProfile::TrustedLocal => {
             append_trusted_environment(&mut command);
+            if spec.environment.get("CARGO_TARGET_DIR").map(String::as_str)
+                == Some(super::super::build_target_contract::TRUSTED_BUILD_TARGET_PRESENTATION)
+                && spec.cargo_target_mount.is_none()
+            {
+                return Err(RuntimeError::invalid(
+                    "trusted Cargo target requires its Workspace-private native mount",
+                    "execution.environment.CARGO_TARGET_DIR",
+                ));
+            }
+            if let Some(backing) = spec.cargo_target_mount {
+                let backing = fs::canonicalize(backing)
+                    .map_err(|error| io_error("resolve private Cargo target", error))?;
+                if !backing.is_dir() {
+                    return Err(RuntimeError::invalid(
+                        "private Cargo target backing is not a directory",
+                        "execution.environment.CARGO_TARGET_DIR",
+                    ));
+                }
+                let source = systemd_path_value(&backing)?;
+                command.arg(format!(
+                    "--property=BindPaths={source}:{}",
+                    super::super::build_target_contract::TRUSTED_BUILD_TARGET_PRESENTATION
+                ));
+            }
             if let Some(input_set_path) = input_set_path {
                 let source = systemd_path_value(input_set_path)?;
                 command.arg(format!(
@@ -232,6 +257,12 @@ pub(crate) fn build_systemd_run_command(spec: &SystemdRunSpec<'_>) -> RuntimeRes
             }
         }
         super::super::ExecutionProfile::ContainedLocal => {
+            if spec.cargo_target_mount.is_some() {
+                return Err(RuntimeError::invalid(
+                    "private Cargo target unit binding is only for trusted_local",
+                    "execution.executionProfile",
+                ));
+            }
             if !credential_names.is_empty() || credential_source_root.is_some() {
                 return Err(RuntimeError::invalid(
                     "credential delivery is not admitted for contained_local",
@@ -254,6 +285,52 @@ pub(crate) fn build_systemd_run_command(spec: &SystemdRunSpec<'_>) -> RuntimeRes
     Ok(command)
 }
 
+// Existing queued plans also reach this native boundary after recovery.
+// Do not let a writable Workspace cache symlink turn systemd BindPaths into a
+// host-private mount even if the environment string was Runtime-generated.
+// Inspect every component, not just the final leaf. The operator still owns
+// the trusted source roots; this is a physical no-symlink dispatch fence.
+pub(crate) fn validate_contained_bind_source(path: &Path) -> RuntimeResult<()> {
+    if !path.is_absolute() {
+        return Err(RuntimeError::invalid(
+            "contained bind source must be an absolute directory",
+            "executionProfile",
+        ));
+    }
+    let mut prefix = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::RootDir => prefix.push(component.as_os_str()),
+            Component::Normal(name) => {
+                prefix.push(name);
+                let metadata = fs::symlink_metadata(&prefix).map_err(|_| {
+                    RuntimeError::new(
+                        RuntimeErrorCode::WorkspaceStateMismatch,
+                        "contained bind source is absent or cannot be inspected",
+                        Some("executionProfile"),
+                        false,
+                    )
+                })?;
+                if metadata.file_type().is_symlink() || !metadata.is_dir() {
+                    return Err(RuntimeError::new(
+                        RuntimeErrorCode::WorkspaceStateMismatch,
+                        "contained bind source contains a symlink or non-directory",
+                        Some("executionProfile"),
+                        false,
+                    ));
+                }
+            }
+            _ => {
+                return Err(RuntimeError::invalid(
+                    "contained bind source cannot contain parent or prefix traversal",
+                    "executionProfile",
+                ))
+            }
+        }
+    }
+    Ok(())
+}
+
 pub(crate) fn append_contained_properties(
     command: &mut Command,
     runner: &Path,
@@ -266,11 +343,22 @@ pub(crate) fn append_contained_properties(
     command.args([
         "--property=ProtectSystem=strict",
         "--property=ProtectHome=tmpfs",
+        // The contained task still has UID 0; ro filesystem alone cannot
+        // keep same-UID 0600 control-plane credentials from it. Let systemd
+        // ignore this binding on hosts that do not install /etc/ordivon.
+        "--property=InaccessiblePaths=-/etc/ordivon",
         "--property=PrivateTmp=yes",
         "--property=PrivateDevices=yes",
         "--property=PrivateNetwork=yes",
         "--property=NoNewPrivileges=yes",
-        "--property=CapabilityBoundingSet=",
+        // Trusted Runner (not target Command) needs only native capability
+        // to drop each child to the already qualified Workspace owner.
+        // The trusted Runner must re-read original source bytes created by
+        // the unprivileged payload (often 0600) when verifying the next
+        // PG-bound attempt. CAP_DAC_READ_SEARCH grants only read/traverse,
+        // not arbitrary file modification. The child is still setuid()
+        // nonroot with NO_NEW_PRIVS and no ambient capabilities.
+        "--property=CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_DAC_READ_SEARCH",
         "--property=AmbientCapabilities=",
         "--property=RestrictSUIDSGID=yes",
         "--property=RestrictNamespaces=yes",
@@ -282,6 +370,11 @@ pub(crate) fn append_contained_properties(
         "--property=ProtectKernelLogs=yes",
         "--property=ProtectControlGroups=yes",
         "--property=ProtectProc=invisible",
+        // File-system mount isolation by itself is not process isolation.
+        // Two contained tasks with the same nonroot UID can otherwise open
+        // each other's mount view via /proc/<peer-pid>/root despite a denied
+        // direct path. Scope /proc and PIDs to this native systemd Unit.
+        "--property=PrivatePIDs=yes",
         "--property=ProcSubset=pid",
         "--property=KeyringMode=private",
         "--property=RestrictAddressFamilies=AF_UNIX",
@@ -334,6 +427,7 @@ pub(crate) fn append_contained_properties(
         }
     }
     for path in writable_paths {
+        validate_contained_bind_source(&path)?;
         let value = systemd_path_value(&path)?;
         command.arg(format!("--property=BindPaths={value}:{value}"));
     }
@@ -767,6 +861,8 @@ impl CgroupPopulation {
 /// existing cgroup with an unreadable or missing cgroup.events is UNKNOWN.
 /// Reading an empty cgroup.procs is insufficient to prove all descendants
 /// are empty, whereas cgroup.events is recursive.
+/// Only Linux may promote this filesystem observation to a kernel cgroup witness.
+#[cfg(target_os = "linux")]
 pub(crate) fn cgroup_population(control_group: &str) -> RuntimeResult<CgroupPopulation> {
     if !control_group.starts_with('/')
         || control_group
@@ -828,7 +924,35 @@ pub(crate) fn cgroup_population(control_group: &str) -> RuntimeResult<CgroupPopu
     }
 }
 
+/// A Windows or other non-Linux filesystem cannot certify cgroup v2 population.
+/// In particular, ordinary files named cgroup.events never prove full-tree quiescence.
+#[cfg(not(target_os = "linux"))]
+pub(crate) fn cgroup_population(_control_group: &str) -> RuntimeResult<CgroupPopulation> {
+    Err(RuntimeError::new(
+        RuntimeErrorCode::ToolUnavailable,
+        "Linux cgroup v2 population is not observable on this platform",
+        Some("controlGroup"),
+        false,
+    ))
+}
+
+#[cfg(all(test, not(target_os = "linux")))]
+mod non_linux_cgroup_witness_tests {
+    use super::*;
+
+    #[test]
+    fn ordinary_cgroup_events_can_never_certify_non_linux_tree_quiescence() {
+        assert!(matches!(
+            cgroup_population("/fake-cgroup"),
+            Err(error) if error.code == RuntimeErrorCode::ToolUnavailable
+        ));
+        assert!(cgroup_has_processes("/fake-cgroup").is_err());
+    }
+}
+
 /// A vanished path is positive evidence only if cgroup2 is mounted.
+/// This kernel-specific observation cannot be made on other operating systems.
+#[cfg(target_os = "linux")]
 pub(crate) fn cgroup_removed(control_group: &str) -> RuntimeResult<bool> {
     let root = std::ffi::CString::new("/sys/fs/cgroup").expect("static cgroup root");
     let mut info = std::mem::MaybeUninit::<libc::statfs>::uninit();
@@ -846,6 +970,16 @@ pub(crate) fn cgroup_removed(control_group: &str) -> RuntimeResult<bool> {
         Ok(_) => Ok(false),
         Err(error) => Err(io_error("observe cgroup disappearance", error)),
     }
+}
+
+#[cfg(not(target_os = "linux"))]
+pub(crate) fn cgroup_removed(_control_group: &str) -> RuntimeResult<bool> {
+    Err(RuntimeError::new(
+        RuntimeErrorCode::ToolFailed,
+        "Linux cgroup v2 owner evidence is unavailable on this platform",
+        Some("controlGroup"),
+        true,
+    ))
 }
 
 /// Existing Runner-terminal validation gets an explicit error when the
@@ -926,7 +1060,7 @@ fn tool_error(context: &str, error: std::io::Error) -> RuntimeError {
 /// Kernel notifications are wake-up hints only; callers re-read durable state.
 /// Inotify covers Result publication and output growth; cgroup.events covers
 /// process-tree population. A bounded fallback handles watch setup races.
-#[cfg(feature = "postgres-registry-admission")]
+#[cfg(all(feature = "postgres-registry-admission", target_os = "linux"))]
 pub(crate) fn wait_for_attempt_change(bundle: &Path, control_group: Option<&str>, wait: Duration) {
     use std::io::Read;
     use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
@@ -996,10 +1130,88 @@ pub(crate) fn wait_for_attempt_change(bundle: &Path, control_group: Option<&str>
     };
 }
 
+/// A timer is only a wake-up hint; it cannot establish Linux process truth on Windows.
+/// The caller always re-reads the durable Attempt after this bounded delay.
+#[cfg(all(feature = "postgres-registry-admission", not(target_os = "linux")))]
+pub(crate) fn wait_for_attempt_change(
+    _bundle: &Path,
+    _control_group: Option<&str>,
+    wait: Duration,
+) {
+    thread::sleep(wait.min(Duration::from_millis(250)));
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    #[cfg(unix)]
+    #[test]
+    fn contained_native_bind_source_rejects_symlink_leaf_ancestor_and_traversal() {
+        let root = std::env::temp_dir().join(format!(
+            "ordivon-contained-bind-{}-{}",
+            std::process::id(),
+            uuid::Uuid::now_v7()
+        ));
+        let trusted = root.join("trusted");
+        let workspace = trusted.join("workspace");
+        let bundle = trusted.join("bundle");
+        let private = root.join("synthetic-private");
+        for dir in [&workspace, &bundle, &private] {
+            fs::create_dir_all(dir).unwrap();
+        }
+        fs::create_dir_all(private.join("nested")).unwrap();
+        validate_contained_bind_source(&workspace).unwrap();
+        validate_contained_bind_source(&bundle).unwrap();
+
+        let leaf = trusted.join("home-symlink");
+        std::os::unix::fs::symlink(&private, &leaf).unwrap();
+        let parent = trusted.join("cache-symlink");
+        std::os::unix::fs::symlink(&private, &parent).unwrap();
+        for source in [&leaf, &parent.join("nested")] {
+            let error = validate_contained_bind_source(source).unwrap_err();
+            assert_eq!(error.code, RuntimeErrorCode::WorkspaceStateMismatch);
+            assert!(!error.retryable);
+        }
+        let traversal = workspace.join("..").join("bundle");
+        assert_eq!(
+            validate_contained_bind_source(&traversal).unwrap_err().code,
+            RuntimeErrorCode::InvalidRequest
+        );
+        assert_eq!(
+            validate_contained_bind_source(&trusted.join("missing"))
+                .unwrap_err()
+                .code,
+            RuntimeErrorCode::WorkspaceStateMismatch
+        );
+
+        let environment =
+            BTreeMap::from([("HOME".to_string(), leaf.to_string_lossy().into_owned())]);
+        let build = build_systemd_run_command(&SystemdRunSpec {
+            unit_name: "ordivon-contained-bind-negative.service",
+            runner: Path::new("/usr/bin/true"),
+            bundle_path: &bundle,
+            workspace_path: &workspace,
+            workspace_git_common_dir: None,
+            cargo_target_mount: None,
+            input_set_path: None,
+            credential_source_root: None,
+            credential_names: &[],
+            runtime_ceiling_ms: 1000,
+            budget: &super::super::super::ExecutionBudget::default(),
+            execution_profile: super::super::super::ExecutionProfile::ContainedLocal,
+            environment: &environment,
+        });
+        assert_eq!(
+            build
+                .expect_err("symlink must be denied before native dispatch")
+                .code,
+            RuntimeErrorCode::WorkspaceStateMismatch
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
     #[test]
     fn executable_validation_preserves_absolute_proxy_invocation_path() {
         let root =
@@ -1025,6 +1237,7 @@ mod tests {
         fs::remove_dir_all(root).unwrap();
     }
 
+    #[cfg(unix)]
     #[test]
     fn executable_validation_rejects_proxy_invocation_outside_allowed_roots() {
         let root = std::env::temp_dir().join(format!(
@@ -1104,6 +1317,7 @@ mod tests {
             bundle_path: Path::new("/tmp/ordivon-test-bundle"),
             workspace_path: Path::new("/tmp/ordivon-test-workspace"),
             workspace_git_common_dir: None,
+            cargo_target_mount: None,
             input_set_path: None,
             credential_source_root: None,
             credential_names: &[],
@@ -1115,6 +1329,39 @@ mod tests {
         .unwrap();
         assert!(command.get_args().any(|arg| arg == "--no-block"));
         assert!(command.get_args().any(|arg| arg == "--slice=system.slice"));
+    }
+
+    #[test]
+    fn trusted_workspace_cargo_target_requires_native_unit_mount() {
+        let budget = super::super::super::ExecutionBudget::default();
+        let environment = BTreeMap::from([(
+            "CARGO_TARGET_DIR".to_owned(),
+            "/run/ordivon/cargo-target".to_owned(),
+        )]);
+        let command = build_systemd_run_command(&SystemdRunSpec {
+            unit_name: "ordivon-cargo-mount-contract.service",
+            runner: Path::new("/usr/bin/true"),
+            bundle_path: Path::new("/tmp/ordivon-cargo-mount-bundle"),
+            workspace_path: Path::new("/tmp/ordivon-cargo-mount-workspace"),
+            workspace_git_common_dir: None,
+            cargo_target_mount: Some(Path::new("/tmp")),
+            input_set_path: None,
+            credential_source_root: None,
+            credential_names: &[],
+            runtime_ceiling_ms: 5_000,
+            budget: &budget,
+            execution_profile: super::super::super::ExecutionProfile::TrustedLocal,
+            environment: &environment,
+        })
+        .unwrap();
+        let args = command
+            .get_args()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+        assert!(
+            args.iter().any(|arg| arg == "--property=BindPaths=/tmp:/run/ordivon/cargo-target"),
+            "trusted Workspace-private Cargo target requires a stable native systemd path binding: {args:?}"
+        );
     }
 
     // All these samples are subprocess output, not mocked PG outcomes. Native
@@ -1284,6 +1531,7 @@ mod tests {
             bundle_path: Path::new("/tmp/ordivon-credential-bundle"),
             workspace_path: Path::new("/tmp/ordivon-credential-workspace"),
             workspace_git_common_dir: None,
+            cargo_target_mount: None,
             input_set_path: None,
             credential_source_root: Some(Path::new("/tmp/job-credentials/job-test")),
             credential_names: &credential_names,

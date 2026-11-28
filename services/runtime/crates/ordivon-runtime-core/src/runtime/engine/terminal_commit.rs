@@ -1,4 +1,13 @@
 // Durable control terminal commitment and terminal evidence owner.
+// Control-only LOST is not a Runner result. An unbound or late-spawning
+// producer can still append stdout/stderr after the control receipt is committed.
+// Unlike a validated Runner result, these files are diagnostic previews only;
+// do not issue immutable Artifact identities for them. Preserve historical
+// stopped-process control outcomes separately until their consumer is audited.
+fn control_terminal_stream_artifacts_admissible(state: AttemptState) -> bool {
+    !matches!(state, AttemptState::Lost | AttemptState::Orphaned)
+}
+
 impl Runtime {
     pub(crate) fn commit_control_terminal(
         &self,
@@ -63,7 +72,7 @@ impl Runtime {
                 .len(),
             truncated: false,
         }];
-        if state != AttemptState::Orphaned {
+        if control_terminal_stream_artifacts_admissible(state) {
             for (file_name, kind) in [(STDOUT_FILE, "stdout"), (STDERR_FILE, "stderr")] {
                 let path = Path::new(&current.bundle_path).join(file_name);
                 if path.is_file() {

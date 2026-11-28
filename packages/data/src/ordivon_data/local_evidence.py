@@ -7,12 +7,11 @@ is guessed. This is a current local file read, not a persistent product registry
 
 from __future__ import annotations
 
-import hashlib
-import os
-import stat
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+from .local_files import scoped_sha256
 
 
 @dataclass(frozen=True)
@@ -22,6 +21,9 @@ class LocalEvidenceBinding:
     path_property: str
     digest_property: str
     owner_root: Path
+    # Optional because Bitol ODPS 1.1 permits unversioned ports. None
+    # preserves the legacy behavior: require a unique port name.
+    port_version: str | None = None
 
 
 def _property(props: list[Any], key: str) -> str:
@@ -49,12 +51,31 @@ def qualified_local_distribution(
     if binding.product_id != product["id"]:
         raise ValueError("binding refers to another owner product")
     ports = product["outputPorts"]
+    if binding.port_version is not None and (
+        not isinstance(binding.port_version, str) or not binding.port_version.strip()
+    ):
+        raise ValueError("binding port version must be a nonempty string")
     selected = [
-        i for i, port in enumerate(ports) if port.get("name") == binding.port_name
+        i
+        for i, port in enumerate(ports)
+        if port.get("name") == binding.port_name
+        and (
+            binding.port_version is None or port.get("version") == binding.port_version
+        )
     ]
     if len(selected) != 1:
+        if binding.port_version is not None:
+            raise ValueError(
+                "binding requires exactly one named output port at requested version"
+            )
         raise ValueError("binding requires exactly one named output port")
     index = selected[0]
+    # The selected distribution is already identified by ODPS (name, version).
+    # Reuse it as the one binding authority; name-only de-duplication would
+    # incorrectly block independent consumers of coexisting port versions.
+    distribution = projected["dcat:distribution"][index]
+    if "dcat:accessURL" in distribution or "spdx:checksum" in distribution:
+        raise ValueError("duplicate local evidence binding for output port")
     if ports[index].get("type") not in ("file/json", "file/parquet", "file/csv"):
         raise ValueError("binding requires a supported file output port")
     props = product.get("customProperties", [])
@@ -75,35 +96,26 @@ def qualified_local_distribution(
         or "\\" in declared_path
     ):
         raise ValueError("producer relative path must not escape owner root")
-    root = binding.owner_root.resolve(strict=True)
-    if not root.is_dir():
-        raise ValueError("owner root is not a directory")
-    unresolved = root / relative
-    actual_path = unresolved.resolve(strict=True)
-    if not actual_path.is_relative_to(root):
-        raise ValueError("producer file escapes explicit owner root")
-    if unresolved.is_symlink():
-        raise ValueError("producer output file must not be a symlink")
-
-    # Hash the actually opened regular file descriptor, not stat-before-open
-    # bytes. No indefinite path freshness claim is made after this read.
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
-    fd = os.open(actual_path, flags)
-    with os.fdopen(fd, "rb") as stream:
-        if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
-            raise ValueError("producer output must be a regular file")
-        actual_digest = hashlib.file_digest(stream, "sha256").hexdigest()
+    root = binding.owner_root.absolute()
+    actual_path = root / relative
+    actual_digest, reason = scoped_sha256(actual_path, (root,), hash_bytes=True)
+    if actual_digest is None:
+        # Producer binding is strict admission, not a discovery verdict.
+        # Preserve existing consumer I/O failure semantics without reopening.
+        message = f"producer file not verifiable under owner root: {reason}"
+        if reason == "local_file_unavailable":
+            raise FileNotFoundError(message)
+        if reason == "local_file_unreadable":
+            raise PermissionError(message)
+        if reason == "local_file_read_error":
+            raise OSError(message)
+        raise ValueError(message)
     if actual_digest != declared_digest:
         raise ValueError("producer file digest differs from ODPS declaration")
 
-    distribution = projected["dcat:distribution"][index]
-    if "dcat:accessURL" in distribution:
-        raise ValueError("distribution already has an access URL")
     distribution["dcat:accessURL"] = {"@id": actual_path.as_uri()}
     # DCAT 3 uses SPDX checksums, keeping the producer's port identifier
     # (dct:identifier) separate from content-integrity evidence.
-    if "spdx:checksum" in distribution:
-        raise ValueError("distribution already has a checksum binding")
     distribution["spdx:checksum"] = {
         "@type": "spdx:Checksum",
         "spdx:algorithm": {"@id": "http://spdx.org/rdf/terms#checksumAlgorithm_sha256"},

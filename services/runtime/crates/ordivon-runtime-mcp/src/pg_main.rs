@@ -1,223 +1,123 @@
 //! PostgreSQL Runtime loopback endpoint with local and explicit remote authentication.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 mod access_auth;
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 mod pg_auth;
-/// A running MCP listener without a running scheduler is not a healthy Runtime.
-/// Allow normal shutdown, but fail the process on an unexpected scheduler exit
-/// so the existing systemd Restart=always policy can restore the control plane.
-#[cfg(target_os = "linux")]
-fn scheduler_exit_result(
-    shutdown_requested: bool,
-    result: Result<(), tokio::task::JoinError>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    match result {
-        Err(error) => Err(format!("PG scheduling controller crashed: {error}").into()),
-        Ok(()) if !shutdown_requested => {
-            Err("PG scheduling controller exited without shutdown".into())
-        }
-        Ok(()) => Ok(()),
-    }
-}
 
-/// Supervise the native scheduler and the MCP listener as one availability
-/// unit. Losing either side without an operator shutdown is a service failure.
-#[cfg(target_os = "linux")]
-async fn supervise_pg_service<F>(
-    shutdown: std::sync::Arc<std::sync::atomic::AtomicBool>,
-    mut scheduler_task: tokio::task::JoinHandle<()>,
-    server: F,
-) -> Result<(), Box<dyn std::error::Error>>
-where
-    F: std::future::Future<Output = std::io::Result<()>>,
-{
-    use std::sync::atomic::Ordering;
-    tokio::pin!(server);
-    tokio::select! {
-        scheduler_result = &mut scheduler_task => {
-            scheduler_exit_result(shutdown.load(Ordering::Acquire), scheduler_result)?;
-            server.await?;
-        }
-        server_result = &mut server => {
-            let requested = shutdown.load(Ordering::Acquire);
-            shutdown.store(true, Ordering::Release);
-            server_result?;
-            if !requested {
-                return Err("PG MCP listener exited without shutdown".into());
-            }
-            scheduler_exit_result(true, scheduler_task.await)?;
-        }
-    }
-    Ok(())
-}
-
-/// An unexpected loss of the HTTP listener must fail the entire service even
-/// if a synchronous scheduler call never unblocks. Tokio waits indefinitely
-/// for started spawn_blocking tasks on Runtime drop, so simply propagating the
-/// error out of #[tokio::main] cannot guarantee systemd will see process exit.
-/// The existing PG Journal/Runner owns durable native effects; this controller
-/// must stop and let systemd restart rather than impersonate a live service.
-#[cfg(target_os = "linux")]
-fn finish_pg_control_plane(
-    result: Result<(), Box<dyn std::error::Error>>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    if let Err(error) = &result {
-        eprintln!("PG Runtime control plane failed; exiting for systemd restart: {error}");
-        std::process::exit(1);
-    }
-    result
-}
-
-#[cfg(target_os = "linux")]
-fn parse_pg_headroom_pair(
-    path_key: &str,
-    minimum_key: &str,
-    path: Option<String>,
-    minimum: Option<String>,
-) -> Result<Option<ordivon_runtime_core::WorkspaceHeadroomConfig>, Box<dyn std::error::Error>> {
-    match (path, minimum) {
-        (None, None) => Ok(None),
-        (Some(path), Some(minimum)) => Ok(Some(ordivon_runtime_core::WorkspaceHeadroomConfig {
-            path: std::path::PathBuf::from(path),
-            minimum_free_bytes: minimum.parse()?,
-        })),
-        _ => Err(std::io::Error::other(format!(
-            "{path_key} and {minimum_key} must be configured together"
-        ))
-        .into()),
-    }
-}
+#[cfg(any(target_os = "linux", windows))]
+#[path = "pg_main/config.rs"]
+mod config;
+#[cfg(any(target_os = "linux", windows))]
+#[path = "pg_main/control.rs"]
+mod control;
+#[cfg(all(test, target_os = "linux"))]
+#[path = "pg_main/headroom_configuration_tests.rs"]
+mod headroom_configuration_tests;
+#[cfg(any(target_os = "linux", windows))]
+#[path = "pg_main/http_routes.rs"]
+mod http_routes;
+#[cfg(all(test, target_os = "linux"))]
+#[path = "pg_main/ordinary_ingress_profile_configuration_tests.rs"]
+mod ordinary_ingress_profile_configuration_tests;
+#[cfg(all(test, target_os = "linux"))]
+#[path = "pg_main/scheduler_supervision_tests.rs"]
+mod scheduler_supervision_tests;
+#[cfg(any(target_os = "linux", windows))]
+#[path = "pg_main/server_bind.rs"]
+mod server_bind;
 
 #[cfg(all(test, target_os = "linux"))]
-mod headroom_configuration_tests {
-    use super::parse_pg_headroom_pair;
+use config::{ordinary_contained_only, parse_pg_headroom_pair, require_ordinary_contained_owner};
+#[cfg(all(test, target_os = "linux"))]
+use control::scheduler_exit_result;
+#[cfg(any(target_os = "linux", windows))]
+use control::{finish_pg_control_plane, supervise_pg_service};
 
-    #[test]
-    fn pg_native_entry_rejects_unpaired_or_non_numeric_guest_capacity() {
-        let parse = |path: Option<&str>, bytes: Option<&str>| {
-            parse_pg_headroom_pair(
-                "ORDIVON_WORKSPACE_GUEST_HEADROOM_PATH",
-                "ORDIVON_WORKSPACE_GUEST_MIN_FREE_BYTES",
-                path.map(str::to_owned),
-                bytes.map(str::to_owned),
-            )
-        };
-        assert!(parse(Some("/var/lib/ordivon"), None).is_err());
-        assert!(parse(None, Some("21474836480")).is_err());
-        assert!(parse(Some("/var/lib/ordivon"), Some("twenty-gb")).is_err());
-        assert!(parse(None, None).unwrap().is_none());
-        let valid = parse(Some("/var/lib/ordivon"), Some("21474836480"))
-            .unwrap()
-            .unwrap();
-        assert_eq!(valid.path, std::path::PathBuf::from("/var/lib/ordivon"));
-        assert_eq!(valid.minimum_free_bytes, 21474836480);
+#[cfg(any(target_os = "linux", windows))]
+#[cfg(windows)]
+mod process_environment;
+#[cfg(windows)]
+mod windows_service;
+
+#[cfg(any(target_os = "linux", windows))]
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(windows)]
+    {
+        // Load the private env before any Tokio worker or SCM thread exists.
+        let args = pg_process_args(std::env::args_os().skip(1))?;
+        if let Some(path) = args.env_file.as_deref() {
+            for (key, value) in process_environment::read_private_runtime_env_file(path)? {
+                std::env::set_var(key, value);
+            }
+        }
+        if args.service {
+            windows_service::dispatch()?;
+            return Ok(());
+        }
     }
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?
+        .block_on(run_runtime_server(
+            tokio_util::sync::CancellationToken::new(),
+            true,
+            None,
+        ))
 }
 
-#[cfg(target_os = "linux")]
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use ordivon_runtime_core::{PgRuntime, PgRuntimeConfig, UniversalExecutorConfig};
-    use ordivon_runtime_mcp::server::{ExecutionContext, PgReleaseOperatorConfig, PgRuntimeServer};
-    use rmcp::transport::streamable_http_server::{
-        session::local::LocalSessionManager, StreamableHttpServerConfig, StreamableHttpService,
-    };
-    use std::{net::SocketAddr, path::PathBuf};
-    let required = |key: &str| {
-        std::env::var(key).map_err(|_| std::io::Error::other(format!("{key} required")))
-    };
-    let bind: SocketAddr = required("ORDIVON_PG_BIND")?.parse()?;
-    if !bind.ip().is_loopback() {
-        return Err("PG vertical requires an explicit loopback bind".into());
-    }
-    let token = required("ORDIVON_PG_TOKEN")?;
-    if token.len() < 32 {
-        return Err("ORDIVON_PG_TOKEN requires at least 32 characters".into());
-    }
-    let auth = pg_auth::PgAuth::from_env(&token)?;
-    let issuer_schema = pg_auth::optional_env("ORDIVON_PG_HARNESS_ISSUER_SCHEMA")?;
-    let harness_bearer_file = pg_auth::optional_env("ORDIVON_PG_HARNESS_TOKEN_FILE")?;
-    let harness_principal = pg_auth::optional_env("ORDIVON_PG_HARNESS_PRINCIPAL")?;
-    // The dedicated profile must be complete. Bare issuer_schema retains the
-    // already-tested, isolated legacy all-Job mode; it must not be installed
-    // on a shared endpoint that also accepts ordinary execution requests.
-    let isolated_harness = match (harness_bearer_file, harness_principal) {
-        (None, None) => None,
-        (Some(file), Some(principal)) => {
-            if principal == required("ORDIVON_PG_PRINCIPAL")?
-                || principal.is_empty()
-                || principal.trim() != principal
-                || principal.len() > 256
-            {
-                return Err("Harness principal must be distinct, nonempty and trimmed".into());
+#[cfg(windows)]
+#[derive(Default)]
+struct PgProcessArgs {
+    env_file: Option<std::path::PathBuf>,
+    service: bool,
+    reconcile: bool,
+}
+#[cfg(windows)]
+fn pg_process_args(
+    args: impl IntoIterator<Item = std::ffi::OsString>,
+) -> Result<PgProcessArgs, Box<dyn std::error::Error>> {
+    let mut parsed = PgProcessArgs::default();
+    let mut args = args.into_iter();
+    while let Some(arg) = args.next() {
+        if arg == "--windows-service" && !parsed.service {
+            parsed.service = true;
+        } else if arg == "--env-file" && parsed.env_file.is_none() {
+            let p = std::path::PathBuf::from(
+                args.next().ok_or("--env-file requires an absolute path")?,
+            );
+            if !p.is_absolute() {
+                return Err("--env-file requires an absolute path".into());
             }
-            let schema = issuer_schema
-                .clone()
-                .ok_or("dedicated Harness ingress requires ORDIVON_PG_HARNESS_ISSUER_SCHEMA")?;
-            let dedicated = auth.dedicated_harness_from_file(std::path::Path::new(&file))?;
-            Some((dedicated, principal, schema))
-        }
-        _ => {
-            return Err(
-                "dedicated Harness token file and principal must be configured together".into(),
-            )
-        }
-    };
-    // The PG native binary must consume the same two carrier budgets as the
-    // legacy entrypoint. Never mistake a legacy MCP compile for PG coverage.
-    let headroom_pair = |path_key: &str, minimum_key: &str| {
-        parse_pg_headroom_pair(
-            path_key,
-            minimum_key,
-            pg_auth::optional_env(path_key)?,
-            pg_auth::optional_env(minimum_key)?,
-        )
-    };
-    let workspace_headroom = [
-        headroom_pair(
-            "ORDIVON_WORKSPACE_HEADROOM_PATH",
-            "ORDIVON_WORKSPACE_MIN_FREE_BYTES",
-        )?,
-        headroom_pair(
-            "ORDIVON_WORKSPACE_GUEST_HEADROOM_PATH",
-            "ORDIVON_WORKSPACE_GUEST_MIN_FREE_BYTES",
-        )?,
-    ]
-    .into_iter()
-    .flatten()
-    .collect();
-    let config = PgRuntimeConfig {
-        dsn: required("ORDIVON_PG_DSN")?,
-        schema: required("ORDIVON_PG_SCHEMA")?,
-        source_sha256: required("ORDIVON_PG_SOURCE_SHA256")?,
-        // A dedicated authenticated Harness route uses its own cloned
-        // PgRuntime configuration (same source/database/Runner, one scheduler).
-        // Normal /mcp Job admissions retain their original execution contract.
-        harness_issuer_schema: if isolated_harness.is_none() {
-            issuer_schema.clone()
+            parsed.env_file = Some(p);
+        } else if arg == "--reconcile-cancelled" && !parsed.reconcile {
+            parsed.reconcile = true;
         } else {
-            None
-        },
-        workspace_headroom,
-        executor: UniversalExecutorConfig {
-            store_root: PathBuf::from(required("ORDIVON_PG_STORE_ROOT")?),
-            workspace_root: None,
-            workspace_uid: None,
-            workspace_gid: None,
-            runner_path: Some(PathBuf::from(required("ORDIVON_PG_RUNNER")?)),
-            allowed_executable_roots: serde_json::from_str(&required(
-                "ORDIVON_PG_EXECUTABLE_ROOTS_JSON",
-            )?)?,
-            max_runtime_ms: 30 * 60 * 1000,
-            max_output_bytes: 4 * 1024 * 1024,
-        },
-    };
-    let issuer_runtime_config = isolated_harness
-        .as_ref()
-        .map(|(_, _, schema)| PgRuntimeConfig {
-            harness_issuer_schema: Some(schema.clone()),
-            ..config.clone()
-        });
+            return Err("unsupported or duplicate PG Runtime argument".into());
+        }
+    }
+    if parsed.service && (parsed.reconcile || parsed.env_file.is_none()) {
+        return Err(
+            "SCM PG Runtime requires private env-file and forbids reconcile-only mode".into(),
+        );
+    }
+    Ok(parsed)
+}
+
+#[cfg(any(target_os = "linux", windows))]
+pub(crate) async fn run_runtime_server(
+    cancellation: tokio_util::sync::CancellationToken,
+    install_ctrl_c: bool,
+    ready_hook: Option<fn(std::net::SocketAddr)>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    use ordivon_runtime_core::PgRuntime;
+    let config::PgStartup {
+        bind,
+        auth,
+        contained_ordinary_only,
+        isolated_harness,
+        config,
+        issuer_runtime_config,
+    } = config::load_pg_startup()?;
     let runtime = tokio::task::spawn_blocking(move || PgRuntime::new(config)).await??;
     // The issuer view is a second IN-PROCESS port into the same PG and
     // shared native Runner, never a second scheduler, registry or service.
@@ -228,112 +128,48 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     // Native administration runs independently of ordinary execution admission.
     // The CLI can repair exact committed cancellations even when all slots are held.
-    let arguments: Vec<String> = std::env::args().skip(1).collect();
-    if arguments == ["--reconcile-cancelled"] {
+    #[cfg(windows)]
+    let reconcile = pg_process_args(std::env::args_os().skip(1))?.reconcile;
+    #[cfg(not(windows))]
+    let reconcile = {
+        let arguments: Vec<String> = std::env::args().skip(1).collect();
+        if !arguments.is_empty() && arguments != ["--reconcile-cancelled"] {
+            return Err("unsupported PG Runtime arguments".into());
+        }
+        arguments == ["--reconcile-cancelled"]
+    };
+    if reconcile {
         let report =
             tokio::task::spawn_blocking(move || runtime.reconcile_cancelled_jobs(100)).await??;
         println!("{report}");
         return Ok(());
     }
-    if !arguments.is_empty() {
-        return Err("unsupported PG Runtime arguments".into());
-    }
     let shutdown = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-    let worker_shutdown = shutdown.clone();
-    let scheduler = runtime.clone();
-    let scheduler_task =
-        tokio::task::spawn_blocking(move || scheduler.serve_scheduler(worker_shutdown));
-    // The release interface remains absent unless the separate native
-    // operator is explicitly installed/configured. PgRuntimeServer also
-    // verifies actual live timer and independently qualified PG release stage.
-    let release = std::env::var("ORDIVON_PG_RELEASE_SOURCE_REPO")
-        .ok()
-        .map(|source_repo| {
-            Ok::<_, std::io::Error>(PgReleaseOperatorConfig {
-                source_repo: PathBuf::from(source_repo),
-                operator_executable: PathBuf::from(required("ORDIVON_PG_RELEASE_OPERATOR_BIN")?),
-                receipt_root: PathBuf::from(required("ORDIVON_PG_RELEASE_RECEIPT_ROOT")?),
-                dispatcher_timer: required("ORDIVON_PG_RELEASE_DISPATCH_TIMER")?,
-            })
-        })
-        .transpose()?;
-    let server = PgRuntimeServer::with_release(
-        runtime,
-        ExecutionContext {
-            principal: required("ORDIVON_PG_PRINCIPAL")?,
-            global_limit: 0,
-        },
-        release,
-    );
-    let dedicated_server = match (harness_runtime, isolated_harness.as_ref()) {
-        (Some(runtime), Some((_, principal, _))) => Some(PgRuntimeServer::new(
-            runtime,
-            ExecutionContext {
-                principal: principal.clone(),
-                global_limit: 0,
-            },
-        )),
-        (None, None) => None,
-        _ => return Err("incomplete Harness Runtime source/ingress binding".into()),
-    };
-    let mut transport = StreamableHttpServerConfig::default();
-    if let Some(hosts) = pg_auth::optional_env("ORDIVON_PG_ALLOWED_HOSTS_JSON")? {
-        transport
-            .allowed_hosts
-            .extend(serde_json::from_str::<Vec<String>>(&hosts)?);
+    let (server, dedicated_server) = server_bind::bind_pg_runtime_servers(
+        runtime.clone(),
+        harness_runtime,
+        contained_ordinary_only,
+        &isolated_harness,
+    )?;
+    let (app, configured_tool_count) =
+        http_routes::build_pg_http_routes(server, dedicated_server, auth, isolated_harness)?;
+    #[cfg(windows)]
+    if ready_hook.is_some() {
+        ordivon_runtime_core::prepare_windows_pg_service_observation()?;
     }
-    let configured_tool_count = server.configured_tool_count();
-    let service: StreamableHttpService<PgRuntimeServer, LocalSessionManager> =
-        StreamableHttpService::new(
-            move || Ok(server.clone()),
-            Default::default(),
-            transport.clone(),
-        );
-    let mut app = axum::Router::new().nest_service("/mcp", service);
-    if let Some(harness_server) = dedicated_server {
-        let harness_service: StreamableHttpService<PgRuntimeServer, LocalSessionManager> =
-            StreamableHttpService::new(
-                move || Ok(harness_server.clone()),
-                Default::default(),
-                transport.clone(),
-            );
-        app = app.nest_service("/harness/mcp", harness_service);
-    }
-    let harness_auth = isolated_harness.map(|(auth, _, _)| auth);
-    let app = app
-        .layer(axum::middleware::from_fn(
-            move |request: axum::extract::Request, next: axum::middleware::Next| {
-                let auth = auth.clone();
-                let harness_auth = harness_auth.clone();
-                async move {
-                    let path = request.uri().path();
-                    let protected = path == "/harness/mcp" || path.starts_with("/harness/mcp/");
-                    let admitted = if protected {
-                        match harness_auth {
-                            Some(harness) => harness.authorized(request.headers()).await,
-                            None => false,
-                        }
-                    } else {
-                        auth.authorized(request.headers()).await
-                    };
-                    if admitted {
-                        next.run(request).await
-                    } else {
-                        axum::response::Response::builder()
-                            .status(401)
-                            .body(axum::body::Body::empty())
-                            .unwrap()
-                    }
-                }
-            },
-        ))
-        .layer(tower_http::limit::RequestBodyLimitLayer::new(1024 * 1024));
     let listener = tokio::net::TcpListener::bind(bind).await?;
     eprintln!(
         "fresh PG Runtime MCP: http://{}/mcp ({} tools)",
         listener.local_addr()?,
         configured_tool_count
     );
+    let worker_shutdown = shutdown.clone();
+    let scheduler = runtime.clone();
+    let scheduler_task =
+        tokio::task::spawn_blocking(move || scheduler.serve_scheduler(worker_shutdown));
+    if let Some(ready) = ready_hook {
+        ready(listener.local_addr()?);
+    }
     // Do not detach the scheduler: a panic/early exit must terminate this
     // apparently healthy MCP process, allowing systemd to restart it.
     // SIGINT is used by the installed systemd unit; also handle SIGTERM.
@@ -342,157 +178,90 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let signal_shutdown = shutdown.clone();
     let server = axum::serve(listener, app)
         .with_graceful_shutdown(async move {
-            let mut term =
-                tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            #[cfg(unix)]
+            if install_ctrl_c {
+                let mut term = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
                     .expect("failed to install SIGTERM handler");
-            tokio::select! {
-                signal = tokio::signal::ctrl_c() => {
-                    if let Err(error) = signal {
-                        eprintln!("PG Runtime SIGINT handler failed: {error}");
-                    }
-                }
-                _ = term.recv() => {}
-            }
+                tokio::select! { _ = tokio::signal::ctrl_c() => {}, _ = term.recv() => {}, _ = cancellation.cancelled() => {} }
+            } else { cancellation.cancelled().await; }
+            #[cfg(windows)]
+            if install_ctrl_c {
+                tokio::select! { _ = tokio::signal::ctrl_c() => {}, _ = cancellation.cancelled() => {} }
+            } else { cancellation.cancelled().await; }
             signal_shutdown.store(true, Ordering::Release);
         })
         .into_future();
     finish_pg_control_plane(supervise_pg_service(shutdown, scheduler_task, server).await)
 }
-#[cfg(not(target_os = "linux"))]
+#[cfg(not(any(target_os = "linux", windows)))]
 fn main() {
-    eprintln!("The scoped PG execution vertical currently requires Linux");
+    eprintln!("The scoped PG execution vertical requires a supported native Linux or Windows host");
     std::process::exit(64);
 }
 
-#[cfg(all(test, target_os = "linux"))]
-mod scheduler_supervision_tests {
-    use super::{finish_pg_control_plane, scheduler_exit_result, supervise_pg_service};
-    use std::sync::{atomic::AtomicBool, Arc};
+#[cfg(all(test, windows))]
+mod windows_pg_service_bootstrap_tests {
+    use super::*;
+    use std::ffi::OsString;
 
-    #[tokio::test]
-    async fn silent_scheduler_exit_is_a_process_failure() {
-        let result = tokio::task::spawn_blocking(|| ()).await;
-        assert!(scheduler_exit_result(false, result).is_err());
+    fn args<'a>(values: &'a [&'a str]) -> impl Iterator<Item = OsString> + 'a {
+        values.iter().map(OsString::from)
     }
-
-    #[tokio::test]
-    async fn expected_scheduler_shutdown_is_not_an_error() {
-        let result = tokio::task::spawn_blocking(|| ()).await;
-        assert!(scheduler_exit_result(true, result).is_ok());
-    }
-
-    #[tokio::test]
-    async fn supervisor_fails_fast_even_if_the_listener_would_never_finish() {
-        let shutdown = Arc::new(AtomicBool::new(false));
-        let scheduler = tokio::task::spawn_blocking(|| ());
-        let still_listening = std::future::pending::<std::io::Result<()>>();
-        let result = tokio::time::timeout(
-            std::time::Duration::from_secs(2),
-            supervise_pg_service(shutdown, scheduler, still_listening),
-        )
-        .await
-        .expect("scheduler death must not leave HTTP serving indefinitely");
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn supervisor_allows_normal_listener_and_scheduler_shutdown() {
-        let shutdown = Arc::new(AtomicBool::new(true));
-        let scheduler = tokio::task::spawn_blocking(|| ());
-        let listener = std::future::ready(Ok(()));
-        assert!(supervise_pg_service(shutdown, scheduler, listener)
-            .await
-            .is_ok());
-    }
-
-    #[tokio::test]
-    async fn supervisor_rejects_listener_termination_without_shutdown() {
-        let shutdown = Arc::new(AtomicBool::new(false));
-        let scheduler = tokio::task::spawn_blocking(|| ());
-        let listener = std::future::ready(Ok(()));
-        assert!(supervise_pg_service(shutdown, scheduler, listener)
-            .await
-            .is_err());
+    #[test]
+    fn scm_requires_private_env_and_disallows_admin_command() {
+        assert!(pg_process_args(args(&["--windows-service"])).is_err());
+        assert!(
+            pg_process_args(args(&["--windows-service", "--env-file", "relative.env"])).is_err()
+        );
+        assert!(pg_process_args(args(&[
+            "--windows-service",
+            "--env-file",
+            r"C:\private\pg.env",
+            "--reconcile-cancelled"
+        ]))
+        .is_err());
+        assert!(pg_process_args(args(&[
+            "--env-file",
+            r"C:\private\pg.env",
+            "--env-file",
+            r"C:\other.env"
+        ]))
+        .is_err());
+        let v = pg_process_args(args(&[
+            "--windows-service",
+            "--env-file",
+            r"C:\private\pg.env",
+        ]))
+        .unwrap();
+        assert!(v.service && !v.reconcile && v.env_file.unwrap().is_absolute());
+        assert!(
+            pg_process_args(args(&["--reconcile-cancelled"]))
+                .unwrap()
+                .reconcile
+        );
     }
 
     #[test]
-    fn fatal_control_plane_exit_does_not_wait_for_stuck_blocking_scheduler() {
-        use std::process::{Command, Stdio};
-        use std::time::{Duration, Instant};
-
-        const ENV: &str = "ORDIVON_TEST_FATAL_PG_CONTROL_EXIT";
-        if let Ok(mode) = std::env::var(ENV) {
-            let runtime = tokio::runtime::Builder::new_multi_thread()
-                .enable_all()
-                .build()
-                .unwrap();
-            let result = runtime.block_on(async {
-                let (started_tx, started_rx) = std::sync::mpsc::channel();
-                // The blocking task has actually started and intentionally does
-                // not finish. The child process is always reaped by its parent.
-                tokio::task::spawn_blocking(move || {
-                    let _ = started_tx.send(());
-                    loop {
-                        std::thread::park();
-                    }
-                });
-                started_rx.recv_timeout(Duration::from_secs(2)).unwrap();
-                let error: Box<dyn std::error::Error> = "synthetic listener failure".into();
-                if mode == "fatal" {
-                    finish_pg_control_plane(Err(error))
-                } else {
-                    Err(error)
-                }
-            });
-            let _ = result;
-            drop(runtime); // The uncorrected control path waits forever here.
-            return;
+    fn private_env_parser_rejects_inline_pg_bearer_and_legacy_secret() {
+        use crate::process_environment::parse_runtime_env_text;
+        for k in [
+            "ORDIVON_PG_TOKEN",
+            "ORDIVON_BEARER_TOKEN",
+            "ORDIVON_REMOTE_BEARER_TOKEN",
+        ] {
+            assert!(parse_runtime_env_text(&format!("{k}=fixture")).is_err());
         }
-        let run = |mode: &str| {
-            Command::new(std::env::current_exe().unwrap())
-                .args([
-                    "--exact",
-                    "scheduler_supervision_tests::fatal_control_plane_exit_does_not_wait_for_stuck_blocking_scheduler",
-                    "--nocapture",
-                ])
-                .env(ENV, mode)
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .spawn()
-                .unwrap()
-        };
-        let mut uncorrected = run("return");
-        std::thread::sleep(Duration::from_millis(400));
-        assert!(
-            uncorrected.try_wait().unwrap().is_none(),
-            "returning Err from tokio::main alone is not an exit"
-        );
-        uncorrected.kill().unwrap();
-        uncorrected.wait().unwrap();
-
-        let mut corrected = run("fatal");
-        let deadline = Instant::now() + Duration::from_secs(3);
-        loop {
-            if let Some(status) = corrected.try_wait().unwrap() {
-                assert_eq!(
-                    status.code(),
-                    Some(1),
-                    "fatal supervision must exit nonzero"
-                );
-                break;
-            }
-            if Instant::now() > deadline {
-                corrected.kill().unwrap();
-                corrected.wait().unwrap();
-                panic!("fatal supervisor did not exit while scheduler was blocked");
-            }
-            std::thread::sleep(Duration::from_millis(20));
-        }
-    }
-
-    #[tokio::test]
-    async fn scheduler_panic_is_not_hidden_by_shutdown() {
-        let result = tokio::task::spawn_blocking(|| panic!("synthetic scheduler panic")).await;
-        assert!(scheduler_exit_result(true, result).is_err());
+        let p = parse_runtime_env_text(
+            r"ORDIVON_PG_DSN=host=localhost dbname=pg
+ORDIVON_BEARER_TOKEN_FILE=C:\private\token.txt
+",
+        )
+        .unwrap();
+        assert_eq!(p["ORDIVON_PG_DSN"], "host=localhost dbname=pg");
+        assert!(parse_runtime_env_text(
+            "ORDIVON_PG_SCHEMA=a
+ORDIVON_PG_SCHEMA=b"
+        )
+        .is_err());
     }
 }

@@ -1,0 +1,19 @@
+# Independent native PromQL oracle: evaluation grids do not identify scrapes.
+rule_files: []
+evaluation_interval: 1m
+tests:
+  - interval: 30s
+    input_series:
+      - series: 'probe_success{job="fixture"}'
+        values: '1 _ _ _ _ _ _ _ _'
+    promql_expr_test:
+      - expr: count_over_time(probe_success{job="fixture"}[4m])
+        eval_time: 3m
+        exp_samples:
+          - labels: '{job="fixture"}'
+            value: 1
+      - expr: count_over_time((probe_success{job="fixture"})[3m:1m]) > bool 1
+        eval_time: 3m
+        exp_samples:
+          - labels: '{job="fixture"}'
+            value: 1

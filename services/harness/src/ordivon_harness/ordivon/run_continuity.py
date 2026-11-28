@@ -55,6 +55,7 @@ from .continuity_guards import (
     require_tool_intent_binding,
     validate_snapshot_state,
     validate_tool_event,
+    inspect_all_unsettled_effect_sources,
 )
 from .continuity_records import (
     HarnessDispatchFenceV2,
@@ -179,6 +180,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         # A read-only projection of the immutable Journal; never a second
         # persistence authority. A Store revision change invalidates it.
         self._heads_cache: tuple[int, _Heads] | None = None
+        self._heads_cache_last_sequence = 0
         self._snapshot_sequence = self._current_snapshot_sequence()
 
     @property
@@ -232,9 +234,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
     ) -> StoredHarnessObject:
         """Persist one exact Working View source under the Run privacy authority."""
         self._require_working_view_source_authorized(source)
-        return self.store.put_object(
-            source.to_dict(), kind="harness-working-view-source"
-        )
+        return self.store.put_object(source.to_dict(), kind="harness-working-view-source")
 
     def _require_working_view_source_authorized(
         self,
@@ -244,12 +244,8 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             raise ValueError(
                 "Working View source requires Contract permission to persist model content"
             )
-        if (
-            not self.contract.privacy.allow_tool_content
-            and any(
-                message.get("role") == "tool" or "toolCalls" in message
-                for message in source.messages
-            )
+        if not self.contract.privacy.allow_tool_content and any(
+            message.get("role") == "tool" or "toolCalls" in message for message in source.messages
         ):
             raise ValueError(
                 "Working View source contains Tool content without Contract permission"
@@ -361,9 +357,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                     source.logical_ref != pin.logical_ref
                     or source.logical_generation != pin.logical_generation
                 ):
-                    raise ValueError(
-                        "Working Set transition pin differs from its exact source"
-                    )
+                    raise ValueError("Working Set transition pin differs from its exact source")
                 self._require_working_view_source_authorized(source)
                 objects.append(self.store.inspect_object(pin.resolved_digest))
             return tuple(objects)
@@ -387,14 +381,11 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             ]
             if len(attempt_events) != 3:
                 return None
-            attempt_specs = [
-                self._working_set_from_event(event) for event in attempt_events
-            ]
+            attempt_specs = [self._working_set_from_event(event) for event in attempt_events]
             if [spec.revision for spec in attempt_specs] != [1, 2, 3]:
                 return None
             new_evidence = all(
-                "sourceWorkingSetDigest" in event.data
-                and "sourceModelViewDigest" in event.data
+                "sourceWorkingSetDigest" in event.data and "sourceModelViewDigest" in event.data
                 for event in attempt_events
             )
             legacy_evidence = all(
@@ -411,16 +402,13 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             ):
                 return None
             if new_evidence and any(
-                event.data.get("sourceWorkingSetDigest")
-                != source_working_set_digest
-                or event.data.get("sourceModelViewDigest")
-                != source_model_view_digest
+                event.data.get("sourceWorkingSetDigest") != source_working_set_digest
+                or event.data.get("sourceModelViewDigest") != source_model_view_digest
                 for event in attempt_events
             ):
                 return None
             if legacy_evidence and any(
-                event.data.get("sourceWorkingViewDigest")
-                != source_model_view_digest
+                event.data.get("sourceWorkingViewDigest") != source_model_view_digest
                 for event in attempt_events
             ):
                 return None
@@ -444,8 +432,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                 return None
             if (
                 legacy_evidence
-                and compile_working_view(predecessor, self.store).digest
-                != source_model_view_digest
+                and compile_working_view(predecessor, self.store).digest != source_model_view_digest
             ):
                 return None
             return current
@@ -455,22 +442,16 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             return replay
         source_objects = source_objects_for(proposal.pins)
         now_ms = self.clock_ms()
-        lease = self._acquire_lease(
-            "working-set-transition", proposal.digest, now_ms=now_ms
-        )
+        lease = self._acquire_lease("working-set-transition", proposal.digest, now_ms=now_ms)
         try:
             replay = existing_transition()
             if replay is not None:
                 return replay
             current = self._load_current_working_set_or_none()
             if current is None or not current.committed:
-                raise ValueError(
-                    "Agent Working Set transition requires a committed predecessor"
-                )
+                raise ValueError("Agent Working Set transition requires a committed predecessor")
             if proposal.next_attempt_id == current.attempt_id:
-                raise ValueError(
-                    "Agent Working Set transition requires a new attempt identity"
-                )
+                raise ValueError("Agent Working Set transition requires a new attempt identity")
             if current.digest != source_working_set_digest:
                 raise HarnessProviderCallRequestMismatch(
                     "Agent Working Set transition source WorkingSet is no longer current"
@@ -504,8 +485,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                 if (
                     provider.request.context_digest != source_model_view_digest
                     or effective_view.digest != source_model_view_digest
-                    or provider.request.messages[: len(base_view.messages)]
-                    != base_view.messages
+                    or provider.request.messages[: len(base_view.messages)] != base_view.messages
                 ):
                     raise HarnessProviderCallRequestMismatch(
                         "Agent Working Set transition source model view differs from the completed Provider request"
@@ -532,9 +512,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                 proposal.to_dict(), kind="agent-working-set-transition-proposal"
             )
             spec_objects = tuple(
-                self.store.put_object(
-                    spec.to_dict(), kind="harness-working-set-spec"
-                )
+                self.store.put_object(spec.to_dict(), kind="harness-working-set-spec")
                 for spec in chain
             )
             recorded_at_ms = self._recorded_time(now_ms)
@@ -593,9 +571,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         message_indexes: tuple[int, ...],
     ) -> HarnessWorkingViewSource:
         try:
-            selected_messages = tuple(
-                caller_messages[index] for index in message_indexes
-            )
+            selected_messages = tuple(caller_messages[index] for index in message_indexes)
         except IndexError as error:
             raise ValueError(
                 "caller ingress promotion message index is outside current caller cognition"
@@ -629,9 +605,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         source bytes and source identity from durable Provider/Snapshot authority.
         """
         if not self.contract.privacy.allow_model_content:
-            raise ValueError(
-                "caller ingress promotion requires permission to retain model content"
-            )
+            raise ValueError("caller ingress promotion requires permission to retain model content")
 
         def existing_promotion() -> HarnessWorkingSetSpec | None:
             current = self._load_current_working_set_or_none()
@@ -649,14 +623,11 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                 and event.data.get("attemptId") == proposal.next_attempt_id
             ]
             if len(attempt_events) != 3 or any(
-                event.data.get("callerIngressPromotionProposalDigest")
-                != proposal.digest
+                event.data.get("callerIngressPromotionProposalDigest") != proposal.digest
                 for event in attempt_events
             ):
                 return None
-            promoted = [
-                pin for pin in current.pins if pin.slot == proposal.promotion_slot
-            ]
+            promoted = [pin for pin in current.pins if pin.slot == proposal.promotion_slot]
             if len(promoted) != 1:
                 return None
             return current
@@ -665,22 +636,16 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         if replay is not None:
             return replay
         now_ms = self.clock_ms()
-        lease = self._acquire_lease(
-            "caller-ingress-promotion", proposal.digest, now_ms=now_ms
-        )
+        lease = self._acquire_lease("caller-ingress-promotion", proposal.digest, now_ms=now_ms)
         try:
             replay = existing_promotion()
             if replay is not None:
                 return replay
             current = self._load_current_working_set_or_none()
             if current is None or not current.committed:
-                raise ValueError(
-                    "caller ingress promotion requires a committed predecessor"
-                )
+                raise ValueError("caller ingress promotion requires a committed predecessor")
             if proposal.next_attempt_id == current.attempt_id:
-                raise ValueError(
-                    "caller ingress promotion requires a new attempt identity"
-                )
+                raise ValueError("caller ingress promotion requires a new attempt identity")
             if current.digest != source_working_set_digest:
                 raise HarnessProviderCallRequestMismatch(
                     "caller ingress promotion source WorkingSet is no longer current"
@@ -714,8 +679,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             if (
                 provider.request.context_digest != source_model_view_digest
                 or effective_view.digest != source_model_view_digest
-                or provider.request.messages[: len(base_view.messages)]
-                != base_view.messages
+                or provider.request.messages[: len(base_view.messages)] != base_view.messages
             ):
                 raise HarnessProviderCallRequestMismatch(
                     "caller ingress promotion source model view differs from the completed Provider request"
@@ -740,9 +704,10 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                     "caller ingress promotion indexes were not identified as promotable in the exact Provider request"
                 )
             for ref in provider.request.caller_ingress_refs:
-                if provider.request.messages[ref.request_message_index] != caller_messages[
-                    ref.caller_message_index
-                ]:
+                if (
+                    provider.request.messages[ref.request_message_index]
+                    != caller_messages[ref.caller_message_index]
+                ):
                     raise HarnessProviderCallRequestMismatch(
                         "caller ingress request provenance points to different message bytes"
                     )
@@ -772,9 +737,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                 logical_generation=source.logical_generation,
                 resolved_digest=source_object.digest,
             )
-            successor_pins = tuple(
-                sorted((*current.pins, promoted_pin), key=lambda pin: pin.slot)
-            )
+            successor_pins = tuple(sorted((*current.pins, promoted_pin), key=lambda pin: pin.slot))
             source_objects: list[StoredHarnessObject] = []
             for pin in successor_pins:
                 raw_source = self.store.get_object(
@@ -782,17 +745,13 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                     expected_kind="harness-working-view-source",
                 )
                 if not isinstance(raw_source, dict):
-                    raise TypeError(
-                        "caller ingress promotion source object is invalid"
-                    )
+                    raise TypeError("caller ingress promotion source object is invalid")
                 exact_source = HarnessWorkingViewSource.from_dict(raw_source)
                 if (
                     exact_source.logical_ref != pin.logical_ref
                     or exact_source.logical_generation != pin.logical_generation
                 ):
-                    raise ValueError(
-                        "caller ingress promotion pin differs from its exact source"
-                    )
+                    raise ValueError("caller ingress promotion pin differs from its exact source")
                 self._require_working_view_source_authorized(exact_source)
                 source_objects.append(self.store.inspect_object(pin.resolved_digest))
 
@@ -808,9 +767,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                 proposal.to_dict(), kind="agent-caller-ingress-promotion-proposal"
             )
             spec_objects = tuple(
-                self.store.put_object(
-                    spec.to_dict(), kind="harness-working-set-spec"
-                )
+                self.store.put_object(spec.to_dict(), kind="harness-working-set-spec")
                 for spec in chain
             )
             recorded_at_ms = self._recorded_time(now_ms)
@@ -833,9 +790,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                             "sourceWorkingSetDigest": source_working_set_digest,
                             "sourceModelViewDigest": source_model_view_digest,
                             "callerIngressPauseSequence": pause_sequence,
-                            "callerIngressMessageIndexes": list(
-                                proposal.caller_message_indexes
-                            ),
+                            "callerIngressMessageIndexes": list(proposal.caller_message_indexes),
                             "promotedSourceObjectDigest": source_object.digest,
                         },
                         recorded_at_ms=recorded_at_ms,
@@ -859,9 +814,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         finally:
             self.store.release_run_lease(lease)
 
-    def _validate_working_set_transition(
-        self, spec: HarnessWorkingSetSpec
-    ) -> bool:
+    def _validate_working_set_transition(self, spec: HarnessWorkingSetSpec) -> bool:
         current = self._load_current_working_set_or_none()
         if current == spec:
             return True
@@ -893,10 +846,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         if spec.attempt_id == current.attempt_id:
             if current.committed:
                 raise ValueError("committed Working Set is frozen for this attempt")
-            if (
-                spec.revision != current.revision + 1
-                or spec.previous_digest != current.digest
-            ):
+            if spec.revision != current.revision + 1 or spec.previous_digest != current.digest:
                 raise ValueError("Working Set revision does not extend the current attempt")
             if spec.parent_attempt_id != current.parent_attempt_id:
                 raise ValueError("Working Set parent attempt changed within one attempt")
@@ -908,15 +858,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             or spec.parent_attempt_id != current.attempt_id
             or spec.previous_digest != current.digest
         ):
-            raise ValueError(
-                "Working Set replan does not identify its committed predecessor"
-            )
-
-
-
-
-
-
+            raise ValueError("Working Set replan does not identify its committed predecessor")
 
     def _caller_cognition_ingress_for_messages(
         self,
@@ -933,15 +875,11 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         """
         pause_event: HarnessRunEventRecord | None = None
         for event in self.store.list_run_events(self.harness_run_id):
-            if (
-                before_event_sequence is not None
-                and event.sequence >= before_event_sequence
-            ):
+            if before_event_sequence is not None and event.sequence >= before_event_sequence:
                 break
             if (
                 event.event_kind == "harness.run-paused"
-                and event.data.get("pauseReason")
-                == HarnessRunPauseReason.NEEDS_INPUT.value
+                and event.data.get("pauseReason") == HarnessRunPauseReason.NEEDS_INPUT.value
             ):
                 pause_event = event
         if pause_event is None:
@@ -960,19 +898,14 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         for message in messages[len(prefix) :]:
             if message.get("role") != "user":
                 break
-            if (
-                set(message) != {"role", "content"}
-                or not isinstance(message.get("content"), str)
-            ):
+            if set(message) != {"role", "content"} or not isinstance(message.get("content"), str):
                 raise HarnessProviderCallRequestMismatch(
                     "caller cognition ingress must contain plain user messages"
                 )
             ingress.append(dict(message))
         return pause_event.sequence, tuple(ingress)
 
-    def _validate_caller_ingress_promotion_attempt(
-        self, attempt_id: str
-    ) -> None:
+    def _validate_caller_ingress_promotion_attempt(self, attempt_id: str) -> None:
         working_events = [
             event
             for event in self.store.list_run_events(self.harness_run_id)
@@ -990,9 +923,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             )
         attempt_events.sort(key=lambda event: event.sequence)
         first_sequence = attempt_events[0].sequence
-        predecessor_events = [
-            event for event in working_events if event.sequence < first_sequence
-        ]
+        predecessor_events = [event for event in working_events if event.sequence < first_sequence]
         if not predecessor_events:
             raise ValueError("caller ingress promotion attempt has no predecessor")
         previous_event = predecessor_events[-1]
@@ -1070,9 +1001,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         messages: tuple[dict[str, JsonValue], ...],
     ) -> tuple[tuple[int, dict[str, JsonValue]], ...]:
         current = self.load_current_working_set()
-        pause_sequence, caller_messages = self._caller_cognition_ingress_for_messages(
-            messages
-        )
+        pause_sequence, caller_messages = self._caller_cognition_ingress_for_messages(messages)
         suppressed = self._durable_caller_ingress_indexes(
             current,
             pause_sequence=pause_sequence,
@@ -1084,10 +1013,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             if index not in suppressed
         )
 
-
-    def _working_set_from_event(
-        self, event: HarnessRunEventRecord
-    ) -> HarnessWorkingSetSpec:
+    def _working_set_from_event(self, event: HarnessRunEventRecord) -> HarnessWorkingSetSpec:
         object_digest = required_event_digest(event.data, "workingSetObjectDigest")
         raw = self.store.get_object(
             object_digest,
@@ -1140,18 +1066,12 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             return
         if not fields.issubset(event.data):
             raise ValueError("caller ingress promotion evidence is incomplete")
-        proposal_digest = required_event_digest(
-            event.data, "callerIngressPromotionProposalDigest"
-        )
+        proposal_digest = required_event_digest(event.data, "callerIngressPromotionProposalDigest")
         proposal_object_digest = required_event_digest(
             event.data, "callerIngressPromotionProposalObjectDigest"
         )
-        source_working_set_digest = required_event_digest(
-            event.data, "sourceWorkingSetDigest"
-        )
-        source_model_view_digest = required_event_digest(
-            event.data, "sourceModelViewDigest"
-        )
+        source_working_set_digest = required_event_digest(event.data, "sourceWorkingSetDigest")
+        source_model_view_digest = required_event_digest(event.data, "sourceModelViewDigest")
         promoted_source_object_digest = required_event_digest(
             event.data, "promotedSourceObjectDigest"
         )
@@ -1192,9 +1112,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
 
         if spec.revision == 1:
             if previous_spec is None or not previous_spec.committed:
-                raise ValueError(
-                    "caller ingress promotion does not extend a committed predecessor"
-                )
+                raise ValueError("caller ingress promotion does not extend a committed predecessor")
             if previous_spec.digest != source_working_set_digest:
                 raise ValueError(
                     "caller ingress promotion source WorkingSet differs from predecessor"
@@ -1214,12 +1132,9 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                 if retained.result.caller_ingress_promotion != proposal:
                     continue
                 promotable_indexes = {
-                    ref.caller_message_index
-                    for ref in retained.request.caller_ingress_refs
+                    ref.caller_message_index for ref in retained.request.caller_ingress_refs
                 }
-                if not set(proposal.caller_message_indexes).issubset(
-                    promotable_indexes
-                ):
+                if not set(proposal.caller_message_indexes).issubset(promotable_indexes):
                     continue
                 effective_view = HarnessWorkingView(
                     attempt_id=previous_spec.attempt_id,
@@ -1229,8 +1144,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                 if (
                     retained.request.context_digest != source_model_view_digest
                     or effective_view.digest != source_model_view_digest
-                    or retained.request.messages[: len(base_view.messages)]
-                    != base_view.messages
+                    or retained.request.messages[: len(base_view.messages)] != base_view.messages
                 ):
                     continue
                 derived_pause, caller_messages = self._caller_cognition_ingress_for_messages(
@@ -1274,9 +1188,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         )
         for field in fields:
             if previous_event.data.get(field) != event.data.get(field):
-                raise ValueError(
-                    "caller ingress promotion evidence changed within one transaction"
-                )
+                raise ValueError("caller ingress promotion evidence changed within one transaction")
         if previous_spec.attempt_id != spec.attempt_id:
             raise ValueError("caller ingress promotion attempt changed within transaction")
         if spec.revision == 2:
@@ -1321,12 +1233,8 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             return
         if current_fields.issubset(event.data) and "sourceWorkingViewDigest" not in event.data:
             fields = current_fields
-            source_working_set_digest = required_event_digest(
-                event.data, "sourceWorkingSetDigest"
-            )
-            source_model_view_digest = required_event_digest(
-                event.data, "sourceModelViewDigest"
-            )
+            source_working_set_digest = required_event_digest(event.data, "sourceWorkingSetDigest")
+            source_model_view_digest = required_event_digest(event.data, "sourceModelViewDigest")
             legacy = False
         elif legacy_fields.issubset(event.data) and not {
             "sourceWorkingSetDigest",
@@ -1334,18 +1242,12 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         } & set(event.data):
             fields = legacy_fields
             source_working_set_digest = None
-            source_model_view_digest = required_event_digest(
-                event.data, "sourceWorkingViewDigest"
-            )
+            source_model_view_digest = required_event_digest(event.data, "sourceWorkingViewDigest")
             legacy = True
         else:
             raise ValueError("Working Set transition evidence is incomplete")
-        proposal_digest = required_event_digest(
-            event.data, "transitionProposalDigest"
-        )
-        proposal_object_digest = required_event_digest(
-            event.data, "transitionProposalObjectDigest"
-        )
+        proposal_digest = required_event_digest(event.data, "transitionProposalDigest")
+        proposal_object_digest = required_event_digest(event.data, "transitionProposalObjectDigest")
         raw = self.store.get_object(
             proposal_object_digest,
             expected_kind="agent-working-set-transition-proposal",
@@ -1360,9 +1262,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
 
         if spec.revision == 1:
             if previous_spec is None or not previous_spec.committed:
-                raise ValueError(
-                    "Working Set transition does not extend a committed predecessor"
-                )
+                raise ValueError("Working Set transition does not extend a committed predecessor")
             base_view = compile_working_view(previous_spec, self.store)
             if legacy:
                 if base_view.digest != source_model_view_digest:
@@ -1408,9 +1308,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             raise ValueError("Working Set transition continuation has no predecessor")
         for field in fields:
             if previous_event.data.get(field) != event.data.get(field):
-                raise ValueError(
-                    "Working Set transition evidence changed within one transaction"
-                )
+                raise ValueError("Working Set transition evidence changed within one transaction")
         if previous_spec.attempt_id != spec.attempt_id:
             raise ValueError("Working Set transition attempt changed within transaction")
         if spec.revision == 2:
@@ -1436,9 +1334,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         *,
         before_event_sequence: int | None = None,
     ) -> None:
-        base_view, expected_working_set_refs = compile_working_view_with_refs(
-            spec, self.store
-        )
+        base_view, expected_working_set_refs = compile_working_view_with_refs(spec, self.store)
         if request.messages[: len(base_view.messages)] != base_view.messages:
             raise HarnessProviderCallRequestMismatch(
                 "Provider Call request does not preserve the current committed Working View prefix"
@@ -1596,9 +1492,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                 turn_sequence=turn_sequence,
                 request_digest=request_digest,
                 provider_request_digest=provider_request_digest,
-                request_object_digest=(
-                    None if request_object is None else request_object.digest
-                ),
+                request_object_digest=(None if request_object is None else request_object.digest),
                 adapter_id=adapter_id,
                 requested_model_id=requested_model_id,
             )
@@ -1691,6 +1585,30 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                     raise HarnessProviderCallRecoveryRequired(
                         "another Provider Call record is still active"
                     )
+            # Exact same-Provider replay can return the already committed
+            # record above without new dispatch authority. Guard only NEW
+            # Claim/Supersede Journal Events against every other unresolved
+            # Provider and Tool in the original PG history. This is inside
+            # the original PG Lease, so the admission read and append cannot
+            # race another Writer on this Run.
+            unsettled_providers, unsettled_tools = inspect_all_unsettled_effect_sources(
+                self.store.list_run_events(self.harness_run_id),
+                store=self.store,
+                harness_run_id=self.harness_run_id,
+                binding=self.binding,
+                allow_tool_content=self.contract.privacy.allow_tool_content,
+                provider_record_reader=self._load_provider_from_event,
+            )
+            if unsettled_tools:
+                raise HarnessProviderCallRecoveryRequired(
+                    "unresolved Tool Step remains in original PG history; "
+                    "new Provider Call needs exact Owner reconciliation"
+                )
+            if any(identity != provider_call_id for identity in unsettled_providers):
+                raise HarnessProviderCallRecoveryRequired(
+                    "unresolved previous Provider Call remains in original PG history; "
+                    "new Provider Call needs exact Owner reconciliation"
+                )
             recorded_at_ms = self._recorded_time(
                 now_ms,
                 previous_recorded_at_ms=(None if previous is None else previous.recorded_at_ms),
@@ -1706,9 +1624,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                 turn_id=turn_id,
                 turn_sequence=turn_sequence,
                 request_digest=request_digest,
-                request_object_digest=(
-                    None if request_object is None else request_object.digest
-                ),
+                request_object_digest=(None if request_object is None else request_object.digest),
                 provider_request_digest=provider_request_digest,
                 adapter_id=adapter_id,
                 requested_model_id=requested_model_id,
@@ -1802,12 +1718,9 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         self._provider_outcome_requires_resume = False
 
         def matches(existing: StoredHarnessProviderCall) -> bool:
-            return (
-                existing.record.result_digest == result.digest
-                and (
-                    existing.record == retained.record
-                    or existing.record.previous_record_digest == retained.record.digest
-                )
+            return existing.record.result_digest == result.digest and (
+                existing.record == retained.record
+                or existing.record.previous_record_digest == retained.record.digest
             )
 
         existing = self.load_current_provider_call()
@@ -1854,9 +1767,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                 status=HarnessProviderCallStatus.COMPLETED,
                 state_object_digest=state_object.digest,
                 result_digest=result.digest,
-                result_object_digest=(
-                    None if result_object is None else result_object.digest
-                ),
+                result_object_digest=(None if result_object is None else result_object.digest),
                 recorded_at_ms=self._recorded_time(
                     now_ms,
                     previous_recorded_at_ms=current.record.recorded_at_ms,
@@ -2165,6 +2076,47 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             current_step = None
         if current_step is not None and current_step.intent.digest == intent.digest:
             raise HarnessSuperseded("Harness Tool Step Intent is already prepared")
+        if current_step is not None and (
+            current_step.receipt is None
+            or current_step.receipt.status
+            not in {
+                HarnessToolStepStatus.OBSERVED,
+                HarnessToolStepStatus.REJECTED,
+                HarnessToolStepStatus.CANCELLED,
+            }
+        ):
+            # An older prepared/UNKNOWN Tool is a possible physical effect.
+            # Never replace its consumer-visible head with a new Intent until
+            # the original Owner resolves that exact request identity.
+            raise HarnessSuperseded(
+                "unresolved Tool Step must be owner-reconciled before a new Intent"
+            )
+        # A previous installed Writer could prepare B while A was unresolved,
+        # then observe B. The latest Tool head is B and is not a proof that A
+        # settled. Reuse the same full-Journal source observer as Finalization.
+        # The exact observed_revision below is still fenced by the PG Lease
+        # acquisition; a concurrent Writer cannot bypass this admission CAS.
+        unsettled_provider_ids, unsettled_tool_digests = inspect_all_unsettled_effect_sources(
+            self.store.list_run_events(self.harness_run_id),
+            store=self.store,
+            harness_run_id=self.harness_run_id,
+            binding=self.binding,
+            allow_tool_content=self.contract.privacy.allow_tool_content,
+            provider_record_reader=self._load_provider_from_event,
+        )
+        if unsettled_provider_ids:
+            # A Provider CLAIMED/DISPATCHING/UNKNOWN still owns a possible
+            # external effect. Do not admit a Tool based on a later Tool head
+            # while this independently verified Provider source is unsettled.
+            raise HarnessSuperseded(
+                "unresolved Provider Call remains in original PG history; "
+                "exact Owner reconciliation required before a new Tool Intent"
+            )
+        if unsettled_tool_digests:
+            raise HarnessSuperseded(
+                "unresolved Tool Step remains in original PG history; "
+                "exact Owner reconciliation required before a new Intent"
+            )
         now_ms = self.clock_ms()
         try:
             lease = self._acquire_lease(
@@ -2470,12 +2422,29 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
 
     def record_pause(self, pause_reason: HarnessRunPauseReason) -> StoredHarnessRunSnapshot:
         state = self._require_state()
+        # A lost physical Tool reply preserves the SAME original Tool Intent.
+        # Recovery can only query the real Owner; it must never re-dispatch
+        # the action or discard the active cursor. No extra registry/ledger.
+        pending_intents: tuple[str, ...] = ()
+        if pause_reason is HarnessRunPauseReason.EFFECT_DISPATCH_PENDING:
+            current = self.load_current_tool_step()
+            if current.receipt is not None and current.receipt.status not in {
+                HarnessToolStepStatus.UNKNOWN,
+                HarnessToolStepStatus.CANCEL_REQUESTED,
+            }:
+                raise ValueError(
+                    "effect-dispatch-pending requires a prepared or unresolved original Tool"
+                )
+            # PREPARED without a Receipt is itself a possibly dispatched
+            # physical effect: response loss before first observation must
+            # preserve its original Intent instead of permitting terminal.
+            pending_intents = (current.intent.digest,)
         now_ms = self.clock_ms()
         lease = self._acquire_lease("run-pause", pause_reason.value, now_ms=now_ms)
         try:
             snapshot = self._build_snapshot(
                 pause_reason,
-                active_intent_digests=(),
+                active_intent_digests=pending_intents,
                 created_at_ms=self._recorded_time(now_ms),
             )
             retained = self._store_snapshot(snapshot, state)
@@ -2531,6 +2500,252 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             state,
             self.store.inspect_object(state_object_digest),
         )
+
+    def _inspect_original_tool_sources(self, *, include_settled: bool) -> dict[str, JsonValue]:
+        """Read verified original Tool Intent identities without duplicating a Registry.
+
+        This is not a dispatch permission, Owner Job observation, or release
+        certificate. Never return Tool arguments, model content, or credentials.
+        A legacy Run may hide an unresolved Intent behind a later observed one.
+        """
+        projection = self.store.load_run(self.harness_run_id)
+        events = self.store.list_run_events(self.harness_run_id)
+        if not events or events[-1].run_revision != projection.revision:
+            raise HarnessRevisionConflict(
+                "Tool recovery source Run changed during Journal readback"
+            )
+        _, pending = inspect_all_unsettled_effect_sources(
+            events,
+            store=self.store,
+            harness_run_id=self.harness_run_id,
+            binding=self.binding,
+            allow_tool_content=self.contract.privacy.allow_tool_content,
+            provider_record_reader=self._load_provider_from_event,
+        )
+        # The recovery view deliberately excludes previously settled Intent
+        # heads. A Run-epoch revoke/drain consumer must instead enumerate
+        # EVERY original Prepared Intent, including OBSERVED/REJECTED/CANCELLED,
+        # before asking Runtime to prove physical quiescence. These are only
+        # source identities, never Runtime Job/OS/Domain acknowledgement.
+        selected_set = (
+            {
+                required_event_digest(event.data, "toolStepIntentDigest")
+                for event in events
+                if event.event_kind == "harness.tool-step-prepared"
+            }
+            if include_settled
+            else set(pending)
+        )
+        sources: dict[str, dict[str, JsonValue]] = {}
+        for event in events:
+            digest = event.data.get("toolStepIntentDigest")
+            if digest not in selected_set:
+                continue
+            if event.event_kind == "harness.tool-step-prepared":
+                raw = self.store.get_object(
+                    required_event_digest(event.data, "toolStepIntentObjectDigest"),
+                    expected_kind="harness-tool-step-intent",
+                )
+                if not isinstance(raw, dict):
+                    raise ValueError("Tool recovery source Intent is not an object")
+                intent = HarnessToolStepIntent.from_dict(raw)
+                require_tool_intent_binding(intent, self.harness_run_id, self.binding)
+                if intent.digest != digest or digest in sources:
+                    raise ValueError("Tool recovery source Intent identity differs")
+                sources[digest] = {
+                    "intentDigest": intent.digest,
+                    "intentObjectDigest": required_event_digest(
+                        event.data, "toolStepIntentObjectDigest"
+                    ),
+                    "preparedEventId": event.event_id,
+                    "preparedRunRevision": event.run_revision,
+                    "toolCallId": intent.tool_call_id,
+                    "clientRequestId": intent.client_request_id,
+                    "runtimeOperation": intent.runtime_operation,
+                    "runtimeArgumentsDigest": intent.runtime_arguments_digest,
+                    "dispatchFenceDigest": event.data.get("dispatchFenceDigest"),
+                    "lastRecordedStatus": None,
+                    "sourceOwnerJobRef": None,
+                }
+            elif event.event_kind in _TOOL_EVENT_KINDS:
+                # The full original Event verifier above already validates
+                # predecessor identity, immutable Receipt and observation.
+                source = sources.get(digest)
+                if source is None:
+                    raise ValueError("Tool recovery Receipt precedes its Intent")
+                receipt_raw = self.store.get_object(
+                    required_event_digest(event.data, "receiptObjectDigest"),
+                    expected_kind="harness-tool-step-receipt",
+                )
+                if not isinstance(receipt_raw, dict):
+                    raise ValueError("Tool recovery source Receipt is not an object")
+                receipt = HarnessToolStepReceipt.from_dict(receipt_raw)
+                source["lastRecordedStatus"] = receipt.status.value
+                source["sourceOwnerJobRef"] = receipt.runtime_job_ref
+        if set(sources) != selected_set:
+            raise ValueError("Original Run Tool sources do not cover the selected Intent identities")
+        # A third Writer may append a new Event between the first projection
+        # and this projection. No mixed-revision source may be presented.
+        if self.store.load_run(self.harness_run_id).revision != projection.revision:
+            raise HarnessRevisionConflict(
+                "Tool recovery source Run changed during source verification"
+            )
+        # The original Run's clientRequestIds form the exact existing Runtime
+        # idempotency keys (within its dedicated principal). A recycled key
+        # cannot represent two distinct ToolIntents in a reliable drain set.
+        if include_settled:
+            keys = [source["clientRequestId"] for source in sources.values()]
+            if len(keys) != len(set(keys)):
+                raise ValueError("Original Run issued Tool Intents reuse a clientRequestId")
+        kind = (
+            "ordivon.harness-issued-tool-sources"
+            if include_settled
+            else "ordivon.harness-tool-recovery-sources"
+        )
+        standing = (
+            "source-identities-only"
+            if include_settled
+            else ("blocked" if sources else "no-pending-tool-intent")
+        )
+        key = "issuedIntents" if include_settled else "unsettledIntents"
+        result: dict[str, JsonValue] = {
+            "schemaVersion": 1,
+            "kind": kind,
+            "harnessRunId": self.harness_run_id,
+            "contractDigest": self.contract.digest,
+            "toolGrantDigest": self.contract.tool_grant_digest,
+            "runRevision": projection.revision,
+            "sourceStanding": standing,
+            key: [sources[digest] for digest in sorted(sources)],
+            "runtimeOwnerProofStanding": "unknown",
+            "safeToDispatch": False,
+            "runtimeClaimReleaseStanding": "unknown",
+        }
+        if include_settled:
+            # Source Journal completeness is not a no-future-OS-spawn proof;
+            # the caller still must close issuer admissions AND reconcile all
+            # original Runtime clientRequestIds/Attempts and native Unit jobs.
+            result["originalRunIssuedCount"] = len(sources)
+            result["noFutureSpawnAckStanding"] = "unknown"
+            result["safeToAcknowledgeNoFutureSpawn"] = False
+        return result
+
+
+    def inspect_unsettled_tool_sources(self) -> dict[str, JsonValue]:
+        """Retain the existing recovery-only subset contract unchanged."""
+        return self._inspect_original_tool_sources(include_settled=False)
+
+    def inspect_issued_tool_sources(self) -> dict[str, JsonValue]:
+        """Enumerate ALL source-issued Tool Intents in one revision-fenced Run.
+
+        This read-only original Journal projection preserves exact
+        clientRequestId/Intent/Run bindings, but cannot prove Runtime OS
+        termination, all future dispatch fenced, or Domain byte acceptance.
+        Do not use it by itself as a RevokeACK or GC release certificate.
+        """
+        return self._inspect_original_tool_sources(include_settled=True)
+
+    def inspect_finalization_source(self) -> dict[str, JsonValue]:
+        """Project source-owned closure, never an authorized Runtime Claim release.
+
+        External Job/Artifact, Git or Domain delivery is a separate natural
+        owner's proof, not a fact this Harness PostgreSQL Journal can certify.
+        UNKNOWN remains unresolved even on a terminal Run projection.
+        """
+        from ..independent_result import IndependentRunRecorder
+        from .continuity_guards import inspect_all_unsettled_effect_sources
+
+        projection = self.store.load_run(self.harness_run_id)
+        if not projection.status.terminal:
+            # Nonterminal status always blocks Release, but must not hide the
+            # original unresolved Provider/Tool identities required by an
+            # authenticated Owner's future reconciliation. Reuse the same
+            # verified full-Journal scan as terminal Finalization and reject
+            # a mixed-revision read without creating any secondary state.
+            events = self.store.list_run_events(self.harness_run_id)
+            if (
+                not events
+                or events[-1].run_revision != projection.revision
+                or len(events) != projection.revision
+            ):
+                raise HarnessRevisionConflict(
+                    "nonterminal finalization source Run changed during Journal readback"
+                )
+            provider_ids, tool_digests = inspect_all_unsettled_effect_sources(
+                events,
+                store=self.store,
+                harness_run_id=self.harness_run_id,
+                binding=self.binding,
+                allow_tool_content=self.contract.privacy.allow_tool_content,
+                provider_record_reader=self._load_provider_from_event,
+            )
+            if self.store.load_run(self.harness_run_id).revision != projection.revision:
+                raise HarnessRevisionConflict(
+                    "nonterminal finalization source Run changed during verification"
+                )
+            blockers = ["run_not_terminal"]
+            if provider_ids:
+                blockers.append("provider_unsettled")
+            if tool_digests:
+                blockers.append("tool_unsettled")
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.harness-finalization-source-assessment",
+                "harnessRunId": self.harness_run_id,
+                "contractDigest": self.contract.digest,
+                "toolGrantDigest": self.contract.tool_grant_digest,
+                "runRevision": projection.revision,
+                "terminalEventId": None,
+                "runReceiptDigest": None,
+                "sourceStanding": "blocked",
+                "blockers": blockers,
+                "unsettledProviderCallIds": list(provider_ids),
+                "unsettledToolIntentDigests": list(tool_digests),
+                "externalDeliveryStanding": "unknown",
+                "runtimeClaimStanding": "unknown",
+            }
+        self.store.validate_run_history(self.harness_run_id)
+        events = self.store.list_run_events(self.harness_run_id)
+        if (
+            not events
+            or events[-1].event_id != projection.terminal_event_id
+            or events[-1].run_revision != projection.revision
+        ):
+            raise ValueError("finalization Run terminal projection differs from Journal")
+        terminal = IndependentRunRecorder(
+            self.store, self.contract, self.binding, clock_ms=self.clock_ms
+        ).load_terminal_result()
+        provider_ids, tool_digests = inspect_all_unsettled_effect_sources(
+            events,
+            store=self.store,
+            harness_run_id=self.harness_run_id,
+            binding=self.binding,
+            allow_tool_content=self.contract.privacy.allow_tool_content,
+            provider_record_reader=self._load_provider_from_event,
+        )
+        blockers: list[str] = []
+        if terminal.receipt.stop_reason == "unknown":
+            blockers.append("unknown_run_stop")
+        if provider_ids:
+            blockers.append("provider_unsettled")
+        if tool_digests:
+            blockers.append("tool_unsettled")
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.harness-finalization-source-assessment",
+            "harnessRunId": self.harness_run_id,
+            "contractDigest": self.contract.digest,
+            "toolGrantDigest": self.contract.tool_grant_digest,
+            "runRevision": projection.revision,
+            "terminalEventId": projection.terminal_event_id,
+            "runReceiptDigest": terminal.receipt.digest,
+            "sourceStanding": "blocked" if blockers else "source-settled",
+            "blockers": blockers,
+            "unsettledProviderCallIds": list(provider_ids),
+            "unsettledToolIntentDigests": list(tool_digests),
+            "externalDeliveryStanding": "unknown",
+            "runtimeClaimStanding": "unknown",
+        }
 
     def doctor(self) -> dict[str, JsonValue]:
         base = self.store.doctor(full=True)
@@ -2764,11 +2979,15 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         cached = self._heads_cache
         if cached is not None and cached[0] == revision:
             return cached[1]
-        provider = None
-        tool = None
-        snapshot = None
-        working_set = None
-        events = self.store.list_run_events(self.harness_run_id)
+        # Hot append folds only the immutable tail; cold recovery replays all.
+        provider = cached[1].provider if cached is not None else None
+        tool = cached[1].tool if cached is not None else None
+        snapshot = cached[1].snapshot if cached is not None else None
+        working_set = cached[1].working_set if cached is not None else None
+        events = self.store.list_run_events(
+            self.harness_run_id,
+            after_sequence=self._heads_cache_last_sequence if cached is not None else 0,
+        )
         for event in events:
             if event.event_kind in _PROVIDER_CLEAR_EVENT_KINDS:
                 provider = None
@@ -2791,6 +3010,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         # authoritative for a complete, ordered Journal read.
         if events and events[-1].run_revision == revision:
             self._heads_cache = (revision, heads)
+            self._heads_cache_last_sequence = events[-1].sequence
         return heads
 
     def _load_current_provider_call_or_none(
@@ -2836,7 +3056,9 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         retained_request_digest = getattr(record, "request_object_digest", None)
         if retained_request_digest is None:
             if request_object_digest is not None:
-                raise ValueError("Provider Call record without request-object binding unexpectedly references one")
+                raise ValueError(
+                    "Provider Call record without request-object binding unexpectedly references one"
+                )
         else:
             if request_object_digest != retained_request_digest:
                 raise ValueError("Provider Call exact request event reference differs")
@@ -3009,7 +3231,9 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         request_digest = getattr(record, "request_object_digest", None)
         if request_digest is None:
             if request is not None or request_object is not None:
-                raise ValueError("Provider Call record without request-object binding cannot carry one")
+                raise ValueError(
+                    "Provider Call record without request-object binding cannot carry one"
+                )
         else:
             if request is None or request_object is None:
                 raise ValueError("Provider Call v3 exact request object is incomplete")
@@ -3070,10 +3294,7 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         if not isinstance(raw, dict):
             raise TypeError("Harness Run state object is invalid")
         state = state_from_dict(raw, harness_run_id=self.harness_run_id)
-        if (
-            self._bound_state is not None
-            and state != self._persistent_state(self._bound_state)
-        ):
+        if self._bound_state is not None and state != self._persistent_state(self._bound_state):
             raise ValueError("Provider Call state object differs from bound state")
         return state
 
@@ -3144,7 +3365,6 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
         ):
             raise HarnessSuperseded("Provider Call Snapshot source is no longer current")
 
-
     def _require_provider_record(self, record: HarnessProviderCallRecordView) -> None:
         if (
             record.harness_run_id != self.harness_run_id
@@ -3158,14 +3378,10 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
             raise HarnessSuperseded("Harness Provider Call is no longer current")
         return current
 
-
-
     def _require_state(self) -> HarnessRunState:
         if self._bound_state is None:
             raise RuntimeError("Harness Run state was not bound before persistence")
         return self._bound_state
-
-
 
     def _provider_call_id(
         self,

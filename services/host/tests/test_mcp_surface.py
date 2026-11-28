@@ -12,6 +12,7 @@ from psycopg.types.json import Jsonb
 
 from ordivon_host_v2 import HostV2
 from ordivon_host_v2.mcp_server import build_server
+from ordivon_host_v2.service import REQUIRED_SCHEMA_VERSION
 
 DSN = os.environ.get("ORDIVON_HOST_V2_TEST_DSN")
 pytestmark = [
@@ -192,7 +193,7 @@ def test_official_mcp_exposes_social_work_surface_and_runs_vertical_slice() -> N
 
             status = await call(client, "host.status", {"detail": "integrity"})
             assert status["schemaVersion"] == 3
-            assert status["authority"]["journalSchema"] == 13
+            assert status["authority"]["journalSchema"] == REQUIRED_SCHEMA_VERSION
             assert status["doctor"]["healthy"] is True
             assert "board" not in status
 

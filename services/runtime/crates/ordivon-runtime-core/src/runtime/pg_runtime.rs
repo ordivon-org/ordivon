@@ -20,11 +20,22 @@ use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct PgRuntimeConfig {
+    #[cfg(windows)]
+    pub windows: WindowsExecutionConfig,
+    #[cfg(windows)]
+    pub node_id: String,
+    /// Exact operator-selected interactive account, never a caller SID.
+    #[cfg(windows)]
+    pub interactive_workspace_sid: Option<String>,
     pub dsn: String,
+    pub harness_spawn_dsn_file: Option<PathBuf>,
     pub schema: String,
     pub source_sha256: String,
     /// Optional SAME-PG issuer currentness guard, not foreignRef authentication.
     pub harness_issuer_schema: Option<String>,
+    /// Dedicated Harness principal and same-PG issuer cut for the one
+    /// ordinary scheduler's later dispatch, not ordinary admissions.
+    pub harness_dispatch_issuer: Option<(String, String)>,
     pub executor: UniversalExecutorConfig,
     /// Existing physical carrier guards shared with Runtime::workspace.open.
     pub workspace_headroom: Vec<WorkspaceHeadroomConfig>,
@@ -96,6 +107,32 @@ mod pg_delivery_semantics_tests {
             assert_eq!(pg_delivery_disposition(resolution, available), expected);
         }
     }
+}
+
+/// One original owner-controlled filesystem boundary shared by the normal
+/// PG issuer, accepted-before-dispatch cancellation and native stop. Neither
+/// the systemd service umask nor a disposable PG18 MCP process' umask may
+/// decide whether the contained untrusted task can READ its frozen request.
+fn prepare_private_pg_attempt_bundle(path: &Path) -> RuntimeResult<()> {
+    fs::create_dir_all(path).map_err(io)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+        let metadata = fs::symlink_metadata(path).map_err(io)?;
+        if !metadata.is_dir() || metadata.uid() != 0 {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::WorkspaceStateMismatch,
+                "PG Attempt control bundle must be a root-owned directory",
+                Some("bundlePath"),
+                false,
+            ));
+        }
+        // Before ANY request or cancel marker is published, remove search
+        // authority from the nonroot Agent child. The trusted UID0 Runner
+        // continues writing its existing start/result/artifact files here.
+        fs::set_permissions(path, fs::Permissions::from_mode(0o700)).map_err(io)?;
+    }
+    Ok(())
 }
 
 fn error(message: impl Into<String>) -> RuntimeError {
@@ -225,20 +262,53 @@ fn decode<T: serde::de::DeserializeOwned>(s: &str) -> RuntimeResult<T> {
 }
 
 mod artifact;
+mod claim;
 mod job;
 mod native_stop;
 mod node_query;
 mod reconciliation;
 mod release;
 mod scheduling;
+#[cfg(windows)]
+mod windows_native;
 mod workspace;
+pub use claim::{WorkspaceClaimKeyRequest, WorkspaceClaimProjection, WorkspaceClaimReserveRequest};
 
 impl PgRuntime {
     pub fn new(config: PgRuntimeConfig) -> RuntimeResult<Self> {
         // Pure preflight first: an unqualified or unreachable PG writer must
         // never create Workspace/cache directories before source admission.
         config.executor.validate().map_err(io)?;
-        super::engine::validate_workspace_headroom(&config.workspace_headroom)?;
+        #[cfg(windows)]
+        {
+            config.windows.validate()?;
+            if let Some(sid) = config.interactive_workspace_sid.as_deref() {
+                crate::windows_security::validate_interactive_account_sid(sid).map_err(io)?;
+            }
+            if config.node_id.trim().is_empty()
+                || config.harness_issuer_schema.is_some()
+                || config.harness_dispatch_issuer.is_some()
+                || config.harness_spawn_dsn_file.is_some()
+                || config.executor.workspace_root.is_none()
+                || config.executor.runner_path.as_deref()
+                    != Some(config.windows.launcher_path.as_path())
+            {
+                return Err(error("Windows PG requires an exact native launcher, node identity and disjoint workspace root; issuer not qualified"));
+            }
+        }
+        #[cfg(target_os = "linux")]
+        if config.harness_issuer_schema.is_some() || config.harness_dispatch_issuer.is_some() {
+            let path = config
+                .harness_spawn_dsn_file
+                .as_deref()
+                .ok_or_else(|| error("issuer-fenced Runtime requires owner-private PG DSN file"))?;
+            if crate::pg_admission::read_private_spawn_dsn(path).map_err(io)? != config.dsn {
+                return Err(error(
+                    "issuer receiver and Runtime must use the same PG DSN",
+                ));
+            }
+        }
+        super::workspace_headroom::validate_workspace_headroom(&config.workspace_headroom)?;
         if config.source_sha256.len() != 64
             || !config.source_sha256.bytes().all(|b| b.is_ascii_hexdigit())
         {
@@ -279,6 +349,15 @@ impl PgRuntime {
             false,
         )
         .map_err(pg)?;
+        // Fail startup if the operator has not installed the Runtime-owned
+        // claim fence. A missing table must NEVER silently downgrade Close
+        // to the older Job-only protection.
+        db.client
+            .query(
+                "SELECT claim_id FROM workspace_consumer_claims LIMIT 0",
+                &[],
+            )
+            .map_err(io)?;
         // Authorization includes the independently controlled app-role
         // privilege check in store(); only now may native paths be created.
         runtime.config.executor.ensure_store().map_err(io)?;

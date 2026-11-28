@@ -10,8 +10,8 @@ from types import SimpleNamespace
 import httpx2
 import pytest
 
-from ordivon_gateway import upstream
-from ordivon_gateway.upstream import McpOwnerCaller, OwnerEndpoint, OwnerEndpointAuth
+from ordivon_gateway.transport import upstream
+from ordivon_gateway.transport.upstream import McpOwnerCaller, OwnerEndpoint, OwnerEndpointAuth
 
 
 def test_http_pool_auth_refreshes_rotated_owner_token(tmp_path: Path) -> None:

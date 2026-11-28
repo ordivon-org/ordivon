@@ -22,6 +22,8 @@ from ..runtime_port import (
     HarnessRuntimeClient,
     HarnessRuntimeClientError,
     HarnessRuntimeToolRejected,
+    HarnessWorkspaceAdmissionUnavailable,
+    WorkspaceBoundEffectAdmission,
 )
 from .control import ExecutionControl
 from .model import AgentToolCall, AgentToolDefinition
@@ -353,11 +355,15 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
         tool_surface_digest: str | None = None,
         tool_grant_digest: str | None = None,
         tool_grant: RuntimeToolGrantView | None = None,
+        workspace_admission: WorkspaceBoundEffectAdmission | None = None,
+        require_workspace_admission: bool = False,
     ) -> None:
         self._tool_definitions = tool_definitions or (SEARCH_WORKSPACE_DEFINITION,)
         self._tool_surface_digest = tool_surface_digest or INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST
         self._tool_grant_digest = tool_grant_digest or INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST
         self._tool_grant = tool_grant
+        self._workspace_admission = workspace_admission
+        self._workspace_admission_required = require_workspace_admission
         super().__init__(
             contract,
             run_store,
@@ -402,6 +408,42 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
             raise ToolBridgeError(
                 "independent Runtime Tool catalog drifted",
                 kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+            )
+
+    def require_workspace_turn_ready(self, *, turn_id: str | None = None) -> None:
+        """Source-consumer hook for the caller before any possibly PAUSED model Turn.
+
+        The injected Port must obtain current Runtime-owner evidence, not accept
+        a caller-crafted Boolean/foreign reference as proof. No Port means the
+        current installation cannot certify same-Workspace resume, even though
+        legacy Source callers may still execute until owner cutover.
+        """
+        if turn_id is not None and (
+            not isinstance(turn_id, str) or not turn_id or turn_id != turn_id.strip()
+        ):
+            raise ValueError("Workspace admission turn_id must be non-empty and trimmed")
+        if self._workspace_admission is None:
+            raise HarnessWorkspaceAdmissionUnavailable(
+                "Runtime PG HELD/Issuer admission is not installed for this Workspace Run"
+            )
+        try:
+            result = self._workspace_admission.require_turn_ready(
+                run_ref=self.contract.harness_run_id,
+                workspace_id=self.execution_binding.workspace_ref,
+                tool_grant_digest=self.contract.tool_grant_digest,
+                turn_id=turn_id,
+            )
+        except HarnessWorkspaceAdmissionUnavailable:
+            raise
+        except Exception as error:
+            # A readback transport failure is UNKNOWN/NO_PROVIDER, not a
+            # model-correctable argument problem or synthetic HELD evidence.
+            raise HarnessWorkspaceAdmissionUnavailable(
+                f"Runtime Workspace turn qualification unavailable: {type(error).__name__}"
+            ) from error
+        if result is not None:
+            raise HarnessWorkspaceAdmissionUnavailable(
+                "Workspace admission Port must authenticate in its owner boundary, not return a caller token"
             )
 
     def bind_run_state(
@@ -769,6 +811,38 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
             )
             return self._record_observation(intent, observation)
         try:
+            # These checks consume one injected Runtime-owner Port. The same
+            # Port is reused by Gateway and built-in adapters; no second
+            # authorization service or Harness PG Writer is introduced.
+            if self._workspace_admission_required and self._workspace_admission is None:
+                raise HarnessWorkspaceAdmissionUnavailable(
+                    "Runtime Workspace effect admission is unavailable"
+                )
+            if self._workspace_admission is not None:
+                try:
+                    confirmed = self._workspace_admission.require_effect_ready(
+                        run_ref=self.contract.harness_run_id,
+                        workspace_id=self.execution_binding.workspace_ref,
+                        tool_grant_digest=self.contract.tool_grant_digest,
+                        runtime_operation=operation,
+                        client_request_id=client_request_id,
+                    )
+                except HarnessWorkspaceAdmissionUnavailable:
+                    raise
+                except Exception as error:
+                    # This query happens BEFORE the native Tool request.
+                    # Unknown holder readback must not become a lookup for a
+                    # possibly non-existent Runtime Job, nor a blind retry.
+                    raise HarnessWorkspaceAdmissionUnavailable(
+                        f"Runtime Workspace effect qualification unavailable: {type(error).__name__}"
+                    ) from error
+                if confirmed is not None:
+                    raise HarnessWorkspaceAdmissionUnavailable(
+                        "Workspace effect Port returned an unqualified caller token"
+                    )
+                # The PG Fence can change while a Remote Owner readback runs.
+                # This second Source check is still not a Native spawn fence.
+                self.run_store.assert_dispatch_fence_current(current.fence)
             payload = self.runtime.call_tool(operation, dispatch_request)
             validate_json_value(payload)
             if operation == "workspace.exec":
@@ -819,6 +893,22 @@ class HarnessRuntimeBridge(HarnessAgentBridge):
                         relative_path=relative_path,
                         reconciled=False,
                     )
+        except HarnessWorkspaceAdmissionUnavailable as error:
+            # This Port refused before any Owner call. Never misclassify it as
+            # an ambiguous Runtime submission or consult unrelated Job IDs.
+            observation = HarnessToolObservation(
+                tool_call_id=call.tool_call_id,
+                tool_name=call.name,
+                status="rejected",
+                structured_content={
+                    "type": "WorkspaceAdmissionUnavailable",
+                    "safeToCorrect": False,
+                    "physicalDispatch": False,
+                    "commitState": "not_started",
+                    "clientRequestId": client_request_id,
+                    "reason": str(error)[:512],
+                },
+            )
         except HarnessRuntimeToolRejected as error:
             if error.detail.commit_state in {"not_started", "not_committed"}:
                 observation = HarnessToolObservation(

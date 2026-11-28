@@ -130,3 +130,89 @@ tests:
       - eval_time: 4m
         alertname: NetworkVPNPathFailureWithDirectHealthy
         exp_alerts: []
+
+  # A duplicate origin cannot substitute for an absent distinct job.
+  - interval: 1m
+    input_series:
+      - series: 'probe_success{job="blackbox-vpn-pypi",instance="a"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-vpn-pypi",instance="b"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-scoped-claude-api"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-http-ipv4"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-http-ipv4-alternate"}'
+        values: '0 0 0 0 0'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: NetworkCorrelatedConsumerOutage
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: NetworkSharedUnderlaySuspected
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: NetworkVPNPathFailureWithDirectHealthy
+        exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'probe_success{job="blackbox-vpn-pypi"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-scoped-codex-mcp"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-scoped-claude-api"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-http-ipv4",instance="a"}'
+        values: '1 1 1 1 1'
+      - series: 'probe_success{job="blackbox-http-ipv4",instance="b"}'
+        values: '1 1 1 1 1'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: NetworkVPNPathFailureWithDirectHealthy
+        exp_alerts: []
+
+  # Losing fresh evidence after an actual alert must clear that classification.
+  - interval: 1m
+    input_series:
+      - series: 'probe_success{job="blackbox-vpn-pypi"}'
+        values: '0 0 0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-scoped-codex-mcp"}'
+        values: '0 0 0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-scoped-claude-api"}'
+        values: '0 0 0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-http-ipv4"}'
+        values: '0 0 0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-http-ipv4-alternate"}'
+        values: '0 0 0 0 _ _ _'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: NetworkSharedUnderlaySuspected
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              observation_plane: correlated_direct_and_vpn
+            exp_annotations:
+              summary: Two independent direct origins and three VPN consumers failed together; shared upstream failure suspected, physical cause unknown
+      - eval_time: 5m
+        alertname: NetworkSharedUnderlaySuspected
+        exp_alerts: []
+  # Nonbinary telemetry cannot cancel numerically to create an all-failed result.
+  - interval: 1m
+    input_series:
+      - series: 'probe_success{job="blackbox-vpn-pypi"}'
+        values: '-1 -1 -1 -1 -1'
+      - series: 'probe_success{job="blackbox-scoped-codex-mcp"}'
+        values: '1 1 1 1 1'
+      - series: 'probe_success{job="blackbox-scoped-claude-api"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-http-ipv4"}'
+        values: '0 0 0 0 0'
+      - series: 'probe_success{job="blackbox-http-ipv4-alternate"}'
+        values: '0 0 0 0 0'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: NetworkCorrelatedConsumerOutage
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: NetworkSharedUnderlaySuspected
+        exp_alerts: []

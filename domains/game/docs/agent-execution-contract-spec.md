@@ -10,7 +10,7 @@ The Game Factory already states that a real consumer, selected Godot/Bevy engine
 
 The larger failure mode is *semantic goal substitution*: an implementer can replace a consumer outcome with a planning artifact, framework, model-only PASS, test-count growth, or its own completion narrative. More prompts cannot establish independent domain truth.
 
-**Outcome:** Game tasks bind product intent and G07–G11's existing R2.1 responsibilities to native, source-identified, independently observable consumer obligations. A model may change implementation, not redefine what evidence discharges the obligation. Reuse existing Owner tooling and packages; never create a second workflow/LEGO/verifier service.
+**Outcome:** Game tasks bind product intent and the relevant existing R2.1 responsibilities (historical G07 archived) to native, source-identified, independently observable consumer obligations. A model may change implementation, not redefine what evidence discharges the obligation. Reuse existing Owner tooling and packages; never create a second workflow/LEGO/verifier service.
 
 ## 2. Upstream methods adopted, not installed wholesale
 
@@ -33,7 +33,7 @@ Authoritative references:
 
 - **Product objective:** game behavior or player-visible artifact sought by the consumer. Only Game/product evidence can revise it.
 - **LEGO:** goal-conditioned independently contractable responsibility, not a file/Skill/Tool/Agent.
-- **R2.1 contract admission:** a declared/admitted responsibility requires a typed eleven-coordinate contract. Existing G07–G11 carry eleven named coordinates, but textual cost/approximation/provenance fields are NOT machine-checked formal types or implementation proofs. Missing G01–G06 coordinates must not be invented.
+- **R2.1 contract admission:** a declared/admitted responsibility requires a typed eleven-coordinate contract. The historical G07–G11 contracts carry eleven named coordinates, but textual cost/approximation/provenance fields are NOT machine-checked formal types or implementation proofs. Missing G01–G06 coordinates must not be invented.
 - **Verification obligation:** bounded condition, source scope and evidence owned by the actual verifier. Existing Composition `verification-obligation-set-v1` is *non-authoritative* and does not execute checks.
 - **Mechanical result:** Runtime Job/process/test exit and receipts, not product truth.
 - **Domain acceptance:** current Game consumer-observed effect with the specified scope. Automated Game PASS is not player delight or Windows physical gameplay.
@@ -43,7 +43,7 @@ Responsibility split: Game specifies domain properties and its native test entry
 
 ## 4. Effective R2.1 contract — G11 cold-start refinement
 
-This is a **task-local proposed refinement with explicit proof duties against existing G11**, not new LEGO G12. Source carrier: `planning/lego-plan-r1.json` G11 `recursiveLegoR21`; actual implementation `examples/room-encounter/agent_episode_acceptance.py` and `mise.toml`.
+This is a **task-local proposed refinement with explicit proof duties against existing G11**, not new LEGO G12. Source carrier: `planning/lego-plan-r1.json` G11 `recursiveLegoR21`; actual implementation `scripts/agent_episode_acceptance.py` and `mise.toml`.
 
 | Coordinate | Task-local realization |
 | --- | --- |
@@ -93,7 +93,7 @@ For each *consequential* Game product work unit, declare only the decision-relev
 1. **Product/consumer:** target player action loop and platform; actual artifact expected.
 2. **SourceCut:** exact Git revision, toolchain and external assets/licensing.
 3. **Provider selection:** DELETE unconsumed custom work → REUSE mature native source → COMPOSE; custom glue only for a witnessed missing consumer contract.
-4. **Existing LEGO responsibility:** G07 for Bevy product rules and ECS, G11 for Room action/observation, or the matching Game owner contract. Do not create a LEGO for each task/file.
+4. **Existing LEGO responsibility:** the current product owner contract, such as G11 for Room action/observation; historical G07 Bevy rules are archived, not an active dependency. Do not create a LEGO for each task/file.
 5. **Obligations:** a minimal set of observable whole-composition properties, scoped negative cases, independent verifier owner, admitted evidence and OPEN/UNKNOWN conditions.
 6. **Verdict:** real owner/native result and consumer evidence; no model-only PASS and no silent weakening of the goal.
 

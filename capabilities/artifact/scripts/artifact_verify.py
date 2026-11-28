@@ -25,12 +25,14 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from artifact_core.bindings import CapabilityBindingRegistry
-from artifact_core.contracts import FileCommitment
-from artifact_core.input_snapshot import stage_verified_input
 from artifact_core.json_validation import load_json
 from artifact_core.profiles import ProfileRegistry
-from artifact_verification.claim_coverage import assess_required_evidence
+from artifact_verification.claim_coverage import (
+    assess_required_evidence,
+    assess_required_statuses,
+)
 from artifact_verification.native_identity import assess_native_identity
+from artifact_verification.request_inputs import bind_request_inputs, resolve_request_path
 from artifact_verification.tool_identity import assess_native_tool_paths
 
 ART = ROOT / "artifact-delivery"
@@ -61,13 +63,6 @@ def validate_request(value: Any) -> list[str]:
     schema = load_json(REQUEST_SCHEMA)
     validator = jsonschema.Draft202012Validator(schema, format_checker=jsonschema.FormatChecker())
     return [e.message for e in sorted(validator.iter_errors(value), key=lambda e: list(e.path))]
-
-
-def resolve_request_path(raw: str) -> Path:
-    path = Path(raw).expanduser()
-    if not path.is_absolute():
-        path = Path.cwd() / path
-    return path.resolve()
 
 
 def load_function(relative: str, name: str) -> tuple[Callable[..., dict[str, Any]], str]:
@@ -122,83 +117,23 @@ def verify_request(request_path: Path) -> dict[str, Any]:
 
     with tempfile.TemporaryDirectory(prefix="artifact-verify-input-") as temporary:
         scratch = Path(temporary)
-        profile_path = resolve_request_path(profile_ref["path"])
-        expected_profile_root = PROFILE_ROOT.resolve()
-        if expected_profile_root not in profile_path.parents:
-            return request_fail(request_id, ["profile path is outside the normalized Artifact profile authority"], request_digest=request_digest)
-        if not profile_path.is_file():
-            return request_fail(request_id, ["profile file is unavailable"], request_digest=request_digest)
         try:
-            profile_input = stage_verified_input(
-                profile_path, profile_ref["sha256"], scratch, role="profile"
-            )
-        except (OSError, ValueError) as error:
+            inputs = bind_request_inputs(request, binding, profile_record, PROFILE_ROOT, scratch)
+        except (OSError, RuntimeError, ValueError) as error:
             return request_fail(request_id, [str(error)], request_digest=request_digest)
-        # Registry resolution and snapshot staging are separate filesystem
-        # operations. The request could otherwise bind newly replaced bytes
-        # after the registry had certified different canonical Profile bytes.
-        if profile_input.sha256 != profile_record.canonical_sha256:
-            return request_fail(
-                request_id,
-                ["profile snapshot differs from indexed canonical Profile authority"],
-                request_digest=request_digest,
-            )
-        profile = load_json(profile_input.path)
-        if profile.get("profileVersion") != 2 or profile.get("id") != profile_id:
-            return request_fail(request_id, ["profile identity/version differs from request"], request_digest=request_digest)
-        if profile_path != profile_record.canonical_path:
-            return request_fail(request_id, ["profile path does not match the registered canonical profile"], request_digest=request_digest)
-
-        subject_path = resolve_request_path(request["subject"]["path"])
-        if not subject_path.is_file():
-            return request_fail(request_id, ["subject is not a regular file"], request_digest=request_digest)
-        # Input immutability and claim completeness are independent properties.
-        # Only explicitly qualified self-contained profiles receive snapshots;
-        # sidecar-dependent formats keep admission-only path semantics.
+        profile = inputs.profile
+        profile_path = inputs.profile_path
+        subject_path = inputs.subject.original
+        subject_sha = inputs.subject.sha256
+        subject_size = inputs.subject.size
+        delegated_subject = inputs.subject.delegated
         pinned = binding.snapshot_inputs
-        if pinned:
-            try:
-                subject_input = stage_verified_input(
-                    subject_path, request["subject"]["sha256"], scratch, role="subject"
-                )
-            except (OSError, ValueError) as error:
-                return request_fail(request_id, [str(error)], request_digest=request_digest)
-            subject_sha = subject_input.sha256
-            subject_size = subject_input.size
-            delegated_subject = subject_input.path
-        else:
-            subject_fact = FileCommitment.from_path(subject_path)
-            subject_sha = subject_fact.sha256
-            subject_size = subject_fact.size
-            delegated_subject = subject_path
-            if subject_sha != request["subject"]["sha256"]:
-                return request_fail(request_id, ["subject bytes differ from request digest"], request_digest=request_digest)
-
-        contract_path: Path | None = None
-        contract_fact: dict[str, Any] | None = None
-        if request.get("objectContract"):
-            contract_path = resolve_request_path(request["objectContract"]["path"])
-            if not contract_path.is_file():
-                return request_fail(request_id, ["object contract is not a regular file"], request_digest=request_digest)
-            if pinned:
-                try:
-                    contract_input = stage_verified_input(
-                        contract_path, request["objectContract"]["sha256"],
-                        scratch, role="contract"
-                    )
-                except (OSError, ValueError) as error:
-                    label = str(error).replace("contract bytes", "object contract bytes")
-                    return request_fail(request_id, [label], request_digest=request_digest)
-                contract_sha = contract_input.sha256
-                delegated_contract = contract_input.path
-            else:
-                contract_sha = FileCommitment.from_path(contract_path).sha256
-                delegated_contract = contract_path
-                if contract_sha != request["objectContract"]["sha256"]:
-                    return request_fail(request_id, ["object contract bytes differ from request digest"], request_digest=request_digest)
-            contract_fact = {"path": str(contract_path), "sha256": contract_sha}
-        elif binding.object_contract_required:
-            return request_fail(request_id, [f"profile requires an object contract: {profile_id}"], request_digest=request_digest)
+        contract_path = inputs.contract.original if inputs.contract else None
+        contract_fact = (
+            {"path": str(inputs.contract.original), "sha256": inputs.contract.sha256}
+            if inputs.contract else None
+        )
+        delegated_contract = inputs.contract.delegated if inputs.contract else None
 
         evidence_dir = resolve_request_path(request["evidenceDirectory"])
         evidence_dir.mkdir(parents=True, exist_ok=True)
@@ -206,8 +141,11 @@ def verify_request(request_path: Path) -> dict[str, Any]:
         verifier_name = binding.entrypoint.callable
         try:
             verifier, verifier_sha = load_function(verifier_relative, verifier_name)
+            precheck_issues = inputs.recheck_legacy()
+            if precheck_issues:
+                return request_fail(request_id, precheck_issues, request_digest=request_digest)
             if binding.object_contract_required:
-                assert contract_path is not None
+                assert delegated_contract is not None
                 delegated = verifier(delegated_subject, delegated_contract, evidence_dir)
             else:
                 delegated = verifier(delegated_subject, evidence_dir)
@@ -224,6 +162,7 @@ def verify_request(request_path: Path) -> dict[str, Any]:
                 request_digest=request_digest,
             )
 
+        path_issues = inputs.recheck_legacy()
         delegated_status = delegated.get("status")
         assessment = assess_required_evidence(profile, delegated)
         claim_failure = binding.require_claim_results and not assessment["complete"]
@@ -243,6 +182,7 @@ def verify_request(request_path: Path) -> dict[str, Any]:
         service_failures = list(raw_failures) if failures_shape_valid else [
             "native verifier failures field is not a list of strings"
         ]
+        service_failures.extend(path_issues)
         # A native PASS with explicit failure observations is contradictory:
         # it must never be promoted, even if the claim/identity projections pass.
         verified = (
@@ -265,6 +205,47 @@ def verify_request(request_path: Path) -> dict[str, Any]:
                 "profile requiredEvidence is not fully verified by explicit native claimResults"
             )
             service_failures.extend(assessment["issues"])
+        # A native claim with a matching FAIL witness is evidence of scoped
+        # falsification, not an integrity defect. Separately retain every
+        # missing/malformed/unwitnessed claim as an UNKNOWN-causing issue.
+        supported_required_failures = {
+            name for name, status in assessment["claimStatuses"].items()
+            if status == "FAIL"
+        }
+        failure_diagnostics = {
+            f"required claim not verified PASS: {name}=FAIL"
+            for name in supported_required_failures
+        }
+        standing_issues = [
+            issue for issue in assessment["issues"]
+            if issue not in failure_diagnostics
+        ]
+        standing_issues.extend(path_issues)
+        if not failures_shape_valid:
+            standing_issues.append("native failures report is malformed")
+        if not native_identity["complete"]:
+            standing_issues.append("native identity evidence not complete")
+        if native_identity["rejected"]:
+            standing_issues.extend(native_identity["mismatches"])
+        if tool_identity["rejected"]:
+            standing_issues.extend(tool_identity["issues"])
+        if delegated_status == "PASS" and (
+            raw_failures or supported_required_failures
+        ):
+            standing_issues.append(
+                "native aggregate PASS contradicts failure evidence"
+            )
+        elif delegated_status == "FAIL" and not supported_required_failures:
+            standing_issues.append(
+                "native aggregate FAIL lacks a witnessed required claim failure"
+            )
+        elif delegated_status not in {"PASS", "FAIL"}:
+            standing_issues.append("native overall status is not evaluated")
+        standing_coverage = assess_required_statuses(
+            assessment["expectedClaims"],
+            assessment["claimStatuses"],
+            issues=standing_issues,
+        )
         result = {
             "schemaVersion": 1,
             "kind": "artifact-verification-result",
@@ -291,12 +272,17 @@ def verify_request(request_path: Path) -> dict[str, Any]:
                 ) if contract_path is not None else "NOT_APPLICABLE",
                 "snapshotLifetime": "this verification invocation only",
                 "sourcePathContinuity": "NOT_CLAIMED",
+                "legacyPathRecheck": (
+                    "NOT_APPLICABLE" if pinned else
+                    "DRIFT_OR_UNAVAILABLE" if path_issues else "CONSISTENT_AT_CHECKS"
+                ),
             },
             "requiredEvidenceAssessment": assessment,
+            "standingCoverage": standing_coverage,
             "nativeIdentityAssessment": native_identity,
             "toolIdentityAssessment": tool_identity,
             "profileVerificationComplete": bool(
-                assessment["complete"] and native_identity["complete"] and verified
+                standing_coverage["complete"] and verified
             ),
             "failures": service_failures,
             "boundary": (
@@ -308,7 +294,8 @@ def verify_request(request_path: Path) -> dict[str, Any]:
                 "private snapshot whose bytes matched the request commitment; "
                 "input snapshot qualification is independent of claim completeness. "
                 "the original source path can change after admission. Legacy "
-                "formats retain admission-time identity only. Native reports "
+                "formats retain admission-time identity with before/after digest rechecks, "
+                "not ABA prevention or sidecar closure. Native reports "
                 "with contradictory Profile/subject/contract identity are "
                 "never promoted; missing fields are NOT_EVALUATED on legacy "
                 "bindings. No service result establishes consuming-application "

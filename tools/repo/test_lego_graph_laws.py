@@ -1718,7 +1718,7 @@ def test_upstream_local_import_dependency_change_invalidates_with_stable_target_
 
 
 def test_phase1_web_cross_security_effect_and_http_lego_boundaries() -> None:
-    """Verify source-semantic roles separately: policy ≠ effect ≠ HTTP rails."""
+    """Validate declared roles/evidence; native Web tests verify HTTP behavior."""
     plan = json.loads(
         (ROOT / "apps/web/planning/lego-plan-r1.json").read_text(encoding="utf-8")
     )
@@ -1729,22 +1729,11 @@ def test_phase1_web_cross_security_effect_and_http_lego_boundaries() -> None:
     module.validate_owner_lego_source_evidence(
         ROOT, "apps/web/planning/lego-plan-r1.json", plan
     )
-    source = (ROOT / "apps/web/src/app.ts").read_text(encoding="utf-8")
-    server = (ROOT / "apps/web/src/server.ts").read_text(encoding="utf-8")
-    store = (ROOT / "apps/web/src/store.ts").read_text(encoding="utf-8")
-    authority = (ROOT / "apps/web/src/agent-authority.ts").read_text(encoding="utf-8")
-    for observed in (
-        "async function verifiedAgent(", "async function admitAgentEffect(",
-        "store.resolveAgentGrant(", "store.commitAgentCanaryCreate(",
-        "store.commitAgentCanaryPublish(",
-    ):
-        assert observed in source
-    assert "SecurityContractAdmissionEvaluator" in authority
-    for effect in ("commitAgentCanaryCreate(", "commitAgentCanaryPublish(",
-                   "resolveAgentEffectReplay(", "putEffectApproval("):
-        assert effect in store
-    assert 'import { createWebApp } from "./app.ts";' in server
-    assert "await createWebApp(" in server
+    # This repository gate validates graph roles and source evidence only.
+    # HTTP dispatch, Security admission, exact replay and commit behavior are
+    # exercised through createWebApp in the native Web acceptance suite.
+    # Do not require private functions to live in one source file or keep
+    # historical names: those literals do not establish runtime behavior.
 
     assert {"W03", "W04"} <= set(nodes["W05"]["dependencies"])
     assert {f"W0{i}" for i in range(1, 6)} == set(nodes["W06"]["dependencies"])
@@ -2091,7 +2080,7 @@ def test_agent_native_source_path_to_owner_to_single_contract() -> None:
     revision = subprocess.check_output(
         ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
     ).strip()
-    path = "services/gateway/src/ordivon_gateway/routing.py"
+    path = "services/gateway/src/ordivon_gateway/logic/routing.py"
     result = module.inspect_owner_source_path(
         source_revision=revision, source_path=path, root=ROOT,
     )
@@ -2144,7 +2133,7 @@ def test_agent_native_repo_navigation_fallback_is_not_registered_authority() -> 
 
     real = module.inspect_owner_source_path(
         source_revision=revision,
-        source_path="services/gateway/src/ordivon_gateway/routing.py",
+        source_path="services/gateway/src/ordivon_gateway/logic/routing.py",
         root=ROOT,
     )
     assert real["ownerPartitions"][0]["registrationStanding"] == (
@@ -2259,7 +2248,7 @@ def test_agent_native_json_schema_source_query_never_infers_consumers() -> None:
     ).strip()
     plain = module.inspect_owner_source_path(
         source_revision=cut,
-        source_path="services/gateway/src/ordivon_gateway/routing.py",
+        source_path="services/gateway/src/ordivon_gateway/logic/routing.py",
         root=ROOT,
     )
     assert plain["nativeContractCarrier"] is None
@@ -2364,11 +2353,67 @@ def _mcp_decorated_route_functions(
     return found
 
 
+def _host_registered_routes(path: Path, entry: str, owner: str) -> dict:
+    """Source-only reachability witness for direct native registrar composition.
+
+    Follow only relative imported registrars actually invoked with the same
+    MCP server, Store and request-id factory. Do not scan detached files or
+    confuse an advertised decorator with an installed/native behavior proof.
+    """
+    import ast
+
+    visited: set[tuple[Path, str]] = set()
+    routes: dict = {}
+
+    def visit(module_path: Path, function_name: str) -> None:
+        key = (module_path.resolve(), function_name)
+        assert key not in visited, f"duplicate or cyclic registrar {key}"
+        visited.add(key)
+        tree = ast.parse(module_path.read_text(encoding="utf-8"))
+        register = next(
+            n for n in tree.body
+            if isinstance(n, ast.FunctionDef) and n.name == function_name
+        )
+        assert [a.arg for a in register.args.args] == ["mcp", owner, "request_id"]
+        # Only definitions directly executed in this registrar body bind tools.
+        direct = ast.Module(
+            body=[n for n in register.body
+                  if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))],
+            type_ignores=[],
+        )
+        local = _mcp_decorated_route_functions(
+            module_path, "mcp", source_override=ast.unparse(direct))
+        assert not routes.keys() & local.keys(), "duplicate reachable MCP routes"
+        routes.update(local)
+        imports = {
+            alias.asname or alias.name: (n.module, alias.name)
+            for n in tree.body if isinstance(n, ast.ImportFrom) and n.level == 1
+            and n.module and "." not in n.module
+            for alias in n.names
+        }
+        for statement in register.body:
+            if not isinstance(statement, ast.Expr) or not isinstance(statement.value, ast.Call):
+                continue
+            call = statement.value
+            if not isinstance(call.func, ast.Name) or call.func.id not in imports:
+                continue
+            if not call.func.id.startswith("register_"):
+                continue
+            assert not call.keywords and [
+                a.id if isinstance(a, ast.Name) else None for a in call.args
+            ] == ["mcp", owner, "request_id"], "registrar must preserve owner binding"
+            module_name, child = imports[call.func.id]
+            visit(module_path.with_name(module_name + ".py"), child)
+
+    visit(path, entry)
+    return routes
+
+
 def _gateway_host_route_source() -> str:
     """Concatenate actual registered route definitions for source graph checks."""
     base = ROOT / "services/gateway/src/ordivon_gateway"
     return "\n".join(
-        (base / f"host_{owner}_tools.py").read_text(encoding="utf-8").replace(
+        (base / "capabilities" / "host" / f"{owner}.py").read_text(encoding="utf-8").replace(
             "from __future__ import annotations\n", ""
         )
         for owner in ("work", "social", "attention")
@@ -2435,15 +2480,15 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
         for n in ast.walk(register)
     ), "Social tools are detached from the Host northbound registrar"
     direct_routes = _mcp_decorated_route_functions(host_mcp_path, "mcp")
-    work_routes = _mcp_decorated_route_functions(work_mcp_path, "mcp")
-    social_routes = _mcp_decorated_route_functions(social_mcp_path, "mcp")
-    attention_routes = _mcp_decorated_route_functions(attention_mcp_path, "mcp")
+    work_routes = _host_registered_routes(work_mcp_path, "register_work_tools", "work")
+    social_routes = _host_registered_routes(social_mcp_path, "register_social_tools", "social")
+    attention_routes = _host_registered_routes(attention_mcp_path, "register_attention_tools", "attention")
     assert not direct_routes, "The top-level Host registrar must only compose native owners"
     assert not (work_routes.keys() & (social_routes.keys() | attention_routes.keys()))
     assert not (social_routes.keys() & attention_routes.keys())
     actual_host = {**work_routes, **social_routes, **attention_routes}
     gateway_registrar = ast.parse(
-        (ROOT / "services/gateway/src/ordivon_gateway/host_tools.py").read_text(
+        (ROOT / "services/gateway/src/ordivon_gateway/capabilities/host/tools.py").read_text(
             encoding="utf-8"
         )
     )
@@ -2455,7 +2500,7 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
         registration = f"register_host_{owner}_tools"
         assert any(
             isinstance(node, ast.ImportFrom) and node.level == 1
-            and node.module == f"host_{owner}_tools"
+            and node.module == owner
             and any(alias.name == registration for alias in node.names)
             for node in gateway_registrar.body
         ), f"Gateway {owner} adapter not imported"
@@ -2463,15 +2508,15 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
             isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
             and node.func.id == registration
             and [arg.id if isinstance(arg, ast.Name) else None for arg in node.args]
-            == ["server", "_host"]
+            == (["server", "_host", "project_error"] if owner == "work" else ["server", "_host"])
             for node in ast.walk(gateway_register)
         ), f"Gateway {owner} adapter not registered"
     actual_gateway = _mcp_decorated_route_functions(
-        ROOT / "services/gateway/src/ordivon_gateway/host_tools.py", "server",
+        ROOT / "services/gateway/src/ordivon_gateway/capabilities/host/tools.py", "server",
         source_override=gateway_text)
     # Bind real registrar composition to the northbound entry point, not
     # detached source declarations that happen to mention tool names.
-    assert "register_host_tools(server, gateway, _owner_boundary)" in (
+    assert "register_host_tools(server, gateway, _owner_boundary, _owner_error_result)" in (
         ROOT / "services/gateway/src/ordivon_gateway/mcp_server.py"
     ).read_text()
     dispatches = {
@@ -2540,8 +2585,43 @@ def _host_core_parent_consumer_contract(plan: dict, host_text: str,
     assert {"HostService schema gate", "WorkStore PostgreSQL transaction consumer",
             "SocialStore PostgreSQL transaction consumer",
             "AttentionStore PostgreSQL transaction consumer"} <= set(nodes["O04"]["consumers"])
-    assert "REQUIRED_SCHEMA_VERSION = 13" in host_text
+    # Bind the live Host service schema gate to the actual Alembic source
+    # HEAD, not a duplicate hard-coded version in this consumer test.
+    migrations = ROOT / "services/host/migrations/versions"
+    latest = max(
+        int(path.name.split("_", 1)[0])
+        for path in migrations.glob("????_*.py")
+    )
+    assert f"REQUIRED_SCHEMA_VERSION = {latest}" in host_text
     assert "schema_version" in host_text
+
+
+def test_host_registered_route_graph_ignores_detached_and_rejects_wrong_owner(tmp_path: Path) -> None:
+    root = tmp_path / "mcp_social_tools.py"
+    leaf = tmp_path / "mcp_message_tools.py"
+    root.write_text(
+        "from .mcp_message_tools import register_message_tools\n"
+        "def register_social_tools(mcp, social, request_id):\n"
+        "    register_message_tools(mcp, social, request_id)\n"
+    )
+    leaf.write_text(
+        "def register_message_tools(mcp, social, request_id):\n"
+        "    @mcp.tool(name='message.post')\n"
+        "    def post(): return social.post_message()\n"
+        "def detached(mcp):\n"
+        "    @mcp.tool(name='message.detached')\n"
+        "    def fake(): pass\n"
+    )
+    assert set(_host_registered_routes(root, "register_social_tools", "social")) == {"message.post"}
+    original = root.read_text()
+    root.write_text(original.replace(
+        "register_message_tools(mcp, social, request_id)", "pass"))
+    assert not _host_registered_routes(root, "register_social_tools", "social")
+    root.write_text(original.replace(
+        "register_message_tools(mcp, social, request_id)",
+        "register_message_tools(mcp, wrong_owner, request_id)"))
+    with pytest.raises(AssertionError, match="owner binding"):
+        _host_registered_routes(root, "register_social_tools", "social")
 
 
 def test_host_core_parent_lego_consumer_refinement_is_bound_to_real_calls() -> None:
@@ -2655,3 +2735,183 @@ def test_host_r3_semantic_alignment_fails_closed(mutation: str, tmp_path: Path) 
         module.validate_host_r3_semantic_alignment(
             tmp_path, json.loads(r3_path.read_text())
         )
+
+
+
+def test_exact_graph_read_ignores_foreign_git_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The explicit repository is the authority, not the caller Git environment."""
+    import subprocess
+
+    source = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    expected = module.project_owner_lego_source_graph(ROOT, source_revision=source)
+    foreign = tmp_path / "foreign"
+    foreign.mkdir()
+    subprocess.run(["git", "init", "-q", str(foreign)], check=True)
+    monkeypatch.setenv("GIT_DIR", str(foreign / ".git"))
+    assert module.project_owner_lego_source_graph(ROOT, source_revision=source) == expected
+    node_ref = expected["vertices"][0]["ref"]
+    assert module.inspect_owner_lego_contract(
+        root=ROOT, source_revision=source, node_ref=node_ref,
+    )
+
+
+def test_graph_delta_preserves_native_non_utf8_path_and_unknown(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import os
+    import subprocess
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-C", str(tmp_path), *args], text=True,
+        ).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Graph test")
+    git("config", "user.email", "graph@example.invalid")
+    git("commit", "--allow-empty", "-qm", "before")
+    before = git("rev-parse", "HEAD")
+    owner = tmp_path / "example"
+    owner.mkdir()
+    raw_path = b"example/non-utf8-\xff"
+    with open(os.fsencode(tmp_path) + b"/" + raw_path, "wb") as stream:
+        stream.write(b"new")
+    git("add", ".")
+    git("commit", "-qm", "after")
+    after = git("rev-parse", "HEAD")
+    ref = "example/planning/lego-plan-r1.json#A"
+    monkeypatch.setattr(
+        module, "project_owner_lego_source_graph",
+        lambda root, *, source_revision: {
+            "sourcePlans": [], "relations": [],
+            "vertices": [{"ref": ref, "sourceAnchors": []}],
+        },
+    )
+    result = module.project_owner_lego_source_change(
+        root=tmp_path, before_revision=before, after_revision=after,
+    )
+    assert [os.fsencode(path) for path in result["changedGitPaths"]] == [raw_path]
+    assert result["unindexedChangedPaths"] == result["changedGitPaths"]
+    assert result["standingByDeclaredNode"] == [
+        {"ref": ref, "sourceImpactStanding": "UNKNOWN"},
+    ]
+    assert result["proofReuseAdmissible"] is False
+    assert json.loads(json.dumps(result)) == result
+
+
+
+def test_extracted_owner_graph_contract_source_membership(tmp_path: Path) -> None:
+    """The extracted pure graph contract remains a declared source dependency."""
+    import subprocess
+
+    from tools.repo import owner_lego_graph_contract as leaf
+
+    plan_path = "tools/repo/planning/lego-plan-r1.json"
+    leaf_path = "tools/repo/owner_lego_graph_contract.py"
+    ref = f"{plan_path}#RG2_OWNER"
+    plan = json.loads((ROOT / plan_path).read_text(encoding="utf-8"))
+    node = next(n for n in plan["nodes"] if n["id"] == "RG2_OWNER")
+    assert leaf_path in plan["project"]["sourceEvidence"]
+    assert Path(leaf_path).name in node["evidence"]
+    assert module.ArchitectureDocsError is leaf.ArchitectureDocsError
+    assert module.validate_owner_lego_graph is leaf.validate_owner_lego_graph
+    for name in {plan_path, *plan["project"]["sourceEvidence"],
+                 "tools/repo/check_architecture_docs.py"}:
+        target = tmp_path / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((ROOT / name).read_bytes())
+    registry = tmp_path / "tools/repo/check_architecture_docs.py"
+    registry.write_text(f"OWNER_LEGO_PLANS = ({plan_path!r},)\n", encoding="utf-8")
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(
+            ["git", "-c", "maintenance.auto=false", "-C", str(tmp_path), *args],
+            text=True,
+        ).strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Graph source membership")
+    git("config", "user.email", "test@example.invalid")
+    git("add", ".")
+    git("commit", "-qm", "declared extracted leaf")
+    before = git("rev-parse", "HEAD")
+    target = tmp_path / leaf_path
+    target.write_bytes(target.read_bytes() + b"\n# source identity change\n")
+    git("add", leaf_path)
+    git("commit", "-qm", "leaf-only source change")
+    after = git("rev-parse", "HEAD")
+    delta = module.project_owner_lego_source_change(
+        root=tmp_path, before_revision=before, after_revision=after,
+    )
+    assert delta["changedGitPaths"] == [leaf_path]
+    assert delta["unindexedChangedPaths"] == []
+    assert ref in delta["directChangedRefs"]
+    assert delta["proofReuseAdmissible"] is False
+    git("rm", leaf_path)
+    git("commit", "-qm", "missing declared leaf")
+    with pytest.raises(module.ArchitectureDocsError, match="sourceEvidence absent/nonregular"):
+        module.project_owner_lego_source_graph(
+            tmp_path, source_revision=git("rev-parse", "HEAD"),
+        )
+
+
+@pytest.mark.parametrize("surface", ["node", "slice"])
+@pytest.mark.parametrize(
+    "field",
+    [
+        "deletionAuthorized",
+        "effectAuthorized",
+        "promotionAuthorized",
+        "deploymentAuthorized",
+        "domainAccepted",
+        "proofReuseAdmissible",
+    ],
+)
+def test_source_only_plans_cannot_promote_authority_flags(surface: str, field: str) -> None:
+    """Planning R2.1 projections cannot self-authorize external effects or outcomes."""
+    plan = json.loads(
+        (ROOT / "tools/repo/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+    entries = plan["nodes"] if surface == "node" else plan["slices"]
+    assert entries, "The known current repository plan must exercise this real surface"
+    injected = copy.deepcopy(plan)
+    target = injected["nodes"][0] if surface == "node" else injected["slices"][0]
+    target[field] = True
+    with pytest.raises(module.ArchitectureDocsError, match="source-only LEGO.*authority"):
+        module.validate_owner_lego_graph(injected)
+
+
+@pytest.mark.parametrize("surface", ["node", "slice"])
+@pytest.mark.parametrize(
+    "field",
+    ["deletionAuthorized", "effectAuthorized", "promotionAuthorized",
+     "deploymentAuthorized", "domainAccepted", "proofReuseAdmissible"],
+)
+def test_source_only_plans_admit_explicit_negative_authority(surface: str, field: str) -> None:
+    """A false claim remains valid; absence is not silently rewritten as FAIL."""
+    plan = json.loads(
+        (ROOT / "tools/repo/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+    allowed = copy.deepcopy(plan)
+    target = allowed["nodes"][0] if surface == "node" else allowed["slices"][0]
+    target[field] = False
+    module.validate_owner_lego_graph(allowed)
+
+
+@pytest.mark.parametrize("unqualified", [1, "true", None, {"standing": "PASS"}])
+@pytest.mark.parametrize("surface", ["node", "slice"])
+def test_source_only_authority_claims_reject_truthy_type_smuggling(
+    surface: str, unqualified: object,
+) -> None:
+    """Only exact false is an explicit nonclaim; unknown is not authorization."""
+    plan = json.loads(
+        (ROOT / "tools/repo/planning/lego-plan-r1.json").read_text(encoding="utf-8")
+    )
+    target = plan["nodes"][0] if surface == "node" else plan["slices"][0]
+    target["effectAuthorized"] = unqualified
+    with pytest.raises(module.ArchitectureDocsError, match="source-only LEGO.*authority"):
+        module.validate_owner_lego_graph(plan)

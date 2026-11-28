@@ -9,22 +9,93 @@ from __future__ import annotations
 import asyncio
 import hmac
 import json
+import math
 import os
 import subprocess
 import uuid
 from pathlib import Path
 
 from starlette.applications import Starlette
-from starlette.requests import Request
+from starlette.requests import ClientDisconnect, Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
+
+MAX_REQUEST_BYTES = 8192
+
+
+def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    """A policy input has exactly one meaning; reject duplicate keys at every depth."""
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON key")
+        result[key] = value
+    return result
+
+
+def _reject_constant(value: str) -> object:
+    raise ValueError("non-JSON numeric constant")
+
+
+def _finite_float(value: str) -> float:
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError("unrepresentable JSON number")
+    return number
+
+
+class InvalidRequestBody(ValueError):
+    pass
+
+
+class RequestTooLarge(ValueError):
+    pass
+
+
+async def _read_evaluation(request: Request) -> str:
+    """Bound retained bytes before parsing, then require a unique JSON object.
+
+    A rejected wire representation never reaches OPA. The ASGI server owns
+    network framing and chunk allocation; this is an application buffer bound.
+    """
+    lengths = request.headers.getlist("content-length")
+    declared = None
+    if lengths:
+        if len(lengths) != 1 or not lengths[0].isascii() or not lengths[0].isdigit():
+            raise InvalidRequestBody("invalid content length")
+        digits = lengths[0].lstrip("0") or "0"
+        limit = str(MAX_REQUEST_BYTES)
+        if len(digits) > len(limit) or (len(digits) == len(limit) and digits > limit):
+            raise RequestTooLarge
+        declared = int(digits)
+    raw = bytearray()
+    async for chunk in request.stream():
+        if len(raw) + len(chunk) > MAX_REQUEST_BYTES:
+            raise RequestTooLarge
+        raw.extend(chunk)
+    if declared is not None and declared != len(raw):
+        raise InvalidRequestBody("content length mismatch")
+    payload = json.loads(
+        raw.decode("utf-8"),
+        object_pairs_hook=_unique_object,
+        parse_constant=_reject_constant,
+        parse_float=_finite_float,
+    )
+    if not isinstance(payload, dict):
+        raise InvalidRequestBody("evaluation must be an object")
+    # Validate the exact serialized text before handing it to the subprocess.
+    # An escaped unpaired surrogate is not a Unicode scalar and cannot be
+    # encoded on the UTF-8 policy transport.
+    encoded = json.dumps(payload, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+    encoded.encode("utf-8")
+    return encoded
 
 
 class EvaluationUnavailable(Exception):
     pass
 
 
-def _opa_decision(payload: dict, opa: str, policy: str, data: str) -> bool:
+def _opa_decision(payload: str, opa: str, policy: str, data: str) -> bool:
     try:
         result = subprocess.run(
             [
@@ -39,7 +110,8 @@ def _opa_decision(payload: dict, opa: str, policy: str, data: str) -> bool:
                 data,
                 "data.ordivon.security.gateway_artifact.allow",
             ],
-            input=json.dumps(payload, separators=(",", ":"), ensure_ascii=False),
+            input=payload,
+            encoding="utf-8",
             text=True,
             capture_output=True,
             timeout=2.0,
@@ -78,17 +150,14 @@ def make_app(*, token_path: str, policy: str, policy_data: str, opa: str) -> Sta
             return JSONResponse({"error": "invalid_request_id"}, status_code=400)
         if request.headers.get("content-type", "").split(";")[0].strip() != "application/json":
             return JSONResponse({"error": "unsupported_media_type"}, status_code=415)
-        if int(request.headers.get("content-length", "0") or "0") > 8192:
-            return JSONResponse({"error": "request_too_large"}, status_code=413)
-        raw = await request.body()
-        if len(raw) > 8192:
-            return JSONResponse({"error": "request_too_large"}, status_code=413)
         try:
-            payload = json.loads(raw)
-        except ValueError, UnicodeDecodeError:
-            return JSONResponse({"error": "invalid_json"}, status_code=400)
-        if not isinstance(payload, dict):
+            payload = await _read_evaluation(request)
+        except RequestTooLarge:
+            return JSONResponse({"error": "request_too_large"}, status_code=413)
+        except InvalidRequestBody:
             return JSONResponse({"error": "invalid_evaluation"}, status_code=400)
+        except ValueError, UnicodeDecodeError, RecursionError, ClientDisconnect:
+            return JSONResponse({"error": "invalid_json"}, status_code=400)
         try:
             permitted = await asyncio.to_thread(_opa_decision, payload, opa, policy, policy_data)
         except EvaluationUnavailable:

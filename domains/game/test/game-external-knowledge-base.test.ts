@@ -8,13 +8,13 @@ const skills = JSON.parse(readFileSync(new URL("../knowledge/game_external_skill
 
 const unique = (values: string[]) => new Set(values).size === values.length;
 
-test("external knowledge base is broad and explicitly non-legislative", () => {
+test("external knowledge source records are advisory, independently of corpus volume", () => {
   assert.equal(kb.schemaVersion, 1);
   assert.equal(kb.knowledgePolicy.defaultDisposition, "ADVISORY_UNLESS_NATIVE_AUTHORITY_APPLIES");
   assert.equal(kb.knowledgePolicy.externalKnowledgeCanDefineGameOntology, false);
   assert.equal(kb.knowledgePolicy.teardownCanBlockNovelComposition, false);
   assert.equal(kb.knowledgePolicy.skillCanInheritAuthority, false);
-  assert.ok(kb.sources.length >= 60, `expected large first-wave corpus, got ${kb.sources.length}`);
+  assert.ok(kb.sources.length > 0, "retrieval needs at least one real source");
   assert.ok(unique(kb.sources.map((source: any) => source.id)));
 });
 
@@ -42,24 +42,38 @@ test("corpus covers standards, design, research, production, teardown and agent-
   ]) assert.ok(authorityClasses.has(authority), `missing authority ${authority}`);
 });
 
-test("every source exposes scope, extraction targets, evidence limit and currentness", () => {
-  for (const source of kb.sources) {
-    assert.match(source.url, /^https:\/\//, `${source.id} needs https provenance`);
-    assert.ok(source.title.length > 3, `${source.id} title`);
-    assert.ok(source.scope.length > 0, `${source.id} scope`);
-    assert.ok(source.extractedIdeas.length > 0, `${source.id} extractedIdeas`);
-    assert.ok(source.candidateUses.length > 0, `${source.id} candidateUses`);
-    assert.ok(source.evidenceLimit.length > 0, `${source.id} evidenceLimit`);
-    assert.ok(["CURRENT", "CURRENT_WITH_VERSION", "HISTORICAL_STILL_USEFUL", "CHECK_BEFORE_ACTION"].includes(source.currentness), `${source.id} currentness`);
+function qualifySourceEvidence(sources: any[]): void {
+  assert.ok(unique(sources.map((source) => source.id)), "duplicate source IDs");
+  for (const source of sources) {
+    assert.ok(source.url.startsWith("https://"), source.id + " needs https provenance");
+    assert.ok(source.title.length > 3, source.id + " title");
+    assert.ok(source.scope.length > 0, source.id + " scope");
+    assert.ok(source.extractedIdeas.length > 0, source.id + " extractedIdeas");
+    assert.ok(source.candidateUses.length > 0, source.id + " candidateUses");
+    assert.ok(source.evidenceLimit.length > 0, source.id + " evidenceLimit");
+    assert.ok(["CURRENT", "CURRENT_WITH_VERSION", "HISTORICAL_STILL_USEFUL", "CHECK_BEFORE_ACTION"].includes(source.currentness), source.id + " currentness");
     if (source.authorityClass !== "NORMATIVE_STANDARD" && source.authorityClass !== "PLATFORM_GUIDANCE") {
-      assert.equal(source.canCreateGameHardConstraint, false, `${source.id} must not become Game law`);
+      assert.equal(source.canCreateGameHardConstraint, false, source.id + " must not become Game law");
     }
   }
+}
+
+test("every source exposes scope, extraction targets, evidence limit and currentness", () => {
+  qualifySourceEvidence(kb.sources);
+});
+
+test("a single source remains qualified, while duplicates and unjustified authority fail", () => {
+  const source = kb.sources.find((item: any) => item.authorityClass === "PRIMARY_DEVELOPER_ACCOUNT");
+  assert.ok(source);
+  qualifySourceEvidence([source]);
+  assert.throws(() => qualifySourceEvidence([source, source]), /duplicate source IDs/);
+  assert.throws(() => qualifySourceEvidence([{...source, evidenceLimit: ""}]), /evidenceLimit/);
+  assert.throws(() => qualifySourceEvidence([{...source, canCreateGameHardConstraint: true}]), /must not become Game law/);
 });
 
 test("teardown queue is mechanism-diverse and requires primary evidence before extraction", () => {
   assert.equal(queue.schemaVersion, 1);
-  assert.ok(queue.targets.length >= 36, `expected >=36 teardown targets, got ${queue.targets.length}`);
+  assert.ok(queue.targets.length > 0, "teardown queries need an actual target");
   assert.ok(unique(queue.targets.map((target: any) => target.id)));
   const axes = new Set(queue.targets.flatMap((target: any) => target.axes));
   for (const axis of ["combat-feel", "systems-emergence", "narrative-reactivity", "economy-progression", "social-live", "puzzle-rules", "creation-ugc", "accessibility-ux", "failure-counterexample"]) assert.ok(axes.has(axis), `missing teardown axis ${axis}`);
@@ -73,7 +87,7 @@ test("teardown queue is mechanism-diverse and requires primary evidence before e
 
 test("external skill watchlist separates knowledge, skill and tool authority", () => {
   assert.equal(skills.schemaVersion, 1);
-  assert.ok(skills.skills.length >= 10);
+  assert.ok(skills.skills.length > 0, "skill queries need an actual source");
   assert.ok(unique(skills.skills.map((skill: any) => skill.id)));
   for (const skill of skills.skills) {
     assert.ok(skill.trigger.length > 0, `${skill.id} trigger`);

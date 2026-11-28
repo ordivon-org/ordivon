@@ -59,6 +59,35 @@ Invalid(nonstring/empty claimed state or non-null disposition) -> reject
 Terminal, ResultAvailable, DomainSuccess are independent propositions.
 ```
 
+## Agent effect boundary: same name, different physical semantics
+
+The existing Gateway `execution.get` is a **reconciliation-capable**
+observation, not a command-query-separated, guaranteed no-effect query.
+`services/gateway/src/ordivon_gateway/capabilities/execution/observations.py` invokes
+natural Runtime `job.observe` even with `waitMs=0`. Runtime explicitly
+documents that `job.observe` may dispatch an already accepted Job once.
+The separate Runtime `job.get` performs pure inspection without
+dispatch/reconciliation; neither the Python model nor an HTTP Tool
+name changes that Owner-owned distinction.
+
+This behavior has a real consumer. Harness
+`services/harness/src/ordivon_harness/plugin_gateway_effect.py` explicitly
+guards bound replay before some `execution.get` calls, while `task.observe`
+also uses this route. It checks the original Job/Workspace identity and
+requires exact terminal Artifact inventory to avoid false Agent success.
+Whether *every* observation has a corresponding effect-admission proof
+remains UNKNOWN. In the fixed-source 2026-11-18 review, original Harness
+tests `test_plugin_gateway_effect.py` and `test_gateway_execution_port.py`
+passed (147 passed, 36 skipped). Therefore simply replacing the
+Gateway observation with `job.get` would break existing replay and
+Artifact contracts. Before such a change, the natural Runtime/Harness
+owners must falsify the candidate against accepted-but-not-dispatched,
+different authenticated Principals, committed Artifact readback, and
+disconnected replay. In the meantime treat `execution.get` as
+effect-qualified; keep the existing public MCP Tool schema unchanged.
+This is a consumer and documentation finding, not a newly installed
+authorization policy or production effect proof (original Host #28845).
+
 ## Refinement and installation acceptance
 
 1. Unit-level source-bound negative control:

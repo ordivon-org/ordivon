@@ -41,6 +41,10 @@ class HarnessMcpClient(Protocol):
 @dataclass(frozen=True, slots=True)
 class LoopbackMcpEndpoint:
     url: str
+    name: str = "local-mcp"
+
+    def to_dict(self) -> dict[str, str]:
+        return {"name": self.name, "type": "streamable-http", "url": self.url}
 
     def __post_init__(self) -> None:
         parsed = urlsplit(self.url)

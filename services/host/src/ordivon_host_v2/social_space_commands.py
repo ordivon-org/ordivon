@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from typing import Any
+
+import psycopg
 
 from .canonical_json import canonical_digest
 from .collaboration_inputs import (
@@ -9,13 +13,21 @@ from .collaboration_inputs import (
 )
 from .command_receipts import claim_command_receipt, record_command_receipt
 from .errors import ConflictError
+from .references.actor_refs import ActorReferenceLookup
+from .references.record_refs import RecordReferenceLookup
 from .social_errors import MessageNotFound as MessageNotFound
 from .social_errors import SpaceNotFound as SpaceNotFound
 from .social_errors import TopicNotFound as TopicNotFound
+from .social_space_records import read_space_in_tx
 
 
 class SocialSpaceCommands:
     """PostgreSQL commands through the sole Host SocialStore authority."""
+
+    def __init__(
+        self, connect: Callable[[], AbstractContextManager[psycopg.Connection[dict[str, Any]]]]
+    ) -> None:
+        self._connect = connect
 
     def create_space(self, value: SpaceInput, *, client_request_id: str) -> dict[str, Any]:
         request = {"operation": "space.create", **value.model_dump(mode="json")}
@@ -24,7 +36,7 @@ class SocialSpaceCommands:
             replay = claim_command_receipt(conn, client_request_id, "space.create", request_digest)
             if replay is not None:
                 return replay
-            self._require_actor(conn, value.actor_ref)
+            ActorReferenceLookup._require_actor(conn, value.actor_ref)
             # The unique space_ref constraint linearizes parallel first creates.
             # SELECT-before-INSERT allows multiple writers to observe absence.
             inserted = conn.execute(
@@ -64,7 +76,7 @@ class SocialSpaceCommands:
                 ):
                     raise ConflictError("space_ref already exists with different initial semantics")
                 admission = "existing"
-            result = self._get_space_in_tx(conn, value.space_ref)
+            result = read_space_in_tx(conn, value.space_ref)
             result["admission"] = admission
             record_command_receipt(conn, client_request_id, "space.create", request_digest, result)
             return result
@@ -81,8 +93,8 @@ class SocialSpaceCommands:
         # idempotency. Historical request receipts must not block joined→left→joined.
         _ = client_request_id
         with self._connect() as conn, conn.transaction():
-            self._require_space(conn, space_ref)
-            self._require_actor(conn, actor_ref)
+            RecordReferenceLookup._require_space(conn, space_ref)
+            ActorReferenceLookup._require_actor(conn, actor_ref)
             row = conn.execute(
                 "INSERT INTO participations(space_ref,actor_ref,standing) VALUES (%s,%s,%s) "
                 "ON CONFLICT (space_ref,actor_ref) DO UPDATE SET standing=EXCLUDED.standing,"

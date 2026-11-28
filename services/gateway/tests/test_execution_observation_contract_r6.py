@@ -115,3 +115,26 @@ def test_observation_absent_wire_fields_preserve_unknown_not_success() -> None:
     assert result.execution_disposition is None
     assert result.artifacts_available is None
     assert result.terminal is False
+
+
+@pytest.mark.parametrize(
+    ("job_status", "attempt_state"),
+    [("queued", "starting"), ("working", "running"), ("working", "stopping")],
+)
+def test_observation_accepts_distinct_job_summary_and_attempt_state(
+    job_status: str, attempt_state: str
+) -> None:
+    """The Runtime producer emits these legitimate non-identical projections."""
+    caller = ObservationOwner(
+        {
+            "jobId": "job-r6-type-observe",
+            "status": job_status,
+            "attemptState": attempt_state,
+            "executionTerminal": False,
+            "artifactsAvailable": False,
+        }
+    )
+    result = observe(caller)
+    assert result.state == job_status
+    assert result.terminal is False
+    assert caller.calls == ["job.observe"]

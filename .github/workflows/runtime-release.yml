@@ -29,6 +29,30 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Tag identity is not release admission. Only a commit already in the
+      # protected main history can be used as a Runtime release source.
+      # fetch-depth: 0 on checkout supplies the protected main ref without
+      # granting write access or depending on a fresh API request.
+      - name: Require Runtime tag source to be reachable from protected main
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GIT_GRAFT_FILE=/dev/null GIT_NO_REPLACE_OBJECTS=1
+          commit="$(git --no-replace-objects rev-parse --verify "${GITHUB_SHA}^{commit}")"
+          checkout="$(git --no-replace-objects rev-parse --verify 'HEAD^{commit}')"
+          if [[ "$commit" != "$checkout" ]]; then
+            echo "RUNTIME_TAG_SOURCE_NOT_CHECKED_OUT" >&2
+            exit 42
+          fi
+          if ! main="$(git --no-replace-objects rev-parse --verify 'refs/remotes/origin/main^{commit}')"; then
+            echo "RUNTIME_PROTECTED_MAIN_REF_MISSING" >&2
+            exit 42
+          fi
+          if ! git --no-replace-objects merge-base --is-ancestor "$commit" "$main"; then
+            echo "RUNTIME_TAG_SOURCE_NOT_ON_PROTECTED_MAIN" >&2
+            exit 42
+          fi
+
       - name: Network - acquire verified Python via official GitHub API
         shell: bash
         env:
@@ -42,7 +66,7 @@ jobs:
         run: python3 platform/network/consumers/developer-egress/github_release_mise.py
 
       - name: Install monorepo toolchain
-        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
         with:
           version: 2026.9.12
           sha256: e79ae57945034903aee8aa2ea66b4c7ca9cd4f4edd5a8a78a589cbae6d0f428a
@@ -287,5 +311,54 @@ jobs:
             ${{ runner.temp }}/ordivon-runtime-tagged-release/release-identity.json
             ${{ runner.temp }}/ordivon-runtime-tagged-release/subjects.sha256
             ${{ runner.temp }}/ordivon-runtime-tagged-release/sbom.spdx.json
+          if-no-files-found: error
+          retention-days: 30
+
+
+  windows-postgresql-runtime-release:
+    name: windows-postgresql-runtime-release
+    needs: runtime-release
+    runs-on: windows-2025
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - name: Checkout exact protected Runtime tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build exact Windows PostgreSQL Runtime package
+        shell: pwsh
+        run: |
+          python services/runtime/scripts/prepare_windows_pg_release.py --commit $env:GITHUB_SHA --output (Join-Path $env:RUNNER_TEMP "ordivon-windows-runtime-release")
+          exit $LASTEXITCODE
+
+      - name: Attest the Windows PostgreSQL package
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: ${{ runner.temp }}/ordivon-windows-runtime-release/subjects.sha256
+
+      - name: Verify signed Windows PostgreSQL provenance
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP "ordivon-windows-runtime-release"
+          $archive = Join-Path $root "ordivon-runtime-windows-pg-$env:GITHUB_SHA.zip"
+          $workflow = "$env:GITHUB_REPOSITORY/.github/workflows/runtime-release.yml"
+          gh attestation verify $archive --repo $env:GITHUB_REPOSITORY --signer-workflow $workflow --source-digest $env:GITHUB_SHA --source-ref $env:GITHUB_REF
+          exit $LASTEXITCODE
+
+      - name: Retain the Windows PostgreSQL release and checksum
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ordivon-windows-runtime-pg-${{ github.ref_name }}
+          path: |
+            ${{ runner.temp }}/ordivon-windows-runtime-release/*.zip
+            ${{ runner.temp }}/ordivon-windows-runtime-release/subjects.sha256
           if-no-files-found: error
           retention-days: 30

@@ -27,12 +27,34 @@ objects and microseconds for CSV strings, changing parquet bytes even
 though DataFrames had equal values. This is a representation proof,
 not provider accuracy or retrospective PIT proof.
 
+2026-11-14 native source-quality refinement: the existing HILO feature
+depends on actual high-low bars, but source SHA and correct XNYS dates do
+not certify internal OHLC shape. Natural Markets
+equity_ohlcv_shape.require_ohlcv_shape_for_hilo now rejects contradictory
+OHLCV bars BEFORE training or generating HILO features. The original
+private Cboe snapshot has QQQ 2026-05-20 high 713.13 below close 713.15
+(2 cents / ~0.28bp) and IWM 2023-06-05 high 180.82 below open 181.37
+(55 cents / ~30.63bp); SPY had no such anomaly. It rejects BOTH despite
+different magnitudes: no feature is silently repaired, truncated,
+forward-filled, or declared independently source-authenticated. Historical
+models remain descriptive at original SourceCut; requalification and a
+separate new-source study are required before new native HILO training.
+This is only an OHLC shape obligation, not licensed provider rights, PIT
+or a proof of adjusted/dividend total-return economics.
+
 Features RET1/MOM5/HILO/VOL5 are EOD-close-derived; LABEL0 is next
 TRADING SESSION open-to-close fractional return (for new entries). These predictions are
 UNCALIBRATED research scores, NOT a conditional return distribution or
 an admitted expected-return vector. The independent covariance-only
 PyPortfolioOpt min-volatility calculation is MATH ONLY; the machine
 result explicitly carries portfolio_target=null and optimizer_policy_eligible=false.
+
+New HILO research uses the existing Markets `equity_ohlcv_shape` check on
+the exact loaded OHLCV rows **before** feature calculation. QQQ 2026-05-20
+(HIGH < CLOSE) and IWM 2023-06-05 (HIGH < OPEN) recorded-source shapes
+must be rejected, not rewritten, silently dropped, or treated as a reason
+to certify market-source authenticity. Old frozen research is historical,
+not a passed validation under this new consumer rule.
 
 Source historical_available_at/corporate_actions/adjustment/rights remain
 UNKNOWN; backfill today != knowable then. The Cboe V5 native daily endpoint
@@ -82,7 +104,7 @@ research-only file store remains confined to ignored ./output/mlruns.
 ## Independent simulated Paper batch consumer (Q1 R3, 2026-11-13)
 
 After the existing native test-producer generates native_holding_result.json
-and paper_sessions.json, Capital accounting.paper_simulation_run consumes
+and paper_sessions.json, Capital applications.paper_simulation_run consumes
 those exact-by-digest outputs and the Qlib study/predictions in another
 process, without re-running native Nautilus. Its stable r3sim_... key is
 simulation-run-specific, not a real customer mapping. The original
@@ -108,7 +130,13 @@ the native OpenBB V5 Cboe provider, `research.experiment_protocol` and
 `portfolio.passive_benchmark`. It does not duplicate provider HTTP, Qlib,
 the benchmark engine, Risk, accounting, broker, or scheduler. It checks
 the frozen plan and refuses altered weights/costs, missing matched
-sessions, future rows and wrong provider identity. It emits normalized
+sessions, future rows and wrong provider identity. It also reuses the
+Markets `require_xnys_session_grid` consumer against the completed
+observation cut (strictly earlier than each source receipt's UTC date):
+a matched pair of vendor CSVs cannot invent a holiday/weekend or jointly
+omit a completed XNYS session. This is exchange-date qualification,
+not proof of price authenticity, total-return adjustments, or publisher
+rights. It emits normalized
 Cboe CSV data and one partial research receipt **only** into a fresh
 operator-selected private directory outside Git.
 

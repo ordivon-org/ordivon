@@ -356,7 +356,7 @@ impl RuntimeServer {
 
     #[tool(
         name = "workspace.open",
-        description = "Resolve a local revision and create one detached Git Workspace. On PostgreSQL Linux Runtime, the successful open response includes a 4-hour inactivity lifecycle warning: publish deliverables before the hourly cleanup can close a clean, completed, merged Workspace. Omit workspaceId for a server-generated immutable ws-* handle; provide an explicit unique workspaceId when deterministic response-loss reconciliation matters. Repeating workspace.open is not a general idempotent replay: after an uncertain response, first use workspace.get on the explicit ID. If it reports an unfinished durable opening, the exact original workspace.open request with that ID can reconcile the pre-recorded Git operation; unrecorded or mismatched physical directories remain rejected. This tool does not fetch remote refs.",
+        description = "Resolve a local revision and create one detached Git Workspace. On PostgreSQL Linux Runtime, read the returned retentionNotice: four hours is a minimum idle threshold, not a lease; cleanup cadence is operator-configured, not necessarily hourly. Publish deliverables to Git/Artifact. The caller MUST choose and persist a stable workspaceId before sending the open request; omitting it is rejected to prevent duplicate Worktrees after lost responses. Repeating workspace.open is not a general idempotent replay: after an uncertain response, first use workspace.get on that original ID. If it reports an unfinished durable opening, the exact original workspace.open request with that ID can reconcile the pre-recorded Git operation; unrecorded or mismatched physical directories remain rejected. This tool does not fetch remote refs.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<CompactWorkspaceOpenResult>>(),
         annotations(
             title = "Open isolated workspace",
@@ -992,7 +992,7 @@ impl RuntimeServer {
 
     #[tool(
         name = "artifact.read",
-        description = "Read a bounded verified UTF-8 range from one Job Artifact by Job and Artifact identity. This compatibility surface is continuation-aware text projection; use artifact.content when the complete retained Artifact must be projected as binary bytes.",
+        description = "Read a bounded verified UTF-8 range from one Job Artifact by Job and Artifact identity. This compatibility surface is continuation-aware text projection; use artifact.content when the complete retained Artifact must be projected as binary bytes. Invalid UTF-8 in an otherwise digest-verified Artifact is ARTIFACT_NOT_UTF8 (non-retryable), not a Registry outage. For an authorized Job, absence of the requested registered Artifact is ARTIFACT_NOT_FOUND in both text and content reads.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<ArtifactReadResult>>(),
         annotations(
             title = "Read transactional job artifact",

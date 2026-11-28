@@ -21,6 +21,28 @@ dispatcher=importlib.util.module_from_spec(spec)
 loader.exec_module(dispatcher)
 
 
+class PgReleaseDispatchPackagedUnitTests(unittest.TestCase):
+    """The distributed Unit must invoke the separately installed trusted Root bundle."""
+
+    def test_unit_execstart_uses_actual_root_operator_bundle(self) -> None:
+        unit = SCRIPTS.parent / "packaging/systemd/ordivon-runtime-pg-release-dispatch.service"
+        properties = dict(
+            line.split("=", 1) for line in unit.read_text(encoding="utf-8").splitlines()
+            if line.startswith(("ExecStart=", "EnvironmentFile=", "NoNewPrivileges="))
+        )
+        self.assertEqual(
+            properties["ExecStart"],
+            "/opt/ordivon/runtime-pg-operator/.venv/bin/python -B "
+            "/usr/local/libexec/ordivon/pg-release-operator/ordivon-runtime-pg-release-dispatch "
+            "--config /etc/ordivon/ordivon-runtime-pg-release-operator.json",
+        )
+        self.assertEqual(
+            properties["EnvironmentFile"],
+            "/etc/ordivon/ordivon-runtime-pg-release-operator.env",
+        )
+        self.assertEqual(properties["NoNewPrivileges"], "yes")
+
+
 class PgReleaseDispatchTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp=tempfile.TemporaryDirectory(prefix="ordivon-pg-dispatch-")
@@ -122,6 +144,50 @@ class PgReleaseDispatchTests(unittest.TestCase):
              patch.object(dispatcher.operator, "pg_connection") as connect:
             with self.assertRaisesRegex(RuntimeError, "complete native PG and Runner"):
                 dispatcher.sweep(qualified)
+            connect.assert_not_called()
+
+    def test_optional_pg_reclaimer_contract_from_owner_config(self) -> None:
+        # No implicit sidecar promotion: only the existing root-owned config
+        # may opt in, and the PG operator must see this same value.
+        self.assertNotIn("includePgReclaimer", self.config)
+        self.assertFalse(self.owner_config().get("includePgReclaimer", False))
+        for invalid in ("true", 1, None, {}, ["yes"]):
+            with self.subTest(invalid=invalid):
+                self.config["includePgReclaimer"] = invalid
+                self.path.write_text(json.dumps(self.config), encoding="utf-8")
+                self.path.chmod(0o600)
+                with self.assertRaisesRegex(RuntimeError, "includePgReclaimer"):
+                    self.owner_config()
+        self.config["includePgReclaimer"] = True
+        self.path.write_text(json.dumps(self.config), encoding="utf-8")
+        self.path.chmod(0o600)
+        config = self.owner_config()
+        row = {
+            "principal": "pg-consumer", "client_request_id": "r1",
+            "effect_id": "b" * 64, "commit_revision": "c" * 40,
+            "candidate_manifest_digest": "sha256:" + "d" * 64,
+            "expected_tool_count": 21,
+        }
+        with patch.dict(os.environ, {"ORDIVON_PG_RELEASE_OPERATOR_DSN": "operator-only"}):
+            args = dispatcher.release_effect_to_args(config, row)
+        self.assertTrue(args.include_pg_reclaimer)
+        self.assertEqual(args.binaries, self.config["binaries"])
+        self.config["includePgReclaimer"] = False
+        self.path.write_text(json.dumps(self.config), encoding="utf-8")
+        self.path.chmod(0o600)
+        with patch.dict(os.environ, {"ORDIVON_PG_RELEASE_OPERATOR_DSN": "operator-only"}):
+            args = dispatcher.release_effect_to_args(self.owner_config(), row)
+        self.assertFalse(args.include_pg_reclaimer)
+
+    def test_imported_sweep_rejects_forged_reclaimer_flag_before_pg(self) -> None:
+        config = self.owner_config()
+        config["includePgReclaimer"] = "true"
+        with (
+            patch.dict(os.environ, {"ORDIVON_PG_RELEASE_OPERATOR_DSN": "operator-only"}),
+            patch.object(dispatcher.operator, "pg_connection") as connect,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "includePgReclaimer"):
+                dispatcher.sweep(config)
             connect.assert_not_called()
 
     def test_committed_row_uses_only_operator_configured_paths(self) -> None:

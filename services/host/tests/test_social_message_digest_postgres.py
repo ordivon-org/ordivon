@@ -10,9 +10,9 @@ import pytest
 from psycopg.types.json import Jsonb
 
 from ordivon_host_v2.collaboration_inputs import MessageInput, MessageKind, SpaceInput, TopicInput
+from ordivon_host_v2.references.actor_store import ActorReferenceStore
 from ordivon_host_v2.social_store import SocialStore
 from ordivon_host_v2.work_inputs import ActorKind, ActorRefInput
-from ordivon_host_v2.work_store import WorkStore
 
 DSN = os.getenv("ORDIVON_HOST_V2_TEST_DSN")
 pytestmark = [
@@ -30,7 +30,7 @@ def _new_message() -> tuple[SocialStore, MessageInput]:
         f"topic:integrity:{token}",
         f"message:integrity:{token}",
     )
-    WorkStore(DSN).declare_actor(
+    ActorReferenceStore(DSN).declare_actor(
         ActorRefInput(actor_ref=actor, actor_kind=ActorKind.AGENT),
         client_request_id=f"actor:{actor}",
     )
@@ -110,7 +110,7 @@ def test_postgresql_unicode_gram_exact_search_preserves_reserved_chars() -> None
     assert DSN
     social, original = _new_message()
     phrases = ("终端消费", "终端%消费", "终端_消费", "终端#消费",
-               "终端\\消费", "中文测试")
+               "终端\\消费", "中文测试", "中a文b字", "甲乙𠀀丙")
     for i, phrase in enumerate(phrases):
         copied = original.model_copy(update={
             "message_ref": f"{original.message_ref}:unicode:{i}",
@@ -121,16 +121,16 @@ def test_postgresql_unicode_gram_exact_search_preserves_reserved_chars() -> None
     with psycopg.connect(DSN) as conn:
         index = conn.execute(
             "SELECT i.indisvalid FROM pg_index i "
-            "WHERE i.indexrelid=to_regclass('message_unicode_ngrams3_idx')"
+            "WHERE i.indexrelid=to_regclass('message_cjk_sparse_ngrams3_v1_idx')"
         ).fetchone()
         assert index == (True,)
         assert conn.execute(
-            "SELECT host_unicode_ngrams3(%s)", ("终端消费",)
+            "SELECT host_cjk_sparse_ngrams3_v1(%s)", ("终端消费",)
         ).fetchone()[0] == ["端消费", "终端消"]
         for i, phrase in enumerate(phrases):
             actual = conn.execute(
                 "SELECT strpos(%s::text,%s)>0, "
-                "host_unicode_ngrams3(%s::text) @> host_unicode_ngrams3(%s::text)",
+                "host_cjk_sparse_ngrams3_v1(%s::text) @> host_cjk_sparse_ngrams3_v1(%s::text)",
                 (f"证据边界:{phrase}:有真实消费者",phrase,
                  f"证据边界:{phrase}:有真实消费者",phrase),
             ).fetchone()
@@ -149,9 +149,9 @@ def test_postgresql_unicode_gram_candidate_false_positive_requires_exact_check()
     phrase = "终端消费"
     with psycopg.connect(DSN) as conn:
         candidate, exact, refined = conn.execute(
-            "SELECT host_unicode_ngrams3(%s::text) @> host_unicode_ngrams3(%s::text), "
+            "SELECT host_cjk_sparse_ngrams3_v1(%s::text) @> host_cjk_sparse_ngrams3_v1(%s::text), "
             "strpos(%s::text,%s::text)>0, "
-            "(host_unicode_ngrams3(%s::text) @> host_unicode_ngrams3(%s::text) "
+            "(host_cjk_sparse_ngrams3_v1(%s::text) @> host_cjk_sparse_ngrams3_v1(%s::text) "
             "AND strpos(%s::text,%s::text)>0)",
             (body, phrase, body, phrase, body, phrase, body, phrase),
         ).fetchone()
@@ -200,3 +200,70 @@ def test_compact_message_post_receipt_rejects_drifted_canonical_row() -> None:
         )
     with pytest.raises(RuntimeError, match="message content digest"):
         social.post_message(message)
+
+
+def test_sparse_cjk_index_is_exact_restriction_and_old_reader_remains() -> None:
+    assert DSN
+    examples = ("abc", "", "中", "中文", "中a文b字", "甲乙𠀀丙",
+                "😀中é文界", "中中中中", "㐀a中b鿿", "终端%消费")
+    with psycopg.connect(DSN) as conn:
+        assert conn.execute(
+            "SELECT i.indisvalid AND i.indisready FROM pg_index i "
+            "WHERE i.indexrelid=to_regclass('message_unicode_ngrams3_idx')"
+        ).fetchone() == (True,)
+        for body in examples:
+            sparse, full = conn.execute(
+                "SELECT host_cjk_sparse_ngrams3_v1(%s),host_unicode_ngrams3(%s)",
+                (body, body),
+            ).fetchone()
+            assert sparse == [g for g in full if any("\u3400" <= c <= "\u9fff" for c in g)]
+            for i in range(len(body)):
+                for j in range(i+3, len(body)+1):
+                    query = body[i:j]
+                    if sum("\u3400" <= c <= "\u9fff" for c in query) < 3:
+                        continue
+                    assert conn.execute(
+                        "SELECT cardinality(host_cjk_sparse_ngrams3_v1(%s))>0,"
+                        "host_cjk_sparse_ngrams3_v1(%s) @> host_cjk_sparse_ngrams3_v1(%s)",
+                        (query,body,query),
+                    ).fetchone() == (True, True)
+
+def test_sparse_cjk_search_exact_ordered_pages_and_byte_budget() -> None:
+    assert DSN
+    social, original = _new_message()
+    query = "中a文b字"
+    for i, body in enumerate((
+        "prefix" + query,
+        "中a文bX文b字",  # noncontiguous grams: not an exact match
+        query + "甲" * 32000,
+        "prefix😀" + query + "后缀",
+        "unrelated " + query,
+        "中a文b",
+        query + "尾" * 32000,
+    )):
+        msg = original.model_copy(update={
+            "message_ref": f"{original.message_ref}:page:{i}",
+            "client_request_id": f"post:{original.message_ref}:page:{i}",
+            "body": body,
+        })
+        assert social.post_message(msg)["admission"] == "committed"
+    with psycopg.connect(DSN) as conn:
+        expected = conn.execute(
+            "SELECT sequence,message_ref FROM messages WHERE topic_ref=%s "
+            "AND strpos(body,%s)>0 ORDER BY sequence DESC",
+            (original.topic_ref,query),
+        ).fetchall()
+    actual = []
+    before = None
+    while True:
+        page = social.search_messages(query,topic_ref=original.topic_ref,
+                                      before_sequence=before,limit=2,max_bytes=131072)
+        actual.extend((row["sequence"],row["messageRef"]) for row in page["messages"])
+        if not page["hasMore"]:
+            break
+        assert page["messages"]
+        next_before = page["nextBeforeSequence"]
+        assert next_before == page["messages"][-1]["sequence"]
+        assert before is None or next_before < before
+        before = next_before
+    assert actual == expected

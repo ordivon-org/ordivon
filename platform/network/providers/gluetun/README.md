@@ -255,38 +255,21 @@ moves to the second candidate, and exhaustion attempts the prior native
 selection with authenticated GET readback. Restoring a selection filter
 does **not** imply restored sessions or successful consumer traffic.
 Cooldown remains ten minutes between auto-triggered recovery runs.
-Never select Hong Kong.
+Trials and rollback are confined to the configured candidate country pool.
 
-## Cold catalog trial after historical quality evidence expires (2026-11-14)
+## Cold catalog trial when recent quality evidence is unavailable
 
-The existing 7-day source quality hint **still expires**; its latency and
-consumer success ratios never become fresh measurements after expiry.
-One live WireGuard provider can only directly qualify its connected country.
-After 2026-11-20, staying exclusively connected to Malaysia would otherwise
-make the current policy return HOLD_NO_RECENT_EVIDENCE forever after a genuine
-three-lane VPN-only outage, despite stored official Gluetun WireGuard server
-catalog countries being available for an API trial.
+Expiring historical quality hints never become current observations. A
+single live WireGuard Provider can only directly qualify its current session.
+If recent business history is absent, the configured nearby countries can be
+tried when present in Gluetun's own WireGuard catalog. Cold catalog membership
+does not prove current reachability or latency.
 
-To prevent that deterministic liveness hole without rotating a healthy VPN,
-the existing nonsecret recovery-hints.json also declares up to two **cold
-trial country preferences**, currently North Macedonia then Mexico. They
-are independently checked against the loaded Gluetun Surfshark WireGuard
-server catalog at the failure boundary. Catalog membership proves neither
-reachability nor latency: standing is SOURCE_CATALOG_COLD_TRIAL_UNVERIFIED,
-certifiedHotStandbyCount is zero. Recent actual live-session consumer quality
-remains first priority, then unexpired historic hints, then catalog-only cold
-preferences; no auto selection occurs when consumers are healthy.
-
-ONLY a fresh 30-second-origin three-lane failure and independent live
-underlay success can reach the existing one-shot, and both the official
-authenticated Gluetun settings GET/PUT and real kernel endpoint plus two
-TLS/HTTP consumer checks are still required to accept a trial. At most two
-distinct countries, 10-minute cooldown, Hong Kong excluded and previous
-native country *filter* restored on complete failure. This does not create
-a second VPN, scheduled healthy rotation, background controller or live
-hot standby. If the catalog drops either country, that candidate is not
-tried. If both disappear, the system correctly holds for lack of evidence.
-The first verified automatic real outage TTR remains UNKNOWN.
+At most two distinct countries can be tried after fresh three-lane failure
+and independent underlay success. The existing authenticated settings API
+and endpoint/TLS/origin checks remain required. Rollback restores the prior
+country filter within the same nearby pool. The ten-minute cooldown and
+healthy-session hold still apply.
 
 ## Time-bounded alternative-country memory without a new registry
 
@@ -377,9 +360,10 @@ Two immutable semantic sources distinguish *permission* from *selection*:
 Surfshark WireGuard countries and excludes Hong Kong; its positive list must
 continue matching the nonexcluded official catalog.
 `providers/gluetun/config/exit-selector.json` is the candidate-country
-filter. The initial `"selectedCountries": "allAllowed"` preserves the exact
-previous 99-country production environment; a named country subset is allowed
-only when it belongs to the permission list. Neither catalog membership nor
+filter. The selected pool is Singapore, Japan and Malaysia. The permission list
+still mirrors the wider catalog, but does not admit those other countries
+to native reconnect, authenticated recovery or rollback. A named country
+subset is allowed only when it belongs to the permission list. Neither catalog membership nor
 candidate admission proves a currently successful endpoint. The provider must
 still observe actual consumer VPN readiness.
 
@@ -415,6 +399,21 @@ Provider candidate. Gluetun's native VPN restart, firewall and cache
 remain the only owners of those functions. Physical and DNS failures
 must still be independently measured; this configuration does not prove
 that future reconnect storms have ceased.
+
+For a native Gluetun healthcheck returning HTTP 500, first distinguish the
+**health-server standing** from the actual VPN namespace and application
+consumers. Compare a one-shot `/gluetun-entrypoint healthcheck` with the
+existing `task provider:gluetun:observe-exit`, `dns-consumer`,
+`dns-dot-upstreams` and the actual affected `consumer:*:verify`. A successful
+TLS dial to a configured health target at a later instant does **not** prove
+why Gluetun's internal startup check remained failed; conversely HTTP 500
+does not prove every Carrier consumer is offline. If sampled business HTTPS
+and DNS still succeed, do not restart the shared Provider, change countries,
+replace native health targets or disable its kill switch merely to clear the
+status. The mobile Tailnet server may still report `PROVIDER_HEALTH_NOT_READY`;
+that is not a device-origin iOS egress verdict. Use the original systemd/
+Gluetun recovery and independently qualified physical underlay only when
+actual consumer effects require intervention.
 
 The existing Custom provider candidate environment remains a valid
 credential materialization input and recovery source. Deployment is
@@ -498,6 +497,19 @@ this explicit ratio when adopting a newer official release or if the provider
 hostname-to-record mapping changes. The live provider must not be restarted
 by a source-only PR.
 
+
+### Nearby country pool and latency admission
+
+The stable image can enforce membership in the three-country pool for every
+startup and reconnect. List order does not control the native distribution
+of endpoints. The existing recovery one-shot prioritizes recent business
+quality, with no restart of a working Provider just to seek a faster endpoint.
+Among the latest qualified historical sessions, a median of the three probe
+p90s above 1500 ms suppresses that country from recovery trials, including as
+a catalog-only fallback, while the evidence is fresh. This measures complete
+Claude, Codex and PyPI requests and is not a Tailscale ping budget. Unknown
+nearby countries remain eligible for bounded cold trials; two can be tried in
+a recovery invocation, with live origin acceptance and no wider fallback.
 
 ### Native multi-country ordered fallback — qualified preview, NOT live
 

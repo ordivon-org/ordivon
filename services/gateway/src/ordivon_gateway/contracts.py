@@ -1,8 +1,23 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
+
+
+@dataclass(frozen=True)
+class CapabilityRoute:
+    capability: str
+    owner_id: str
+    category: str
+    owner_tool: str | None
+    context_mode: str
+    truth_boundary: str
+    description: str
+    tags: tuple[str, ...] = ()
+    execution_target: str | None = None
+    default_context: str | None = None
 
 
 class StrictModel(BaseModel):
@@ -13,6 +28,44 @@ class OwnerDescriptor(StrictModel):
     owner_id: str
     role: str
     configured: bool
+
+
+class ReadinessFact(StrictModel):
+    owner_id: str
+    predicate: str
+    state: Literal["supported", "refuted", "unobserved", "invalid", "contradictory"]
+    source: str
+
+
+class ReadinessCheck(StrictModel):
+    direction: Literal["forward", "reverse"]
+    owner_id: str
+    action: str
+    expected_evidence: str
+    effect: Literal["read_only", "requires_authorized_context"] = "read_only"
+    execution_state: Literal["proposed_not_executed"] = "proposed_not_executed"
+    request: dict[str, Any] | None = None
+
+
+class ReadinessOwnerStatusWitness(StrictModel):
+    """Digest of actual Owner status JSON; not Owner-signed truth."""
+
+    owner_id: str
+    tool_name: Literal["runtime.describe", "host.status"]
+    disposition: Literal["response_received", "no_result", "skipped_unconfigured"]
+    payload_digest: str | None = None
+    payload_bytes: int | None = None
+
+
+class ReadinessInquiry(StrictModel):
+    """Evidence and falsifiable checks, not permission to perform a side effect."""
+
+    scope: Literal["owner_status", "multi_owner_status", "route_metadata"]
+    observations: list[ReadinessOwnerStatusWitness] = Field(default_factory=list)
+    facts: list[ReadinessFact] = Field(default_factory=list)
+    unresolved_questions: list[str] = Field(default_factory=list)
+    possible_explanations: list[str] = Field(default_factory=list)
+    next_checks: list[ReadinessCheck] = Field(default_factory=list)
 
 
 class CapabilityDescriptor(StrictModel):
@@ -31,6 +84,7 @@ class CapabilityDescriptor(StrictModel):
     tags: list[str] = Field(default_factory=list)
 
     readiness_state: Literal["ready", "not_ready", "unknown"] = "unknown"
+    _readiness_inquiry: ReadinessInquiry | None = PrivateAttr(default=None)
 
     @model_validator(mode="after")
     def derive_readiness_state(self) -> CapabilityDescriptor:
@@ -49,6 +103,60 @@ class CapabilityDescriptor(StrictModel):
         else:
             self.readiness_state = "not_ready"
         return self
+
+
+class ReadinessFactChange(StrictModel):
+    owner_id: str
+    predicate: str
+    source: str
+    previous_states: list[str]
+    current_states: list[str]
+
+
+class ReadinessProbeReceipt(StrictModel):
+    owner_id: str
+    action: Literal["runtime.describe", "host.status"]
+    request: dict[str, Any]
+    outcome: Literal["result_observed", "no_result", "invalid_result", "skipped_unconfigured"]
+    execution_state: Literal["attempted_read_only", "not_executed"]
+    evidence_source: Literal["same_owner_status_second_observation"]
+    first_payload_digest: str | None = None
+    latest_payload_digest: str | None = None
+
+
+class ReadinessVerification(StrictModel):
+    """A second status observation, not a cryptographic Owner attestation."""
+
+    method: Literal["one_explicit_bounded_reobservation"]
+    initial_readiness_state: Literal["ready", "not_ready", "unknown"]
+    initial_projection_digest: str
+    latest_projection_digest: str
+    initial_inquiry: ReadinessInquiry
+    receipts: list[ReadinessProbeReceipt]
+    fact_changes: list[ReadinessFactChange]
+    verdict: Literal[
+        "same_owner_observation_stable",
+        "changed_observation",
+        "still_unresolved",
+        "no_qualified_probe",
+    ]
+
+
+class CapabilityInquiryProjection(StrictModel):
+    """Explicit investigation endpoint, keeping capability.describe ABI unchanged."""
+
+    schema_version: Literal[1] = 1
+    kind: Literal["ordivon.gateway-capability-inquiry"] = "ordivon.gateway-capability-inquiry"
+    truth_role: Literal["read-only-owner-evidence-not-authority"] = (
+        "read-only-owner-evidence-not-authority"
+    )
+    capability: str
+    owner_id: str
+    readiness_state: Literal["ready", "not_ready", "unknown"]
+    route_digest: str | None = None
+    projection_digest: str
+    inquiry: ReadinessInquiry
+    verification: ReadinessVerification | None = None
 
 
 class CapabilitySearchMatch(StrictModel):

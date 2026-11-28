@@ -42,6 +42,11 @@ Build providers, verifier plugins, trust overlays, OCI package assembly and dura
 
 Reference: `docs/ARTIFACT_VERIFICATION_SERVICE_R1.md` and `planning/lego-plan-r2.json`, checked against their current source files.
 
+Current convergence contract: `docs/ARTIFACT_STANDING_CONVERGENCE_SPEC_R21.md` and
+`docs/ARTIFACT_STANDING_CONVERGENCE_PLAN_R21.md`. These guide the
+shared v1/v2 Standing implementation; a plan is not deployed capability or
+consumer acceptance.
+
 **Profile authority and refinement:** `artifact_core/profiles.py` now
 binds parsed JSON and SHA-256 to the same indexed source bytes, reuses
 Draft 2020-12 Schema validation, and rejects malformed, ambiguous or
@@ -243,3 +248,32 @@ invocation, **not** source-path continuity or later consumer readback.
 This is a current **source-path map**, not proof of installed deployment,
 active job routing, or a final business consumer. The source/subject identity
 fix for Ogg/Matroska does not change any of those independent boundaries.
+
+## Portable Artifact handoff (source-only R1)
+
+`artifact_operations/portable_bundle.py` reuses native verification to construct a
+relocatable ZIP of subject bytes, object contract, canonical Profile snapshot
+and fresh evidence. The consumer checks the embedded Profile against its
+installed authority and **re-verifies** under a new path. Original absolute
+paths remain provenance, never the consumer's source location. This is not
+a claim of target application acceptance or remote publication.
+See `docs/ARTIFACT_PORTABLE_HANDOFF_R1.md` and
+`tests/test_artifact_portable_bundle.py`.
+
+
+### Dependency currentness and release commitments
+
+Repository Python and uv selection follow the supported Python minor series
+and the current uv resolver. Direct requirements declare compatibility floors;
+resolved transitive versions and wheel hashes belong to uv.lock, not a second
+set of direct pins. The development and managed runtime locks must agree on
+shared runtime package versions; the runtime excludes developer tools.
+
+An installed Python generation still binds the exact selected interpreter,
+project and lock bytes, package observations and environment tree. A rolling
+interpreter selection is not authority to rebind an existing generation:
+materialization requires the selected release snapshot and its native readback.
+The old cross-format toolchain smoke lock remains historical; the Python
+doctor and Temporal deployment use the current managed carrier commitments.
+Source acceptance, materialization in scratch, installed currentness and
+consumer/Temporal history replay remain separate.

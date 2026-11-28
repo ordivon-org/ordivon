@@ -18,13 +18,81 @@ Either deliver a runnable product slice bound to source+assets+tests, or stop th
 | Deliver | GitHub protected CI and artifact upload on supported branch | versioned downloadable technical preview; no unverified release claim |
 | Feedback | target-player or Agent observations tied to the *actual* build | repair/replace/delete or enter next production batch |
 
-**Supported native line A — Godot technical preview:** mise run factory:validate:godot executes live TypeScript readers, upstream scene/asset substitution, Room Encounter narrative/Agent/native acceptance and appropriate signed-arithmetic model proof. The `test:agent-episode` entry imports the actual native Godot project first, including on a checkout with no local `.godot` cache; the G11 source-bound acceptance obligations and remaining boundaries are in [the task-local contract](agent-execution-contract-spec.md). mise run factory:package:room then exports official Godot Linux and Windows bundles and prints their digests. Room Encounter is only one existing exemplar, not the next game chosen by fiat.
+**Supported native line A — Godot technical preview:** mise run factory:validate:godot executes real Godot scene/asset substitution, Room Encounter narrative/Agent/native acceptance and the bounded signed-arithmetic model proof. Advisory TypeScript/knowledge readers remain validated through the monorepo Game verify and the PR check's separate pnpm check, not redundantly in each native package. The `test:agent-episode` entry imports the actual native Godot project first, including on a checkout with no local `.godot` cache; the G11 source-bound acceptance obligations and remaining boundaries are in [the task-local contract](agent-execution-contract-spec.md). mise run factory:package:room then exports official Godot Linux and Windows bundles and prints their digests. Room Encounter is only one existing exemplar, not the next game chosen by fiat.
 
 **Delivered factory batch 02 — Beacon Relay:** The independent Godot game uses the pinned official Godot demo for Player movement, RigidBody enemy physics, InputMap, HUD, sound and source art. Native Godot content and display glue compose a four-delivery risk/return loop with increasing hazards, real collision loss, win and replay. test:beacon drives all deliveries through native input and physics. factory:package:beacon exports Linux/Windows previews with upstream MIT/OFL/CC-BY attribution. This is a second full game product, not a mechanic catalog.
 
-**Supported native line B — Bevy executable and Linux distribution:** mise run factory:validate:bevy checks the pinned Cargo/ECS consumer and Orbit rules model. mise run factory:build:bevy creates the correctly named native binary, ordivon-orbit-collector. mise run factory:package:orbit-linux requires the native game to pass an Xvfb/Vulkan window-and-adapter smoke before claiming the Linux x86-64 verified preview archive with source receipt, instructions and licensing, and has an independent path-triggered GitHub job. This does not claim cross-platform installer or Human play evidence.
+**Archived native line B — Orbit Collector (Bevy):** The completed source-to-distributed-preview experiment is retained at [the Orbit archive](../archive/orbit-collector/ARCHIVE.md), including the exact former CI, native smoke and formal model. It is not an active Game production station. Bevy remains an available mature upstream provider for future products if selected for a real consumer.
 
 **Whole owner** mise run verify remains the monorepo-required source gate; the optional GitHub Game factory action publishes technical-preview artifacts. It does not weaken or bypass existing required checks.
+
+## Source-qualified native bundle (manufacturing contract)
+
+A manufacturing attempt is bound to one **clean repository-wide Git source
+tree** and one native exporter/toolchain. Godot/mise can consume cascading
+root configuration such as `mise.toml` outside `domains/game`; checking only
+`git status -- .` from Game would accept a dirty root config as `SOURCE_WORKTREE=clean`.
+Both package entries now check the **entire Git worktree** before native tests
+and again before atomically publishing READY. Dirty source anywhere in that
+checkout fails closed with `GAME_FACTORY_DIRTY_SOURCE_NOT_RELEASABLE` or
+`GAME_FACTORY_SOURCE_CHANGED_DURING_BUILD`. Run targeted native tests while
+iterating, or use a dedicated clean checkout and commit a reviewable Git source
+cut before packaging. This deliberately favors source integrity over allowing
+unrelated, simultaneous uncommitted changes in the **same** release checkout;
+separate Git worktrees still permit concurrent Owner development.
+The Game CI workflow therefore also includes root `mise.toml` in its
+pull-request and main-push path filters, so toolchain/config changes
+cannot silently skip the Game native consumer gate.
+Neither `git rev-parse HEAD` alone nor a successful Godot process exit
+proves that the produced bytes belong to a release.
+
+The current `factory:package:room` and `factory:package:beacon` tasks are
+thin `mise` compositions around the official Godot exporters. Each builds
+Linux/Windows outputs in a disposable same-filesystem staging directory,
+verifies the complete pair, and **atomically renames one complete directory**
+to `dist/<product>/bundle-<source-prefix>-<attempt>/`. The directory
+contains both archives, `BUILD_SOURCE.txt`, `SHA256SUMS`, and `READY`.
+`BUILD_SOURCE.txt` records source commit/tree/clean status, Godot version,
+observed export-template digests (or UNKNOWN), and explicitly
+`RELEASE_PUBLISHED=false`. `SHA256SUMS` binds the archived binaries and
+source receipt. The caller must consume only the exact
+`GAME_FACTORY_BUNDLE_PATH=...` emitted after the successful rename and
+verify `sha256sum -c SHA256SUMS`; an unrelated prior bundle, fixed path,
+or an unverified tar/zip filename is **not** evidence of this attempt.
+The source receipt is a sidecar for the **pair**, not embedded in either
+individual archive; any later publisher of individual archives must retain
+or link that sidecar and its exact digest relationship.
+
+Failures preserve earlier complete bundles without publishing an incomplete
+new one. The package is only `native_headless_preview`: receipt fields
+`LINUX_SCOPE=native_headless_smoke` and `WINDOWS_SCOPE=export_only` make
+that distinction machine-readable. Linux smoke does not certify full
+gameplay, active hazard integration, GPU/audio peripherals, Windows
+foreground input or Human play. A template recorded as UNKNOWN is
+an incomplete provenance witness, not a verified release-ready build.
+A full CI upload requires two known template digests, matching checkout
+source commit, bundle manifest/digests, and fails closed otherwise.
+
+The Game GitHub Actions workflow publishes only a **14-day technical-preview
+Actions Artifact** with the exact completed bundle. It does **not** publish
+GitHub Release assets. Any long-lived Release promotion must independently
+bind downloaded exact bytes to the bundle's two archive SHA256 values,
+identify a GitHub Release asset/tag, and read back the remote asset digest.
+A release record still does not certify active gameplay or Human satisfaction.
+Use the existing GitHub release and Artifact providers, not a second Game
+Artifact DB or release scheduler.
+
+Workspace cleanup remains a separate Runtime natural-owner effect.
+On 2026-11-16 the two 2026-11-10 historical Game workspaces and their eight
+ignored technical-preview archives were **closed after explicit business
+discard approval, source-only Git refs verified 4/4, Native Runtime CAS close,
+tombstone and physical-path readback** (Runtime lifecycle Host message #28300).
+Those eight SHA256 values were not the same bytes as the four Edition001
+Release assets; old local previews were deliberately discarded, **not**
+claimed delivered or bit-rebuildable. This specific close outcome must
+not be generalized: the Runtime/Harness ACTIVE-Run-vs-NativeClose
+consumer-lifetime fence remains a separately evidenced system-wide defect.
+Never force-close another Workspace on a mere no-active-Job finding.
 
 ## Contract and stopping rule
 
@@ -52,104 +120,10 @@ Actual players can report version-bound observations through the repository's na
 game-player-feedback issue template. No custom feedback database is introduced.
 
 
-## Orbit Linux native verified-preview contract — R2.1 refinement (2026-11-10)
+## Archived Orbit proof and distribution
 
-This section is the **existing Game Factory product contract's scoped execution spec and implementation plan**, not a new source of truth or an extra LEGO. Global Agent engineering guidance remains [Agent Contract Execution R2.1](../../../docs/architecture/AGENT_CONTRACT_EXECUTION_SPEC_R1.md). Product G07 retains its present eleven-coordinate R2.1 declaration at [Game LEGO plan](../planning/lego-plan-r1.json); it is not renamed, re-admitted or duplicated.
+The original Orbit source, historical qualification contract and publicly distributed Windows/Linux preview remain discoverable via [the read-only archive](../archive/orbit-collector/ARCHIVE.md). No current Game build, CI or dependency update consumes this retired batch.
 
-**SourceCut for the discovered discrepancy:** main 8346863be965da34371944679d063fd9fd0358ac. **Named consumer:** Orbit Collector Linux preview publisher and its downloadable-artifact recipient. **Natural owner:** Game for building, graphical smoke and preview eligibility; Bevy/wgpu, Xvfb/Mesa, Git/GitHub Actions and Artifact retain their own native authorities.
+### Native export input identity
 
-### The real problem and legitimate alternatives
-
-Two different consumer outcomes must remain distinguishable:
-
-- **Build-only:** factory:build:bevy produces a compiled Rust/Bevy executable. It is useful even on hosts without graphical hardware. It never claims a rendered window or verified distribution.
-- **Verified preview:** factory:package:orbit-linux requires a successful source-bound native Xvfb window/renderer smoke *before* it emits an archive-readiness result. Missing runtime graphical prerequisites must be ENV_BLOCKED/nonzero, not a successful unverified package. The GitHub Orbit workflow invokes the **same** Game-native packaging implementation rather than copying it.
-
-The preceding task permitted an absent xvfb-run/timeout to print ORBIT_WINDOWED_SMOKE_NOT_RUN_NO_XVFB and still create an archive and print ORBIT_FACTORY_LINUX_PREVIEW_READY. The original shell branch was **actually reproduced** in a disposable Game workspace: a controlled fake build prerequisite plus simulated absent Xvfb yielded exit 0, an archive, NOT_RUN and READY together. That experiment is only a command-contract negative test; no native GPU rendering was simulated or claimed.
-
-Retain the current Rust/Cargo/Z3 checks and upstream Vulkan/X11 tools. Do **not** require these tools of the separate build-only consumer. Do not invent a new Game packaging framework, Agent task engine, universal CI checker or parallel verifier registry.
-
-### Formal contract (scoped, not a proof of actual rendering)
-
-Let B mean the locked native binary exists, D mean both xvfb-run and timeout are discoverable, S mean GNU timeout --verbose rc=124 **and its actual TERM deadline-expiry diagnostic**, plus the real window and AdapterInfo witnesses, without fatal diagnostics, and A mean the source-bound archive exists.
-
-The product acceptance predicate is:
-
-~~~text
-  VerifiedPreviewReady  =>  B AND D AND S AND A
-  NOT D                 =>  ENV_BLOCKED and exit != 0 and NOT VerifiedPreviewReady
-  B AND D AND NOT S      =>  SMOKE_FAILED and exit != 0 and NOT VerifiedPreviewReady
-~~~
-
-This is a **proposed implementation invariant and native-test obligation**, not a Lean/TLA+ theorem. In particular, exit=124 alone can be the child process's own exit status and does not prove elapsed duration or successful graphics initialization, and a window/adapter log is not proof of actual player-visible frames, input latency or player enjoyment. Any missing tool/renderer on a specific host yields a scoped blocker rather than a conclusion that the binary itself is invalid.
-
-In Hoare-style *partial correctness* terms, success and failure paths are separate, not an unjustified promise that every environment can render:
-
-~~~text
-  { compiled_binary AND supported_runtime_environment }
-     package_orbit_linux
-  { exit=0 => S AND A AND VerifiedPreviewReady }
-
-  { NOT D }
-     package_orbit_linux
-  { exit!=0 AND ENV_BLOCKED AND NOT VerifiedPreviewReady }
-~~~
-
-Assume–guarantee composition: the Build stage guarantees B; the Packaging stage **assumes** B and a runnable X11/Vulkan environment and guarantees smoke-bound archive eligibility only when S holds; the Publisher must require the packaging success outcome rather than the existence of any archive alone. An environment capable of compiling Rust is *not* automatically capable of rendering with wgpu. The contract is silent/UNKNOWN about Windows foreground play, native audio, real human satisfaction, GPU/frame stability outside the observed window and universal trace refinement.
-
-### Effective R2.1 task-local binding (existing G07, not a new LEGO)
-
-| Coordinate | Effective scoped meaning |
-| --- | --- |
-| I | locked Cargo/Bevy source, compiled native binary, X11 virtual display / software Vulkan environment, target output path, exact source revision |
-| O | archive, native log/receipt and digest on success; explicit ENV_BLOCKED or SMOKE_FAILED on failure |
-| S | ephemeral shell/renderer process and temporary build output; no game state owned by this packaging interface |
-| pre | B and actual external toolchain; missing Xvfb/timeout diagnosed without pretending the user goal is impossible |
-| post | READY only after graphically started native binary satisfies S and a checked archive A exists |
-| inv | skipped/failed smoke cannot be promoted to verified-preview readiness; build-only execution remains independent |
-| eff | native binary/window/smoke execution, filesystem archive, stdout and CI artifact publication under natural owners |
-| c | native 14-second bounded smoke window plus build time and resource cost UNKNOWN(host, driver, CI); not assumed free |
-| epsilon | native smoke log and renderer adapter are limited observability; actual player experience/real hardware still UNKNOWN |
-| prov | Git SourceCut, Cargo.lock and Bevy pin, script and GitHub workflow, actual process exit/log and archive SHA256 |
-| unfold | Game mise factory:build:bevy and factory:package:orbit-linux, scripts/package_orbit_linux.sh, .github/workflows/game-orbit-factory.yml, Bevy src/gameplay.rs |
-
-### Mature thinking methods / management grounding
-
-| Method (existing thought LEGO / mature upstream) | Correct application here | Do not infer |
-| --- | --- | --- |
-| Hoare / weakest preconditions | distinguish supported preconditions, success, ENV_BLOCKED and smoke failure | native software or display always succeeds |
-| Pacti assume–guarantee | build output is not graphical-environment guarantee; publisher must consume actual smoke outcome | identical file names prove behavioral compatibility |
-| TLA+ safety/liveness / CEGAR | reject NOT_RUN=>READY and use concrete shell/native traces to refine the contract | finite smoke proves all asynchronous states/fairness |
-| NASA systems engineering V&V | trace consumer claim to command, source, environment, observer and exact evidence | compilation/CI PASS means human validation |
-| Parnas information hiding | keep build, smoke and publication behind existing native Game interfaces and one shared package script | new universal workflow service is necessary |
-| Lean/Jidoka and HRO operational sensitivity | stop verified publication at observed missing dependency while leaving legal build work enabled | every blocked environment must block all work |
-| Deming/IHI PDSA and Theory of Constraints | fix the witnessed release bottleneck; inspect native effect and correct the next action instead of multiplying plans | model-A/B tests or generic throughput scores are required |
-| Matt to-spec/to-tickets + two-axis code-review | use this current source/consumer scope and exact tracer steps; review standards independently of spec satisfaction | install the entire Matt issue-management workflow |
-| ECC contract-first/brownfield + Superpowers TDD/verification | keep one native execution seam, test failure path, then real graphical CI and actual receipt | ECC Stop regex or self-written test PASS grants distribution authority |
-
-Primary references: NASA Systems Engineering Handbook https://www.nasa.gov/reference/5-0-product-realization/ ; Pacti https://www.pacti.org/docs/getting_started/ ; Parnas 1972 https://doi.org/10.1145/361598.361623 ; High Reliability Organizations (operational sensitivity) https://doi.org/10.1002/9781119175834.ch05 ; IHI PDSA https://www.ihi.org/library/model-for-improvement/testing-changes ; Bevy official graphical CI https://github.com/bevyengine/bevy-website/blob/main/content/learn/book/development-practices/testing.md ; GitHub Actions reusable script https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax .
-
-### Independent cross-audit: per-artifact GO/REVISE/NO-GO
-
-A read-only Codex 0.163.0 independently reviewed the **exact main SourceCut** and project/upstream Skills, exit 0 without editing files. The separate Host Space challenge is recorded in topic:ordivon-capability-task-forum-r1:03-refinement:20261101, messages 25822 and 25839. A Space discussion is not a passing test or authorization. Audit dimensions for **every carrier**: theory/math; R2.1/Owner; actual consumer; Skill fit; anti-conservatism; substantive vs cosmetic; zero-base reuse; verifier/negative control; source-bound fix.
-
-| Carrier | Assessment and mandatory response |
-| --- | --- |
-| Global AGENT_CONTRACT_EXECUTION_SPEC_R1 | **GO/REUSE** for its own bounded architecture scope; all nine audit dimensions adequate. Do not edit or duplicate its global truth while parallel Owner PRs run |
-| Game agent-execution-contract-spec R1.1 | **REVISE** Hoare example: clean checkout + Godot available do not guarantee successful import; express successful and failed outcomes separately. Other eight dimensions adequate |
-| Game agent-execution-implementation-plan R1.1 | **REVISE** claimed NameError RED: missing new reader function is not evidence the *old* reader accepted corrupt real receipts. Require semantically relevant old-vs-new negative evidence; retain actual executed results |
-| Game Orbit mise native package task | **REVISE** real consumer mismatch: missing xvfb-run/timeout produced successful READY; build-only remains legal. Need runtime negative test and native smoke on CI |
-| Game Orbit GitHub native workflow | **REUSE/COMPOSE** existing pinned checkout and actual Xvfb/Mesa GPU smoke. **REVISE** duplicated shell packaging implementation by consuming one shared Game native packaging script, retaining explicit source/sha receipt and workflow artifact upload |
-
-The independent reviewer found an actual **Standards/Spec contradiction**: Game AGENTS says package with target platform smoke, while this Factory guide previously said Xvfb smoke merely "when available". This task resolves the ambiguity for *verified preview* without prohibiting a build-only artifact. The reviewer did **not** execute native smoke, so it supplied no claimed CI/native PASS.
-
-### Exact implementation DAG (no new tracker)
-
-1. **E1 — consumer RED:** execute the actual existing packaged task shell in a disposable checkout with the build stage replaced by a fixture and xvfb-run discovery deliberately masked. Expected old exit=0, archive exists, NOT_RUN and READY: *observed* at SourceCut above.
-2. **E2 — single native provider:** move existing Orbit smoke/package mechanics into one Game-owned script; local mise and GitHub CI both invoke it after their ordinary native Rust builds. Missing xvfb-run/timeout => ENV_BLOCKED and nonzero, without a READY marker or verified archive.
-3. **E3 — persistent negative control:** exercise the shared package script with missing-tool PATH fixtures and native GNU timeout early-124 behavior, asserting fail-closed; do not label fixture test a native GPU smoke. CI continues to execute the actual Bevy binary under Xvfb/Mesa.
-4. **E4 — eliminate duplicate CI path:** replace replicated CI smoke/archive shell with one call to Game script; retain exact Git checkout, real renderer/window markers and artifact upload. Run actionlint and the negative contract test.
-5. **E5 — true affected verification:** Game native test:agent-episode, Cargo/Bevy plus formal checks, owner mise verify as available, native packaging on a graphical-capable host or exact CI runner. ENV_BLOCKED is not PASS.
-6. **E6 — independent review/integration:** Matt Standards vs Spec review, check all nine cross-audit questions again against the diff, commit isolated branch, protected PR and read current GitHub CI. MERGED/INSTALLED/HUMAN_CONSUMED are independent outcomes.
-
-**Stop:** once real build-only remains available and no unchecked smoke path can issue verified preview READY. Do not extend Game into a new general scheduler, math calculus, GPU backend or agent evaluator. Further product-level player acceptance remains an independent Game consumer decision.
+For the Linux factory runner, the supported x86_64 release presets use the official Godot editor's version-matched default templates under the absolute XDG_DATA_HOME (or ~/.local/share). Custom release templates, self-contained editors and the old receipt-only GAME_GODOT_TEMPLATE_DIR override are rejected rather than silently misattributed. The package gate captures editor and both template SHA256 values before validation/export and compares them again immediately before READY. A missing or changed input fails closed; the existing source and archive digest gates still apply. The before/after evidence does not prove upstream authenticity or prevent an adversarial change-and-restore during export. Windows scope remains export-only.

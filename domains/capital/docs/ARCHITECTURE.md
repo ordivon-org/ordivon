@@ -133,8 +133,36 @@ canonical Capital Accounting.
 Neither internal accounting substrate proves exchange settlement, legal
 ownership, withdrawability or venue trade reality. Reconciliation still
 distinguishes unknown effect (`NO_MUTATION`), authoritative proven no-effect
-(`VOID_PENDING_TRANSFER`) and positive execution
-(`POST_PENDING_TRANSFER`) without resurrecting terminal history.
+(`VOID_PENDING_TRANSFER`) and **fully reconciled exact-quantity execution**
+(`POST_PENDING_TRANSFER`) without resurrecting terminal history. A positive
+**partial** execution is PARTIAL_EXECUTION_UNSETTLED -> NO_MUTATION, including
+partial-fill-then-cancel: it must not post an entire pending reservation or
+void a reservation whose venue effect is positive. Trading retains the
+authoritative fill/remaining-quantity evidence until a separately qualified,
+amount-aware Accounting consumer exists. Venue trade IDs are deduplicated and
+an ambiguous reused client order ID never selects an arbitrary order.
+**One-time amount-aware terminal resolution (TigerBeetle two-phase contract).**
+The current Accounting PostgreSQL owner accepts a POST_PENDING_TRANSFER with
+an exact integer posted_amount in (0, reserved] and atomically removes the
+*entire reserved amount* from pending while posting only the observed amount.
+The difference becomes available headroom, not an independent phantom credit.
+POSTED is terminal even when the posted amount is smaller than reserved:
+another POST, VOID, or amount-changing replay cannot post again.
+DurableReservationHistory(CONSUMED, posted_amount=...) must match the exact
+read-back amount; absent explicit amount means the historical full-post case.
+Durable PG refinement requires the original pending transfer and terminal
+resolution to carry their actual persisted statuses; missing or inconsistent
+status is not a successful MATCH. Independent Z3 model obligations and
+disposable PostgreSQL concurrency
+tests cover this bounded invariant, not venue or source authenticity.
+
+Trading still returns PARTIAL_EXECUTION_UNSETTLED / NO_MUTATION for an
+incomplete or unauthenticated partial fill. Neither venue qty * price nor
+Accounting's accepted numeric posted_amount is financial truth by itself:
+only after Trading qualifies terminal fill/fee/currency evidence may an
+external effect consumer request a one-time amount-aware resolution. Live
+and Demo providers are **not automatically connected to this new authority**.
+
 For installed truth, inspect the actual Accounting owner/Runtime release
 and live service rather than inferring it from this architecture page.
 
@@ -252,3 +280,46 @@ recomputes the persisted valuation and compares head cash to the ledger; no
 research-side weaker implementation may replace these controls. Review
 `adoption/r3_native/PR_REVIEW_NATIVE_PG_R5.md` for precise native Jobs and
 remaining UNKNOWNs. An isolated test is not a deployment or live-money grant.
+
+## Finance implementation update — 2026-11-21, current Git source
+
+The original 2026-11-16 Architecture R1 section is preserved in Git history,
+not in the current execution guide. Its former proposals are not a work queue. Its report that Qlib consumers select the
+first arbitrary CSV value is now RESOLVED: current native and Accounting
+consumers require the named NEXT_OPEN score and matching H5/H20 exit semantics.
+
+The adopted Finance module boundary is now narrower and agent-navigable:
+risk/risk_limit_evaluation.py owns numeric risk limits;
+portfolio/scenario_evidence.py owns read-only scenario evidence completeness;
+governance/live_test_account.py owns read-only Live test-account qualification;
+governance/policy_decision.py owns actual execution permission;
+governance/decision_inputs.py owns only shared input parsing and error types.
+Risk and Portfolio calculation no longer load external-write policy files.
+The applications/ package is a composition layer, not an eighth Capital
+domain: applications/paper_simulation_run.py composes Portfolio mandate +
+Governance NON_LIVE decision + Accounting PG close, while
+applications/nautilus_paper_bridge.py translates native Nautilus effects to
+the Paper accounting input. No old import-only shims remain.
+The follow-up read-only Paper entrypoint split keeps
+risk/paper_close_risk.py, portfolio/paper_close_performance.py and
+portfolio/paper_contribution_plan.py free of direct PG/CLI I/O; application
+consumers paper_risk_cli, paper_performance_cli and paper_contribution_cli
+own CLI parsing, source readback and presentation orchestration.
+
+
+Regression acceptance is based on observable economic outcomes, source/cut
+semantics, PG idempotency, and an actual acyclic core-domain AST dependency
+graph. A source-file inventory test is not a behavioral acceptance criterion.
+For any future baseline, re-run the dependency graph and tests on the current
+main, not on this historical document.
+
+## 2026-11-21 PIT-to-Portfolio boundary extraction (source candidate)
+
+The evidence-only Research producer remains `research/pit_joint_forecast.py` and
+retains `from_json_payload`, while `applications/pit_portfolio.py` consumes its
+optimizer-input contract and invokes the existing `portfolio.multistage_policy`
+solver. The original mixed Research `--solve` CLI moves to the application
+entrypoint; the Research CLI remains evidence-only. No optimizer, PG ledger,
+market provider, execution or order authority is duplicated. Qualification
+requires existing PIT/ETF consumer tests and a regression on forecast evidence
+and conditional allocation; historical PIT and alpha remain unproven.
