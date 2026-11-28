@@ -236,3 +236,21 @@ def test_unconsumed_work_relation_query_is_not_production_api() -> None:
     from ordivon_host_v2.work_store import WorkStore
 
     assert "list_relations" not in vars(WorkStore)
+
+
+@pytest.mark.parametrize("field", ["objective", "frontier"])
+def test_work_snapshot_rejects_postgres_unrepresentable_nul_text(field) -> None:
+    values = {"objective": "objective", "frontier": "frontier"}
+    values[field] = "bad\x00value"
+    with pytest.raises(ValueError, match="NUL"):
+        WorkSnapshotInput(**values)
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["established", "unresolved", "rejected", "constraints", "next_actions", "reference_refs"],
+)
+def test_work_snapshot_rejects_postgres_unrepresentable_nul_list_entry(field) -> None:
+    values = {"objective": "objective", "frontier": "frontier", field: ["bad\x00value"]}
+    with pytest.raises(ValueError, match="NUL"):
+        WorkSnapshotInput(**values)
