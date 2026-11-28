@@ -49,6 +49,53 @@ pub(crate) fn validate_logical_id(value: &str, field: &str) -> RuntimeResult<()>
     Ok(())
 }
 
+// Byte-bounded descriptive identifiers used by admission and artifact records.
+// Deliberately distinct from the trimmed Unicode-scalar logical request ID.
+pub(super) fn validate_bounded_text_id(value: &str, field: &str) -> RuntimeResult<()> {
+    if value.trim().is_empty()
+        || value.len() > 256
+        || value.as_bytes().contains(&0)
+        || value.chars().any(char::is_control)
+    {
+        return Err(RuntimeError::invalid(
+            format!("{field} must be non-empty, bounded, and control-free"),
+            field,
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+#[test]
+fn bounded_text_id_preserves_distinct_byte_and_whitespace_contract() {
+    let field = "artifactId";
+    for (value, valid) in [
+        ("".to_owned(), false),
+        (" ".to_owned(), false),
+        (" a ".to_owned(), true),
+        ("a".repeat(256), true),
+        ("a".repeat(257), false),
+        ("é".repeat(128), true),
+        ("é".repeat(129), false),
+        ("a\0b".to_owned(), false),
+        ("a\u{0085}b".to_owned(), false),
+    ] {
+        let result = validate_bounded_text_id(&value, field);
+        assert_eq!(result.is_ok(), valid, "{value:?}");
+        if let Err(error) = result {
+            assert_eq!(
+                error,
+                RuntimeError::invalid(
+                    format!("{field} must be non-empty, bounded, and control-free"),
+                    field
+                )
+            );
+        }
+    }
+    assert!(validate_logical_id(&"é".repeat(129), field).is_ok());
+    assert!(validate_logical_id(" a ", field).is_err());
+}
+
 pub(crate) fn validate_client_request_id(value: &str, field: &str) -> RuntimeResult<()> {
     validate_logical_id(value, field)
 }

@@ -6,21 +6,8 @@ use super::super::{
     MAX_TASK_WAIT_MS, RUNTIME_SCHEMA_VERSION,
 };
 use super::{environment::validate_contained_environment, limits::validate_execution_budget};
+use crate::runtime::types::validate_bounded_text_id as validate_text_id;
 use std::path::Path;
-
-fn validate_text_id(value: &str, field: &str) -> RuntimeResult<()> {
-    if value.trim().is_empty()
-        || value.len() > 256
-        || value.as_bytes().contains(&0)
-        || value.chars().any(char::is_control)
-    {
-        return Err(RuntimeError::invalid(
-            format!("{field} must be non-empty, bounded, and control-free"),
-            field,
-        ));
-    }
-    Ok(())
-}
 
 // Request structure and admission policy qualification, separate from durable admission effects.
 // No new policy authority, side effects, or public wire surface.
