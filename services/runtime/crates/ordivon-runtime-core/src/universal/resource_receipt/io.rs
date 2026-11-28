@@ -31,7 +31,7 @@ pub(crate) fn parse_cgroup_io_stat(text: &str) -> Result<CgroupIoUsage, Universa
             let value = raw.parse::<u64>().map_err(|_| {
                 parse_error(format!("io.stat counter {key} is not an unsigned integer"))
             })?;
-            if counters.insert(key.to_string(), value).is_some() {
+            if counters.insert(key, value).is_some() {
                 return Err(parse_error(format!(
                     "io.stat counter {key} is duplicated for {device}"
                 )));
