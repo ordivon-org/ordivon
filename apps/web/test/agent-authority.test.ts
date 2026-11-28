@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 
 import { createWebApp } from "../src/app.ts";
@@ -23,6 +26,58 @@ const config: WebConfig = {
 function effectId(label: string): string {
   return "sha256:" + createHash("sha256").update(label).digest("hex");
 }
+
+async function evaluateSecurityFixture(output: unknown) {
+  const directory = join(tmpdir(), "ordivon-web-admission-" + randomUUID());
+  mkdirSync(directory);
+  const evaluatorPath = join(directory, "evaluate.py");
+  const encoded = JSON.stringify(output);
+  writeFileSync(
+    evaluatorPath,
+    "import sys\nsys.stdin.read()\nprint(" + JSON.stringify(encoded) + ")\n",
+  );
+  try {
+    return await new SecurityContractAdmissionEvaluator(evaluatorPath).evaluate(
+      {} as never,
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+test("Security admission response rejects malformed owner decisions at the boundary", async () => {
+  const valid = {
+    schemaVersion: 1,
+    kind: "ordivon.security.agent-admission-chain",
+    agent: {
+      outcome: "DENY",
+      reason: "fixture denial",
+      authorityProjection: null,
+    },
+    effect: null,
+  } as const;
+  assert.deepEqual(await evaluateSecurityFixture(valid), valid);
+
+  for (const malformed of [
+    { kind: valid.kind },
+    { ...valid, schemaVersion: 2 },
+    { ...valid, agent: { ...valid.agent, outcome: "UNKNOWN" } },
+    { ...valid, agent: { ...valid.agent, reason: 7 } },
+    { ...valid, agent: { ...valid.agent, authorityProjection: [] } },
+    { ...valid, effect: { admitted: "true", reason: "wrong type" } },
+    { ...valid, effect: { admitted: false } },
+  ]) {
+    await assert.rejects(
+      evaluateSecurityFixture(malformed),
+      (error: unknown) =>
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "security-admission-invalid" &&
+        "status" in error &&
+        error.status === 503,
+    );
+  }
+});
 
 class FixedAgentVerifier implements AgentRequestVerifier {
   private readonly agent: VerifiedAgent;

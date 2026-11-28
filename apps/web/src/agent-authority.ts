@@ -25,6 +25,37 @@ export interface AgentAdmissionEvaluator {
   evaluate(input: AgentAdmissionInput): Promise<AdmissionChainDecision>;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isAdmissionChainDecision(value: unknown): value is AdmissionChainDecision {
+  if (
+    !isRecord(value) ||
+    value.schemaVersion !== 1 ||
+    value.kind !== "ordivon.security.agent-admission-chain" ||
+    !isRecord(value.agent)
+  ) {
+    return false;
+  }
+  const agent = value.agent;
+  if (
+    (agent.outcome !== "ALLOW" &&
+      agent.outcome !== "STEP_UP" &&
+      agent.outcome !== "DENY") ||
+    typeof agent.reason !== "string" ||
+    (agent.authorityProjection !== null &&
+      !isRecord(agent.authorityProjection))
+  ) {
+    return false;
+  }
+  const effect = value.effect;
+  return effect === null ||
+    (isRecord(effect) &&
+      typeof effect.admitted === "boolean" &&
+      typeof effect.reason === "string");
+}
+
 export class SecurityContractAdmissionEvaluator implements AgentAdmissionEvaluator {
   private readonly evaluatorPath: string;
 
@@ -94,13 +125,7 @@ export class SecurityContractAdmissionEvaluator implements AgentAdmissionEvaluat
         "The Security-owned Agent Admission contract returned invalid JSON.",
       );
     }
-    if (
-      parsed === null ||
-      typeof parsed !== "object" ||
-      !("kind" in parsed) ||
-      (parsed as { kind?: unknown }).kind !==
-        "ordivon.security.agent-admission-chain"
-    ) {
+    if (!isAdmissionChainDecision(parsed)) {
       throw new WebProblem(
         503,
         "security-admission-invalid",
