@@ -1,5 +1,5 @@
-//! B-owned read-only Provider recovery projection of the CURRENT Python v4
-//! Provider record. A owns sealed Canonical bytes and the durable PG writer.
+//! Provider V4 record construction and recovery projection.
+//! A owns sealed Canonical bytes and the durable PG writer.
 //! No model request, retry, cancellation, or external effect is sent here.
 use ordivon_harness_core::{canonical_bytes, digest_bytes, CanonicalDocument};
 use std::cmp::Ordering;
@@ -130,6 +130,63 @@ const REQUIRED_FIELDS: [&str; 28] = [
     "recordedAtMs",
 ];
 
+/// Construct the existing V4 wire record from its semantic fields, without
+/// schemaVersion, kind or recordId. Reuse the sealed Canonical codec and the
+/// same record validator used by recovery. This creates bytes, not authority:
+/// persistence, current admission and external effects belong to their owners.
+pub fn build_v4(
+    mut fields: Vec<(String, CanonicalDocument)>,
+) -> Result<CanonicalDocument, ProviderRecordError> {
+    const ID_FIELDS: [&str; 10] = [
+        "providerCallId",
+        "holderId",
+        "claimGeneration",
+        "status",
+        "providerRequestDigest",
+        "requestObjectDigest",
+        "resultDigest",
+        "failureDigest",
+        "previousRecordDigest",
+        "recordedAtMs",
+    ];
+    let invalid = ProviderRecordError::InvalidV4Record;
+    if fields.len() != REQUIRED_FIELDS.len() - 3
+        || fields
+            .iter()
+            .any(|(key, _)| matches!(key.as_str(), "schemaVersion" | "kind" | "recordId"))
+    {
+        return Err(invalid);
+    }
+    let identity = CanonicalDocument::object(
+        ID_FIELDS
+            .iter()
+            .map(|key| {
+                let value = fields.iter().find(|(name, _)| name == key).ok_or(invalid)?;
+                Ok(((*key).to_owned(), value.1.clone()))
+            })
+            .collect::<Result<Vec<_>, ProviderRecordError>>()?,
+    )
+    .map_err(|_| invalid)?;
+    let digest = digest_bytes(&canonical_bytes(&identity));
+    fields.extend([
+        (
+            "schemaVersion".into(),
+            CanonicalDocument::integer_from_decimal("4").map_err(|_| invalid)?,
+        ),
+        (
+            "kind".into(),
+            CanonicalDocument::string("ordivon.harness-provider-call-record"),
+        ),
+        (
+            "recordId".into(),
+            CanonicalDocument::string(format!("harness-provider-call-record:{}", &digest[7..31])),
+        ),
+    ]);
+    let record = CanonicalDocument::object(fields).map_err(|_| invalid)?;
+    inspect_v4(&record)?;
+    Ok(record)
+}
+
 fn field<'a>(
     document: &'a CanonicalDocument,
     key: &str,
@@ -176,8 +233,7 @@ fn optional_digest(
     document: &CanonicalDocument,
     key: &str,
 ) -> Result<Option<String>, ProviderRecordError> {
-    field(document, key)?;
-    if document.get(key) == Some(CanonicalDocument::null()) {
+    if field(document, key)?.is_null() {
         Ok(None)
     } else {
         digest(document, key).map(Some)

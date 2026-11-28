@@ -1,8 +1,8 @@
 //! Differential verification of v4 Python ProviderRecord code against B's
 //! read-only Rust inspection, with A's sealed JSON codec as sole decoder.
-use ordivon_harness_core::{digest_bytes, loads_strict};
+use ordivon_harness_core::{canonical_bytes, digest_bytes, loads_strict, CanonicalDocument};
 use ordivon_harness_loop_b_probe::provider_head::{
-    inspect_v4, ProviderRecordError, ProviderStatus, RecoveryPosture,
+    build_v4, inspect_v4, ProviderRecordError, ProviderStatus, RecoveryPosture,
 };
 use std::path::Path;
 use std::process::Command;
@@ -33,8 +33,47 @@ fn python_provider_v4_source_parity() {
     let text = String::from_utf8(output.stdout).expect("source oracle must produce UTF-8");
     let mut cases = 0;
     let mut accepted = 0;
+    let mut built = 0;
     for line in text.lines() {
         let fields: Vec<&str> = line.split('\t').collect();
+        if let ["B", bytes_hex] = fields.as_slice() {
+            let raw = unhex(bytes_hex);
+            let expected = loads_strict(std::str::from_utf8(&raw).unwrap()).unwrap();
+            let inputs = || {
+                expected
+                    .object_entries()
+                    .unwrap()
+                    .filter(|(key, _)| !matches!(*key, "kind" | "schemaVersion" | "recordId"))
+                    .map(|(key, _)| (key.to_owned(), expected.get(key).unwrap()))
+                    .collect::<Vec<_>>()
+            };
+            let actual = build_v4(inputs()).expect("native construction");
+            assert_eq!(canonical_bytes(&actual), raw);
+            let mut reordered = inputs();
+            reordered.reverse();
+            assert_eq!(build_v4(reordered).unwrap(), actual);
+            let mut missing = inputs();
+            missing.pop();
+            assert_eq!(build_v4(missing), Err(ProviderRecordError::InvalidV4Record));
+            let mut duplicate = inputs();
+            duplicate[0] = duplicate[1].clone();
+            assert_eq!(
+                build_v4(duplicate),
+                Err(ProviderRecordError::InvalidV4Record)
+            );
+            let mut forged = inputs();
+            forged[0] = ("recordId".into(), CanonicalDocument::string("forged"));
+            assert_eq!(build_v4(forged), Err(ProviderRecordError::InvalidV4Record));
+            let mut invalid = inputs();
+            invalid
+                .iter_mut()
+                .find(|(k, _)| k == "turnSequence")
+                .unwrap()
+                .1 = CanonicalDocument::boolean(true);
+            assert_eq!(build_v4(invalid), Err(ProviderRecordError::InvalidV4Record));
+            built += 1;
+            continue;
+        }
         let ["V", valid, bytes_hex, digest, status, sequence, generation] = fields.as_slice()
         else {
             panic!("invalid Python line {line}");
@@ -69,6 +108,7 @@ fn python_provider_v4_source_parity() {
         }
         cases += 1;
     }
+    assert_eq!(built, 8);
     assert_eq!(accepted, 54);
     assert_eq!(cases, 525);
 }

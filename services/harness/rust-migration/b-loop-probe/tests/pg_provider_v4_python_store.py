@@ -413,6 +413,10 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
             "recordedAtMs": when,
             "data": data,
             "references": [item.to_dict() for item in references],
+            "recordFields": {
+                key: value for key, value in record.to_dict().items()
+                if key not in {"schemaVersion", "kind", "recordId"}
+            },
         })
         prior = record
     all_cases["rust_native_provider"] = {

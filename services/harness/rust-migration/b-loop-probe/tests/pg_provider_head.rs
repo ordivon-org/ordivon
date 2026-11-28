@@ -3,11 +3,13 @@
 //! model requests. A readonly DB role is enforced by the shared PG runner.
 use std::{fs, path::Path};
 
-use ordivon_harness_core::{loads_strict, CanonicalDocument, CanonicalRef};
+use ordivon_harness_core::{
+    canonical_bytes, digest_bytes, loads_strict, CanonicalDocument, CanonicalRef,
+};
 use ordivon_harness_loop_b_probe::pg_domain_read::{
     inspect_pg_provider_head, ExpectedModel, PgDomainInspectionError, PgProviderRecoveryError,
 };
-use ordivon_harness_loop_b_probe::provider_head::{ProviderStatus, RecoveryPosture};
+use ordivon_harness_loop_b_probe::provider_head::{build_v4, ProviderStatus, RecoveryPosture};
 use ordivon_harness_pg::{
     journal_write::{
         append_events, observe_exact_batch, Admission, EventWrite, JournalObservation, StoredRef,
@@ -220,8 +222,46 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
     let events = native.get("events").unwrap();
     assert_eq!(events.as_borrowed().array_len(), Some(3));
     let mut batch = Vec::new();
+    let mut previous_digest = CanonicalDocument::null();
     for n in 0..3 {
         let source = events.index(n).unwrap();
+        // Python provides semantic fixture inputs and independently persists
+        // the expected CAS object. Rust derives its own ID, canonical bytes
+        // and previous-record link before consuming the existing CAS reference.
+        let field_bytes = source.field("recordFields").unwrap().canonical_bytes();
+        let fields = loads_strict(std::str::from_utf8(&field_bytes).unwrap()).unwrap();
+        assert_eq!(fields.get("previousRecordDigest").unwrap(), previous_digest);
+        let record = build_v4(
+            fields
+                .object_entries()
+                .unwrap()
+                .map(|(key, _)| {
+                    let value = if key == "previousRecordDigest" {
+                        previous_digest.clone()
+                    } else {
+                        fields.get(key).unwrap()
+                    };
+                    (key.to_owned(), value)
+                })
+                .collect(),
+        )
+        .unwrap();
+        let bytes = canonical_bytes(&record);
+        let built_digest = digest_bytes(&bytes);
+        let data = source.field("data").unwrap();
+        assert_eq!(
+            built_digest,
+            data.field("providerCallRecordDigest")
+                .and_then(CanonicalRef::as_str)
+                .unwrap()
+        );
+        assert_eq!(
+            built_digest,
+            data.field("providerCallRecordObjectDigest")
+                .and_then(CanonicalRef::as_str)
+                .unwrap()
+        );
+        previous_digest = CanonicalDocument::string(&built_digest);
         let references = source.field("references").unwrap();
         let mut refs = Vec::new();
         for i in 0..references.array_len().unwrap() {
@@ -245,6 +285,13 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
                     .unwrap(),
             });
         }
+        let record_ref = refs
+            .iter()
+            .find(|r| r.kind == "harness-provider-call-record")
+            .unwrap();
+        assert_eq!(record_ref.digest, built_digest);
+        assert_eq!(record_ref.byte_length, i64::try_from(bytes.len()).unwrap());
+        println!("PG18_NATIVE_PROVIDER_RECORD_BUILT stage={n} digest={built_digest}");
         let event_data_ref = source.field("data").unwrap();
         let event_data =
             loads_strict(std::str::from_utf8(&event_data_ref.canonical_bytes()).unwrap()).unwrap();
