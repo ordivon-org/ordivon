@@ -111,7 +111,7 @@ exit 72
         dest.write_text("fixture license or credits\n", encoding="utf-8")
     shutil.copyfile(GAME / "mise.toml", root / "mise.toml")
     (root / "scripts").mkdir()
-    for module in ("native_export_identity.py", "native_process.py"):
+    for module in ("native_export_identity.py", "native_process.py", "package_godot_preview.sh"):
         shutil.copyfile(GAME / "scripts" / module, root / "scripts" / module)
     for product in ("room-encounter", "beacon-relay"):
         project = root / "examples" / product
@@ -191,6 +191,10 @@ def assert_success(name: str, archives: tuple[str, str]) -> None:
         assert sorted(p.name for p in bundle.iterdir()) == sorted(
             [*archives, "BUILD_SOURCE.txt", "SHA256SUMS", "READY"])
         receipt = (bundle / "BUILD_SOURCE.txt").read_text()
+        product, completion = ("beacon-relay", "BEACON") if name.endswith("beacon") else ("room-encounter", "ROOM")
+        assert f"PRODUCT={product}\n" in receipt
+        assert f"GAME_FACTORY_{completion}_PACKAGES_READY_NATIVE_PREVIEW_NOT_STORE_RELEASE" in result.stdout.splitlines()
+        assert (bundle / "READY").read_text() == f"COMPLETE_SOURCE_COMMIT={FIXTURE_SHA}\n"
         assert f"SOURCE_COMMIT={FIXTURE_SHA}" in receipt
         assert f"SOURCE_TREE={FIXTURE_SHA}" in receipt
         assert "SOURCE_WORKTREE=clean" in receipt

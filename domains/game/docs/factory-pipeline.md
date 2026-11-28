@@ -47,8 +47,12 @@ Neither `git rev-parse HEAD` alone nor a successful Godot process exit
 proves that the produced bytes belong to a release.
 
 The current `factory:package:room` and `factory:package:beacon` tasks are
-thin `mise` compositions around the official Godot exporters. Each builds
-Linux/Windows outputs in a disposable same-filesystem staging directory,
+stable `mise` entry points to the shared
+[`scripts/package_godot_preview.sh`](../scripts/package_godot_preview.sh).
+The script owns the common source snapshot, receipt, checksums, staging,
+and publication lifecycle; each product retains its native acceptance,
+export and license inventory. Each builds Linux/Windows outputs in a
+disposable same-filesystem staging directory,
 verifies the complete pair, and **atomically renames one complete directory**
 to `dist/<product>/bundle-<source-prefix>-<attempt>/`. The directory
 contains both archives, `BUILD_SOURCE.txt`, `SHA256SUMS`, and `READY`.
