@@ -3470,6 +3470,304 @@ fn fresh_pg_mcp_terminal_serialization_abort_preserves_physical_effect() {
 }
 
 #[test]
+#[ignore = "requires disposable PostgreSQL and authorized native Runner execution"]
+fn fresh_pg_mcp_admission_serialization_exhaustion_has_no_physical_effect() {
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-admission-abort","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    // Only the disposable Fixture's own PostgreSQL is modified. Count
+    // failed INSERTs across transaction rollback, without any native launch.
+    fixture
+        .db
+        .batch_execute(
+            "CREATE SEQUENCE admission_abort_count;
+         GRANT USAGE ON SEQUENCE admission_abort_count TO runtime_app;
+         CREATE FUNCTION admission_abort_fn() RETURNS trigger LANGUAGE plpgsql AS $$
+         BEGIN
+           IF NEW.client_request_id = 'pg-admission-abort-0001' THEN
+             PERFORM nextval('fresh.admission_abort_count');
+             RAISE EXCEPTION SQLSTATE '40001' USING MESSAGE = 'disposable admission abort';
+           END IF;
+           RETURN NEW;
+         END $$;
+         CREATE TRIGGER admission_abort_trigger BEFORE INSERT ON jobs
+         FOR EACH ROW EXECUTE FUNCTION admission_abort_fn();",
+        )
+        .unwrap();
+    let request = json!({
+        "clientRequestId":"pg-admission-abort-0001",
+        "execution":{"workspaceId":"ws-admission-abort","executable":"/bin/bash",
+        "args":["-c","printf 'physical-once\n' >> effect-marker"],"cwdRelative":".","timeoutMs":5000},
+        "waitMs":0
+    });
+    let rejected = rpc(
+        &endpoint,
+        "tools/call",
+        json!({"name":"workspace.exec","arguments":request.clone()}),
+    );
+    assert_eq!(rejected["isError"], true, "{rejected}");
+    let error = &rejected["structuredContent"]["error"];
+    assert_eq!(error["commitState"], "not_started", "{rejected}");
+    assert_eq!(error["code"], "REGISTRY_BUSY", "{rejected}");
+    assert_eq!(error["retryClass"], "safe_same_request", "{rejected}");
+    assert_eq!(error["retryable"], true, "{rejected}");
+    assert!(error["operationId"].is_null(), "{rejected}");
+    let faults: i64 = fixture
+        .db
+        .query_one("SELECT last_value FROM admission_abort_count", &[])
+        .unwrap()
+        .get(0);
+    assert_eq!(faults, 8, "bounded retry count");
+    for table in [
+        "jobs",
+        "attempts",
+        "idempotency_keys",
+        "job_events",
+        "concurrency_reservations",
+    ] {
+        let count: i64 = fixture
+            .db
+            .query_one(&format!("SELECT count(*) FROM {table}"), &[])
+            .unwrap()
+            .get(0);
+        assert_eq!(count, 0, "aborted admission must leave no {table}");
+    }
+    let marker = fixture
+        .root
+        .join("store")
+        .join("workspaces")
+        .join("ws-admission-abort")
+        .join("effect-marker");
+    assert!(!marker.exists(), "pre-commit abort must not launch");
+    fixture
+        .db
+        .batch_execute("DROP TRIGGER admission_abort_trigger ON jobs")
+        .unwrap();
+    // Fault removed: retry exactly the original request, not a new key.
+    let accepted = call(&endpoint, "workspace.exec", request.clone());
+    assert_ne!(accepted["isError"], true, "{accepted}");
+    let job_id = accepted["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let deadline = Instant::now() + Duration::from_secs(25);
+    let terminal = loop {
+        let observed = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":job_id,"waitMs":1000}),
+        );
+        assert_ne!(observed["isError"], true, "{observed}");
+        if observed["structuredContent"]["executionTerminal"] == true {
+            break observed;
+        }
+        assert!(Instant::now() < deadline, "original request did not finish");
+    };
+    assert_eq!(
+        terminal["structuredContent"]["executionDisposition"], "succeeded",
+        "{terminal}"
+    );
+    assert_eq!(fs::read(&marker).unwrap(), b"physical-once\n");
+    let replay = call(&endpoint, "workspace.exec", request);
+    assert_eq!(replay["structuredContent"]["jobId"], job_id, "{replay}");
+    assert_eq!(fs::read(&marker).unwrap(), b"physical-once\n");
+    let counts = fixture
+        .db
+        .query_one(
+            "SELECT (SELECT count(*) FROM jobs), (SELECT count(*) FROM attempts),
+         (SELECT count(*) FROM job_events WHERE event_type='DISPATCH_ISSUED')",
+            &[],
+        )
+        .unwrap();
+    assert_eq!(
+        [counts.get::<_, i64>(0), counts.get(1), counts.get(2)],
+        [1, 1, 1]
+    );
+    println!("ADMISSION_40001_ABORTS={faults} PRECOMMIT_PHYSICAL_EFFECTS=0 RECOVERED_PHYSICAL_EFFECTS=1 DISPATCH_COUNT=1 ERROR_COMMIT_STATE=not_started");
+}
+
+#[test]
+#[ignore = "requires disposable PostgreSQL and authorized native Runner execution"]
+fn fresh_pg_mcp_persistent_terminal_abort_retains_single_physical_effect() {
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({
+            "workspaceId":"ws-persistent-terminal-abort","sourceRepo":repo,"sourceRevision":"HEAD"
+        }),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    // The disposable database refuses terminal journal writes until this
+    // test explicitly lifts the fault. Never change installed PG state.
+    fixture.db.batch_execute(
+        "CREATE SEQUENCE persistent_terminal_abort_count;
+         GRANT USAGE ON SEQUENCE persistent_terminal_abort_count TO runtime_app;
+         CREATE FUNCTION persistent_terminal_abort_fn() RETURNS trigger LANGUAGE plpgsql AS $$
+         BEGIN
+           IF NEW.event_type = 'JOB_TERMINAL' THEN
+             PERFORM nextval('fresh.persistent_terminal_abort_count');
+             RAISE EXCEPTION SQLSTATE '40001' USING MESSAGE = 'disposable persistent terminal abort';
+           END IF;
+           RETURN NEW;
+         END $$;
+         CREATE TRIGGER persistent_terminal_abort_trigger BEFORE INSERT ON job_events
+         FOR EACH ROW EXECUTE FUNCTION persistent_terminal_abort_fn();"
+    ).unwrap();
+    let key = "pg-persistent-terminal-abort-0001";
+    let request = json!({
+        "clientRequestId":key,
+        "execution":{"workspaceId":"ws-persistent-terminal-abort","executable":"/bin/bash",
+        "args":["-c","printf 'physical-once\n' >> effect-marker"],"cwdRelative":".","timeoutMs":5000},
+        "waitMs":0
+    });
+    let admitted = rpc(
+        &endpoint,
+        "tools/call",
+        json!({"name":"workspace.exec","arguments":request.clone()}),
+    );
+    let job_id = if admitted["isError"] == true {
+        assert_eq!(
+            admitted["structuredContent"]["error"]["commitState"], "committed",
+            "{admitted}"
+        );
+        admitted["structuredContent"]["error"]["operationId"]
+            .as_str()
+            .unwrap()
+            .to_owned()
+    } else {
+        admitted["structuredContent"]["jobId"]
+            .as_str()
+            .unwrap()
+            .to_owned()
+    };
+    let marker = fixture
+        .root
+        .join("store")
+        .join("workspaces")
+        .join("ws-persistent-terminal-abort")
+        .join("effect-marker");
+    let deadline = Instant::now() + Duration::from_secs(25);
+    let mut error_exposed = false;
+    loop {
+        let observed = call(&endpoint, "job.observe", json!({"jobId":job_id,"waitMs":0}));
+        if observed["isError"] == true {
+            assert_eq!(
+                observed["structuredContent"]["error"]["commitState"], "committed",
+                "{observed}"
+            );
+            assert_eq!(
+                observed["structuredContent"]["error"]["retryClass"], "reconcile_first",
+                "{observed}"
+            );
+            assert_eq!(
+                observed["structuredContent"]["error"]["operationId"], job_id,
+                "{observed}"
+            );
+            error_exposed = true;
+        } else {
+            assert_eq!(observed["structuredContent"]["jobId"], job_id, "{observed}");
+            assert_eq!(
+                observed["structuredContent"]["executionTerminal"], false,
+                "faulted terminal commit must not become durable: {observed}"
+            );
+        }
+        let row = fixture
+            .db
+            .query_one(
+                "SELECT last_value,is_called FROM persistent_terminal_abort_count",
+                &[],
+            )
+            .unwrap();
+        if row.get::<_, bool>(1) && row.get::<_, i64>(0) >= 2 {
+            break;
+        }
+        assert!(Instant::now() < deadline, "terminal fault did not execute");
+        thread::sleep(Duration::from_millis(30));
+    }
+    assert_eq!(fs::read(&marker).unwrap(), b"physical-once\n");
+    let counts=fixture.db.query_one(
+        "SELECT (SELECT count(*) FROM jobs WHERE job_id=$1 AND resolution IS NULL),
+          (SELECT count(*) FROM attempts WHERE job_id=$1),
+          (SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'),
+          (SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='JOB_TERMINAL'),
+          (SELECT count(*) FROM concurrency_reservations r JOIN attempts a ON a.attempt_id=r.attempt_id WHERE a.job_id=$1 AND r.state='active'),
+          (SELECT count(*) FROM artifacts WHERE job_id=$1)",
+        &[&job_id]
+    ).unwrap();
+    assert_eq!(
+        [
+            counts.get::<_, i64>(0),
+            counts.get(1),
+            counts.get(2),
+            counts.get(3),
+            counts.get(4),
+            counts.get(5)
+        ],
+        [1, 1, 1, 0, 1, 0]
+    );
+    let failed_attempts: i64 = fixture
+        .db
+        .query_one(
+            "SELECT last_value FROM persistent_terminal_abort_count",
+            &[],
+        )
+        .unwrap()
+        .get(0);
+    fixture
+        .db
+        .batch_execute("DROP TRIGGER persistent_terminal_abort_trigger ON job_events")
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(25);
+    let terminal = loop {
+        let observed = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":job_id,"waitMs":1000}),
+        );
+        assert_ne!(observed["isError"], true, "{observed}");
+        if observed["structuredContent"]["executionTerminal"] == true {
+            break observed;
+        }
+        assert!(Instant::now() < deadline, "same Job did not converge");
+    };
+    assert_eq!(
+        terminal["structuredContent"]["executionDisposition"], "succeeded",
+        "{terminal}"
+    );
+    assert_eq!(fs::read(&marker).unwrap(), b"physical-once\n");
+    let counts=fixture.db.query_one(
+        "SELECT (SELECT count(*) FROM jobs WHERE client_request_id=$1 AND resolution='succeeded'),
+          (SELECT count(*) FROM attempts WHERE job_id=$2),
+          (SELECT count(*) FROM job_events WHERE job_id=$2 AND event_type='DISPATCH_ISSUED'),
+          (SELECT count(*) FROM job_events WHERE job_id=$2 AND event_type='JOB_TERMINAL'),
+          (SELECT count(*) FROM concurrency_reservations r JOIN attempts a ON a.attempt_id=r.attempt_id WHERE a.job_id=$2 AND r.state='released')",
+        &[&key,&job_id]
+    ).unwrap();
+    assert_eq!(
+        [
+            counts.get::<_, i64>(0),
+            counts.get(1),
+            counts.get(2),
+            counts.get(3),
+            counts.get(4)
+        ],
+        [1, 1, 1, 1, 1]
+    );
+    println!("PERSISTENT_TERMINAL_ABORTS={failed_attempts} PHYSICAL_EFFECTS=1 HELD_DURING_FAULT=1 TERMINAL_DURING_FAULT=0 RECOVERED_TERMINAL=1 DISPATCH_COUNT=1 MCP_ERROR_EXPOSED={error_exposed}");
+}
+
+#[test]
 #[ignore = "requires PostgreSQL binaries and authorized systemd/cgroup execution"]
 fn fresh_pg_mcp_native_runner_success_and_cancel() {
     let mut fixture = Fixture::new();
