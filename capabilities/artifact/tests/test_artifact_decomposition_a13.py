@@ -24,6 +24,34 @@ class ArtifactDirectPythonProviderA13Tests(unittest.TestCase):
         self.assertIn("aggregate_vsa_gates", source)
         self.assertIn("execute_oci_package_stage", source)
 
+    def test_pretty_json_report_format_has_one_shared_writer(self):
+        from artifact_capabilities.presentation import reference_projection
+        from artifact_core.json_validation import write_pretty_json
+        from artifact_operations.providers import direct_python
+        from artifact_verification import evidence
+
+        for module in (reference_projection, direct_python, evidence):
+            self.assertIs(module.write_pretty_json, write_pretty_json)
+        with tempfile.TemporaryDirectory() as d:
+            report = Path(d) / "nested" / "report.json"
+            write_pretty_json(report, {"z": [True, 1], "a": "汉字"})
+            self.assertEqual(
+                report.read_bytes(),
+                '{\n  "a": "汉字",\n  "z": [\n    true,\n    1\n  ]\n}\n'.encode(),
+            )
+            # Replacement keeps the same report byte contract, not append.
+            write_pretty_json(report, {"a": 2})
+            self.assertEqual(report.read_bytes(), b'{\n  "a": 2\n}\n')
+
+            # The historical writer accepts non-finite floats; the strict
+            # reader still rejects them. Do not silently change stored bytes.
+            from artifact_core.json_validation import load_json
+
+            write_pretty_json(report, {"x": float("nan")})
+            self.assertEqual(report.read_bytes(), b'{\n  "x": NaN\n}\n')
+            with self.assertRaises(ValueError):
+                load_json(report)
+
     def test_temporal_adapter_defaults_to_direct_python_provider(self):
         spec = importlib.util.spec_from_file_location("a13_temporal_support", SUPPORT)
         module = importlib.util.module_from_spec(spec)

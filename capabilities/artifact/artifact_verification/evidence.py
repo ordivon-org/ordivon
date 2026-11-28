@@ -1,19 +1,11 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
 from artifact_core.contracts import file_fact
+from artifact_core.json_validation import write_pretty_json
 from artifact_trust.vsa import verification_summary_statement, verify_verification_summary
-
-
-def _write_json(path: Path, value: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
 
 
 def gate_input_issues(
@@ -50,7 +42,7 @@ def write_gate_receipt(
         return write_unqualified_gate_receipt(output_dir, gate, raw)
     output_dir.mkdir(parents=True, exist_ok=True)
     raw_path = output_dir / f"{gate}.raw.json"
-    _write_json(raw_path, raw)
+    write_pretty_json(raw_path, raw)
 
     def rejected(issues: list[str]) -> dict[str, Any]:
         (output_dir / f"{gate}.vsa.json").unlink(missing_ok=True)
@@ -86,7 +78,7 @@ def write_gate_receipt(
         ):
             return rejected(["verification summary differs from admitted input identity"])
     statement_path = output_dir / f"{gate}.vsa.json"
-    _write_json(statement_path, statement)
+    write_pretty_json(statement_path, statement)
     try:
         checked = verify_verification_summary(
             statement_path,
@@ -116,7 +108,7 @@ def write_unqualified_gate_receipt(
 ) -> dict[str, Any]:
     """Retain an observation without issuing a binary VSA for unknown truth."""
     raw_path = output_dir / f"{gate}.raw.json"
-    _write_json(raw_path, raw)
+    write_pretty_json(raw_path, raw)
     # A reused evidence directory must not expose a previous decisive VSA.
     (output_dir / f"{gate}.vsa.json").unlink(missing_ok=True)
     return {

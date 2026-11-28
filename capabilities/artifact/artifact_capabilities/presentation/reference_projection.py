@@ -10,19 +10,11 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from artifact_core.contracts import file_fact, sha256_file
-from artifact_core.json_validation import validate_json_document
+from artifact_core.json_validation import validate_json_document, write_pretty_json
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_PRESENTATION_SOURCE_SCHEMA = ROOT / "artifact-delivery/presentation-source-v1.schema.json"
 DEFAULT_OPC_MEMBER_PROJECTION_SCHEMA = ROOT / "artifact-delivery/opc-member-projection-v1.schema.json"
-
-
-def _write_json(path: Path, value: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
 
 
 def _normalized_posix_relative(value: str, field: str) -> PurePosixPath:
@@ -292,7 +284,7 @@ def compose_reference_hybrid_source(
         "Decorative raster standing is composition-only; accessibility, visual parity, target-render and business-content acceptance remain independent gates."
     )
     semantic["notes"] = (note + " " + boundary).strip()
-    _write_json(output_path, semantic)
+    write_pretty_json(output_path, semantic)
     validation = validate_json_document(output_path, schema_path, "presentation-source")
     if validation.get("status") != "PASS":
         return {
