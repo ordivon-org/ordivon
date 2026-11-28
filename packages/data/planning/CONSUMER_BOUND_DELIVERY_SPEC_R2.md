@@ -1,6 +1,6 @@
 # Data R2.1 Consumer Evidence — Formal-First Execution and Cross-Audit Spec
 
-Status: **A3 source implementation verified locally; cross-owner review and PR integration pending**. Initiated 2026-11-09; source requalified 2026-11-10. Original pre-implementation review and its dated SourceCuts remain historical. Do not equate this status with merged/installed provider truth.
+Historical planning snapshot (status at its original review: **A3 source implementation verified locally; cross-owner review and PR integration pending**). Initiated 2026-11-09; source requalified 2026-11-10. Original pre-implementation review and its dated SourceCuts remain historical. Do not equate this status with merged/installed provider truth.
 Branch under revision: `feat/data-consumer-scoped-evidence-20261109-r1`, PR [#1970](https://github.com/ordivon-org/ordivon/pull/1970), head `78b70db5093c52f7df7053531993a8b2af325b50`.
 Fresh protected `main` SourceCut at review outset: `a7d70e83945b7418f41b9636f0803d1544e84355`; recheck immediately before implementation or publication.
 Natural Owner: `packages/data`; final factual consumers: actual Research `deliver_research.py` and existing Capital shadow consumer. Data cannot own their scientific/financial conclusions.
