@@ -14,6 +14,7 @@ from mcp.client.streamable_http import create_mcp_http_client, streamable_http_c
 from opentelemetry.propagate import inject as inject_trace_context
 
 from ..logic.owner_protocol import OwnerToolCaller as OwnerToolCaller
+from ..logic.runtime_status import valid_runtime_status_envelope
 from ..security import (
     OwnerCallError as OwnerCallError,
 )
@@ -321,17 +322,7 @@ class McpOwnerCaller:
             # tool-output-schema lookup. Guard the versioned envelope here,
             # then defer readiness truth (including malformed booleans) to
             # the existing B03 strict owner projection.
-            node = payload.get("node")
-            targets = payload.get("targets")
-            if (
-                type(payload.get("schemaVersion")) is not int
-                or payload["schemaVersion"] != 1
-                or not isinstance(node, dict)
-                or not isinstance(node.get("nodeId"), str)
-                or not node["nodeId"]
-                or not isinstance(targets, list)
-                or not all(isinstance(target, dict) for target in targets)
-            ):
+            if not valid_runtime_status_envelope(payload):
                 raise OwnerCallError(
                     "Owner returned invalid runtime.describe status envelope",
                     owner_id=owner_id,

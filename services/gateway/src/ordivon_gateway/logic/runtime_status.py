@@ -37,10 +37,20 @@ def valid_runtime_status_envelope(response: object) -> bool:
     A target list in an arbitrary JSON object is NOT authenticated evidence
     of the versioned Runtime describe API.
     """
+    if (
+        not isinstance(response, dict)
+        or type(response.get("schemaVersion")) is not int
+        or response["schemaVersion"] != 1
+    ):
+        return False
+    node = response.get("node")
+    targets = response.get("targets")
     return (
-        isinstance(response, dict)
-        and type(response.get("schemaVersion")) is int
-        and response["schemaVersion"] == 1
+        isinstance(node, dict)
+        and isinstance(node.get("nodeId"), str)
+        and bool(node["nodeId"].strip())
+        and isinstance(targets, list)
+        and all(isinstance(target, dict) for target in targets)
     )
 
 
@@ -58,6 +68,13 @@ def valid_runtime_execution_context_inventory(target: dict, target_name: str | N
     )
     if any(field in target and not isinstance(target[field], list) for field in fields):
         return False
+    string_field = "windowsAuthorities" if target_name == "windows_native" else "executionProfiles"
+    if string_field in target:
+        values = target[string_field]
+        if any(not isinstance(value, str) or not value.strip() for value in values):
+            return False
+        if len(values) != len(set(values)):
+            return False
     if target_name != "windows_native" or "windowsContexts" not in target:
         return True
     contexts = target["windowsContexts"]

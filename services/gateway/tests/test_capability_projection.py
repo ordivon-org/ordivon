@@ -369,6 +369,7 @@ def test_projection_preserves_unconfigured_and_missing_target_distinction() -> N
         configured_at_gateway=True,
         owner_response={
             "schemaVersion": 1,
+            "node": {"nodeId": "linux-pg"},
             "targets": [{"target": "windows_native", "configured": True, "available": True}],
         },
     )
@@ -529,29 +530,39 @@ def test_bad_runtime_inventory_does_not_hide_an_independent_healthy_runtime() ->
 
 
 def test_execution_projection_malformed_contexts_are_unknown_not_global_discovery_errors() -> None:
-    """Malformed context lists from an Owner cannot crash all capability discovery."""
-    for capability, bad_field in (
-        ("execution.linux", "executionProfiles"),
-        ("execution.windows", "windowsAuthorities"),
-    ):
+    """Malformed context lists from an Owner cannot become ready discovery."""
+    cases = (
+        ("execution.linux", "executionProfiles", None),
+        ("execution.linux", "executionProfiles", [7]),
+        ("execution.linux", "executionProfiles", ["contained_local", "contained_local"]),
+        ("execution.linux", "executionProfiles", ["   "]),
+        ("execution.windows", "windowsAuthorities", None),
+        ("execution.windows", "windowsAuthorities", [7]),
+        ("execution.windows", "windowsAuthorities", ["limited", "limited"]),
+        ("execution.windows", "windowsAuthorities", ["   "]),
+    )
+    for capability, bad_field, bad_value in cases:
         route = default_routes()[capability]
         descriptor = project_execution_capability(
             route,
             configured_at_gateway=True,
             owner_response={
+                "schemaVersion": 1,
+                "node": {"nodeId": "runtime-owner"},
                 "targets": [
                     {
                         "target": route.execution_target,
                         "configured": True,
                         "available": True,
-                        bad_field: None,
+                        bad_field: bad_value,
                     }
-                ]
+                ],
             },
         )
+        assert descriptor.configured is False
         assert descriptor.available is False
         assert descriptor.readiness_state == "unknown"
-        assert descriptor.observation_error
+        assert descriptor.observation_error == "owner returned invalid execution-context inventory"
 
 
 def test_windows_explicit_empty_canonical_contexts_never_resurrect_legacy_authority():

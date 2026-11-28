@@ -117,36 +117,41 @@ async def check() -> dict[str, int]:
         "available": True,
         "windowsAuthorities": ["limited"],
     }
+    envelope: dict[str, Any] = {
+        "schemaVersion": 1,
+        "node": {"nodeId": "windows-native"},
+    }
     inventory_cases: list[tuple[dict[str, Any], bool]] = [
-        ({"targets": [qualified]}, False),  # No Runtime protocol version.
-        ({"schemaVersion": True, "targets": [qualified]}, False),  # bool is not int.
-        ({"schemaVersion": 2, "targets": [qualified]}, False),  # Unknown version.
-        ({"schemaVersion": 1}, False),  # Missing targets container.
-        ({"schemaVersion": 1, "targets": None}, False),
-        ({"schemaVersion": 1, "targets": {"target": qualified}}, False),
-        ({"schemaVersion": 1, "targets": []}, False),  # No matching route.
-        ({"schemaVersion": 1, "targets": [qualified, qualified]}, False),  # Ambiguous match.
-        ({"schemaVersion": 1, "targets": [{**qualified, "windowsAuthorities": None}]}, False),
-        ({"schemaVersion": 1, "targets": [{**qualified, "windowsContexts": None}]}, False),
+        ({"node": envelope["node"], "targets": [qualified]}, False),  # No Runtime protocol version.
+        ({**envelope, "schemaVersion": True, "targets": [qualified]}, False),  # bool is not int.
+        ({**envelope, "schemaVersion": 2, "targets": [qualified]}, False),  # Unknown version.
+        ({**envelope}, False),  # Missing targets container.
+        ({**envelope, "targets": None}, False),
+        ({**envelope, "targets": {"target": qualified}}, False),
+        ({**envelope, "node": {"nodeId": " \t "}, "targets": [qualified]}, False),
+        ({**envelope, "targets": []}, False),  # No matching route.
+        ({**envelope, "targets": [qualified, qualified]}, False),  # Ambiguous match.
+        ({**envelope, "targets": [{**qualified, "windowsAuthorities": None}]}, False),
+        ({**envelope, "targets": [{**qualified, "windowsContexts": None}]}, False),
         (
             {
-                "schemaVersion": 1,
+                **envelope,
                 "targets": [{"target": "windows_native", "configured": True, "available": True}],
             },
             True,
         ),
-        ({"schemaVersion": 1, "targets": [{**qualified, "windowsContexts": []}]}, False),
+        ({**envelope, "targets": [{**qualified, "windowsContexts": []}]}, False),
         (
-            {"schemaVersion": 1, "targets": [{**qualified, "windowsContexts": [{}]}]},
+            {**envelope, "targets": [{**qualified, "windowsContexts": [{}]}]},
             False,
         ),
         (
-            {"schemaVersion": 1, "targets": [{**qualified, "windowsContexts": ["invalid"]}]},
+            {**envelope, "targets": [{**qualified, "windowsContexts": ["invalid"]}]},
             False,
         ),
         (
             {
-                "schemaVersion": 1,
+                **envelope,
                 "targets": [
                     {
                         **qualified,

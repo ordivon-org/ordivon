@@ -107,3 +107,28 @@ def test_actual_mcp_tool_output_contract_accepts_readiness_discriminator() -> No
             assert descriptor["readiness_state"] == "unknown"
 
     asyncio.run(invoke())
+
+
+def test_runtime_status_whitespace_node_identity_is_invalid_envelope() -> None:
+    route = default_routes()["execution.windows"]
+    item = project_execution_capability(
+        route,
+        configured_at_gateway=True,
+        owner_response={
+            "schemaVersion": 1,
+            "node": {"nodeId": " \t "},
+            "targets": [
+                {
+                    "target": "windows_native",
+                    "configured": True,
+                    "available": True,
+                    "windowsContexts": [{"identity": "service", "privilege": "limited"}],
+                }
+            ],
+        },
+    )
+    assert item.configured is False
+    assert item.available is False
+    assert item.owner_node_id is None
+    assert item.readiness_state == "unknown"
+    assert item.observation_error == "invalid versioned Runtime status envelope"

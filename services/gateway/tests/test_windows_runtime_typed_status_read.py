@@ -39,6 +39,12 @@ async def _real_http_owner_scenario(
                 "node": {"nodeId": "fixture-windows"},
                 "targets": [{"target": "windows_native", "configured": True, "available": True}],
             }
+        if status == "blank_node":
+            return {
+                "schemaVersion": schemaVersion,
+                "node": {"nodeId": " \t "},
+                "targets": [{"target": "windows_native", "configured": True, "available": True}],
+            }
         return {
             "schemaVersion": schemaVersion,
             "node": {"nodeId": "fixture-windows"},
@@ -167,7 +173,7 @@ def test_typed_status_cancellation_reports_sdk_boundary_without_owner_failure_cl
     assert any("phase=typed_readonly_call_cancelled" in rec.message for rec in caplog.records)
 
 
-@pytest.mark.parametrize("status", ["missing_targets", "bad_version"])
+@pytest.mark.parametrize("status", ["missing_targets", "bad_version", "blank_node"])
 def test_typed_status_read_rejects_invalid_envelope_without_claiming_unavailable(
     tmp_path: Path,
     status: str,
