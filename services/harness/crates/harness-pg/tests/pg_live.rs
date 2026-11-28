@@ -143,3 +143,31 @@ fn valid_legacy_python_depth_is_not_corrupt() {
         "valid legacy CAS outside the current codec domain must be UNKNOWN, not corruption: {error}"
     );
 }
+
+#[test]
+fn reject_creation_contract_reference_divergence() {
+    let Some((dsn, schema, _, _, _, _)) = fixture() else {
+        eprintln!("SKIP: isolated PG18 fixture env is not configured");
+        return;
+    };
+    let mut connection = postgres::Client::connect(&dsn, postgres::NoTls).expect("fixture PG");
+    let mut unexpected = Vec::new();
+    for variable in [
+        "HARNESS_RUST_TEST_MISSING_CONTRACT_RUN_ID",
+        "HARNESS_RUST_TEST_EXTRA_CONTRACT_RUN_ID",
+        "HARNESS_RUST_TEST_FOREIGN_CONTRACT_RUN_ID",
+        "HARNESS_RUST_TEST_LEGACY_MISSING_CONTRACT_RUN_ID",
+    ] {
+        let run = std::env::var(variable).expect("creation reference fixture");
+        if !matches!(
+            read_run_readonly(&mut connection, &schema, &run),
+            Err(ReadError::Corruption(_))
+        ) {
+            unexpected.push(variable);
+        }
+    }
+    assert!(
+        unexpected.is_empty(),
+        "Python History Doctor rejects these fixtures: {unexpected:?}"
+    );
+}

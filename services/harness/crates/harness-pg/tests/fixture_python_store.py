@@ -15,6 +15,7 @@ from anc_canonical import canonical_digest, digest_bytes
 from ordivon_harness.core_contracts import HarnessBoundReference, HarnessRunContract
 from ordivon_harness.postgres_store import PostgresHarnessStore
 from ordivon_harness.store import HarnessEventWrite
+from ordivon_harness.store_errors import HarnessJournalCorruption
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 
 
@@ -62,11 +63,19 @@ def legacy_boolean_contract(suffix: str) -> HarnessRunContract:
     return contract
 
 
+missing_contract, extra_contract, foreign_contract, foreign_owner = (
+    new_contract(suffix) for suffix in (
+        "missingcontract", "extracontract", "foreigncontract", "foreignowner",
+    )
+)
+legacy_missing_contract = legacy_boolean_contract("legacy-missing-contract")
 legacy_boolean = legacy_boolean_contract("legacy-bool")
 legacy_bad_edge = legacy_boolean_contract("legacy-bool-bad-edge")
 
 with PostgresHarnessStore(dsn, schema=schema, initialize=True) as store:
-    for contract in [valid, corrupt, bad_revision, bad_edge, deep, legacy_boolean, legacy_bad_edge]:
+    for contract in [valid, corrupt, bad_revision, bad_edge, deep, legacy_boolean, legacy_bad_edge,
+                     missing_contract, extra_contract, foreign_contract, foreign_owner,
+                     legacy_missing_contract]:
         assert store.create_run(contract).value == "created"
     # Exercise real Python PG append_events and its exact lease/revision path.
     lease = store.acquire_run_lease(
@@ -90,6 +99,8 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=True) as store:
     store.validate_run_history(corrupt.harness_run_id)
     store.validate_run_history(bad_revision.harness_run_id)
     store.validate_run_history(bad_edge.harness_run_id)
+    for contract in (missing_contract, extra_contract, foreign_contract):
+        store.validate_run_history(contract.harness_run_id)
 
     # UNKNOWN must have the real current typed Provider record. A normal
     # terminal event over that unresolved effect is intentionally not legal.
@@ -178,6 +189,34 @@ with psycopg.connect(dsn, autocommit=True) as conn:
         (legacy_bad_edge.harness_run_id,),
     )
 
+    # Test-only negative fixtures for the original Python History Doctor law.
+    conn.execute(
+        "DELETE FROM run_object_refs WHERE harness_run_id=%s AND role='reference'",
+        (missing_contract.harness_run_id,),
+    )
+    conn.execute(
+        "INSERT INTO run_object_refs(harness_run_id,event_id,digest,role) "
+        "SELECT harness_run_id,event_id,%s,'reference' FROM run_events WHERE harness_run_id=%s",
+        (valid.digest, extra_contract.harness_run_id),
+    )
+    conn.execute(
+        "UPDATE run_object_refs SET harness_run_id=%s WHERE harness_run_id=%s AND role='reference'",
+        (foreign_owner.harness_run_id, foreign_contract.harness_run_id),
+    )
+    conn.execute(
+        "DELETE FROM run_object_refs WHERE harness_run_id=%s AND role='reference'",
+        (legacy_missing_contract.harness_run_id,),
+    )
+
+with PostgresHarnessStore(dsn, schema=schema) as store:
+    for contract in (missing_contract, extra_contract, foreign_contract):
+        try:
+            store.validate_run_history(contract.harness_run_id)
+        except HarnessJournalCorruption:
+            pass
+        else:
+            raise AssertionError("Python History Doctor must reject negative creation edge fixture")
+
 out = Path(os.environ.get("HARNESS_RUST_TEST_FIXTURE_PATH", "/tmp/harness-rust-pg-fixture.json"))
 out.write_text(json.dumps({
     "schema": schema, "valid": valid.harness_run_id,
@@ -188,5 +227,9 @@ out.write_text(json.dumps({
     "legacy_boolean": legacy_boolean.harness_run_id,
     "legacy_bad_edge": legacy_bad_edge.harness_run_id,
     "unknown": unknown_run.harness_run_id,
+    "missing_contract": missing_contract.harness_run_id,
+    "extra_contract": extra_contract.harness_run_id,
+    "foreign_contract": foreign_contract.harness_run_id,
+    "legacy_missing_contract": legacy_missing_contract.harness_run_id,
 }), encoding="utf-8")
 print("PYTHON_PG_FIXTURE_READY schema=" + schema, "valid_revision=3", "corrupt_object=1 bad_projection=1 bad_edge=1")
