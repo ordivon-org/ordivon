@@ -28,25 +28,13 @@ The relevant semantic facts are Work IDs, owners and the explicitly catalogued
 `DERIVATIVE_OF` / `CONSUMER_OF` relations. Geometric positions are *composition*,
 not geography, dependency, chronological facts or semantic distance.
 
-## Source-to-visual contract (candidate, NOT a formally ADMITTED LEGO)
+## Source-to-visual semantics and verification
 
-- **I:** selected exact frozen catalog bytes + explicit Production intent.
-- **O:** existing source-bound SVG/interactive representations and optional Vega-Lite chart spec.
-- **S:** no persistent task state; validated catalog read per invocation; selected Production holds standing.
-- **pre:** well-formed works with unique Work IDs; supported relation labels with both endpoints existing.
-- **post:** all displayed work/owner/relationship counts derive from the selected catalog; source failures fail closed.
-- **inv:** generation cannot add factual edges or silently relabel unsupported edges; source owner remains truth authority.
-- **eff:** read selected source; write only chosen derived local outputs; no publication or mutation of source owner.
-- **c:** UNKNOWN for general complexity and browser performance; reference snapshot generator test <1 s in current local trial, not a capacity guarantee.
-- **epsilon:** UNKNOWN for human readability, subjective composition and cross-renderer appearance; SVG byte identity is exact only in the scoped frozen case.
-- **prov:** frozen `catalogDigest` is a declaration; chart also retains the actual input file's SHA-256; tests and external renderer receipt are independently scoped evidence.
-- **unfold:** `productions/archive-archipelago-001/archive_source.py`, `generate.py`, `generate_owner_summary_vegalite.py`, native unit tests and selected existing rendering tools.
+Given selected frozen catalog bytes and explicit Production intent, validate unique Work IDs and supported relations with existing endpoints. Read the catalog for each invocation; the selected Production owns standing. Generate source-bound SVG/interactive representations and optionally a Vega-Lite chart spec. All displayed work, owner and relationship counts must derive from the selected catalog. Source failures fail closed; generation cannot add factual edges or silently relabel unsupported edges. Write only chosen derived local outputs; do not publish or mutate the source owner.
 
-These are architectural commitments and executed checks. The separate
-`formal/ArchiveVisualSourcePreservation.lean` has a Lean-kernel-checked
-abstract relation conservation/rejection model; Python parsing/refinement,
-installed provider readiness and output approval are **not proved**. In particular do not replace native rendering/byte-equivalence tests
-with a pure theorem about counting: it would miss the actual SVG, text and provider.
+General complexity, browser performance, human readability and cross-renderer appearance remain unmeasured or UNKNOWN. The reference snapshot generator took less than one second in its scoped local trial; SVG byte identity is exact only for the frozen case. The declared catalogDigest is distinct from the actual input SHA-256. Native tests and the external renderer receipt are separate evidence.
+
+The existing implementation paths are productions/archive-archipelago-001/archive_source.py, generate.py and generate_owner_summary_vegalite.py with their native tests and rendering tools. The separate formal/ArchiveVisualSourcePreservation.lean establishes abstract relation conservation/rejection; Python parsing/refinement, installed provider readiness and output approval are not proved. Retain actual SVG, text, provider and byte-equivalence tests rather than substituting a pure counting theorem.
 
 ## Mature capability comparison and consumer decision
 
