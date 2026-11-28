@@ -12,6 +12,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 from anc_canonical import canonical_bytes, canonical_digest, digest_bytes
 from ordivon_harness.core_contracts import HarnessRunContract
@@ -19,6 +20,7 @@ from ordivon_harness.ordivon.continuity_records import (
     HarnessProviderCallRecordV3,
     build_provider_call_record_v4,
 )
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.postgres_store import PostgresHarnessStore
 from ordivon_harness.protocol import (
     HarnessProviderCallFailureReceipt,
@@ -52,6 +54,9 @@ if len(sys.argv) > 1 and sys.argv[1] == "verify-native":
             assert any(
                 event.event_id == entry["eventId"]
                 and event.event_kind == entry["eventKind"]
+                and event.data == entry["data"]
+                and event.caused_by_event_id == entry["causedByEventId"]
+                and event.recorded_at_ms == entry["recordedAtMs"]
                 for event in store.list_run_events(native["runId"])
             )
     print("PYTHON_VALIDATED_RUST_NATIVE_PROVIDER_UNKNOWN_JOURNAL_PASS")
@@ -403,26 +408,27 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
             record.digest, len(canonical_bytes(record.to_dict())),
             "harness-provider-call-record",
         )
-        references = [record_ref, native_state_ref]
-        if status is HarnessProviderCallStatus.UNKNOWN:
-            references.append(native_failure_ref)
-        data = {
-            "providerCallRecordDigest": record.digest,
-            "providerCallRecordObjectDigest": record_ref.digest,
-            "stateObjectDigest": native_state_ref.digest,
-            "requestObjectDigest": None,
-            "resultObjectDigest": None,
-            "failureObjectDigest": (
-                native_failure_ref.digest
-                if status is HarnessProviderCallStatus.UNKNOWN else None
+        # Exercise the ORIGINAL Python Event producer as the independent oracle.
+        # Only its Store append is replaced with a capture; Rust owns the write.
+        captured = {}
+        EventSourcedRunContinuity._append_provider_event(
+            SimpleNamespace(_append_event=lambda **kwargs: captured.update(kwargs)),
+            lease=None,
+            event_kind=f"harness.provider-call-{status.value}",
+            stored=SimpleNamespace(
+                record=record, record_object=record_ref, state_object=native_state_ref,
+                request_object=None, result_object=None,
+                failure_object=native_failure_ref if status is HarnessProviderCallStatus.UNKNOWN else None,
             ),
-        }
+            caused_by_event_id=native_events[-1]["eventId"] if native_events else None,
+        )
         native_events.append({
-            "eventId": f"event:rust-native-provider-{status.value}",
-            "eventKind": f"harness.provider-call-{status.value}",
-            "recordedAtMs": when,
-            "data": data,
-            "references": [item.to_dict() for item in references],
+            "eventId": captured["event_id"],
+            "eventKind": captured["event_kind"],
+            "recordedAtMs": captured["recorded_at_ms"],
+            "causedByEventId": captured["caused_by_event_id"],
+            "data": captured["data"],
+            "references": [item.to_dict() for item in captured["referenced_objects"]],
             "recordFields": {
                 key: value for key, value in record.to_dict().items()
                 if key not in {"schemaVersion", "kind", "recordId"}

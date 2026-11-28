@@ -9,7 +9,9 @@ use ordivon_harness_core::{
 use ordivon_harness_loop_b_probe::pg_domain_read::{
     inspect_pg_provider_head, ExpectedModel, PgDomainInspectionError, PgProviderRecoveryError,
 };
-use ordivon_harness_loop_b_probe::provider_head::{build_v4, ProviderStatus, RecoveryPosture};
+use ordivon_harness_loop_b_probe::provider_head::{
+    build_event_v4, build_v4, ProviderStatus, RecoveryPosture,
+};
 use ordivon_harness_pg::{
     journal_write::{
         append_events, append_events_with_objects, observe_exact_batch, Admission, EventWrite,
@@ -291,32 +293,70 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
             .unwrap();
         assert_eq!(record_ref.digest, built_digest);
         assert_eq!(record_ref.byte_length, i64::try_from(bytes.len()).unwrap());
-        println!("PG18_NATIVE_PROVIDER_RECORD_BUILT stage={n} digest={built_digest}");
-        records.push(record);
-        let event_data_ref = source.field("data").unwrap();
-        let event_data =
-            loads_strict(std::str::from_utf8(&event_data_ref.canonical_bytes()).unwrap()).unwrap();
-        batch.push(EventWrite {
-            event_id: source
+        let non_record_refs: Vec<_> = refs
+            .iter()
+            .filter(|r| r.kind != "harness-provider-call-record")
+            .cloned()
+            .collect();
+        let cause = batch.last().map(|e: &EventWrite| e.event_id.clone());
+        let event = build_event_v4(&record, &non_record_refs, cause.clone()).unwrap();
+        assert_eq!(
+            event.event_id,
+            source
                 .field("eventId")
                 .and_then(CanonicalRef::as_str)
                 .unwrap()
-                .to_owned(),
-            event_kind: source
+        );
+        assert_eq!(
+            event.event_kind,
+            source
                 .field("eventKind")
                 .and_then(CanonicalRef::as_str)
                 .unwrap()
-                .to_owned(),
-            data: event_data,
-            recorded_at_ms: source
+        );
+        assert_eq!(
+            event.recorded_at_ms.to_string(),
+            source
                 .field("recordedAtMs")
                 .and_then(CanonicalRef::integer_text)
                 .unwrap()
-                .parse()
-                .unwrap(),
-            caused_by_event_id: None,
-            referenced_objects: refs,
-        });
+        );
+        assert_eq!(
+            event.caused_by_event_id.as_deref(),
+            source
+                .field("causedByEventId")
+                .and_then(CanonicalRef::as_str)
+        );
+        assert_eq!(
+            canonical_bytes(&event.data),
+            source.field("data").unwrap().canonical_bytes()
+        );
+        assert_eq!(event.referenced_objects, refs);
+        let mut reordered = non_record_refs.clone();
+        reordered.reverse();
+        let same = build_event_v4(&record, &reordered, cause.clone()).unwrap();
+        assert_eq!(same.referenced_objects, refs);
+        let mut missing = non_record_refs.clone();
+        missing.pop();
+        assert!(build_event_v4(&record, &missing, cause.clone()).is_err());
+        let mut wrong = non_record_refs.clone();
+        wrong[0].kind = "wrong-kind".into();
+        assert!(build_event_v4(&record, &wrong, cause.clone()).is_err());
+        let mut duplicate = non_record_refs.clone();
+        duplicate.push(duplicate[0].clone());
+        assert!(build_event_v4(&record, &duplicate, cause.clone()).is_err());
+        let wrong_cause = if cause.is_some() {
+            None
+        } else {
+            Some("event:unexpected".into())
+        };
+        assert!(build_event_v4(&record, &non_record_refs, wrong_cause).is_err());
+        println!(
+            "PG18_NATIVE_PROVIDER_EVENT_BUILT stage={n} digest={built_digest} event={}",
+            event.event_id
+        );
+        records.push(record);
+        batch.push(event);
     }
 
     // A real Provider call cannot be represented by one transaction spanning

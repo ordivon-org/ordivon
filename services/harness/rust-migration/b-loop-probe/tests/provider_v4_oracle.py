@@ -2,12 +2,16 @@
 """Execute the CURRENT Python ProviderRecordV4 validation as the oracle."""
 from __future__ import annotations
 
+from dataclasses import asdict
 import random
+from types import SimpleNamespace
 
 from anc_canonical import canonical_bytes
 from ordivon_harness.ordivon.continuity_records import (
     HarnessProviderCallRecordV4, build_provider_call_record_v4
 )
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
+from ordivon_harness.store import StoredHarnessObject
 from ordivon_harness.protocol import (
     HarnessProviderCallStatus, HarnessProviderCallSource
 )
@@ -22,6 +26,34 @@ def emit(value):
         print("\t".join(("V", "1", canonical, result.digest, result.status.value, str(result.turn_sequence), str(result.claim_generation))))
     except (TypeError, ValueError):
         print("\t".join(("V", "0", canonical_bytes(value).hex(), "-", "-", "-", "-")))
+
+def emit_event(record, event_kind):
+    def ref(digest, kind):
+        return None if digest is None else StoredHarnessObject(digest, 123, kind)
+
+    captured = {}
+    EventSourcedRunContinuity._append_provider_event(
+        SimpleNamespace(_append_event=lambda **kwargs: captured.update(kwargs)),
+        lease=None,
+        event_kind=event_kind,
+        stored=SimpleNamespace(
+            record=record,
+            record_object=StoredHarnessObject(record.digest, len(canonical_bytes(record.to_dict())), "harness-provider-call-record"),
+            state_object=ref(record.state_object_digest, "harness-run-state"),
+            request_object=ref(record.request_object_digest, "agent-turn-request"),
+            result_object=ref(record.result_object_digest, "agent-turn-result"),
+            failure_object=ref(record.failure_object_digest, "harness-provider-call-failure"),
+        ),
+        caused_by_event_id="event:verified-historical-provider" if record.previous_record_digest is not None else None,
+    )
+    expected = {
+        "record": record.to_dict(),
+        "eventId": captured["event_id"], "eventKind": captured["event_kind"],
+        "recordedAtMs": captured["recorded_at_ms"], "data": captured["data"],
+        "cause": captured["caused_by_event_id"],
+        "references": [item.to_dict() for item in captured["referenced_objects"]],
+    }
+    print("\t".join(("E", canonical_bytes(expected).hex())))
 
 for i in range(8):
     status = (
@@ -56,6 +88,15 @@ for i in range(8):
     source = record.to_dict()
     print("\t".join(("B", canonical_bytes(source).hex())))
     emit(source)
+    emit_event(record, f"harness.provider-call-{status.value}")
+    if i == 0:
+        kwargs = asdict(record)
+        kwargs.pop("record_id")
+        kwargs.pop("claim_generation")
+        kwargs["generation"] = 2
+        kwargs["previous_record_digest"] = d("5")
+        superseded = build_provider_call_record_v4(**kwargs)
+        emit_event(superseded, "harness.provider-call-superseded")
     changes = {
         "schemaVersion": [3, False, "4"],
         "kind": ["wrong", None],
