@@ -9,6 +9,7 @@ from ordivon_composition.cognitive_circuit_r1 import (
     canonical_digest,
     compile_manifest,
     evaluate_gate_results,
+    validate_gate_result,
     validate_manifest,
 )
 
@@ -341,6 +342,16 @@ def test_stale_gate_result_is_rejected_by_manifest_digest() -> None:
 
     with pytest.raises(CircuitContractError, match="stale/different manifest digest"):
         evaluate_gate_results(manifest, [result])
+
+
+def test_gate_validator_rejects_forged_compiled_manifest_binding() -> None:
+    manifest = valid_manifest()
+    forged = {"manifestDigest": _digest("forged-compiled-manifest")}
+    result = gate_result(manifest)
+    result["manifestDigest"] = forged["manifestDigest"]
+
+    with pytest.raises(CircuitContractError, match="compiled manifest digest does not match"):
+        validate_gate_result(manifest, forged, result)
 
 
 def test_gate_result_cannot_widen_support_scope() -> None:
