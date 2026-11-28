@@ -172,14 +172,15 @@ fn cas_insert(
     kind: &str,
     bytes: &[u8],
     recorded_at_ms: i64,
-) -> Result<(), WriteError> {
+) -> Result<bool, WriteError> {
     let len = i64::try_from(bytes.len()).map_err(|_| WriteError::Overflow)?;
-    tx.execute(
+    let inserted = tx.execute(
         "INSERT INTO objects(digest,kind,byte_length,content,first_seen_at_ms) \
          VALUES($1,$2,$3,$4,$5) ON CONFLICT(digest) DO NOTHING",
         &[&digest, &kind, &len, &bytes, &recorded_at_ms],
     )?;
-    cas_require(tx, digest, kind, len)
+    cas_require(tx, digest, kind, len)?;
+    Ok(inserted == 1)
 }
 
 /// Reuse the Reader's ONE versioned Contract semantic validator under the
@@ -401,6 +402,31 @@ pub fn append_events_with_objects(
     }
     let mut tx = db.transaction()?;
     check_schema(&mut tx, schema)?;
+    // Match the original Python writer's CAS-before-Run ordering during
+    // migration. Native writers also acquire new CAS keys in digest order,
+    // independent of caller order. Inserts stay inside this transaction.
+    let mut candidates: Vec<_> = new_objects
+        .iter()
+        .map(|(digest, kind, bytes, when)| (digest.as_str(), *kind, bytes.as_slice(), *when))
+        .collect();
+    candidates.extend(prepared.iter().map(|p| {
+        (
+            p.digest.as_str(),
+            EVENT_PAYLOAD_KIND,
+            p.bytes.as_slice(),
+            p.source.recorded_at_ms,
+        )
+    }));
+    candidates.sort_unstable_by(|a, b| a.0.cmp(b.0).then(a.3.cmp(&b.3)));
+    let mut inserted = false;
+    for (digest, kind, bytes, when) in candidates {
+        inserted |= cas_insert(&mut tx, digest, kind, bytes, when)?;
+    }
+    for p in &prepared {
+        for r in &p.source.referenced_objects {
+            cas_require(&mut tx, &r.digest, &r.kind, r.byte_length)?;
+        }
+    }
     let row = tx
         .query_opt(
             "SELECT * FROM runs WHERE harness_run_id=$1 FOR UPDATE",
@@ -418,12 +444,12 @@ pub fn append_events_with_objects(
         if found.len() != events.len() {
             return Err(WriteError::Conflict("partially committed batch".into()));
         }
+        // A replay cannot introduce any previously absent CAS bytes.
+        // Return an error so the entire transaction, including CAS, rolls back.
+        if inserted {
+            return Err(WriteError::Conflict("replay requires new CAS".into()));
+        }
         for (i, p) in prepared.iter().enumerate() {
-            let len = i64::try_from(p.bytes.len()).map_err(|_| WriteError::Overflow)?;
-            cas_require(&mut tx, &p.digest, EVENT_PAYLOAD_KIND, len)?;
-            for r in &p.source.referenced_objects {
-                cas_require(&mut tx, &r.digest, &r.kind, r.byte_length)?;
-            }
             let rev = expected_revision
                 .checked_add(i64::try_from(i).map_err(|_| WriteError::Overflow)? + 1)
                 .ok_or(WriteError::Overflow)?;
@@ -439,22 +465,6 @@ pub fn append_events_with_objects(
         return Err(WriteError::Terminal);
     }
     require_lease(&mut tx, run, expected_revision, lease, lease_checked_at_ms)?;
-    // Never publish a new object separately from its authoritative Event.
-    for (digest, kind, bytes, when) in &new_objects {
-        cas_insert(&mut tx, digest, kind, bytes, *when)?;
-    }
-    for p in &prepared {
-        cas_insert(
-            &mut tx,
-            &p.digest,
-            EVENT_PAYLOAD_KIND,
-            &p.bytes,
-            p.source.recorded_at_ms,
-        )?;
-        for r in &p.source.referenced_objects {
-            cas_require(&mut tx, &r.digest, &r.kind, r.byte_length)?;
-        }
-    }
     let mut status = current.status.as_str();
     let mut when = current.updated_at_ms;
     let mut terminal: Option<&str> = None;
