@@ -285,7 +285,9 @@ def _child_source(owner: str) -> dict[str, dict[str, Any]]:
             uv,
             "run",
             "--locked",
-            "--offline",
+            # Fresh worktrees are a supported source-observation entrypoint.
+            # Keep dependency identity frozen by the lockfile, but do not
+            # require an unrelated pre-populated global uv cache.
             "--project",
             str(
                 ROOT

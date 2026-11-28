@@ -140,6 +140,28 @@ def test_native_cli_exit_rejects_missing_business_tool(monkeypatch, capsys) -> N
     assert result["installedConsumersQualified"] is None
 
 
+def test_child_source_uses_locked_uv_without_requiring_prefilled_cache(monkeypatch) -> None:
+    from types import SimpleNamespace
+
+    m = _audit()
+    calls: list[tuple[list[str], dict]] = []
+    monkeypatch.setattr(m.shutil, "which", lambda name: "/usr/bin/uv" if name == "uv" else None)
+
+    def run(args, **kwargs):
+        calls.append((list(args), kwargs))
+        return SimpleNamespace(stdout="{}")
+
+    monkeypatch.setattr(m.subprocess, "run", run)
+    assert m._child_source("host") == {}
+    assert len(calls) == 1
+    argv, kwargs = calls[0]
+    assert argv[:3] == ["/usr/bin/uv", "run", "--locked"]
+    assert "--offline" not in argv
+    assert Path(argv[argv.index("--project") + 1]).name == "host"
+    assert kwargs["cwd"] == m.ROOT
+    assert kwargs["check"] is True
+
+
 def test_source_observation_error_remains_unknown_not_false(monkeypatch, capsys) -> None:
     import json
     import sys
