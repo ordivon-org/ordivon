@@ -29,6 +29,12 @@ run = "mise run verify"
 run = """
 set -euo pipefail
 export UV_PYTHON="$(command -v python)"
+# Bind existing workstation-owned native carriers; preserve explicit caller selection.
+export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-${ARTIFACT_PLAYWRIGHT_BROWSERS_PATH:-/opt/ordivon/external/artifact-toolchain/playwright-browsers/1.63.0}}"
+if [ -z "${ARTIFACT_TEMPORAL_CLI:-}" ]; then
+  ARTIFACT_TEMPORAL_CLI="$(command -v temporal || true)"
+  export ARTIFACT_TEMPORAL_CLI="${ARTIFACT_TEMPORAL_CLI:-/opt/ordivon/external/temporal-cli/1.8.3/temporal}"
+fi
 uv lock --check
 uv sync --locked
 unset PYTEST_ADDOPTS PYTEST_PLUGINS
