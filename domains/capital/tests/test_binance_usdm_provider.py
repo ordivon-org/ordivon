@@ -223,3 +223,26 @@ def test_private_readonly_preflight_is_credential_free():
     )
     assert "credentialsLoaded=false" in p.stdout
     assert "GET-only" in p.stdout
+
+def test_sdk_value_projection_has_one_owner_and_preserves_model_shape():
+    from ordivon_capital import binance_sdk_values as shared
+    from ordivon_capital.markets import binance_usdm_public_capture as public
+    from ordivon_capital.trading import binance_usdm_private_capture as private
+
+    class Model:
+        def __init__(self, value):
+            self.value = value
+
+        def model_dump(self):
+            return self.value
+
+    assert public.dump_sdk_value is shared.dump_sdk_value
+    assert public.unwrap_sdk_value is shared.unwrap_sdk_value
+    assert private.unwrap_sdk_value is shared.unwrap_sdk_value
+    assert shared.dump_sdk_value([Model({"x": 1}), [Model("v"), None]]) == [
+        {"x": 1}, ["v", None],
+    ]
+    assert shared.unwrap_sdk_value(Model({"actual_instance": [1, 2]})) == [1, 2]
+    assert shared.unwrap_sdk_value(Model({"actual_instance": None})) is None
+    assert shared.unwrap_sdk_value({"plain": 1}) == {"plain": 1}
+    assert shared.unwrap_sdk_value(4) == 4
