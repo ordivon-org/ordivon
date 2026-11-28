@@ -1,4 +1,4 @@
-# Harness R2.1 Agent-Task Refinement — Execution Spec R1.1
+# Harness Agent-Task Refinement — Execution Spec R1.1
 
 Status: **implementation-bound proposal**. This is a task specification, not a new authority, admitted runtime LEGO, universal evaluator, or proof of deployed behavior.
 Original proposal: 2026-11-09 (Asia/Shanghai), SourceCut `ordivon-org/ordivon@c88a7f22738417c0e7517fafb8ed8999806c29e3`. Currentness review: 2026-11-26, observed main `25ed2e877d20028ef4cb8348ee9a09ee7cc727bf`; see section 6. The dated T1/T2 evidence below is historical. Refresh the current Owner Work and origin/main before acting.
@@ -51,21 +51,30 @@ Four non-negotiable distinctions:
 
 Progress matters too: a trace of more model turns is not progress. When there is a bounded consumer-improving experiment, execute it; otherwise report an exact unknown with a falsifying next observation. Neither endlessly restating uncertainty nor blindly applying changes counts as completion.
 
-### Typed Recursive LEGO R2.1 contract: existing Harness Run persistence responsibility
+### Harness Run persistence: transactional semantics and observations
 
-**Not an additional LEGO registry entry.** This is the target effective contract of the existing `HarnessAgentRun` -> `HarnessStore` production composition and must be checked against real implementation.
+The target existing Run/store composition must implement the caller-bound
+Run contract, qualified PostgreSQL schema, exact source identity and admitted
+Provider/Runtime bindings. The durable state consists of Run revisions,
+journal events, leases, CAS objects, claims, working set and budgets.
+PostgreSQL is the target durable writer; domain and Runtime facts remain
+external.
 
-- `I`: `(HarnessRunContract, ExactSourceCut, PostgresDSN, Schema, ProviderAdapter, OptionalRuntimeBinding)`.
-- `O`: `(CommittedRunRevision, Provider/ToolReceipts, WorkingView, CompletionProposal | RecoveryRequired[UNKNOWN])`.
-- `S`: `(run_id, revision, journal_events, leases, cas_objects, claims, working_set, budgets)`; PostgreSQL is the target durable writer; Domain/Runtime facts remain external.
-- `pre`: Exact Contract digest, qualified PG schema and caller binding, valid state revision/lease and current effect grant.
-- `post`: Atomic Run event admission with revision fence; exact returned receipts/recovery state; **never** a domain-completion guarantee.
-- `inv`: target properties PG1–PG6 below; all have explicit assumptions and negative controls.
-- `eff`: Harness PG transaction for own Run state; Provider/Runtime tool effects only via already-admitted external ports.
-- `c`: typed resource cost (wall time, actual Provider tokens, transaction/IO count) is `UNKNOWN(cost, production-performance-measurement)` until measured on a named consumer; never fabricate zero.
-- `epsilon`: consumer/observer-indexed behavioral-equivalence or approximation obligation; `UNKNOWN(epsilon, exact PG/SQLite observable equivalence and production context)`. Source↔model refinement has its own independent standing and is not silently represented by a scalar error.
-- `prov`: exact source commit above, `src/ordivon_harness/{agent_run,postgres_store,sqlite_store,cli}.py`, `formal/ProviderClaimR1.tla`, `tests/test_postgres_harness_store.py`, actual Job/consumer receipts.
-- `unfold`: bounded spec -> TLA+/TLC model -> source/type/refinement checks -> real PG recovery/fault tests -> installed and caller-consumed Run; each level has independent evidence standing.
+A valid revision, lease, contract digest and current effect grant authorize
+the corresponding operation at its actual owner boundary. Atomic Run event
+admission must retain the revision fence and exact receipts or scoped
+recovery state; it never guarantees domain completion. External effects
+remain with their existing owners. PG1–PG6 below specify concrete
+properties, assumptions and falsifiers.
+
+Measure performance (wall time, Provider tokens and transaction/IO count)
+only for named consumers. PG/SQLite observational equivalence and
+production performance are not established here. Source-to-model
+refinement and installed currentness require their own evidence.
+Relevant native sources are `src/ordivon_harness/{agent_run,postgres_store,sqlite_store,cli}.py`,
+`formal/ProviderClaimR1.tla` and `tests/test_postgres_harness_store.py`.
+Use model checks, native PG recovery/fault tests and actual caller receipts
+for the specific claims they can establish.
 
 ### Properties and falsifying cases
 
@@ -78,11 +87,11 @@ Progress matters too: a trace of more model turns is not progress. When there is
 | PG5 | Run candidate completion is not domain acceptance | successful Runtime Job or final model text becomes task accepted | independent domain/consumer evaluator (T5) |
 | PG6 | Exact SourceCut, model, code, wheel, installed and actual consumer witnesses remain distinct, with no vacuous verification | simulated/green model proof upgrades an untested binary or missing production DSN to DOMAIN_ACCEPTED | independent source-bound receipt and falsifying native consumer (T6) |
 
-PG1–PG6 are desired obligations, not currently all proven. Independent proof of `PgRunSourceAuthority` must not be inferred from docs, even if the local contract is documented.
+PG1–PG6 are desired obligations, not currently all proven. Independent proof of `PgRunSourceAuthority` must not be inferred from documentation.
 
 ## 3A. Adopted mathematical / computer-science foundations (theory -> native obligation)
 
-These are established methods, not a claim that Ordivon invented a new calculus. Use only the smallest theory that changes an actual implementation decision. The full eleven-coordinate R2.1 declaration is a **declaration**, not a theorem or a runtime permission.
+These are established methods, not a claim that Ordivon invented a new calculus. Use only the smallest theory that changes an actual implementation decision. Choose the mathematical structure from the property and actual consumer; no universal declaration shape is required.
 
 ### A. Hoare logic, weakest preconditions, and type-safe admission
 
@@ -107,9 +116,7 @@ Define an abstraction map alpha : S_concrete -> S_abstract. Under proven invaria
 
 Also establish initial-state correspondence, correct observations and the relevant fairness/environment conditions before making a liveness claim. TLC reaching all states of its *bounded model* does not alone establish this source-level simulation.
 
-The verification standing is a product of independently justified claims:
-    E = (DECLARED, MODEL_CHECKED, SOURCE_REFINED, REAL_PG_CONSUMER, INSTALLED_CURRENT, DOMAIN_ACCEPTED).
-Each coordinate requires its own source/digest/tool/environment/negative-observer evidence, or UNKNOWN(reason, scope, remaining obligation). Do not treat E as a single linear grade in which one green step auto-upgrades the rest. A bounded model with no stated fairness does not prove eventual completion. A source-refinement witness must identify the concrete states, transitions and observation map; a timeout postcondition is not a PG journal proof.
+Distinguish the claims that a property is specified, a model is checked, source refines the model, a native PG consumer is qualified, an installation is current, or a domain accepts an outcome. Each claim requires its own applicable evidence or scoped UNKNOWN. One successful check does not upgrade unrelated claims. A bounded model with no stated fairness does not prove eventual completion. A source-refinement witness must identify the concrete states, transitions and observation map; a timeout postcondition is not a PG journal proof.
 
 ### D. Safety/liveness, concurrency and exactly-once misconceptions
 

@@ -14,13 +14,13 @@ Existing neighboring Draft PR **#1997** already retires `docs/MIGRATION_R1.md` a
 ## 2. Mature theory -> decision, with limits
 
 1. **Parnas information hiding (CACM 1972):** decompose by reasons to change, not chronological stages or filenames. Workstation owns node realization/selected provider materialization; Host owns Work truth; Runtime owns Job/Attempt effect; Cloudflare owns remote Worker state; consuming domain owns semantic success. A different reason-to-change sharing one path is a hypothesis for moving/retiring ownership, not automatic refactor authorization. Source: https://doi.org/10.1145/361598.361623
-2. **Assume–Guarantee / Pacti / R2.1:** replacement `A_old => A_new` and `G_new => G_old` only under a common behavior universe, saturation, environment and effect/observer conditions; successful code builds do not discharge external assumptions. Source: https://www.pacti.org/
+2. **Assume–Guarantee / Pacti:** replacement `A_old => A_new` and `G_new => G_old` only under a common behavior universe, saturation, environment and effect/observer conditions; successful code builds do not discharge external assumptions. Source: https://www.pacti.org/
 3. **Hoare/Frame:** bounded source edits must satisfy `WriteSet(change) ⊆ {Workstation tracked files, one explicitly qualified Repo SQL legacy callsite}`. No physical host service/configuration/database/archive is rewritten. Ansible static source semantics do not universally prove OS noninterference. Source: https://doi.org/10.1145/363235.363259
 4. **Refinement / observational equivalence:** `Obs_c(Traces(new)) ⊆ Obs_c(Traces(old contract))` applies only to named live consumers, with explicit stuttering/environment/effect assumptions. Git history can preserve historical source but cannot prove a disconnected manual or remote consumer.
 5. **DSM / MIT:** derive edges from actual source imports, Ansible templates, systemd units, checked-in manifests, test callers and native installed service references. Distinguish deliberate identical systemd settings in different unit/manager scopes from accidentally duplicated application logic. Source: https://dsmweb.org/
 6. **Theory of Constraints / Lean:** focus on the bottleneck—wrong present-tense authority, duplicate one-shot machinery, and current/archived confusion—not filing more review documents. Remove a whole obsolete dependency chain when it has no necessary owner; use existing Git and CI feedback rather than additional approval stages.
 7. **NASA V&V / causal falsification:** inspect the current machine for known installed consumers and independently read file refs before deletion. Static path absence leaves external manual use UNKNOWN; a reversible source deletion is acceptable without declaring production data deleted.
-8. **Recursive LEGO R2.1:** use existing `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)` for the **semantic responsibilities** already admitted, not 265 more LEGOs. Do not invent cost or abstraction values to make a table look formal. Source: `.agents/skills/recursive-lego-calculus/SKILL.md`.
+8. **Ordivon LEGO (OL):** derive mathematical representations from the actual property and consumer, not from a prescribed object shape or one record per file. Do not invent cost or abstraction values. Choose the simplest adequate existing mathematical structure.
 
 ## 3. Upstream mechanism map and subtraction boundaries
 
@@ -73,7 +73,7 @@ References: https://developers.cloudflare.com/workers/versions-and-deployments/ 
 
 ## 7. Pre-implementation adversarial review of each change family
 
-| Target | Theory / R2.1 | Matt / ECC / Superpowers | Over-conservative? | Superficial? | Root representation / mature replacement / negative counterexample |
+| Target | Mathematical basis | Matt / ECC / Superpowers | Over-conservative? | Superficial? | Root representation / mature replacement / negative counterexample |
 |---|---|---|---|---|---|
 | Historical Host projector | No current Host semantic LEGO; retired data re-projection is one-shot archival source, not active authority | search-first callsites, source-cut and native ref checks; do not create test harness | Keeping a 463-line CLI solely due tests is conservative | Deleting only docs would be superficial | Remove whole self-referential historical chain; must **not** remove immutable Host v1 backup, current PG Work truth or SQLite migration utility still used |
 | Host and WSL systemd | Single effect owner; source vs activated generation differ | native Ansible and OS readback | Adding an approval controller is conservative | Renaming YAML without fixing effects is superficial | Keep current #1967/#1987 hardening; verify active/cold profile; never re-add Windows global writer |
