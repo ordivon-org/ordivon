@@ -7,9 +7,21 @@ same VPN using native GitHub CLI, returned complete, digest-verified bytes.
 
 The Network consumer code github_release_mise.py checks one exact upstream
 GitHub asset ID, declared state, name, size, archive SHA256 and extracted
-binary SHA256. It then atomically installs it in the path owned by upstream
-jdx/mise-action. The upstream pinned action is retained for toolchain and
-PATH management, and independently checks its sha256 input.
+binary SHA256. Before extraction it also qualifies the official Packslip
+bundle with native gh attestation verification, binding repository, signer
+workflow, release tag, issuer, and predicate type. It then atomically installs
+the verified binary in the path owned by upstream jdx/mise-action. The upstream
+pinned action is retained for toolchain and PATH management, and independently
+checks its sha256 input.
+
+Root verification may set ORDIVON_MISE_SIGNED_PAIR_CACHE_DIR to a private
+absolute directory restored by the existing Actions cache. It stores exactly
+the original archive and bundle, not an executable or verification receipt.
+Both files are copied to a private directory and requalified on every restore.
+A missing or empty cache uses the official API; partial, corrupted, or unexpected
+cache members fail closed. The publishing workflow deliberately does not enable
+this cache. A cache hit avoids release-asset downloads, but the native verifier
+may still need current trust material; this is not an offline guarantee.
 
 Run at monorepo root with gh authentication:
 python3 platform/network/consumers/developer-egress/github_release_mise.py

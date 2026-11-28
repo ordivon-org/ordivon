@@ -18,6 +18,10 @@ ASSET_NAME = "mise-v2026.9.12-linux-x64.tar.zst"
 ASSET_SIZE = 31356996
 ASSET_SHA256 = "e302176806b007f63eacaa22f10418a651c25a9d98a606d9ea40fe7198af3bf2"
 BINARY_SHA256 = "e79ae57945034903aee8aa2ea66b4c7ca9cd4f4edd5a8a78a589cbae6d0f428a"
+BUNDLE_ID = 576723325
+BUNDLE_NAME = "packslip.sigstore.json"
+BUNDLE_SIZE = 40866
+BUNDLE_SHA256 = "9b07e65a96e17d1e5eae2b5c4adc17c747c1952adc726baec7f370cf3470c648"
 
 
 def file_sha256(path: Path) -> str:
@@ -47,36 +51,104 @@ def mise_dir() -> Path:
     return Path.home() / ".local" / "share" / "mise"
 
 
+def acquire_pinned_asset(path: Path, asset_id: int, size: int, digest: str) -> None:
+    endpoint = f"repos/{REPO}/releases/assets/{asset_id}"
+    row = json.loads(subprocess.run(
+        ["gh", "api", endpoint], check=True, capture_output=True,
+        text=True, timeout=35,
+    ).stdout)
+    if asset_id == ASSET_ID:
+        verify_metadata(row)
+    elif (
+        row.get("id") != asset_id or row.get("name") != path.name
+        or row.get("size") != size or row.get("digest") != "sha256:" + digest
+        or row.get("state") != "uploaded"
+    ):
+        raise ValueError("official signature bundle identity/size/digest mismatch")
+    for attempt in range(1, 4):
+        try:
+            with path.open("wb") as out:
+                subprocess.run(
+                    ["gh", "api", "-H", "Accept: application/octet-stream", endpoint],
+                    stdout=out, check=True, timeout=150,
+                )
+            break
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+            if attempt == 3:
+                raise
+            time.sleep(attempt)
+    if path.stat().st_size != size or file_sha256(path) != digest:
+        raise ValueError("official asset mismatch or partial download")
+
+
+def verify_release_signature(archive: Path, bundle: Path) -> None:
+    """Delegate signature and artifact binding to the already required native gh."""
+    subprocess.run(
+        ["gh", "attestation", "verify", str(archive), "--bundle", str(bundle),
+         "--repo", REPO, "--signer-workflow", f"{REPO}/.github/workflows/release.yml",
+         "--source-ref", f"refs/tags/v{VERSION}",
+         "--cert-oidc-issuer", "https://token.actions.githubusercontent.com",
+         "--predicate-type", "https://packslip.dev/release/v1"],
+        check=True, timeout=90,
+    )
+
+
+def restore_signed_pair(cache: Path | None, base: Path) -> bool:
+    """Materialize untrusted cache bytes into the private verification directory."""
+    if cache is None:
+        return False
+    if not cache.is_absolute() or cache.is_symlink():
+        raise ValueError("invalid signed-pair cache directory")
+    if not cache.exists():
+        return False
+    if not cache.is_dir():
+        raise ValueError("invalid signed-pair cache directory")
+    members = {entry.name for entry in cache.iterdir()}
+    if not members:
+        return False
+    if members != {ASSET_NAME, BUNDLE_NAME}:
+        raise ValueError("incomplete or unexpected signed-pair cache")
+    for name, size, digest in (
+        (ASSET_NAME, ASSET_SIZE, ASSET_SHA256),
+        (BUNDLE_NAME, BUNDLE_SIZE, BUNDLE_SHA256),
+    ):
+        src = cache / name
+        if src.is_symlink() or not src.is_file():
+            raise ValueError("invalid signed-pair cache member")
+        dst = base / name
+        shutil.copyfile(src, dst)
+        if dst.stat().st_size != size or file_sha256(dst) != digest:
+            raise ValueError("signed-pair cache content mismatch")
+    return True
+
+
+def publish_signed_pair(cache: Path, base: Path) -> None:
+    """Publish the complete pair atomically; never cache a verification receipt."""
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".mise-pair-", dir=cache.parent) as tmp:
+        staged = Path(tmp) / "pair"
+        staged.mkdir()
+        for name in (ASSET_NAME, BUNDLE_NAME):
+            shutil.copyfile(base / name, staged / name)
+        # A nonempty competing cache cannot be replaced by this rename.
+        os.replace(staged, cache)
+
+
 def provision() -> Path:
     target = mise_dir() / "bin" / "mise"
-    if target.is_file() and file_sha256(target) == BINARY_SHA256:
-        print("NETWORK_GH_API_MISE_REUSED", VERSION)
-        return target
-
-    row = json.loads(subprocess.run(
-        ["gh", "api", "repos/jdx/mise/releases/assets/576717062"],
-        check=True, capture_output=True, text=True, timeout=35,
-    ).stdout)
-    verify_metadata(row)
-
+    cache_value = os.environ.get("ORDIVON_MISE_SIGNED_PAIR_CACHE_DIR")
+    cache = Path(cache_value) if cache_value else None
     with tempfile.TemporaryDirectory(prefix="ordivon-ci-mise-") as tmp:
         base = Path(tmp)
         archive = base / ASSET_NAME
-        for attempt in range(1, 4):
-            try:
-                with archive.open("wb") as out:
-                    subprocess.run(
-                        ["gh", "api", "-H", "Accept: application/octet-stream",
-                         "repos/jdx/mise/releases/assets/576717062"],
-                        stdout=out, check=True, timeout=150,
-                    )
-                break
-            except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-                if attempt == 3:
-                    raise
-                time.sleep(attempt)
-        if archive.stat().st_size != ASSET_SIZE or file_sha256(archive) != ASSET_SHA256:
-            raise ValueError("binary response mismatch or partial download")
+        bundle = base / BUNDLE_NAME
+        restored = restore_signed_pair(cache, base)
+        if not restored:
+            acquire_pinned_asset(archive, ASSET_ID, ASSET_SIZE, ASSET_SHA256)
+            acquire_pinned_asset(bundle, BUNDLE_ID, BUNDLE_SIZE, BUNDLE_SHA256)
+        verify_release_signature(archive, bundle)
+        print("NETWORK_GH_API_MISE_SIGNED_PAIR_RESTORED" if restored else
+              "NETWORK_GH_API_MISE_SIGNED_PAIR_ACQUIRED", VERSION)
         subprocess.run(
             ["tar", "--zstd", "-xf", str(archive), "-C", str(base), "mise/bin/mise"],
             check=True, timeout=45,
@@ -84,6 +156,11 @@ def provision() -> Path:
         binary = base / "mise/bin/mise"
         if not binary.is_file() or file_sha256(binary) != BINARY_SHA256:
             raise ValueError("extracted mise binary does not match pinned identity")
+        if target.is_file() and not target.is_symlink() and file_sha256(target) == BINARY_SHA256:
+            if cache is not None and not restored:
+                publish_signed_pair(cache, base)
+            print("NETWORK_GH_API_MISE_SIGNED_REUSED", VERSION)
+            return target
         binary.chmod(0o755)
         actual = subprocess.run(
             [str(binary), "version"], check=True, capture_output=True,
@@ -92,6 +169,8 @@ def provision() -> Path:
         ).stdout.split()[0]
         if actual != VERSION:
             raise ValueError("executable version does not match pin")
+        if cache is not None and not restored:
+            publish_signed_pair(cache, base)
         target.parent.mkdir(parents=True, exist_ok=True)
         staged = target.with_name(f".mise-{os.getpid()}.new")
         try:
@@ -102,7 +181,7 @@ def provision() -> Path:
             os.replace(staged, target)
         finally:
             staged.unlink(missing_ok=True)
-    print("NETWORK_GH_API_MISE_VERIFIED", VERSION, ASSET_SIZE)
+    print("NETWORK_GH_API_MISE_SIGNED_VERIFIED", VERSION, ASSET_SIZE)
     return target
 
 
