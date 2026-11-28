@@ -31,6 +31,27 @@ A later enrichment of the same Episode creates another projection version. It ne
 
 No raw owner payload, prompt, workspace snapshot, execution plan, event payload, artifact bytes, credential, or secret column exists.
 
+## Architecture convergence — 2026-11-28
+
+- Structured JSON identities (ingest, analysis and R5C) consume Composition's
+  public `canonical_digest`. Keep raw source byte SHA-256 separate. The
+  historical encoding for valid JSON is pinned by fixed receipt/analysis
+  digests; non-JSON values are not a supported digest input.
+- Ingest and committed readback use the same five-table projection mapping
+  and column definitions. Alembic remains the sole schema authority.
+  Driver-specific JSONB write adaptation and DOUBLE PRECISION readback
+  normalization stay at their respective boundaries. Independent explicit SQL
+  fixtures verify stored fields, optional values and JSON null without using
+  the shared mapping; this is intentional test-oracle independence.
+- Progress: digest consolidation and projection mapping consolidation are
+  source-complete; disposable PostgreSQL 18.7 qualification and the
+  independent swapped-anchor negative control passed. No database migration,
+  deployment, or new runtime dependency was introduced.
+- Next candidates: compare receipt identity construction/replay/readback
+  field mappings for semantic duplication; evaluate repeated analysis
+  aggregation only against a real consumer. Preserve the independent SQL
+  oracle and do not replace it with shared implementation assertions.
+
 ## Migration law
 
 Alembic is the sole schema authority. The ingest program never creates or migrates schema.

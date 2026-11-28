@@ -377,6 +377,94 @@ def populated_input(tmp_path: Path, name: str) -> Path:
     return source
 
 
+def test_pg_projection_columns_match_independent_sql_contract(
+    pg_dsn: str, tmp_path: Path
+) -> None:
+    """An independent SQL oracle must not reuse the producer's row mapping."""
+    source = populated_input(tmp_path, "independent-columns.jsonl")
+    record = json.loads(source.read_text(encoding="utf-8"))
+    record["ownerRefs"].append(
+        {
+            "ownerId": "host",
+            "objectKind": "work",
+            "objectId": "work:test",
+            "relation": "observed",
+        }
+    )
+    record["evidenceBindings"].append(
+        {"kind": "event", "count": 7, "setDigest": sha("d")}
+    )
+    record["dimensions"].append({"name": "nullable", "value": None})
+    record["measures"].append({"name": "count", "value": 3})
+    source.write_text(json.dumps(record, sort_keys=True) + "\n", encoding="utf-8")
+    receipt = admit(pg_dsn, source, corpus=tmp_path.name)
+    key = (record["episodeId"], record["projectionDigest"])
+
+    with psycopg.connect(pg_dsn) as db:
+        assert db.execute(
+            """
+            SELECT profile_id, data_class, anchor_owner_id, anchor_object_kind,
+                   anchor_object_id, source_record_digest
+            FROM episode_projections
+            WHERE episode_id = %s AND projection_digest = %s
+            """,
+            key,
+        ).fetchone() == (
+            "runtime-r5c-v1",
+            "EXPERIENCE",
+            "runtime",
+            "execution",
+            "execution:1",
+            sha("a"),
+        )
+        assert db.execute(
+            """
+            SELECT owner_id, object_kind, object_id, relation, digest
+            FROM episode_owner_refs
+            WHERE episode_id = %s AND projection_digest = %s
+            ORDER BY owner_id
+            """,
+            key,
+        ).fetchall() == [
+            ("host", "work", "work:test", "observed", None),
+            ("runtime", "event", "event:test", "produced-by", sha("e")),
+        ]
+        assert db.execute(
+            """
+            SELECT kind, evidence_count, set_digest, total_bytes, truncated_count
+            FROM episode_evidence_bindings
+            WHERE episode_id = %s AND projection_digest = %s
+            ORDER BY kind
+            """,
+            key,
+        ).fetchall() == [
+            ("artifact", 3, sha("c"), 91, 0),
+            ("event", 7, sha("d"), None, None),
+        ]
+        assert db.execute(
+            """
+            SELECT name, value, value IS NULL
+            FROM episode_dimensions
+            WHERE episode_id = %s AND projection_digest = %s
+            ORDER BY name
+            """,
+            key,
+        ).fetchall() == [
+            ("nullable", None, False),
+            ("settings", {"list": [1, "two"]}, False),
+        ]
+        assert db.execute(
+            """
+            SELECT name, value, unit
+            FROM episode_measures
+            WHERE episode_id = %s AND projection_digest = %s
+            ORDER BY name
+            """,
+            key,
+        ).fetchall() == [("cost", 2.5, "seconds"), ("count", 3.0, None)]
+    assert readback(pg_dsn, receipt, source)["episodeCount"] == 1
+
+
 @pytest.mark.parametrize(
     ("table", "mutation"),
     [

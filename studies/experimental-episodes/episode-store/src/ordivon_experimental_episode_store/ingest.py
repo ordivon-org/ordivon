@@ -148,114 +148,6 @@ def _set_role(conn: psycopg.Connection[Any], role: str | None) -> None:
     conn.execute(sql.SQL("SET ROLE {}").format(sql.Identifier(safe)))
 
 
-def _insert_episode(conn: psycopg.Connection[Any], episode: dict[str, Any]) -> bool:
-    anchor = episode["anchor"]
-    projection_digest = episode["projectionDigest"]
-    inserted = (
-        conn.execute(
-            """
-            INSERT INTO episode_projections(
-              episode_id, projection_digest, profile_id, data_class,
-              anchor_owner_id, anchor_object_kind, anchor_object_id,
-              source_record_digest
-            )
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-            ON CONFLICT DO NOTHING
-            RETURNING 1
-            """,
-            (
-                episode["episodeId"],
-                projection_digest,
-                episode["profileId"],
-                episode["dataClass"],
-                anchor["ownerId"],
-                anchor["objectKind"],
-                anchor["objectId"],
-                anchor["sourceRecordDigest"],
-            ),
-        ).fetchone()
-        is not None
-    )
-
-    for ref in episode["ownerRefs"]:
-        conn.execute(
-            """
-            INSERT INTO episode_owner_refs(
-              episode_id, projection_digest, owner_id, object_kind,
-              object_id, relation, digest
-            )
-            VALUES (%s,%s,%s,%s,%s,%s,%s)
-            ON CONFLICT DO NOTHING
-            """,
-            (
-                episode["episodeId"],
-                projection_digest,
-                ref["ownerId"],
-                ref["objectKind"],
-                ref["objectId"],
-                ref["relation"],
-                ref.get("digest"),
-            ),
-        )
-
-    for binding in episode["evidenceBindings"]:
-        conn.execute(
-            """
-            INSERT INTO episode_evidence_bindings(
-              episode_id, projection_digest, kind, evidence_count,
-              set_digest, total_bytes, truncated_count
-            )
-            VALUES (%s,%s,%s,%s,%s,%s,%s)
-            ON CONFLICT DO NOTHING
-            """,
-            (
-                episode["episodeId"],
-                projection_digest,
-                binding["kind"],
-                binding["count"],
-                binding["setDigest"],
-                binding.get("totalBytes"),
-                binding.get("truncatedCount"),
-            ),
-        )
-
-    for dimension in episode["dimensions"]:
-        conn.execute(
-            """
-            INSERT INTO episode_dimensions(
-              episode_id, projection_digest, name, value
-            )
-            VALUES (%s,%s,%s,%s)
-            ON CONFLICT DO NOTHING
-            """,
-            (
-                episode["episodeId"],
-                projection_digest,
-                dimension["name"],
-                Jsonb(dimension["value"]),
-            ),
-        )
-
-    for measure in episode["measures"]:
-        conn.execute(
-            """
-            INSERT INTO episode_measures(
-              episode_id, projection_digest, name, value, unit
-            )
-            VALUES (%s,%s,%s,%s,%s)
-            ON CONFLICT DO NOTHING
-            """,
-            (
-                episode["episodeId"],
-                projection_digest,
-                measure["name"],
-                measure["value"],
-                measure.get("unit"),
-            ),
-        )
-    return inserted
-
-
 # Columns are fixed by this Owner's existing Alembic schema. Reuse that
 # schema rather than adding an ingest-to-projection tracking table.
 _PROJECTION_COLUMNS: dict[str, tuple[str, ...]] = {
@@ -304,7 +196,7 @@ _PROJECTION_COLUMNS: dict[str, tuple[str, ...]] = {
 _PROJECTION_READ_BATCH = 256
 
 
-def _expected_projection_rows(
+def _projection_rows(
     episode: dict[str, Any],
 ) -> dict[str, list[tuple[Any, ...]]]:
     key = (episode["episodeId"], episode["projectionDigest"])
@@ -347,10 +239,34 @@ def _expected_projection_rows(
             key + (item["name"], item["value"]) for item in episode["dimensions"]
         ],
         "episode_measures": [
-            key + (item["name"], float(item["value"]), item.get("unit"))
+            key + (item["name"], item["value"], item.get("unit"))
             for item in episode["measures"]
         ],
     }
+
+
+def _insert_episode(conn: psycopg.Connection[Any], episode: dict[str, Any]) -> bool:
+    inserted = False
+    for table, rows in _projection_rows(episode).items():
+        columns = _PROJECTION_COLUMNS[table]
+        query = sql.SQL(
+            "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT DO NOTHING"
+        ).format(
+            sql.Identifier(table),
+            sql.SQL(", ").join(map(sql.Identifier, columns)),
+            sql.SQL(", ").join(sql.Placeholder() for _ in columns),
+        )
+        is_root = table == "episode_projections"
+        if is_root:
+            query += sql.SQL(" RETURNING 1")
+        for row in rows:
+            # Adapt JSON only at the SQL boundary; JSON null remains JSON null.
+            if table == "episode_dimensions":
+                row = (*row[:-1], Jsonb(row[-1]))
+            cursor = conn.execute(query, row)
+            if is_root:
+                inserted = cursor.fetchone() is not None
+    return inserted
 
 
 def _check_stored_projection_rows(
@@ -368,7 +284,15 @@ def _check_stored_projection_rows(
             table: Counter() for table in _PROJECTION_COLUMNS
         }
         for record in batch:
-            for table, rows in _expected_projection_rows(record).items():
+            for table, rows in _projection_rows(record).items():
+                # PostgreSQL reads DOUBLE PRECISION as float, even when the
+                # source JSON measure was an integer. Keep write adaptation
+                # native and normalize only the readback comparison.
+                if table == "episode_measures":
+                    rows = [
+                        (episode_id, digest, name, float(value), unit)
+                        for episode_id, digest, name, value, unit in rows
+                    ]
                 expected[table].update(
                     json.dumps(row, sort_keys=True, ensure_ascii=False, allow_nan=False)
                     for row in rows
