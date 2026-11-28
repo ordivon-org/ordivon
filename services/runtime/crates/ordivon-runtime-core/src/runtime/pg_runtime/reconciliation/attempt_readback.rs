@@ -45,10 +45,13 @@ pub(super) fn require_recovery_current_attempt(
 /// Runner publishes result.json after completing its command; systemctl/cgroup
 /// probes between an earlier file check and LOST commit can otherwise miss a
 /// result that was durably written during the probes.
-/// Match the PG Job-list recovery projection: a nonterminal issued Attempt
+/// Shared recovery observation: a nonterminal issued Attempt
 /// requiring a native startup, stop, or recovery witness must never be
 /// advertised as recovery-free. A healthy running Job remains ordinary work.
-pub(super) fn needs_recovery_observation(state: AttemptState, terminal: bool) -> bool {
+pub(in crate::runtime::pg_runtime) fn needs_recovery_observation(
+    state: AttemptState,
+    terminal: bool,
+) -> bool {
     !terminal
         && matches!(
             state,

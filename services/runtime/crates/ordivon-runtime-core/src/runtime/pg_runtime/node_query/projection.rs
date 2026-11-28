@@ -1,6 +1,7 @@
 //! PG-qualified Job row read-only view: malformed frozen Plan stays row-local UNKNOWN.
 use super::super::{
-    decode, now, pg_delivery_disposition, PgRuntime, RuntimeExecutionPlan, RuntimeResult,
+    decode, now, pg_delivery_disposition, reconciliation::needs_recovery_observation, AttemptState,
+    PgRuntime, RuntimeExecutionPlan, RuntimeResult,
 };
 use serde_json::json;
 use std::path::Path;
@@ -51,6 +52,12 @@ impl PgRuntime {
             resolution.as_deref(),
             finished.is_some() && r.get::<_, bool>(15),
         );
+        // Listing preserves its row-local finished-at qualification; the
+        // detailed observation uses the independently qualified terminal flag.
+        let recovery_required = attempt_state
+            .as_deref()
+            .and_then(AttemptState::known_db_state)
+            .is_some_and(|state| needs_recovery_observation(state, finished.is_some()));
         Ok(json!({
             "jobId":r.get::<_,String>(0),
             "operationDigest":r.get::<_,String>(1),
@@ -68,7 +75,7 @@ impl PgRuntime {
             "executionDisposition":resolution,
             "executionReasonCode":r.get::<_,Option<String>>(17),
             "deliveryDisposition":delivery,
-            "recoveryRequired":finished.is_none() && r.get::<_,Option<String>>(8).as_deref().is_some_and(|state| matches!(state,"starting"|"stopping"|"recovering")),
+            "recoveryRequired":recovery_required,
             "semanticCompletionEvaluated":false,
             "sourceRevision":plan.as_ref().map(|plan| &plan.source_revision),
             "executableName":plan.as_ref().map(|plan| {
