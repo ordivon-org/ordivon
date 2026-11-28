@@ -240,11 +240,18 @@ def episode_metrics(normalized: dict[str, Any]) -> list[dict[str, Any]]:
     return observations
 
 
+def _attributed_episodes(observations: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [row for row in observations if row["enqueueAt"] and row["mergeGroupRunId"]]
+
+
 def extract_metrics(normalized: dict[str, Any]) -> dict[str, Any]:
     """Pure metric extraction from canonical observations."""
-    observations = episode_metrics(normalized)
-    complete = [row for row in observations if row["enqueueAt"] and row["mergeGroupRunId"]]
+    return _aggregate_metrics(normalized, _attributed_episodes(episode_metrics(normalized)))
 
+
+def _aggregate_metrics(
+    normalized: dict[str, Any], complete: list[dict[str, Any]],
+) -> dict[str, Any]:
     depth = 0
     peak = 0
     for transition in normalized["queueTransitions"]:
@@ -290,7 +297,7 @@ def extract_metrics(normalized: dict[str, Any]) -> dict[str, Any]:
 
 def project(normalized: dict[str, Any]) -> dict[str, Any]:
     observations = episode_metrics(normalized)
-    complete = [row for row in observations if row["enqueueAt"] and row["mergeGroupRunId"]]
+    complete = _attributed_episodes(observations)
     return {
         "schemaVersion": 2,
         "kind": "ordivon.queue-observation-projection",
@@ -318,7 +325,7 @@ def project(normalized: dict[str, Any]) -> dict[str, Any]:
         },
         "episodes": normalized["episodes"],
         "episodeMetrics": observations,
-        "metrics": extract_metrics(normalized),
+        "metrics": _aggregate_metrics(normalized, complete),
     }
 
 
