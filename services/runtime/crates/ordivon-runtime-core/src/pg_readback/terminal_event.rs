@@ -135,18 +135,16 @@ pub(super) fn terminal_events_coherent(
                 {
                     return Ok(false);
                 }
-                let issued: i64 = tx.query_one(
-                    "SELECT COUNT(*) FROM job_events WHERE job_id=$1 AND attempt_id=$2                      AND event_type='DISPATCH_ISSUED' AND origin='SYSTEM_DERIVED'                      AND reason_code='AT_MOST_ONCE_BOUNDARY_COMMITTED'",
+                let counts = tx.query_one(
+                    "SELECT COUNT(*) FILTER (WHERE event_type='DISPATCH_ISSUED' AND origin='SYSTEM_DERIVED' AND reason_code='AT_MOST_ONCE_BOUNDARY_COMMITTED'),
+                            COUNT(*) FILTER (WHERE event_type='STOP_REQUESTED'),
+                            COUNT(*) FILTER (WHERE event_type='RUNNER_BOUND')
+                     FROM job_events WHERE job_id=$1 AND attempt_id=$2",
                     &[&snapshot.job_id, &snapshot.attempt_id],
-                )?.get(0);
-                let stopped: i64 = tx.query_one(
-                    "SELECT COUNT(*) FROM job_events WHERE job_id=$1 AND attempt_id=$2                      AND event_type='STOP_REQUESTED'",
-                    &[&snapshot.job_id, &snapshot.attempt_id],
-                )?.get(0);
-                let runner_bound: i64 = tx.query_one(
-                    "SELECT COUNT(*) FROM job_events WHERE job_id=$1 AND attempt_id=$2                      AND event_type='RUNNER_BOUND'",
-                    &[&snapshot.job_id, &snapshot.attempt_id],
-                )?.get(0);
+                )?;
+                let issued: i64 = counts.get(0);
+                let stopped: i64 = counts.get(1);
+                let runner_bound: i64 = counts.get(2);
                 if issued != 1 || stopped != 1 || runner_bound != 0 {
                     return Ok(false);
                 }
