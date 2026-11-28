@@ -37,7 +37,7 @@ Alembic is the sole schema authority. The ingest program never creates or migrat
 
 ## Ingest law
 
-An ingest is bound to exact corpus ID, profile ID, source file SHA-256, projection-set digest, Episode schema digest, and adapter digest.
+An ingest is bound to exact corpus ID, profile ID, source file SHA-256, projection-set digest, Episode schema digest, and adapter digest. Before any PostgreSQL effect, every JSONL row is also validated against the installed Composition-owned Episode R1 JSON Schema, so schema-invalid fields cannot be silently projected away. The caller-supplied `schemaDigest` remains provenance included in the ingest identity; this local validation does not independently authenticate that digest as the historical schema version that produced the source.
 
 The deterministic ingest ID makes replay idempotent. Replaying an accepted ingest returns the retained receipt instead of writing a second ingest or mutating owner truth.
 
