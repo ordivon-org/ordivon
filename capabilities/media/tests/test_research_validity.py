@@ -27,6 +27,33 @@ PG_DSN = os.environ.get("ORDIVON_MEDIA_TRIAL_TEST_DSN")
 
 
 class ResearchValidityTest(unittest.TestCase):
+    def test_grounded_text_contract_has_one_owner(self) -> None:
+        from ordivon_studio.research import (
+            grounded_contracts,
+            grounded_evidence,
+            trial_ledger,
+            trial_registration,
+        )
+
+        validate = grounded_contracts.require_trimmed_text
+        for module in (grounded_evidence, trial_registration, trial_ledger):
+            self.assertIs(module.require_trimmed_text, validate)
+            self.assertNotIn("_strict_text", vars(module))
+        for value in ("中文", "é", "a b", "a\nb"):
+            self.assertEqual(validate(value, "fixture"), value)
+        for value in (None, 1, True, "", " ", " x", "x ", "\tfoo", "foo\u3000"):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, "fixture must be a non-empty trimmed string"):
+                    validate(value, "fixture")
+        with self.assertRaisesRegex(ValueError, "evidenceId must be a non-empty trimmed string"):
+            grounded_evidence.validate_evidence_catalog([{"evidenceId": " E"}])
+        registration = self.registration()
+        registration["hypothesis"] = " "
+        with self.assertRaisesRegex(ValueError, "hypothesis must be a non-empty trimmed string"):
+            trial_registration.validate_registration(registration)
+        with self.assertRaisesRegex(ValueError, "search_id must be a non-empty trimmed string"):
+            trial_ledger.TrialLedger("postgresql://unused.invalid/fixture", search_id=" bad")
+
     def registration(self, *, mode: str = "static", budget: int = 200) -> dict:
         return build_null_registration(
             mode=mode,

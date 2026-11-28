@@ -10,7 +10,7 @@ import hashlib
 from collections.abc import Mapping
 from typing import Any
 
-from .grounded_contracts import canonical_digest
+from .grounded_contracts import canonical_digest, require_trimmed_text
 
 OUTCOME_ROLES = ("primary", "guardrail", "secondary", "exploratory")
 
@@ -22,19 +22,13 @@ def seed_commitment(seed: str) -> str:
     return "sha256:" + hashlib.sha256(seed.encode("utf-8")).hexdigest()
 
 
-def _strict_text(value: object, label: str) -> str:
-    if not isinstance(value, str) or not value.strip() or value != value.strip():
-        raise ValueError(f"{label} must be a non-empty trimmed string")
-    return value
-
-
 def validate_registration(value: Mapping[str, Any]) -> dict[str, Any]:
     registration = dict(value)
     if registration.get("schemaVersion") != 1 or registration.get("kind") != "ordivon.studio.creative-alpha-experiment":
         raise ValueError("unsupported Creative Alpha experiment registration")
-    _strict_text(registration.get("experimentId"), "experimentId")
-    _strict_text(registration.get("hypothesis"), "hypothesis")
-    _strict_text(registration.get("observerClass"), "observerClass")
+    require_trimmed_text(registration.get("experimentId"), "experimentId")
+    require_trimmed_text(registration.get("hypothesis"), "hypothesis")
+    require_trimmed_text(registration.get("observerClass"), "observerClass")
     encounter = registration.get("encounter")
     if not isinstance(encounter, dict) or not encounter:
         raise ValueError("encounter must be a non-empty object")
@@ -46,7 +40,7 @@ def validate_registration(value: Mapping[str, Any]) -> dict[str, Any]:
     for raw in outcomes:
         if not isinstance(raw, dict):
             raise ValueError("outcome must be an object")
-        outcome_id = _strict_text(raw.get("outcomeId"), "outcomeId")
+        outcome_id = require_trimmed_text(raw.get("outcomeId"), "outcomeId")
         if outcome_id in seen:
             raise ValueError(f"duplicate outcomeId: {outcome_id}")
         seen.add(outcome_id)
@@ -54,7 +48,7 @@ def validate_registration(value: Mapping[str, Any]) -> dict[str, Any]:
         if role not in OUTCOME_ROLES:
             raise ValueError(f"unsupported outcome role: {role}")
         primary_count += int(role == "primary")
-        _strict_text(raw.get("measure"), "outcome measure")
+        require_trimmed_text(raw.get("measure"), "outcome measure")
     if primary_count != 1:
         raise ValueError("exactly one primary outcome is required in R6 v0")
     search = registration.get("search")
@@ -65,7 +59,7 @@ def validate_registration(value: Mapping[str, Any]) -> dict[str, Any]:
     budget = search.get("attemptBudget")
     if not isinstance(budget, int) or budget < 2:
         raise ValueError("search attemptBudget must be >= 2")
-    _strict_text(search.get("visibleSeed"), "visible search seed")
+    require_trimmed_text(search.get("visibleSeed"), "visible search seed")
     stop_rule = registration.get("stopRule")
     if stop_rule != {"kind": "fixed-attempt-budget", "attemptBudget": budget}:
         raise ValueError("R6 v0 requires a fixed attempt-budget stop rule")
