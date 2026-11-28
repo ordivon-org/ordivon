@@ -244,6 +244,8 @@ class NativePgReleaseOperator(unittest.TestCase):
         cls.postgres = subprocess.Popen([
             binary("postgres"),"-D",str(cls.root/"data"),
             "-k",str(cls.root),"-h","","-p","5432","-c","fsync=off",
+            # Match pg_vertical.rs: isolate this disposable PG from shared POSIX DSM.
+            "-c","dynamic_shared_memory_type=mmap",
         ],preexec_fn=unprivileged if os.geteuid()==0 else None,
         stdout=log,stderr=log,env=env)
         cls.log=log
@@ -263,6 +265,8 @@ class NativePgReleaseOperator(unittest.TestCase):
                 time.sleep(.06)
         else:
             raise RuntimeError("disposable postgres did not start")
+        if cls.db.execute("SHOW dynamic_shared_memory_type").fetchone()["dynamic_shared_memory_type"] != "mmap":
+            raise RuntimeError("disposable PG must not share POSIX DSM lifetime")
         cls.db.execute(
             (SCRIPTS.parent / "crates" /
              "ordivon-runtime-core/sql/pg_fresh_epoch.sql").read_text()
