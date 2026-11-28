@@ -1262,6 +1262,11 @@ falsify_workspace_cross_database_claim() {
     fi
     echo "Workspace cross-DB $label counterexample PASS"
   done
+  # The broad unittest suite can run before TLC is materialized on cold CI.
+  # Consume the exact independent recipient/census mutation test here with
+  # this already verified absolute JAR, so missing fixtures cannot skip it.
+  (cd "$ROOT"; ORDIVON_TLA_TOOLS_JAR="$JAR" python -m unittest -v \
+    scripts.tests.test_workspace_cross_database_claim_formal.WorkspaceCrossDatabaseClaimFormalTests.test_recipient_identity_and_complete_census_gate_is_nonvacuous_and_falsifiable)
 }
 
 
