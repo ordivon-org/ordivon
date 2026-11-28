@@ -221,6 +221,102 @@ def _effective_records(records: Iterable[SkillRecord]) -> tuple[SkillRecord, ...
 
 
 
+@dataclass(slots=True)
+class _SourceScanContext:
+    source: SkillSource
+    root: Path
+    project_root: Path | None
+    audited_skill_ids: frozenset[str]
+    user_explicit_skill_ids: frozenset[str]
+    local_ids: set[str]
+
+
+def _scan_skill_record(context: _SourceScanContext, main_resource: Path) -> SkillRecord:
+    source = context.source
+    lst = main_resource.lstat()
+    if stat.S_ISLNK(lst.st_mode) or not stat.S_ISREG(lst.st_mode):
+        raise SkillCatalogError("SKILL_INVALID", "SKILL.md must be a regular non-symlink file")
+    skill_root = main_resource.parent.resolve(strict=True)
+    resolved_resource = main_resource.resolve(strict=True)
+    if not _contained(skill_root, context.root) or not _contained(resolved_resource, skill_root):
+        raise SkillCatalogError("PATH_ESCAPE", "Skill root/resource escapes configured source")
+    body = resolved_resource.read_bytes()
+    if len(body) > MAX_SKILL_MD_BYTES:
+        raise SkillCatalogError("RESOURCE_TOO_LARGE", "SKILL.md exceeds hard size limit")
+    decoded = body.decode("utf-8")
+    parsed = parse_skill_frontmatter(
+        decoded,
+        validation_mode=source.validation_mode,
+        expected_directory_name=skill_root.name,
+    )
+    skill_id = f"{source.source_id}/{parsed.name}"
+    if skill_id in context.local_ids:
+        raise SkillCatalogError("DUPLICATE_SKILL_ID", skill_id)
+    package_revision = _package_revision(skill_root)
+    source_relative_root = skill_root.relative_to(context.root).as_posix()
+    context.local_ids.add(skill_id)
+
+    # Client-private invocation metadata is opt-in only for external/user inputs.
+    client_invocation_disabled = (
+        parsed.client_model_invocation_disabled
+        and source.scope in {"user", "vendor", "plugin"}
+    )
+    configured_implicit = (
+        not _prefix_denied(source_relative_root, source.implicit_deny_prefixes)
+        and not client_invocation_disabled
+    )
+    explicit = not _prefix_denied(source_relative_root, source.explicit_deny_prefixes)
+    eligibility = observe_eligibility(decoded, source.eligibility_adapter)
+    scan = scan_skill_package(skill_root)
+    risk_set = frozenset(scan.risk_tags)
+    non_sanitizable_risks = risk_set - SANITIZABLE_AUTHORITY_RISK_TAGS
+    audited_sanitized = (
+        skill_id in context.audited_skill_ids
+        and scan.state != ScanState.QUARANTINED
+        and not non_sanitizable_risks
+    )
+    user_selected_sanitized = (
+        skill_id in context.user_explicit_skill_ids
+        and scan.state != ScanState.QUARANTINED
+        and not non_sanitizable_risks
+    )
+    implicit = configured_implicit and (
+        not risk_set or audited_sanitized or user_selected_sanitized
+    )
+    if skill_id in context.user_explicit_skill_ids:
+        confidence = ConfidenceTier.USER_EXPLICIT
+    elif audited_sanitized:
+        confidence = ConfidenceTier.THIRD_PARTY_AUDITED
+    elif scan.state == ScanState.PASS:
+        confidence = ConfidenceTier.THIRD_PARTY_SCANNED
+    else:
+        confidence = ConfidenceTier.THIRD_PARTY_UNREVIEWED
+    return SkillRecord(
+        skill_id=skill_id,
+        name=parsed.name,
+        description=parsed.description,
+        source_id=source.source_id,
+        scope=source.scope,
+        source_priority=source.priority,
+        source_relative_root=source_relative_root,
+        skill_root=skill_root,
+        main_resource=resolved_resource,
+        project_root=context.project_root,
+        instruction_digest=_sha256(body),
+        package_revision=package_revision,
+        trust_state=source.trust_state,
+        eligibility_state=eligibility.state,
+        eligibility_reasons=eligibility.reasons,
+        scan_state=scan.state.value,
+        scan_findings=scan.findings,
+        risk_tags=scan.risk_tags,
+        confidence_tier=confidence,
+        implicit_invocation=implicit,
+        explicit_invocation=explicit,
+        diagnostics=parsed.diagnostics,
+    )
+
+
 class SkillCatalog:
     """Federated raw inventory with context-specific effective projections."""
 
@@ -326,8 +422,15 @@ class SkillCatalog:
         project_root = _infer_project_root(source, root)
         records: list[SkillRecord] = []
         diagnostics: list[str] = []
-        local_ids: set[str] = set()
         discovered = valid = invalid = quarantined = 0
+        context = _SourceScanContext(
+            source=source,
+            root=root,
+            project_root=project_root,
+            audited_skill_ids=audited_skill_ids,
+            user_explicit_skill_ids=user_explicit_skill_ids,
+            local_ids=set(),
+        )
         try:
             candidates = sorted(root.rglob("SKILL.md"), key=lambda p: p.as_posix())
         except OSError as exc:
@@ -346,104 +449,16 @@ class SkillCatalog:
             discovered += 1
             relative_display = main_resource.relative_to(root).as_posix()
             try:
-                lst = main_resource.lstat()
-                if stat.S_ISLNK(lst.st_mode) or not stat.S_ISREG(lst.st_mode):
-                    raise SkillCatalogError("SKILL_INVALID", "SKILL.md must be a regular non-symlink file")
-                skill_root = main_resource.parent.resolve(strict=True)
-                resolved_resource = main_resource.resolve(strict=True)
-                if not _contained(skill_root, root) or not _contained(resolved_resource, skill_root):
-                    raise SkillCatalogError("PATH_ESCAPE", "Skill root/resource escapes configured source")
-                body = resolved_resource.read_bytes()
-                if len(body) > MAX_SKILL_MD_BYTES:
-                    raise SkillCatalogError("RESOURCE_TOO_LARGE", "SKILL.md exceeds hard size limit")
-                decoded = body.decode("utf-8")
-                parsed = parse_skill_frontmatter(
-                    decoded,
-                    validation_mode=source.validation_mode,
-                    expected_directory_name=skill_root.name,
-                )
-                skill_id = f"{source.source_id}/{parsed.name}"
-                if skill_id in local_ids:
-                    raise SkillCatalogError("DUPLICATE_SKILL_ID", skill_id)
-                package_revision = _package_revision(skill_root)
-                source_relative_root = skill_root.relative_to(root).as_posix()
-                local_ids.add(skill_id)
-                # Lenient parsing may tolerate client-private frontmatter on any source,
-                # but private invocation semantics are opt-in for external/user inputs only.
-                # Positive scoping keeps owner-local, managed, and future scopes fail-closed.
-                client_invocation_disabled = (
-                    parsed.client_model_invocation_disabled
-                    and source.scope in {"user", "vendor", "plugin"}
-                )
-                configured_implicit = (
-                    not _prefix_denied(source_relative_root, source.implicit_deny_prefixes)
-                    and not client_invocation_disabled
-                )
-                explicit = not _prefix_denied(source_relative_root, source.explicit_deny_prefixes)
-                eligibility = observe_eligibility(decoded, source.eligibility_adapter)
-                scan = scan_skill_package(skill_root)
-                # Skill text may refine an already-authorized workflow, but it cannot
-                # self-admit into implicit routing. For explicitly audited packages,
-                # authority-only findings may be removed by the advisory projection;
-                # non-sanitizable package risks still fail implicit admission closed.
-                risk_set = frozenset(scan.risk_tags)
-                non_sanitizable_risks = risk_set - SANITIZABLE_AUTHORITY_RISK_TAGS
-                audited_sanitized = (
-                    skill_id in audited_skill_ids
-                    and scan.state != ScanState.QUARANTINED
-                    and not non_sanitizable_risks
-                )
-                user_selected_sanitized = (
-                    skill_id in user_explicit_skill_ids
-                    and scan.state != ScanState.QUARANTINED
-                    and not non_sanitizable_risks
-                )
-                implicit = configured_implicit and (
-                    not risk_set or audited_sanitized or user_selected_sanitized
-                )
-                if skill_id in user_explicit_skill_ids:
-                    confidence = ConfidenceTier.USER_EXPLICIT
-                elif audited_sanitized:
-                    confidence = ConfidenceTier.THIRD_PARTY_AUDITED
-                elif scan.state == ScanState.PASS:
-                    confidence = ConfidenceTier.THIRD_PARTY_SCANNED
-                else:
-                    confidence = ConfidenceTier.THIRD_PARTY_UNREVIEWED
-                if scan.state == ScanState.QUARANTINED:
+                record = _scan_skill_record(context, main_resource)
+                if record.scan_state == ScanState.QUARANTINED.value:
                     quarantined += 1
-                records.append(
-                    SkillRecord(
-                        skill_id=skill_id,
-                        name=parsed.name,
-                        description=parsed.description,
-                        source_id=source.source_id,
-                        scope=source.scope,
-                        source_priority=source.priority,
-                        source_relative_root=source_relative_root,
-                        skill_root=skill_root,
-                        main_resource=resolved_resource,
-                        project_root=project_root,
-                        instruction_digest=_sha256(body),
-                        package_revision=package_revision,
-                        trust_state=source.trust_state,
-                        eligibility_state=eligibility.state,
-                        eligibility_reasons=eligibility.reasons,
-                        scan_state=scan.state.value,
-                        scan_findings=scan.findings,
-                        risk_tags=scan.risk_tags,
-                        confidence_tier=confidence,
-                        implicit_invocation=implicit,
-                        explicit_invocation=explicit,
-                        diagnostics=parsed.diagnostics,
-                    )
-                )
+                records.append(record)
                 valid += 1
             except (UnicodeDecodeError, SkillParseError, SkillCatalogError, OSError) as exc:
                 invalid += 1
                 if len(diagnostics) < MAX_DIAGNOSTICS_PER_SOURCE:
                     code = getattr(exc, "code", type(exc).__name__)
                     diagnostics.append(f"{relative_display}: {code}: {exc}")
-                continue
 
         health = SourceHealth.READY if invalid == 0 else SourceHealth.DEGRADED
         admitted = sum(
