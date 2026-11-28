@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import subprocess
 from pathlib import Path
 from typing import Any
 
+from artifact_core.contracts import FileCommitment, sha256_file
 from artifact_core.json_validation import load_json
 from artifact_verifiers.cad_geometry import compare, compare_readers, contract_failures
 
@@ -15,16 +15,10 @@ ROOT = Path(__file__).resolve().parents[1]
 LOCK = ROOT / "artifact-delivery/cad-toolchain-r1.lock.json"
 
 
-def sha256_file(p: Path) -> str:
-    h = hashlib.sha256()
-    with p.open("rb") as f:
-        for c in iter(lambda: f.read(1024 * 1024), b""):
-            h.update(c)
-    return h.hexdigest()
-
-
 def fact(p: Path):
-    return {"path": str(p), "sha256": sha256_file(p), "size": p.stat().st_size}
+    commitment = FileCommitment.from_path(p)
+    # Preserve the caller's path spelling and the existing CAD receipt shape.
+    return {"path": str(p), "sha256": commitment.sha256, "size": commitment.size}
 
 
 def load_lock():
