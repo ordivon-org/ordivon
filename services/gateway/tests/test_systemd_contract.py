@@ -1,7 +1,17 @@
 from __future__ import annotations
 
+import os
+import shutil
+import subprocess
+import sys
 import tomllib
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from importlib import metadata
 from pathlib import Path
+from queue import Queue
+from threading import Thread
+
+from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import ExportTraceServiceRequest
 
 ROOT = Path(__file__).resolve().parents[1]
 UNIT = ROOT / "systemd" / "ordivon-gateway.service"
@@ -110,11 +120,87 @@ def test_gateway_uses_standard_opentelemetry_zero_code_trace_export() -> None:
     ) in text
 
 
-def test_gateway_pins_external_opentelemetry_runtime() -> None:
+def test_gateway_external_opentelemetry_runtime_exports_native_otlp() -> None:
+    """Exercise the installed launcher and exporter, not a historical version string."""
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    dependencies = set(project["project"]["dependencies"])
-    assert "opentelemetry-distro==0.65b0" in dependencies
-    assert "opentelemetry-exporter-otlp-proto-http==1.44.0" in dependencies
+    locked = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
+    dependencies = {p["name"]: p["version"] for p in locked["package"]}
+    for package in ("opentelemetry-distro", "opentelemetry-exporter-otlp-proto-http"):
+        assert any(req.startswith(package) for req in project["project"]["dependencies"])
+        assert metadata.version(package) == dependencies[package]
+
+    received: Queue[tuple[str, str | None, bytes]] = Queue()
+
+    class Collector(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:
+            body = self.rfile.read(int(self.headers["Content-Length"]))
+            received.put((self.path, self.headers.get("Content-Type"), body))
+            self.send_response(200)
+            self.send_header("Content-Type", "application/x-protobuf")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+
+        def log_message(self, *_args: object) -> None:
+            pass
+
+    launcher = shutil.which("opentelemetry-instrument")
+    assert launcher
+    with ThreadingHTTPServer(("127.0.0.1", 0), Collector) as server:
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            env = {k: v for k, v in os.environ.items() if not k.startswith("OTEL_")}
+            env.update(
+                OTEL_SERVICE_NAME="ordivon-gateway-qualification",
+                OTEL_TRACES_EXPORTER="otlp_proto_http",
+                OTEL_METRICS_EXPORTER="none",
+                OTEL_LOGS_EXPORTER="none",
+                OTEL_TRACES_SAMPLER="always_on",
+                OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=(
+                    f"http://127.0.0.1:{server.server_port}/v1/traces"
+                ),
+                OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf",
+                OTEL_EXPORTER_OTLP_TRACES_TIMEOUT="3",
+                NO_PROXY="127.0.0.1,localhost",
+                no_proxy="127.0.0.1,localhost",
+            )
+            result = subprocess.run(
+                [
+                    launcher,
+                    sys.executable,
+                    "-c",
+                    "from opentelemetry import trace;"
+                    "tracer=trace.get_tracer('gateway-qualification');"
+                    "span=tracer.start_span('native-export-probe');"
+                    "span.end();"
+                    "assert trace.get_tracer_provider().force_flush(5000)",
+                ],
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=20,
+                check=False,
+            )
+            assert result.returncode == 0, result.stderr
+            path, content_type, body = received.get(timeout=3)
+        finally:
+            server.shutdown()
+            thread.join(timeout=3)
+
+    assert path == "/v1/traces"
+    assert content_type == "application/x-protobuf"
+    request = ExportTraceServiceRequest.FromString(body)
+    assert any(
+        span.name == "native-export-probe"
+        for resource in request.resource_spans
+        if any(
+            attr.key == "service.name"
+            and attr.value.string_value == "ordivon-gateway-qualification"
+            for attr in resource.resource.attributes
+        )
+        for scope in resource.scope_spans
+        for span in scope.spans
+    )
 
 
 TRACE_PROFILE = ROOT / "systemd" / "ordivon-gateway.service.d" / "40-otel-traces.example.conf"

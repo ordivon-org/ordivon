@@ -17,7 +17,10 @@ INSTALLER = ROOT / "packaging/install_release.sh"
 def test_gateway_release_checks_python_not_legacy_sqlite() -> None:
     text = INSTALLER.read_text(encoding="utf-8")
     assert "ORDIVON_GATEWAY_RELEASE_PYTHON" in text
-    assert "3.15.1" in text
+    request = 'verify_python_version.py" request "$RELEASE"'
+    verify = 'verify_python_version.py" verify "$RELEASE"'
+    assert text.index(request) < text.index('"$UV" python install')
+    assert text.index(verify) < text.index('"$UV" sync --locked')
     assert "sqlite3.sqlite_version" not in text
     assert "import sqlite3" not in text
     assert 'UV_PYTHON_INSTALL_DIR="$PYTHON_INSTALL_DIR"' in text

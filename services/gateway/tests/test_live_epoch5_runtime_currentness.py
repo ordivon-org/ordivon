@@ -60,9 +60,9 @@ def test_candidate_retains_epoch5_client_tool_names_when_schema_epoch_advances()
     assert manifest["packageVersion"] == project["version"]
     assert tuple(int(x) for x in project["version"].split(".")) >= (0, 8, 1)
     assert set(LIVE_TOOLS).issubset(manifest["tools"])
-    root_python = tomllib.loads((ROOT.parents[1] / "mise.toml").read_text())["tools"]["python"]
+    # The exact Owner carrier and lock are validated by the native release
+    # verifier, independently of the root orchestration interpreter.
     owner_python = (ROOT / ".python-version").read_text().strip()
-    assert owner_python == root_python
     assert project["requires-python"] == f"=={owner_python}"
 
 
