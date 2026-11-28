@@ -40,7 +40,7 @@ fn verified_interrupted_open(
 ) -> Result<PathBuf, UniversalExecError> {
     let metadata = fs::symlink_metadata(target)
         .map_err(|_| unfinished_open_error("target directory is not observable"))?;
-    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+    if private_git_reparse(&metadata) || !metadata.is_dir() {
         return Err(unfinished_open_error("target is not a regular directory"));
     }
     let actual = canonical_directory(target, "workspacePath")?;
@@ -56,7 +56,7 @@ fn verified_interrupted_open(
         let mut unsafe_registration = false;
         for line in item.iter().copied() {
             if let Some(path) = line.strip_prefix(b"worktree ") {
-                location = path == actual.as_os_str().as_encoded_bytes();
+                location = git_registered_path_matches(path, &actual);
             } else if let Some(commit) = line.strip_prefix(b"HEAD ") {
                 head = commit == revision.as_bytes();
             } else if line == b"detached" {
@@ -89,12 +89,22 @@ fn verified_interrupted_open(
 }
 
 
+fn private_git_reparse(meta: &fs::Metadata) -> bool {
+    #[cfg(windows)]
+    {
+        // Junctions as well as symlinks are namespace substitutions.
+        return meta.file_attributes() & 0x400 != 0;
+    }
+    #[cfg(not(windows))]
+    meta.file_type().is_symlink()
+}
+
 /// Each unprivileged Workspace uses its own exact-SourceRevision shallow Git
 /// objects/index/refs; the original root-owned linked Worktree stays the
 /// physical Runtime source-digest/CAS owner. No alternates or new service.
 /// This runs under the existing durable Workspace OPENING identity, before
 /// any ordinary Agent can write the Workspace or its separate cache.
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 fn create_workspace_private_git_snapshot(
     config: &UniversalExecutorConfig,
     workspace_id: &str,
@@ -102,21 +112,31 @@ fn create_workspace_private_git_snapshot(
     revision: &str,
     workspace: &Path,
 ) -> Result<(), UniversalExecError> {
-    let (Some(uid), Some(gid)) = (config.workspace_uid, config.workspace_gid) else {
-        return Ok(());
+    #[cfg(unix)]
+    let (uid, gid) = {
+        let (Some(uid), Some(gid)) = (config.workspace_uid, config.workspace_gid) else {
+            return Ok(());
+        };
+        if uid == 0 || gid == 0 {
+            return Err(unfinished_open_error("private Git requires a nonroot Workspace identity"));
+        }
+        (uid, gid)
     };
-    if uid == 0 || gid == 0 {
-        return Err(unfinished_open_error("private Git requires a nonroot Workspace identity"));
+    // Legacy Windows retains the old linked Worktree behavior. Only the
+    // explicit PG presentation root selects this service-owned Git carrier.
+    #[cfg(windows)]
+    if config.workspace_root.is_none() {
+        return Ok(());
     }
-    let cache = config.workspace_cache_path(workspace_id);
-    match fs::symlink_metadata(&cache) {
-        Ok(meta) if meta.is_dir() && !meta.file_type().is_symlink() => {}
+    let private = config.workspace_private_git_path(workspace_id);
+    let cache = private.parent().ok_or_else(|| unfinished_open_error("private Git parent missing"))?;
+    match fs::symlink_metadata(cache) {
+        Ok(meta) if meta.is_dir() && !private_git_reparse(&meta) => {}
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            fs::create_dir(&cache).map_err(|e| io_error(&cache, "create Workspace Git cache", e))?;
+            fs::create_dir(cache).map_err(|e| io_error(cache, "create Workspace Git cache", e))?;
         }
         _ => return Err(unfinished_open_error("Workspace Git cache is not a real directory")),
     }
-    let private = cache.join("agent-git");
     let run = |label: &str, mut command: Command| -> Result<(), UniversalExecError> {
         let output = command.output().map_err(|e| tool_unavailable("git", e))?;
         if !output.status.success() {
@@ -132,26 +152,29 @@ fn create_workspace_private_git_snapshot(
     match fs::symlink_metadata(&private) {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
             let mut init = workspace_git_command();
-            init.args(["init", "--quiet", "--bare"]).arg(&private);
+            init.args(["init", "--quiet", "--bare"]).arg(git_cli_path(&private));
             run("init", init)?;
             let mut fetch = workspace_git_command();
-            fetch.arg("--git-dir").arg(&private).args(["fetch", "--no-tags", "--depth=1"])
-                .arg(source).arg(revision);
+            fetch.arg("--git-dir").arg(git_cli_path(&private)).args(["fetch", "--no-tags", "--depth=1"])
+                .arg(git_cli_path(source)).arg(revision);
             run("shallow exact revision", fetch)?;
             let mut ref_update = workspace_git_command();
-            ref_update.arg("--git-dir").arg(&private)
+            ref_update.arg("--git-dir").arg(git_cli_path(&private))
                 .args(["update-ref", "refs/heads/agent-work", revision]);
             run("private ref", ref_update)?;
             let mut head = workspace_git_command();
-            head.arg("--git-dir").arg(&private)
+            head.arg("--git-dir").arg(git_cli_path(&private))
                 .args(["symbolic-ref", "HEAD", "refs/heads/agent-work"]);
             run("private HEAD", head)?;
             let mut index = workspace_git_command();
-            index.arg("--git-dir").arg(&private).arg("--work-tree").arg(workspace)
+            index.arg("--git-dir").arg(git_cli_path(&private)).arg("--work-tree").arg(git_cli_path(workspace))
                 .args(["read-tree", "HEAD"]);
             run("private index", index)?;
+            if workspace_private_git_has_outputs(&private, revision)? {
+                return Err(unfinished_open_error("fresh private Git differs from exact source revision"));
+            }
         }
-        Ok(meta) if meta.is_dir() && !meta.file_type().is_symlink() => {
+        Ok(meta) if meta.is_dir() && !private_git_reparse(&meta) => {
             // Only a partially completed OPENING can retry. Never fetch
             // after an Agent obtained a normal active Workspace record.
             if workspace_private_git_has_outputs(&private, revision)? {
@@ -162,11 +185,12 @@ fn create_workspace_private_git_snapshot(
     }
     // Only this new cache tree, not the shared source repository, is writable
     // by the ordinary Agent. Existing native ownership traversal is reused.
+    #[cfg(unix)]
     transfer_workspace_ownership(&private, uid, gid)?;
     Ok(())
 }
 
-#[cfg(not(unix))]
+#[cfg(not(any(unix, windows)))]
 fn create_workspace_private_git_snapshot(
     _config: &UniversalExecutorConfig, _workspace_id: &str, _source: &Path,
     _revision: &str, _workspace: &Path,
@@ -245,16 +269,16 @@ pub(crate) fn create_git_workspace_record(
             let inventory = git_output_bytes(&source_repo, ["worktree", "list", "--porcelain", "-z"])?;
             let physical_target = managed_physical_target(&target)?;
             if inventory.split(|b| *b == 0).any(|line| {
-                line.strip_prefix(b"worktree ") == Some(physical_target.as_os_str().as_encoded_bytes())
+                line.strip_prefix(b"worktree ").is_some_and(|raw| git_registered_path_matches(raw, &physical_target))
             }) {
                 return Err(unfinished_open_error("Git still registers an absent worktree"));
             }
         }
         let output = workspace_git_command()
             .arg("-C")
-            .arg(&source_repo)
+            .arg(git_cli_path(&source_repo))
             .args(["worktree", "add", "--detach"])
-            .arg(&target)
+            .arg(git_cli_path(&target))
             .arg(&revision)
             .output()
             .map_err(|error| tool_unavailable("git worktree add", error))?;
@@ -683,6 +707,7 @@ pub(crate) fn workspace_cleanup_dependents(
     let destructive_roots = [
         config.workspace_path(workspace_id),
         config.workspace_cache_path(workspace_id),
+        config.workspace_private_git_path(workspace_id),
         config.workspace_build_cache_path(workspace_id),
         config.workspace_tmp_path(workspace_id),
     ]
@@ -740,4 +765,69 @@ pub(crate) fn workspace_cleanup_dependents(
     dependents.sort();
     dependents.dedup();
     Ok(dependents)
+}
+
+#[cfg(all(test, windows))]
+mod windows_pg_private_git_tests {
+    use super::*;
+    fn git(cwd: &Path, args: &[&str]) -> String {
+        let output=workspace_git_command().arg("-C").arg(git_cli_path(&cwd)).args(args).output().unwrap();
+        assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+        String::from_utf8(output.stdout).unwrap().trim().to_string()
+    }
+    #[test]
+    fn windows_pg_private_git_snapshot_holds_unreceived_candidate_and_cleans_exact_leaf() {
+        let temp=tempfile::tempdir().unwrap();
+        let src=temp.path().join("source");
+        let presentation=temp.path().join("presentation");
+        fs::create_dir(&src).unwrap();
+        fs::create_dir(&presentation).unwrap();
+        git(&src,&["init","-q"]);
+        git(&src,&["config","user.name","Workspace witness"]);
+        git(&src,&["config","user.email","workspace@example.invalid"]);
+        fs::write(src.join("marker"),"source").unwrap();
+        git(&src,&["add","marker"]);
+        git(&src,&["commit","-qm","source"]);
+        let rev=git(&src,&["rev-parse","HEAD"]);
+        let config=UniversalExecutorConfig {
+            store_root:temp.path().join("private-store"),
+            workspace_root:Some(presentation.clone()),workspace_uid:None,workspace_gid:None,
+            runner_path:None,allowed_executable_roots:vec![temp.path().to_path_buf()],
+            max_runtime_ms:60000,max_output_bytes:1048576,
+        };
+        fs::create_dir(&config.store_root).unwrap();
+        let id="winpg-private-git";
+        let target=config.workspace_path(id);
+        let output=workspace_git_command().arg("-C").arg(git_cli_path(&src)).args(["worktree","add","--detach"]).arg(git_cli_path(&target)).arg(&rev).output().unwrap();
+        assert!(output.status.success(), "{}",String::from_utf8_lossy(&output.stderr));
+        create_workspace_private_git_snapshot(&config,id,&src,&rev,&target).unwrap();
+        let private=config.workspace_private_git_path(id);
+        assert_eq!(private,presentation.join(".winpg-private-git.agent-git"));
+        assert!(!private.join("objects/info/alternates").exists());
+        assert!(!workspace_private_git_has_outputs(&private,&rev).unwrap());
+        // A private-only empty commit is undelivered even though worktree bytes
+        // are clean and the original source is still at the opening revision.
+        let output=workspace_git_command().arg("--git-dir").arg(git_cli_path(&private)).arg("--work-tree").arg(git_cli_path(&target))
+            .args(["-c","user.name=Workspace witness","-c","user.email=workspace@example.invalid","commit","--allow-empty","-qm","private-only"]).output().unwrap();
+        assert!(output.status.success(), "{}",String::from_utf8_lossy(&output.stderr));
+        assert!(workspace_private_git_has_outputs(&private,&rev).unwrap());
+        assert_eq!(git(&src,&["rev-parse","HEAD"]),rev);
+        assert_eq!(git(&target,&["rev-parse","HEAD"]),rev);
+        let candidate=workspace_git_command().arg("--git-dir").arg(git_cli_path(&private)).args(["rev-parse","HEAD"]).output().unwrap();
+        assert!(candidate.status.success());
+        assert_ne!(String::from_utf8(candidate.stdout).unwrap().trim(),rev);
+        // Returning to the admitted base permits cleanup; do not mutate shared Git.
+        let output=workspace_git_command().arg("--git-dir").arg(git_cli_path(&private)).args(["update-ref","refs/heads/agent-work",&rev]).output().unwrap();
+        assert!(output.status.success());
+        assert!(!workspace_private_git_has_outputs(&private,&rev).unwrap());
+        // Isolated sibling must remain untouched by private leaf cleanup.
+        let sibling=presentation.join("foreign");
+        fs::create_dir(&sibling).unwrap();
+        fs::write(sibling.join("marker"),"foreign").unwrap();
+        cleanup_workspace_caches(&config,id).unwrap();
+        assert!(!private.exists());
+        assert_eq!(fs::read_to_string(sibling.join("marker")).unwrap(),"foreign");
+        assert!(target.exists());
+        assert_eq!(git(&src,&["rev-parse","HEAD"]),rev);
+    }
 }

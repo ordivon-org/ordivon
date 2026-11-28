@@ -7,7 +7,7 @@ import pytest
 from mcp import Client
 from psycopg_pool import PoolClosed, PoolTimeout, TooManyRequests
 
-from ordivon_host_v2.errors import ConflictError, WorkNotFound
+from ordivon_host_v2.errors import ConflictError, InvalidArgumentError, WorkNotFound
 from ordivon_host_v2.mcp_server import build_server
 from ordivon_host_v2.work_store import WorkStore
 
@@ -220,6 +220,53 @@ def test_model_validation_is_expected_invalid_argument_without_store_call(monkey
             assert payload["code"] == "INVALID_ARGUMENT"
             assert payload["suggestedAction"] == "correct-request"
             assert called is False
+
+    asyncio.run(scenario())
+
+
+def test_explicit_invalid_argument_is_typed_and_actionable(monkeypatch) -> None:
+    def invalid(self, work_ref, revision=None):
+        _ = self, work_ref, revision
+        raise InvalidArgumentError("caller-owned field is invalid")
+
+    monkeypatch.setattr(WorkStore, "get_work", invalid)
+
+    async def scenario() -> None:
+        async with Client(
+            build_server("postgresql://unused.invalid/unused"), raise_exceptions=False
+        ) as client:
+            result = await client.call_tool("work.get", {"workRef": "work:invalid"})
+            assert result.is_error is True
+            assert _domain_payload(result) == {
+                "code": "INVALID_ARGUMENT",
+                "detail": "caller-owned field is invalid",
+                "kind": "ordivon.host-domain-error",
+                "retryable": False,
+                "schemaVersion": 1,
+                "suggestedAction": "correct-request",
+            }
+
+    asyncio.run(scenario())
+
+
+def test_unexpected_value_error_remains_generic_crash(monkeypatch) -> None:
+    secret = "INTERNAL_SENTINEL private-invariant-detail"
+
+    def crash(self, work_ref, revision=None):
+        _ = self, work_ref, revision
+        raise ValueError(secret)
+
+    monkeypatch.setattr(WorkStore, "get_work", crash)
+
+    async def scenario() -> None:
+        async with Client(
+            build_server("postgresql://unused.invalid/unused"), raise_exceptions=False
+        ) as client:
+            result = await client.call_tool("work.get", {"workRef": "work:value-error"})
+            assert result.is_error is True
+            text = _error_text(result)
+            assert text == "Error executing tool work.get"
+            assert secret not in text
 
     asyncio.run(scenario())
 

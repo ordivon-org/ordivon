@@ -14,7 +14,7 @@ audience:
   - researcher
   - builder
   - agent
-updated: 2026-08-17
+updated: 2026-11-16
 summary: Foundation research program that reconstructs Runtime below the existing engineering object model before allowing foundation claims to influence production architecture.
 evidence_status: verified
 readiness: READY
@@ -72,6 +72,38 @@ related:
   - runtime.foundations.v1
 ---
 # Ordivon Runtime Foundations
+
+## Currentness boundary: RF9 is historical, not today's scheduler contract (2026-11-16)
+
+The completed RF0–RF16 series is an immutable **research-era account**, not a live
+implementation contract. In particular RF9 and its closeout/continuation describe
+the **2026-08-17 queue-less Runtime**. Do not apply their statements that "current
+Runtime has no capacity-waiting queue" or "introducing a scheduler is unjustified"
+to the installed Linux PostgreSQL Runtime without a new Source/Installed check.
+Preserve the original RF9 historical result rather than rewriting its experiment.
+
+**Observed Linux PG Runtime at 2026-11-16:** the native `runtime.describe`
+advertised `scheduling.mode=resource_aware_persistent_queue`,
+`ownerFairness=dominant_resource_share`,
+`workspaceConcurrency=access_leases`, `globalExecutionLimit=null`,
+and `requestsAreHardLimits=false`. These are current *capability projections*,
+not a benchmark, proof of starvation freedom, or proof that a particular
+historical Git revision is installed. Source entrypoints at inspected Git cut
+`697f9ec824159ae5effe8a7727ae9b33a8fc5cb5`:
+`crates/ordivon-runtime-core/src/runtime/pg_runtime/node_query.rs`,
+`crates/ordivon-runtime-core/src/runtime/pg_runtime/scheduling.rs` and
+`crates/ordivon-runtime-core/src/resource_scheduling.rs`.
+Re-read native `runtime.describe` and the installed binary before changing a
+consumer; Windows Runtime needs its **own** inspection.
+
+Still-valid conceptual separations: eligibility != admission != scheduling !=
+physical dispatch; PG dispatch intent != positively observed Runner start;
+a request rejected **before** Job admission is not an accepted queued Job;
+an accepted Job with `pendingReason=cause_unobserved` has **no proven specific**
+placement cause; an Agent's completed Tool call != semantic business acceptance.
+Do not add a parallel scheduler/queue on the basis of the historical RF9
+conclusion. Current Scheduler P0 fault isolation and error observability remain
+independently qualified tasks, not resolved by this documentation note.
 
 ## Purpose
 

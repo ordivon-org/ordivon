@@ -597,6 +597,22 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
         self.assertTrue(other_workspace.exists())
         self.assertEqual(client.calls, [])
 
+    def test_workspace_disappearing_after_inventory_is_a_bounded_skip(self):
+        from unittest.mock import patch
+
+        original = mod._worktrees
+
+        def inventory_then_remove(repo, root):
+            rows = original(repo, root)
+            self.git("worktree", "remove", "--force", str(self.workspace))
+            return rows
+
+        with patch.object(mod, "_worktrees", side_effect=inventory_then_remove):
+            report, client = self.run_operator_plan(allow=True)
+        self.assertEqual(report["eligible"], 0, report)
+        self.assertEqual(report["skipped"].get("workspace_disappeared"), 1)
+        self.assertEqual(client.calls, [])
+
     def test_ignored_workspace_output_never_qualifies_for_deletion(self):
         # Git status --porcelain reports clean, but ordinary worktree remove
         # would still remove this cache or data under ignore rules.

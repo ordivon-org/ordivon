@@ -20,6 +20,7 @@ from .collection_pagination import (
     bounded_page,
     validate_max_bytes,
 )
+from .errors import InvalidArgumentError
 from .references.actor_refs import ActorReferenceLookup
 from .references.record_refs import RecordReferenceLookup
 from .social_space_records import read_space_in_tx
@@ -47,7 +48,7 @@ class SocialSpaceReadQueries:
             or not 1 <= participant_limit <= 200
             or not 1 <= topic_limit <= 200
         ):
-            raise ValueError("embedded participant/topic limits must be in [1,200]")
+            raise InvalidArgumentError("embedded participant/topic limits must be in [1,200]")
         validate_max_bytes(max_bytes, minimum=MIN_SPACE_MAX_BYTES)
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
@@ -68,7 +69,7 @@ class SocialSpaceReadQueries:
         max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
         if type(limit) is not int or not 1 <= limit <= 500:
-            raise ValueError("limit must be in [1,500]")
+            raise InvalidArgumentError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
@@ -109,7 +110,7 @@ class SocialSpaceReadQueries:
         max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
         if type(limit) is not int or not 1 <= limit <= 500:
-            raise ValueError("limit must be in [1,500]")
+            raise InvalidArgumentError("limit must be in [1,500]")
         validate_max_bytes(max_bytes)
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
@@ -161,9 +162,9 @@ class SocialSpaceReadQueries:
         max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
         if type(limit) is not int or not 1 <= limit <= 200:
-            raise ValueError("limit must be in [1,200]")
+            raise InvalidArgumentError("limit must be in [1,200]")
         if (before_created_at is None) != (before_space_ref is None):
-            raise ValueError("before_created_at and before_space_ref must be supplied together")
+            raise InvalidArgumentError("before_created_at and before_space_ref must be supplied together")
         validate_max_bytes(max_bytes)
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")

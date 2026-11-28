@@ -21,6 +21,13 @@ class SourceContentFacetTests(unittest.TestCase):
     def test_syntax_failure_is_not_semantic_absence(self):
         v=M.content_probe("p.json","100644",7,b'{"x":')
         self.assertEqual(v["readStanding"],"PARSE_FAILURE")
+
+    def test_json_probe_accepts_utf8_bom_like_bytes_consumer(self):
+        raw=b'\xef\xbb\xbf{"kind":"claimed-owner","schemaVersion":1}'
+        v=M.content_probe("bom.json","100644",len(raw),raw)
+        self.assertEqual(v["readStanding"],"SYNTAX_PARSED")
+        self.assertEqual(v["contentForm"],"JSON_OBJECT_DECLARATION")
+        self.assertEqual(v["claimedFields"]["kind"],"claimed-owner")
     def test_python_ast_does_not_import_run_or_require_packages(self):
         v=M.content_probe("tests/test_effect.py","100644",59,
                           b"def test_effect():\n    import not_installed_or_safe_to_execute\n")

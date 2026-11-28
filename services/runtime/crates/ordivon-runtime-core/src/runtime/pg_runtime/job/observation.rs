@@ -92,9 +92,11 @@ impl PgRuntime {
                     .store_root
                     .join("pg-attempts")
                     .join(attempt_id);
+                #[cfg(not(windows))]
                 let start = fs::read(bundle.join("runner-start.json"))
                     .ok()
                     .and_then(|bytes| serde_json::from_slice::<RunnerStartEvidence>(&bytes).ok());
+                #[cfg(not(windows))]
                 super::platform::wait_for_attempt_change(
                     &bundle,
                     start
@@ -102,6 +104,14 @@ impl PgRuntime {
                         .map(|evidence| evidence.control_group.as_str()),
                     deadline.saturating_duration_since(Instant::now()),
                 );
+                #[cfg(windows)]
+                {
+                    let _ = bundle;
+                    thread::sleep(
+                        Duration::from_millis(50)
+                            .min(deadline.saturating_duration_since(Instant::now())),
+                    );
+                }
             } else {
                 thread::sleep(
                     Duration::from_millis(250)

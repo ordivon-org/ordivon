@@ -261,6 +261,20 @@ impl WindowsExecutionConfig {
             }
             return Ok(());
         }
+        if !proposal.execution.env.is_empty()
+            || proposal
+                .execution
+                .steps
+                .iter()
+                .any(|step| !step.env.is_empty())
+        {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::AuthorizationDenied,
+                "elevated Windows profiles require the operator-controlled environment",
+                Some("execution.env"),
+                false,
+            ));
+        }
         let selected = selected.ok_or_else(|| {
             RuntimeError::new(
                 RuntimeErrorCode::AuthorizationDenied,

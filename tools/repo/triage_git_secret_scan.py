@@ -59,6 +59,9 @@ def observe(repo: Path, commit: str) -> tuple[int, dict]:
                     not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", rev)
                     or type(line) is not int or line < 1):
                     return 2, result
+                # A syntactically valid provider SHA is not source-bound evidence.
+                # Every finding must belong to the requested commit's history.
+                git("merge-base", "--is-ancestor", rev, commit)
                 locators.append({"rule": rule, "file": file,
                                  "commit": rev, "line": line})
             result.update(status="findings" if locators else "clean",

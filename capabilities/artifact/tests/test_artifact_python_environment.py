@@ -57,19 +57,29 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
         lock = M.load_lock()
         root = ROOT / "artifact-delivery/python-uv"
         raw = (root / "uv.lock").read_bytes()
-        observed = {row["name"]: row["version"] for row in tomllib.loads(raw.decode())["package"]}
-        for name, version in lock["pythonPackages"].items():
-            self.assertEqual(observed[name.lower().replace("_", "-")], version)
+        delivery_rows = tomllib.loads(raw.decode())["package"]
+        # This delivery lock has one virtual project root and one registry
+        # record per normalized distribution name. Use uv for resolution.
+        registry_rows = [row for row in delivery_rows if "registry" in row["source"]]
+        self.assertEqual(len(delivery_rows) - len(registry_rows), 1)
+        observed = {row["name"]: row["version"] for row in registry_rows}
+        self.assertEqual(len(observed), len(registry_rows))
+        expected = {name.lower().replace("_", "-"): version
+                    for name, version in lock["pythonPackages"].items()}
+        self.assertEqual(len(expected), len(lock["pythonPackages"]))
+        self.assertEqual(expected, observed)
         self.assertEqual(lock["uvProject"]["uvLockSha256"], "sha256:" + hashlib.sha256(raw).hexdigest())
         self.assertEqual(lock["uvProject"]["pyprojectSha256"], "sha256:" + hashlib.sha256((root / "pyproject.toml").read_bytes()).hexdigest())
         runtime = tomllib.loads((root / "pyproject.toml").read_text())["project"]
         development = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
         self.assertEqual(runtime["dependencies"], development["dependencies"])
-        dev_lock = tomllib.loads((ROOT / "uv.lock").read_text())
-        dev_versions = {row["name"]: row["version"] for row in dev_lock["package"]}
-        shared = set(observed) & set(dev_versions)
-        self.assertTrue(shared)
-        self.assertEqual({n: observed[n] for n in shared}, {n: dev_versions[n] for n in shared})
+        dev_rows = [row for row in tomllib.loads((ROOT / "uv.lock").read_text())["package"]
+                    if "registry" in row["source"]]
+        dev_packages = {row["name"]: row for row in dev_rows}
+        self.assertEqual(len(dev_packages), len(dev_rows))
+        self.assertTrue(registry_rows)
+        self.assertEqual({row["name"]: row for row in registry_rows},
+                         {name: dev_packages[name] for name in observed})
 
     def test_environment_has_no_isolated_equipment_or_host_libxslt_authority(self):
         source=(ROOT/'scripts/artifact_python_environment.py').read_text();wrapper=(ROOT/'scripts/artifact_python_wrapper.py').read_text()

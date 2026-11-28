@@ -8,7 +8,7 @@ pub mod server;
 #[cfg(all(
     feature = "postgres-runtime",
     not(feature = "legacy-runtime"),
-    target_os = "linux"
+    any(target_os = "linux", windows)
 ))]
 #[path = "server/pg_only.rs"]
 pub mod server;

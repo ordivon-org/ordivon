@@ -12,8 +12,8 @@ publish = false
 [features]
 default = ["transactional-runtime"]
 systemd-supervisor = ["dep:libc"]
-universal-executor = ["dep:libc"]
-runtime-contract = ["universal-executor", "dep:uuid"]
+universal-executor = ["dep:libc", "dep:uuid"]
+runtime-contract = ["universal-executor"]
 transactional-runtime = ["runtime-contract", "dep:rusqlite"]
 operator-tools = ["transactional-runtime"]
 postgres-registry-admission = ["runtime-contract", "dep:postgres"]
@@ -77,6 +77,9 @@ uuid = { workspace = true, optional = true }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61.2", features = [
+  "Wdk_Foundation",
+  "Wdk_Storage_FileSystem",
+  "Win32_System_IO",
   "Win32_Foundation",
   "Win32_Security",
   "Win32_Security_Authorization",
@@ -84,6 +87,9 @@ windows-sys = { version = "0.61.2", features = [
   "Win32_System_Services",
   "Win32_System_Threading",
   "Win32_System_JobObjects",
+  "Win32_System_Memory",
+  "Win32_System_SystemInformation",
+  "Win32_System_Pipes",
 ] }
 
 [dev-dependencies]

@@ -96,6 +96,8 @@ def restore_r2_blob(
         raise FileNotFoundError(f"R2 object is absent: {bucket}/{object_key}")
     remote = hash_file(remote_path)
     try:
+        if destination.is_symlink():
+            raise RuntimeError(f"local digest address must not be a symbolic link: {destination}")
         if destination.exists():
             existing = hash_file(destination)
             if existing.digest != digest or existing.size_bytes != remote.size_bytes:

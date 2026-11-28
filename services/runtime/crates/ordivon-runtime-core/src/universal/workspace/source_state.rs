@@ -5,7 +5,7 @@ pub(crate) fn workspace_head_and_dirty_at(
     let output = workspace_git_command()
         .arg("--no-optional-locks")
         .arg("-C")
-        .arg(&workspace)
+        .arg(git_cli_path(&workspace))
         .args([
             "status",
             "--porcelain=v2",
@@ -133,7 +133,7 @@ fn workspace_source_state_digest_with_unborn_policy(
             }
             let check = workspace_git_command()
                 .arg("-C")
-                .arg(&workspace)
+                .arg(git_cli_path(&workspace))
                 .args(["show-ref", "--verify", "--quiet", branch])
                 .output()
                 .map_err(|problem| tool_unavailable("git show-ref", problem))?;
@@ -371,7 +371,7 @@ fn symlink_target_bytes(target: &Path) -> Vec<u8> {
 fn is_git_worktree(path: &Path) -> Result<bool, UniversalExecError> {
     let output = workspace_git_command()
         .arg("-C")
-        .arg(path)
+        .arg(git_cli_path(path))
         .args(["rev-parse", "--is-inside-work-tree", "--show-prefix"])
         .output()
         .map_err(|error| tool_unavailable("git rev-parse worktree", error))?;
@@ -443,7 +443,7 @@ mod gitlink_worktree_root_tests {
         let run = |cwd: &Path, args: &[&str]| {
             let output = workspace_git_command()
                 .arg("-C")
-                .arg(cwd)
+                .arg(git_cli_path(cwd))
                 .args(args)
                 .output()
                 .expect("run git");
@@ -504,7 +504,7 @@ mod gitlink_worktree_root_tests {
         let run = |cwd: &Path, args: &[&str]| {
             let output = workspace_git_command()
                 .arg("-C")
-                .arg(cwd)
+                .arg(git_cli_path(cwd))
                 .args(args)
                 .output()
                 .expect("run git");
@@ -562,7 +562,7 @@ mod gitlink_worktree_root_tests {
         fs::create_dir_all(&root).expect("create outer root");
         let init = workspace_git_command()
             .arg("-C")
-            .arg(&root)
+            .arg(git_cli_path(&root))
             .args(["init", "--quiet"])
             .status()
             .expect("init outer root");
@@ -587,7 +587,7 @@ mod gitlink_worktree_root_tests {
         let run = |cwd: &Path, args: &[&str]| {
             let output = workspace_git_command()
                 .arg("-C")
-                .arg(cwd)
+                .arg(git_cli_path(cwd))
                 .args(args)
                 .output()
                 .expect("git");
@@ -634,7 +634,7 @@ mod gitlink_worktree_root_tests {
         fs::create_dir_all(&nested).expect("create ordinary directory");
         let status = workspace_git_command()
             .arg("-C")
-            .arg(&root)
+            .arg(git_cli_path(&root))
             .args(["init", "--quiet"])
             .status()
             .expect("initialize parent Git repository");

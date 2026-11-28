@@ -268,8 +268,10 @@ def test_real_finance_output_closes_only_scoped_composition_obligation() -> None
     assert resolution["domainAcceptanceEstablished"] is False
 
     evaluated = evaluate_gate_results(manifest, [result])
-    assert evaluated["standing"] == "COMPOSITION_GATES_SATISFIED"
-    assert evaluated["mechanicalClosure"] is True
+    assert evaluated["standing"] == "COMPOSITION_GATES_REPORTED_SATISFIED"
+    assert evaluated["mechanicalClosure"] is False
+    assert evaluated["reportedGateClosure"] is True
+    assert evaluated["evidenceVerificationStanding"] == "UNKNOWN"
     assert evaluated["domainAcceptanceEstablished"] is False
 
 
@@ -319,6 +321,6 @@ def test_unknown_and_false_economic_receipts_do_not_close_composition() -> None:
         result = _consumer_result(manifest, request, tampered)
         assert result["standing"] == "UNSATISFIED", corruption
         rejected = evaluate_gate_results(manifest, [result])
-        assert rejected["standing"] == "COMPOSITION_GATES_UNSATISFIED"
+        assert rejected["standing"] == "COMPOSITION_GATES_REPORTED_UNSATISFIED"
         assert rejected["mechanicalClosure"] is False
         assert rejected["domainAcceptanceEstablished"] is False
