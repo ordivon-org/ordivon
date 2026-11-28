@@ -140,12 +140,14 @@ def test_unknown_gate_anchor_fails_closed() -> None:
         validate_successor_contract(contract)
 
 
-def test_satisfied_gate_closes_mechanics_not_promotion_or_domain_truth() -> None:
+def test_reported_satisfied_gate_is_not_a_verified_proof_or_promotion() -> None:
     contract = valid_contract()
     projection = evaluate_successor_gates(contract, [gate_result(contract)])
 
-    assert projection["standing"] == "SUCCESSOR_GATES_SATISFIED"
-    assert projection["mechanicalSuccessorClosure"] is True
+    assert projection["standing"] == "SUCCESSOR_GATES_REPORTED_SATISFIED"
+    assert projection["mechanicalSuccessorClosure"] is False
+    assert projection["declaredGateClosure"] is True
+    assert projection["evidenceVerificationStanding"] == "UNKNOWN"
     assert projection["promotionAuthorityEstablished"] is False
     assert projection["domainImprovementEstablished"] is False
 
@@ -175,7 +177,7 @@ def test_unsatisfied_gate_fails_successor_closure() -> None:
         contract,
         [gate_result(contract, "UNSATISFIED")],
     )
-    assert projection["standing"] == "SUCCESSOR_GATES_UNSATISFIED"
+    assert projection["standing"] == "SUCCESSOR_GATES_REPORTED_UNSATISFIED"
     assert projection["mechanicalSuccessorClosure"] is False
 
 
@@ -335,3 +337,17 @@ def test_native_successor_cli_refuses_selfowned_external_claim(tmp_path, command
     assert "external evaluation anchor owned by candidate" in result.stderr
     assert "Traceback" not in result.stderr
     assert result.stdout == ""
+
+
+def test_unverified_caller_authored_gate_cannot_become_verified_closure() -> None:
+    """A perfectly shaped, invented evidence ref is not a verifier receipt."""
+    contract = valid_contract()
+    invented = gate_result(contract)
+    invented["evidenceRefs"] = ["evidence:invented-without-real-verifier"]
+    projection = evaluate_successor_gates(contract, [invented])
+
+    assert projection["declaredGateClosure"] is True
+    assert projection["evidenceVerificationStanding"] == "UNKNOWN"
+    assert projection["standing"] == "SUCCESSOR_GATES_REPORTED_SATISFIED"
+    assert projection["mechanicalSuccessorClosure"] is False
+    assert projection["promotionAuthorityEstablished"] is False
