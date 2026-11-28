@@ -1,47 +1,56 @@
 # D-Drive Offline Maintenance R3
 
-Status: CURRENT CANDIDATE / STANDARDS-FIRST REPLACEMENT FOR R2 GATE
+Status: **historical SQLite carrier; not qualified for PG Runtime maintenance**.
+The PG-native protocol is a candidate, not an installed replacement.
 
-R3 exists because the R2 compact path coupled six different owners into one long-lived `wsl.exe -> bash` session. The physical compact mechanism was not the failure. The incorrect LEGO choices were: full Runtime Doctor polling, iteration-count timeouts, transport-session-owned fencing, non-atomic intermediate evidence, and diagnosis inferred from a missing READY file.
+R3 addressed R2's coupling of six owners into a long-lived WSL transport
+session. Preserve the independent design rationale: avoid full Runtime Doctor polling, use a monotonic deadline, a systemd transient service owned by Linux,
+and temp + fsync + atomic replace for intermediate evidence. Missing READY
+is not a diagnosis. Retain original receipts as historical evidence.
 
-## Authority split
+## Contract and authority
 
-- Runtime Registry `admission.lock`: authority for fencing new Linux Runtime admissions.
-- `ordivon-runtime-inspect registry-status`: cheap owner-native drain projection.
-- `ordivon-runtime-doctor`: one-shot integrity verification after quiescence, never the polling primitive.
-- systemd transient service: durable Linux gate process owner. A Windows `wsl.exe systemd-run` call submits the service and returns; WSL transport lifetime is not gate lifetime.
-- Windows Task Scheduler native S4U: user-context carrier for the user-owned WSL distro.
-- R4 authorizer: binds a short-lived grant to the exact R3 READY digest, exact gate/controller digests, maintenance identity, and a still-active gate unit.
-- Windows R3 controller: offline WSL transition, detached/exclusive VHD proof, one `Optimize-VHD -Mode Full`, byte-level measurement, restore, and requalification.
+- [PG offline protocol](../workstation/providers/d_drive_compact/formal/PGOfflineMaintenanceR1.tla):
+  independent bounded state machine, including admission closure without
+  blocking existing terminal settlement, complete roots, qualified backup,
+  exact authorization, detach, effect reconciliation and recovery acceptance.
+- [Legacy gate](../workstation/providers/d_drive_compact/d_drive_compact_gate_r3.py):
+  the old SQLite admission lock, inspector and Doctor are not PG authority.
+  Its source candidate rejects unsupported authority before maintenance effects.
+- [Windows runner](../workstation/providers/d_drive_compact/DDriveCompactRunR3.ps1)
+  and [controller](../workstation/providers/d_drive_compact/DDriveOfflineCompactR3.ps1):
+  native request ownership, offline effect and recovery; unknown results retain
+  their request. Identity availability is not effect authorization.
+- [Materialization status](../workstation/providers/d_drive_compact/materialize.py):
+  observational exact-copy candidates, divergent/unknown files and absent
+  targets. Equal bytes are not consumer release or deletion authorization.
 
-## State circuit
+The real PG admission and terminal writers share an advisory transaction lock;
+holding that lock during drain would obstruct settlement. Runtime must own a
+separate admission-closure mechanism and prove all required consumers are
+settled. Workstation must qualify the actual distro/VHD identity and native
+offline carrier; neither owner may infer success from the other's test PASS.
+Do not stop unrelated WSL distributions or cancel other Agents' work merely
+to reclaim space. Verify a recoverable backup, durable handoff, native detach
+or other qualified carrier conditions, post-effect health, and independent
+acceptance before reopening. The model is not proof of installed effects.
 
-`CREATED -> PRESSURE_QUIESCED -> FENCE_ACQUIRED -> DRAINING -> QUIESCENT -> INTEGRITY_VERIFIED -> TRIMMED -> READY_HELD -> HANDOFF_HELD`.
+## Physical storage and operational obligations
 
-Every normal rejection emits `gate-terminal.json` with `phase` and `reasonCode`. Drain uses a monotonic deadline; polling uses `registry-status`; full Doctor executes exactly once after zero active/held work. Canonical JSON evidence is written through temp + fsync + atomic replace. READY remains valid only while the named systemd gate unit is active and no terminal receipt exists.
+Distinguish VHD file length, NTFS allocated bytes and D: free bytes. Sparse
+and non-sparse VHDs differ; guest free space is not host reclaim. Use exact
+before/after native measurements, not file-size estimates. A supported native
+compact command still needs a separately qualified maintenance window and
+recovery path. Do not allow default battery/AC scheduled-task policy to kill
+an in-flight disk effect.
 
-The Windows controller does not infer diagnosis from a missing file. It distinguishes explicit gate terminal rejection, gate-unit disappearance, controller wait deadline, authorization timeout, WSL offline failure, VHD detach failure, compact failure, and recovery/requalification failure.
+Storage-pressure policy remains owned by its existing controller. Temporary
+quiescence is allowed only with explicit restoration of the previous timer
+activity and enablement; never manufacture a pressure-service cycle or
+enable a previously disabled timer. Failure to establish restored policy or
+a terminal effect means reconciliation, not cleanup authorization.
 
-## Safety invariants
-
-R3 does not cancel another Agent's active Runtime Job. It holds the same exclusive admission fence used by structured Runtime release and waits for already-admitted work to drain naturally. Identity availability is not effect authorization. VHD compaction is forbidden until exact READY + exact authorization + handoff acknowledgment + WSL offline + exclusive-open + `Get-VHD Attached=False` are all proven.
-
-The compact Scheduled Task must not inherit default power semantics that can asynchronously hard-kill the transaction. Battery/AC policy is a precondition/observation concern, not an external lifecycle authority over an in-flight VHD effect.
-
-## Sparse VHDX storage evidence
-
-For a WSL ext4.vhdx, distinguish **Hyper-V Get-VHD.FileSize** (existing receipt field), **NTFS allocated bytes** (GetCompressedFileSizeW, receipt field vhdAllocatedBytes) and **D: free bytes** (Get-Volume.SizeRemaining). These are different quantities for a sparse VHDX. Keep existing reclaimedVhdBytes and reclaimedVolumeBytes meanings; reclaimedAllocatedVhdBytes records the additional before/after difference in NTFS file allocation. A large logical file size does not establish physical usage or a safe reclaim amount.
-
-The allocation witness is observational, not a compact authorization. The R3 offline safety circuit still requires source-bound admission fencing, zero active or held work, exact authorizer grant, WSL shutdown, exclusive VHD access, controller recovery and post-maintenance Doctor qualification.
-
-## Retirements after acceptance
-
-After R3 live acceptance, retire the R2 long-lived gate/controller/authorizer runner from active paths. Historical receipts remain immutable evidence. Do not reintroduce custom LSA S4U launchers, process-token duplication, full-Doctor polling, or a long-lived `wsl.exe` gate carrier.
-
-## Pressure-policy preservation across maintenance
-
-The R3 gate may temporarily quiesce the Runtime storage-pressure timer/service so the maintenance cut is not racing an independent reclaim cycle. This does **not** transfer storage-pressure policy authority to the maintenance transaction.
-
-Before quiescing, the gate records the pressure timer active state, enablement state, and service state in the exact READY receipt. Abort-before-handoff restores only the pre-maintenance timer activity; it never manufactures a fresh pressure-service cycle. After the Windows-owned offline effect, control-plane recovery restores Runtime/Host/Gateway and preserves the pressure timer's pre-maintenance active/disabled policy state. In particular, maintenance must not `enable --now` a timer that was disabled before the cut and must not manually start the pressure service as part of generic recovery.
-
-This is an assume/guarantee seam: storage-pressure control owns whether its timer is enabled and when its expensive actuators run; D-drive maintenance owns only temporary quiescence plus exact restoration of the observed pre-state. A maintenance receipt that cannot prove this preservation is not sufficient evidence for post-maintenance qualification.
+Retire old R2/R3 operational carriers only after actual replacement and
+consumer acceptance. Keep independent specifications, historical receipts,
+and any unique recovery artifacts; don't recreate custom S4U launchers or
+transport-session-owned fences.

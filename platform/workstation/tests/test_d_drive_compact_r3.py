@@ -206,7 +206,11 @@ def test_windows_json_receipts_are_bomless_durable_atomic_commits():
         text = path.read_text(encoding="utf-8")
         assert "System.Text.UTF8Encoding($false)" in text
         assert "$stream.Flush($true)" in text
-        assert "Move-Item -Force $tmp $Path" in text
+        if path == AUTHORIZER:
+            assert "[System.IO.File]::Move($tmp,$Path)" in text
+            assert "FileMode]::CreateNew" in text
+        else:
+            assert "Move-Item -Force $tmp $Path" in text
         atomic = text.split("function Atomic-Json", 1)[1].split("}", 1)[0]
         assert "Set-Content" not in atomic
 
@@ -236,3 +240,359 @@ def test_run_r3_suppresses_cross_agent_recovery_during_active_request():
     assert "recoveryTaskSuppressed" in text
     assert text.index("Atomic-Json $request $req") < text.index("Disable-ScheduledTask")
     assert text.index("Enable-ScheduledTask") < text.index("Remove-Item -LiteralPath $request")
+
+
+def test_legacy_gate_refuses_pg_runtime_before_pressure_or_trim(tmp_path, monkeypatch):
+    """An old registry/lock cannot authorize the current PG runtime's shutdown."""
+    import argparse
+    import json
+
+    gate = load_gate()
+    monkeypatch.setattr(gate, "parse_args", lambda: argparse.Namespace(
+        maintenance_id="synthetic-maintenance", unit_name="synthetic-gate",
+        transaction_root=tmp_path, pressure_wait_seconds=1,
+    ))
+    monkeypatch.setattr(gate.signal, "signal", lambda *args: None)
+    calls = []
+
+    def run(argv, *, timeout, check=False):
+        calls.append(tuple(argv))
+        return gate.subprocess.CompletedProcess(argv, 0, stdout="123\n", stderr="")
+
+    def forbidden_pressure(*args):
+        calls.append(("PRESSURE_EFFECT",))
+        raise AssertionError("legacy gate reached a physical effect")
+
+    monkeypatch.setattr(gate, "run", run)
+    monkeypatch.setattr(gate.os, "readlink", lambda path: "/usr/local/libexec/ordivon/ordivon-runtime-pg")
+    monkeypatch.setattr(gate, "pause_pressure", forbidden_pressure)
+    assert gate.main() == 42
+    terminal = json.loads((tmp_path / "gate-terminal.json").read_text())
+    assert terminal["reasonCode"] == "RUNTIME_AUTHORITY_UNSUPPORTED"
+    assert terminal["phase"] == "AUTHORITY_PREFLIGHT"
+    assert not (tmp_path / "ready.json").exists()
+    assert all(call[0] == "/usr/bin/systemctl" and "show" in call for call in calls)
+
+
+def test_legacy_authority_preflight_requires_stable_pid_and_real_carriers(tmp_path, monkeypatch):
+    import pytest
+
+    gate = load_gate()
+    registry = tmp_path / "registry.sqlite3"
+    lock = tmp_path / "admission.lock"
+    registry.write_bytes(b"synthetic legacy identity")
+    lock.write_bytes(b"")
+    monkeypatch.setattr(gate, "REGISTRY_DB", registry)
+    monkeypatch.setattr(gate, "ADMISSION_LOCK", lock)
+    monkeypatch.setattr(gate.os, "readlink", lambda _: str(gate.LEGACY_RUNTIME_EXECUTABLE))
+
+    def set_pids(*values):
+        pids = iter(values)
+        monkeypatch.setattr(gate, "run", lambda argv, **kwargs:
+            gate.subprocess.CompletedProcess(argv, 0, stdout=next(pids), stderr=""))
+
+    set_pids("123", "123")
+    identity = gate.require_legacy_runtime_authority()
+    assert identity == (123, (registry.stat().st_dev, registry.stat().st_ino),
+                        (lock.stat().st_dev, lock.stat().st_ino))
+    set_pids("123", "124")
+    with pytest.raises(gate.GateFailure, match="changed during observation"):
+        gate.require_legacy_runtime_authority()
+    for invalid in ("0", "", "unknown"):
+        set_pids(invalid)
+        with pytest.raises(gate.GateFailure, match="MainPID"):
+            gate.require_legacy_runtime_authority()
+    lock.unlink()
+    set_pids("123")
+    with pytest.raises(gate.GateFailure) as caught:
+        gate.require_legacy_runtime_authority()
+    assert caught.value.reason_code == "RUNTIME_AUTHORITY_UNSUPPORTED"
+    assert not lock.exists()
+
+
+def test_quiescence_requires_complete_exact_nonnegative_integer_census():
+    import pytest
+    gate = load_gate()
+    zero = {
+        "activeReservations": 0,
+        "heldReservations": 0,
+        "jobsActive": 0,
+        "nonterminalAttempts": 0,
+        "recoveryRequired": 0,
+    }
+    assert gate.status_counts(zero) == zero
+    assert gate.is_quiescent(zero)
+    assert not gate.is_quiescent({})
+    for key in zero:
+        missing = dict(zero)
+        del missing[key]
+        assert not gate.is_quiescent(missing)
+        with pytest.raises(ValueError):
+            gate.status_counts(missing)
+        for value in (False, "0", 0.0, None, -1):
+            malformed = {**zero, key: value}
+            assert not gate.is_quiescent(malformed)
+            with pytest.raises(ValueError):
+                gate.status_counts(malformed)
+
+
+def test_doctor_requires_explicit_untruncated_empty_capacity_and_exact_counts(tmp_path, monkeypatch):
+    import json
+
+    import pytest
+
+    gate = load_gate()
+    valid = {
+        "integrityCheck": "ok", "violationCount": 0,
+        "summary": {
+            "capacityHolders": [], "capacityHoldersTruncated": False,
+            "recoveryRequiredAttempts": 0,
+        },
+    }
+
+    def observe(payload):
+        monkeypatch.setattr(gate, "run", lambda argv, **kwargs:
+            gate.subprocess.CompletedProcess(argv, 0, stdout=json.dumps(payload), stderr=""))
+        return gate.full_doctor(tmp_path / "doctor.json", 1)
+
+    assert observe(valid) == valid
+    for patch in ({"violationCount": False}, {"violationCount": "0"}):
+        with pytest.raises(gate.GateFailure):
+            observe({**valid, **patch})
+    for key, value in (
+        ("recoveryRequiredAttempts", False),
+        ("recoveryRequiredAttempts", "0"),
+        ("capacityHoldersTruncated", None),
+        ("capacityHoldersTruncated", 0),
+        ("capacityHoldersTruncated", True),
+        ("capacityHolders", [{"id": "held"}]),
+    ):
+        with pytest.raises(gate.GateFailure):
+            observe({**valid, "summary": {**valid["summary"], key: value}})
+    summary = dict(valid["summary"])
+    del summary["capacityHoldersTruncated"]
+    with pytest.raises(gate.GateFailure):
+        observe({**valid, "summary": summary})
+
+
+def test_final_health_uses_same_complete_census_as_drain():
+    gate = load_gate()
+    valid = {key: 0 for key in (
+        "activeReservations", "heldReservations", "jobsActive",
+        "nonterminalAttempts", "recoveryRequired",
+    )}
+    assert gate.healthy_quiescent_runtime({"status": "healthy", "registry": valid})
+    for key in valid:
+        missing = dict(valid)
+        del missing[key]
+        for invalid in (missing, {**valid, key: 1}, {**valid, key: False}):
+            assert not gate.healthy_quiescent_runtime({"status": "healthy", "registry": invalid})
+    assert not gate.healthy_quiescent_runtime({"status": "unhealthy", "registry": valid})
+
+
+def test_materialization_status_exposes_exact_copy_without_retirement_authority(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location("compact_materialize", PROVIDER / "materialize.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    src = tmp_path / "source.ps1"
+    src.write_bytes(b"canonical")
+    exact = tmp_path / "exact.ps1"
+    exact.write_bytes(src.read_bytes())
+    divergent = tmp_path / "different.ps1"
+    divergent.write_bytes(b"unique historical payload")
+    alias = tmp_path / "alias.ps1"
+    alias.symlink_to(exact)
+    missing = tmp_path / "missing.ps1"
+    # Keep the real mapping shape: each distinct source is a separate key.
+    files = {}
+    for i, dst in enumerate((exact, divergent, alias, missing)):
+        source = tmp_path / f"source-{i}.ps1"
+        source.write_bytes(src.read_bytes())
+        files[source] = dst
+    monkeypatch.setattr(module, "FILES", files)
+    report = module.status()
+    rows = {Path(row["target"]).name: row for row in report["files"]}
+    assert rows["exact.ps1"]["retentionStanding"] == "EXACT_COPY_REVIEW"
+    assert rows["exact.ps1"]["matches"] is True
+    assert rows["exact.ps1"]["logicalBytes"] == len(src.read_bytes())
+    assert rows["different.ps1"]["retentionStanding"] == "DIVERGENT_RETAIN"
+    assert rows["alias.ps1"]["retentionStanding"] == "UNKNOWN_RETAIN"
+    assert rows["alias.ps1"]["matches"] is False
+    assert rows["missing.ps1"]["retentionStanding"] == "ABSENT"
+    assert report["deleteAuthority"] is False
+    assert report["consumerCoverage"] == "UNKNOWN"
+    assert exact.exists() and divergent.exists() and alias.is_symlink()
+
+
+def test_materialization_status_missing_source_preserves_existing_target(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location("compact_materialize", PROVIDER / "materialize.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    source = tmp_path / "missing-source.ps1"
+    target = tmp_path / "historical.ps1"
+    target.write_bytes(b"unique historical bytes")
+    monkeypatch.setattr(module, "FILES", {source: target})
+    row = module.status()["files"][0]
+    assert row["retentionStanding"] == "UNKNOWN_RETAIN"
+    assert row["matches"] is False
+    assert row["present"] is True
+    assert target.read_bytes() == b"unique historical bytes"
+
+
+def test_materialization_observation_rejects_replacement_and_unreadable_path(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location("compact_materialize", PROVIDER / "materialize.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    subject = tmp_path / "subject"
+    subject.write_bytes(b"old")
+    replacement = tmp_path / "replacement"
+    replacement.write_bytes(b"new")
+    original = module.os.open
+
+    def replace_then_open(path, *args, **kwargs):
+        replacement.replace(subject)
+        return original(path, *args, **kwargs)
+
+    with monkeypatch.context() as context:
+        context.setattr(module.os, "open", replace_then_open)
+        assert module._observe_regular(subject)["standing"] == "UNKNOWN"
+    assert subject.read_bytes() == b"new"
+
+    # An observation failure is not evidence of absence.
+    def denied(path):
+        raise PermissionError("synthetic metadata denial")
+
+    with monkeypatch.context() as context:
+        context.setattr(Path, "lstat", denied)
+        assert module._observe_regular(subject) == {"standing": "UNKNOWN", "present": None}
+
+
+def test_materialization_observation_bounds_nonregular_and_large_files(tmp_path):
+    import os
+
+    spec = importlib.util.spec_from_file_location("compact_materialize", PROVIDER / "materialize.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    pipe = tmp_path / "pipe"
+    os.mkfifo(pipe)
+    assert module._observe_regular(pipe)["standing"] == "UNKNOWN"
+    large = tmp_path / "large"
+    with large.open("wb") as stream:
+        stream.truncate(8 * 1024 * 1024 + 1)
+    assert module._observe_regular(large)["standing"] == "UNKNOWN"
+
+
+def test_materialization_projection_distinguishes_shared_inode_and_aliased_parent(tmp_path, monkeypatch):
+    import os
+
+    spec = importlib.util.spec_from_file_location("compact_materialize", PROVIDER / "materialize.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    source = tmp_path / "source"
+    source.write_bytes(b"same")
+    target = tmp_path / "target"
+    os.link(source, target)
+    monkeypatch.setattr(module, "FILES", {source: target})
+    row = module.status()["files"][0]
+    assert row["retentionStanding"] == "EXACT_COPY_REVIEW"
+    assert row["physicalRelation"] == "SAME_INODE"
+    assert row["linkCount"] == 2
+    target.unlink()
+    target.write_bytes(source.read_bytes())
+    row = module.status()["files"][0]
+    assert row["physicalRelation"] == "DISTINCT_INODES"
+    alias = tmp_path / "alias"
+    alias.symlink_to(tmp_path, target_is_directory=True)
+    assert module._observe_regular(alias / "target")["standing"] == "UNKNOWN"
+
+
+def test_reentry_preserves_prior_gate_evidence_without_maintenance_effect(tmp_path, monkeypatch):
+    """The unique transaction directory is a recovery root, not disposable scratch."""
+    import argparse
+    gate = load_gate()
+    monkeypatch.setattr(gate, "parse_args", lambda: argparse.Namespace(
+        maintenance_id="prior", unit_name="prior-unit",
+        transaction_root=tmp_path, pressure_wait_seconds=1,
+    ))
+    monkeypatch.setattr(gate.signal, "signal", lambda *args: None)
+    evidence = {
+        "ready.json": b"prior READY",
+        "gate-state.json": b"prior state",
+        "gate-terminal.json": b"prior terminal",
+        "handoff-observed.json": b"prior acknowledgement",
+        "drain.ndjson": b"prior drain",
+    }
+    for name, payload in evidence.items():
+        (tmp_path / name).write_bytes(payload)
+    def unexpected():
+        raise AssertionError("reentry reached current Runtime preflight")
+    monkeypatch.setattr(gate, "require_legacy_runtime_authority", unexpected)
+    assert gate.main() != 0
+    assert {name: (tmp_path / name).read_bytes() for name in evidence} == evidence
+
+
+def test_gate_handoff_requires_exact_current_request_state_and_authorization(tmp_path):
+    import datetime as dt
+    import json
+
+    import pytest
+
+    gate = load_gate()
+    root = tmp_path / "incarnation"
+    root.mkdir()
+    req = tmp_path / "active-request.json"
+    ready = root / "ready.json"
+    state = root / "gate-state.json"
+    auth = root / "authorization.json"
+    handoff = root / "handoff.json"
+    now = dt.datetime.now(dt.UTC)
+    code = "sha256:" + "a" * 64
+    controller = "sha256:" + "b" * 64
+    def put(path, value):
+        path.write_text(json.dumps(value), encoding="utf-8")
+    put(ready, {"ready": "actual fixture"})
+    ready_digest = gate.sha256_file(ready)
+    request = {"schemaVersion": 3, "kind": "ordivon.d-drive-compact-request",
+               "maintenanceId": "test", "gateSha256": code,
+               "controllerSha256": controller,
+               "expiresAtUtc": (now + dt.timedelta(minutes=1)).isoformat()}
+    put(req, request)
+    state_value = {"schemaVersion": 3, "kind": "ordivon.d-drive-compact-gate-state",
+                   "maintenanceId": "test", "unitName": "unit", "phase": "READY_HELD",
+                   "gateSha256": code, "readySha256": ready_digest}
+    put(state, state_value)
+    grant = {"schemaVersion": 3, "kind": "ordivon.d-drive-compact-authorization",
+             "maintenanceId": "test", "compactAuthorized": True,
+             "readySha256": ready_digest, "requestSha256": gate.sha256_file(req),
+             "gateStateSha256": gate.sha256_file(state), "gateSha256": code,
+             "controllerSha256": controller, "gateUnit": "unit",
+             "distro": "archlinux", "vhdPath": r"D:\WSL\archlinux\ext4.vhdx",
+             "issuedAtUtc": now.isoformat(),
+             "expiresAtUtc": (now + dt.timedelta(seconds=30)).isoformat()}
+    for case in ("valid", "wrong-request", "wrong-state", "wrong-code",
+                 "wrong-handoff", "expired", "coerced-grant", "wrong-target"):
+        put(req, request)
+        put(state, state_value)
+        value = dict(grant)
+        if case == "wrong-request":
+            value["requestSha256"] = "wrong"
+        if case == "wrong-state":
+            value["gateStateSha256"] = "wrong"
+        if case == "wrong-code":
+            value["gateSha256"] = "wrong"
+        if case == "expired":
+            value["expiresAtUtc"] = (now - dt.timedelta(seconds=1)).isoformat()
+        if case == "coerced-grant":
+            value["compactAuthorized"] = 1
+        if case == "wrong-target":
+            value["distro"] = "other"
+        put(auth, value)
+        put(handoff, {"schemaVersion": 3, "kind": "ordivon.d-drive-compact-handoff",
+                      "maintenanceId": "test", "status": "offline_authorized",
+                      "readySha256": ready_digest,
+                      "authorizationSha256": "wrong" if case == "wrong-handoff" else gate.sha256_file(auth)})
+        if case == "valid":
+            assert gate.qualify_handoff(root, "test", "unit", code, ready_digest) == gate.sha256_file(handoff)
+        else:
+            with pytest.raises(gate.GateFailure):
+                gate.qualify_handoff(root, "test", "unit", code, ready_digest)

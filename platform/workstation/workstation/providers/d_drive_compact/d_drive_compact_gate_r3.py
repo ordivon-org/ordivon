@@ -9,6 +9,7 @@ import json
 import os
 import re
 import signal
+import stat
 import subprocess
 import time
 from pathlib import Path
@@ -126,6 +127,50 @@ def service_enablement(unit: str) -> str:
     return state or "unknown"
 
 
+LEGACY_RUNTIME_EXECUTABLE = Path("/usr/local/libexec/ordivon/ordivon-runtime")
+
+
+def require_legacy_runtime_authority() -> tuple[int, tuple[int, int], tuple[int, int]]:
+    """Qualify only the actual legacy Runtime; never infer PG quiescence.
+
+    The legacy SQLite registry, lock and inspector are one authority tuple.
+    A different/unknown running executable or missing carrier is not an
+    empty registry. This read-only gate precedes all maintenance effects.
+    A PG-native maintenance contract must close admissions separately from
+    allowing terminal/cancellation progress; it cannot reuse this lock.
+    """
+    def pid() -> int:
+        result = run(
+            ["/usr/bin/systemctl", "show", "--property=MainPID", "--value",
+             "ordivon-runtime.service"],
+            timeout=10,
+        )
+        value = result.stdout.strip()
+        if result.returncode or not re.fullmatch(r"[1-9][0-9]*", value):
+            raise ValueError("Runtime MainPID unavailable")
+        return int(value)
+
+    try:
+        before = pid()
+        executable = Path(os.readlink(f"/proc/{before}/exe"))
+        if executable != LEGACY_RUNTIME_EXECUTABLE:
+            raise ValueError("running Runtime is not the qualified legacy carrier")
+        carriers = []
+        for path in (REGISTRY_DB, ADMISSION_LOCK):
+            metadata = path.lstat()
+            if not stat.S_ISREG(metadata.st_mode):
+                raise ValueError("legacy registry/lock is not a regular file")
+            carriers.append((metadata.st_dev, metadata.st_ino))
+        if pid() != before or Path(os.readlink(f"/proc/{before}/exe")) != executable:
+            raise ValueError("Runtime authority changed during observation")
+        return before, carriers[0], carriers[1]
+    except (OSError, ValueError, subprocess.SubprocessError) as exc:
+        raise GateFailure(
+            "RUNTIME_AUTHORITY_UNSUPPORTED", "AUTHORITY_PREFLIGHT",
+            str(exc),
+        ) from exc
+
+
 def pressure_snapshot() -> dict[str, str]:
     return {
         "timerState": service_state(PRESSURE_TIMER),
@@ -195,14 +240,21 @@ def status_projection() -> dict[str, Any]:
     )
 
 
+QUIESCENCE_COUNTS = (
+    "activeReservations", "heldReservations", "jobsActive",
+    "nonterminalAttempts", "recoveryRequired",
+)
+
+
 def status_counts(payload: dict[str, Any]) -> dict[str, int]:
-    return {
-        "activeReservations": int(payload.get("activeReservations", -1)),
-        "heldReservations": int(payload.get("heldReservations", -1)),
-        "jobsActive": int(payload.get("jobsActive", -1)),
-        "nonterminalAttempts": int(payload.get("nonterminalAttempts", -1)),
-        "recoveryRequired": int(payload.get("recoveryRequired", -1)),
-    }
+    """Missing, negative or coerced counters cannot prove an empty Runtime."""
+    counts = {}
+    for key in QUIESCENCE_COUNTS:
+        value = payload.get(key)
+        if type(value) is not int or value < 0:
+            raise ValueError(f"missing or invalid Runtime count: {key}")
+        counts[key] = value
+    return counts
 
 
 def active_job_ids(payload: dict[str, Any]) -> list[str]:
@@ -220,7 +272,21 @@ def active_job_ids(payload: dict[str, Any]) -> list[str]:
 
 
 def is_quiescent(counts: dict[str, int]) -> bool:
-    return all(counts[k] == 0 for k in counts)
+    return set(counts) == set(QUIESCENCE_COUNTS) and all(
+        type(counts[key]) is int and counts[key] == 0
+        for key in QUIESCENCE_COUNTS
+    )
+
+
+def healthy_quiescent_runtime(payload: dict[str, Any]) -> bool:
+    """Final health must refine the same complete census as drain."""
+    registry = payload.get("registry")
+    if payload.get("status") != "healthy" or not isinstance(registry, dict):
+        return False
+    try:
+        return is_quiescent(status_counts(registry))
+    except ValueError:
+        return False
 
 
 def full_doctor(doctor_path: Path, timeout_seconds: float) -> dict[str, Any]:
@@ -249,16 +315,17 @@ def full_doctor(doctor_path: Path, timeout_seconds: float) -> dict[str, Any]:
         raise GateFailure("DOCTOR_INVALID_JSON", "INTEGRITY_VERIFY", "Runtime Doctor returned non-object JSON")
     atomic_write_json(doctor_path, payload)
     summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
-    violations = int(payload.get("violationCount", -1))
+    violations = payload.get("violationCount")
     holders = summary.get("capacityHolders") if isinstance(summary, dict) else None
     if (
         cp.returncode != 0
         or payload.get("integrityCheck") != "ok"
-        or violations != 0
-        or int(summary.get("recoveryRequiredAttempts", -1)) != 0
+        or type(violations) is not int or violations != 0
+        or type(summary.get("recoveryRequiredAttempts")) is not int
+        or summary.get("recoveryRequiredAttempts") != 0
         or not isinstance(holders, list)
         or len(holders) != 0
-        or bool(summary.get("capacityHoldersTruncated", False))
+        or summary.get("capacityHoldersTruncated") is not False
     ):
         raise GateFailure(
             "INTEGRITY_REJECTED",
@@ -282,6 +349,71 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--ready-hold-seconds", type=float, default=300.0)
     p.add_argument("--handoff-hold-seconds", type=float, default=120.0)
     return p.parse_args()
+
+
+def qualify_handoff(root: Path, maintenance_id: str, unit: str,
+                    gate_digest: str, ready_digest: str) -> str:
+    """Observe one exact READY/request/authorization/handoff chain.
+
+    This does not create permission or prove an external writer is fenced.
+    The live gate and Windows effect owner each recheck their own authority.
+    """
+    def read(path: Path) -> tuple[dict[str, Any], str]:
+        raw = path.read_bytes()
+        value = json.loads(raw)
+        if not isinstance(value, dict):
+            raise ValueError("receipt must be a JSON object")
+        return value, "sha256:" + hashlib.sha256(raw).hexdigest()
+
+    def exact(value: dict[str, Any], expected: dict[str, Any]) -> None:
+        if any(type(value.get(k)) is not type(v) or value.get(k) != v
+               for k, v in expected.items()):
+            raise ValueError("receipt identity or predicate mismatch")
+
+    def instant(value: Any) -> dt.datetime:
+        if not isinstance(value, str):
+            raise ValueError("timestamp must be a string")
+        parsed = dt.datetime.fromisoformat(value)
+        if parsed.tzinfo is None:
+            raise ValueError("timestamp must have an offset")
+        return parsed
+
+    try:
+        paths = [root.parent / "active-request.json", root / "gate-state.json",
+                 root / "authorization.json", root / "handoff.json"]
+        (request, req_sha), (state, state_sha), (auth, auth_sha), (handoff, handoff_sha) = [
+            read(path) for path in paths
+        ]
+        common = {"schemaVersion": 3, "maintenanceId": maintenance_id}
+        exact(request, common | {"kind": "ordivon.d-drive-compact-request",
+                                "gateSha256": gate_digest})
+        exact(state, common | {"kind": "ordivon.d-drive-compact-gate-state",
+                              "unitName": unit, "phase": "READY_HELD",
+                              "gateSha256": gate_digest, "readySha256": ready_digest})
+        exact(auth, common | {"kind": "ordivon.d-drive-compact-authorization",
+                             "compactAuthorized": True, "readySha256": ready_digest,
+                             "requestSha256": req_sha, "gateStateSha256": state_sha,
+                             "gateSha256": gate_digest, "gateUnit": unit,
+                             "distro": "archlinux", "vhdPath": r"D:\WSL\archlinux\ext4.vhdx"})
+        controller_digest = request.get("controllerSha256")
+        if (not isinstance(controller_digest, str)
+                or not re.fullmatch(r"sha256:[0-9a-f]{64}", controller_digest)
+                or auth.get("controllerSha256") != controller_digest):
+            raise ValueError("controller digest mismatch")
+        exact(handoff, common | {"kind": "ordivon.d-drive-compact-handoff",
+                                "status": "offline_authorized", "readySha256": ready_digest,
+                                "authorizationSha256": auth_sha})
+        now = dt.datetime.now(dt.UTC)
+        if not instant(auth.get("issuedAtUtc")) <= now < instant(auth.get("expiresAtUtc")) <= instant(request.get("expiresAtUtc")):
+            raise ValueError("grant or request expired or not current")
+        if (sha256_file(root / "ready.json") != ready_digest
+                or any(sha256_file(path) != digest for path, digest in
+                       zip(paths, (req_sha, state_sha, auth_sha, handoff_sha), strict=True))
+                or os.path.lexists(root / "gate-terminal.json")):
+            raise ValueError("handoff evidence changed or terminated")
+        return handoff_sha
+    except (OSError, ValueError, TypeError) as exc:
+        raise GateFailure("HANDOFF_BINDING_MISMATCH", "READY_HELD", str(exc)) from exc
 
 
 def main() -> int:
@@ -351,20 +483,37 @@ def main() -> int:
     signal.signal(signal.SIGTERM, on_signal)
     signal.signal(signal.SIGINT, on_signal)
 
-    ready_path.unlink(missing_ok=True)
-    terminal_path.unlink(missing_ok=True)
-    handoff_observed_path.unlink(missing_ok=True)
-    drain_log.unlink(missing_ok=True)
-    write_state("CREATED")
+    # Prior transaction evidence is a recovery root, including incomplete
+    # state. Never erase it to manufacture a fresh maintenance incarnation.
+    evidence_paths = (state_path, ready_path, terminal_path, handoff_path,
+                      handoff_observed_path, doctor_path, status_path, trim_path,
+                      drain_log, root / "authorization.json", root / "result.json")
+    if any(os.path.lexists(path) for path in evidence_paths):
+        return 42
+    try:
+        with state_path.open("xb") as initial:
+            initial.write((json.dumps({
+                "schemaVersion": 3, "kind": "ordivon.d-drive-compact-gate-state",
+                "maintenanceId": args.maintenance_id, "unitName": args.unit_name,
+                "phase": "CREATED", "observedAtUtc": utc_now(),
+                "gateSha256": gate_source_sha,
+            }, sort_keys=True) + "\n").encode())
+            initial.flush()
+            os.fsync(initial.fileno())
+    except FileExistsError:
+        return 42
 
     try:
+        authority = require_legacy_runtime_authority()
         pressure = pause_pressure(args.pressure_wait_seconds)
         pressure_before = dict(pressure["before"])
         pressure_paused = True
         write_state("PRESSURE_QUIESCED", pressure=pressure)
 
-        ADMISSION_LOCK.parent.mkdir(parents=True, exist_ok=True)
-        lock_handle = ADMISSION_LOCK.open("a+")
+        if require_legacy_runtime_authority() != authority:
+            raise GateFailure("RUNTIME_AUTHORITY_DRIFTED", "FENCE_ACQUIRE",
+                              "legacy authority changed after preflight")
+        lock_handle = ADMISSION_LOCK.open("r+")
         lock_deadline = time.monotonic() + args.lock_wait_seconds
         while True:
             try:
@@ -374,6 +523,11 @@ def main() -> int:
                 if time.monotonic() >= lock_deadline:
                     raise GateFailure("ADMISSION_FENCE_TIMEOUT", "FENCE_ACQUIRE", "exclusive admission.lock was not acquired")
                 time.sleep(0.1)
+        lock_metadata = os.fstat(lock_handle.fileno())
+        if ((lock_metadata.st_dev, lock_metadata.st_ino) != authority[2]
+                or require_legacy_runtime_authority() != authority):
+            raise GateFailure("RUNTIME_AUTHORITY_DRIFTED", "FENCE_ACQUIRE",
+                              "legacy fence no longer binds the observed authority")
         write_state("FENCE_ACQUIRED", admissionLock=str(ADMISSION_LOCK))
 
         drain_deadline = time.monotonic() + args.drain_seconds
@@ -426,19 +580,16 @@ def main() -> int:
         final_status = run_json([RUNTIME_STATUS, "--health", "--json"], timeout=20)
         atomic_write_json(status_path, final_status)
         registry = final_status.get("registry") if isinstance(final_status.get("registry"), dict) else {}
-        if (
-            final_status.get("status") != "healthy"
-            or int(registry.get("jobsActive", -1)) != 0
-            or int(registry.get("activeReservations", -1)) != 0
-            or int(registry.get("heldReservations", -1)) != 0
-            or int(registry.get("recoveryRequired", -1)) != 0
-        ):
+        if not healthy_quiescent_runtime(final_status):
             raise GateFailure("RUNTIME_HEALTH_REJECTED", "FINAL_HEALTH", "Runtime health did not bind a zero-holder healthy cut")
 
         services = {unit: service_state(unit) for unit in CONTROL_PLANE_UNITS}
         if any(state != "active" for state in services.values()):
             raise GateFailure("CONTROL_PLANE_NOT_ACTIVE", "FINAL_HEALTH", f"control plane states={services}")
 
+        if require_legacy_runtime_authority() != authority:
+            raise GateFailure("RUNTIME_AUTHORITY_DRIFTED", "FINAL_HEALTH",
+                              "legacy authority changed before trim")
         run(["/usr/bin/sync"], timeout=30, check=True)
         trim_cp = run(["/usr/sbin/fstrim", "-v", "/"], timeout=300)
         if trim_cp.returncode != 0:
@@ -476,24 +627,25 @@ def main() -> int:
             "pressureBefore": pressure_before,
             "pressurePaused": pressure.get("paused"),
         }
+        if require_legacy_runtime_authority() != authority:
+            raise GateFailure("RUNTIME_AUTHORITY_DRIFTED", "FINAL_HEALTH",
+                              "legacy authority changed before READY")
         atomic_write_json(ready_path, ready)
         ready_sha = sha256_file(ready_path)
         write_state("READY_HELD", readySha256=ready_sha)
 
         while time.monotonic() < ready_hold_deadline:
             if handoff_path.is_file():
-                try:
-                    handoff = json.loads(handoff_path.read_text(encoding="utf-8"))
-                except Exception as exc:
-                    raise GateFailure("HANDOFF_INVALID_JSON", "READY_HELD", str(exc)) from exc
-                if (
-                    not isinstance(handoff, dict)
-                    or handoff.get("maintenanceId") != args.maintenance_id
-                    or handoff.get("status") != "offline_authorized"
-                    or handoff.get("readySha256") != ready_sha
-                ):
-                    raise GateFailure("HANDOFF_BINDING_MISMATCH", "READY_HELD", "handoff does not bind the exact ready receipt")
+                handoff_sha = qualify_handoff(
+                    root, args.maintenance_id, args.unit_name, gate_source_sha, ready_sha,
+                )
+                if require_legacy_runtime_authority() != authority:
+                    raise GateFailure("RUNTIME_AUTHORITY_DRIFTED", "READY_HELD",
+                                      "legacy authority changed before handoff")
                 handoff_seen = True
+                # Publish the held state first; the exact acknowledgement is
+                # the final ready-to-consume observation of those bytes.
+                write_state("HANDOFF_HELD", readySha256=ready_sha, handoffSha256=handoff_sha)
                 atomic_write_json(
                     handoff_observed_path,
                     {
@@ -502,11 +654,10 @@ def main() -> int:
                         "maintenanceId": args.maintenance_id,
                         "status": "accepted",
                         "readySha256": ready_sha,
-                        "handoffSha256": sha256_file(handoff_path),
+                        "handoffSha256": handoff_sha,
                         "observedAtUtc": utc_now(),
                     },
                 )
-                write_state("HANDOFF_HELD", readySha256=ready_sha, handoffSha256=sha256_file(handoff_path))
                 handoff_deadline = time.monotonic() + args.handoff_hold_seconds
                 while time.monotonic() < handoff_deadline:
                     time.sleep(0.25)

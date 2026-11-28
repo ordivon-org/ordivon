@@ -26,7 +26,11 @@ $pressureService = 'ordivon-runtime-storage-pressure.service'
 
 function Sha([string]$Path) { return ('sha256:' + (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLowerInvariant()) }
 function Atomic-Json([string]$Path,[object]$Value) { $tmp=$Path+'.tmp-'+$PID; $json=$Value|ConvertTo-Json -Depth 12; $utf8=New-Object System.Text.UTF8Encoding($false); $bytes=$utf8.GetBytes($json); $stream=[System.IO.File]::Open($tmp,[System.IO.FileMode]::Create,[System.IO.FileAccess]::Write,[System.IO.FileShare]::None); try {$stream.Write($bytes,0,$bytes.Length);$stream.Flush($true)} finally {$stream.Dispose()}; Move-Item -Force $tmp $Path }
-function Get-WslRunning { @(& "$env:WINDIR\System32\wsl.exe" --list --running --quiet 2>$null | ForEach-Object { (($_ -replace [char]0,'').Trim()) } | Where-Object { $_ }) }
+function Get-WslRunning {
+  $rows=@(& "$env:WINDIR\System32\wsl.exe" --list --running --quiet 2>$null)
+  if($LASTEXITCODE -ne 0){throw 'WSL running-distribution census unavailable'}
+  @($rows | ForEach-Object { (($_ -replace [char]0,'').Trim()) } | Where-Object { $_ })
+}
 function Test-Admin { return ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) }
 function Test-VhdExclusiveOpen { try { $s=[IO.File]::Open($vhdPath,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None);$s.Dispose();$true } catch {$false} }
 # A sparse VHDX has THREE different quantities: virtual/logical file
@@ -73,6 +77,14 @@ function Start-ControlPlane([object]$PressureBefore) {
   } while((Get-Date)-lt $deadline)
   [ordered]@{runtime=$runtimeState;host=$hostState;gateway=$gatewayState;pressureTimer=$timerState;pressureTimerExpected=$expectedTimerState;pressureTimerEnablement=$timerEnablement;pressureTimerEnablementExpected=$expectedTimerEnablement}
 }
+# An acknowledgement is a typed observation of this exact handoff and gate
+# state, not a filename. The legacy global shutdown requires no other distro.
+function Assert-HandoffEvidence($Ack,$State,[string]$Id,[string]$Unit,[string]$ReadyDigest,[string]$HandoffDigest,[string]$GateDigest,[DateTimeOffset]$Expiry,[string[]]$Running,[string]$Target){
+  if($Ack.schemaVersion -ne 3 -or $Ack.kind -cne 'ordivon.d-drive-compact-gate-handoff-observed' -or $Ack.maintenanceId -cne $Id -or $Ack.status -cne 'accepted' -or $Ack.readySha256 -cne $ReadyDigest -or $Ack.handoffSha256 -cne $HandoffDigest){throw 'Exact handoff acknowledgement rejected'}
+  if($State.schemaVersion -ne 3 -or $State.kind -cne 'ordivon.d-drive-compact-gate-state' -or $State.maintenanceId -cne $Id -or $State.unitName -cne $Unit -or $State.phase -cne 'HANDOFF_HELD' -or $State.gateSha256 -cne $GateDigest -or $State.readySha256 -cne $ReadyDigest -or $State.handoffSha256 -cne $HandoffDigest){throw 'Exact HANDOFF_HELD state rejected'}
+  if([DateTimeOffset]::UtcNow -ge $Expiry){throw 'Authorization expired before physical handoff'}
+  if(@($Running).Count -ne 1 -or $Running[0] -cne $Target){throw 'Legacy global shutdown would affect an unqualified distro'}
+}
 function Runtime-Health {
   $raw=(((& "$env:WINDIR\System32\wsl.exe" -d $distro -u root -- /usr/local/libexec/ordivon/ordivon-runtime-status --health --json 2>$null)|Out-String)); if([string]::IsNullOrWhiteSpace($raw)){throw 'Runtime health returned no JSON'}; $raw|ConvertFrom-Json
 }
@@ -85,10 +97,14 @@ if(-not(Test-Path -LiteralPath $gateWindows -PathType Leaf)){throw "Gate missing
 if(-not(Test-Path -LiteralPath $controllerWindows -PathType Leaf)){throw "Controller missing: $controllerWindows"}
 if(-not(Test-Path -LiteralPath $vhdPath -PathType Leaf)){throw "VHD missing: $vhdPath"}
 New-Item -ItemType Directory -Force -Path $txRoot | Out-Null
+# Never reset evidence for a reused transaction ID; recovery must reconcile
+# the existing transaction rather than starting a second physical effect.
+foreach($prior in @($ready,$terminal,$handoff,$authorization,$result,$optimizeOut,"$txRoot\gate-state.json","$txRoot\handoff-observed.json","$txRoot\gate-submit.json")){
+  if(Test-Path -LiteralPath $prior){throw 'Existing maintenance evidence requires reconciliation'}
+}
 $before=Volume-State
 $status='failed';$errorText=$null;$recovery=$null;$offlineEffectStarted=$false
 try {
-  Remove-Item $ready,$terminal,$handoff,$authorization,$result,$optimizeOut -Force -ErrorAction SilentlyContinue
   $unitArg = ('--unit={0}' -f $unitName)
   $txLinux = ('/mnt/d/OrdivonStudio/maintenance/{0}' -f $MaintenanceId)
   $gateArgs=@('-d',$distro,'-u','root','--','/usr/bin/systemd-run',$unitArg,'--collect','--property=Type=exec','--','/usr/bin/python3',$gateLinux,'--maintenance-id',$MaintenanceId,'--unit-name',$unitName,'--transaction-root',$txLinux)
@@ -125,7 +141,12 @@ try {
   } while((Get-Date)-lt $authDeadline)
   if(-not(Test-Path -LiteralPath $authorization)){throw 'Fresh authorization did not arrive while READY gate was held'}
   $a=Get-Content -Raw -LiteralPath $authorization|ConvertFrom-Json
-  if($a.schemaVersion -ne 3 -or $a.kind -ne 'ordivon.d-drive-compact-authorization' -or $a.maintenanceId -ne $MaintenanceId -or $a.compactAuthorized -ne $true){throw 'Authorization identity/grant mismatch'}
+  $authorizationDigest=Sha $authorization
+  $requestPath="$root\maintenance\active-request.json"
+  $gateStatePath="$txRoot\gate-state.json"
+  if(-not(Test-Path -LiteralPath $requestPath -PathType Leaf) -or $a.requestSha256 -cne (Sha $requestPath)){throw 'Authorization request identity mismatch'}
+  if(-not(Test-Path -LiteralPath $gateStatePath -PathType Leaf) -or $a.gateStateSha256 -cne (Sha $gateStatePath) -or $a.gateUnit -cne $unitName -or $a.distro -cne $distro -or $a.vhdPath -cne $vhdPath){throw 'Authorization state/target identity mismatch'}
+  if($a.schemaVersion -ne 3 -or $a.kind -ne 'ordivon.d-drive-compact-authorization' -or $a.maintenanceId -ne $MaintenanceId -or $a.compactAuthorized -isnot [bool] -or $a.compactAuthorized -ne $true){throw 'Authorization identity/grant mismatch'}
   if($a.readySha256 -ne (Sha $ready)){throw 'Authorization is not bound to exact READY receipt'}
   if($a.gateSha256 -ne (Sha $gateWindows) -or $a.controllerSha256 -ne (Sha $controllerWindows)){throw 'Authorization code binding mismatch'}
   if([DateTimeOffset]::UtcNow -ge [DateTimeOffset]::Parse([string]$a.expiresAtUtc)){throw 'Authorization expired'}
@@ -134,6 +155,10 @@ try {
   $handoffObserved="$txRoot\handoff-observed.json";$handoffDeadline=(Get-Date).AddSeconds(15)
   do { if(Test-Path -LiteralPath $handoffObserved){break}; Start-Sleep -Milliseconds 100 } while((Get-Date)-lt $handoffDeadline)
   if(-not(Test-Path -LiteralPath $handoffObserved)){throw 'Linux gate did not acknowledge exact offline handoff'}
+  $ack=Get-Content -Raw -LiteralPath $handoffObserved|ConvertFrom-Json
+  $state=Get-Content -Raw -LiteralPath $gateStatePath|ConvertFrom-Json
+  if((Sha $authorization) -cne $authorizationDigest -or (Sha $ready) -cne $a.readySha256 -or (Sha $requestPath) -cne $a.requestSha256 -or (Test-Path -LiteralPath $terminal)){throw 'Handoff evidence changed or terminated'}
+  Assert-HandoffEvidence $ack $state $MaintenanceId $unitName $a.readySha256 (Sha $handoff) $a.gateSha256 ([DateTimeOffset]::Parse([string]$a.expiresAtUtc)) @(Get-WslRunning) $distro
 
   # The physical effect is host-level VHD maintenance. Shut down the complete WSL VM
   # rather than assuming a distro-only terminate releases every VHD handle.
