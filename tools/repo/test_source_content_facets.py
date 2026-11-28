@@ -3,6 +3,9 @@ from __future__ import annotations
 import importlib.util
 import json
 import pathlib
+import os
+import subprocess
+import tempfile
 import unittest
 
 ROOT=pathlib.Path(__file__).resolve().parents[2]
@@ -52,6 +55,72 @@ class SourceContentFacetTests(unittest.TestCase):
         z=[{"sourceRef":"region/repository-root-config","sourcePrefix":""}]
         self.assertEqual(M.candidate_zone("AGENTS.md",z),"region/repository-root-config")
         with self.assertRaises(ValueError):M.candidate_zone("weird/AGENTS.md",z)
+    def test_local_source_observation_does_not_hydrate_partial_clone(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = pathlib.Path(tmp)
+            producer, reader = base / "producer", base / "reader"
+            subprocess.run(["git", "init", "-q", str(producer)], check=True)
+            (producer / "source.txt").write_text("unique local source\n")
+            def native(repo, *args):
+                return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
+            native(producer, "add", ".")
+            native(producer, "-c", "user.name=fixture", "-c", "user.email=fixture@example.invalid",
+                   "commit", "-qm", "fixture")
+            native(producer, "config", "uploadpack.allowFilter", "true")
+            native(producer, "config", "uploadpack.allowAnySHA1InWant", "true")
+            subprocess.run(["git", "clone", "-q", "--no-checkout", "--filter=blob:none",
+                            producer.as_uri(), str(reader)], check=True)
+            cut = native(producer, "rev-parse", "HEAD")
+            oid = native(producer, "rev-parse", "HEAD:source.txt")
+            self.assertEqual(M.exact_tree(reader, cut)[0]["blobOid"], oid)
+            def snapshot():
+                return {x.relative_to(reader).as_posix(): x.read_bytes()
+                        for x in (reader / ".git" / "objects").rglob("*") if x.is_file()}
+            before = snapshot()
+            for call in (lambda: M.batch_sizes(reader, [oid]),
+                         lambda: M.batch_contents(reader, [oid], {oid: 20}),
+                         lambda: M.git("show", cut + ":source.txt", repo=reader)):
+                with self.assertRaisesRegex(ValueError, "incomplete"):
+                    call()
+                self.assertEqual(snapshot(), before)
+            # Explicit acquisition is a different effect, and replay succeeds.
+            native(reader, "fetch", "--no-tags", "origin", oid)
+            acquired = snapshot()
+            sizes = M.batch_sizes(reader, [oid])
+            self.assertEqual(M.batch_contents(reader, [oid], sizes)[oid], b"unique local source\n")
+            self.assertEqual(M.git("show", cut + ":source.txt", repo=reader), b"unique local source\n")
+            self.assertEqual(snapshot(), acquired)
+
+    def test_batch_object_identity_and_size_are_qualified(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = pathlib.Path(tmp)
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            oid = subprocess.check_output(["git", "-C", tmp, "hash-object", "-w", "--stdin"],
+                                          input=b"real\n").decode().strip()
+            with self.assertRaises(ValueError):
+                M.batch_contents(repo, [oid], {oid: 1})
+            with self.assertRaises(ValueError):
+                M.batch_sizes(repo, [oid, oid])
+            with self.assertRaises(ValueError):
+                M.batch_sizes(repo, [oid + "\nHEAD"])
+            self.assertEqual(M.batch_contents(repo, [oid], {oid: 5}), {oid: b"real\n"})
+
+    def test_foreign_git_environment_cannot_redirect_local_observation(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmp:
+            root=pathlib.Path(tmp)
+            intended, foreign=root/"intended", root/"foreign"
+            for repo, value in ((intended, b"intended"), (foreign, b"foreign")):
+                subprocess.run(["git", "init", "-q", str(repo)], check=True)
+                (repo/"source.txt").write_bytes(value)
+                subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+                subprocess.run(["git", "-C", str(repo), "-c", "user.name=fixture",
+                                "-c", "user.email=fixture@example.invalid",
+                                "commit", "-qm", "fixture"], check=True)
+            with patch.dict(os.environ, {"GIT_DIR":str(foreign/".git"),
+                                         "GIT_WORK_TREE":str(foreign)}):
+                self.assertEqual(M.git("show", "HEAD:source.txt", repo=intended), b"intended")
+
     def test_symbolic_sha_rejected(self):
         with self.assertRaisesRegex(ValueError,"exact"):
             M.exact_git_commit(ROOT,"HEAD")
