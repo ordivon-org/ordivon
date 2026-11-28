@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
 import time
 
 from anc_canonical import JsonValue, validate_json_value
@@ -269,6 +270,8 @@ class GatewayExecutionPort:
         artifact_id = stdout[0]
         offset = 0
         chunks: list[str] = []
+        retained_digest: str | None = None
+        hasher = hashlib.sha256()
         while True:
             payload = self._call(
                 'artifact.read',
@@ -293,13 +296,35 @@ class GatewayExecutionPort:
             content = payload.get('content')
             if not isinstance(content, str):
                 raise GatewayExecutionError('Gateway artifact read omitted text content')
-            chunks.append(content)
             eof = payload.get('eof')
-            if eof is True:
-                return ''.join(chunks)
+            if type(eof) is not bool:
+                raise GatewayExecutionError('Gateway artifact read omitted a typed EOF')
             next_offset = _field(payload, 'next_offset', 'nextOffset')
-            if type(next_offset) is not int or next_offset <= offset:
+            try:
+                encoded = content.encode('utf-8')
+            except UnicodeEncodeError:
+                raise GatewayExecutionError('Gateway artifact read returned invalid UTF-8') from None
+            if (
+                type(next_offset) is not int
+                or next_offset != offset + len(encoded)
+                or len(encoded) > max_bytes
+            ):
+                raise GatewayExecutionError('Gateway artifact read returned inconsistent byte range')
+            if not eof and next_offset == offset:
                 raise GatewayExecutionError('Gateway artifact pagination did not advance')
+            digest = payload.get('digest')
+            if not isinstance(digest, str) or not digest.startswith('sha256:'):
+                raise GatewayExecutionError('Gateway artifact read omitted retained digest')
+            if retained_digest is None:
+                retained_digest = digest
+            elif retained_digest != digest:
+                raise GatewayExecutionError('Gateway artifact read changed retained digest')
+            hasher.update(encoded)
+            chunks.append(content)
+            if eof:
+                if retained_digest != 'sha256:' + hasher.hexdigest():
+                    raise GatewayExecutionError('Gateway artifact read retained digest mismatch')
+                return ''.join(chunks)
             offset = next_offset
 
 

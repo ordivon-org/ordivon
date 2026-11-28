@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+
 import pytest
 
 from ordivon_harness.gateway_execution_port import (
@@ -74,6 +76,7 @@ class FakeGateway:
                 'offset': 0,
                 'content': '{"standing":"bound"}\n',
                 'next_offset': 21,
+                'digest': 'sha256:' + hashlib.sha256(b'{"standing":"bound"}\n').hexdigest(),
                 'eof': True,
             }
         raise AssertionError(name)
@@ -330,3 +333,55 @@ def test_lost_submit_response_rejects_foreign_gateway_resolution_identity(
     assert [name for name, _ in client.calls] == [
         "execution.submit", "execution.resolve"
     ]
+
+
+@pytest.mark.parametrize(
+    ("mutation", "reason"),
+    (
+        ({"next_offset": 22}, "byte"),
+        ({"eof": "true"}, "EOF"),
+        ({"digest": "sha256:" + "0" * 64}, "digest"),
+        ({"digest": None}, "digest"),
+    ),
+)
+def test_stdout_rejects_inconsistent_terminal_byte_evidence(mutation, reason):
+    class InvalidTerminal(FakeGateway):
+        def call_tool(self, name, arguments):
+            error, result = super().call_tool(name, arguments)
+            if name == "artifact.read":
+                result.update(mutation)
+            return error, result
+
+    port = GatewayExecutionPort(InvalidTerminal())
+    with pytest.raises(GatewayExecutionError, match=reason):
+        port.read_stdout(port.execute(request()))
+
+
+@pytest.mark.parametrize("change_digest", (False, True))
+def test_stdout_consumes_exact_multibyte_windows(change_digest):
+    pieces = ("你", "🙂", "")
+    digest = "sha256:" + hashlib.sha256("".join(pieces).encode()).hexdigest()
+
+    class MultiWindow(FakeGateway):
+        def call_tool(self, name, arguments):
+            if name != "artifact.read":
+                return super().call_tool(name, arguments)
+            index = {0: 0, 3: 1, 7: 2}[arguments["offset"]]
+            part = pieces[index]
+            return False, {
+                "operation_ref": arguments["operationRef"],
+                "artifact_id": arguments["artifactId"],
+                "offset": arguments["offset"],
+                "next_offset": arguments["offset"] + len(part.encode()),
+                "eof": index == 2,
+                "digest": "sha256:" + "0" * 64 if change_digest and index == 1 else digest,
+                "content": part,
+            }
+
+    port = GatewayExecutionPort(MultiWindow())
+    result = port.execute(request())
+    if change_digest:
+        with pytest.raises(GatewayExecutionError, match="digest"):
+            port.read_stdout(result, max_bytes=4)
+    else:
+        assert port.read_stdout(result, max_bytes=4) == "你🙂"
