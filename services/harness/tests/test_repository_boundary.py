@@ -123,6 +123,44 @@ class RepositoryBoundaryTests(unittest.TestCase):
         self.assertIn("harness.provider-call-claimed", HARNESS_STORE_EVENT_KINDS)
         self.assertIn("harness.tool-step-prepared", HARNESS_STORE_EVENT_KINDS)
 
+    def test_supported_product_source_does_not_reintroduce_sqlite_store(self) -> None:
+        """PostgreSQL-only product entrypoints must not regress to dual persistence."""
+        source_root = ROOT / "src" / "ordivon_harness"
+        violations: list[str] = []
+        for path in source_root.rglob("*.py"):
+            if path.name == "sqlite_store.py":
+                continue
+            tree = ast.parse(path.read_text(), filename=str(path))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom):
+                    module = node.module or ""
+                    imports_sqlite_module = module == "sqlite_store" or module.endswith(
+                        ".sqlite_store"
+                    )
+                    imports_sqlite_symbol = any(
+                        alias.name == "SQLiteHarnessStore" for alias in node.names
+                    )
+                    relative_module_import = (
+                        node.level > 0
+                        and not module
+                        and any(alias.name == "sqlite_store" for alias in node.names)
+                    )
+                    if (
+                        imports_sqlite_module
+                        or imports_sqlite_symbol
+                        or relative_module_import
+                    ):
+                        violations.append(f"{path.relative_to(source_root)}:{node.lineno}")
+                elif isinstance(node, ast.Import):
+                    for alias in node.names:
+                        if alias.name == "sqlite_store" or alias.name.endswith(
+                            ".sqlite_store"
+                        ):
+                            violations.append(
+                                f"{path.relative_to(source_root)}:{node.lineno}"
+                            )
+        self.assertEqual(violations, [])
+
     def test_retired_host_era_abandonment_surface_does_not_return(self) -> None:
         import ordivon_harness.api as api
         from ordivon_harness.store import HARNESS_STORE_EVENT_KINDS, HarnessRunStatus

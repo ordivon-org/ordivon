@@ -152,10 +152,11 @@ CREATE TABLE IF NOT EXISTS caller_bindings(
 
 
 class SQLiteHarnessStore:
-    """P0 independent Harness Journal/CAS kernel.
+    """Legacy/local Harness Journal/CAS implementation.
 
-    This Store is the current Harness persistence authority.
-    New P0 migration slices consume this boundary instead of dual-writing.
+    Current supported Agent/CLI product surfaces use PostgreSQL authority. This
+    implementation remains consumed by tests and explicit scripts; it is not
+    semantically interchangeable with PostgreSQL for terminal/effect safety.
     """
 
     @classmethod
