@@ -7982,3 +7982,62 @@ fn pg_job_list_exact_key_does_not_substitute_historical_result() {
         "reconciliation_required"
     );
 }
+
+// Native witness for the existing root-private legacy Workspace preflight.
+// No installed Workspace, service or authority is modified by this fixture.
+#[test]
+#[ignore = "requires disposable PostgreSQL18 and real systemd transient units"]
+fn pg_legacy_private_workspace_is_rejected_before_new_job_birth() {
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    let repo = fixture.repo();
+    let initial = fixture.endpoint();
+    let opened = call(
+        &initial,
+        "workspace.open",
+        json!({"workspaceId":"ws-legacy-private","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let legacy = fixture.root.join("store/workspaces/ws-legacy-private");
+    let meta = fs::symlink_metadata(&legacy).unwrap();
+    assert!(meta.is_dir());
+    assert_eq!(
+        meta.uid(),
+        0,
+        "test requires the original root-owned fixture"
+    );
+    fs::set_permissions(&legacy, fs::Permissions::from_mode(0o700)).unwrap();
+    let mut endpoint = fixture.endpoint.take().unwrap();
+    endpoint.kill().unwrap();
+    endpoint.wait().unwrap();
+    fixture.contained_nonroot_test = true;
+    fixture.ordinary_contained_only = true;
+    let current = fixture.endpoint();
+    let response = call(
+        &current,
+        "workspace.exec",
+        json!({
+            "clientRequestId":"legacy-private-must-not-create-job",
+            "execution":{"workspaceId":"ws-legacy-private","executable":"/usr/bin/printf",
+                "args":["LEGACY_PRIVATE_TEST"],"cwdRelative":".",
+                "executionProfile":"contained_local","timeoutMs":10000},
+            "waitMs":0
+        }),
+    );
+    // Restore only this fixture's original mode before asserting results.
+    fs::set_permissions(&legacy, fs::Permissions::from_mode(meta.mode() & 0o7777)).unwrap();
+    assert_eq!(response["isError"], true, "{response}");
+    assert_eq!(
+        response["structuredContent"]["error"]["code"], "WORKSPACE_STATE_MISMATCH",
+        "{response}"
+    );
+    for table in ["jobs", "attempts", "job_events"] {
+        let count: i64 = fixture
+            .db
+            .query_one(&format!("SELECT count(*) FROM {table}"), &[])
+            .unwrap()
+            .get(0);
+        assert_eq!(count, 0, "legacy preflight must not create {table}");
+    }
+    eprintln!("NATIVE_PG_LEGACY_PRIVATE_PRECOMMIT_ZERO_JOB_ATTEMPT_EVENT");
+}
