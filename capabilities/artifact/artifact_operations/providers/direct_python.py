@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import re
 from pathlib import Path
 from typing import Any
@@ -19,7 +18,7 @@ from artifact_core.admission import AdmissionHooks, admit_delivery_request
 from artifact_core.build_bindings import BuildCapabilityBindingRegistry
 from artifact_core.build_planning import compile_delivery_plan_from_validation
 from artifact_core.contracts import file_fact, sha256_file
-from artifact_core.json_validation import validate_json_document
+from artifact_core.json_validation import validate_json_document, write_pretty_json
 from artifact_core.profile_v1 import validate_profile_v1
 from artifact_operations.receipt import expected_file, operation_file_fact
 from artifact_trust import vsa as trust_vsa
@@ -62,14 +61,6 @@ _PRIMARY_SUFFIXES = {
     "pdf-a-4": ".pdf",
     "pdf-ua-2": ".pdf",
 }
-
-
-def _write_json(path: Path, value: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
 
 
 def _primary_suffix(profile: dict[str, Any]) -> str:
@@ -445,7 +436,7 @@ class DirectPythonOperationProvider:
         if operation_kind == "prepare":
             plan = self.compile_delivery_plan(context["requestPath"])
             out = output_directory / "derived-plan.json"
-            _write_json(out, plan)
+            write_pretty_json(out, plan)
             if plan.get("status") != "PASS":
                 raise RuntimeError(
                     f"derived plan did not PASS: {plan.get('failures')}"
@@ -470,7 +461,7 @@ class DirectPythonOperationProvider:
             artifacts = output_directory / "artifacts"
             result = self.execute_build_stage(context["requestPath"], artifacts)
             report = output_directory / "build-stage.json"
-            _write_json(report, result)
+            write_pretty_json(report, result)
             if result.get("status") != "PASS":
                 raise RuntimeError(
                     f"build stage did not PASS: {result.get('failures')}"
@@ -497,7 +488,7 @@ class DirectPythonOperationProvider:
                 evidence,
             )
             report = output_directory / "verify-stage.json"
-            _write_json(report, result)
+            write_pretty_json(report, result)
             if result.get("status") != "PASS":
                 raise RuntimeError(
                     f"verify stage did not PASS: {result.get('failures')}"
@@ -541,7 +532,7 @@ class DirectPythonOperationProvider:
                 toolchain=trust_vsa.default_trust_toolchain_config(),
             )
             out = output_directory / "trusted-vsa-aggregation.json"
-            _write_json(out, result)
+            write_pretty_json(out, result)
             if result.get("status") != "PASS":
                 raise RuntimeError(
                     f"trusted VSA aggregation did not PASS: {result.get('failures')}"
@@ -576,7 +567,7 @@ class DirectPythonOperationProvider:
                 signer_ids=None if trust is None else trust["signerIds"],
             )
             out = output_directory / "oci-package-stage.json"
-            _write_json(out, result)
+            write_pretty_json(out, result)
             if result.get("status") != "PASS":
                 raise RuntimeError(
                     f"OCI package stage did not PASS: {result.get('failures')}"

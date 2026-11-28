@@ -29,6 +29,15 @@ def decode_json(text: str) -> Any:
     )
 
 
+def write_pretty_json(path: Path, value: Any) -> None:
+    """Write the existing human-readable UTF-8 Artifact report format."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+
 def load_json(path: Path) -> Any:
     return decode_json(path.read_text(encoding="utf-8"))
 
