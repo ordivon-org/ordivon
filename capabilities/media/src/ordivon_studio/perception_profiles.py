@@ -149,7 +149,7 @@ def _resample_profile(values: Sequence[float], bins: int) -> list[float]:
         grouped[target].append(float(value))
     return [_mean(group) for group in grouped]
 
-def _vector_distance(left: Sequence[float], right: Sequence[float]) -> float:
+def vector_distance(left: Sequence[float], right: Sequence[float]) -> float:
     if len(left) != len(right):
         raise ValueError("vector lengths differ")
     if not left:

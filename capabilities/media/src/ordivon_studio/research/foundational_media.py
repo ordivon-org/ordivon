@@ -12,6 +12,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ..perception_profiles import vector_distance as vector_distance
+
 M7_EVIDENCE_KIND = "ordivon.studio-m7-foundational-media-evidence"
 
 
@@ -103,14 +105,6 @@ def still_visual_features(
         "digest": sha256_file(path),
         "interpretationBoundary": "Downsampled RGB layout is mechanical rendered-pixel evidence. It can prove a controlled still changed after rendering; it does not establish semantic importance, beauty, or observer preference.",
     }
-
-
-def vector_distance(left: Sequence[float], right: Sequence[float]) -> float:
-    if len(left) != len(right):
-        raise ValueError("vector lengths differ")
-    if not left:
-        return 0.0
-    return math.sqrt(statistics.fmean((a - b) ** 2 for a, b in zip(left, right)))
 
 
 def still_intervention_report(

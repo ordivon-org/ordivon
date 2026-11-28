@@ -19,6 +19,18 @@ from ordivon_studio.research.foundational_media import (
 
 
 class FoundationalMediaTest(unittest.TestCase):
+    def test_vector_distance_has_one_owner_and_preserves_contract(self) -> None:
+        from ordivon_studio.perception_profiles import vector_distance
+        from ordivon_studio.research.foundational_media import vector_distance as legacy_distance
+
+        self.assertIs(legacy_distance, vector_distance)
+        self.assertEqual(vector_distance([], []), 0.0)
+        self.assertEqual(vector_distance([1.0, 3.0], [1.0, 3.0]), 0.0)
+        self.assertEqual(vector_distance([1.0, 3.0], [3.0, 1.0]), 2.0)
+        self.assertAlmostEqual(vector_distance([0.0, 0.0], [3.0, 4.0]), (12.5) ** 0.5)
+        with self.assertRaisesRegex(ValueError, "vector lengths differ"):
+            vector_distance([0.0], [])
+
     def test_profile_distinction_exposes_target_specific_information(self) -> None:
         cases = [
             RegisteredCase("a", "crop-removes-qualifier", "still"),
