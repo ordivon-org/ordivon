@@ -110,3 +110,39 @@ T1 已完成当前 SourceCut 的机械清单；T2 后续按 Owner 分片并行�
 **下一批具体任务**：1）自然 Repo Owner 收敛本地与远端 SourceCut 边界；2）优先审查已开放 #1950/#1940 等减法 PR，避免重复实施；3）Distribution 剩余无生产消费的探针及其唯一内部依赖评审，必要时删现役树；4）Harness 对 run_continuity.py 和已发布 research 根做维护切片；5）Runtime/Repo 对大聚合实现先查误置责任再做内部重构；6）停止增加与现有 Owner、Build/CI/Runtime/Host 重复的自研层。
 
 **本 Spec 退出条件**：本轮存量切片由原生源码和 GitHub PR 承担后，本文件只保留当前的 Owner 导航与必要工程约束，历史逐波次叙事仍可从 Git 历史恢复。不能永久维持一个与 Host Work、Git、Runtime 平行的维护看板。
+
+## 8. 2026-11-28 architecture entropy execution checkpoint
+
+**Truth role:** this section is a bounded execution journal and task projection, not a second source/Owner/runtime authority. The 2026-11-10 SourceCut above remains the historical starting checkpoint. This slice started from remote `main=f582de27d72eadbb9656f4810815c7a1dfd2ab5c`; the slice started from `f582de27d72eadbb9656f4810815c7a1dfd2ab5c` and was replay-qualified onto `7d785552786a75bc5fdcfaf61b3d2110f4b3ba83`; the source candidate immediately before this checkpoint record is `b59eec5b6bf2be8b2747d9dede0765fa4125f191`. Exact Git, `tools/repo/owners.toml`, real consumers and native verification remain authoritative for their respective claims.
+
+The current user goal explicitly requires behavior baselines and machine-enforceable anti-regression checks. That supersedes the 2026-11-10 blanket freeze on adding tests only where an existing architecture invariant otherwise has no canonical gate coverage; it does **not** admit a new test framework, registry or consumer line.
+
+### Progress
+
+- Exact source census on the current line: 5,909 tracked paths. Before this slice, exhaustive source classification reported 385 unassigned paths. The stacked candidate reports 248: 63 canonical project Skill paths and 74 knowledge-catalog paths now have source-only classifications without gaining Owner/proof/execution authority.
+- `486ea9c0cab` classifies canonical `.agents/skills/` source while preserving the normative `recursive-lego-calculus` boundary; existing `affected_owners.py` still routes project-Skill changes to the real `skills` verifier.
+- `2306afa5f3e` replaces a stale ambiguity test that depended on an incidental production duplicate with an isolated exact-Git fixture. Clean `f582de2` reproduced the old test failure, so this is a main-baseline repair rather than a regression caused by the source-map change.
+- `b0f9c48cb7a` adds the existing `PythonStaticConsumerFrontierTests` class to canonical `repo:ci`; 20 selected exhaustive-coverage tests passed in the local gate slice.
+- `b59eec5b6bf` classifies the S5-deployed `catalogs/knowledge/` placement as non-authoritative source; all 74 paths move out of UNASSIGNED while the existing `composition` consumer remains the affected-owner verifier.
+- Focused acceptance: `FullCoverageTests` 14/14 PASS, `test_affected_owners` 46/46 PASS, full `test_exhaustive_coverage` 85/85 PASS before the knowledge-map commit, and exact-cut classification assertions PASS. Full root `mise run repo:ci` is separately required on the final landing candidate.
+
+### Bounded decision E01 — source classification is not Owner authority
+
+**Decision:** use `[[source_regions]]` only when current source placement and a real consumer/verification route are independently established, while keeping semantic Owner authority unchanged. Preserve distinct regions when semantics differ materially (for example normative Recursive LEGO calculus versus advisory/domain Skill content).
+
+**Rejected alternatives:** registering `.agents/skills/` or `catalogs/knowledge/` as new Owners would create false authority; one catch-all repository region would erase meaningful semantic boundaries; mechanically classifying every UNASSIGNED path would optimize a metric instead of architecture. A historical branch containing broader source-region proposals was independently checked and is **not an ancestor of current main**, so it is not acceptance evidence.
+
+**Consumers/falsifiers:** `.agents/skills/` changes are consumed by the current Skills verifier; `catalogs/knowledge/` is consumed by the current Composition projection. Reclassify or remove a region if current placement, consumer routing or semantic role changes. `UNKNOWN`/UNASSIGNED remains preferable to an invented classification.
+
+### Current optimization task pool
+
+| Priority | Candidate | Current evidence / next action | Standing |
+| --- | --- | --- | --- |
+| P0 | Publish this closed repo-mechanics slice | Rebase/read back latest remote main, run final `mise run repo:ci`, independent diff review, then use existing GitHub PR/Merge Queue | EXECUTING |
+| P1 | Remaining 248 unassigned source paths | 114 `docs/`, 89 `studies/`, 17 `profiles/`, 12 `.github/`, 5 `catalogs/data-products/`, 2 `tests/`, and root mechanics. Determine current semantic/source ownership from real consumers before any classification; do not bulk-clear the metric | OPEN / EVIDENCE REQUIRED |
+| P1 | Dense physical cells | Existing exhaustive scan flags 38 dense cells; highest include Harness tests/evidence/scripts, Capital tests, Artifact tests and Host/Gateway tests. Inspect responsibility/call graph before any split; LOC/file count alone is not a defect | OPEN / REVIEW |
+| P1 | Plan declaration gaps | Existing scan flags 8 cells across Media, Artifact, Gateway, Runtime, Harness, Network, Security and Game. Resolve only against current natural Owner plan/consumer contracts | OPEN / REVIEW |
+| P1 | Repo mechanics overlap | Open PR #2997 overlaps `mise.toml` / `test_exhaustive_coverage.py` while consolidating SQL/integration lanes, and #3018 overlaps `mise.toml` for TLA toolchain selection; semantic review found distinct responsibilities. #3015 remained file-disjoint. Re-fetch all before landing | OPEN / RECHECK |
+| P2 | Existing R04–R12 owner-local debts above | Continue the already-listed natural-Owner backlog instead of creating a second task registry | REUSE EXISTING TASKS |
+
+This checkpoint should be updated or retired as the exact source changes. It must not become a permanent parallel maintenance database; Git commits, current Owner contracts, native verification and provider read-back remain the durable execution facts.

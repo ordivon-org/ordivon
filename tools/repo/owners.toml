@@ -110,6 +110,24 @@ name = "chaoxing-autosign"
 root = "apps/chaoxing-autosign/"
 verify_task = "chaoxing:verify"
 
+# Canonical project Skill bytes. These source regions classify repository
+# navigation only; they do not grant execution, proof, or Owner authority.
+# Keep the normative Recursive LEGO calculus separate from advisory/domain Skills.
+[[source_regions]]
+name = "lego-specification-and-calculus"
+paths = [".agents/skills/recursive-lego-calculus/"]
+
+[[source_regions]]
+name = "agent-method-content"
+paths = [".agents/skills/"]
+exclude = [".agents/skills/recursive-lego-calculus/"]
+
+# S5-deployed reusable knowledge source. Edited Git bytes and provenance remain
+# non-authoritative catalog material; current consumers keep their own authority.
+[[source_regions]]
+name = "knowledge-catalog-source"
+paths = ["catalogs/knowledge/"]
+
 # Mechanical source navigation only; not a semantic Owner or proof authority.
 [[source_regions]]
 name = "formal-verification-source"
