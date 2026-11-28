@@ -23,6 +23,8 @@ CREATE TABLE jobs(
  desired_state text NOT NULL CHECK(desired_state IN ('run','cancelled')),
  resolution text, current_attempt_id text, row_version bigint NOT NULL DEFAULT 0,
  UNIQUE(principal,client_request_id));
+-- Reconstructible Workspace lookup; preserve the existing consumer predicate.
+CREATE INDEX idx_jobs_workspace_lookup ON jobs(workspace_id);
 CREATE TABLE attempts(
  attempt_id text PRIMARY KEY, job_id text NOT NULL REFERENCES jobs(job_id),
  attempt_number bigint NOT NULL CHECK(attempt_number >= 1),
@@ -43,6 +45,9 @@ CREATE TABLE concurrency_reservations(
  reservation_id text PRIMARY KEY,attempt_id text NOT NULL UNIQUE REFERENCES attempts(attempt_id),
  global_limit bigint NOT NULL,state text NOT NULL, acquired_at_ms bigint NOT NULL,
  state_observed_at_ms bigint NOT NULL, released_at_ms bigint, release_reason text);
+-- Sparse lookup of reservations still held; includes held orphaned Attempts.
+CREATE INDEX idx_reservations_held_attempt ON concurrency_reservations(attempt_id)
+ WHERE state IN ('active','held_orphaned');
 CREATE TABLE job_allocations(
  attempt_id text PRIMARY KEY REFERENCES attempts(attempt_id),
  resources_json text NOT NULL,workspace_access_json text NOT NULL,owner text NOT NULL,
