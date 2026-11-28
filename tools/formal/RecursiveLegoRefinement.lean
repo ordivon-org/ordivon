@@ -2102,12 +2102,88 @@ theorem new_live_consumer_invalidates_old_negative_observation :
     exact hLive
   · exact ⟨.b, OrdivonR21.real_consumer_must_be_rechecked, rfl⟩
 
+-- Consumer-rooted replacement is stronger than a zero-reference search.
+-- Review covers obligations, not just consumer names. A Cut denotes the
+-- exact Spec/source/input/environment/readset subject (qualification is
+-- external); Observation includes the contract-relevant effect and error.
+-- This predicate does not authorize physical deletion, or prove that the
+-- independently supplied demand frontier is complete.
+def DemandEquivalent {Cut Consumer Scenario Observation : Type}
+    (cut : Cut) (required : Consumer → Scenario → Prop)
+    (before after : Cut → Consumer → Scenario → Observation) : Prop :=
+  ∀ consumer scenario, required consumer scenario →
+    before cut consumer scenario = after cut consumer scenario
+
+-- Cooperative review is a qualified cover of consumer × scenario cells.
+-- There is no required number of reviewers and no voting rule: scope and
+-- qualification, not repeated agreement, justify the inference.
+theorem equivalent_of_qualified_review_cover
+    {Reviewer Cut Consumer Scenario Observation : Type}
+    (cut : Cut) (required : Consumer → Scenario → Prop)
+    (before after : Cut → Consumer → Scenario → Observation)
+    (qualified : Reviewer → Cut → Prop)
+    (covered : Reviewer → Cut → Consumer → Scenario → Prop)
+    (hCover : ∀ c s, required c s →
+      ∃ r, qualified r cut ∧ covered r cut c s)
+    (hEvidence : ∀ r c s, qualified r cut → covered r cut c s →
+      before cut c s = after cut c s) :
+    DemandEquivalent cut required before after := by
+  intro c s need
+  obtain ⟨r, hQualified, hCovered⟩ := hCover c s need
+  exact hEvidence r c s hQualified hCovered
+
+-- One real incompatible demanded observation refutes a redundancy claim,
+-- independently of the number of positive reviews or passed other cells.
+theorem one_required_counterexample_refutes_equivalence
+    {Cut Consumer Scenario Observation : Type}
+    (cut : Cut) (required : Consumer → Scenario → Prop)
+    (before after : Cut → Consumer → Scenario → Observation)
+    (c : Consumer) (s : Scenario) (need : required c s)
+    (different : before cut c s ≠ after cut c s) :
+    ¬ DemandEquivalent cut required before after := by
+  intro equivalent
+  exact different (equivalent c s need)
+
+-- Every named consumer was reviewed for a normal scenario; the recovery
+-- scenario was not. Consumer-name coverage alone cannot qualify removal.
+theorem named_consumer_coverage_without_scenarios_insufficient :
+    (∀ c : Unit, ∃ s : Bool,
+      (fun (_ : Unit) (_ : Unit) (_ : Bool) => false) () c s =
+      (fun (_ : Unit) (_ : Unit) (s : Bool) => s) () c s) ∧
+    ¬ DemandEquivalent () (fun (_ : Unit) (_ : Bool) => True)
+      (fun _ _ _ => false) (fun _ _ s => s) := by
+  constructor
+  · intro c
+    exact ⟨false, rfl⟩
+  · intro h
+    have wrong : false = true := h () true trivial
+    contradiction
+
+-- A fully reviewed old cut cannot certify the same named obligation at a
+-- new cut when a relevant observation changes. Valid transport would need
+-- a separate refinement/readset theorem rather than a Host ACK.
+theorem stale_exact_subject_review_insufficient :
+    DemandEquivalent false (fun (_ : Unit) (_ : Unit) => True)
+      (fun _ _ _ => false) (fun cut _ _ => cut) ∧
+    ¬ DemandEquivalent true (fun (_ : Unit) (_ : Unit) => True)
+      (fun _ _ _ => false) (fun cut _ _ => cut) := by
+  constructor
+  · intro _ _ _
+    rfl
+  · intro h
+    have wrong : false = true := h () () trivial
+    contradiction
+
 end OrdivonR21.RetirementClosure
 
 #print axioms OrdivonR21.RetirementClosure.no_live_consumer_if_closed_and_current
 #print axioms OrdivonR21.RetirementClosure.no_match_without_coverage_is_not_safe
 #print axioms OrdivonR21.RetirementClosure.new_edge_invalidates_old_negative_observation
 #print axioms OrdivonR21.RetirementClosure.new_live_consumer_invalidates_old_negative_observation
+#print axioms OrdivonR21.RetirementClosure.equivalent_of_qualified_review_cover
+#print axioms OrdivonR21.RetirementClosure.one_required_counterexample_refutes_equivalence
+#print axioms OrdivonR21.RetirementClosure.named_consumer_coverage_without_scenarios_insufficient
+#print axioms OrdivonR21.RetirementClosure.stale_exact_subject_review_insufficient
 
 -- Stateful/effectful profile of the *same* R2.1 11-tuple, not a new calculus.
 -- I,O,S,pre,post,visible eff are instantiated here. Invariants, cost,

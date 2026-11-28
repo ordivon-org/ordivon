@@ -308,7 +308,11 @@ def changed_paths(
             # SourceCut membership must be the actual immutable Git DAG, not
             # a locally installed refs/replace overlay. A replacement commit
             # could otherwise omit a changed Formal verifier source.
-            "git", "-C", str(repo), "--no-replace-objects", "diff", "--name-only", "--no-renames", "-z",
+            "git", "-C", str(repo), "--no-replace-objects", "diff",
+            "--name-only", "--no-renames", "--no-ext-diff", "--no-textconv",
+            # A gitlink's exact commit is a source value even when an Agent's
+            # local display configuration hides all submodule differences.
+            "--ignore-submodules=none", "--no-relative", "-z",
             "--diff-filter=ACDMRTUXB", f"{base}...{head}",
         ],
         # Object replacement and the separate legacy graft file can each

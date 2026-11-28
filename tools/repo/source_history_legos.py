@@ -13,7 +13,7 @@ import json
 import os
 import subprocess
 from pathlib import Path
-from tempfile import TemporaryDirectory
+from tempfile import TemporaryDirectory, TemporaryFile
 
 if __package__:
     from .affected_owners import load_owners
@@ -355,6 +355,71 @@ def compact_source_impact(delta: dict) -> dict:
     }
 
 
+def literal_patch_ids(repo: Path, spec: str, expected: set[str]) -> dict[str, str]:
+    """Native stable patch IDs from a literal, non-merge Git patch stream.
+
+    The revision walk used by --cherry-mark computes internal patch IDs
+    independently of the displayed diff options. Explicitly produce the
+    patch bytes first, so a submodule's ignore preference cannot hide a
+    changed Gitlink from the identity calculation. Stream rather than
+    buffering the complete patch history in Python. Stable patch identity
+    still ignores whitespace and is not behavioral equivalence.
+    """
+    prefix = ["git", "-c", "core.quotePath=true", "--no-replace-objects",
+              "-C", str(repo)]
+    command = [
+        *prefix, "log", "--no-merges", "--format=%H", "-p",
+        "--no-renames", "--no-ext-diff", "--no-textconv",
+        "--ignore-submodules=none", "--no-relative", "--submodule=short",
+        "--full-index", "--binary", "--no-color", "--no-notes",
+        "--no-show-signature", "--no-decorate", "--no-abbrev-commit",
+        "--src-prefix=a/", "--dst-prefix=b/", "--diff-algorithm=myers",
+        "--no-indent-heuristic", "--unified=3", "--inter-hunk-context=0",
+        spec,
+    ]
+    env = _source_git_env()
+    with (
+        TemporaryFile() as diagnostics,
+        subprocess.Popen(command, stdout=subprocess.PIPE, stderr=diagnostics,
+                         env=env) as producer,
+    ):
+        assert producer.stdout is not None
+        try:
+            with subprocess.Popen(
+                [*prefix, "patch-id", "--stable"],
+                stdin=producer.stdout, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, env=env,
+            ) as consumer:
+                # Close the parent's copy; an early consumer failure must
+                # not leave the producer blocked on an unread pipe.
+                producer.stdout.close()
+                output, error = consumer.communicate()
+        finally:
+            producer.stdout.close()
+        if producer.wait() or consumer.returncode:
+            diagnostics.seek(0)
+            raise ValueError(
+                "native patch identity pipeline failed: "
+                + (diagnostics.read(1000) + error[:1000]).decode(
+                    "utf-8", errors="replace")
+            )
+    import re
+
+    result: dict[str, str] = {}
+    for row in output.splitlines():
+        fields = row.decode("ascii").split()
+        if len(fields) != 2:
+            raise ValueError("malformed native patch identity row")
+        digest, commit = fields
+        if (commit not in expected or commit in result
+                or re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", digest) is None):
+            raise ValueError("unqualified native patch identity")
+        result[commit] = digest
+    if set(result) != expected:
+        raise ValueError("native patch identity coverage mismatch")
+    return result
+
+
 def history(repo: Path, left: str, right: str) -> dict:
     left_oid = git(repo, "--no-replace-objects", "rev-parse", "--verify", left + "^{commit}").strip()
     right_oid = git(repo, "--no-replace-objects", "rev-parse", "--verify", right + "^{commit}").strip()
@@ -395,9 +460,12 @@ def history(repo: Path, left: str, right: str) -> dict:
             "log",
             "-z",
             "--left-right",
-            "--cherry-mark",
             "--no-merges",
             "--no-renames",
+            "--ignore-submodules=none",
+            "--no-relative",
+            "--no-ext-diff",
+            "--no-textconv",
             "--format=%x00" + HEADER + "%m %H%x00",
             "--name-only",
             spec,
@@ -421,17 +489,15 @@ def history(repo: Path, left: str, right: str) -> dict:
         if oid not in all_commits or all_commits[oid]["kind"] != "patch":
             raise ValueError("invalid patch marker reference")
         record = all_commits[oid]
-        if marker == "=":
-            record["patchRelation"] = "PATCH_ID_EQUIVALENT"
-        elif (
-            marker == "<"
-            and record["side"] == "local"
-            or marker == ">"
-            and record["side"] == "remote"
+        if not (
+            marker == "<" and record["side"] == "local"
+            or marker == ">" and record["side"] == "remote"
         ):
-            record["patchRelation"] = "PATCH_DISTINCT_UNQUALIFIED"
-        else:
-            raise ValueError("unexpected cherry mark")
+            raise ValueError("unexpected Git patch side")
+        if record["patchRelation"] != "UNCLASSIFIED":
+            raise ValueError("duplicate Git patch record")
+        # Path enumeration alone does not establish patch equivalence.
+        record["patchRelation"] = "PATCH_DISTINCT_UNQUALIFIED"
         pos += 3
         first_path = True
         while pos < len(fields) and fields[pos] != b"":
@@ -467,6 +533,10 @@ def history(repo: Path, left: str, right: str) -> dict:
                 "-r",
                 "--name-only",
                 "--no-renames",
+                "--ignore-submodules=none",
+                "--no-relative",
+                "--no-ext-diff",
+                "--no-textconv",
                 "-z",
                 record["parents"][0],
                 record["commit"],
@@ -496,6 +566,10 @@ def history(repo: Path, left: str, right: str) -> dict:
                     "-r",
                     "--name-only",
                     "--no-renames",
+                    "--ignore-submodules=none",
+                    "--no-relative",
+                    "--no-ext-diff",
+                    "--no-textconv",
                     "-z",
                     parent,
                     record["commit"],
@@ -517,6 +591,23 @@ def history(repo: Path, left: str, right: str) -> dict:
     ]
     if missing:
         raise ValueError("missing exact patch classification: " + ",".join(missing[:5]))
+
+    # Empty commits have no native patch ID; conservatively leave them
+    # unqualified. Match nonempty IDs across the two sides, not within one
+    # side. Both the DAG membership and every emitted ID must be complete.
+    expected_ids = {
+        oid for oid, record in all_commits.items()
+        if record["kind"] == "patch" and record["changedPaths"]
+    }
+    patch_ids = literal_patch_ids(repo, spec, expected_ids)
+    by_side: dict[str, set[str]] = {"local": set(), "remote": set()}
+    for oid, digest in patch_ids.items():
+        by_side[all_commits[oid]["side"]].add(digest)
+    for oid, digest in patch_ids.items():
+        side = all_commits[oid]["side"]
+        opposite = "remote" if side == "local" else "local"
+        if digest in by_side[opposite]:
+            all_commits[oid]["patchRelation"] = "PATCH_ID_EQUIVALENT"
 
     mappings = owners(repo, right_oid)
     left_tree, right_tree = current_tree(repo, left_oid), current_tree(repo, right_oid)

@@ -835,7 +835,9 @@ def assess_candidate_source_redundancy(
     # current main against an old branch head would count unrelated newer main
     # changes as if they had originated in that old PR.
     paths_raw = native(
+        # Compare literal tree membership, not the human's diff display.
         "diff", "--no-ext-diff", "--no-textconv", "--no-renames",
+        "--ignore-submodules=none", "--no-relative",
         "--name-only", "-z", base, candidate,
     ).split(b"\0")
     paths = [os.fsdecode(path) for path in paths_raw if path]
@@ -958,7 +960,9 @@ def assess_candidate_pair_confluence(
         paths: set[str] = set()
         for base in all_bases:
             result = native(
+                # A hidden gitlink is also a hidden cross-Agent write overlap.
                 "diff", "--no-ext-diff", "--no-textconv", "--no-renames",
+                "--ignore-submodules=none", "--no-relative",
                 "--name-only", "-z", base, candidate,
             )
             if result.returncode:

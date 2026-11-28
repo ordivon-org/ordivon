@@ -217,6 +217,70 @@ class CandidateSourceRedundancyTests(unittest.TestCase):
                         )
                         self.assertTrue(actual_b["candidateInMainHistory"])
 
+    def test_native_gitlink_changes_cannot_be_hidden_by_diff_preferences(self) -> None:
+        """The immutable tree delta is independent of presentation defaults."""
+        with tempfile.TemporaryDirectory(prefix="ordivon-gitlink-delta-") as tmp:
+            repo = Path(tmp)
+            def git(*args: str) -> str:
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True,
+                    stderr=subprocess.PIPE, timeout=20,
+                ).strip()
+
+            git("init", "-q")
+            git("config", "user.email", "source-oracle@example.invalid")
+            git("config", "user.name", "Source oracle")
+            (repo / "value").write_text("old")
+            git("add", ".")
+            git("commit", "-qm", "old nested identity")
+            nested_old = git("rev-parse", "HEAD")
+            (repo / "value").write_text("new")
+            git("add", ".")
+            git("commit", "-qm", "new nested identity")
+            nested_new = git("rev-parse", "HEAD")
+            git("update-index", "--add", "--cacheinfo",
+                "160000," + nested_old + ",vendor/lib")
+            git("commit", "-qm", "fork")
+            fork = git("rev-parse", "HEAD")
+
+            git("update-index", "--cacheinfo",
+                "160000," + nested_new + ",vendor/lib")
+            git("commit", "-qm", "candidate nested dependency")
+            candidate = git("rev-parse", "HEAD")
+            git("checkout", "--detach", "-q", fork)
+            (repo / "main").write_text("main")
+            git("add", "main")
+            git("commit", "-qm", "independent main")
+            main = git("rev-parse", "HEAD")
+
+            git("update-index", "--cacheinfo",
+                "160000," + nested_new + ",vendor/lib")
+            git("commit", "-qm", "other candidate same dependency")
+            other = git("rev-parse", "HEAD")
+            git("config", "diff.ignoreSubmodules", "all")
+            git("config", "diff.relative", "true")
+            self.assertEqual(git("diff", "--name-only", fork, candidate), "")
+            self.assertEqual(git("diff", "--ignore-submodules=none",
+                                 "--no-relative", "--name-only", fork, candidate),
+                             "vendor/lib")
+            self.assertEqual(
+                MODULE.affected_owners.changed_paths(fork, candidate, source_repo_root=repo),
+                ("vendor/lib",),
+            )
+
+            receipt = MODULE.assess_candidate_source_redundancy(
+                candidate=candidate, main=main, repo=repo)
+            self.assertEqual(receipt["candidateChangePaths"], ["vendor/lib"])
+            self.assertEqual(receipt["mainDifferingPaths"], ["vendor/lib"])
+            self.assertEqual(receipt["sourceStanding"],
+                             "CANDIDATE_TOUCHED_BLOBS_DIFFER_FROM_MAIN")
+            self.assertFalse(receipt["retirementAdmissible"])
+            pair = MODULE.assess_candidate_pair_confluence(
+                left=candidate, right=other, repo=repo)
+            self.assertEqual(pair["sharedChangedPaths"], ["vendor/lib"])
+            self.assertFalse(pair["semanticConfluenceQualified"])
+            self.assertFalse(pair["integrationAdmissible"])
+
     def test_native_cli_on_real_source_cuts_denies_deletion(self) -> None:
         repo = MODULE_PATH.parents[2]
         main = MODULE._git("rev-parse", "HEAD")
