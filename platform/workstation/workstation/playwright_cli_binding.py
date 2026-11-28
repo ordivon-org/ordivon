@@ -10,7 +10,10 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
+import subprocess
 import tempfile
+import tomllib
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -18,8 +21,53 @@ from typing import Any
 import equipment_binding
 import tool_binding as core
 
-CLI_EQUIPMENT_ID = "playwright-cli-0-1-18"
-DEFAULT_NODE = Path("/usr/bin/node")
+CLI_EQUIPMENT_ID = "playwright-cli-0-1-25"
+
+
+def select_workstation_node() -> Path:
+    # Source and the Ansible-installed libexec directory each carry the same
+    # owner mise.toml. Resolve the exact owner Node without auto-installing.
+    module_dir = Path(__file__).resolve().parent
+    owner_dir = next(
+        (p for p in (module_dir, module_dir.parent) if (p / "mise.toml").is_file()),
+        None,
+    )
+    if owner_dir is None:
+        raise RuntimeError("mise could not resolve a pinned Workstation node executable: missing owner mise.toml")
+    try:
+        owner_tools = tomllib.loads((owner_dir / "mise.toml").read_text(encoding="utf-8"))["tools"]
+        required = owner_tools["node"]
+        if not isinstance(required, str) or not required:
+            raise ValueError("invalid pinned node version")
+        # The caller environment owns the mise carrier (e.g. hosted CI or the
+        # installed Workstation); the selected Node must still match the owner pin.
+        mise = shutil.which("mise")
+        if mise is None or not Path(mise).is_absolute():
+            raise RuntimeError("mise executable is unavailable in the caller environment")
+        result = subprocess.run(
+            [mise, "which", "node"],
+            cwd=owner_dir,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=20,
+            env={**os.environ, "MISE_OFFLINE": "1", "MISE_AUTO_INSTALL": "false"},
+        )
+        selected = Path(result.stdout.strip())
+        if result.returncode != 0 or not selected.is_absolute() or not selected.is_file() or not os.access(selected, os.X_OK):
+            raise RuntimeError("mise returned no installed owner node")
+        observed = subprocess.run(
+            [str(selected), "--version"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=8,
+        )
+        if observed.returncode != 0 or observed.stdout.strip() != "v" + required:
+            raise RuntimeError("mise node executable does not match the pinned owner version")
+        return selected.resolve()
+    except (OSError, ValueError, KeyError, subprocess.TimeoutExpired, RuntimeError) as error:
+        raise RuntimeError("mise could not resolve a pinned Workstation node executable") from error
 
 
 def _profile_identity(*, cli: Mapping[str, Any], browser: Mapping[str, Any], node: Path) -> dict[str, Any]:
@@ -42,11 +90,11 @@ def resolve_profile(
     catalog: Mapping[str, Any],
     *,
     browser_binding: Mapping[str, Any] | None = None,
-    node_path: Path = DEFAULT_NODE,
+    node_path: Path | None = None,
 ) -> dict[str, Any]:
     cli = core.resolve_managed(catalog, CLI_EQUIPMENT_ID)
     browser = dict(browser_binding or equipment_binding.bind_browser(catalog))
-    node = node_path.resolve()
+    node = (node_path if node_path is not None else select_workstation_node()).resolve()
     if not node.is_file() or not os.access(node, os.X_OK):
         raise RuntimeError(f"Node.js executable is unavailable: {node}")
     if browser.get("state") != "AVAILABLE":

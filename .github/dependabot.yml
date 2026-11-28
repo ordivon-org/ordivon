@@ -29,6 +29,7 @@ updates:
       - "/platform/security/labs/agent-admission-rs"
       - "/platform/workstation/providers/cloudflare"
       - "/platform/workstation/workstation/nix/codex-cli"
+      - "/platform/workstation/workstation/playwright-cli"
     schedule:
       interval: weekly
     groups:
