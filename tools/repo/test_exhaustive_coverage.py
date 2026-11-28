@@ -449,17 +449,52 @@ class PythonStaticConsumerFrontierTests(unittest.TestCase):
         self.assertEqual(output["sourceCut"], self.source)
 
     def test_ambiguous_module_name_fails_closed_without_preferred_owner(self) -> None:
-        out = M.static_python_import_frontier(
-            ROOT, self.source,
-            focus_prefix="domains/capital/tests/test_accounting_substrate_type_authority.py")
-        unresolved = [x for x in out["unresolvedImportStatements"]
-                      if x["standing"] == "AMBIGUOUS_MODULE_CANDIDATES"]
-        self.assertTrue(any(x["expression"] == "ordivon_capital.accounting"
-                            for x in unresolved))
-        self.assertFalse(any(x["moduleExpression"] == "ordivon_capital.accounting"
-                             for x in out["staticCandidateEdges"]))
-        self.assertGreater(out["summary"]["sourceModuleLayoutUnknown"], 0)
-        self.assertFalse(out["summary"]["zeroStaticEdgesProvesNoConsumers"])
+        import tempfile
+
+        # The production tree must be free to delete duplicate implementations.
+        # Keep the fail-closed ambiguity contract deterministic in an isolated
+        # exact-Git fixture instead of depending on an incidental repo duplicate.
+        with tempfile.TemporaryDirectory(prefix="ordivon-ambiguous-import-") as tmp:
+            repo = pathlib.Path(tmp)
+            for args in (
+                ("init", "-q"),
+                ("config", "user.name", "Ambiguous import fixture"),
+                ("config", "user.email", "ambiguous-import@example.invalid"),
+            ):
+                subprocess.run(["git", "-C", str(repo), *args], check=True)
+
+            for root in ("first", "second"):
+                package = repo / root / "src" / "example" / "accounting"
+                package.mkdir(parents=True)
+                (package / "__init__.py").write_text(
+                    f'PROVIDER = "{root}"\n', encoding="utf-8")
+            consumer = repo / "consumer.py"
+            consumer.write_text("import example.accounting\n", encoding="utf-8")
+
+            subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+            subprocess.run(
+                ["git", "-C", str(repo), "commit", "-qm", "ambiguous providers"],
+                check=True,
+            )
+            source = subprocess.check_output(
+                ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True,
+            ).strip()
+
+            out = M.static_python_import_frontier(
+                repo, source, focus_prefix="consumer.py")
+            unresolved = [
+                x for x in out["unresolvedImportStatements"]
+                if x["standing"] == "AMBIGUOUS_MODULE_CANDIDATES"
+            ]
+            self.assertTrue(any(
+                x["expression"] == "example.accounting" for x in unresolved
+            ))
+            self.assertFalse(any(
+                x["moduleExpression"] == "example.accounting"
+                for x in out["staticCandidateEdges"]
+            ))
+            self.assertEqual(out["summary"]["ambiguousModuleNames"], 1)
+            self.assertFalse(out["summary"]["zeroStaticEdgesProvesNoConsumers"])
 
 
 class ExactGitCrossFormatReferenceTests(unittest.TestCase):
