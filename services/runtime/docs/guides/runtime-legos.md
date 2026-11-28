@@ -30,7 +30,7 @@ related:
 
 This guide is a **consumer index**, not a second tool catalog or a new execution framework. Authoritative tools are discovered from the connected Runtime node, source truth comes from the specific Git revision, and physical results come from a Job/Attempt and provider evidence. The existing planning graph is [planning/lego-plan-r1.json](../../planning/lego-plan-r1.json); conceptual foundations are [Runtime Research](../../research/README.md).
 
-A LEGO is described by `(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`: inputs/outputs, owned state, pre/postconditions, invariant, possible effects, cost/capacity, uncertainty, provenance, and decomposition. Each entry must distinguish **specification**, **model/validator**, and **installed implementation**. The implementation and physical model are not proven equivalent merely because they share a name.
+Start from the actual problem and consumer observations. Choose the mathematical structures that express the necessary behavior: typed relations or functions, transition systems, invariants, composition, refinement, or other appropriate structures. Ordivon LEGO (OL) does not prescribe a universal record shape. Preserve only the semantic distinctions the problem requires. Distinguish **specification**, **model/validator**, and **installed implementation** whenever making a claim across those boundaries; sharing a name does not prove refinement.
 
 ## First-principles architecture: thought -> logic -> capability (2026-11-19)
 
@@ -88,9 +88,10 @@ composition check -> only then representation deletion or sharing**.
 | Logic | Reframe failure/requirements as a decision: inputs, state, rules, outputs, UNKNOWN and counterexamples | Admission/replay, scheduling, dispatch, reconciliation, consumer ownership, safe retirement |
 | Capability | Carry the decision on a mature concrete substrate, with explicit interface and truth owner | PostgreSQL tx/CAS, Git worktree, systemd/cgroup, Windows Job Object, native Runner, SHA-256 files, MCP |
 
-A LEGO is a contractable responsibility, not automatically one function,
-Tool, file, Agent, Skill or proof document. Use the existing typed R2.1
-fields only for a formally declared/admitted LEGO; do not duplicate registries.
+A LEGO is a consumer-relative semantic responsibility, not automatically one
+function, Tool, file, Agent, Skill or proof document. Derive its representation
+from the relevant mathematical laws and real consumers; do not impose fixed
+metadata fields or duplicate registries.
 
 ### Essential questions and current implementation
 
