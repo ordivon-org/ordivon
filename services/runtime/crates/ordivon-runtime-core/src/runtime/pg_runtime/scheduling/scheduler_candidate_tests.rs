@@ -375,7 +375,7 @@ fn native_pg_scheduling_uses_current_attempt_not_highest_attempt_number() {
              CREATE TEMP TABLE attempts (
                attempt_id text PRIMARY KEY, job_id text, attempt_number bigint, state text
              );
-             CREATE TEMP TABLE job_allocations (attempt_id text, state text);
+             CREATE TEMP TABLE job_allocations (attempt_id text PRIMARY KEY, state text, acquired_at_ms bigint, released_at_ms bigint);
              CREATE TEMP TABLE job_events (job_id text, attempt_id text, event_type text);
              INSERT INTO jobs VALUES ('job-r3','{}','attempt-current','run',NULL);
              INSERT INTO attempts VALUES ('attempt-current','job-r3',1,'accepted'),
@@ -387,6 +387,27 @@ fn native_pg_scheduling_uses_current_attempt_not_highest_attempt_number() {
     assert_eq!(row.get::<_, String>(3), "run");
     assert!(row.get::<_, Option<String>>(4).is_none());
     assert!(!row.get::<_, bool>(5));
+    assert_eq!(
+        row.get::<_, Option<String>>(6).as_deref(),
+        Some("attempt-current")
+    );
+    assert_eq!(row.get::<_, Option<i64>>(7), None);
+    assert_eq!(row.get::<_, Option<i64>>(8), None);
+    db.batch_execute(
+        "INSERT INTO job_allocations VALUES
+            ('attempt-current','active',100,NULL),
+            ('attempt-later','released',200,300);",
+    )
+    .unwrap();
+    let allocated = db.query_one(SCHEDULING_READBACK_SQL, &[&"job-r3"]).unwrap();
+    assert!(allocated.get::<_, bool>(2));
+    assert_eq!(allocated.get::<_, Option<i64>>(7), Some(100));
+    assert_eq!(allocated.get::<_, Option<i64>>(8), None);
+    db.batch_execute("UPDATE job_allocations SET state='released',released_at_ms=150 WHERE attempt_id='attempt-current';").unwrap();
+    let released = db.query_one(SCHEDULING_READBACK_SQL, &[&"job-r3"]).unwrap();
+    assert!(!released.get::<_, bool>(2));
+    assert_eq!(released.get::<_, Option<i64>>(7), Some(100));
+    assert_eq!(released.get::<_, Option<i64>>(8), Some(150));
     // Foreign Job, other Attempt and non-issue event must not erase UNKNOWN.
     db.batch_execute(
         "INSERT INTO job_events VALUES
@@ -414,9 +435,20 @@ fn native_pg_scheduling_uses_current_attempt_not_highest_attempt_number() {
     )
     .unwrap();
     assert!(!read_issue(&mut db)); // fallback selects later running Attempt
+    let later = db.query_one(SCHEDULING_READBACK_SQL, &[&"job-r3"]).unwrap();
+    assert_eq!(
+        later.get::<_, Option<String>>(6).as_deref(),
+        Some("attempt-later")
+    );
+    assert_eq!(later.get::<_, Option<i64>>(7), Some(200));
+    assert_eq!(later.get::<_, Option<i64>>(8), Some(300));
     db.batch_execute("UPDATE jobs SET current_attempt_id='missing' WHERE job_id='job-r3';")
         .unwrap();
     assert!(!read_issue(&mut db));
+    let missing = db.query_one(SCHEDULING_READBACK_SQL, &[&"job-r3"]).unwrap();
+    assert_eq!(missing.get::<_, Option<String>>(6), None);
+    assert_eq!(missing.get::<_, Option<i64>>(7), None);
+    assert_eq!(missing.get::<_, Option<i64>>(8), None);
 }
 
 #[test]

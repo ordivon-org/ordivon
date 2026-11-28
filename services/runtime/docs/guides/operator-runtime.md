@@ -132,6 +132,14 @@ without treating Runtime service restart as native Job termination.
 ## PostgreSQL resource scheduler (2026-11-08)
 
 The Linux PG execution path persists every valid request before scheduling. `globalExecutionLimit` is null: neither global Job counts nor per-Workspace Job counts govern dispatch. `concurrency_reservations` retains durable lifecycle/idempotency ownership; `job_allocations` records physical resource and Workspace-access reservations. Pending work has no physical allocation. Terminal commit releases both atomically with its evidence and Artifacts. Cancellation and native reconciliation operate independently of ordinary resource admission.
+For precise startup diagnostics, native PG Job inspection/observation may carry
+`scheduling.allocationObservation` for the same exact Attempt. Its
+`acquiredAtMs` and optional `releasedAtMs` are committed PG allocation-row
+timestamps, not physical process start/stop and not proof of why a Job waited.
+Compare the matching Attempt's creation, allocation and `BUNDLE_READY`
+timestamps only when present and ordered; missing or changed identity is
+UNKNOWN. Job list remains a bounded summary and need not carry this detail.
+
 
 `execution.budget.scheduling` accepts this optional contract:
 

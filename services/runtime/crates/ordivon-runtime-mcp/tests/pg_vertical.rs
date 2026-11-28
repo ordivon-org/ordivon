@@ -4823,6 +4823,151 @@ fn pg_host_dependencies_real_runner_and_committed_idempotency() {
 }
 
 #[test]
+#[ignore = "disposable PG18, native MCP and real Runner allocation observation"]
+fn native_pg_allocation_observation_matches_exact_committed_attempt() {
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-allocation-observation","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    let submit = |id: &str, script: &str| {
+        let result = call(
+            &endpoint,
+            "workspace.exec",
+            json!({"clientRequestId":id,"execution":{"workspaceId":"ws-allocation-observation","executable":"/usr/bin/sh","args":["-c",script],"cwdRelative":".","timeoutMs":60000},"waitMs":0}),
+        );
+        assert_ne!(result["isError"], true, "{result}");
+        result["structuredContent"]["jobId"]
+            .as_str()
+            .unwrap()
+            .to_owned()
+    };
+    let get = |job: &str| {
+        let result = call(&endpoint, "job.get", json!({"jobId":job}));
+        assert_ne!(result["isError"], true, "{result}");
+        result["structuredContent"].clone()
+    };
+    let observe = |job: &str| {
+        let result = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":job,"waitMs":0,"stdoutTailBytes":256}),
+        );
+        assert_ne!(result["isError"], true, "{result}");
+        result["structuredContent"].clone()
+    };
+    let allocation = |db: &mut Client, attempt: &str| {
+        db.query_opt(
+            "SELECT acquired_at_ms,released_at_ms FROM job_allocations WHERE attempt_id=$1",
+            &[&attempt],
+        )
+        .unwrap()
+        .map(|row| {
+            json!({
+                "attemptId":attempt,
+                "acquiredAtMs":row.get::<_,i64>(0),
+                "releasedAtMs":row.get::<_,Option<i64>>(1)
+            })
+        })
+    };
+    // Keep the first real Runner alive until the pending observation is read.
+    // A fixture-owned file is the existing release mechanism, not a scheduler
+    // clock assumption or a production resource reservation.
+    let release = fixture.root.join("release-allocation-observation");
+    let script = format!(
+        "while [ ! -f '{}' ]; do sleep 0.1; done; printf first",
+        release.display()
+    );
+    let first = submit("allocation-observation-first", &script);
+    let deadline = Instant::now() + Duration::from_secs(25);
+    let first_active = loop {
+        let result = get(&first);
+        if result["scheduling"]["state"] == "allocated" {
+            break result;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "allocation not observed: {result}"
+        );
+        thread::sleep(Duration::from_millis(100));
+    };
+    let first_attempt = first_active["attempts"][0]["attemptId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let expected = allocation(&mut fixture.db, &first_attempt).expect("committed allocation");
+    assert!(expected["releasedAtMs"].is_null(), "{expected}");
+    assert_eq!(
+        first_active["scheduling"]["allocationObservation"],
+        expected
+    );
+    let active_observation = observe(&first);
+    assert_eq!(active_observation["attemptId"], first_attempt);
+    assert_eq!(
+        active_observation["scheduling"]["allocationObservation"],
+        expected
+    );
+    let second = submit("allocation-observation-second", "printf second");
+    let pending = get(&second);
+    let second_attempt = pending["attempts"][0]["attemptId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert_ne!(first_attempt, second_attempt);
+    assert_eq!(pending["scheduling"]["state"], "pending", "{pending}");
+    assert!(
+        pending["scheduling"].get("allocationObservation").is_none(),
+        "{pending}"
+    );
+    assert!(allocation(&mut fixture.db, &second_attempt).is_none());
+    fs::write(&release, b"release").unwrap();
+    for (job, attempt, stdout) in [
+        (&first, &first_attempt, "first"),
+        (&second, &second_attempt, "second"),
+    ] {
+        let deadline = Instant::now() + Duration::from_secs(35);
+        let terminal = loop {
+            let result = observe(job);
+            if result["executionTerminal"] == true {
+                break result;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "terminal observation missing: {result}"
+            );
+            thread::sleep(Duration::from_millis(100));
+        };
+        assert_eq!(terminal["executionDisposition"], "succeeded", "{terminal}");
+        assert_eq!(terminal["stdoutTail"], stdout);
+        assert_eq!(terminal["attemptId"], attempt.as_str());
+        let expected = allocation(&mut fixture.db, attempt).expect("retained allocation");
+        assert!(
+            expected["releasedAtMs"].as_i64().unwrap()
+                >= expected["acquiredAtMs"].as_i64().unwrap()
+        );
+        assert_eq!(terminal["scheduling"]["state"], "released");
+        assert_eq!(terminal["scheduling"]["allocationObservation"], expected);
+        let inspected = get(job);
+        assert_eq!(inspected["attempts"][0]["attemptId"], attempt.as_str());
+        assert_eq!(inspected["scheduling"]["allocationObservation"], expected);
+        let dispatches: i64 = fixture
+            .db
+            .query_one(
+                "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+                &[job],
+            )
+            .unwrap()
+            .get(0);
+        assert_eq!(dispatches, 1);
+    }
+}
+
+#[test]
 #[ignore = "real PostgreSQL/systemd resource queue and mount contract"]
 fn resource_queue_shared_workspace_restart_and_native_write_leases() {
     let mut fixture = Fixture::new();
