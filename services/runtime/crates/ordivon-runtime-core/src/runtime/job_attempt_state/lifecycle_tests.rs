@@ -17,36 +17,35 @@ fn initial_attempt_generation_and_default_intent_are_stable() {
 
 #[test]
 fn state_transition_matrix_preserves_terminal_absorption_and_recovery_paths() {
-    assert!(AttemptLifecycleContract::can_transition(
-        AttemptState::Accepted,
-        AttemptState::Starting
-    ));
-    assert!(AttemptLifecycleContract::can_transition(
-        AttemptState::Running,
-        AttemptState::Stopping
-    ));
-    assert!(AttemptLifecycleContract::can_transition(
-        AttemptState::Recovering,
-        AttemptState::Running
-    ));
-    assert!(!AttemptLifecycleContract::can_transition(
-        AttemptState::Accepted,
-        AttemptState::Running
-    ));
-    for terminal in [
-        AttemptState::Succeeded,
-        AttemptState::Failed,
-        AttemptState::TimedOut,
-        AttemptState::Cancelled,
-        AttemptState::Lost,
-        AttemptState::Orphaned,
-    ] {
-        assert!(AttemptLifecycleContract::is_terminal(terminal));
-        assert!(!AttemptLifecycleContract::can_transition(
-            terminal,
-            AttemptState::Running
-        ));
+    // Independent labelled adjacency oracle, in OL_ALL_ATTEMPT_STATES order.
+    // Keep the exact historical edge relation, not only its reachability closure.
+    let expected = [
+        "01000010111", // Accepted
+        "00111111111", // Starting
+        "00011111111", // Running
+        "00001111111", // Stopping
+        "01110111111", // Recovering
+        "00000000000", // Succeeded
+        "00000000000", // Failed
+        "00000000000", // TimedOut
+        "00000000000", // Cancelled
+        "00000000000", // Lost
+        "00000000000", // Orphaned
+    ];
+    let mut edges = 0;
+    for (i, source) in OL_ALL_ATTEMPT_STATES.into_iter().enumerate() {
+        assert_eq!(AttemptLifecycleContract::is_terminal(source), i >= 5);
+        for (j, target) in OL_ALL_ATTEMPT_STATES.into_iter().enumerate() {
+            let allowed = AttemptLifecycleContract::can_transition(source, target);
+            assert_eq!(
+                allowed,
+                expected[i].as_bytes()[j] == b'1',
+                "transition {source:?} -> {target:?}"
+            );
+            edges += usize::from(allowed);
+        }
     }
+    assert_eq!(edges, 38);
 }
 
 #[test]
