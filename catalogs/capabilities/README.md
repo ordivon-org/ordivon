@@ -53,6 +53,8 @@ For a real consumer, see the [Human review guide](docs/HUMAN_EXTERNAL_LEGO_REVIE
 
 Catalog records discovery and evidence, not live provider status, installation, R2.1 admission, or Owner promotion.
 
+The [Agent long-term memory / second-brain consumer study](providers/agent-long-term-memory-consumer-study-r1.md) records source-pinned upstream mechanisms, Host/Harness/Research consumer boundaries and negative tests. It is DISCOVERY_ONLY and does not install a memory platform.
+
 ## Tool discovery facets (not another tool registry)
 
 For an Agent requesting a tool, retain these separate observations instead of
