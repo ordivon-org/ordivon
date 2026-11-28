@@ -39,6 +39,18 @@ class ArtifactDirectPythonProviderA13Tests(unittest.TestCase):
                 report.read_bytes(),
                 '{\n  "a": "汉字",\n  "z": [\n    true,\n    1\n  ]\n}\n'.encode(),
             )
+            # Replacement keeps the same report byte contract, not append.
+            write_pretty_json(report, {"a": 2})
+            self.assertEqual(report.read_bytes(), b'{\n  "a": 2\n}\n')
+
+            # The historical writer accepts non-finite floats; the strict
+            # reader still rejects them. Do not silently change stored bytes.
+            from artifact_core.json_validation import load_json
+
+            write_pretty_json(report, {"x": float("nan")})
+            self.assertEqual(report.read_bytes(), b'{\n  "x": NaN\n}\n')
+            with self.assertRaises(ValueError):
+                load_json(report)
 
     def test_temporal_adapter_defaults_to_direct_python_provider(self):
         spec = importlib.util.spec_from_file_location("a13_temporal_support", SUPPORT)

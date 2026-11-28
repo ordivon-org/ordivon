@@ -30,7 +30,12 @@ def decode_json(text: str) -> Any:
 
 
 def write_pretty_json(path: Path, value: Any) -> None:
-    """Write the existing human-readable UTF-8 Artifact report format."""
+    """Write the existing human-readable UTF-8 Artifact report format.
+
+    Serialization only: this preserves the legacy encoder, including its
+    non-finite number behavior. It is not strict JSON validation, atomic
+    publication or evidence of durable storage.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
