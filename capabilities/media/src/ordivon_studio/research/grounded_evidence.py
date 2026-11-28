@@ -9,7 +9,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from .grounded_contracts import RELATION_LABELS
+from .grounded_contracts import RELATION_LABELS, strict_text
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,22 +30,16 @@ class EvidenceItem:
         }
 
 
-def _strict_text(value: object, label: str) -> str:
-    if not isinstance(value, str) or not value.strip() or value != value.strip():
-        raise ValueError(f"{label} must be a non-empty trimmed string")
-    return value
-
-
 def validate_evidence_catalog(items: Sequence[Mapping[str, Any]]) -> dict[str, dict[str, Any]]:
     catalog: dict[str, dict[str, Any]] = {}
     for raw in items:
         item = dict(raw)
-        evidence_id = _strict_text(item.get("evidenceId"), "evidenceId")
+        evidence_id = strict_text(item.get("evidenceId"), "evidenceId")
         if evidence_id in catalog:
             raise ValueError(f"duplicate evidence identity: {evidence_id}")
-        _strict_text(item.get("modality"), "evidence modality")
-        _strict_text(item.get("sourceId"), "evidence sourceId")
-        _strict_text(item.get("observed"), "evidence observed text")
+        strict_text(item.get("modality"), "evidence modality")
+        strict_text(item.get("sourceId"), "evidence sourceId")
+        strict_text(item.get("observed"), "evidence observed text")
         locator = item.get("locator")
         if not isinstance(locator, dict) or not locator:
             raise ValueError("evidence locator must be a non-empty object")
@@ -69,11 +63,11 @@ def validate_grounded_result(result: Mapping[str, Any], evidence: Sequence[Mappi
     for raw in claims:
         if not isinstance(raw, dict):
             raise ValueError("grounded claim must be an object")
-        claim_id = _strict_text(raw.get("claimId"), "claimId")
+        claim_id = strict_text(raw.get("claimId"), "claimId")
         if claim_id in known_claims:
             raise ValueError(f"duplicate claim identity: {claim_id}")
         known_claims.add(claim_id)
-        _strict_text(raw.get("statement"), "claim statement")
+        strict_text(raw.get("statement"), "claim statement")
         refs = raw.get("evidenceIds")
         if not isinstance(refs, list) or not refs or any(ref not in catalog for ref in refs):
             raise ValueError(f"claim {claim_id} has invalid or empty grounding")
