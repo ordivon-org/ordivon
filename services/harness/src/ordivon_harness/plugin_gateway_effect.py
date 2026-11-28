@@ -130,7 +130,7 @@ def _tool_digest(raw: dict[str, JsonValue]) -> str:
 
 
 def _forward_granted_timeout(grant: int, requested: int | None) -> int:
-    """Native R2.1 StrictLego21 timeout projection, admitted under caller grant.
+    """Optional timeout projection under the caller's grant.
 
     pre: 1 <= grant <= 900000
     pre: requested is None or (1 <= requested <= grant)

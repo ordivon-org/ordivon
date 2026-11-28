@@ -482,18 +482,9 @@ end OrdivonR21
 -- Restricted communication core LEGO: every "reply_to" edge must point to
 -- an already committed, earlier Host Message sequence.  It does not constrain
 -- "references", "about", or other graph relations.
--- Full R2.1 ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold):
--- id=host.message.reply-chronology; responsibility=acyclic causal reply graph;
--- I=(sourceRef,targetRef,sourceOrdinal,targetOrdinal), O=admitted/rejected;
--- S=immutable-message ordinal map plus reply-only edge relation;
--- pre=both message refs exist, same topic, and ordinals are immutable;
--- post=permit edge iff targetOrdinal < sourceOrdinal;
--- inv=all admitted reply-only edges descend in ordinal, graph is acyclic;
--- eff=one directed reply relation append or none, not external IO authority;
--- c=one integer comparison model; concrete DB cost UNKNOWN;
--- epsilon=0 exact signed-Int order, prov=this kernel term/Host sourcecut;
--- unfold=existing Host message + relation API and PostgreSQL ordinal owner;
--- acceptance=kernel checked path descent/no cycle and unchecked countermodel.
+-- Reply edges strictly descend in immutable ordinals; transitive reply
+-- chains are therefore acyclic. Admission and deployed database behavior
+-- require their own evidence.
 -- This is a mathematical model, NOT automatic implementation refinement of
 -- Python/psycopg or a claim that PostgreSQL commits by sequence order.
 namespace OrdivonR21.CausalReply
