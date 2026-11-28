@@ -5,8 +5,13 @@
 set -euo pipefail
 rust_root="$(cd "$(dirname "$0")/.." && pwd)"
 host_root="$(cd "${1:?supply the independently prepared Python Host root}" && pwd)"
-test "$(git -C "$host_root" rev-parse HEAD)" = e518460b99f2464ebe369dc9adf48506ccb768a2
-test -z "$(git -C "$host_root" status --porcelain)"
+# A new oracle cut is explicit, never inferred from the mutable checkout.
+# Keep all Python inputs clean; unrelated Rust candidate files may coexist.
+oracle_cut="${2:-e518460b99f2464ebe369dc9adf48506ccb768a2}"
+[[ "$oracle_cut" =~ ^[0-9a-f]{40}$ ]]
+test "$(git -C "$host_root" rev-parse HEAD)" = "$oracle_cut"
+test -z "$(git -C "$host_root" status --porcelain --untracked-files=all -- .python-version alembic.ini migrations pyproject.toml src uv.lock)"
+echo "PYTHON_ORACLE_CUT=$oracle_cut"
 test -x "$host_root/.venv/bin/python"
 test "$(id -u)" = 0
 case "$(initdb --version)" in *" 18."*) ;; *) echo "requires native PG18" >&2; exit 1;; esac
