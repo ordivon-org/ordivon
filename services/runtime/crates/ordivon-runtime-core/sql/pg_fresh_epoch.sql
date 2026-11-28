@@ -23,6 +23,8 @@ CREATE TABLE jobs(
  desired_state text NOT NULL CHECK(desired_state IN ('run','cancelled')),
  resolution text, current_attempt_id text, row_version bigint NOT NULL DEFAULT 0,
  UNIQUE(principal,client_request_id));
+-- Reconstructible principal-scoped keyset pagination access path; no new Job authority.
+CREATE INDEX idx_jobs_principal_created ON jobs(principal, created_at_ms DESC, job_id DESC);
 CREATE TABLE attempts(
  attempt_id text PRIMARY KEY, job_id text NOT NULL REFERENCES jobs(job_id),
  attempt_number bigint NOT NULL CHECK(attempt_number >= 1),
