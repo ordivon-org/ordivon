@@ -584,6 +584,19 @@ scripts/ordivon-runtime-cache prune \
 
 `scripts/ordivon-runtime-pressure-control` is a thin feedback controller over existing Runtime-owned cache and Workspace-reclaim actuators. Its cheap observation path reads host free bytes plus the bounded Runtime Core `registry-status` projection and persists a bounded sample/backoff state; it does not interpret Registry tables or gain Workspace deletion authority. The default policy separates a 20 GiB hard floor from a 28 GiB soft trigger, estimates time-to-floor from recent physical free-space consumption, wakes on material Registry activity, and exponentially backs off after low-yield expensive probes. Cache pruning runs before semantic Workspace reclaim; the latter is attempted only when physical free space remains below the soft trigger. Subordinate cache/reclaim receipts remain the effect authority. The packaged five-minute timer is therefore a cheap sampling cadence, not a five-minute full semantic scan. This controller and its SQLite actuators are legacy-only: the effectful cycle refuses a non-legacy or unobservable running service before taking its cycle lock, and rechecks native service identity before each actuator. That point-in-time preflight is not a durable cutover fence; the operator must still quiesce the legacy carrier and keep this timer disabled on PostgreSQL Runtime until a PG-native pressure policy is independently qualified.
 
+The PostgreSQL-native observation path is explicitly read-only:
+`ordivon-runtime-pressure-control observe-pg --env-file <qualified-pg-env>
+--env-overlay <effective-overlay> --policy-file <policy> --state-file <state>`.
+It reuses the existing controller decision and qualified physical writer epoch,
+does not read SQLite, and does not persist state, invoke the old actuators or
+authorize a cache/Workspace effect. PG unfinished transition attempts are a
+distinct count, not the legacy SQLite recovery-required flag. Exact global
+counts are bounded by a database statement timeout; this manual observation
+does not establish timer performance or installed release qualification.
+The current effectful `cycle` and packaged unit remain legacy-only until
+the PG cache/reclaim and cross-owner pressure maintenance contracts qualify.
+
+
 ### Storage-pressure input/type refinement (LEGO R2.1 / CEGAR)
 
 Natural Owner: Runtime storage-pressure controller; consumers are the

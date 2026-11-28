@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import runpy
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -317,6 +319,108 @@ class PressureControlTests(unittest.TestCase):
             ],
         )
         self.assertGreater(self.module["conservative_consumption_rate"](samples), 0)
+
+    def test_pg_activity_is_not_compared_across_backend_or_writer_epoch(self):
+        changed = self.module["registry_activity_changed"]
+        pg = {
+            "backend": "postgresql", "writerEpoch": "a" * 64,
+            "jobsTotal": 3, "activeReservations": 1, "heldReservations": 0,
+            "unfinishedTransitionAttempts": 0,
+        }
+        self.assertTrue(changed({"jobsTotal": 100, "migrationVersion": 6}, pg))
+        self.assertTrue(changed({**pg, "writerEpoch": "b" * 64}, pg))
+        self.assertFalse(changed(pg, pg))
+        self.assertTrue(changed({**pg, "jobsTotal": 2}, pg))
+        self.assertTrue(changed({**pg, "unfinishedTransitionAttempts": 1}, pg))
+
+    def test_pg_observation_is_separate_from_effectful_legacy_cycle(self):
+        parse = self.module["parse_args"]
+        args = ["--env-file", "/tmp/pg.env", "--policy-file", "/tmp/policy.json",
+                "--state-file", "/tmp/state.json"]
+        self.assertEqual(parse(["observe-pg", *args]).command, "observe-pg")
+        with self.assertRaises(SystemExit):
+            parse(["cycle", *args])
+        with self.assertRaises(SystemExit):
+            parse(["observe-pg", *args, "--apply"])
+
+    def test_pg_observation_native_qualified_epoch_counts_and_no_effect(self):
+        # Reuse the existing native release fixture's private socket-only PG
+        # cluster and exact Runtime schema, not a production connection.
+        from test_pg_operator_release import NativePgReleaseOperator
+
+        class ScratchPg(NativePgReleaseOperator):
+            root = db = postgres = log = None
+
+        self.addCleanup(ScratchPg.tearDownClass)
+        ScratchPg.setUpClass()
+        scratch = ScratchPg.root
+        base = scratch / "pressure.env"
+        overlay = scratch / "pressure-overlay.env"
+        base.write_text(
+            f"ORDIVON_PG_DSN={ScratchPg.dsn}\nORDIVON_PG_SCHEMA=fresh\n"
+            f"ORDIVON_PG_SOURCE_SHA256={'b' * 64}\n", encoding="utf-8",
+        )
+        # The base may be stale; later installed overlays are authoritative.
+        overlay.write_text(f"ORDIVON_PG_SOURCE_SHA256={ScratchPg.source_sha}\n",
+                           encoding="utf-8")
+        policy = scratch / "pressure-policy.json"
+        policy.write_text(json.dumps({**self.policy, "hostStoragePath": str(scratch)}),
+                          encoding="utf-8")
+        state = scratch / "pressure-state.json"
+        command = [sys.executable, str(SCRIPT), "observe-pg",
+                   "--env-file", str(base), "--env-overlay", str(overlay),
+                   "--policy-file", str(policy), "--state-file", str(state)]
+
+        def observe():
+            result = subprocess.run(command, capture_output=True, text=True, timeout=25)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse(state.exists(), "observe-pg must not persist or actuate")
+            return json.loads(result.stdout)["decision"]["registrySignal"]
+
+        initial = observe()
+        self.assertEqual(initial, {
+            "backend": "postgresql", "writerEpoch": ScratchPg.epoch,
+            "jobsTotal": 0, "activeReservations": 0, "heldReservations": 0,
+            "unfinishedTransitionAttempts": 0,
+        })
+        for n, attempt_state, reservation_state, finished in (
+            (1, "starting", "active", None),
+            (2, "succeeded", "held_orphaned", 20),
+        ):
+            ScratchPg.db.execute(
+                "INSERT INTO jobs(job_id,principal,client_request_id,request_digest,"
+                "operation_digest,workspace_id,workspace_snapshot_json,execution_plan_json,"
+                "execution_plan_digest,created_at_ms,desired_state,current_attempt_id) "
+                "VALUES(%s,'pressure-fixture',%s,'r','o','ws-pressure-fixture','{}','{}','p',"
+                "10,'run',%s)", (f"j{n}", f"r{n}", f"a{n}"),
+            )
+            ScratchPg.db.execute(
+                "INSERT INTO attempts(attempt_id,job_id,attempt_number,state,"
+                "termination_intent,launch_token_digest,bundle_path,unit_name,created_at_ms,"
+                "finished_at_ms) VALUES(%s,%s,1,%s,'natural','d','fixture',%s,10,%s)",
+                (f"a{n}", f"j{n}", attempt_state, f"fixture{n}.service", finished),
+            )
+            ScratchPg.db.execute(
+                "INSERT INTO concurrency_reservations(reservation_id,attempt_id,global_limit,"
+                "state,acquired_at_ms,state_observed_at_ms) VALUES(%s,%s,1,%s,10,10)",
+                (f"v{n}", f"a{n}", reservation_state),
+            )
+        self.assertEqual(observe(), {
+            **initial, "jobsTotal": 2, "activeReservations": 1, "heldReservations": 1,
+            "unfinishedTransitionAttempts": 1,
+        })
+        # A stale base source and a mismatched physical epoch both fail closed.
+        stale = subprocess.run(command[:5] + command[7:],
+                               capture_output=True, text=True, timeout=25)
+        self.assertEqual(stale.returncode, 1)
+        self.assertIn("qualified PostgreSQL pressure observation unavailable", stale.stderr)
+        ScratchPg.db.execute("UPDATE _stage_control SET source_sha256=%s WHERE id='epoch'",
+                             ("c" * 64,))
+        invalid = subprocess.run(command, capture_output=True, text=True, timeout=25)
+        self.assertEqual(invalid.returncode, 1)
+        self.assertIn("qualified PostgreSQL pressure observation unavailable", invalid.stderr)
+        self.assertNotIn(ScratchPg.dsn, invalid.stderr)
+        self.assertFalse(state.exists())
 
     def test_systemd_timer_samples_often_but_service_calls_only_controller(self):
         service = SERVICE.read_text(encoding="utf-8")
