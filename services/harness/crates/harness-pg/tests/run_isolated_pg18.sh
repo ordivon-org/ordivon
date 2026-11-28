@@ -130,3 +130,22 @@ if [[ "${HARNESS_PG_NATIVE_BIRTH:-}" == 1 ]]; then
   HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run --project services/harness --offline --locked python \
     services/harness/crates/harness-pg/tests/birth_python_verify.py
 fi
+
+# Native birth -> original public Python Run/Resume -> native budget readback,
+# on the same private PG cluster. No new production state reader or writer.
+if [[ "${HARNESS_PG_NATIVE_BUDGET:-}" == 1 ]]; then
+  export HARNESS_RUST_BUDGET_WRITER_DSN="$writer_dsn"
+  export HARNESS_RUST_BUDGET_READER_DSN="$HARNESS_RUST_TEST_PG_DSN"
+  export HARNESS_RUST_BUDGET_SCHEMA="hpg_rust_budget_$(date +%s)"
+  export HARNESS_RUST_BUDGET_FIXTURE="$ROOT/budget.json"
+  PYTHONPATH="$PWD/services/harness" uv run --project services/harness --offline --locked python \
+    services/harness/crates/harness-pg/tests/budget_recovery_python_store.py prepare
+  cargo test --manifest-path services/harness/Cargo.toml --locked --offline \
+    -p ordivon-harness-pg --test pg_budget_recovery native_birth_of_budget_fixture -- --ignored --nocapture
+  PYTHONPATH="$PWD/services/harness" uv run --project services/harness --offline --locked python \
+    services/harness/crates/harness-pg/tests/budget_recovery_python_store.py exercise
+  psql "$writer_dsn" -v ON_ERROR_STOP=1 -c "GRANT USAGE ON SCHEMA $HARNESS_RUST_BUDGET_SCHEMA TO rust_readonly; GRANT SELECT ON ALL TABLES IN SCHEMA $HARNESS_RUST_BUDGET_SCHEMA TO rust_readonly;"
+  psql "$HARNESS_RUST_BUDGET_READER_DSN" -Atc "SELECT has_table_privilege(current_user,'$HARNESS_RUST_BUDGET_SCHEMA.run_events','INSERT'),has_table_privilege(current_user,'$HARNESS_RUST_BUDGET_SCHEMA.runs','UPDATE')" | grep -Fx 'f|f'
+  cargo test --manifest-path services/harness/Cargo.toml --locked --offline \
+    -p ordivon-harness-pg --test pg_budget_recovery original_public_resume_agrees_with_native_budget_recovery -- --ignored --nocapture
+fi
