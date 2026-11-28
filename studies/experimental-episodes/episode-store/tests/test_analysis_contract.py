@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from collections import Counter
+from unittest.mock import MagicMock, patch
 
 from ordivon_experimental_episode_store.analysis import (
     _percentile,
+    analyze_store,
     generalization_gate,
     intervention_gate,
 )
@@ -42,3 +44,19 @@ def test_intervention_requires_frozen_contract_and_assignment() -> None:
         assigned_episode_count=2,
     )
     assert eligible["standing"] == "ELIGIBLE_FOR_SEPARATE_CAUSAL_STUDY"
+
+
+def test_empty_analysis_preserves_historical_digest() -> None:
+    connection = MagicMock()
+    connection.execute.return_value.fetchall.return_value = []
+    connection.execute.return_value.fetchone.return_value = {"n": 0}
+    context = MagicMock()
+    context.__enter__.return_value = connection
+    with patch(
+        "ordivon_experimental_episode_store.analysis.psycopg.connect",
+        return_value=context,
+    ):
+        result = analyze_store("fixture")
+    assert result["analysisDigest"] == (
+        "sha256:27d52effa1d8c97514ee13c3e0c04aabe8f972b6e9a25fc7c2c814a156c72480"
+    )
