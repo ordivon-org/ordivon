@@ -10,11 +10,11 @@
 use super::PgAdmissionError;
 #[cfg(any(windows, test))]
 use super::{require_pg_writer_epoch, PgAdmissionStore};
+use crate::universal::sha256_bytes as sha256_digest;
 #[cfg(any(windows, test))]
 use postgres::IsolationLevel;
 #[cfg(any(windows, test))]
 use serde_json::json;
-use sha2::{Digest, Sha256};
 #[cfg(any(windows, test))]
 use uuid::Uuid;
 
@@ -43,9 +43,6 @@ pub(crate) enum PgNativeWindowsDrainOutcome {
     Existing(String),
 }
 
-fn sha256_digest(bytes: &[u8]) -> String {
-    format!("sha256:{}", hex::encode(Sha256::digest(bytes)))
-}
 #[cfg(any(windows, test))]
 fn valid_digest(v: &str) -> bool {
     v.len() == 71 && v.starts_with("sha256:") && v[7..].bytes().all(|b| b.is_ascii_hexdigit())

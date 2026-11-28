@@ -1,9 +1,9 @@
 //! Read-only Windows-native evidence check for the PostgreSQL Runtime.
 //! Phase is an observation, not a terminal or proof that a Job Object is dead.
 //! The authoritative effect transition remains PG CAS + OS process ownership.
+use crate::universal::sha256_bytes as sha256;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sha2::{Digest, Sha256};
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -86,9 +86,6 @@ fn identity(value: &Value, expected: &PgWindowsWitnessIdentity) -> Result<(), St
     exact_text(value, "jobId", &expected.job_id)?;
     exact_text(value, "attemptId", &expected.attempt_id)?;
     exact_text(value, "launchTokenDigest", &expected.launch_token_digest)
-}
-fn sha256(bytes: &[u8]) -> String {
-    format!("sha256:{}", hex::encode(Sha256::digest(bytes)))
 }
 
 /// One shared output-verification operator, used before native drain
