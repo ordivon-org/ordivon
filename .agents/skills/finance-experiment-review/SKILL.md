@@ -268,7 +268,7 @@ stores a durable model, invokes a broker or requests financial permissions.
 ## Evidence and qualification
 
 Native owner verification:
-`mise run //domains/capital:verify`. R2.1 source plan CA10 is in
+`mise run //domains/capital:verify`. Source responsibility CA10 is in
 `planning/lego-plan-r1.json`; external owner and physical module inventory
 remain authoritative in `config/external_owner_census.json` and
 `config/capital_domain_taxonomy.json`. Formal model proof, external data

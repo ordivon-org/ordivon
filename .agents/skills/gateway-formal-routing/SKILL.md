@@ -5,26 +5,16 @@ compatibility: Needs Ordivon checkout and Gateway Python dependencies. TLC needs
 license: MIT
 ---
 
-# Gateway Routing Formal Verification — R2.1 thought/ability LEGO
+# Gateway Routing Formal Verification
 
 Use for Gateway routing changes, capability discovery, execution forwarding,
 SourceCut/Owner boundary, formal-verification migration and obsolete-worker cleanup.
 
-## Contract
-I: operator route map, requested capability and verified ingress.
-O: exact routed Owner operation or rejection.
-S: lookup, validate, route and reject.
-pre: each map key equals the CapabilityRoute.capability of its value.
-post: forwarded capability identity equals the declared route identity;
-the selected Owner equals the exact route Owner.
-inv: ForwardedImpliesExactRoute and RejectedNeverForwards.
-eff: owner RPC is outside the routing model; Job/Host authority never moves.
-c: finite explored state count; real runtime resource cost UNKNOWN.
-epsilon: full model-to-Python refinement UNKNOWN; installed behavior UNKNOWN
-without exact installed consumer evidence.
-prov: pinned Git commit, TLC output, bounded Python check, native readback.
-unfold: specification -> TLA+ model -> model check/negative controls ->
-source conformance -> real consumer -> installed candidate proof.
+## Routing semantics and evidence
+
+For a verified ingress and operator route map, lookup must return the exact declared Owner operation or reject. Every map key equals its route's capability; forwarding preserves both capability and Owner identity. Check ForwardedImpliesExactRoute and RejectedNeverForwards. The model does not execute Owner RPCs or transfer Job/Host authority.
+
+Finite explored state counts are model evidence, not runtime resource cost. Full model-to-Python refinement and installed behavior remain UNKNOWN without corresponding evidence. Bind the Git source, TLC output, bounded Python conformance and native consumer readback; qualify the installed candidate separately.
 
 ## Agent procedure
 1. Bind exact Git SourceCut; inspect services/gateway/AGENTS.md, README.md,

@@ -58,23 +58,15 @@ Read-only scratch checks against the actual Research test fixture, without sourc
 - Changing only `episode-corpus-manifest-json` port `version` from `1.0.0` to `2.0.0`, while preserving the same product version and manifest bytes, still returns `ACCEPTED/HOLD`. This is a true missing consumer capability **when Research requires the original port-contract version**; current `LocalEvidenceBinding` cannot express such a version and `qualified_local_distribution` selects by name only. **A3 now targets this exact false acceptance**.
 - The real producer declares stable versions `1.0.0` for both output ports and no new producer artifact is required. Use existing immutable source and temp fixtures, do not rewrite historical receipts.
 
-## 4. One R2.1 responsibility and honest proof standing
+## 4. Selected evidence semantics and proof standing
 
-Responsibility `L_DataSelectedEvidence` is a **provisional independent contractual LEGO**, NOT a new runtime or registry.
+The selected-evidence operation is a read-only library responsibility, not a runtime or registry. It resolves a qualified product and exact output key within the allowed producer catalog and local root, then returns a scoped verdict or typed failure with per-port digest observations and provenance. A versioned key must resolve uniquely; an omitted version permits selection only when the name is unambiguous. No durable mutable state is introduced.
 
-- I: qualified product identity/version, selected output `(portName, portVersion?)`, owner-declared ODPS and bound source manifest, allowed local root, observation context, source revision.
-- O: scoped verdict/typed failure, exact per-port digest observations, provenance; does not contain Research conclusion.
-- S: no durable mutable registry; temporary read/projection state, native Git SourceCut and producer-owned artifacts.
-- pre: uniquely resolved selected name+version within a qualified product (or unique name when version omitted), producer metadata, read root and valid catalog; current authority known to caller.
-- post: `VERIFIED` iff selected digest matches actual read bytes under these assumptions; result scoped to observed file/instant. No claim about any unselected port.
-- inv: `UNKNOWN != FALSIFIED`; absent/duplicate selection is not PASS; unrelated well-formed ports cannot change selected standing; no claimed domain acceptance.
-- eff: selected read/check/hash only, no deletion, publication, data rights, finance/Research decision, and no extra service.
-- c: `UNKNOWN[scope=I/O/analysis cost; obligation=measure if workload makes it relevant]`.
-- epsilon: `UNKNOWN[scope=hash collision and timestamp/path race/rights; obligation=separate physical readback and authority checks]`.
-- prov: `main@a7d70e` + `PR#1970@78b70db` + exact producer ODPS + Lean artifact + Python native test + Research receipt; refresh at implementation.
-- unfold: select exact key -> producer binding -> local evidence -> physical read -> domain consumer readback -> explicit business verdict.
+Under those assumptions, VERIFIED holds exactly when the selected digest matches the bytes actually read. Missing or duplicate selection is not PASS, UNKNOWN remains distinct from FALSIFIED, and unrelated well-formed ports cannot change selected standing. No verdict about an unselected port or Research conclusion follows. The operation only reads, checks and hashes; it does not delete, publish, grant rights, or make a Finance or Research decision.
 
-Declaration is not formal admission. Lean kernel passing = `MODEL_PROVED` on named theorem only; tests and consumer integration are independently required; installed production remains UNKNOWN.
+I/O cost is unmeasured; hash collision, timestamp/path races and rights require separate physical observations and authority checks. Creation-time evidence was main@a7d70e, PR #1970@78b70db, exact producer ODPS, Lean artifact, Python native test and Research receipt. Requalify the actual source and consumer when implementing. The causal chain is exact-key selection, producer binding, local evidence, physical readback, then the independent domain consumer's verdict.
+
+Lean kernel passing establishes MODEL_PROVED only for the named theorem; native tests and consumer integration remain separate and installed production remains UNKNOWN.
 
 ## 5. Candidate solution and zero-base deletion review
 
