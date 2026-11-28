@@ -11,6 +11,7 @@ from pathlib import Path
 
 
 def _sha(path:Path)->str:
+    # Published standalone Python carrier: artifact_core is unavailable after materialization.
     h=hashlib.sha256()
     with path.open('rb') as f:
         for chunk in iter(lambda:f.read(1024*1024),b''):h.update(chunk)

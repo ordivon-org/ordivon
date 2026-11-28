@@ -5,6 +5,7 @@ import argparse,hashlib,json,os,re,subprocess,tempfile
 from pathlib import Path
 from typing import Any
 import jsonschema
+from artifact_core.contracts import sha256_file
 ROOT=Path(__file__).resolve().parents[1]
 SCHEMA=ROOT/'artifact-delivery/shadow-contracts/software-release-linux-elf-contract-v1.schema.json'
 FILE=Path(os.environ.get('ARTIFACT_FILE','/usr/bin/file'))
@@ -12,11 +13,6 @@ READELF=Path(os.environ.get('ARTIFACT_READELF','/usr/bin/readelf'))
 BWRAP=Path(os.environ.get('ARTIFACT_BWRAP','/usr/bin/bwrap'))
 
 def run(argv:list[str],timeout:int=120,env:dict[str,str]|None=None):return subprocess.run(argv,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False,timeout=timeout,env=env)
-def sha(path:Path)->str:
- h=hashlib.sha256()
- with path.open('rb') as f:
-  for c in iter(lambda:f.read(1024*1024),b''):h.update(c)
- return h.hexdigest()
 def canonical(v:Any)->str:return hashlib.sha256(json.dumps(v,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()
 def load(path:Path):return json.loads(path.read_text())
 def validate_contract(c:Any)->list[str]:
@@ -39,7 +35,7 @@ def verify_linux_elf(path:Path,contract_path:Path,evidence_dir:Path|None=None)->
  try:c=load(contract_path)
  except Exception as e:return {'schemaVersion':1,'kind':'artifact-linux-elf-release-verification','profileId':'software-release-linux-elf-executable-r1','status':'FAIL','failures':[f'contract unreadable: {e}']}
  failures=validate_contract(c);ev=evidence_dir or Path(tempfile.mkdtemp(prefix='artifact-linux-elf-release-'));ev.mkdir(parents=True,exist_ok=True)
- res={'schemaVersion':1,'kind':'artifact-linux-elf-release-verification','profileId':'software-release-linux-elf-executable-r1','status':'FAIL','artifact':{'path':str(path.resolve()),'size':path.stat().st_size,'sha256':sha(path),'executable':os.access(path,os.X_OK)},'contract':{'path':str(contract_path.resolve()),'sha256':sha(contract_path),'canonicalDigest':canonical(c)},'tools':{},'failures':failures}
+ res={'schemaVersion':1,'kind':'artifact-linux-elf-release-verification','profileId':'software-release-linux-elf-executable-r1','status':'FAIL','artifact':{'path':str(path.resolve()),'size':path.stat().st_size,'sha256':sha256_file(path),'executable':os.access(path,os.X_OK)},'contract':{'path':str(contract_path.resolve()),'sha256':sha256_file(contract_path),'canonicalDigest':canonical(c)},'tools':{},'failures':failures}
  if failures:(ev/'verification.json').write_text(json.dumps(res,indent=2,sort_keys=True)+'\n');return res
  want_art=c['artifact'];identity_fail=[]
  if res['artifact']['sha256']!=want_art['sha256']:identity_fail.append('release SHA-256 differs from contract')
@@ -49,7 +45,7 @@ def verify_linux_elf(path:Path,contract_path:Path,evidence_dir:Path|None=None)->
  if identity_fail:res['failures']=failures;(ev/'verification.json').write_text(json.dumps(res,indent=2,sort_keys=True)+'\n');return res
  for n,p in [('file',FILE),('readelf',READELF),('bubblewrap',BWRAP)]:
   if not p.is_file() or not os.access(p,os.X_OK):failures.append(f'required mature external capability unavailable: {n}')
-  else:res['tools'][n]={'path':str(p.resolve()),'sha256':sha(p)}
+  else:res['tools'][n]={'path':str(p.resolve()),'sha256':sha256_file(p)}
  if failures:res['failures']=failures;(ev/'verification.json').write_text(json.dumps(res,indent=2,sort_keys=True)+'\n');return res
  # Independent descriptive view from libmagic/file.
  # Bind libmagic to the dereferenced subject bytes already hashed, read by GNU readelf, and mounted into Bubblewrap.
@@ -58,14 +54,14 @@ def verify_linux_elf(path:Path,contract_path:Path,evidence_dir:Path|None=None)->
  if fp.returncode!=0:file_fail.append('file/libmagic inspection failed')
  for token in c['fileInspection']['requiredSubstrings']:
   if token not in file_text:file_fail.append(f'file description missing required token: {token}')
- failures.extend(file_fail);res['fileInspection']={'status':'PASS' if not file_fail else 'FAIL','description':file_text,'evidenceSha256':sha(ev/'file.txt'),'failures':file_fail}
+ failures.extend(file_fail);res['fileInspection']={'status':'PASS' if not file_fail else 'FAIL','description':file_text,'evidenceSha256':sha256_file(ev/'file.txt'),'failures':file_fail}
  # GNU readelf independently binds ELF header + PT_INTERP facts.
  hp=run([str(READELF),'-h','--wide',str(path)]);pp=run([str(READELF),'-l','--wide',str(path)]);h=hp.stdout.decode('utf-8','replace');pr=pp.stdout.decode('utf-8','replace');(ev/'readelf-header.txt').write_text(h);(ev/'readelf-program.txt').write_text(pr)
  elf_fail=[];facts=parse_readelf(h,pr)
  if hp.returncode!=0 or pp.returncode!=0:elf_fail.append('GNU readelf rejected release')
  for k,w in c['elf'].items():
   if facts.get(k)!=w:elf_fail.append(f'ELF {k} differs from contract')
- failures.extend(elf_fail);res['elfStructure']={'status':'PASS' if not elf_fail else 'FAIL','facts':facts,'headerEvidenceSha256':sha(ev/'readelf-header.txt'),'programEvidenceSha256':sha(ev/'readelf-program.txt'),'failures':elf_fail}
+ failures.extend(elf_fail);res['elfStructure']={'status':'PASS' if not elf_fail else 'FAIL','facts':facts,'headerEvidenceSha256':sha256_file(ev/'readelf-header.txt'),'programEvidenceSha256':sha256_file(ev/'readelf-program.txt'),'failures':elf_fail}
  if file_fail or elf_fail:res['failures']=failures;(ev/'verification.json').write_text(json.dumps(res,indent=2,sort_keys=True)+'\n');return res
  # Final exact bytes are mounted read-only into a fresh bubblewrap namespace. Network is unshared;
  # only host runtime substrate (/usr,/bin,/lib*,/etc) is visible read-only, while HOME/XDG state is ephemeral tmpfs.
@@ -75,7 +71,7 @@ def verify_linux_elf(path:Path,contract_path:Path,evidence_dir:Path|None=None)->
  for marker in rr['stdoutContains']:
   if marker not in stdout:runtime_fail.append(f'sandbox runtime stdout missing marker: {marker}')
  if stderr!=rr['stderrExact']:runtime_fail.append('sandbox runtime stderr differs from contract')
- failures.extend(runtime_fail);res['runtimeReadback']={'status':'PASS' if not runtime_fail else 'FAIL','exitCode':rp.returncode,'stdout':stdout,'stderr':stderr,'networkNamespace':'unshared','releaseMount':'read-only','userState':'ephemeral tmpfs','hostRuntimeSubstrate':'read-only /usr,/bin,/lib*,/etc','stdoutSha256':sha(ev/'runtime.stdout.txt'),'stderrSha256':sha(ev/'runtime.stderr.txt'),'failures':runtime_fail}
+ failures.extend(runtime_fail);res['runtimeReadback']={'status':'PASS' if not runtime_fail else 'FAIL','exitCode':rp.returncode,'stdout':stdout,'stderr':stderr,'networkNamespace':'unshared','releaseMount':'read-only','userState':'ephemeral tmpfs','hostRuntimeSubstrate':'read-only /usr,/bin,/lib*,/etc','stdoutSha256':sha256_file(ev/'runtime.stdout.txt'),'stderrSha256':sha256_file(ev/'runtime.stderr.txt'),'failures':runtime_fail}
  res.update({'status':'PASS' if not failures else 'FAIL','failures':failures,'boundary':'PASS establishes exact release byte identity, bounded ELF64/System-V/x86-64 facts through libmagic and GNU readelf, and successful execution of those exact bytes in a Bubblewrap namespace with no host network, read-only release/runtime substrate, and ephemeral user state. It does not establish who built the executable, source-to-binary reproducibility, complete filesystem/security isolation, SBOM/vulnerability/signature/provenance claims, code signing/notarization, store packaging/release, cross-platform behavior, or caller-domain suitability.'})
  (ev/'verification.json').write_text(json.dumps(res,indent=2,sort_keys=True,ensure_ascii=False)+'\n');return res
 

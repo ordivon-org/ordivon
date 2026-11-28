@@ -7,12 +7,6 @@ import os
 from pathlib import Path
 
 
-def sha(path:Path)->str:
-    h=hashlib.sha256()
-    with path.open('rb') as f:
-        for chunk in iter(lambda:f.read(1024*1024),b''): h.update(chunk)
-    return h.hexdigest()
-
 def tree_digest(root:Path)->str:
     root=root.resolve();h=hashlib.sha256()
     for path in sorted(root.rglob('*'),key=lambda p:p.relative_to(root).as_posix()):
@@ -22,7 +16,7 @@ def tree_digest(root:Path)->str:
             if tp.is_absolute() or '..' in tp.parts: raise RuntimeError(f'unsafe generation symlink: {rel} -> {target}')
             payload=f'L\\0{rel}\\0{target}'.encode()
         elif path.is_dir(): payload=f'D\\0{rel}\\0{path.stat().st_mode & 0o777:o}'.encode()
-        elif path.is_file(): payload=f'F\\0{rel}\\0{path.stat().st_mode & 0o777:o}\\0{sha(path)}'.encode()
+        elif path.is_file(): payload=f'F\\0{rel}\\0{path.stat().st_mode & 0o777:o}\\0{sha256_file(path)}'.encode()
         else: raise RuntimeError(f'unsupported generation node: {rel}')
         h.update(len(payload).to_bytes(8,'big'));h.update(payload)
     return 'sha256:'+h.hexdigest()
@@ -34,6 +28,8 @@ import subprocess
 import sys
 import tempfile
 from typing import Any
+
+from artifact_core.contracts import sha256_file
 
 ROOT=Path(__file__).resolve().parents[1]
 MAIN=Path('/root/projects/ordivon/capabilities/artifact')
@@ -138,7 +134,7 @@ def nuget_sources(lock:dict[str,Any])->list[dict[str,str]]:
         package=row['id'].lower();version=row['version']
         path=Path('/root/.nuget/packages')/package/version/f'{package}.{version}.nupkg'
         if not path.is_file():raise RuntimeError(f'NuGet package absent: {row["id"]} {version}')
-        observed=sha(path)
+        observed=sha256_file(path)
         if observed!=row['nupkgSha256']:raise RuntimeError(f'NuGet package digest drift: {row["id"]}')
         result.append({'id':row['id'],'version':version,'path':str(path),'sha256':'sha256:'+observed})
     return result
@@ -148,12 +144,12 @@ def source_digests(lock:dict[str,Any])->dict[str,str]:
     for key in ('sourceProject','sourceProgram'):
         path=ROOT/lock[key]
         if not path.is_file():raise RuntimeError(f'OpenXML validator source absent: {path}')
-        result[key]='sha256:'+sha(path)
+        result[key]='sha256:'+sha256_file(path)
     return result
 
 def generation_spec(lock:dict[str,Any],dotnet:dict[str,Any],nuget:list[dict[str,str]])->dict[str,Any]:
     validator_ids={row['id'] for row in lock['nugetPackages']}
-    return {'schemaVersion':1,'methodId':lock['methodId'],'lockSha256':'sha256:'+sha(LOCK_PATH),'dotnetWrapperSha256':'sha256:'+sha(DOTNET_WRAPPER),'validatorWrapperSha256':'sha256:'+sha(VALIDATOR_WRAPPER),'dotnetNixStorePath':dotnet['storePath'],'dotnetNixNarHash':dotnet['narHash'],'artifactNixFlakeLockSha256':dotnet['flakeLockSha256'],'nixpkgsRevision':dotnet['nixpkgsRevision'],'observedDotnetSdk':dotnet['observedSdkVersion'],'targetFramework':lock['targetFramework'],'nugetPackages':[{k:r[k] for k in ('id','version','sha256')} for r in nuget if r['id'] in validator_ids],'sdkRestoreSupportPackages':[{k:r[k] for k in ('id','version','sha256')} for r in nuget if r['id'] not in validator_ids],**source_digests(lock)}
+    return {'schemaVersion':1,'methodId':lock['methodId'],'lockSha256':'sha256:'+sha256_file(LOCK_PATH),'dotnetWrapperSha256':'sha256:'+sha256_file(DOTNET_WRAPPER),'validatorWrapperSha256':'sha256:'+sha256_file(VALIDATOR_WRAPPER),'dotnetNixStorePath':dotnet['storePath'],'dotnetNixNarHash':dotnet['narHash'],'artifactNixFlakeLockSha256':dotnet['flakeLockSha256'],'nixpkgsRevision':dotnet['nixpkgsRevision'],'observedDotnetSdk':dotnet['observedSdkVersion'],'targetFramework':lock['targetFramework'],'nugetPackages':[{k:r[k] for k in ('id','version','sha256')} for r in nuget if r['id'] in validator_ids],'sdkRestoreSupportPackages':[{k:r[k] for k in ('id','version','sha256')} for r in nuget if r['id'] not in validator_ids],**source_digests(lock)}
 
 def qualify_materialization(base:Path,generation:Path,spec:dict[str,Any]|None=None)->dict[str,Any]:
     if generation.is_symlink() or generation.resolve(strict=True).parent!=(base/'generations').resolve(strict=True):
@@ -168,14 +164,14 @@ def qualify_materialization(base:Path,generation:Path,spec:dict[str,Any]|None=No
         raise RuntimeError('OpenXML generation binding recipe mismatch')
     for name,key in (('dotnet','dotnetWrapperSha256'),('validate-openxml','validatorWrapperSha256')):
         path=generation/'bin'/name
-        if path.is_symlink() or 'sha256:'+sha(path)!=binding.get(key):
+        if path.is_symlink() or 'sha256:'+sha256_file(path)!=binding.get(key):
             raise RuntimeError('OpenXML generation wrapper binding mismatch')
     validator=generation/'validator'
     if validator.is_symlink() or not validator.is_dir() or tree_digest(validator)!=binding.get('validatorTreeDigest'):
         raise RuntimeError('OpenXML validator materialization tree drift')
     for name,key in (('source/ArtifactOpenXmlValidator.csproj','sourceProject'),('source/Program.cs','sourceProgram'),('provenance/openxml-nix-flake.lock','artifactNixFlakeLockSha256')):
         path=generation/name
-        if path.is_symlink() or 'sha256:'+sha(path)!=binding.get(key):
+        if path.is_symlink() or 'sha256:'+sha256_file(path)!=binding.get(key):
             raise RuntimeError('OpenXML generation retained provenance mismatch')
     feed=generation/'provenance/nuget'
     if feed.is_symlink() or not feed.is_dir():raise RuntimeError('OpenXML retained NuGet feed unavailable')
@@ -187,7 +183,7 @@ def qualify_materialization(base:Path,generation:Path,spec:dict[str,Any]|None=No
     if set(p.name for p in feed.iterdir())!=set(expected):raise RuntimeError('OpenXML retained NuGet feed membership drift')
     for name,digest in expected.items():
         path=feed/name
-        if path.is_symlink() or not path.is_file() or 'sha256:'+sha(path)!=digest:
+        if path.is_symlink() or not path.is_file() or 'sha256:'+sha256_file(path)!=digest:
             raise RuntimeError('OpenXML retained NuGet package drift')
     return binding
 
@@ -209,13 +205,13 @@ def build_generation(base:Path,lock:dict[str,Any],dotnet_authority:dict[str,Any]
         feed=staging/'provenance/nuget';feed.mkdir(parents=True)
         for row in nuget:
             copied=feed/Path(row['path']).name;shutil.copy2(row['path'],copied)
-            if 'sha256:'+sha(copied)!=row['sha256']:raise RuntimeError('OpenXML NuGet input drift before restore')
+            if 'sha256:'+sha256_file(copied)!=row['sha256']:raise RuntimeError('OpenXML NuGet input drift before restore')
         shutil.copy2(NIX_FLAKE/'flake.nix',staging/'provenance/openxml-nix-flake.nix');shutil.copy2(NIX_FLAKE/'flake.lock',staging/'provenance/openxml-nix-flake.lock')
-        if 'sha256:'+sha(staging/'provenance/openxml-nix-flake.lock')!=spec['artifactNixFlakeLockSha256']:
+        if 'sha256:'+sha256_file(staging/'provenance/openxml-nix-flake.lock')!=spec['artifactNixFlakeLockSha256']:
             raise RuntimeError('Artifact OpenXML Nix source drift before materialization')
         source=staging/'source';source.mkdir();shutil.copy2(ROOT/lock['sourceProject'],source/'ArtifactOpenXmlValidator.csproj');shutil.copy2(ROOT/lock['sourceProgram'],source/'Program.cs')
         for name,key in (('ArtifactOpenXmlValidator.csproj','sourceProject'),('Program.cs','sourceProgram')):
-            if 'sha256:'+sha(source/name)!=spec[key]:raise RuntimeError('OpenXML source input drift before build')
+            if 'sha256:'+sha256_file(source/name)!=spec[key]:raise RuntimeError('OpenXML source input drift before build')
         packages=staging/'packages';obj=staging/'obj';out=staging/'validator';out.mkdir()
         env={**os.environ,'DOTNET_MULTILEVEL_LOOKUP':'0','NUGET_PACKAGES':str(packages),'DOTNET_CLI_HOME':str(staging/'dotnet-home')}
         dotnet=Path(dotnet_authority['storePath'])/'bin/dotnet'
