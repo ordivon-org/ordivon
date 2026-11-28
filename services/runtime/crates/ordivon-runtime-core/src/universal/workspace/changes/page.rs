@@ -37,14 +37,30 @@ impl Ord for ChangeCandidate {
 }
 
 #[derive(Default)]
-struct ChangeSetAccumulator {
+pub(super) struct ChangeSetAccumulator {
     xor: [u8; 32],
     sums: [u64; 4],
     count: u64,
 }
 
 impl ChangeSetAccumulator {
-    pub(super) fn observe(&mut self, encoded: &[u8]) {
+    pub(super) fn observe_entry(
+        &mut self,
+        entry: &WorkspaceChangeEntry,
+    ) -> Result<Vec<u8>, UniversalExecError> {
+        let encoded = serde_json::to_vec(entry).map_err(|error| {
+            UniversalExecError::new(
+                UniversalExecErrorCode::ToolFailed,
+                format!("cannot encode workspace change entry: {error}"),
+                None,
+                false,
+            )
+        })?;
+        self.observe(&encoded);
+        Ok(encoded)
+    }
+
+    fn observe(&mut self, encoded: &[u8]) {
         let digest = Sha256::digest(encoded);
         let mut bytes = [0_u8; 32];
         bytes.copy_from_slice(&digest);
@@ -57,7 +73,7 @@ impl ChangeSetAccumulator {
         self.count = self.count.saturating_add(1);
     }
 
-    fn digest(&self) -> String {
+    pub(super) fn digest(&self) -> String {
         let mut digest = Sha256::new();
         digest.update(b"ordivon-workspace-change-set-v1\0");
         digest.update(self.count.to_be_bytes());
@@ -104,15 +120,7 @@ impl ChangePageCollector {
         &mut self,
         entry: WorkspaceChangeEntry,
     ) -> Result<(), UniversalExecError> {
-        let encoded = serde_json::to_vec(&entry).map_err(|error| {
-            UniversalExecError::new(
-                UniversalExecErrorCode::ToolFailed,
-                format!("cannot encode workspace change entry: {error}"),
-                None,
-                false,
-            )
-        })?;
-        self.accumulator.observe(&encoded);
+        let encoded = self.accumulator.observe_entry(&entry)?;
         let order_key = entry_order_key(&entry);
         if self.after_key.as_ref().map(entry_order_key) == Some(order_key) {
             self.after_key_seen = true;
@@ -240,9 +248,4 @@ pub(super) struct WorkspaceChangePageSelection {
     pub(super) remaining_entries: u64,
     pub(super) complete: bool,
     pub(super) next_cursor: Option<WorkspaceChangeCursor>,
-}
-impl ChangePageCollector {
-    pub(super) fn observed_digest(&self) -> String {
-        self.accumulator.digest()
-    }
 }

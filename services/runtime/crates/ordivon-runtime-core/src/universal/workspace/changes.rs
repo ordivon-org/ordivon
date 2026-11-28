@@ -220,8 +220,8 @@ pub fn workspace_changes_page(
     let record = load_workspace_record(config, &request.workspace_id)?;
     let workspace = Path::new(&record.workspace_path);
     let mut collector = change_page::ChangePageCollector::new(request)?;
-    change_scan::scan_tracked_changes(workspace, &mut collector)?;
-    change_scan::scan_untracked_changes(workspace, &mut collector)?;
+    change_scan::scan_tracked_changes(workspace, |entry| collector.observe(entry))?;
+    change_scan::scan_untracked_changes(workspace, |entry| collector.observe(entry))?;
     let selection = collector.finish(request.cursor.as_ref())?;
 
     // A page is one structured change-set observation even though tracked and
@@ -230,10 +230,10 @@ pub fn workspace_changes_page(
     // splice two realities into one page. This intentionally does not hash file
     // contents; byte-only changes that preserve the same change membership/kind
     // remain valid for this projection.
-    let mut verification = change_page::ChangePageCollector::new(request)?;
-    change_scan::scan_tracked_changes(workspace, &mut verification)?;
-    change_scan::scan_untracked_changes(workspace, &mut verification)?;
-    let verification_digest = verification.observed_digest();
+    let mut verification = change_page::ChangeSetAccumulator::default();
+    change_scan::scan_tracked_changes(workspace, |entry| verification.observe_entry(&entry).map(drop))?;
+    change_scan::scan_untracked_changes(workspace, |entry| verification.observe_entry(&entry).map(drop))?;
+    let verification_digest = verification.digest();
     if verification_digest != selection.change_set_digest {
         return Err(UniversalExecError::new(
             UniversalExecErrorCode::WorkspaceMutationIncomplete,
