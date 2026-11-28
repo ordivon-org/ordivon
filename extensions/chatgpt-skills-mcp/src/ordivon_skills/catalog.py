@@ -155,27 +155,40 @@ def _infer_project_root(source: SkillSource, resolved_root: Path) -> Path | None
     return resolved_root.parent
 
 
-def _package_revision(root: Path) -> str:
+def _observe_package(
+    root: Path,
+    *,
+    capture_bytes: bool = False,
+) -> tuple[str, tuple[dict[str, object], ...], dict[str, bytes]]:
     manifest: list[dict[str, object]] = []
+    captured: dict[str, bytes] = {}
     total_bytes = 0
     for candidate in sorted(root.rglob("*"), key=lambda p: p.as_posix()):
         relative = candidate.relative_to(root).as_posix()
         try:
             lst = candidate.lstat()
         except OSError as exc:
-            raise SkillCatalogError("PACKAGE_CHANGED", f"cannot stat package entry: {relative}") from exc
+            raise SkillCatalogError(
+                "PACKAGE_CHANGED", f"cannot stat package entry: {relative}"
+            ) from exc
         if stat.S_ISLNK(lst.st_mode):
             raise SkillCatalogError("PATH_ESCAPE", f"symlink package entry rejected: {relative}")
         if stat.S_ISDIR(lst.st_mode):
             continue
         if not stat.S_ISREG(lst.st_mode):
-            raise SkillCatalogError("SKILL_INVALID", f"non-regular package entry rejected: {relative}")
+            raise SkillCatalogError(
+                "SKILL_INVALID", f"non-regular package entry rejected: {relative}"
+            )
         if len(manifest) >= MAX_PACKAGE_FILES:
-            raise SkillCatalogError("PACKAGE_TOO_LARGE", f"package exceeds {MAX_PACKAGE_FILES} files")
+            raise SkillCatalogError(
+                "PACKAGE_TOO_LARGE", f"package exceeds {MAX_PACKAGE_FILES} files"
+            )
         data = candidate.read_bytes()
         total_bytes += len(data)
         if total_bytes > MAX_PACKAGE_BYTES:
-            raise SkillCatalogError("PACKAGE_TOO_LARGE", f"package exceeds {MAX_PACKAGE_BYTES} bytes")
+            raise SkillCatalogError(
+                "PACKAGE_TOO_LARGE", f"package exceeds {MAX_PACKAGE_BYTES} bytes"
+            )
         manifest.append(
             {
                 "path": relative,
@@ -185,8 +198,21 @@ def _package_revision(root: Path) -> str:
                 "sha256": _sha256(data),
             }
         )
+        if capture_bytes:
+            captured[relative] = data
     canonical = json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    return _sha256(canonical)
+    return _sha256(canonical), tuple(manifest), captured
+
+
+def _package_revision(root: Path) -> str:
+    revision, _, _ = _observe_package(root)
+    return revision
+
+
+def _package_snapshot(
+    root: Path,
+) -> tuple[str, tuple[dict[str, object], ...], dict[str, bytes]]:
+    return _observe_package(root, capture_bytes=True)
 
 
 def _context_applies(record: SkillRecord, context: SkillContext | None) -> bool:
@@ -684,28 +710,38 @@ class SkillCatalog:
         if not _contained(resolved, record.skill_root) or resolved.is_symlink() or not resolved.is_file():
             raise SkillCatalogError("PATH_ESCAPE", relative_path)
 
-        current_instruction = record.main_resource.read_bytes()
+        package_revision, _manifest, package_bytes = _package_snapshot(record.skill_root)
+        package_fence = record.package_revision
+        try:
+            instruction_key = record.main_resource.relative_to(record.skill_root).as_posix()
+            current_instruction = package_bytes[instruction_key]
+            resource_key = resolved.relative_to(record.skill_root).as_posix()
+            raw_data = package_bytes[resource_key]
+        except (KeyError, ValueError) as exc:
+            raise SkillCatalogError("PACKAGE_CHANGED", f"Skill package changed for {skill_id}") from exc
+
         current_instruction_digest = _sha256(current_instruction)
-        # A caller's expected revision is an additional consistency constraint,
-        # never an alternative to the package whose scan/trust verdict admitted
-        # this Skill. Re-admission requires a fresh catalog scan.
+        # Preserve the public error contract: an unadmitted SKILL.md replacement
+        # is an instruction-digest failure even though it also changes the package.
+        # Both decisions use the same bounded package observation.
         if current_instruction_digest != record.instruction_digest or (
             expected_instruction_digest is not None
             and expected_instruction_digest != record.instruction_digest
         ):
             raise SkillCatalogError("DIGEST_MISMATCH", f"SKILL.md changed for {skill_id}")
-
-        current_package_revision = _package_revision(record.skill_root)
-        package_fence = record.package_revision
-        if current_package_revision != package_fence or (
+        # A caller's expected package revision is an additional consistency
+        # constraint, never an alternative to the admitted scanner verdict.
+        if package_revision != package_fence or (
             expected_package_revision is not None
             and expected_package_revision != package_fence
         ):
             raise SkillCatalogError("PACKAGE_CHANGED", f"Skill package changed for {skill_id}")
-
-        raw_data = resolved.read_bytes()
         if len(raw_data) > MAX_RESOURCE_READ_BYTES:
             raise SkillCatalogError("RESOURCE_TOO_LARGE", relative_path)
+
+        # The exact instruction and resource bytes above come from the same bounded
+        # package observation that produced package_revision. A final observation
+        # rejects mutation after that snapshot before any bytes are returned.
         post_read_package_revision = _package_revision(record.skill_root)
         if post_read_package_revision != package_fence:
             raise SkillCatalogError("PACKAGE_CHANGED", f"Skill package changed for {skill_id}")

@@ -678,18 +678,17 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
             original_package_revision = catalog_module._package_revision
             mutated = False
 
-            def revision_then_mutate(skill_root: Path) -> str:
+            def mutate_then_revision(skill_root: Path) -> str:
                 nonlocal mutated
-                revision = original_package_revision(skill_root)
                 if not mutated:
                     guide.write_text("v2", encoding="utf-8")
                     mutated = True
-                return revision
+                return original_package_revision(skill_root)
 
             with mock.patch.object(
                 catalog_module,
                 "_package_revision",
-                side_effect=revision_then_mutate,
+                side_effect=mutate_then_revision,
             ):
                 with self.assertRaises(SkillCatalogError) as captured:
                     catalog.read_text(
@@ -698,6 +697,43 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
                         expected_package_revision=record.package_revision,
                     )
             self.assertEqual(captured.exception.code, "PACKAGE_CHANGED")
+
+    def test_transient_resource_bytes_must_match_admitted_package_revision(self) -> None:
+        from unittest import mock
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "skills"
+            write_skill(root, "alpha", "alpha", "Alpha")
+            guide = root / "alpha" / "guide.md"
+            guide.write_text("approved", encoding="utf-8")
+            catalog = SkillCatalog.scan(
+                [SkillSource("s", root, "user", 1, TrustState.APPROVED)]
+            )
+            record = catalog.resolve("s/alpha").resolved
+            original_read_bytes = Path.read_bytes
+            guide_reads = 0
+
+            def transient_read(path: Path) -> bytes:
+                nonlocal guide_reads
+                if path == guide:
+                    guide_reads += 1
+                    # Pre-read package observation sees approved bytes, the actual
+                    # resource read sees a transient replacement, and the post-read
+                    # package observation sees the approved bytes restored.
+                    if guide_reads == 2:
+                        return b"transient-unapproved"
+                return original_read_bytes(path)
+
+            with mock.patch.object(Path, "read_bytes", transient_read):
+                with self.assertRaises(SkillCatalogError) as captured:
+                    catalog.read_text(
+                        "s/alpha",
+                        relative_path="guide.md",
+                        projection="raw",
+                        expected_package_revision=record.package_revision,
+                    )
+            self.assertEqual(captured.exception.code, "PACKAGE_CHANGED")
+            self.assertEqual(guide.read_text(encoding="utf-8"), "approved")
 
     def test_utf8_pagination_next_offset_never_splits_codepoint(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

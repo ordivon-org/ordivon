@@ -302,6 +302,66 @@ class Sep2640SkillsTests(unittest.TestCase):
                 )
                 asyncio.run(exercise(app, enabled))
 
+    def test_skill_entry_rejects_transient_resource_manifest_bytes(self) -> None:
+        from unittest import mock
+
+        td, base, provider, _token = self.make_fixture()
+        self.addCleanup(td.cleanup)
+        catalog = provider.get(force_refresh=True)
+        record = catalog.by_skill_id("user/alpha", invocation_mode="explicit")
+        guide = base / "user" / "alpha" / "references" / "guide.md"
+        original_read_bytes = Path.read_bytes
+        guide_reads = 0
+
+        def transient_read(path: Path) -> bytes:
+            nonlocal guide_reads
+            if path == guide:
+                guide_reads += 1
+                # Pre package scan sees admitted bytes, resource_manifest sees a
+                # transient replacement, post package scan sees admitted bytes.
+                if guide_reads == 2:
+                    return b"transient-unapproved"
+            return original_read_bytes(path)
+
+        with mock.patch.object(Path, "read_bytes", transient_read):
+            with self.assertRaises(AgentSkillsConformanceError):
+                skill_entry(record)
+        self.assertEqual(guide.read_text(encoding="utf-8"), "guide-v1\n")
+
+    def test_skill_entry_rejects_transient_frontmatter_bytes(self) -> None:
+        from unittest import mock
+
+        td, base, provider, _token = self.make_fixture()
+        self.addCleanup(td.cleanup)
+        catalog = provider.get(force_refresh=True)
+        record = catalog.by_skill_id("user/alpha", invocation_mode="explicit")
+        skill = base / "user" / "alpha" / "SKILL.md"
+        original_read_bytes = Path.read_bytes
+        skill_reads = 0
+        transient = (
+            b"---\n"
+            b"name: alpha\n"
+            b"description: transient-unapproved\n"
+            b"---\n\n"
+            b"# alpha\n"
+        )
+
+        def transient_read(path: Path) -> bytes:
+            nonlocal skill_reads
+            if path == skill:
+                skill_reads += 1
+                # Current skill_entry reads the admitted instruction once, then
+                # parse_standard_frontmatter reads a second independent snapshot.
+                if skill_reads == 3:
+                    return transient
+            return original_read_bytes(path)
+
+        with mock.patch.object(Path, "read_bytes", transient_read):
+            entry = skill_entry(record)
+        self.assertEqual(entry.frontmatter["description"], "Use for alpha workflows")
+        self.assertNotIn("transient-unapproved", str(entry.value()))
+        self.assertNotIn("transient-unapproved", skill.read_text(encoding="utf-8"))
+
     def test_http_sep2640_list_get_and_resources_read_are_digest_consistent(self) -> None:
         td, base, provider, token_file = self.make_fixture()
         self.addCleanup(td.cleanup)
