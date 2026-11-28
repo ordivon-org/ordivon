@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 import os
@@ -10,14 +9,8 @@ from statistics import median
 from typing import Any
 
 import psycopg
+from ordivon_composition import canonical_digest
 from psycopg.rows import dict_row
-
-
-def _canonical_digest(value: Any) -> str:
-    payload = json.dumps(
-        value, sort_keys=True, ensure_ascii=False, separators=(",", ":")
-    ).encode()
-    return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
 def _percentile(values: list[float], fraction: float) -> float:
@@ -279,7 +272,7 @@ def analyze_store(
         ],
     }
     digest_material = dict(result)
-    result["analysisDigest"] = _canonical_digest(digest_material)
+    result["analysisDigest"] = canonical_digest(digest_material)
     return result
 
 

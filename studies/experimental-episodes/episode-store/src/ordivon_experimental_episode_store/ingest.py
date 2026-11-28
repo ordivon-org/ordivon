@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, BinaryIO, TextIO
 
 import psycopg
+from ordivon_composition import canonical_digest
 from psycopg import sql
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
@@ -64,13 +65,6 @@ def _frozen_source(path: Path) -> Iterator[tuple[BinaryIO, str, int]]:
             raise EpisodeStoreError("source changed during byte snapshot")
         frozen.seek(0)
         yield frozen, "sha256:" + digest.hexdigest(), size
-
-
-def _canonical_digest(value: Any) -> str:
-    payload = json.dumps(
-        value, sort_keys=True, ensure_ascii=False, separators=(",", ":")
-    ).encode()
-    return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
 def _require_sha256(value: str, label: str) -> str:
@@ -144,7 +138,7 @@ def build_ingest_identity(
         "schemaDigest": _require_sha256(schema_digest, "schema_digest"),
         "adapterDigest": _require_sha256(adapter_digest, "adapter_digest"),
     }
-    return "ingest:" + _canonical_digest(material), material
+    return "ingest:" + canonical_digest(material), material
 
 
 def _set_role(conn: psycopg.Connection[Any], role: str | None) -> None:
