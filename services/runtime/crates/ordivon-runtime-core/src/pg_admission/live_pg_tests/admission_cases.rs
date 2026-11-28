@@ -13,6 +13,12 @@ fn windows_pg_bundle_consumer_reads_real_admission_without_claiming_process() {
     scratch.qualify();
     let temp = tempfile::tempdir().unwrap();
     let mut input = payload("win-native-witness", "job-win-witness", "workspace-win", 2);
+    input.execution_plan_json =
+        serde_json::json!({"stdoutLimitBytes":4096,"stderrLimitBytes":4096}).to_string();
+    input.execution_plan_digest = format!(
+        "sha256:{}",
+        hex::encode(Sha256::digest(input.execution_plan_json.as_bytes()))
+    );
     let attempt = input.attempt_id.clone();
     let bundle = temp.path().join("pg-attempts").join(&attempt);
     fs::create_dir_all(&bundle).unwrap();
