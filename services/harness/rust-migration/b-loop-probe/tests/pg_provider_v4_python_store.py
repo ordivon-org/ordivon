@@ -13,7 +13,7 @@ import os
 import sys
 from pathlib import Path
 
-from anc_canonical import canonical_digest, digest_bytes
+from anc_canonical import canonical_bytes, canonical_digest, digest_bytes
 from ordivon_harness.core_contracts import HarnessRunContract
 from ordivon_harness.ordivon.continuity_records import (
     HarnessProviderCallRecordV3,
@@ -26,6 +26,7 @@ from ordivon_harness.protocol import (
     HarnessProviderCallStatus,
 )
 from ordivon_harness.run_state import HarnessRunState
+from ordivon_harness.store import StoredHarnessObject
 
 
 dsn = os.environ["HARNESS_RUST_TEST_PG_DSN"]
@@ -41,6 +42,13 @@ if len(sys.argv) > 1 and sys.argv[1] == "verify-native":
         run = store.load_run(native["runId"])
         assert run.revision == 4
         for entry in native["events"]:
+            digest = entry["data"]["providerCallRecordObjectDigest"]
+            value = store.get_object(digest, expected_kind="harness-provider-call-record")
+            assert canonical_digest(value) == digest
+            assert {
+                key: field for key, field in value.items()
+                if key not in {"schemaVersion", "kind", "recordId"}
+            } == entry["recordFields"]
             assert any(
                 event.event_id == entry["eventId"]
                 and event.event_kind == entry["eventKind"]
@@ -390,8 +398,10 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
             expires_at_ms=50000,
             recorded_at_ms=when,
         )
-        record_ref = store.put_object(
-            record.to_dict(), kind="harness-provider-call-record"
+        # Oracle metadata only: Rust must insert these exact bytes itself.
+        record_ref = StoredHarnessObject(
+            record.digest, len(canonical_bytes(record.to_dict())),
+            "harness-provider-call-record",
         )
         references = [record_ref, native_state_ref]
         if status is HarnessProviderCallStatus.UNKNOWN:
