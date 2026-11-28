@@ -5,39 +5,10 @@ These fixtures are experimental Agent observations, not literary quality claims.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import Any
 
+from .grounded_contracts import qa_result_schema
 from .grounded_evidence import EvidenceItem, _relation_result_schema
-
-
-def _qa_result_schema(question_ids: Sequence[str], option_ids: Sequence[str]) -> dict[str, Any]:
-    return {
-        "type": "object",
-        "additionalProperties": False,
-        "properties": {
-            "answers": {
-                "type": "array",
-                "minItems": len(question_ids),
-                "maxItems": len(question_ids),
-                "items": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "properties": {
-                        "questionId": {"type": "string", "enum": list(question_ids)},
-                        "optionId": {"type": "string", "enum": list(option_ids)},
-                        "evidenceIds": {
-                            "type": "array",
-                            "maxItems": 6,
-                            "items": {"type": "string"},
-                        },
-                    },
-                    "required": ["questionId", "optionId", "evidenceIds"],
-                },
-            }
-        },
-        "required": ["answers"],
-    }
 
 
 def _article_variants() -> dict[str, dict[str, str]]:
@@ -166,7 +137,7 @@ def build_comprehension_tasks(*, replicates: int = 2) -> list[dict[str, Any]]:
                     "Do not use outside assumptions. For each answer, cite only evidence IDs that actually support it; use an empty evidenceIds array when choosing O4 because evidence is absent."
                 ),
                 "userPayload": {"artifactEvidence": evidence, "questions": [{k: v for k, v in item.items() if k != "answer"} for item in questions]},
-                "resultSchema": _qa_result_schema(question_ids, option_ids),
+                "resultSchema": qa_result_schema(question_ids, option_ids),
                 "oracle": {
                     "answers": {item["questionId"]: ("O4" if variant == "no-artifact" else item["answer"]) for item in questions},
                     "substantiveAnswers": {item["questionId"]: item["answer"] for item in questions},

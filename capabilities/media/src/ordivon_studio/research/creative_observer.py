@@ -10,32 +10,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from .creative_protocol import VARIANTS
-from .grounded_contracts import canonical_digest
-
-
-def _qa_schema(question_ids: Sequence[str], option_ids: Sequence[str]) -> dict[str, Any]:
-    return {
-        "type": "object",
-        "additionalProperties": False,
-        "properties": {
-            "answers": {
-                "type": "array",
-                "minItems": len(question_ids),
-                "maxItems": len(question_ids),
-                "items": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "properties": {
-                        "questionId": {"type": "string", "enum": list(question_ids)},
-                        "optionId": {"type": "string", "enum": list(option_ids)},
-                        "evidenceIds": {"type": "array", "maxItems": 6, "items": {"type": "string"}},
-                    },
-                    "required": ["questionId", "optionId", "evidenceIds"],
-                },
-            }
-        },
-        "required": ["answers"],
-    }
+from .grounded_contracts import canonical_digest, qa_result_schema
 
 
 def _receipt_representatives(receipt: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:
@@ -105,7 +80,7 @@ def build_observer_bundle(*, protocol: Mapping[str, Any], web_receipts: Sequence
                     "artifactEvidence": evidence,
                     "questions": public_questions,
                 },
-                "resultSchema": _qa_schema([item["questionId"] for item in questions], ["O1", "O2", "O3", "O4"]),
+                "resultSchema": qa_result_schema([item["questionId"] for item in questions], ["O1", "O2", "O3", "O4"]),
                 "oracle": {
                     "answers": {item["questionId"]: item["answer"] for item in questions},
                     "stages": {item["questionId"]: item["stage"] for item in questions},
