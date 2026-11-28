@@ -14,8 +14,8 @@ def restored_workflow_query(workflow_id: str) -> str:
         line for line in SCRIPT.read_text(encoding="utf-8").splitlines()
         if line.startswith("ROW=$(")
     )
-    sql = line.split(' -Atqc "', 1)[1].rsplit('")', 1)[0]
-    sql, replacements = re.subn(r"\$\{WORKFLOW_ID[^}]+\}", workflow_id, sql)
+    sql = line.split('isolated_query temporal_visibility "', 1)[1].rsplit('")', 1)[0]
+    sql, replacements = re.subn(r"\$\{WORKFLOW_ID[^}]*\}", workflow_id, sql)
     if replacements != 1:
         raise AssertionError("restore smoke query is no longer bound to WORKFLOW_ID")
     return sql

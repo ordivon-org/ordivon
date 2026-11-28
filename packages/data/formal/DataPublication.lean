@@ -91,6 +91,203 @@ theorem direct_publication_without_checks_is_unsafe :
     ¬ Safety (naivePublish initial) := by
   simp [Safety, naivePublish, initial]
 
+-- Exact reclamation evidence, independent of the publication control model.
+-- The generation abstracts the observation cut, not a clock or a filename.
+structure ReclaimCut where
+  subject : Nat
+  generation : Nat
+  deriving DecidableEq, Repr
+
+structure ReclaimObservation where
+  current : Option ReclaimCut := none
+  noReaders : Option ReclaimCut := none
+  retentionRelease : Option ReclaimCut := none
+  -- No remaining preservation obligation, or a distinct exact retained copy
+  -- independently satisfies every remaining obligation.
+  preservationQualified : Option ReclaimCut := none
+  deriving Repr
+
+def ReclaimQualified (expected : ReclaimCut) (o : ReclaimObservation) : Prop :=
+  o.current = some expected ∧ o.noReaders = some expected ∧
+  o.retentionRelease = some expected ∧ o.preservationQualified = some expected
+
+theorem stale_reclaim_cut_rejected (expected observed : ReclaimCut)
+    (h : observed ≠ expected) (o : ReclaimObservation)
+    (hCurrent : o.current = some observed) :
+    ¬ ReclaimQualified expected o := by
+  simp [ReclaimQualified, hCurrent, h]
+
+theorem unknown_retention_rejected (expected : ReclaimCut) (o : ReclaimObservation)
+    (h : o.retentionRelease = none) :
+    ¬ ReclaimQualified expected o := by
+  simp [ReclaimQualified, h]
+
+theorem missing_preservation_witness_rejected (expected : ReclaimCut)
+    (o : ReclaimObservation) (h : o.preservationQualified = none) :
+    ¬ ReclaimQualified expected o := by
+  simp [ReclaimQualified, h]
+
+theorem missing_reader_census_rejected (expected : ReclaimCut)
+    (o : ReclaimObservation) (h : o.noReaders = none) :
+    ¬ ReclaimQualified expected o := by
+  simp [ReclaimQualified, h]
+
+theorem exact_reclaim_witnesses_qualify (r : ReclaimCut) :
+    ReclaimQualified r ⟨some r, some r, some r, some r⟩ := by
+  simp [ReclaimQualified]
+
+-- Necessary scratch-carrier guard, not an atomic filesystem fence.
+def ScratchIdentityMatches (created : Nat) (current : Option Nat) : Prop :=
+  current = some created
+
+theorem replaced_scratch_not_owned (created current : Nat) (h : current ≠ created) :
+    ¬ ScratchIdentityMatches created (some current) := by
+  simp [ScratchIdentityMatches, h]
+
+theorem unobserved_scratch_not_owned (created : Nat) :
+    ¬ ScratchIdentityMatches created none := by simp [ScratchIdentityMatches]
+
+theorem same_scratch_identity_matches (created : Nat) :
+    ScratchIdentityMatches created (some created) := rfl
+
+-- Start intent is recorded before the effect. Missing PID metadata after
+-- dispatch is UNKNOWN, not a stop receipt. A stop witness is supplied by
+-- the isolated native lifecycle owner, not inferred from a missing pathname.
+inductive ScratchLifecycle where
+  | neverDispatched
+  | startDispatched
+  | stopQualified
+  deriving DecidableEq, Repr
+
+def ScratchReleaseQualified (phase : ScratchLifecycle) : Prop :=
+  phase = .neverDispatched ∨ phase = .stopQualified
+
+inductive ScratchLifecycleStep : ScratchLifecycle → ScratchLifecycle → Prop where
+  | dispatch : ScratchLifecycleStep .neverDispatched .startDispatched
+  | qualifiedStop : ScratchLifecycleStep .startDispatched .stopQualified
+
+theorem dispatch_requires_stop_witness :
+    ¬ ScratchReleaseQualified .startDispatched := by
+  simp [ScratchReleaseQualified]
+
+theorem before_start_can_release :
+    ScratchReleaseQualified .neverDispatched := by simp [ScratchReleaseQualified]
+
+theorem qualified_stop_can_release :
+    ScratchReleaseQualified .stopQualified := by simp [ScratchReleaseQualified]
+
+-- Query payload and endpoint must be observed by the same native session.
+-- This model does not assert that a path/port proves process incarnation.
+structure RestoreEndpoint where
+  carrier : Nat
+  port : Nat
+  database : Nat
+  role : Nat
+  unixSocket : Bool
+  deriving DecidableEq, Repr
+
+def RestoreReadbackQualified (expected : RestoreEndpoint)
+    (endpoint : Option RestoreEndpoint) (expectedPayload : Nat)
+    (payload : Option Nat) : Prop :=
+  expected.unixSocket = true ∧ endpoint = some expected ∧
+    payload = some expectedPayload
+
+theorem matching_payload_wrong_endpoint_rejected
+    (expected actual : RestoreEndpoint) (h : actual ≠ expected) (p : Nat) :
+    ¬ RestoreReadbackQualified expected (some actual) p (some p) := by
+  simp [RestoreReadbackQualified, h]
+
+theorem absent_endpoint_rejected (expected : RestoreEndpoint) (p : Nat) :
+    ¬ RestoreReadbackQualified expected none p (some p) := by
+  simp [RestoreReadbackQualified]
+
+theorem exact_unix_endpoint_qualifies
+    (e : RestoreEndpoint) (h : e.unixSocket = true) (p : Nat) :
+    RestoreReadbackQualified e (some e) p (some p) := by
+  simp [RestoreReadbackQualified, h]
+
+-- A successful restore is not a durable preservation grant. Independent
+-- owner evidence supplies the retained backup identity and retention horizon.
+-- Digest equality models a qualified canonical scope, not physical equality.
+structure RestoredContentCut where
+  tableSet : Nat
+  schemaDigest : Nat
+  rowMultisetDigest : Nat
+  deriving DecidableEq, Repr
+
+structure BackupCopyWitness where
+  source : ReclaimCut
+  backup : Nat
+  sourceContent : RestoredContentCut
+  restoredFrom : Option Nat
+  restoredSource : Option ReclaimCut
+  restoredContent : Option RestoredContentCut
+  -- Independent retention receipt must name this exact backup.
+  retention : Option (Nat × Nat)
+  deriving Repr
+
+def BackupCopyQualified (source : ReclaimCut) (expectedContent : RestoredContentCut)
+    (requiredThrough : Nat) (w : BackupCopyWitness) : Prop :=
+  w.source = source ∧ w.sourceContent = expectedContent ∧
+    w.restoredFrom = some w.backup ∧ w.restoredSource = some source ∧
+    w.restoredContent = some expectedContent ∧
+    ∃ horizon, w.retention = some (w.backup, horizon) ∧ requiredThrough ≤ horizon
+
+theorem copy_without_retention_not_qualified (s : ReclaimCut) (c : RestoredContentCut)
+    (t : Nat) (w : BackupCopyWitness) (h : w.retention = none) :
+    ¬ BackupCopyQualified s c t w := by
+  simp [BackupCopyQualified, h]
+
+theorem copy_with_changed_content_not_qualified (s : ReclaimCut)
+    (c actual : RestoredContentCut) (t : Nat) (w : BackupCopyWitness)
+    (h : actual ≠ c) (hr : w.restoredContent = some actual) :
+    ¬ BackupCopyQualified s c t w := by
+  simp [BackupCopyQualified, h, hr]
+
+theorem matching_forged_source_and_restore_rejected (s : ReclaimCut)
+    (expected forged : RestoredContentCut) (t : Nat) (w : BackupCopyWitness)
+    (h : forged ≠ expected) (hs : w.sourceContent = forged) :
+    ¬ BackupCopyQualified s expected t w := by
+  simp [BackupCopyQualified, hs, h]
+
+theorem retention_of_other_backup_rejected (s : ReclaimCut) (c : RestoredContentCut)
+    (required other horizon : Nat) (w : BackupCopyWitness)
+    (h : other ≠ w.backup) (hr : w.retention = some (other, horizon)) :
+    ¬ BackupCopyQualified s c required w := by
+  simp [BackupCopyQualified, hr, h]
+
+theorem copy_expiring_early_not_qualified (s : ReclaimCut) (c : RestoredContentCut)
+    (required expires : Nat) (w : BackupCopyWitness)
+    (h : expires < required) (hr : w.retention = some (w.backup, expires)) :
+    ¬ BackupCopyQualified s c required w := by
+  have hle : ¬ required ≤ expires := Nat.not_le.mpr h
+  simp [BackupCopyQualified, hr, hle]
+
+theorem retained_exact_copy_qualifies (s : ReclaimCut) (b t : Nat)
+    (c : RestoredContentCut) :
+    BackupCopyQualified s c t ⟨s, b, c, some b, some s, some c, some (b, t)⟩ := by
+  simp [BackupCopyQualified]
+
+#print axioms matching_payload_wrong_endpoint_rejected
+#print axioms absent_endpoint_rejected
+#print axioms exact_unix_endpoint_qualifies
+#print axioms copy_without_retention_not_qualified
+#print axioms copy_with_changed_content_not_qualified
+#print axioms matching_forged_source_and_restore_rejected
+#print axioms retention_of_other_backup_rejected
+#print axioms copy_expiring_early_not_qualified
+#print axioms retained_exact_copy_qualifies
+#print axioms dispatch_requires_stop_witness
+#print axioms before_start_can_release
+#print axioms qualified_stop_can_release
+#print axioms stale_reclaim_cut_rejected
+#print axioms unknown_retention_rejected
+#print axioms missing_preservation_witness_rejected
+#print axioms missing_reader_census_rejected
+#print axioms exact_reclaim_witnesses_qualify
+#print axioms replaced_scratch_not_owned
+#print axioms unobserved_scratch_not_owned
+#print axioms same_scratch_identity_matches
 #print axioms all_reachable_safe
 #print axioms published_requires_validation_and_commit
 #print axioms reclaimed_requires_no_readers_and_retention_release

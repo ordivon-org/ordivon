@@ -42,9 +42,46 @@ owned_restore=false
 owned_socket=false
 owned_log=false
 start_attempted=false
+restore_identity=
+socket_identity=
+log_identity=
+
+# A pathname is not an ownership token. Check device/inode and type
+# before effects; this observation is not an atomic rename/delete fence.
+scratch_identity() {
+  local target=$1 kind=$2
+  if [ -L "$target" ]; then return 1; fi
+  case "$kind" in
+    directory) [ -d "$target" ] || return 1 ;;
+    file) [ -f "$target" ] || return 1 ;;
+    *) return 1 ;;
+  esac
+  stat -c '%d:%i' -- "$target"
+}
+same_scratch() {
+  local target=$1 kind=$2 expected=$3 actual
+  if [ -z "$expected" ] || ! actual=$(scratch_identity "$target" "$kind") || [ "$actual" != "$expected" ]; then
+    echo "restore smoke scratch identity changed or unknown: $target; preserving scratch" >&2
+    return 1
+  fi
+}
 cleanup() {
+  # Check all carriers before the first cleanup effect.
+  if [ "$owned_restore" = true ]; then same_scratch "$RESTORE_ROOT" directory "$restore_identity" || return 1; fi
+  if [ "$owned_socket" = true ]; then same_scratch "$SOCKET_ROOT" directory "$socket_identity" || return 1; fi
+  if [ "$owned_log" = true ]; then same_scratch "$LOG" file "$log_identity" || return 1; fi
   if [ "$owned_restore" = true ]; then
-    if [ -f "$RESTORE_ROOT/postmaster.pid" ]; then
+    # Once startup is dispatched, absence of its PID file is not a
+    # qualified stop. Preserve the whole carrier for reconciliation.
+    if [ "$start_attempted" = true ] && { [ ! -f "$RESTORE_ROOT/postmaster.pid" ] || [ -L "$RESTORE_ROOT/postmaster.pid" ]; }; then
+      echo "restore smoke could not confirm isolated PostgreSQL stopped; preserving owned scratch" >&2
+      return 1
+    fi
+    if [ -e "$RESTORE_ROOT/postmaster.pid" ] || [ -L "$RESTORE_ROOT/postmaster.pid" ]; then
+      if [ ! -f "$RESTORE_ROOT/postmaster.pid" ] || [ -L "$RESTORE_ROOT/postmaster.pid" ]; then
+        echo "restore smoke could not confirm isolated PostgreSQL stopped; preserving owned scratch" >&2
+        return 1
+      fi
       # A PID file from backup bytes or an uncertain pre-start failure is
       # not authority to signal any server. Check our exact PGDATA first.
       if [ "$start_attempted" != true ] || \
@@ -56,15 +93,22 @@ cleanup() {
         echo "restore smoke could not confirm isolated PostgreSQL stopped; preserving owned scratch" >&2
         return 1
       fi
-      if [ -f "$RESTORE_ROOT/postmaster.pid" ]; then
+      if [ -e "$RESTORE_ROOT/postmaster.pid" ] || [ -L "$RESTORE_ROOT/postmaster.pid" ]; then
         echo "restore smoke PostgreSQL pid file remains after stop; preserving owned scratch" >&2
         return 1
       fi
     fi
+    same_scratch "$RESTORE_ROOT" directory "$restore_identity" || return 1
     rm -rf -- "$RESTORE_ROOT" || return 1
   fi
-  if [ "$owned_socket" = true ]; then rm -rf -- "$SOCKET_ROOT" || return 1; fi
-  if [ "$owned_log" = true ]; then rm -f -- "$LOG" || return 1; fi
+  if [ "$owned_socket" = true ]; then
+    same_scratch "$SOCKET_ROOT" directory "$socket_identity" || return 1
+    rm -rf -- "$SOCKET_ROOT" || return 1
+  fi
+  if [ "$owned_log" = true ]; then
+    same_scratch "$LOG" file "$log_identity" || return 1
+    rm -f -- "$LOG" || return 1
+  fi
 }
 on_exit() {
   local rc=$?
@@ -74,13 +118,16 @@ on_exit() {
 trap on_exit EXIT
 mkdir -m 0700 -- "$RESTORE_ROOT"
 owned_restore=true
+restore_identity=$(scratch_identity "$RESTORE_ROOT" directory)
 mkdir -m 0700 -- "$SOCKET_ROOT"
 owned_socket=true
+socket_identity=$(scratch_identity "$SOCKET_ROOT" directory)
 if ! (set -C; : > "$LOG"); then
   echo "restore smoke log path already exists" >&2
   exit 2
 fi
 owned_log=true
+log_identity=$(scratch_identity "$LOG" file)
 chown postgres:postgres "$RESTORE_ROOT" "$SOCKET_ROOT" "$LOG"
 
 # pgBackRest owns physical restoration. Never follow backup-origin links to
@@ -100,6 +147,10 @@ sudo -u postgres "$PGBACKREST" \
   --reset-tablespace-map \
   --tablespace-map-all="$SOCKET_ROOT/tablespaces" \
   restore
+
+same_scratch "$RESTORE_ROOT" directory "$restore_identity"
+same_scratch "$SOCKET_ROOT" directory "$socket_identity"
+same_scratch "$LOG" file "$log_identity"
 
 # Recovered configuration is data, not executable operator intent. This
 # isolated smoke intentionally does not reuse production include files,
@@ -137,12 +188,34 @@ sudo -u postgres "$PG_CTL" -D "$RESTORE_ROOT" -l "$LOG" \
   -o "-c config_file=$RESTORE_ROOT/ordivon-smoke.conf" \
   -t 120 -w start
 
+# Check actual endpoint and payload in one native connection/request. The
+# child environment is explicit so libpq selectors cannot redirect this read.
+# Return 3 for a response from an unqualified endpoint, not a retryable
+# connection error. The admitted path/port and fixed DB names are SQL-safe.
+isolated_query() {
+  local db=$1 query=$2 answer
+  case "$db" in postgres|temporal|temporal_visibility) ;; *) return 3 ;; esac
+  answer=$(sudo -u postgres env -i PATH=/usr/bin:/bin HOME=/var/lib/postgres LC_ALL=C "$PSQL" \
+    -X -v ON_ERROR_STOP=1 -p "$PORT" -h "$SOCKET_ROOT" -U postgres -d "$db" -Atqc \
+    "select inet_server_addr() IS NULL AND current_setting('data_directory') = '$RESTORE_ROOT' AND current_setting('port') = '$PORT' AND current_database() = '$db' AND current_user = 'postgres'; $query") || return $?
+  if [[ "$answer" != $'t\n'* ]]; then
+    echo "restore smoke query endpoint or payload not qualified: $db" >&2
+    return 3
+  fi
+  printf '%s\n' "${answer#*$'\n'}"
+}
+
 # pg_ctl readiness alone can precede completion of WAL replay.
 promoted=false
 for ((i=0; i<60; i++)); do
-  if [ "$(sudo -u postgres "$PSQL" -X -v ON_ERROR_STOP=1 -p "$PORT" -h "$SOCKET_ROOT" -d postgres -Atqc 'select not pg_is_in_recovery();' 2>/dev/null)" = t ]; then
-    promoted=true
-    break
+  if result=$(isolated_query postgres 'select not pg_is_in_recovery();'); then
+    if [ "$result" = t ]; then
+      promoted=true
+      break
+    fi
+  else
+    rc=$?
+    if [ "$rc" = 3 ]; then exit 2; fi
   fi
   sleep 1
 done
@@ -151,9 +224,9 @@ if [ "$promoted" != true ]; then
   exit 1
 fi
 
-CORE_VERSION=$(sudo -u postgres "$PSQL" -X -v ON_ERROR_STOP=1 -p "$PORT" -h "$SOCKET_ROOT" -d temporal -Atqc 'select curr_version from schema_version;')
-VIS_VERSION=$(sudo -u postgres "$PSQL" -X -v ON_ERROR_STOP=1 -p "$PORT" -h "$SOCKET_ROOT" -d temporal_visibility -Atqc 'select curr_version from schema_version;')
-ROW=$(sudo -u postgres "$PSQL" -X -v ON_ERROR_STOP=1 -p "$PORT" -h "$SOCKET_ROOT" -d temporal_visibility -Atqc "select workflow_id||'|'||status from executions_visibility where workflow_id='${WORKFLOW_ID//\'/\'\'}' and status=2 order by start_time desc limit 1;")
+CORE_VERSION=$(isolated_query temporal 'select curr_version from schema_version;')
+VIS_VERSION=$(isolated_query temporal_visibility 'select curr_version from schema_version;')
+ROW=$(isolated_query temporal_visibility "select workflow_id||'|'||status from executions_visibility where workflow_id='${WORKFLOW_ID}' and status=2 order by start_time desc limit 1;")
 
 [ "$CORE_VERSION" = "1.19" ]
 [ "$VIS_VERSION" = "1.14" ]
