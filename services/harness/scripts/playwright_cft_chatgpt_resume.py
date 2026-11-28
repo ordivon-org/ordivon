@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from chatgpt_provider_gate import provider_blocker
 from chatgpt_provider_resource import chatgpt_resource_from_page_url
 from playwright_browserless_chatgpt_submit import (
     PRE_EFFECT_BLOCKER_SELECTOR,
@@ -17,7 +18,6 @@ from playwright_browserless_chatgpt_submit import (
     STOP_SELECTOR,
     digest_bytes,
     digest_obj,
-    human_blocker,
     stabilize_empty_composer,
     wait_for_canonical_after_send,
 )
@@ -114,7 +114,7 @@ def main() -> int:
                 )
                 return PRE_EFFECT_BLOCKED_EXIT
             page = pages[0]
-            blocker = human_blocker(page)
+            blocker = provider_blocker(page)
             if blocker is not None:
                 _pre_effect(
                     a.pre_effect_out, effect_id=a.effect_id, prompt_digest=a.prompt_digest,

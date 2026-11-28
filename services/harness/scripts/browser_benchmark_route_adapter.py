@@ -26,12 +26,6 @@ PRE_EFFECT_JEV_STANDINGS = frozenset(
 )
 
 
-def _read_json(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8-sig"))
-    if not isinstance(value, dict):
-        raise ValueError(f"expected JSON object: {path}")
-    return value
-
 
 def _text_digest(value: str) -> str:
     return "sha256:" + hashlib.sha256(value.encode("utf-8")).hexdigest()
@@ -522,7 +516,7 @@ def main() -> int:
     run = sub.add_parser("run")
     run.add_argument("--request-file", type=Path, required=True)
     args = parser.parse_args()
-    result = run_request(_read_json(args.request_file))
+    result = run_request(router.read_json_object(args.request_file))
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0
 

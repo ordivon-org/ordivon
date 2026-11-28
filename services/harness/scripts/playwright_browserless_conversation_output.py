@@ -24,7 +24,6 @@ from chatgpt_provider_gate import challenge_gated
 from chatgpt_provider_resource import canonical_chatgpt_resource, chatgpt_resource_from_page_url
 
 STOP_SELECTOR = 'button[data-testid="stop-button"]'
-CHALLENGE_SELECTOR = 'iframe[src*="challenges.cloudflare.com"], [id*="challenge"]'
 FETCH_ERROR_SELECTOR = '[data-testid="conversation-fetch-error-toaster"]'
 MAIN_SELECTOR = "main"
 MESSAGE_SELECTOR = "[data-message-author-role]"
@@ -147,7 +146,7 @@ def main() -> int:
             main_text = ""
             fetch_error_text = None
             while True:
-                if challenge_gated(page, CHALLENGE_SELECTOR):
+                if challenge_gated(page):
                     raise SystemExit("Browserless output capture is challenge-gated")
                 fetch_error = page.locator(FETCH_ERROR_SELECTOR)
                 if fetch_error.count() and fetch_error.first.is_visible():

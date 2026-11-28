@@ -4,6 +4,7 @@ The source files are caller-supplied, retrospective and NOT market PIT/rights
 evidence. The dedicated Paper database is the only mutable financial effect.
 No broker, order adapter, position engine, or second account ledger is defined.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -11,13 +12,14 @@ import csv
 import hashlib
 import json
 import re
+from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from io import StringIO
 from os import environ
 from pathlib import Path
 
-from ..accounting.paper_close import decode_session, value_session
+from ..accounting.paper_close import PaperSession, PaperValuation, decode_session, value_session
 from ..accounting.postgres_paper_close import (
     PostgresPaperClose,
     read_committed_paper_close,
@@ -48,16 +50,28 @@ def _native_usd_minor(raw: object) -> int:
     return int(cents)
 
 
-def run_simulated_paper(
-    dsn: str, *, study: Path, predictions: Path, native: Path, sessions: Path,
-    mandate: Path | None = None,
-) -> dict:
-    """Preflight complete simulation identity BEFORE creating any PG schema or row.
+@dataclass(frozen=True)
+class _SimulationInputs:
+    model: dict
+    model_digest: str
+    prediction_bytes: bytes
+    prediction_digest: str
+    outcome: dict
+    outcome_digest: str
+    sessions_raw: list
+    sessions_digest: str
+    hold: int
+    symbol: str
 
-    An interrupted batch may have committed a prefix: exact retry resumes
-    using PostgresPaperClose's existing per-session serializable transactions.
-    Neither batch atomicity nor independent model-result signature is claimed.
-    """
+
+def _load_simulation_inputs(
+    *,
+    study: Path,
+    predictions: Path,
+    native: Path,
+    sessions: Path,
+) -> _SimulationInputs:
+    """Bind all caller artifacts before any durable Paper effect."""
     model, model_digest = _read(study)
     pred_bytes = predictions.read_bytes()
     pred_digest = _digest(pred_bytes)
@@ -73,14 +87,16 @@ def run_simulated_paper(
     ):
         raise ValueError("Qlib/native model and account co-artifacts disagree")
     if (
-        type(model) is not dict or type(outcome) is not dict
+        type(model) is not dict
+        or type(outcome) is not dict
         or type(model.get("forecast")) is not dict
         or type(model.get("signal_quality")) is not dict
         or model.get("qlib_prediction_sha256") != pred_digest
         or model.get("portfolio_target") is not None
         or model.get("forecast", {}).get("point_in_time_eligible") is not False
         or model.get("signal_quality", {}).get("exit_price_kind") != "next_open"
-        or model.get("signal_quality", {}).get("matches_native_fixed_holding_exit_event") is not True
+        or model.get("signal_quality", {}).get("matches_native_fixed_holding_exit_event")
+        is not True
         or model.get("forecast", {}).get("native_strategy_exit_event_matches_target") is not True
     ):
         raise ValueError("unqualified caller-supplied Qlib simulation study")
@@ -100,18 +116,35 @@ def run_simulated_paper(
         raise ValueError("native outcome not an eligible simulation-only terminal state")
     hold = outcome.get("horizon_complete_sessions")
     symbol = outcome.get("selected_instrument")
-    if (type(hold) is not int or hold not in (5, 20)
-            or hold != model["signal_quality"].get("holding_sessions")
-            or symbol not in ("SPY", "QQQ", "IWM")
-            or type(days_raw) is not list
-            or not 2 <= len(days_raw) <= 32):
+    if (
+        type(hold) is not int
+        or hold not in (5, 20)
+        or hold != model["signal_quality"].get("holding_sessions")
+        or symbol not in ("SPY", "QQQ", "IWM")
+        or type(days_raw) is not list
+        or not 2 <= len(days_raw) <= 32
+    ):
         raise ValueError("invalid native horizon or Paper session set")
 
-    # Accounting is an independent Qlib consumer, not an alternative
-    # forecast interpreter. The score, target and exit event must match the
-    # upstream native Strategy's exact H5/H20 economic contract.
-    quality = model["signal_quality"]
-    forecast = model["forecast"]
+    return _SimulationInputs(
+        model=model,
+        model_digest=model_digest,
+        prediction_bytes=pred_bytes,
+        prediction_digest=pred_digest,
+        outcome=outcome,
+        outcome_digest=outcome_digest,
+        sessions_raw=days_raw,
+        sessions_digest=days_digest,
+        hold=hold,
+        symbol=symbol,
+    )
+
+
+def _validate_model_decision(inputs: _SimulationInputs) -> date:
+    """Refine the exact Qlib forecast horizon and selected decision row."""
+    quality = inputs.model["signal_quality"]
+    forecast = inputs.model["forecast"]
+    hold = inputs.hold
     if (
         quality.get("standing") != "RETROSPECTIVE_BACKFILL_TEST_ONLY"
         or quality.get("label_forward_sessions") != hold + 1
@@ -120,17 +153,16 @@ def run_simulated_paper(
         or forecast.get("kind") != "uncalibrated_multisession_holding_return"
         or forecast.get("holding_sessions") != hold
         or forecast.get("exit_price_kind") != "next_open"
-        or forecast.get("target_horizon")
-        != f"next_session_open_to_T_plus_{hold + 1}_open"
+        or forecast.get("target_horizon") != f"next_session_open_to_T_plus_{hold + 1}_open"
     ):
         raise ValueError("Qlib forecast horizon disagrees with native holding exit")
 
-    decision = outcome.get("research_model_sample_decision")
+    decision = inputs.outcome.get("research_model_sample_decision")
     score_column = "predicted_next_open_to_next_open_fractional_return"
     expected_columns = ["datetime", "instrument", score_column]
     try:
         decision_date = date.fromisoformat(decision)
-        reader = csv.DictReader(StringIO(pred_bytes.decode("utf-8")))
+        reader = csv.DictReader(StringIO(inputs.prediction_bytes.decode("utf-8")))
         if reader.fieldnames != expected_columns:
             raise ValueError("Qlib prediction score schema differs from native producer")
         rows = [row for row in reader if row.get("datetime") == decision_date.isoformat()]
@@ -148,11 +180,19 @@ def run_simulated_paper(
     except (TypeError, UnicodeError, OverflowError) as exc:
         raise ValueError("invalid Qlib OOS decision content") from exc
     expected_symbol = min(scores, key=lambda sym: (-scores[sym], sym))
-    if expected_symbol != symbol:
+    if expected_symbol != inputs.symbol:
         raise ValueError("native simulated instrument contradicts exact Qlib model output")
+    return decision_date
 
-    # Preflight all economic events in the already-tested pure Paper model;
-    # never commit a valid prefix before noticing a malformed final day.
+
+def _validate_paper_batch(
+    inputs: _SimulationInputs,
+    decision_date: date,
+) -> tuple[list[PaperSession], PaperValuation, int]:
+    """Replay the pure Paper model and bind its terminal economics."""
+    days_raw = inputs.sessions_raw
+    outcome = inputs.outcome
+    hold = inputs.hold
     if any(type(day) is not dict for day in days_raw):
         raise ValueError("invalid Paper session rows")
     decoded = [decode_session(day) for day in days_raw]
@@ -163,7 +203,9 @@ def run_simulated_paper(
         or decoded[-2].session.isoformat() != outcome.get("native_exit_session")
     ):
         raise ValueError("native model decision, entry/exit and Paper dates disagree")
-    if decoded[0].previous_session is not None or len({day.session for day in decoded}) != len(decoded):
+    if decoded[0].previous_session is not None or len({day.session for day in decoded}) != len(
+        decoded
+    ):
         raise ValueError("simulation batch must start at an independent opening session")
     state = None
     for previous, day in zip([None, *decoded[:-1]], decoded, strict=True):
@@ -176,24 +218,30 @@ def run_simulated_paper(
         raise ValueError("simulation has no Paper account head")
     fills = sum(len(day.buys) + len(day.sells) for day in decoded)
     if (
-        (fills == 2 and (
+        fills == 2
+        and (
             len(decoded[1].buys) != 1
             or len(decoded[-2].sells) != 1
             or any(day.buys for day in decoded[2:])
             or any(day.sells for day in decoded[:-2])
-        ))
-        or (fills == 0 and outcome.get("no_entry_cancelled_exit_suppressed") is not True)
-    ):
+        )
+    ) or (fills == 0 and outcome.get("no_entry_cancelled_exit_suppressed") is not True):
         raise ValueError("native fill timing/zero-entry standing not preserved")
     if (
         fills != outcome.get("native_fill_count")
         or fills not in (0, 2)
-        or (fills == 2 and (
-            sum(len(day.buys) for day in decoded) != 1
-            or sum(len(day.sells) for day in decoded) != 1
-            or {fill.symbol for day in decoded for fill in (*day.buys, *day.sells)} != {symbol}
-        ))
-        or state.positions or state.pending or state.pending_sales
+        or (
+            fills == 2
+            and (
+                sum(len(day.buys) for day in decoded) != 1
+                or sum(len(day.sells) for day in decoded) != 1
+                or {fill.symbol for day in decoded for fill in (*day.buys, *day.sells)}
+                != {inputs.symbol}
+            )
+        )
+        or state.positions
+        or state.pending
+        or state.pending_sales
         or state.cash_minor != outcome.get("last_paper_cash_minor")
         or state.protected_minor != outcome.get("protected_cash_minor")
         or state.protected_minor != 900_000
@@ -203,11 +251,17 @@ def run_simulated_paper(
         or (fills == 0 and state.cash_minor != 1_000_000)
     ):
         raise ValueError("native simulation and Paper batch economic identities disagree")
+    return decoded, state, fills
 
-    # A valid terminal net amount DOES NOT prove the individual native
-    # execution events were faithfully projected. False buy/sell prices can
-    # cancel economically; source each event to native Nautilus fill report
-    # exposed by the same genuine producer, not to account summary alone.
+
+def _validate_native_fill_economics(
+    inputs: _SimulationInputs,
+    decoded: list[PaperSession],
+    state: PaperValuation,
+    fills: int,
+) -> None:
+    """Bind every Paper fill to the native producer's event-level economics."""
+    outcome = inputs.outcome
     native_claims = outcome.get("native_fill_claims")
     if type(native_claims) is not list or len(native_claims) != fills:
         raise ValueError("native execution economics disagree")
@@ -229,9 +283,7 @@ def run_simulated_paper(
         claimed = [
             {
                 "side": claim["side"],
-                # Reuse the mature Nautilus→Paper bridge's account-scoped ID,
-                # rather than mistaking the raw native trade_id for Paper ID.
-                "fill_id": f'nautilus-paper:SIM-001:{claim["fill_id"]}',
+                "fill_id": f"nautilus-paper:SIM-001:{claim['fill_id']}",
                 "symbol": claim["symbol"],
                 "shares": claim["shares"],
                 "price_minor": claim["price_minor"],
@@ -246,25 +298,27 @@ def run_simulated_paper(
         sorted(claimed, key=lambda r: (r["side"], r["fill_id"]))
         != sorted(actual_fills, key=lambda r: (r["side"], r["fill_id"]))
         or any(
-            (type(row["shares"]) is not int
-             or type(row["price_minor"]) is not int
-             or type(row["fee_minor"]) is not int
-             or row["filled_at"].utcoffset() is None)
+            (
+                type(row["shares"]) is not int
+                or type(row["price_minor"]) is not int
+                or type(row["fee_minor"]) is not int
+                or row["filled_at"].utcoffset() is None
+            )
             for row in claimed
         )
         or outcome.get("native_order_count") != (1 if fills == 0 else 2)
         or outcome.get("no_entry_cancelled_exit_suppressed") is not (fills == 0)
         or _native_usd_minor(outcome.get("fee_total"))
-            != sum(row["fee_minor"] for row in actual_fills)
-        or _native_usd_minor(outcome.get("net_cash_gain_usd"))
-            != state.cash_minor - 1_000_000
+        != sum(row["fee_minor"] for row in actual_fills)
+        or _native_usd_minor(outcome.get("net_cash_gain_usd")) != state.cash_minor - 1_000_000
     ):
         raise ValueError("native execution economics disagree")
     if fills == 2:
         buy = next(row for row in actual_fills if row["side"] == "BUY")
         sell = next(row for row in actual_fills if row["side"] == "SELL")
         if (
-            buy["shares"] != 1 or sell["shares"] != 1
+            buy["shares"] != 1
+            or sell["shares"] != 1
             or _native_usd_minor(outcome.get("buy_price")) != buy["price_minor"]
             or _native_usd_minor(outcome.get("sell_price")) != sell["price_minor"]
         ):
@@ -272,51 +326,100 @@ def run_simulated_paper(
     elif outcome.get("buy_price") is not None or outcome.get("sell_price") is not None:
         raise ValueError("native execution economics disagree")
 
-    # The account is derived, NEVER mapped from a user/broker account string.
+
+def _simulation_identity(
+    inputs: _SimulationInputs,
+    decoded: list[PaperSession],
+    mandate: Path | None,
+) -> tuple[dict, str]:
+    """Derive the only durable simulation principal after all preflight checks."""
     evidence = {
         "standing": "SIMULATION_ONLY_CALLER_DECLARED",
         "native_account": "SIM-001",
-        "model_study_sha256": model_digest,
-        "prediction_sha256": pred_digest,
-        "native_result_sha256": outcome_digest,
-        "sessions_sha256": days_digest,
+        "model_study_sha256": inputs.model_digest,
+        "prediction_sha256": inputs.prediction_digest,
+        "native_result_sha256": inputs.outcome_digest,
+        "sessions_sha256": inputs.sessions_digest,
     }
     if mandate is not None:
-        evidence.update(admit_paper_mandate(
-            mandate,
-            symbol=symbol,
-            horizon=hold,
-            buys_minor=sum(
-                fill.cost_minor for day in decoded for fill in day.buys
-            ),
-            starting_cash=decoded[0].contribution_minor,
-            protected_cash=decoded[0].reserve_contribution_minor,
-        ))
-    key = "r3sim_" + _digest(
-        json.dumps(evidence, sort_keys=True, separators=(",", ":")).encode()
-    )[:40]
+        evidence.update(
+            admit_paper_mandate(
+                mandate,
+                symbol=inputs.symbol,
+                horizon=inputs.hold,
+                buys_minor=sum(fill.cost_minor for day in decoded for fill in day.buys),
+                starting_cash=decoded[0].contribution_minor,
+                protected_cash=decoded[0].reserve_contribution_minor,
+            )
+        )
+    key = (
+        "r3sim_"
+        + _digest(json.dumps(evidence, sort_keys=True, separators=(",", ":")).encode())[:40]
+    )
     if re.fullmatch(r"r3sim_[a-f0-9]{40}", key) is None:
         raise ValueError("invalid derived simulation account key")
+    return evidence, key
 
+
+def _commit_simulation(
+    dsn: str,
+    key: str,
+    decoded: list[PaperSession],
+    evidence: dict,
+    expected_state: PaperValuation,
+) -> tuple[list[dict], dict]:
+    """Cross the single PostgreSQL effect boundary and read it back exactly."""
     store = PostgresPaperClose(dsn)
     receipts = []
     for day in decoded:
         committed = store.close_session(key, day, simulation_evidence=evidence)
         if committed != read_committed_paper_close(dsn, key, day.session):
             raise RuntimeError("durable PG Paper receipt readback disagrees")
-        if (committed.get("simulation_evidence") != evidence
-                or committed.get("market_evidence", {}).get("standing")
-                != "CALLER_SUPPLIED_MARKS"):
+        if (
+            committed.get("simulation_evidence") != evidence
+            or committed.get("market_evidence", {}).get("standing") != "CALLER_SUPPLIED_MARKS"
+        ):
             raise RuntimeError("simulated evidence was silently promoted")
         receipts.append(committed)
     latest = read_latest_committed_paper_close(dsn, key)
     if latest != receipts[-1]:
         raise ValueError("simulation batch is no longer the current Paper account head")
     valuation = latest["valuation"]
-    if (valuation["cash_minor"] != state.cash_minor
-            or valuation["nav_minor"] != state.nav_minor
-            or valuation["protected_minor"] != state.protected_minor):
+    if (
+        valuation["cash_minor"] != expected_state.cash_minor
+        or valuation["nav_minor"] != expected_state.nav_minor
+        or valuation["protected_minor"] != expected_state.protected_minor
+    ):
         raise ValueError("native Paper economics differ from committed database head")
+    return receipts, valuation
+
+
+def run_simulated_paper(
+    dsn: str,
+    *,
+    study: Path,
+    predictions: Path,
+    native: Path,
+    sessions: Path,
+    mandate: Path | None = None,
+) -> dict:
+    """Preflight complete simulation identity BEFORE creating any PG schema or row.
+
+    An interrupted batch may have committed a prefix: exact retry resumes
+    using PostgresPaperClose's existing per-session serializable transactions.
+    Neither batch atomicity nor independent model-result signature is claimed.
+    """
+    inputs = _load_simulation_inputs(
+        study=study,
+        predictions=predictions,
+        native=native,
+        sessions=sessions,
+    )
+    decision_date = _validate_model_decision(inputs)
+    decoded, state, fills = _validate_paper_batch(inputs, decision_date)
+    _validate_native_fill_economics(inputs, decoded, state, fills)
+    evidence, key = _simulation_identity(inputs, decoded, mandate)
+    receipts, valuation = _commit_simulation(dsn, key, decoded, evidence, state)
 
     return {
         "kind": "ordivon.finance.paper.simulation-batch-receipt",
@@ -325,8 +428,8 @@ def run_simulated_paper(
         "realAccountMappingAuthorized": False,
         "historicalPITQualified": False,
         "brokerEffects": 0,
-        "nativeInstrument": symbol,
-        "horizonSessions": hold,
+        "nativeInstrument": inputs.symbol,
+        "horizonSessions": inputs.hold,
         "dailyCommittedCount": len(receipts),
         "dailyReceipts": [
             {"session": r["valuation"]["session"], "requestSha256": r["request_sha256"]}
@@ -336,10 +439,14 @@ def run_simulated_paper(
         "finalNavMinor": valuation["nav_minor"],
         "protectedMinor": valuation["protected_minor"],
         "simulationEvidence": evidence,
-        **({
-            "portfolioRef": evidence["paper_portfolio_ref"],
-            "portfolioMandateStanding": "SIMULATION_ONLY_PORTFOLIO_PLAN_BOUND",
-        } if mandate is not None else {}),
+        **(
+            {
+                "portfolioRef": evidence["paper_portfolio_ref"],
+                "portfolioMandateStanding": "SIMULATION_ONLY_PORTFOLIO_PLAN_BOUND",
+            }
+            if mandate is not None
+            else {}
+        ),
         "effect": "PG_PAPER_SIMULATION_ONLY",
     }
 
@@ -348,16 +455,22 @@ def main() -> int:
     cli = argparse.ArgumentParser(description=__doc__)
     for name in ("study", "predictions", "native", "sessions"):
         cli.add_argument("--" + name, type=Path, required=True)
-    cli.add_argument("--mandate", type=Path, help=(
-        "Optional caller-declared Paper capital mandate, validated against "
-        "current Portfolio and Governance nonlive policy. Not a live PortfolioIntent."
-    ))
+    cli.add_argument(
+        "--mandate",
+        type=Path,
+        help=(
+            "Optional caller-declared Paper capital mandate, validated against "
+            "current Portfolio and Governance nonlive policy. Not a live PortfolioIntent."
+        ),
+    )
     args = cli.parse_args()
     try:
         result = run_simulated_paper(
             environ.get("ORDIVON_CAPITAL_PAPER_PG_DSN", ""),
-            study=args.study, predictions=args.predictions,
-            native=args.native, sessions=args.sessions,
+            study=args.study,
+            predictions=args.predictions,
+            native=args.native,
+            sessions=args.sessions,
             mandate=args.mandate,
         )
     except (ValueError, KeyError, TypeError, OSError) as exc:

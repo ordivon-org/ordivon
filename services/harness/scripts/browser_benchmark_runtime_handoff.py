@@ -26,12 +26,6 @@ DELIVERY_DISPOSITIONS = frozenset(
 SEMANTIC_STANDINGS = frozenset({"NOT_EXECUTED", "UNVERIFIED", "PASS", "FAIL"})
 
 
-def _read_json(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8-sig"))
-    if not isinstance(value, dict):
-        raise ValueError(f"expected JSON object: {path}")
-    return value
-
 
 def _digest_without(value: Mapping[str, Any], field: str) -> str:
     copy = dict(value)
@@ -407,17 +401,17 @@ def main() -> int:
     rec.add_argument("--runtime-observation-file", type=Path)
     rec.add_argument("--route-result-file", type=Path)
     args = parser.parse_args()
-    preparation = _read_json(args.preparation_file)
+    preparation = router.read_json_object(args.preparation_file)
     if args.command == "admission-template":
         value = build_admission_template(preparation, workspace_id=args.workspace_id)
     else:
         runtime = (
-            _read_json(args.runtime_observation_file)
+            router.read_json_object(args.runtime_observation_file)
             if args.runtime_observation_file is not None
             else None
         )
         route = (
-            _read_json(args.route_result_file)
+            router.read_json_object(args.route_result_file)
             if args.route_result_file is not None
             else None
         )

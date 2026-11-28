@@ -9,12 +9,83 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
+import chatgpt_provider_gate as gate  # noqa: E402
 import playwright_browserless_chatgpt_submit as submit  # noqa: E402
 import playwright_browserless_human_resume as resume  # noqa: E402
 
 
+def test_provider_gate_is_the_single_blocker_classifier_and_selector_owner() -> None:
+    assert submit.provider_blocker is gate.provider_blocker
+    assert resume.provider_blocker is gate.provider_blocker
+    for name in (
+        "playwright_browserless_chatgpt_submit.py",
+        "playwright_browserless_human_resume.py",
+        "playwright_browserless_provider_preflight.py",
+        "playwright_browserless_conversation_output.py",
+        "playwright_browserless_turn_once.py",
+    ):
+        source = (ROOT / "scripts" / name).read_text(encoding="utf-8")
+        assert "CHALLENGE_SELECTOR =" not in source, name
+        assert "LOGIN_SELECTOR =" not in source, name
+        assert "SIGNUP_SELECTOR =" not in source, name
+    for name in (
+        "playwright_browserless_chatgpt_submit.py",
+        "playwright_browserless_human_resume.py",
+    ):
+        source = (ROOT / "scripts" / name).read_text(encoding="utf-8")
+        assert "def human_blocker(" not in source, name
+
+
 class Page:
     url = "https://chatgpt.com/"
+
+
+class Locator:
+    def __init__(self, *, count: int = 0, visible: bool = False) -> None:
+        self._count = count
+        self._visible = visible
+
+    def count(self) -> int:
+        return self._count
+
+    @property
+    def first(self):
+        return self
+
+    def is_visible(self) -> bool:
+        return self._visible
+
+
+class GatePage:
+    url = "https://chatgpt.com/"
+
+    def __init__(self, selectors: dict[str, Locator]) -> None:
+        self._selectors = selectors
+
+    def title(self) -> str:
+        return "ChatGPT"
+
+    def locator(self, selector: str) -> Locator:
+        return self._selectors.get(selector, Locator())
+
+
+def test_provider_blocker_preserves_challenge_precedence_over_auth() -> None:
+    page = GatePage(
+        {
+            gate.CHALLENGE_SELECTOR: Locator(count=1),
+            gate.LOGIN_SELECTOR: Locator(count=1, visible=True),
+        }
+    )
+    assert gate.provider_blocker(page) == "challenge-gated"
+
+
+def test_provider_blocker_classifies_visible_auth_surface() -> None:
+    page = GatePage({gate.SIGNUP_SELECTOR: Locator(count=1, visible=True)})
+    assert gate.provider_blocker(page) == "auth-required"
+
+
+def test_provider_blocker_returns_none_without_gate_evidence() -> None:
+    assert gate.provider_blocker(GatePage({})) is None
 
 
 def args(tmp_path: Path) -> SimpleNamespace:
