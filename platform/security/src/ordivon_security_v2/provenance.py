@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from hashlib import sha256
 from pathlib import Path
 from typing import Any, Literal, TypedDict
 
 from .attestations import STATEMENT_TYPE
+from .hashing import sha256_file_hex
 
 SLSA_PROVENANCE_PREDICATE = "https://slsa.dev/provenance/v1"
 
@@ -19,14 +19,6 @@ class ProvenanceContentBinding(TypedDict):
     builderId: str
     buildType: str
     authenticated: Literal[False]
-
-
-def _sha256(path: Path) -> str:
-    digest = sha256()
-    with path.open("rb") as source:
-        while chunk := source.read(1024 * 1024):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def verify_build_provenance(
@@ -60,7 +52,7 @@ def verify_build_provenance(
     subject = subjects[0]
     if not isinstance(subject, dict) or subject.get("name") != artifact.name:
         raise ValueError("artifact subject name mismatch")
-    actual_sha = _sha256(artifact)
+    actual_sha = sha256_file_hex(artifact)
     if subject.get("digest") != {"sha256": actual_sha}:
         raise ValueError("artifact digest mismatch")
     predicate = statement.get("predicate")

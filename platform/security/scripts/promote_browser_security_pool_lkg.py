@@ -30,6 +30,7 @@ from ordivon_security_v2 import (
     build_browser_security_witness_bundle,
     compare_browser_security_pool,
 )
+from ordivon_security_v2.hashing import sha256_file_digest
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_ROOT = ROOT / "fixtures/browser-security"
@@ -51,14 +52,6 @@ MANIFEST_FIELDS = {
 
 class ResealError(RuntimeError):
     pass
-
-
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as source:
-        while chunk := source.read(1024 * 1024):
-            digest.update(chunk)
-    return "sha256:" + digest.hexdigest()
 
 
 def _canonical_bytes(value: object) -> bytes:
@@ -153,9 +146,9 @@ def _load_index(index_path: Path, fixture_root: Path) -> dict[str, Any]:
         manifest_path = _inside(ROOT, ROOT / manifest_ref, f"baseline manifest for {carrier}")
         if not bundle_path.is_file() or not manifest_path.is_file():
             raise ResealError(f"pool baseline artifact missing for {carrier}")
-        if sha256_file(bundle_path) != _safe_sha(row.get("bundleSha256"), "bundleSha256"):
+        if sha256_file_digest(bundle_path) != _safe_sha(row.get("bundleSha256"), "bundleSha256"):
             raise ResealError(f"baseline bundle digest mismatch for {carrier}")
-        if sha256_file(manifest_path) != _safe_sha(row.get("manifestSha256"), "manifestSha256"):
+        if sha256_file_digest(manifest_path) != _safe_sha(row.get("manifestSha256"), "manifestSha256"):
             raise ResealError(f"baseline manifest digest mismatch for {carrier}")
         carriers[carrier] = {**row, "bundlePath": bundle_path, "manifestPath": manifest_path}
     if set(carriers) != {"chatgpt-carrier-11", "chatgpt-carrier-12", "chatgpt-carrier-13"}:
@@ -244,11 +237,11 @@ def _candidate_artifacts(
         if not source_manifest.is_file() or not source_bundle.is_file():
             raise ResealError(f"candidate artifacts missing for {carrier}")
         row = evidence_map[carrier]
-        if sha256_file(source_manifest) != _safe_sha(
+        if sha256_file_digest(source_manifest) != _safe_sha(
             row.get("candidateManifestSha256"), "candidateManifestSha256"
         ):
             raise ResealError(f"candidate manifest digest mismatch for {carrier}")
-        if sha256_file(source_bundle) != _safe_sha(
+        if sha256_file_digest(source_bundle) != _safe_sha(
             row.get("candidateBundleSha256"), "candidateBundleSha256"
         ):
             raise ResealError(f"candidate bundle digest mismatch for {carrier}")
@@ -365,7 +358,7 @@ def _publish_lkg_generation(
         # Index identity is checked again under an OS-held publication lock,
         # so another writer cannot silently replace the intended generation.
         with _index_publication_lock(index_path.parent) as parent_fd:
-            if sha256_file(index_path) != expected_old_index_sha256:
+            if sha256_file_digest(index_path) != expected_old_index_sha256:
                 raise ResealError("pool LKG index changed during reseal publication")
             staged_index: Path | None = None
             try:
@@ -405,7 +398,7 @@ def reseal(
         expected_old_index_sha256, "expectedOldIndexSha256"
     )
     security_revision = _current_revision(ROOT)
-    old_index_digest = sha256_file(index_path)
+    old_index_digest = sha256_file_digest(index_path)
     if old_index_digest != expected_old_index_sha256:
         raise ResealError("current pool-index digest differs from expected old index")
     old_index = _load_index(index_path, fixture_root)
@@ -484,7 +477,7 @@ def reseal(
         "reseal": {
             "schemaVersion": 1,
             "previousPoolIndexSha256": old_index_digest,
-            "sourcePoolRunReceiptSha256": sha256_file(receipt_path),
+            "sourcePoolRunReceiptSha256": sha256_file_digest(receipt_path),
             "sourceHarnessRevision": expected_harness_revision,
             "sourceSecurityRevision": security_revision,
             "allowedSharedInfrastructureChanges": sorted(ALLOWED_SHARED_INFRASTRUCTURE),
@@ -515,7 +508,7 @@ def reseal(
         "standing": "LKG_RESEALED_PENDING_COMMIT",
         "securityRevisionBeforeCommit": security_revision,
         "sourceHarnessRevision": expected_harness_revision,
-        "sourcePoolRunReceiptSha256": sha256_file(receipt_path),
+        "sourcePoolRunReceiptSha256": sha256_file_digest(receipt_path),
         "previousPoolIndexSha256": old_index_digest,
         "newPoolIndexSha256": new_index_digest,
         "carrierIds": sorted(candidates),

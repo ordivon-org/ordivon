@@ -4,10 +4,10 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from ordivon_security_v2.hashing import sha256_file_digest
 from ordivon_security_v2.signed_vsa import (
     decode_bundle_statement,
     load_trust_mapping,
-    sha256_file,
     verify_vsa_semantics,
 )
 
@@ -30,13 +30,13 @@ def main() -> int:
         expected_subject_git_commit=args.subject_git_commit,
         expected_verifier_id=args.verifier_id,
         expected_level=args.verified_level,
-        public_key_sha256=sha256_file(args.public_key),
+        public_key_sha256=sha256_file_digest(args.public_key),
         trust_mapping=load_trust_mapping(args.trust_policy),
         expected_statement_bytes=expected,
         signed_payload_bytes=signed_payload,
     )
     print("VSA semantic verification: PASSED")
-    print(f"publicKeySha256={sha256_file(args.public_key)}")
+    print(f"publicKeySha256={sha256_file_digest(args.public_key)}")
     return 0
 
 

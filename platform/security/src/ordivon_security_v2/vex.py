@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
+
+from .hashing import sha256_file_digest
 
 _ALLOWED_STATES = {
     "resolved",
@@ -25,10 +26,6 @@ _ALLOWED_JUSTIFICATIONS = {
     "protected_at_perimeter",
     "protected_by_mitigating_control",
 }
-
-
-def _sha256(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _uuid_from_serial(serial: str) -> str:
@@ -132,6 +129,6 @@ def load_and_validate_vex(vex_path: Path, sbom_path: Path) -> dict[str, Any]:
     vex = json.loads(vex_path.read_text())
     sbom = json.loads(sbom_path.read_text())
     result = validate_vex_against_sbom(vex, sbom)
-    result["vexSha256"] = _sha256(vex_path)
-    result["sbomSha256"] = _sha256(sbom_path)
+    result["vexSha256"] = sha256_file_digest(vex_path)
+    result["sbomSha256"] = sha256_file_digest(sbom_path)
     return result

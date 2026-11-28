@@ -6,6 +6,11 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
+from .hashing import sha256_file_digest
+
+# Public compatibility alias; implementation authority lives in hashing.py.
+sha256_file = sha256_file_digest
+
 VSA_PREDICATE = "https://slsa.dev/verification_summary/v1"
 DSSE_PAYLOAD_TYPE = "application/vnd.in-toto+json"
 
@@ -25,14 +30,6 @@ def _parse_unique_json(data: bytes | str) -> Any:
 
 def sha256_bytes(data: bytes) -> str:
     return "sha256:" + sha256(data).hexdigest()
-
-
-def sha256_file(path: Path) -> str:
-    digest = sha256()
-    with path.open("rb") as source:
-        while chunk := source.read(1024 * 1024):
-            digest.update(chunk)
-    return "sha256:" + digest.hexdigest()
 
 
 def decode_bundle_statement(bundle_path: Path) -> tuple[dict[str, Any], bytes]:
