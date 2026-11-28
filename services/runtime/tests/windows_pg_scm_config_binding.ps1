@@ -13,7 +13,7 @@ foreach ($name in @('Assert-Commitment','Assert-PgEnvironmentBindings','Assert-C
     if ($null -eq $fn) { throw "Missing original function $name" }
     . ([scriptblock]::Create($fn.Extent.Text))
 }
-$probe=Join-Path $PSScriptRoot '../scripts/windows-native-runtime-r6c-acceptance.ps1'
+$probe=Join-Path $PSScriptRoot '../scripts/windows-native-runtime-pg-acceptance.ps1'
 $ast=[System.Management.Automation.Language.Parser]::ParseFile($probe,[ref]$tokens,[ref]$errors)
 if ($errors.Count) { throw ($errors|Out-String) }
 $fn=$ast.Find({param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Assert-PgSession1ActiveIdentity'},$true)

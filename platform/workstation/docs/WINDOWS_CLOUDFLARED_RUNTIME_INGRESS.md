@@ -50,7 +50,7 @@ Credential materialization does not grant Cloudflare account API authority and d
 
 The Windows connector is accepted only when all of the following hold:
 
-1. OrdivonRuntimeR6Candidate is Running and owns 127.0.0.1:18997;
+1. `OrdivonRuntimePg` is Running and owns the native Runtime listener at `127.0.0.1:18997`;
 2. Cloudflared is Running, Automatic, and runs independently of WSL;
 3. 127.0.0.1:20246 reports at least one provider-native Cloudflare Tunnel HA connection;
 4. authenticated runtime.describe succeeds through canary-mcp.ordivon.com;
@@ -64,6 +64,6 @@ The Linux production A/B Tunnel connectors are a different ingress serving Linux
 
 C4 additionally requires a real Windows reboot proving both native services recover without WSL:
 
-Windows SCM -> OrdivonRuntimeR6Candidate + Cloudflared -> remote MCP reachable
+Windows SCM -> OrdivonRuntimePg + Cloudflared -> remote MCP reachable
 
 Only after C3 and C4 pass should Runtime C5 production cutover retire the remaining WSL-hosted Windows execution carrier.
