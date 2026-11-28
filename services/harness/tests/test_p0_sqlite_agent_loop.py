@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import replace
 from pathlib import Path
-import tempfile
 import unittest
 
 from anc_canonical import canonical_digest
@@ -30,7 +29,8 @@ from ordivon_harness.ordivon.run_continuity import (
     EventSourcedRunContinuity,
 )
 from ordivon_harness.protocol import HarnessProviderCallStatus
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from ordivon_harness.postgres_store import PostgresHarnessStore
+from tests.pg_test_support import PostgresAgentRunCase
 
 DIGEST_A = "sha256:" + "a" * 64
 DIGEST_B = "sha256:" + "b" * 64
@@ -154,9 +154,13 @@ def needs_input_result(suffix: str) -> AgentTurnResult:
     )
 
 
-class SQLiteHarnessAgentLoopTests(unittest.TestCase):
-    def initialize(self, root: Path, run_contract: HarnessRunContract, clock: FixedClock):
-        store = SQLiteHarnessStore.initialize(root)
+class SQLiteHarnessAgentLoopTests(PostgresAgentRunCase, unittest.TestCase):
+    """Historical test selector; behavior now uses real PostgreSQL."""
+
+    def initialize(self, run_contract: HarnessRunContract, clock: FixedClock):
+        self.set_up_pg()
+        store = PostgresHarnessStore(self.pg_dsn, schema=self.pg_schema)
+        self.addCleanup(store.close)
         store.create_run(run_contract)
         continuity = EventSourcedRunContinuity(
             store,
@@ -192,30 +196,45 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
         return bridge, result
 
     def test_real_agent_loop_completes_with_only_independent_state(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            clock = FixedClock()
-            run_contract = contract("complete")
-            store, continuity = self.initialize(root, run_contract, clock)
-            adapter = ScriptedTurnAdapter((completed_result("complete"),))
-            bridge, result = self.run_loop(
-                run_contract,
-                continuity,
-                adapter,
-                clock,
+        clock = FixedClock()
+        run_contract = contract("complete")
+        store, continuity = self.initialize(run_contract, clock)
+        adapter = ScriptedTurnAdapter((completed_result("complete"),))
+        bridge, result = self.run_loop(
+            run_contract,
+            continuity,
+            adapter,
+            clock,
+        )
+        self.assertTrue(result.candidate_completed)
+        self.assertEqual(result.stop_code, RunStopCode.CANDIDATE_COMPLETED)
+        self.assertEqual(result.model_calls, 1)
+        self.assertEqual(result.tool_calls, 0)
+        self.assertEqual(len(adapter.requests), 1)
+        self.assertEqual(adapter.requests[0].tools, ())
+        self.assertEqual(bridge.definitions(), ())
+        retained = continuity.load_current_provider_call()
+        self.assertEqual(
+            retained.record.status,
+            HarnessProviderCallStatus.COMPLETED,
+        )
+        self.assertEqual(retained.record.to_dict()["schemaVersion"], 4)
+        self.assertEqual(
+            retained.record.result_digest,
+            completed_result("complete").digest,
+        )
+        self.assertIsNone(retained.result)
+        self.assertIsNone(retained.result_object)
+        self.assertEqual(continuity.doctor()["providerRecords"], 3)
+        store.close()
+
+        with PostgresHarnessStore(self.pg_dsn, schema=self.pg_schema) as reopened_store:
+            reopened = EventSourcedRunContinuity.open(
+                reopened_store,
+                run_contract.harness_run_id,
+                clock_ms=clock,
             )
-            self.assertTrue(result.candidate_completed)
-            self.assertEqual(result.stop_code, RunStopCode.CANDIDATE_COMPLETED)
-            self.assertEqual(result.model_calls, 1)
-            self.assertEqual(result.tool_calls, 0)
-            self.assertEqual(len(adapter.requests), 1)
-            self.assertEqual(adapter.requests[0].tools, ())
-            self.assertEqual(bridge.definitions(), ())
-            retained = continuity.load_current_provider_call()
-            self.assertEqual(
-                retained.record.status,
-                HarnessProviderCallStatus.COMPLETED,
-            )
+            retained = reopened.load_current_provider_call()
             self.assertEqual(retained.record.to_dict()["schemaVersion"], 4)
             self.assertEqual(
                 retained.record.result_digest,
@@ -223,251 +242,236 @@ class SQLiteHarnessAgentLoopTests(unittest.TestCase):
             )
             self.assertIsNone(retained.result)
             self.assertIsNone(retained.result_object)
-            self.assertEqual(continuity.doctor()["providerRecords"], 3)
-            store.close()
-
-            with SQLiteHarnessStore(root) as reopened_store:
-                reopened = EventSourcedRunContinuity.open(
-                    reopened_store,
-                    run_contract.harness_run_id,
-                    clock_ms=clock,
-                )
-                retained = reopened.load_current_provider_call()
-                self.assertEqual(retained.record.to_dict()["schemaVersion"], 4)
-                self.assertEqual(
-                    retained.record.result_digest,
-                    completed_result("complete").digest,
-                )
-                self.assertIsNone(retained.result)
-                self.assertIsNone(retained.result_object)
 
     def test_completed_provider_call_cannot_readmit_physical_dispatch(self) -> None:
         # Concrete invariant: a completed durable call is not a new dispatch
         # token, even if a bridge is reused with an identical request identity.
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            clock = FixedClock()
-            run_contract = contract("terminal-redispatch")
-            store, continuity = self.initialize(root, run_contract, clock)
-            adapter = ScriptedTurnAdapter((completed_result("terminal-redispatch"),))
-            bridge, outcome = self.run_loop(
-                run_contract, continuity, adapter, clock,
-            )
-            self.assertTrue(outcome.candidate_completed)
-            self.assertEqual(
-                continuity.load_current_provider_call().record.status,
-                HarnessProviderCallStatus.COMPLETED,
-            )
-            control = ExecutionControl(
-                CancellationToken(monotonic_ms=clock),
-                RunDeadline(expires_at_ms=clock() + 10_000, monotonic_ms=clock),
-            )
-            with self.assertRaises(HarnessProviderCallRecoveryRequired):
-                bridge.admit_provider_call(adapter.requests[0], control=control)
-            store.close()
+        clock = FixedClock()
+        run_contract = contract("terminal-redispatch")
+        store, continuity = self.initialize(run_contract, clock)
+        adapter = ScriptedTurnAdapter((completed_result("terminal-redispatch"),))
+        bridge, outcome = self.run_loop(
+            run_contract, continuity, adapter, clock,
+        )
+        self.assertTrue(outcome.candidate_completed)
+        self.assertEqual(
+            continuity.load_current_provider_call().record.status,
+            HarnessProviderCallStatus.COMPLETED,
+        )
+        control = ExecutionControl(
+            CancellationToken(monotonic_ms=clock),
+            RunDeadline(expires_at_ms=clock() + 10_000, monotonic_ms=clock),
+        )
+        with self.assertRaises(HarnessProviderCallRecoveryRequired):
+            bridge.admit_provider_call(adapter.requests[0], control=control)
+        store.close()
 
     def test_durable_completion_replays_after_bridge_response_loss(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            clock = FixedClock()
-            run_contract = replace(
-                contract("response-loss"),
-                privacy=HarnessPrivacyPolicy(
-                    content_policy="bounded-private-content",
-                    allow_model_content=True,
-                    allow_tool_content=False,
-                ),
+        clock = FixedClock()
+        run_contract = replace(
+            contract("response-loss"),
+            privacy=HarnessPrivacyPolicy(
+                content_policy="bounded-private-content",
+                allow_model_content=True,
+                allow_tool_content=False,
+            ),
+        )
+        store, continuity = self.initialize(run_contract, clock)
+        first_adapter = ScriptedTurnAdapter((completed_result("response-loss"),))
+        with self.assertRaisesRegex(RuntimeError, "response loss"):
+            self.run_loop(
+                run_contract,
+                continuity,
+                first_adapter,
+                clock,
+                bridge_type=LoseCompletionResponseBridge,
             )
-            store, continuity = self.initialize(root, run_contract, clock)
-            first_adapter = ScriptedTurnAdapter((completed_result("response-loss"),))
-            with self.assertRaisesRegex(RuntimeError, "response loss"):
-                self.run_loop(
-                    run_contract,
-                    continuity,
-                    first_adapter,
-                    clock,
-                    bridge_type=LoseCompletionResponseBridge,
-                )
-            self.assertEqual(len(first_adapter.requests), 1)
-            self.assertEqual(
-                continuity.load_current_provider_call().record.status,
-                HarnessProviderCallStatus.COMPLETED,
-            )
-            revision = continuity.caller_revision
-            store.close()
+        self.assertEqual(len(first_adapter.requests), 1)
+        self.assertEqual(
+            continuity.load_current_provider_call().record.status,
+            HarnessProviderCallStatus.COMPLETED,
+        )
+        revision = continuity.caller_revision
+        store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
-                reopened = EventSourcedRunContinuity.open(
-                    reopened_store,
-                    run_contract.harness_run_id,
-                    clock_ms=clock,
-                )
-                replay_adapter = FailIfInvokedAdapter()
-                _, result = self.run_loop(
+        with PostgresHarnessStore(self.pg_dsn, schema=self.pg_schema) as reopened_store:
+            reopened = EventSourcedRunContinuity.open(
+                reopened_store,
+                run_contract.harness_run_id,
+                clock_ms=clock,
+            )
+            replay_adapter = FailIfInvokedAdapter()
+            _, result = self.run_loop(
+                run_contract,
+                reopened,
+                replay_adapter,
+                clock,
+            )
+            self.assertTrue(result.candidate_completed)
+            self.assertEqual(replay_adapter.requests, [])
+            self.assertEqual(result.usage["providerResultsReplayed"], 1)
+            self.assertEqual(result.usage["modelCalls"], 1)
+            self.assertEqual(result.usage["totalTokens"], 16)
+            self.assertEqual(len([
+                event for event in reopened_store.list_run_events(run_contract.harness_run_id)
+                if event.event_kind == "harness.provider-call-completed"
+            ]), 1)
+            reopened_store.validate_run_history(run_contract.harness_run_id)
+            self.assertEqual(reopened.caller_revision, revision)
+
+    def test_metadata_only_response_loss_fences_redispatch_without_result_content(self) -> None:
+        clock = FixedClock()
+        run_contract = contract("response-loss-metadata-only")
+        store, continuity = self.initialize(run_contract, clock)
+        first_adapter = ScriptedTurnAdapter(
+            (completed_result("response-loss-metadata-only"),)
+        )
+        with self.assertRaisesRegex(RuntimeError, "response loss"):
+            self.run_loop(
+                run_contract,
+                continuity,
+                first_adapter,
+                clock,
+                bridge_type=LoseCompletionResponseBridge,
+            )
+        self.assertEqual(len(first_adapter.requests), 1)
+        retained = continuity.load_current_provider_call()
+        self.assertEqual(retained.record.status, HarnessProviderCallStatus.COMPLETED)
+        self.assertEqual(retained.record.to_dict()["schemaVersion"], 4)
+        self.assertEqual(
+            retained.record.result_digest,
+            completed_result("response-loss-metadata-only").digest,
+        )
+        self.assertIsNone(retained.result)
+        self.assertIsNone(retained.result_object)
+        revision = continuity.caller_revision
+        store.close()
+
+        with PostgresHarnessStore(self.pg_dsn, schema=self.pg_schema) as reopened_store:
+            reopened = EventSourcedRunContinuity.open(
+                reopened_store,
+                run_contract.harness_run_id,
+                clock_ms=clock,
+            )
+            replay_adapter = FailIfInvokedAdapter()
+            with self.assertRaisesRegex(
+                HarnessProviderCallRecoveryRequired,
+                "result rehydration",
+            ):
+                self.run_loop(
                     run_contract,
                     reopened,
                     replay_adapter,
                     clock,
                 )
-                self.assertTrue(result.candidate_completed)
-                self.assertEqual(replay_adapter.requests, [])
-                self.assertEqual(result.usage["providerResultsReplayed"], 1)
-                self.assertEqual(reopened.caller_revision, revision)
-
-    def test_metadata_only_response_loss_fences_redispatch_without_result_content(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            clock = FixedClock()
-            run_contract = contract("response-loss-metadata-only")
-            store, continuity = self.initialize(root, run_contract, clock)
-            first_adapter = ScriptedTurnAdapter(
-                (completed_result("response-loss-metadata-only"),)
-            )
-            with self.assertRaisesRegex(RuntimeError, "response loss"):
-                self.run_loop(
-                    run_contract,
-                    continuity,
-                    first_adapter,
-                    clock,
-                    bridge_type=LoseCompletionResponseBridge,
-                )
-            self.assertEqual(len(first_adapter.requests), 1)
-            retained = continuity.load_current_provider_call()
+            self.assertEqual(replay_adapter.requests, [])
+            self.assertEqual(reopened.caller_revision, revision)
+            self.assertEqual(len([
+                event for event in reopened_store.list_run_events(run_contract.harness_run_id)
+                if event.event_kind == "harness.provider-call-completed"
+            ]), 1)
+            reopened_store.validate_run_history(run_contract.harness_run_id)
+            retained = reopened.load_current_provider_call()
             self.assertEqual(retained.record.status, HarnessProviderCallStatus.COMPLETED)
-            self.assertEqual(retained.record.to_dict()["schemaVersion"], 4)
             self.assertEqual(
                 retained.record.result_digest,
                 completed_result("response-loss-metadata-only").digest,
             )
-            self.assertIsNone(retained.result)
-            self.assertIsNone(retained.result_object)
-            revision = continuity.caller_revision
-            store.close()
-
-            with SQLiteHarnessStore(root) as reopened_store:
-                reopened = EventSourcedRunContinuity.open(
-                    reopened_store,
-                    run_contract.harness_run_id,
-                    clock_ms=clock,
-                )
-                replay_adapter = FailIfInvokedAdapter()
-                with self.assertRaisesRegex(
-                    HarnessProviderCallRecoveryRequired,
-                    "result rehydration",
-                ):
-                    self.run_loop(
-                        run_contract,
-                        reopened,
-                        replay_adapter,
-                        clock,
-                    )
-                self.assertEqual(replay_adapter.requests, [])
-                self.assertEqual(reopened.caller_revision, revision)
-                retained = reopened.load_current_provider_call()
-                self.assertEqual(retained.record.status, HarnessProviderCallStatus.COMPLETED)
-                self.assertEqual(
-                    retained.record.result_digest,
-                    completed_result("response-loss-metadata-only").digest,
-                )
 
     def test_needs_input_snapshot_resumes_and_completes(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            clock = FixedClock()
-            run_contract = replace(
-                contract("pause-resume"),
-                privacy=HarnessPrivacyPolicy(
-                    content_policy="bounded-private-content",
-                    allow_model_content=True,
-                    allow_tool_content=False,
-                ),
-            )
-            store, continuity = self.initialize(root, run_contract, clock)
-            first_adapter = ScriptedTurnAdapter((needs_input_result("pause"),))
-            _, paused = self.run_loop(
-                run_contract,
-                continuity,
-                first_adapter,
-                clock,
-            )
-            self.assertEqual(paused.stop_code, RunStopCode.NEEDS_INPUT)
-            retained = continuity.load_current_snapshot()
-            self.assertEqual(retained.snapshot.pause_reason.value, "needs-input")
-            self.assertEqual(retained.snapshot.sequence, 1)
-            store.close()
+        clock = FixedClock()
+        run_contract = replace(
+            contract("pause-resume"),
+            privacy=HarnessPrivacyPolicy(
+                content_policy="bounded-private-content",
+                allow_model_content=True,
+                allow_tool_content=False,
+            ),
+        )
+        store, continuity = self.initialize(run_contract, clock)
+        first_adapter = ScriptedTurnAdapter((needs_input_result("pause"),))
+        _, paused = self.run_loop(
+            run_contract,
+            continuity,
+            first_adapter,
+            clock,
+        )
+        self.assertEqual(paused.stop_code, RunStopCode.NEEDS_INPUT)
+        retained = continuity.load_current_snapshot()
+        self.assertEqual(retained.snapshot.pause_reason.value, "needs-input")
+        self.assertEqual(retained.snapshot.sequence, 1)
+        store.close()
 
-            with SQLiteHarnessStore(root) as reopened_store:
-                reopened = EventSourcedRunContinuity.open(
-                    reopened_store,
-                    run_contract.harness_run_id,
-                    clock_ms=clock,
-                )
-                retained = reopened.load_current_snapshot()
-                source = reopened.snapshot_provider_source(retained)
-                adapter = ScriptedTurnAdapter((completed_result("resume"),))
-                bridge = HarnessAgentBridge(
-                    run_contract,
-                    reopened,
-                    provider_source=source,
-                )
-                loop = OrdivonAgentLoop(
-                    adapter,
-                    bridge,
-                    budget=budget(),
-                    clock_ms=clock,
-                    monotonic_ms=clock,
-                )
-                completed = loop.resume(
-                    retained=retained,
-                    assignment_id=reopened.binding.assignment_id,
-                    context_digest=run_contract.context_refs[0].digest,
-                    additional_messages=({"role": "user", "content": "the bounded answer is yes"},),
-                )
-                self.assertTrue(completed.candidate_completed)
-                self.assertEqual(completed.model_calls, 2)
-                self.assertEqual(len(adapter.requests), 1)
-                self.assertEqual(adapter.requests[0].sequence, 2)
-                self.assertEqual(
-                    reopened.load_current_provider_call().record.source_kind.value,
-                    "snapshot",
-                )
-                self.assertEqual(reopened.doctor()["snapshots"], 1)
+        with PostgresHarnessStore(self.pg_dsn, schema=self.pg_schema) as reopened_store:
+            reopened = EventSourcedRunContinuity.open(
+                reopened_store,
+                run_contract.harness_run_id,
+                clock_ms=clock,
+            )
+            retained = reopened.load_current_snapshot()
+            source = reopened.snapshot_provider_source(retained)
+            adapter = ScriptedTurnAdapter((completed_result("resume"),))
+            bridge = HarnessAgentBridge(
+                run_contract,
+                reopened,
+                provider_source=source,
+            )
+            loop = OrdivonAgentLoop(
+                adapter,
+                bridge,
+                budget=budget(),
+                clock_ms=clock,
+                monotonic_ms=clock,
+            )
+            completed = loop.resume(
+                retained=retained,
+                assignment_id=reopened.binding.assignment_id,
+                context_digest=run_contract.context_refs[0].digest,
+                additional_messages=({"role": "user", "content": "the bounded answer is yes"},),
+            )
+            self.assertTrue(completed.candidate_completed)
+            self.assertEqual(completed.model_calls, 2)
+            self.assertEqual(len(adapter.requests), 1)
+            self.assertEqual(adapter.requests[0].sequence, 2)
+            self.assertEqual(
+                reopened.load_current_provider_call().record.source_kind.value,
+                "snapshot",
+            )
+            self.assertEqual(reopened.doctor()["snapshots"], 1)
 
     def test_bridge_rejects_noncanonical_tool_surface(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            clock = FixedClock()
-            run_contract = contract("wrong-surface")
-            value = run_contract.to_dict()
-            value["toolCatalogDigest"] = DIGEST_A
-            wrong = HarnessRunContract.from_dict(value)
-            with SQLiteHarnessStore.initialize(root) as store:
-                store.create_run(wrong)
-                continuity = EventSourcedRunContinuity(
-                    store,
-                    wrong,
-                    clock_ms=clock,
-                )
-                with self.assertRaisesRegex(ValueError, "no-Tool"):
-                    HarnessAgentBridge(wrong, continuity)
+        clock = FixedClock()
+        run_contract = contract("wrong-surface")
+        value = run_contract.to_dict()
+        value["toolCatalogDigest"] = DIGEST_A
+        wrong = HarnessRunContract.from_dict(value)
+        self.set_up_pg()
+        with PostgresHarnessStore(self.pg_dsn, schema=self.pg_schema) as store:
+            store.create_run(wrong)
+            continuity = EventSourcedRunContinuity(
+                store,
+                wrong,
+                clock_ms=clock,
+            )
+            with self.assertRaisesRegex(ValueError, "no-Tool"):
+                HarnessAgentBridge(wrong, continuity)
 
     def test_bridge_rejects_noncanonical_no_tool_grant(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
-            clock = FixedClock()
-            run_contract = contract("wrong-grant")
-            value = run_contract.to_dict()
-            value["toolGrantDigest"] = DIGEST_A
-            wrong = HarnessRunContract.from_dict(value)
-            with SQLiteHarnessStore.initialize(root) as store:
-                store.create_run(wrong)
-                continuity = EventSourcedRunContinuity(
-                    store,
-                    wrong,
-                    clock_ms=clock,
-                )
-                with self.assertRaisesRegex(ValueError, "Tool Grant"):
-                    HarnessAgentBridge(wrong, continuity)
+        clock = FixedClock()
+        run_contract = contract("wrong-grant")
+        value = run_contract.to_dict()
+        value["toolGrantDigest"] = DIGEST_A
+        wrong = HarnessRunContract.from_dict(value)
+        self.set_up_pg()
+        with PostgresHarnessStore(self.pg_dsn, schema=self.pg_schema) as store:
+            store.create_run(wrong)
+            continuity = EventSourcedRunContinuity(
+                store,
+                wrong,
+                clock_ms=clock,
+            )
+            with self.assertRaisesRegex(ValueError, "Tool Grant"):
+                HarnessAgentBridge(wrong, continuity)
 
     def test_independent_agent_bridge_has_no_host_or_runtime_imports(self) -> None:
         source = (
