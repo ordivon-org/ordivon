@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from pathlib import Path
-import tempfile
 import unittest
 
 from anc_canonical import canonical_digest
+import psycopg
+from psycopg import sql
 
 from ordivon_harness.core_contracts import HarnessPrivacyPolicy
 from ordivon_harness.ordivon.loop import OrdivonAgentLoop, RunStopCode
@@ -20,7 +20,7 @@ from ordivon_harness.ordivon.agent_bridge import HarnessAgentBridge
 from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
 from ordivon_harness.ordivon.tool_errors import ToolBridgeError, ToolBridgeErrorKind
 from ordivon_harness.protocol import HarnessProviderCallStatus
-from ordivon_harness.sqlite_store import SQLiteHarnessStore
+from ordivon_harness.postgres_store import PostgresHarnessStore
 from ordivon_harness.working_view import (
     HarnessWorkingSetPin,
     HarnessWorkingSetSpec,
@@ -30,6 +30,7 @@ from ordivon_harness.working_view import (
     compile_working_view,
 )
 
+from tests.pg_test_support import isolated_harness_schema
 from tests.test_p0_sqlite_agent_loop import FixedClock, budget, contract
 
 
@@ -113,7 +114,7 @@ class MutatingProjector:
 
     def __init__(
         self,
-        store: SQLiteHarnessStore,
+        store: PostgresHarnessStore,
         continuity: EventSourcedRunContinuity,
         next_pin: HarnessWorkingSetPin,
     ) -> None:
@@ -203,11 +204,10 @@ class MultiTurnWorkingViewProjectionTests(unittest.TestCase):
         return committed, pin_b, source_a, source_b
 
     def test_mature_loop_projects_a_then_b_without_replaying_canonical_history(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with isolated_harness_schema() as (dsn, schema):
             clock = FixedClock()
             run_contract = private_contract("pc12b-multiturn")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with PostgresHarnessStore(dsn, schema=schema) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -285,55 +285,73 @@ class MultiTurnWorkingViewProjectionTests(unittest.TestCase):
 
     def test_metadata_only_ephemeral_projection_does_not_persist_view_content(self) -> None:
         sentinel = "PRIVATE-PC12B-EPHEMERAL-PROJECTION-SENTINEL"
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with isolated_harness_schema() as (dsn, schema):
             clock = FixedClock()
             run_contract = contract("pc12b-metadata-projection")
-            store = SQLiteHarnessStore.initialize(root)
-            store.create_run(run_contract)
-            continuity = EventSourcedRunContinuity(
-                store, run_contract, clock_ms=clock
-            )
-            adapter = ScriptedTurnAdapter(
-                (candidate_result("metadata-projection", "ephemeral projection completed"),)
-            )
-            loop = OrdivonAgentLoop(
-                adapter,
-                HarnessAgentBridge(run_contract, continuity),
-                budget=budget(),
-                clock_ms=clock,
-                monotonic_ms=clock,
-                working_view_projector=StaticEphemeralProjector(sentinel),
-            )
-            result = loop.run(
-                harness_run_id=run_contract.harness_run_id,
-                assignment_id=continuity.binding.assignment_id,
-                context_digest=run_contract.context_refs[0].digest,
-                initial_messages=(
-                    {"role": "user", "content": "canonical metadata root"},
-                ),
-            )
-            self.assertEqual(result.stop_code, RunStopCode.CANDIDATE_COMPLETED)
-            self.assertEqual(adapter.requests[0].messages[0]["content"], sentinel)
-            retained = continuity.load_current_provider_call()
-            self.assertIsNone(retained.request)
-            self.assertIsNone(retained.result)
-            self.assertFalse(retained.state.messages_retained)
-            store.close()
+            with PostgresHarnessStore(dsn, schema=schema) as store:
+                store.create_run(run_contract)
+                continuity = EventSourcedRunContinuity(
+                    store, run_contract, clock_ms=clock
+                )
+                adapter = ScriptedTurnAdapter(
+                    (candidate_result("metadata-projection", "ephemeral projection completed"),)
+                )
+                loop = OrdivonAgentLoop(
+                    adapter,
+                    HarnessAgentBridge(run_contract, continuity),
+                    budget=budget(),
+                    clock_ms=clock,
+                    monotonic_ms=clock,
+                    working_view_projector=StaticEphemeralProjector(sentinel),
+                )
+                result = loop.run(
+                    harness_run_id=run_contract.harness_run_id,
+                    assignment_id=continuity.binding.assignment_id,
+                    context_digest=run_contract.context_refs[0].digest,
+                    initial_messages=(
+                        {"role": "user", "content": "canonical metadata root"},
+                    ),
+                )
+                self.assertEqual(result.stop_code, RunStopCode.CANDIDATE_COMPLETED)
+                self.assertEqual(adapter.requests[0].messages[0]["content"], sentinel)
+                retained = continuity.load_current_provider_call()
+                self.assertIsNone(retained.request)
+                self.assertIsNone(retained.result)
+                self.assertFalse(retained.state.messages_retained)
 
-            hits = [
-                str(path.relative_to(root))
-                for path in root.rglob("*")
-                if path.is_file() and sentinel.encode() in path.read_bytes()
-            ]
+            # Inspect all logical rows in the isolated Harness schema, including
+            # decoded bytea CAS contents. This is not a WAL or backup audit.
+            hits = []
+            cas_positive_control = False
+            with psycopg.connect(dsn) as conn:
+                tables = conn.execute(
+                    "SELECT table_name FROM information_schema.tables "
+                    "WHERE table_schema = %s AND table_type = 'BASE TABLE'",
+                    (schema,),
+                ).fetchall()
+                for (table,) in tables:
+                    rows = conn.execute(
+                        sql.SQL("SELECT * FROM {}.{}").format(
+                            sql.Identifier(schema), sql.Identifier(table)
+                        )
+                    ).fetchall()
+                    for row in rows:
+                        for value in row:
+                            if isinstance(value, bytes):
+                                if table == "objects" and run_contract.harness_run_id.encode() in value:
+                                    cas_positive_control = True
+                                if sentinel.encode() in value:
+                                    hits.append(table)
+                            elif isinstance(value, str) and sentinel in value:
+                                hits.append(table)
+            self.assertTrue(cas_positive_control)
             self.assertEqual(hits, [])
 
     def test_provider_claim_rejects_view_that_became_stale_after_projection(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with isolated_harness_schema() as (dsn, schema):
             clock = FixedClock()
             run_contract = private_contract("pc12b-stale-view")
-            with SQLiteHarnessStore.initialize(root) as store:
+            with PostgresHarnessStore(dsn, schema=schema) as store:
                 store.create_run(run_contract)
                 continuity = EventSourcedRunContinuity(
                     store, run_contract, clock_ms=clock
@@ -369,53 +387,51 @@ class MultiTurnWorkingViewProjectionTests(unittest.TestCase):
                 self.assertTrue(continuity.doctor()["healthy"])
 
     def test_second_turn_response_loss_replays_b_without_third_dispatch(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "state"
+        with isolated_harness_schema() as (dsn, schema):
             clock = FixedClock()
             run_contract = private_contract("pc12b-response-loss")
-            store = SQLiteHarnessStore.initialize(root)
-            store.create_run(run_contract)
-            continuity = EventSourcedRunContinuity(
-                store, run_contract, clock_ms=clock
-            )
-            _, pin_b, _, source_b = self.prepare_sources(continuity)
-            first = candidate_result("loss-first", "first candidate triggers replan")
-            second = candidate_result("loss-second", "second result is durable")
-            adapter = ScriptedTurnAdapter((first, second))
-            bridge = ReplanAfterFirstConclusionBridge(
-                run_contract,
-                continuity,
-                next_pin=pin_b,
-                lose_second_completion=True,
-            )
-            loop = OrdivonAgentLoop(
-                adapter,
-                bridge,
-                budget=budget(),
-                clock_ms=clock,
-                monotonic_ms=clock,
-                working_view_projector=WorkingSetViewProjector(store, continuity),
-            )
-            with self.assertRaisesRegex(RuntimeError, "second durable completion"):
-                loop.run(
-                    harness_run_id=run_contract.harness_run_id,
-                    assignment_id=continuity.binding.assignment_id,
-                    context_digest=run_contract.context_refs[0].digest,
-                    initial_messages=(
-                        {"role": "user", "content": "canonical response-loss root"},
-                    ),
+            with PostgresHarnessStore(dsn, schema=schema) as store:
+                store.create_run(run_contract)
+                continuity = EventSourcedRunContinuity(
+                    store, run_contract, clock_ms=clock
                 )
-            self.assertEqual(len(adapter.requests), 2)
-            second_request = adapter.requests[1]
-            self.assertEqual(second_request.messages, source_b.messages)
-            retained = continuity.load_current_provider_call()
-            self.assertEqual(retained.record.status, HarnessProviderCallStatus.COMPLETED)
-            self.assertEqual(retained.record.turn_sequence, 2)
-            self.assertEqual(retained.result, second)
-            self.assertEqual(retained.request, second_request)
-            store.close()
+                _, pin_b, _, source_b = self.prepare_sources(continuity)
+                first = candidate_result("loss-first", "first candidate triggers replan")
+                second = candidate_result("loss-second", "second result is durable")
+                adapter = ScriptedTurnAdapter((first, second))
+                bridge = ReplanAfterFirstConclusionBridge(
+                    run_contract,
+                    continuity,
+                    next_pin=pin_b,
+                    lose_second_completion=True,
+                )
+                loop = OrdivonAgentLoop(
+                    adapter,
+                    bridge,
+                    budget=budget(),
+                    clock_ms=clock,
+                    monotonic_ms=clock,
+                    working_view_projector=WorkingSetViewProjector(store, continuity),
+                )
+                with self.assertRaisesRegex(RuntimeError, "second durable completion"):
+                    loop.run(
+                        harness_run_id=run_contract.harness_run_id,
+                        assignment_id=continuity.binding.assignment_id,
+                        context_digest=run_contract.context_refs[0].digest,
+                        initial_messages=(
+                            {"role": "user", "content": "canonical response-loss root"},
+                        ),
+                    )
+                self.assertEqual(len(adapter.requests), 2)
+                second_request = adapter.requests[1]
+                self.assertEqual(second_request.messages, source_b.messages)
+                retained = continuity.load_current_provider_call()
+                self.assertEqual(retained.record.status, HarnessProviderCallStatus.COMPLETED)
+                self.assertEqual(retained.record.turn_sequence, 2)
+                self.assertEqual(retained.result, second)
+                self.assertEqual(retained.request, second_request)
 
-            with SQLiteHarnessStore(root) as reopened_store:
+            with PostgresHarnessStore(dsn, schema=schema) as reopened_store:
                 reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
