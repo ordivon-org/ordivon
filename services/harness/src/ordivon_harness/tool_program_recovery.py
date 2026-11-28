@@ -17,10 +17,10 @@ from anc_canonical import JsonValue, canonical_digest, validate_json_value
 from .agent_tool_observation import HarnessToolObservation
 from .ordivon.model import AgentToolCall, AgentToolDefinition
 from .ordivon.tool_bridge import ToolBridge
+from .tool_program_dataflow import resolve_template
 from .tool_program import (
     HarnessToolProgramAction,
     HarnessToolProgramResult,
-    _resolve_template,
 )
 
 
@@ -58,7 +58,7 @@ def derive_tool_program_inner_call(
         by_step[step.step_id] = observation
 
     step = action.program.steps[step_index]
-    resolved_arguments = _resolve_template(step.arguments, by_step)
+    resolved_arguments = resolve_template(step.arguments, by_step)
     if not isinstance(resolved_arguments, dict):
         raise ValueError("ToolProgram step arguments must resolve to an object")
     return AgentToolCall(
@@ -175,7 +175,7 @@ def recover_tool_program_action(
                 strict=True,
             )
         }
-        output = _resolve_template(action.program.outputs, by_step)
+        output = resolve_template(action.program.outputs, by_step)
         if not isinstance(output, dict):
             raise ValueError("ToolProgram outputs must resolve to an object")
         result = HarnessToolProgramResult(

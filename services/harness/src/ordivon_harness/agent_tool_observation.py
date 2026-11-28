@@ -88,6 +88,14 @@ class HarnessToolObservation:
     def digest(self) -> str:
         return canonical_digest(self.to_dict())
 
+    def committed_content(self) -> dict[str, JsonValue]:
+        """Detached content from the exact admitted observation bytes.
+
+        The public convenience mapping is mutable, and is never an input to
+        evidence-bound dataflow or recovery.
+        """
+        return cast(dict[str, JsonValue], loads_strict(self._content_bytes))
+
     def to_dict(self) -> dict[str, JsonValue]:
         return {
             "schemaVersion": 1,
@@ -95,7 +103,7 @@ class HarnessToolObservation:
             "toolCallId": self.tool_call_id,
             "toolName": self.tool_name,
             "status": self.status,
-            "structuredContent": cast(dict[str, JsonValue], loads_strict(self._content_bytes)),
+            "structuredContent": self.committed_content(),
             "runtimeJobRef": self.runtime_job_ref,
             "artifactRefs": [item.to_dict() for item in self.artifact_refs],
             "reconciled": self.reconciled,
