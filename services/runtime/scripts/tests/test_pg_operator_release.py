@@ -647,6 +647,46 @@ class NativePgReleaseOperator(unittest.TestCase):
                 self.db.execute("DELETE FROM attempts WHERE attempt_id=%s", (attempt,))
                 self.db.execute("DELETE FROM jobs WHERE job_id=%s", (job,))
 
+    def test_release_drain_distinct_jobs_order_and_limit(self) -> None:
+        """An unresolved Job and multiple held Attempts consume one result slot."""
+        prefix = "job-test-order-" + uuid.uuid4().hex + "-"
+        jobs = [prefix + f"{i:03d}" for i in range(72)]
+        try:
+            with self.db.transaction():
+                for i, job in enumerate(jobs):
+                    resolution = "orphaned" if i == 0 else "succeeded" if i == 1 else None
+                    self.db.execute(
+                        "INSERT INTO jobs(job_id,principal,client_request_id,request_digest,"
+                        "operation_digest,workspace_id,workspace_snapshot_json,"
+                        "execution_plan_json,execution_plan_digest,created_at_ms,"
+                        "desired_state,resolution,current_attempt_id) "
+                        "SELECT %s,principal,%s,request_digest,operation_digest,workspace_id,"
+                        "'{}',execution_plan_json,execution_plan_digest,123,'run',%s,NULL "
+                        "FROM jobs WHERE job_id=%s", (job, job, resolution, self.job_id),
+                    )
+                    for number in range(1, 3 if i in (0, 2) else 2):
+                        attempt = job + f"-attempt-{number}"
+                        state = "held_orphaned" if i == 0 else "released" if i == 1 else "active"
+                        self.db.execute(
+                            "INSERT INTO attempts(attempt_id,job_id,attempt_number,state,"
+                            "termination_intent,launch_token_digest,bundle_path,unit_name,"
+                            "created_at_ms) VALUES(%s,%s,%s,%s,'natural',%s,%s,%s,123)",
+                            (attempt, job, number, resolution or "accepted", "sha256:" + "e" * 64,
+                             str(self.work / attempt), attempt + ".service"),
+                        )
+                        self.db.execute(
+                            "INSERT INTO concurrency_reservations(reservation_id,attempt_id,"
+                            "global_limit,state,acquired_at_ms,state_observed_at_ms) "
+                            "VALUES(%s,%s,1,%s,123,123)", (attempt, attempt, state),
+                        )
+            self.assertEqual(op.active_executions(self.db, self.job_id),
+                             [jobs[0], *jobs[2:65]])
+        finally:
+            self.db.execute("DELETE FROM concurrency_reservations WHERE attempt_id LIKE %s",
+                            (prefix + "%",))
+            self.db.execute("DELETE FROM attempts WHERE job_id LIKE %s", (prefix + "%",))
+            self.db.execute("DELETE FROM jobs WHERE job_id LIKE %s", (prefix + "%",))
+
     def test_pg_reclaimer_helper_installs_with_native_pair_and_receipt(self) -> None:
         """The same PG ReleaseEffect must own every installed consumer byte."""
         self.args.include_pg_reclaimer = True

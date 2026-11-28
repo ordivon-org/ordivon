@@ -499,11 +499,15 @@ def active_executions(conn: psycopg.Connection, release_job_id: str) -> list[str
     rows = conn.execute(
         # Resolved orphans can retain a reservation; use the same consumer
         # predicate as PG Workspace retirement, including all Attempts.
-        "SELECT j.job_id FROM jobs j WHERE j.job_id <> %s AND ("
-        "j.resolution IS NULL OR EXISTS (SELECT 1 FROM attempts a "
-        "JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id "
-        "WHERE a.job_id=j.job_id AND r.state IN ('active','held_orphaned'))) "
-        "ORDER BY j.created_at_ms, j.job_id LIMIT 64", (release_job_id,),
+        "SELECT job_id FROM ("
+        "SELECT j.job_id,j.created_at_ms FROM jobs j "
+        "WHERE j.job_id <> %s AND j.resolution IS NULL "
+        "UNION "
+        "SELECT j.job_id,j.created_at_ms FROM concurrency_reservations r "
+        "JOIN attempts a ON a.attempt_id=r.attempt_id JOIN jobs j ON j.job_id=a.job_id "
+        "WHERE j.job_id <> %s AND r.state IN ('active','held_orphaned')"
+        ") AS active ORDER BY created_at_ms,job_id LIMIT 64",
+        (release_job_id, release_job_id),
     ).fetchall()
     return [row["job_id"] for row in rows]
 
