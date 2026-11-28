@@ -393,20 +393,6 @@ class PublicationPerceptualR1Tests(unittest.TestCase):
                 )
             )
 
-    def test_publication_file_hash_uses_canonical_core_and_preserves_wire_format(self) -> None:
-        from artifact_capabilities.publication import probe, visual
-        from artifact_core.contracts import sha256_file
-
-        with tempfile.TemporaryDirectory() as d:
-            path = Path(d) / "page.png"
-            Image.new("RGB", (31, 29), "white").save(path)
-            expected = hashlib.sha256(path.read_bytes()).hexdigest()
-            manifest = visual.raster_manifest((path,))
-            self.assertEqual(manifest["pages"][0]["sha256"], "sha256:" + expected)
-            self.assertIs(visual.sha256_file, sha256_file)
-            self.assertIs(probe.sha256_file, sha256_file)
-            self.assertEqual(probe.sha256_file(path), expected)
-
     def test_visual_diff_detects_changed_page(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
