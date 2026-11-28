@@ -55,8 +55,8 @@ pub(crate) fn validate_attempt_supervisor_owner(
                 || *launcher_process_creation_time_file_time == 0
                 || job_name.is_empty()
                 || !job_name.starts_with("Ordivon.")
-                || !is_sha256_digest(launcher_image_digest)
-                || !is_sha256_digest(start_evidence_digest)
+                || !crate::runtime::types::is_sha256_digest(launcher_image_digest)
+                || !crate::runtime::types::is_sha256_digest(start_evidence_digest)
             {
                 return Err(RuntimeError::new(
                     RuntimeErrorCode::RegistryCorrupt,
@@ -102,10 +102,4 @@ pub(crate) fn classify_windows_launcher_recovery(
             TerminationIntent::Natural => AttemptState::Failed,
         },
     ))
-}
-
-fn is_sha256_digest(value: &str) -> bool {
-    value.len() == 71
-        && value.starts_with("sha256:")
-        && value[7..].bytes().all(|byte| byte.is_ascii_hexdigit())
 }

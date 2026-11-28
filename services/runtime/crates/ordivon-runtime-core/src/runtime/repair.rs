@@ -881,7 +881,7 @@ fn validate_repair_identity(
     snapshot_path: &Path,
     principal: &str,
 ) -> RuntimeResult<()> {
-    if !is_sha256_digest(expected_fingerprint) {
+    if !crate::runtime::types::is_sha256_digest(expected_fingerprint) {
         return Err(RuntimeError::invalid(
             "expected fingerprint must be a canonical sha256 Digest",
             "expectedFingerprint",
@@ -907,12 +907,6 @@ fn validate_snapshot_principal(snapshot_path: &Path, principal: &str) -> Runtime
         ));
     }
     Ok(())
-}
-
-fn is_sha256_digest(value: &str) -> bool {
-    value.len() == 71
-        && value.starts_with("sha256:")
-        && value[7..].bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 fn read_recovery_state(database_path: &Path, attempt_id: &str) -> RuntimeResult<RecoveryState> {

@@ -1441,9 +1441,7 @@ fn validate_identifier(value: &str, field: &str) -> RuntimeResult<()> {
 }
 
 fn validate_digest(value: &str, field: &str) -> RuntimeResult<()> {
-    let valid = value
-        .strip_prefix("sha256:")
-        .is_some_and(|hex| hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit()));
+    let valid = crate::runtime::types::is_sha256_digest(value);
     if !valid {
         return Err(RuntimeError::invalid(
             format!("{field} must be a SHA-256 digest"),

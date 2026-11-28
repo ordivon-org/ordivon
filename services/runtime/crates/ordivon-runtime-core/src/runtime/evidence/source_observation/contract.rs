@@ -21,12 +21,6 @@ impl SourceObservationRequirement {
     }
 }
 
-pub(super) fn valid_observation_digest(value: &str) -> bool {
-    value
-        .strip_prefix("sha256:")
-        .is_some_and(|hex| hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit()))
-}
-
 pub(super) fn validate_source_observation_relation(
     observed: Option<&str>,
     matches: Option<bool>,
@@ -36,7 +30,8 @@ pub(super) fn validate_source_observation_relation(
 ) -> RuntimeResult<()> {
     match (observed, matches, observation_error) {
         (Some(observed), Some(matches), None)
-            if valid_observation_digest(observed) && matches == (observed == committed) =>
+            if crate::runtime::types::is_sha256_digest(observed)
+                && matches == (observed == committed) =>
         {
             if requirement == SourceObservationRequirement::MustDiffer && matches {
                 return Err(RuntimeError::new(

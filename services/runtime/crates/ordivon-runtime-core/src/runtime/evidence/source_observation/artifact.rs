@@ -3,9 +3,7 @@ use super::super::super::{
 };
 use super::super::errors::io_error;
 use super::super::{REQUEST_FILE, WORKSPACE_SOURCE_OBSERVATION_FILE};
-use super::contract::{
-    valid_observation_digest, validate_source_observation_relation, SourceObservationRequirement,
-};
+use super::contract::{validate_source_observation_relation, SourceObservationRequirement};
 use crate::universal::{sha256_bytes, RunnerRequest, UNIVERSAL_EXEC_SCHEMA_VERSION};
 use serde::Deserialize;
 use std::{fs, path::Path};
@@ -120,7 +118,7 @@ pub(crate) fn validate_workspace_source_observation_artifact(
         || evidence.attempt_id != current.attempt_id
         || evidence.launch_token_digest != current.launch_token_digest
         || evidence.committed_workspace_source_digest != committed
-        || !valid_observation_digest(&evidence.committed_workspace_source_digest)
+        || !crate::runtime::types::is_sha256_digest(&evidence.committed_workspace_source_digest)
         || evidence.observed_unix_ms == 0
     {
         return Err(RuntimeError::new(
