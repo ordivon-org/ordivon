@@ -27,10 +27,6 @@ export type ExternalKnowledgeQueryResult = {
   notes: string[];
 };
 
-function json(path: string): any {
-  return readGameKnowledge(path);
-}
-
 function text(value: unknown): string {
   return JSON.stringify(value).toLowerCase();
 }
@@ -44,11 +40,11 @@ export function queryExternalKnowledge(query: ExternalKnowledgeQuery): ExternalK
 
   let items: any[];
   if (query.type === "sources") {
-    items = json("knowledge/game_external_knowledge_base_r1.json").sources;
+    items = readGameKnowledge("knowledge/game_external_knowledge_base_r1.json").sources;
   } else if (query.type === "teardowns") {
-    items = json("knowledge/game_teardown_queue_r1.json").targets;
+    items = readGameKnowledge("knowledge/game_teardown_queue_r1.json").targets;
   } else if (query.type === "skills") {
-    items = json("knowledge/game_external_skill_watchlist_r1.json").skills;
+    items = readGameKnowledge("knowledge/game_external_skill_watchlist_r1.json").skills;
   } else {
     throw new Error(`Unknown knowledge query type: ${String(query.type)}`);
   }

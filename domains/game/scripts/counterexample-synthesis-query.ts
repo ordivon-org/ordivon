@@ -37,19 +37,15 @@ export type CounterexampleSynthesisQueryResult = {
   notes: string[];
 };
 
-function readJson(root: string, path: string): any {
-  return readGameKnowledge(path, root);
-}
-
 export function loadCounterexampleSynthesis(root = ROOT): any {
-  return readJson(root, COUNTEREXAMPLE_SYNTHESIS_PATH);
+  return readGameKnowledge(COUNTEREXAMPLE_SYNTHESIS_PATH, root);
 }
 
 export function enrichCounterexampleThemes(root = ROOT): EnrichedCounterexampleTheme[] {
   return projectCounterexampleThemes(
     loadCounterexampleSynthesis(root).themes,
-    readJson(root, MEMORY_PATH).counterexamples,
-    readJson(root, EXPERIENCE_PATH).experiences,
+    readGameKnowledge(MEMORY_PATH, root).counterexamples,
+    readGameKnowledge(EXPERIENCE_PATH, root).experiences,
   );
 }
 

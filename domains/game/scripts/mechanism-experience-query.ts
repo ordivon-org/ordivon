@@ -27,10 +27,6 @@ export type MechanismExperienceQueryResult = {
   notes: string[];
 };
 
-function library(): any {
-  return readGameKnowledge(LIBRARY_PATH);
-}
-
 export function queryMechanismExperiences(query: MechanismExperienceQuery): MechanismExperienceQueryResult {
   const q = normalizeQueryFilter(query.q);
   const mechanism = normalizeQueryFilter(query.mechanism);
@@ -39,7 +35,7 @@ export function queryMechanismExperiences(query: MechanismExperienceQuery): Mech
   const tag = normalizeQueryFilter(query.tag);
   const limit = boundedQueryLimit(query.limit, 200);
 
-  const matched = library().experiences.filter((experience: any) => {
+  const matched = readGameKnowledge(LIBRARY_PATH).experiences.filter((experience: any) => {
     if (q && !JSON.stringify(experience).toLowerCase().includes(q)) return false;
     if (mechanism && !experience.mechanisms.some((item: string) => item.toLowerCase() === mechanism)) return false;
     if (reference && String(experience.referenceGame).toLowerCase() !== reference) return false;

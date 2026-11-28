@@ -1,11 +1,9 @@
-import { readFileSync } from "node:fs";
+import { readGameKnowledgeSource } from "../src/knowledge-file.ts";
 import { buildMechanismRelationshipGraphFromSources, LIBRARY_PATH, SPEC_PATH } from "../src/mechanism-relationship-graph.ts";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { boundedQueryLimit, normalizeQueryFilter } from "../src/query-input.ts";
 import { cliArgument, cliQueryArguments } from "./cli-argument.ts";
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 export type MechanismRelationshipQueryType = "mechanisms" | "edges" | "facets" | "conditionalities";
 
@@ -32,12 +30,10 @@ export type MechanismRelationshipQueryResult = {
 };
 
 function graph(): any {
-  // Filesystem ownership remains in this CLI; derivation remains pure.
-  function source(path: string): { raw: string; value: any } {
-    const raw = readFileSync(resolve(ROOT, path), "utf8");
-    return { raw, value: JSON.parse(raw) };
-  }
-  return buildMechanismRelationshipGraphFromSources(source(LIBRARY_PATH), source(SPEC_PATH));
+  return buildMechanismRelationshipGraphFromSources(
+    readGameKnowledgeSource(LIBRARY_PATH),
+    readGameKnowledgeSource(SPEC_PATH),
+  );
 }
 
 export function queryMechanismRelationships(query: MechanismRelationshipQuery): MechanismRelationshipQueryResult {
