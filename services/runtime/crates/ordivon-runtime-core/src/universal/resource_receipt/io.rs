@@ -1,6 +1,6 @@
 //! Linux cgroup v2 multi-device IO totals, checked for integer overflow.
 use super::{parse_error, required_counter, CgroupIoUsage, UniversalExecError};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 fn add_counter(total: &mut u64, value: u64, key: &str) -> Result<(), UniversalExecError> {
     *total = total
@@ -11,6 +11,7 @@ fn add_counter(total: &mut u64, value: u64, key: &str) -> Result<(), UniversalEx
 
 pub(crate) fn parse_cgroup_io_stat(text: &str) -> Result<CgroupIoUsage, UniversalExecError> {
     let mut total = CgroupIoUsage::default();
+    let mut devices = BTreeSet::new();
     for line in text.lines().filter(|line| !line.trim().is_empty()) {
         let mut parts = line.split_whitespace();
         let device = parts
@@ -19,8 +20,13 @@ pub(crate) fn parse_cgroup_io_stat(text: &str) -> Result<CgroupIoUsage, Universa
         let (major, minor) = device
             .split_once(':')
             .ok_or_else(|| parse_error(format!("io.stat device {device} is malformed")))?;
-        if major.parse::<u32>().is_err() || minor.parse::<u32>().is_err() {
+        let (Ok(major), Ok(minor)) = (major.parse::<u32>(), minor.parse::<u32>()) else {
             return Err(parse_error(format!("io.stat device {device} is malformed")));
+        };
+        if !devices.insert((major, minor)) {
+            return Err(parse_error(format!(
+                "io.stat device {device} is duplicated"
+            )));
         }
 
         let mut counters = BTreeMap::new();
