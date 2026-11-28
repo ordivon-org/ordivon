@@ -7,18 +7,14 @@ from pathlib import Path
 from ordivon_studio.research.grounded_contracts import canonical_digest
 from ordivon_studio.research.grounded_provider import build_provider_bundle
 from ordivon_studio.research.grounded_scoring import score_provider_receipt
-
-
-def _write(path: Path, value: object) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+from ordivon_studio.research.report_io import write_report_json
 
 
 def build(args: argparse.Namespace) -> None:
     root = Path(__file__).resolve().parents[1]
     bundle = build_provider_bundle(root=root, replicates=args.replicates)
     output = Path(args.output)
-    _write(output, bundle)
+    write_report_json(output, bundle)
     print(json.dumps({"ok": True, "mode": "build", "output": str(output), "tasks": len(bundle["tasks"]), "replicates": args.replicates, "bundleDigest": bundle["bundleDigest"]}, indent=2))
 
 
@@ -29,7 +25,7 @@ def score(args: argparse.Namespace) -> None:
         raise SystemExit("bundle digest mismatch")
     result = score_provider_receipt(bundle, receipt)
     output = Path(args.output)
-    _write(output, result)
+    write_report_json(output, result)
     print(json.dumps({"ok": True, "mode": "score", "output": str(output), "scoreDigest": result["scoreDigest"], "acceptanceSignals": result["acceptanceSignals"], "missingTasks": result["missingTasks"], "extraTasks": result["extraTasks"]}, indent=2))
 
 
