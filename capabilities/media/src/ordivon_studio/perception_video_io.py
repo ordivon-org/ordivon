@@ -193,22 +193,34 @@ def build_contact_sheet(
 ) -> dict[str, Any]:
     if not frame_paths:
         raise ValueError("contact sheet requires at least one frame")
+    if any(type(value) is not int or value < 2 or value % 2 for value in (thumbnail_width, thumbnail_height)):
+        raise ValueError("thumbnail dimensions must be positive even integers")
+    if type(columns) is not int or columns < 1:
+        raise ValueError("contact sheet columns must be a positive integer")
     effective_columns = min(columns, len(frame_paths))
     rows = math.ceil(len(frame_paths) / effective_columns)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     args = [ffmpeg, "-v", "error", "-y"]
     for path in frame_paths:
         args.extend(["-i", str(path)])
-    chains = [
-        f"[{index}:v]scale={thumbnail_width}:{thumbnail_height}[v{index}]"
-        for index in range(len(frame_paths))
-    ]
-    inputs = "".join(f"[v{index}]" for index in range(len(frame_paths)))
-    layout = "|".join(
-        f"{(index % effective_columns) * thumbnail_width}_{(index // effective_columns) * thumbnail_height}"
-        for index in range(len(frame_paths))
+    # Fit each observed frame into its tile without stretching its geometry.
+    # xstack has a minimum input cardinality of two; a singleton is simply
+    # one native scaled/padded tile, not a duplicated observation.
+    fit = (
+        f"scale={thumbnail_width}:{thumbnail_height}:"
+        "force_original_aspect_ratio=decrease:force_divisible_by=2,"
+        f"pad={thumbnail_width}:{thumbnail_height}:(ow-iw)/2:(oh-ih)/2:black"
     )
-    chains.append(f"{inputs}xstack=inputs={len(frame_paths)}:layout={layout}:fill=black[out]")
+    if len(frame_paths) == 1:
+        chains = [f"[0:v]{fit}[out]"]
+    else:
+        chains = [f"[{index}:v]{fit}[v{index}]" for index in range(len(frame_paths))]
+        inputs = "".join(f"[v{index}]" for index in range(len(frame_paths)))
+        layout = "|".join(
+            f"{(index % effective_columns) * thumbnail_width}_{(index // effective_columns) * thumbnail_height}"
+            for index in range(len(frame_paths))
+        )
+        chains.append(f"{inputs}xstack=inputs={len(frame_paths)}:layout={layout}:fill=black[out]")
     args.extend(
         [
             "-filter_complex",
@@ -235,6 +247,7 @@ def build_contact_sheet(
             "rows": rows,
             "thumbnailWidth": thumbnail_width,
             "thumbnailHeight": thumbnail_height,
+            "thumbnailFit": "aspect-preserving-fit-with-black-padding",
             "frameOrder": [],
         },
     }
