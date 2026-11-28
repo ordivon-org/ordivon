@@ -1,22 +1,22 @@
-# Harness R2.1 Agent-Task Refinement — Execution Spec R1
+# Harness R2.1 Agent-Task Refinement — Execution Spec R1.1
 
 Status: **implementation-bound proposal**. This is a task specification, not a new authority, admitted runtime LEGO, universal evaluator, or proof of deployed behavior.
-As-of: 2026-11-09 (Asia/Shanghai). SourceCut: `ordivon-org/ordivon@3b43977e682d8c7668f6371ffd998c7821e4312a`; implementation must recheck `origin/main` before integrating.
+Original proposal: 2026-11-09 (Asia/Shanghai), SourceCut `ordivon-org/ordivon@c88a7f22738417c0e7517fafb8ed8999806c29e3`. Currentness review: 2026-11-26, observed main `25ed2e877d20028ef4cb8348ee9a09ee7cc727bf`; see section 6. The dated T1/T2 evidence below is historical. Refresh the current Owner Work and origin/main before acting.
 Natural Owner: `services/harness/`; cross-owner effects remain with their original Owner.
 Target consumer: a caller-bound Agent Run that must progress from a real engineering objective to verified owner-consumer evidence **without** allowing the model to certify its own completion.
 
 ## 1. Goal, not a framework
 
-Enable strong and weak Agents to propose alternatives while existing native contracts, tool authority, independent tests, fault injection, and actual consumers determine admission and acceptance. In particular, a local success or model conclusion cannot silently replace the original objective or claim a physical effect. Make falsifiable defects mechanically non-acceptable; unknown domain quality remains empirical rather than a false theorem.
+Enable any Agent to propose alternatives while existing native contracts, tool authority, independent tests, fault injection, and actual consumers determine admission and acceptance. In particular, a local success or model conclusion cannot silently replace the original objective or claim a physical effect. Make falsifiable defects mechanically non-acceptable; unknown domain quality remains empirical rather than a false theorem.
 
-Concrete launch task: finish **Harness PG-only production API and operational-guide currentness**, then challenge that path with lower-capability Agents and known-negative examples. Broader Owner adoption happens only after that real slice proves worth reusing.
+Concrete launch task (original): qualify the PG-only API and operational-guide consumers. Current target: the Rust-native Harness Run and PostgreSQL writer through the existing Harness migration Work; the Python PG route is transitional compatibility, not a second target architecture. Reuse the existing PR chain, and retire a consumer only after its replacement is independently accepted. We explicitly DO NOT run weak-model, model-A/B, or instruction-only experiments: mature methods are adopted directly, and relevant negative examples are code/contract regressions.
 
 ### Non-goals
 
 - No second global goal/LEGO registry, approval service, evaluator Agent, execution orchestrator, task tracker, memory/retriever, or universal rubric.
 - No Owner truth transfer: Host Work remains social task collaboration; Runtime owns Job/Attempt and actual effects; Gateway owns routing; Harness owns a bounded Agent Run; domain Owner accepts its outcome.
 - No treating a Skill instruction, JSON Schema, green model check, CI pass, PR merge, or local Runtime success as domain completion.
-- No mandatory mathematical proofs for ordinary edits, arbitrary 80% blanket coverage gate, or front-loaded strategy-review ceremony on each change.
+- No mandatory mathematical proofs for ordinary edits, arbitrary 80% blanket coverage gate, front-loaded strategy-review ceremony, or weak-model evaluation/experiment campaign.
 - No destructive legacy data cleanup without checking the actual current consumer. Test-only and mutually self-referential consumers do not automatically justify indefinite retention.
 
 ## 2. Mature method adaptation
@@ -62,8 +62,8 @@ Progress matters too: a trace of more model turns is not progress. When there is
 - `post`: Atomic Run event admission with revision fence; exact returned receipts/recovery state; **never** a domain-completion guarantee.
 - `inv`: target properties PG1–PG6 below; all have explicit assumptions and negative controls.
 - `eff`: Harness PG transaction for own Run state; Provider/Runtime tool effects only via already-admitted external ports.
-- `c`: `UNKNOWN(cost, production-performance-measurement)`; no invented zero-cost bound.
-- `epsilon`: `UNKNOWN(implementation-refinement, full Python/SQL/deployed source correspondence)` until native proofs plus real consumer tests are present.
+- `c`: typed resource cost (wall time, actual Provider tokens, transaction/IO count) is `UNKNOWN(cost, production-performance-measurement)` until measured on a named consumer; never fabricate zero.
+- `epsilon`: consumer/observer-indexed behavioral-equivalence or approximation obligation; `UNKNOWN(epsilon, exact PG/SQLite observable equivalence and production context)`. Source↔model refinement has its own independent standing and is not silently represented by a scalar error.
 - `prov`: exact source commit above, `src/ordivon_harness/{agent_run,postgres_store,sqlite_store,cli}.py`, `formal/ProviderClaimR1.tla`, `tests/test_postgres_harness_store.py`, actual Job/consumer receipts.
 - `unfold`: bounded spec -> TLA+/TLC model -> source/type/refinement checks -> real PG recovery/fault tests -> installed and caller-consumed Run; each level has independent evidence standing.
 
@@ -76,9 +76,67 @@ Progress matters too: a trace of more model turns is not progress. When there is
 | PG3 | New Run transaction is atomic and exact-replay/revision fenced | competing writers both commit same claim, or partial event batch | real two-connection PG + fault injection (T3) |
 | PG4 | Response loss cannot trigger blind duplicate physical Tool execution | UNKNOWN dispatch becomes fresh execution without reconciliation | existing TLA+/TLC + bridge and Runtime tests (T4) |
 | PG5 | Run candidate completion is not domain acceptance | successful Runtime Job or final model text becomes task accepted | independent domain/consumer evaluator (T5) |
-| PG6 | Same checks reject weak-Agent failure paths and still allow good changes | reject-all gate achieves perfect interception but zero useful output | adversarial holdout trajectories and outcome comparison (T6) |
+| PG6 | Exact SourceCut, model, code, wheel, installed and actual consumer witnesses remain distinct, with no vacuous verification | simulated/green model proof upgrades an untested binary or missing production DSN to DOMAIN_ACCEPTED | independent source-bound receipt and falsifying native consumer (T6) |
 
 PG1–PG6 are desired obligations, not currently all proven. Independent proof of `PgRunSourceAuthority` must not be inferred from docs, even if the complete eleven-coordinate declaration exists.
+
+## 3A. Adopted mathematical / computer-science foundations (theory -> native obligation)
+
+These are established methods, not a claim that Ordivon invented a new calculus. Use only the smallest theory that changes an actual implementation decision. The full eleven-coordinate R2.1 declaration is a **declaration**, not a theorem or a runtime permission.
+
+### A. Hoare logic, weakest preconditions, and type-safe admission
+
+For an action C and postcondition Q, Dijkstra's total-correctness weakest precondition wp(C,Q) includes termination and Q under the specified semantics; a partial-correctness contract only asserts Q for terminating executions. State which is claimed; a safety witness alone does not imply progress. The useful engineering pattern is to derive admission conditions backward from the required outcome. For example, atomic Run event+projection commit requires a correct schema, exact revision, valid lease, canonical object identity and single-transaction admission. Simply asserting Q in an Agent message does not discharge wp(C,Q).
+
+A bounded correctness statement has shape {P} C {Q}; neither parser correctness nor a unit test proves the entire effectful C without the external assumptions. Illegal operation variants should be structurally unrepresentable where practical, then rejected by the actual Owner at invocation.
+
+### B. Assume–Guarantee, algebraic composition and substitutability
+
+For two real semantic responsibilities L1 and L2, adopt contracts (A1,G1), (A2,G2). In the consuming environment, demonstrate that the producer's guarantee and the environment discharge the consumer's assumptions. The direct sufficient example G1 => A2 must be considered with effect/authority, timing, state, identity, rollback and UNKNOWN semantics, not just JSON shape.
+
+For the same typed interface, admissible environments, observation map and trace universe, substitutability requires A_old ⊆ A_new and Beh_new(e) ⊆ G_old(e) for every e in A_old. If the public signature, representation or observation changes, establish a migration/adapter relation and discharge its own consumer obligations instead of asserting universal substitutability. Separate safety from liveness and state fairness/termination assumptions. Circular assumptions require independent grounding; naming the same invariant in both modules is not composition proof.
+
+For Harness, the Runtime bridge supplies a request identity and receipt interface, **not** a guarantee of domain semantic success. PG Store owns Run Journal transaction facts, **not** Tool physical effects. Domain acceptance remains the caller's oracle. This is the primary law for DELETE -> REUSE -> COMPOSE.
+
+### C. Refinement mapping, simulation and evidence-product standing
+
+Define an abstraction map alpha : S_concrete -> S_abstract. Under proven invariant Inv, a concrete transition must simulate an allowed abstract transition or an observable stutter:
+
+    Inv(s) ∧ Step_concrete(s,s') =>
+       Step_abstract(alpha(s),alpha(s')) OR alpha(s)=alpha(s').
+
+Also establish initial-state correspondence, correct observations and the relevant fairness/environment conditions before making a liveness claim. TLC reaching all states of its *bounded model* does not alone establish this source-level simulation.
+
+The verification standing is a product of independently justified claims:
+    E = (DECLARED, MODEL_CHECKED, SOURCE_REFINED, REAL_PG_CONSUMER, INSTALLED_CURRENT, DOMAIN_ACCEPTED).
+Each coordinate requires its own source/digest/tool/environment/negative-observer evidence, or UNKNOWN(reason, scope, remaining obligation). Do not treat E as a single linear grade in which one green step auto-upgrades the rest. A bounded model with no stated fairness does not prove eventual completion. A source-refinement witness must identify the concrete states, transitions and observation map; a timeout postcondition is not a PG journal proof.
+
+### D. Safety/liveness, concurrency and exactly-once misconceptions
+
+Safety invariant example: at most one effective lease owner admits an identical Provider dispatch at a time; a receipt cannot be forged by a local model result; an UNKNOWN effect cannot be blindly redispatched. Liveness/progress properties require fairness and environmental capacity assumptions; a model may safely pause or return an honest UNKNOWN rather than inventing completion.
+
+Use current Harness `formal/ProviderClaimR1.tla` plus owner-native TLA+/TLC and PostgreSQL concurrency tests, not a new model checker. Faults should include claim races, lost response after committed effect, lease expiry, idempotent replay, crash before/after receipt, cancellation races and contradictory Gateway projection.
+
+### E. CEGAR/CEGIS and Alloy-style bounded relational checking
+
+Counterexample-guided refinement is adopted as a **method of engineering falsification**, not as a new Agent-training program: collect one real counterexample, choose a better abstraction/implementation, rerun the same owner test and retain the regression. The model/abstraction, search grammar and oracle remain separate. When consumer/dependency relations are the problem, Alloy-style relational modeling may be useful to check a bounded graph. Before adding a solver dependency, prefer existing `rg`/AST/owner graph/test primitives; formalize only a high-value property they cannot check.
+
+### F. Information hiding and economics of replacement
+
+Parnas-style modularization is by changeable decision/observable contract, not arbitrary class/file size. A useful deep module hides considerable complexity behind a small stable consumer interface. A natural Owner keeps its own source of truth; duplicate metadata/services merely increase invalidation and repair burden. Retire a legacy Store only when its real downstream consumer closure is established; do not preserve mutually referential dead code or historic test-only compatibility forever.
+
+### Source reference anchors (not executable dependencies)
+
+- Henzinger, Qadeer, Rajamani, *Decomposing refinement proofs using assume-guarantee reasoning* (ICCAD 2000), https://www.microsoft.com/en-us/research/publication/decomposing-refinement-proofs-using-assume-guarantee-reasoning/
+- Lamport, *Specifying Systems* and *Safety, Liveness and Fairness*, https://lamport.azurewebsites.net/tla/book.html and https://lamport.azurewebsites.net/tla/safety-liveness.pdf
+- Lamport, *Specifying Concurrent Systems with TLA+*, refinement mappings, https://lamport.org/pubs/lamport-spec-tla-plus.pdf
+- Dijkstra's weakest-precondition calculus, https://www.cs.utexas.edu/~EWD/transcriptions/EWD04xx/EWD401.html
+- Alur et al., *Syntax-Guided Synthesis* (FMCAD 2013), https://dspace.mit.edu/entities/publication/bf74e326-5c4c-4a29-867a-cb0bd67fcc9f
+- Daniel Jackson, *Software Abstractions* / Alloy, https://mitpress.ublish.com/book/software-abstractions
+- Matt Skills `to-spec`/`to-tickets`/`implement-spec`, https://github.com/mattpocock/skills
+- ECC `tdd-workflow`/`verification-loop`, https://github.com/affaan-m/ECC
+- Superpowers `writing-plans`/`executing-plans`/`systematic-debugging`/`verification-before-completion`, https://github.com/obra/superpowers
+
 
 ## 4. Implementation tickets: tracer-bullet DAG
 
@@ -117,22 +175,22 @@ Each ticket has exactly one consumer-visible outcome, a RED witness, GREEN accep
 - GREEN: no blind redispatch; truth from real external Owner; semantic candidate cannot upgrade execution disposition.
 - Stop/accept: run a direct Runtime-bound negative and positive consumer path, with exact effect identity.
 
-### T5 — Goal-to-result independent acceptance [depends T3,T4]
-- Do **not** add completion authority inside Harness. Bind one real caller/domain task with accepted goal, expected consumer and existing owner verifier.
+### T5 — Goal-to-result independent acceptance [depends on the specific T3/T4 properties consumed]
+- Do **not** add completion authority inside Harness. Bind one real caller/domain task with accepted goal, expected consumer and existing owner verifier. Independent rejection of forged completion can run before all unrelated PG refinements finish; physical acceptance still needs every relevant effect and recovery obligation discharged.
 - RED: forged model `completed`, success-shaped Job receipt, unverifiable claimed artifact; none can satisfy domain criterion.
 - GREEN: exact artifact/source/consumer readback reaches original objective under current SourceCut; if actual acceptance is not implementable, mark UNKNOWN rather than invent a judge.
 - Stop/accept: one end-to-end real task from intent to owner-readback.
 
-### T6 — Weak-model and over-conservatism ablations [depends T1,T2,T4; may run parallel with T5]
-- Reuse `evals/` fresh-Agent corpus and explicit holdouts, not the implementation tests themselves as a leaked training oracle.
-- Baseline A: instruction-only; B: typed contract + native tests; C: B + counterexamples and independent review. Same tasks, comparable budgets.
-- Measures: real consumer success, bad-proposal interception, false rejection, progress/cost, recovery correctness, avoidable custom code and regressions.
-- Negative cases: just-CLI PG change; stale docs; preserve dead SQLite; try-catch hides failure; infinite analysis/no action; false completion.
-- Stop/accept: measurable benefit under a predeclared metric/guardrail, otherwise simplify or revert the extra method.
+### T6 — Independent source-to-consumer refinement and code review [property-scoped dependencies; may run alongside T2–T5]
+- NO weak-model studies or Agent-vs-Agent A/B trials. Reuse established contract tests, bounded model checking, existing source-refinement checkers, independent code review and real consumer readback.
+- Native proof/observation carrier: each critical property records the exact abstract state, mapping to the concrete Python/SQL/Runtime state, environment assumptions and negative mutant/fault test. Preserve typed UNKNOWN when a bridge cannot be proved.
+- Explicit falsifiers: model green with invalid/obsolete source; no real PG DSN despite pytest PASS with skips; forged/contradictory Runtime receipt; model-only physical delivery; wheel from wrong revision; effect success incorrectly promoted to domain acceptance.
+- Review two orthogonal axes per Superpowers and Matt: specification conformity (goal, needed consumer, assumption discharge) and engineering quality (simplification, maintained native Owner tools, no duplicate authority); review evidence against actual SourceCut and current Git main.
+- Stop/accept: an owner-native proof/test/consumer-evidence chain with limitations, independent review findings resolved or recorded, and zero unsupported promotion of evidence grade. A formal model alone NEVER marks source or installed behavior verified.
 
-### T7 — Integrate, retire, and generalize only proven method [depends T5,T6]
-- Native owner CI/merge queue; exact SourceCut and installed readback. Confirm old modules/docs/tests and optional historical branches are retired without losing final consumers.
-- Produce a short reusable local method pointer in existing `.agents/skills/recursive-lego-calculus` or established method router **only if** the T6 consumer gain is demonstrated.
+### T7 — Integrate, retire, and generalize only proven method [final retirement depends on applicable T5/T6 acceptance]
+- Native owner CI/merge queue; exact SourceCut and installed readback. A bounded source contribution may merge after its own protected checks; installed/domain acceptance and legacy retirement remain separate obligations. Confirm old modules/docs/tests and optional historical branches are retired without losing final consumers.
+- Only update existing `.agents/skills/recursive-lego-calculus` or method-router where the exact T5/T6 consumer reveals a missing reusable method; otherwise keep methods as source references, not a new registry.
 - Do not propagate a new global gate or copy Matt/ECC/Superpowers wholesale.
 - Stop/accept: merged SHA, installed/consumed state separately observed and original objective discharged.
 
@@ -148,8 +206,11 @@ Each ticket has exactly one consumer-visible outcome, a RED witness, GREEN accep
 ## 6. Immediate execution ledger / acceptance
 
 - [x] T0: exact source-bound baseline and native method/tool inventory.
-- [x] T1: test-first CLI/current-guide correction and native test evidence (source+wheel/queue verified, unmerged).
-- [ ] T2–T7: successive independent, consumer-rooted tickets.
+- [x] T1: CLI/current-guide correction, native test + wheel/queue verified, merged PR #1979 at 2026-11-09T15:32:16Z.
+- [ ] T2–T7: remaining consumer-rooted obligations, not a new implementation queue. At the 2026-11-26 observed main, #1859 (public Python PG API), #1867 (scale consumer), and #2005 (duplicate-writer source convergence) are MERGED. #1875 (Adaptive Edit/Runner consumer) remains OPEN. This establishes source standing only, not installed PG/physical/domain acceptance.
+- Current execution coordination: existing Host Work `work:ordivon:harness-rust-migration-r1:20261110` revision 146. H0–H6 remain the active order; do not start a second Python migration or bypass the Rust-native target. H2 normal Rust Run/Resume integration remains incomplete; H3 current protected deployment/route acceptance remains open (#2712/#2401 OPEN at observation); H4 all-issued native settlement and independent recipient remain open (#2681 is a formal-only OPEN draft). H5/H6 release/retirement require their own actual consumers.
+- T3/T4/T5/T6 statuses are property-scoped: historical PG consumer tests and bounded formal checks are reusable only with exact applicable evidence. Installed, current-generation and domain receipts remain UNKNOWN where unobserved. Do not re-run unrelated suites merely to refresh a planning timestamp.
+- Forward: required consumer outcome → typed assumptions → natural Owner implementation → exact source/negative and positive tests → protected source integration → installed consumer receipt. Reverse: rejected or UNKNOWN outcome → identify missing obligation/observer → smallest relevant interface/refinement seam → existing owner test → one scoped candidate or HOLD. Preserve independent blocked lanes rather than stalling all source contributions.
 - No GitHub issue creation or shared-branch push is implied by this local spec. Existing GitHub/Host systems own that action when deliberately invoked.
 - This plan is source-bound and disposable after adoption; keep current tests/contracts, not a permanent duplicate planning hierarchy.
 
@@ -169,4 +230,14 @@ Each ticket has exactly one consumer-visible outcome, a RED witness, GREEN accep
 - **Result standing:** T1 `SOURCE+NATIVE_TESTS+WHEEL_CONSUMER_VERIFIED`; T2 and real PG integration `UNKNOWN`; no shared PR merge, installed production deployment, or domain acceptance claimed.
 - **Ruling:** the wheel checker was a forgotten consumer of retired CLI grammar. Extend the same source-native contract seam rather than restoring obsolete commands to satisfy its old check.
 
-Next executable ticket: **T2** — enumerate every remaining direct SQLite production API and script caller; set up isolated PG test authority and RED/positive two-connection tests before changing the public Python Run path. Remove old implementation only after final real consumers are reached.
+Historical next ticket (2026-11-09): T2 reconciliation of #1859 -> #1867 -> #1875. For the current execution frontier, use section 6 and the existing Harness Work; do not replay the historical action.
+
+## 8. Independent PG source qualification and existing-PR coordination — 2026-11-09
+
+- Current source comparison: observed main at `a7d70e83945b7418f41b9636f0803d1544e84355`. Existing T2 public API PR #1859 HEAD `d1b78a4a0cabea6f277096747c887edd1f5f11c9` (OPEN, not merged), stacked #1867 Scale (base #1859), #1875 Adaptive/Runner (base #1867). The #1859 diff already implements removal of legacy public `create/open` state-root API, retains PG Run entrypoints, and changes native consumers. Reuse it; no competing PG-only implementation branch.
+- Independent environment: installed PostgreSQL 18.6 binaries bootstrapped a temporary socket-only local cluster and FIVE separate disposable test databases; all stopped/removed after test. This was NOT the production PostgreSQL instance.
+- Run: `uv run --locked python -m pytest -q tests/test_postgres_harness_store.py tests/test_postgres_cli.py tests/test_r3_supported_agent_run.py tests/test_postgres_conversation_binding.py tests/test_postgres_turn_effects.py tests/test_postgres_wake_turn_map.py --tb=short -ra` with each module's exact test DSN. Actual result **98 passed, 0 skipped**, Runtime Job `job-01a1c0ed-7db1-7570-8128-403e30c6c073` succeeded on exact PR #1859 SourceCut. This is REAL_PG_TESTED for the selected source consumers, NOT installed/deployed or all-Harness queue qualification.
+- Posted independent review and two integration hazards to PR #1859: https://github.com/ordivon-org/ordivon/pull/1859#issuecomment-6743984927 . Check CI portability of `check_harness_without_host.py` requiring a test DSN inside isolated wheel smoke; and avoid restoring obsolete mainline documents from historical PR branch.
+- Host Space collaboration committed with seq 25749 (T2/Owner planning), seq 25750 (independent Formal review), seq 25758 (existing PR DAG dedup) in `space:ordivon-capability-task-forum-r1:20261101`. These messages are social collaboration evidence, NOT authorized execution or peer acknowledgements.
+- T6 revised from weak-model A/B trials to independent model/source/runtime/consumer refinement review as expressly requested. Native tests/fault injection serve real engineering obligations rather than experimentally judging models.
+- Outstanding at this historical observation (2026-11-09): T2 PR #1859 and descendants, PG production installed SourceCut, separate model↔code refinement, and domain acceptance. See section 6 for later source disposition; installed/domain standing requires independent current observations.
