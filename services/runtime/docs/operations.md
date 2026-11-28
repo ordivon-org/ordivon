@@ -936,7 +936,7 @@ That proof exercises launcher mechanics only. The Runtime acceptance boundary is
 
 For a release/cutover acceptance, preserve evidence for all of the following:
 
-1. `OrdivonRuntimeR6Candidate` (or its promoted successor) is `Running` with automatic SCM start.
+1. The PostgreSQL service `OrdivonRuntimePg` is `Running` with automatic SCM start.
 2. Windows `runtime.describe` reports a native Windows node and only the `windows_native` execution target.
 3. A limited native execution succeeds and commits launcher/target identity evidence.
 4. An elevated native execution succeeds only through configured, already-present elevated provider authority.
@@ -948,7 +948,7 @@ For a release/cutover acceptance, preserve evidence for all of the following:
 
 `ORDIVON_WINDOWS_WSL_DISTRIBUTION`, `WSL_INTEROP`, `\\wsl.localhost` path projection, the WSL systemd Windows carrier, and the old WSL restart watchdog/supervisor are retired. Historical destructive-WSL evidence remains useful as migration evidence, but it is not part of the current operational procedure.
 
-See `RUNTIME_WINDOWS_R6C_ACCEPTANCE_R1.md` for the migration/acceptance ledger and `NATIVE_RUNTIME_NODES_R1.md` for the node-ownership design history.
+See `RUNTIME_WINDOWS_R6C_ACCEPTANCE_R1.md` for the historical R6 migration ledger and `NATIVE_RUNTIME_NODES_R1.md` for the node-ownership design history.
 
 ## Contained-local acceptance
 

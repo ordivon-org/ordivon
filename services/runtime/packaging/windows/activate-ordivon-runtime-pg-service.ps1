@@ -206,7 +206,7 @@ function Assert-StoppedDisabled($State) {
 $qualificationInputs=@($PgEndpoint,$ExpectedNodeId,$TokenFile,$PreparedSourceRepo,
     $PreparedSourceRevision,$AcceptanceRoot,$ExpectedAcceptanceSha256)
 $selectedQualification=@($qualificationInputs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count -gt 0
-$acceptance=Join-Path $PSScriptRoot '..\..\scripts\windows-native-runtime-r6c-acceptance.ps1'
+$acceptance=Join-Path $PSScriptRoot '..\..\scripts\windows-native-runtime-pg-acceptance.ps1'
 function Assert-QualificationInputs {
     if ($Direction -ne 'Activate') { return }
     if (-not $selectedQualification) {
@@ -330,7 +330,7 @@ try {
             Assert-QualificationInputs
             $expectedInteractiveSid=Assert-PgEnvironmentBindings -PassInteractiveSid
             $acceptanceArgs=@{
-                Mode='WorkspaceCwdAdmission';RequireFreshPg=$true;ServiceName=$PgService
+                Mode='WorkspaceCwdAdmission';ServiceName=$PgService
                 Endpoint=$PgEndpoint;ExpectedNodeId=$ExpectedNodeId;TokenFile=$TokenFile
                 PreparedSourceRepo=$PreparedSourceRepo;PreparedSourceRevision=$PreparedSourceRevision
                 AcceptanceRoot=$AcceptanceRoot;ExpectedActiveUserSessionId=$ExpectedActiveUserSessionId
