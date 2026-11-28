@@ -169,7 +169,6 @@ impl<'a> LocalLinuxProvider<'a> {
                 "execution.executionTarget",
             ));
         }
-        validate_provider_guarantees(ExecutionProviderGuarantees::REQUIRED_R1)?;
         let _ = self.snapshot()?;
         Ok(())
     }
@@ -526,6 +525,16 @@ mod local_linux_adapter_tests {
             .unwrap_err();
         assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
         assert_eq!(error.field.as_deref(), Some("execution.executionTarget"));
+    }
+
+    #[test]
+    fn local_linux_provider_requires_a_configured_runner_for_new_plan() {
+        let executor = executor(None);
+        let provider = LocalLinuxProvider::new(RuntimeNodePlatform::Linux, &executor);
+        let error = provider
+            .validate_plan(&plan(ExecutionTarget::LocalLinux))
+            .unwrap_err();
+        assert_eq!(error.code, RuntimeErrorCode::ToolUnavailable);
     }
 
     #[test]
