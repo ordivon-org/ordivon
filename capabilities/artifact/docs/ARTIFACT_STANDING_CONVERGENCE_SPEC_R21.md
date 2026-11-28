@@ -29,19 +29,19 @@ One small, pure, provenance-aware Standing qualification semantics shared by exi
 
 A Standing **claim** is a bounded assertion, not an overall success bit. A **Profile** supplies required claims. An **Observation** supplies an identified native result, including explicit PASS/FAIL/NOT_EVALUATED and independent evidence pointers where required. A **Decision** derives no stronger assertion than what evidence supports. A **Consumer Acceptance** is external to the Artifact kernel. A historical or shadow capability binding is not present-node availability evidence.
 
-Formal archetype: `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`.
+Artifact-specific semantic obligations:
 
-- I: immutable Subject/Profile commitments; already-admitted native observations; required claim keys; optional explicitly bound consumer requirement.
-- O: typed ClaimCoverage and scoped Standing vector; no domain success assertion.
-- S: Unit (pure evaluator, no durable state).
-- pre: canonical Profile is checked; input evidence identities/bindings are verified by their natural Owner; malformed inputs report explicit error, not PASS.
-- post: decision explicitly identifies missing, failed, not-evaluated, contradictory and supported claims.
-- inv: missing/unknown/failed/self-witnessed or contradictory required claims cannot yield complete qualification; no authority derived from aggregate native PASS; no implicit trust, install or consumer success.
-- eff: empty for pure kernel; all I/O stays in existing adapters.
-- c: computational cost upper-bound UNKNOWN until measured; no fabricated constant.
-- epsilon: approximation 0 for deterministic local projection under its explicit assumptions; semantic adequacy of native observations remains an independent obligation.
-- prov: exact SourceCut + profile/subject/native observation identity + checked validator and consumer evidence where available.
-- unfold: L0 decision and non-claims; L1 required keys and statuses; L2 raw observations/provenance and counterexamples; L3 native adapter internals, only when needed.
+- Inputs: immutable Subject/Profile commitments; already-admitted native observations; required claim keys; optional explicitly bound consumer requirement.
+- Results: typed ClaimCoverage and scoped Standing vector; no domain success assertion.
+- State: Unit (pure evaluator, no durable state).
+- Assumptions: canonical Profile is checked; input evidence identities/bindings are verified by their natural Owner; malformed inputs report explicit error, not PASS.
+- Required behavior: decision explicitly identifies missing, failed, not-evaluated, contradictory and supported claims.
+- Preserved properties: missing/unknown/failed/self-witnessed or contradictory required claims cannot yield complete qualification; no authority derived from aggregate native PASS; no implicit trust, install or consumer success.
+- Effects: empty for pure kernel; all I/O stays in existing adapters.
+- Resource observations: computational cost upper-bound UNKNOWN until measured; no fabricated constant.
+- Limits of the claim: approximation 0 for deterministic local projection under its explicit assumptions; semantic adequacy of native observations remains an independent obligation.
+- Evidence: exact SourceCut + profile/subject/native observation identity + checked validator and consumer evidence where available.
+- Implementation and verification: L0 decision and non-claims; L1 required keys and statuses; L2 raw observations/provenance and counterexamples; L3 native adapter internals, only when needed.
 
 Safety law, under well-formed inputs: `complete => all_required_supported_by_nonself_matching_native_evidence AND no_identity_contradiction`. Also `DOMAIN_ACCEPTED` cannot be derived by this evaluator. No theorem about actual native tool honesty, toolchain closure, transport effects, or target applications is claimed.
 
@@ -154,8 +154,7 @@ boundary:
 
   G_P(output,effects) and Current(provenance) => A_C(output).
 
-This is a scoped assume–guarantee interpretation of the existing
-R2.1 pre/post/inv/eff/prov coordinates; a claim of domain acceptance must
+This is a scoped assume–guarantee obligation for Artifact; a claim of domain acceptance must
 still originate from the actual consumer, not from the Artifact kernel.
 
 Let N1 and N2 map v1/v2 raw observations to their legitimately shared
@@ -247,7 +246,7 @@ Current candidate: PR #1974 HEAD 9e0797afcb28de920abb7aeac1f11e1d4065f4e8; T1–
 
 ### Six independent review axes and pre-implementation decisions
 
-1. **Theory:** R2.1 eleven-coordinate archetype, not an extra service. A required claim must be supported by a semantically applicable native observation under source/identity assumptions. Generic aggregate PASS without claim semantics violates the intended assume–guarantee contract. Verdict: FAIL at v2 pointer seam.
+1. **Theory:** Artifact-specific claim semantics, not an extra service. A required claim must be supported by a semantically applicable native observation under source/identity assumptions. Generic aggregate PASS without claim semantics violates the intended assume–guarantee contract. Verdict: FAIL at v2 pointer seam.
 2. **Skill method:** Matt public seam TDD/dual-axis review; Superpowers RED/GREEN/fresh verification; ECC selected review only, not global hooks. Existing seams: v1 execute_verify_stage, v2 verify_request and assess_required_evidence. Verdict: selected, no new workflow.
 3. **Overconservatism:** v1 executed_failures are appended to a general integrity issues list; the common evaluator reports UNKNOWN even for a witnessed required gate FAIL. Verdict: FAIL; recover scoped falsification.
 4. **Surface-only:** new status names, comments, a standalone plan, or a duplicate evaluator cannot fix either counterexample. Verdict: REJECT; require production behavior changed at existing seam.

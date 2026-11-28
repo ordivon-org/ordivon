@@ -36,7 +36,7 @@ Important source hotspots (not automatic defect labels):
 - `capabilities/media/artifacts/creative-library/catalog-v1.json` and `capabilities/media/productions/archive-archipelago-001/source/creative-library-catalog-v1.json` are large but not byte-identical.
 - Exact duplicate packaged images, audio, Security patch/config and historic evidence may have distinct independent consumers. Do NOT deduplicate as a naked byte-count exercise.
 
-Audit each Git file by: (i) source identity/path, (ii) true natural owner/source region, (iii) parser/type and concrete responsibility, (iv) actual imports/config/runtime/product consumers including dynamic discovery, (v) mature upstream/native replacement, (vi) change coupling/churn and cost, (vii) preservation/effect/knowledge value, (viii) disposition REMOVE / REUSE / COMPOSE / REFACTOR / KEEP with source-backed rationale, (ix) existing verification and publication status. Use a derived, rebuildable scan and evidence tied to the Git commit; **no new persistent per-file state database or mandatory per-file 11-tuple**. Files without dynamic/remote-consumer closure must remain UNKNOWN rather than proven unconsumed.
+Audit each Git file by: (i) source identity/path, (ii) true natural owner/source region, (iii) parser/type and concrete responsibility, (iv) actual imports/config/runtime/product consumers including dynamic discovery, (v) mature upstream/native replacement, (vi) change coupling/churn and cost, (vii) preservation/effect/knowledge value, (viii) disposition REMOVE / REUSE / COMPOSE / REFACTOR / KEEP with source-backed rationale, (ix) existing verification and publication status. Use a derived, rebuildable scan and evidence tied to the Git commit; **no new persistent per-file state database or mandatory per-file declaration**. Files without dynamic/remote-consumer closure must remain UNKNOWN rather than proven unconsumed.
 
 Detailed semantic review is incremental by Owner and high-impact path. The full machine inventory is complete; the semantic/source consumer review of all 5,002 files is NOT complete and must never be presented as such.
 
@@ -52,7 +52,7 @@ Additional mature and mathematically grounded references: Martin Fowler *Refacto
 
 ## 4. Formal, semantic and architecture constraints
 
-Use canonical R2.1 only for an independently contractable responsibility, `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`. A file, a test or an incidental import is not automatically a LEGO. Existing implementation and its natural Owner continue to own the contract.
+Choose the relevant OL model for an independently contractable responsibility. A file, a test or an incidental import is not automatically a LEGO. Existing implementation and its natural Owner continue to own the contract.
 
 Let P denote an implementation, E a stated environment, c an existing named observer, Obs_c the observer's projection of input/output, failures, temporal effects and ordering. A behavior-preserving refactor should discharge the scoped obligation:
 

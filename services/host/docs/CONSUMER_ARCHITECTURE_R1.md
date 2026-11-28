@@ -120,17 +120,17 @@ fencing, pytest/Hypothesis, TLA+/Lean/Z3 on selected properties.
 
 Schema-currentness release responsibility (declared local contract, not a new
 global calculus or independently proven formal LEGO):
-- `I`: immutable candidate Host release, installed baseline manifest, native MCP tools/list
-- `O`: accepted release contract or typed/terminal schema drift failure
-- `S`: current/candidate manifests and SDK tool model; no second database
-- `pre`: source and package identity fixed, tools discoverable
-- `post`: acceptance implies matching manifest/tool schemas and advanced epoch/version if changed
-- `inv`: names alone cannot permit input/output drift; old missing digest is changed
-- `eff`: read-only SDK introspection and pre-symlink rejection; no production mutation
-- `c`: UNKNOWN(runtime cost on actual deployment; obligation: measure if material)
-- `epsilon`: UNKNOWN(stale external client capture; obligation: real Agent re-discovery)
-- `prov`: source at stated Git cut, native test output, manifest, installed observation separately
-- `unfold`: SDK tools/list → schema projection → digest → versioned manifest → installer gate → consumer readback
+- Inputs: immutable candidate Host release, installed baseline manifest, native MCP tools/list
+- Results: accepted release contract or typed/terminal schema drift failure
+- State: current/candidate manifests and SDK tool model; no second database
+- Assumptions: source and package identity fixed, tools discoverable
+- Required behavior: acceptance implies matching manifest/tool schemas and advanced epoch/version if changed
+- Preserved properties: names alone cannot permit input/output drift; old missing digest is changed
+- Effects: read-only SDK introspection and pre-symlink rejection; no production mutation
+- Resource observations: UNKNOWN(runtime cost on actual deployment; obligation: measure if material)
+- Limits of the claim: UNKNOWN(stale external client capture; obligation: real Agent re-discovery)
+- Evidence: source at stated Git cut, native test output, manifest, installed observation separately
+- Implementation and verification: SDK tools/list → schema projection → digest → versioned manifest → installer gate → consumer readback
 
 ## 7. Executable work and stop conditions
 

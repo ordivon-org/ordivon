@@ -77,26 +77,26 @@ No real funds are used. No broker credentials are needed.
 
 ## Scientific interpretation / R2.1 contract
 
-- I: immutable source CSV bytes, full Git and SHA-256 identity,
+- Inputs: immutable source CSV bytes, full Git and SHA-256 identity,
   declared virtual-capital PolicyV1 with frozen dates and weights.
-- O: immutable DailySettlementReplayV1, cash and SPY benchmarks,
+- Results: immutable DailySettlementReplayV1, cash and SPY benchmarks,
   missing-price evidence, plus typed REJECTED on bad input.
-- S: Unit in the pure projection; the optional CLI output file is an
+- State: Unit in the pure projection; the optional CLI output file is an
   explicit effect separated from computation.
-- pre: selected start/end dates must be exactly priced, ordered,
+- Assumptions: selected start/end dates must be exactly priced, ordered,
   instrument columns valid, and all financial calculations Decimal-based.
-- post: the final daily virtual NAV equals the existing Portfolio passive
+- Required behavior: the final daily virtual NAV equals the existing Portfolio passive
   benchmark terminal NAV under exactly the same return and expense
   conventions.
-- inv: no real-money order, no leverage and no authority escalation;
+- Preserved properties: no real-money order, no leverage and no authority escalation;
   every dated mark has observed input prices and source-byte identity.
-- eff: optionally write one simulation receipt; no broker operations.
-- c: O(n*k) over n source dates and k selected instruments.
-- epsilon: Python Decimal context arithmetic; true financial/market
+- Effects: optionally write one simulation receipt; no broker operations.
+- Resource observations: O(n*k) over n source dates and k selected instruments.
+- Limits of the claim: Python Decimal context arithmetic; true financial/market
   cost error is UNKNOWN and never equated with 0.
-- prov: Git blob/SHA bytes verified; original publisher and real
+- Evidence: Git blob/SHA bytes verified; original publisher and real
   historical point-in-time data NOT VERIFIED.
-- unfold: existing Capital Python runner, Markets CSV admission,
+- Implementation and verification: existing Capital Python runner, Markets CSV admission,
   Portfolio passive benchmark and native pytest/CI.
 
 The 2025-2026 window is retrospective: the mirror commit was published

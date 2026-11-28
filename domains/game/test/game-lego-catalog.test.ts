@@ -102,12 +102,6 @@ function validateDeclaredGameConsumerPaths(plan: any): void {
       assert.ok(existsSync(new URL('../' + path, import.meta.url)),
         node.id + ': consumer locator absent from Git checkout ' + path);
     }
-    if (node.recursiveLegoR21) {
-      assert.deepEqual(Object.keys(node.recursiveLegoR21),
-        ['I','O','S','pre','post','inv','eff','c','epsilon','prov','unfold'], node.id + ': R2.1 tuple must not drop an assumption');
-      assert.ok(node.recursiveLegoR21.unfold.every((path: string) => existsSync(new URL('../' + path, import.meta.url))),
-        node.id + ': contract unfolding must resolve to a real native consumer');
-    }
     assert.notEqual(node.formalQualification, 'VERIFIED');
     assert.notEqual(node.proofReuseAdmissible, true);
   }

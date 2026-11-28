@@ -119,14 +119,11 @@ A new public Gateway capability is admitted only when all are true:
 Architecture documentation does not prove implementation conformance. The machine-readable LEGO graph and repository checks provide mechanical regression gates; owner-native tests and live end-to-end evidence remain required for implementation acceptance.
 
 
-## LEGO 2.1: one canonical identity, optional mathematics
+## OL: problem-specific mathematics
 
-The sole canonical six-part LEGO identity is specified in
-[Agent Concepts — Formal-First × LEGO-First](AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md):
-identity, responsibility, inputs, outputs, contract, and acceptance.
+[Agent Concepts — Formal-First × LEGO-First](AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md) describes the engineering context. No global mathematical object or field list is required.
 
-**This architecture document does not define another LEGO tuple.**
-For a named consumer, use only the existing mathematical interpretation
+For a named consumer, use only the mathematical representation
 needed to decide that contract: Rust/JSON Schema types, standard-library
 graphlib for finite dependency DAGs, existing TLA+/TLC transitions and
 source-scoped assume-guarantee/trace-refinement evidence. A partial graph,

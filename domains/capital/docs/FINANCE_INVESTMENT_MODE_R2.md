@@ -91,25 +91,25 @@ licensing assumptions are the responsibility of the consuming dataset.
 
 ## R2.1 capability contract
 
-- I: currency, opening balance, ordered periods containing endpoint,
+- Inputs: currency, opening balance, ordered periods containing endpoint,
   shared deposit, two returns, two expense fractions and two fixed fees.
-- O: descriptive CashflowMatchedBenchmarkSummaryV1 or
+- Results: descriptive CashflowMatchedBenchmarkSummaryV1 or
   PassiveBenchmarkError.
-- S: Unit (pure evaluation).
-- pre: valid unique ordered timezone-aware periods, finite decimal strings,
+- State: Unit (pure evaluation).
+- Assumptions: valid unique ordered timezone-aware periods, finite decimal strings,
   same deposit schedule, nonnegative capital and nonnegative costs.
-- post: deterministic cost- and deposit-matched terminal wealth and simple
+- Required behavior: deterministic cost- and deposit-matched terminal wealth and simple
   economic gains, or a rejection.
-- inv: same deposits across paths, no negative final capital,
+- Preserved properties: same deposits across paths, no negative final capital,
   external effects, optimization, asset advice or capital permission.
-- eff: empty (no account/order/network/credential effects).
-- c: O(n) over n periods with O(n) input parsing; exact limit UNKNOWN
+- Effects: empty (no account/order/network/credential effects).
+- Resource observations: O(n) over n periods with O(n) input parsing; exact limit UNKNOWN
   until consumer supplies an admission bound.
-- epsilon: Python Decimal context; financial market/observation error is
+- Limits of the claim: Python Decimal context; financial market/observation error is
   UNKNOWN and not treated as zero.
-- prov: caller-supplied observations; independent historical source
+- Evidence: caller-supplied observations; independent historical source
   lineage and cost realism UNKNOWN.
-- unfold: pure source, executable CLI and dedicated consumer tests;
+- Implementation and verification: pure source, executable CLI and dedicated consumer tests;
   no additional Agent process, runtime, experiment engine or ledger.
 
 ## Owner semantics and next evidence

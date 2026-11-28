@@ -406,25 +406,25 @@ never upgrade the model evidence to a broker or capital authority.
 
 ## Decision and falsification rules
 
-- **I**: goal, user investment assumptions, explicit capital units, current
+- Inputs: goal, user investment assumptions, explicit capital units, current
   canonical source and qualified time/rights evidence.
-- **O**: actual CLI result, receipt/digest, source availability, risk and
+- Results: actual CLI result, receipt/digest, source availability, risk and
   authorization standing, absent/UNKNOWN facts and next natural consumer.
-- **pre**: legitimate paper/no-effect purpose; exact source-qualified input
+- Assumptions: legitimate paper/no-effect purpose; exact source-qualified input
   for any claim beyond caller-supplied simulation.
-- **post**: output honestly describes existing computation and never infers
+- Required behavior: output honestly describes existing computation and never infers
   financial authority from a research/report status.
-- **inv**: same cashflow base for benchmark, protected cash preserved,
+- Preserved properties: same cashflow base for benchmark, protected cash preserved,
   accounting owner alone owns NAV, no duplicate execution/ledger state.
-- **eff**: read-only for Portfolio/Research, Paper-only DB for Accounting;
+- Effects: read-only for Portfolio/Research, Paper-only DB for Accounting;
   never live broker order/transfer.
-- **c**: source modules dictate bounded costs and limits; UNKNOWN without
+- Resource observations: source modules dictate bounded costs and limits; UNKNOWN without
   exact implementation evidence.
-- **epsilon**: source vintage errors, fees/corporate actions and probabilistic
+- Limits of the claim: source vintage errors, fees/corporate actions and probabilistic
   uncertainty remain explicit; do not convert UNKNOWN to false.
-- **prov**: module path, pinned source rev, dataset digest, actual session,
+- Evidence: module path, pinned source rev, dataset digest, actual session,
   observed result and real consumer evidence.
-- **unfold**: Human goal → natural Owner → native call → validated receipt
+- Implementation and verification: Human goal → natural Owner → native call → validated receipt
   → independent research/risk interpretation.
 
 The source of truth for composition is

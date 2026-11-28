@@ -10,7 +10,7 @@ effects, Host Work and independent consumer evidence before reopening any row. O
 
 ## Rules of composition
 
-1. Existing R2.1 LEGO ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold) and the N01–N10 / NS2 planning/lego-plan-r1.json graph are reused. No new universal registry, VPN controller, scheduler, custom unit manager or cleanup framework.
+1. Existing Network-specific contracts and the N01–N10 / NS2 planning/lego-plan-r1.json graph are reused. No new universal registry, VPN controller, scheduler, custom unit manager or cleanup framework.
 2. Natural owners: Network generic DNS/transport; Gluetun physical ONE WireGuard identity; each Consumer its own destination policy; Workstation boot; Security credentials; Host task state; Runtime Jobs/Workspaces; Tailscale iOS client selection.
 3. Distinguish SOURCE, CONFIGURED, INSTALLED, EXECUTED, CONSUMER, FORMAL and CURRENTNESS. Unknown evidence stays UNKNOWN, never DONE. Bind SourceCut, binary, installed config, exact consumer, observation time and positive AND negative receipts.
 4. Native tools: Go Task, ShellCheck/pytest, sing-box, Gluetun, Podman Secrets/Quadlet, systemd, Blackbox/Prometheus, Tailscale, GitHub PR/CI/auto-merge and native Runtime workspace.close. First choose DELETE-CUSTOM → REUSE → COMPOSE. Keep required recovery input, not historical clutter.

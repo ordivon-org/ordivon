@@ -30,53 +30,51 @@ The kernel is already present: R2.1 contracts, Owner-native APIs, PostgreSQL tra
 
 The actual owner graph is Host(Work/Social/Attention), Runtime(Job/Attempt), Git(Source), Artifact(Content), Security(authorization), domain Owner(Goal/outcome), Gateway(routing), Harness(agent cognition). No second database of their truths.
 
-## 3. R2.1 contract obligations (three independently contractable responsibilities)
+## 3. Host-specific contract obligations (three independently contractable responsibilities)
 
-A formal `DECLARED` LEGO must include all eleven coordinates; typed UNKNOWN blocks only the dependent proof.
+State the actual Host property and relevant hypotheses; UNKNOWN blocks only the dependent proof.
 
 ### H01 — WorkContinuityCAS (existing implementation; preserve)
 
-`ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`
-
-- `I`: typed `(workRef, expectedRevision: int64, snapshot: WorkSnapshotInput, actorRef, clientRequestId, continuityDisposition)`.
-- `O`: committed/existing typed Work response or typed conflict.
-- `S`: Host PostgreSQL `works`, `work_snapshots`, `command_receipts`.
-- `pre`: validated actor/payload; new mutation expects open Work at exact expected revision, with increment within signed BIGINT.
-- `post`: new mutation increments exactly one revision, stores canonical digest, current pointer matches, returns authoritative Host result; replay returns historical receipt.
-- `inv`: revision strictly monotone; current snapshot readable; terminal Host state cannot be reopened through normal CAS; **no implication** about Goal outcome.
-- `eff`: Host-only transactional row mutation; no Runtime or domain effects.
-- `c`: `UNKNOWN(performance, database/workload, require measured plan)`.
-- `epsilon`: zero for exact discrete CAS postcondition *conditional on committed PostgreSQL transaction*; environmental availability remains `UNKNOWN`.
-- `prov`: `work_store.py`, `work_queries.py`, PostgreSQL integration/consumer tests; installed outcome separately read back.
-- `unfold`: Pydantic inputs -> MCP adapter -> `WorkStore.commit_snapshot` -> native PG transaction.
+- Inputs: typed `(workRef, expectedRevision: int64, snapshot: WorkSnapshotInput, actorRef, clientRequestId, continuityDisposition)`.
+- Results: committed/existing typed Work response or typed conflict.
+- State: Host PostgreSQL `works`, `work_snapshots`, `command_receipts`.
+- Assumptions: validated actor/payload; new mutation expects open Work at exact expected revision, with increment within signed BIGINT.
+- Required behavior: new mutation increments exactly one revision, stores canonical digest, current pointer matches, returns authoritative Host result; replay returns historical receipt.
+- Preserved properties: revision strictly monotone; current snapshot readable; terminal Host state cannot be reopened through normal CAS; **no implication** about Goal outcome.
+- Effects: Host-only transactional row mutation; no Runtime or domain effects.
+- Resource observations: `UNKNOWN(performance, database/workload, require measured plan)`.
+- Limits of the claim: zero for exact discrete CAS postcondition *conditional on committed PostgreSQL transaction*; environmental availability remains `UNKNOWN`.
+- Evidence: `work_store.py`, `work_queries.py`, PostgreSQL integration/consumer tests; installed outcome separately read back.
+- Implementation and verification: Pydantic inputs -> MCP adapter -> `WorkStore.commit_snapshot` -> native PG transaction.
 
 ### H02 — HistoryObservability (existing contract; make it coherent)
 
-- `I`: `(detail: summary|integrity|history, Work read revision: optional int64)`.
-- `O`: Host status health/checks and exact Work read or typed missing-revision conflict.
-- `S`: Host PG `works`, `work_snapshots`, current pointer.
-- `pre`: schema version verified; read at one appropriate PG consistency boundary.
-- `post`: current pointer checks never assert full history; a full history check reports its actual result; no missing historical revision is fabricated.
-- `inv`: detail=history detects incomplete historical sequences under **current full-history contract**; canonical JSON digest errors remain detectable; detail=integrity may not conceal full-history corruption when it claims that property.
-- `eff`: read-only SQL/projection.
-- `c`: `UNKNOWN(latency, size of PG history)`; keep full payload rehash under explicit `detail=history`.
-- `epsilon`: zero for evaluated exact PG predicate within snapshot scope; installed-currentness UNKNOWN unless native readback.
-- `prov`: `service.py`, `work_queries.py`, `test_social_work_fabric_postgres.py`, `host.status(detail=history)`.
-- `unfold`: status query -> grouped sequence predicate -> typed Doctor check. Histories are not implicitly pruned by a changed Doctor query.
+- Inputs: `(detail: summary|integrity|history, Work read revision: optional int64)`.
+- Results: Host status health/checks and exact Work read or typed missing-revision conflict.
+- State: Host PG `works`, `work_snapshots`, current pointer.
+- Assumptions: schema version verified; read at one appropriate PG consistency boundary.
+- Required behavior: current pointer checks never assert full history; a full history check reports its actual result; no missing historical revision is fabricated.
+- Preserved properties: detail=history detects incomplete historical sequences under **current full-history contract**; canonical JSON digest errors remain detectable; detail=integrity may not conceal full-history corruption when it claims that property.
+- Effects: read-only SQL/projection.
+- Resource observations: `UNKNOWN(latency, size of PG history)`; keep full payload rehash under explicit `detail=history`.
+- Limits of the claim: zero for evaluated exact PG predicate within snapshot scope; installed-currentness UNKNOWN unless native readback.
+- Evidence: `service.py`, `work_queries.py`, `test_social_work_fabric_postgres.py`, `host.status(detail=history)`.
+- Implementation and verification: status query -> grouped sequence predicate -> typed Doctor check. Histories are not implicitly pruned by a changed Doctor query.
 
 ### H03 — Consumer-RootedRetention (design contract; not yet deployed)
 
-- `I`: Host candidate IDs, bounded stable snapshot/consumer edges, observed last-activity, explicit approved retention mode.
-- `O`: candidate set and (only after independent consumer validation) Host-only deletion/compaction receipts, or UNKNOWN.
-- `S`: Host-owned Work/Snapshot/Social relations; foreign owners' actual references read via native interfaces.
-- `pre`: candidate classification and consumer closure/currentness witnesses; active Goal state never inferred from age.
-- `post`: approved obsolete Host records cease occupying active scope without changing domain Goal or Runtime Job.
-- `inv`: `HostRetentionEffect ∩ ForeignGoalRuntimeEffect = ∅`; terminal `abandon` never triggered solely by age; missing proof leads to UNKNOWN not fabricated `no consumer`.
-- `eff`: bounded Host PG mutations only; production mutation is outside this initial source slice.
-- `c`: `UNKNOWN(cost by affected rows/locks)`; prefer native PG set operations; no per-record bureaucracy.
-- `epsilon`: exact non-interference under verified effect/frame boundary; consumer-observation completeness remains `UNKNOWN` until independently established.
-- `prov`: existing `tools/formal/RecursiveLegoRefinement.lean` conditional retirement theorem; PostgreSQL FKs; native owners' evidence; future retention integration tests.
-- `unfold`: candidate query -> real consumer/owner readback -> transaction/dry-run -> retention realization -> native owner re-read.
+- Inputs: Host candidate IDs, bounded stable snapshot/consumer edges, observed last-activity, explicit approved retention mode.
+- Results: candidate set and (only after independent consumer validation) Host-only deletion/compaction receipts, or UNKNOWN.
+- State: Host-owned Work/Snapshot/Social relations; foreign owners' actual references read via native interfaces.
+- Assumptions: candidate classification and consumer closure/currentness witnesses; active Goal state never inferred from age.
+- Required behavior: approved obsolete Host records cease occupying active scope without changing domain Goal or Runtime Job.
+- Preserved properties: `HostRetentionEffect ∩ ForeignGoalRuntimeEffect = ∅`; terminal `abandon` never triggered solely by age; missing proof leads to UNKNOWN not fabricated `no consumer`.
+- Effects: bounded Host PG mutations only; production mutation is outside this initial source slice.
+- Resource observations: `UNKNOWN(cost by affected rows/locks)`; prefer native PG set operations; no per-record bureaucracy.
+- Limits of the claim: exact non-interference under verified effect/frame boundary; consumer-observation completeness remains `UNKNOWN` until independently established.
+- Evidence: existing `tools/formal/RecursiveLegoRefinement.lean` conditional retirement theorem; PostgreSQL FKs; native owners' evidence; future retention integration tests.
+- Implementation and verification: candidate query -> real consumer/owner readback -> transaction/dry-run -> retention realization -> native owner re-read.
 
 H03 is **DECLARED** only. Its implementation, consumer closure and production effect are explicitly not proven.
 
@@ -136,7 +134,7 @@ The upstream Skill is a **method**: installed Skill provenance, actual source, a
 
 ## 9. Mathematical foundations and proof boundary (2026-11-09 refinement)
 
-This section **refines H01–H03**, not a new LEGO calculus or Agent controller. The existing R2.1 `ell` eleven-coordinate tuple is the semantic carrier; each theorem or test has an exact owner, hypothesis and witness. The notation describes *obligations to discharge*, not already proved implementation facts.
+This section **refines H01–H03**, not a new LEGO calculus or Agent controller. Each theorem or test has an exact owner, hypothesis and witness; choose its mathematical carrier independently. The notation describes *obligations to discharge*, not already proved implementation facts.
 
 ### 9.1 Safety and conditional liveness (Lamport)
 

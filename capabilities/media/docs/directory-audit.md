@@ -86,7 +86,7 @@ and native tool evidence.
 (such as source-truth conservation, observer-vs-source, editable-master
 separation, or human-evidence uncertainty) constrains composition and
 falsification; it is not automatically a separate executable service.
-For formalized LEGO retain `ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)`
+For a formal property choose the relevant mathematical structure
 and preserve UNKNOWN where implementation refinement or real use is absent.
 
 ## Human path

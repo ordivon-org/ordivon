@@ -4,7 +4,7 @@ description: "Optional Ordivon method LEGO for explicitly bounded representation
 compatibility: Cross-platform; no execution authority, new schema, prover, registry or lifecycle. Does not certify minimality or sufficiency.
 metadata:
   ordivon-category: general
-  source-authority: Task-local consumer-qualified optimization hypothesis; subordinate to recursive-lego-calculus R2.1 and natural Owner evidence
+  source-authority: Task-local consumer-qualified optimization hypothesis; grounded in OL and natural Owner evidence
 ---
 
 # Minimum Sufficient Representation — optional method, not a default First

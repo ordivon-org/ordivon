@@ -52,23 +52,23 @@ untouched temporal holdouts and actual portfolio/risk scrutiny.
 
 ## R2.1 semantic contract for this bounded capability
 
-- I: FrozenCandidateV1, source_bytes, holdout_bytes.
-- O: ResearchEvidenceSummaryV1 or CandidateEvidenceError.
-- S: Unit (no persistent state).
-- pre: committed source/holdout byte identities and declared feature timing.
+- Inputs: FrozenCandidateV1, source_bytes, holdout_bytes.
+- Results: ResearchEvidenceSummaryV1 or CandidateEvidenceError.
+- State: Unit (no persistent state).
+- Assumptions: committed source/holdout byte identities and declared feature timing.
   Authentic historical-time publication and precommitment remain UNKNOWN.
-- post: invalid evidence is rejected; admitted output is a deterministic
+- Required behavior: invalid evidence is rejected; admitted output is a deterministic
   cost-aware benchmark comparison from strictly post-freeze observations.
-- inv: no IO writes, financial effects or capital authority; Decimal-only
+- Preserved properties: no IO writes, financial effects or capital authority; Decimal-only
   finite simple returns, no negative cost or duplicated time period.
-- eff: empty: no credential, network, orders or holdings mutations.
-- c: O(n) over n observations, O(n) parsing memory; hard resource
+- Effects: empty: no credential, network, orders or holdings mutations.
+- Resource observations: O(n) over n observations, O(n) parsing memory; hard resource
   ceiling remains UNKNOWN pending an upstream admission bound.
-- epsilon: exact arithmetic in the active Python Decimal context;
+- Limits of the claim: exact arithmetic in the active Python Decimal context;
   inference and point-in-time accuracy UNKNOWN, never zero by fiat.
-- prov: both input digests verified; provider facts and freeze claims
+- Evidence: both input digests verified; provider facts and freeze claims
   unverified, explicitly surfaced in the result.
-- unfold: code + direct CLI + focused falsification tests;
+- Implementation and verification: code + direct CLI + focused falsification tests;
   no independent runtime/registry/agent process.
 
 ## Deliberate technology selection

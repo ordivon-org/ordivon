@@ -55,17 +55,17 @@ Progress matters too: a trace of more model turns is not progress. When there is
 
 **Not an additional LEGO registry entry.** This is the target effective contract of the existing `HarnessAgentRun` -> `HarnessStore` production composition and must be checked against real implementation.
 
-- `I`: `(HarnessRunContract, ExactSourceCut, PostgresDSN, Schema, ProviderAdapter, OptionalRuntimeBinding)`.
-- `O`: `(CommittedRunRevision, Provider/ToolReceipts, WorkingView, CompletionProposal | RecoveryRequired[UNKNOWN])`.
-- `S`: `(run_id, revision, journal_events, leases, cas_objects, claims, working_set, budgets)`; PostgreSQL is the target durable writer; Domain/Runtime facts remain external.
-- `pre`: Exact Contract digest, qualified PG schema and caller binding, valid state revision/lease and current effect grant.
-- `post`: Atomic Run event admission with revision fence; exact returned receipts/recovery state; **never** a domain-completion guarantee.
-- `inv`: target properties PG1–PG6 below; all have explicit assumptions and negative controls.
-- `eff`: Harness PG transaction for own Run state; Provider/Runtime tool effects only via already-admitted external ports.
-- `c`: `UNKNOWN(cost, production-performance-measurement)`; no invented zero-cost bound.
-- `epsilon`: `UNKNOWN(implementation-refinement, full Python/SQL/deployed source correspondence)` until native proofs plus real consumer tests are present.
-- `prov`: exact source commit above, `src/ordivon_harness/{agent_run,postgres_store,sqlite_store,cli}.py`, `formal/ProviderClaimR1.tla`, `tests/test_postgres_harness_store.py`, actual Job/consumer receipts.
-- `unfold`: bounded spec -> TLA+/TLC model -> source/type/refinement checks -> real PG recovery/fault tests -> installed and caller-consumed Run; each level has independent evidence standing.
+- Inputs: `(HarnessRunContract, ExactSourceCut, PostgresDSN, Schema, ProviderAdapter, OptionalRuntimeBinding)`.
+- Results: `(CommittedRunRevision, Provider/ToolReceipts, WorkingView, CompletionProposal | RecoveryRequired[UNKNOWN])`.
+- State: `(run_id, revision, journal_events, leases, cas_objects, claims, working_set, budgets)`; PostgreSQL is the target durable writer; Domain/Runtime facts remain external.
+- Assumptions: Exact Contract digest, qualified PG schema and caller binding, valid state revision/lease and current effect grant.
+- Required behavior: Atomic Run event admission with revision fence; exact returned receipts/recovery state; **never** a domain-completion guarantee.
+- Preserved properties: target properties PG1–PG6 below; all have explicit assumptions and negative controls.
+- Effects: Harness PG transaction for own Run state; Provider/Runtime tool effects only via already-admitted external ports.
+- Resource observations: `UNKNOWN(cost, production-performance-measurement)`; no invented zero-cost bound.
+- Limits of the claim: `UNKNOWN(implementation-refinement, full Python/SQL/deployed source correspondence)` until native proofs plus real consumer tests are present.
+- Evidence: exact source commit above, `src/ordivon_harness/{agent_run,postgres_store,sqlite_store,cli}.py`, `formal/ProviderClaimR1.tla`, `tests/test_postgres_harness_store.py`, actual Job/consumer receipts.
+- Implementation and verification: bounded spec -> TLA+/TLC model -> source/type/refinement checks -> real PG recovery/fault tests -> installed and caller-consumed Run; each level has independent evidence standing.
 
 ### Properties and falsifying cases
 
@@ -78,7 +78,7 @@ Progress matters too: a trace of more model turns is not progress. When there is
 | PG5 | Run candidate completion is not domain acceptance | successful Runtime Job or final model text becomes task accepted | independent domain/consumer evaluator (T5) |
 | PG6 | Same checks reject weak-Agent failure paths and still allow good changes | reject-all gate achieves perfect interception but zero useful output | adversarial holdout trajectories and outcome comparison (T6) |
 
-PG1–PG6 are desired obligations, not currently all proven. Independent proof of `PgRunSourceAuthority` must not be inferred from docs, even if the complete eleven-coordinate declaration exists.
+PG1–PG6 are desired obligations, not currently all proven. Independent proof of `PgRunSourceAuthority` must not be inferred from docs, even if a specification has been written.
 
 ## 4. Implementation tickets: tracer-bullet DAG
 

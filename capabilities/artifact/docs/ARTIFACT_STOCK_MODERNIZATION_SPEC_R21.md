@@ -65,21 +65,19 @@ https://developers.cloudflare.com/r2/examples/rclone/ .
 - Superpowers worktree, writing-plans, executing-plans, verification-before-completion: isolate changes, inspect actual diff, run existing native checks, do not infer success from narration.
 - ECC: reference only for change-impact, contract-first and peer review; do NOT install foreign hook bundles, prompt router, or duplicate agent roles.
 
-## 6. Full R2.1 contract for one actual responsibility: Artifact Stock Convergence
+## 6. Artifact-specific obligations: Artifact Stock Convergence
 
-ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold)
-
-- I: immutable Git SourceCut; tracked files and SHA ledger; current imports/CLI/binding/systemd facts; current consumer evidence; approved deletion scope.
-- O: source tree minus obsolete carriers; clarified current navigation; verified unaffected native interfaces; release-ready ordinary Git diff.
-- S: Git tracked state; no new persistent runtime state or product database.
-- pre: the named SourceCut is available, every candidate has a bounded static/dynamic consumer investigation, and actual active services are excluded.
-- post: deleted source no longer appears as an actionable CURRENT interface; no broken tracked references introduced; existing active owner verification remains green.
-- inv: no changes to installed Temporal/Zot services; no new semantic evaluator or Schema; no weakened Profile assertions; no new functionality/tests/consumer paths; preserved historical Git provenance; no local PASS promoted to DOMAIN_ACCEPTED.
-- eff: Git source and documentation edits, GitHub PR; no actual credential, provider, remote bucket or production service mutations.
-- c: metadata/AST audit O(total tracked bytes + observed edges); exact native verification execution cost bounded by actual jobs, not invented a constant.
-- epsilon: static consumer closure completeness UNKNOWN; candidate-deletion certainty explicitly limited to inspected current tracked sources, services and processes.
-- prov: Git SHA, per-file hashes, actual systemctl/ps observations, repo tests, existing Host Space collaboration messages, PR review and native CI output.
-- unfold: L0 owner/goal/decision; L1 module responsibility; L2 individual ledger row + observed references; L3 source and exact test/exec evidence.
+- Inputs: immutable Git SourceCut; tracked files and SHA ledger; current imports/CLI/binding/systemd facts; current consumer evidence; approved deletion scope.
+- Results: source tree minus obsolete carriers; clarified current navigation; verified unaffected native interfaces; release-ready ordinary Git diff.
+- State: Git tracked state; no new persistent runtime state or product database.
+- Assumptions: the named SourceCut is available, every candidate has a bounded static/dynamic consumer investigation, and actual active services are excluded.
+- Required behavior: deleted source no longer appears as an actionable CURRENT interface; no broken tracked references introduced; existing active owner verification remains green.
+- Preserved properties: no changes to installed Temporal/Zot services; no new semantic evaluator or Schema; no weakened Profile assertions; no new functionality/tests/consumer paths; preserved historical Git provenance; no local PASS promoted to DOMAIN_ACCEPTED.
+- Effects: Git source and documentation edits, GitHub PR; no actual credential, provider, remote bucket or production service mutations.
+- Resource observations: metadata/AST audit O(total tracked bytes + observed edges); exact native verification execution cost bounded by actual jobs, not invented a constant.
+- Limits of the claim: static consumer closure completeness UNKNOWN; candidate-deletion certainty explicitly limited to inspected current tracked sources, services and processes.
+- Evidence: Git SHA, per-file hashes, actual systemctl/ps observations, repo tests, existing Host Space collaboration messages, PR review and native CI output.
+- Implementation and verification: L0 owner/goal/decision; L1 module responsibility; L2 individual ledger row + observed references; L3 source and exact test/exec evidence.
 
 Delete admissibility is not a per-file proof ceremony: when a class of files is generated from one obsolete responsibility, retire that group as a whole after checking real common entrypoints and unique consumers. Git history preserves the removed source.
 

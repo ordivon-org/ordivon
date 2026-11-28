@@ -578,11 +578,11 @@
         "C06"
       ],
       "acceptance": [
-        "R2.1 keeps the existing practical identity/responsibility/interface/behavioral-contract/acceptance roles and the complete typed ell=(I,O,S,pre,post,inv,eff,c,epsilon,prov,unfold) declaration; CR21 does not mint a second ontology, global registry, scheduler or execution authority.",
+        "OL uses problem-specific mathematical structures; CR21 does not mint a second ontology, global registry, scheduler or execution authority.",
         "Every replacement/composition claim names its mature semantic profile and keeps typed port compatibility, assume-guarantee refinement, observational equivalence, transition refinement, effect authority, evidence currentness and installed currentness as distinct relations.",
         "Sequential, parallel, feedback and hiding composition use their theory-specific operators and side conditions; UNKNOWN side conditions block only the dependent claim and never become empty assumptions, zero cost/error or vacuous PASS.",
         "Existing Lean/TLA+/TLC/Dafny/Quint/Kani/source/native consumers remain replaceable proof carriers bound to exact model/source/config identities; declaration completeness or verifier PASS never grants runtime invocation, installed currentness or domain acceptance.",
-        "Repository-native negative controls reject an unknown free-text Problem LEGO class and a forged CR21 registration. Full R2.1 coordinates and proof/currentness non-promotion remain requirements in the established Skill, source, and Lean formal carriers; they are not a second inspector CLI."
+        "Repository-native negative controls reject an unknown free-text Problem LEGO class and a forged CR21 registration. Proof/currentness non-promotion remains a source- and consumer-specific obligation, not a fixed declaration or second inspector CLI."
       ]
     },
     {
