@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Legacy SQLite host-storage feedback controller for Runtime reclaim/cache actuators."""
+"""Host-storage pressure observation; effectful actuators remain legacy SQLite."""
 
 from __future__ import annotations
 
