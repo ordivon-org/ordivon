@@ -9,7 +9,7 @@ import zipfile
 
 from hosted_product_acceptance import verify_archive
 from native_process import verify_process
-from rendered_product_acceptance import PRODUCT_SIZES, digest, require, verify_rasters
+from product_acceptance_contract import FRAMES, PRODUCT_SIZES, digest, require, verify_rasters
 
 
 def bounded_text(path, limit=1024 * 1024):
@@ -30,7 +30,7 @@ def verify_capture_receipt(receipt, identity):
             type(receipt["hwnd"]) is int and receipt["hwnd"] >= 0,
             "native capture identity/session differs")
     frames = receipt["frames"]
-    require(isinstance(frames, list) and len(frames) == 8 and
+    require(isinstance(frames, list) and len(frames) == FRAMES and
             all(isinstance(f, dict) and set(f) == {"name", "sha256"} and
                 f["name"] == f"frame{i:08d}.png" and isinstance(f["sha256"], str) and
                 re.fullmatch(r"[0-9a-f]{64}", f["sha256"])

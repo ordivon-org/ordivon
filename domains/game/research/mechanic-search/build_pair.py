@@ -16,7 +16,7 @@ GAME = HERE.parents[1]
 sys.path.insert(0, str(GAME / "scripts"))
 from native_process import verify_process
 from native_export_identity import capture as export_identity, digest
-from rendered_product_acceptance import require
+from product_acceptance_contract import require
 
 SOURCE = GAME / "examples/room-encounter"
 TREATMENT = HERE / "conditions/trial_block2_hp53.tres"

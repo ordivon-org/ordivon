@@ -2,10 +2,14 @@
 import copy
 import io
 import stat
+import subprocess
+import sys
+from pathlib import Path
 import unittest
 import zipfile
 
-from hosted_product_acceptance import verify_archive, digest
+from hosted_product_acceptance import verify_archive
+from product_acceptance_contract import digest
 import test_hosted_product_acceptance as fixtures
 from test_hosted_product_acceptance import PRODUCT, SOURCE
 from windows_render_acceptance import verify_capture_receipt
@@ -59,6 +63,22 @@ class WindowsArchive(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unknown native platform"):
             verify_archive(self.case.zip, digest(self.case.zip), SOURCE, PRODUCT,
                            self.case.output, platform="other")
+
+
+class SharedContractBoundary(unittest.TestCase):
+    def test_shared_contract_has_no_platform_executor_dependency(self):
+        script = (
+            "import sys; sys.path.insert(0, sys.argv[1]); "
+            "import product_acceptance_contract; "
+            "assert not ({'rendered_product_acceptance', 'windows_render_acceptance', "
+            "'x11_interaction_acceptance', 'mixed_audio_acceptance', "
+            "'hosted_product_acceptance'} & set(sys.modules))"
+        )
+        result = subprocess.run(
+            [sys.executable, "-I", "-c", script, str(Path(__file__).resolve().parent)],
+            capture_output=True, text=True, timeout=10,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
 
 class WindowsReceipt(unittest.TestCase):

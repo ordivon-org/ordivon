@@ -11,7 +11,8 @@ import tarfile
 import tempfile
 import zipfile
 
-from rendered_product_acceptance import PRODUCT_SIZES, consume as render, digest, require
+from product_acceptance_contract import PRODUCT_SIZES, digest, require
+from rendered_product_acceptance import consume as render
 from x11_interaction_acceptance import consume as interact
 from mixed_audio_acceptance import consume as audio
 

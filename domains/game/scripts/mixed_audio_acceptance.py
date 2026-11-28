@@ -9,7 +9,7 @@ import subprocess
 import time
 
 from native_process import verify_process
-from rendered_product_acceptance import digest, require
+from product_acceptance_contract import digest, require
 from x11_interaction_acceptance import (
     WIDTH, HEIGHT, XTest, require_private_display, run_private, status_strip,
 )

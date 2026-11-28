@@ -59,6 +59,8 @@ for Rust migration, conditional GdUnit4 trial; no repeated headless-only gate co
 
 ## Agent invocation and acceptance separation
 
+The platform-neutral Python acceptance contract lives in `scripts/product_acceptance_contract.py`: product dimensions, frame count, file identity and FFmpeg raster verification. Linux and Windows adapters consume it; the native capture and execution mechanisms remain platform-specific. The existing consumer test gate checks that importing the shared contract does not load platform executors.
+
 Run `mise run test:rendered-product-contract` for the real decoder fixtures;
 `mise run test:rendered-product-native-counterexample` builds a separate native
 blank project, demonstrates headless exit zero, and requires raster rejection.

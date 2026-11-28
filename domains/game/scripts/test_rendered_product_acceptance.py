@@ -6,7 +6,8 @@ import tempfile
 import unittest
 
 from native_process import verify_process
-from rendered_product_acceptance import FRAMES, consume, digest, verify_rasters
+from product_acceptance_contract import FRAMES, digest, verify_rasters
+from rendered_product_acceptance import consume
 
 
 class RasterContract(unittest.TestCase):

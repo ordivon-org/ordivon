@@ -6,7 +6,7 @@ import hypothesis
 from hypothesis import example, given, settings, strategies as st
 
 import test_hosted_product_acceptance as fixtures
-from hosted_product_acceptance import digest
+from product_acceptance_contract import digest
 
 PROFILE = settings(max_examples=35, deadline=None, derandomize=True, database=None)
 

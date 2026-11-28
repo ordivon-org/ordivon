@@ -14,7 +14,7 @@ import tempfile
 import time
 
 from native_process import verify_process
-from rendered_product_acceptance import PRODUCT_SIZES, digest, require
+from product_acceptance_contract import PRODUCT_SIZES, digest, require
 
 WIDTH, HEIGHT = PRODUCT_SIZES["room-encounter"]
 STATUS_ROWS = (64, 128)  # source-bound Room view at the contracted resolution

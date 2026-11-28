@@ -7,7 +7,8 @@ import re
 import resource
 import subprocess
 
-from hosted_product_acceptance import MAX_ARCHIVE, consume, digest, require
+from hosted_product_acceptance import MAX_ARCHIVE, consume
+from product_acceptance_contract import digest, require
 
 WORKFLOW_PATH = ".github/workflows/game-factory.yml"
 PRODUCTS = {"room": "room-encounter", "beacon": "beacon-relay"}

@@ -7,7 +7,8 @@ import tempfile
 import unittest
 import zipfile
 
-from hosted_product_acceptance import verify_archive, names, digest
+from hosted_product_acceptance import verify_archive, names
+from product_acceptance_contract import digest
 
 SOURCE = "a" * 40
 PRODUCT = "room-encounter"
