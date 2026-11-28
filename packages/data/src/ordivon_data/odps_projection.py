@@ -12,13 +12,11 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from .local_evidence import LocalEvidenceBinding, qualified_local_distribution
-
-_FORMATS = {
-    "file/json": "application/json",
-    "file/parquet": "application/vnd.apache.parquet",
-    "file/csv": "text/csv",
-}
+from .local_evidence import (
+    LocalEvidenceBinding,
+    file_port_media_type,
+    qualified_local_distribution,
+)
 
 
 def _uuid_uri(value: str) -> str | None:
@@ -97,11 +95,7 @@ def project_odps(
                 entry["dct:identifier"] = port_id
         if port_version is not None:
             entry["dcat:version"] = port_version
-        mime = (
-            _FORMATS.get(port.get("type"))
-            if isinstance(port.get("type"), str)
-            else None
-        )
+        mime = file_port_media_type(port.get("type"))
         if mime:
             entry["dct:format"] = mime
         # Output ports do NOT establish physical locations or a verifiable

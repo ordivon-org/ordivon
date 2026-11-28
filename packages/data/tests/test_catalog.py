@@ -56,6 +56,36 @@ class CatalogProjectionTests(TestCase):
                 inspect_distribution(dist, (root,), True)["verification"], "FALSIFIED"
             )
 
+    def test_legacy_and_spdx_digest_representations_preserve_admission(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "data.json"
+            source.write_bytes(b"canonical bytes")
+            digest = hashlib.sha256(source.read_bytes()).hexdigest()
+            for candidate in (digest, digest.upper(), digest[:-1], "g" * 64, " " + digest):
+                with self.subTest(candidate=candidate):
+                    legacy = {
+                        "dcat:accessURL": {"@id": source.as_uri()},
+                        "dct:identifier": "sha256:" + candidate,
+                    }
+                    result = inspect_distribution(legacy, (root,), True)
+                    self.assertEqual(
+                        result["verification"], "VERIFIED" if candidate == digest else "UNKNOWN"
+                    )
+                    spdx = {
+                        "dcat:accessURL": {"@id": source.as_uri()},
+                        "spdx:checksum": {
+                            "@type": "spdx:Checksum",
+                            "spdx:algorithm": {"@id": "http://spdx.org/rdf/terms#checksumAlgorithm_sha256"},
+                            "spdx:checksumValue": {"@type": "xsd:hexBinary", "@value": candidate},
+                        },
+                    }
+                    if candidate == digest:
+                        self.assertEqual(inspect_distribution(spdx, (root,), True)["verification"], "VERIFIED")
+                    else:
+                        with self.assertRaisesRegex(ValueError, "invalid SHA-256 checksum value"):
+                            inspect_distribution(spdx, (root,), True)
+
     def test_missing_and_external_files_remain_unknown(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)

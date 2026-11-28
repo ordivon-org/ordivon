@@ -12,7 +12,7 @@ from typing import Any
 from urllib.parse import unquote, urlsplit
 
 from .local_files import scoped_sha256
-from .verification import digest_verdict
+from .verification import SPDX_SHA256_ALGORITHM, digest_verdict, is_sha256_hexdigest
 
 
 def _declared_sha256(distribution: dict[str, Any]) -> Any:
@@ -31,7 +31,7 @@ def _declared_sha256(distribution: dict[str, Any]) -> Any:
     if checksum.get("@type") != "spdx:Checksum":
         raise ValueError("spdx:checksum must identify an SPDX Checksum")
     algorithm = checksum.get("spdx:algorithm")
-    if algorithm != {"@id": "http://spdx.org/rdf/terms#checksumAlgorithm_sha256"}:
+    if algorithm != {"@id": SPDX_SHA256_ALGORITHM}:
         # A different or unbound algorithm is not false evidence of SHA-256.
         return None
     typed_value = checksum.get("spdx:checksumValue")
@@ -42,7 +42,7 @@ def _declared_sha256(distribution: dict[str, Any]) -> Any:
     ):
         raise ValueError("invalid SPDX hexBinary checksum value")
     candidate = typed_value["@value"]
-    if len(candidate) != 64 or any(ch not in "0123456789abcdef" for ch in candidate):
+    if not is_sha256_hexdigest(candidate):
         raise ValueError("invalid SHA-256 checksum value")
     declared = "sha256:" + candidate
     if isinstance(legacy, str) and legacy.startswith("sha256:") and legacy != declared:
@@ -96,9 +96,8 @@ def inspect_distribution(
     declared = result["declaredDigest"]
     digest_bound = (
         isinstance(declared, str)
-        and len(declared) == 71
         and declared.startswith("sha256:")
-        and all(c in "0123456789abcdef" for c in declared[7:])
+        and is_sha256_hexdigest(declared[7:])
     )
     observed, reason = scoped_sha256(path, allowed_roots, hash_bytes=digest_bound)
     if observed is None:

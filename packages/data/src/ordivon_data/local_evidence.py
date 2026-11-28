@@ -12,6 +12,18 @@ from pathlib import Path
 from typing import Any
 
 from .local_files import scoped_sha256
+from .verification import SPDX_SHA256_ALGORITHM, is_sha256_hexdigest
+
+_FILE_PORT_MEDIA_TYPES = {
+    "file/json": "application/json",
+    "file/parquet": "application/vnd.apache.parquet",
+    "file/csv": "text/csv",
+}
+
+
+def file_port_media_type(port_type: object) -> str | None:
+    """Project the file-port types supported by local evidence binding."""
+    return _FILE_PORT_MEDIA_TYPES.get(port_type) if isinstance(port_type, str) else None
 
 
 @dataclass(frozen=True)
@@ -76,16 +88,14 @@ def qualified_local_distribution(
     distribution = projected["dcat:distribution"][index]
     if "dcat:accessURL" in distribution or "spdx:checksum" in distribution:
         raise ValueError("duplicate local evidence binding for output port")
-    if ports[index].get("type") not in ("file/json", "file/parquet", "file/csv"):
+    if file_port_media_type(ports[index].get("type")) is None:
         raise ValueError("binding requires a supported file output port")
     props = product.get("customProperties", [])
     if not isinstance(props, list):
         raise TypeError("ODPS customProperties must be a list")
     declared_path = _property(props, binding.path_property)
     declared_digest = _property(props, binding.digest_property)
-    if len(declared_digest) != 64 or any(
-        ch not in "0123456789abcdef" for ch in declared_digest
-    ):
+    if not is_sha256_hexdigest(declared_digest):
         raise ValueError("producer digest must be lowercase 64-digit SHA-256")
 
     relative = Path(declared_path)
@@ -118,6 +128,6 @@ def qualified_local_distribution(
     # (dct:identifier) separate from content-integrity evidence.
     distribution["spdx:checksum"] = {
         "@type": "spdx:Checksum",
-        "spdx:algorithm": {"@id": "http://spdx.org/rdf/terms#checksumAlgorithm_sha256"},
+        "spdx:algorithm": {"@id": SPDX_SHA256_ALGORITHM},
         "spdx:checksumValue": {"@value": declared_digest, "@type": "xsd:hexBinary"},
     }

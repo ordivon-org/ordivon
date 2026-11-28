@@ -7,6 +7,19 @@ its success is *not* a machine-checked proof of the implementation.
 
 from __future__ import annotations
 
+from typing import TypeGuard
+
+SPDX_SHA256_ALGORITHM = "http://spdx.org/rdf/terms#checksumAlgorithm_sha256"
+
+
+def is_sha256_hexdigest(value: object) -> TypeGuard[str]:
+    """The lowercase, unprefixed SHA-256 representation in local evidence."""
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(ch in "0123456789abcdef" for ch in value)
+    )
+
 
 def digest_verdict(declared: str | None, observed: str | None) -> str:
     """

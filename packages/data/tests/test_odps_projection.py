@@ -171,6 +171,36 @@ class OwnerProductProjectionTests(unittest.TestCase):
             self.assertTrue(all(d["reason"] == "digest_match" for d in verified))
             self.assertTrue(all(d["uri"].startswith("file:///") for d in verified))
 
+    def test_file_port_projection_and_local_binding_share_supported_types(self) -> None:
+        product = json.loads(self.sources[0].read_text(encoding="utf-8"))
+        port = product["outputPorts"][0]
+        binding = LocalEvidenceBinding(
+            product["id"], port["name"], "sourceRelativePath", "sourceSha256", self.finance_root
+        )
+        for port_type, expected in (
+            ("file/json", "application/json"),
+            ("file/parquet", "application/vnd.apache.parquet"),
+            ("file/csv", "text/csv"),
+            ("api/rest", None),
+            (None, None),
+            ([], None),
+        ):
+            with self.subTest(port_type=port_type):
+                port["type"] = port_type
+                source = json.dumps(product).encode()
+                projected = project_catalog([source])
+                dist = projected["dcat:dataset"][0]["dcat:distribution"][0]
+                self.assertEqual(dist.get("dct:format"), expected)
+                if expected is None:
+                    with self.assertRaisesRegex(ValueError, "supported file output port"):
+                        project_catalog([source], bindings=(binding,))
+                else:
+                    # This gate binds exact bytes; it does not certify their file format.
+                    qualified = project_catalog([source], bindings=(binding,))
+                    dist = qualified["dcat:dataset"][0]["dcat:distribution"][0]
+                    self.assertEqual(dist["dct:format"], expected)
+                    self.assertIn("spdx:checksum", dist)
+
     def test_explicit_binding_must_match_owner_metadata_and_bytes(self) -> None:
         owner = self.sources[0]
         props = json.loads(owner.read_text(encoding="utf-8"))

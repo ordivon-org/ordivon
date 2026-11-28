@@ -300,3 +300,20 @@ Runtime, Preservation, Artifact, Research and Finance Owners retain
 installed/effect/consumer authority. Use their own native acceptance.
 Workflow guidance lives in [AGENTS.md](../AGENTS.md) and the
 [README](../README.md); do not duplicate generic cross-owner instructions here.
+
+
+### Shared file-port and SHA-256 representation (2026-11-28)
+
+The existing local-evidence owner supplies the file-port media-type mapping
+used by ODPS projection and strict local binding; the existing pure
+verification module owns the lowercase digest grammar and SPDX algorithm
+identifier. Remove parallel format and digest definitions without changing
+producer errors, legacy UNKNOWN, valid byte verdicts or local scope.
+Consumer tests exercise all three supported types and malformed/unsupported
+types, plus legacy versus typed checksum admission. This is source-level
+representation convergence, not proof of the physical file's media format.
+
+Native verification: 42 Data, 31 lifecycle/property, and 25 Research
+consumer tests passed; existing formal task (three Lean models plus
+bounded CrossHair) exited successfully. Independent peer review and
+remote integration remain unestablished.
