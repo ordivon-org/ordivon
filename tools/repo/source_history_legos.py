@@ -92,6 +92,17 @@ def _require_exact_git_oid(repo: Path, source_cut: str) -> None:
         or re.fullmatch(r"[0-9a-f]{" + str(width) + r"}", source_cut) is None
     ):
         raise ValueError(f"sourceCut must be an exact {width}-hex Git commit")
+    # Native revision traversal peels annotated tags. A syntactically full
+    # OID must instead resolve to itself as a commit, for every consumer.
+    try:
+        exact = git(
+            repo, "--no-replace-objects", "rev-parse", "--verify",
+            source_cut + "^{commit}",
+        ).strip()
+    except subprocess.CalledProcessError as exc:
+        raise ValueError("sourceCut is not an exact existing Git commit") from exc
+    if exact != source_cut:
+        raise ValueError("sourceCut did not resolve to the exact requested commit")
 
 
 def source_membership_query(
@@ -120,9 +131,6 @@ def source_membership_query(
     if type(max_members) is not int or max_members < 1:
         raise ValueError("max_members must be a positive integer")
 
-    exact = git(repo, "--no-replace-objects", "rev-parse", "--verify", source_cut + "^{commit}").strip()
-    if exact != source_cut:
-        raise ValueError("sourceCut did not resolve to the exact requested commit")
     tree_oid = git(repo, "--no-replace-objects", "rev-parse", source_cut + "^{tree}").strip()
     # Reuse Git's existing exhaustive NUL-delimited native tree enumeration.
     tree = current_tree(repo, source_cut)
