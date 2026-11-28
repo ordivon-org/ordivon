@@ -6,6 +6,7 @@ import json
 import tempfile
 import tomllib
 import unittest
+from collections import Counter
 from pathlib import Path
 from unittest.mock import patch
 
@@ -66,10 +67,23 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
         development = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
         self.assertEqual(runtime["dependencies"], development["dependencies"])
         dev_lock = tomllib.loads((ROOT / "uv.lock").read_text())
-        dev_versions = {row["name"]: row["version"] for row in dev_lock["package"]}
-        shared = set(observed) & set(dev_versions)
-        self.assertTrue(shared)
-        self.assertEqual({n: observed[n] for n in shared}, {n: dev_versions[n] for n in shared})
+        # Compare complete registry records, not just names and versions.
+        # A multiset preserves separate records for marker-specific resolutions.
+        def registry_records(packages):
+            return Counter(
+                json.dumps(row, sort_keys=True, separators=(",", ":"))
+                for row in packages
+                if "registry" in row.get("source", {})
+            )
+
+        delivery_registry = registry_records(tomllib.loads(raw.decode())["package"])
+        self.assertTrue(delivery_registry)
+        missing = delivery_registry - registry_records(dev_lock["package"])
+        self.assertFalse(
+            missing,
+            "Delivery registry records missing from development lock: "
+            + ", ".join(sorted(json.loads(record)["name"] for record in missing)),
+        )
 
     def test_environment_has_no_isolated_equipment_or_host_libxslt_authority(self):
         source=(ROOT/'scripts/artifact_python_environment.py').read_text();wrapper=(ROOT/'scripts/artifact_python_wrapper.py').read_text()
