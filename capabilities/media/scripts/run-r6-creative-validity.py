@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 
 from ordivon_studio.research.null_attack_scoring import score_null_attack
+from ordivon_studio.research.report_io import write_report_json
 from ordivon_studio.research.search_calibration import (
     calibration_experiment,
     evaluate_sealed_holdout,
@@ -20,12 +21,6 @@ def read_json(path: str | Path) -> dict:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
-def write_json(path: str | Path, value: object) -> None:
-    target = Path(path)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-
-
 def register(args: argparse.Namespace) -> None:
     registration = build_null_registration(
         mode=args.mode,
@@ -34,7 +29,7 @@ def register(args: argparse.Namespace) -> None:
         holdout_seed_commitment=args.holdout_seed_commitment,
         experiment_id=args.experiment_id,
     )
-    write_json(args.output, registration)
+    write_report_json(args.output, registration)
     print(json.dumps({"ok": True, "mode": "register", "output": args.output, "registrationDigest": registration["registrationDigest"]}, indent=2))
 
 
@@ -45,7 +40,7 @@ def search(args: argparse.Namespace) -> None:
         winner = run_registered_search(registration, ledger)
     finally:
         ledger.close()
-    write_json(args.output, winner)
+    write_report_json(args.output, winner)
     print(json.dumps({"ok": True, "mode": "search", "output": args.output, "winnerDigest": winner["winnerDigest"], "visibleStatisticZ": winner["visibleStatisticZ"], "naiveOneSidedP": winner["naiveOneSidedP"], "ledger": winner["trialLedger"]}, indent=2))
 
 
@@ -56,7 +51,7 @@ def correct(args: argparse.Namespace) -> None:
         replay_seed=args.replay_seed,
         replay_count=args.replays,
     )
-    write_json(args.output, result)
+    write_report_json(args.output, result)
     print(json.dumps({"ok": True, "mode": "correct", "output": args.output, "searchCorrectedP": result["searchCorrectedP"], "nullMaxSummary": result["nullMaxSummary"]}, indent=2))
 
 
@@ -73,7 +68,7 @@ def holdout(args: argparse.Namespace) -> None:
     finally:
         if ledger is not None:
             ledger.close()
-    write_json(args.output, result)
+    write_report_json(args.output, result)
     print(json.dumps({"ok": True, "mode": "holdout", "output": args.output, "holdoutStatisticZ": result["holdoutStatisticZ"], "holdoutOneSidedP": result["holdoutOneSidedP"], "status": result["holdoutStatus"]}, indent=2))
 
 
@@ -86,7 +81,7 @@ def calibrate(args: argparse.Namespace) -> None:
         reference_replays=args.reference_replays,
         seed=args.seed,
     )
-    write_json(args.output, result)
+    write_report_json(args.output, result)
     print(json.dumps({"ok": True, "mode": "calibrate", "output": args.output, "calibrationDigest": result["calibrationDigest"], "rows": result["rows"]}, indent=2))
 
 
@@ -98,7 +93,7 @@ def score(args: argparse.Namespace) -> None:
         holdout=read_json(args.holdout),
         calibration=read_json(args.calibration),
     )
-    write_json(args.output, result)
+    write_report_json(args.output, result)
     print(json.dumps({"ok": True, "mode": "score", "output": args.output, "accepted": result["accepted"], "acceptanceSignals": result["acceptanceSignals"], "observed": result["observed"], "scoreDigest": result["scoreDigest"]}, indent=2))
 
 

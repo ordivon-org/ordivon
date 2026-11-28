@@ -19,52 +19,48 @@ from ordivon_studio.research.creative_protocol import (
     build_holdout_protocol,
     build_visible_protocol,
 )
+from ordivon_studio.research.report_io import write_report_json
 
 
 def read(path: str | Path) -> dict:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
-def write(path: str | Path, value: object) -> None:
-    target = Path(path); target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-
-
 def build_visible(args: argparse.Namespace) -> None:
     protocol = build_visible_protocol(holdout_seed_commitment=args.holdout_commitment)
-    root = Path(args.output_dir); write(root / "protocol.json", protocol)
+    root = Path(args.output_dir); write_report_json(root / "protocol.json", protocol)
     for item in protocol["mechanisms"]:
-        write(root / f"mechanism-{item['mechanismId'].lower()}.manifest.json", item["manifest"])
+        write_report_json(root / f"mechanism-{item['mechanismId'].lower()}.manifest.json", item["manifest"])
     print(json.dumps({"ok": True, "protocolDigest": protocol["protocolDigest"], "holdoutCommitment": protocol["holdout"]["seedCommitment"], "manifests": [str(root / f"mechanism-{item['mechanismId'].lower()}.manifest.json") for item in protocol["mechanisms"]]}, indent=2))
 
 
 def build_observer(args: argparse.Namespace) -> None:
     bundle = build_observer_bundle(protocol=read(args.protocol), web_receipts=[read(path) for path in args.web_receipt], replicates=args.replicates)
-    write(args.output, bundle)
+    write_report_json(args.output, bundle)
     print(json.dumps({"ok": True, "bundleDigest": bundle["bundleDigest"], "tasks": len(bundle["tasks"]), "providerCalls": sum(task["replicates"] for task in bundle["tasks"]), "output": args.output}, indent=2))
 
 
 def score_visible(args: argparse.Namespace) -> None:
-    score = score_observer_receipt(bundle=read(args.bundle), receipt=read(args.receipt)); write(args.output, score)
-    selection = freeze_visible_contrast(score); write(args.selection_output, selection)
+    score = score_observer_receipt(bundle=read(args.bundle), receipt=read(args.receipt)); write_report_json(args.output, score)
+    selection = freeze_visible_contrast(score); write_report_json(args.selection_output, selection)
     print(json.dumps({"ok": True, "scoreDigest": score["scoreDigest"], "primaryContrast": score["primaryContrast"], "guardrails": score["guardrails"], "selection": selection}, indent=2))
 
 
 def build_holdout(args: argparse.Namespace) -> None:
     protocol = build_holdout_protocol(holdout_seed=args.holdout_seed, expected_commitment=args.expected_commitment, visible_selection=read(args.selection))
-    write(args.output, protocol); write(args.manifest_output, protocol["manifest"])
+    write_report_json(args.output, protocol); write_report_json(args.manifest_output, protocol["manifest"])
     print(json.dumps({"ok": True, "holdoutProtocolDigest": protocol["holdoutProtocolDigest"], "seedCommitment": protocol["seedCommitment"], "manifest": args.manifest_output}, indent=2))
 
 
 def build_holdout_observer(args: argparse.Namespace) -> None:
     bundle = build_holdout_observer_bundle(holdout_protocol=read(args.holdout_protocol), web_receipt=read(args.web_receipt), replicates=args.replicates)
-    write(args.output, bundle)
+    write_report_json(args.output, bundle)
     print(json.dumps({"ok": True, "bundleDigest": bundle["bundleDigest"], "tasks": len(bundle["tasks"]), "providerCalls": sum(task["replicates"] for task in bundle["tasks"])}, indent=2))
 
 
 def score_holdout(args: argparse.Namespace) -> None:
-    score = score_observer_receipt(bundle=read(args.bundle), receipt=read(args.receipt)); write(args.output, score)
-    oos = score_content_oos(visible_selection=read(args.selection), holdout_score=score); write(args.oos_output, oos)
+    score = score_observer_receipt(bundle=read(args.bundle), receipt=read(args.receipt)); write_report_json(args.output, score)
+    oos = score_content_oos(visible_selection=read(args.selection), holdout_score=score); write_report_json(args.oos_output, oos)
     print(json.dumps({"ok": True, "scoreDigest": score["scoreDigest"], "primaryContrast": score["primaryContrast"], "oos": oos}, indent=2))
 
 
@@ -76,12 +72,12 @@ def uncertainty(args: argparse.Namespace) -> None:
         holdout_receipt=read(args.holdout_receipt),
         bootstrap_draws=args.draws,
         seed=args.seed,
-    ); write(args.output, result)
+    ); write_report_json(args.output, result)
     print(json.dumps({"ok": True, "uncertaintyDigest": result["uncertaintyDigest"], "visible": result["visible"], "pristineContentHoldout": result["pristineContentHoldout"], "effectShrinkage": result["effectShrinkage"]}, indent=2))
 
 
 def portfolio(args: argparse.Namespace) -> None:
-    result = creative_portfolio_counterfactual(visible_score=read(args.visible_score), holdout_score=read(args.holdout_score)); write(args.output, result)
+    result = creative_portfolio_counterfactual(visible_score=read(args.visible_score), holdout_score=read(args.holdout_score)); write_report_json(args.output, result)
     print(json.dumps({"ok": True, "portfolioDigest": result["portfolioDigest"], "measured": result["measuredVariantAdaptationAccuracy"], "scenarios": result["scenarios"]}, indent=2))
 
 
