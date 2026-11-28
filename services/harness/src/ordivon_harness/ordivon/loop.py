@@ -6,6 +6,7 @@ from collections.abc import Callable
 from anc_canonical import JsonValue, canonical_bytes, canonical_digest
 
 from ..protocol import HarnessProviderCallFailureReceipt
+from ..tool_program_contract import HarnessToolProgramAction
 from ..tool_program_recovery import (
     derive_tool_program_inner_call,
     recover_tool_program_action,
@@ -1944,7 +1945,19 @@ class OrdivonAgentLoop:
                         RunStopCode.INVALID_MODEL_OUTPUT,
                         detail="Agent requested ToolProgram without exact turn capability",
                     )
-                action = result.tool_program_action
+                # A Provider or Tool callback must not change an already
+                # admitted program while its inner effects are in flight.
+                # to_dict verifies the original commitment and returns
+                # detached bytes decoded into a new value.
+                try:
+                    action = HarnessToolProgramAction.from_dict(
+                        result.tool_program_action.to_dict()
+                    )
+                except (TypeError, ValueError) as error:
+                    return stop(
+                        RunStopCode.INVALID_MODEL_OUTPUT,
+                        detail=f"ToolProgram action admission rejected: {error}",
+                    )
                 admitted_program_tools = {tool.name for tool in request.tools}
                 unavailable_program_tools = sorted(
                     {

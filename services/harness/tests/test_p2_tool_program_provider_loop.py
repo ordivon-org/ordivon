@@ -34,9 +34,7 @@ def _program_turn(suffix: str) -> AgentTurnResult:
         conclusion=None,
         usage={"inputTokens": 10, "outputTokens": 5},
         finish_reason="tool_calls",
-        raw_response_digest=canonical_digest(
-            {"suffix": suffix, "programAction": action.to_dict()}
-        ),
+        raw_response_digest=canonical_digest({"suffix": suffix, "programAction": action.to_dict()}),
         tool_program_action=action,
     )
 
@@ -75,9 +73,7 @@ def _budget() -> RunBudget:
 class ToolProgramProviderLoopIntegrationTests(unittest.TestCase):
     def test_agent_loop_executes_native_program_then_returns_to_provider(self) -> None:
         bridge = Bridge()
-        adapter = ScriptedTurnAdapter(
-            (_program_turn("loop"), _complete_turn("loop"))
-        )
+        adapter = ScriptedTurnAdapter((_program_turn("loop"), _complete_turn("loop")))
         result = OrdivonAgentLoop(
             adapter,
             bridge,
@@ -94,7 +90,9 @@ class ToolProgramProviderLoopIntegrationTests(unittest.TestCase):
         self.assertEqual(result.stop_code, RunStopCode.CANDIDATE_COMPLETED)
         self.assertEqual(result.model_calls, 2)
         self.assertEqual(result.tool_calls, 2)
-        self.assertEqual([call.name for call, _step in bridge.calls], ["read_value", "lookup_value"])
+        self.assertEqual(
+            [call.name for call, _step in bridge.calls], ["read_value", "lookup_value"]
+        )
         self.assertEqual(len(adapter.requests), 2)
         self.assertTrue(adapter.requests[0].capabilities.tool_program)
         self.assertIn(
@@ -104,9 +102,7 @@ class ToolProgramProviderLoopIntegrationTests(unittest.TestCase):
 
     def test_agent_loop_unknown_program_step_stops_before_second_provider_turn(self) -> None:
         bridge = Bridge(stop_on="lookup_value", stop_status="unknown")
-        adapter = ScriptedTurnAdapter(
-            (_program_turn("unknown"), _complete_turn("unknown"))
-        )
+        adapter = ScriptedTurnAdapter((_program_turn("unknown"), _complete_turn("unknown")))
         result = OrdivonAgentLoop(
             adapter,
             bridge,
@@ -123,7 +119,9 @@ class ToolProgramProviderLoopIntegrationTests(unittest.TestCase):
         self.assertEqual(result.stop_code, RunStopCode.RUNTIME_UNKNOWN)
         self.assertEqual(result.model_calls, 1)
         self.assertEqual(len(adapter.requests), 1)
-        self.assertEqual([call.name for call, _step in bridge.calls], ["read_value", "lookup_value"])
+        self.assertEqual(
+            [call.name for call, _step in bridge.calls], ["read_value", "lookup_value"]
+        )
 
     def test_deepseek_tool_program_control_is_exposed_and_decoded_only_when_admitted(self) -> None:
         tool = AgentToolDefinition(
@@ -213,9 +211,7 @@ class ToolProgramProviderLoopIntegrationTests(unittest.TestCase):
     def test_deepseek_reprojects_retained_program_action_and_compact_result(self) -> None:
         action = _program_turn("history").tool_program_action
         assert action is not None
-        adapter = DeepSeekTurnAdapter(
-            DeepSeekSettings(api_key="k" * 40, max_output_tokens=512)
-        )
+        adapter = DeepSeekTurnAdapter(DeepSeekSettings(api_key="k" * 40, max_output_tokens=512))
         request = AgentTurnRequest(
             harness_run_id="harness-run:p2-deepseek-history",
             turn_id="turn:p2-deepseek-history:2",
@@ -231,7 +227,7 @@ class ToolProgramProviderLoopIntegrationTests(unittest.TestCase):
                 },
                 {
                     "role": "user",
-                    "content": "Harness ToolProgram result: {\"status\":\"completed\"}",
+                    "content": 'Harness ToolProgram result: {"status":"completed"}',
                 },
             ),
             tools=(READ,),
@@ -239,13 +235,52 @@ class ToolProgramProviderLoopIntegrationTests(unittest.TestCase):
         )
         _allowed, _digest, _headers, body = adapter._prepare_request(request)
         payload = json.loads(body)
-        self.assertIn(
-            "Retained Harness ToolProgram action:", payload["messages"][1]["content"]
-        )
-        self.assertIn(
-            "Harness ToolProgram result:", payload["messages"][2]["content"]
-        )
+        self.assertIn("Retained Harness ToolProgram action:", payload["messages"][1]["content"])
+        self.assertIn("Harness ToolProgram result:", payload["messages"][2]["content"])
 
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ToolProgramLiveSnapshotTests(unittest.TestCase):
+    def test_loop_consumes_admitted_action_despite_callback_mutation(self):
+        first = _program_turn("r8-live-snapshot")
+        action = first.tool_program_action
+        assert action is not None
+        original_digest = action.digest
+
+        class MutatingBridge(Bridge):
+            def execute(self, call, *, step_id):
+                result = super().execute(call, step_id=step_id)
+                if call.name == "read_value":
+                    action.program.steps[1].arguments["query"] = "tampered"
+                    action.program.outputs["sourceDigest"] = "forged"
+                return result
+
+        bridge = MutatingBridge()
+        adapter = ScriptedTurnAdapter((first, _complete_turn("r8-live-snapshot")))
+        result = OrdivonAgentLoop(
+            adapter,
+            bridge,
+            budget=_budget(),
+            clock_ms=lambda: 1_000,
+            monotonic_ms=lambda: 1_000,
+            tool_program_actions=True,
+        ).run(
+            harness_run_id="harness-run:r8-live-snapshot",
+            assignment_id="assignment:r8-live-snapshot",
+            context_digest="sha256:" + "a" * 64,
+            initial_messages=({"role": "user", "content": "bounded dataflow"},),
+        )
+        self.assertEqual(result.stop_code, RunStopCode.CANDIDATE_COMPLETED)
+        self.assertEqual(len(bridge.calls), 2)
+        self.assertEqual(bridge.calls[1][0].arguments, {"query": "needle"})
+        self.assertEqual(len(adapter.requests), 2)
+        self.assertIn(
+            '"sourceDigest":"sha256:' + "a" * 64 + '"', adapter.requests[1].messages[-1]["content"]
+        )
+        self.assertEqual(
+            canonical_digest(adapter.requests[1].messages[-2]["toolProgramAction"]),
+            original_digest,
+        )

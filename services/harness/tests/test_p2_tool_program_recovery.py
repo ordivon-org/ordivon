@@ -239,3 +239,68 @@ class ToolProgramRecoveryP2Tests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ToolProgramObservationAuthorityTests(unittest.TestCase):
+    def action(self):
+        return HarnessToolProgramAction(
+            action_call_id="program-action:r8-sealed-observation",
+            program=HarnessToolProgram(
+                steps=(
+                    HarnessToolProgramStep("read", "read_value", {"key": "source"}),
+                    HarnessToolProgramStep("write", "write_value", {
+                        "left": observation_ref("read", "value"),
+                        "right": observation_ref("read", "value"),
+                    }),
+                ),
+                outputs={"source": observation_ref("read", "value")},
+            ),
+        )
+
+    def test_public_observation_mutation_cannot_change_next_call(self):
+        action = self.action()
+        first = derive_tool_program_inner_call(action, 0, ())
+        receipt = observed(first, {"value": {"items": ["committed"]}})
+        original_digest = receipt.digest
+        receipt.structured_content["value"]["items"][0] = "forged"
+        self.assertEqual(receipt.digest, original_digest)
+        second = derive_tool_program_inner_call(action, 1, (receipt,))
+        self.assertEqual(second.arguments["left"], {"items": ["committed"]})
+        self.assertEqual(second.arguments["right"], {"items": ["committed"]})
+        second.arguments["left"]["items"].append("consumer mutation")
+        self.assertEqual(second.arguments["right"], {"items": ["committed"]})
+        self.assertEqual(receipt.digest, original_digest)
+        # Recovery must derive exactly the same Call even after caller mutation.
+        restored = HarnessToolObservation.from_dict(receipt.to_dict())
+        self.assertEqual(
+            recover_tool_program_action(action, (receipt,)).next_call.digest,
+            recover_tool_program_action(action, (restored,)).next_call.digest,
+        )
+
+    def test_live_consumer_and_recovery_use_the_same_committed_data(self):
+        action = self.action()
+
+        class MutableObservationBridge(Bridge):
+            def execute(self, call, *, step_id):
+                self.calls.append((call, step_id))
+                if call.name == "read_value":
+                    receipt = observed(call, {"value": {"items": ["committed"]}})
+                    receipt.structured_content["value"]["items"][0] = "forged"
+                    return receipt
+                # A Tool implementation mutates its request locally. This must
+                # not mutate earlier evidence, sibling references, or outputs.
+                call.arguments["left"]["items"].append("local")
+                return observed(call, {"right": call.arguments["right"]})
+
+        bridge = MutableObservationBridge()
+        result = HarnessToolProgramActionExecutor(bridge, (READ, WRITE)).execute(
+            action, remaining_tool_calls=2, step_prefix="r8"
+        )
+        self.assertEqual(result.status, "completed")
+        self.assertEqual(result.output, {"source": {"items": ["committed"]}})
+        self.assertEqual(bridge.calls[-1][0].arguments["right"], {"items": ["committed"]})
+        restored = tuple(HarnessToolObservation.from_dict(r.to_dict()) for r in result.observations)
+        self.assertEqual(
+            recover_tool_program_action(action, restored).terminal_result.digest,
+            result.digest,
+        )

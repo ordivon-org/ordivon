@@ -9,7 +9,6 @@ semantics do not require a second program ledger.
 
 from __future__ import annotations
 
-import copy
 from dataclasses import dataclass
 
 from anc_canonical import JsonValue, canonical_digest, validate_json_value
@@ -17,10 +16,10 @@ from anc_canonical import JsonValue, canonical_digest, validate_json_value
 from .agent_tool_observation import HarnessToolObservation
 from .ordivon.model import AgentToolCall, AgentToolDefinition
 from .ordivon.tool_bridge import ToolBridge
+from .tool_program_dataflow import resolve_template
 from .tool_program import (
     HarnessToolProgramAction,
     HarnessToolProgramResult,
-    _resolve_template,
 )
 
 
@@ -58,7 +57,7 @@ def derive_tool_program_inner_call(
         by_step[step.step_id] = observation
 
     step = action.program.steps[step_index]
-    resolved_arguments = _resolve_template(step.arguments, by_step)
+    resolved_arguments = resolve_template(step.arguments, by_step)
     if not isinstance(resolved_arguments, dict):
         raise ValueError("ToolProgram step arguments must resolve to an object")
     return AgentToolCall(
@@ -131,7 +130,7 @@ def recover_tool_program_action(
 
     # Check admission identity before constructing an effect-free recovery image.
     action.require_admitted_snapshot()
-    action = HarnessToolProgramAction.from_dict(copy.deepcopy(action.to_dict()))
+    action = HarnessToolProgramAction.from_dict(action.to_dict())
     if len(observations) > len(action.program.steps):
         raise ValueError("ToolProgram durable observation prefix exceeds program length")
 
@@ -175,7 +174,7 @@ def recover_tool_program_action(
                 strict=True,
             )
         }
-        output = _resolve_template(action.program.outputs, by_step)
+        output = resolve_template(action.program.outputs, by_step)
         if not isinstance(output, dict):
             raise ValueError("ToolProgram outputs must resolve to an object")
         result = HarnessToolProgramResult(
@@ -229,7 +228,7 @@ class HarnessToolProgramActionExecutor:
         # Verify admission identity, then snapshot for the entire effect batch.
         # Callbacks may mutate the caller's object without changing our copy.
         action.require_admitted_snapshot()
-        action = HarnessToolProgramAction.from_dict(copy.deepcopy(action.to_dict()))
+        action = HarnessToolProgramAction.from_dict(action.to_dict())
         if action.physical_tool_calls > remaining_tool_calls:
             raise ValueError("ToolProgram exceeds remaining Tool Call budget")
         denied = sorted({step.tool_name for step in action.program.steps} - self.admitted_tools)
