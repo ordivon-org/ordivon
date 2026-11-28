@@ -26,6 +26,12 @@ use policy::{next_candidate, PendingCandidate, SchedulerPreflight};
 #[cfg(test)]
 use std::collections::BTreeMap;
 
+// Bind the grant and its readback to the same Job/Attempt subject. A
+// historical Allocation remains a resource root, but it cannot certify a
+// different current Attempt. Missing rows in the locked claim are errors.
+const LOCKED_CLAIMABLE_ATTEMPT_SQL: &str = "SELECT a.state='accepted' AND j.desired_state='run' AND j.resolution IS NULL AND j.current_attempt_id IS NOT DISTINCT FROM a.attempt_id FROM attempts a JOIN jobs j ON j.job_id=a.job_id WHERE a.attempt_id=$1 AND j.job_id=$2 FOR UPDATE OF a,j";
+const CONFIRMED_CURRENT_ALLOCATION_SQL: &str = "SELECT EXISTS(SELECT 1 FROM job_allocations x JOIN attempts a ON a.attempt_id=x.attempt_id JOIN jobs j ON j.job_id=a.job_id AND j.current_attempt_id=a.attempt_id WHERE j.job_id=$1 AND a.attempt_id=$2 AND x.state='active')";
+
 // A current Attempt belongs to exactly one Job. The schema does not enforce
 // uniqueness of jobs.current_attempt_id, so bind both identities at the query
 // boundary instead of trusting a potentially stale/corrupted pointer.
