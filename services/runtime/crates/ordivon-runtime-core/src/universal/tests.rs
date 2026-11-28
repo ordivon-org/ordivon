@@ -225,6 +225,17 @@ fn interrupted_open_reuses_durable_intent_and_real_git_without_second_add() {
         }),
     )
     .unwrap();
+    // An opening intent is a valid intermediate state, not corrupt metadata.
+    let pending = load_workspace_record(&config, workspace_id).unwrap_err();
+    assert_eq!(pending.code, UniversalExecErrorCode::WorkspaceStateMismatch);
+    assert!(pending.retryable);
+    // A malformed record that merely claims "opening" must remain corruption.
+    let original = fs::read(&record).unwrap();
+    write_json_atomic(&record, &serde_json::json!({"state": "opening"})).unwrap();
+    let malformed = load_workspace_record(&config, workspace_id).unwrap_err();
+    assert_eq!(malformed.code, UniversalExecErrorCode::MetadataCorrupt);
+    assert!(!malformed.retryable);
+    fs::write(&record, original).unwrap();
     // An actual Git worktree add happened before this process disappeared.
     run_git(
         &source,
@@ -237,7 +248,22 @@ fn interrupted_open_reuses_durable_intent_and_real_git_without_second_add() {
         ],
     );
     let before = fs::read(target.join(".git")).unwrap();
+    // The physical inventory is the actual workspace.list consumer seam.
+    // An interrupted OPENING is visible as a pending issue, never as OPEN.
+    let inventory = list_open_workspace_record_inventory(&config).unwrap();
+    assert!(inventory.records.is_empty());
+    assert_eq!(inventory.issues.len(), 1);
+    assert_eq!(inventory.issues[0].workspace_id, workspace_id);
+    assert_eq!(
+        inventory.issues[0].error.code,
+        UniversalExecErrorCode::WorkspaceStateMismatch
+    );
+    assert!(inventory.issues[0].error.retryable);
     let opened = create_git_workspace(&config, &request).unwrap();
+    let inventory = list_open_workspace_record_inventory(&config).unwrap();
+    assert!(inventory.issues.is_empty());
+    assert_eq!(inventory.records.len(), 1);
+    assert_eq!(inventory.records[0].workspace_id, workspace_id);
     assert_eq!(opened.source_revision, commit);
     assert_eq!(fs::read(target.join(".git")).unwrap(), before);
     let recovered = load_workspace_record(&config, workspace_id).unwrap();
@@ -245,6 +271,80 @@ fn interrupted_open_reuses_durable_intent_and_real_git_without_second_add() {
     assert_eq!(recovered.source_revision, commit);
     let duplicate = create_git_workspace(&config, &request).unwrap_err();
     assert_eq!(duplicate.code, UniversalExecErrorCode::WorkspaceExists);
+}
+
+#[test]
+fn interrupted_open_dependency_scope_is_not_global() {
+    let sandbox = Sandbox::new("workspace-opening-dependency-scope");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    config.ensure_store().unwrap();
+    let parent_id = "workspace-opening-parent";
+    let peer_id = "workspace-opening-peer";
+    let parent = create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: parent_id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap();
+    let commit = git_text(&source, ["rev-parse", "HEAD"]);
+    let record = config.workspace_record_path(peer_id);
+    let mut intent = serde_json::json!({
+        "schemaVersion": UNIVERSAL_EXEC_SCHEMA_VERSION,
+        "state": "opening",
+        "sourceRepo": source.to_string_lossy(),
+        "sourceRevision": commit,
+        "requestedRevision": commit,
+        "createdUnixMs": 99
+    });
+    write_json_atomic(&record, &intent).unwrap();
+    assert!(workspace_cleanup_dependents(&config, parent_id)
+        .unwrap()
+        .is_empty());
+    let target = config.workspace_path(peer_id);
+    run_git(
+        &source,
+        [
+            "worktree",
+            "add",
+            "--detach",
+            target.to_str().unwrap(),
+            "HEAD",
+        ],
+    );
+    assert!(workspace_cleanup_dependents(&config, parent_id)
+        .unwrap()
+        .is_empty());
+    let unique = target.join("unshipped.txt");
+    fs::write(&unique, b"unique unshipped content").unwrap();
+    assert!(workspace_cleanup_dependents(&config, parent_id).is_err());
+    assert_eq!(fs::read(&unique).unwrap(), b"unique unshipped content");
+    fs::remove_file(unique).unwrap();
+    run_git(&source, ["worktree", "remove", target.to_str().unwrap()]);
+    // A real independent Git source inside the parent remains a dependency.
+    let nested = config
+        .workspace_path(&parent.workspace_id)
+        .join("nested-source");
+    fs::create_dir_all(&nested).unwrap();
+    init_git_repo(&nested);
+    let nested_commit = git_text(&nested, ["rev-parse", "HEAD"]);
+    intent["sourceRepo"] = serde_json::json!(nested.to_string_lossy());
+    intent["sourceRevision"] = serde_json::json!(nested_commit);
+    intent["requestedRevision"] = serde_json::json!(nested_commit);
+    write_json_atomic(&record, &intent).unwrap();
+    assert_eq!(
+        workspace_cleanup_dependents(&config, parent_id).unwrap(),
+        vec![peer_id.to_string()]
+    );
+    // Missing source authority is UNKNOWN and must block closure.
+    intent["sourceRepo"] = serde_json::json!(sandbox.root.join("missing-source").to_string_lossy());
+    write_json_atomic(&record, &intent).unwrap();
+    assert!(workspace_cleanup_dependents(&config, parent_id).is_err());
 }
 
 #[test]
