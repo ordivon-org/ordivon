@@ -6,18 +6,19 @@ cooldown and same-active-country states. No claim about actual Gluetun or WG.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from itertools import product
 import json
-from pathlib import Path
 import sys
+from datetime import UTC, datetime, timedelta
+from itertools import product
+from pathlib import Path
+
 from z3 import And, Bool, BoolVal, Not, Or, Solver, sat, unsat
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "providers/gluetun"))
-import quality_history as policy  # noqa: E402
+import quality_history as policy
 
-NOW = datetime(2026, 11, 14, tzinfo=timezone.utc)
+NOW = datetime(2026, 11, 14, tzinfo=UTC)
 
 
 def source_decision(active: bool | None, underlay: bool | None,
@@ -38,7 +39,8 @@ def source_decision(active: bool | None, underlay: bool | None,
     return action["decision"].startswith("TRIAL_ONLY_")
 
 
-def validate() -> None:
+def _validate_recovery_admission() -> int:
+    """Refine one-shot recovery admission and retain underlay/UNKNOWN mutants."""
     c_active = Bool("active_known_failed")
     c_underlay = Bool("underlay_reachable")
     c_evidence = Bool("historical_candidate_eligible")
@@ -75,9 +77,11 @@ def validate() -> None:
     q = Solver()
     q.add(c_active == BoolVal(True), c_underlay, c_evidence, c_notcooling, c_different)
     assert q.check() == sat
+    return cases
 
-    # Source-linked finite refinement: first eligible quality country,
-    # at most one independent fallback; no duplicate, stale or current country.
+
+def _validate_candidate_selection() -> int:
+    """Refine first eligible country plus at most one distinct fallback."""
     country_cases = 0
     for a, b, c, current in product(
         ("Japan", "Mexico", "North Macedonia", "Hong Kong", None),
@@ -120,10 +124,11 @@ def validate() -> None:
         mismatch.add(BoolVal(actual != expected))
         assert mismatch.check() == unsat
         country_cases += 1
+    return country_cases
 
-    # Source hint is only a time-bounded *candidate* and cannot bypass
-    # the same active/underlay/allowed-country admission predicate. These
-    # scenarios do not claim hot-standby reachability or real API effects.
+
+def _validate_source_hints_and_cold_trials() -> tuple[int, int]:
+    """Bound source hints and cold trials to the same recovery admission seam."""
     selected = set(policy.native.read_selector_policy()["selectedCountries"])
     assert not policy.source_trial_hints(NOW, selected)
     hinted = [
@@ -180,11 +185,11 @@ def validate() -> None:
             assert "Hong Kong" not in outcome["trialCountries"]
             assert len(outcome["trialCountries"])<=2
         cold_cases+=1
+    return (hint_cases, cold_cases)
 
-    # Finite temporal *schedule* model, bound to the native source
-    # intervals. The proof is only about maximum sampling/timer phase,
-    # not VPN interruption, Prometheus scheduling under load or WAN TTR.
-    from pathlib import Path
+
+def _validate_sampling_schedule() -> tuple[int, int]:
+    """Bind finite sampling/timer cadence to source, not physical VPN TTR."""
     source_root = ROOT
     fast_jobs = {
         "blackbox-scoped-claude-api": "claude.yml",
@@ -210,11 +215,11 @@ def validate() -> None:
     z = Solver()
     z.add(BoolVal(worst_case < old_worst_case) == BoolVal(False))
     assert z.check() == unsat
+    return (scan, worst_case)
 
-    # Real-consumer signal freshness refinement. The 30s scrape policy
-    # must not promote retained 135-second-old failed samples into current
-    # failure after Prometheus/Blackbox stopped. Model original, not
-    # query_range replayed timestamps, on a finite boundary grid.
+
+def _validate_failure_freshness(scan: int) -> tuple[int, int]:
+    """Reject retained stale samples as current consumer-failure evidence."""
     assert policy.FAILURE_SCRAPE_SECONDS == scan
     assert policy.FAILURE_LAST_SAMPLE_AGE_SECONDS == 75
     assert policy.FAILURE_MAX_SAMPLE_GAP_SECONDS == 45
@@ -260,11 +265,12 @@ def validate() -> None:
     finally:
         policy.http_raw_samples = original_http
     assert stale_mutants == 1
+    return (raw_cases, stale_mutants)
 
 
-    # Two source-owned host-direct HTTPS origins: a single success is not
-    # enough to authorize changing the only physical WireGuard session.
-    # This is exact tri-state admission refinement, not a two-WAN guarantee.
+def _validate_direct_underlay() -> tuple[int, int]:
+    """Require two direct HTTPS origins and bind their Prometheus targets."""
+    source_root = ROOT
     direct_cases = 0
     for first, second in product((True, False, None), repeat=2):
         observed = policy.direct_underlay_evidence((first, second))
@@ -312,13 +318,25 @@ def validate() -> None:
         mutated_targets = tuple(direct_target(bad_source, job) for job in direct_jobs)
         assert mutated_targets != policy.DIRECT_UNDERLAY_HTTPS
         drift_cases += 1
+    return (direct_cases, drift_cases)
 
-    # An incorrect selector copying duplicate countries into both slots has
-    # a satisfiable distinctness violation; implemented source above cannot.
+
+def _validate_selector_distinctness_mutant() -> None:
+    """Refute a selector that duplicates one country across both trial slots."""
     c0, c1 = Bool("candidate_first_allowed"), Bool("candidate_second_distinct")
     wrong_selector = Solver()
     wrong_selector.add(c0, Not(c1))
     assert wrong_selector.check() == sat
+
+
+def validate() -> None:
+    cases = _validate_recovery_admission()
+    country_cases = _validate_candidate_selection()
+    hint_cases, cold_cases = _validate_source_hints_and_cold_trials()
+    scan, worst_case = _validate_sampling_schedule()
+    raw_cases, stale_mutants = _validate_failure_freshness(scan)
+    direct_cases, drift_cases = _validate_direct_underlay()
+    _validate_selector_distinctness_mutant()
 
     print(json.dumps({
         "kind": "ordivon.network.vpn-recovery-finite-refinement",
