@@ -141,22 +141,7 @@ description = "Native bounded Provider Call TLC via upstream digest-verified too
 run = """
 set -euo pipefail
 runtime_root="$(realpath ../../services/runtime)"
-cached_jar="$(python3 - "$runtime_root" <<'PY_JAR'
-import json
-from pathlib import Path
-import sys
-root = Path(sys.argv[1])
-lock = json.loads((root / "formal/toolchain.lock.json").read_text())
-print((root / lock["cacheRelativePath"]).resolve())
-PY_JAR
-)"
-if ! printenv ORDIVON_TLA_TOOLS_JAR >/dev/null; then
-  if [[ ! -f "$cached_jar" ]]; then
-    "$runtime_root/scripts/tla-formal" bootstrap
-  fi
-  export ORDIVON_TLA_TOOLS_JAR="$cached_jar"
-fi
-"$runtime_root/scripts/tla-formal" verify
+export ORDIVON_TLA_TOOLS_JAR="$("$runtime_root/scripts/tla-formal" ensure)"
 (
   cd formal
   java -XX:+UseParallelGC -cp "$ORDIVON_TLA_TOOLS_JAR" tla2sany.SANY ProviderClaimR1.tla
