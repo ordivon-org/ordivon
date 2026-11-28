@@ -17,18 +17,13 @@ impl AttemptLifecycleContract {
     }
 
     pub(crate) fn is_terminal(state: AttemptState) -> bool {
-        matches!(
-            state,
-            AttemptState::Succeeded
-                | AttemptState::Failed
-                | AttemptState::TimedOut
-                | AttemptState::Cancelled
-                | AttemptState::Lost
-                | AttemptState::Orphaned
-        )
+        Self::resolution(state).is_some()
     }
 
     pub(crate) fn can_transition(state: AttemptState, next: AttemptState) -> bool {
+        // Every dispatched nonterminal state can settle to any terminal
+        // resolution. Accepted has fewer edges: no successful or timed-out
+        // physical execution can be inferred before dispatch.
         match state {
             AttemptState::Accepted => matches!(
                 next,
@@ -38,51 +33,25 @@ impl AttemptLifecycleContract {
                     | AttemptState::Lost
                     | AttemptState::Orphaned
             ),
-            AttemptState::Starting => matches!(
-                next,
-                AttemptState::Running
-                    | AttemptState::Stopping
-                    | AttemptState::Recovering
-                    | AttemptState::Succeeded
-                    | AttemptState::Failed
-                    | AttemptState::TimedOut
-                    | AttemptState::Cancelled
-                    | AttemptState::Lost
-                    | AttemptState::Orphaned
-            ),
-            AttemptState::Running => matches!(
-                next,
-                AttemptState::Stopping
-                    | AttemptState::Recovering
-                    | AttemptState::Succeeded
-                    | AttemptState::Failed
-                    | AttemptState::TimedOut
-                    | AttemptState::Cancelled
-                    | AttemptState::Lost
-                    | AttemptState::Orphaned
-            ),
-            AttemptState::Stopping => matches!(
-                next,
-                AttemptState::Recovering
-                    | AttemptState::Succeeded
-                    | AttemptState::Cancelled
-                    | AttemptState::Failed
-                    | AttemptState::TimedOut
-                    | AttemptState::Lost
-                    | AttemptState::Orphaned
-            ),
-            AttemptState::Recovering => matches!(
-                next,
-                AttemptState::Starting
-                    | AttemptState::Running
-                    | AttemptState::Stopping
-                    | AttemptState::Succeeded
-                    | AttemptState::Failed
-                    | AttemptState::TimedOut
-                    | AttemptState::Cancelled
-                    | AttemptState::Lost
-                    | AttemptState::Orphaned
-            ),
+            AttemptState::Starting => {
+                Self::is_terminal(next)
+                    || matches!(
+                        next,
+                        AttemptState::Running | AttemptState::Stopping | AttemptState::Recovering
+                    )
+            }
+            AttemptState::Running => {
+                Self::is_terminal(next)
+                    || matches!(next, AttemptState::Stopping | AttemptState::Recovering)
+            }
+            AttemptState::Stopping => Self::is_terminal(next) || next == AttemptState::Recovering,
+            AttemptState::Recovering => {
+                Self::is_terminal(next)
+                    || matches!(
+                        next,
+                        AttemptState::Starting | AttemptState::Running | AttemptState::Stopping
+                    )
+            }
             AttemptState::Succeeded
             | AttemptState::Failed
             | AttemptState::TimedOut

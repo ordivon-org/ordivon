@@ -255,6 +255,44 @@ const OL_ALL_ATTEMPT_STATES: [AttemptState; 11] = [
     AttemptState::Orphaned,
 ];
 
+#[test]
+fn transition_relation_matches_all_original_labelled_edges() {
+    use AttemptState::*;
+    // Independent frozen consumer adjacency, including absent edges and
+    // terminal outcomes. This is a test oracle, not a second runtime rule.
+    let edges: [&[AttemptState]; 11] = [
+        &[Starting, Cancelled, Failed, Lost, Orphaned],
+        &[
+            Running, Stopping, Recovering, Succeeded, Failed, TimedOut, Cancelled, Lost, Orphaned,
+        ],
+        &[
+            Stopping, Recovering, Succeeded, Failed, TimedOut, Cancelled, Lost, Orphaned,
+        ],
+        &[
+            Recovering, Succeeded, Failed, TimedOut, Cancelled, Lost, Orphaned,
+        ],
+        &[
+            Starting, Running, Stopping, Succeeded, Failed, TimedOut, Cancelled, Lost, Orphaned,
+        ],
+        &[],
+        &[],
+        &[],
+        &[],
+        &[],
+        &[],
+    ];
+    assert_eq!(edges.iter().map(|row| row.len()).sum::<usize>(), 38);
+    for (state, allowed) in OL_ALL_ATTEMPT_STATES.into_iter().zip(edges) {
+        for next in OL_ALL_ATTEMPT_STATES {
+            assert_eq!(
+                state.can_transition_to(next),
+                allowed.contains(&next),
+                "{state:?} -> {next:?}"
+            );
+        }
+    }
+}
+
 fn ol_observation_class(state: AttemptState) -> u8 {
     match state {
         AttemptState::Accepted => 0,
