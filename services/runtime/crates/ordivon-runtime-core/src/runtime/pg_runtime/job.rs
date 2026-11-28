@@ -281,6 +281,83 @@ mod committed_observation_tests {
 
     #[test]
     #[ignore = "requires explicitly disposable ORDIVON_PG_TEST_DSN"]
+    fn pg18_committed_observation_serialization_abort_retains_external_effect_once() {
+        use postgres::IsolationLevel;
+        use std::io::Write;
+
+        let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
+            .expect("explicit disposable PostgreSQL server required");
+        let mut db = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        let mut concurrent = postgres::Client::connect(&dsn, postgres::NoTls).unwrap();
+        let schema = format!(
+            "observation_effect_{}_{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        );
+        let table = format!("{schema}.witness");
+        db.batch_execute(&format!(
+            "CREATE SCHEMA {schema}; CREATE TABLE {table} (id int PRIMARY KEY, value int); INSERT INTO {table} VALUES (1, 0);"
+        ))
+        .unwrap();
+
+        // Establish an earlier durable row and a serializable observation snapshot.
+        let mut transaction = db
+            .build_transaction()
+            .isolation_level(IsolationLevel::Serializable)
+            .start()
+            .unwrap();
+        assert_eq!(
+            transaction
+                .query_one(&format!("SELECT value FROM {table} WHERE id=1"), &[])
+                .unwrap()
+                .get::<_, i32>(0),
+            0
+        );
+
+        // A real external file effect is not part of either database transaction.
+        let mut effect = tempfile::NamedTempFile::new().unwrap();
+        effect.write_all(b"effect-once\n").unwrap();
+        effect.as_file().sync_all().unwrap();
+        concurrent
+            .execute(&format!("UPDATE {table} SET value=1 WHERE id=1"), &[])
+            .unwrap();
+        let abort = transaction
+            .execute(&format!("UPDATE {table} SET value=2 WHERE id=1"), &[])
+            .unwrap_err();
+        assert_eq!(
+            abort.code(),
+            Some(&postgres::error::SqlState::T_R_SERIALIZATION_FAILURE)
+        );
+        transaction.rollback().unwrap();
+
+        let mut reads = 0;
+        let observed = project_committed_job_after_reconcile(
+            "job-external-effect-witness",
+            Err(pg_read_error(abort)),
+            || {
+                reads += 1;
+                let row = db
+                    .query_one(&format!("SELECT value FROM {table} WHERE id=1"), &[])
+                    .map_err(pg_read_error)?;
+                Ok(row.get::<_, i32>(0))
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            observed, 1,
+            "observe the committed competing value, not the aborted update"
+        );
+        assert_eq!(reads, 1);
+        assert_eq!(std::fs::read(effect.path()).unwrap(), b"effect-once\n");
+        db.batch_execute(&format!("DROP SCHEMA {schema} CASCADE"))
+            .unwrap();
+    }
+
+    #[test]
+    #[ignore = "requires explicitly disposable ORDIVON_PG_TEST_DSN"]
     fn native_postgres_direct_job_queries_preserve_sqlstate_and_exact_operation_id() {
         let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
             .expect("explicit disposable PostgreSQL server required");
