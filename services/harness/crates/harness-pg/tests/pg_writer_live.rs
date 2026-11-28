@@ -4,8 +4,8 @@ use std::thread;
 
 use ordivon_harness_core::CanonicalDocument as Doc;
 use ordivon_harness_pg::journal_write::{
-    append_events, observe_exact_batch, Admission, EventWrite, JournalObservation, StoredRef,
-    WriteError,
+    append_events, append_events_with_objects, observe_exact_batch, Admission, EventWrite,
+    JournalObservation, StoredRef, WriteError,
 };
 use ordivon_harness_pg::lease::{acquire_run_lease, release_run_lease};
 use ordivon_harness_pg::read_run_readonly;
@@ -474,4 +474,102 @@ fn native_writer_max_batch_expired_lease_and_failed_cas_are_atomic() {
     assert_eq!(revision(&mut db, &schema, reference_run), 1);
     assert!(release_run_lease(&mut db, &schema, &held).unwrap());
     println!("PG18_NATIVE_WRITER_BATCH256_EXPIRY_CAS_REF_ROLLBACK_PASS");
+}
+
+#[test]
+#[ignore = "private PG18 with shared native CAS across distinct Runs"]
+fn native_writers_shared_cas_independent_of_input_order() {
+    let (dsn, schema, data) = fixture();
+    let mut db = Client::connect(&dsn, NoTls).unwrap();
+    let barrier = Arc::new(Barrier::new(2));
+    let mut handles = Vec::new();
+    for (i, name) in ["shared-a", "shared-b"].into_iter().enumerate() {
+        let id = run(&data, name).to_owned();
+        let lease = acquire_run_lease(
+            &mut db,
+            &schema,
+            &id,
+            "rust:shared-cas",
+            5000,
+            1500,
+            Some(1),
+        )
+        .unwrap();
+        let dsn = dsn.clone();
+        let schema = schema.clone();
+        let barrier = Arc::clone(&barrier);
+        handles.push(thread::spawn(move || {
+            let mut conn = Client::connect(&dsn, NoTls).unwrap();
+            conn.batch_execute("SET statement_timeout = '10s'").unwrap();
+            let documents: Vec<_> = (0..32)
+                .map(|n| obj(vec![("shared", number(&n.to_string()))]))
+                .collect();
+            let mut objects: Vec<_> = documents
+                .iter()
+                .map(|doc| ("test-shared-cas", doc))
+                .collect();
+            if i == 1 {
+                objects.reverse();
+            }
+            let refs = objects
+                .iter()
+                .map(|(kind, doc)| {
+                    let bytes = ordivon_harness_core::canonical_bytes(doc);
+                    StoredRef {
+                        digest: ordivon_harness_core::digest_bytes(&bytes),
+                        kind: (*kind).to_owned(),
+                        byte_length: i64::try_from(bytes.len()).unwrap(),
+                    }
+                })
+                .collect();
+            let batch = [event(
+                &format!("event:shared-cas-{i}"),
+                "harness.trace-recorded",
+                obj(vec![("shared", Doc::boolean(true))]),
+                1700,
+                None,
+                refs,
+            )];
+            barrier.wait();
+            assert_eq!(
+                append_events_with_objects(
+                    &mut conn,
+                    &schema,
+                    &id,
+                    (&batch, &objects),
+                    1,
+                    &lease,
+                    1600
+                )
+                .unwrap(),
+                Admission::Created
+            );
+            assert_eq!(
+                append_events_with_objects(
+                    &mut conn,
+                    &schema,
+                    &id,
+                    (&batch, &objects),
+                    1,
+                    &lease,
+                    1600
+                )
+                .unwrap(),
+                Admission::Existing
+            );
+            let read = read_run_readonly(&mut conn, &schema, &id).unwrap();
+            assert_eq!(read.projection.revision, 2);
+            assert_eq!(
+                read.verified_reference_links
+                    .iter()
+                    .filter(|r| r.event_id() == batch[0].event_id)
+                    .count(),
+                32
+            );
+        }));
+    }
+    for h in handles {
+        h.join().unwrap();
+    }
+    println!("PG18_NATIVE_WRITERS_SHARED_CAS_ORDER_PASS");
 }

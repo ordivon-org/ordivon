@@ -29,7 +29,7 @@ if action == "prepare":
             base.contract_object_digest, expected_kind="harness-run-contract"
         )
         runs = {}
-        for name in ("rust", "race", "rollback", "terminal", "readonly", "bounded", "expired", "reference"):
+        for name in ("rust", "race", "rollback", "terminal", "readonly", "bounded", "expired", "reference", "shared-a", "shared-b"):
             item = dict(root_contract)
             item["harnessRunId"] = "harness-run:rust-writer-source-" + name
             item["callerRunRef"] = "rust-writer-source-" + name
@@ -109,4 +109,7 @@ else:
         assert store.load_run(runs["expired"]).revision == 1
         store.validate_run_history(runs["reference"])
         assert store.load_run(runs["reference"]).revision == 1
+        for name in ("shared-a", "shared-b"):
+            store.validate_run_history(runs[name])
+            assert store.load_run(runs[name]).revision == 2
         print("PYTHON_VALIDATED_RUST_NATIVE_CAS_JOURNAL_REPLAY_PASS")
