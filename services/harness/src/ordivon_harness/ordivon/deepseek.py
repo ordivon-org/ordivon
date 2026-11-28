@@ -522,15 +522,19 @@ class DeepSeekTurnAdapter:
     def supports_call_handle(self) -> bool:
         return callable(getattr(self.transport, "start_post", None))
 
-    def start_invoke(
-        self, request: AgentTurnRequest, control: ExecutionControl
-    ) -> AgentTurnCallHandle:
+    @staticmethod
+    def _require_dispatch_open(control: ExecutionControl) -> None:
         if control.stop_requested:
             raise AgentTurnAdapterError(
                 "DeepSeek invocation stopped before dispatch",
                 failure_code=AgentTurnFailureCode.TIMEOUT,
                 dispatch_safety=AgentTurnDispatchSafety.PRE_DISPATCH_SAFE,
             )
+
+    def start_invoke(
+        self, request: AgentTurnRequest, control: ExecutionControl
+    ) -> AgentTurnCallHandle:
+        self._require_dispatch_open(control)
         start_post = getattr(self.transport, "start_post", None)
         if not callable(start_post):
             raise AgentTurnAdapterError(
@@ -538,11 +542,13 @@ class DeepSeekTurnAdapter:
                 failure_code=AgentTurnFailureCode.FAILED,
             )
         allowed_tool_names, url, headers, body = self._prepare_request(request)
+        timeout_seconds = control.clamp_timeout_seconds(self.settings.timeout_seconds)
+        self._require_dispatch_open(control)
         post_handle = start_post(
             url,
             headers=headers,
             body=body,
-            timeout_seconds=control.clamp_timeout_seconds(self.settings.timeout_seconds),
+            timeout_seconds=timeout_seconds,
             max_response_bytes=self.settings.max_response_bytes,
         )
         return _DeepSeekTurnCallHandle(
@@ -559,15 +565,11 @@ class DeepSeekTurnAdapter:
         self, request: AgentTurnRequest, control: ExecutionControl
     ) -> AgentTurnResult:
         if not self.supports_call_handle:
-            if control.stop_requested:
-                raise AgentTurnAdapterError(
-                    "DeepSeek invocation stopped before dispatch",
-                    failure_code=AgentTurnFailureCode.TIMEOUT,
-                    dispatch_safety=AgentTurnDispatchSafety.PRE_DISPATCH_SAFE,
-                )
+            self._require_dispatch_open(control)
             return self._invoke(
                 request,
-                timeout_seconds=control.clamp_timeout_seconds(self.settings.timeout_seconds),
+                timeout_seconds=self.settings.timeout_seconds,
+                control=control,
             )
         handle = self.start_invoke(request, control)
         while True:
@@ -621,8 +623,14 @@ class DeepSeekTurnAdapter:
             }
         )
 
-    def _invoke(self, request: AgentTurnRequest, *, timeout_seconds: float) -> AgentTurnResult:
+    def _invoke(
+        self, request: AgentTurnRequest, *, timeout_seconds: float,
+        control: ExecutionControl | None = None,
+    ) -> AgentTurnResult:
         allowed_tool_names, url, headers, body = self._prepare_request(request)
+        if control is not None:
+            timeout_seconds = control.clamp_timeout_seconds(timeout_seconds)
+            self._require_dispatch_open(control)
         raw = self.transport.post(
             url,
             headers=headers,

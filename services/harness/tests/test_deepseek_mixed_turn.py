@@ -117,6 +117,105 @@ class DeepSeekMixedTurnTests(unittest.TestCase):
         legacy = DeepSeekSettings(api_key="k" * 40, model="deepseek-v4-flash")
         self.assertEqual(legacy.model, "deepseek-v4-flash")
 
+    def test_control_is_rechecked_after_request_preparation(self) -> None:
+        from unittest.mock import patch
+        from ordivon_harness.api import AgentTurnRequest
+        from ordivon_harness.ordivon.control import (
+            CancellationToken, ExecutionControl, RunDeadline,
+        )
+        from ordivon_harness.ordivon.model import (
+            AgentTurnAdapterError, AgentTurnDispatchSafety, AgentTurnFailureCode,
+        )
+
+        request = AgentTurnRequest(
+            harness_run_id="harness-run:prepare-stop",
+            turn_id="turn:prepare-stop:1",
+            sequence=1,
+            assignment_id="assignment:prepare-stop",
+            context_digest="sha256:" + "a" * 64,
+            tool_catalog_digest="sha256:" + "b" * 64,
+            messages=({"role": "user", "content": "test"},),
+            tools=(TOOL,),
+            remaining_budget={"modelCalls": 2, "toolCalls": 1, "totalTokens": 4096},
+        )
+        raw = response(("call:observe", "observe_fact", {"key": "x"}))
+
+        class RecordingTransport(SequenceTransport):
+            def __init__(self):
+                super().__init__([raw])
+                self.timeouts = []
+
+            def post(self, url, **kwargs):
+                self.timeouts.append(kwargs["timeout_seconds"])
+                return super().post(url, **kwargs)
+
+        class RecordingHandleTransport(RecordingTransport):
+            def start_post(self, url, **kwargs):
+                result = self.post(url, **kwargs)
+
+                class Handle:
+                    def poll(self, timeout_seconds):
+                        return result
+
+                    def cancel(self):
+                        pass
+
+                return Handle()
+
+        for use_handle in (False, True):
+            for outcome in ("normal", "shortened", "cancelled", "deadline"):
+                with self.subTest(use_handle=use_handle, outcome=outcome):
+                    transport = (
+                        RecordingHandleTransport() if use_handle else RecordingTransport()
+                    )
+                    adapter = DeepSeekTurnAdapter(
+                        DeepSeekSettings(api_key="k" * 40, max_output_tokens=512),
+                        transport=transport,
+                    )
+                    now = [1000]
+                    def clock():
+                        return now[0]
+
+                    cancellation = CancellationToken(monotonic_ms=clock)
+                    control = ExecutionControl(
+                        cancellation, RunDeadline(expires_at_ms=11_000, monotonic_ms=clock),
+                    )
+                    prepare = adapter._prepare_request
+
+                    def prepare_then_change_control(value):
+                        result = prepare(value)
+                        if outcome == "cancelled":
+                            cancellation.cancel()
+                        elif outcome == "deadline":
+                            now[0] = 11_000
+                        elif outcome == "shortened":
+                            now[0] = 9000
+                        return result
+
+                    with patch.object(
+                        adapter, "_prepare_request", side_effect=prepare_then_change_control
+                    ) as prepared:
+                        if outcome in ("cancelled", "deadline"):
+                            with self.assertRaises(AgentTurnAdapterError) as caught:
+                                adapter.invoke_with_control(request, control)
+                            self.assertEqual(
+                                caught.exception.dispatch_safety,
+                                AgentTurnDispatchSafety.PRE_DISPATCH_SAFE,
+                            )
+                            self.assertEqual(
+                                caught.exception.failure_code, AgentTurnFailureCode.TIMEOUT,
+                            )
+                            self.assertEqual(transport.requests, [])
+                            self.assertEqual(transport.timeouts, [])
+                        else:
+                            result = adapter.invoke_with_control(request, control)
+                            self.assertEqual(len(result.tool_calls), 1)
+                            self.assertEqual(len(transport.requests), 1)
+                            self.assertEqual(
+                                transport.timeouts, [2.0 if outcome == "shortened" else 10.0]
+                            )
+                        self.assertEqual(prepared.call_count, 1)
+
     def test_adapter_marks_mixed_tool_and_conclusion_as_model_correctable(self) -> None:
         mixed = response(
             ("call:observe", "observe_fact", {"key": "x"}),
