@@ -452,7 +452,8 @@ mod cargo_issuer_environment_tests {
     fn ordinary_pg_job_reuses_native_private_cargo_default_without_overriding_explicit() {
         let empty = BTreeMap::new();
         assert_eq!(
-            pg_workspace_tool_environment(empty, false, Path::new("/tmp/test-cache"), None)["CARGO_TARGET_DIR"],
+            pg_workspace_tool_environment(empty, false, Path::new("/tmp/test-cache"), None)
+                ["CARGO_TARGET_DIR"],
             "/run/ordivon/cargo-target"
         );
         let explicit = BTreeMap::from([(
