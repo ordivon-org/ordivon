@@ -18,7 +18,8 @@ Minimal read-only interface:
     python3 tools/repo/evidence_validity.py --current-sha FULL_GIT_SHA --check-name root-verification
 
 For historical comparison add --prior-sha FULL_ANCESTOR_SHA. The entrypoint
-reuses ci_telemetry.Gh for original GitHub Check Run transport,
+reuses github_workflow_observation.GitHubWorkflowReader directly for original
+GitHub Check Run transport (without loading CI telemetry or economic projections),
 convergence_plan.build_plan for existing Owner verification selection, and
 source_history_legos.require_ancestral_source_cuts for native Git ancestry.
 It does not initiate verification, dispatch CI, or mutate Host Work/Runtime.
