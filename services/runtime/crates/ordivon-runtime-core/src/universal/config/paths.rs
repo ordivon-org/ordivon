@@ -65,6 +65,17 @@ impl UniversalExecutorConfig {
         self.workspace_caches_root().join(workspace_id)
     }
 
+    /// The Windows PG presentation root is disjoint from the private Store.
+    /// A leading-dot sibling cannot collide with a valid Workspace ID.
+    /// The provider must grant only this leaf and the admitted worktree leaf.
+    pub(crate) fn workspace_private_git_path(&self, workspace_id: &str) -> PathBuf {
+        #[cfg(windows)]
+        if let Some(root) = &self.workspace_root {
+            return root.join(format!(".{workspace_id}.agent-git"));
+        }
+        self.workspace_cache_path(workspace_id).join("agent-git")
+    }
+
     pub(crate) fn workspace_build_cache_path(&self, workspace_id: &str) -> PathBuf {
         self.build_caches_root().join(workspace_id)
     }

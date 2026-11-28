@@ -12,7 +12,7 @@ from typing import Any
 
 import psycopg
 
-from .errors import ConflictError
+from .errors import ConflictError, InvalidArgumentError
 from .postgres_bounds import HOST_WIRE_INT_MAX
 
 
@@ -60,7 +60,7 @@ def ack_topic_cursor_in_tx(
     PostgreSQL 18 returns the actual old/new row in that same statement.
     """
     if type(cursor) is not int or not 0 <= cursor <= HOST_WIRE_INT_MAX:
-        raise ValueError("cursor must be non-negative within JSON safe integer range")
+        raise InvalidArgumentError("cursor must be non-negative within JSON safe integer range")
     high = topic_high_sequence_in_tx(conn, topic_ref)
     if cursor > high:
         raise ConflictError("topic cursor cannot acknowledge beyond current topic horizon")

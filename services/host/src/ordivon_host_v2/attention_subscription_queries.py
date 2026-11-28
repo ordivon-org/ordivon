@@ -9,6 +9,7 @@ from typing import Any, Literal
 import psycopg
 
 from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES, bounded_page, validate_max_bytes
+from .errors import InvalidArgumentError
 from .references.actor_refs import ActorReferenceLookup
 
 TargetKind = Literal["work", "space", "topic"]
@@ -34,9 +35,9 @@ class AttentionSubscriptionQueries:
         max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
         if type(limit) is not int or not 1 <= limit <= 500:
-            raise ValueError("limit must be in [1,500]")
+            raise InvalidArgumentError("limit must be in [1,500]")
         if (after_target_kind is None) != (after_target_ref is None):
-            raise ValueError("after_target_kind and after_target_ref must be supplied together")
+            raise InvalidArgumentError("after_target_kind and after_target_ref must be supplied together")
         validate_max_bytes(max_bytes)
         with self._connect() as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")

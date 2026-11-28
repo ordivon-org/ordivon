@@ -17,7 +17,11 @@ from ..contracts import (
     CapabilitySearchMatch,
     CapabilitySearchProjection,
 )
-from .runtime_status import valid_runtime_status_envelope, valid_runtime_target_inventory
+from .runtime_status import (
+    valid_runtime_execution_context_inventory,
+    valid_runtime_status_envelope,
+    valid_runtime_target_inventory,
+)
 
 
 def project_execution_capability(
@@ -149,12 +153,7 @@ def project_execution_capability(
 
     # Context inventories are Owner-declared lists. Invalid explicitly supplied
     # types must not crash discovery or be silently projected as a ready route.
-    context_fields = (
-        ("windowsContexts", "windowsAuthorities")
-        if route.execution_target == "windows_native"
-        else ("executionProfiles",)
-    )
-    if any(field in target and not isinstance(target[field], list) for field in context_fields):
+    if not valid_runtime_execution_context_inventory(target, route.execution_target):
         return CapabilityDescriptor(
             capability=route.capability,
             owner_id=route.owner_id,
@@ -175,10 +174,8 @@ def project_execution_capability(
     context_mode = route.context_mode
     if route.execution_target == "windows_native":
         structured_contexts = target.get("windowsContexts")
-        if isinstance(structured_contexts, list) and any(
-            isinstance(value, dict) for value in structured_contexts
-        ):
-            contexts = [dict(value) for value in structured_contexts if isinstance(value, dict)]
+        if "windowsContexts" in target:
+            contexts = [dict(value) for value in structured_contexts]
             context_mode = "provider-defined-json"
         else:
             contexts = [

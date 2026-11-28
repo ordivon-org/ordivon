@@ -255,3 +255,37 @@ pub(super) fn require_current_harness_issuer_for_plan(
     }
     Ok(())
 }
+
+/// Read the one operator-owned Runtime DSN for both service and native
+/// receiver. No symlink traversal, group/world access or oversized file.
+/// Only the path is materialized into the private Attempt request.
+#[cfg(target_os = "linux")]
+pub fn read_private_spawn_dsn(path: &std::path::Path) -> std::io::Result<String> {
+    use std::io::{Error, ErrorKind, Read};
+    use std::os::unix::fs::MetadataExt;
+    let invalid = || {
+        Error::new(
+            ErrorKind::PermissionDenied,
+            "PG issuer spawn DSN requires an owner-private regular file",
+        )
+    };
+    let relative = path.strip_prefix("/").map_err(|_| invalid())?;
+    let parent = path.parent().ok_or_else(invalid)?;
+    let parent_meta = std::fs::symlink_metadata(parent)?;
+    let uid = unsafe { libc::geteuid() };
+    if !parent_meta.is_dir() || parent_meta.uid() != uid || parent_meta.mode() & 0o022 != 0 {
+        return Err(invalid());
+    }
+    let root = crate::universal::open_directory_nofollow(std::path::Path::new("/"))?;
+    let file = crate::universal::open_regular_file_beneath(&root, relative, true)?;
+    let meta = file.metadata()?;
+    if meta.uid() != uid || meta.mode() & 0o077 != 0 || meta.len() > 8192 {
+        return Err(invalid());
+    }
+    let mut dsn = String::new();
+    file.take(8193).read_to_string(&mut dsn)?;
+    if dsn.trim().is_empty() || dsn.len() > 8192 {
+        return Err(invalid());
+    }
+    Ok(dsn.trim().to_owned())
+}

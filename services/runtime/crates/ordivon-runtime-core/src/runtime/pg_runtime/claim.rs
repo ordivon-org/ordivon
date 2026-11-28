@@ -16,5 +16,5 @@ pub use contract::{
 
 #[cfg(test)]
 mod claim_contract_tests;
-#[cfg(test)]
+#[cfg(all(test, target_os = "linux"))]
 mod claim_physical_pg_tests;

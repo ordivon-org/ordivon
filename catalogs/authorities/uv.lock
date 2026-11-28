@@ -237,8 +237,9 @@ requires-dist = [{ name = "jsonschema", specifier = ">=4.26,<5" }]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "pytest", specifier = "==9.1.1" },
-    { name = "ruff", specifier = "==0.17.2" },
+    { name = "hypothesis", specifier = ">=6,<7" },
+    { name = "pytest", specifier = ">=9.1.1,<10" },
+    { name = "ruff", specifier = ">=0.17.2,<1" },
 ]
 reasoning = [
     { name = "pyshacl" },

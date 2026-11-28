@@ -148,6 +148,15 @@ future theorem proof    -> Lean/Coq/Isabelle provider when justified
 
 No provider becomes universal.
 
+For the optional Pacti timeout-contract shadow, use `mise run pacti:verify`
+from this package. It invokes native pytest with an isolated Pacti 0.3.1
+overlay, matching the frozen contract's provider identity. A missing provider
+fails explicit qualification; ordinary portable verification continues to
+report its provider-dependent cases as SKIP. The overlay is not a production
+dependency or proof of installed Runtime compatibility. The owner lock covers
+the project environment, not the independently resolved overlay's full
+transitive closure; retain the provider-specific execution evidence.
+
 ### C06: native Gateway `reconciliation_required` source semantics (2026-11-14)
 
 Actual Gateway `ExecutionObservation` and Harness `runtime_bridge.py` recognize

@@ -138,10 +138,10 @@ mod tools;
 #[cfg(test)]
 mod tests;
 
-#[cfg(all(feature = "postgres-runtime", target_os = "linux"))]
+#[cfg(all(feature = "postgres-runtime", any(target_os = "linux", windows)))]
 include!("pg_catalog.rs");
-#[cfg(all(feature = "postgres-runtime", target_os = "linux"))]
+#[cfg(all(feature = "postgres-runtime", any(target_os = "linux", windows)))]
 include!("pg_output_contract.rs");
 
-#[cfg(all(feature = "postgres-runtime", target_os = "linux"))]
+#[cfg(all(feature = "postgres-runtime", any(target_os = "linux", windows)))]
 include!("pg_server.rs");

@@ -1040,9 +1040,15 @@ from pathlib import Path
 import sys
 path = Path(sys.argv[1])
 src = path.read_text(encoding='utf-8')
+# The old terminal guard also requires the last original launcher handle
+# to have closed; that closure *itself* only happens via native owner exit.
+# Remove both interdependent safeguards to falsify early terminalization.
+terminal = src.index("CommitPgTerminal ==")
+prefix, block = src[:terminal], src[terminal:]
 guard = '    /\\ osOwner = "exited"\n'
-assert src.count(guard) == 1, "formal Windows PG owner guard changed"
-path.write_text(src.replace(guard, '', 1), encoding='utf-8')
+handle_guard = '    /\\ jobHandle = "gone"\n'
+assert block.count(guard) == 1 and block.count(handle_guard) == 1, "formal Windows PG exit guard drifted"
+path.write_text(prefix + block.replace(guard, '', 1).replace(handle_guard, '', 1), encoding='utf-8')
 PY_WINPG_UNGUARDED
     sed -i '/INVARIANT NeverTerminal/d' "$tmp_dir/RuntimeWindowsPgAttemptR1.cfg"
     set +e
@@ -1056,17 +1062,17 @@ PY_WINPG_UNGUARDED
       exit 1
     fi
     echo 'WinPG missing OS exit guard counterexample PASS'
-    # Second independent falsifier: an absent/unknown Job Object must NOT
-    # satisfy the real process-tree-empty requirement. Reconstruct from the
-    # pristine model; the previous mutation removed only the PID exit guard.
+    # Second independent falsifier: a missing durable *positive* kernel
+    # witness MUST NOT allow a terminal, even when the named JobObject
+    # legitimately became NotFound after the original Launcher released it.
     cp "$ROOT/formal/RuntimeWindowsPgAttemptR1.tla" "$tmp_dir/RuntimeWindowsPgAttemptR1.tla"
     python3 - "$tmp_dir/RuntimeWindowsPgAttemptR1.tla" <<'PY_WINPG_NO_JOB_OBJECT'
 from pathlib import Path
 import sys
 path = Path(sys.argv[1])
 src = path.read_text(encoding='utf-8')
-guard = '    /\\ jobObject = "empty"\n'
-assert src.count(guard) == 1, "Windows PG Job Object guard drifted"
+guard = '    /\\ nativeDrainJournal\n    /\\ jobHandle = "gone"\n'
+assert src.count(guard) == 1, "Windows PG durable native journal guard drifted"
 path.write_text(src.replace(guard, '', 1), encoding='utf-8')
 PY_WINPG_NO_JOB_OBJECT
     set +e
@@ -1074,12 +1080,39 @@ PY_WINPG_NO_JOB_OBJECT
         -config RuntimeWindowsPgAttemptR1.cfg RuntimeWindowsPgAttemptR1.tla) > "$tmp_dir/unguarded-object.log" 2>&1
     code=$?
     set -e
-    if [[ "$code" -ne 12 ]] || ! grep -Fq 'Invariant TerminalRequiresJobObjectEmpty is violated' "$tmp_dir/unguarded-object.log"; then
-      echo 'WinPG missing Job Object empty guard negative control FAILED' >&2
+    if [[ "$code" -ne 12 ]] || ! grep -Fq 'Invariant TerminalRequiresDurableNativeDrain is violated' "$tmp_dir/unguarded-object.log"; then
+      echo 'WinPG missing durable native drain guard negative control FAILED' >&2
       tail -30 "$tmp_dir/unguarded-object.log" >&2
       exit 1
     fi
-    echo 'WinPG missing Job Object empty guard counterexample PASS'
+    echo 'WinPG missing durable native drain guard counterexample PASS'
+    # Third original-issuer falsifier: the PostgreSQL writer must never
+    # record a trusted native event before the Launcher itself confirms the
+    # kernel-frozen client PID with Ready('R'). This detects the race where
+    # PG persisted a native event *before* Launcher rejected its client.
+    cp "$ROOT/formal/RuntimeWindowsPgAttemptR1.tla" "$tmp_dir/RuntimeWindowsPgAttemptR1.tla"
+    python3 - "$tmp_dir/RuntimeWindowsPgAttemptR1.tla" <<'PY_WINPG_NO_READY'
+from pathlib import Path
+import sys
+path=Path(sys.argv[1])
+src=path.read_text(encoding='utf-8')
+index=src.index("CommitTrustedNativeDrainJournal ==")
+prefix,body=src[:index],src[index:]
+guard='    /\\ peerReady\n'
+assert body.count(guard)==1, "Windows native issuer Ready guard changed"
+path.write_text(prefix+body.replace(guard,'',1), encoding='utf-8')
+PY_WINPG_NO_READY
+    set +e
+    (cd "$tmp_dir"; java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1 \
+        -config RuntimeWindowsPgAttemptR1.cfg RuntimeWindowsPgAttemptR1.tla) > "$tmp_dir/unguarded-issuer.log" 2>&1
+    code=$?
+    set -e
+    if [[ "$code" -ne 12 ]] || ! grep -Fq 'Invariant NativeDrainRequiresIssuerReady is violated' "$tmp_dir/unguarded-issuer.log"; then
+      echo 'WinPG missing original-issuer Ready guard negative control FAILED' >&2
+      tail -45 "$tmp_dir/unguarded-issuer.log" >&2
+      exit 1
+    fi
+    echo 'WinPG missing original-issuer Ready guard counterexample PASS'
   )
 }
 

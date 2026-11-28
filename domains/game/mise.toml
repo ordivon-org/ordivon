@@ -251,6 +251,24 @@ description = "Fast independent consumer contracts and shrinkable archive proper
 run = """
 set -euo pipefail
 cd scripts
-python3 -m unittest -v test_hosted_product_acceptance test_x11_interaction_acceptance test_mixed_audio_acceptance test_windows_render_acceptance
+python3 -m unittest -v test_hosted_product_acceptance test_x11_interaction_acceptance test_mixed_audio_acceptance test_windows_render_acceptance test_hosted_runner_acceptance
 uv run --no-project --with hypothesis python test_consumer_properties.py
+"""
+
+[tasks."experiment:mechanic-search"]
+description = "Explore bounded native Room mechanic alternatives and validate actual receipt; not a player-quality gate"
+run = """
+set -eu
+receipt="$(mktemp)"
+trap 'rm -f -- "$receipt"' EXIT
+python3 research/mechanic-search/run.py > "$receipt"
+python3 research/mechanic-search/test_receipt.py "$receipt"
+cat "$receipt"
+"""
+
+[tasks."factory:study:room-pair"]
+description = "Build a private source-bound Room A/B study pair, distinct from READY and production release"
+run = """
+set -eu
+python3 research/mechanic-search/build_pair.py --output "${GAME_STUDY_OUTPUT:?set absolute fresh output directory}"
 """

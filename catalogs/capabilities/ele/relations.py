@@ -10,9 +10,8 @@ from __future__ import annotations
 import json
 import posixpath
 import re
-import subprocess
+from collections.abc import Sequence
 from dataclasses import dataclass
-from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 MARKDOWN_LINK = re.compile(r"\[[^\]\n]+\]\(([^)\s]+)(?:\s+[^)]*)?\)")
@@ -44,11 +43,6 @@ class Reference:
     locator: str
     target: str
     target_study_id: str | None
-
-
-def tracked_files(root: Path) -> set[str]:
-    raw = subprocess.check_output(["git", "ls-files", "-z", "--cached"], cwd=root)
-    return {value.decode("utf-8") for value in raw.split(b"\0") if value}
 
 
 def _target(
@@ -112,9 +106,7 @@ def references_for(
         def descend(value: object, path: str, section: int, key: str) -> None:
             if isinstance(value, dict):
                 for child_key, item in value.items():
-                    child_section = (
-                        sections.get(child_key, section) if path == "$" else section
-                    )
+                    child_section = sections.get(child_key, section) if path == "$" else section
                     descend(item, f"{path}.{child_key}", child_section, child_key)
             elif isinstance(value, list):
                 for index, item in enumerate(value):
@@ -146,10 +138,7 @@ def references_for(
 
 
 def all_references(
-    studies: list[object], root: Path
+    studies: Sequence[object], tracked: set[str]
 ) -> dict[str, tuple[Reference, ...]]:
     sources = {study.source_path: study.study_id for study in studies}
-    tracked = tracked_files(root)
-    return {
-        study.study_id: references_for(study, sources, tracked) for study in studies
-    }
+    return {study.study_id: references_for(study, sources, tracked) for study in studies}

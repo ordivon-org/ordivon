@@ -6,7 +6,10 @@ import math
 import random
 import unittest
 from itertools import product
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from ordivon_studio.research import search_calibration as calibration
 from ordivon_studio.research.search_sampling import search_samples
@@ -58,11 +61,66 @@ class SearchSamplingOperatorTest(unittest.TestCase):
                     self.assertEqual(calibration._winner_stat_for_replay(mode, budget, seed),
                                      max(x[3] for x in expected))
 
+    def test_adaptive_cached_means_preserve_ties_and_leader_decrease(self):
+        # Initial family means tie at 2. The first family wins, then its
+        # mean drops to 0 and the next greedy draw must select family 1.
+        rng = Mock()
+        rng.gauss.side_effect = [0., 0., 2., 2., -2., 0.]
+        rng.random.return_value = 0.
+        with patch("ordivon_studio.research.search_sampling._rng", return_value=rng):
+            samples = list(search_samples("adaptive", "forced", 4))
+        self.assertEqual([sample.family for sample in samples], [0, 1, 0, 1])
+        self.assertEqual([sample.running_mean for sample in samples], [2., 2., 0., 1.])
+
+    @given(
+        st.lists(st.integers(-8, 8), min_size=4, max_size=64),
+        st.lists(st.booleans(), min_size=1, max_size=64),
+        st.lists(st.integers(0, 15), min_size=1, max_size=64),
+    )
+    @settings(max_examples=250, deadline=None, derandomize=True, database=None)
+    def test_generated_adaptive_trajectories_match_history_oracle(self, draws, greedy, explore):
+        # Force ties, decreases and exploration rather than relying on random seeds
+        # to reach those transitions. The oracle recomputes means from history.
+        budget = len(draws)
+        count = min(16, max(2, budget // 8))
+        choices = [greedy[i % len(greedy)] for i in range(budget - count)]
+        exploratory = [explore[i % len(explore)] % count for i in range(budget - count)]
+        rng = Mock()
+        rng.gauss.side_effect = [0.] * count + draws
+        rng.random.side_effect = [0. if choice else .99 for choice in choices]
+        rng.randrange.side_effect = [
+            family for family, choice in zip(exploratory, choices, strict=True) if not choice
+        ]
+        with patch("ordivon_studio.research.search_sampling._rng", return_value=rng):
+            actual = list(search_samples("adaptive", "forced-property", budget))
+        observations = [[] for _ in range(count)]
+        expected = []
+        for i, z in enumerate(draws):
+            if i < count:
+                family = i
+            elif choices[i - count]:
+                family = max(range(count), key=lambda f: _sequential_mean(observations[f]))
+            else:
+                family = exploratory[i - count]
+            observations[family].append(z)
+            expected.append((i + 1, family, len(observations[family]), float(z),
+                             _sequential_mean(observations[family])))
+        self.assertEqual(actual, expected)
+
     def test_null_replay_never_materializes_candidate_identity(self):
         for mode in ("static", "adaptive"):
             with patch.object(calibration, "candidate_identity", side_effect=AssertionError):
                 self.assertEqual(calibration._winner_stat_for_replay(mode, 32, "x"),
                                  max(x[3] for x in scalar_samples(mode, "x", 32)))
+
+    def test_static_replay_does_not_materialize_trial_metadata(self):
+        # The visible search still consumes the identical canonical draw stream.
+        for budget in (1, 2, 31, 128, 1024):
+            expected = max(x[3] for x in scalar_samples("static", "metadata-free", budget))
+            with patch("ordivon_studio.research.search_sampling.TrialSample",
+                       side_effect=AssertionError("unconsumed trial metadata")):
+                self.assertEqual(calibration._winner_stat_for_replay(
+                    "static", budget, "metadata-free"), expected)
 
     def test_rank_partition_matches_inclusive_linear_oracle(self):
         for n in range(1, 6):

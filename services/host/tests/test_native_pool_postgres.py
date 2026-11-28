@@ -142,8 +142,9 @@ def test_one_pool_serves_mcp_work_social_attention_and_status() -> None:
 
 
 @pytest.mark.parametrize("transport", ["stdio", "streamable-http"])
+@pytest.mark.parametrize("compact_mode", [None, "0", "1"])
 def test_mcp_process_owns_and_closes_pool(
-    monkeypatch: pytest.MonkeyPatch, transport: str, tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch, transport: str, tmp_path: Path, compact_mode: str | None,
 ) -> None:
     """Native pool encloses STDIO or authenticated HTTP and closes on exit."""
     from ordivon_host_v2 import http_transport, mcp_server
@@ -169,14 +170,21 @@ def test_mcp_process_owns_and_closes_pool(
             events.append(("app", kwargs))
             return object()
 
-    def fake_build_server(dsn: str, *, pool: FakePool) -> FakeServer:
+    def fake_build_server(
+        dsn: str, *, pool: FakePool, compact_work_receipts: bool
+    ) -> FakeServer:
         assert dsn == "postgresql://invalid.invalid/unused"
+        assert compact_work_receipts is (compact_mode == "1")
         events.append(("bound", pool))
         return FakeServer()
 
     monkeypatch.setenv("ORDIVON_HOST_V2_DSN", "postgresql://invalid.invalid/unused")
     monkeypatch.setenv("ORDIVON_HOST_V2_TRANSPORT", transport)
     monkeypatch.setenv("ORDIVON_HOST_V2_PG_POOL_MAX_SIZE", "2")
+    if compact_mode is None:
+        monkeypatch.delenv("ORDIVON_HOST_V2_COMPACT_WORK_RECEIPTS", raising=False)
+    else:
+        monkeypatch.setenv("ORDIVON_HOST_V2_COMPACT_WORK_RECEIPTS", compact_mode)
     monkeypatch.setattr(mcp_server, "ConnectionPool", FakePool)
     monkeypatch.setattr(mcp_server, "build_server", fake_build_server)
 
