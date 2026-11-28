@@ -206,3 +206,41 @@ def test_turn_progress_decision_resets_counters_for_observed_action() -> None:
     assert decision.observation_only_turns == 0
     assert decision.no_progress_turns == 0
     assert decision.gate_reason is None
+
+
+def test_committed_observation_is_progress_authority() -> None:
+    # A mutable convenience projection must not change a sealed observation's
+    # contribution to progress, including after a durable round trip.
+    for call, content in (
+        (search("single"), {
+            "matches": [{"path": "src/a.py", "line": 7, "text": "term"}],
+            "exitCode": 0, "executionDisposition": "succeeded",
+        }),
+        (AgentToolCall(tool_call_id="batch", name="search_workspace",
+                       arguments={"queries": ["term"], "relativePath": "src"}), {
+            "queryResults": [{"query": "term", "matches": [], "exitCode": 1,
+                              "status": "succeeded"}],
+        }),
+        (AgentToolCall(tool_call_id="read", name="read_workspace", arguments={}),
+         {"value": {"items": ["committed"]}}),
+    ):
+        observation = HarnessToolObservation(
+            tool_call_id=call.tool_call_id, tool_name=call.name,
+            status="observed", structured_content=content,
+        )
+        restored = HarnessToolObservation.from_dict(observation.to_dict())
+        before = _advance_turn_evidence(
+            (call,), (restored,), OBSERVATION_ONLY, set(), {},
+        )
+        observation.structured_content.clear()
+        observation.structured_content["changed"] = True
+        assert observation.digest == restored.digest
+        after = _advance_turn_evidence(
+            (call,), (observation,), OBSERVATION_ONLY, set(), {},
+        )
+        assert after == before, call.tool_call_id
+        repeated = _advance_turn_evidence(
+            (call,), (observation,), OBSERVATION_ONLY,
+            before.evidence_signatures, before.search_evidence,
+        )
+        assert not repeated.new_evidence, call.tool_call_id
