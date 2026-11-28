@@ -140,6 +140,28 @@ class OpenFdConsumerTests(unittest.TestCase):
                 consumers = evict.external_processes_using(cache, proc_root)
                 self.assertIn(pid, consumers)
 
+    def test_executable_or_mapping_without_open_fd_is_visible(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cache = root / "build"
+            cache.mkdir()
+            artifact = cache / "held-output"
+            artifact.touch()
+            proc_root = root / "proc"
+            proc = proc_root / "123"
+            proc.mkdir(parents=True)
+            (proc / "fd").mkdir()
+            (proc / "cwd").symlink_to(root)
+            (proc / "exe").symlink_to(artifact)
+            self.assertEqual(evict.external_processes_using(cache, proc_root), ["123"])
+            (proc / "exe").unlink()
+            (proc / "maps").write_text(
+                f"0000-1000 r-xp 00000000 00:00 1 {artifact} (deleted)\n"
+            )
+            self.assertEqual(evict.external_processes_using(cache, proc_root), ["123"])
+            (proc / "maps").write_text("")
+            self.assertEqual(evict.external_processes_using(cache, proc_root), [])
+
 
 if __name__ == "__main__":
     unittest.main()
