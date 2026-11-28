@@ -26,7 +26,7 @@
       "nonResponsibility": "does not establish settlement finality, legal ownership, deployability, venue execution truth, external-write admission, distributed replication or consensus",
       "currentRuntimeAdmission": "PG_NATIVE_NONLIVE_QUALIFIED_INSTALLED_CUTOVER_PENDING",
       "historicalRuntime": "Python 3.14.7 / SQLite 3.53.1 bounded mechanics qualification (migration source only)",
-      "postgresClient": "psycopg 3.3.6",
+      "postgresClient": "psycopg 3.3.9",
       "qualifiedPostgresServer": "18.6"
     },
     "research": {
@@ -80,6 +80,6 @@
     }
   },
   "kind": "ordivon.capital.capability-dependencies",
-  "principle": "direct dependencies are pinned by the consuming Ordivon Capital domain; cross-domain capabilities use explicit contracts; external standards/implementations/providers remain responsibility owners",
+  "principle": "direct dependency compatibility constraints are owned by Capital; uv.lock is the exact delivery version authority; evidence-bound pins require explicit requalification; cross-domain capabilities use explicit contracts; external providers remain responsibility owners",
   "schemaVersion": 1
 }
