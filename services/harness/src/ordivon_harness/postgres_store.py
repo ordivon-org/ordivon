@@ -32,6 +32,7 @@ from .store_errors import (
     HarnessObjectMissing,
     HarnessRevisionConflict,
     HarnessTerminalConflict,
+    HarnessUnsupportedLegacyRepresentation,
 )
 from .store import (
     HARNESS_STORE_EVENT_KINDS,
@@ -1054,7 +1055,16 @@ class PostgresHarnessStore:
         with self._history_snapshot(harness_run_id=harness_run_id):
             self._validate_run_history_snapshot(harness_run_id)
 
-    def _validate_run_history_snapshot(self, harness_run_id: str) -> None:
+    def inspect_legacy_run(
+        self, harness_run_id: str
+    ) -> tuple[HarnessRunProjection, dict[str, JsonValue]] | None:
+        """Read the exact historical Contract without creating executable continuity."""
+        with self._history_snapshot(harness_run_id=harness_run_id):
+            return self._validate_run_history_snapshot(harness_run_id, legacy_readback=True)
+
+    def _validate_run_history_snapshot(
+        self, harness_run_id: str, *, legacy_readback: bool = False
+    ) -> tuple[HarnessRunProjection, dict[str, JsonValue]] | None:
         projection = self.load_run(harness_run_id)
         events = self.list_run_events(harness_run_id)
         if not events or events[0].event_kind != "harness.run-created":
@@ -1091,17 +1101,39 @@ class PostgresHarnessStore:
             harness_run_id, events,
             contract_object_digest=projection.contract_object_digest,
         )
+        # Prior Python v1 decoders admitted True == 1 and preserved the
+        # original Boolean wire bytes. Validate its exact v1 semantics on a
+        # temporary copy; never create a current executable Contract for the
+        # original digest or rewrite a committed CAS object.
+        legacy_boolean = contract.get("schemaVersion") is True
         try:
-            restored = HarnessRunContract.from_dict(contract)
+            restored = HarnessRunContract.from_dict(
+                {**contract, "schemaVersion": 1} if legacy_boolean else contract
+            )
+            if legacy_boolean and canonical_bytes(
+                {**restored.to_dict(), "schemaVersion": True}
+            ) != canonical_bytes(contract):
+                raise ValueError("historical v1 representation does not round-trip")
         except ValueError as error:
             raise HarnessObjectCorrupt("Harness Run contract object invalid") from error
         if (
             restored.harness_run_id != harness_run_id
-            or restored.digest != projection.contract_digest
+            or (canonical_digest(contract) if legacy_boolean else restored.digest)
+            != projection.contract_digest
             or restored.caller_id != projection.caller_id
             or restored.caller_run_ref != projection.caller_run_ref
         ):
             raise HarnessJournalCorruption("Run contract metadata differs from Journal")
+        if legacy_boolean and any(
+            events[0].data.get(key) != expected
+            for key, expected in (
+                ("contractDigest", projection.contract_digest),
+                ("contractObjectDigest", projection.contract_object_digest),
+                ("callerId", projection.caller_id),
+                ("callerRunRef", projection.caller_run_ref),
+            )
+        ):
+            raise HarnessJournalCorruption("Historical Run creation Event metadata differs")
         if (
             status is HarnessRunStatus.STOPPED
             and events[-1].event_kind == "harness.run-stopped"
@@ -1135,6 +1167,14 @@ class PostgresHarnessStore:
                 raise HarnessJournalCorruption(
                     "UNKNOWN terminal lacks its qualified original Run Receipt"
                 ) from error
+        if legacy_boolean:
+            if legacy_readback:
+                return projection, contract
+            raise HarnessUnsupportedLegacyRepresentation(
+                "Historical Boolean v1 Run Contract requires read-only inspection; "
+                "current execution admission is not qualified"
+            )
+        return None
 
     def doctor(self, *, full: bool = True) -> dict[str, JsonValue]:
         with self._history_snapshot():

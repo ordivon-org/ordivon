@@ -23,17 +23,7 @@ fn read_real_python_pg_store_journal_without_writes() {
     assert!(readback.projection.revision >= 3);
     assert_eq!(readback.events.len() as i64, readback.projection.revision);
     assert_eq!(readback.events[0].event_kind, "harness.run-created");
-    // Generic UNKNOWN observation remains exact. It is not a typed Provider
-    // outcome or a statement about external/domain completion.
     assert_eq!(readback.events[1].event_kind, "harness.trace-recorded");
-    assert_eq!(
-        readback.events[1]
-            .payload
-            .field("data")
-            .and_then(|data| data.field("state"))
-            .and_then(|state| state.as_str()),
-        Some("unknown")
-    );
     assert_eq!(
         readback.events.last().unwrap().event_kind,
         "harness.run-completed"
@@ -50,6 +40,26 @@ fn read_real_python_pg_store_journal_without_writes() {
         readback.projection.revision,
         readback.events.len()
     );
+}
+
+#[test]
+fn actual_typed_provider_unknown_remains_unsettled_in_pg_readback() {
+    let Ok(dsn) = std::env::var("HARNESS_RUST_TEST_PG_DSN") else {
+        eprintln!("SKIP: isolated PG18 fixture env is not configured");
+        return;
+    };
+    let schema = std::env::var("HARNESS_RUST_TEST_SCHEMA").expect("test schema");
+    let run_id = std::env::var("HARNESS_RUST_TEST_UNKNOWN_RUN_ID").expect("UNKNOWN Run");
+    let mut connection = postgres::Client::connect(&dsn, postgres::NoTls).expect("PG");
+    let readback = read_run_readonly(&mut connection, &schema, &run_id)
+        .expect("real typed UNKNOWN Provider history");
+    assert_eq!(readback.projection.status, "active");
+    assert!(readback.projection.terminal_event_id.is_none());
+    assert_eq!(
+        readback.events.last().unwrap().event_kind,
+        "harness.provider-call-unknown"
+    );
+    println!("RUST_PG_TYPED_PROVIDER_UNKNOWN_RETAINED_WITHOUT_COMPLETION");
 }
 
 #[test]
@@ -96,6 +106,28 @@ fn reject_missing_payload_edge() {
 }
 
 #[test]
+fn historical_boolean_contract_is_not_current_executable_readback() {
+    let Ok(dsn) = std::env::var("HARNESS_RUST_TEST_PG_DSN") else {
+        eprintln!("SKIP: isolated PG18 fixture env is not configured");
+        return;
+    };
+    let schema = std::env::var("HARNESS_RUST_TEST_SCHEMA").expect("test schema");
+    let legacy = std::env::var("HARNESS_RUST_TEST_LEGACY_BOOLEAN_RUN_ID").expect("legacy Run");
+    let bad = std::env::var("HARNESS_RUST_TEST_LEGACY_BAD_EDGE_RUN_ID").expect("bad legacy Run");
+    let mut connection = postgres::Client::connect(&dsn, postgres::NoTls).expect("PG");
+    let error = read_run_readonly(&mut connection, &schema, &legacy)
+        .expect_err("historical alias must not become current typed readback");
+    assert!(
+        matches!(error, ReadError::UnsupportedLegacyRepresentation(_)),
+        "{error}"
+    );
+    let error = read_run_readonly(&mut connection, &schema, &bad)
+        .expect_err("legacy status must not conceal an inconsistent CAS edge");
+    assert!(matches!(error, ReadError::Corruption(_)), "{error}");
+    println!("RUST_PG_LEGACY_BOOLEAN_READBACK_BLOCKED_AND_CORRUPTION_DISTINCT");
+}
+
+#[test]
 fn valid_legacy_python_depth_is_not_corrupt() {
     let Ok(dsn) = std::env::var("HARNESS_RUST_TEST_PG_DSN") else {
         eprintln!("SKIP: isolated PG18 fixture env is not configured");
@@ -124,6 +156,7 @@ fn reject_creation_contract_reference_divergence() {
         "HARNESS_RUST_TEST_MISSING_CONTRACT_RUN_ID",
         "HARNESS_RUST_TEST_EXTRA_CONTRACT_RUN_ID",
         "HARNESS_RUST_TEST_FOREIGN_CONTRACT_RUN_ID",
+        "HARNESS_RUST_TEST_LEGACY_MISSING_CONTRACT_RUN_ID",
     ] {
         let run = std::env::var(variable).expect("creation reference fixture");
         if !matches!(

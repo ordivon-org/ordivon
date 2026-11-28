@@ -35,8 +35,8 @@ pub enum ReadError {
     MissingRun(String),
     InvalidSchema,
     Corruption(String),
-    /// An old Python interpreter may admit this value under other depth/digit
-    /// settings. This is NOT evidence of physically corrupt CAS bytes.
+    /// An old Python interpreter or source version may admit this value.
+    /// This is NOT evidence of physically corrupt CAS bytes.
     UnsupportedLegacyRepresentation(String),
 }
 
@@ -464,11 +464,10 @@ fn validate_chain(
     projection: &RunProjection,
     contract: &CanonicalDocument,
     events: &[RunEvent],
-) -> Result<(), ReadError> {
-    // Hash-valid CAS bytes do not prove the recorded RunContract is valid.
-    // Validate exact versioned Python contract semantics before any consumer
-    // is allowed to interpret these events or call the external Provider.
-    contract_semantics::validate_contract(contract)?;
+) -> Result<bool, ReadError> {
+    // Preserve the historical Boolean v1 distinction while keeping typed
+    // consumer readback fail-closed. Current Writer admission remains strict.
+    let legacy_boolean = contract_semantics::validate_contract_for_history(contract)?;
     if require_string(contract, "harnessRunId")? != projection.harness_run_id
         || require_string(contract, "callerId")? != projection.caller_id
         || require_string(contract, "callerRunRef")? != projection.caller_run_ref
@@ -533,7 +532,7 @@ fn validate_chain(
     {
         return Err(corrupted("projection differs from Journal replay"));
     }
-    Ok(())
+    Ok(legacy_boolean)
 }
 
 /// Observe a complete Harness Run from one database snapshot. This never
@@ -588,16 +587,23 @@ pub fn read_run_readonly(
         &[&run_id],
     )?;
     let events: Vec<RunEvent> = rows.iter().map(read_event).collect::<Result<_, _>>()?;
-    validate_chain(&projection, &contract, &events)?;
+    let legacy_boolean = validate_chain(&projection, &contract, &events)?;
     // The original Store checks referenced objects during write, and each
     // event's payload reference is a persisted edge. Qualify the relationship
     // without interpreting any effect/Provider-specific referenced content.
+    // Disjoint union: event-owned edges plus foreign events claiming this
+    // Run. Unlike a cross-table OR, each branch can use its own access path.
+    // Preserve both ownership checks without duplicate rows or a new index.
     let edges = tx.query(
         "SELECT r.event_id,r.digest,r.role,r.harness_run_id AS reference_run_id, \
          o.kind AS object_kind,o.byte_length AS object_byte_length,o.content AS object_content \
-         FROM run_object_refs r JOIN run_events e ON e.event_id=r.event_id \
-         LEFT JOIN objects o ON o.digest=r.digest \
-         WHERE e.harness_run_id=$1 OR r.harness_run_id=$1 ORDER BY r.event_id,r.digest",
+         FROM ( \
+           SELECT r.* FROM run_object_refs r JOIN run_events e ON e.event_id=r.event_id \
+           WHERE e.harness_run_id=$1 \
+           UNION ALL \
+           SELECT r.* FROM run_object_refs r JOIN run_events e ON e.event_id=r.event_id \
+           WHERE r.harness_run_id=$1 AND e.harness_run_id<>$1 \
+         ) r LEFT JOIN objects o ON o.digest=r.digest ORDER BY r.event_id,r.digest",
         &[&run_id],
     )?;
     let known: BTreeMap<&str, &str> = events
@@ -750,6 +756,11 @@ pub fn read_run_readonly(
     }
     if !creation_contract_reference {
         return Err(corrupted("Run creation Contract reference missing"));
+    }
+    if legacy_boolean {
+        return Err(ReadError::UnsupportedLegacyRepresentation(
+            projection.contract_object_digest,
+        ));
     }
     tx.commit()?;
     Ok(Readback {
