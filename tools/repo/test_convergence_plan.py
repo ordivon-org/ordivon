@@ -1739,23 +1739,31 @@ class ConvergencePlanTests(unittest.TestCase):
                 ([], [], changed, False),
             )
         self.assertEqual(len(examples) - original_cases, 2 * len(cohorts))
-        with tempfile.TemporaryDirectory() as directory:
-            folder = Path(directory)
-            owners_path = folder / "owners.txt"
-            tasks_path = folder / "tasks.txt"
-            plan_path = folder / "plan.json"
-            for owners, tasks, changed, accepted in examples:
+        # Each case consumes the same immutable checkout through a fresh
+        # native process. Use separate input files and bound concurrency;
+        # retain every original case and assert in the original order.
+        from concurrent.futures import ThreadPoolExecutor
+
+        def run_case(example):
+            owners, tasks, changed, _ = example
+            with tempfile.TemporaryDirectory() as directory:
+                folder = Path(directory)
+                owners_path = folder / "owners.txt"
+                tasks_path = folder / "tasks.txt"
+                plan_path = folder / "plan.json"
+                owners_path.write_text("\n".join(owners) + "\n")
+                tasks_path.write_text("\n".join(tasks) + "\n")
+                plan_path.write_text(json.dumps({"changedPaths": changed}))
+                return subprocess.run(
+                    [sys.executable, "-c", code,
+                     str(owners_path), str(tasks_path), str(plan_path)],
+                    cwd=root, capture_output=True, text=True, timeout=20,
+                )
+
+        with ThreadPoolExecutor(max_workers=2) as workers:
+            for example, result in zip(examples, workers.map(run_case, examples), strict=True):
+                owners, tasks, changed, accepted = example
                 with self.subTest(owners=owners, tasks=tasks, changed=changed):
-                    owners_path.write_text("\n".join(owners) + "\n")
-                    tasks_path.write_text("\n".join(tasks) + "\n")
-                    plan_path.write_text(__import__("json").dumps({
-                        "changedPaths": changed,
-                    }))
-                    result = subprocess.run(
-                        [sys.executable, "-c", code,
-                         str(owners_path), str(tasks_path), str(plan_path)],
-                        cwd=root, capture_output=True, text=True, timeout=20,
-                    )
                     self.assertEqual(
                         result.returncode == 0, accepted,
                         result.stdout + result.stderr,
