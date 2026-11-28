@@ -333,7 +333,7 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
         harness_run_id=native_id,
         caller_run_ref="test-run-native-provider-unknown",
     )
-    assert store.create_run(native).value == "created"
+    # The Rust consumer will create the Run from the independently authored Contract.
     native_state = HarnessRunState(
         messages=(), observations=(), remaining_budget={"maxTurns": 2},
         requested_model_id=native.requested_model_id,
@@ -431,6 +431,7 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=False) as store:
         prior = record
     all_cases["rust_native_provider"] = {
         "runId": native_id,
+        "contract": native.to_dict(),
         "expectedRecordDigest": prior.digest,
         "events": native_events,
     }
