@@ -227,6 +227,8 @@ Host-key encryption is a deployment choice, not a universal security claim. Veri
 
 On Linux, a successful Runner may write `resource-receipt.json` beside `result.json`. Runtime treats receipt collection as best-effort so an unavailable counter does not reinterpret the execution result; when a receipt exists, Runtime strictly validates schema, Job/Attempt/launch-token identity, scope, and provider before registering it as an immutable `resource_receipt` Artifact. The R1 scope string remains `attempt_cgroup_including_runner`, but its exact semantics are a terminal pre-result snapshot: it includes Runner overhead and descendants observed up to sampling and does not claim the tiny post-sampling result-write/Runner-teardown tail or payload-only attribution.
 
+CPU `usageUsec` is cumulative cgroup CPU time, not a CPU rate. Do not divide it by Job-list `durationMs`, step duration, or the resource request to infer utilization: those quantities do not establish the cgroup counter's measurement interval. Even the Runner result's elapsed time starts after request loading and does not establish the complete cgroup accounting interval. A CPU rate requires counter deltas and a matching elapsed interval for the same cgroup; without that evidence it is unknown. Memory peak is not a time average, and a peak above the requested memory is not by itself a hard-limit violation. Keep these observations separate from admission and reservation authority.
+
 Workload profiling is deliberately read-side and non-authoritative. Export or otherwise materialize a caller-bounded set of receipt JSON files, then run:
 
 ```bash
