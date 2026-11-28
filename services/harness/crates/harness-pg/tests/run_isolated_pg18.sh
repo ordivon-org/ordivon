@@ -121,3 +121,12 @@ if [[ "$(printenv HARNESS_B_TYPED_TOOL_HEAD || true)" == 1 ]]; then
   HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run     --project services/harness --offline --locked python     services/harness/rust-migration/b-loop-probe/tests/pg_tool_head_python_store.py
   cargo test --manifest-path services/harness/Cargo.toml --locked --offline     -p ordivon-harness-loop-b-probe --test pg_tool_head     -- --ignored --nocapture
 fi
+
+# Existing private PG fixture: native Run birth and independent Python readback.
+if [[ "${HARNESS_PG_NATIVE_BIRTH:-}" == 1 ]]; then
+  export HARNESS_RUST_TEST_PG_READONLY_DSN="$HARNESS_RUST_TEST_PG_DSN"
+  HARNESS_RUST_TEST_PG_DSN="$writer_dsn" cargo test --manifest-path services/harness/Cargo.toml --locked --offline \
+    -p ordivon-harness-pg --test pg_birth_live -- --ignored --nocapture
+  HARNESS_RUST_TEST_PG_DSN="$writer_dsn" uv run --project services/harness --offline --locked python \
+    services/harness/crates/harness-pg/tests/birth_python_verify.py
+fi

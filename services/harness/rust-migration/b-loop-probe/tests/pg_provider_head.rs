@@ -12,8 +12,8 @@ use ordivon_harness_loop_b_probe::pg_domain_read::{
 use ordivon_harness_loop_b_probe::provider_head::{build_v4, ProviderStatus, RecoveryPosture};
 use ordivon_harness_pg::{
     journal_write::{
-        append_events, append_events_with_objects, observe_exact_batch, Admission, EventWrite,
-        JournalObservation, StoredRef, WriteError,
+        append_events, append_events_with_objects, create_run, observe_exact_batch, Admission,
+        EventWrite, JournalObservation, StoredRef, WriteError,
     },
     lease::acquire_run_lease,
     read_run_readonly, ReadError,
@@ -333,6 +333,19 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
         .unwrap()
         .get(0)
     };
+    let contract = native
+        .get("contract")
+        .expect("Python-authored Run Contract");
+    assert!(read_run_readonly(&mut readonly, &schema, run_id).is_err());
+    let mut birth_writer = Client::connect(&writer_dsn, NoTls).unwrap();
+    assert_eq!(
+        create_run(&mut birth_writer, &schema, &contract).unwrap(),
+        Admission::Created
+    );
+    drop(birth_writer);
+    let initial = read_run_readonly(&mut readonly, &schema, run_id).unwrap();
+    assert_eq!(initial.projection.revision, 1);
+    assert_eq!(initial.contract, contract);
     let mut prior_lease = None;
     for (index, (status, posture)) in [
         (
@@ -516,6 +529,10 @@ fn native_rust_writer_to_verified_provider_unknown_head_after_connection_loss() 
     // The Writer's source-defined exact retry is idempotent even though its
     // lease was atomically consumed. No duplicate Event and no redispatch.
     let mut retry = Client::connect(&writer_dsn, NoTls).unwrap();
+    assert!(matches!(
+        create_run(&mut retry, &schema, &contract),
+        Err(WriteError::Conflict(_))
+    ));
     assert_eq!(
         append_events(&mut retry, &schema, run_id, &batch, 1, &lease, 1008).unwrap(),
         Admission::Existing
