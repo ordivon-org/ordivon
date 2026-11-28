@@ -5,6 +5,13 @@
   "historicalObservedHead": "c45aa22ca9b4632dd98fdacef539bf167db61ab0",
   "filterTool": "git-filter-repo",
   "filterToolRevision": "a40bce548d2c",
+  "controlPaths": [
+    "README.md",
+    "SOURCE_BOUNDARY.json",
+    "scripts/verify_source.py",
+    "scripts/fixity_consumer_contract.py",
+    "scripts/test_verify_source.py"
+  ],
   "includedPaths": [
     "artifacts/creative-preservation/**",
     "config/archivematica-preservation-r10.compose.yml",

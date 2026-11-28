@@ -17,13 +17,6 @@ REPO_ROOT = Path(
     ).strip()
 )
 BOUNDARY = OWNER_ROOT / "SOURCE_BOUNDARY.json"
-CONTROL_FILES = {
-    "README.md",
-    "SOURCE_BOUNDARY.json",
-    "scripts/verify_source.py",
-    "scripts/fixity_consumer_contract.py",
-    "scripts/test_verify_source.py",
-}
 
 
 def _require(valid: bool, message: str) -> None:
@@ -79,6 +72,26 @@ def main() -> int:
         "preservation profile must remain local only",
     )
 
+    controls = data.get("controlPaths")
+    _require(
+        isinstance(controls, list) and bool(controls), "controlPaths must be nonempty"
+    )
+    _require(
+        all(
+            isinstance(path, str)
+            and bool(path)
+            and "\\" not in path
+            and not PurePosixPath(path).is_absolute()
+            and ".." not in PurePosixPath(path).parts
+            and PurePosixPath(path).as_posix() == path
+            for path in controls
+        ),
+        "invalid control path",
+    )
+    _require(
+        len(controls) == len(set(controls)), "controlPaths must be unique"
+    )
+
     included = data.get("includedPaths")
     _require(
         isinstance(included, list) and bool(included), "includedPaths must be nonempty"
@@ -87,9 +100,27 @@ def main() -> int:
         all(isinstance(pattern, str) and pattern for pattern in included),
         "invalid source path pattern",
     )
+    _require(
+        len(included) == len(set(included)), "includedPaths must be unique"
+    )
 
     tracked = _tracked_owner_files()
-    payload = tracked - CONTROL_FILES
+    control_set = set(controls)
+    missing_controls = sorted(control_set - tracked)
+    _require(
+        not missing_controls,
+        f"SOURCE_BOUNDARY controlPaths are not tracked: {missing_controls}",
+    )
+    overlapping_controls = sorted(
+        path
+        for path in control_set
+        if any(_matches(path, pattern) for pattern in included)
+    )
+    _require(
+        not overlapping_controls,
+        f"SOURCE_BOUNDARY controlPaths overlap includedPaths: {overlapping_controls}",
+    )
+    payload = tracked - control_set
     unmatched = sorted(
         path
         for path in payload
