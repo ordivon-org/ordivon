@@ -106,10 +106,10 @@ impl AttemptLifecycleContract {
     }
 
     pub(crate) fn supervisor_owner_bound_state(state: AttemptState) -> Option<AttemptState> {
-        match state {
-            AttemptState::Starting | AttemptState::Recovering => Some(AttemptState::Running),
-            AttemptState::Stopping => Some(AttemptState::Stopping),
-            _ => None,
+        if state == AttemptState::Stopping {
+            Some(state)
+        } else {
+            Self::runner_identity_bound_state(state)
         }
     }
 
@@ -153,10 +153,11 @@ impl AttemptLifecycleContract {
         job_resolution: Option<JobResolution>,
         current_attempt_present: bool,
     ) -> bool {
-        Self::is_terminal(state)
+        let resolution = Self::resolution(state);
+        resolution.is_some()
             && result_digest_present
             && finished_at_present
-            && job_resolution == Self::resolution(state)
+            && job_resolution == resolution
             && !current_attempt_present
     }
 }
