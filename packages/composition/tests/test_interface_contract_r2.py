@@ -256,7 +256,11 @@ def test_r2_result_can_carry_evidence_into_r1_gate_without_lifting_domain_truth(
     }
     projection = evaluate_gate_results(manifest, [gate_result])
 
-    assert projection["mechanicalClosure"] is True
+    assert projection["mechanicalClosure"] is False
+
+    assert projection["reportedGateClosure"] is True
+
+    assert projection["evidenceVerificationStanding"] == "UNKNOWN"
     assert projection["domainAcceptanceEstablished"] is False
 
 

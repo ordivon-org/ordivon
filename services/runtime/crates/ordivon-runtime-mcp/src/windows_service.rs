@@ -53,13 +53,16 @@ pub(crate) fn report_running(_address: SocketAddr) {
     );
 }
 
-unsafe extern "system" fn service_main(_argc: u32, _argv: *mut *mut u16) {
-    let mut service_name = wide(SERVICE_NAME);
-    let handle = RegisterServiceCtrlHandlerExW(
-        service_name.as_mut_ptr(),
-        Some(service_control_handler),
-        null_mut(),
-    );
+unsafe extern "system" fn service_main(argc: u32, argv: *mut *mut u16) {
+    // SCM supplies its exact installed service identity, not the default name.
+    let fallback = wide(SERVICE_NAME);
+    let service_name = if argc != 0 && !argv.is_null() && !(*argv).is_null() {
+        *argv as *const u16
+    } else {
+        fallback.as_ptr()
+    };
+    let handle =
+        RegisterServiceCtrlHandlerExW(service_name, Some(service_control_handler), null_mut());
     if handle.is_null() {
         return;
     }

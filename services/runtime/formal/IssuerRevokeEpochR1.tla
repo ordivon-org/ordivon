@@ -20,9 +20,11 @@ EXTENDS Naturals, TLC
 \* visible yet; only true handoff reconciliation may satisfy NoFutureSpawn.
 \* R57: a separate Manager CancelJob(exact accepted start Job) can discharge
 \* that one pending OS handoff AFTER the original launcher has definitely
-\* stopped. Cancellation acknowledgment is an atomic abstract transition:
-\* the real systemd Manager must establish exact-Job cancellation and no
-\* further caller submit, not merely return from systemctl or show "not found".
+\* stopped. R6 separates physical cancel from observing and persisting
+\* the exact JobRemoved receipt. Disconnect or observer crash can lose
+\* the receipt, even with no native handoff left. No replay is assumed.
+\* The real Manager must establish exact-Job cancellation and no further
+\* caller submit; the durable receipt path is a design obligation.
 \* This remains MODEL-ONLY, not a deployed OS/PG atomicity guarantee.
 
 AttemptIds == {"a", "b"}
@@ -135,11 +137,29 @@ ConfirmExactNativeManagerCancel(a) ==
     /\ a \in nativeHandoffPending
     /\ launcher[a] = "crashed_unknown"
     /\ nativeUnit[a] = "absent"
-    /\ launcher' = [launcher EXCEPT ![a] = "blocked"]
+    /\ launcher' \in {
+        [launcher EXCEPT ![a] = "manager_cancel_observed"],
+        [launcher EXCEPT ![a] = "manager_cancel_receipt_lost"]}
     /\ nativeHandoffPending' = nativeHandoffPending \ {a}
     /\ UNCHANGED <<issuer, issued, nativeUnit, stopIntent, fenced,
                    revokeAck, unitBornAfterAck, spawnedAfterAck,
                    crashedCallers>>
+
+LoseUnpersistedCancelSignal(a) ==
+    /\ launcher[a] = "manager_cancel_observed"
+    /\ launcher' = [launcher EXCEPT ![a] = "manager_cancel_receipt_lost"]
+    /\ UNCHANGED <<issuer, issued, nativeUnit, stopIntent, fenced,
+                   revokeAck, unitBornAfterAck, spawnedAfterAck,
+                   nativeHandoffPending, crashedCallers>>
+
+PersistExactNativeManagerCancel(a) ==
+    /\ launcher[a] = "manager_cancel_observed"
+    /\ a \notin nativeHandoffPending
+    /\ nativeUnit[a] = "absent"
+    /\ launcher' = [launcher EXCEPT ![a] = "manager_cancel_durable"]
+    /\ UNCHANGED <<issuer, issued, nativeUnit, stopIntent, fenced,
+                   revokeAck, unitBornAfterAck, spawnedAfterAck,
+                   nativeHandoffPending, crashedCallers>>
 
 NativeTargetStart(a) ==
     /\ a \in issued
@@ -175,6 +195,8 @@ LaunchFinalized(a) ==
     \/ (a \notin issued /\ launcher[a] = "not_started" /\
         nativeUnit[a] = "absent" /\ a \notin nativeHandoffPending)
     \/ (launcher[a] = "blocked" /\ nativeUnit[a] = "absent")
+    \/ (launcher[a] = "manager_cancel_durable" /\ nativeUnit[a] = "absent" /\
+        a \notin nativeHandoffPending)
     \/ (launcher[a] = "delivered" /\ nativeUnit[a] = "quiescent" /\
         a \in stopIntent)
 
@@ -197,6 +219,8 @@ Next ==
     \/ \E a \in AttemptIds: NativeUnitBirth(a)
     \/ \E a \in AttemptIds: FenceUnstarted(a)
     \/ \E a \in AttemptIds: ConfirmExactNativeManagerCancel(a)
+    \/ \E a \in AttemptIds: LoseUnpersistedCancelSignal(a)
+    \/ \E a \in AttemptIds: PersistExactNativeManagerCancel(a)
     \/ \E a \in AttemptIds: NativeTargetStart(a)
     \/ \E a \in AttemptIds: RequestStop(a)
     \/ \E a \in AttemptIds: ObserveQuiet(a)
@@ -208,7 +232,9 @@ TypeOK ==
     /\ issuer \in {"current", "revoked"}
     /\ issued \subseteq AttemptIds
     /\ launcher \in [AttemptIds -> {"not_started", "inflight", "crashed_unknown",
-                                      "delivered", "blocked"}]
+                                      "delivered", "blocked",
+                                      "manager_cancel_observed", "manager_cancel_receipt_lost",
+                                      "manager_cancel_durable"}]
     /\ nativeUnit \in [AttemptIds -> {"absent", "pending", "running", "quiescent"}]
     /\ stopIntent \subseteq AttemptIds
     /\ fenced \in BOOLEAN
@@ -243,7 +269,23 @@ CrashThenAckUnreachable == ~(revokeAck /\ issued = AttemptIds /\ crashedCallers 
 \* with no target creation. The original issuer still needs all OTHER issued
 \* Attempts independently finalized before it may publish an epoch-wide ACK.
 ExactCancelAckUnreachable ==
-    ~(revokeAck /\ issued = AttemptIds /\ \E a \in crashedCallers: launcher[a] = "blocked")
+    ~(revokeAck /\ issued = AttemptIds /\ \E a \in crashedCallers:
+        launcher[a] = "manager_cancel_durable")
+
+\* Evidence safety, independent of physical NoSpawnAfterAck.
+AckRequiresDurableCancellationReceipt ==
+    revokeAck => \A a \in issued:
+        launcher[a] \notin {"manager_cancel_observed", "manager_cancel_receipt_lost"}
+
+DurableCancelRequiresObserved ==
+    [][\A a \in AttemptIds:
+        (launcher'[a] = "manager_cancel_durable" /\
+         launcher[a] # "manager_cancel_durable") =>
+         launcher[a] = "manager_cancel_observed"]_vars
+
+LostReceiptUnreachable ==
+    ~(\E a \in issued: launcher[a] = "manager_cancel_receipt_lost" /\
+        nativeHandoffPending = {} /\ ~revokeAck)
 
 \* Separate intentionally false positive-path reachability checks.
 AckUnreachable == ~(revokeAck /\ issued = AttemptIds)

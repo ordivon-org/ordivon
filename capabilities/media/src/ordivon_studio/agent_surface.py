@@ -109,6 +109,13 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
             expected_input_digest=arguments.get("expectedInputDigest"),
             expected_source_closure_digest=arguments.get("expectedSourceClosureDigest"),
         )
+    if name == "studio_processing_receipt_qualify":
+        from .processing_receipt import qualify_processing_receipt
+
+        return qualify_processing_receipt(
+            root, plan=arguments["plan"], exit_code=arguments["exitCode"],
+            expected_receipt_digest=arguments["expectedReceiptDigest"],
+        )
     if name == "studio_equipment_propose":
         from .equipment import load_equipment_world, propose_operation
 
