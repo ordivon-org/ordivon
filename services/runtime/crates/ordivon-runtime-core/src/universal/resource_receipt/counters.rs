@@ -11,10 +11,10 @@ pub(super) fn parse_error(message: impl Into<String>) -> UniversalExecError {
     )
 }
 
-pub(super) fn parse_space_counters(
-    text: &str,
+pub(super) fn parse_space_counters<'a>(
+    text: &'a str,
     context: &str,
-) -> Result<BTreeMap<String, u64>, UniversalExecError> {
+) -> Result<BTreeMap<&'a str, u64>, UniversalExecError> {
     let mut counters = BTreeMap::new();
     for line in text.lines().filter(|line| !line.trim().is_empty()) {
         let mut parts = line.split_whitespace();
@@ -34,7 +34,7 @@ pub(super) fn parse_space_counters(
                 "{context} counter {key} is not an unsigned integer"
             ))
         })?;
-        if counters.insert(key.to_string(), value).is_some() {
+        if counters.insert(key, value).is_some() {
             return Err(parse_error(format!(
                 "{context} counter {key} is duplicated"
             )));
@@ -44,7 +44,7 @@ pub(super) fn parse_space_counters(
 }
 
 pub(super) fn required_counter(
-    counters: &BTreeMap<String, u64>,
+    counters: &BTreeMap<&str, u64>,
     key: &str,
     context: &str,
 ) -> Result<u64, UniversalExecError> {
