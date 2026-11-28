@@ -23,11 +23,16 @@ fn read_real_python_pg_store_journal_without_writes() {
     assert!(readback.projection.revision >= 3);
     assert_eq!(readback.events.len() as i64, readback.projection.revision);
     assert_eq!(readback.events[0].event_kind, "harness.run-created");
-    // UNKNOWN must remain an observable event, never collapsed to a failure
-    // or a false semantic completion.
+    // Generic UNKNOWN observation remains exact. It is not a typed Provider
+    // outcome or a statement about external/domain completion.
+    assert_eq!(readback.events[1].event_kind, "harness.trace-recorded");
     assert_eq!(
-        readback.events[1].event_kind,
-        "harness.provider-call-unknown"
+        readback.events[1]
+            .payload
+            .field("data")
+            .and_then(|data| data.field("state"))
+            .and_then(|state| state.as_str()),
+        Some("unknown")
     );
     assert_eq!(
         readback.events.last().unwrap().event_kind,
@@ -104,5 +109,32 @@ fn valid_legacy_python_depth_is_not_corrupt() {
     assert!(
         matches!(error, ReadError::UnsupportedLegacyRepresentation(_)),
         "valid legacy CAS outside the current codec domain must be UNKNOWN, not corruption: {error}"
+    );
+}
+
+#[test]
+fn reject_creation_contract_reference_divergence() {
+    let Some((dsn, schema, _, _, _, _)) = fixture() else {
+        eprintln!("SKIP: isolated PG18 fixture env is not configured");
+        return;
+    };
+    let mut connection = postgres::Client::connect(&dsn, postgres::NoTls).expect("fixture PG");
+    let mut unexpected = Vec::new();
+    for variable in [
+        "HARNESS_RUST_TEST_MISSING_CONTRACT_RUN_ID",
+        "HARNESS_RUST_TEST_EXTRA_CONTRACT_RUN_ID",
+        "HARNESS_RUST_TEST_FOREIGN_CONTRACT_RUN_ID",
+    ] {
+        let run = std::env::var(variable).expect("creation reference fixture");
+        if !matches!(
+            read_run_readonly(&mut connection, &schema, &run),
+            Err(ReadError::Corruption(_))
+        ) {
+            unexpected.push(variable);
+        }
+    }
+    assert!(
+        unexpected.is_empty(),
+        "Python History Doctor rejects these fixtures: {unexpected:?}"
     );
 }

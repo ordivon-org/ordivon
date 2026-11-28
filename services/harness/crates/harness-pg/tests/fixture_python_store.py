@@ -15,6 +15,7 @@ from anc_canonical import digest_bytes
 from ordivon_harness.core_contracts import HarnessBoundReference, HarnessRunContract
 from ordivon_harness.postgres_store import PostgresHarnessStore
 from ordivon_harness.store import HarnessEventWrite
+from ordivon_harness.store_errors import HarnessJournalCorruption
 
 
 def new_contract(suffix: str) -> HarnessRunContract:
@@ -47,9 +48,10 @@ dsn = os.environ["HARNESS_RUST_TEST_PG_DSN"]
 schema = os.environ.get("HARNESS_RUST_TEST_SCHEMA", "hpg_rust_" + uuid.uuid4().hex[:16])
 assert schema.startswith("hpg_rust_")
 valid, corrupt, bad_revision, bad_edge, deep = (new_contract(suffix) for suffix in ("valid", "corrupt", "badrev", "badedge", "deep996"))
+missing_contract, extra_contract, foreign_contract, foreign_owner = (new_contract(suffix) for suffix in ("missingcontract", "extracontract", "foreigncontract", "foreignowner"))
 
 with PostgresHarnessStore(dsn, schema=schema, initialize=True) as store:
-    for contract in [valid, corrupt, bad_revision, bad_edge, deep]:
+    for contract in [valid, corrupt, bad_revision, bad_edge, deep, missing_contract, extra_contract, foreign_contract, foreign_owner]:
         assert store.create_run(contract).value == "created"
     # Exercise real Python PG append_events and its exact lease/revision path.
     lease = store.acquire_run_lease(
@@ -60,11 +62,15 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=True) as store:
         harness_run_id=valid.harness_run_id,
         expected_revision=1,
         events=(
-            HarnessEventWrite("event:rust-test-provider-unknown", "harness.provider-call-unknown",
-                              {"providerCallId": "provider-call:unknown", "state": "unknown"}, 1200),
+            # Generic Journal observation, not a typed Provider effect. The
+            # current Store correctly refuses a fabricated Provider UNKNOWN
+            # with no original typed record; typed Provider cases have their
+            # own native acceptance fixture in b-loop-probe.
+            HarnessEventWrite("event:rust-test-observation-unknown", "harness.trace-recorded",
+                              {"state": "unknown"}, 1200),
             HarnessEventWrite("event:rust-test-run-completed", "harness.run-completed",
                               {"conclusionRef": "test:conclusion", "reason": "fixture"}, 1300,
-                              caused_by_event_id="event:rust-test-provider-unknown"),
+                              caused_by_event_id="event:rust-test-observation-unknown"),
         ),
         lease=lease,
         lease_checked_at_ms=1250,
@@ -73,6 +79,8 @@ with PostgresHarnessStore(dsn, schema=schema, initialize=True) as store:
     store.validate_run_history(corrupt.harness_run_id)
     store.validate_run_history(bad_revision.harness_run_id)
     store.validate_run_history(bad_edge.harness_run_id)
+    for contract in (missing_contract, extra_contract, foreign_contract):
+        store.validate_run_history(contract.harness_run_id)
 
     # An explicitly configured legacy Python runtime can accept this depth.
     # Default CPython recursion_limit=1000 fails inside nested Store calls;
@@ -118,6 +126,30 @@ with psycopg.connect(dsn, autocommit=True) as conn:
         (bad_edge.harness_run_id,),
     )
 
+    # Test-only negative fixtures for the original Python History Doctor law.
+    conn.execute(
+        "DELETE FROM run_object_refs WHERE harness_run_id=%s AND role='reference'",
+        (missing_contract.harness_run_id,),
+    )
+    conn.execute(
+        "INSERT INTO run_object_refs(harness_run_id,event_id,digest,role) "
+        "SELECT harness_run_id,event_id,%s,'reference' FROM run_events WHERE harness_run_id=%s",
+        (valid.digest, extra_contract.harness_run_id),
+    )
+    conn.execute(
+        "UPDATE run_object_refs SET harness_run_id=%s WHERE harness_run_id=%s AND role='reference'",
+        (foreign_owner.harness_run_id, foreign_contract.harness_run_id),
+    )
+
+with PostgresHarnessStore(dsn, schema=schema) as store:
+    for contract in (missing_contract, extra_contract, foreign_contract):
+        try:
+            store.validate_run_history(contract.harness_run_id)
+        except HarnessJournalCorruption:
+            pass
+        else:
+            raise AssertionError("Python History Doctor must reject negative creation edge fixture")
+
 out = Path(os.environ.get("HARNESS_RUST_TEST_FIXTURE_PATH", "/tmp/harness-rust-pg-fixture.json"))
 out.write_text(json.dumps({
     "schema": schema, "valid": valid.harness_run_id,
@@ -125,5 +157,8 @@ out.write_text(json.dumps({
     "bad_revision": bad_revision.harness_run_id,
     "bad_edge": bad_edge.harness_run_id,
     "deep": deep.harness_run_id,
+    "missing_contract": missing_contract.harness_run_id,
+    "extra_contract": extra_contract.harness_run_id,
+    "foreign_contract": foreign_contract.harness_run_id,
 }), encoding="utf-8")
 print("PYTHON_PG_FIXTURE_READY schema=" + schema, "valid_revision=3", "corrupt_object=1 bad_projection=1 bad_edge=1")
