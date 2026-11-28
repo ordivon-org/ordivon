@@ -6,7 +6,7 @@ Status: **composition of existing Owners**, not a new service, permission owner,
 
 For one actual consumer C and its incumbent implementation A, introduce upstream B only if the observed consumer benefit exceeds change, ongoing maintenance, integration and recovery costs **while preserving the full required contract**. A GitHub repository is not one LEGO; a project can yield several capability operators and several independently useful methods. Passing toy tests or growing Stars never establishes that B is formally equivalent to A.
 
-Use Recursive LEGO R2.1 and the existing Composition Successor Contract for formal refinement: inputs, outputs, states, pre/postconditions, invariants, effects, cost, approximation, provenance and unfolding. UNKNOWN is not FALSE or PASS. An external candidate record is not a formal declaration. Default: remove redundant custom code **after real consumer proof** → reuse upstream natively → compose existing Owners → use the smallest justified adapter → implement only the genuinely missing capability.
+Use problem-specific mathematical refinement and the existing Composition Successor Contract for the real consumer property; no fixed declaration is required. UNKNOWN is not FALSE or PASS. An external candidate record is not a formal declaration. Default: remove redundant custom code **after real consumer proof** → reuse upstream natively → compose existing Owners → use the smallest justified adapter → implement only the genuinely missing capability.
 
 ## Modules and natural Owners
 

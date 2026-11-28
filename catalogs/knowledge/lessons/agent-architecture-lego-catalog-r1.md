@@ -62,9 +62,9 @@ Plugin envelope != Skill/Tool/MCP surfaces
 
 The R1 leaf set therefore contains 24 architectural LEGO. This is a catalog vocabulary, not a mandate that every product implement all 24.
 
-## 3. Canonical LEGO contract
+## 3. Historical catalog-specific comparison notes
 
-Every LEGO entry is evaluated with the same fields:
+The original catalog used the following comparison headings. They are historical catalog documentation, not a definition of OL, an admission condition, or a mandatory schema for other responsibilities:
 
 ```text
 Id
