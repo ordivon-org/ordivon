@@ -3330,6 +3330,146 @@ fn failed_retained_pg_transient_auto_converges_to_lost_and_releases_capacity() {
 }
 
 #[test]
+#[ignore = "requires disposable PostgreSQL binaries and authorized native Runner execution"]
+fn fresh_pg_mcp_terminal_serialization_abort_preserves_physical_effect() {
+    let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
+    let repo = fixture.repo();
+    let endpoint = fixture.endpoint();
+    let opened = call(
+        &endpoint,
+        "workspace.open",
+        json!({"workspaceId":"ws-terminal-abort","sourceRepo":repo,"sourceRevision":"HEAD"}),
+    );
+    assert_ne!(opened["isError"], true, "{opened}");
+    // This cluster belongs exclusively to Fixture. An ordinary native command
+    // finishes first; the terminal journal transaction then receives one real
+    // server SQLSTATE 40001. The sequence persists across transaction rollback.
+    fixture
+        .db
+        .batch_execute(
+            "CREATE SEQUENCE terminal_abort_once;
+         GRANT USAGE ON SEQUENCE terminal_abort_once TO runtime_app;
+         CREATE FUNCTION terminal_abort_once_fn() RETURNS trigger LANGUAGE plpgsql AS $$
+         BEGIN
+           IF NEW.event_type = 'JOB_TERMINAL' THEN
+             IF nextval('fresh.terminal_abort_once') = 1 THEN
+               RAISE EXCEPTION SQLSTATE '40001' USING MESSAGE = 'disposable terminal abort';
+             END IF;
+           END IF;
+           RETURN NEW;
+         END $$;
+         CREATE TRIGGER terminal_abort_once_trigger BEFORE INSERT ON job_events
+         FOR EACH ROW EXECUTE FUNCTION terminal_abort_once_fn();",
+        )
+        .unwrap();
+    let key = "pg-terminal-abort-physical-0001";
+    let request = json!({
+        "clientRequestId":key,
+        "execution":{"workspaceId":"ws-terminal-abort","executable":"/bin/bash",
+        "args":["-c","printf 'physical-once\n' >> effect-marker"],"cwdRelative":".","timeoutMs":5000},
+        "waitMs":0
+    });
+    let admitted = rpc(
+        &endpoint,
+        "tools/call",
+        json!({"name":"workspace.exec","arguments":request}),
+    );
+    let job_id: String = if admitted["isError"] == true {
+        assert_eq!(
+            admitted["structuredContent"]["error"]["commitState"], "committed",
+            "{admitted}"
+        );
+        assert_eq!(
+            admitted["structuredContent"]["error"]["retryClass"], "reconcile_first",
+            "{admitted}"
+        );
+        admitted["structuredContent"]["error"]["operationId"]
+            .as_str()
+            .unwrap()
+            .to_owned()
+    } else {
+        admitted["structuredContent"]["jobId"]
+            .as_str()
+            .unwrap()
+            .to_owned()
+    };
+    let deadline = Instant::now() + Duration::from_secs(25);
+    let mut returned_error = false;
+    let terminal = loop {
+        let observed = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":job_id,"waitMs":1000}),
+        );
+        if observed["isError"] == true {
+            assert_eq!(
+                observed["structuredContent"]["error"]["commitState"], "committed",
+                "{observed}"
+            );
+            assert_eq!(
+                observed["structuredContent"]["error"]["operationId"], job_id,
+                "{observed}"
+            );
+            assert_eq!(
+                observed["structuredContent"]["error"]["retryClass"], "reconcile_first",
+                "{observed}"
+            );
+            returned_error = true;
+        } else {
+            assert_eq!(observed["structuredContent"]["jobId"], job_id, "{observed}");
+            if observed["structuredContent"]["executionTerminal"] == true {
+                break observed;
+            }
+        }
+        assert!(
+            Instant::now() < deadline,
+            "same-job convergence timed out: {observed}"
+        );
+    };
+    assert_eq!(
+        terminal["structuredContent"]["executionDisposition"], "succeeded",
+        "{terminal}"
+    );
+    let marker = fixture
+        .root
+        .join("store")
+        .join("workspaces")
+        .join("ws-terminal-abort")
+        .join("effect-marker");
+    assert_eq!(fs::read(&marker).unwrap(), b"physical-once\n");
+    let faults: i64 = fixture
+        .db
+        .query_one("SELECT last_value FROM terminal_abort_once", &[])
+        .unwrap()
+        .get(0);
+    assert!(
+        faults >= 2,
+        "must observe injected abort and later terminal retry"
+    );
+    let counts = fixture
+        .db
+        .query_one(
+            "SELECT (SELECT count(*) FROM jobs WHERE client_request_id=$1),
+                (SELECT count(*) FROM attempts WHERE job_id=$2),
+                (SELECT count(*) FROM job_events WHERE job_id=$2 AND event_type='DISPATCH_ISSUED'),
+                (SELECT count(*) FROM job_events WHERE job_id=$2 AND event_type='JOB_TERMINAL')",
+            &[&key, &job_id],
+        )
+        .unwrap();
+    assert_eq!(
+        [
+            counts.get::<_, i64>(0),
+            counts.get(1),
+            counts.get(2),
+            counts.get(3)
+        ],
+        [1, 1, 1, 1]
+    );
+    println!("TERMINAL_40001_INJECTED=1 PHYSICAL_APPEND_COUNT=1 DISPATCH_COUNT=1 TERMINAL_COUNT=1 OBSERVE_ERROR_EXPOSED={returned_error}");
+}
+
+#[test]
 #[ignore = "requires PostgreSQL binaries and authorized systemd/cgroup execution"]
 fn fresh_pg_mcp_native_runner_success_and_cancel() {
     let mut fixture = Fixture::new();
