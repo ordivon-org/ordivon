@@ -5049,6 +5049,7 @@ fn pg_host_dependencies_real_runner_and_committed_idempotency() {
     use sha2::Digest as _;
 
     let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
     let repo = fixture.repo();
     let endpoint = fixture.endpoint();
     let reference = fixture.root.join("pg-host-dependency.bin");
