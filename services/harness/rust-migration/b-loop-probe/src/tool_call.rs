@@ -44,7 +44,7 @@ impl ModelToolCall {
 }
 
 fn expect_string<'a>(
-    document: &'a CanonicalDocument,
+    document: CanonicalRef<'a>,
     key: &str,
     max_bytes: usize,
 ) -> Result<&'a str, ToolCallDecodeError> {
@@ -75,7 +75,8 @@ pub fn inspect_model_tool_call(
     let field_count = value
         .object_len()
         .ok_or(ToolCallDecodeError::InvalidModelToolCall)?;
-    let has_provider_arguments = value.field("providerArguments").is_some();
+    let provider_arguments = value.field("providerArguments");
+    let has_provider_arguments = provider_arguments.is_some();
     if field_count != (if has_provider_arguments { 4 } else { 3 })
         || value.field("toolCallId").is_none()
         || value.field("name").is_none()
@@ -86,14 +87,11 @@ pub fn inspect_model_tool_call(
     {
         return Err(ToolCallDecodeError::InvalidModelToolCall);
     }
-    let id = expect_string(value, "toolCallId", 300)?;
-    let name = expect_string(value, "name", 120)?;
+    let id = expect_string(value.as_borrowed(), "toolCallId", 300)?;
+    let name = expect_string(value.as_borrowed(), "name", 120)?;
     let mut argument_error = None;
 
-    if has_provider_arguments {
-        let args = value
-            .get("providerArguments")
-            .ok_or(ToolCallDecodeError::InvalidModelToolCall)?;
+    if let Some(args) = provider_arguments {
         if args.object_len() != Some(3)
             || args.field("error").is_none()
             || args.field("rawDigest").is_none()
@@ -101,12 +99,11 @@ pub fn inspect_model_tool_call(
         {
             return Err(ToolCallDecodeError::InvalidModelToolCall);
         }
-        let null = CanonicalDocument::null();
         let all_null = ["error", "rawDigest", "preview"]
             .iter()
-            .all(|key| args.get(key) == Some(null.clone()));
+            .all(|key| args.field(key).is_some_and(CanonicalRef::is_null));
         if !all_null {
-            let error = expect_string(&args, "error", 300)?;
+            let error = expect_string(args, "error", 300)?;
             let digest = args
                 .field("rawDigest")
                 .and_then(CanonicalRef::as_str)

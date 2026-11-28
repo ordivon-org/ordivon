@@ -5,7 +5,10 @@
 
 use std::collections::{HashMap, HashSet};
 
-use crate::{decide_progress, GateLimits, ProgressCounters, ProgressDecision, ProgressError};
+use crate::{
+    classify_observed_names, decide_progress_from_flags, GateLimits, ProgressCounters,
+    ProgressDecision, ProgressError,
+};
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct EvidenceState {
@@ -61,14 +64,13 @@ pub fn advance_evidence(
     observation_only_names: &[&str],
 ) -> EvidenceTransition {
     let mut state = prior.clone();
-    let allowed: HashSet<&str> = observation_only_names.iter().copied().collect();
-    let observed: HashSet<&str> = observations
-        .iter()
-        .filter(|observation| observation.status == "observed")
-        .map(|observation| observation.tool_name)
-        .collect();
-    let observation_only = !observed.is_empty() && observed.is_subset(&allowed);
-    let action_progress = observed.iter().any(|name| !allowed.contains(name));
+    let (observation_only, action_progress) = classify_observed_names(
+        observations
+            .iter()
+            .filter(|observation| observation.status == "observed")
+            .map(|observation| observation.tool_name),
+        observation_only_names,
+    );
     let mut new_evidence = false;
 
     for observation in observations {
@@ -83,19 +85,11 @@ pub fn advance_evidence(
                         .iter()
                         .map(|token| (*token).to_owned())
                         .collect();
-                    let subsuming: Vec<&HashSet<String>> = state
-                        .search
-                        .iter()
-                        .filter(|((query, path), _)| {
-                            query == unit.query && path_subsumes(path, unit.relative_path)
-                        })
-                        .map(|(_, matches)| matches)
-                        .collect();
-                    if subsuming.is_empty()
-                        || !subsuming
-                            .iter()
-                            .any(|existing| next_matches.is_subset(existing))
-                    {
+                    if !state.search.iter().any(|((query, path), existing)| {
+                        query == unit.query
+                            && path_subsumes(path, unit.relative_path)
+                            && next_matches.is_subset(existing)
+                    }) {
                         new_evidence = true;
                     }
                     state
@@ -200,6 +194,34 @@ mod tests {
     }
 
     #[test]
+    fn dominated_child_search_state_cannot_be_deleted_in_general() {
+        let step = |prior: &EvidenceState, path: &str, matches: Vec<&str>| {
+            advance_evidence(
+                prior,
+                &[Observation {
+                    search_units: Some(vec![SearchUnit {
+                        query: "q",
+                        relative_path: path,
+                        matches,
+                    }]),
+                    ..observed("search_workspace", "ignored")
+                }],
+                &["search_workspace"],
+            )
+        };
+        let parent = step(&EvidenceState::default(), "src", vec!["a"]);
+        let child = step(&parent.state, "src/a", vec!["a"]);
+        assert!(!child.new_evidence);
+        let mut pruned = child.state.clone();
+        pruned.search.remove(&("q".into(), "src/a".into()));
+        let retained_next = step(&child.state, "src/a", vec!["b"]);
+        let pruned_next = step(&pruned, "src/a", vec!["b"]);
+        assert!(retained_next.new_evidence && pruned_next.new_evidence);
+        assert!(!step(&retained_next.state, "src/a", vec!["a", "b"]).new_evidence);
+        assert!(step(&pruned_next.state, "src/a", vec!["a", "b"]).new_evidence);
+    }
+
+    #[test]
     fn same_matches_with_different_exit_outcome_are_new() {
         let first = advance_evidence(
             &EvidenceState::default(),
@@ -245,19 +267,12 @@ pub fn evaluate_turn(
     limits: GateLimits,
 ) -> Result<TurnDecision, ProgressError> {
     let evidence = advance_evidence(prior, observations, observation_only_names);
-    let observed_names: Vec<&str> = observations
-        .iter()
-        .filter(|observation| observation.status == "observed")
-        .map(|observation| observation.tool_name)
-        .collect();
-    let progress = decide_progress(
-        &observed_names,
-        observation_only_names,
+    let progress = decide_progress_from_flags(
+        evidence.observation_only,
+        evidence.action_progress,
         evidence.new_evidence,
         counters,
         limits,
     )?;
-    debug_assert_eq!(progress.observation_only, evidence.observation_only);
-    debug_assert_eq!(progress.action_progress, evidence.action_progress);
     Ok(TurnDecision { evidence, progress })
 }
