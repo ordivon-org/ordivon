@@ -591,12 +591,19 @@ pub fn read_run_readonly(
     // The original Store checks referenced objects during write, and each
     // event's payload reference is a persisted edge. Qualify the relationship
     // without interpreting any effect/Provider-specific referenced content.
+    // Disjoint union: event-owned edges plus foreign events claiming this
+    // Run. Unlike a cross-table OR, each branch can use its own access path.
+    // Preserve both ownership checks without duplicate rows or a new index.
     let edges = tx.query(
         "SELECT r.event_id,r.digest,r.role,r.harness_run_id AS reference_run_id, \
          o.kind AS object_kind,o.byte_length AS object_byte_length,o.content AS object_content \
-         FROM run_object_refs r JOIN run_events e ON e.event_id=r.event_id \
-         LEFT JOIN objects o ON o.digest=r.digest \
-         WHERE e.harness_run_id=$1 OR r.harness_run_id=$1 ORDER BY r.event_id,r.digest",
+         FROM ( \
+           SELECT r.* FROM run_object_refs r JOIN run_events e ON e.event_id=r.event_id \
+           WHERE e.harness_run_id=$1 \
+           UNION ALL \
+           SELECT r.* FROM run_object_refs r JOIN run_events e ON e.event_id=r.event_id \
+           WHERE r.harness_run_id=$1 AND e.harness_run_id<>$1 \
+         ) r LEFT JOIN objects o ON o.digest=r.digest ORDER BY r.event_id,r.digest",
         &[&run_id],
     )?;
     let known: BTreeMap<&str, &str> = events
