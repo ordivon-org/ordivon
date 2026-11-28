@@ -1,7 +1,7 @@
+use super::super::super::error::io_error;
 use super::super::super::{
     ArtifactRegistration, AttemptRecord, RuntimeError, RuntimeErrorCode, RuntimeResult,
 };
-use super::super::errors::io_error;
 use super::super::{REQUEST_FILE, WORKSPACE_SOURCE_OBSERVATION_FILE};
 use super::contract::{
     valid_observation_digest, validate_source_observation_relation, SourceObservationRequirement,

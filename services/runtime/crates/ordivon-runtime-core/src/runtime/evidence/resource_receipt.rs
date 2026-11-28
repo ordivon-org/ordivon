@@ -1,7 +1,7 @@
+use super::super::error::io_error;
 use super::super::{
     ArtifactRegistration, AttemptRecord, RuntimeError, RuntimeErrorCode, RuntimeResult,
 };
-use super::errors::io_error;
 use crate::universal::{
     sha256_bytes, RunnerResourceReceipt, RESOURCE_RECEIPT_FILE,
     RESOURCE_RECEIPT_PROVIDER_LINUX_CGROUP_V2, RESOURCE_RECEIPT_SCHEMA_VERSION,

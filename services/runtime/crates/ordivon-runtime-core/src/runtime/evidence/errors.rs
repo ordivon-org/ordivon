@@ -8,12 +8,3 @@ pub(super) fn map_universal_error(error: crate::UniversalExecError) -> RuntimeEr
         error.retryable,
     )
 }
-
-pub(super) fn io_error(context: &str, error: std::io::Error) -> RuntimeError {
-    RuntimeError::new(
-        RuntimeErrorCode::IoError,
-        format!("{context}: {error}"),
-        None,
-        false,
-    )
-}

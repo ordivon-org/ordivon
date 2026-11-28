@@ -1,3 +1,4 @@
+use super::error::io_error;
 use rusqlite::{Connection, OpenFlags};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
@@ -1313,15 +1314,6 @@ fn map_universal_error(error: crate::UniversalExecError) -> RuntimeError {
         error.message,
         error.field.as_deref(),
         error.retryable,
-    )
-}
-
-fn io_error(context: &str, error: std::io::Error) -> RuntimeError {
-    RuntimeError::new(
-        RuntimeErrorCode::IoError,
-        format!("{context}: {error}"),
-        None,
-        false,
     )
 }
 

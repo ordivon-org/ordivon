@@ -215,3 +215,13 @@ impl Display for RuntimeError {
 impl std::error::Error for RuntimeError {}
 
 pub type RuntimeResult<T> = Result<T, RuntimeError>;
+
+/// Preserve the existing contextual I/O failure across Runtime consumers.
+pub(super) fn io_error(context: &str, error: std::io::Error) -> RuntimeError {
+    RuntimeError::new(
+        RuntimeErrorCode::IoError,
+        format!("{context}: {error}"),
+        None,
+        false,
+    )
+}

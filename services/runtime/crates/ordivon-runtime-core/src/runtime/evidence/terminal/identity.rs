@@ -1,5 +1,5 @@
+use super::super::super::error::io_error;
 use super::super::super::{AttemptRecord, RuntimeError, RuntimeErrorCode, RuntimeResult};
-use super::super::errors::io_error;
 use super::super::{REQUEST_FILE, RESULT_FILE};
 use crate::universal::{sha256_bytes, RunnerRequest, RunnerResult};
 use std::{fs, path::Path};

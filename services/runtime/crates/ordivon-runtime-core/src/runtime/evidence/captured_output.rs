@@ -1,7 +1,8 @@
+use super::super::error::io_error;
 use super::super::{
     ArtifactRegistration, AttemptRecord, RuntimeError, RuntimeErrorCode, RuntimeResult,
 };
-use super::errors::{io_error, map_universal_error};
+use super::errors::map_universal_error;
 use super::{STDERR_FILE, STDOUT_FILE};
 use crate::universal::{
     open_directory_nofollow, open_regular_file_beneath, sha256_bytes, write_bytes_atomic_if_absent,
