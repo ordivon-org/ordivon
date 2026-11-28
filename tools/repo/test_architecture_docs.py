@@ -296,7 +296,12 @@ def test_queue_telemetry_provider_projection_is_deterministic() -> None:
     assert result["metrics"]["unsuccessfulMergeGroupExecutionSeconds"] == 5
     assert result["metrics"]["queueDispatchSeconds"]["median"] == 12.5
     assert "pressureGate" not in result
-    assert result == queue_module.project(queue_module.normalize(snapshot))
+    normalized = queue_module.normalize(snapshot)
+    with patch.object(queue_module, "episode_metrics", wraps=queue_module.episode_metrics) as observe:
+        projected = queue_module.project(normalized)
+        assert observe.call_count == 1
+    assert result == projected
+    assert projected["metrics"] == queue_module.extract_metrics(normalized)
     by_pr = {row["pr"]: row for row in result["episodeMetrics"]}
     assert by_pr[7]["verificationSeconds"] == 22
     assert by_pr[8]["mergeGroupRuns"] == 2
