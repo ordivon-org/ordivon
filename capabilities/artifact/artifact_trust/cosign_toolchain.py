@@ -11,13 +11,12 @@ from pathlib import Path
 from typing import Any
 
 from artifact_core.contracts import sha256_file
+from artifact_core.external_toolchain import artifact_toolchain_root
 from artifact_core.json_validation import load_json
 
 ROOT = Path(__file__).resolve().parents[1]
 
-GLOBAL_ARTIFACT_TOOLCHAIN_ROOT = Path(
-    os.environ.get("ARTIFACT_TOOLCHAIN_ROOT", "/opt/ordivon/external/artifact-toolchain")
-)
+GLOBAL_ARTIFACT_TOOLCHAIN_ROOT = artifact_toolchain_root()
 
 GLOBAL_COSIGN = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "cosign/3.1.3/bin/cosign"
 
