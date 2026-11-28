@@ -154,8 +154,7 @@ boundary:
 
   G_P(output,effects) and Current(provenance) => A_C(output).
 
-This is a scoped assume–guarantee interpretation of the existing
-R2.1 pre/post/inv/eff/prov coordinates; a claim of domain acceptance must
+This is a scoped assume–guarantee obligation for Artifact; a claim of domain acceptance must
 still originate from the actual consumer, not from the Artifact kernel.
 
 Let N1 and N2 map v1/v2 raw observations to their legitimately shared

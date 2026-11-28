@@ -1,11 +1,11 @@
 # Game LEGO-Constrained Execution — Implementation Plan R1.1
 
-> Agent workers: read [spec](agent-execution-contract-spec.md), root `AGENTS.md`, Game `AGENTS.md`, and existing G11 R2.1 before changing code. Use Superpowers' small red/green steps and verification-before-completion where applicable; this plan is not a new authority or runtime.
+> Agent workers: read [spec](agent-execution-contract-spec.md), root `AGENTS.md`, Game `AGENTS.md`, and the existing G11 consumer contract before changing code. Use Superpowers' small red/green steps and verification-before-completion where applicable; this plan is not a new authority or runtime.
 
 > **Current standing (2026-11-15):** This is the 2026-11-09 implementation history, not the next Game work queue. The native clean-checkout import and receipt checks described in Tasks A–C/E are already present in current source and must be re-verified with `mise run test:agent-episode` for affected changes. Historical unchecked boxes remain provenance, not instructions to redo them. Task D is conditional on a real cross-Owner consumer; publication, current CI, and Human acceptance are independent facts.
 
 **Goal:** Make the actual G11 Room Encounter episode acceptance independently executable in a clean Game checkout, while retaining source-bound LEGO evidence and recording the future natural-Owner adoption seams.
-**Architecture:** Extend the existing native `mise` entry using upstream Godot import. Reuse the existing G11 R2.1 declaration, Game real scene tests and GitHub native pipeline; do not add a schema, verifier executor, registry or mandatory Agent workflow.
+**Architecture:** Extend the existing native `mise` entry using upstream Godot import. Reuse the existing G11 consumer requirements, Game real scene tests and GitHub native pipeline; do not add a schema, verifier executor, registry or mandatory Agent workflow.
 **Tech stack:** Godot 4.7.2, Python 3, Rust/Bevy 0.20.1 as existing separate product, mise, GitHub Actions, Game G11 R2.1.
 **Spec:** `domains/game/docs/agent-execution-contract-spec.md`.
 **Frozen test seam:** `cd domains/game && mise run test:agent-episode`, in an isolated checkout without `examples/room-encounter/.godot`.
@@ -14,7 +14,7 @@
 
 - Use exact current Game source tree `7157e18d3bee2765205687380953dfabf72688a0` as the initial design basis; record any future diff.
 - Retain Godot-native `PackedScene`/`EncounterRules`/Dialogue Manager and native action/observation semantics; do not simulate action execution in Python.
-- Retain the 11-coordinate existing G11 `recursiveLegoR21` contract and its original authority split.
+- Retain the actual G11 behavior, source witnesses and original authority split; the historical fixed declaration is not required.
 - No new global evaluator, workflow/verification database, native scene shim, Weak-Model experiment or ECC Stop Hook.
 - Do not claim Player acceptance from headless checks; do not claim Git merged/installed when it is only a local branch.
 - For claims requiring a clean import, remove ignored generated cache only inside a disposable isolated worktree. Never delete production or other agents' worktrees.

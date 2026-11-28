@@ -77,7 +77,7 @@ not a new checker. Require distinct evidence links:
 
 A new LEGO is substitutable only if it does **not strengthen** the
 consuming assumptions or **weaken** required guarantees, preserves
-state/effect/provenance obligations and the R2.1 11-coordinate contract.
+the relevant state, effect and evidence obligations for that consumer and chosen semantics.
 A test is dominated only when its exact property and fault model are
 covered by the current proof **and** implementation refinement;
 otherwise retain the distinct real consumer check. Missing or stale
