@@ -153,7 +153,7 @@ class CleanSurfaceTests(unittest.TestCase):
     def test_fresh_birth_normalizes_to_root_before_provider_gate_and_send(self):
         text = (ROOT / "scripts/playwright_browserless_chatgpt_submit.py").read_text()
         navigate = text.index("page.goto(NEW_CHAT_URL")
-        gate = text.index("blocker = human_blocker(page)", navigate)
+        gate = text.index("blocker = provider_blocker(page)", navigate)
         stabilize = text.index("if not stabilize_empty_composer(page, composer):", gate)
         fill_prompt = text.index("composer.fill(prompt)", stabilize)
         click = text.index("send.click()", fill_prompt)

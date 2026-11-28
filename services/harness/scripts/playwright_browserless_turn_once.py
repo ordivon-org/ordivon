@@ -22,7 +22,6 @@ from standard_identifiers import require_uuid7
 PROMPT_SELECTOR = "#prompt-textarea"
 SEND_SELECTOR = 'button[data-testid="send-button"]'
 STOP_SELECTOR = 'button[data-testid="stop-button"]'
-CHALLENGE_SELECTOR = 'iframe[src*="challenges.cloudflare.com"], [id*="challenge"]'
 FETCH_ERROR_SELECTOR = '[data-testid="conversation-fetch-error-toaster"]'
 MAIN_SELECTOR = "main"
 POST_SEND_ROUTE_STABILIZE_MS = 15_000
@@ -252,7 +251,7 @@ def main() -> int:
                 hydration_deadline = time.monotonic() + 20.0
                 main_text_before_send = ""
                 while True:
-                    if challenge_gated(page, CHALLENGE_SELECTOR):
+                    if challenge_gated(page):
                         raise SystemExit("Browserless continuation is challenge-gated")
                     fetch_error = page.locator(FETCH_ERROR_SELECTOR)
                     if fetch_error.count() and fetch_error.first.is_visible():

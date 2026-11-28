@@ -17,7 +17,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError, expect, sync_playwright
 
 from browserless_human_handoff import load_verified_handoff, mint_handoff, write_private_handoff
-from chatgpt_provider_gate import challenge_gated
+from chatgpt_provider_gate import provider_blocker
 from chatgpt_provider_resource import chatgpt_resource_from_page_url
 from playwright_browserless_chatgpt_submit import digest_bytes, digest_obj, write_pre_effect
 from provider_boundary_diagnosis import (
@@ -29,9 +29,6 @@ from provider_boundary_diagnosis import (
 PROMPT_SELECTOR = "#prompt-textarea"
 SEND_SELECTOR = 'button[data-testid="send-button"]'
 STOP_SELECTOR = 'button[data-testid="stop-button"]'
-CHALLENGE_SELECTOR = 'iframe[src*="challenges.cloudflare.com"], [id*="challenge"]'
-LOGIN_SELECTOR = "text=/^Log in$/i"
-SIGNUP_SELECTOR = "text=/^Sign up$/i"
 PRE_EFFECT_BLOCKER_SELECTOR = '[data-testid="modal-conversation-history-rate-limit"]'
 PRE_EFFECT_BLOCKED_EXIT = 42
 HUMAN_REQUIRED_EXIT = 43
@@ -47,22 +44,6 @@ def auth(url: str, token_file: Path) -> str:
     return urlunsplit(
         (parsed.scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment)
     )
-
-
-def visible(page, selector: str) -> bool:
-    try:
-        loc = page.locator(selector)
-        return loc.count() > 0 and loc.first.is_visible()
-    except Exception:
-        return False
-
-
-def human_blocker(page) -> str | None:
-    if challenge_gated(page, CHALLENGE_SELECTOR):
-        return "challenge-gated"
-    if visible(page, LOGIN_SELECTOR) or visible(page, SIGNUP_SELECTOR):
-        return "auth-required"
-    return None
 
 
 def close_old_live_url(page, handoff: dict) -> None:
@@ -101,9 +82,7 @@ def repark(page, a, blocker: str) -> bool:
         return False
 
 
-def route_provider_blocker(
-    page, a, handoff: dict, blocker: str
-) -> tuple[str, bool]:
+def route_provider_blocker(page, a, handoff: dict, blocker: str) -> tuple[str, bool]:
     """Execute provider policy without converting challenges into Browserless handoffs."""
     standing = {
         "challenge-gated": "CHALLENGE_GATED",
@@ -205,7 +184,7 @@ def main() -> int:
             browser.close()
             return PRE_EFFECT_BLOCKED_EXIT
         page = pages[0]
-        blocker = human_blocker(page)
+        blocker = provider_blocker(page)
         if blocker is not None:
             decision, transport_handoff = route_provider_blocker(page, a, handoff, blocker)
             handed_off = transport_handoff
@@ -218,7 +197,7 @@ def main() -> int:
         try:
             composer.wait_for(state="visible", timeout=10000)
         except Exception as error:
-            blocker = human_blocker(page)
+            blocker = provider_blocker(page)
             if blocker is not None:
                 decision, transport_handoff = route_provider_blocker(page, a, handoff, blocker)
                 handed_off = transport_handoff
