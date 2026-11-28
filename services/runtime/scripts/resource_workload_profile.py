@@ -124,7 +124,21 @@ def build_profile(receipt_paths: Iterable[Path], expected_attempts: int | None) 
     paths = sorted({Path(path).resolve() for path in receipt_paths}, key=lambda value: value.as_posix())
     if not paths:
         raise ValueError("at least one receipt is required")
-    receipts = [_read_receipt(path) for path in paths]
+    receipt_files = [(path, _read_receipt(path)) for path in paths]
+    receipts_by_identity: dict[tuple[str, str], tuple[Path, dict[str, object]]] = {}
+    for path, receipt in receipt_files:
+        identity = (str(receipt["jobId"]), str(receipt["attemptId"]))
+        previous = receipts_by_identity.get(identity)
+        if previous is None:
+            receipts_by_identity[identity] = (path, receipt)
+            continue
+        previous_path, previous_receipt = previous
+        if receipt != previous_receipt:
+            raise ValueError(
+                "conflicting receipts for identity "
+                f"jobId={identity[0]} attemptId={identity[1]}: {previous_path} vs {path}"
+            )
+    receipts = [receipt for _, receipt in receipts_by_identity.values()]
     receipt_count = len(receipts)
 
     if expected_attempts is not None:

@@ -292,8 +292,10 @@ def test_task_local_gate_closure_does_not_claim_all_data_edges_are_verified() ->
     # Research's original gate still proves exactly its own supportScope,
     # not the newly introduced QA edge. Whole-graph equivalence is UNKNOWN.
     projection = evaluate_gate_results(manifest, [gate_result(manifest)])
-    assert projection["standing"] == "COMPOSITION_GATES_SATISFIED"
-    assert projection["mechanicalClosure"] is True
+    assert projection["standing"] == "COMPOSITION_GATES_REPORTED_SATISFIED"
+    assert projection["mechanicalClosure"] is False
+    assert projection["reportedGateClosure"] is True
+    assert projection["evidenceVerificationStanding"] == "UNKNOWN"
     assert projection["domainAcceptanceEstablished"] is False
     assert "all required task-local composition" in projection["claimBoundary"]
 
@@ -302,8 +304,10 @@ def test_satisfied_gate_closes_only_mechanical_composition() -> None:
     manifest = valid_manifest()
     projection = evaluate_gate_results(manifest, [gate_result(manifest)])
 
-    assert projection["standing"] == "COMPOSITION_GATES_SATISFIED"
-    assert projection["mechanicalClosure"] is True
+    assert projection["standing"] == "COMPOSITION_GATES_REPORTED_SATISFIED"
+    assert projection["mechanicalClosure"] is False
+    assert projection["reportedGateClosure"] is True
+    assert projection["evidenceVerificationStanding"] == "UNKNOWN"
     assert projection["domainAcceptanceEstablished"] is False
 
 
@@ -326,7 +330,7 @@ def test_unsatisfied_gate_fails_composition_closure() -> None:
         [gate_result(manifest, "UNSATISFIED")],
     )
 
-    assert projection["standing"] == "COMPOSITION_GATES_UNSATISFIED"
+    assert projection["standing"] == "COMPOSITION_GATES_REPORTED_UNSATISFIED"
     assert projection["mechanicalClosure"] is False
 
 
@@ -429,16 +433,18 @@ def test_gate_closure_matches_exhaustive_bounded_status_algebra() -> None:
             # Independent semantic oracle: FAIL dominates; all mandatory
             # premises must be positively discharged for a bounded PASS.
             if "UNSATISFIED" in mandatory:
-                expected = "COMPOSITION_GATES_UNSATISFIED"
+                expected = "COMPOSITION_GATES_REPORTED_UNSATISFIED"
             elif not unresolved and all(v == "SATISFIED" for v in mandatory):
-                expected = "COMPOSITION_GATES_SATISFIED"
+                expected = "COMPOSITION_GATES_REPORTED_SATISFIED"
             else:
                 expected = "COMPOSITION_GATES_OPEN"
 
             assert projection["standing"] == expected, chosen
-            assert projection["mechanicalClosure"] == (expected == "COMPOSITION_GATES_SATISFIED"), (
-                chosen
-            )
+            assert projection["reportedGateClosure"] == (
+                expected == "COMPOSITION_GATES_REPORTED_SATISFIED"
+            ), chosen
+            assert projection["mechanicalClosure"] is False
+            assert projection["evidenceVerificationStanding"] == "UNKNOWN"
             assert projection["domainAcceptanceEstablished"] is False
             assert projection["requiredGateIds"] == [
                 "gate:bounded-0",
@@ -456,3 +462,15 @@ def test_gate_closure_matches_exhaustive_bounded_status_algebra() -> None:
                 assert projection[field] == [
                     f"gate:bounded-{i}" for i, value in enumerate(mandatory) if value == status
                 ]
+
+
+def test_caller_supplied_gate_report_does_not_prove_owner_verification() -> None:
+    """A valid-looking verifierOwnerId/evidenceRef is not a native proof receipt."""
+    manifest = valid_manifest()
+    invented = gate_result(manifest)
+    invented["evidenceRefs"] = ["evidence:invented-not-observed"]
+    projected = evaluate_gate_results(manifest, [invented])
+    assert projected["reportedGateClosure"] is True
+    assert projected["evidenceVerificationStanding"] == "UNKNOWN"
+    assert projected["mechanicalClosure"] is False
+    assert projected["standing"] == "COMPOSITION_GATES_REPORTED_SATISFIED"

@@ -18,7 +18,13 @@ def _request_id(prefix: str, payload: object) -> str:
     return f"{prefix}:{canonical_digest(payload).removeprefix('sha256:')}"
 
 
-def register_social_work_tools(mcp: MCPServer, dsn: str, *, pool: ConnectionPool | None = None) -> None:
+def register_social_work_tools(
+    mcp: MCPServer,
+    dsn: str,
+    *,
+    pool: ConnectionPool | None = None,
+    compact_work_receipts: bool = False,
+) -> None:
     """Register the Social Work Fabric northbound surface.
 
     Work, Social and Attention each retain their native state ownership. This
@@ -26,7 +32,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str, *, pool: ConnectionPool
     """
 
     actors = ActorReferenceStore(dsn, pool=pool)
-    work = WorkStore(dsn, pool=pool)
+    work = WorkStore(dsn, pool=pool, compact_work_receipts=compact_work_receipts)
     social = SocialStore(dsn, pool=pool)
     attention = AttentionStore(dsn, pool=pool)
 

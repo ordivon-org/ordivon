@@ -34,7 +34,7 @@ class PgOnlyReleaseBuildContract(unittest.TestCase):
         self.assertEqual(cmds[0][cmds[0].index("-p") + 1], "ordivon-runtime-mcp")
         self.assertEqual(cmds[0][cmds[0].index("--features") + 1], "postgres-runtime")
         self.assertEqual(cmds[1][cmds[1].index("-p") + 1], "ordivon-runtime-core")
-        self.assertEqual(cmds[1][cmds[1].index("--features") + 1], "runtime-contract")
+        self.assertEqual(cmds[1][cmds[1].index("--features") + 1], "postgres-registry-admission")
 
     def test_legacy_profiles_keep_the_previous_build_contract(self) -> None:
         cargo = Path("/opt/cargo/bin/cargo")
