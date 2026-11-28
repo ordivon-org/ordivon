@@ -1,44 +1,34 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import argparse
-import hashlib
-import json
-import shutil
+import sys
 from pathlib import Path
 
-SOURCE=Path(__file__).with_name("WindowsWslServiceControlProvider.ps1")
-ROOT=Path("/mnt/c/ProgramData/Ordivon/Workstation/Providers/WindowsWslServiceControlProvider")
-RECEIPT=Path("/mnt/c/ProgramData/Ordivon/Workstation/Providers/receipts/windows-wsl-service-control-provider.json")
+PROVIDERS_DIR = Path(__file__).resolve().parents[1]
+if str(PROVIDERS_DIR) not in sys.path:
+    sys.path.insert(0, str(PROVIDERS_DIR))
 
-def digest(path: Path)->str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+from single_file_materialization import SingleFileProviderMaterializer, run_cli
 
-def materialize()->dict:
-    d=digest(SOURCE); target=ROOT/d/SOURCE.name
-    target.parent.mkdir(parents=True,exist_ok=True)
-    if target.exists():
-        if digest(target)!=d: raise RuntimeError("materialized provider digest mismatch")
-    else:
-        shutil.copyfile(SOURCE,target)
-    payload={
-      "schemaVersion":1,
-      "kind":"ordivon.workstation.windows-wsl-service-control-provider-materialization",
-      "sourceSha256":"sha256:"+d,
-      "target":str(target),
-      "targetSha256":"sha256:"+digest(target),
-      "targetNodeIds":["linux-local"]
-    }
-    RECEIPT.parent.mkdir(parents=True,exist_ok=True)
-    tmp=RECEIPT.with_suffix(".tmp"); tmp.write_text(json.dumps(payload,indent=2,sort_keys=True)+"\n"); tmp.replace(RECEIPT)
-    return payload
+SOURCE = Path(__file__).with_name("WindowsWslServiceControlProvider.ps1")
+ROOT = Path("/mnt/c/ProgramData/Ordivon/Workstation/Providers/WindowsWslServiceControlProvider")
+RECEIPT = Path(
+    "/mnt/c/ProgramData/Ordivon/Workstation/Providers/receipts/windows-wsl-service-control-provider.json"
+)
 
-def main():
-    parser=argparse.ArgumentParser(); parser.add_argument("command",choices=("materialize","status")); args=parser.parse_args()
-    if args.command=="materialize": payload=materialize()
-    else:
-        d=digest(SOURCE); target=ROOT/d/SOURCE.name
-        payload={"schemaVersion":1,"sourceSha256":"sha256:"+d,"target":str(target),"present":target.is_file(),"matches":target.is_file() and digest(target)==d}
-    print(json.dumps(payload,indent=2,sort_keys=True)); return 0
+MATERIALIZER = SingleFileProviderMaterializer(
+    source=SOURCE,
+    root=ROOT,
+    receipt=RECEIPT,
+    materialization_kind="ordivon.workstation.windows-wsl-service-control-provider-materialization",
+    mismatch_error="materialized provider digest mismatch",
+    materialization_fields={"targetNodeIds": ["linux-local"]},
+)
 
-if __name__=="__main__": raise SystemExit(main())
+
+def main() -> int:
+    return run_cli(MATERIALIZER)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

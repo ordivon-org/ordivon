@@ -23,6 +23,7 @@ def test_service_provider_converges_not_blind_restart():
     assert "'start'" in text
     assert "restart" not in text.lower()
 
-def test_materializer_declares_linux_target_node():
+def test_materializer_uses_canonical_helper_and_declares_linux_target_node():
     text=MAT.read_text()
-    assert '"targetNodeIds":["linux-local"]' in text.replace(" ","")
+    assert "single_file_materialization" in text
+    assert '"targetNodeIds": ["linux-local"]' in text

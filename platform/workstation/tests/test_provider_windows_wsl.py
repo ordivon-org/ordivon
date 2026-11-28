@@ -23,10 +23,11 @@ def test_windows_wsl_provider_uses_exact_system_wsl_path_and_bounded_distro_inpu
     assert "[ValidatePattern('^[A-Za-z0-9._-]+$')]" in text
 
 
-def test_materializer_is_content_addressed_and_does_not_activate_service():
+def test_materializer_uses_canonical_content_addressed_helper_and_does_not_activate_service():
     text = MAT.read_text(encoding="utf-8").lower()
-    assert "sha256" in text
+    assert "single_file_materialization" in text
     assert "programdata/ordivon/workstation/providers/windowswslprovider" in text
+    assert '"mutationcapabilityadvertised": false' in text
     for forbidden in ("sc.exe", "new-service", "register-scheduledtask", "restart-service", "start-service"):
         assert forbidden not in text
 
