@@ -10,12 +10,18 @@ retired_surfaces=(
   'contracts/distribution-preflight.schema.json'
   'profiles/steam-linux-directory-r1.json'
 )
+repo="$(git rev-parse --show-toplevel)"
 for retired in "${retired_surfaces[@]}"; do
-  matches="$(grep -R -F -n --exclude='test-structure.sh' -- "$retired" .github scripts 2>/dev/null || true)"
-  if [ -n "$matches" ]; then
+  if matches="$(git -C "$repo" grep -n -F -e "$retired" -- .github capabilities/distribution/scripts ':!capabilities/distribution/scripts/test-structure.sh')"; then
     echo "FAIL retired Distribution surface remains executable: $retired" >&2
     printf '%s\n' "$matches" >&2
     exit 1
+  else
+    result=$?
+    if ((result != 1)); then
+      echo "FAIL unable to inspect tracked CI and Distribution scripts (git grep exit=$result)" >&2
+      exit "$result"
+    fi
   fi
 done
 # Exercise the real smoke entrypoint with a synthetic lock and a local Podman stand-in.
