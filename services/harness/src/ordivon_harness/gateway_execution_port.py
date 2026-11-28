@@ -189,8 +189,6 @@ class GatewayExecutionPort:
                 }:
                     raise GatewayExecutionError('Gateway terminal delivery disposition is invalid')
                 recovery = _field(last, 'recovery_required', 'recoveryRequired')
-                if recovery is None:
-                    recovery = False
                 if type(recovery) is not bool:
                     raise GatewayExecutionError('Gateway observation recoveryRequired is invalid')
                 if recovery or delivery != 'committed':
