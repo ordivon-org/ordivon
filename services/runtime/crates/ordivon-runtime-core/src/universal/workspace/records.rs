@@ -12,6 +12,18 @@ struct OpeningWorkspaceRecord {
     created_unix_ms: u128,
 }
 
+// Share the shape predicate between the read projection and dependency scan.
+fn validated_opening_record(bytes: &[u8]) -> Option<OpeningWorkspaceRecord> {
+    let opening = serde_json::from_slice::<OpeningWorkspaceRecord>(bytes).ok()?;
+    (opening.state == "opening"
+        && opening.schema_version == UNIVERSAL_EXEC_SCHEMA_VERSION
+        && !opening.source_repo.is_empty()
+        && !opening.requested_revision.is_empty()
+        && matches!(opening.source_revision.len(), 40 | 64)
+        && opening.source_revision.bytes().all(|byte| byte.is_ascii_hexdigit()))
+        .then_some(opening)
+}
+
 fn unfinished_open_error(reason: &str) -> UniversalExecError {
     UniversalExecError::new(
         UniversalExecErrorCode::MetadataCorrupt,
@@ -462,12 +474,13 @@ fn decode_open_workspace_record(
     workspace_id: &str,
 ) -> Result<WorkspaceRecord, UniversalExecError> {
     let mut record: WorkspaceRecord = serde_json::from_slice(bytes).map_err(|error| {
-        if serde_json::from_slice::<serde_json::Value>(bytes)
-            .ok()
-            .and_then(|value| value.get("state").and_then(|state| state.as_str()).map(str::to_owned))
-            .as_deref() == Some("opening")
-        {
-            return unfinished_open_error("durable opening is unfinished; retry exact original workspace.open with the same workspaceId");
+        if validated_opening_record(bytes).is_some() {
+            return UniversalExecError::new(
+                UniversalExecErrorCode::WorkspaceStateMismatch,
+                "Workspace opening is pending native Git reconciliation; retry exact original workspace.open with the same workspaceId",
+                Some("workspaceId"),
+                true,
+            );
         }
         // A crash during native Git removal must not expose the worktree to
         // a new Job/Run while the durable close intent awaits reconciliation.
@@ -698,6 +711,41 @@ pub(crate) fn list_open_workspace_record_inventory(
     Ok(WorkspaceRecordInventory { records, issues })
 }
 
+// Read-only proof for an interrupted OPENING: retain both the original
+// source path (needed for replay) and the actual shared Git authority.
+// An absent target still registered by Git, or an unverified physical
+// target, remains UNKNOWN and blocks destructive reconciliation.
+fn opening_dependency_authorities(
+    config: &UniversalExecutorConfig,
+    workspace_id: &str,
+    opening: &OpeningWorkspaceRecord,
+) -> Result<[PathBuf; 2], UniversalExecError> {
+    let source = canonical_directory(Path::new(&opening.source_repo), "sourceRepo")?;
+    if source != Path::new(&opening.source_repo)
+        || resolve_git_commit(&source, &opening.source_revision)? != opening.source_revision
+    {
+        return Err(unfinished_open_error("opening source authority changed"));
+    }
+    let common = workspace_git_common_dir_at(&source)?;
+    let target = config.workspace_path(workspace_id);
+    match fs::symlink_metadata(&target) {
+        Ok(_) => {
+            verified_interrupted_open(&source, &target, &opening.source_revision)?;
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            let physical_target = managed_physical_target(&target)?;
+            let entries = git_output_bytes(&source, ["worktree", "list", "--porcelain", "-z"])?;
+            if entries.split(|b| *b == 0).any(|line| {
+                line.strip_prefix(b"worktree ").is_some_and(|raw| git_registered_path_matches(raw, &physical_target))
+            }) {
+                return Err(unfinished_open_error("Git still registers an absent worktree"));
+            }
+        }
+        Err(e) => return Err(io_error(&target, "inspect opening target", e)),
+    }
+    Ok([source, common])
+}
+
 pub(crate) fn workspace_cleanup_dependents(
     config: &UniversalExecutorConfig,
     workspace_id: &str,
@@ -741,6 +789,15 @@ pub(crate) fn workspace_cleanup_dependents(
                 // removed. Inspect its ORIGINAL source identity instead of
                 // globally blocking every unrelated Workspace close.
                 let bytes = read_workspace_record_bytes(&path)?;
+                if let Some(opening) = validated_opening_record(&bytes) {
+                    let authorities = opening_dependency_authorities(config, candidate_id, &opening)?;
+                    if destructive_roots.iter().any(|root| {
+                        authorities.iter().any(|authority| authority.starts_with(root))
+                    }) {
+                        dependents.push(candidate_id.to_string());
+                    }
+                    continue;
+                }
                 let Some(closing) = decode_closing_workspace_record(&bytes)? else {
                     return Err(error);
                 };
