@@ -638,3 +638,26 @@ def test_pg_native_identity_immutability_rejects_mutation(
             else:
                 db.execute("TRUNCATE ordivon_harness.wake_turn_map")
     assert active_owner.get(receipt["wakeIntentId"])["turnRequestId"] == receipt["turnRequestId"]
+
+
+def test_existing_wake_observation_needs_no_writer_authority(owner, tmp_path: Path):
+    """Native read-only role proves no schema creation or writer construction."""
+    read_dsn = os.environ.get("ORDIVON_PG_WAKE_READ_TEST_DSN")
+    if not read_dsn:
+        pytest.skip("disposable PG read-only role not provided")
+    with pytest.raises(WakeTurnConflict, match="ACTIVE"):
+        PostgresWakeTurnMap.read_existing(read_dsn, "wake:r6")
+    source = tmp_path / "absent.sqlite"
+    owner.activate_empty_fresh(source)
+    request = dict(payload(), wake_intent_id="wake:r6")
+    assert PostgresWakeTurnMap.read_existing(read_dsn, "wake:r6") is None
+    created = owner.allocate(**request)
+    observed = PostgresWakeTurnMap.read_existing(read_dsn, "wake:r6")
+    assert observed == owner.get("wake:r6")
+    assert observed["turnRequestId"] == created["turnRequestId"]
+    assert observed["promptDigest"] == request["prompt_digest"]
+    assert observed["providerEffectAttempted"] is False
+    assert not source.exists()
+    with psycopg.connect(read_dsn) as db:
+        with pytest.raises(psycopg.Error):
+            db.execute("DELETE FROM ordivon_harness.wake_turn_map")

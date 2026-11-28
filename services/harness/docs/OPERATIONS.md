@@ -188,6 +188,19 @@ This Wake cutover does not by itself switch Harness Run/CAS, conversation
 materialization, conversation role-binding, or Turn Effect send receipts.
 Do not mark those separate Owners as cut over.
 
+### Wake result identity (internal read port)
+
+Use the existing PG wake map and effect receipt to recover a result-observation
+identity without allocating a new wake, constructing writers, or querying a
+browser. The requested campaign, role, and wake must match the durable map;
+the effect must match its turn and prompt, canonical resource, original carrier
+and canonical receipt digest. Only an observed DOM append witness qualifies the
+specific DOM user identity. An older SEND receipt without the witness remains
+observable but does not identify a new result. This is not provider-issued turn
+identity, domain acceptance, SEND authority, release authorization, or an
+authenticated public output endpoint. A subsequent consumer must qualify the
+same carrier and target before reading, and separately acknowledge the result.
+
 ### PG-only Browserless identity/effect consumer selection
 
 The deployed Browserless owner has **three independent identity/effect seams**:
@@ -213,6 +226,21 @@ activation obligations: this selection switch does **not** grant authority
 to initialize them automatically and does not override the live SQLite
 materialization ledger. This is a **scoped** PG-only cutover: general Harness
 Run/CAS and Browserless materialization remain separate owners.
+
+### Read existing PostgreSQL identity/effect state without writer initialization
+
+The existing-owner methods `PostgresWakeTurnMap.read_existing(dsn, wake_intent_id)`
+and `PostgresTurnEffects.read_existing(dsn, turn_id)` run read-only transactions.
+`PostgresConversationBindingStore.read_existing(...)` likewise qualifies the
+existing schema and sealed-source identity in a single read snapshot. The
+Browserless affinity consumer uses it without constructing an adoption writer.
+They reuse the existing cutover admission and exact owner tables; an inactive
+or unavailable authority is an error, not an absent identity. They neither
+execute schema initialization nor authorize SEND. The Browserless turn-effect
+projection uses this read path directly. A confirmed `UNKNOWN` effect is not
+an absent claim and must not be treated as permission to retry SEND. These read
+primitives do not activate PG, certify a production role migration, or prove
+that the provider produced an assistant response.
 
 ### PG-first Turn Effects: retire legacy effect writer (explicit operator cutover)
 

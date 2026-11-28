@@ -1238,14 +1238,18 @@ class BrowserlessAutomationService:
             )
         return dsn
 
-    def _pg_conversation_binding_owner(self):
-        """One authoritative PG binding port for both reads and writes."""
+    def _pg_conversation_binding_dsn(self) -> str | None:
         dsn = self._postgres_seam_dsn("ORDIVON_CONVERSATION_BINDING_POSTGRES_DSN")
+        if not dsn and os.environ.get("ORDIVON_CONVERSATION_BINDING_FRESH_BOOTSTRAP") == "1":
+            raise BrowserlessAutomationConflict(
+                "fresh PostgreSQL conversation binding needs PG DSN; SQLite fallback prohibited"
+            )
+        return dsn
+
+    def _pg_conversation_binding_owner(self):
+        """Construct the existing PG binding writer only for adoption."""
+        dsn = self._pg_conversation_binding_dsn()
         if not dsn:
-            if os.environ.get("ORDIVON_CONVERSATION_BINDING_FRESH_BOOTSTRAP") == "1":
-                raise BrowserlessAutomationConflict(
-                    "fresh PostgreSQL conversation binding needs PG DSN; SQLite fallback prohibited"
-                )
             return None
         try:
             from postgres_conversation_binding import PostgresConversationBindingStore
@@ -1263,17 +1267,26 @@ class BrowserlessAutomationService:
         )
         return owner
 
+    def _read_conversation_binding(self, campaign_ref: str, agent_id: str) -> dict | None:
+        dsn = self._pg_conversation_binding_dsn()
+        if not dsn:
+            return read_conversation_binding(self.config.ledger, campaign_ref, agent_id)
+        try:
+            from postgres_conversation_binding import PostgresConversationBindingStore
+        except ModuleNotFoundError:
+            from scripts.postgres_conversation_binding import PostgresConversationBindingStore
+        return PostgresConversationBindingStore.read_existing(
+            dsn, campaign_ref, agent_id,
+            legacy_source=self.config.ledger,
+            fresh_bootstrap=os.environ.get("ORDIVON_CONVERSATION_BINDING_FRESH_BOOTSTRAP") == "1",
+        )
+
     def conversation_affinity(self, spec_path: Path, campaign_ref: str, agent_id: str) -> dict:
         """Project the preferred existing conversation without provider effects."""
         spec = self.load_spec(spec_path)
         materialization = self._materialization(spec, agent_id)
         try:
-            pg_owner = self._pg_conversation_binding_owner()
-            adopted = (
-                pg_owner.get_binding(campaign_ref, agent_id)
-                if pg_owner is not None
-                else read_conversation_binding(self.config.ledger, campaign_ref, agent_id)
-            )
+            adopted = self._read_conversation_binding(campaign_ref, agent_id)
         except ConversationBindingConflict as error:
             raise BrowserlessAutomationConflict(str(error)) from error
         if adopted is not None:
@@ -1451,24 +1464,39 @@ class BrowserlessAutomationService:
             "sendAttempted": False,
         }
 
+    @staticmethod
+    def _read_pg_turn_effect_row(pg_dsn: str, turn_request_id: str, *, strict_receipt: bool = False) -> dict | None:
+        try:
+            from postgres_turn_effects import PostgresTurnEffects
+        except ModuleNotFoundError:
+            from scripts.postgres_turn_effects import PostgresTurnEffects
+
+        record = PostgresTurnEffects.read_existing(pg_dsn, turn_request_id)
+        if record is None:
+            return None
+        raw = record["receipt_json"]
+        if strict_receipt and raw is not None:
+            from anc_canonical import loads_strict
+            try:
+                receipt = loads_strict(raw)
+            except ValueError:
+                # A stored receipt with duplicate keys or invalid control JSON
+                # cannot establish result identity. Do not expose its contents.
+                receipt = None
+        else:
+            receipt = json.loads(raw) if raw else None
+        return {
+            "promptDigest": record["prompt_digest"],
+            "targetCoordinate": record["target_coordinate"],
+            "state": record["state"],
+            "receipt": receipt,
+            "updatedAtMs": record["updated_at_ms"],
+        }
+
     def _turn_effect_row(self, turn_request_id: str) -> dict | None:
         pg_dsn = self._postgres_seam_dsn("ORDIVON_TURN_EFFECT_POSTGRES_DSN")
         if pg_dsn:
-            try:
-                from postgres_turn_effects import PostgresTurnEffects
-            except ModuleNotFoundError:
-                from scripts.postgres_turn_effects import PostgresTurnEffects
-
-            record = PostgresTurnEffects(pg_dsn).get(turn_request_id)
-            if record is None:
-                return None
-            return {
-                "promptDigest": record["prompt_digest"],
-                "targetCoordinate": record["target_coordinate"],
-                "state": record["state"],
-                "receipt": (json.loads(record["receipt_json"]) if record["receipt_json"] else None),
-                "updatedAtMs": record["updated_at_ms"],
-            }
+            return self._read_pg_turn_effect_row(pg_dsn, turn_request_id)
         path = self.config.turn_ledger
         if not path.exists():
             return None
@@ -1491,6 +1519,30 @@ class BrowserlessAutomationService:
             "receipt": json.loads(row[3]) if row[3] else None,
             "updatedAtMs": row[4],
         }
+
+    def wake_result_identity(self, campaign_ref: str, agent_id: str, *, wake_intent_id: str) -> dict:
+        """Read exact PG wake/effect evidence; no browser access, writer or legacy fallback.
+
+        This internal port is not an authenticated public result endpoint. The
+        caller must already be authorized for the requested campaign and role.
+        """
+        try:
+            from postgres_wake_turn_map import PostgresWakeTurnMap
+            from wake_result_identity import require_wake_mapping, resolve_wake_result_identity
+        except ModuleNotFoundError:
+            from scripts.postgres_wake_turn_map import PostgresWakeTurnMap
+            from scripts.wake_result_identity import require_wake_mapping, resolve_wake_result_identity
+
+        wake_dsn = self._postgres_seam_dsn("ORDIVON_WAKE_TURN_POSTGRES_DSN")
+        effect_dsn = self._postgres_seam_dsn("ORDIVON_TURN_EFFECT_POSTGRES_DSN")
+        if not wake_dsn or not effect_dsn:
+            raise BrowserlessAutomationConflict("PG wake and effect readers are required")
+        mapping = PostgresWakeTurnMap.read_existing(wake_dsn, wake_intent_id)
+        effect = None
+        if mapping is not None:
+            turn_id = require_wake_mapping(campaign_ref, agent_id, wake_intent_id, mapping)
+            effect = self._read_pg_turn_effect_row(effect_dsn, turn_id, strict_receipt=True)
+        return resolve_wake_result_identity(campaign_ref, agent_id, wake_intent_id, mapping, effect)
 
     def launch_continue(
         self,
