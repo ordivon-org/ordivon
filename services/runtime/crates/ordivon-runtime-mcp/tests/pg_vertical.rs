@@ -2507,6 +2507,34 @@ fn pg_workspace_close_blocks_recent_completed_job_after_stale_reclaim_scan() {
         )
         .unwrap();
 
+    // A terminal Job label alone does not establish settlement. Supply the
+    // matching Attempt and released reservation so this regression exercises
+    // the recent-activity fence, not the independent unsettled-root fence.
+    let attempt_id = format!("attempt-{}", Uuid::now_v7());
+    let reservation_id = format!("reservation-{}", Uuid::now_v7());
+    fixture
+        .db
+        .execute(
+            "INSERT INTO attempts (
+                attempt_id,job_id,attempt_number,state,termination_intent,
+                launch_token_digest,bundle_path,unit_name,created_at_ms,
+                finished_at_ms,result_digest
+             ) VALUES ($1,$2,1,'succeeded','natural','sha256:launch',
+                       'fixture-bundle','fixture.service',$3,$3,'sha256:result')",
+            &[&attempt_id, &job_id, &now_ms],
+        )
+        .unwrap();
+    fixture
+        .db
+        .execute(
+            "INSERT INTO concurrency_reservations (
+                reservation_id,attempt_id,global_limit,state,acquired_at_ms,
+                state_observed_at_ms,released_at_ms
+             ) VALUES ($1,$2,1,'released',$3,$3,$3)",
+            &[&reservation_id, &attempt_id, &now_ms],
+        )
+        .unwrap();
+
     let visible = runtime
         .get_workspace(&ordivon_runtime_core::RuntimeWorkspaceGetRequest {
             schema_version: 1,
