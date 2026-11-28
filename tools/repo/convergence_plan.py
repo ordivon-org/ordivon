@@ -544,9 +544,19 @@ def explain_source_impacts(
 
     if repo is None:
         repo = Path(__file__).resolve().parents[2]
+    from selector_source_contract import qualify_selector_source
+
+    repo = repo.resolve()
+    if repo != Path(__file__).resolve().parents[2]:
+        raise ValueError("verification contract outside active Git repository")
+    for path in (affected_owners.MANIFEST_PATH, DEPENDENCY_PATH, ROOT_TASKS_PATH):
+        if not path.resolve().is_relative_to(repo):
+            raise ValueError("verification contract outside active Git repository")
     declared_head = plan.get("headRevision")
     if declared_head is not None and source_cut != declared_head:
         raise ValueError("SourceCut mismatch with change plan headRevision")
+    cut = source_tools.exact_commit(repo, source_cut)
+    qualify_selector_source(repo, cut, scope="projection")
     changed = plan.get("changedPaths")
     if not isinstance(changed, list) or len(changed) > 32:
         raise ValueError("bounded source impact requires at most 32 changed paths")
@@ -576,37 +586,6 @@ def explain_source_impacts(
     ):
         if plan.get(name) != canonical[name]:
             raise ValueError("noncanonical source impact: changed-path verification selection")
-    cut = source_tools.exact_commit(repo, source_cut)
-    if cut != _git("rev-parse", "HEAD"):
-        raise ValueError("SourceCut mismatch with active native verification contract")
-    # Queue tasks come from working-tree TOML, while AST hints come from Git.
-    # Reject the projection if either native verification policy has drifted
-    # from the SAME exact Git cut, rather than mixing unrelated authorities.
-    for contract in (
-        affected_owners.MANIFEST_PATH,
-        DEPENDENCY_PATH,
-        repo / "mise.toml",
-    ):
-        try:
-            relative = contract.relative_to(repo).as_posix()
-        except ValueError as exc:
-            raise ValueError("verification contract outside active Git repository") from exc
-        if contract.read_bytes() != source_tools.git(repo, "show", f"{cut}:{relative}"):
-            raise ValueError("verification contract differs from exact Git SourceCut")
-    # Source evidence and task selection are *executed* by these concrete
-    # native Python producers. Bind their on-disk bytes to the same Git cut;
-    # checking only policy TOML would permit a mutable implementation to
-    # issue statements about a different committed implementation.
-    for relative in (
-        "tools/repo/convergence_plan.py",
-        "tools/repo/affected_owners.py",
-        "tools/repo/exhaustive_coverage.py",
-    ):
-        producer = repo / relative
-        if producer.is_symlink() or not producer.is_file():
-            raise ValueError("executed producer source is not a regular Git file")
-        if producer.read_bytes() != source_tools.git(repo, "show", f"{cut}:{relative}"):
-            raise ValueError("executed producer source differs from exact Git SourceCut")
     inventory = source_tools.classification(repo, cut)
     problems = source_tools.derived_problem_legos(inventory, repo=repo)
     imports = source_tools.static_python_import_frontier(repo, cut)
@@ -651,6 +630,7 @@ def explain_source_impacts(
             "installedStanding": "UNKNOWN",
             "formalRefinementStanding": "UNKNOWN",
         })
+    qualify_selector_source(repo, cut, scope="projection")
     return {
         "schemaVersion": 1,
         "kind": "ordivon.self-bootstrap-source-impact-explanation",
@@ -706,6 +686,9 @@ def build_qualified_temporal_impact(
     current = source.exact_commit(repo, _git("rev-parse", "HEAD"))
     if head != current:
         raise ValueError("temporal impact requires exact current HEAD SourceCut")
+    from selector_source_contract import qualify_selector_source
+
+    qualify_selector_source(repo, current, scope="projection")
     # Each selector has a distinct input contract; no caller-provided changed
     # path overrides these immutable Git membership observations.
     slices = []
