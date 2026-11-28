@@ -210,6 +210,42 @@ def test_windows_pg_release_archive_contains_operator_provenance_dependency():
         assert helper in members, f"{consumer} requires its packaged sibling {helper}"
 
 
+def test_windows_pg_source_export_is_independent_of_git_checkout_eol(tmp_path):
+    import tarfile
+
+    builder = runpy.run_path(str(ROOT / "scripts" / "prepare_windows_pg_release.py"))
+    repo = tmp_path / "source"
+    repo.mkdir()
+
+    def git(*args):
+        return subprocess.check_output(["git", *args], cwd=repo)
+
+    git("init", "-q")
+    git("config", "core.autocrlf", "false")
+    runtime = repo / "services" / "runtime"
+    runtime.mkdir(parents=True)
+    (runtime / ".gitattributes").write_bytes((ROOT / ".gitattributes").read_bytes())
+    inputs = {"Cargo.lock": b"version = 4\n", "lib.rs": b"fn main() {}\n"}
+    for name, content in inputs.items():
+        (runtime / name).write_bytes(content)
+    git("add", "services/runtime")
+    git("-c", "user.name=Release Test", "-c", "user.email=test@example.invalid",
+        "commit", "-qm", "release source")
+    commit = git("rev-parse", "HEAD").decode().strip()
+    exports = []
+    for autocrlf, eol in (("false", "lf"), ("true", "crlf"), ("input", "native")):
+        git("config", "core.autocrlf", autocrlf)
+        git("config", "core.eol", eol)
+        archive = tmp_path / f"{autocrlf}.tar"
+        builder["export_runtime_source"](repo, commit, archive)
+        exports.append(archive.read_bytes())
+        with tarfile.open(archive) as source:
+            for name, content in inputs.items():
+                member = source.extractfile(f"services/runtime/{name}")
+                assert member is not None and member.read() == content
+    assert exports[0] == exports[1] == exports[2]
+
+
 def test_pg_materializer_preserves_build_manifest_provenance_for_activation():
     text = SCRIPT.read_text(encoding="utf-8")
     helper = (ROOT / "packaging" / "windows" / "windows-pg-release-provenance.ps1").read_text(encoding="utf-8")

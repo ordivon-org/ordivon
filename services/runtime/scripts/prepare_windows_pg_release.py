@@ -37,6 +37,13 @@ def digest(path):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def export_runtime_source(repo, commit, archive):
+    # Git archive can apply checkout EOL conversion to text=auto members.
+    # Keep the release input independent of the Windows builder EOL defaults.
+    run("git", "-c", "core.autocrlf=false", "-c", "core.eol=lf", "archive",
+        "--format=tar", f"--output={archive}", commit, "services/runtime", cwd=repo)
+
+
 def prepare(args):
     if os.name != "nt":
         raise SystemExit("The Windows PG release requires a native Windows build host.")
@@ -55,7 +62,7 @@ def prepare(args):
     with tempfile.TemporaryDirectory(prefix="ordivon-winpg-") as temporary:
         work = Path(temporary)
         source_tar = work / "source.tar"
-        run("git", "archive", "--format=tar", f"--output={source_tar}", args.commit, "services/runtime", cwd=repo)
+        export_runtime_source(repo, args.commit, source_tar)
         run("tar.exe", "-xf", str(source_tar), cwd=work)
         source = work / "services" / "runtime"
         target_dir = args.cargo_target_directory.resolve() if args.cargo_target_directory else work / "target"
