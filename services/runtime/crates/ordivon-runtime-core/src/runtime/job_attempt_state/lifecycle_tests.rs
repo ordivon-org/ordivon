@@ -121,18 +121,23 @@ fn termination_intent_and_control_targets_preserve_first_committed_control_inten
 
 #[test]
 fn physical_owner_binding_preserves_stopping_and_replay_identity() {
-    assert_eq!(
-        AttemptLifecycleContract::runner_identity_bound_state(AttemptState::Starting),
-        Some(AttemptState::Running)
-    );
-    assert_eq!(
-        AttemptLifecycleContract::runner_identity_bound_state(AttemptState::Stopping),
-        None
-    );
-    assert_eq!(
-        AttemptLifecycleContract::supervisor_owner_bound_state(AttemptState::Stopping),
-        Some(AttemptState::Stopping)
-    );
+    for state in OL_ALL_ATTEMPT_STATES {
+        let (runner, supervisor) = match state {
+            AttemptState::Starting | AttemptState::Recovering => {
+                (Some(AttemptState::Running), Some(AttemptState::Running))
+            }
+            AttemptState::Stopping => (None, Some(AttemptState::Stopping)),
+            _ => (None, None),
+        };
+        assert_eq!(
+            AttemptLifecycleContract::runner_identity_bound_state(state),
+            runner
+        );
+        assert_eq!(
+            AttemptLifecycleContract::supervisor_owner_bound_state(state),
+            supervisor
+        );
+    }
     assert!(AttemptLifecycleContract::physical_owner_replay_matches(
         AttemptState::Running,
         "sha256:owner",
@@ -160,6 +165,7 @@ fn terminal_resolution_is_total_only_for_terminal_attempt_states() {
         (AttemptState::Orphaned, JobResolution::Orphaned),
     ];
     for (state, resolution) in mappings {
+        assert!(state.is_terminal());
         assert_eq!(
             AttemptLifecycleContract::resolution(state),
             Some(resolution)
@@ -176,6 +182,7 @@ fn terminal_resolution_is_total_only_for_terminal_attempt_states() {
         AttemptState::Stopping,
         AttemptState::Recovering,
     ] {
+        assert!(!state.is_terminal());
         assert_eq!(AttemptLifecycleContract::resolution(state), None);
         let error = AttemptLifecycleContract::require_terminal_resolution(state).unwrap_err();
         assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);

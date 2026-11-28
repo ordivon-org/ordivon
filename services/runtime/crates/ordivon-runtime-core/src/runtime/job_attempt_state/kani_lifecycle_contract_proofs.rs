@@ -29,11 +29,14 @@ fn proof_actual_attempt_terminal_absorbing_and_resolution_equivalence() {
     let current = state_from_id(current_id);
     let next = state_from_id(next_id);
     let terminal = AttemptLifecycleContract::is_terminal(current);
-    // Both functions are the actual Rust implementation, not a copied
-    // abstract state machine. All 121 state pairs are symbolically covered.
+    // The explicit symbolic alphabet supplies an independent terminal-domain
+    // oracle. Checking only the derived predicate against resolution would
+    // be tautological. All 121 state pairs are symbolically covered.
+    let expected_terminal = current_id >= 5;
+    assert_eq!(terminal, expected_terminal);
     assert_eq!(
-        terminal,
-        AttemptLifecycleContract::resolution(current).is_some()
+        AttemptLifecycleContract::resolution(current).is_some(),
+        expected_terminal
     );
     if terminal {
         assert!(!AttemptLifecycleContract::can_transition(current, next));
