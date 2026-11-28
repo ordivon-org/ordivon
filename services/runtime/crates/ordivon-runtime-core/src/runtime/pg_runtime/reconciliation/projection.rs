@@ -54,17 +54,21 @@ impl PgRuntime {
         };
         let (a, p, operation, exit) = self.readback_attempt(&mut tx, &snapshot)?;
         let terminal = snapshot.resolution.is_some();
-        let rows=tx.query("SELECT artifact_id,kind,digest,byte_length,truncated,relative_path FROM artifacts WHERE job_id=$1 ORDER BY artifact_id", &[&request.job_id]).map_err(pg_read_error)?;
+        let rows=tx.query("SELECT artifact_id,kind,digest,byte_length,truncated,relative_path,attempt_id FROM artifacts WHERE job_id=$1 ORDER BY artifact_id", &[&request.job_id]).map_err(pg_read_error)?;
         // SQL projection is coherent; native stream I/O remains outside the transaction.
         tx.commit().map_err(pg_read_error)?;
-        let artifacts=rows.iter().map(|r|json!({"artifactId":r.get::<_,String>(0),"attemptId":a.attempt_id,"kind":r.get::<_,String>(1),"digest":r.get::<_,String>(2),"retainedBytes":r.get::<_,i64>(3),"truncated":r.get::<_,bool>(4)})).collect::<Vec<_>>();
+        let artifacts=rows.iter().map(|r|json!({"artifactId":r.get::<_,String>(0),"attemptId":r.get::<_,String>(6),"kind":r.get::<_,String>(1),"digest":r.get::<_,String>(2),"retainedBytes":r.get::<_,i64>(3),"truncated":r.get::<_,bool>(4)})).collect::<Vec<_>>();
+        // Job-wide inventory is distinct from the selected Attempt's result
+        // and native stream evidence. Keep historical Artifact identities.
+        let selected_rows = || {
+            rows.iter()
+                .filter(|row| row.get::<_, &str>(6) == a.attempt_id.as_str())
+        };
         // Preserve the existing projection for historical terminal variants.
         // An OS-only LOST reconciliation is the new explicit exception:
         // it has a committed native-stop Artifact, not a Runner result.json.
-        let result_available = terminal
-            && rows
-                .iter()
-                .any(|row| row.get::<_, String>(1) == "execution_result");
+        let result_available =
+            terminal && selected_rows().any(|row| row.get::<_, String>(1) == "execution_result");
         let delivery = pg_delivery_disposition(snapshot.resolution.as_deref(), result_available);
         let mut value = json!({"jobId":request.job_id,"operationDigest":operation,"status":snapshot.resolution.clone().unwrap_or(snapshot.attempt_state.clone()),"desiredState":snapshot.desired_state,"attemptId":a.attempt_id,"attemptState":snapshot.attempt_state,"terminationIntent":snapshot.termination_intent,"exitCode":exit,"executionTerminal":terminal,"executionDisposition":snapshot.resolution,"deliveryDisposition":delivery,"effectiveLimits":{"timeoutMs":p.timeout_ms,"stdoutLimitBytes":p.stdout_limit_bytes,"stderrLimitBytes":p.stderr_limit_bytes},"recoveryRequired":needs_recovery_observation(a.state, terminal),"semanticCompletionEvaluated":false,"resultAvailable":result_available,"artifactsAvailable":!artifacts.is_empty(),"artifacts":artifacts});
         for (kind, limit, offset) in [
@@ -74,11 +78,11 @@ impl PgRuntime {
             // Lost/orphaned or other no-Artifact terminal outcomes have no
             // committed stream bytes. Do not fail observation merely because
             // a log is absent, and never project unregistered terminal bytes.
-            if terminal && !rows.iter().any(|row| row.get::<_, String>(1) == kind) {
+            if terminal && !selected_rows().any(|row| row.get::<_, String>(1) == kind) {
                 continue;
             }
             let registered = if terminal {
-                rows.iter().find(|row| row.get::<_, String>(1) == kind)
+                selected_rows().find(|row| row.get::<_, String>(1) == kind)
             } else {
                 None
             };
