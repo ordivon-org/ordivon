@@ -920,3 +920,83 @@ fn pg18_readback_rejects_detached_unsettled_historical_attempt() {
         "missing historical reservation is not evidence of release"
     );
 }
+
+#[test]
+#[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+fn pg18_readback_snapshot_keeps_selected_and_foreign_evidence_distinct() {
+    use crate::PgJobReadback;
+    let dsn = physical_pg_test_dsn();
+    let mut scratch = Scratch::new(&dsn);
+    scratch.qualify();
+    let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+    let first = payload("snapshot-first", "snapshot-job", "snapshot-workspace", 2);
+    let other = payload(
+        "snapshot-other",
+        "snapshot-foreign",
+        "snapshot-workspace",
+        2,
+    );
+    store.admit(&first).unwrap();
+    store.admit(&other).unwrap();
+    let read = |store: &mut PgAdmissionStore| {
+        store
+            .observe_job_readonly(&first.job_id, &first.expected_source_sha256)
+            .unwrap()
+    };
+    let expected = read(&mut store);
+    let PgJobReadback::Observed(ref selected) = expected else {
+        panic!("admitted first Job must have its own coherent snapshot");
+    };
+    assert_eq!(selected.attempt_id, first.attempt_id);
+    assert_eq!(
+        selected.current_attempt_id.as_deref(),
+        Some(first.attempt_id.as_str())
+    );
+    assert_eq!(selected.resolution, None);
+    assert_eq!(selected.reservation_state, "active");
+
+    // Active allocations for the selected nonterminal Attempt and a foreign
+    // Job are both legal. Neither can be interpreted as unresolved history
+    // of this selected Job.
+    for input in [&first, &other] {
+        scratch.admin.execute(
+            "INSERT INTO job_allocations(attempt_id,resources_json,workspace_access_json,owner,state,acquired_at_ms) VALUES($1,'{}','{}',$2,'active',$3)",
+            &[&input.attempt_id, &input.principal, &input.created_at_ms],
+        ).unwrap();
+    }
+    let events = scratch.count("job_events");
+    assert_eq!(read(&mut store), expected);
+
+    // A foreign latest/current pointer must never become the selected
+    // Attempt merely because it resolves to a real row.
+    scratch
+        .admin
+        .execute(
+            "UPDATE jobs SET current_attempt_id=$1 WHERE job_id=$2",
+            &[&other.attempt_id, &first.job_id],
+        )
+        .unwrap();
+    assert_eq!(read(&mut store), PgJobReadback::Inconclusive);
+    scratch
+        .admin
+        .execute(
+            "UPDATE jobs SET current_attempt_id=$1 WHERE job_id=$2",
+            &[&first.attempt_id, &first.job_id],
+        )
+        .unwrap();
+    assert_eq!(read(&mut store), expected);
+
+    scratch
+        .admin
+        .execute(
+            "DELETE FROM concurrency_reservations WHERE attempt_id=$1",
+            &[&first.attempt_id],
+        )
+        .unwrap();
+    assert_eq!(read(&mut store), PgJobReadback::Inconclusive);
+    assert_eq!(
+        scratch.count("job_events"),
+        events,
+        "readback must remain read-only"
+    );
+}
