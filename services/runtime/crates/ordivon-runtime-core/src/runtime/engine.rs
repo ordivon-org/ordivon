@@ -1,3 +1,4 @@
+use super::error::nonretryable_io_error as io_error;
 // Runtime inspection consumers intentionally use this shared projection.
 pub(super) use super::error::map_universal_error;
 use super::lifecycle_locks::WorkspaceLeaseTable;
@@ -704,15 +705,6 @@ fn workspace_issue(
         message: error.message,
         retryable: error.retryable,
     }
-}
-
-fn io_error(context: &str, error: std::io::Error) -> RuntimeError {
-    RuntimeError::new(
-        RuntimeErrorCode::IoError,
-        format!("{context}: {error}"),
-        None,
-        false,
-    )
 }
 
 #[cfg(test)]

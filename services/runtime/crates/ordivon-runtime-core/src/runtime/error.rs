@@ -214,4 +214,49 @@ impl Display for RuntimeError {
 
 impl std::error::Error for RuntimeError {}
 
+/// Contextual I/O error where the caller has not established retry safety.
+pub(super) fn nonretryable_io_error(context: &str, error: std::io::Error) -> RuntimeError {
+    RuntimeError::new(
+        RuntimeErrorCode::IoError,
+        format!("{context}: {error}"),
+        None,
+        false,
+    )
+}
+
 pub type RuntimeResult<T> = Result<T, RuntimeError>;
+
+#[cfg(test)]
+mod contextual_io_tests {
+    use super::*;
+
+    #[test]
+    fn shared_contextual_io_error_preserves_nonretryable_wire_contract() {
+        for kind in [
+            std::io::ErrorKind::Interrupted,
+            std::io::ErrorKind::NotFound,
+            std::io::ErrorKind::PermissionDenied,
+            std::io::ErrorKind::Other,
+        ] {
+            for context in ["read evidence", "inspect workspace", ""] {
+                let cause = std::io::Error::new(kind, "native failure");
+                let expected = RuntimeError::new(
+                    RuntimeErrorCode::IoError,
+                    format!("{context}: {cause}"),
+                    None,
+                    false,
+                );
+                let actual = nonretryable_io_error(context, cause);
+                assert_eq!(actual, expected);
+                assert_eq!(
+                    serde_json::to_value(actual).unwrap(),
+                    serde_json::json!({
+                        "code": "IO_ERROR",
+                        "message": format!("{context}: native failure"),
+                        "retryable": false,
+                    })
+                );
+            }
+        }
+    }
+}

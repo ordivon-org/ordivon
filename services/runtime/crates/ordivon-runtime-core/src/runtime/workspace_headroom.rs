@@ -1,4 +1,5 @@
 //! Storage-neutral Workspace carrier capacity contract for legacy and PG.
+use super::error::nonretryable_io_error as io_error;
 use super::{RuntimeError, RuntimeErrorCode, RuntimeResult};
 use std::path::{Path, PathBuf};
 
@@ -6,15 +7,6 @@ use std::path::{Path, PathBuf};
 pub struct WorkspaceHeadroomConfig {
     pub path: PathBuf,
     pub minimum_free_bytes: u64,
-}
-
-fn io_error(context: &str, cause: std::io::Error) -> RuntimeError {
-    RuntimeError::new(
-        RuntimeErrorCode::IoError,
-        format!("{context}: {cause}"),
-        None,
-        false,
-    )
 }
 
 #[cfg(unix)]
