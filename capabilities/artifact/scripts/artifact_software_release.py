@@ -5,6 +5,7 @@ import argparse, hashlib, json, os, shutil, subprocess, tempfile, uuid
 from pathlib import Path
 from typing import Any
 import jsonschema
+from artifact_core.contracts import sha256_file
 
 ROOT=Path(__file__).resolve().parents[1]
 CONTRACT_SCHEMA=ROOT/'artifact-delivery/shadow-contracts/software-release-oci-contract-v1.schema.json'
@@ -20,12 +21,6 @@ EXPECTED_DB_META_SHA='ad131f125e7913b23abbbe563e79920c333e52e290beb33a050bb64007
 def run(argv:list[str], timeout:int=180)->subprocess.CompletedProcess[bytes]:
     return subprocess.run(argv,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False,timeout=timeout)
 
-def sha_file(path:Path)->str:
-    h=hashlib.sha256()
-    with path.open('rb') as f:
-        for c in iter(lambda:f.read(1024*1024),b''): h.update(c)
-    return h.hexdigest()
-
 def canonical_digest(v:Any)->str:
     return hashlib.sha256(json.dumps(v,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()
 
@@ -38,7 +33,7 @@ def digest_blob(path:Path, digest:str, size:int|None=None)->list[str]:
     if not digest.startswith('sha256:'): return ['unsupported non-sha256 OCI digest']
     p=path/'blobs'/'sha256'/digest.split(':',1)[1]
     if not p.is_file(): return [f'missing OCI blob {digest}']
-    if sha_file(p)!=digest.split(':',1)[1]: failures.append(f'OCI blob digest mismatch {digest}')
+    if sha256_file(p)!=digest.split(':',1)[1]: failures.append(f'OCI blob digest mismatch {digest}')
     if size is not None and p.stat().st_size!=size: failures.append(f'OCI blob size mismatch {digest}')
     return failures
 
@@ -60,15 +55,15 @@ def verify_oci(layout:Path, contract_path:Path, evidence_dir:Path|None=None)->di
     except Exception as e: return {'schemaVersion':1,'kind':'artifact-software-release-verification','profileId':'software-release-oci-image-r1','status':'FAIL','failures':[f'contract unreadable: {e}']}
     failures.extend(validate_contract(contract))
     evidence_dir=evidence_dir or Path(tempfile.mkdtemp(prefix='artifact-software-release-evidence-')); evidence_dir.mkdir(parents=True,exist_ok=True)
-    result={'schemaVersion':1,'kind':'artifact-software-release-verification','profileId':'software-release-oci-image-r1','status':'FAIL','layout':str(layout.resolve()),'contract':{'path':str(contract_path.resolve()),'sha256':sha_file(contract_path),'canonicalDigest':canonical_digest(contract)},'failures':failures,'tools':{}}
+    result={'schemaVersion':1,'kind':'artifact-software-release-verification','profileId':'software-release-oci-image-r1','status':'FAIL','layout':str(layout.resolve()),'contract':{'path':str(contract_path.resolve()),'sha256':sha256_file(contract_path),'canonicalDigest':canonical_digest(contract)},'failures':failures,'tools':{}}
     if failures:
         (evidence_dir/'verification.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n'); return result
     for n,p in [('skopeo',SKOPEO),('podman',PODMAN),('syft',SYFT),('trivy',TRIVY)]:
         if not p.is_file() or not os.access(p,os.X_OK): failures.append(f'required mature external capability unavailable: {n}')
-        else: result['tools'][n]={'path':str(p.resolve()),'sha256':sha_file(p)}
+        else: result['tools'][n]={'path':str(p.resolve()),'sha256':sha256_file(p)}
     db=TRIVY_DB_ROOT/'cache/db/trivy.db'; dbmeta=TRIVY_DB_ROOT/'cache/db/metadata.json'
-    if not db.is_file() or sha_file(db)!=EXPECTED_DB_SHA: failures.append('frozen Trivy DB bytes unavailable or drifted')
-    if not dbmeta.is_file() or sha_file(dbmeta)!=EXPECTED_DB_META_SHA: failures.append('frozen Trivy DB metadata unavailable or drifted')
+    if not db.is_file() or sha256_file(db)!=EXPECTED_DB_SHA: failures.append('frozen Trivy DB bytes unavailable or drifted')
+    if not dbmeta.is_file() or sha256_file(dbmeta)!=EXPECTED_DB_META_SHA: failures.append('frozen Trivy DB metadata unavailable or drifted')
     if failures:
         result['failures']=failures; (evidence_dir/'verification.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n'); return result
 
@@ -149,7 +144,7 @@ def verify_oci(layout:Path, contract_path:Path, evidence_dir:Path|None=None)->di
         for ef in want['expectedFiles']:
             fp=temp_root/ef['path'].lstrip('/')
             if not fp.is_file(): rootfs_fail.append(f"expected rootfs file missing: {ef['path']}")
-            elif sha_file(fp)!=ef['sha256']: rootfs_fail.append(f"rootfs file digest differs from contract: {ef['path']}")
+            elif sha256_file(fp)!=ef['sha256']: rootfs_fail.append(f"rootfs file digest differs from contract: {ef['path']}")
         failures.extend(rootfs_fail)
 
         # Frozen-DB vulnerability evidence over read-back rootfs.
@@ -198,9 +193,9 @@ def verify_oci(layout:Path, contract_path:Path, evidence_dir:Path|None=None)->di
       'ociIdentity':oci_ev,
       'platformConfig':{'status':'PASS' if not cfg_fail else 'FAIL','os':config.get('os'),'architecture':config.get('architecture'),'entrypoint':cconfig.get('Entrypoint'),'workingDir':cconfig.get('WorkingDir'),'failures':cfg_fail},
       'rootfsReadback':{'status':'PASS' if not rootfs_fail else 'FAIL','expectedFiles':want['expectedFiles'],'failures':rootfs_fail},
-      'sbom':{'status':'PASS' if not sbom_fail else 'FAIL','format':sbom.get('spdxVersion'),'packageCount':len(sbom.get('packages') or []) if sbom else 0,'reportSha256':sha_file(sbom_path) if sbom_path.is_file() else None,'failures':sbom_fail},
-      'vulnerabilityScan':{'status':'PASS' if not vuln_fail else 'FAIL','dbSnapshot':contract['security']['trivyDbSnapshot'],'dbSha256':EXPECTED_DB_SHA,'vulnerabilityCount':vcount,'maximum':contract['security']['maximumVulnerabilities'],'reportSha256':sha_file(vuln_path) if vuln_path.is_file() else None,'failures':vuln_fail},
-      'secretScan':{'status':'PASS' if not secret_fail else 'FAIL','secretCount':scount,'maximum':contract['security']['maximumSecrets'],'reportSha256':sha_file(secret_path) if secret_path.is_file() else None,'failures':secret_fail},
+      'sbom':{'status':'PASS' if not sbom_fail else 'FAIL','format':sbom.get('spdxVersion'),'packageCount':len(sbom.get('packages') or []) if sbom else 0,'reportSha256':sha256_file(sbom_path) if sbom_path.is_file() else None,'failures':sbom_fail},
+      'vulnerabilityScan':{'status':'PASS' if not vuln_fail else 'FAIL','dbSnapshot':contract['security']['trivyDbSnapshot'],'dbSha256':EXPECTED_DB_SHA,'vulnerabilityCount':vcount,'maximum':contract['security']['maximumVulnerabilities'],'reportSha256':sha256_file(vuln_path) if vuln_path.is_file() else None,'failures':vuln_fail},
+      'secretScan':{'status':'PASS' if not secret_fail else 'FAIL','secretCount':scount,'maximum':contract['security']['maximumSecrets'],'reportSha256':sha256_file(secret_path) if secret_path.is_file() else None,'failures':secret_fail},
       'runtimeReadback':{'status':'PASS' if not runtime_fail else 'FAIL','exitCode':pr.returncode if 'pr' in locals() else None,'stdout':stdout if 'stdout' in locals() else None,'stderr':stderr if 'stderr' in locals() else None,'network':'none','failures':runtime_fail},
       'status':'PASS' if not failures else 'FAIL','failures':failures,
       'boundary':'PASS is bounded to one exact single-platform OCI Image Layout under one software-release object contract. It establishes OCI descriptor integrity, linux/amd64 config/entrypoint, exact rootfs file identity, SPDX-2.3 SBOM binding, frozen-snapshot vulnerability count, secret count and network-disabled runtime read-back. It does not establish build authorship, production deployment safety, vulnerability absence outside the frozen DB snapshot, multi-platform semantics, registry policy, or signature/provenance trust handled by the separate common release envelope.'

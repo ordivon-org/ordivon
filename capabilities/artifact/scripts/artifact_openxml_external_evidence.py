@@ -19,6 +19,7 @@ DEFAULT_VALIDATOR = Path(
 
 
 def sha(path: Path) -> str:
+    # Standalone evidence runner: cannot depend on the repository-local artifact_core package.
     h = hashlib.sha256()
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
