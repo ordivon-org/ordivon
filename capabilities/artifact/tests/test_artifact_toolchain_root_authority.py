@@ -48,6 +48,9 @@ def test_external_toolchain_root_has_one_config_authority(monkeypatch) -> None:
     monkeypatch.setenv(ARTIFACT_TOOLCHAIN_ROOT_ENV, str(configured))
     assert artifact_toolchain_root() == configured
 
+    monkeypatch.setenv(ARTIFACT_TOOLCHAIN_ROOT_ENV, "")
+    assert artifact_toolchain_root() == Path("")
+
 
 def test_toolchain_consumers_do_not_reimplement_root_env_selection() -> None:
     offenders = [str(path.relative_to(ROOT)) for path in CONSUMERS if _reads_toolchain_root_directly(path)]
