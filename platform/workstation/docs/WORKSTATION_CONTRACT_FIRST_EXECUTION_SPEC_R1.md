@@ -38,21 +38,11 @@ Runtime target and principal observation → actual consumer acceptance
 
 The first public seam is **the Ansible playbook execution surface**, not an invented WSL wrapper. Its task list must contain the Linux distro/systemd convergence but no writer to Windows-user global `.wslconfig`. Use Ansible native `--syntax-check`/`--list-tasks` and current pytest; an independent read-only native observation is required when claiming deployed state.
 
-## 5. Local Linux/Windows boundary contract
+## 5. Native configuration non-interference
 
-| Coordinate | Typed interpretation |
-| --- | --- |
-| I | `HostTarget × LinuxHostDesiredState × WindowsGlobalObservation?` |
-| O | `LinuxConvergenceEvidence × ScopedObservation`; no Windows global activation claim |
-| S | `(GitSourceCut, LinuxDesired, LinuxObserved, WindowsUserGlobalObserved?, ActiveWSLGeneration?)` |
-| pre | Ansible can access its Linux targets; a Windows global value is only comparable when actually observed with the appropriate Windows identity |
-| post | Running the Linux host-substrate playbook does not write the Windows-user global `.wslconfig`; Linux-scoped operations retain their existing semantics |
-| inv | `WriteSet(host-substrate) ∩ WindowsUserGlobalWSLConfig = ∅`; `UNKNOWN ≠ FALSE`; `source declared ≠ activated` |
-| eff | Linux systemd config and Linux `/etc/wsl.conf` effects remain; Windows-global writes are excluded |
-| c | `UNKNOWN(cost, observed runtime and adoption overhead not yet measured)` |
-| epsilon | `UNKNOWN(abstraction, static Ansible source-to-external-effect refinement remains bounded by the native test seam)` |
-| prov | Exact Ordivon source SHA, native Ansible source/command, observed Windows config where available, execution identity and timestamps |
-| unfold | Native `ansible/host-substrate.yml`, `workstation/windows/workstation.dsc.yaml`, existing `tests/`, current Runtime target/identity readback |
+The Linux host playbook acts on Linux desired state at the selected host. Windows-user global configuration is a separate native authority; compare its values only with an observation under the appropriate Windows identity. The required property is `WriteSet(host-substrate) ∩ WindowsUserGlobalWSLConfig = ∅`, while Linux `/etc/wsl.conf` and systemd operations retain their existing semantics. Unknown observations remain UNKNOWN, and a declared setting is not an activated generation.
+
+Qualify this property against the exact Ansible source and native task list, Windows-user configuration readback where available, execution identity, and the actual Runtime consumer. Cost and external-effect refinement are unestablished unless measured or independently demonstrated. Reuse `ansible/host-substrate.yml`, `workstation/windows/workstation.dsc.yaml`, existing tests and native target/identity observations; no separate representation is required.
 
 A syntactic source check is **not** proof of arbitrary external side-effect non-interference. The proven scope is the retained Ansible task list and the observed files; independent runtime readback closes its physical seam.
 
@@ -64,14 +54,14 @@ A syntactic source check is **not** proof of arbitrary external side-effect non-
 - **WSL-W4 No accidental global observability restart:** inactive services are checked against the current Workstation `remain_cold` consumer test before proposing changes.
 - **WSL-W5 Bounded external effect:** source-only phase does not apply Ansible, shut down WSL, restart services, alter Windows global configuration or deploy Cloudflare.
 
-For W1–W3 prefer native Ansible and consumer tests over a new SMT model. Higher-consequence future replacement/restart paths may warrant TLA+/Quint or an existing R2.1 refinement when there is a precise state-machine failure; do not add formal artifacts without an implementable acceptance predicate.
+For W1–W3 prefer native Ansible and consumer tests over a new SMT model. Higher-consequence future replacement/restart paths may warrant TLA+/Quint or an applicable refinement proof when there is a precise state-machine failure; do not add formal artifacts without an implementable acceptance predicate.
 
 ## 7. Ordered task graph and precise implementation
 
 | ID | Depends on | Change | Acceptance |
 | --- | --- | --- | --- |
 | T0 SourceCut | — | Pin current GitHub main, separate branch/Workspace, locate real consumer and existing tests | exact SHA, clean independent branch |
-| T1 Spec | T0 | This doc: responsibility, assumption, counterexample, obligations, non-goals, dependencies | full typed contract, exact paths and test seam |
+| T1 Spec | T0 | This doc: responsibility, assumption, counterexample, obligations, non-goals, dependencies | explicit non-interference property, exact paths and test seam |
 | T2 RED | T1 | Add consumer-facing test at Ansible task surface; require Linux tasks retained and Windows-global tasks absent | focused pytest fails on current source (before code changes) |
 | T3 GREEN | T2 | Delete outdated Windows-global `.wslconfig` variables and tasks from Linux playbook, keep Linux/systemd functionality | focused test passes, native `ansible-playbook --syntax-check` and `--list-tasks` pass |
 | T4 Verification | T3 | Focused source and consequence tests, Workstation native CI where environment permits, diff review and separate non-mutating live config read | no false PASS; SKIP/NOT_RUN explicit, source/installed/active kept distinct |

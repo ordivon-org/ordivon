@@ -26,11 +26,11 @@ Source-checked official upstream Git main revisions on 2026-11-09:
 
 The repositories are methodology **providers**, not execution/truth/permission authorities. External source instructions do not override Ordivon AGENTS.md or Owner contracts. Do not import their complete Skill trees, management planes, agents, global settings, hooks, memory systems or language requirements. License and exact version must be reassessed before vendoring any bytes; this iteration vendors none.
 
-## 3. Representation: Ordivon LEGO (OL)
+## 3. Representation: problem-specific mathematics
 
-Begin with the required consumer observation and the real behavior. Represent it using a mathematical structure selected for the property: functions, relations, partial operations, transition systems, order, or other appropriate mature semantics. No universal declaration, fixed field count, admission record, or new interpreter is required. Model cost, authority, uncertainty and source evidence only to the extent that the actual question depends on them.
+Choose a problem-specific mathematical model and state the relevant consumer properties, assumptions and evidence. No universal declaration is required.
 
-A method is not made correct or reusable by a declaration. Establish its actual usefulness and assumptions, and prove only the relevant claims.
+A procedure such as Matt's `to-spec` is a **method candidate**: this plan does not automatically admit it as an independent runtime LEGO. A method is independently replaceable only when its real consumer and interface justify that distinction. Choose the mathematical structure and evidence required by the actual property; missing facts remain UNKNOWN. Do not invent one record per file or workflow stage.
 
 ### Adopted semantic profile and proof boundary
 
@@ -53,7 +53,7 @@ Formal targets are selected only where they reduce a named defect. Separate (a) 
 | Responsibility | Natural Owner / real seam | Existing, reusable behavior | Requested improvement |
 | --- | --- | --- | --- |
 | Goal → source/consumer | Human/domain Owner; `AGENTS.md`, Owner README, `docs/start/tasks.md` | SourceCut / owner mapping / consumer navigation | Route material agent-engineering reform to this Spec and selected Skills only when relevant. |
-| Reusable thinking method | project `.agents/skills/method-router/` and Skills MCP `search/resolve/read` | on-demand method selection, OL links, package revisions | Add one optional upstream-informed engineering reference, not a second router. |
+| Reusable thinking method | project `.agents/skills/method-router/` and Skills MCP `search/resolve/read` | on-demand method selection, OL guidance, package revisions | Add one optional upstream-informed engineering reference, not a second router. |
 | Plan → independently demonstrable delivery | GitHub PR/Issue and existing Host Work | Work snapshots; PR gates; dedicated Runtime Workspace | Tracer-bullet slices with true blocking edges; no one-file-per-LEGO task explosion. |
 | Run candidate and structured result | `services/harness/` public `HarnessRunContract`, `AgentRunConclusion` | `candidate_completed` vs `needs_input`, explicit unknowns, independent receipts | Preserve candidate-only meaning, prove boundary on a real caller where missing. |
 | Physical execution / recovery | `services/runtime/` Job/Attempt, effect identity and reconciliation | native Postgres-backed admission and Job receipts | Consumer-specific effect/readback checks, never infer semantic task completion from exit 0. |
@@ -113,7 +113,7 @@ Each slice has a native Owner, observable result, a negative example and a check
 ## 6. Small-step procedure for each slice
 
 1. **Select:** identify actual consumer, natural Owner, exact current Git main, live caller and one behavior it lacks. If the capability already works, do not create a ticket.
-2. **Specify:** define a thin vertical path from input through public Owner seam to observable acceptance; full typed R2.1 only for an independently declared LEGO. State assumptions, competing explanation, likely counterexample and what remains UNKNOWN.
+2. **Specify:** define a thin vertical path from input through public Owner seam to observable acceptance; choose a mathematical model when it materially clarifies the real obligation. State assumptions, competing explanation, likely counterexample and what remains UNKNOWN.
 3. **Red:** reproduce a real old error at the public seam; the failing condition must be able to distinguish broken and fixed behavior. No weak-model benchmarks or generic persona tests.
 4. **Green:** choose DELETE → REUSE local → mature upstream → COMPOSE → minimal adapter → custom only if necessary; change one owner-native implementation and any directly affected consumers.
 5. **Refine:** model-check or prove only an actual invariant requiring it; link assumptions, code refinement boundary and current source. A formal example without code binding is not a production fix.
@@ -127,7 +127,7 @@ Each slice has a native Owner, observable result, a negative example and a check
 | --- | --- | --- |
 | Valid Spec/readable Skill | current Git bytes, working references, Skills MCP path resolve/read when installed | Agent followed instructions; domain outcome |
 | Native RED→GREEN | bad counterexample rejected, good case accepted through Owner public seam | complete correctness across all inputs |
-| R2.1 model | complete typed contract, named theorem/model verdict, assumptions | implementation refinement or real effect |
+| Mathematical model | relevant property, named theorem/model verdict, assumptions | implementation refinement or real effect |
 | Code/consumer refinement | current implementation behavior checked against property at the target seam | semantics beyond exercised scope |
 | PR / CI | exact SHA, review, required job results, Merge Queue | deployed owner version |
 | Real usage | provider readback/effect receipt, consumer acceptance currentness | all possible future domain success |
@@ -138,7 +138,7 @@ Avoid arbitrary percentage scores, universal checklists and unjustified time est
 
 - **Verifier wrong target:** one positive and one true negative control for every material new gate; compare actual consumer semantics, not cosmetic scores.
 - **Method maximalism:** activate relevant upstream procedures only when a multi-step implementation needs them. One-line changes do not require a plan.
-- **Model/Owner semantic drift:** R2.1 model proof is not code refinement; source and tool identities must be pinned.
+- **Model/Owner semantic drift:** A mathematical model proof is not code refinement; source and tool identities must be pinned.
 - **Plan accumulation:** GitHub and Host are the canonical plan carriers; do not create issues for T2–T5 absent a confirmed actual caller. This Spec is a temporary architecture decision document; once active consumers and tests subsume it, merge into owner docs or retire it.
 - **Currentness and history:** historical provenance is not a live path, and stale reference is not proof a source is absent.
 - **Conservatism feedback:** progress is judged by actual new effects/evidence and qualified blockers, not reports written or steps counted.
@@ -149,25 +149,9 @@ This reform is not closed by committing this Spec. Its architecture-level exit r
 
 **Immediate frontier:** implement T0 in `method-router` and validate with existing Skills consumers; independently inspect T1/T2 callers and implement the first concrete failing native consumer rather than launching a broad redesign.
 
-## 10. First effective method profile, and precise next-file map
+## 10. Method-router behavior and precise next-file map
 
-The selected T0 `method-router` delivery route has an **effective R2.1 declaration**, with no assertion of automatic proof or installed capability:
-
-| Coordinate | Typed effective value |
-| --- | --- |
-| `I` | `EngineeringIntent(goal, consumer, naturalOwner, gitSourceCut, constraints, evidenceRefs)`; the intent comes from the caller, not invented by the Skill. |
-| `O` | `AdvisoryEngineeringRoute(specCandidate, testSeam, verticalSlices, evidenceRequirements, unresolvedUnknowns)`, not a permission or completed Task. |
-| `S` | `Unit` for the read-only procedure; durable Host Work or Git state belongs to the corresponding Owner. |
-| `pre` | Caller names the real consumer and an adequate source boundary; unknown scope leads to bounded inquiry, not an arbitrary gate. |
-| `post` | Advisory route points to qualified incumbent interfaces and native verification; application remains a caller decision. |
-| `inv` | No model result promoted to real consumer acceptance; historical witness and SourceCut identity not silently revised; UNKNOWN preserved. |
-| `eff` | `Empty` for Skill lookup/read. Git/Runtime/Owner actions are separate explicit effects. |
-| `c` | `UNKNOWN(cost-of-method-use, until measured for the named consumer)`, no assumed zero. |
-| `epsilon` | `UNKNOWN(semantic-approximation, advisory method has no universal accuracy bound)`. |
-| `prov` | Ordivon source baseline above; upstream Matt/ECC/Superpowers Git pins and project Skill file identity; current installed digest is `UNKNOWN` until read back. |
-| `unfold` | L0 discover `method-router`; L1 read SKILL; L2 optionally read `references/agent-engineering-delivery.md` and this Spec; L3 source/native verifier only as needed. |
-
-**Declaration standing:** scoped Method LEGO *definition*, with typed unknowns. `MODEL_PROVED`, `CODE_REFINED`, `INSTALLED_CURRENT` and `DOMAIN_ACCEPTED` are **not** claimed. Do not turn this table into a global LEGO schema or second router.
+T0 is a read-only advisory method. It maps caller-supplied engineering intent to a proposed route using existing Owner interfaces, source-bound observations and native verification. Missing scope calls for bounded inquiry; the route does not grant permissions, create durable state, establish consumer acceptance or assert a universal accuracy bound. Keep the caller's intent, exact source and evidence identities intact. Inspect current Skill instructions and references on demand and qualify installed behavior separately. Cost is measured only where relevant to a real consumer decision. No automatic proof or installed capability is claimed.
 
 Exact implementation readset for the first and following vertical slices:
 
@@ -186,7 +170,7 @@ The `docs/start/tasks.md` link is a navigation projection, not new task authorit
 
 ## 11. Mathematical and computer-science foundation: adopted thought-LEGO profiles
 
-**Evidence update, 2026-11-09.** This section selects local mathematical obligations; it does not proclaim a theorem about installed code. The sources below are primary papers, official reference implementations, and existing Ordivon-native theorem/consumer paths. These are selectively activated **method lenses**, not eleven new runtime modules.
+**Evidence update, 2026-11-09.** These are problem-specific mathematical methods, not a universal representation or a theorem about installed code. The sources below are primary papers, official reference implementations, and existing Ordivon-native theorem/consumer paths. These are selectively activated **method lenses**, not eleven new runtime modules.
 
 | Decision / thought LEGO | Mathematical foundation and precise question | Existing Ordivon carrier / executable obligation | Explicit non-claim |
 | --- | --- | --- | --- |
@@ -212,7 +196,7 @@ The `docs/start/tasks.md` link is a navigation projection, not new task authorit
 - **Realization and V&V:** [NASA Systems Engineering Handbook](https://www.nasa.gov/wp-content/uploads/2018/09/nasa_systems_engineering_handbook_0.pdf); [AWS durable execution idempotency/retry guide](https://docs.aws.amazon.com/durable-execution/patterns/best-practices/idempotency/) for distinguishing replay/at-least-once from external effect truth.
 - **Engineering procedures:** upstream [Matt `to-tickets`](https://github.com/mattpocock/skills/blob/main/docs/engineering/to-tickets.md), [ECC Hooks](https://github.com/affaan-m/ECC/blob/main/hooks/README.md), [Superpowers writing-plans](https://github.com/obra/superpowers/blob/main/skills/writing-plans/SKILL.md). Version-qualified source pins remain section 2. These are NOT formal proof systems and do not confer execution authority.
 
-**Method selection:** use `method-router` to choose the smallest method that can change a decision. For example, a missing producer/consumer assumption calls for T11.2, not all ten methods. A cancellation/retry defect calls for T11.6 plus T11.8. An incomplete evidence claim calls for T11.4 plus T11.10. Formalize the actual replacement using the smallest appropriate mathematical structure.
+**Method selection:** use `method-router` to choose the smallest method that can change a decision. For example, a missing producer/consumer assumption calls for T11.2, not all ten methods. A cancellation/retry defect calls for T11.6 plus T11.8. An incomplete evidence claim calls for T11.4 plus T11.10. Select the mathematical representation for the specific property; no fixed declaration is required.
 
 ## 12. Precise refinement calculus and proof duties (no new calculus)
 
@@ -275,7 +259,7 @@ The existing T0–T5 are a **task DAG**, not sequential theater. Treat dependenc
 1. **Spec the actual negative:** from the existing Work/issue/SourceCut, state one consumer-visible failure, pre/post, errors, assumption and evidence target; if the consumer is already satisfied, retire the proposed custom change.
 2. **Select a deep seam:** identify the highest stable public Owner interface. Do not split work by technical layers; a ticket includes everything required to witness one behavior end-to-end.
 3. **Negative before change:** run the observed bad input against the old source (RED). Ensure the oracle is independently derived from consumer semantics, not the candidate code's own status bits.
-4. **REUSE first:** select mature upstream contract/model checker or existing Owner-native primitive; avoid a new schema/runtime/agent. Use the task-specific native contract.
+4. **REUSE first:** select mature upstream contract/model checker or existing Owner-native primitive; avoid a new schema/runtime/agent. Use only the mathematical structure required by the actual property.
 5. **Green and narrow:** implement at the natural Owner, cover the original counterexample and one positive valid operation; use existing unit/PG/stateful tests and optional formal checker when it materially strengthens this claim.
 6. **Independent review:** review spec compliance *and* code/standards against exact base; compare actual effect/readback, run native `mise` and retain negative result as a regression.
 7. **Integrate and consume:** send exact PR/commit/Job or readback to the corresponding Space Topic, deduplicate overlapping PRs, use GitHub Merge Queue; separate MERGED from installed, executed and DomainAccepted.

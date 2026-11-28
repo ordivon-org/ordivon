@@ -8,7 +8,9 @@ These repository paths are informative; they are not portable Skill dependencies
 
 ## Shared representation
 
-A replaceable responsibility is one useful engineering interpretation of OL. Choose its mathematical representation and observations from the actual problem, not a prescribed definition.
+A goal-conditioned, independently replaceable responsibility is a useful
+engineering case. Describe only the mathematical properties and observations
+that matter to the particular decision; no universal representation is assumed.
 The method/capability distinction describes responsibilities, **not** an
 automatic Skill/Tool type system. A discovered file, paper or provider is only
 a candidate. Select the native mathematical contract that the decision needs; unknown relevant facts remain UNKNOWN.

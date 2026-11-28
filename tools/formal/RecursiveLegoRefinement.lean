@@ -1511,23 +1511,12 @@ end OrdivonR21.NumericRepresentation
 #print axioms OrdivonR21.NumericRepresentation.different_source_same_encoding_requires_refusal
 #print axioms OrdivonR21.NumericRepresentation.unchecked_numeric_alias_is_possible
 
--- R2.1 K1/Cross-Agent evidence message LEGO, one scoped responsibility.
--- Message model: concrete input, output and state relations.
--- I=(ref,digest) of an already authenticated, open-topic message;
--- O=(success status, unchanged or appended ledger); S=ref→(digest,seq), nextSeq;
--- pre=ref and digest nonempty; authorized writer/open topic/transactional
---      admission are externally required preconditions, not proven by Lean;
--- post=matching replay returns existing, conflicting digest refuses mutation,
---      unseen ref appends exactly once, no other ref is changed;
--- inv=previously committed digest and order never silently change;
--- eff=one append or none (not downstream execution);
--- c=one abstract atomic insertion; epsilon=0 in this exact finite-step model;
--- prov=Host v2 social_store.post_message ON CONFLICT/transaction sourcecut;
--- unfold=(Gateway.message_post, Host.post_message, Host.topic_resume).
--- These are mandatory *for this instantiated LEGO*; this namespace is NOT a
--- universal metadata registry. SQL isolation, network authentication, the
--- actual Python implementation, installed revision, and result-currentness
--- are independent K2 refinement obligations, NOT claimed here.
+-- Cross-agent evidence message: a scoped logical ledger transition.
+-- Matching replay returns existing, conflicting digest refuses mutation,
+-- and an unseen ref appends exactly once without changing earlier entries.
+-- Authentication, open-topic admission, SQL isolation, the actual Python
+-- implementation, installed revision and currentness require independent
+-- refinement evidence. This model does not establish downstream effects.
 namespace OrdivonR21.MessageEvidence
 
 -- This ledger is a LOGICAL successful-commit projection: nextSeq is

@@ -39,21 +39,21 @@ No new generalized `FinanceTask` engine, persistent task-status taxonomy, permis
 
 ## 5. Representation and formal contract
 
-Use OL with native task-specific semantics; no extra registry.
+Choose a problem-specific mathematical model and existing native consumer contract; no extra LEGO registry.
 
 ### F01. Finance task acceptance seam (composition of existing responsibilities)
 
-- `I`: `(SourceCut, FinanceObjective, NativeConsumerInput, RequiredGateBindings, EvidenceRefs)`; SourceCut is an exact Git commit; FinanceObjective is a goal/financial-constraint record bound by an existing Owner; ConsumerInput uses the existing Finance CLI schema, not a new task protocol.
-- `O`: `FinanceNativeOutput | ScopedPendingObligation`; in the current read-only slice, FinanceNativeOutput is the exact existing allocation or research assessment object and `ScopedPendingObligation` is UNKNOWN with the affected claim and outstanding evidence. Composition only projects gates.
-- `S`: `SourceCut × existing(Work, Run, Job, Artifact, Accounting)` with no invented mutable TaskState; caller and currentness semantics come from their natural Owners.
-- `pre`: actual consumer is named, required gate binding has exact source identity, correct Owner and support scope; execution eligibility is established at the effect owner.
-- `post`: when a domain outcome is accepted, the claimed consumer predicates have independent current evidence; no other output is silently elevated.
-- `inv`: `DOMAIN_ACCEPTED => consumer_evidence_current && required_domain_predicates_met`; `COMPOSITION_GATES_REPORTED_SATISFIED != DOMAIN_ACCEPTED`; `RESEARCH_ONLY => !externalWriteAllowed`; external contribution != investment profit.
-- `eff`: existing task/Source/Work/Run/Artifact effects; Finance research is read-only, Paper writes dedicated simulated PostgreSQL only; no Live effects from this spec.
-- `c`: typed `ExecutionCost<DurationSeconds>` for elapsed task/consumer work; `UNKNOWN(reason=no current comparable wall-clock observation, scope=Finance R2.1 cross-owner program, obligation=measure native Owner Job start/finish instants when cost changes the decision)`. CPU seconds, token counts, or monetary spending require separately typed cost coordinates and cannot be silently substituted for wall-clock seconds.
-- `epsilon`: typed `ConservationResidual<USDMinorUnit>` equals exactly `0` for the admitted contribution-only integer-money identity, with cent apportionment kept separate from the conservation residual; `ForecastCalibrationError<scoped metric>` remains `UNKNOWN(reason=no independent external/provider uncertainty calibration, scope=market authenticity and prospective strategy performance, obligation=obtain owner-qualified data and out-of-sample evidence)`. Exact money types do not imply accurate forecasts.
-- `prov`: SourceCut plus exact CLI/transitive-import/readset qualification, input/evidence identities, native consumer output and verifier scopes; a single implementation-file SHA is a test-local fingerprint, not complete executed-source closure.
-- `unfold`: typed domain goal `φ` → actual Finance consumer → task-local Circuit → obligation and owner-native verifier `ψ` → scoped projection → explicit `ψ ⇒ φ` bridge where justified → Finance-owned domain acceptance; absent bridge means UNKNOWN, not an empty proof.
+- Inputs: `(SourceCut, FinanceObjective, NativeConsumerInput, RequiredGateBindings, EvidenceRefs)`; SourceCut is an exact Git commit; FinanceObjective is a goal/financial-constraint record bound by an existing Owner; ConsumerInput uses the existing Finance CLI schema, not a new task protocol.
+- Results: `FinanceNativeOutput | ScopedPendingObligation`; in the current read-only slice, FinanceNativeOutput is the exact existing allocation or research assessment object and `ScopedPendingObligation` is UNKNOWN with the affected claim and outstanding evidence. Composition only projects gates.
+- State: `SourceCut × existing(Work, Run, Job, Artifact, Accounting)` with no invented mutable TaskState; caller and currentness semantics come from their natural Owners.
+- Assumptions: actual consumer is named, required gate binding has exact source identity, correct Owner and support scope; execution eligibility is established at the effect owner.
+- Required behavior: when a domain outcome is accepted, the claimed consumer predicates have independent current evidence; no other output is silently elevated.
+- Preserved properties: `DOMAIN_ACCEPTED => consumer_evidence_current && required_domain_predicates_met`; `COMPOSITION_GATES_REPORTED_SATISFIED != DOMAIN_ACCEPTED`; `RESEARCH_ONLY => !externalWriteAllowed`; external contribution != investment profit.
+- Effects: existing task/Source/Work/Run/Artifact effects; Finance research is read-only, Paper writes dedicated simulated PostgreSQL only; no Live effects from this spec.
+- Resource observations: typed `ExecutionCost<DurationSeconds>` for elapsed task/consumer work; `UNKNOWN(reason=no current comparable wall-clock observation, scope=Finance R2.1 cross-owner program, obligation=measure native Owner Job start/finish instants when cost changes the decision)`. CPU seconds, token counts, or monetary spending require separately typed cost coordinates and cannot be silently substituted for wall-clock seconds.
+- Limits of the claim: typed `ConservationResidual<USDMinorUnit>` equals exactly `0` for the admitted contribution-only integer-money identity, with cent apportionment kept separate from the conservation residual; `ForecastCalibrationError<scoped metric>` remains `UNKNOWN(reason=no independent external/provider uncertainty calibration, scope=market authenticity and prospective strategy performance, obligation=obtain owner-qualified data and out-of-sample evidence)`. Exact money types do not imply accurate forecasts.
+- Evidence: SourceCut plus exact CLI/transitive-import/readset qualification, input/evidence identities, native consumer output and verifier scopes; a single implementation-file SHA is a test-local fingerprint, not complete executed-source closure.
+- Implementation and verification: typed domain goal `φ` → actual Finance consumer → task-local Circuit → obligation and owner-native verifier `ψ` → scoped projection → explicit `ψ ⇒ φ` bridge where justified → Finance-owned domain acceptance; absent bridge means UNKNOWN, not an empty proof.
 
 ### Safety / progress properties
 
@@ -110,7 +110,7 @@ For each ticket: read exact SourceCut, objective and consumers → identify exis
 
 - No separate `FinanceAgent`, scheduler, general verifier, method registry, status database, broad ECC hooks installation, language migration, superpowers clone or Skill copy.
 - No automatic Live trading, broker effect, capital grant, custom optimizer, artificial future return or invented provider availability.
-- No universal declaration records.
+- No mandatory declaration shape.
 - No per-change universal checklist of all formal tools; verify the affected owner and actual consumer.
 - No weak-model experiment. Use normal business-domain contract tests and independent negative controls.
 
@@ -156,7 +156,7 @@ For an accepted implementation `M`, discharge `M |= (A => G)`.
 A replacement requires a declared observational/refinement relation and
 corresponding proof or independent consumer evidence.
 
-OL does not prescribe a declaration schema. Select local relations, contracts and evidence according to the actual finance property. A declaration is not a checked mathematical proof.
+Select the mathematical structures appropriate to the financial problem. The property, assumptions, proof and actual consumer acceptance are independent obligations.
 
 Application: Portfolio's conservation proof does not establish Broker fill,
 Accounting reconciliation, or investment utility; compose only at the
@@ -437,7 +437,7 @@ that separately.
 
 Review input: exact merged main `8346863be965da34371944679d063fd9fd0358ac`.
 Independent source-only Codex 0.163.0 audit completed read-only: PASS for
-Hoare/wp distinction, actual contract semantics, bounded
+Hoare/wp distinction, bounded
 Composition≠Domain authority, CEGAR semantics, non-trading owner
 boundaries; CHANGE for type-inexact money receipt, missing-holdout
 standing/reasons, F01 scoped types, false T03/T05 dependencies, and
@@ -458,7 +458,7 @@ native pytest/jsonschema; subsequent native tests must be observed anew.
 ### Six-axis review for every selected ticket
 
 Record one concrete PASS/CHANGE/HOLD for each: (1) mathematical
-semantics of the actual property; (2) owner/effect/acceptance
+semantics and relevant mathematical obligations; (2) owner/effect/acceptance
 boundaries and proof-to-consumer refinement; (3) user economic value and
 lack of unnecessary conservatism; (4) Matt SPEC/tracer bullets, ECC
 native TDD, Superpowers fresh verification; (5) duplication and

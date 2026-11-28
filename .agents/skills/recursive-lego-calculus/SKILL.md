@@ -17,13 +17,11 @@ Begin with the problem, legitimate observations and allowed contexts. Choose onl
 
 A representation is adequate relative to a property and consumer. Establish closure of the reachable carrier before restricting it; establish contextual equivalence or a property-preserving refinement before replacing behavior. Reachability minimality does not imply observational minimality; a valid quotient needs composition compatibility. Cost, evidence and effects matter when the actual decision depends on them, not because they fill slots. Do not claim a universal minimal basis or build a new interpreter.
 
-For a formal task, name the adopted semantic profile: typed signature,
-behavioral assume–guarantee contract, protocol interface, or transition system.
+For a formal task, select the mathematical theory appropriate to the property; typed signatures, contracts, protocols and transition systems are examples, not required representations.
 Keep specification, implementation and verification evidence distinct. Reuse
 that theory's satisfaction, composition and refinement rules with their side
 conditions; interface shape and invariant satisfiability alone do not establish
-safe composition. See references/formal-model.md, “LEGO contract — adopted
-component semantics”, for the exact mapping and sources.
+safe composition. See references/formal-model.md, “Foundational mathematics”, for relevant theories and their assumptions.
 
 An architectural contract is a legitimate immediate goal. During architecture
 reform, establish the abstract design obligations and track implementation and
@@ -85,7 +83,7 @@ Do not duplicate the checker as a new Skill or service.
 
 ## Practical rule
 
-For engineering decomposition, a replaceable responsibility is one useful interpretation. Its identity, interfaces, behavior and acceptance matter only where the actual problem requires them; this is not a universal definition of OL.
+LEGO is a way to discuss problem-relative composition and decomposition when useful, not a prescribed mathematical object or required runtime record.
 
 Use whichever of these questions changes the current decision. They are **not** a mandatory checklist, fixed order or Agent organization:
 
@@ -100,13 +98,7 @@ A candidate may be explored without a formal declaration. Formalize the actual p
 
 ### Agent public contract view and actual capability invocation
 
-Discovery is a consumer-relative projection of native contracts and evidence, not a separate LEGO registry. L0 previews the goal/role/version and
-flags known external effects, required authority, failures/timeouts, and
-unknown proof/currentness. L1 provides typed I/O, pre/post/invariants,
-errors, progress/time bounds, effects, authority and scoped c/epsilon values
-(or explicit UNKNOWN). L2 adds proofs, provenance, source cuts and change
-readsets. L3 unfolds internals only when the Agent needs them. Hide irrelevant
-implementation, never decision-critical effects or assumptions.
+Discovery exposes only the information needed for the current decision. Reveal decision-critical assumptions, effects, errors, authority, bounds and evidence where applicable. Deeper source, proofs and internal structure are disclosed on demand. No fixed disclosure levels or universal fields are required.
 
 Information disclosure is NOT execution authorization: the actual MCP/CLI/
 Gateway/Runtime owner must check current principal, grant, scope, inputs and
