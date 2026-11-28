@@ -11,6 +11,8 @@ mod doctor;
 mod engine;
 mod error;
 mod evidence;
+#[cfg(all(test, feature = "postgres-registry-admission"))]
+pub(crate) use evidence::prepare_runner_terminal_from_bundle;
 #[allow(dead_code)]
 mod execution_provider;
 mod host_dependency;

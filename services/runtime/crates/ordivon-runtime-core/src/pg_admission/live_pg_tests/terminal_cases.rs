@@ -808,3 +808,251 @@ fn pg18_readback_rejects_detached_unsettled_historical_attempt() {
         "missing historical reservation is not evidence of release"
     );
 }
+
+// The historical receipt tests exercised SQLite Registry settlement. This
+// successor uses the shared production bundle preparation and PG Writer.
+// Native launch/exit evidence is a separate prerequisite, not tested here.
+#[test]
+#[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+fn pg18_resource_receipt_shared_preparation_and_terminal_registration() {
+    use crate::runtime::{
+        prepare_runner_terminal_from_bundle, AttemptRecord, AttemptState, AttemptTerminationIntent,
+        RuntimeErrorCode,
+    };
+    use crate::universal::{sha256_bytes, RESOURCE_RECEIPT_FILE};
+    use serde_json::json;
+    use std::fs;
+
+    let dsn = physical_pg_test_dsn();
+    for case in ["valid", "wrong-attempt", "malformed", "absent"] {
+        let mut scratch = Scratch::new(&dsn);
+        scratch.qualify();
+        let directory = tempfile::tempdir().unwrap();
+        let mut input = payload(case, "receipt-job", "receipt-workspace", 2);
+        input.bundle_path = directory.path().to_string_lossy().into_owned();
+        input.launch_token_digest = sha256_bytes(b"receipt-test-launch");
+        let mut store = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+        assert_eq!(
+            store.admit(&input).unwrap(),
+            PgAdmissionOutcome::Created(input.job_id.clone())
+        );
+        allocate_fixture(&mut scratch, &input);
+        let bundle = PgBundleReady {
+            attempt_id: input.attempt_id.clone(),
+            expected_row_version: 0,
+            bundle_digest: sha256_bytes(b"receipt-test-bundle"),
+            observed_at_ms: input.created_at_ms + 1,
+            expected_source_sha256: input.expected_source_sha256.clone(),
+        };
+        assert_eq!(store.commit_bundle_ready_pg(&bundle).unwrap(), 1);
+        assert_eq!(
+            store
+                .mark_dispatch_issued_pg(
+                    &PgDispatchIssued {
+                        attempt_id: input.attempt_id.clone(),
+                        expected_row_version: 1,
+                        expected_bundle_digest: bundle.bundle_digest.clone(),
+                        observed_at_ms: input.created_at_ms + 2,
+                        expected_source_sha256: input.expected_source_sha256.clone(),
+                    },
+                    None,
+                    None
+                )
+                .unwrap(),
+            2
+        );
+        // Exact fixture projection of the admitted and issued Attempt.
+        // This does not simulate or assert that an OS process was launched.
+        let attempt = AttemptRecord {
+            attempt_id: input.attempt_id.clone(),
+            job_id: input.job_id.clone(),
+            attempt_number: 1,
+            state: AttemptState::Starting,
+            termination_intent: AttemptTerminationIntent::Natural,
+            launch_token_digest: input.launch_token_digest.clone(),
+            bundle_path: input.bundle_path.clone(),
+            bundle_digest: Some(bundle.bundle_digest),
+            boot_id: None,
+            unit_name: input.unit_name.clone(),
+            invocation_id: None,
+            control_group: None,
+            main_pid: None,
+            process_start_identity: None,
+            runner_start_digest: None,
+            result_digest: None,
+            exit_code: None,
+            infrastructure_error_digest: None,
+            created_at_ms: input.created_at_ms as u64,
+            started_at_ms: None,
+            finished_at_ms: None,
+            row_version: 2,
+        };
+        let stdout = b"receipt-test-output\n";
+        fs::write(directory.path().join("stdout.log"), stdout).unwrap();
+        fs::write(directory.path().join("stderr.log"), b"").unwrap();
+        let finish = input.created_at_ms + 4;
+        let result = json!({
+            "schemaVersion": 1,
+            "taskId": attempt.attempt_id,
+            "jobId": attempt.job_id,
+            "attemptId": attempt.attempt_id,
+            "launchTokenDigest": attempt.launch_token_digest,
+            "status": "COMPLETED",
+            "exitCode": 0,
+            "timedOut": false,
+            "startedUnixMs": finish - 1,
+            "finishedUnixMs": finish,
+            "steps": [],
+            "stdout": {
+                "artifactId": format!("{}.stdout", attempt.attempt_id),
+                "fileName": "stdout.log", "digest": sha256_bytes(stdout),
+                "retainedBytes": stdout.len(), "droppedBytes": 0, "truncated": false
+            },
+            "stderr": {
+                "artifactId": format!("{}.stderr", attempt.attempt_id),
+                "fileName": "stderr.log", "digest": sha256_bytes(b""),
+                "retainedBytes": 0, "droppedBytes": 0, "truncated": false
+            }
+        });
+        fs::write(
+            directory.path().join("result.json"),
+            serde_json::to_vec(&result).unwrap(),
+        )
+        .unwrap();
+        let receipt = json!({
+            "schemaVersion": 1, "taskId": attempt.attempt_id,
+            "jobId": attempt.job_id,
+            "attemptId": if case == "wrong-attempt" { "attempt-other" } else { &attempt.attempt_id },
+            "launchTokenDigest": attempt.launch_token_digest,
+            "observedUnixMs": finish - 1,
+            "scope": "attempt_cgroup_including_runner", "provider": "linux_cgroup_v2",
+            "cpu": {"usageUsec": 12345, "userUsec": 8000, "systemUsec": 4345},
+            "memory": {"peakBytes": 104857600, "swapPeakBytes": 16777216,
+                "events": {"low": 0, "high": 1, "max": 2, "oom": 0, "oomKill": 0}},
+            "io": {"readBytes": 110, "writeBytes": 220, "readOps": 4,
+                "writeOps": 6, "discardBytes": 0, "discardOps": 0}
+        });
+        let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
+        let receipt_path = directory.path().join(RESOURCE_RECEIPT_FILE);
+        match case {
+            "malformed" => fs::write(&receipt_path, b"{not-json").unwrap(),
+            "absent" => {}
+            _ => fs::write(&receipt_path, &receipt_bytes).unwrap(),
+        }
+
+        let prepared = prepare_runner_terminal_from_bundle(&attempt);
+        if matches!(case, "wrong-attempt" | "malformed") {
+            let error = prepared.unwrap_err();
+            assert_eq!(
+                error.code,
+                RuntimeErrorCode::ResultIdentityConflict,
+                "{case}"
+            );
+            assert_eq!(error.field.as_deref(), Some("resourceReceipt"), "{case}");
+            assert_eq!(scratch.count("artifacts"), 0);
+            assert_eq!(scratch.count("job_events"), 5);
+            let row = scratch
+                .admin
+                .query_one(
+                    "SELECT j.resolution, j.current_attempt_id, a.state, r.state
+                 FROM jobs j JOIN attempts a ON a.attempt_id=j.current_attempt_id
+                 JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id
+                 WHERE j.job_id=$1",
+                    &[&input.job_id],
+                )
+                .unwrap();
+            assert_eq!(row.get::<_, Option<String>>(0), None);
+            assert_eq!(row.get::<_, String>(1), input.attempt_id);
+            assert_eq!(row.get::<_, String>(2), "starting");
+            assert_eq!(row.get::<_, String>(3), "active");
+            continue;
+        }
+        let terminal = prepared.unwrap();
+        assert_eq!(terminal.state, AttemptState::Succeeded);
+        let found = terminal
+            .artifacts
+            .iter()
+            .find(|a| a.kind == "resource_receipt");
+        assert_eq!(found.is_some(), case == "valid");
+        if let Some(a) = found {
+            assert_eq!(
+                a.artifact_id,
+                format!("{}.resource-receipt", attempt.attempt_id)
+            );
+            assert_eq!(a.relative_path, RESOURCE_RECEIPT_FILE);
+            assert_eq!(a.media_type, "application/json");
+            assert_eq!(a.digest, sha256_bytes(&receipt_bytes));
+            assert_eq!(a.byte_length, receipt_bytes.len() as u64);
+            assert!(!a.truncated);
+        }
+        let pg_terminal = PgTerminalNoArtifacts {
+            attempt_id: terminal.attempt_id,
+            expected_row_version: terminal.expected_row_version as i64,
+            terminal_state: terminal.state.as_db().into(),
+            result_digest: terminal.result_digest,
+            reason_code: terminal.reason_code,
+            exit_code: terminal.exit_code,
+            finished_at_ms: terminal.finished_at_ms as i64,
+            expected_source_sha256: input.expected_source_sha256.clone(),
+        };
+        let artifacts = terminal
+            .artifacts
+            .into_iter()
+            .map(|a| PgArtifactRegistration {
+                artifact_id: a.artifact_id,
+                kind: a.kind,
+                relative_path: a.relative_path,
+                digest: a.digest,
+                media_type: a.media_type,
+                byte_length: a.byte_length as i64,
+                truncated: a.truncated,
+                created_at_ms: pg_terminal.finished_at_ms,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            store
+                .commit_terminal_with_artifacts(&pg_terminal, &artifacts)
+                .unwrap(),
+            PgTerminalOutcome::Committed(input.job_id.clone())
+        );
+        assert_eq!(
+            store
+                .commit_terminal_with_artifacts(&pg_terminal, &artifacts)
+                .unwrap(),
+            PgTerminalOutcome::Existing(input.job_id.clone())
+        );
+        assert_eq!(scratch.count("job_events"), 7);
+        assert_eq!(
+            scratch.count("artifacts"),
+            if case == "valid" { 4 } else { 3 }
+        );
+        let rows = scratch
+            .admin
+            .query(
+                "SELECT artifact_id,relative_path,digest,media_type,byte_length,truncated
+             FROM artifacts WHERE attempt_id=$1 AND kind='resource_receipt'",
+                &[&input.attempt_id],
+            )
+            .unwrap();
+        assert_eq!(rows.len(), usize::from(case == "valid"));
+        if let Some(row) = rows.first() {
+            assert_eq!(
+                row.get::<_, String>(0),
+                format!("{}.resource-receipt", attempt.attempt_id)
+            );
+            assert_eq!(row.get::<_, String>(1), RESOURCE_RECEIPT_FILE);
+            assert_eq!(row.get::<_, String>(2), sha256_bytes(&receipt_bytes));
+            assert_eq!(row.get::<_, String>(3), "application/json");
+            assert_eq!(row.get::<_, i64>(4), receipt_bytes.len() as i64);
+            assert!(!row.get::<_, bool>(5));
+        }
+        let crate::PgJobReadback::Observed(snapshot) = store
+            .observe_job_readonly(&input.job_id, &input.expected_source_sha256)
+            .unwrap()
+        else {
+            panic!("coherent terminal receipt readback required for {case}");
+        };
+        assert_eq!(snapshot.resolution.as_deref(), Some("succeeded"));
+        assert_eq!(snapshot.reservation_state, "released");
+    }
+}
