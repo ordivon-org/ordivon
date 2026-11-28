@@ -18,6 +18,7 @@ mod host_dependency;
 mod inspection;
 mod inspection_contract;
 mod job_attempt_state;
+pub(crate) use job_attempt_state::AttemptLifecycleContract;
 #[cfg(feature = "transactional-runtime")]
 mod lifecycle_locks;
 mod operation_circuit;

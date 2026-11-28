@@ -99,29 +99,33 @@ impl AttemptLifecycleContract {
         Self::is_terminal(state) || termination_intent != AttemptTerminationIntent::Natural
     }
 
-    pub(crate) fn deadline_request_is_admissible(state: AttemptState) -> bool {
-        matches!(
-            state,
-            AttemptState::Starting
-                | AttemptState::Running
-                | AttemptState::Recovering
-                | AttemptState::Stopping
-        )
-    }
-
-    pub(crate) fn cancel_target_state(state: AttemptState) -> Option<AttemptState> {
+    /// Shared dispatched-stop kernel. This is deliberately smaller than
+    /// cancellation: an accepted Attempt may have a durable cancel intent
+    /// without proving that physical dispatch happened.
+    pub(crate) fn stopping_target_state(state: AttemptState) -> Option<AttemptState> {
         match state {
-            AttemptState::Accepted => Some(AttemptState::Cancelled),
-            AttemptState::Starting | AttemptState::Running | AttemptState::Recovering => {
-                Some(AttemptState::Stopping)
-            }
-            AttemptState::Stopping => Some(AttemptState::Stopping),
-            AttemptState::Succeeded
+            AttemptState::Starting
+            | AttemptState::Running
+            | AttemptState::Recovering
+            | AttemptState::Stopping => Some(AttemptState::Stopping),
+            AttemptState::Accepted
+            | AttemptState::Succeeded
             | AttemptState::Failed
             | AttemptState::TimedOut
             | AttemptState::Cancelled
             | AttemptState::Lost
             | AttemptState::Orphaned => None,
+        }
+    }
+
+    pub(crate) fn deadline_request_is_admissible(state: AttemptState) -> bool {
+        Self::stopping_target_state(state).is_some()
+    }
+
+    pub(crate) fn cancel_target_state(state: AttemptState) -> Option<AttemptState> {
+        match state {
+            AttemptState::Accepted => Some(AttemptState::Cancelled),
+            _ => Self::stopping_target_state(state),
         }
     }
 
