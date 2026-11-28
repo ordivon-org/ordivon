@@ -561,16 +561,10 @@ pub(crate) fn sha256_bytes(bytes: &[u8]) -> String {
 
 pub(crate) fn parse_sha256_digest(value: &str) -> Option<[u8; 32]> {
     let encoded = value.strip_prefix("sha256:")?;
-    if encoded.len() != 64
-        || !encoded
-            .bytes()
-            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
-    {
-        return None;
-    }
-    let mut digest = [0_u8; 32];
-    hex::decode_to_slice(encoded, &mut digest).ok()?;
-    Some(digest)
+    // The fixed-size decoder enforces length and hexadecimal syntax.
+    // The wire contract additionally rejects uppercase hexadecimal.
+    let digest = <[u8; 32] as hex::FromHex>::from_hex(encoded).ok()?;
+    (!encoded.bytes().any(|byte| byte.is_ascii_uppercase())).then_some(digest)
 }
 
 pub(crate) fn sha256_file(path: &Path) -> Result<String, UniversalExecError> {
@@ -866,6 +860,26 @@ mod sha256_wire_contract_tests {
             Some(wire[7..].to_owned())
         );
         assert_eq!(parse_sha256_digest(&wire.to_uppercase()), None);
+        assert_eq!(
+            parse_sha256_digest(&format!("sha256:{}", wire[7..].to_ascii_uppercase())),
+            None
+        );
+        assert_eq!(
+            parse_sha256_digest(&format!("sha256:{}", "00".repeat(32))),
+            Some([0; 32])
+        );
+        assert_eq!(
+            parse_sha256_digest(&format!("sha256:{}", "ff".repeat(32))),
+            Some([255; 32])
+        );
+        for body in [
+            "a".repeat(63),
+            "a".repeat(65),
+            format!("{}g", "a".repeat(63)),
+            format!("{}é", "a".repeat(62)),
+        ] {
+            assert_eq!(parse_sha256_digest(&format!("sha256:{body}")), None);
+        }
     }
 }
 
