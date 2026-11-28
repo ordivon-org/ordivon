@@ -412,6 +412,19 @@ class AffectedOwnersTests(unittest.TestCase):
         self.assertEqual(len(tasks), len(set(tasks)))
         self.assertEqual(len(queue_tasks), len(set(queue_tasks)))
 
+    def test_manifest_text_and_file_share_typed_contract(self) -> None:
+        text = MODULE.MANIFEST_PATH.read_text(encoding="utf-8")
+        self.assertEqual(MODULE.parse_owners(text), MODULE.load_owners())
+        invalid = text.replace('root = "catalogs/authorities/"',
+                               'root = "catalogs/capabilities/"', 1)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "owners.toml"
+            path.write_text(invalid, encoding="utf-8")
+            for read in (lambda: MODULE.parse_owners(invalid),
+                         lambda: MODULE.load_owners(path)):
+                with self.assertRaisesRegex(ValueError, "duplicate root"):
+                    read()
+
     def test_manifest_rejects_duplicate_names(self) -> None:
         content = """schema_version = 1
 kind = "ordivon.repo-owner-manifest"

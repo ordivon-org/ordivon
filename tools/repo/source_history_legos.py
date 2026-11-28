@@ -13,12 +13,11 @@ import json
 import os
 import subprocess
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 if __package__:
-    from .affected_owners import load_owners
+    from .affected_owners import Owner, parse_owners
 else:
-    from affected_owners import load_owners
+    from affected_owners import Owner, parse_owners
 
 HEADER = "__ORDIVON_HISTORY_RECORD__"
 
@@ -45,18 +44,20 @@ def git(repo: Path, *args: str) -> str:
     )
 
 
-def owners(repo: Path, canonical_revision: str) -> list[tuple[str, str]]:
-    # Natural-owner attribution is part of the exact protected-source cut,
-    # not a mutable worktree checkout (which may be on another Git branch).
+def source_owners(repo: Path, canonical_revision: str) -> tuple[Owner, ...]:
+    """Read the canonical typed Owner manifest from the exact source cut."""
     exact_manifest = git(repo, "--no-replace-objects", "show", canonical_revision + ":tools/repo/owners.toml")
-    # Reuse the canonical Owner type checker on source-cut bytes; malformed
-    # historical roots must not silently misattribute consumer paths.
-    with TemporaryDirectory(prefix="ordivon-source-owners-") as temp:
-        manifest = Path(temp) / "owners.toml"
-        manifest.write_text(exact_manifest, encoding="utf-8", errors="surrogateescape")
-        native = [(owner.root, owner.name) for owner in load_owners(manifest)]
-    # Repo mechanics is a separate existing owner, never effect authority.
-    return native + [("tools/repo/", "tools/repo")]
+    # Git text uses surrogateescape for filenames; the manifest itself is UTF-8.
+    return parse_owners(exact_manifest.encode("utf-8", errors="surrogateescape").decode("utf-8"))
+
+
+def owner_regions(registered: tuple[Owner, ...]) -> list[tuple[str, str]]:
+    # Repo mechanics is a source-navigation fallback, not a registered owner.
+    return [(owner.root, owner.name) for owner in registered] + [("tools/repo/", "tools/repo")]
+
+
+def owners(repo: Path, canonical_revision: str) -> list[tuple[str, str]]:
+    return owner_regions(source_owners(repo, canonical_revision))
 
 
 def current_tree(repo: Path, revision: str) -> dict[str, str]:

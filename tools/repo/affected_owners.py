@@ -24,7 +24,12 @@ class Owner:
 
 
 def load_owners(path: Path = MANIFEST_PATH) -> tuple[Owner, ...]:
-    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    return parse_owners(path.read_text(encoding="utf-8"))
+
+
+def parse_owners(text: str) -> tuple[Owner, ...]:
+    """One typed manifest contract, independent of the source transport."""
+    data = tomllib.loads(text)
     if data.get("schema_version") != 1:
         raise ValueError("owner manifest schema_version must be 1")
     if data.get("truth_role") != "repository-mechanics-only-not-domain-authority":

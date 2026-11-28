@@ -790,7 +790,6 @@ def inspect_owner_source_path(
     *, source_revision: str, source_path: str, root: Path = ROOT,
 ) -> dict[str, Any]:
     """Agent path→owner→declared LEGO lookup; no consumer/proof equivalence."""
-    import tomllib
     if (not source_path or source_path.startswith("/") or chr(92) in source_path
             or chr(0) in source_path
             or any(part in {"", ".", ".."} for part in source_path.split("/"))):
@@ -804,14 +803,10 @@ def inspect_owner_source_path(
 
     graph = project_owner_lego_source_graph(root, source_revision=source_revision)
     files = source_history_legos.current_tree(root, source_revision)
-    owners = source_history_legos.owners(root, source_revision)
-    manifest = tomllib.loads(source_history_legos.git(
-        root, "--no-replace-objects", "show",
-        source_revision + ":tools/repo/owners.toml",
-    ))
-    registered = {(x["root"], x["name"]): x for x in manifest["owners"]}
+    native = source_history_legos.source_owners(root, source_revision)
+    registered = {(owner.root, owner.name): owner for owner in native}
     selected = []
-    for prefix, name in owners:
+    for prefix, name in source_history_legos.owner_regions(native):
         if source_path.startswith(prefix):
             row = registered.get((prefix, name))
             # Repo mechanics is a source-navigation fallback, not a registered
@@ -826,9 +821,9 @@ def inspect_owner_source_path(
                     "REGISTERED_VERIFICATION_OWNER_AT_SOURCECUT" if row
                     else "REPO_MECHANICS_FALLBACK_NOT_REGISTERED"
                 ),
-                "verifyTask": row["verify_task"] if row else "repo:ci",
+                "verifyTask": row.task if row else "repo:ci",
                 "queueVerifyTask": (
-                    row.get("queue_verify_task", row["verify_task"]) if row
+                    row.queue_task if row
                     else "repo:ci"
                 ),
             })
