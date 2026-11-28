@@ -284,3 +284,48 @@ class ToolProgramLiveSnapshotTests(unittest.TestCase):
             canonical_digest(adapter.requests[1].messages[-2]["toolProgramAction"]),
             original_digest,
         )
+
+
+def test_loop_rejection_uses_committed_observation() -> None:
+    from dataclasses import replace
+    from ordivon_harness.agent_tool_observation import HarnessToolObservation
+    from ordivon_harness.ordivon.model import AgentToolCall
+
+    outcomes = []
+    for detach in (False, True):
+        class RejectionBridge(Bridge):
+            def execute(self, call, *, step_id):
+                self.calls.append((call, step_id))
+                receipt = HarnessToolObservation(
+                    tool_call_id=call.tool_call_id, tool_name=call.name,
+                    status="rejected",
+                    structured_content={"error": {"safeToCorrect": True,
+                                                   "physicalDispatch": False}},
+                )
+                if detach:
+                    # Discard a convenience projection, not committed evidence.
+                    receipt.structured_content.clear()
+                return receipt
+
+        bridge = RejectionBridge()
+        read = replace(
+            _complete_turn("committed-rejection"),
+            conclusion=None, content="Read a fixture.",
+            tool_calls=(AgentToolCall("call:committed-rejection", "read_value",
+                                     {"key": "fixture"}),),
+            finish_reason="tool_calls",
+        )
+        adapter = ScriptedTurnAdapter((read, _complete_turn("after-rejection")))
+        result = OrdivonAgentLoop(
+            adapter, bridge, budget=replace(_budget(), max_tool_corrections=0),
+            clock_ms=lambda: 1_000, monotonic_ms=lambda: 1_000,
+        ).run(
+            harness_run_id="harness-run:committed-rejection",
+            assignment_id="assignment:committed-rejection",
+            context_digest="sha256:" + "a" * 64,
+            initial_messages=({"role": "user", "content": "Read a fixture."},),
+        )
+        assert len(bridge.calls) == 1
+        outcomes.append((result.stop_code, result.model_calls, result.usage["toolCorrections"]))
+    assert outcomes[0] == (RunStopCode.CANDIDATE_COMPLETED, 2, 0)
+    assert outcomes[1] == outcomes[0]

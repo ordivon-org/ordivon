@@ -723,7 +723,7 @@ class OrdivonAgentLoop:
                 )
             if model_message is not None:
                 messages.append(model_message)
-            error_value = observation.structured_content.get("error")
+            error_value = observation.committed_content().get("error")
             safe_to_correct = (
                 error_value.get("safeToCorrect") is True if isinstance(error_value, dict) else False
             )
