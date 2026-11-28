@@ -76,7 +76,7 @@ git worktree prune --dry-run --verbose     # Stale Git metadata only
 
 ### For Agents: no second playbook
 
-Read [AGENTS.md](AGENTS.md), then the selected Owner README and any closer scoped AGENTS.md. For architecture, use the existing [DSM Skill](.agents/skills/design-structure-matrix/SKILL.md). For external Skill candidates, use the existing [supply-chain audit Skill](.agents/skills/skill-supply-chain-audit/SKILL.md); for a declared LEGO use the complete [R2.1 contract](.agents/skills/recursive-lego-calculus/SKILL.md). A Tool, Skill, code file or Agent is **not** automatically an independently admitted LEGO. Reuse source/native methods before composing or inventing an adapter.
+Read [AGENTS.md](AGENTS.md), then the selected Owner README and any closer scoped AGENTS.md. For architecture, use the existing [DSM Skill](.agents/skills/design-structure-matrix/SKILL.md). For external Skill candidates, use the existing [supply-chain audit Skill](.agents/skills/skill-supply-chain-audit/SKILL.md); use the [Ordivon LEGO mathematical guidance](.agents/skills/recursive-lego-calculus/SKILL.md) when it helps solve the actual problem, without imposing a universal declaration format. A Tool, Skill, code file or Agent is **not** automatically an independently admitted LEGO. Reuse source/native methods before composing or inventing an adapter.
 
 A useful handoff is brief and concrete: current SourceCut, selected Owner, final consumer, verified invariant/contract, commit and published/deployed state, removed redundant bytes if any, and remaining UNKNOWN. Avoid duplicate report files when native receipts or the PR already record the evidence.
 
