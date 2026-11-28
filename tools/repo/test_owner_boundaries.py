@@ -96,6 +96,29 @@ class OwnerBoundaryTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "ambiguous dependency seam"):
             MODULE.validate_consumed_seams((real, alias), (observed,))
 
+    def test_strict_validation_preserves_failure_precedence_and_negative_control(self) -> None:
+        from itertools import permutations
+
+        real = next(s for s in SEAMS if s.source_glob == "apps/web/src/security-agent-verifier.ts")
+        allowed = self.finding(real.source_glob, real.allowed_fragment)
+        missing = self.finding(real.source_glob, "platform/security/retired-private-api/")
+        alias = MODULE.Seam(
+            real.from_owner, real.to_owner, real.source_glob,
+            "platform/security/contracts", real.kind, real.contract_ref,
+        )
+        # The legacy selective witness API still ignores unrelated findings.
+        self.assertEqual(set(MODULE.validate_consumed_seams((real,), (allowed, missing))), {real})
+        # The production gate never loses unregistered errors, even when a
+        # separate finding is ambiguous and observation order changes.
+        for findings in permutations((allowed, missing)):
+            with self.subTest(findings=findings):
+                with self.assertRaisesRegex(AssertionError, "undeclared active cross-owner"):
+                    MODULE.validate_consumed_seams((real, alias), findings, reject_unregistered=True)
+        with self.assertRaisesRegex(AssertionError, "ambiguous dependency seam"):
+            MODULE.validate_consumed_seams((real, alias), (allowed,), reject_unregistered=True)
+        with self.assertRaisesRegex(AssertionError, "stale dependency seam"):
+            MODULE.validate_consumed_seams((real,), (), reject_unregistered=True)
+
     def test_sibling_prefix_does_not_create_cross_owner_dependency(self) -> None:
         source = "platform/security/mise.toml"
         for path in (
@@ -214,16 +237,31 @@ class OwnerBoundaryTests(unittest.TestCase):
         """Reuse the production scanner's literal AND Python import consumer graph."""
         findings = []
         active = MODULE.tracked_active_files()
-        packages = MODULE.python_package_owners(active, OWNERS)
+        python_packages = MODULE.python_package_owners(active, OWNERS)
+        npm_packages, cargo_packages = MODULE.package_manifest_owners(active, OWNERS)
         for path in active:
             if MODULE.owner_for_path(path, OWNERS) is None:
                 continue
             source = (MODULE.ROOT / path).read_text(encoding="utf-8", errors="ignore")
             findings.extend(MODULE.findings_for_text(path, source, OWNERS))
             findings.extend(
-                MODULE.python_import_findings_for_text(path, source, OWNERS, packages)
+                MODULE.python_import_findings_for_text(
+                    path, source, OWNERS, python_packages
+                )
             )
-        witnessed = MODULE.validate_consumed_seams(SEAMS, tuple(findings))
+            findings.extend(
+                MODULE.package_dependency_findings_for_text(
+                    path, source, OWNERS, npm_packages, cargo_packages
+                )
+            )
+        from unittest.mock import patch
+
+        with patch.object(
+            MODULE.pg_issuer_consumer, "locate_original_harness_issuer_source",
+            wraps=MODULE.pg_issuer_consumer.locate_original_harness_issuer_source,
+        ) as locate:
+            witnessed = MODULE.validate_consumed_seams(SEAMS, tuple(findings))
+        self.assertEqual(locate.call_count, 1)
         self.assertEqual(set(witnessed), set(SEAMS))
         self.assertTrue(all(witnessed.values()))
 
@@ -306,6 +344,69 @@ class OwnerBoundaryTests(unittest.TestCase):
             MODULE.python_package_owners(paths, OWNERS),
             {"ordivon_host_v2": "host", "ordivon_harness": "harness"},
         )
+
+    def test_internal_npm_dependency_cannot_hide_behind_package_name(self) -> None:
+        path = "apps/web/package.json"
+        source = '''{
+  "name": "@ordivon/web",
+  "dependencies": {
+    "@ordivon/visuals": "workspace:*"
+  }
+}
+'''
+        findings = MODULE.package_dependency_findings_for_text(
+            path, source, OWNERS, {"@ordivon/visuals": "media"}, {}
+        )
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(
+            (findings[0].from_owner, findings[0].to_owner), ("web", "media")
+        )
+        self.assertIn("@ordivon/visuals", findings[0].text)
+        self.assertFalse(MODULE._allowed(findings[0], SEAMS))
+
+    def test_internal_cargo_dependency_cannot_hide_behind_crate_name(self) -> None:
+        path = "services/runtime/Cargo.toml"
+        source = '''[package]
+name = "runtime-probe"
+
+[target.'cfg(unix)'.dev-dependencies]
+harness = { package = "ordivon-harness-core", version = "0.1" }
+'''
+        findings = MODULE.package_dependency_findings_for_text(
+            path, source, OWNERS, {}, {"ordivon-harness-core": "harness"}
+        )
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(
+            (findings[0].from_owner, findings[0].to_owner), ("runtime", "harness")
+        )
+        self.assertIn("ordivon-harness-core", findings[0].text)
+        self.assertFalse(MODULE._allowed(findings[0], SEAMS))
+
+    def test_manifest_package_owner_names_are_single_source(self) -> None:
+        import json
+        import tempfile
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            first = root / "apps/web/package.json"
+            second = root / "capabilities/media/package.json"
+            first.parent.mkdir(parents=True)
+            second.parent.mkdir(parents=True)
+            payload = {"name": "@ordivon/shared"}
+            first.write_text(json.dumps(payload), encoding="utf-8")
+            second.write_text(json.dumps(payload), encoding="utf-8")
+            with patch.object(MODULE, "ROOT", root):
+                with self.assertRaisesRegex(
+                    AssertionError, "ambiguous NPM package owner"
+                ):
+                    MODULE.package_manifest_owners(
+                        (
+                            "apps/web/package.json",
+                            "capabilities/media/package.json",
+                        ),
+                        OWNERS,
+                    )
 
     def test_ast_catches_cross_owner_import_without_path_literal(self) -> None:
         path = "services/harness/src/ordivon_harness/foreign_effect.py"
