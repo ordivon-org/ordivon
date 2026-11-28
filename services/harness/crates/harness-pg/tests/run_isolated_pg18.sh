@@ -11,19 +11,35 @@ if [[ "$(id -u)" -ne 0 ]]; then
   exit 2
 fi
 ROOT="$(mktemp -d /tmp/ordivon-harness-pg18-rust-a-XXXXXXXX)"
-chmod 700 "$ROOT"
-chown postgres:postgres "$ROOT"
-started=0
+start_attempted=0
 cleanup() {
-  if [[ "$started" == 1 ]]; then
-    runuser -u postgres -- pg_ctl -D "$ROOT/data" -m immediate -w stop >/dev/null || true
+  local original_rc=$1 status_rc=0
+  if [[ "$start_attempted" == 1 ]]; then
+    # A failed start can still leave a postmaster. Only remove this private
+    # cluster after native status confirms it is stopped (pg_ctl status=3).
+    runuser -u postgres -- pg_ctl -D "$ROOT/data" status >/dev/null || status_rc=$?
+    if [[ "$status_rc" == 0 ]]; then
+      if ! runuser -u postgres -- pg_ctl -D "$ROOT/data" -m immediate -w stop >/dev/null; then
+        echo "PG fixture stop failed; preserving $ROOT" >&2
+        exit 1
+      fi
+      status_rc=0
+      runuser -u postgres -- pg_ctl -D "$ROOT/data" status >/dev/null || status_rc=$?
+    fi
+    if [[ "$status_rc" != 3 ]]; then
+      echo "PG fixture stop not confirmed; preserving $ROOT" >&2
+      exit 1
+    fi
   fi
   rm -rf -- "$ROOT"
+  exit "$original_rc"
 }
-trap cleanup EXIT
+trap 'cleanup "$?"' EXIT
+chmod 700 "$ROOT"
+chown postgres:postgres "$ROOT"
 runuser -u postgres -- initdb -D "$ROOT/data" -U postgres -A trust --no-instructions > "$ROOT/initdb.log"
+start_attempted=1
 runuser -u postgres -- pg_ctl -D "$ROOT/data" -o "-k $ROOT -p 59433 -h ''" -l "$ROOT/server.log" -w start
-started=1
 writer_dsn="host=$ROOT port=59433 dbname=postgres user=postgres connect_timeout=5"
 psql "$writer_dsn" -v ON_ERROR_STOP=1 -c 'CREATE ROLE rust_readonly LOGIN'
 export HARNESS_RUST_TEST_PG_DSN="$writer_dsn"
