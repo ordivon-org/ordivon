@@ -118,8 +118,6 @@ class HarnessRunState:
         allow_tool_content: bool,
     ) -> HarnessRunState:
         """Project exact in-memory state to the caller-authorized durable form."""
-        messages_digest = self.messages_digest
-        observation_digests = self.observation_digests
         contains_tool_projection = any(
             message.get("role") == "tool" or "toolCalls" in message
             for message in self.messages
@@ -143,9 +141,9 @@ class HarnessRunState:
             seen_tool_call_ids=self.seen_tool_call_ids,
             provider_usage=self.provider_usage,
             effective_model_ids=self.effective_model_ids,
-            retained_messages_digest=None if retain_messages else messages_digest,
+            retained_messages_digest=None if retain_messages else self.messages_digest,
             retained_observation_digests=(
-                None if retain_observations else observation_digests
+                None if retain_observations else self.observation_digests
             ),
         )
 
