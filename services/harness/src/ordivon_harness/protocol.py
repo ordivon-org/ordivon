@@ -198,7 +198,8 @@ class HarnessProviderCallFailureReceipt:
             "HarnessProviderCallFailureReceipt",
         )
         if (
-            value["schemaVersion"] != 1
+            type(value["schemaVersion"]) is not int
+            or value["schemaVersion"] != 1
             or value["kind"] != "ordivon.harness-provider-call-failure"
         ):
             raise HarnessProtocolError(
@@ -409,7 +410,8 @@ class HarnessProviderCallRecord:
             "HarnessProviderCallRecord",
         )
         if (
-            value["schemaVersion"] != 1
+            type(value["schemaVersion"]) is not int
+            or value["schemaVersion"] != 1
             or value["kind"] != "ordivon.harness-provider-call-record"
         ):
             raise HarnessProtocolError(
@@ -546,7 +548,8 @@ class HarnessToolStepIntent:
             "HarnessToolStepIntent",
         )
         if (
-            value["schemaVersion"] != 1
+            type(value["schemaVersion"]) is not int
+            or value["schemaVersion"] != 1
             or value["kind"] != "ordivon.harness-tool-step-intent"
         ):
             raise HarnessProtocolError(
@@ -674,7 +677,8 @@ class HarnessToolStepReceipt:
                 f"{sorted(set(value) ^ current_fields)}"
             )
         if (
-            value["schemaVersion"] != 1
+            type(value["schemaVersion"]) is not int
+            or value["schemaVersion"] != 1
             or value["kind"] != "ordivon.harness-tool-step-receipt"
         ):
             raise HarnessProtocolError(
@@ -820,7 +824,8 @@ class HarnessDispatchFence:
             "HarnessDispatchFence",
         )
         if (
-            value["schemaVersion"] != 1
+            type(value["schemaVersion"]) is not int
+            or value["schemaVersion"] != 1
             or value["kind"] != "ordivon.harness-dispatch-fence"
         ):
             raise HarnessProtocolError(
@@ -950,7 +955,8 @@ class HarnessRunSnapshot:
             "HarnessRunSnapshot",
         )
         if (
-            value["schemaVersion"] != 1
+            type(value["schemaVersion"]) is not int
+            or value["schemaVersion"] != 1
             or value["kind"] != "ordivon.harness-run-snapshot"
         ):
             raise HarnessProtocolError("HarnessRunSnapshot version or kind is invalid")

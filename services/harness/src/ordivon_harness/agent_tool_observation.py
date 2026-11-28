@@ -116,7 +116,11 @@ class HarnessToolObservation:
         }
         if set(value) != expected:
             raise ValueError("Tool Observation fields differ")
-        if value["schemaVersion"] != 1 or value["kind"] != "ordivon.tool-observation":
+        if (
+            type(value["schemaVersion"]) is not int
+            or value["schemaVersion"] != 1
+            or value["kind"] != "ordivon.tool-observation"
+        ):
             raise ValueError("Tool Observation version or kind is invalid")
         artifacts = value["artifactRefs"]
         content = value["structuredContent"]

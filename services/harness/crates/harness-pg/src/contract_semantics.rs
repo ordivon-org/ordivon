@@ -312,16 +312,11 @@ fn completion(value: CanonicalRef<'_>) -> Result<(), ReadError> {
 pub fn validate_contract(doc: &CanonicalDocument) -> Result<(), ReadError> {
     let root = doc.as_borrowed();
     let schema_version = required(root, "schemaVersion")?;
-    // Python `schema_version in {1, 2}` admits bool True as schema-v1
-    // (True == 1 in Python). Preserve this unusual historical contract
-    // representation rather than falsely classifying its CAS as corrupt.
-    let version = if schema_version.as_bool() == Some(true) {
-        "1"
-    } else {
-        schema_version
-            .integer_text()
-            .ok_or_else(|| invalid("schemaVersion integer"))?
-    };
+    // Python requires an exact integer representation at the v1/v2 wire
+    // boundary. Booleans and other numeric aliases are not schema versions.
+    let version = schema_version
+        .integer_text()
+        .ok_or_else(|| invalid("schemaVersion integer"))?;
     if !matches!(version, "1" | "2") {
         return Err(invalid("schemaVersion"));
     }

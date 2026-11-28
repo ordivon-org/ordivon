@@ -115,7 +115,11 @@ class HarnessExecutionBinding:
             raise ValueError(
                 f"HarnessExecutionBinding fields differ: {sorted(set(value) ^ expected)}"
             )
-        if value["schemaVersion"] != 2 or value["kind"] != "ordivon.harness-execution-binding":
+        if (
+            type(value["schemaVersion"]) is not int
+            or value["schemaVersion"] != 2
+            or value["kind"] != "ordivon.harness-execution-binding"
+        ):
             raise ValueError("HarnessExecutionBinding version or kind is invalid")
         if not isinstance(value["harnessRunId"], str) or not isinstance(value["workspaceRef"], str):
             raise ValueError("HarnessExecutionBinding identity fields must be strings")
