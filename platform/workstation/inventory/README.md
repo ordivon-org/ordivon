@@ -93,6 +93,37 @@ from the actual provider. Use `mise which`, `mise tasks ls`, provider-native
 `--version`/health, or locked toolchain commands as relevant, without silently
 upgrading inventory into a global capability result.
 
+### Resolve the owner environment before declaring an execution blocker
+
+A PATH miss, a missing Python import, a cache miss and an admission refusal
+are different observations. For a configured project tool, first inspect
+the owner's actual `mise.toml` and lockfile. Use the admitted mise/uv
+entrypoint in that owner directory, rather than installing a duplicate
+system executable or invoking a project interpreter outside Runtime's
+configured executable roots.
+
+For example, from the respective owner directories:
+
+```sh
+# apps/web: select the existing project toolchain
+mise ls --installed
+mise exec -- pnpm --version
+# tools/formal: select the existing formal toolchain
+mise exec -- lean --version
+# services/harness: use the locked project interpreter and dependencies
+uv run --locked --offline python -m pytest -q tests/test_p0_continuity_records.py
+```
+
+If a locked offline invocation identifies a missing package, inspect
+`uv cache dir` in the same Runtime context. When network use is authorized,
+materialize the existing lock with the normal `uv run --locked` or
+`uv sync --locked` path, then verify the actual requested consumer.
+Do not change versions to make a cache miss disappear. An offline pass in
+one Workspace does not establish cold-Workspace readiness: check cache
+scope when cross-Workspace reuse matters. A rejected executable or
+execution identity remains an admission issue for Runtime/Workstation,
+not evidence that the software is absent; do not bypass that boundary.
+
 Agent routing: [root AGENTS.md](../../../AGENTS.md) →
 [Capability Catalog](../../../catalogs/capabilities/README.md) →
 natural Owner's own CLI/MCP/Skill → provider and consumer readback.

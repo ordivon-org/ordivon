@@ -115,6 +115,9 @@ impl PgRuntime {
             .config
             .executor
             .workspace_cache_path(&record.workspace_id);
+        let shared_package_cache = self.config.executor.shared_caches_root();
+        let linux_shared_package_cache =
+            cfg!(target_os = "linux").then_some(shared_package_cache.as_path());
         let cwd =
             universal::resolve_workspace_cwd(&record, &e.cwd_relative, "execution.cwdRelative")
                 .map_err(io)?;
@@ -174,6 +177,7 @@ impl PgRuntime {
                         step.env.clone(),
                         preserve_harness_fenced_request,
                         &workspace_generated_cache,
+                        linux_shared_package_cache,
                     )
                 },
                 timeout_ms: ceiling,
@@ -228,6 +232,7 @@ impl PgRuntime {
                     e.env.clone(),
                     preserve_harness_fenced_request,
                     &workspace_generated_cache,
+                    linux_shared_package_cache,
                 )
             },
             timeout_ms: timeout,
