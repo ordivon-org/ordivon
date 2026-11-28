@@ -4,10 +4,11 @@
 Use the already deployed Runtime workspace.get/workspace.close contract. Never
 delete physical Workspace files directly or infer domain acceptance from Job exit.
 
-No-Job and definitively failed/cancelled/timed-out carriers require an exact
+All automatic close candidates require an exact
 operator-owned retention-policy rule on workspaceId with
-"operatorConsumerReleased": true. That is an explicit owner disposition,
-not inferred from elapsed time, a clean Git worktree or a finished PG Job.
+"operatorConsumerReleased": true and an exact operatorReleaseBinding. This
+is an explicit disposition for the observed generation, source and Job
+activity, not inferred from elapsed time or a successful Job.
 """
 from __future__ import annotations
 
@@ -90,6 +91,11 @@ def _retention_policy(path: Path | None) -> dict | None:
             if rule["workspaceId"] in explicit_releases:
                 raise ValueError("ambiguous duplicate exact owner release")
             explicit_releases.add(rule["workspaceId"])
+        if "operatorReleaseBinding" in rule:
+            binding = rule["operatorReleaseBinding"]
+            if ("operatorConsumerReleased" not in rule
+                    or not _valid_release_binding(binding)):
+                raise ValueError("invalid exact owner release binding")
     return policy
 
 
@@ -115,17 +121,52 @@ def _workspace_retention(
     )
 
 
-def _operator_attests_consumer_release(
+def _valid_release_binding(binding: object) -> bool:
+    if not isinstance(binding, dict) or set(binding) != {
+        "createdAtMs", "sourceStateDigest", "latestJobActivityMs",
+    }:
+        return False
+    created, digest, activity = (
+        binding["createdAtMs"], binding["sourceStateDigest"],
+        binding["latestJobActivityMs"],
+    )
+    return (
+        type(created) is int and created >= 0
+        and isinstance(digest, str) and RETAINED_HEAD_REF.fullmatch(digest) is not None
+        and (activity is None or (type(activity) is int and activity >= created))
+    )
+
+
+def _operator_release_binding(
     policy: dict | None, workspace_id: str
+) -> dict | None:
+    # An old unbound boolean remains readable but grants no automatic close.
+    if policy is not None:
+        for rule in policy.get("rules", []):
+            binding = rule.get("operatorReleaseBinding")
+            if (rule.get("workspaceId") == workspace_id
+                    and rule.get("operatorConsumerReleased") is True
+                    and _valid_release_binding(binding)):
+                return binding
+    return None
+
+
+def _release_matches(
+    binding: dict | None, workspace: dict, latest_job_ms: int | None,
 ) -> bool:
-    # Native Runtime currently fences PG Jobs, not an arbitrary paused
-    # Harness Run that has never issued a Job. Only a specifically authorized
-    # and revocable operator/owner disposition can extend automatic candidate
-    # discovery to no-Job or terminal non-success legacy Workspaces.
-    return policy is not None and any(
-        rule.get("workspaceId") == workspace_id
-        and rule.get("operatorConsumerReleased") is True
-        for rule in policy.get("rules", [])
+    """An observed release is specific to this source and generation.
+
+    This is an advisory currentness check, not an atomic independent
+    consumer acknowledgement. Native close still owns PG/Claim/CAS fences.
+    """
+    created = workspace.get("createdAtMs")
+    digest = workspace.get("sourceStateDigest")
+    return (
+        binding is not None
+        and type(created) is int and created == binding["createdAtMs"]
+        and digest == binding["sourceStateDigest"]
+        and (latest_job_ms is None or type(latest_job_ms) is int)
+        and latest_job_ms == binding["latestJobActivityMs"]
     )
 
 
@@ -241,28 +282,39 @@ def _other_repo_managed_workspaces(
     return found
 
 
-def _jobs(environment: dict[str, str]) -> dict[str, tuple[int, str | None, int]]:
+def _jobs(
+    environment: dict[str, str], workspace_id: str | None = None,
+) -> dict[str, tuple[int, str | None, int]]:
     """Read a small PG projection; native close rechecks physical authority."""
     import psycopg
     from psycopg import sql
     schema = environment["ORDIVON_PG_SCHEMA"]
+    # Align the observable activity coordinate with native retirement:
+    # Job, Attempt, Event, Reservation and Allocation timestamps. This is
+    # still an advisory projection, not the native effect-time consumer fence.
     query = sql.SQL("""
         WITH activity AS (
             SELECT j.workspace_id, j.job_id, j.created_at_ms, j.resolution,
                    GREATEST(
                        j.created_at_ms,
                        COALESCE(events.last_event_ms, 0),
-                       COALESCE(attempts.last_finished_ms, 0)
+                       COALESCE(attempts.last_activity_ms, 0)
                    ) AS last_activity_ms
               FROM {schema}.jobs j
-              LEFT JOIN (
-                   SELECT job_id, MAX(observed_at_ms) AS last_event_ms
-                     FROM {schema}.job_events GROUP BY job_id
-              ) events ON events.job_id = j.job_id
-              LEFT JOIN (
-                   SELECT job_id, MAX(finished_at_ms) AS last_finished_ms
-                     FROM {schema}.attempts GROUP BY job_id
-              ) attempts ON attempts.job_id = j.job_id
+              LEFT JOIN LATERAL (
+                   SELECT MAX(e.observed_at_ms) AS last_event_ms
+                     FROM {schema}.job_events e WHERE e.job_id = j.job_id
+              ) events ON TRUE
+              LEFT JOIN LATERAL (
+                   SELECT MAX(GREATEST(a.created_at_ms, a.finished_at_ms,
+                                       r.acquired_at_ms, r.state_observed_at_ms, r.released_at_ms,
+                                       al.acquired_at_ms, al.released_at_ms)) AS last_activity_ms
+                     FROM {schema}.attempts a
+                     LEFT JOIN {schema}.concurrency_reservations r ON r.attempt_id = a.attempt_id
+                     LEFT JOIN {schema}.job_allocations al ON al.attempt_id = a.attempt_id
+                    WHERE a.job_id = j.job_id
+              ) attempts ON TRUE
+              WHERE (%s::text IS NULL OR j.workspace_id = %s)
         )
         SELECT workspace_id, MAX(last_activity_ms) AS last_ms,
                (ARRAY_AGG(resolution ORDER BY created_at_ms DESC, job_id DESC))[1]
@@ -273,7 +325,7 @@ def _jobs(environment: dict[str, str]) -> dict[str, tuple[int, str | None, int]]
     with psycopg.connect(environment["ORDIVON_PG_DSN"], connect_timeout=8) as connection:
         with connection.transaction():
             connection.execute("SET LOCAL statement_timeout = '15000ms'")
-            rows = connection.execute(query).fetchall()
+            rows = connection.execute(query, (workspace_id, workspace_id)).fetchall()
     return {row[0]: (row[1], row[2], row[3]) for row in rows}
 
 def _unintegrated_head(
@@ -471,18 +523,18 @@ def run(args: argparse.Namespace) -> dict:
         )
         if ignored.returncode or ignored.stdout:
             skip("ignored_files_or_git_error");continue
-        if resolution != "succeeded" and not _operator_attests_consumer_release(
-            policy, path.name
-        ):
-            # Even clean, fully integrated source can belong to an Agent paused
-            # before its first Job or after a failed execution. Age is not
-            # evidence of the owner's relinquishment.
+        binding = _operator_release_binding(policy, path.name)
+        if binding is None or binding["latestJobActivityMs"] != last_ms:
+            # Even a successful, integrated Job can belong to a paused Agent.
+            # Neither elapsed time nor Job resolution proves relinquishment.
             if len(results["needsOwnerDisposition"]) < args.limit:
                 results["needsOwnerDisposition"].append(path.name)
             skip("needs_owner_disposition");continue
         candidates.append((path, head, info, retention_ms, unintegrated))
     results["unregisteredDirectoryDeletionEnabled"] = False
     if not args.apply:
+        # No native source digest or generation was read in dry-run mode.
+        results["releaseBindingVerifiedAtNativeGet"] = False
         results["eligible"] = len(candidates)
         results["eligibleUnintegrated"] = sum(item[4] for item in candidates)
         results["candidates"] = [p.name for p,_,_,_,_ in candidates[:args.limit]]
@@ -509,7 +561,7 @@ def run(args: argparse.Namespace) -> dict:
                 )):
                 skip("runtime_authority_not_eligible");continue
             digest=workspace.get("sourceStateDigest")
-            if not isinstance(digest,str) or not digest.startswith("sha256:"):
+            if not isinstance(digest,str) or RETAINED_HEAD_REF.fullmatch(digest) is None:
                 skip("missing_source_digest");continue
             # Recheck Git and never force. Runtime checks held Jobs/dependents.
             currently_unintegrated = _unintegrated_head(repo, head, integration_ref)
@@ -527,10 +579,11 @@ def run(args: argparse.Namespace) -> dict:
             if (current_age is None or current_age > retention_ms
                     or (currently_unintegrated and not current_unintegrated_allowed)):
                 skip("retention_policy_changed");continue
-            if resolution != "succeeded" and not _operator_attests_consumer_release(
-                current_policy, path.name
-            ):
+            current_binding = _operator_release_binding(current_policy, path.name)
+            if current_binding is None:
                 skip("owner_disposition_revoked");continue
+            if not _release_matches(current_binding, workspace, info[0]):
+                skip("owner_disposition_stale");continue
             current_git_status = _git(path,"status","--porcelain=v1","--untracked-files=normal")
             if current_git_status.returncode or current_git_status.stdout.strip():
                 skip("git_changed_at_close");continue
@@ -549,6 +602,12 @@ def run(args: argparse.Namespace) -> dict:
                 for item in _active_process_cwds(root)
             ):
                 skip("process_cwd_active_at_close");continue
+            # Refresh only this candidate's activity before any preservation
+            # or close. A later terminal Job invalidates the old disposition
+            # even after the native four-hour continuation window.
+            latest = _jobs(env, path.name).get(path.name, (None, None, 0))
+            if latest != info or not _release_matches(current_binding, workspace, latest[0]):
+                skip("owner_disposition_stale");continue
             # An unmerged HEAD is valuable source. Preserve it in the
             # existing Git retention namespace BEFORE any native close effect.
             if currently_unintegrated:
@@ -560,9 +619,8 @@ def run(args: argparse.Namespace) -> dict:
             closed = client.call_tool(
                 "workspace.close",
                 {"schemaVersion":1,"workspaceId":path.name,"force":False,
-                 # A quiet successful Job is NOT evidence of a semantic
-                 # consumer release. After the >=4h continuation grace the
-                 # Runtime can close without asserting consumerReleased=true.
+                 # Keep the native latest-Job activity fence even when the
+                 # operator has explicitly released this sweep candidate.
                  "consumerReleased":False,
                  "expectedSourceStateDigest":digest},
             )
