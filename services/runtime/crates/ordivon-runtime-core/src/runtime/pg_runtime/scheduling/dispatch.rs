@@ -4,8 +4,8 @@ use super::issue_writer::record_scheduler_issue;
 use super::native_capacity::native_resource_error;
 use super::policy::{next_candidate, PendingCandidate, SchedulerPreflight};
 use super::{
-    decode, io, json, JobCancelRequest, PgRuntime, RuntimeErrorCode, RuntimeExecutionPlan,
-    RuntimeResult, PENDING_JOBS_SQL,
+    decode, io, JobCancelRequest, PgRuntime, RuntimeErrorCode, RuntimeExecutionPlan, RuntimeResult,
+    PENDING_JOBS_SQL,
 };
 use crate::resource_scheduling::{
     NodeResources, ResourceRequest, ResourceScheduling, WorkspaceAccess,
@@ -14,13 +14,14 @@ use std::collections::BTreeMap;
 
 impl PgRuntime {
     /// Resource-aware admission is independent of the caller's observation loop.
-    /// Finite scan batches bound control-plane work, not running Job capacity.
-    pub fn schedule_pending_jobs(&self) -> RuntimeResult<serde_json::Value> {
+    /// Bound active reconciliation confirmations per pass, not the number of
+    /// scanned candidates, reconciliation calls, or running Jobs.
+    pub(in crate::runtime::pg_runtime) fn schedule_pending_jobs(&self) -> RuntimeResult<()> {
         let mut db = self.store()?;
         // Idle queue wakeups should not read host resources or every Allocation.
         let candidates = db.client.query(PENDING_JOBS_SQL, &[]).map_err(io)?;
         if candidates.is_empty() {
-            return Ok(json!({"considered":0,"attempted":0}));
+            return Ok(());
         }
         let node = NodeResources::observe().map_err(native_resource_error)?;
         let active = db
@@ -89,8 +90,8 @@ impl PgRuntime {
         // priority/DRF rescoring. A new committed Allocation only tightens
         // the preflight; the inner loop must still recheck after each grant.
         preflight.retain_initially_feasible(&mut ranked, &node);
-        let mut dispatched = 0_u32;
-        while dispatched < 32 && !ranked.is_empty() {
+        let mut active_reconciliations = 0_u32;
+        while active_reconciliations < 32 && !ranked.is_empty() {
             let Some(index) = next_candidate(&ranked, &usage, &node) else {
                 break;
             };
@@ -179,10 +180,10 @@ impl PgRuntime {
                         u.1 = u.1.saturating_add(confirmed.spec.resources.memory_bytes);
                         u.2 = u.2.saturating_add(u64::from(confirmed.spec.resources.pids));
                     }
-                    dispatched += 1;
+                    active_reconciliations += 1;
                 }
             }
         }
-        Ok(json!({"considered":candidates.len(),"attempted":dispatched}))
+        Ok(())
     }
 }
