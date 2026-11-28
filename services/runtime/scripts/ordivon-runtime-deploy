@@ -21,6 +21,11 @@ from contextlib import contextmanager
 from collections.abc import Callable
 from pathlib import Path
 
+# A production Root entrypoint must not mutate its sealed import namespace
+# just because an operator invokes CLI help or a read-only inspection.
+if __name__ == "__main__":
+    sys.dont_write_bytecode = True
+
 from mcp_probe import load_bearer_token, load_environment_file, probe_catalog
 
 SCHEMA_VERSION = 2
@@ -1967,9 +1972,10 @@ def structured_receipt_path(root: Path, effect_id: str) -> Path:
     return root / f"effect-{effect_id}"
 
 
-def existing_structured_release_result(
+def structured_release_result_snapshot(
     receipt: Path, expected: dict[str, object]
-) -> dict[str, object] | None:
+) -> tuple[dict[str, object], bytes] | None:
+    """Validate and return the exact bytes that supplied the result projection."""
     if not receipt.exists():
         return None
     if receipt.is_symlink() or not receipt.is_dir():
@@ -1987,13 +1993,21 @@ def existing_structured_release_result(
         )
     if result_path.is_symlink() or not result_path.is_file():
         raise RuntimeError("structured release terminal result is unsafe")
-    result = json.loads(result_path.read_text(encoding="utf-8"))
+    receipt_bytes = result_path.read_bytes()
+    result = json.loads(receipt_bytes.decode("utf-8"))
     if not isinstance(result, dict):
         raise RuntimeError("structured release terminal result is invalid")
     release_effect = result.get("releaseEffect")
     if release_effect != expected:
         raise RuntimeError("structured release terminal result does not match its effect request")
-    return {**result, "replayed": True}
+    return {**result, "replayed": True}, receipt_bytes
+
+
+def existing_structured_release_result(
+    receipt: Path, expected: dict[str, object]
+) -> dict[str, object] | None:
+    snapshot = structured_release_result_snapshot(receipt, expected)
+    return snapshot[0] if snapshot is not None else None
 
 
 def receipt_record_mode(record: dict[str, object]) -> int:

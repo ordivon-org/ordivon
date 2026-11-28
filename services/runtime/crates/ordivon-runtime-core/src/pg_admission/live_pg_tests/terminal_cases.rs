@@ -459,6 +459,118 @@ fn pg18_readonly_job_projection_fences_stage_and_incoherent_terminal() {
 
 #[test]
 #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
+fn pg18_projection_snapshot_remains_coherent_during_concurrent_terminal_commit() {
+    use crate::PgJobReadback;
+    let dsn = physical_pg_test_dsn();
+    let mut scratch = Scratch::new(&dsn);
+    scratch.qualify();
+    let mut writer = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+    let mut reader = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+    let input = payload(
+        "projection-race",
+        "job-projection-race",
+        "workspace-projection",
+        2,
+    );
+    writer.admit(&input).unwrap();
+    let mut tx = reader
+        .client
+        .build_transaction()
+        .isolation_level(postgres::IsolationLevel::RepeatableRead)
+        .read_only(true)
+        .start()
+        .unwrap();
+    let PgJobReadback::Observed(before) = PgAdmissionStore::observe_job_snapshot(
+        &mut tx,
+        &input.job_id,
+        &input.expected_source_sha256,
+    )
+    .unwrap() else {
+        panic!("initial admitted snapshot must be coherent");
+    };
+    assert_eq!(before.attempt_state, "accepted");
+    assert_eq!(before.resolution, None);
+
+    let artifact = PgArtifactRegistration {
+        artifact_id: "projection-artifact".into(),
+        kind: "stdout".into(),
+        relative_path: "output/stdout.txt".into(),
+        digest: format!("sha256:{}", "a".repeat(64)),
+        media_type: "text/plain".into(),
+        byte_length: 14,
+        truncated: false,
+        created_at_ms: input.created_at_ms + 1,
+    };
+    let terminal = PgTerminalNoArtifacts {
+        attempt_id: input.attempt_id.clone(),
+        expected_row_version: before.attempt_row_version,
+        terminal_state: "failed".into(),
+        result_digest: "sha256:projection-race-result".into(),
+        reason_code: "PROJECTION_RACE_TEST".into(),
+        exit_code: Some(1),
+        finished_at_ms: input.created_at_ms + 2,
+        expected_source_sha256: input.expected_source_sha256.clone(),
+    };
+    assert_eq!(
+        writer
+            .commit_terminal_with_artifacts(&terminal, &[artifact])
+            .unwrap(),
+        PgTerminalOutcome::Committed(input.job_id.clone())
+    );
+
+    // A fresh statement with the old versions cannot rebind: this is the
+    // original split-snapshot error, not an incoherent persisted lifecycle.
+    fn versions(client: &mut impl postgres::GenericClient, input: &PgAdmissionInput) -> (i64, i64) {
+        let row = client
+            .query_one(
+                "SELECT j.row_version,a.row_version FROM jobs j JOIN attempts a
+             ON a.job_id=j.job_id WHERE j.job_id=$1 AND a.attempt_id=$2",
+                &[&input.job_id, &input.attempt_id],
+            )
+            .unwrap();
+        (row.get(0), row.get(1))
+    }
+    let old = (before.job_row_version, before.attempt_row_version);
+    assert_ne!(versions(&mut writer.client, &input), old);
+    assert_eq!(versions(&mut tx, &input), old);
+    assert_eq!(
+        PgAdmissionStore::observe_job_snapshot(
+            &mut tx,
+            &input.job_id,
+            &input.expected_source_sha256
+        )
+        .unwrap(),
+        PgJobReadback::Observed(before)
+    );
+    let old_counts = tx
+        .query_one(
+            "SELECT (SELECT count(*) FROM artifacts WHERE job_id=$1),
+                (SELECT count(*) FROM job_events WHERE job_id=$1)",
+            &[&input.job_id],
+        )
+        .unwrap();
+    assert_eq!(
+        (old_counts.get::<_, i64>(0), old_counts.get::<_, i64>(1)),
+        (0, 3)
+    );
+    tx.commit().unwrap();
+
+    let PgJobReadback::Observed(after) = reader
+        .observe_job_readonly(&input.job_id, &input.expected_source_sha256)
+        .unwrap()
+    else {
+        panic!("fresh terminal snapshot must be coherent");
+    };
+    assert_eq!(after.resolution.as_deref(), Some("failed"));
+    assert_eq!(after.current_attempt_id, None);
+    assert_eq!(after.reservation_state, "released");
+    assert_eq!(after.attempt_id, input.attempt_id);
+    assert_eq!(scratch.count("artifacts"), 1);
+    assert_eq!(scratch.count("job_events"), 5);
+}
+
+#[test]
+#[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
 fn pg18_artifact_metadata_terminal_is_atomic_replayable_and_rejects_corruption() {
     let dsn = std::env::var("ORDIVON_PG_TEST_DSN")
         .expect("explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification required");
