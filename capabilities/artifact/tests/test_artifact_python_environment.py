@@ -66,10 +66,15 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
         development = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
         self.assertEqual(runtime["dependencies"], development["dependencies"])
         dev_lock = tomllib.loads((ROOT / "uv.lock").read_text())
-        dev_versions = {row["name"]: row["version"] for row in dev_lock["package"]}
-        shared = set(observed) & set(dev_versions)
-        self.assertTrue(shared)
-        self.assertEqual({n: observed[n] for n in shared}, {n: dev_versions[n] for n in shared})
+        # The production project is a projection of the owner lock, not a
+        # second resolution. Compare complete registry records, preserving
+        # multiplicity if a future lock has multiple rows for the same name.
+        owner_packages = [row for row in dev_lock["package"] if "registry" in row.get("source", {})]
+        delivery_packages = [row for row in tomllib.loads(raw.decode())["package"] if "registry" in row.get("source", {})]
+        self.assertTrue(delivery_packages)
+        for row in delivery_packages:
+            self.assertIn(row, owner_packages, f"delivery registry record differs: {row['name']}")
+            owner_packages.remove(row)
 
     def test_environment_has_no_isolated_equipment_or_host_libxslt_authority(self):
         source=(ROOT/'scripts/artifact_python_environment.py').read_text();wrapper=(ROOT/'scripts/artifact_python_wrapper.py').read_text()
