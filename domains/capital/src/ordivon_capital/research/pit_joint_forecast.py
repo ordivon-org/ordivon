@@ -168,6 +168,16 @@ def market_capture_to_pit_vintages(
         raise PointInTimeError(
             "whole market snapshot cannot be captured before its market close"
         )
+    from ordivon_capital.markets.equity_session_calendar import (
+        MarketSessionQualificationError,
+        require_xnys_eod_session_closes,
+        require_xnys_session_subset,
+    )
+
+    try:
+        require_xnys_eod_session_closes({last_session.isoformat(): close_at})
+    except MarketSessionQualificationError as exc:
+        raise PointInTimeError(str(exc)) from exc
     names = tuple(assets)
     if not names or len(names) != len(set(names)):
         raise PointInTimeError("unique nonempty market assets required")
@@ -181,6 +191,14 @@ def market_capture_to_pit_vintages(
         )
     except HistoricalCloseError as exc:
         raise PointInTimeError("Markets source admission failed") from exc
+    try:
+        require_xnys_session_subset(
+            (observation.session for observation in admitted.observations),
+            symbol="PIT_CAPTURE", requested_start=first_session.isoformat(),
+            requested_end=last_session.isoformat(),
+        )
+    except MarketSessionQualificationError as exc:
+        raise PointInTimeError(str(exc)) from exc
     return tuple(
         PriceVintage(
             asset=asset,
@@ -744,6 +762,22 @@ def make_one_step_optimizer_contract(
     return {"gamma": gamma, "nodes": nodes}
 
 
+def load_pit_payload(path: Path) -> dict[str, Any]:
+    """Decode unambiguous PIT evidence for both native consumers."""
+    def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise PointInTimeError(f"duplicate JSON input key: {key}")
+            result[key] = value
+        return result
+
+    payload = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
+    if not isinstance(payload, dict):
+        raise PointInTimeError("point-in-time payload must be a JSON object")
+    return payload
+
+
 def from_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     """Produce a reproducible, zero-authority optimizer contract plus evidence."""
     expected = {
@@ -817,53 +851,16 @@ def from_json_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def solve_pit_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
-    """Research-to-Portfolio native consumer, no second optimization engine.
-
-    The only market probabilities are the caller's past-visible empirical or
-    lagged-neighbor hypotheses. The caller must also supply actual economic
-    preferences and provider financing/margin terms. This function neither
-    authenticates those inputs nor creates any order/Paper event.
-    """
-    import dataclasses
-
-    from ordivon_capital.portfolio.multistage_policy import (
-        InformationNode,
-        MultistageProblem,
-        solve_multistage,
-    )
-
-    result = from_json_payload(payload)
-    contract = result["optimizer_input"]
-    vectors = {"risky_gross", "maintenance", "initial_margin", "turnover_cost"}
-    nodes = tuple(
-        InformationNode(
-            **{key: tuple(value) if key in vectors else value for key, value in raw.items()}
-        )
-        for raw in contract["nodes"]
-    )
-    solution = solve_multistage(MultistageProblem(gamma=contract["gamma"], nodes=nodes))
-    return {
-        **result,
-        "conditional_allocation": dataclasses.asdict(solution),
-        "allocation_standing": "CONDITIONAL_UNCALIBRATED_ONE_STEP_RESEARCH",
-    }
-
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Read-only PIT research to existing Capital optimizer"
+        description="Read-only PIT forecast evidence and optimizer input"
     )
     parser.add_argument("--input", type=Path, required=True)
-    parser.add_argument(
-        "--solve",
-        action="store_true",
-        help="run the existing read-only one-step CRRA consumer, with no trades",
-    )
     args = parser.parse_args()
     try:
-        payload = json.loads(args.input.read_text(encoding="utf-8"))
-        outcome = solve_pit_payload(payload) if args.solve else from_json_payload(payload)
+        payload = load_pit_payload(args.input)
+        outcome = from_json_payload(payload)
     except (PointInTimeError, ValueError, TypeError, KeyError) as e:
         parser.error(f"incomplete point-in-time market/economic contract: {e}")
     print(json.dumps(outcome, ensure_ascii=False, sort_keys=True))

@@ -45,13 +45,39 @@ exact UNKNOWN instead of inventing completion, absence, or safe retry.
 **Observed architecture:** The Core crate owns contracts, the PostgreSQL writer,
 use-case logic and OS adapters; the MCP crate owns network/protocol presentation;
 Git, PostgreSQL, native OS and retained file bytes own different kinds of
-truth. The still-installed Windows R6 writer is not equivalent to Linux PG.
+truth. Installed backend identity must be observed from Runtime/operator
+evidence: source contains both PostgreSQL and historical transactional
+carriers, and source presence alone does not establish which writer is live.
 A PostgreSQL transaction cannot atomically commit with OS process launch,
 Windows Job Objects, Git worktrees or arbitrary external effects.
 
 **Change:** Remove hidden dependencies between contract validation, writer
 authority, transactional decisions and physical effects. Avoid a big-bang
 directory rename or a parallel framework.
+
+### OL consumer-indexed reduction rule
+
+Runtime reduction is consumer-relative, not file-relative. First restrict a
+candidate model to behavior reachable from admitted constructors and effects.
+Then compare internal states through the observations required by named
+consumers. A quotient is safe for composition only when the induced
+indistinguishability is a congruence for the compositions those consumers use.
+
+The Attempt lifecycle is a concrete negative control. `Starting` and
+`Recovering` are indistinguishable to several local projections (terminal
+status, resolution, cancellation target, deadline admissibility and native
+owner-binding targets), but their exact labelled transition behavior differs:
+`Starting -> Recovering` and `Recovering -> Starting` are allowed while the
+corresponding self-transitions are not. Collapsing them therefore introduces
+spurious two-step traces for exact event consumers. Keep both persisted states.
+
+Prefer a smaller shared supplier where one exists. Deadline termination,
+PostgreSQL cancellation after dispatch, and the historical transactional
+cancellation path share the dispatched-stop kernel
+`Starting|Running|Recovering|Stopping -> Stopping`; accepted cancellation has
+additional consumer-specific semantics and must not be folded into that kernel.
+This is the intended OL pattern: **reachable core -> consumer observations ->
+composition check -> only then representation deletion or sharing**.
 
 ### Three LEGO categories, two reasoning directions
 
@@ -408,7 +434,7 @@ or a service-account qualification.
 
 Verification: `cargo test -p ordivon-runtime-core --no-default-features
 --features postgres-registry-admission pg_windows` checks bounded pure cases;
-`python3 scripts/pg_disposable_physical.py` runs the original 18 cases plus
+`python3 scripts/pg_disposable_physical.py` runs the complete native PG18 test inventory plus
 the independent Windows PG reader against a disposable PostgreSQL 18 schema;
 `scripts/tla-formal check-windows-pg-attempt` and
 `falsify-windows-pg-attempt` check the finite owner/exit model and required
@@ -417,6 +443,36 @@ compilability, **not** Windows-native execution. Actual Windows PG Writer,
 native launcher, process recovery, Gateway consumers and installed release
 remain separate OPEN obligations; do not switch or delete the live SQLite
 Registry on the strength of these checks.
+
+The three PostgreSQL verification tasks reuse the same native Cargo library-test
+selection and exact execution-witness comparison:
+`mise run test:postgres-registry:disposable` creates an isolated fixture;
+`mise run test:postgres-registry:physical` requires an explicit isolated
+`ORDIVON_PG_TEST_DSN`; `mise run test:postgres-registry:stage` requires the
+separate historical-stage test DSN `ORDIVON_PG_STAGE_TEST_DSN`.
+Empty or wrong inventories, zero executed tests, mismatched test identities,
+duplicate execution, and nonzero native exits cannot qualify. The fresh PG
+lanes additionally require every named PG physical-opt-in witness from
+`formal/RuntimeDispatchR1.trace-r1.json` to occur in the native inventory
+and execute successfully; a nonempty remainder cannot hide a missing required
+obligation. The stage lane
+must select exactly its one named witness; its passing result is not a
+fresh-epoch or Windows production acceptance. An operator DSN is not supplied
+by default and is never inherited by the disposable fixture.
+
+For source-level formal trace evidence, `mise run formal:verify` executes the
+existing Legacy trace and the explicit PG-only profile. Query the current
+implementation with
+`python3 scripts/verify_formal_trace.py --native-profile pg --native-witnesses`.
+The PG profile separately names always-on native code witnesses, shared typed
+contracts, and compiled-but-not-executed physical PostgreSQL witnesses. Do not
+substitute one profile for the other. For incremental source impact, use the
+same profile plus `--impact-base <ancestor-commit> --impact-head <checkout-commit>`
+and optionally `--impact-compiler`. The compiler's exact tracked PG SQL inputs,
+package-directory dependency and qualified absolute/relative spellings are
+bound to its source receipt. Composition consumes the positive path readsets;
+external/build/dynamic closure, whole-model implementation refinement,
+installed currentness, and domain acceptance remain UNKNOWN.
 
 ## Agent usage
 

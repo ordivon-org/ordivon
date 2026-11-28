@@ -15,7 +15,12 @@ from .native_pool_observability import pool_stats_response
 from .service import HostV2
 
 
-def build_server(dsn: str | None = None, *, pool: ConnectionPool | None = None) -> MCPServer:
+def build_server(
+    dsn: str | None = None,
+    *,
+    pool: ConnectionPool | None = None,
+    compact_work_receipts: bool = False,
+) -> MCPServer:
     effective_dsn = dsn or os.environ["ORDIVON_HOST_V2_DSN"]
     service = HostV2(effective_dsn, pool=pool)
     mcp = MCPServer("ordivon-host-v2", version=package_version("ordivon-host-v2"))
@@ -32,7 +37,9 @@ def build_server(dsn: str | None = None, *, pool: ConnectionPool | None = None) 
         """Inspect native Psycopg pool gauges and process-scoped cumulative counters."""
         return pool_stats_response(pool)
 
-    register_social_work_tools(mcp, effective_dsn, pool=pool)
+    register_social_work_tools(
+        mcp, effective_dsn, pool=pool, compact_work_receipts=compact_work_receipts
+    )
     return mcp
 
 
@@ -41,6 +48,9 @@ def main() -> None:
     pool_size = int(os.environ.get("ORDIVON_HOST_V2_PG_POOL_MAX_SIZE", "8"))
     if not 1 <= pool_size <= 64:
         raise ValueError("ORDIVON_HOST_V2_PG_POOL_MAX_SIZE must be in [1,64]")
+    compact = os.environ.get("ORDIVON_HOST_V2_COMPACT_WORK_RECEIPTS", "0")
+    if compact not in ("0", "1"):
+        raise ValueError("ORDIVON_HOST_V2_COMPACT_WORK_RECEIPTS must be 0 or 1")
     dsn = os.environ["ORDIVON_HOST_V2_DSN"]
     with ConnectionPool(
         conninfo=dsn,
@@ -51,7 +61,11 @@ def main() -> None:
         max_waiting=64,
         open=False,
     ) as pool:
-        server = build_server(dsn, pool=pool)
+        # Both serving transports must require the actual migrated authority
+        # before serving any tool. Keep build_server() usable for offline SDK
+        # contract discovery; it is not the process entrypoint.
+        HostV2(dsn, pool=pool).initialize()
+        server = build_server(dsn, pool=pool, compact_work_receipts=compact == "1")
         if transport == "stdio":
             server.run()
             return

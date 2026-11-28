@@ -5,46 +5,88 @@ from typing import Any
 # Existing tests/tool consumers monkeypatch the shared psycopg module here.
 import psycopg as psycopg
 from psycopg.types.json import Jsonb
+from psycopg_pool import ConnectionPool
 
 from .canonical_json import canonical_digest
-from .command_receipts import claim_command_receipt, record_command_receipt
-from .errors import ConflictError, WorkNotFound
-from .postgres_bounds import POSTGRES_BIGINT_MAX
+from .collection_pagination import DEFAULT_COLLECTION_MAX_BYTES
+from .errors import ConflictError, InvalidArgumentError, WorkNotFound
+from .postgres_bounds import HOST_WIRE_INT_MAX
 from .postgres_connections import HostPostgresConnections
 from .references.actor_refs import ActorReferenceLookup
-from .references.record_refs import RecordReferenceLookup
 from .work_inputs import (
     WorkCreateInput,
+    WorkRelationInput,
     WorkSnapshotInput,
     WorkState,
 )
 from .work_queries import WorkReadQueries, read_work_in_tx
+from .work_receipt_roots import claim_work_receipt
+from .work_receipt_writer import record_work_receipt
 from .work_relation_commands import WorkRelationCommands
+from .work_revision_logic import next_work_revision
 
 
-def _next_work_revision(expected_revision: int) -> int:
-    """Advance a Host Work CAS revision without exceeding PostgreSQL BIGINT.
-
-    pre: 1 <= expected_revision < 2**63 - 1
-    post: __return__ == expected_revision + 1
-    post: 2 <= __return__ <= 2**63 - 1
-    post: __return__ > expected_revision
-    """
-    return expected_revision + 1
-
-
-class WorkStore(
-    ActorReferenceLookup,
-    WorkRelationCommands,
-    WorkReadQueries,
-    RecordReferenceLookup,
-    HostPostgresConnections,
-):
+class WorkStore(HostPostgresConnections):
     """Greenfield Social Work Fabric Work Graph authority.
 
     This store owns durable Host semantic work continuity only. It deliberately does not
     inspect Runtime, Git, domain truth, social priority, assignment, or EffectAuthority.
     """
+
+    def __init__(
+        self,
+        dsn: str,
+        *,
+        pool: ConnectionPool | None = None,
+        compact_work_receipts: bool = False,
+    ) -> None:
+        super().__init__(dsn, pool=pool)
+        if type(compact_work_receipts) is not bool:
+            raise ValueError("compact_work_receipts must be boolean")
+        self._compact_work_receipts = compact_work_receipts
+
+    def _record_work_receipt(
+        self,
+        conn: psycopg.Connection[dict[str, Any]],
+        client_request_id: str,
+        operation: str,
+        request_digest: str,
+        result: dict[str, Any],
+    ) -> None:
+        record_work_receipt(
+            conn,
+            client_request_id,
+            operation,
+            request_digest,
+            result,
+            compact_requested=self._compact_work_receipts,
+        )
+
+    def get_work(self, work_ref: str, revision: int | None = None) -> dict[str, Any]:
+        return WorkReadQueries(self._connect).get_work(work_ref, revision)
+
+    def list_works(
+        self,
+        *,
+        state: str | None = None,
+        limit: int = 50,
+        before_updated_at: str | None = None,
+        before_work_ref: str | None = None,
+        max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
+    ) -> dict[str, Any]:
+        return WorkReadQueries(self._connect).list_works(
+            state=state,
+            limit=limit,
+            before_updated_at=before_updated_at,
+            before_work_ref=before_work_ref,
+            max_bytes=max_bytes,
+        )
+
+    def add_relation(self, value: WorkRelationInput, *, client_request_id: str) -> dict[str, Any]:
+        """Internal Work graph command, not an extra public MCP route."""
+        return WorkRelationCommands(self._connect).add_relation(
+            value, client_request_id=client_request_id
+        )
 
     def create_work(self, value: WorkCreateInput, *, client_request_id: str) -> dict[str, Any]:
         payload = value.initial_snapshot.canonical_payload()
@@ -58,10 +100,17 @@ class WorkStore(
         }
         request_digest = canonical_digest(request)
         with self._connect() as conn, conn.transaction():
-            replay = claim_command_receipt(conn, client_request_id, "work.create", request_digest)
+            replay = claim_work_receipt(
+                conn,
+                client_request_id,
+                "work.create",
+                request_digest,
+                work_ref=value.work_ref,
+                work_kind=value.kind,
+            )
             if replay is not None:
                 return replay
-            self._require_actor(conn, value.actor_ref)
+            ActorReferenceLookup._require_actor(conn, value.actor_ref)
             # PostgreSQL's unique WorkRef arbiter is the creation linearization
             # point. SELECT-before-INSERT cannot arbitrate concurrent identical
             # requests: both can observe absence and leak UniqueViolation.
@@ -105,7 +154,9 @@ class WorkStore(
                 admission = "existing"
             result = read_work_in_tx(conn, value.work_ref, None)
             result["admission"] = admission
-            record_command_receipt(conn, client_request_id, "work.create", request_digest, result)
+            self._record_work_receipt(
+                conn, client_request_id, "work.create", request_digest, result
+            )
             return result
 
     def commit_snapshot(
@@ -120,8 +171,10 @@ class WorkStore(
     ) -> dict[str, Any]:
         # Revision is a typed CAS identity, not Python numeric equality:
         # bool is an int subclass, and 1.0 compares equal to 1.
-        if type(expected_revision) is not int or not 1 <= expected_revision < POSTGRES_BIGINT_MAX:
-            raise ValueError("expected_revision must be a positive PostgreSQL BIGINT predecessor")
+        if type(expected_revision) is not int or not 1 <= expected_revision < HOST_WIRE_INT_MAX:
+            raise InvalidArgumentError(
+                "expected_revision must be a positive PostgreSQL BIGINT predecessor within JSON safe integer range"
+            )
         payload = snapshot.canonical_payload()
         snapshot_digest = canonical_digest(payload)
         request = {
@@ -134,12 +187,20 @@ class WorkStore(
         }
         request_digest = canonical_digest(request)
         with self._connect() as conn, conn.transaction():
-            replay = claim_command_receipt(
-                conn, client_request_id, "work.snapshot.commit", request_digest
+            replay = claim_work_receipt(
+                conn,
+                client_request_id,
+                "work.snapshot.commit",
+                request_digest,
+                work_ref=work_ref,
+                revision=expected_revision + 1,
+                snapshot_digest=snapshot_digest,
+                actor_ref=actor_ref,
+                state=state.value,
             )
             if replay is not None:
                 return replay
-            self._require_actor(conn, actor_ref)
+            ActorReferenceLookup._require_actor(conn, actor_ref)
             current = conn.execute(
                 "SELECT work_ref,state,current_revision FROM works WHERE work_ref=%s FOR UPDATE",
                 (work_ref,),
@@ -147,7 +208,7 @@ class WorkStore(
             if current is None:
                 raise WorkNotFound(work_ref)
             current_revision = int(current["current_revision"])
-            next_revision = _next_work_revision(expected_revision)
+            next_revision = next_work_revision(expected_revision)
             if current_revision == next_revision:
                 prior = conn.execute(
                     "SELECT snapshot_digest,writer_actor_ref FROM work_snapshots "
@@ -162,7 +223,7 @@ class WorkStore(
                 ):
                     result = read_work_in_tx(conn, work_ref, next_revision)
                     result["admission"] = "existing"
-                    record_command_receipt(
+                    self._record_work_receipt(
                         conn,
                         client_request_id,
                         "work.snapshot.commit",
@@ -190,7 +251,7 @@ class WorkStore(
             )
             result = read_work_in_tx(conn, work_ref, next_revision)
             result["admission"] = "committed"
-            record_command_receipt(
+            self._record_work_receipt(
                 conn, client_request_id, "work.snapshot.commit", request_digest, result
             )
             return result

@@ -96,3 +96,124 @@ theorem direct_publication_without_checks_is_unsafe :
 #print axioms reclaimed_requires_no_readers_and_retention_release
 #print axioms direct_publication_without_checks_is_unsafe
 end OrdivonDataPublication
+
+-- Identity refinement for Runtime-backed publication claims. Nat is an
+-- abstract exact claim key (not a hash or an alternate storage authority).
+-- Evidence booleans stand for independently established owner facts; this
+-- model does NOT authenticate those facts or implement a physical release.
+-- Concrete refinement coordinate: Runtime's authority + exact claim_id and
+-- bound (principal, client_request_id, store_root, run_ref, source state).
+-- The native schema has unique (principal, client_request_id), primary claim_id;
+-- this model assumes the mapping remains injective across the qualified epoch.
+-- A new epoch or reused identity cannot consume old witness evidence.
+-- A Boolean true means a qualified independent observation, not a caller's
+-- assertion; false includes absent/unknown evidence, not falsified business truth.
+-- Runtime's raw release function is deliberately NOT claimed to implement
+-- this gate. The natural authenticated Finalizer must qualify both witnesses.
+-- See services/runtime/docs/workspace-runtime-claim-r1.md.
+
+namespace OrdivonDataPublication.RuntimeBackedClaim
+
+structure Ledger where
+  held : Nat → Bool
+  retired : Bool
+  retentionCleared : Bool
+
+structure ReleaseWitness where
+  key : Nat
+  domainDispositionAccepted : Bool
+  noFutureSpawn : Bool
+
+def release (s : Ledger) (requested : Nat) (w : ReleaseWitness) : Ledger :=
+  if w.key == requested && w.domainDispositionAccepted && w.noFutureSpawn then
+    { s with held := fun k => if k == requested then false else s.held k }
+  else s
+
+def Reclaimable (s : Ledger) : Prop :=
+  s.retired = true ∧ s.retentionCleared = true ∧ ∀ k, s.held k = false
+
+theorem unrelated_claim_frame (s : Ledger) (requested other : Nat)
+    (w : ReleaseWitness) (h : other ≠ requested) :
+    (release s requested w).held other = s.held other := by
+  unfold release
+  split <;> simp_all
+
+theorem wrong_key_cannot_release (s : Ledger) (requested : Nat)
+    (w : ReleaseWitness) (h : w.key ≠ requested) :
+    release s requested w = s := by
+  simp [release, h]
+
+theorem absent_domain_disposition_cannot_release (s : Ledger) (requested : Nat)
+    (w : ReleaseWitness) (h : w.domainDispositionAccepted = false) :
+    release s requested w = s := by
+  simp [release, h]
+
+theorem absent_no_future_spawn_cannot_release (s : Ledger) (requested : Nat)
+    (w : ReleaseWitness) (h : w.noFutureSpawn = false) :
+    release s requested w = s := by
+  simp [release, h]
+
+theorem replay_same_claim_idempotent (s : Ledger) (requested key : Nat)
+    (w : ReleaseWitness) :
+    (release (release s requested w) requested w).held key =
+      (release s requested w).held key := by
+  unfold release
+  split <;> simp_all
+
+theorem cannot_reclaim_with_unrelated_held (s : Ledger)
+    (requested other : Nat) (w : ReleaseWitness)
+    (hne : other ≠ requested) (hHeld : s.held other = true) :
+    ¬ Reclaimable (release s requested w) := by
+  intro h
+  have he := h.2.2 other
+  rw [unrelated_claim_frame s requested other w hne, hHeld] at he
+  contradiction
+
+theorem qualified_release_clears_only_requested (s : Ledger) (requested : Nat)
+    (w : ReleaseWitness) (hk : w.key = requested)
+    (hd : w.domainDispositionAccepted = true) (hn : w.noFutureSpawn = true) :
+    (release s requested w).held requested = false := by
+  simp [release, hk, hd, hn]
+
+theorem release_preserves_retirement_authority (s : Ledger) (requested : Nat)
+    (w : ReleaseWitness) :
+    (release s requested w).retired = s.retired ∧
+      (release s requested w).retentionCleared = s.retentionCleared := by
+  unfold release
+  split <;> simp_all
+
+-- Non-vacuity: two different claims; replaying one does not release the
+-- second. The legitimate independent second release can permit retirement.
+def twoClaims : Ledger :=
+  { held := fun k => k == 1 || k == 2, retired := true, retentionCleared := true }
+
+def accepted (k : Nat) : ReleaseWitness :=
+  { key := k, domainDispositionAccepted := true, noFutureSpawn := true }
+
+theorem duplicate_one_does_not_reclaim :
+    ¬ Reclaimable (release (release twoClaims 1 (accepted 1)) 1 (accepted 1)) := by
+  intro h
+  have he := h.2.2 2
+  simp [release, twoClaims, accepted] at he
+
+theorem independent_two_can_reclaim :
+    Reclaimable (release (release twoClaims 1 (accepted 1)) 2 (accepted 2)) := by
+  refine ⟨rfl, rfl, ?_⟩
+  intro k
+  by_cases h1 : k = 1
+  · simp [release, twoClaims, accepted, h1]
+  · by_cases h2 : k = 2
+    · simp [release, twoClaims, accepted, h2]
+    · simp [release, twoClaims, accepted, h1, h2]
+
+#print axioms qualified_release_clears_only_requested
+#print axioms release_preserves_retirement_authority
+#print axioms unrelated_claim_frame
+#print axioms wrong_key_cannot_release
+#print axioms absent_domain_disposition_cannot_release
+#print axioms absent_no_future_spawn_cannot_release
+#print axioms replay_same_claim_idempotent
+#print axioms cannot_reclaim_with_unrelated_held
+#print axioms duplicate_one_does_not_reclaim
+#print axioms independent_two_can_reclaim
+end OrdivonDataPublication.RuntimeBackedClaim

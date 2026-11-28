@@ -8,6 +8,8 @@ run = """
 set -euo pipefail
 mise run verify:formal:risk-exposure
 mise run verify:formal:passive-general
+mise run verify:formal:passive-benchmark
+mise run verify:formal:liability-reserve
 mise run verify:formal:unit-r-margin
 mise run verify:formal:unit-r-rebalance
 mise run verify:formal:algebraic-capital
@@ -36,10 +38,10 @@ import z3
 
 raw = Path("formal/paper_cash_settlement_r1.smt2").read_bytes()
 observed = z3.z3core.Z3_eval_smtlib2_string(z3.main_ctx().ref(), raw).splitlines()
-expected = ["unsat", "unsat", "unsat", "sat", "sat"]
+expected = ["unsat", "unsat", "unsat", "sat", "sat", "unsat", "sat"]
 if observed != expected:
     raise SystemExit(f"Paper formal proof mismatch: {observed!r} != {expected!r}")
-print("paper_cash_settlement_r1: 3 universal QF_LIA checks UNSAT; 2 wrong-model witnesses SAT")
+print("paper_cash_settlement_r1: 4 universal QF_LIA checks UNSAT; 3 wrong-model witnesses SAT")
 PYZ3
 """
 
@@ -178,7 +180,7 @@ description = "Native Z3 proof of Portfolio cashflow-matched benchmark transitio
 run = """
 set -euo pipefail
 observed="$(cd ../../tools/formal && mise exec -- z3 -smt2 ../../domains/capital/formal/PortfolioPassiveBenchmarkR1.smt2)"
-expected="$(printf 'unsat\nunsat\nunsat\nunsat\nunsat\nsat')"
+expected="$(printf 'unsat\nunsat\nunsat\nunsat\nunsat\nsat\nunsat\nsat')"
 if [ "$observed" != "$expected" ]; then
   printf 'Unexpected model result (unknown/timeout/SAT obligation is not verified): %s\n' "$observed" >&2
   exit 1
@@ -230,21 +232,21 @@ from pathlib import Path
 import z3
 raw = Path("formal/MarketsCapturePITR1.smt2").read_bytes()
 observed = z3.z3core.Z3_eval_smtlib2_string(z3.main_ctx().ref(), raw).splitlines()
-expected = ["unsat", "sat", "unsat", "unsat", "unsat", "sat"]
+expected = ["unsat", "sat", "unsat", "unsat", "unsat", "sat", "unsat", "unsat", "sat"]
 if observed != expected:
     raise SystemExit(f"Markets capture PIT model results mismatch: {observed!r}")
-print("MarketsCapturePITR1: 4 invariant checks UNSAT; 2 bad-model witnesses SAT")
+print("MarketsCapturePITR1: 6 invariant checks UNSAT; 3 bad-model witnesses SAT")
 calendar_raw = Path("formal/MarketsCalendarHorizonR1.smt2").read_bytes()
 calendar_ctx = z3.Context()
 calendar_results = z3.z3core.Z3_eval_smtlib2_string(
     calendar_ctx.ref(), calendar_raw
 ).splitlines()
-calendar_expected = ["unsat", "unsat", "unsat", "unsat", "sat", "unsat", "unsat", "sat"]
+calendar_expected = ["unsat", "unsat", "unsat", "unsat", "sat", "unsat", "unsat", "sat", "unsat", "unsat", "sat"]
 if calendar_results != calendar_expected:
     raise SystemExit(
         f"Markets calendar/Horizon model mismatch: {calendar_results!r}"
     )
-print("MarketsCalendarHorizonR1: 6 scoped invariant checks UNSAT; 2 wrong-model witnesses SAT")
+print("MarketsCalendarHorizonR1: 8 scoped invariant checks UNSAT; 3 distinction/wrong-model witnesses SAT")
 eod_raw = Path("formal/MarketsEodPaperCalendarR1.smt2").read_bytes()
 eod_ctx = z3.Context()
 eod_results = z3.z3core.Z3_eval_smtlib2_string(eod_ctx.ref(), eod_raw).splitlines()
@@ -252,6 +254,17 @@ eod_expected = ["unsat", "unsat", "unsat", "sat", "sat"]
 if eod_results != eod_expected:
     raise SystemExit(f"Markets EOD -> Paper gate model mismatch: {eod_results!r}")
 print("MarketsEodPaperCalendarR1: 3 abstract consumer invariants UNSAT; 2 counterexamples SAT")
+distribution_raw = Path("formal/ResearchExDividendHoldingHorizonR1.smt2").read_bytes()
+distribution_ctx = z3.Context()
+distribution_results = z3.z3core.Z3_eval_smtlib2_string(
+    distribution_ctx.ref(), distribution_raw
+).splitlines()
+distribution_expected = ["unsat", "unsat", "unsat", "unsat", "sat", "sat"]
+if distribution_results != distribution_expected:
+    raise SystemExit(
+        f"Research issuer dividend holding horizon model mismatch: {distribution_results!r}"
+    )
+print("ResearchExDividendHoldingHorizonR1: 4 abstract invariants UNSAT; 2 wrong/valid witnesses SAT")
 PYZ3
 """
 
@@ -269,4 +282,12 @@ if observed != expected:
     raise SystemExit(f"Accounting reservation formal obligations mismatch: {observed!r} != {expected!r}")
 print("AccountingReservationR1: 9 universal QF_LIA checks UNSAT; 4 invalid-state counterexamples SAT")
 PYZ3
+"""
+
+[tasks."verify:formal:liability-reserve"]
+description = "Lean proof of dated-liability cash reserve contribution bounds"
+run = """
+set -euo pipefail
+cd ../../tools/formal
+mise exec -- lean ../../domains/capital/formal/PortfolioLiabilityReserve.lean
 """

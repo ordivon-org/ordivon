@@ -5,6 +5,7 @@ import json
 import logging
 import time
 from collections.abc import Generator, Mapping
+from contextlib import suppress
 from typing import Any
 
 import httpx2
@@ -37,7 +38,7 @@ from ..security import (
 from ..security import (
     _validate_windows_private_secret_file as _validate_windows_private_secret_file,
 )
-from .owner_endpoint_config import owner_endpoints_from_env
+from .owner_endpoint_config import harness_profile_configuration_error, owner_endpoints_from_env
 from .owner_error_decode import extract_owner_tool_error as _extract_owner_tool_error
 
 _LOG = logging.getLogger("ordivon_gateway.upstream")
@@ -145,6 +146,10 @@ class McpOwnerCaller:
         endpoint = self._owners.get(owner_id)
         if endpoint is None:
             return "owner endpoint is not configured"
+        if owner_id == "runtime.harness":
+            error = harness_profile_configuration_error(endpoint, self._owners.get("runtime.linux"))
+            if error is not None:
+                return error
         identity_required = owner_id.startswith("runtime.") or owner_id in {
             "skills",
             "host",
@@ -211,7 +216,14 @@ class McpOwnerCaller:
                 )
                 phase = "typed_readonly_call" if typed_runtime_read else "sdk_client_call"
                 meta: dict[str, Any] = {}
-                inject_trace_context(meta)
+                try:
+                    inject_trace_context(meta)
+                except Exception:
+                    # The optional carrier is not authority or business input.
+                    # Discard partially injected context instead of forwarding it.
+                    meta.clear()
+                    with suppress(Exception):
+                        _LOG.warning("gateway owner trace propagation unavailable")
                 try:
                     if typed_runtime_read:
                         result = await client.session.send_request(
@@ -250,15 +262,16 @@ class McpOwnerCaller:
             # Observation deadlines cancel the SDK task; its session cleanup
             # can then add latency. Log the exact phase without payloads,
             # credentials, response bodies, or a new Gateway state store.
-            _LOG.warning(
-                "gateway_owner_rpc_cancelled owner=%s tool=%s phase=%s "
-                "total_ms=%d phase_before_cleanup_ms=%s",
-                owner_id,
-                tool_name,
-                phase,
-                int((time.perf_counter() - started) * 1000),
-                tool_elapsed_ms,
-            )
+            with suppress(Exception):
+                _LOG.warning(
+                    "gateway_owner_rpc_cancelled owner=%s tool=%s phase=%s "
+                    "total_ms=%d phase_before_cleanup_ms=%s",
+                    owner_id,
+                    tool_name,
+                    phase,
+                    int((time.perf_counter() - started) * 1000),
+                    tool_elapsed_ms,
+                )
             raise
         except OwnerCallError:
             raise

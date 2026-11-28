@@ -27,7 +27,9 @@ async def _emit_source(owner: str) -> dict[str, Any]:
     # Observe the original Host dispatch contract in the Gateway environment,
     # rather than introducing a second copied Tool registry.
     if owner == "gateway-dispatch":
-        from ordivon_gateway.logic.host_tool_contracts import SOCIAL_WORK_HOST_TOOLS as _SOCIAL_WORK_HOST_TOOLS
+        from ordivon_gateway.logic.host_tool_contracts import (
+            SOCIAL_WORK_HOST_TOOLS as _SOCIAL_WORK_HOST_TOOLS,
+        )
 
         return {"dispatchHostToolNames": sorted(_SOCIAL_WORK_HOST_TOOLS)}
 
@@ -52,6 +54,118 @@ async def _emit_source(owner: str) -> dict[str, Any]:
     }
 
 
+# This intentionally small fragment is not a general JSON Schema solver.
+# Compare only advertised integer points and null, not SDK coercion or Owner
+# business constraints. Unrecognized constraints remain UNKNOWN.
+_ANNOTATIONS = {"title", "description", "examples"}
+
+
+def _mentions_integer(schema: Any) -> bool:
+    if not isinstance(schema, dict):
+        return False
+    branches = schema.get("anyOf")
+    return schema.get("type") == "integer" or (
+        isinstance(branches, list) and any(_mentions_integer(item) for item in branches)
+    )
+
+
+def _integer_interval(schema: Any) -> tuple[int | None, int | None, bool] | None:
+    if not isinstance(schema, dict):
+        return None
+    nullable = "anyOf" in schema
+    if nullable:
+        if schema.keys() - (_ANNOTATIONS | {"anyOf", "default"}):
+            return None
+        branches = schema["anyOf"]
+        if not isinstance(branches, list) or len(branches) != 2:
+            return None
+        integers = [
+            b for b in branches if isinstance(b, dict) and b.get("type") == "integer"
+        ]
+        nulls = [
+            b
+            for b in branches
+            if isinstance(b, dict)
+            and b.get("type") == "null"
+            and not b.keys() - (_ANNOTATIONS | {"type"})
+        ]
+        if len(integers) != 1 or len(nulls) != 1 or "default" in integers[0]:
+            return None
+        value = integers[0]
+    else:
+        value = schema
+    if value.get("type") != "integer" or value.keys() - (
+        _ANNOTATIONS | {"type", "minimum", "maximum", "default"}
+    ):
+        return None
+    low, high = value.get("minimum"), value.get("maximum")
+    if any(k in value and type(value[k]) is not int for k in ("minimum", "maximum")):
+        return None
+    if low is not None and high is not None and low > high:
+        return None
+    if "default" in schema:
+        default = schema["default"]
+        if not (
+            (default is None and nullable)
+            or (
+                type(default) is int
+                and (low is None or low <= default)
+                and (high is None or default <= high)
+            )
+        ):
+            return None
+    return low, high, nullable
+
+
+def _difference_witness(
+    a: tuple[int | None, int | None, bool], b: tuple[int | None, int | None, bool]
+) -> tuple[bool, int | None]:
+    lo, hi, nullable = a
+    other_lo, other_hi, other_nullable = b
+    if nullable and not other_nullable:
+        return True, None
+    if other_lo is not None and (lo is None or lo < other_lo):
+        return True, min(other_lo - 1, hi) if hi is not None else other_lo - 1
+    if other_hi is not None and (hi is None or hi > other_hi):
+        return True, max(other_hi + 1, lo) if lo is not None else other_hi + 1
+    return False, None
+
+
+def compare_integer_input(host: Any, gateway: Any) -> dict[str, Any]:
+    a, b = _integer_interval(host), _integer_interval(gateway)
+    if a is None or b is None:
+        return {
+            "relation": "UNKNOWN",
+            "defaultRelation": "UNKNOWN",
+            "hasHostOnlyWitness": None,
+            "hostOnlyWitness": None,
+            "hasGatewayOnlyWitness": None,
+            "gatewayOnlyWitness": None,
+        }
+    left, x = _difference_witness(a, b)
+    right, y = _difference_witness(b, a)
+    relation = (
+        "INCOMPARABLE"
+        if left and right
+        else "GATEWAY_STRICTER"
+        if left
+        else "GATEWAY_WIDER"
+        if right
+        else "EQUAL"
+    )
+    same_default = ("default" in host) == ("default" in gateway) and (
+        host.get("default") == gateway.get("default")
+    )
+    return {
+        "relation": relation,
+        "defaultRelation": "EQUAL" if same_default else "DIFFERENT",
+        "hasHostOnlyWitness": left,
+        "hostOnlyWitness": x,
+        "hasGatewayOnlyWitness": right,
+        "gatewayOnlyWitness": y,
+    }
+
+
 def summarize(
     host: dict[str, dict[str, Any]],
     gateway: dict[str, dict[str, Any]],
@@ -66,6 +180,7 @@ def summarize(
     input_name_required_drift: list[str] = []
     input_schema_different: list[str] = []
     output_schema_different: list[str] = []
+    integer_comparisons: list[dict[str, Any]] = []
     for name in common:
         host_input = host[name]["inputSchema"]
         gateway_input = gateway[name]["inputSchema"]
@@ -75,6 +190,18 @@ def summarize(
             gateway_input.get("required", [])
         ):
             input_name_required_drift.append(name)
+        host_properties = host_input.get("properties", {})
+        gateway_properties = gateway_input.get("properties", {})
+        for prop in sorted(host_properties.keys() | gateway_properties.keys()):
+            left, right = host_properties.get(prop), gateway_properties.get(prop)
+            if _mentions_integer(left) or _mentions_integer(right):
+                integer_comparisons.append(
+                    {
+                        "tool": name,
+                        "property": prop,
+                        **compare_integer_input(left, right),
+                    }
+                )
         if host_input != gateway_input:
             input_schema_different.append(name)
         if host[name].get("outputSchema") != gateway[name].get("outputSchema"):
@@ -129,6 +256,11 @@ def summarize(
         "inputSchemaDifferentTools": input_schema_different,
         "outputSchemaDifferentTools": output_schema_different,
         "sourceInputNameRequiredParity": input_names_match,
+        "sourceIntegerInputComparisons": integer_comparisons,
+        "sourceIntegerInputTruthBoundary": (
+            "Advertised integer intervals and null only; defaults separately compared. "
+            "Not SDK behavior, general schema inclusion, installed authority or migration proof."
+        ),
         "installedConsumersQualified": None,
         "securityAuthorized": None,
         "domainConsumerMigrated": None,
@@ -155,7 +287,11 @@ def _child_source(owner: str) -> dict[str, dict[str, Any]]:
             "--locked",
             "--offline",
             "--project",
-            str(ROOT / "services" / ("gateway" if owner == "gateway-dispatch" else owner)),
+            str(
+                ROOT
+                / "services"
+                / ("gateway" if owner == "gateway-dispatch" else owner)
+            ),
             "python",
             program,
             "--emit",

@@ -1,13 +1,20 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from typing import Any, Literal
+
+import psycopg
 
 from .canonical_json import canonical_digest
 from .collaboration_inputs import (
     TopicInput,
 )
 from .command_receipts import claim_command_receipt, record_command_receipt
-from .errors import ConflictError
+from .errors import ConflictError, InvalidArgumentError
+from .postgres_bounds import HOST_WIRE_INT_MAX
+from .references.actor_refs import ActorReferenceLookup
+from .references.record_refs import RecordReferenceLookup
 from .social_errors import MessageNotFound as MessageNotFound
 from .social_errors import SpaceNotFound as SpaceNotFound
 from .social_errors import TopicNotFound as TopicNotFound
@@ -17,6 +24,11 @@ from .topic_cursor_records import ack_topic_cursor_in_tx
 class SocialTopicCommands:
     """PostgreSQL commands through the sole Host SocialStore authority."""
 
+    def __init__(
+        self, connect: Callable[[], AbstractContextManager[psycopg.Connection[dict[str, Any]]]]
+    ) -> None:
+        self._connect = connect
+
     def create_topic(self, value: TopicInput, *, client_request_id: str) -> dict[str, Any]:
         request = {"operation": "topic.create", **value.model_dump(mode="json")}
         request_digest = canonical_digest(request)
@@ -24,8 +36,8 @@ class SocialTopicCommands:
             replay = claim_command_receipt(conn, client_request_id, "topic.create", request_digest)
             if replay is not None:
                 return replay
-            self._require_space(conn, value.space_ref)
-            self._require_actor(conn, value.actor_ref)
+            RecordReferenceLookup._require_space(conn, value.space_ref)
+            ActorReferenceLookup._require_actor(conn, value.actor_ref)
             row = conn.execute(
                 "INSERT INTO topics(topic_ref,space_ref,title,state,created_by_actor_ref) "
                 "VALUES (%s,%s,%s,'open',%s) ON CONFLICT (topic_ref) DO NOTHING "
@@ -84,9 +96,14 @@ class SocialTopicCommands:
             "closed",
             "archived",
         ):
-            raise ValueError("topic state must be open, closed, or archived")
-        if type(expected_high_sequence) is not int or expected_high_sequence < 0:
-            raise ValueError("expected_high_sequence must be a non-negative integer")
+            raise InvalidArgumentError("topic state must be open, closed, or archived")
+        if (
+            type(expected_high_sequence) is not int
+            or not 0 <= expected_high_sequence <= HOST_WIRE_INT_MAX
+        ):
+            raise InvalidArgumentError(
+                "expected_high_sequence must be a non-negative integer within JSON safe integer range"
+            )
         request = {
             "operation": "topic.state.set",
             "topicRef": topic_ref,
@@ -100,8 +117,8 @@ class SocialTopicCommands:
             replay = claim_command_receipt(conn, client_request_id, "topic.state.set", digest)
             if replay is not None:
                 return replay
-            self._require_actor(conn, actor_ref)
-            topic = self._require_topic(conn, topic_ref, for_no_key_update=True)
+            ActorReferenceLookup._require_actor(conn, actor_ref)
+            topic = RecordReferenceLookup._require_topic(conn, topic_ref, for_no_key_update=True)
             high = int(
                 conn.execute(
                     "SELECT COALESCE(MAX(sequence),0) AS high FROM messages WHERE topic_ref=%s",
@@ -151,8 +168,8 @@ class SocialTopicCommands:
         cursor: int,
         client_request_id: str,
     ) -> dict[str, Any]:
-        if type(cursor) is not int or cursor < 0:
-            raise ValueError("cursor must be non-negative")
+        if type(cursor) is not int or not 0 <= cursor <= HOST_WIRE_INT_MAX:
+            raise InvalidArgumentError("cursor must be non-negative within JSON safe integer range")
         request = {
             "operation": "topic.cursor.ack",
             "actorRef": actor_ref,
@@ -166,8 +183,8 @@ class SocialTopicCommands:
             )
             if replay is not None:
                 return replay
-            self._require_actor(conn, actor_ref)
-            self._require_topic(conn, topic_ref)
+            ActorReferenceLookup._require_actor(conn, actor_ref)
+            RecordReferenceLookup._require_topic(conn, topic_ref)
             result = ack_topic_cursor_in_tx(
                 conn, actor_ref=actor_ref, topic_ref=topic_ref, cursor=cursor
             )

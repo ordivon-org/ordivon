@@ -4,8 +4,6 @@
   become: true
   gather_facts: false
   vars:
-    postgres_port: 55434
-    postgres_socket: /var/lib/postgres/ordivon-data-r5-pg-14550-v4
     temporal_db_user: temporal
     temporal_db_name: temporal
     temporal_visibility_db_name: temporal_visibility
@@ -89,8 +87,8 @@
         name: "{{ temporal_db_user }}"
         password: "{{ temporal_db_password }}"
         login_user: postgres
-        login_port: "{{ postgres_port }}"
-        login_unix_socket: "{{ postgres_socket }}"
+        login_port: "{{ operations_postgres_port }}"
+        login_unix_socket: "{{ operations_postgres_socket }}"
       become_user: postgres
       no_log: true
 
@@ -99,8 +97,8 @@
         name: "{{ item }}"
         owner: "{{ temporal_db_user }}"
         login_user: postgres
-        login_port: "{{ postgres_port }}"
-        login_unix_socket: "{{ postgres_socket }}"
+        login_port: "{{ operations_postgres_port }}"
+        login_unix_socket: "{{ operations_postgres_socket }}"
       become_user: postgres
       loop:
         - "{{ temporal_db_name }}"
@@ -111,9 +109,9 @@
         argv:
           - /usr/bin/psql
           - -p
-          - "{{ postgres_port | string }}"
+          - "{{ operations_postgres_port | string }}"
           - -h
-          - "{{ postgres_socket }}"
+          - "{{ operations_postgres_socket }}"
           - -d
           - "{{ item }}"
           - -Atqc
@@ -132,7 +130,7 @@
           - --endpoint
           - 127.0.0.1
           - --port
-          - "{{ postgres_port | string }}"
+          - "{{ operations_postgres_port | string }}"
           - --user
           - "{{ temporal_db_user }}"
           - --password
@@ -155,7 +153,7 @@
           - --endpoint
           - 127.0.0.1
           - --port
-          - "{{ postgres_port | string }}"
+          - "{{ operations_postgres_port | string }}"
           - --user
           - "{{ temporal_db_user }}"
           - --password
@@ -177,7 +175,7 @@
           - --endpoint
           - 127.0.0.1
           - --port
-          - "{{ postgres_port | string }}"
+          - "{{ operations_postgres_port | string }}"
           - --user
           - "{{ temporal_db_user }}"
           - --password
@@ -197,9 +195,9 @@
         argv:
           - /usr/bin/psql
           - -p
-          - "{{ postgres_port | string }}"
+          - "{{ operations_postgres_port | string }}"
           - -h
-          - "{{ postgres_socket }}"
+          - "{{ operations_postgres_socket }}"
           - -d
           - "{{ item }}"
           - -Atqc
@@ -219,8 +217,10 @@
         fail_msg: Temporal 1.31.2 requires core schema 1.19 and visibility schema 1.14.
 
     - name: Install Temporal production config
-      ansible.builtin.copy:
-        src: ../temporal/production.yaml
+      ansible.builtin.template:
+        src: ../temporal/production.yaml.j2
+        variable_start_string: "[["
+        variable_end_string: "]]"
         dest: /etc/temporal/production.yaml
         owner: root
         group: temporal

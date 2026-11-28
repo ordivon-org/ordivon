@@ -55,6 +55,8 @@ canonical rows, not that A may use B's private implementation.
 | --- | --- | --- | --- |
 | MCP adapters | WorkStore, SocialStore, AttentionStore | mcp_tool_registration.py | Keep thin composition |
 | WorkStore | PostgreSQL works/work_snapshots/receipts | work_store.py | Keep native transaction/CAS |
+| WorkStore | WorkReadQueries / WorkRelationCommands | explicit native checkout composition | Preserve internal DAG command, no additional MCP route |
+| Work mutation and relation command | conn-scoped ActorRef / WorkRef checks | references/actor_refs.py, references/record_refs.py | Explicit reference prerequisites, no MRO or IAM decision |
 | SocialStore | PostgreSQL topics/messages/relations, WorkRef lookup | social_* | Keep one social write authority |
 | Attention projections | existing Work/Social owner rows + subscription/cursors | attention_sql.py | Keep rebuildable SQL, no extra event store |
 | Gateway | Host published tools/contract | installed Gateway and MCP server | Contract-test real SDK input/output |
@@ -250,7 +252,7 @@ and information hidden, using shallow packages.
 | \`kernel/\` | \`canonical_json.py\`, \`collection_pagination.py\`, \`errors.py\` | Pure JSON, byte bounds, typed core errors; no Owner state |
 | \`storage/\` | \`postgres_connections.py\`, \`postgres_bounds.py\`, \`command_receipts.py\` | Psycopg connection/pool checkout, PG bounds and transactional receipts; one authority |
 | \`work/\` | \`work_inputs.py\`, \`work_queries.py\`, \`work_store.py\`, \`work_relation_commands.py\` | Current Work CAS, bounded discovery, optional relation DAG |
-| \`social/\` | \`collaboration_inputs.py\`, \`social_errors.py\`, \`social_store.py\`, \`social_read_queries.py\`; \`social_space_commands.py\`, \`social_space_queries.py\`, \`social_topic_commands.py\`, \`social_topic_queries.py\`, \`social_message_commands.py\`, \`social_message_queries.py\`; \`coordination_inputs.py\`, \`coordination_intent_commands.py\` | Space, Topic, Message, Participation/relations and optional internal Coordination Intent; no IAM/Work scheduler |
+| \`social/\` | \`collaboration_inputs.py\`, \`social_errors.py\`, \`social_store.py\`; \`social_space_commands.py\`, \`social_space_queries.py\`, \`social_topic_commands.py\`, \`social_topic_queries.py\`, \`social_message_commands.py\`, \`social_message_queries.py\`; \`coordination_inputs.py\`, \`coordination_intent_commands.py\` | Space, Topic, Message, Participation/relations and optional internal Coordination Intent; no IAM/Work scheduler |
 | \`attention/\` | \`attention_store.py\`, \`attention_projections.py\`, \`attention_sql.py\` | Subscription, Attention cursor, delta/reentry and single-snapshot read view; read canonical Work/Social rows only |
 | \`transport/\` | \`mcp_tool_registration.py\`, \`mcp_work_tools.py\`, \`mcp_social_tools.py\`, \`mcp_attention_tools.py\`, \`mcp_domain_errors.py\`, \`http_identity.py\` | Official MCP tool adapters, stable schema and HTTP workload authentication |
 | \`operations/\` | \`service.py\`, \`contracts.py\`, \`native_pool_observability.py\` | Host readiness, cross-domain integrity diagnostics and pool observability; read-only cross-domain integration |
@@ -438,3 +440,58 @@ consumer benefit, accurate source-path closure and formal/prod tests. M4
 PG integration test organization awaits consumer-driven evidence. Principal
 identity, legacy ingress and Plugin archive parameter capture remain P0
 with their natural Gateway/Security/Harness owners.
+
+
+## R3 Work read composition (2026-11-24)
+
+WorkStore now composes WorkReadQueries with an explicit native connection factory;
+readback inside create/commit still uses read_work_in_tx on the caller transaction.
+The pure bounded revision successor lives in work_revision_logic.py and the existing
+CrossHair source target follows it. Public WorkStore/MCP and PG schema are unchanged.
+The older inherited read facet descriptions above are historical.
+
+
+### R5 Attention explicit read composition
+
+The public AttentionStore surface stays unchanged. It composes three concrete read
+capabilities using the existing native connection checkout. Actor and target
+existence use the canonical conn-scoped reference lookup; Reentry owns one
+REPEATABLE READ, READ ONLY transaction and invokes Delta's transaction-local
+query before reading Topic consumption coordinates on that same connection.
+No secondary transaction, event authority, routing permission or assignment is
+introduced. The obsolete inheritance-only read facade is removed.
+
+R44/R47 synthetic benchmark scripts now inject SQL at the actual executing
+Delta module instead of the retired facade. The native PG test intentionally
+injects an undefined relation through the benchmark path, checks that both
+Delta and Reentry fail, then restores the real query. Prior benchmark measurements
+are historical evidence for their source cuts, not fresh measurements for R5.
+### R6 Social explicit read composition
+
+The existing SocialStore API explicitly delegates Space, Topic and Message
+queries to concrete capabilities using the same native checkout. Canonical
+Actor/Space/Topic reference lookups receive the caller-owned PG connection
+directly. The inheritance-only SocialReadQueries facade has no independent
+state or semantics and is removed. Every public read still owns exactly one
+REPEATABLE READ, READ ONLY transaction; command mixins and same-transaction
+command readbacks are unchanged. This is independent of Social MCP port
+registration (#2589); no public Tool, schema, credential or new read database.
+
+### R6 Social command composition (candidate following explicit reads)
+
+`SocialStore` remains the public write/read facade and owns its native
+`HostPostgresConnections` adapter. The Space, Topic, Message and Coordination
+Intent command providers each accept the caller's checkout function explicitly;
+their ActorRef/record checks call the canonical reference provider on the
+same transaction connection. There is no separate writer, transaction manager,
+authorization decision or connection pool. The ten read and eight command
+methods retain their existing signatures and native MCP contract.
+
+The eight commands' concrete acceptance includes direct and pooled single
+checkouts, typed missing-reference failures, successful reuse of a request ID
+after rollback, exact receipt replay apart from the existing admission marker,
+and opaque external reference versus real ActorRef mention behavior.
+`test_topic_message_identity_waits_for_real_pg_topic_no_key_update_lock`
+continues to verify the real same-topic ordering fence, independently of
+inheritance or source formatting. These are finite implementation witnesses,
+not a universal proof or installed production qualification.

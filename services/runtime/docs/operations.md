@@ -236,7 +236,7 @@ python3 scripts/resource_workload_profile.py \
   /path/to/receipt-export
 ```
 
-The script scans only explicitly supplied files/directories, fails closed when the file bound is exceeded or a candidate receipt violates the R1 identity/value contract, and emits deterministic JSON with receipt count, P50/P95/P99 CPU usage, memory peak, read/write/total I/O bytes, optional swap coverage, memory-event totals, and observation window. `--expected-attempts` is the caller-owned terminal-Attempt denominator; only when it is supplied does `coverage.basisPoints` claim receipt coverage. Without it, coverage is marked `receipt_files_only` and no missing-receipt rate is invented. The script does not open or mutate the Runtime Registry, rank machines/providers, price cloud resources, or create a second scheduler/telemetry authority.
+The script scans only explicitly supplied files/directories, fails closed when the file bound is exceeded or a candidate receipt violates the R1 identity/value contract, and emits deterministic JSON with unique-Attempt receipt count, P50/P95/P99 CPU usage, memory peak, read/write/total I/O bytes, optional swap coverage, memory-event totals, and observation window. Receipt identity is `(jobId, attemptId)`: identical validated payloads for the same identity are idempotently counted once, while conflicting copies of one identity are rejected rather than silently inflating coverage or event totals. `--expected-attempts` is the caller-owned terminal-Attempt denominator; only when it is supplied does `coverage.basisPoints` claim unique-Attempt receipt coverage. Without it, coverage is marked `receipt_files_only` and no missing-receipt rate is invented. The script does not open or mutate the Runtime Registry, rank machines/providers, price cloud resources, or create a second scheduler/telemetry authority.
 
 ## Local deployment
 
@@ -353,7 +353,7 @@ The probe identifies itself as `ordivon-mcp-probe/1` instead of inheriting Pytho
 
 ## Runtime history archival inspection
 
-`scripts/ordivon-runtime-archive` is currently a **repository-owned read-only planning surface** for the append-oriented Runtime Registry and immutable Attempt bundles. It is deliberately not part of the stable schema-v2 installed release artifact set yet: adding an artifact to that set requires its own additive-install/rollback contract instead of weakening the current deployer's pre-install completeness check. The Python surface owns policy and report presentation only; Registry capability validation, classification, closure counts, and sample selection come from the Rust `ordivon-runtime-inspect registry-archive` projection. The inspector does not export an archive, delete hot rows, move bundles, VACUUM SQLite, or establish deletion authority. The default seven-day policy classifies only stable terminal Jobs (`succeeded`, `failed`, `timed_out`, `cancelled`) as candidates. `lost` and `orphaned` remain excluded because Runtime repair semantics can still strengthen those states; Jobs with Runtime release effects, active/held reservations, or residual supervisor ownership are also excluded. Historical Jobs whose `current_attempt_id` is null use the same latest-`attempt_number` fallback as Runtime Core rather than being misclassified as corrupt.
+`scripts/ordivon-runtime-archive` is currently a **repository-owned read-only planning surface** for the append-oriented Runtime Registry and immutable Attempt bundles. It is deliberately not part of the stable schema-v2 installed release artifact set yet: adding an artifact to that set requires its own additive-install/rollback contract instead of weakening the current deployer's pre-install completeness check. The Python surface owns policy and report presentation only; Registry capability validation, classification, closure counts, and sample selection come from the Rust `ordivon-runtime-inspect registry-archive` projection. The inspector does not export an archive, delete hot rows, move bundles, VACUUM SQLite, or establish deletion authority. The default seven-day policy classifies only stable terminal Jobs (`succeeded`, `failed`, `timed_out`, `cancelled`) as candidates. `lost` and `orphaned` remain excluded because Runtime repair semantics can still strengthen those states; Jobs with Runtime release effects, active/held reservations, or residual supervisor ownership are also excluded. Every Attempt must have exactly one recorded released reservation; missing, duplicate or unrecognized reservation evidence and null Attempt states exclude the Job from candidates. This is not consumer release or deletion authority. Historical Jobs whose `current_attempt_id` is null use the same latest-`attempt_number` fallback as Runtime Core rather than being misclassified as corrupt.
 
 ```bash
 scripts/ordivon-runtime-archive \
@@ -1002,3 +1002,37 @@ Use the owner-native `cargo test -p ordivon-runtime-mcp --features postgres-runt
 `--test pg_vertical -- --ignored --test-threads=1` after building the native Runner
 for disposable PostgreSQL lifecycle verification. A transport repair does not
 import historical state or authorize a schema epoch transition.
+
+### PostgreSQL Artifact Job lookup index (additive R1)
+
+The fresh-epoch schema includes `idx_artifacts_job`, a non-unique B-tree
+on `artifacts(job_id)`. It is a derived query access path, not new execution,
+retention, or Artifact authority. The existing Attempt composite unique index
+continues to serve the reverse lookup.
+
+For an **existing, operator-approved active Runtime schema**, use
+`crates/ordivon-runtime-core/sql/pg_artifact_job_lookup_r1.sql` with native
+`psql -X -w -v ON_ERROR_STOP=1` in autocommit mode, explicitly supplying
+`search_path`, `ordivon.runtime_schema`, and `ordivon.source_sha256` as
+connection/session settings (for example via approved PGOPTIONS). Connect using the approved
+operator DSN through the normal secret handling; never place credentials
+in logs. Do not use `--single-transaction`. Set bounded lock/statement
+timeouts appropriate to the measured table size and active workload.
+Do not apply to a historical staging schema, restored unqualified epoch,
+public or Harness. The operator must separately exclude concurrent schema
+administration, source/epoch cutover and maintenance conflicts; the script's
+preflight is not a lock spanning concurrent index construction.
+
+The migration verifies current source and native physical epoch both before
+and after DDL, uses `CREATE INDEX CONCURRENTLY`, and accepts an existing
+same-name object only if PostgreSQL catalogs verify the exact usable
+index (default B-tree, one key, no predicate, expression or INCLUDE).
+No automatic DROP/REINDEX is performed. An interrupted build can leave an
+invalid index: inspect the native catalog and `pg_stat_progress_create_index`,
+resolve the incomplete object under the operator's own approved maintenance
+procedure, then rerun. A successful psql exit and native catalog readback
+are required; a matching name alone is not acceptance. Reverify the qualified
+epoch and actual consumer plans after the operation. Measure write overhead,
+index space and both read directions before claiming a performance win.
+Reverting this derived access path is a separate operator-approved
+`DROP INDEX CONCURRENTLY` of the exact qualified index, not data retirement.

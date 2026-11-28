@@ -91,11 +91,25 @@ impl PgRuntime {
         let a = self.cancel_attempt_identity(db, &request.job_id)?;
         if !a.state.is_terminal() {
             prepare_private_pg_attempt_bundle(Path::new(&a.bundle_path))?;
-            universal::write_json_atomic(
-                &Path::new(&a.bundle_path).join("cancel-requested.json"),
-                &json!({"requestedAtMs":now()?}),
-            )
-            .map_err(io)?;
+            #[cfg(not(windows))]
+            {
+                // The same trusted root-owned Attempt inode is locked by the
+                // Runner while checking cancel and spawning each payload.
+                // Once this marker is durable and the lock is released, any
+                // later Runner step must observe cancellation before spawn.
+                // Windows PG uses its own native JobObject launcher and does
+                // not run the Unix Runner. Preserve its separate protocol.
+                #[cfg(unix)]
+                let _spawn_guard =
+                    universal::lock_attempt_spawn_fence(Path::new(&a.bundle_path)).map_err(io)?;
+                universal::write_json_atomic(
+                    &Path::new(&a.bundle_path).join("cancel-requested.json"),
+                    &json!({"requestedAtMs":now()?}),
+                )
+                .map_err(io)?;
+            }
+            #[cfg(windows)]
+            self.publish_native_windows_stop(&a)?;
             if a.state == AttemptState::Accepted {
                 self.reconcile(db, &request.job_id)?;
                 return self.project(
@@ -112,26 +126,29 @@ impl PgRuntime {
                     },
                 );
             }
-            // systemd-run already sets KillMode=control-group,
-            // TimeoutStopSec=2s and SendSIGKILL=yes. Reuse that native
-            // stop policy: no extra PID walker, custom signal escalation or
-            // immediate hard-kill wrapper is needed.
-            if a.unit_name != format!("ordivon-pg-{}.service", a.attempt_id) {
-                return Err(error("Attempt native unit identity mismatch"));
-            }
-            let stop = super::platform::stop_unit_no_block(&a.unit_name)?;
-            if !stop.status.success() {
-                // A transient Unit may already have been collected. This
-                // failed submission is not proof of an active process; native
-                // reconciliation owns the terminal/no-result decision.
-                let unit = super::platform::systemctl_show(&a.unit_name)?;
-                if super::platform::unit_is_active(&unit)
-                    || super::platform::unit_has_pending_job(&unit)
-                {
-                    return Err(error(format!(
-                        "cancel intent persisted; native stop not confirmed for {}",
-                        request.job_id
-                    )));
+            #[cfg(not(windows))]
+            {
+                // systemd-run already sets KillMode=control-group,
+                // TimeoutStopSec=2s and SendSIGKILL=yes. Reuse that native
+                // stop policy: no extra PID walker, custom signal escalation or
+                // immediate hard-kill wrapper is needed.
+                if a.unit_name != format!("ordivon-pg-{}.service", a.attempt_id) {
+                    return Err(error("Attempt native unit identity mismatch"));
+                }
+                let stop = super::platform::stop_unit_no_block(&a.unit_name)?;
+                if !stop.status.success() {
+                    // A transient Unit may already have been collected. This
+                    // failed submission is not proof of an active process; native
+                    // reconciliation owns the terminal/no-result decision.
+                    let unit = super::platform::systemctl_show(&a.unit_name)?;
+                    if super::platform::unit_is_active(&unit)
+                        || super::platform::unit_has_pending_job(&unit)
+                    {
+                        return Err(error(format!(
+                            "cancel intent persisted; native stop not confirmed for {}",
+                            request.job_id
+                        )));
+                    }
                 }
             }
         }

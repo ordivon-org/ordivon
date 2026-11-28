@@ -158,7 +158,10 @@ Cross-platform kernel fidelity is expressed separately under `reference/linux/`.
 ### Owner-native test selection
 
 The source-local `mise run ci` runs upstream ShellCheck **and** the Network
-Owner's checked-in Python pytest suite using Python 3.15 and pytest 9.1.1.
+Owner's checked-in Python pytest suite using the mise-selected Python 3.15
+patch release and the owner-local locked uv environment (pytest and Z3).
+The uv executable tracks upstream stable; update dependencies through the
+existing native uv lock and qualify the exact resolved toolchain.
 It must fail when either native tool fails. These tests protect the exact
 source currently present in this repository; their PASS does **not** certify
 real-network/provider behavior, a full external Gluetun cutover, or additional

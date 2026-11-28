@@ -41,13 +41,17 @@ def verify_web_local(path: Path) -> dict[str, Any]:
     parsed: dict[str, Any] | None = None
     parse_error: str | None = None
     try:
-        parsed = json.loads(proc.stdout)
+        value = json.loads(proc.stdout)
+        if not isinstance(value, dict):
+            raise ValueError("browser report must be an object")
+        parsed = value
     except Exception as error:
         parse_error = str(error)
 
     digest_ok = (
         parsed is not None
-        and parsed.get("subject", {}).get("sha256")
+        and isinstance(parsed.get("subject"), dict)
+        and parsed["subject"].get("sha256")
         == artifact["digest"]["sha256"]
     )
     return {

@@ -167,7 +167,7 @@ class FormalTraceContractTests(unittest.TestCase):
         terminal = next(item for item in trace["provingTests"] if item["id"] == "RuntimeDispatch.terminalEvidence")
         self.assertEqual(
             terminal["path"],
-            "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
+            "crates/ordivon-runtime-core/src/runtime/job_attempt_state/lifecycle_tests.rs",
         )
         self.assertEqual(
             terminal["symbol"],
@@ -803,6 +803,7 @@ class FormalTraceContractTests(unittest.TestCase):
             rust = root / "crates/ordivon-runtime-core/src/lib.rs"
             sql = root / "crates/ordivon-runtime-core/migrations/schema.sql"
             rust.parent.mkdir(parents=True)
+            (rust.parent / "runtime").mkdir()
             sql.parent.mkdir(parents=True)
             rust.write_text("fn original() {}\n", encoding="utf-8")
             sql.write_text("CREATE TABLE original(id INTEGER);\n", encoding="utf-8")
@@ -847,6 +848,63 @@ class FormalTraceContractTests(unittest.TestCase):
                 self.assertEqual(len(receipt["sourcePaths"]), 2)
                 self.assertTrue(any(path.endswith(".sql") for path in receipt["sourcePaths"]))
                 self.assertFalse(receipt["proofReuseAdmissible"])
+                unextended = depfile.read_text(encoding="utf-8")
+                env_row = "# env-dep:CARGO_MANIFEST_DIR=" + str(root / "crates/ordivon-runtime-core") + "\n"
+                depfile.write_text(unextended + env_row, encoding="utf-8")
+                with_env = self.module._native_libtest_depfile_receipt(bin_path, sha)
+                self.assertEqual(with_env["sourcePaths"], receipt["sourcePaths"])
+                self.assertNotEqual(with_env["compilerEnvironmentDigest"], receipt["compilerEnvironmentDigest"])
+                # Actual PG rustc dep-info includes SQL via absolute
+                # include_str!(concat!(env!("CARGO_MANIFEST_DIR"), ...)).
+                absolute_sql = str(sql)
+                abs_depfile = unextended.replace(native_inputs[1], absolute_sql) + env_row
+                depfile.write_text(abs_depfile, encoding="utf-8")
+                absolute_receipt = self.module._native_libtest_depfile_receipt(bin_path, sha)
+                self.assertEqual(absolute_receipt["sourcePaths"], receipt["sourcePaths"])
+                self.assertEqual(absolute_receipt["sourceGitBlobsDigest"], receipt["sourceGitBlobsDigest"])
+                # Real PG rustc emits both a relative include and an
+                # absolute include of the same tracked SQL blob.
+                doubled_inputs = [*native_inputs, absolute_sql]
+                joined_double = " ".join(doubled_inputs)
+                paired = (
+                    f"{depfile}: {joined_double}\n\n{bin_path}: {joined_double}\n\n"
+                    + "\n".join(f"{path}:" for path in doubled_inputs)
+                    + "\n" + env_row
+                )
+                depfile.write_text(paired, encoding="utf-8")
+                merged = self.module._native_libtest_depfile_receipt(bin_path, sha)
+                self.assertEqual(merged["sourcePaths"], receipt["sourcePaths"])
+                self.assertEqual(merged["sourceGitBlobsDigest"], receipt["sourceGitBlobsDigest"])
+                self.assertEqual(merged["rawSourcePathCount"], 3)
+                self.assertEqual(merged["canonicalAliasPaths"], ["services/runtime/crates/ordivon-runtime-core/migrations/schema.sql"])
+                self.assertNotEqual(merged["compilerSourceAliasDigest"], absolute_receipt["compilerSourceAliasDigest"])
+                # A raw intermediate symlink changes path traversal before
+                # normalization; normalized name alone is not evidence.
+                (rust.parent / "foreign").symlink_to(base, target_is_directory=True)
+                depfile.write_text(unextended.replace(native_inputs[1],
+                    "crates/ordivon-runtime-core/src/foreign/../../migrations/schema.sql"), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "absent|alias|outside"):
+                    self.module._native_libtest_depfile_receipt(bin_path, sha)
+                (rust.parent / "foreign").unlink()
+                for malformed in (
+                    abs_depfile.replace(absolute_sql, str(base / "outside.sql")),
+                    abs_depfile.replace(absolute_sql, str(sql.parent / ".." / "migrations/schema.sql")),
+                    abs_depfile + absolute_sql + ":\n",
+                    abs_depfile.removesuffix(env_row),
+                ):
+                    depfile.write_text(malformed, encoding="utf-8")
+                    with self.assertRaises(ValueError):
+                        self.module._native_libtest_depfile_receipt(bin_path, sha)
+                for bad in (
+                    env_row + env_row,
+                    "# env-dep:CARGO_MANIFEST_DIR=/elsewhere\n",
+                    "# env-dep:UNKNOWN_KEY=opaque\n",
+                    "# env-dep:CARGO_MANIFEST_DIR\n",
+                ):
+                    depfile.write_text(unextended + bad, encoding="utf-8")
+                    with self.assertRaisesRegex(ValueError, "compiler environment"):
+                        self.module._native_libtest_depfile_receipt(bin_path, sha)
+                depfile.write_text(unextended, encoding="utf-8")
                 original_sql = sql.read_text(encoding="utf-8")
                 sql.write_text("CREATE TABLE different(id TEXT);\n", encoding="utf-8")
                 with self.assertRaisesRegex(ValueError, "physical/Git blob mismatch"):
@@ -956,11 +1014,28 @@ class FormalTraceContractTests(unittest.TestCase):
             {"UNKNOWN"},
         )
 
+    def test_native_cargo_build_inputs_are_positive_witness_edges(self):
+        trace, invariants = manifests()
+        for relative in ("Cargo.lock", "Cargo.toml", "rust-toolchain.toml",
+                         "crates/ordivon-runtime-core/Cargo.toml",
+                         "crates/ordivon-runtime-mcp/Cargo.toml"):
+            with self.subTest(relative=relative):
+                path = "services/runtime/" + relative
+                result = self.module.project_proving_test_source_impact(trace, invariants, {path})
+                self.assertEqual(
+                    {r["standing"] for r in result["standingByWitness"]},
+                    {"RECHECK_REQUIRED"},
+                )
+                self.assertTrue(all(path in r["matchedChangedPaths"] for r in result["standingByWitness"]))
+                self.assertEqual(result["unindexedRuntimeChanges"], [])
+                self.assertFalse(result["proofReuseAdmissible"])
+                self.assertTrue(all(not r["dependenciesComplete"] for r in result["sourceReadsetEvidence"]["items"]))
+
     def test_runtime_formal_source_impact_known_recheck_not_erased_by_unknown(self):
         trace, invariants = manifests()
         changed = {
             "services/runtime/crates/ordivon-runtime-core/src/runtime/execution_provider.rs",
-            "services/runtime/Cargo.lock",
+            "services/runtime/crates/ordivon-runtime-core/src/unknown_new_module.rs",
         }
         result = self.module.project_proving_test_source_impact(trace, invariants, changed)
         statuses = {row["id"]: row["standing"] for row in result["standingByWitness"]}
@@ -1006,6 +1081,100 @@ class FormalTraceContractTests(unittest.TestCase):
         )
         self.assertIn("ONLY", result["scope"])
         self.assertFalse(any("PASS" == row["standing"] for row in result["standingByWitness"]))
+
+    def test_ancestor_toolchain_changes_are_not_unrelated_repository_changes(self):
+        trace, invariants = manifests()
+        for path in ("services/.cargo/config.toml", "services/rust-toolchain.toml",
+                     "services/mise.toml", "services/Cargo.toml"):
+            with self.subTest(path=path):
+                result = self.module.project_proving_test_source_impact(trace, invariants, {path})
+                self.assertEqual({r["standing"] for r in result["standingByWitness"]}, {"UNKNOWN"})
+                self.assertIn(path, result["crosscuttingAssumptionChanges"])
+
+    def test_native_source_cut_ignores_inherited_git_worktree_redirection(self):
+        import os
+        import subprocess
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            repo = base / "repo"
+            source = repo / "services/runtime"
+            source.mkdir(parents=True)
+            core = source / "core.rs"
+            core.write_text("fn original() {}\n")
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), "-c", "user.name=FormalTest",
+                     "-c", "user.email=test@example.invalid", *args],
+                    stderr=subprocess.PIPE,
+                ).decode().strip()
+            git("init", "-q")
+            git("add", ".")
+            git("commit", "-qm", "baseline")
+            head = git("rev-parse", "HEAD")
+            alternate = base / "clean-alternate"
+            git("worktree", "add", "--detach", str(alternate), head)
+            old_root = self.module.ROOT
+            self.module.ROOT = source
+            try:
+                self.assertEqual(self.module._git_source_changes(head, head), set())
+                core.write_text("fn changed() {}\n")
+                with self.assertRaisesRegex(ValueError, "worktree is dirty"):
+                    self.module._git_source_changes(head, head)
+                with patch.dict(os.environ, {"GIT_WORK_TREE": str(alternate)}):
+                    self.assertEqual(git("status", "--porcelain"), "")
+                    with self.assertRaisesRegex(ValueError, "worktree is dirty"):
+                        self.module._git_source_changes(head, head)
+                    with self.assertRaisesRegex(ValueError, "worktree is dirty"):
+                        self.module._qualified_native_source_head()
+            finally:
+                self.module.ROOT = old_root
+
+    def test_exact_git_source_impact_rejects_replace_ref_and_ancestor_dirty_config(self):
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            source = repo / "services/runtime"
+            source.mkdir(parents=True)
+            (source / "core.rs").write_text("fn baseline() {}\n")
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), "-c", "user.name=FormalTest",
+                     "-c", "user.email=test@example.invalid", *args],
+                    stderr=subprocess.PIPE,
+                ).decode().strip()
+            git("init", "-q")
+            git("add", ".")
+            git("commit", "-qm", "baseline")
+            base = git("rev-parse", "HEAD")
+            tree = git("rev-parse", "HEAD^{tree}")
+            (source / "core.rs").write_text("fn changed() {}\n")
+            git("add", ".")
+            git("commit", "-qm", "changed")
+            head = git("rev-parse", "HEAD")
+            old_root = self.module.ROOT
+            self.module.ROOT = source
+            try:
+                self.assertEqual(self.module._git_source_changes(base, head),
+                                 {"services/runtime/core.rs"})
+                config = repo / "services/.cargo/config.toml"
+                config.parent.mkdir()
+                config.write_text("[build]\nrustflags = []\n")
+                with self.assertRaisesRegex(ValueError, "worktree is dirty"):
+                    self.module._git_source_changes(base, head)
+                config.unlink()
+                config.parent.rmdir()
+                substitute = git("commit-tree", tree, "-p", base, "-m", "substitute")
+                git("replace", head, substitute)
+                git("reset", "--hard", head)
+                self.assertEqual(git("diff", "--name-only", base, head), "")
+                self.assertEqual(git("status", "--porcelain"), "")
+                with self.assertRaisesRegex(ValueError, "replace"):
+                    self.module._git_source_changes(base, head)
+            finally:
+                self.module.ROOT = old_root
 
     def test_runtime_formal_source_impact_rejects_hidden_dirty_git_index_flags(self):
         import subprocess
@@ -1169,6 +1338,77 @@ class FormalTraceContractTests(unittest.TestCase):
                     self.module.project_proving_test_source_impact(trace, invariants, {bad})
         with self.assertRaisesRegex(ValueError, "exact 40-hex"):
             self.module._git_source_changes("HEAD", "HEAD")
+
+    def test_pg_profile_separates_executed_and_conditional_evidence(self):
+        trace, invariants = manifests()
+        selected = self.module.native_profile_trace(trace, "pg")
+        self.assertEqual(self.module.validate(trace, invariants), [])
+        self.assertEqual(
+            {x["symbol"] for x in selected["provingTests"]},
+            {
+                "provider_replacement_cannot_weaken_r1_guarantees",
+                "terminal_evidence_requires_result_finish_matching_resolution_and_no_current_attempt",
+                "terminal_requires_corresponding_attempt_evidence_and_released_capacity",
+                "orphan_never_projects_as_released_capacity",
+            },
+        )
+        self.assertIn("pg18_concurrent_duplicate_never_creates_second_job",
+                      {x["symbol"] for x in selected["conditionalAcceptanceTests"]})
+        self.assertEqual(selected["contractSeams"], [])
+        self.assertEqual(len(selected["supportingContracts"]), 1)
+        for row in selected["conditionalAcceptanceTests"]:
+            self.assertEqual(row["evidenceMode"], "physical-opt-in")
+            native = self.module._native_witness_name(
+                row, {row["path"].split("/src/")[1][:-3].replace("/", "::") + "::" + row["symbol"]}
+            )
+            with self.assertRaisesRegex(ValueError, "ignored/always-on"):
+                self.module._require_native_test_role(row, {native}, set(), require_ignored=True)
+
+    def test_pg_impact_selects_own_readset_and_never_infers_reuse(self):
+        trace, invariants = manifests()
+        sql = "services/runtime/crates/ordivon-runtime-core/src/pg_admission/live_pg_tests/dispatch_cases.rs"
+        result = self.module.project_proving_test_source_impact(trace, invariants, {sql}, profile="pg")
+        self.assertEqual(result["implementationProfile"], "pg")
+        rows = {row["id"]: row for row in result["standingByWitness"]}
+        self.assertEqual(set(rows), {row["id"] for row in trace["pgNativeWitnesses"]})
+        self.assertEqual(rows["PG.dispatchCAS"]["standing"], "RECHECK_REQUIRED")
+        self.assertEqual(rows["PG.terminalProjection"]["standing"], "UNKNOWN")
+        self.assertFalse(result["proofReuseAdmissible"])
+        observed = self.module.project_proving_test_source_impact(trace, invariants, {sql}, compiler_inputs={sql}, profile="pg")
+        self.assertEqual({x["standing"] for x in observed["standingByWitness"]}, {"RECHECK_REQUIRED"})
+        self.assertEqual(observed["sourceReadsetEvidence"]["implementationProfile"], "pg")
+
+    def test_pg_profile_rejects_missing_or_relabelled_witness(self):
+        trace, invariants = manifests()
+        for change in ("missing", "legacy-role", "unknown-relation", "missing-condition"):
+            mutated = copy.deepcopy(trace)
+            rows = mutated["pgNativeWitnesses"]
+            if change == "missing":
+                rows.pop()
+            elif change == "legacy-role":
+                next(row for row in rows if row["evidenceMode"] == "physical-opt-in")["evidenceMode"] = "always-on"
+            elif change == "unknown-relation":
+                rows[0]["modelRelations"] = ["Nonexistent"]
+            else:
+                next(row for row in rows if row["evidenceMode"] == "physical-opt-in").pop("condition")
+            with self.subTest(change=change):
+                self.assertTrue(self.module.validate(mutated, invariants))
+
+    def test_cargo_profile_artifact_rejects_mixed_backend(self):
+        artifact = {
+            "reason": "compiler-artifact",
+            "target": {"name": "ordivon_runtime_core", "kind": ["lib"]},
+            "profile": {"test": True},
+            "features": ["postgres-registry-admission", "runtime-contract"],
+            "executable": "/build/test",
+        }
+        self.assertEqual(self.module._native_cargo_test_artifact(json.dumps(artifact), "pg"), artifact)
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            self.module._native_cargo_test_artifact(json.dumps(artifact), "legacy")
+        artifact["features"].append("transactional-runtime")
+        for profile in ("pg", "legacy"):
+            with self.assertRaisesRegex(ValueError, "exactly one"):
+                self.module._native_cargo_test_artifact(json.dumps(artifact), profile)
 
     def test_cargo_compiler_artifact_is_not_inferred_from_filenames(self):
         import json

@@ -23,6 +23,7 @@ SQLITE_STORAGE = "services/runtime/crates/ordivon-runtime-core/src/runtime/"
 OSQUERY_PREFIX = "platform/workstation/inventory/queries/"
 POSTGRESQL_FILE = "studies/experimental-episodes/episode-store/sql/runtime_r5c_export.sql"
 POSTGRESQL_RUNTIME_EPOCH = "services/runtime/crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"
+POSTGRESQL_RUNTIME_ARTIFACT_INDEX = "services/runtime/crates/ordivon-runtime-core/sql/pg_artifact_job_lookup_r1.sql"
 POSTGRESQL_RUNTIME_CLAIMS = "services/runtime/crates/ordivon-runtime-core/sql/pg_workspace_claim_r1.sql"
 POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER = "services/runtime/sql/pg_resource_scheduler_v1.sql"
 POSTGRESQL_ELE_STUDY_SCHEMA = "catalogs/capabilities/ele/schema.sql"
@@ -69,7 +70,7 @@ SQLITE_LEGACY_SOURCE_CALLS: dict[str, int] = {
     'services/harness/scripts/browser_security_witness_source.py': 1,
     'services/harness/scripts/campaign_materialization.py': 1,
     'services/harness/scripts/cft_human_session.py': 2,
-    'services/harness/scripts/harness_p0_scale_acceptance.py': 1,
+    # Harness scale acceptance now uses disposable PostgreSQL schemas.
     'services/harness/scripts/materialization_reconciliation_archive.py': 1,
     'services/harness/scripts/playwright_browserless_turn_once.py': 1,
     'services/harness/scripts/sqlite_conversation_binding.py': 3,
@@ -261,7 +262,7 @@ def classify(path: str) -> str | None:
         return "sqlite"
     if path.startswith(SQLITE_STORAGE) and path.endswith("_storage.sql"):
         return "sqlite"
-    if path in {POSTGRESQL_FILE, POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_CLAIMS, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER, POSTGRESQL_ELE_STUDY_SCHEMA}:
+    if path in {POSTGRESQL_FILE, POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_ARTIFACT_INDEX, POSTGRESQL_RUNTIME_CLAIMS, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER, POSTGRESQL_ELE_STUDY_SCHEMA}:
         return "postgresql"
     return None
 
@@ -394,7 +395,7 @@ def pg_runtime_ddl_structure_issues(name: str, parsed: object) -> list[str]:
             "TransactionStmt", "DoStmt",
             "CreateStmt", "CreateStmt", "CreateStmt", "CreateStmt",
             "CreateStmt", "IndexStmt", "CreateStmt", "IndexStmt",
-            "CreateStmt", "CreateStmt", "IndexStmt", "CreateStmt", "CreateStmt", "TransactionStmt",
+            "CreateStmt", "CreateStmt", "IndexStmt", "CreateStmt", "IndexStmt", "CreateStmt", "TransactionStmt",
         )
         named = [
             (type(statement.stmt).__name__,
@@ -416,6 +417,7 @@ def pg_runtime_ddl_structure_issues(name: str, parsed: object) -> list[str]:
             ("IndexStmt", "job_runtime_release_effects",
              "idx_runtime_release_effect_request"),
             ("CreateStmt", "artifacts", None),
+            ("IndexStmt", "artifacts", "idx_artifacts_job"),
             ("CreateStmt", "_stage_control", None),
         ]
         if (
@@ -427,6 +429,27 @@ def pg_runtime_ddl_structure_issues(name: str, parsed: object) -> list[str]:
             issues.append(
                 f"PostgreSQL fresh-epoch DDL statement structure changed: {name}"
             )
+    elif name == POSTGRESQL_RUNTIME_ARTIFACT_INDEX:
+        # Pure server SQL: native AST, no psql meta-command parser.
+        observed = tuple(type(statement.stmt).__name__ for statement in parsed)
+        if observed != ("DoStmt", "IndexStmt", "DoStmt", "DoStmt"):
+            issues.append(f"PostgreSQL Runtime Artifact online index structure changed: {name}")
+        else:
+            index = parsed[1].stmt
+            if (
+                index.relation.relname != "artifacts"
+                or index.idxname != "idx_artifacts_job"
+                or not index.concurrent or not index.if_not_exists
+                or index.unique or index.whereClause is not None
+                or index.accessMethod != "btree"
+                or index.indexIncludingParams
+                or len(index.indexParams) != 1
+                or index.indexParams[0].name != "job_id"
+                or index.indexParams[0].expr is not None
+                or index.indexParams[0].opclass
+                or index.indexParams[0].collation
+            ):
+                issues.append(f"PostgreSQL Runtime Artifact online index shape changed: {name}")
     elif name == POSTGRESQL_RUNTIME_CLAIMS:
         # The additive migration is operator-scoped to exactly the Runtime PG
         # owner schema. One guarded DO, one new table, one partial held-claim
@@ -593,7 +616,7 @@ def check(root: Path) -> tuple[list[str], list[str]]:
             issues.append("PostgreSQL AST parser version is not pinned to exact 8.6")
         for name in grouped["postgresql"]:
             parsed = parse_sql((root / name).read_text(encoding="utf-8"))
-            if name in (POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_CLAIMS, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER):
+            if name in (POSTGRESQL_RUNTIME_EPOCH, POSTGRESQL_RUNTIME_ARTIFACT_INDEX, POSTGRESQL_RUNTIME_CLAIMS, POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER):
                 issues.extend(pg_runtime_ddl_structure_issues(name, parsed))
             elif name == POSTGRESQL_ELE_STUDY_SCHEMA:
                 # This PG-only Catalog read model is a schema, four

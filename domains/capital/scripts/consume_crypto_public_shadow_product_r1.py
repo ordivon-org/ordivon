@@ -12,6 +12,49 @@ PRODUCT_DIR = ROOT / "data-products/crypto-public-shadow-r2"
 SOURCE = ROOT / "evidence/crypto-public-shadow-r2-20260914.json"
 SCHEMA_URL = "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunEvent"
 
+# Frozen consumer obligation, independent of the producer's list order or
+# editable acceptance metadata. This consumer does not select a new product.
+PRODUCT_ID = "d14d7457-c9aa-59e0-8bf5-7783cea39c1c"
+PRODUCT_VERSION = "2026.09.14"
+PORT_ID = "358e57ff-d416-5dd6-a90c-f62b4bc94ff0"
+PORT_NAME = "public-shadow-json"
+PORT_TYPE = "file/json"
+CONTRACT_ID = "5de34add-dca7-54eb-ada3-5e657a7c3ff3"
+
+
+def select_frozen_output_port(product: dict, acceptance: dict) -> dict:
+    """Select one exact consumer-qualified port; no positional fallback.
+
+    Equivalent UUID spellings count toward ambiguity but are not admitted
+    in place of the frozen canonical identity. Unrelated ports may be
+    reordered without changing the selected subject.
+    """
+    ports = product.get("outputPorts")
+    if not isinstance(ports, list) or not all(
+        isinstance(port, dict) and isinstance(port.get("id"), str) for port in ports
+    ):
+        raise ValueError("public shadow product acceptance failed: output port shape")
+    candidates = []
+    for port in ports:
+        try:
+            equivalent = str(uuid.UUID(port["id"])) == PORT_ID
+        except ValueError:
+            equivalent = False
+        if equivalent:
+            candidates.append(port)
+    if len(candidates) != 1:
+        raise ValueError("public shadow product acceptance failed: unique output port")
+    port = candidates[0]
+    expected = {
+        "id": PORT_ID, "name": PORT_NAME, "type": PORT_TYPE,
+        "version": PRODUCT_VERSION, "contractId": CONTRACT_ID,
+    }
+    if any(port.get(key) != value for key, value in expected.items()) or (
+        acceptance.get("contractId") != CONTRACT_ID
+    ):
+        raise ValueError("public shadow product acceptance failed: exact output port contract")
+    return port
+
 
 def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -37,8 +80,8 @@ def main() -> None:
     # Do not use assert: optimized interpreters remove these acceptance gates.
     requirements = (
         ("source digest", source_sha == acceptance["sourceSha256"]),
-        ("product identity", product["id"] == acceptance["productId"]),
-        ("product version", product["version"] == "2026.09.14"),
+        ("product identity", product["id"] == acceptance["productId"] == PRODUCT_ID),
+        ("product version", product["version"] == PRODUCT_VERSION),
         ("public-only credentials", source["brokerCredentialsUsed"] is False),
         ("no private account data", source["privateAccountDataUsed"] is False),
         ("no external financial writes", source["externalFinancialWritesAttempted"] is False),
@@ -53,7 +96,7 @@ def main() -> None:
         if not valid:
             raise ValueError(f"public shadow product acceptance failed: {label}")
 
-    port = product["outputPorts"][0]
+    port = select_frozen_output_port(product, acceptance)
     out = args.output_dir
     out.mkdir(parents=True, exist_ok=True)
 

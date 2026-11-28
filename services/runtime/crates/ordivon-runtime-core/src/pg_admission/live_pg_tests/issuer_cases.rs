@@ -117,7 +117,52 @@ fn pg18_harness_issuer_current_at_dispatch_after_admission() {
             ],
         )
         .unwrap();
+    // An individually digest-valid but different Tool Intent is not the
+    // Intent committed by the original Fence. Keep the original semantic
+    // digest and update only the object reference and its valid CAS bytes.
+    let mut substituted_intent: serde_json::Value = serde_json::from_slice(&intent_raw).unwrap();
+    substituted_intent["runtimeArgumentsDigest"] =
+        serde_json::Value::String(format!("sha256:{}", "d".repeat(64)));
+    let (substituted_intent_digest, substituted_intent_raw) = encoded(&substituted_intent);
+    let mut substituted_payload: serde_json::Value = serde_json::from_slice(&payload_raw).unwrap();
+    substituted_payload["data"]["toolStepIntentObjectDigest"] =
+        serde_json::Value::String(substituted_intent_digest.clone());
+    let (substituted_payload_digest, substituted_payload_raw) = encoded(&substituted_payload);
+    let issuer_schema = scratch.name.clone();
+    let set_objects = |client: &mut Client, wrong: bool| {
+        let (pd, pr, id, ir) = if wrong {
+            (
+                &substituted_payload_digest,
+                &substituted_payload_raw,
+                &substituted_intent_digest,
+                &substituted_intent_raw,
+            )
+        } else {
+            (&payload_digest, &payload_raw, &intent_digest, &intent_raw)
+        };
+        client
+            .execute(
+                &format!(
+                    "UPDATE \"{}\".issuer_cut_fixture SET payload_digest=$1,payload_raw=$2,intent_digest=$3,intent_raw=$4 WHERE run_id=$5",
+                    issuer_schema
+                ),
+                &[pd, pr, id, ir, &run_id],
+            )
+            .unwrap()
+    };
+    let mut source = Client::connect(&dsn, NoTls).unwrap();
+    assert_eq!(set_objects(&mut source, true), 1);
     let mut db = PgAdmissionStore::connect(&dsn, &scratch.name).unwrap();
+    assert!(
+        matches!(
+            db.admit_with_workspace_guard(&harness, &|| Ok(()), Some(&scratch.name)),
+            Err(PgAdmissionError::IssuerNotCurrent)
+        ),
+        "a valid CAS object cannot substitute for the Fence's semantic Intent"
+    );
+    assert_eq!(scratch.count("jobs"), 0);
+    assert_eq!(scratch.count("attempts"), 0);
+    assert_eq!(set_objects(&mut source, false), 1);
     assert_eq!(
         db.admit_with_workspace_guard(&harness, &|| Ok(()), Some(&scratch.name),)
             .unwrap(),
@@ -143,7 +188,24 @@ fn pg18_harness_issuer_current_at_dispatch_after_admission() {
 
     // An independent source writer revokes the original Run after admission,
     // before the durable dispatch transaction commits.
-    let mut source = Client::connect(&dsn, NoTls).unwrap();
+    assert_eq!(set_objects(&mut source, true), 1);
+    assert!(
+        matches!(
+            db.mark_dispatch_issued_pg(
+                &issued,
+                Some(&scratch.name),
+                Some("original-harness-principal"),
+            ),
+            Err(PgAdmissionError::IssuerNotCurrent)
+        ),
+        "the later dispatch must reject a substituted current Intent"
+    );
+    assert_eq!(
+        scratch.count("job_events"),
+        4,
+        "no dispatch event on mismatched Intent"
+    );
+    assert_eq!(set_objects(&mut source, false), 1);
     source
         .execute(
             &format!(
@@ -424,6 +486,17 @@ fn pg18_original_harness_dispatch_current_two_connections() {
 #[test]
 #[ignore = "requires explicit ORDIVON_PG_TEST_DSN physical PostgreSQL qualification"]
 fn pg18_original_harness_store_real_issuer_same_job_late_revoke() {
+    original_harness_store_issuer_revoke(false);
+}
+
+#[test]
+#[ignore = "requires explicit disposable PostgreSQL qualification and native Unix process"]
+#[cfg(unix)]
+fn pg18_original_harness_issuer_receiver_spawn_after_revoke_is_denied() {
+    original_harness_store_issuer_revoke(true);
+}
+
+fn original_harness_store_issuer_revoke(receiver: bool) {
     use std::{path::PathBuf, process::Command};
     let dsn = physical_pg_test_dsn();
     let mut scratch = Scratch::new(&dsn);
@@ -528,6 +601,9 @@ fn pg18_original_harness_store_real_issuer_same_job_late_revoke() {
     original_job.workspace_id = workspace_id.clone();
     original_job.client_request_id = original["clientRequestId"].as_str().unwrap().into();
     original_job.execution_plan_json = serde_json::to_string(&plan).unwrap();
+    if receiver {
+        original_job.launch_token_digest = format!("sha256:{}", "c".repeat(64));
+    }
     // The actual PG source gate requires the same immutable ClientRequestId,
     // original Physical Execution and Fence on admission AND later dispatch.
     let mut runtime = PgAdmissionStore::connect(&limited_dsn, &scratch.name).unwrap();
@@ -548,6 +624,79 @@ fn pg18_original_harness_store_real_issuer_same_job_late_revoke() {
             expected_source_sha256: original_job.expected_source_sha256.clone(),
         })
         .unwrap();
+    if receiver {
+        let issued = PgDispatchIssued {
+            attempt_id: original_job.attempt_id.clone(),
+            expected_row_version: 1,
+            expected_bundle_digest: bundle.clone(),
+            observed_at_ms: original_job.created_at_ms + 2,
+            expected_source_sha256: original_job.expected_source_sha256.clone(),
+        };
+        runtime
+            .mark_dispatch_issued_pg(&issued, Some(&issuer_schema), Some(&original_job.principal))
+            .unwrap();
+        // Actual native process while the original source is current;
+        // this is the positive control for the receiver-side gate.
+        let marker = tempfile::tempdir().unwrap();
+        let output = marker.path().join("effect");
+        let result = runtime
+            .with_current_issued_harness_spawn(
+                PgIssuedHarnessSpawn {
+                    job_id: &original_job.job_id,
+                    attempt_id: &original_job.attempt_id,
+                    principal: &original_job.principal,
+                    bundle_digest: &bundle,
+                    launch_token_digest: &original_job.launch_token_digest,
+                    source_sha256: &original_job.expected_source_sha256,
+                    issuer_schema: &issuer_schema,
+                },
+                || Command::new("/usr/bin/touch").arg(&output).spawn(),
+            )
+            .unwrap()
+            .unwrap()
+            .wait()
+            .unwrap();
+        assert!(result.success() && output.exists());
+        std::fs::remove_file(&output).unwrap();
+        // Durable original Harness revoke while a native receiver is delayed.
+        let revoked = invoke("revoke");
+        assert_eq!(revoked["revision"], 3);
+        let mut called = false;
+        let denied = runtime.with_current_issued_harness_spawn(
+            PgIssuedHarnessSpawn {
+                job_id: &original_job.job_id,
+                attempt_id: &original_job.attempt_id,
+                principal: &original_job.principal,
+                bundle_digest: &bundle,
+                launch_token_digest: &original_job.launch_token_digest,
+                source_sha256: &original_job.expected_source_sha256,
+                issuer_schema: &issuer_schema,
+            },
+            || {
+                called = true;
+                Command::new("/usr/bin/touch").arg(&output).spawn()
+            },
+        );
+        assert!(matches!(denied, Err(PgAdmissionError::IssuerNotCurrent)));
+        assert!(
+            !called && !output.exists(),
+            "revoked receiver may not start a native effect"
+        );
+        let dispatches: i64 = scratch
+            .admin
+            .query_one(
+                "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type='DISPATCH_ISSUED'",
+                &[&original_job.job_id],
+            )
+            .unwrap()
+            .get(0);
+        assert_eq!(dispatches, 1);
+        scratch
+            .admin
+            .batch_execute(&format!("DROP SCHEMA \"{issuer_schema}\" CASCADE;"))
+            .unwrap();
+        return;
+    }
     // The *real* original Harness Store emits the UNKNOWN receipt after
     // a valid new-Job admission. This invalidates its source Run revision.
     let revoked = invoke("revoke");

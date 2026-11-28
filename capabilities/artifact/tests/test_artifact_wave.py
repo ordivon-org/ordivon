@@ -8,6 +8,8 @@ import unittest
 import wave
 from pathlib import Path
 
+from artifact_verification.tool_identity import assess_native_tool_paths
+
 ROOT=Path(__file__).resolve().parents[1]
 SPEC=importlib.util.spec_from_file_location('artifact_wave',ROOT/'scripts/artifact_wave.py');M=importlib.util.module_from_spec(SPEC);assert SPEC.loader;SPEC.loader.exec_module(M)
 
@@ -28,7 +30,16 @@ class ArtifactWaveTests(unittest.TestCase):
   self.require_tools()
   with tempfile.TemporaryDirectory() as d:
    r=Path(d);f=r/'a.wav';raw=make_wave(f);c=r/'c.json';contract(c,raw);v=M.verify_wave(f,c,r/'e')
-   self.assertEqual(v['status'],'PASS',v);self.assertTrue(v['decoderMatrix']['exactByteMatch']);self.assertEqual(v['referenceContainerView']['facts']['formatName'],'WAVE_FORMAT_PCM');self.assertEqual(v['independentTechnicalView']['facts']['codecTag'],'0x0001');self.assertEqual(set(v['claimResults']),{'contractSchema','decoderMatrix','independentTechnicalView','pcmIdentity','referenceContainerView'});self.assertTrue(all(x['status']=='PASS' for x in v['claimResults'].values()))
+   self.assertEqual(v['status'],'PASS',v)
+   tools=v['tools']
+   self.assertEqual(set(tools),{'sndfileInfo','sox','soxi','ffmpeg','ffprobe'})
+   self.assertEqual(assess_native_tool_paths({'tools':tools})['status'],'OBSERVED_POSTRUN_CONSISTENT')
+   for name,tool in tools.items():
+    with self.subTest(tool=name):
+     self.assertEqual(tool['sha256'],hashlib.sha256(Path(tool['path']).read_bytes()).hexdigest())
+     bad={**tools,name:{**tool,'sha256':'0'*64}}
+     self.assertTrue(assess_native_tool_paths({'tools':bad})['rejected'])
+   self.assertTrue(v['decoderMatrix']['exactByteMatch']);self.assertEqual(v['referenceContainerView']['facts']['formatName'],'WAVE_FORMAT_PCM');self.assertEqual(v['independentTechnicalView']['facts']['codecTag'],'0x0001');self.assertEqual(set(v['claimResults']),{'contractSchema','decoderMatrix','independentTechnicalView','pcmIdentity','referenceContainerView'});self.assertTrue(all(x['status']=='PASS' for x in v['claimResults'].values()))
  def test_wrong_sample_rate_contract_fails_after_file_remains_valid(self):
   self.require_tools()
   with tempfile.TemporaryDirectory() as d:
@@ -41,7 +52,4 @@ class ArtifactWaveTests(unittest.TestCase):
   self.require_tools()
   with tempfile.TemporaryDirectory() as d:
    r=Path(d);f=r/'fake.wav';f.write_bytes(b'not wave');c=r/'c.json';contract(c,b'\0'*9600);v=M.verify_wave(f,c,r/'e');self.assertEqual(v['status'],'FAIL')
- def test_local_binding_digests_match(self):
-  b=json.loads((ROOT/'artifact-delivery/shadow-bindings/audio-wave-pcm16-local-r1.json').read_text())
-  for k,p in [('sndfileInfo','/usr/bin/sndfile-info'),('sox','/usr/bin/sox'),('ffmpeg','/usr/bin/ffmpeg'),('ffprobe','/usr/bin/ffprobe')]:self.assertEqual(hashlib.sha256(Path(p).read_bytes()).hexdigest(),b['bindings'][k]['binarySha256'])
 if __name__=='__main__':unittest.main()

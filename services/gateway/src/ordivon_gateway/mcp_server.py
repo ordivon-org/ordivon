@@ -8,6 +8,7 @@ from typing import Any
 import uvicorn
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
+from pydantic import StrictInt
 
 from .capabilities.host.tools import register_host_tools
 from .contracts import (
@@ -23,6 +24,7 @@ from .contracts import (
     RuntimeReleaseProjection,
     SystemDescription,
 )
+from .logic.execution_refs import validate_artifact_cursor, validate_observation_wait
 from .security import (
     CapabilityAuthorizer,
     GatewayAuditMiddleware,
@@ -187,6 +189,13 @@ def build_server(
         authorityReferences: list[dict[str, Any]] | None = None,
         ctx: Context = None,
     ) -> ExecutionReceipt:
+        """Submit one Owner operation. Preserve capability and requestId for reattachment.
+
+        Use capability.describe to discover current provider contexts. For
+        execution.linux and execution.harness, context is a provider-defined string
+        (not an object); for execution.windows, context may be a provider-defined
+        string or object. A receipt is admission/observation, not business completion.
+        """
         if require_http_execution_identity:
             _require_http_execution_identity(ctx)
         owner_request_id = _verified_execution_request_id(requestId, capability, ctx)
@@ -211,6 +220,11 @@ def build_server(
     async def execution_resolve(
         capability: str, requestId: str, ctx: Context = None
     ) -> ExecutionResolution:
+        """Recover the operation using the original requestId and capability.
+
+        After uncertain delivery, resolve the exact original request before retry.
+        A found operation is not proof of execution success; observe it separately.
+        """
         if require_http_execution_identity:
             _require_http_execution_identity(ctx)
         owner_request_id = _verified_execution_request_id(requestId, capability, ctx)
@@ -227,13 +241,20 @@ def build_server(
     async def execution_get(
         operationRef: str,
         eventLimit: int = 10,
-        waitMs: int = 0,
+        waitMs: StrictInt = 0,
         requestId: str | None = None,
         capability: str | None = None,
         ctx: Context = None,
     ) -> ExecutionObservation:
+        """Observe an operation without issuing another execution.
+
+        For verified HTTP calls, supply operationRef, the original requestId and
+        capability from submission under the same Principal. STDIO remains local.
+        A terminal execution is not necessarily domain completion.
+        """
         if require_http_execution_identity:
             _require_http_execution_identity(ctx)
+        validate_observation_wait(waitMs)
         await _qualify_gateway_operation_ref(gateway, operationRef, capability, requestId, ctx)
         return await _owner_boundary(
             gateway.execution_get(operationRef, event_limit=eventLimit, wait_ms=waitMs)
@@ -246,6 +267,12 @@ def build_server(
         capability: str | None = None,
         ctx: Context = None,
     ) -> ExecutionReceipt:
+        """Request cancellation of the existing operationRef; do not submit a new Job.
+
+        For verified HTTP calls, supply the original requestId and capability from
+        submission under the same Principal. A cancellation receipt is not proof
+        that every physical effect has stopped.
+        """
         if require_http_execution_identity:
             _require_http_execution_identity(ctx)
         await _qualify_gateway_operation_ref(gateway, operationRef, capability, requestId, ctx)
@@ -255,16 +282,23 @@ def build_server(
     async def artifact_read(
         operationRef: str,
         artifactId: str,
-        offset: int = 0,
-        maxBytes: int = 1_048_576,
+        offset: StrictInt = 0,
+        maxBytes: StrictInt = 1_048_576,
         requestId: str | None = None,
         capability: str | None = None,
         ctx: Context = None,
     ) -> ArtifactChunk:
+        """Read a retained Owner Artifact chunk by operationRef and artifactId.
+
+        For verified HTTP calls, supply the original requestId and capability from
+        submission under the same Principal. Check offsets, EOF and digest; an
+        Artifact reference alone does not establish independent consumption.
+        """
         # Artifact bytes have the same original execution owner as observe/cancel.
         # Reuse the trusted HTTP ingress identity fence before any owner read.
         if require_http_execution_identity:
             _require_http_execution_identity(ctx)
+        validate_artifact_cursor(offset, maxBytes)
         await _qualify_gateway_operation_ref(gateway, operationRef, capability, requestId, ctx)
         return await _owner_boundary(
             gateway.artifact_read(operationRef, artifactId, offset=offset, max_bytes=maxBytes)

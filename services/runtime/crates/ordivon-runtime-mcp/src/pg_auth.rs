@@ -2,7 +2,9 @@
 //! PG retains its configured static operator principal; credentials never enter SQL.
 use crate::access_auth::{CloudflareAccessConfig, CloudflareAccessVerifier};
 use axum::http::{header, HeaderMap};
-use std::{fs, os::unix::fs::PermissionsExt, path::Path, sync::Arc};
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
+use std::{fs, path::Path, sync::Arc};
 
 #[derive(Clone)]
 pub(crate) struct PgAuth {
@@ -20,17 +22,20 @@ pub(crate) fn optional_env(key: &str) -> Result<Option<String>, Box<dyn std::err
     }
 }
 
-fn read_remote_token(path: &Path) -> Result<String, Box<dyn std::error::Error>> {
+pub(crate) fn read_private_token(path: &Path) -> Result<String, Box<dyn std::error::Error>> {
     let meta = fs::symlink_metadata(path)?;
-    if !path.is_absolute()
-        || !meta.file_type().is_file()
-        || meta.permissions().mode() & 0o077 != 0
-        || meta.len() > 16_384
-    {
+    if !path.is_absolute() || !meta.file_type().is_file() || meta.len() > 16_384 {
         return Err(
             "remote Bearer requires an absolute private regular file (max 16384 bytes)".into(),
         );
     }
+    #[cfg(unix)]
+    if meta.permissions().mode() & 0o077 != 0 {
+        return Err("Bearer file is not private".into());
+    }
+    #[cfg(windows)]
+    ordivon_runtime_core::validate_windows_private_readonly_file_acl(path)
+        .map_err(|_| "Bearer file fails native read-only ACL contract")?;
     let raw = fs::read_to_string(path)?;
     let token = raw.trim();
     if token.len() < 32 || token.chars().any(char::is_whitespace) {
@@ -42,7 +47,7 @@ fn read_remote_token(path: &Path) -> Result<String, Box<dyn std::error::Error>> 
 impl PgAuth {
     pub(crate) fn from_env(local: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let remote = optional_env("ORDIVON_REMOTE_BEARER_TOKEN_FILE")?
-            .map(|path| read_remote_token(Path::new(&path)))
+            .map(|path| read_private_token(Path::new(&path)))
             .transpose()?;
         let enabled = match optional_env("ORDIVON_TRUST_CF_ACCESS")?.as_deref() {
             None | Some("false" | "0" | "no") => false,
@@ -92,7 +97,7 @@ impl PgAuth {
         &self,
         path: &Path,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let token = read_remote_token(path)?;
+        let token = read_private_token(path)?;
         let authorization = format!("Bearer {token}");
         if constant_time_eq(authorization.as_bytes(), self.local.as_bytes())
             || self
@@ -174,6 +179,7 @@ mod tests {
         );
         assert!(!auth.authorized(&headers).await);
     }
+    #[cfg(unix)]
     #[tokio::test]
     async fn dedicated_issuer_bearer_never_authorizes_regular_or_remote_tokens() {
         let local = "l".repeat(32);
@@ -206,18 +212,19 @@ mod tests {
     fn shared_local_and_remote_secret_is_rejected() {
         assert!(PgAuth::new(&"l".repeat(32), Some(&"l".repeat(32)), None).is_err());
     }
+    #[cfg(unix)]
     #[test]
     fn remote_token_file_must_be_private_and_not_a_symlink() {
         let path = std::env::temp_dir().join(format!("pg-auth-{}", uuid::Uuid::now_v7()));
         fs::write(&path, "r".repeat(32)).unwrap();
         fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
-        assert_eq!(read_remote_token(&path).unwrap(), "r".repeat(32));
+        assert_eq!(read_private_token(&path).unwrap(), "r".repeat(32));
         let link = path.with_extension("link");
         std::os::unix::fs::symlink(&path, &link).unwrap();
-        assert!(read_remote_token(&link).is_err());
+        assert!(read_private_token(&link).is_err());
         fs::remove_file(link).unwrap();
         fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
-        assert!(read_remote_token(&path).is_err());
+        assert!(read_private_token(&path).is_err());
         fs::remove_file(&path).unwrap();
     }
 }

@@ -15,7 +15,7 @@ def test_social_public_queries_use_one_explicit_message_record_helper() -> None:
     )
     from ordivon_host_v2.social_message_records import (
         require_message,
-        verify_message_content_digest,
+        verified_message_wire,
     )
 
     public_queries = {
@@ -32,9 +32,9 @@ def test_social_public_queries_use_one_explicit_message_record_helper() -> None:
     }
     assert all(callable(getattr(SocialStore, name)) for name in public_queries)
     assert (
-        social_message_commands.verify_message_content_digest
-        is social_message_queries.verify_message_content_digest
-        is social_topic_queries.verify_message_content_digest
+        social_message_commands.verified_message_wire
+        is social_message_queries.verified_message_wire
+        is social_topic_queries.verified_message_wire
     )
     assert (
         social_message_commands.require_message
@@ -42,8 +42,9 @@ def test_social_public_queries_use_one_explicit_message_record_helper() -> None:
         is require_message
     )
     assert not hasattr(SocialStore, "_verify_message_content_digest")
+    assert not hasattr(SocialStore, "_verified_message_wire")
     assert not hasattr(SocialStore, "_require_message")
-    assert callable(verify_message_content_digest)
+    assert callable(verified_message_wire)
 
 
 def test_social_query_facet_cannot_own_insert_or_mutation_commands() -> None:
@@ -51,7 +52,6 @@ def test_social_query_facet_cannot_own_insert_or_mutation_commands() -> None:
     read_sources = [
         (source_dir / module).read_text()
         for module in (
-            "social_read_queries.py",
             "social_space_queries.py",
             "social_message_queries.py",
             "social_topic_queries.py",

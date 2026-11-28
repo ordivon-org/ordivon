@@ -9,6 +9,7 @@ from mcp.server import MCPServer
 from pydantic import Field
 
 from ...logic.host_tool_contracts import HostCollectionBytes, HostMessageBytes
+from .numeric_wire import HostNonnegativeInteger, HostPositiveInteger
 
 
 def register_host_social_tools(
@@ -134,7 +135,7 @@ def register_host_social_tools(
         actorRef: str,
         state: Literal["open", "closed", "archived"],
         expectedState: Literal["open", "closed", "archived"],
-        expectedHighSequence: int,
+        expectedHighSequence: HostNonnegativeInteger,
     ) -> dict[str, Any]:
         return await _host(
             "topic.state.set",
@@ -171,7 +172,9 @@ def register_host_social_tools(
         return await _host("topic.cursor.get", {"actorRef": actorRef, "topicRef": topicRef})
 
     @server.tool(name="topic.cursor.ack")
-    async def topic_cursor_ack(actorRef: str, topicRef: str, cursor: int) -> dict[str, Any]:
+    async def topic_cursor_ack(
+        actorRef: str, topicRef: str, cursor: HostNonnegativeInteger
+    ) -> dict[str, Any]:
         return await _host(
             "topic.cursor.ack", {"actorRef": actorRef, "topicRef": topicRef, "cursor": cursor}
         )
@@ -179,7 +182,7 @@ def register_host_social_tools(
     @server.tool(name="topic.resume")
     async def topic_resume(
         topicRef: str,
-        afterSequence: int = 0,
+        afterSequence: HostNonnegativeInteger = 0,
         limit: int = 50,
         maxBytes: Annotated[int, Field(ge=131_072, le=4_194_304)] = 524_288,
     ) -> dict[str, Any]:
@@ -200,7 +203,7 @@ def register_host_social_tools(
         topicRef: str,
         authorActorRef: str,
         body: str,
-        recordedAtMs: int,
+        recordedAtMs: HostNonnegativeInteger,
         messageKind: Literal[
             "note", "question", "proposal", "warning", "finding", "handoff"
         ] = "note",
@@ -232,7 +235,7 @@ def register_host_social_tools(
         query: str,
         spaceRef: str | None = None,
         topicRef: str | None = None,
-        beforeSequence: int | None = None,
+        beforeSequence: HostPositiveInteger | None = None,
         limit: int = 50,
         maxBytes: HostMessageBytes = 524_288,
     ) -> dict[str, Any]:
@@ -275,7 +278,7 @@ def register_host_social_tools(
             "reply_to", "mentions", "references", "acknowledges", "supersedes", "about"
         ]
         | None = None,
-        afterChangeSequence: int = 0,
+        afterChangeSequence: HostNonnegativeInteger = 0,
         limit: int = 100,
         maxBytes: HostCollectionBytes = 262_144,
     ) -> dict[str, Any]:

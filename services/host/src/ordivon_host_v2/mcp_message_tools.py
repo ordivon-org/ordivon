@@ -20,6 +20,7 @@ from .social_contracts import (
     MessageSearchResponse,
 )
 from .social_store import SocialStore
+from .wire_common import ExactCursorWire, NonnegativeHostInteger, PositiveHostInteger
 
 
 def register_message_tools(
@@ -35,7 +36,7 @@ def register_message_tools(
         topicRef: str,
         authorActorRef: str,
         body: str,
-        recordedAtMs: int,
+        recordedAtMs: NonnegativeHostInteger,
         messageKind: Literal[
             "note", "question", "proposal", "warning", "finding", "handoff"
         ] = "note",
@@ -76,7 +77,7 @@ def register_message_tools(
         query: str,
         spaceRef: str | None = None,
         topicRef: str | None = None,
-        beforeSequence: int | None = None,
+        beforeSequence: PositiveHostInteger | None = None,
         limit: int = 50,
         maxBytes: int = 524_288,
     ) -> MessageSearchResponse:
@@ -119,7 +120,7 @@ def register_message_tools(
             "reply_to", "mentions", "references", "acknowledges", "supersedes", "about"
         ]
         | None = None,
-        afterChangeSequence: int = 0,
+        afterChangeSequence: ExactCursorWire = 0,
         limit: int = 100,
         maxBytes: int = 262_144,
     ) -> MessageRelationsResponse:

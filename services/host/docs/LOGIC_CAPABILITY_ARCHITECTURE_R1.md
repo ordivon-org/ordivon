@@ -23,7 +23,7 @@
 | L1 语义连续性：更换 Agent 后丢当前进度 | 逆向恢复、最小充分状态 | Work.get 找到当前版本；提交只允许 CAS 当前修订 | Work Ledger：`work_store.py` / `work_queries.py` |
 | L2 并发与丢响应：重复写、覆盖已提交工作 | 竞争反例、幂等优先 | 同请求重放 existing，异值 conflict；每次状态更新原子提交 | `command_receipts.py`、`canonical_json.py`、Work CAS、Message insert |
 | L3 协作因果：消息顺序与关联关系 | 序列不变量、逆向反例 | Topic 顺序有界；回复指向更早 Message；外部引用不伪造来源 | `social_space_*`、`social_topic_*`、`social_message_*` |
-| L4 注意力恢复：冷启动漏掉新消息 | 从漏读反推双游标；同一快照裁剪 | Attention change horizon 与 Topic message horizon 区分；分页不跳过相关记录 | `attention_store.py`、`attention_projections.py`、`attention_sql.py` |
+| L4 注意力恢复：冷启动漏掉新消息 | 从漏读反推双游标；同一快照裁剪 | Attention change horizon 与 Topic message horizon 区分；分页不跳过相关记录 | `attention_store.py`、`attention_delta_queries.py`、`attention_reentry_queries.py`、`attention_subscription_queries.py`、`attention_sql.py` |
 | L5 生命周期：老内容清理造成唯一成果丢失 | 消费者闭包、逆向可恢复 | 归档仍能精确读；没有确认外部消费者结束时不物理删除 | Work terminal CAS、Topic archive、原 Owner 读回 |
 | L6 身份与权限混淆：ActorRef 被误当认证主体 | 拆分引用和权限；最少信任边界 | 声明/存在性只维护社会引用；认证由 Host/Gateway 入口承担；PG Role 独立 | `references/actor_refs.py`、`http_identity.py`、`http_transport.py` |
 | L7 内部真相可信：Work/Social/Attention 之间数据漂移 | 独立证伪、UNKNOWN 不变 PASS | 完整性查询使用同一只读事务快照；跨域真实效果留给 Runtime/Git | `health/diagnostics.py`、`service.py` |

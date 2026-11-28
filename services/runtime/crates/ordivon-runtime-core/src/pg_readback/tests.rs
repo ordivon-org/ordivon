@@ -11,6 +11,7 @@ fn snapshot() -> PgJobSnapshot {
         termination_intent: "natural".into(),
         reservation_state: "active".into(),
         result_digest: None,
+        started_at_ms: None,
         finished_at_ms: None,
         job_row_version: 0,
         attempt_row_version: 0,

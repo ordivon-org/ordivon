@@ -136,14 +136,19 @@ For installation and receipted deployment, follow [`docs/quickstart.md`](docs/qu
 ## Focused native Rust testing
 
 `mise install` now obtains official
-[cargo-nextest](https://github.com/nextest-rs/nextest) **0.9.149** using the
+[cargo-nextest](https://github.com/nextest-rs/nextest) **0.9.152** using the
 upstream [mise HTTP backend](https://mise.jdx.dev/dev-tools/backends/http.html)
-and a GitHub Release mirror. This Runtime-local Linux x64 install pins the
-official GitHub release-asset SHA-256, so the mirror is only a transport.
+and direct official GitHub Releases. The Runtime-local Linux and Windows x64
+tool declarations bind their respective official asset SHA-256 and byte size.
+The Windows asset supports native tool resolution; the focused task below
+still uses the repository's POSIX shell entrypoint.
 The optional `mise run test:focused` task calls this pinned version with the
-current Runtime feature profile and emits its native JUnit report under
-`target/nextest/ci/junit.xml`. Set `RUNTIME_TEST_EXPR` to the nextest
-filter expression for another exact native test. This is low-cost
+PostgreSQL-only feature profile (the Linux production core) by default and
+emits its native JUnit report under the Cargo target directory
+`nextest/ci/junit.xml`. Set `RUNTIME_TEST_PROFILE=legacy` explicitly for
+SQLite/legacy tests while Windows cutover is unfinished. Set
+`RUNTIME_TEST_EXPR` to the nextest filter expression for another exact native
+test in that profile. Empty selections fail and retries are disabled. This is low-cost
 feedback; `mise run verify` still owns Runtime's full Cargo, Clippy,
 environment and docs gate. Filtered tests do not count as passed tests.
 

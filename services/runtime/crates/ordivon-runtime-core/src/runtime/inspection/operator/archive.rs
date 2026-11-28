@@ -75,8 +75,9 @@ WITH classified AS (
             WHEN EXISTS(
                 SELECT 1 FROM attempts a
                 WHERE a.job_id=j.job_id
-                  AND a.state NOT IN ('succeeded','failed','timed_out','cancelled')
+                  AND (a.state IS NULL OR a.state NOT IN ('succeeded','failed','timed_out','cancelled'))
             ) THEN 'attempt_not_stable_terminal'
+            WHEN /* recovery_guard */ THEN 'recovery_required_or_unknown'
             WHEN EXISTS(
                 SELECT 1
                 FROM attempts a
@@ -84,6 +85,14 @@ WITH classified AS (
                 WHERE a.job_id=j.job_id
                   AND r.state IN ('active','held_orphaned')
             ) THEN 'active_or_held_reservation'
+            WHEN EXISTS(
+                SELECT 1 FROM attempts a
+                WHERE a.job_id=j.job_id
+                  AND NOT (
+                    SELECT COUNT(*)=1 AND COUNT(*) FILTER (WHERE r.state='released')=1
+                    FROM concurrency_reservations r WHERE r.attempt_id=a.attempt_id
+                  )
+            ) THEN 'reservation_missing_or_unknown'
             WHEN EXISTS(
                 SELECT 1
                 FROM attempts a
@@ -95,6 +104,20 @@ WITH classified AS (
     FROM jobs j
 )
 "#;
+
+// Recovery state moved from attempt_conditions to attempts in schema 5.
+// Missing markers are normal for settled historical attempts; they do not
+// certify consumer release. An incomplete migrated tuple is evidence of an
+// unknown obligation, not absence; only an entirely absent or fully recorded
+// explicit false tuple is clear for this mechanical classification.
+fn archive_classification_sql(migration_version: i64) -> String {
+    let recovery_guard = if migration_version < CONDITION_RETIREMENT_MIGRATION_VERSION {
+        "EXISTS(SELECT 1 FROM attempts a JOIN attempt_conditions c ON c.attempt_id=a.attempt_id WHERE a.job_id=j.job_id AND c.condition_type='recovery_required' AND c.status IS NOT 'false')"
+    } else {
+        "EXISTS(SELECT 1 FROM attempts a WHERE a.job_id=j.job_id AND NOT ((a.recovery_required IS NULL AND a.recovery_reason_code IS NULL AND a.recovery_evidence_digest IS NULL AND a.recovery_observed_at_ms IS NULL) OR (a.recovery_required IS 0 AND a.recovery_reason_code IS NOT NULL AND a.recovery_evidence_digest IS NOT NULL AND a.recovery_observed_at_ms IS NOT NULL)))"
+    };
+    ARCHIVE_CLASSIFICATION_SQL.replace("/* recovery_guard */", recovery_guard)
+}
 
 fn validate_archive_registry_capabilities(
     connection: &Connection,
@@ -146,7 +169,13 @@ fn validate_archive_registry_capabilities(
         ),
         (
             "job_events",
-            &["event_id", "job_id", "attempt_id", "detail_json", "detail_digest"],
+            &[
+                "event_id",
+                "job_id",
+                "attempt_id",
+                "detail_json",
+                "detail_digest",
+            ],
         ),
         (
             "artifacts",
@@ -191,7 +220,7 @@ fn validate_archive_registry_capabilities(
             }
         }
     }
-    if migration_version < 5 {
+    if migration_version < CONDITION_RETIREMENT_MIGRATION_VERSION {
         let present = registry_table_columns(connection, "attempt_conditions")?;
         let legacy = [
             "attempt_id",
@@ -207,6 +236,19 @@ fn validate_archive_registry_capabilities(
                 if !present.contains(column) {
                     missing.push(format!("column:attempt_conditions.{column}"));
                 }
+            }
+        }
+    }
+    if migration_version >= CONDITION_RETIREMENT_MIGRATION_VERSION {
+        let present = registry_table_columns(connection, "attempts")?;
+        for column in [
+            "recovery_required",
+            "recovery_reason_code",
+            "recovery_evidence_digest",
+            "recovery_observed_at_ms",
+        ] {
+            if !present.contains(column) {
+                missing.push(format!("column:attempts.{column}"));
             }
         }
     }
@@ -231,9 +273,7 @@ pub fn inspect_registry_archive(
 ) -> RuntimeResult<RuntimeOperatorArchiveInspection> {
     if sample_limit > MAX_ARCHIVE_SAMPLE_LIMIT {
         return Err(RuntimeError::invalid(
-            format!(
-                "sampleLimit must be at most {MAX_ARCHIVE_SAMPLE_LIMIT}"
-            ),
+            format!("sampleLimit must be at most {MAX_ARCHIVE_SAMPLE_LIMIT}"),
             "sampleLimit",
         ));
     }
@@ -248,8 +288,12 @@ pub fn inspect_registry_archive(
         ));
     }
     let migration_version: Option<i64> = connection
-        .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| row.get(0))
-        .map_err(|error| RuntimeError::from_sql(error, "read archive Registry migration version"))?;
+        .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| {
+            row.get(0)
+        })
+        .map_err(|error| {
+            RuntimeError::from_sql(error, "read archive Registry migration version")
+        })?;
     let migration_version = migration_version.ok_or_else(|| {
         RuntimeError::new(
             RuntimeErrorCode::SchemaVersionUnsupported,
@@ -259,9 +303,10 @@ pub fn inspect_registry_archive(
         )
     })?;
     validate_archive_registry_capabilities(&connection, migration_version)?;
+    let classification_cte = archive_classification_sql(migration_version);
 
     let classification_sql = format!(
-        "{ARCHIVE_CLASSIFICATION_SQL} SELECT classification,COUNT(*) AS jobs,MIN(created_at_ms) AS oldest_ms,MAX(created_at_ms) AS newest_ms FROM classified GROUP BY classification ORDER BY classification"
+        "{classification_cte} SELECT classification,COUNT(*) AS jobs,MIN(created_at_ms) AS oldest_ms,MAX(created_at_ms) AS newest_ms FROM classified GROUP BY classification ORDER BY classification"
     );
     let mut statement = connection
         .prepare(&classification_sql)
@@ -277,16 +322,37 @@ pub fn inspect_registry_archive(
         })
         .map_err(|error| RuntimeError::from_sql(error, "query archive classifications"))?;
     let by_classification = rows
-        .map(|row| row.map_err(|error| RuntimeError::from_sql(error, "decode archive classification")))
+        .map(|row| {
+            row.map_err(|error| RuntimeError::from_sql(error, "decode archive classification"))
+        })
         .collect::<RuntimeResult<Vec<_>>>()?;
 
-    let condition_count_sql = if migration_version < 5 {
-        "(SELECT COUNT(*) FROM attempt_conditions c JOIN attempts a ON a.attempt_id=c.attempt_id JOIN eligible e ON e.job_id=a.job_id)"
+    let condition_count_sql = if migration_version < CONDITION_RETIREMENT_MIGRATION_VERSION {
+        "(SELECT COUNT(*) FROM eligible e CROSS JOIN attempts a ON a.job_id=e.job_id CROSS JOIN attempt_conditions c ON c.attempt_id=a.attempt_id)"
     } else {
         "0"
     };
+    // SQLite otherwise inlines eligibility into every relation aggregate.
+    // Materialize the narrow Job identity set once and drive indexed joins
+    // from that set. Materialization alone can scan whole child relations on
+    // sparse cohorts, hence the explicit eligible-first CROSS JOIN order.
     let closure_sql = format!(
-        "{ARCHIVE_CLASSIFICATION_SQL}, eligible AS (SELECT job_id FROM classified WHERE classification='eligible') SELECT (SELECT COUNT(*) FROM eligible),(SELECT COUNT(*) FROM attempts a JOIN eligible e ON e.job_id=a.job_id),(SELECT COUNT(*) FROM idempotency_keys i JOIN eligible e ON e.job_id=i.job_id),(SELECT COUNT(*) FROM concurrency_reservations r JOIN attempts a ON a.attempt_id=r.attempt_id JOIN eligible e ON e.job_id=a.job_id),(SELECT COUNT(*) FROM job_events x JOIN eligible e ON e.job_id=x.job_id),(SELECT COUNT(*) FROM artifacts x JOIN eligible e ON e.job_id=x.job_id),{condition_count_sql},(SELECT COUNT(*) FROM job_execution_providers p JOIN eligible e ON e.job_id=p.job_id),(SELECT COUNT(*) FROM job_host_dependencies h JOIN eligible e ON e.job_id=h.job_id),(SELECT COUNT(*) FROM attempt_supervisor_owners o JOIN attempts a ON a.attempt_id=o.attempt_id JOIN eligible e ON e.job_id=a.job_id),(SELECT COALESCE(SUM(x.byte_length),0) FROM artifacts x JOIN eligible e ON e.job_id=x.job_id),(SELECT COALESCE(SUM(LENGTH(j.execution_plan_json)+LENGTH(j.workspace_snapshot_json)),0) FROM jobs j JOIN eligible e ON e.job_id=j.job_id)"
+        r#"{classification_cte}, eligible AS MATERIALIZED (
+            SELECT job_id FROM classified WHERE classification='eligible'
+        )
+        SELECT
+            (SELECT COUNT(*) FROM eligible),
+            (SELECT COUNT(*) FROM eligible e CROSS JOIN attempts a ON a.job_id=e.job_id),
+            (SELECT COUNT(*) FROM eligible e CROSS JOIN idempotency_keys i ON i.job_id=e.job_id),
+            (SELECT COUNT(*) FROM eligible e CROSS JOIN attempts a ON a.job_id=e.job_id CROSS JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id),
+            (SELECT COUNT(*) FROM eligible e CROSS JOIN job_events x ON x.job_id=e.job_id),
+            (SELECT COUNT(*) FROM eligible e CROSS JOIN artifacts x ON x.job_id=e.job_id),
+            {condition_count_sql},
+            (SELECT COUNT(*) FROM eligible e CROSS JOIN job_execution_providers p ON p.job_id=e.job_id),
+            (SELECT COUNT(*) FROM eligible e CROSS JOIN job_host_dependencies h ON h.job_id=e.job_id),
+            (SELECT COUNT(*) FROM eligible e CROSS JOIN attempts a ON a.job_id=e.job_id CROSS JOIN attempt_supervisor_owners o ON o.attempt_id=a.attempt_id),
+            (SELECT COALESCE(SUM(x.byte_length),0) FROM eligible e CROSS JOIN artifacts x ON x.job_id=e.job_id),
+            (SELECT COALESCE(SUM(OCTET_LENGTH(j.execution_plan_json)+OCTET_LENGTH(j.workspace_snapshot_json)),0) FROM eligible e CROSS JOIN jobs j ON j.job_id=e.job_id)"#
     );
     let eligible_closure = connection
         .query_row(&closure_sql, [cutoff_ms], |row| {
@@ -311,7 +377,7 @@ pub fn inspect_registry_archive(
         Vec::new()
     } else {
         let sample_sql = format!(
-            "{ARCHIVE_CLASSIFICATION_SQL} SELECT c.job_id,c.created_at_ms,j.resolution,j.workspace_id,j.client_request_id,j.current_attempt_id,a.attempt_id AS effective_attempt_id,COALESCE(a.bundle_path,'None') FROM classified c JOIN jobs j ON j.job_id=c.job_id JOIN attempts a ON a.attempt_id=COALESCE(j.current_attempt_id,(SELECT latest.attempt_id FROM attempts latest WHERE latest.job_id=j.job_id ORDER BY latest.attempt_number DESC LIMIT 1)) WHERE c.classification='eligible' ORDER BY c.created_at_ms,c.job_id LIMIT ?2"
+            "{classification_cte} SELECT c.job_id,c.created_at_ms,j.resolution,j.workspace_id,j.client_request_id,j.current_attempt_id,a.attempt_id AS effective_attempt_id,COALESCE(a.bundle_path,'None') FROM classified c JOIN jobs j ON j.job_id=c.job_id JOIN attempts a ON a.attempt_id=COALESCE(j.current_attempt_id,(SELECT latest.attempt_id FROM attempts latest WHERE latest.job_id=j.job_id ORDER BY latest.attempt_number DESC LIMIT 1)) WHERE c.classification='eligible' ORDER BY c.created_at_ms,c.job_id LIMIT ?2"
         );
         let mut statement = connection
             .prepare(&sample_sql)
@@ -330,8 +396,10 @@ pub fn inspect_registry_archive(
                 })
             })
             .map_err(|error| RuntimeError::from_sql(error, "query archive eligible sample"))?;
-        rows.map(|row| row.map_err(|error| RuntimeError::from_sql(error, "decode archive eligible sample")))
-            .collect::<RuntimeResult<Vec<_>>>()?
+        rows.map(|row| {
+            row.map_err(|error| RuntimeError::from_sql(error, "decode archive eligible sample"))
+        })
+        .collect::<RuntimeResult<Vec<_>>>()?
     };
 
     Ok(RuntimeOperatorArchiveInspection {

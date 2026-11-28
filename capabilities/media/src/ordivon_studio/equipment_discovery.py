@@ -10,10 +10,15 @@ from __future__ import annotations
 import glob
 import json
 import os
+import re
 import subprocess
+import time
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
+
+from .assets import UnstableBlobError, hash_file
+from .strict_json import decode_object
 
 WINDOWS_POWERSHELL = Path("/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe")
 
@@ -38,7 +43,9 @@ def _run_version(executable: Path, args: Sequence[str], environment: Mapping[str
             check=False,
             env={**os.environ, **dict(environment or {}), "LC_ALL": "C"},
         )
-    except (OSError, subprocess.TimeoutExpired):
+    except (OSError, subprocess.TimeoutExpired, UnicodeError):
+        return None
+    if result.returncode != 0:
         return None
     text = result.stdout or result.stderr
     return _first_line(text) or None
@@ -71,6 +78,8 @@ def _windows_file_version(path: Path) -> str | None:
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
+    if result.returncode != 0:
+        return None
     return _first_line(_decode_process_bytes(result.stdout)) or None
 
 
@@ -95,26 +104,43 @@ def _workstation_equipment_binding(
     try:
         result = subprocess.run(
             arguments,
-            capture_output=True, text=True, timeout=15, check=False,
+            capture_output=True, timeout=15, check=False,
         )
-    except (OSError, subprocess.TimeoutExpired):
+        if result.returncode != 0:
+            return None
+        value = decode_object(result.stdout)
+        if (type(value.get("schemaVersion")) is not int or value["schemaVersion"] != 1
+                or value.get("kind") != "ordivon.workstation-equipment-binding"
+                or value.get("equipmentId") != equipment_id
+                or value.get("state") != "AVAILABLE"
+                or value.get("executionTarget") != "local_linux"):
+            return None
+        if (not isinstance(value.get("provider"), str) or not value["provider"].strip()
+                or not isinstance(value.get("providerIdentity"), dict)
+                or not isinstance(value.get("environment", {}), dict)):
+            return None
+        # The Workstation binding digest is an opaque provider assertion, not
+        # authentication. Independently verify the exact executable identity.
+        for field in ("bindingDigest", "executableDigest"):
+            token = value.get(field)
+            if not isinstance(token, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", token):
+                return None
+        expires = value.get("validUntilMs")
+        if expires is not None and (type(expires) is not int or expires <= time.time_ns() // 1_000_000):
+            return None
+        path = value.get("executable")
+        if not isinstance(path, str):
+            return None
+        selected = Path(path)
+        if not selected.is_absolute() or not selected.is_file() or not os.access(selected, os.X_OK):
+            return None
+        if mode == "isolated" and selected.resolve() != Path(str(executable)).resolve():
+            return None
+        if hash_file(selected).digest != value["executableDigest"]:
+            return None
+        return value
+    except (OSError, subprocess.TimeoutExpired, ValueError, TypeError, UnstableBlobError):
         return None
-    if result.returncode != 0:
-        return None
-    try:
-        value = json.loads(result.stdout)
-    except json.JSONDecodeError:
-        return None
-    if not isinstance(value, dict):
-        return None
-    if value.get("schemaVersion") != 1 or value.get("kind") != "ordivon.workstation-equipment-binding":
-        return None
-    if value.get("state") != "AVAILABLE" or value.get("executionTarget") != "local_linux":
-        return None
-    path = value.get("executable")
-    if not isinstance(path, str) or not Path(path).is_file():
-        return None
-    return value
 
 
 def _binding_environment(binding: Mapping[str, Any]) -> dict[str, str]:
@@ -169,6 +195,7 @@ def discover_equipment(world: Mapping[str, Any]) -> dict[str, Any]:
     records: list[dict[str, Any]] = []
     for item in world.get("equipment", []):
         candidates: list[dict[str, Any]] = []
+        binding_unobserved = False
         for spec in item.get("discovery", []):
             if spec.get("kind") in {"workstation-isolated-binding", "workstation-managed-binding"}:
                 binding_mode = "managed" if spec.get("kind") == "workstation-managed-binding" else "isolated"
@@ -182,9 +209,13 @@ def discover_equipment(world: Mapping[str, Any]) -> dict[str, Any]:
                     version = _run_version(path, spec.get("versionArgs", ["--version"]), _binding_environment(binding))
                     candidates.append({
                         "path": str(path), "version": version, "platform": spec.get("platform"),
+                        "versionStanding": "observed" if version is not None else "unobserved",
                         "provider": binding.get("provider"), "bindingDigest": binding.get("bindingDigest"),
+                        "executableDigest": binding.get("executableDigest"),
                         "providerIdentity": binding.get("providerIdentity"), "validUntilMs": binding.get("validUntilMs"),
                     })
+                else:
+                    binding_unobserved = True
                 continue
             for path in _discovery_paths(spec):
                 if not path.is_file():
@@ -194,7 +225,10 @@ def discover_equipment(world: Mapping[str, Any]) -> dict[str, Any]:
                 else:
                     environment = spec.get("environment") if isinstance(spec.get("environment"), Mapping) else None
                     version = _run_version(path, spec.get("versionArgs", ["--version"]), environment)
-                candidates.append({"path": str(path), "version": version, "platform": spec.get("platform")})
+                candidates.append({
+                    "path": str(path), "version": version, "platform": spec.get("platform"),
+                    "versionStanding": "observed" if version is not None else "unobserved",
+                })
         configuration: list[dict[str, Any]] = []
         for spec in item.get("configuration", []):
             configuration.extend(_safe_configuration_projection(spec))
@@ -202,7 +236,7 @@ def discover_equipment(world: Mapping[str, Any]) -> dict[str, Any]:
             {
                 "id": item["id"],
                 "family": item["family"],
-                "present": bool(candidates),
+                "present": True if candidates else None if binding_unobserved else False,
                 "candidates": candidates,
                 "configuration": configuration,
                 "capabilities": item.get("capabilities", []),
