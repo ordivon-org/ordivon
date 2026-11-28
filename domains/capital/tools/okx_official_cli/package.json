@@ -1,0 +1,9 @@
+{
+  "name": "@ordivon/capital-okx-official-cli",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Pinned upstream OKX official CLI provider; Trading keeps only orchestration and PG intent",
+  "dependencies": {
+    "@okx_ai/okx-trade-cli": "1.5.0"
+  }
+}

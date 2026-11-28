@@ -1,0 +1,332 @@
+# Ordivon Network | Agent guide and capability contract
+
+**Purpose:** operational representation and owner-native instructions for Agents. Not a new Skill registry, VPN controller, test framework, scheduler, or mutable status database. Root monorepo AGENTS.md stays authoritative.
+
+## 1. Semantics first
+
+A Network LEGO is a replaceable semantic responsibility with a consumer, not an individual script, file or Task. Prefer DELETE unconsumed custom code → REUSE upstream-native capabilities → COMPOSE bounded Lego → CREATE only for a witnessed missing contract.
+
+When formally declaring/admitting a LEGO, use the existing Recursive LEGO R2.1 type and canonical repository Skill; do not invent a local calculus.
+
+For each consequential change, independently record:
+- SOURCE: exact upstream Git commit, relevant files and source hash.
+- INSTALLED: byte-verified systemd/Quadlet/config state.
+- LOADED: running PID/generation, Gluetun **non-secret** env, Prometheus loaded scrape pools.
+- EXECUTED: admitted request; forbidden-domain and wrong-port no-forward observed by independent upstream spy.
+- CONSUMED: the actual application request, app process binding, and its real return.
+- UNKNOWN: all unsampled paths. A historical PASS expires when its relevant source/installation/process/evironment/consumer edge changes.
+
+SOURCE_PASS is not APPLICATION_PASS. CONNECT 200 alone is not TLS success. A sample of zero upstream CONNECT is not universal noninterference across IPv6, DNS/DoH or other clients. During NS2 negative-flow sampling, tcpdump/reader loss or capture overflow invalidates the witness; do not convert an unobserved packet into a policy PASS.
+
+## 2. Capability → owner → native interface
+
+| Natural owner / capability LEGO | Mature implementation | Entry point |
+| --- | --- | --- |
+| Generic DNS / proxy | dnsproxy + sing-box + systemd | task core:validate / core:verify |
+| Shared namespace / carrier SourceCut | iproute2 netns + systemd + upstream Gluetun | task substrate:shared-egress:validate / verify |
+| Observability | Blackbox + Prometheus native scrape_config_files / rule_files | task core:verify and acceptance/observability |
+| Physical VPN / failover | one Gluetun Quadlet, native WireGuard, Podman Secret and healthcheck | task provider:gluetun:verify |
+| Surfshark profile/catalog | pinned Gluetun catalog | task provider:surfshark:verify-local |
+| Scoped application destination | consumer-owned sing-box policy, bounded relay | task consumer:<name>:validate / verify |
+| Scoped HTTP policy symbolic refinement | Z3 SMT with separate authority JSON and native sing-box route source | mise run formal (also native Network mise run ci) |
+
+| iOS Exit Node server | Tailscale userspace in Gluetun network namespace | task consumer:mobile-tailnet-exit:verify |
+| Optional fault/test mechanisms | Toxiproxy, isolated netns/TUN, HAProxy, tc/netem, containerlab | acceptance/, capabilities/, reference/linux/ |
+| Windows boot / app process bindings | Workstation, OS environment; Codex read-only process witness | consumers/codex/windows_process_egress.py |
+| Normal Windows app startup | Workstation system proxy, native Codex respect_system_proxy, and actual process/request readback | consumers/codex/windows_process_egress.py (read-only) |
+| Work/Job/Workspace lifecycle | Host Work and Runtime native APIs | Do not implement a parallel registry |
+
+The generic Network Core MUST NOT own Finance/Claude/X destination policy. Observability may consume consumer scrape fragments via **native Prometheus includes**, but monitoring does not become business authority.
+
+## 3. Agent standard workflow
+
+1. Fetch latest origin/main, inspect active PRs and peer Agent Workspaces; open one Runtime-managed Workspace at the exact latest revision. Do not trust a stale local main.
+2. Identify a real consumer, owner, effect boundary and the best current representation. Separate generic core, Provider, Consumer, Workstation, Runtime, Security, Host.
+3. State pre/post/invariant/effect scope, including which negative counterexample would falsify the proposal.
+4. Use existing upstream-native mechanisms. Prefer current Go Task includes, systemd/Podman lifecycle, Gluetun health, sing-box routing, Prometheus, Tailscale. Do not add a second watcher or provider loop.
+5. Run the minimum focused falsification, then task all:validate, mise run ci / mise run behavior and the applicable owner-native verifier. For real network claims, inspect exact installed and loaded configuration and a live consumer consequence.
+6. Publish through existing GitHub PR/required CI/merge queue. Re-fetch merged main; requalify deployed source and consumer effects. If main is new but live differs, say SOURCE_MERGED_LIVE_OLD rather than PASS.
+7. Before deleting a file, volume, unit or Workspace, check consumers for read/write/start/recovery dependency. Remove via the **native owner API**; never direct-delete an actively protected Runtime backing store.
+8. Report source commit, installed generation, loaded processes, real positive and negative consumer witness, deleted resources and remaining UNKNOWN. Host Work owns changing task state; do not create a second status file.
+
+### Network detailed report and release acceptance
+
+Use the root `AGENTS.md` evidence-backed reporting contract when a detailed
+Network report or handoff is requested. Keep the report bound to **one exact
+source revision and a dated live observation**. For release-sized work,
+report these separately, with an exact command/receipt or `UNKNOWN`:
+
+| Stage | Natural authority and readback | Claim not implied |
+| --- | --- | --- |
+| SOURCE | Network Git revision, changed files and native `mise run ci` or scoped tests | Git merged or deployed |
+| MERGED | GitHub PR state, required checks, merge-group result and actual main commit | Installed source has changed |
+| INSTALLED | Go Task materialize and byte parity of systemd/Quadlet/config/helper | systemd loaded those bytes |
+| LOADED | `systemctl show` effective dependencies, ExecStart/ExecStop, PID/generation and daemon-reload state | Correct kernel/network effect |
+| EXECUTED | Live `ip`, `iptables-legacy`, provider-ready probes, negative destination/port oracle | Application request succeeded |
+| CONSUMED | Owner-native `task consumer:<name>:verify` and actual target process/request return | Other unsampled clients/protocols passed |
+| UNKNOWN / FALSIFIED | Named edge, reproducible negative result or missing observation; Owner and next acceptance action | Silent success or universal failure |
+
+Record the before/after PID and namespace inode when an installed change
+could disturb the shared VPN. A `task` exit code is scoped to the checks that
+task actually executes. In particular, `consumer:mobile-tailnet-exit:verify`
+proves the *server-side* exit path, not each iPad/iPhone client's DNS or
+public-IP selection; Windows Chrome's Linux proxy check does not substitute
+for a native browser process witness. A `SOURCE_PASS` before merge and
+a successful test on the *old installed generation* are separate facts.
+
+If GitHub toolchain downloads are unavailable, report the failing upstream
+asset/HTTP code and exact CI run, with Network source tests separately.
+Only successful required `merge_group` checks permit the corresponding
+protected-main claim. Do not bypass signatures, required checks or other
+Owner release decisions, and do not add a Network-owned report state store.
+
+For an actual outage, include timestamped impact, the observed trigger,
+contributing causes and links to tracked corrective actions. Outside incidents,
+keep the main report organized by user decision, changed responsibilities,
+verified consumer effect, blockers and precise next steps.
+
+### 2026-11-14 real outage: consumer-first fault-domain separation
+
+Observed physical facts must outrank a proposed VPN-country optimization.
+At 08:41 CST Windows Wi-Fi and USB RNDIS NCSI both lost internet capability;
+both default routes currently share the **same gateway MAC and IPv4 next hop**.
+At 14:20 both recovered together. Five complete hours of simultaneous zero
+success on *direct* IPv4 Blackbox, Carrier, Claude, Codex and PyPI constitute
+a common-underlay failure domain, not independent evidence that a Surfshark
+endpoint failed. Gluetun itself logged 3,178 healthcheck-directed reconnects
+with no successful internet until physical recovery. This is causal alignment,
+not proof of which device/ISP internal component failed.
+
+Consumer graph / action authority:
+
+- **C0 — Windows access and WAN**: WLAN and USB RNDIS `Up` only prove
+  L2 interface status. NCSI 4042, neighbor next hop and explicit per-interface
+  direct HTTPS are the independent WAN evidence. Workstation owns physical
+  Windows routing and any separately verified independent ISP.
+- **C1 — Provider**: original Gluetun owns one WireGuard identity,
+  firewall and its native health restart. On loss of underlying Internet,
+  new VPN-country APIs cannot create WAN reachability.
+- **C2 — Quality witness**: Prometheus has distinct direct IPv4 and VPN
+  Carrier probes plus three consumer-origin probes. `query_range` evaluation
+  timestamps are NOT fresh raw scrape timestamps. The recovery predicate
+  uses one native Prometheus range-vector query and 3 aligned original
+  samples per Claude/Codex/PyPI lane, at **30s** scrape intervals. It requires
+  latest original sample age <=75s, earliest <=165s, within-lane gap <=45s,
+  and latest cross-lane skew <=45s; missing or stale evidence remains UNKNOWN.
+  The separate alert NetworkCorrelatedConsumerOutage with Prometheus for:2m
+  is NOT the authorized decision to switch the physical tunnel.
+  Native Prometheus further exposes two independent symptom classifications:
+  `NetworkSharedUnderlaySuspected` requires two fresh *host-direct* HTTPS
+  origins and all three fresh VPN-scoped consumers to fail together;
+  `NetworkVPNPathFailureWithDirectHealthy` requires the same three failed
+  VPN consumers while both independent host-direct origins succeed. Either
+  branch needs five observed current metrics, for:2m. Single-origin
+  failures, missing/expired scrapes, and mixed direct outcomes cannot
+  establish either specialised failure-domain claim; the existing general
+  correlated-consumer alert still reports the VPN consumer symptoms.
+  Neither new alert is a Gluetun switching authorization or proof of
+  a modem/ISP/provider root cause. Verify source via
+  `promtool test rules tests/fixtures/network-fault-domain-alerts.test.yml`;
+  real Alertmanager receiver delivery remains separately UNKNOWN until wired
+  and consumer-tested.
+- **C3 — Selection**: recent consumer-qualified native Gluetun sessions
+  rank first. Explicit source `recovery-hints.json` stores at most two
+  nonsecret previously sampled country hints for a maximum seven days.
+  Journal churn may remove old sessions, but a hint is not current liveness.
+  Exclude the running country and Hong Kong; never allow a stale hint to
+  bypass current physical underlay or raw consumer failure admission.
+- **C4 — Effect and rollback**: only existing Gluetun authorized
+  `GET/PUT /v1/vpn/settings` may select one candidate at a time; validate
+  native readback, kernel endpoint country and two real TLS/HTTP consumers.
+  One failed candidate may permit one independent alternate before restoring
+  original *filter*, verified by GET. Restoring a filter does not restore
+  old TCP sessions or prove user traffic.
+- **C5 — Downstream consumers**: Finance nine lanes, Claude, Codex, model
+  provider, supply chain, Windows Chrome and Tailscale server exit are distinct
+  acceptance boundaries; iOS device-origin is still UNKNOWN.
+
+Release evidence is split into SOURCE / MERGED / INSTALLED / LOADED /
+EXECUTED / CONSUMED. A staged bundle may use eight nonsecret source files
+while production still uses seven; `provider:gluetun:verify` must reject that
+source-installed drift until the corresponding protected-main merge is
+materialized by the existing native installer. DO NOT fix by restarting
+the healthy physical VPN or bypassing original Gluetun control permissions.
+
+For this specific incident, 328 real systemd decision receipts contained
+169 holds for shared underlay/UNKNOWN, 159 healthy holds, zero native country
+changes, and zero systemd recovery errors. Its first recovered real
+consumer monitoring samples were 11–34 seconds after the 14:20:44 Windows
+NCSI restoration, not an exact end-to-end TCP restoration SLA. The only
+material missing facility for surviving another same-common-path outage is
+a truly independent Internet uplink; adding VPN node catalogs cannot replace
+this prerequisite.
+
+### Formal scoped-route proof (source, not live effects)
+
+Run cd platform/network && mise run formal to prove equivalence of the
+independently declared authority and first-match sing-box routing policy for
+Claude, Discord, Model Provider, Supply Chain, X, nine Finance lanes,
+Codex and Chat Ingress. Chat Ingress reuses its existing allowedOrigins
+authority while keeping the mixed inbound explicitly TCP-restricted.
+Codex has one small immutable approved domain tuple in the canonical
+verifier because no second Codex authority exists; do not mirror a second
+independent policy JSON. Finance's illegal public-direct escape is also a
+deliberately rejected SMT mutation.
+Symbolic variables are normalized HTTP CONNECT hostname, incoming scoped
+listener and TCP destination port; UNSAT means no differing routing outcome
+within this admitted model. The tool refuses unsupported policy constructs,
+confirms every declared lane is reachable, and deliberately introduces a
+rogue route to obtain a real SMT counterexample. Z3 is version-pinned in the
+Network-local mise task; this is not a new framework or Skill registry.
+
+Control-plane source independence is a separate systemd dependency property:
+`mise run formal-control-plane` parses the checked-in Runtime, Host and
+Gateway units and all Network v2 service/target/Quadlet source units. Z3
+proves that no coupling path (start, stop or ordering dependency) reaches
+Network v2 from those three management roots. An injected Runtime-to-Network
+edge is rejected by the same proof. The scope explicitly excludes native
+installed units/drop-ins, aliases, network-online.target internals and actual
+process behavior; check those with native systemd and real consumers.
+The three management Unit paths are supplied by the bounded, checked-in
+task-local proof binding `formal/fixtures/control-plane-source-bindings.json`
+and validated against canonical Owner roots in `tools/repo/owners.toml`.
+They are read-only verification inputs, not new execution dependencies or
+source-of-truth registries. No additional dependency seam is registered.
+A manager Unit relocation invalidates the source proof until the binding is
+requalified against that manager's authoritative source.
+
+This proof does NOT cover Chrome mixed/public-web policy, physical Gluetun,
+Unicode/IDN normalization, IP literals, UDP, DNS/DoH, installed/loaded
+sing-box equivalence or real app process capture. Retain mise run behavior,
+task consumer:...:verify and live Carrier no-forward witnesses for those
+boundaries. An unsupported construct is NOT_PROVED, not silently admitted.
+
+### DNS cache state model: induction versus real dnsproxy
+
+Run mise run formal-dns for the separate DNS state-machine LEGO;
+mise run ci composes DNS, scoped-egress and management-independence proofs. Upstream Z3 proves the source-admitted
+two-upstream TTL abstraction by inductive preservation under fail,
+recover, tick and query transitions. Its safety properties cover expired
+cache after all-upstream failure and live-substrate recovery without
+changing the proxy process; a deliberately stale-answer mutant produces
+a SAT counterexample. The model is bound to the actual systemd
+ExecStart flags and the native fault-injection acceptance entrypoint.
+It does NOT imply a proof of dnsproxy's implementation. Therefore
+retain task accept:dns-resilience and task core:verify for actual
+UDP/TCP replies, cache age, recovery, loaded unit bytes and PID stability.
+
+One Finance example-based route-equality test subsumed by the independent
+authority-to-sing-box SMT proof has been removed in this change. The
+cross-owner carrier liveness, loaded policy parity and native Finance
+nine-lane consumer-effect evidence remain. Any separate X/Supply Chain
+test subtraction belongs to that Owner's concurrently reviewed PR.
+
+## 4. Targeted falsification selection
+
+- SOURCE-only: focused native tests + mise run ci; Green pytest does not certify a deployed VPN.
+- Generic Linux: task core:verify; Blackbox/Prometheus actual targets, DNS A/AAAA, HTTPS. Idempotent task core:converge is still effectful when source/install differ.
+- Gluetun: provider:gluetun:verify, ipinfo one-shot, loaded non-secret env and literal IP/TLS health; verify down-stream consumers before closing. DNS timeout may be cause OR effect of tunnel impairment.
+- Scoped consumer: one admitted real request plus independently observed wrong-host/wrong-port/IPv4-literal/IPv6-literal **zero upstream CONNECT**; require failed TLS/HTTP origin for each negative probe. Reuse acceptance/egress/live-carrier-witness.py; the observer understands bracketed IPv6 CONNECT syntax but this is **not** a positive native IPv6/UDP/no-DNS-bypass proof. Do not mistake shared-carrier temporal correlation for exclusive flow identity.
+- IPv4/IPv6/UDP QUIC: task accept:family-fallback, task accept:full-ip (isolated namespace).
+- DNS faults: task accept:dns-resilience; check cached answer, SERVFAIL under all-upstream outage, recovery and stable daemon PID.
+- Generic cold start: task accept:cold-start touches running R0. A full Windows boot→WSL→systemd→Podman→Consumer is **Workstation** acceptance, not the generic isolated cold-start test.
+- Windows Desktop/Codex: normal user launches inherit the user-scoped Windows
+  system proxy at 127.0.0.1:19781; upstream Codex respect_system_proxy=true
+  was verified enabled on the installed client. Linux scoped Codex 19982 is a
+  different policy authority. Inspect actual OS proxy/Chrome policy, running
+  process sockets and successful application HTTPS. The upstream psutil
+  one-shot observer is read-only and cannot prove every protocol path.
+  Windows proxy persistence belongs to Workstation, not a Network wrapper.
+- Windows Chrome: `consumer:windows-real-chrome:verify` proves only the
+  Linux proxy. Read the current interactive-user Chrome
+  `HKCU\Software\Policies\Google\Chrome\ProxySettings` and
+  `chrome://policy` (Workstation owns registry lifecycle). Use upstream
+  Chrome `--headless=new --dump-dom` with disposable `--user-data-dir`,
+  **without** a `--proxy-server` argument; compare an actual
+  https://ipinfo.io/json browser response with sampled Gluetun egress.
+  Remove the disposable profile via OS-native cleanup. Proxied curl
+  success is not browser-process proof; one Chrome HTTPS request is not
+  universal WebRTC/DNS/IPv6 no-bypass proof. Do not add another Chrome
+  proxy launcher or second Windows proxy manager.
+- Mobile: native server ready is not an iPad/iPhone client selection; collect IPinfo and DNS evidence **on each device** separately.
+
+### Shared-path incident classifier (native Prometheus, not a new controller)
+
+Use existing `NetworkCorrelatedConsumerOutage` alongside the individual `NetworkVPNPyPIUnavailable` / `NetworkScopedConsumerUnavailable` alerts. Its exact predicate is `count(series) == 3 AND sum(series) == 0 AND count(time()-timestamp(series) < 90s) == 3` maintained for 2m. This models **three simultaneously sampled failures**, not a proved VPN-causal fault. A missing series makes the correlated predicate UNKNOWN; `NetworkConsumerEvidenceMissing` reports absent per-job probe evidence without claiming a VPN/consumer outage, while the `Unavailable` alerts require an observed `probe_success == 0`. One healthy consumer is a counterexample to the correlated predicate; CONNECT 200 with TLS failing does not count as healthy.
+
+Triage: source+loaded Prometheus rule parity → `/api/v1/alerts` plus Blackbox history → native Gluetun health and endpoint-rotation journal → Provider HTTPS `verify` → exact impacted Consumer request. Match source timestamps, target/PID, installed generation and origin HTTPS. Gluetun's official native check/auto-heal owns physical recovery; do not add an Agent polling loop, a second tunnel or an IPinfo scraper. Any new endpoint/health-target policy is justified only with independent before/after consumer SLO evidence.
+
+## 4a. SourceCut, service state, and external health are independent
+
+Install selection uses native Go Task status with the local-only
+core:sourcecut predicate (11 byte-parity checks and native
+Prometheus fragment inventory). External DNS/TLS outage cannot trigger
+an install or restart on unchanged installed bytes. core:activate starts
+only missing systemd units; core:verify remains the independent loaded
+and real network-effect witness. The existing core:converge composes all
+three in order.
+
+mise run formal-core-convergence binds Z3 to the selected task source
+and proves six symbolic selection invariants, including a negative
+control for the former live-health-as-install-status coupling.
+mise run formal-shared-egress-alias now proves 14 units (including the Gluetun
+physical Provider target) and two Consumer authorities
+source dependency graph is equivalent after canonicalizing the native
+systemd target Alias. Neither proof covers installed drop-ins, loaded
+systemd internals, process survival or actual DNS/VPN/iPad traffic.
+Keep native loaded-state and actual consumer verification.
+
+## 5. Concrete task snippets
+
+From platform/network/:
+
+    task --list-all
+    task core:verify
+    task provider:gluetun:verify
+    task provider:gluetun:observe-exit
+    task consumer:codex:verify
+    task consumer:mobile-tailnet-exit:verify
+
+Independent bounded upstream observation:
+
+    python3 acceptance/egress/live-carrier-witness.py --consumers codex discord model-provider
+
+Windows active-user observation (source-owned script and upstream psutil):
+
+    uv run --no-project --with "psutil>=7,<8" python consumers/codex/windows_process_egress.py
+
+Native monitoring SourceCut + live pool readback:
+
+    python3 scripts/monitoring-sourcecut-preflight.py --source config --live /etc/network-v2 --check-loaded-prometheus
+    promtool check config /etc/network-v2/prometheus/prometheus.yml
+
+Never print Podman Secrets, full container environments, app tokens, credentials, or arbitrary packet captures.
+
+## 6. Further documents
+
+- [Human how-to](HUMAN_GUIDE.md)
+- [Architecture](ARCHITECTURE.md) — C4-style context and responsibility explanation
+- [Acceptance matrix](ACCEPTANCE_MATRIX.md) — reference for existing native proofs
+- [Decision matrix](DECISION_MATRIX.md) — reusable mature mechanism choices
+- [Existing execution work DAG](../planning/execution-program-r1.md) — Host Work owns mutable state
+
+The documentation follows Diátaxis: how-to for Humans, contract/reference
+for Agents, and existing architecture for explanation. Do not add a fourth
+parallel reference corpus just to satisfy a directory taxonomy.
+
+
+### Enabled consumer Target lifecycle (Model Provider, Supply Chain, X Reality)
+
+These three enabled Targets can become inactive while their sing-box
+egress services remain active if services are started independently.
+PartOf= on the service propagates stopping/restarting the Target but
+does not activate the Target when the service alone starts. The native
+service Upholds= back to its Target closes that direction without a
+custom watchdog: while service active, systemd restores Target; when
+Target is intentionally stopped, PartOf= stops service and Upholds
+ceases. Qualified by native isolated systemd RED/GREEN experiment
+and tests/test_systemd_target_lifecycle.py. Do not enable a disabled
+consumer, do not restart the global Gluetun Provider, and do not use
+systemd unit active as an HTTP/TLS consumer-readiness substitute.
+Production must prove source == installed == systemd-loaded, then
+actual real consumer TLS consequence with original service PIDs stable.

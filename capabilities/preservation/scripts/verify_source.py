@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import configparser
 import fnmatch
 import json
-import shlex
 import subprocess
 from pathlib import Path, PurePosixPath
 
 import yaml
+from fixity_consumer_contract import verify_fixity_consumer_binding
 
 OWNER_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = Path(
@@ -22,6 +21,7 @@ CONTROL_FILES = {
     "README.md",
     "SOURCE_BOUNDARY.json",
     "scripts/verify_source.py",
+    "scripts/fixity_consumer_contract.py",
     "scripts/test_verify_source.py",
 }
 
@@ -34,14 +34,16 @@ def _require(valid: bool, message: str) -> None:
 
 def _tracked_owner_files() -> set[str]:
     prefix = OWNER_ROOT.relative_to(REPO_ROOT).as_posix() + "/"
+    # Git's normal quoted/pathline output is not a lossless filename format.
+    # Reuse the repository-native NUL record boundary (including unusual paths).
     output = subprocess.check_output(
-        ["git", "-C", str(REPO_ROOT), "ls-files", prefix],
-        text=True,
+        ["git", "-C", str(REPO_ROOT), "ls-files", "-z", "--", prefix],
     )
     return {
         PurePosixPath(path.removeprefix(prefix)).as_posix()
-        for path in output.splitlines()
-        if path
+        for record in output.split(b"\0")
+        if record
+        for path in (record.decode("utf-8", errors="surrogateescape"),)
     }
 
 
@@ -57,67 +59,12 @@ def _matches(path: str, pattern: str) -> bool:
     )
 
 
-def verify_fixity_consumer_binding(service_source: str, timer_source: str) -> None:
-    """Qualify exact Git source Service/Timer seam, not installed systemd state.
-
-    systemd owns scheduling and Artefactual owns scanning. This consumer contract
-    only ensures the declared local Fixity profile still routes the timer to
-    the intended one-shot provider client with its named environment file.
-    Actual STORAGE_SERVICE_URL bytes, deployed units and reachability stay UNKNOWN.
-    """
-
-    def unit(source: str, sections: tuple[str, ...]) -> configparser.ConfigParser:
-        result = configparser.ConfigParser(interpolation=None, strict=True)
-        result.optionxform = str
-        try:
-            result.read_string(source)
-        except configparser.Error as exc:
-            raise ValueError(f"invalid Fixity systemd source unit: {exc}") from exc
-        for section in sections:
-            _require(
-                result.has_section(section), f"missing Fixity unit section {section}"
-            )
-        return result
-
-    service = unit(service_source, ("Unit", "Service", "Install"))
-    timer = unit(timer_source, ("Unit", "Timer", "Install"))
-    service_cfg = service["Service"]
-    timer_cfg = timer["Timer"]
-    credential = "/etc/ordivon/fixity-r7.env"
-    _require(
-        service["Unit"].get("ConditionPathExists") == credential
-        and service_cfg.get("EnvironmentFile") == credential,
-        "Fixity source consumer must conditionally read the same credential EnvironmentFile",
-    )
-    _require(
-        service_cfg.get("Type") == "oneshot",
-        "Fixity scanner must remain a one-shot consumer",
-    )
-    _require(
-        timer_cfg.get("Unit") == "ordivon-preservation-fixity-r7.service",
-        "Fixity Timer must schedule its actual named Service, not an unrelated unit",
-    )
-    _require(
-        bool(timer_cfg.get("OnCalendar", "").strip()),
-        "Fixity Timer requires a schedule",
-    )
-    working_dir = service_cfg.get("WorkingDirectory", "")
-    try:
-        argv = shlex.split(service_cfg.get("ExecStart", ""))
-    except ValueError as exc:
-        raise ValueError("invalid Fixity scanner ExecStart") from exc
-    expected_cli = str(Path(working_dir) / ".venv" / "bin" / "fixity")
-    _require(
-        working_dir.startswith("/opt/ordivon/external/fixity/")
-        and len(argv) >= 3
-        and argv[:3] == [expected_cli, "scanall", "--force-local"],
-        "Fixity Service must invoke its pinned local provider scanner from WorkingDirectory",
-    )
-
-
 def main() -> int:
     data = json.loads(BOUNDARY.read_text(encoding="utf-8"))
-    _require(data["schemaVersion"] == 1, "unsupported source boundary schema")
+    _require(
+        type(data["schemaVersion"]) is int and data["schemaVersion"] == 1,
+        "unsupported source boundary schema",
+    )
     _require(
         data["kind"] == "ordivon.preservation-source-boundary",
         "invalid source boundary kind",

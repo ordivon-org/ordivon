@@ -13,129 +13,36 @@ import type {
 } from "@simplewebauthn/server";
 
 import type { WebConfig } from "./config.ts";
+import { renderOperatorGrants } from "./operator-grants-view.ts";
 import { WebProblem } from "./errors.ts";
+import { registerAgentCanaryRoutes } from "./agent-canary-routes.ts";
 import {
   SecurityContractAdmissionEvaluator,
-  admissionInput,
-  stableEffectDigest,
   type AgentAdmissionEvaluator,
   type AgentRequestVerifier,
 } from "./agent-authority.ts";
 import type {
-  AgentEffectRequest,
   AuthenticatedSession,
-  VerifiedAgent,
 } from "./model.ts";
+import {
+  CSRF_COOKIE,
+  SESSION_COOKIE,
+  asBody,
+  clearSessionCookie,
+  requireObject,
+  requireString,
+  sameOriginGuard,
+  sessionCookie,
+  textHeader,
+} from "./browser-request-boundary.ts";
 import { WebStore } from "./store.ts";
 import { WebAuthnAccountService } from "./webauthn.ts";
-
-const SESSION_COOKIE = "__Host-session";
-const CSRF_COOKIE = "__Host-csrf-secret";
 
 export interface WebDependencies {
   readonly store?: WebStore;
   readonly now?: () => number;
   readonly agentVerifier?: AgentRequestVerifier;
   readonly agentAdmission?: AgentAdmissionEvaluator;
-}
-
-function textHeader(value: string | string[] | undefined): string | null {
-  if (Array.isArray(value)) return value[0] ?? null;
-  return value ?? null;
-}
-
-function requireString(
-  body: Record<string, unknown>,
-  name: string,
-  maxLength = 256,
-): string {
-  const value = body[name];
-  if (typeof value !== "string" || value.length < 1 || value.length > maxLength) {
-    throw new WebProblem(
-      422,
-      "invalid-input",
-      "Invalid input",
-      name + " is invalid.",
-    );
-  }
-  return value;
-}
-
-function requireObject(
-  body: Record<string, unknown>,
-  name: string,
-): Record<string, unknown> {
-  const value = body[name];
-  if (value === null || Array.isArray(value) || typeof value !== "object") {
-    throw new WebProblem(
-      422,
-      "invalid-input",
-      "Invalid input",
-      name + " must be an object.",
-    );
-  }
-  return value as Record<string, unknown>;
-}
-
-function asBody(request: FastifyRequest): Record<string, unknown> {
-  const value: unknown = request.body;
-  if (value === null || Array.isArray(value) || typeof value !== "object") {
-    throw new WebProblem(
-      422,
-      "invalid-input",
-      "Invalid input",
-      "Request body must be a JSON object.",
-    );
-  }
-  return value as Record<string, unknown>;
-}
-
-function unsafeMethod(method: string): boolean {
-  return method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
-}
-
-function sameOriginGuard(config: WebConfig) {
-  return async function guard(request: FastifyRequest): Promise<void> {
-    if (!unsafeMethod(request.method)) return;
-    const origin = textHeader(request.headers.origin);
-    if (origin !== config.origin) {
-      throw new WebProblem(
-        403,
-        "origin-rejected",
-        "Cross-site request rejected",
-        "Unsafe browser requests must carry the configured Origin.",
-      );
-    }
-    const fetchSite = textHeader(request.headers["sec-fetch-site"]);
-    if (fetchSite === "cross-site") {
-      throw new WebProblem(
-        403,
-        "fetch-metadata-rejected",
-        "Cross-site request rejected",
-        "Cross-site browser mutations are not admitted.",
-      );
-    }
-  };
-}
-
-function sessionCookie(reply: FastifyReply, token: string, maxAge: number): void {
-  reply.setCookie(SESSION_COOKIE, token, {
-    path: "/",
-    secure: true,
-    httpOnly: true,
-    sameSite: "lax",
-    maxAge,
-    priority: "high",
-  });
-}
-
-function clearSessionCookie(reply: FastifyReply): void {
-  reply.clearCookie(SESSION_COOKIE, {
-    path: "/",
-    secure: true,
-    httpOnly: true,
-    sameSite: "lax",
-  });
 }
 
 export async function createWebApp(
@@ -218,62 +125,6 @@ export async function createWebApp(
       );
     }
     return store.authenticateSession(token, now(), config.sessionIdleSeconds);
-  }
-
-  async function verifiedAgent(request: FastifyRequest): Promise<VerifiedAgent> {
-    if (dependencies.agentVerifier === undefined) {
-      throw new WebProblem(
-        503,
-        "agent-verifier-unavailable",
-        "Agent verification unavailable",
-        "The Security-owned Agent request verifier is not configured.",
-      );
-    }
-    return await dependencies.agentVerifier.verify({
-      method: request.method,
-      url: request.url,
-      headers: request.headers,
-    });
-  }
-
-  function effectId(request: FastifyRequest): string {
-    const value = textHeader(request.headers["x-ordivon-effect-id"]);
-    if (value === null || !/^sha256:[0-9a-f]{64}$/.test(value)) {
-      throw new WebProblem(
-        422,
-        "effect-id-invalid",
-        "Invalid Effect identity",
-        "Agent mutations require X-Ordivon-Effect-Id as sha256:<64 lowercase hex>.",
-      );
-    }
-    return value;
-  }
-
-  async function admitAgentEffect(
-    agent: VerifiedAgent,
-    effect: AgentEffectRequest,
-  ) {
-    const timestamp = now();
-    const replay = store.resolveAgentEffectReplay(agent.agentId, effect);
-    if (replay !== null) {
-      return { replay, grant: null, decision: null };
-    }
-    const grant = store.resolveAgentGrant(
-      agent.agentId,
-      config.origin,
-      effect.action,
-      effect.resource,
-      timestamp,
-    );
-    const approval = store.effectApproval(
-      grant.principalId,
-      effect,
-      timestamp,
-    );
-    const decision = await agentAdmission.evaluate(
-      admissionInput(timestamp, grant, agent, effect, approval),
-    );
-    return { replay: null, grant, decision };
   }
 
   app.setErrorHandler((error, request, reply) => {
@@ -541,6 +392,16 @@ export async function createWebApp(
     },
   );
 
+  app.get("/operator/grants", async (request, reply) => {
+    // Also cover authentication failures, not only the successful HTML.
+    reply.header("Cache-Control", "no-store");
+    const auth = authenticated(request);
+    const observedAt = now();
+    const grants = store.listAgentGrants(auth.principal.principalId);
+    return reply.type("text/html; charset=utf-8")
+      .send(renderOperatorGrants(auth.principal, grants, observedAt));
+  });
+
   app.get("/api/security/agents/grants", async (request) => {
     const auth = authenticated(request);
     return { grants: store.listAgentGrants(auth.principal.principalId) };
@@ -660,147 +521,9 @@ export async function createWebApp(
     },
   );
 
-  app.post("/api/agent/canary/notes", async (request, reply) => {
-    const agent = await verifiedAgent(request);
-    const body = asBody(request);
-    const content = requireString(body, "content", 2000);
-    const resource = "/canary/notes";
-    const effect: AgentEffectRequest = {
-      effectId: effectId(request),
-      effectDigest: stableEffectDigest({
-        action: "canary.note.create",
-        resource,
-        content,
-      }),
-      action: "canary.note.create",
-      resource,
-      audience: config.origin,
-      riskClass: "R2",
-      effectType: "website.canary.note.create",
-    };
-    const admitted = await admitAgentEffect(agent, effect);
-    if (admitted.replay !== null) {
-      return reply.code(200).send({ receipt: admitted.replay, replayed: true });
-    }
-    if (admitted.grant === null || admitted.decision === null) {
-      throw new WebProblem(500, "admission-state-invalid", "Admission state invalid", "Agent admission did not return current authority.");
-    }
-    if (
-      admitted.decision.agent.outcome !== "ALLOW" ||
-      admitted.decision.effect?.admitted !== true
-    ) {
-      if (admitted.decision.agent.outcome === "STEP_UP") {
-        store.registerPendingEffectApproval(
-          admitted.grant.principalId,
-          effect,
-          now(),
-        );
-        return reply
-          .code(428)
-          .type("application/problem+json")
-          .send({
-            type: config.origin + "/problems/principal-step-up-required",
-            title: "Principal approval required",
-            status: 428,
-            detail: "This Agent Effect requires effect-bound Principal approval.",
-            effectId: effect.effectId,
-            effectDigest: effect.effectDigest,
-            requestId: request.id,
-          });
-      }
-      throw new WebProblem(
-        403,
-        "agent-effect-denied",
-        "Agent Effect denied",
-        admitted.decision.agent.reason,
-      );
-    }
-    const committed = store.commitAgentCanaryCreate(
-      admitted.grant,
-      agent.agentId,
-      effect,
-      content,
-      now(),
-    );
-    return reply
-      .code(committed.replayed ? 200 : 201)
-      .send(committed);
+  registerAgentCanaryRoutes(app, {
+    config, store, now, agentAdmission, agentVerifier: dependencies.agentVerifier,
   });
-
-  app.post(
-    "/api/agent/canary/notes/:noteId/publish",
-    async (request, reply) => {
-      const agent = await verifiedAgent(request);
-      const params = request.params as { noteId?: unknown };
-      if (typeof params.noteId !== "string" || params.noteId.length < 1) {
-        throw new WebProblem(
-          422,
-          "invalid-note-id",
-          "Invalid canary note",
-          "noteId is required.",
-        );
-      }
-      const resource = "/canary/notes/" + params.noteId;
-      const effect: AgentEffectRequest = {
-        effectId: effectId(request),
-        effectDigest: stableEffectDigest({
-          action: "canary.note.publish",
-          resource,
-          noteId: params.noteId,
-        }),
-        action: "canary.note.publish",
-        resource,
-        audience: config.origin,
-        riskClass: "R4",
-        effectType: "website.canary.note.publish",
-      };
-      const admitted = await admitAgentEffect(agent, effect);
-      if (admitted.replay !== null) {
-        return reply.code(200).send({ receipt: admitted.replay, replayed: true });
-      }
-      if (admitted.grant === null || admitted.decision === null) {
-        throw new WebProblem(500, "admission-state-invalid", "Admission state invalid", "Agent admission did not return current authority.");
-      }
-      if (admitted.decision.agent.outcome === "STEP_UP") {
-        store.registerPendingEffectApproval(
-          admitted.grant.principalId,
-          effect,
-          now(),
-        );
-        return reply
-          .code(428)
-          .type("application/problem+json")
-          .send({
-            type: config.origin + "/problems/principal-step-up-required",
-            title: "Principal approval required",
-            status: 428,
-            detail: "Publishing this canary note requires effect-bound Principal approval.",
-            effectId: effect.effectId,
-            effectDigest: effect.effectDigest,
-            requestId: request.id,
-          });
-      }
-      if (
-        admitted.decision.agent.outcome !== "ALLOW" ||
-        admitted.decision.effect?.admitted !== true
-      ) {
-        throw new WebProblem(
-          403,
-          "agent-effect-denied",
-          "Agent Effect denied",
-          admitted.decision.agent.reason,
-        );
-      }
-      const committed = store.commitAgentCanaryPublish(
-        admitted.grant,
-        agent.agentId,
-        effect,
-        params.noteId,
-        now(),
-      );
-      return reply.code(200).send(committed);
-    },
-  );
 
   app.addHook("onClose", async () => {
     if (dependencies.store === undefined) {

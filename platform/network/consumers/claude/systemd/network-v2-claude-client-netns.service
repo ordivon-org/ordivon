@@ -1,8 +1,8 @@
 [Unit]
 Description=Network v2 Claude Code client namespace with no direct Internet route
 BindsTo=network-v2-claude.target
-After=network-v2-claude.target network-v2-browserless.target
-Requires=network-v2-browserless.target
+After=network-v2-claude.target network-v2-shared-egress.target
+Requires=network-v2-shared-egress.target
 PartOf=network-v2-claude-client.target
 
 [Service]

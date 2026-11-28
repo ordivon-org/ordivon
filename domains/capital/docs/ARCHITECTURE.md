@@ -1,5 +1,77 @@
 # Ordivon Capital Architecture
 
+## Finance Agent roles / Security authorization composition (2026-11-08)
+
+Finance has no required seven-Owner architecture. The seven existing Python
+source directories describe brownfield implementation, not a permanent Finance
+LEGO taxonomy. Dynamic Agent roles are task instructions, not deployment
+identities or financial authority. A Research
+Director may schedule Discovery, Quant Researcher, Independent Reviewer,
+Portfolio/Risk Challenger and Operations tasks through existing Harness
+and Runtime. No Finance Agent registry, policy engine, new role-owned database
+or third orchestration process is created.
+
+Security owns delegated Agent authorization: trusted authenticated
+Principal/Agent/Grant projection -> existing public Agent Admission v1
+evaluator (OPA + digest-bound Effect Admission) -> ALLOW/STEP_UP/DENY.
+Gateway/Runtime and each effect owner retain real enforcement and durable
+effect state. Role descriptions and Finance research JSON do not assert
+verified identity or expand financial effects. The Security v0 grant
+remainingEffects field is a non-atomic policy snapshot, not durable quota.
+
+Research operations remain freeze-experiment, assess-holdout,
+fingerprint-policy and review-candidate in scripts/run-finance-lego.
+They do not grant orders or capital. Independent review needs independently
+controlled experiment evidence, not another Agent agreeing with the author.
+External execution separately requires Governance, Trading qualification,
+provider confirmation and Accounting reconciliation.
+
+tests/test_finance_agent_role_composition.py directly invokes Finance CLI
+and the public upstream Security OPA evaluator with synthetic trusted inputs.
+It is proof of contract composition, NOT production authentication or real
+market execution. Human and Agent procedure is in the existing
+.agents/skills/finance-experiment-review/SKILL.md.
+
+## Finance investment program — source boundary (2026-11-06)
+
+The Finance economic program **reuses** Capital's seven real source owners.
+The existing `strategic_contribution.py` and `passive_benchmark.py` are the
+current Investment Mode mechanics. No second passive-index simulator is added.
+The current `investment_candidate.py` owns byte-bound economic candidate
+evaluation; no second economic performance calculator is added.
+
+`research/experiment_protocol.py` owns only a **pre-experiment** plan
+commitment and subsequent readiness assessment using declared source
+availability, disjoint train/validation/prospective holdout and identity
+digests. Temporal instants are normalized to UTC before calendar-day
+partition comparison; the frozen plan and result are strict versioned JSON
+shapes, and an undeclared authority or extra economic claim cannot promote
+a review standing. It complements, but does not replace, existing provider byte-binding
+and return-path evaluation. UNKNOWN is not REJECTED; REVIEW_REQUIRED is
+not independent research validation, broker permission or an allocation grant.
+
+**Finance research composition** calls existing
+`investment_candidate.py` for source-to-return arithmetic rather than
+repeating the economics. Pre-holdout `fingerprint-policy` binds only
+candidate identity, frozen instant, strategy asset weight, benchmark expense,
+currency, trial count and cost categories into the plan's `configDigest`.
+Source and holdout byte digests are *postfreeze* evidence, not preregistered
+historical features. After observation, `review-candidate` checks exact
+policy identity before delegating byte-verified source replay and the
+prospective evidence gate. Complete local arithmetic without independently
+attested timestamp, provider authenticity, multiple-testing correction and
+independent reproduction remains `UNKNOWN`; incomplete holdout is `UNKNOWN`.
+The protocol's `sha256:<hex>` prefix and the candidate's raw lowercase
+64-character source/holdout digests remain their existing native contracts.
+
+`scripts/run-finance-lego` calls the existing Capital Python toolchain
+for all four research operations. An optional Agent consults
+`.agents/skills/finance-experiment-review/SKILL.md`; no new Agent
+registry, workflow platform, brokerage engine or source-owner tree exists.
+R2.1 contract CA10 is explicitly source-qualified, and real historic
+timestamp attestation remains UNKNOWN. The native acceptance uses
+`mise run //domains/capital:verify`.
+
 ## Core rule
 
 Ordivon Capital is a composition/control plane, not a new financial framework. External standards define semantics and providers own authoritative external reality. Mature implementations are candidates for mechanics until they pass current language, semantic, executable and comparative qualification gates. Ordivon keeps local mechanisms when no external candidate is admitted, while minimizing them to the exact bounded contract.
@@ -8,7 +80,7 @@ The currently instantiated Python source-owner packages are Markets, Trading, Po
 
 Ordivon Capital is the umbrella. The currently instantiated source-owner domains are `markets/`, `trading/`, `portfolio/`, `risk/`, `research/`, `governance/`, and `accounting/`. No empty Treasury/Compute/Human/etc. packages are created merely to mirror a conceptual taxonomy. `config/capital_domain_taxonomy.json` defines the source-owner taxonomy and `config/external_owner_census.json` is the machine-readable implementation-ownership audit.
 
-`Markets` owns observable public market/reference facts, microstructure and streaming qualification. `Trading` owns provider/private reality, order intent, execution feasibility, FIX projection and reconciliation. `Portfolio` owns caller-supplied portfolio counterfactuals; `Risk` owns exposure and risk measurement; `Research` owns model/evidence validation; `Governance` owns authorization/policy gates; `Accounting` owns durable ledger mechanics. `Execution` is therefore a capability inside Trading rather than a synonym for Capital or Markets.
+`Markets` owns observable public market/reference facts, microstructure and streaming qualification. `Trading` owns provider/private reality, order intent, execution feasibility, FIX projection and reconciliation. `Portfolio` owns caller-supplied portfolio counterfactuals and deterministic contribution-only strategic allocation; `Risk` owns exposure and risk measurement; `Research` owns model/evidence validation; `Governance` owns authorization/policy gates; `Accounting` owns durable ledger mechanics. `Execution` is therefore a capability inside Trading rather than a synonym for Capital or Markets.
 
 Canonical flow:
 
@@ -23,7 +95,7 @@ External mature systems provide the active evidence mechanics:
 - market/account providers own current external reality;
 - NumPy 2.5.3, SciPy 1.18.1 and scikit-learn 1.9.1 own only their admitted numerical/statistical/estimator mechanics;
 - the two current fixed Risk/Research document contracts are validated by domain-local fail-closed validators bound to exact schema SHA-256 identities; jsonschema 4.26.0 is retained only as the isolated R18 differential oracle/future broader-schema candidate after 6000 mutation cases produced zero mismatches;
-- PyArrow 25.0.1 / Apache Parquet owns only the bounded typed-Parquet materialization contract, while DuckDB 1.5.5 owns only independent Parquet parsing/readback plus bounded SQL assertions. R16 requalification passed Python 3.14.7, bidirectional cross-engine round-trip, Unicode/int64/nullability cases, explicit type rejection, and truncated/garbage Parquet rejection; same-engine PyArrow self-readback is deliberately not treated as an independent baseline;
+- Apache Parquet/PyArrow and DuckDB are qualified only for bounded typed materialization and independent read-back contracts actually consumed by current workflows; past R16/R17 version-specific qualification is historical and is not evidence of an installed binary or an active universal research-data platform;
 - the single monitoring-row contract is validated locally after a 400-case zero-mismatch Pandera differential; MLflow, Pandera and pandas are not current Capital Research runtime dependencies.
 
 The historical Wave-A GLEIF/SEC/Cboe/equal-weight generation pipeline is retired. Its frozen target-portfolio fixture remains only as a bound Wave-B regression/execution-mechanics input. Capital does not retain a duplicate research platform or lineage graph.
@@ -35,11 +107,64 @@ Risk-data architecture uses BCBS 239 principles as the reference for source iden
 
 ## Composition-first rule
 
-Ordivon Capital owner domains adopt a mechanism only after contract-equivalent qualification. Venue APIs own market/account/order reality. The current bounded US-equity feasibility contract is owned by the small local fee-aware sizer after zero-mismatch differential qualification against current LEAN; LEAN remains an isolated historical/general trading-engine challenger because its latest candidate is functionally green but supply-chain blocked. NautilusTrader is likewise a challenger rather than a canonical core owner. Its rc4 executable qualification tools are isolated under tools/nautilus_rc4; canonical public-data, private-read preflight, and OKX provider-audit gates do not execute rc4. Nautilus-specific episode normalization/effect-matrix adapters are likewise candidate tools; the current non-live effect admission contract is provider-neutral and retains rc4 only as historical qualification evidence. FIX Latest / FIX Orchestra remains the order-semantic reference. The current legacy FIX 4.4 mechanics projection is a bounded local sessionless TagValue projector after 120/120 byte-exact QuickFIX/n comparisons; QuickFIX/n is retained only as a differential oracle and future real-session candidate. SQLite owns the admitted single-host ACID/WAL accounting primitive; TigerBeetle is a future distributed-accounting challenger. Prometheus 3.14.0 is a Capital observability candidate rather than a current owner. A 2026-09-21 live census found the old Market-Capital node-exporter/shared-Prometheus island inactive and the active Network v2 Prometheus had zero Capital series; the stale renderer/rules/textfile/drop-in were therefore retired instead of preserved as compatibility debt. Grafana/OpenTelemetry/OpenLineage likewise remain candidates until an active contract exists. See docs/COMPOSITION_FIRST_2026-09-14.md.
+Ordivon Capital owner domains adopt a mechanism only after contract-equivalent qualification. Venue APIs own market/account/order reality. The current bounded US-equity feasibility contract is owned by the small local fee-aware sizer after zero-mismatch differential qualification against current LEAN; LEAN remains an isolated historical/general trading-engine challenger because its latest candidate is functionally green but supply-chain blocked. NautilusTrader remains a non-live challenger, not a canonical live or broker engine.
+The pinned `nonlive` uv group uses NautilusTrader 2.0.0rc9 with the existing
+BacktestEngine-to-Capital reconciliation matrix under Finance Python 3.15.1:
+`mise run verify:nonlive:nautilus`. The explicit zero-rate fee schedule only
+qualifies order lifecycle and effect disposition; it is not a market-cost,
+ETF-execution, custody, settlement or profitability claim. Historical rc4 remains
+an isolated, separately pinned qualification for exact regression comparison. Its rc4 executable qualification tools are isolated under tools/nautilus_rc4; canonical public-data, private-read preflight, and OKX provider-audit gates do not execute rc4. Nautilus-specific episode normalization/effect-matrix adapters are likewise candidate tools; the current non-live effect admission contract is provider-neutral and retains rc4 only as historical qualification evidence. FIX Latest / FIX Orchestra remains the order-semantic reference. The current legacy FIX 4.4 mechanics projection is a bounded local sessionless TagValue projector after 120/120 byte-exact QuickFIX/n comparisons; QuickFIX/n is retained only as a differential oracle and future real-session candidate. PostgreSQL 18.6 through psycopg 3 is the current **native-qualified Accounting implementation owner** in the source census, while installed-service cutover remains a distinct observed fact; the old SQLite implementation and differential-only tests were retired, while TigerBeetle remains an external distributed-accounting candidate recorded in historical evidence rather than an executable current Owner. Prometheus 3.14.0 is a Capital observability candidate rather than a current owner. A 2026-09-21 live census found the old Market-Capital node-exporter/shared-Prometheus island inactive and the active Network v2 Prometheus had zero Capital series; the stale renderer/rules/textfile/drop-in were therefore retired instead of preserved as compatibility debt. Grafana/OpenTelemetry/OpenLineage likewise remain candidates until an active contract exists. See docs/COMPOSITION_FIRST_2026-09-14.md.
 
 ### Capital accounting substrate
+### Capital accounting substrate
 
-SQLite remains the bounded single-host ACID/WAL accounting primitive. The Python 3.14.7 / SQLite 3.53.1 evidence was a historical mechanics qualification, not the presently installed interpreter or an approval to use outdated libraries. The installed CPython 3.15.0 still embeds SQLite 3.53.1, while the latest required SQLite is 3.54.0; live cutover remains HOLD. Ordivon retains only the bounded reservation/post/void schema, deterministic identity binding, and fail-closed durable reconciliation seam. SQLite state is not settlement finality, legal ownership, withdrawability, deployability, venue execution truth, or external-write policy. Authoritative reconciliation maps unresolved effects to NO_MUTATION, proven no-effect to VOID_PENDING_TRANSFER, and positive execution to POST_PENDING_TRANSFER. Intact database restarts preserve exact local accounting history; missing or contradictory state requires no automatic repair and cannot reopen terminal reservation history. TigerBeetle 0.17.9 remains a challenger if replication, consensus, cluster recovery, or materially higher transaction throughput becomes an active contract.
+The canonical source authority is
+`src/ordivon_capital/accounting/postgres_ledger.py` with exact
+`config/external_owner_census.json` current qualifications. Native
+PostgreSQL SERIALIZABLE/uniqueness/advisory-transaction evidence belongs to
+the Accounting owner; do not reinterpret that test PASS as an automatic
+production install/cutover. The one-time SQLite source importer is retired:
+no historical SQLite row backfill is required. Capital's old SQLite ledger,
+its differential-only tests and historical smoke are retired. Current
+physical Accounting tests run against disposable PostgreSQL and check the
+same domain contract directly. TigerBeetle remains a candidate, not
+canonical Capital Accounting.
+
+Neither internal accounting substrate proves exchange settlement, legal
+ownership, withdrawability or venue trade reality. Reconciliation still
+distinguishes unknown effect (`NO_MUTATION`), authoritative proven no-effect
+(`VOID_PENDING_TRANSFER`) and **fully reconciled exact-quantity execution**
+(`POST_PENDING_TRANSFER`) without resurrecting terminal history. A positive
+**partial** execution is PARTIAL_EXECUTION_UNSETTLED -> NO_MUTATION, including
+partial-fill-then-cancel: it must not post an entire pending reservation or
+void a reservation whose venue effect is positive. Trading retains the
+authoritative fill/remaining-quantity evidence until a separately qualified,
+amount-aware Accounting consumer exists. Venue trade IDs are deduplicated and
+an ambiguous reused client order ID never selects an arbitrary order.
+**One-time amount-aware terminal resolution (TigerBeetle two-phase contract).**
+The current Accounting PostgreSQL owner accepts a POST_PENDING_TRANSFER with
+an exact integer posted_amount in (0, reserved] and atomically removes the
+*entire reserved amount* from pending while posting only the observed amount.
+The difference becomes available headroom, not an independent phantom credit.
+POSTED is terminal even when the posted amount is smaller than reserved:
+another POST, VOID, or amount-changing replay cannot post again.
+DurableReservationHistory(CONSUMED, posted_amount=...) must match the exact
+read-back amount; absent explicit amount means the historical full-post case.
+Durable PG refinement requires the original pending transfer and terminal
+resolution to carry their actual persisted statuses; missing or inconsistent
+status is not a successful MATCH. Independent Z3 model obligations and
+disposable PostgreSQL concurrency
+tests cover this bounded invariant, not venue or source authenticity.
+
+Trading still returns PARTIAL_EXECUTION_UNSETTLED / NO_MUTATION for an
+incomplete or unauthenticated partial fill. Neither venue qty * price nor
+Accounting's accepted numeric posted_amount is financial truth by itself:
+only after Trading qualifies terminal fill/fee/currency evidence may an
+external effect consumer request a one-time amount-aware resolution. Live
+and Demo providers are **not automatically connected to this new authority**.
+
+For installed truth, inspect the actual Accounting owner/Runtime release
+and live service rather than inferring it from this architecture page.
 
 ## 2. Decision
 
@@ -59,10 +184,10 @@ Retained local seams are:
 - frozen-decision to standard execution-intent mapping;
 - bounded local deterministic policy input normalization and fail-closed enforcement;
 - venue-native order/fill state to FIX lifecycle normalization;
-- authoritative reconciliation to bounded accounting reservation resolution on the admitted SQLite substrate;
+- authoritative reconciliation to the current qualified Accounting owner, without a SQLite importer or fallback;
 - provider restart/recovery identity bindings required by the composition.
 
-The Governance-domain execution-policy enforcement point is src/ordivon_capital/governance/policy_decision.py plus config/execution_policy.json. The current contract is a bounded deterministic rule set evaluated directly in canonical Python 3.14.7. OPA 1.20.2 is retained only as historical differential evidence under tools/opa_1_20_2.
+The Governance-domain execution-policy enforcement point is src/ordivon_capital/governance/policy_decision.py plus config/execution_policy.json. The source contract is a bounded deterministic policy rule set evaluated by the current owner-native Python toolchain. OPA 1.20.2 is retained only as historical differential evidence under tools/opa_1_20_2.
 
 Current runners that cross the effect boundary pass the bounded local policy-decision point. The current policy input yields `allowExternalWrite=false`; no live external-write execution path is implemented. LEAN is not a prerequisite for canonical current runners.
 
@@ -80,110 +205,121 @@ Completion is not `send()` or an HTTP/FIX acknowledgement. The operational bound
 
 Expected and authoritative state must reconcile; otherwise the pending accounting state remains unchanged and recovery/reconciliation is required.
 
-PFMI and ISO 20022 remain reference semantics for external post-trade infrastructure. The Trading/Accounting domains do not implement a private clearing or settlement system absent a demonstrated substitution failure. Historical LEAN Wave-B runners and their algorithm build payload, plus TigerBeetle/Nautilus qualification runners, are isolated under tools as replay/candidate surfaces; their legacy class names and stable provider IDs are preserved for reproducibility but are not current scripts or runtime owners. The frozen wave_b/fixtures/wave_a_target_portfolio.json path remains intentionally retained as a provenance/regression identity.
+PFMI and ISO 20022 remain reference semantics for external post-trade infrastructure. The Trading/Accounting domains do not implement a private clearing or settlement system absent a demonstrated substitution failure. Historical LEAN Wave-B and TigerBeetle replay runners and their build payload were retired from the current tree after the source consumer audit: their exact code and historical IDs remain retrievable from Git revision ef17d6879d12faa61fff3bb762b0d500d73c9113. Nautilus rc4 qualification tools remain isolated under tools as a historical candidate pending a separate current-consumer decision. None is a current canonical runtime owner. The frozen wave_b/fixtures/wave_a_target_portfolio.json path remains intentionally retained as a provenance/regression identity.
 
 
 ## 7. Crypto venue lane
 
 The active future venue qualification path is OKX + Binance Spot through an asymmetric composition: each venue's authoritative APIs own market/account/order reality; NautilusTrader remains an execution/OMS/reconciliation challenger and has no canonical core dependency until a current candidate passes all gates; Binance public data remains on its official credential-free REST/WebSocket boundary where that is the qualified path. The lane is continuous 24/7 crypto and does not inherit the historical U.S.-equity opening-auction assumptions. Public market data is admitted without credentials; private account data, demo execution and live execution remain blocked until separately graduated.
 
-Initial common universe: BTC/USDT and ETH/USDT. OKX Demo and Binance Demo/Testnet are the first future execution environments. Direct local exchange HTTP requires workstation scoped VPN transport. Singapore OpenVPN-TCP has passed point-in-time public-data qualification for both OKX and Binance; future sessions must rediscover/revalidate a fresh path.
+Initial common universe: BTC/USDT and ETH/USDT. OKX Demo and Binance Demo/Testnet are the first future execution environments. Actual live transport is qualified by Network owner observations; a September 2026 VPN exit-path sample is not a standing claim about current provider reachability.
 
-## Current progression
+## Source-currentness versus historical experiments
 
-- Historical Wave A: generator retired; frozen target-portfolio fixture retained for Wave-B regression/execution-mechanics compatibility.
-- Historical Wave B M1-M4: LEAN mechanics, provider-origin historical data and FIX semantics remain reproducible evidence. Current sizing/feasibility ownership has moved to the bounded local fee-aware sizer after LEAN 985ef30 differential qualification; LEAN is not a canonical core gate.
-- Wave B M5: prospective post-decision holdout validation implemented; no causal inference is claimed.
-- Historical Wave B M6: pre-decision LEAN shadow-order precommit remains frozen evidence. The current `shadow_precommit` sizing owner is the local bounded sizer; the historical LEAN runner remains a challenger reproduction path.
-- Wave B M6.1: semantic/authority core migrated directly into the canonical repository; temporary cross-repo architecture removed.
-- Wave B M6.2: NautilusTrader `2.0.0rc4` admitted only as a non-live candidate; OMS/Risk controls passed, but simulated `AT_THE_OPEN` execution is blocked as unsupported.
-- Historical equity M7 remains a valid independent validation experiment, but the active future venue qualification path is now the separate OKX + Binance continuous crypto lane. The frozen equity experiment is not rewritten into crypto semantics.
-- Crypto Public Shadow R1: concurrent OKX/Binance public REST capture is bound to exact Network v2 authorities. Whole capture rounds retry coherently on transient transport failure so only one contemporaneous round enters analysis. The latest rerun remained PARTIAL because venue-clock agreement exceeded the frozen 250 ms research gate; private/demo/live writes are independently NOT_ADMITTED.
-- Crypto Shadow Mechanics R1: accepted public quote/metadata evidence now drives a local Nautilus multi-currency Spot simulation; four mechanics-only IOC intents pass venue precision/lot rules and OMS fill lifecycle with no broker connection.
-- Historical Crypto Native Adapter R1: rc4 previously demonstrated OKX native public quotes while Binance native startup remained blocked. Under the current latest-language ownership rules, both observations are retained only as historical candidate evidence; current OKX and Binance public-data primary paths are provider-native official REST/WebSocket and do not depend on Nautilus.
-- Clock Quality Gate: fresh multi-source audits show the host/WSL clock is outside the 1000 ms gate and the error direction is unstable (previously ~2.65–2.68 s ahead, now ~2.90–2.92 s behind). Windows Time inspection is available and shows an unsynchronized Local CMOS fallback; safe remediation requires an administrator-authorized Windows path.
-- Crypto Public Shadow R2: persistent public WebSocket observation uses websockets 17.1 for narrowly bounded RFC 6455 client mechanics and Network v2 for route authority. R17 requalification independently exercised the client against a raw asyncio TCP peer (not a websockets server), covering Upgrade validation, client masking, text receive, automatic Pong, close handshake, message-size rejection, invalid-status rejection and opening timeout. The protocol-v2 migration changed only Capital document identity: current outputs use schemaVersion 2 and the markets.* namespace. The first v2 one-shot R2 operational sample on 2026-09-21 was PARTIAL with zero accepted snapshots over about 25 s and no parser/runtime exception. This is retained as a non-blocking live sample failure because the unchanged Network transport configuration remained current and the independent R3 per-venue reconnect qualification immediately passed both venues.
-- Remaining non-live admissions are qualification/composition work: minimal decision → FIX-aligned intent binding; read-only authoritative account/order/trade reality; compare current execution-engine candidates against the bounded local baseline; venue reconciliation; and repeated paper/recovery evidence. NautilusTrader may be used only after a current latest-language candidate passes the exact contract. Live authorization remains a separate later admission.
-- Crypto Stream Resilience R3: missing, stale, and time-diverged public feeds fail closed. Protocol-v2 injected-disconnect qualification on 2026-09-21 passed both venues through the exact Network v2 WS authorities using schemaVersion 2 markets.* documents: OKX reconnect 686.0 ms, Binance 5676.5 ms, both generation 2 with three measured rounds each. The v2 binding digest is sha256:d88a5ac5... because the binding document identity changed; the underlying Network transport configuration remains byte-identical at sha256:6be73891.... The R3 runner uses the canonical Python capability runner and always preserves both venue results instead of collapsing first-venue failure into NO_SESSION_RESULT. Application code does not select VPN node/protocol/ingress.
-- Crypto FIX Projection R4: the already-qualified four historical mechanics-only Spot intents are projected through the local bounded sessionless FIX 4.4 NewOrderSingle TagValue projector. It matched QuickFIX/n 1.14.1 byte-for-byte in 120/120 differential cases. ClientOrderId remains ClOrdID, venue remains ExDestination, and no network FIX session, credential, private account state or financial write is introduced.
-- OKX provider-capability audit: the live-trade credential is queried only through a local Python 3.14 stdlib GET-only client restricted to account config, trading-account balance and open Spot orders. It matched @okx_ai/okx-trade-cli 1.4.7 on 120/120 HMAC vectors and 3/3 live structural reads, while structurally exposing no client write method. The credential nevertheless has provider Trade permission, so this lane is evidence about provider capability and is not the canonical private-Reality observer. The dedicated OKX observer lane remains pending fresh provider-permission verification; Binance Spot/USD-M private USER_DATA contracts are also not admitted.
-Clock timing qualification now passes: Windows w32time is synchronized to qualified public NTP peers and WSL CLOCK_REALTIME follows the Windows host through `/dev/ptp_hyperv` using `phc2sys`; fresh external validation observed <=47.1 ms absolute error versus the frozen 1000 ms gate. Overall private/demo/live execution remains blocked by the separate NON_LIVE execution authority.
+Historical Wave-A generation, Wave-B LEAN mechanics and Nasdaq experiments,
+September crypto public/private qualification episodes, and October
+Python/SQLite/Parquet rebuild/backup rehearsals were specific executed
+SourceCuts. Their original claims and digests remain in Git history, but
+they are **not a durable installed-state inventory**. Previously recorded
+clock offsets, VPN exits, dependency versions, local registry sizes and
+vendor connection results should not be called `CURRENT` without fresh
+owner observation.
 
-- Private Reality R5 offline normalization: venue-native observer envelopes are normalized by a pure no-network/no-credential function into balances, positions, open orders, order history and fills. Observer credential bindings are external; Binance executor credentials are excluded; fresh permission verification is still required before private account data is admitted.
-- Binance USD-M Equity Perp Provider R1: TradFi Equity Perpetuals are a separate provider scope from the historical Binance Spot lane. The official Binance USD-M SDK 17.4.0 owns /fapi REST/WebSocket mechanics; Network v2 owns fapi.binance.com / fstream.binance.com transport; exchangeInfo filters own tick/step/min-notional rules; Position V3/leverageBracket/USER_DATA streams will own private risk truth once credentials are freshly qualified. Public SNDKUSDT consequence passed; private USER_DATA/product eligibility remain pending; TradFi agreement, leverage/margin mutations and all TRADE surfaces remain non-admitted.
+Current source and consumer entrypoints, in priority order:
 
-- Execution Reconciliation R6: venue reality remains authoritative and FIX lifecycle vocabulary normalizes order state. Absence from a broad snapshot yields UNKNOWN with NO_MUTATION; explicit authoritative no-effect proof maps to VOID_PENDING_TRANSFER; positive execution maps to POST_PENDING_TRANSFER.
+- `config/capital_domain_taxonomy.json`: actual seven Python owner packages
+  and their exact source patterns, not a proposed `finance/` superpackage.
+- `config/external_owner_census.json`: local/external mechanism owner,
+  comparative qualifications and retained migration consumers.
+- `src/ordivon_capital/` and `scripts/`: importable and executable
+  source, not proof of a running customer service.
+- `mise run verify` in `domains/capital`: current owner-native software
+  acceptance, explicitly separate from effect-provider readback.
+- The owner Runtime/Host/Network and actual external providers: exact
+  current installed version, live health, source time and external reality.
 
-- Demo/Testnet execution R7 preflight: the historical rc4 candidate exposed OKX DEMO and Binance Spot TESTNET configuration without local client reimplementation. This proves candidate component readiness only; it does not admit Nautilus under the current Python 3.14.7 / Rust 1.98.1 baseline, and demo/live external writes remain NOT_ADMITTED.
+The current Finance investment/research workflow reuses Portfolio's
+no-sale contribution projection and matched-cash-flow passive baseline,
+Research's precommitted prospective protocol and byte/source replay,
+Markets' source-bearing observations, Risk's measured exposure/tail-risk
+calculations and Accounting's exact qualification boundary. The
+[Capital owner README](../README.md) routes Human and Agent readers
+to the existing first-run task and native Skill guidance.
 
-- Live test-account admission: user-designated LIVE accounts may serve as qualification accounts without being relabeled Demo/Testnet. A pure admission evaluator requires fresh authoritative near-zero account reality, no positions/open orders/nonquote balances, <=1 quote unit, trade permission, no withdraw/transfer authority, clock PASS and reconciliation health. Production trading remains false.
+The continuing constraints are substantive: historical provider truth,
+time-of-availability, multiple trials, selection bias, capital suitability,
+authoritative broker effects and custody/settlement are not established
+by a retrospective paper replay or by this repository.
+
+**Retirement decision:** these superseded progress narratives were
+unreferenced as execution/acceptance contracts; retain current source
+contracts and observed consumers instead of updating long historical
+status paragraphs every time one vendor version or network route changes.
+
+## Finance R3 isolated scientific/native Paper qualification (2026-11-12)
+
+The existing `adoption/r3_native/` subtree is a **research and disposable-test**
+consumer of mature OpenBB, Qlib, NautilusTrader, Riskfolio and PostgreSQL
+capabilities. It does not declare these packages canonical production owners,
+and it does not replace Capital's existing Trading OMS, Accounting ledger,
+Portfolio or Security authorization. Logical LEGO responsibilities are not
+service or mandatory agent boundaries.
+
+The Qlib H5/H20 next-open labels and Nautilus simulated BUY/HOLD/SELL are
+economically time-aligned for the fixed historical test, and the same Paper
+Session inputs are replayed through `PostgresPaperClose` in a disposable test
+instance with physical stop/restart and receipt readback. These tests consume
+retrospectively collected, unadjusted ETF bars and test-only synthetic quote
+spreads / caller-supplied valuation marks. They do not prove historical
+point-in-time availability, source redistribution rights, calibrated forecasts,
+production account binding, real brokerage effects, or investment authority.
+
+**Accounting authority remains in `src/ordivon_capital/accounting/`:** the
+canonical PostgreSQL Paper reader validates predecessor receipt commitments,
+recomputes the persisted valuation and compares head cash to the ledger; no
+research-side weaker implementation may replace these controls. Review
+`adoption/r3_native/PR_REVIEW_NATIVE_PG_R5.md` for precise native Jobs and
+remaining UNKNOWNs. An isolated test is not a deployment or live-money grant.
+
+## Finance implementation update — 2026-11-21, current Git source
+
+The original 2026-11-16 Architecture R1 section is preserved in Git history,
+not in the current execution guide. Its former proposals are not a work queue. Its report that Qlib consumers select the
+first arbitrary CSV value is now RESOLVED: current native and Accounting
+consumers require the named NEXT_OPEN score and matching H5/H20 exit semantics.
+
+The adopted Finance module boundary is now narrower and agent-navigable:
+risk/risk_limit_evaluation.py owns numeric risk limits;
+portfolio/scenario_evidence.py owns read-only scenario evidence completeness;
+governance/live_test_account.py owns read-only Live test-account qualification;
+governance/policy_decision.py owns actual execution permission;
+governance/decision_inputs.py owns only shared input parsing and error types.
+Risk and Portfolio calculation no longer load external-write policy files.
+The applications/ package is a composition layer, not an eighth Capital
+domain: applications/paper_simulation_run.py composes Portfolio mandate +
+Governance NON_LIVE decision + Accounting PG close, while
+applications/nautilus_paper_bridge.py translates native Nautilus effects to
+the Paper accounting input. No old import-only shims remain.
+The follow-up read-only Paper entrypoint split keeps
+risk/paper_close_risk.py, portfolio/paper_close_performance.py and
+portfolio/paper_contribution_plan.py free of direct PG/CLI I/O; application
+consumers paper_risk_cli, paper_performance_cli and paper_contribution_cli
+own CLI parsing, source readback and presentation orchestration.
 
 
-Live public-network qualification is operational evidence, not a deterministic source-migration gate. R2/R3 retain their fixed deadlines and record PASS/PARTIAL exactly as observed; deterministic source acceptance remains grounded in controlled tests, contracts, owner census, policy/effect invariants, latest-stable language gates, and source/tree identity.
+Regression acceptance is based on observable economic outcomes, source/cut
+semantics, PG idempotency, and an actual acyclic core-domain AST dependency
+graph. A source-file inventory test is not a behavioral acceptance criterion.
+For any future baseline, re-run the dependency graph and tests on the current
+main, not on this historical document.
 
-## Current Python/Parquet/SQLite compatibility boundary (2026-10-16)
+## 2026-11-21 PIT-to-Portfolio boundary extraction (source candidate)
 
-The frozen R16 PyArrow 25.0.1 / Python 3.14.7 cross-engine source and historical R16 census statements are preserved; they are **not** acceptance evidence for current Python 3.15.0 / PyArrow 26.0.0. The distinct R17 successor is a new, executable PyArrow 26.0.0 / DuckDB 1.5.5 cross-engine technical candidate: unicode, int64 above 2^53, nullability, multi-rowgroup, corrupt/truncated rejection and bidirectional readback have been re-run. It explicitly reports `externalOwnerAdmitted=false` pending any separate owner/admission decision; no historical R16 result has been rewritten.
-
-The live prebuilt CPython 3.15.0 still embeds SQLite 3.53.1; it has **not** been replaced. A separate CPython 3.15.0 + SQLite 3.54.0 successor was built using official Python.org and SQLite.org release sources, each independently digest-verified. The locked Capital test environment, four additional SQLite-dependent Owner test groups, and an isolated Runtime Registry online-backup/restore exercise passed. This does not replace active processes, project virtualenvs or Runtime/Registry authority. Current check-capabilities deliberately fails closed on the outdated embedded SQLite until a controlled cutover is actually admitted.
-
-## Current runtime admission and SQLite 3.54 source qualification (2026-10-16)
-
-The live Capital virtualenv uses CPython 3.15.0 but its bundled SQLite is
-**3.53.1**, not required **3.54.0**. Active accounting/capability configs
-distinguish installed facts from latest-required versions and set release
-standing to **HOLD**, not a lower-version exception. Frozen PyArrow 25 R16
-and older accounting facts stay historical. PyArrow 26/DuckDB 1.5.5 R17 is
-technically qualified, not independently admitted.
-
-**Source-qualified isolated candidate (not production):**
-
-- Python.org CPython 3.15.0 original tar SHA-256:
-  ba4bed1ba346b916890b76d9e320451420aa69f6408997d33c66482eeae3d575
-- SQLite.org official 3.54.0 autoconf tar from the geographically independent
-  www2.sqlite.org mirror: release SHA3-256
-  f5e3e724e9c9b3b5d512c76b02082091a59eeea9becd169a9fbf4d376403acce
-  (3332512 bytes). Additionally validated official sqlite3.c SHA3-256:
-  8efd453d08a7cfc4c79de5923153036cdc4dcaa254d4f1e617be6a2a98828f9e.
-- Built SQLite with its own upstream configure/make/install and confirmed
-  SQLite release SOURCE_ID. Then rebuilt CPython from a clean official
-  Python source tree, copying the source-built SQLite shared library/headers
-  to a new, version-qualified prefix before configure.
-- CPython build used the standard LIBSQLITE3_CFLAGS, LIBSQLITE3_LIBS and
-  LDFLAGS pointing only at that prefix, plus
-  configure --enable-shared --with-ensurepip=no, make and make altinstall.
-- ELF RUNPATH and /proc/self/maps proved that the Python sqlite3 extension
-  loaded the **source-built SQLite 3.54.0 from that same prefix**, without
-  PYTHONPATH or LD_LIBRARY_PATH. Child Python independently reported 3.54.0.
-- A new uv 0.13.1 --locked --group test environment installed PyArrow 26.0.0
-  from project locks and passed 321 current Capital non-provider tests.
-  Additional Harness SQLite 91 tests + 8 subtests, Gateway Worker 12 tests,
-  Runtime Lifecycle/Reclaim 106 tests and Workstation Recovery 19 tests all
-  passed with this source-verified interpreter. Those secondary Owner tests
-  reused existing package locations and are not a universal clean rebuild.
-
-**Production-data recovery exercise, without production mutation:**
-
-The existing Runtime source-owned backup.py and restore.py (not a new custom
-backup implementation) were executed with the source-built SQLite 3.54
-interpreter. A consistent online snapshot of the running roughly 4.50 GB
-Registry was created in a root-only directory. Restore into a separate
-root-only destination passed the original manifest size/SHA-256 verification,
-complete SQLite integrity_check, and read-only schema checks. An adversarial
-symlinked snapshot was correctly rejected before restoration. The redundant
-restored copy was removed only after validation; the source snapshot and
-root-only machine evidence receipt remain retained outside the Git repository.
-Do not put production database bytes or snapshot identifiers into public Git.
-The real Registry file and active Runtime/Gateway processes were not replaced
-or restarted.
-
-These are source/provenance, compatibility and backup-restore qualifications;
-they are **not** live rollout, universal binary relocatability or application
-semantic E2E completion. Remaining admission requirements are a controlled
-per-service versioned cutover, in-process version/currentness evidence,
-readiness and isolation tests, and a rehearsed switch-back using the
-untouched prior interpreter and verified Registry restore authority. Preserve
-the actual SQLite 3.53.1 live HOLD until each affected process is upgraded;
-do not mark installed/live PASS from a passing isolated candidate. The
-Renovate hosted GitHub App needs separate authorization and a real uv.lock
-update PR before the old Dependabot uv route can be retired.
+The evidence-only Research producer remains `research/pit_joint_forecast.py` and
+retains `from_json_payload`, while `applications/pit_portfolio.py` consumes its
+optimizer-input contract and invokes the existing `portfolio.multistage_policy`
+solver. The original mixed Research `--solve` CLI moves to the application
+entrypoint; the Research CLI remains evidence-only. No optimizer, PG ledger,
+market provider, execution or order authority is duplicated. Qualification
+requires existing PIT/ETF consumer tests and a regression on forecast evidence
+and conditional allocation; historical PIT and alpha remain unproven.

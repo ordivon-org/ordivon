@@ -1,7 +1,25 @@
 # Ordivon Monorepo Agent Rules
 
-1. Work inside the natural owner directory.
-2. Run that owner's native verification before claiming completion.
+**Linux PG Runtime Workspace lifecycle:** On `workspace.open`, read the returned
+`retentionNotice`. The installed `ordivon-runtime-lifecycle.timer` has an
+**operator-configured cadence**; do not assume an hourly sweep from the
+repository template. Four hours after the latest Runtime Job is a minimum
+quiet period, **not** a promised lease or automatic closure time. Native
+reclamation must independently qualify the installed policy, current Git
+source and dirty state, active/held Jobs, and other observed consumers.
+Publish deliverables to Git or Artifact; a Workspace is not durable storage.
+Do not force-close dirty or unintegrated Workspaces. For operational details,
+use [Runtime's current Agent entry](services/runtime/AGENTS.md).
+
+First session in this repository? Use
+[Agent first verified task](docs/start/agent-first-run.md) and
+[task/owner navigation](docs/start/tasks.md) to find one real consumer. These
+are optional onboarding pointers, not new execution authority or an additional
+mandatory workflow. The rules below govern consequential changes.
+
+
+1. Route a change to the directory and interface that owns its actual fact or effect. An Owner is a maintenance responsibility, **not an exclusive executor, permission class, or approval authority**: any genuinely authorized Agent may perform non-conflicting work, even after the prior Owner Agent retires.
+2. Use the affected Owner's focused native verification before claiming completion. Do not impose a whole-Owner test suite, formal proof or sign-off on an unrelated routine edit.
 3. Do not import another owner's internals merely because they are in the same Git tree.
 4. Cross-owner effects use the producing/consuming owners' explicit contracts.
 5. Root tooling may orchestrate checks but may not redefine owner truth.
@@ -10,6 +28,7 @@
 8. For a consequential testing-method or test-template choice, consult `docs/architecture/TESTING_UPSTREAM_ADOPTION_R1.md`; prefer existing Owner-native tools and mature Skills. Do not impose that read on routine edits. SKIP, NOT_RUN and ENV_BLOCKED are not PASS.
 9. For a nontrivial test or debugging task, discover the relevant current Skill only if it can change the method; use the Owner's actual `mise tasks ls` and focused native verification where applicable. An isolated test PASS is not whole-Owner or domain acceptance.
 10. In user-facing replies, reports, and handoffs, state the decision, result, or next action directly. Do not add generic disclaimers, defensive qualifications, obvious warnings, patronizing reminders, or repeated caveats after a clear answer. Explain uncertainty or a constraint only when it materially changes the decision or work; keep it precise and integrated into the answer. Give deeper analysis when requested.
+    For material second opinions, scoped Chinese prose editing, concrete error correction, or evidence-backed manuscript framing, discover only the relevant existing method Skill: evidence-calibrated-dialogue, natural-chinese-writing, feedback-grounded-repair, or research-claim-framing under .agents/skills/. They are optional advisory thinking methods, not global activation, effect permission or replacements for Owner-native verification.
 
 11. **Agent vocabulary / conceptual boundaries (on demand):** when Tool, Skill, Agent, Harness, Runtime, Workflow, Memory, MCP/A2A, Formal or LEGO distinctions affect work, read `docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md`. It is a scoped vocabulary reference, not a new owner or a permission source. Reuse the actual owner API and current evidence; do not claim a Task is complete merely because a model Run or Runtime Job finished. Skip this read for routine tasks where the roles are already clear.
 
@@ -18,3 +37,73 @@
 14. **Proof and tests:** first state the property, assumptions, failure modes, current source/implementation and affected consumer. Select only relevant formal/model checking, implementation refinement, property/state-machine, differential/consumer-contract, integration/read-back, fault-injection/replay and Agent trajectory/holdout evaluations. Match tools to the Owner, not a universal checklist; see the testing guide. A model PASS does not prove code refinement; a test PASS does not prove universal correctness; a Runtime/Agent success does not establish domain completion.
 15. **Agent decision evidence:** distinguish OBSERVED, DECLARED, DERIVED, VERIFIED, UNKNOWN and FALSIFIED with provenance and currentness. Treat hypotheses and predictions as candidates; consider rival explanations and value of further evidence where material. A model belief, Skill read, evidence graph or Tool discovery never confers effect authority. Finish real work with implementation or justified subtraction, actual execution/observation, affected verification and repair; report explicit remaining UNKNOWN rather than fictitious success.
 16. **Integration discipline:** compare current main, relevant branches/PRs and actual consumers before retaining changes. For cross-Owner or PR-sized work, exchange evidence and counterexamples in the existing Space when useful; a message or Owner opinion is not a proof or a permission gate. Prefer the smallest verified contribution and retire superseded code rather than accumulating parallel implementations.
+
+## Scope effect gates; do not invent approval hierarchies
+
+- **Real permission:** authorization comes from the user's permitted action and the actual authenticated principal, OS/database credentials, Security policy and operation-specific constraints. Host ActorRef, owner names, Space membership, agent consensus, Issue labels and documentation cannot grant authority.
+- **Avoid artificial waits:** a retired or unavailable Owner Agent never blocks an otherwise authorized, non-conflicting executor. Exchange cross-owner evidence when it changes the affected consumer; no peer majority, historical signature or handoff ACK is a standing mandatory gate.
+- **Release by changed effect:** distinguish source/CI and reversible preparation; additive read-only endpoint; scoped write/external action; ingress/credential changes; and old consumer decommission. Verify only the contracts and risks the actual release changes. A new parallel candidate does not require the old endpoint's consumers to migrate before it can be prepared or independently tested.
+- **Safety plus liveness:** production admission must reject demonstrated unauthorized access, destructive conflicts and unqualified high-risk effects. It must also have a reachable, independently testable positive case for every release scope it claims to support. A checker deliberately rejecting every qualified release is an implementation defect, not a policy or Owner veto. Do not turn a necessary precondition or explanatory diagnostic string into a sufficient grant.
+- **Reconcile before retrying:** after response loss, use the owning system's exact operation identifier, revision/CAS and immutable receipt to distinguish not-started, committed and unknown. Preserve other Agents' in-flight consumers, credentials and cursors. Do not broaden a read-only database role to get a passing release check.
+
+## Read-only verification evidence
+
+For a specific existing GitHub Actions check, use
+`python3 tools/repo/evidence_validity.py --current-sha FULL_SHA --check-name root-verification`
+before contemplating a duplicate CI replay. A same-SHA named historical
+outcome is not current security, external assumptions, deployed acceptance
+or permission to skip an unrelated verification. Only affected Owner
+verification is required; unresolved scope remains UNKNOWN. See
+`docs/architecture/EVIDENCE_VALIDITY_KERNEL_R1.md` for the bounded consumer.
+
+## Evidence-backed detailed reporting and handoffs
+
+When a user requests a detailed progress/completion report, or when handing off a
+consequential multi-Owner or production change, report against **the actual
+consumer and acceptance authority**, not the amount of Agent activity.
+Keep routine replies concise; do not require every section for a trivial edit.
+
+- **Decision and standing:** lead with what is complete, what is not, and the
+  real consumer consequence. State the exact scope and the as-of time.
+- **Source and change identity:** record the exact Git revision/PR and
+  changed or retired responsibilities, distinguishing proposal, committed
+  branch, merged main and deployed source. Link the original evidence.
+- **Independent realization:** distinguish, when relevant, `SOURCE`,
+  `MERGED`, `INSTALLED`, `LOADED`, `EXECUTED` and `CONSUMED`.
+  Use owner-native exact readback (bytes, process/generation, kernel or
+  external provider) and the consumer's real acceptance, not job exit alone.
+- **Verification and falsification:** name the native commands, observed
+  results, tested assumptions and relevant negative controls. Mark failed,
+  skipped, unavailable and not-run checks distinctly; never inflate a
+  model, static source, CI, or service-health PASS into domain success.
+- **Open work:** give only consequential `UNKNOWN` or `FALSIFIED`
+  properties, their actual blocker or competing explanation, natural Owner,
+  next executable action and observable closure condition. Do not invent a
+  completion percentage, ETA, approval, deployment or ongoing monitoring.
+- **Incident mode only:** when an incident actually occurred, add observed
+  impact, chronological events, contributing causes and tracked mitigation
+  and prevention actions. Do not turn every engineering report into a
+  postmortem.
+
+This is a **presentation and handoff contract**, not a new status database,
+runtime, universal report generator or mandatory Skill. Reuse existing Host
+Work/Topic, GitHub PR/checks, Owner-native verification and domain receipts.
+Follow the scoped Owner Agent guide for concrete evidence (Network example:
+`platform/network/docs/AGENT_GUIDE.md`); use
+`.agents/skills/task-space-reentry/SKILL.md` only when a real Work/Space
+handoff is required.
+
+## Practical consumer routing
+
+### Live local-tool discovery
+
+- For local executables, start at [Workstation inventory](platform/workstation/inventory/README.md); probe the **actual node and Runtime execution identity** on demand, not a dated machine snapshot or another user's PATH.
+- Classify the needed capability via [Capability Catalog](catalogs/capabilities/README.md), then read the selected Owner's README, closer AGENTS.md (if present), and relevant Skill; see [Agent first-run](docs/start/agent-first-run.md).
+- Resolve callable operations from live MCP tool definitions, Owner-native CLI help or `mise tasks ls`; do not reconstruct interfaces from prose. A trusted Skill, installed application, discovered command and authorized domain effect are distinct evidence.
+- Do not copy tool inventory into this file or create a second tool registry. Verify actual provider readback and the final consuming task.
+
+- Use the Human and Agent owner navigation in README.md, mechanically backed by tools/repo/owners.toml. Choose the Owner by the actual **fact or effect**, not where a helper happens to live. Nearest scoped AGENTS.md instructions take precedence for local methods, not Owner authority.
+- Method-first discovery: the existing .agents/skills/method-router/SKILL.md; select only the relevant trusted method or supplier. Use design-structure-matrix for evidenced dependency clustering, skill-supply-chain-audit for external candidates, recursive-lego-calculus for a real R2.1 contract. Do not create one file per LEGO or a second capability registry.
+- **External Learning & Evolution (ELE):** For material external facts, research results, counterexamples or changed standards, activate `.agents/skills/external-world-evidence-review/SKILL.md`; for upstream projects, tools, algorithms or Skills, activate `.agents/skills/external-capability-evaluation/SKILL.md`. Bind the natural Owner and actual consumer before adoption; keep discovery, qualification, Owner acceptance, Git merge, installation and consumer read-back distinct. Without a qualified consumer, retain discovery only. Detailed methods belong in the two Skills, not a new ELE Owner, registry or workflow engine.
+- Execution and retirement: check the active Job, exact Git branch/PR/installed SHA, current Host Work Snapshot, cross-Topic Message references, subscriptions, cursors and replay receipts as applicable; no age-only or mere-reference-only deletion. Prefer native Runtime workspace.close, Git worktree remove/prune, PostgreSQL transaction/Alembic or package manager prune.
+- Reuse owner-specific source checks and mature tools. Verify the affected user/domain consumer and report merged, installed and executed states separately. Close only your own fully integrated, clean Workspace; leave concurrent Agents untouched.

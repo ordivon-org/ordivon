@@ -4,15 +4,27 @@
   "truthRole": "planning-projection-not-project-truth",
   "project": {
     "id": "ordivon-host-v2",
-    "purpose": "Host Social Work Fabric schema 10: durable Work snapshots, actor references, Space/Topic/Message collaboration and bounded re-entry navigation.",
+    "purpose": "Host Social Work Fabric schema 13: durable Work snapshots, actor references, Space/Topic/Message collaboration and bounded re-entry navigation.",
     "sourceEvidence": [
       "README.md",
       "src/ordivon_host_v2/service.py",
-      "src/ordivon_host_v2/social_work.py",
+      "src/ordivon_host_v2/work_inputs.py",
       "src/ordivon_host_v2/work_store.py",
+      "src/ordivon_host_v2/work_queries.py",
       "src/ordivon_host_v2/social_store.py",
-      "src/ordivon_host_v2/social_attention.py",
-      "src/ordivon_host_v2/social_work_mcp.py",
+        "src/ordivon_host_v2/social_space_commands.py",
+        "src/ordivon_host_v2/social_topic_commands.py",
+        "src/ordivon_host_v2/social_message_commands.py",
+        "src/ordivon_host_v2/coordination_intent_commands.py",
+      "src/ordivon_host_v2/social_space_queries.py",
+      "src/ordivon_host_v2/social_message_queries.py",
+      "src/ordivon_host_v2/social_topic_queries.py",
+      "src/ordivon_host_v2/social_errors.py",
+      "src/ordivon_host_v2/attention_store.py",
+      "src/ordivon_host_v2/attention_delta_queries.py",
+      "src/ordivon_host_v2/attention_reentry_queries.py",
+      "src/ordivon_host_v2/attention_subscription_queries.py",
+      "src/ordivon_host_v2/mcp_tool_registration.py",
       "tests/test_social_work_fabric_postgres.py",
       "tests/test_social_message_digest_postgres.py",
       "tests/test_social_work_fabric_retirement.py"
@@ -31,7 +43,9 @@
       ],
       "evidence": [
         "src/ordivon_host_v2/work_store.py",
-        "src/ordivon_host_v2/social_work.py",
+        "src/ordivon_host_v2/work_queries.py",
+        "tests/test_work_query_boundary.py",
+        "src/ordivon_host_v2/work_inputs.py",
         "tests/test_social_work_fabric_work_graph.py"
       ],
       "dependencies": [
@@ -55,13 +69,14 @@
         "O09"
       ],
       "consumers": [
-        "social_work_mcp:work.create",
-        "social_work_mcp:work.get",
-        "social_work_mcp:work.snapshot.commit",
+        "mcp_work_tools:work.create",
+        "mcp_work_tools:work.get",
+        "mcp_work_tools:work.snapshot.commit",
         "Gateway Host adapter:work.get"
       ],
       "consumerEvidence": [
-        "src/ordivon_host_v2/social_work_mcp.py",
+        "src/ordivon_host_v2/mcp_work_tools.py",
+        "src/ordivon_host_v2/mcp_tool_registration.py",
         "tests/test_social_work_fabric_work_graph.py::test_host_work_cas_revision_is_exact_positive_integer_before_db",
         "tests/test_social_work_fabric_postgres.py::test_work_snapshot_cas_race_has_one_winner",
         "services/gateway/src/ordivon_gateway/mcp_server.py"
@@ -88,8 +103,17 @@
       "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
-        "src/ordivon_host_v2/social_graph.py",
+        "src/ordivon_host_v2/collaboration_inputs.py",
         "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_space_commands.py",
+        "src/ordivon_host_v2/social_topic_commands.py",
+        "src/ordivon_host_v2/social_message_commands.py",
+        "src/ordivon_host_v2/coordination_intent_commands.py",
+        "src/ordivon_host_v2/social_space_queries.py",
+        "src/ordivon_host_v2/social_message_queries.py",
+        "src/ordivon_host_v2/social_topic_queries.py",
+        "src/ordivon_host_v2/social_errors.py",
+        "tests/test_social_query_boundary.py",
         "tests/test_social_work_fabric_social_graph.py"
       ],
       "dependencies": [
@@ -114,13 +138,14 @@
         "O11"
       ],
       "consumers": [
-        "social_work_mcp:space.create",
-        "social_work_mcp:message.post",
-        "social_work_mcp:topic.resume",
+        "mcp_social_tools:space.create",
+        "mcp_social_tools:message.post",
+        "mcp_social_tools:topic.resume",
         "Gateway Host adapter:topic.resume"
       ],
       "consumerEvidence": [
-        "src/ordivon_host_v2/social_work_mcp.py",
+        "src/ordivon_host_v2/mcp_social_tools.py",
+        "src/ordivon_host_v2/mcp_tool_registration.py",
         "tests/test_social_work_fabric_postgres.py::test_space_can_link_multiple_works_without_becoming_work_container",
         "tests/test_social_work_fabric_postgres.py::test_topic_message_reply_and_mention_are_structured",
         "services/gateway/src/ordivon_gateway/mcp_server.py"
@@ -149,7 +174,11 @@
         "L11"
       ],
       "evidence": [
-        "src/ordivon_host_v2/social_attention.py",
+        "src/ordivon_host_v2/attention_store.py",
+        "src/ordivon_host_v2/attention_delta_queries.py",
+        "src/ordivon_host_v2/attention_reentry_queries.py",
+        "src/ordivon_host_v2/attention_subscription_queries.py",
+        "tests/test_attention_query_boundary.py",
         "tests/test_social_work_fabric_attention.py"
       ],
       "dependencies": [
@@ -173,12 +202,13 @@
         "O12"
       ],
       "consumers": [
-        "social_work_mcp:attention.delta",
-        "social_work_mcp:attention.reentry",
+        "mcp_attention_tools:attention.delta",
+        "mcp_attention_tools:attention.reentry",
         "Gateway Host adapter:attention.delta"
       ],
       "consumerEvidence": [
-        "src/ordivon_host_v2/social_work_mcp.py",
+        "src/ordivon_host_v2/mcp_attention_tools.py",
+        "src/ordivon_host_v2/mcp_tool_registration.py",
         "tests/test_social_work_fabric_attention.py::test_attention_cursor_is_monotonic_and_horizon_bounded",
         "tests/test_social_work_fabric_postgres.py::test_attention_first_ack_concurrency_cannot_regress_cursor",
         "tests/test_social_work_fabric_postgres.py::test_r2_attention_nonfinal_page_never_jumps_over_relevant_event",
@@ -201,15 +231,16 @@
       "id": "O04",
       "label": "PostgresJournal",
       "kind": "persistence",
-      "responsibility": "Provide PostgreSQL transactions, schema qualification and RFC8785 JSON identity for Host schema 10.",
+      "responsibility": "Provide PostgreSQL transactions, schema qualification and RFC8785 JSON identity for Host schema 13.",
       "authority": "Host",
       "state": "IMPLEMENTED",
       "sharedRefs": [
         "L10"
       ],
       "evidence": [
+        "tests/test_contract_policy.py",
         "src/ordivon_host_v2/service.py",
-        "src/ordivon_host_v2/canonical.py",
+        "src/ordivon_host_v2/canonical_json.py",
         "migrations/versions/0009_retire_legacy_task_board.py",
         "migrations/versions/0010_social_work_fabric_r2.py"
       ],
@@ -226,7 +257,7 @@
       "outputs": [
         "Committed rows and receipts; schema/integrity status"
       ],
-      "behavioralContract": "Alembic owns migration; service startup requires schema 10; Host stores cannot substitute for Runtime ledger or foreign truth.",
+      "behavioralContract": "Alembic owns migration; service startup requires schema 13; Host stores cannot substitute for Runtime ledger or foreign truth.",
       "children": [],
       "consumers": [
         "HostService schema gate",
@@ -238,7 +269,7 @@
         "src/ordivon_host_v2/service.py",
         "src/ordivon_host_v2/work_store.py",
         "src/ordivon_host_v2/social_store.py",
-        "src/ordivon_host_v2/social_attention.py",
+        "src/ordivon_host_v2/attention_store.py",
         "tests/test_social_work_fabric_postgres.py::test_r2_schema_indexes_and_cursor_table_exist",
         "tests/test_social_work_fabric_postgres.py::test_attention_change_clock_serializes_commit_order_and_rollback_has_no_hole"
       ],
@@ -285,7 +316,9 @@
       ],
       "evidence": [
         "src/ordivon_host_v2/work_store.py",
-        "src/ordivon_host_v2/social_work.py",
+        "src/ordivon_host_v2/work_queries.py",
+        "tests/test_work_query_boundary.py",
+        "src/ordivon_host_v2/work_inputs.py",
         "tests/test_social_work_fabric_postgres.py::test_work_snapshot_cas_race_has_one_winner",
         "tests/test_social_work_fabric_postgres.py::test_work_snapshot_response_loss_replay_with_new_request_id_is_existing",
         "tests/test_social_work_fabric_postgres.py::test_work_read_rejects_postgres_modified_snapshot_payload",
@@ -293,7 +326,7 @@
       ],
       "parent": "O01",
       "consumers": [
-        "social_work_mcp work.snapshot.commit/work.get",
+        "mcp_tool_registration work.snapshot.commit/work.get",
         "HostV2.status integrity/history"
       ],
       "semanticProfile": "R2.1 state/observation contract; source-qualified, implementation tests are bounded evidence",
@@ -302,7 +335,7 @@
         "non-resurrection of terminal Work",
         "complete snapshot digest and pointer correspondence"
       ],
-      "replacementContract": "Preserve revision/content identities, observable replay/conflict behavior and complete history; migrate persisted snapshots before changing substrate.",
+      "replacementContract": "Preserve current revision and canonical payload identity, observable replay/conflict behavior and exact reads of retained historical revisions; earlier revisions may be unavailable and must never be fabricated. Refine replacement against current snapshot and retained-revision consumer contracts.",
       "evidenceScope": {
         "sourceCut": "75fc00bdec12268bd92ad85c6138b6f1be76bf3d",
         "qualification": "SOURCE_CONFIRMED",
@@ -348,6 +381,9 @@
       ],
       "evidence": [
         "src/ordivon_host_v2/social_store.py",
+        "src/ordivon_host_v2/social_message_commands.py",
+        "src/ordivon_host_v2/social_message_queries.py",
+        "src/ordivon_host_v2/social_topic_queries.py",
         "src/ordivon_host_v2/social_contracts.py",
         "tests/test_social_message_digest_postgres.py",
         "tests/test_message_get_contract.py"
@@ -355,7 +391,7 @@
       "parent": "O02",
       "consumers": [
         "SocialStore.get_message/search_messages/resume_topic/post_message",
-        "social_work_mcp message.get/message.search/topic.resume"
+        "mcp_tool_registration message.get/message.search/topic.resume"
       ],
       "semanticProfile": "R2.1 state/observation contract; source-qualified, implementation tests are bounded evidence",
       "formalObligations": [
@@ -408,14 +444,20 @@
         "test_r2_message_page_respects_canonical_byte_budget"
       ],
       "evidence": [
+        "mise.toml",
         "src/ordivon_host_v2/social_store.py",
-        "src/ordivon_host_v2/social_bounds.py",
+        "src/ordivon_host_v2/social_message_commands.py",
+        "src/ordivon_host_v2/social_topic_commands.py",
+        "src/ordivon_host_v2/social_message_queries.py",
+        "src/ordivon_host_v2/social_topic_queries.py",
+        "src/ordivon_host_v2/collection_pagination.py",
+        "tests/test_social_work_fabric_social_store.py",
         "tests/test_social_work_fabric_postgres.py::test_r2_topic_cursor_relation_readback_reasons_and_reentry",
         "tests/test_social_work_fabric_postgres.py::test_r2_message_page_respects_canonical_byte_budget"
       ],
       "parent": "O02",
       "consumers": [
-        "social_work_mcp topic.cursor.get/topic.cursor.ack/topic.resume",
+        "mcp_tool_registration topic.cursor.get/topic.cursor.ack/topic.resume",
         "AttentionStore.reentry navigation coordinates"
       ],
       "semanticProfile": "R2.1 state/observation contract; source-qualified, implementation tests are bounded evidence",
@@ -471,7 +513,11 @@
         "test_r2_attention_nonfinal_page_never_jumps_over_relevant_event"
       ],
       "evidence": [
-        "src/ordivon_host_v2/social_attention.py",
+        "src/ordivon_host_v2/attention_store.py",
+        "src/ordivon_host_v2/attention_delta_queries.py",
+        "src/ordivon_host_v2/attention_reentry_queries.py",
+        "src/ordivon_host_v2/attention_subscription_queries.py",
+        "tests/test_attention_query_boundary.py",
         "migrations/versions/0010_social_work_fabric_r2.py",
         "tests/test_social_work_fabric_attention.py",
         "tests/test_social_work_fabric_postgres.py::test_attention_change_clock_serializes_commit_order_and_rollback_has_no_hole",
@@ -481,7 +527,7 @@
       ],
       "parent": "O03",
       "consumers": [
-        "social_work_mcp attention.delta/attention.get/attention.ack",
+        "mcp_tool_registration attention.delta/attention.get/attention.ack",
         "agent reentry consumers"
       ],
       "semanticProfile": "R2.1 state/observation contract; source-qualified, implementation tests are bounded evidence",
@@ -632,7 +678,7 @@
     "sourceRevision": "75fc00bdec12268bd92ad85c6138b6f1be76bf3d",
     "updatedAt": "2026-10-27",
     "standing": "SOURCE_QUALIFIED_RECURSIVE_DECOMPOSITION",
-    "notes": "Preserve O01-O04 identifiers while correcting retired Task/Board semantics to Social Work Fabric schema 10. O09-O12 have independently observable contracts and existing native consumers; no production state change.",
+    "notes": "Preserve O01-O04 identifiers while correcting retired Task/Board semantics to Social Work Fabric schema 13. O09-O12 have independently observable contracts and existing native consumers; no production state change.",
     "retiredIdentities": {
       "O05": "ScopeBoundCursor; remains retired, never reused"
     }

@@ -1,0 +1,8 @@
+# M4 SOURCE CANDIDATE ONLY. No install/enable/production effect.
+[Network]
+NetworkName=network-v2-gluetun-owned-private-r1
+Driver=bridge
+Subnet=10.253.239.0/30
+Gateway=10.253.239.1
+Options=isolate=strict
+DisableDNS=true

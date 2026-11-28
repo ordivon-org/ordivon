@@ -8,3 +8,28 @@ build/
 .ruff_cache/
 __pycache__/
 .DS_Store
+
+# Local environment and secrets; owner .gitignore files may add more.
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+
+# Logs, editor and OS files
+*.log
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+
+# Test, coverage and packaging output
+.coverage
+htmlcov/
+.tox/
+*.egg-info/
+
+# Terraform/OpenTofu local state
+.terraform/
+*.tfstate
+*.tfstate.*

@@ -14,7 +14,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-09-21
+updated: 2026-11-09
 summary: Public entry to the durable cognitive execution substrate for bounded Agent Runs, with explicit cognition, Provider and Tool continuity, recovery, evidence, and caller/domain boundaries.
 evidence_status: verified
 readiness: READY
@@ -42,6 +42,103 @@ A Provider call may be interrupted. A Tool may have changed the world before its
 The caller binds one exact `HarnessRunContract`. Higher-level planning, resource allocation, profile selection, retries across separate Runs, and successor creation remain caller/domain/workflow responsibilities. Harness preserves only the structural truth needed to run, pause, recover, and inspect that exact bounded Run: Provider identity, current cognition, admitted actions, Tool effects, budget, evidence, and completion proposal.
 
 It does **not** build the Agent's world model, decide which evidence is important, or decide whether a domain objective is finally satisfied.
+
+## PostgreSQL persistence direction (PG-first)
+
+Harness's long-term persistence backend is **PostgreSQL only**. PG owns the
+Harness Journal, content-addressed objects (`BYTEA` with verified canonical
+hashes), Run projections, and revision-fenced leases in an explicitly
+provisioned Harness schema. Host and Runtime retain their separate authority;
+shared database technology is *not* shared domain truth.
+
+The first consumer-qualified PG path is
+`PostgresHarnessStore(dsn, schema="harness", initialize=False)`, and the
+supported `HarnessAgentRun.create(...)` / `open(...)` APIs.
+The operator must provision the named Harness schema and supply the DSN; the
+Run API never silently creates a database, switches to SQLite, or dual-writes.
+A fresh test schema can be initialized explicitly with `initialize=True`.
+
+Run `HARNESS_PG_TEST_DSN='...' mise run pg:verify` against a dedicated
+PostgreSQL test database. The tests use separate temporary schemas and check
+real two-connection leases, atomic event admission, exact replay, H06
+cognition replan/commit, H04 Tool receipt fencing, and supported Run
+pause/reopen/resume. No real PostgreSQL service means **not qualified**, not
+an automatic success.
+
+**PG-only CLI cutover:** The first-party ordivon-harness CLI now
+requires HARNESS_PG_DSN, optionally HARNESS_PG_SCHEMA (default harness).
+Store, independent Run, pause/reopen/resume and inspection commands use
+PostgreSQL. Without PG configuration it fails; --state-root and legacy
+SQLite backup/restore are retired. No old data are migrated. The old
+direct Python API and legacy implementation are not yet fully retired;
+do not confuse CLI cutover with whole-library PG-only completion.
+## Backend-neutral Continuity and Bridge LEGO
+
+The reusable continuity and bridge implementations are backend-neutral:
+`ordivon.run_continuity.EventSourcedRunContinuity`,
+`ordivon.agent_bridge.HarnessAgentBridge` and
+`ordivon.runtime_bridge.HarnessRuntimeBridge`. They consume the
+`HarnessStore` behavioral port, not a SQLite connection. The first-party
+CLI continues to bind that port through `PostgresHarnessStore` only.
+Neither Bridge owns Runtime, Host, Provider or domain truth.
+
+**Recursive LEGO R2.1 (source representation):**
+
+- `I`: exact `HarnessRunContract`, `HarnessStore` port, clock and optional
+  caller-bound Runtime binding / Tool grant
+- `O`: Provider, Tool and Run snapshot records, dispatch fences and receipts
+  or an explicit UNKNOWN recovery requirement
+- `S`: event-sourced Run revisions, leases, claim/dispatch/commit state,
+  Tool step and WorkingSet projections
+- `pre`: matching Run/Contract digest, qualified Store, current lease and
+  revision, and exact Tool authorization
+- `post`: exact event/receipt identity; response loss never permits blind
+  redispatch or unqualified domain success
+- `inv`: scoped Provider Claim model invariants on dispatch, acknowledgement,
+  leases and privacy, with deliberately reachable counterexample probes
+- `eff`: existing Store transactions and caller-supplied Runtime/Provider
+  effects; no new registry or authority
+- `c`: UNKNOWN for general execution cost without real measurement
+- `epsilon`: UNKNOWN until Python/SQL refinement and deployed execution
+  are independently qualified
+- `prov`: `formal/ProviderClaimR1.tla`, native tests, and exact Git SourceCut
+- `unfold`: specification -> TLC bounded model -> implementation/Store
+  readset -> real PostgreSQL and Runtime/Provider consumers
+
+**Human:** use `ordivon-harness doctor` with `HARNESS_PG_DSN` and an
+explicit Harness schema. Use the existing `mise run formal:verify` and
+`HARNESS_PG_TEST_DSN=<dedicated-test-DSN> mise run pg:verify` workflows.
+Never infer live deployment from a local model or a mocked Store.
+
+**Agent:** read the exact SourceCut and Contract, bind the current three
+modules through the established Store port, then verify the affected
+property with Owner-native formal and real-consumer evidence. Report
+`MODEL_VERIFIED`, `IMPLEMENTATION_REFINEMENT_UNKNOWN`,
+`PG_CONSUMER_VERIFIED/UNKNOWN` and `INSTALLED_VERIFIED/UNKNOWN` separately.
+Do not create aliases for deleted names or reinterpret UNKNOWN as FALSE.
+
+Browserless conversation binding payload and receipt semantics now live in
+the backend-neutral scripts/conversation_binding_contract.py. Normal PG read
+and write no longer depend on importing the SQLite concrete Store.
+Historical source qualification still imports SQLite explicitly, when needed.
+No new Store or database authority is introduced.
+
+Browserless wake-turn identity validation now lives in
+`scripts/wake_turn_contract.py` (digest/text checks and `WakeTurnConflict`),
+shared by PostgreSQL and the legacy SQLite source reader. The PostgreSQL
+cutover adapter still imports `SQLiteWakeTurnMap` only when qualifying an
+explicit legacy source; this does not make SQLite a PG write authority.
+No new Store, persistence registry, or Owner is introduced.
+
+The unconsumed `store_ops.py` SQLite backup/restore utility and its dedicated
+self-contained tests are retired. The first-party CLI has already rejected
+those legacy commands; native PostgreSQL backup/recovery is a database Owner
+duty, not a second Harness SQLite restoration implementation.
+
+
+The direct `SQLiteHarnessStore` Python API remains a distinct legacy
+consumer; its removal requires PostgreSQL-native and real recovery
+qualification. Historical evidence preserves original file names.
 
 ## Why Harness exists
 
@@ -127,7 +224,7 @@ Provider-specific wire state may exceed reconstructed semantic messages, but the
 
 ## Status
 
-Harness is **pre-1.0 but operational** as an independent, caller-neutral durable cognitive execution substrate. The only current writer is the Harness SQLite Journal/CAS. The former Host-backed Assignment/Runner/cutover product line was removed and has no supported compatibility path.
+Harness is **pre-1.0 but operational** as an independent, caller-neutral durable cognitive execution substrate. The first-party CLI uses the PostgreSQL Harness Journal/CAS only; the supported Python Agent Run create/open API requires the selected PostgreSQL schema; old state-root entrypoints are retired. The former Host-backed Assignment/Runner/cutover product line was removed and has no supported compatibility path.
 
 Current maturity and known limits live in [`docs/STATUS.md`](docs/STATUS.md). Exact evidence interpretation lives in [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
 
@@ -136,7 +233,7 @@ Current maturity and known limits live in [`docs/STATUS.md`](docs/STATUS.md). Ex
 The current product includes:
 
 - immutable `HarnessRunContract` attempt authority with caller/objective/context, Provider/Adapter, Tool catalog/grant, budgets, privacy and completion contract;
-- independent SQLite Journal/CAS with leases, revision fencing, backup/restore and Doctor;
+- PostgreSQL-backed CLI Journal/CAS with leases, revision fencing and Doctor; the remaining direct Python SQLite writer is a legacy API, not an alternative CLI backend;
 - durable Provider Call claim/dispatch/completion/failure state and response-loss recovery;
 - durable Tool intent, dispatch fence, receipt/observation and Runtime reconciliation boundaries;
 - Agent-owned WorkingSet/WorkingView selection separated from canonical history;
@@ -149,7 +246,7 @@ The current product includes:
 - exact request-bound action truth stays on `AgentTurnRequest`; `HarnessAgentRun.explain()` reports validated in-process Contract/process composition directly, without an aggregate capability/workbench registry;
 - exact request-bound Tool working-set subtraction remains in the existing turn projection; application/domain code owns current standing and branches directly on owner-native facts rather than compiling a second InteractionContext ontology;
 - historical currentness-pressure experiments remain evidence that current standing can matter to Agent action choice, but the experimental generic InteractionContext/Affordance compiler is retired from current product code;
-- `HarnessAgentRun` as the supported Python handle for normal state-root → Run composition and resume, with `HarnessAgentRun.explain()` for process-local composition inspection without Provider/Runtime liveness claims;
+- `HarnessAgentRun` as the supported Python handle for an exact Run; PG-native composition uses create(dsn, schema, ...) and open(dsn, schema, ...) without a legacy state-root overload, with `HarnessAgentRun.explain()` for process-local composition inspection without Provider/Runtime liveness claims;
 - observation-only source retrieval remains available through the existing Runtime-backed `search_workspace` / `workspace.read` mechanics plus exact Execution Binding and digest fences; caller/domain code owns source selection, authority-publication schemas and semantic projection rather than a Harness-specific observation ontology;
 - durable `inspect` is the single exact Journal/CAS read view; CLI `explain` returns that same view plus explicit proof boundaries instead of maintaining a second workbench read model;
 - one exact caller-authored `HarnessRunContract` as the execution-authority waist; higher-level allocation/orchestration and experimental loop-morphology selection do not get parallel Harness control planes;
@@ -178,7 +275,7 @@ If a new shared mechanism cannot survive deletion against Agent-owned choice, ca
 
 ## Requirements
 
-- Python 3.14.7 (current exact owner environment; newest stable GA Python line);
+- Python 3.15.1 (exact owner environment, pinned by pyproject.toml and mise.toml);
 - the owner-local `anc_canonical` compatibility shim for already-issued Harness identities (see [`docs/CANONICAL_COMPATIBILITY.md`](docs/CANONICAL_COMPATIBILITY.md));
 - `uv` for repository workflows;
 - the `harness.execution.runtime-search.v1` physical profile requires `/bin/bash`, `/usr/bin/awk`, and `/usr/bin/rg` on the Runtime execution target; these are target executables, not Python dependencies or authority grants;
@@ -219,21 +316,21 @@ the positive consumer is `mise run verify`. This selects the useful
 historical behavior **without cherry-picking the old script** or creating
 another toolchain registry.
 
-Initialize an independent state root:
+Initialize the caller-provisioned PostgreSQL Harness schema (with HARNESS_PG_DSN set):
 
 ```bash
-ordivon-harness --state-root /var/lib/ordivon/harness store-init
+ordivon-harness store-init
 ```
 
 A caller then supplies an exact Run Contract:
 
 ```bash
-ordivon-harness --state-root /var/lib/ordivon/harness \
+ordivon-harness \
   run RUN_CONTRACT.json --message 'Start the bounded Run'
 
-ordivon-harness --state-root /var/lib/ordivon/harness status HARNESS_RUN_ID
-ordivon-harness --state-root /var/lib/ordivon/harness inspect HARNESS_RUN_ID
-ordivon-harness --state-root /var/lib/ordivon/harness explain HARNESS_RUN_ID
+ordivon-harness status HARNESS_RUN_ID
+ordivon-harness inspect HARNESS_RUN_ID
+ordivon-harness explain HARNESS_RUN_ID
 ```
 
 `explain` is a durable read model: it can prove Contract/Journal/CAS facts but deliberately does not invent whether an application-owned Adapter or Runtime client is currently live. Executable CLI commands are defined by the parser/`--help`; exact Run action authority remains on the Contract and request-bound Agent turn rather than a separate package capability projection.
@@ -288,16 +385,16 @@ Exact supported exports and upgrade expectations are owned by [`docs/COMPATIBILI
 Operators normally need three questions:
 
 ```bash
-ordivon-harness --state-root /var/lib/ordivon/harness status HARNESS_RUN_ID
-ordivon-harness --state-root /var/lib/ordivon/harness inspect HARNESS_RUN_ID
-ordivon-harness --state-root /var/lib/ordivon/harness doctor
+ordivon-harness status HARNESS_RUN_ID
+ordivon-harness inspect HARNESS_RUN_ID
+ordivon-harness doctor
 ```
 
 `inspect` remains the exact durable evidence read surface; machine/process observability belongs to the external observability substrate rather than a second Harness-owned telemetry projection.
 
 Recovery is evidence-driven and occurs through the normal Run reopen/resume path plus the concrete Provider/Runtime owner reconciliation required by the effect boundary. Harness no longer writes a second generic Recovery Assessment merely to restate those facts. A dispatched operation with uncertain physical outcome is not automatically safe to repeat. `doctor` is the authority-wide history replay; normal Run reopen validates the relevant Run before new execution.
 
-See [`docs/OPERATIONS.md`](docs/OPERATIONS.md) for backup/restore, cancellation, concurrent worker fencing, Provider/Tool UNKNOWN, and escalation.
+See [`docs/OPERATIONS.md`](docs/OPERATIONS.md) for PostgreSQL-native backup/recovery ownership, cancellation, concurrent worker fencing, Provider/Tool UNKNOWN, and escalation.
 
 ## Documentation map
 
@@ -330,3 +427,16 @@ See [`docs/DATA_AND_PRIVACY.md`](docs/DATA_AND_PRIVACY.md) and [`SECURITY.md`](S
 ## License
 
 Apache License 2.0. See [`LICENSE`](LICENSE).
+
+## Agent tool selection and local execution
+
+Start with the real Agent run, tool call or provider continuity requirement.
+Current interfaces and consumers are documented by
+[domain tool bridge](docs/DOMAIN-TOOL-BRIDGE-P0.md) and
+[browser routing](docs/BROWSER_CAPABILITY_ROUTER_R1.md); executable Tool
+definitions belong to the actual connected provider, not this README.
+The root-relative path `catalogs/capabilities/README.md` describes advisory
+routing; `platform/workstation/inventory/README.md` documents command
+resolution inside the chosen Runtime target and execution identity.
+A Skill is procedure, MCP/CLI is callable transport, Runtime is physical
+execution, and the consuming domain decides semantic success.

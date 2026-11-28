@@ -1,6 +1,8 @@
-# Ordivon Security v2
+# Ordivon Security Owner
 
-External-first security verification substrate with a deliberately thin Ordivon semantic waist.
+External-first security verification substrate with a deliberately thin Ordivon semantic waist. The existing Python distribution still uses the historical `ordivon-security-v2` identity until its release consumers are qualified for a rename.
+
+For the current directory audit, module boundaries, provider selection, **Human and Agent procedures**, consumer-dependent retirement decisions, and native validation, read [`docs/security-owner-guide.md`](docs/security-owner-guide.md). The reusable Agent entrypoint is [`.agents/skills/ordivon-security-owner/SKILL.md`](../../.agents/skills/ordivon-security-owner/SKILL.md). Historical dated acceptance notes are not automatically current deployment proof.
 
 ## Ownership boundary
 

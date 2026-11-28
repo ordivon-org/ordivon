@@ -243,7 +243,7 @@ Public promotion remains evidence-gated by a real independent consumer.
 
 ## Post-merge closeout: stale prepare lease race
 
-The first post-merge full-suite run exposed one unrelated but real concurrency race in the existing `SQLiteHarnessRuntimeBridge` path. H2 did not modify the bridge/store/test files involved; their Git blobs were identical to the pre-H2 base. The H2 scheduling changes nevertheless made the latent race easier to observe, so closeout did not classify it as harmless noise.
+The first post-merge full-suite run exposed one unrelated but real concurrency race in the existing `HarnessRuntimeBridge` path. H2 did not modify the bridge/store/test files involved; their Git blobs were identical to the pre-H2 base. The H2 scheduling changes nevertheless made the latent race easier to observe, so closeout did not classify it as harmless noise.
 
 The failing interleaving was:
 

@@ -4,11 +4,11 @@ description: Create, transform, validate, package, or verify digital artifacts s
 compatibility: Requires filesystem access. Executable providers may be exposed through MCP, CLI, APIs, local applications, or workflow systems; some target validation requires Windows/PowerPoint or specialist validators.
 metadata:
   source-authority: ordivon-artifact-v2
-  source-revision: 39b6281b9b59c5d9d372a04e36f845758a7c93cf
-  migration-generation: ordivon-next-r1
 ---
 
 # Artifact work
+
+This Skill selects methods; it is not installed-provider or repository-revision evidence. Read the current `capabilities/artifact/README.md`, current bindings and actual Runtime/Workstation providers before claiming source-current or live acceptance. Human-facing steps and Agent execution rules are separated in that README.
 
 Use mature native formats, standards, tools, and validators. Do not invent an Ordivon document/media AST, package format, transport protocol, validator, or workflow engine when a mature owner exists.
 
@@ -24,6 +24,30 @@ Use mature native formats, standards, tools, and validators. Do not invent an Or
 8. **Add durability, packaging, and trust only when required.** Temporal, OCI/ORAS, Sigstore, in-toto/SLSA, OPA, or similar providers are optional working-set capabilities, not mandatory Artifact layers.
 9. **Keep external publication separate.** Upload/publish/provider effects belong to the applicable Distribution/provider capability and its own authority/read-back rules.
 10. **Return bounded standing and evidence.** State exactly what passed, what remains unverified, and which evidence supports the result.
+
+## Direct outcome-first local HTML delivery (qualified slice)
+
+When the user asks to turn Markdown into a self-contained locally delivered HTML
+page, use `capabilities/artifact/scripts/artifact_deliver_html.py` through
+Runtime instead of asking for a Profile, validator, builder or evidence schema.
+Only the source, authorized destination and optional document language/title
+are required. Or use the existing Artifact Agent Surface's
+`artifact_deliver_html_propose` to compile the concrete Runtime action.
+
+The CLI independently runs Pandoc, Nu Html Checker and Chromium/Firefox with
+axe, then consumes **the delivered file path** in real browsers and emits a
+bounded `*.delivery.json` receipt. Failures cannot become `DELIVERED`.
+It does not publish a deployed website or establish editorial quality,
+WebKit support or remote delivery. Other artifact types continue to use their
+qualified format-specific native producers and consumers.
+
+## Formal-first evidence sufficiency
+
+For claim completeness and no-false-PASS promotion, read [Artifact formal claim coverage](../../../capabilities/artifact/docs/ARTIFACT_CLAIM_COVERAGE_FORMAL_R1.md). Source-bound Profile claim sets are checked by the native finite model checker; native tools and consuming applications still require real readback. The `recursive-lego-calculus` Skill owns the general compositional/formal method, not this Artifact Skill.
+
+## Cross-family consumer acceptance
+
+- Real native output, verification evidence and independent consumer readback: [references/consumer-acceptance.md](references/consumer-acceptance.md). Use for build/verify/consume workflows; do not infer domain acceptance from a request's consumer ID.
 
 ## Family references
 

@@ -11,19 +11,16 @@ def test_authority_is_transport_only_and_exact():
     assert a["directFallback"] is False
     assert a["authenticationAuthority"] == {"separate": True, "transportConsumerOwnsCredential": False, "userContextProven": False}
 
-def test_egress_uses_shared_carrier_and_rejects_unknown():
-    e = json.loads((X / "config" / "egress.json").read_text())
-    assert e["outbounds"] == [{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680}]
-    route = e["route"]["rules"][0]
-    assert route["domain"] == ["api.x.com"]
-    assert route["port"] == 443
-    assert e["route"]["rules"][-1]["action"] == "reject"
-
 def test_semantic_service_soft_depends_on_carrier():
     u = (X / "systemd" / "network-v2-x-reality-egress.service").read_text()
-    assert "Wants=network-v2-browserless-provider-carrier.service" in u
-    assert "Requires=network-v2-browserless-provider-carrier.service" not in u
-    assert "After=network-v2-browserless-provider-carrier.service" in u
+    assert "Wants=network-v2-gluetun-owned-adapter.service" in u
+    assert "Requires=network-v2-gluetun-owned-adapter.service" not in u
+    assert "After=network-v2-gluetun-owned-adapter.service" in u
+    assert "network-v2-browserless-provider-carrier.service" not in u
+    authority = json.loads((X / "config/authority.json").read_text())
+    assert authority["networkAuthority"]["carrierService"] == "network-v2-gluetun-owned-adapter.service"
+    assert authority["networkAuthority"]["namespace"] == "nv2-browserless-prod"
+    assert "providerSite" not in authority["networkAuthority"]
 
 def test_readiness_has_no_credential_surface():
     r = (X / "ready.sh").read_text()
@@ -72,6 +69,9 @@ def test_readiness_requires_https_tunnel_and_no_direct_bypass(
             "    receipt = '401 ' + os.environ['X_CONNECT_STATUS']\n"
             "    print(receipt if any('%{http_connect}' in arg for arg in args) else '401', end='')\n"
             "    sys.exit(0)\n"
+            "if any('example.com/' in x for x in args):\n"
+            "    print('200 200 0.4', end='')\n"
+            "    sys.exit(0)\n"
             "sys.exit(7)\n"
         ),
     }
@@ -108,5 +108,5 @@ def test_readiness_requires_https_tunnel_and_no_direct_bypass(
         payload = json.loads(result.stdout)
         assert payload["standing"] == "READY"
         assert payload["xHttpStatus"] == 401
-        assert payload["unknownDestination"] == "REJECTED"
+        assert payload["unknownDestination"] == "ORIGIN_PROVED"
         assert payload["directFallback"] is False

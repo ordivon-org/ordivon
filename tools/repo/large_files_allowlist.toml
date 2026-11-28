@@ -44,10 +44,25 @@ reason = "Accepted media production master; bytes are pinned by the production's
 
 [[file]]
 path = "capabilities/media/artifacts/creative-library/catalog-v1.json"
-max_bytes = 1318218
+max_bytes = 1676103
 reason = "Creative library catalog consumed as a whole by the media owner."
 
 [[file]]
 path = "capabilities/media/productions/archive-archipelago-001/source/creative-library-catalog-v1.json"
 max_bytes = 1312552
 reason = "Production-local copy of the creative library catalog."
+
+[[file]]
+path = "capabilities/media/productions/runtime-introduction/publish/runtime-introduction-portfolio.zip"
+max_bytes = 4118033
+reason = "Retained publication output carrier pinned by runtime-introduction production.json."
+
+[[file]]
+path = "capabilities/media/productions/runtime-introduction/render/runtime-introduction-20261109-en.mp4"
+max_bytes = 3340843
+reason = "Retained English render output carrier pinned by runtime-introduction production.json."
+
+[[file]]
+path = "domains/game/examples/beacon-relay/art/House In a Forest Loop.ogg"
+max_bytes = 1430743
+reason = "Game scene audio referenced by main.tscn and attributed in CREDITS.txt."

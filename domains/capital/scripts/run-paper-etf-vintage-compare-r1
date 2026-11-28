@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Use the existing pinned Capital Python runner; never invokes a broker.
+set -euo pipefail
+root="$(cd "$(dirname "$0")/.." && pwd)"
+exec "$root/scripts/run-capability-python" -m ordivon_capital.portfolio.paper_vintage "$@"

@@ -1,5 +1,16 @@
 # Runtime formal specifications
 
+> **Currentness note (2026-11-07):** `RuntimePgCutoverR1` formalizes a historical **SQLite snapshot migration and content-parity cutover**; `RuntimeWindowsFirstPgR1` formalizes a historical **Windows-first rollout order**. Neither is the current operator requirement: expendable legacy Runtime state is intentionally discarded, Linux is already PG-native, and Windows still requires separate PG admission/readback and native execution acceptance. Keep these models as bounded historical evidence while referenced by the formal harness; do **not** require their migration/parity or Windows-first constraints for the current fresh-PG epoch. `RuntimeDispatchR1` retains valid at-most-once and ambiguity invariants, but is not a proof of the installed native PG stopping/cgroup reconciliation implementation.
+
+For the current fresh-PostgreSQL epoch, `scripts/tla-formal check` and
+`scripts/tla-formal falsify` verify only current Runtime obligations.
+The historical SQLite-content-parity and Windows-first rollout models are
+**retained, not deleted**. Reproduce their original native TLC proofs with
+`scripts/tla-formal check-historical` and their named counterexample controls
+with `scripts/tla-formal falsify-historical`. Neither historical command is
+a fresh-PG release gate, and retiring it from the default path does not
+retire current PG writer/consumer safety obligations.
+
 This directory contains small TLA+ models for concurrency/recovery properties that are
 more important than prose-only architecture claims.
 
@@ -331,7 +342,7 @@ not the current installed Runtime.
 The existing upstream-locked TLA+/TLC owner tool is reused by
 mise run formal:verify. Scoped properties:
 
-- FreshActiveConsumerCannotBeClosed: inside the 24h fresh-state abstraction,
+- FreshActiveConsumerCannotBeClosed: inside the 4h fresh-state abstraction,
   close requires an honest finished-and-released consumer.
 - ClosedHasNoLiveJob and ClosedHasNoGitDependent: existing native close
   exclusions remain independent of any release.
@@ -369,6 +380,93 @@ this Owner safety obligation, not duplicate finite proof registries.
 
 No second solver, custom formal DSL, new scheduler or global registry is added.
 
+**R2 candidate profile (2026-11-09).** The same
+`WorkspaceConsumerCloseR1.tla` now also provides
+`WorkspaceConsumerCloseR1.r2-candidate.cfg`.
+Its `R2CandidateClose` requires the abstract consumer to be finished,
+while the historical R1 `Close` remains untouched and still has a named
+age-only active-consumer counterexample. The R2 candidate independently
+checks safety, conditional weak-fairness liveness, and mutation controls for
+both missing consumer guard and missing fairness. The candidate is NOT
+a source-authenticated assertion: `consumer="finished"` is abstract and
+must be bound to actual Runtime/PG/OS/Host/Artifact evidence before claiming
+CODE_REFINED or INSTALLED_CURRENT. The model is intentionally abstract and remains unchanged. The active code-only modernization audit is tracked at ../../../docs/architecture/audits/2026-11-10-brownfield/AUDIT_SCOPE.md; old consumer-expansion plans have been retired from the working tree and remain in Git history.
+
+**2026-11-09 formal-first extension.** The separate
+WorkspaceConsumerCloseR1.liveness.cfg checks
+StableEligibleEventuallyClosed under the explicitly assumed weak fairness
+WF_vars(Close). That property says only this: if the *abstract* Close
+preconditions become permanently true and the Close transition receives weak
+fair scheduling, the model cannot stutter forever instead of closing. It
+does not imply native systemd, PG or other consumers are guaranteed to finish.
+
+The existing age-based abstraction still permits a concrete finite
+counterexample in which age="expired", consumer="active", released=FALSE
+and Close transitions phase to "closed". The named falsifier
+ExpiredActiveConsumerCannotBeClosed is intentionally NOT in the normal
+invariant configuration until a real consumer/lease/disposition contract and
+Rust/PG refinement justify making it true. The falsify command checks both
+this age-only trace and a fairness-removal temporal counterexample; parser
+failure or a generic nonzero exit is never accepted as proof. These witnesses
+are design obligations, not evidence that installed Runtime deleted a
+particular live consumer.
+
+
+## Agent-Run consumer: Gateway Workspace observation refinement (2026-11-13)
+
+The existing WorkspaceConsumerCloseR1 and R2 candidate continue to prove only
+bounded physical-close guards under an *assumed* trustworthy consumer. They do
+NOT prove the caller assertion consumerReleased=true.
+
+The distinct cross-owner Job-observation obligation is now modeled by
+services/gateway/formal/GatewayAgentWorkspaceBindingR1.tla and invoked by the
+existing gateway:formal:verify task. Existing Gateway execution.resolve
+projects Runtime job.list's request-to-Job-to-Workspace identity. Harness
+reuses this on terminal execution.get results and compares it with the fixed
+PluginGatewayExecutionGrant. Positive TLC checks exact matching, wrong-Workspace
+rejection, and UNKNOWN reconciliation. Two negative TLC profiles prove that
+acceptance remains reachable and accepting on Job terminality alone violates
+the owner-binding invariant.
+
+Source consumer: Harness plugin_gateway_effect.py. Existing Gateway
+execution_observations.py and ExecutionResolution.workspace_id remain unchanged.
+This finite model assumes Runtime job.list's identity is truthful and does NOT
+prove Runtime-to-TLA code refinement, HTTP principal authorization, Agent Run
+completion, deliverable preservation, consumer release, Windows parity, or
+installed correctness.
+Keep the existing Rust/PG/Gateway/Harness physical consumer tests alongside
+this abstract proof. Do not create another persistence ledger for the bridge.
+
+## Multiple Agent Runs sharing one Workspace: separate P0 release candidate (2026-11-14)
+
+The existing WorkspaceConsumerCloseR1 proves the bounded policy of one
+abstract consumer; GatewayAgentWorkspaceBindingR1 establishes a Job's source
+Workspace identity, not continuous Agent scope ownership. Neither represents
+two Harness Runs simultaneously using the same physical Workspace.
+
+WorkspaceMultiAgentReleaseR1.tla is a separate finite refinement candidate
+using the EXISTING digest-pinned Runtime scripts/tla-formal checker. Two
+independent Run consumers may each finish/release while the other remains
+active; physical Job and Git dependencies are separate guards. Positive
+fair-TLC checks 74 reachable states (source canary); negative profiles
+independently falsify closure after one Run release and age-only closure,
+while a third negative control proves valid full release is reachable.
+
+A disposable LIVE PG native Workspace canary (2026-11-14) submitted two
+successful Gateway Job steps for distinct logical consumers, then asserted
+consumerReleased=true for the first while the second logically needed another
+step. Runtime correctly applied the single CALLER assertion and removed
+the clean, idle Workspace; the second continuation was rejected. This is a
+cross-Run orchestration gap, NOT proof of a bug inside the explicitly
+single-caller native Runtime Close protocol.
+
+Formal assumption: Release(c) is accurate and belongs to c. Real source does
+not yet establish durable multi-Run claim registration, signed/authorized
+relinquishment, all-consumers knowledge, or a recovery/expiry policy for
+abandoned consumers. The strong all-released close is MODEL_VERIFIED as a
+candidate only; it is NOT CODE_REFINED or INSTALLED. Do not auto-close other
+Agents' Workspaces on this model or on a four-hour clock alone.
+
 ## PostgreSQL R06 failed-cutover abort before PG authority (CEGAR)
 
 **Problem**: freezing the last SQLite writer is not proof that PostgreSQL
@@ -398,3 +496,222 @@ consumer-owned replay proof is supplied by this abstract action. The live
 PG18 staging import remains VERIFIED_NON_AUTHORITY with promotion_allowed
 false. A real service cutover is not authorized by this model and must not
 run before independently authenticated downstream obligations are satisfied.
+
+## R56: original Run issuer revoke after native caller crash
+
+**Business consumer:** a Coding/Research Agent may revoke a Harness Tool Job
+before it has actually launched. DISPATCH_ISSUED in PostgreSQL is *not* an OS
+launch completion witness. The source runtime/pg_runtime/reconciliation.rs
+commits the PG dispatch event before calling platform::systemd_run. A submitter
+can crash or become unreachable after beginning an asynchronous systemd
+manager handoff, while the target Unit has not yet appeared in a readback.
+The manager may still create the Unit and start the target after revocation.
+A Unit-not-found snapshot, PID lookup, and PostgreSQL revoke COMMIT cannot
+establish NoFutureSpawn.
+
+**Thought / logic / capability split:** invert a seemingly successful
+revocation into a late physical effect. Correct logical finalization requires
+original issuer epoch fenced, and for each issued native caller either a
+certified fence *before* native handoff or a definitively settled native
+manager handoff with exact Unit stop, manager job drained and physical quiet.
+The original recipient bytes must then be accepted by their Domain owner.
+This is ACK after native evidence, not a new SQL ACL or second Registry.
+The capability owners remain the original PG Attempt, native systemd Manager
+and cgroup, and the original Harness recipient.
+
+The existing IssuerRevokeEpochR1 two-Attempt TLA model is refined with
+nativeHandoffPending, crashedCallers and CrashNativeCaller. A caller that
+crashes after entering the native manager handoff does not erase its pending
+delivery, even when the Unit currently appears absent. NativeUnitBirth may
+follow; the model never interprets a crashed caller as a safely blocked
+unstarted launcher. The normal finite model checks
+AckRequiresNoHandoffPending in addition to its previous invariants.
+
+Run the SHA-locked upstream checker:
+  scripts/tla-formal check-issuer-revoke-epoch
+  scripts/tla-formal falsify-issuer-revoke-epoch
+
+An independent operator-OPT-IN physical systemd regression is available:
+  ORDIVON_RUN_NATIVE_ISSUER_HANDOFF_TEST=1 python3 -m unittest discover -s scripts/tests -p test_issuer_native_handoff.py -v
+
+The original R56 late-start case starts only two UUID-scoped transient
+Units: one delayed one-shot barrier and its dependent target. Once both
+systemd-run submitting processes have exited, the actual manager holds an
+exact numbered queued start Job while the target has produced no output.
+Releasing the barrier allows the target to run and create its original output.
+
+**R57 qualified native cancellation contrast:** a second opt-in test
+cancels the *exact* test-owned manager Job by its observed numeric identity
+before releasing the dependency barrier; the original pending Job disappears,
+and the target remains absent after the barrier clears. A third test starts
+two unrelated UUID-scoped queued Jobs, cancels only one by its manager identity,
+and proves the other still physically launches. Exact one-Job cancellation
+does not cancel the second issued Attempt and cannot justify an epoch-wide
+NoFutureSpawn ACK. All tests synchronously stop/read back only their own
+transient Units. Default invocation skips all physical tests. The tests
+are physical systemd manager semantics, not the narrower PG issuer-revocation
+race or original Runtime Artifact/Run delivery acceptance.
+
+The established two-Attempt TLA model now includes an abstract
+ConfirmExactNativeManagerCancel(a) transition. Its preconditions encode
+issuer dispatch fence, definitively exited original caller, exact original
+pending manager Job positively cancelled, and no target Unit already born.
+Only then does the original pending handoff become a blocked attempt. Normal
+TLC verifies the same post-ACK NoUnitBirth/NoSpawn invariants; the new
+ExactCancelAckUnreachable deliberately fails to show a valid original
+Run-wide ACK after the other Attempt is independently fenced or drained.
+The existing intentionally unsafe Unit-absence-only recovery still produces
+an actual named NoSpawnAfterAck counterexample. In particular, the Rust
+Runtime has **NOT** implemented a trustworthy StartUnit/JobRemoved/CancelJob
+identity receipt nor a PG-sourced proof that a crashed launcher can never
+submit a second manager Job. This OS cancellation result is a candidate
+native capability to compose, not itself a production release permit.
+
+Official systemd
+[Manager D-Bus](https://www.freedesktop.org/software/systemd/man/latest/org.freedesktop.systemd1.html)
+documents StartUnit/StartTransientUnit returning a manager Job path and the
+JobRemoved signal correlation that an authenticated original launcher can
+reuse; use the original manager rather than inventing a second scheduler.
+
+Positive TLC probes demonstrate a legitimate crash, later native delivery,
+Stop/Quiet, then ACK. The deliberately unsafe recovery
+UnsafeCrashUnitAbsentMeansFenced must produce TLC's named NoSpawnAfterAck
+violation after a later native Unit birth and target start. It is not
+sufficient to receive a parser error or generic nonzero exit. Existing
+single-of-two premature ACK and pre-Unit late start counterexamples remain.
+
+**SOURCE/MODEL boundary:** this checks a finite abstract two-Attempt protocol;
+the current Rust Native Runtime has not yet implemented a certified native
+manager handoff/abort/settlement witness or original Run-wide NoFutureSpawn
+ACK. No Rust-to-TLA refinement or installed Domain acceptance is claimed.
+An UNKNOWN crashed launch cannot be converted to safe by elapsed time, PG
+locks, systemctl-not-found or an alternative Bearer. Production Finalizer
+integration remains Q1 until original OS/Domain consumers pass positive and
+negative verification. See official
+[Kubernetes finalizers](https://kubernetes.io/docs/concepts/overview/working-with-objects/finalizers/)
+for separation of deletion intent from controller ACK, and
+[Temporal Activity execution](https://docs.temporal.io/activity-execution)
+for durable outcome handling; neither makes OS startup atomic with PG.
+
+## Formal-first replacement ladder: native cancellation → PG reservation
+
+**Specification / invariant (owner):** for a committed, exact Attempt, native process quiescence is a necessary condition to release a cancellation-held reservation without a Runner result. An unqualified physical observation must never release capacity, and absence of a Result must never be interpreted as an external effect succeeding.
+
+A useful Hoare-style obligation for the no-Runner-result branch is:
+
+```text
+PRE:
+  cancel_intent_committed
+  ∧ exact Job / Attempt / Unit / Runner-start identity
+  ∧ systemd_unit_inactive
+  ∧ no_pending_systemd_job
+  ∧ cgroup_population_observed = false
+  ∧ no Runner terminal result
+
+POST:
+  PostgreSQL terminal outcome = lost (not succeeded)
+  ∧ native_stop_evidence Artifact digest bound to immutable bytes
+  ∧ reservation released only within the same PG terminal transaction
+  ∧ external effect outcome = UNKNOWN
+```
+
+**Executable refinement:** `runtime/pg_runtime/native_stop.rs::decide_native_stop` is the actual pure production decision function called by `runtime/pg_runtime/reconciliation.rs`. Its `#[cfg(kani)]` proof harness uses symbolic booleans, an optional cgroup observation, an independent truth-table specification, and non-vacuity `kani::cover!` obligations. All possible decision inputs are finite. This does **not** prove that an external systemd or cgroup read was truthful, that the caller preserved the identity precondition, or that PostgreSQL faithfully committed a transaction.
+
+**Model checking:** `RuntimeDispatchR1.tla` remains the established attempt-dispatch and ambiguity model. It does not currently model Linux-native cgroup stop; do not claim a TLA refinement proof for cancellation from its existing TLC receipt. The older SQLite-parity and Windows-first models are historical only.
+
+**Physical/refinement evidence:** keep the existing disposable PG plus real systemd `pg_vertical` test until native execution validates the concrete refinement. Its cancellation section now requires a recorded Runner start before native stop, a terminal outcome, a released PG reservation, and a digest-bound native-stop Artifact if the no-Runner-result branch yields `lost`. This is one strong native consumer test, not a new pile of special cases. It remains `#[ignore]` and must be explicitly executed on an authorized Linux/systemd node.
+
+**Deletion policy:** remove redundant example-based tests **only after** their exact property is mapped to an executed proof harness and implementation refinement, and the relevant native effect has independent acceptance. Do not remove tests of real SQL isolation, systemd/cgroup, Windows Job Object, installer/deployment or external network behavior on the strength of a pure Rust decision proof.
+
+**Historical source-write checkpoint (superseded by the dated verification below):** the classifier and Kani proof source then existed, but formal Kani and native PG/systemd tests had not yet run; four stale `stopping` reservations were observed at that time. Do not interpret this earlier checkpoint as today's installed Runtime or scheduling status. The 2026-11-08 qualifications below and current native Runtime readback are distinct evidence.
+
+## 2026-11-08 accepted evidence for production Rust native-stop classifier
+
+Earlier notes in this file described the new Kani and native PG tests as **UNRUN** at the moment their source was written. Subsequent independent execution completed:
+- `mise exec cargo:kani-verifier@0.68.0 -- cargo kani --lib -p ordivon-runtime-core --features postgres-registry-admission --harness native_stop_releases_only_with_qualified_os_evidence` **PASS**, 0/14 failed, all 6 cover conditions satisfied (Kani 0.68.0, CBMC 6.11.0).
+- `cargo test --locked -p ordivon-runtime-mcp --features postgres-runtime --test pg_vertical -- --ignored --nocapture --test-threads=1` **PASS**, 7/7 native PG/systemd tests, after explicitly building Runner.
+- `cargo test --locked -p ordivon-runtime-core --features postgres-registry-admission --lib --quiet` **PASS**, 410 pass, 61 intentionally ignored physical integration tests.
+- `scripts/tla-formal bootstrap` verified upstream-locked TLC 1.7.4 bytes; `scripts/tla-formal verify` **PASS**.
+
+Scope: Kani proves the bounded production classifier, not authenticity of kernel observation or SQL atomicity. TLC proves its finite transition system, not compiled Rust refinement; the native PG integration test is complementary. As of this source qualification no installed production release of the new source is proven.
+
+### 2026-11-08 native recovery implementation
+
+The production classifier now accepts either an observed unpopulated cgroup or
+positive path removal from a verified mounted cgroup2 filesystem. A missing or
+unreadable population interface alone remains UNKNOWN. A nonempty population
+always holds, even if another input claims removal. The caller binds the exact
+Job/Attempt, launch token, Unit, InvocationID (when retained), cgroup and admitted
+Runner digest. Loaded inactive/failed Units and collected Units are distinguished.
+
+In the original resource-scheduler candidate, Kani ran a separate
+no_lost_resolution_without_complete_native_evidence harness. The 2026-11-08
+mainline integration retains the previously verified mainline production
+native_stop_releases_only_with_qualified_os_evidence harness and its
+four-state cgroup observation contract. These are distinct source revisions:
+the candidate proof must NOT be represented as proof of the integrated
+production function. Rerun the retained mainline harness on integrated HEAD
+before formal acceptance. OS observation truth remains outside a pure proof.
+
+2026-11-08 integrated-HEAD follow-up: the retained
+native_stop_releases_only_with_qualified_os_evidence harness was executed with
+Kani 0.68.0 (0/14 failed, 6/6 coverage claims); the separate
+allocation_never_exceeds_observed_supply production function harness executed
+with 0/10 failures and 3/3 cover. ResourceQueueR1 TLC completed 5,221
+generated/1,080 distinct states with no invariant violation, and the mutant
+resource-budget negative control produced the required counterexample. The
+full TLA+ check/falsify suite passed. Nine disposable PostgreSQL plus native
+systemd integration consumers passed on the combined source tree. These do
+not prove Windows PG cutover, global starvation freedom, kernel observation
+authenticity, or an installed production release.
+The seven disposable PG/systemd MCP tests were explicitly executed and passed.
+The cancellation test now stops observing after requesting cancellation and checks
+PG convergence from the service-owned recovery worker before making another
+`job.observe` call. Strict Clippy including MCP test targets passed.
+
+The immutable native receipt includes its own finish timestamp, so exact retries
+reuse the same Artifact metadata after a lost PG COMMIT acknowledgement. Receipt
+publication is serialized with an OS file lock; PG terminal and reservation
+release still use the existing atomic transaction. `resultAvailable` is false for
+OS-only LOST evidence in list, detail and observation projections.
+
+These checks do not qualify resource scheduling, persistent pending queues,
+Workspace concurrency or Windows PG cutover. They remain separate acceptance
+obligations from native cancellation convergence.
+
+
+The pre-dispatch cancellation branch is separately qualified by the real PG
+admission/CAS contract: a committed stop intent on an `accepted` Attempt blocks
+eligible_attempt, and terminalization compares the same Attempt row version.
+The native MCP test now directly admits an unissued Attempt and checks a
+cancelled terminal projection, no execution Result and zero dispatch events.
+This SQL/consumer property is not included in the pure native-stop Kani claim.
+
+
+The issued-work recovery query excludes natural `accepted` Attempts, preserving
+the existing dispatch boundary. A real native test restarts the MCP process while
+a systemd Runner Unit executes, obtains terminal success without client observe,
+and checks the dispatch count remains one. Recovery is separate from scheduling
+new accepted work; these tests do not qualify a pending queue or resource policy.
+
+
+### Resource queue R1
+
+`RuntimeResourceQueueR1.tla/.cfg`: three Jobs, finite resource supply and Workspace read/write conflicts. TLC explored 5,221 states (1,080 distinct, depth 19) without invariant violations. Checked properties: capacity, pending owns no physical allocation, active conflicting writers excluded, one native dispatch, cancellation retains allocations until exit evidence, and restart preserves durable state. This is bounded safety, not a fairness/liveness proof. `resource_fit.rs` Kani harness checks all finite integer inputs against a u128 specification (one harness, three reachability covers). The production claim transaction invokes this function under the PG advisory transaction lock; real PG CAS tests and `pg_vertical` native tests remain required.
+
+## Workspace cross-database consumer claim design R1
+
+The design-only WorkspaceCrossDatabaseClaimR1 model accounts for an installed
+topology where Harness and Runtime PostgreSQL use DIFFERENT databases; equal
+advisory-lock integers cannot coordinate Run birth and native Workspace close.
+The candidate Runtime-owned reservation/activation state shares the existing
+native Workspace authority. Harness semantic Run truth stays in Harness PG.
+Only a committed native ACTIVE claim authorizes a Tool grant; successful Job,
+elapsed time and an unauthenticated caller release do not.
+
+Run scripts/tla-formal check-workspace-crossdb for safety and weak-fair close,
+and scripts/tla-formal falsify-workspace-crossdb for legitimate close
+reachability, cross-DB unsafe close, late claim after close, and unauthorized
+grant. This is not a production Runtime Claim API, a cross-DB ACID commit,
+source-to-installed refinement, legacy Run migration or ignored Artifact
+finalization proof.

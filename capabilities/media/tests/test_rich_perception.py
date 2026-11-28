@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+import random
 import shutil
 import statistics
 import subprocess
@@ -8,18 +10,19 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from ordivon_studio.rich_perception import (
+from ordivon_studio.perception_profiles import _correlation, canonical_digest, profile_signature
+from ordivon_studio.research.guardian_article import (
     ARTICLE_RICH_FEATURES,
-    _correlation,
     article_structure_features,
+    paired_discrimination,
+)
+from ordivon_studio.rich_perception import (
+    _observe_video_structure,
     audio_structure_features,
-    canonical_digest,
     crossmodal_circular_shift_null,
     crossmodal_profile_coupling,
     cue_boundary_silence_score,
     media_intervention_report,
-    paired_discrimination,
-    profile_signature,
     structural_distance,
     video_structure_features,
 )
@@ -119,6 +122,69 @@ class RichPerceptionTest(unittest.TestCase):
         self.assertEqual(null["tests"]["videoChangeVsAudioFlux"]["rankHigh"], 1)
         self.assertGreaterEqual(null["tests"]["videoChangeVsAudioFlux"]["percentile"], 0.75)
 
+
+    def test_video_rate_report_uses_selected_native_fallback_not_zero_zero(self) -> None:
+        probe = {
+            "streams": [{
+                "codec_type": "video", "avg_frame_rate": "0/0",
+                "r_frame_rate": "30000/1001", "nb_frames": "90",
+                "duration": "3", "width": 320, "height": 180,
+            }],
+            "format": {"duration": "3"},
+        }
+        change = [{"frame": 5, "timeSeconds": 0.5, "meanAbsoluteLumaDifference": 1.0}]
+        signal = [{"timeSeconds": 0.5, "lavfi.signalstats.YAVG": 48.0,
+                   "lavfi.signalstats.SATAVG": 8.0}]
+        with patch("ordivon_studio.rich_perception.probe_media", return_value=probe):
+            with patch("ordivon_studio.rich_perception._observe_video_structure",
+                       return_value=(change, signal)):
+                result = video_structure_features(Path("selected.mp4"), bins=4)
+        self.assertEqual(result["technical"]["frameRate"], "30000/1001")
+
+    def test_video_structure_observes_two_signals_in_one_provider_pass(self) -> None:
+        def native_emulator(args, **kwargs):
+            root = Path(kwargs["cwd"])
+            (root / "change-metadata.txt").write_text(
+                "frame:0 pts:100 pts_time:0.2\\n"
+                "lavfi.signalstats.YAVG=3.5\\n".replace("\\n", "\n"),
+                encoding="utf-8",
+            )
+            (root / "signal-metadata.txt").write_text(
+                "frame:0 pts:100 pts_time:0.2\\n"
+                "lavfi.signalstats.YAVG=74.0\\n"
+                "lavfi.signalstats.SATAVG=12.5\\n".replace("\\n", "\n"),
+                encoding="utf-8",
+            )
+            return subprocess.CompletedProcess(args, 0, "", "")
+
+        with patch(
+            "ordivon_studio.rich_perception.subprocess.run",
+            side_effect=native_emulator,
+        ) as called:
+            change, signal = _observe_video_structure(
+                Path("source.mp4"),
+                total_frames=300,
+                sample_step_frames=6,
+                ffmpeg="ffmpeg",
+            )
+        called.assert_called_once()
+        self.assertTrue(any("split=2" in part for part in called.call_args.args[0]))
+        self.assertEqual(change[0]["frame"], 6)
+        self.assertEqual(change[0]["meanAbsoluteLumaDifference"], 3.5)
+        self.assertEqual(signal[0]["lavfi.signalstats.YAVG"], 74.0)
+        self.assertEqual(signal[0]["lavfi.signalstats.SATAVG"], 12.5)
+
+    def test_video_structure_rejects_missing_native_metadata(self) -> None:
+        with patch(
+            "ordivon_studio.rich_perception.subprocess.run",
+            return_value=subprocess.CompletedProcess([], 0, "", ""),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "both video structure observations"):
+                _observe_video_structure(
+                    Path("source.mp4"), total_frames=300,
+                    sample_step_frames=6, ffmpeg="ffmpeg",
+                )
+
     @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "ffmpeg/ffprobe required")
     def test_real_ffmpeg_audio_and_video_equipment(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -142,6 +208,74 @@ class RichPerceptionTest(unittest.TestCase):
             self.assertEqual(structural_distance(audio_features, audio_features), 0.0)
             self.assertTrue(canonical_digest({"a": 1}).startswith("sha256:"))
 
+
+def _scalar_cue_reference(audio, timed, width):
+    rms = audio["profiles"]["rmsAmplitude"]
+    step = audio["technical"]["durationSeconds"] / len(rms)
+    ticks = timed["timeBase"]["ticksPerSecond"]
+    boundaries = sorted({float(cue["startTick"]) / ticks for cue in timed["cues"][1:]})
+    matched = [
+        float(sample)
+        for boundary in boundaries
+        for index, sample in enumerate(rms)
+        if abs((index + 0.5) * step - boundary) <= width
+    ]
+    mean = statistics.fmean(rms)
+    local = statistics.fmean(matched) if matched else 0.0
+    return {
+        "boundaryCount": float(len(boundaries)),
+        "globalMeanRmsAmplitude": mean,
+        "boundaryMeanRmsAmplitude": local,
+        "boundarySilenceContrastZ": (mean - local) / (statistics.pstdev(rms) or 1.0),
+    }
+
+
+def _cue_inputs(duration, rms, ticks, boundaries):
+    return (
+        {"technical": {"durationSeconds": duration}, "profiles": {"rmsAmplitude": rms}},
+        {"timeBase": {"ticksPerSecond": ticks},
+         "cues": [{"startTick": value} for value in [0, *boundaries]]},
+    )
+
+
+class CueWindowOperatorTest(unittest.TestCase):
+    def test_seeded_scalar_differential(self):
+        rng = random.Random(32526)
+        for case in range(240):
+            count = rng.randrange(1, 180)
+            duration = rng.choice([0.125, 1.0, 9.3, 200.0])
+            ticks = rng.choice([1, 3, 1000, 90000])
+            rms = [rng.uniform(-1, 1) for _ in range(count)]
+            boundaries = [rng.randrange(-ticks, int((duration + 1) * ticks))
+                          for _ in range(rng.randrange(0, 40))]
+            audio, timed = _cue_inputs(duration, rms, ticks, boundaries + boundaries[:3])
+            width = rng.choice([0.0, 0.35, 1.0, duration, -1.0, float("nan"), float("inf")])
+            with self.subTest(case=case):
+                self.assertEqual(cue_boundary_silence_score(audio, timed, window_seconds=width),
+                                 _scalar_cue_reference(audio, timed, width))
+
+    def test_inclusive_and_ulp_adjacent_windows(self):
+        for duration, rms, ticks, boundaries in [
+            (4.0, [1.0, 3.0, 7.0, 11.0], 2, [1, 3, 3, 5, -1, 9]),
+            (1.0, [1.0, 3.0, 7.0], 10, [1, 3, 8]),
+            (2e-320, [1.0, 3.0, 7.0], 1, [0, 1]),
+            (1e308, [1.0, 3.0, 7.0], 1, [0, 1]),
+        ]:
+            audio, timed = _cue_inputs(duration, rms, ticks, boundaries)
+            for index in range(len(rms)):
+                for tick in boundaries:
+                    edge = abs((index + 0.5) * (duration / len(rms)) - float(tick) / ticks)
+                    for width in [math.nextafter(edge, 0.0), edge, math.nextafter(edge, math.inf)]:
+                        self.assertEqual(cue_boundary_silence_score(audio, timed, window_seconds=width),
+                                         _scalar_cue_reference(audio, timed, width))
+
+    def test_overlap_counts_and_empty_window(self):
+        audio, timed = _cue_inputs(4.0, [1.0, 2.0, 8.0, 16.0], 2, [1, 2, 3, 3])
+        result = cue_boundary_silence_score(audio, timed, window_seconds=0.5)
+        self.assertEqual(result["boundaryCount"], 3.0)
+        self.assertEqual(result["boundaryMeanRmsAmplitude"], 1.5)
+        self.assertEqual(cue_boundary_silence_score(audio, timed, window_seconds=-1.0),
+                         _scalar_cue_reference(audio, timed, -1.0))
 
 if __name__ == "__main__":
     unittest.main()

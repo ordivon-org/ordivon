@@ -1,3 +1,6 @@
+import os
+import subprocess
+import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -141,3 +144,97 @@ def test_windows_service_materializer_keeps_privileged_policy_opt_in():
     assert "$privilegedPolicyConfiguredCount -ne 0 -and $privilegedPolicyConfiguredCount -ne 3" in text
     assert "$privilegedPolicyConfigured = $privilegedPolicyConfiguredCount -eq 3" in text
     assert "if ($privilegedPolicyConfigured)" in text
+
+
+def test_windows_cold_materialization_checks_stopped_service_before_any_mutation():
+    text = SCRIPT.read_text(encoding="utf-8")
+    apply = text.split("if (-not $Apply)", 1)[1]
+    guard = apply.index("$service.Status -ne [ServiceProcess.ServiceControllerStatus]::Stopped")
+    for effect in ("[IO.Directory]::CreateDirectory", "Copy-UnlessSameFile $runtimeSource $runtimeTarget", "[IO.File]::WriteAllText("):
+        assert guard < apply.index(effect), effect
+
+
+def test_pg_service_materializer_is_explicit_digest_bound_disabled_start_without_sqlite_registry():
+    text = SCRIPT.read_text(encoding="utf-8")
+    for fragment in (
+        "[string]$PostgresEnvironmentFile = ''",
+        "ordivon-runtime-pg.exe",
+        "ordivon-runtime-pg.env",
+        "ordivon-windows-pg-job-launcher.exe",
+        "runtime-pg-mcp.token",
+        "PG TokenSource must be pre-provisioned",
+        "pg-store",
+        "$ExpectedRuntimeSha256",
+        "$ExpectedLauncherSha256",
+        "$ExpectedPostgresEnvironmentSha256",
+        "$WindowsPgReleaseManifest",
+        "$ExpectedWindowsPgSourceCommit",
+        "Get-OrdivonWindowsPgReleaseProvenance",
+        "releaseManifestTarget",
+        "releaseProvenance",
+        "Assert-PgCandidateCommitments",
+        "Get-FileHash",
+        "ORDIVON_PG_DSN",
+        "ORDIVON_PG_STORE_ROOT",
+        "ORDIVON_PG_RUNNER",
+        "ORDIVON_BEARER_TOKEN_FILE",
+        "if (-not $postgres) { $stateDirectories += $registryRoot }",
+        "start = $startMode",
+        "if ($postgres) { 'disabled' } else { 'auto' }",
+        "executionReady = $false",
+    ):
+        assert fragment in text, fragment
+    assert "Start-Service" not in text
+    assert "ORDIVON_REGISTRY_ROOT','ORDIVON_BIND','ORDIVON_BEARER_TOKEN'" in text
+    assert "PG environment does not bind the planned service" in text
+
+
+def test_pg_materializer_preserves_build_manifest_provenance_for_activation():
+    text = SCRIPT.read_text(encoding="utf-8")
+    helper = (ROOT / "packaging" / "windows" / "windows-pg-release-provenance.ps1").read_text(encoding="utf-8")
+    assert "ordivon.windows-pg-release" in helper
+    assert "builder-manifest-claim-bound-to-exact-bytes-not-reproducible-build-proof" in helper
+    assert "sourceCommitClaim" in helper
+    assert "ExpectedSourceCommit" in helper
+    assert "runtimeSourceArchiveSha256" in helper
+    assert "cargoLockSha256" in helper
+    assert "ordivon-runtime-pg.exe" in helper
+    assert "ordivon-windows-pg-job-launcher.exe" in helper
+    assert "ordivon-runtime-pg-release.json" in text
+    assert "Staged Windows PG release manifest digest mismatch." in text
+    assert "Set-ExactPrivateAcl $releaseManifestTarget $serviceSid $readOnly" in text
+
+
+@unittest.skipUnless(os.name == "nt", "native Windows PowerShell 5.1 acceptance")
+def test_native_pg_service_materializer_preview():
+    script = ROOT / "tests" / "windows_service_materializer_pg_preview.ps1"
+    subprocess.run(
+        [
+            "powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy",
+            "Bypass", "-File", str(script),
+        ],
+        check=True,
+        timeout=60,
+    )
+
+
+def test_pg_materializer_requires_disabled_stopped_native_scm_until_all_acl_effects():
+    text = SCRIPT.read_text(encoding="utf-8")
+    apply = text.split("Assert-Administrator\n\nfunction Assert-PgServiceStagingFence", 1)[1]
+    assert "[ServiceProcess.ServiceStartMode]::Disabled" in apply
+    assert "[ServiceProcess.ServiceControllerStatus]::Stopped" in apply
+    assert apply.index("Assert-PgServiceStagingFence $ServiceName $false") < apply.index("[IO.Directory]::CreateDirectory")
+    assert apply.index("Assert-PgServiceStagingFence $ServiceName ($null -ne $service)") < apply.index("'create', $ServiceName")
+    assert apply.rindex("Assert-PgServiceStagingFence $ServiceName $true") > apply.index("Set-ExactPrivateAcl $file $serviceSid $readOnly")
+
+
+def test_windows_pg_workspace_root_is_disjoint_and_operator_scoped():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "ORDIVON_PG_WORKSPACE_ROOT = $workspaceRoot" in text
+    assert "must be disjoint from the entire private ProgramData root" in text
+    assert "must not traverse files or reparse points" in text
+    assert "must be empty for cold materialization" in text
+    assert "[IO.Directory]::CreateDirectory($workspaceRoot, $workspaceAcl)" in text
+    assert "[Security.AccessControl.FileSystemRights]::ReadAttributes -bor" in text
+    assert "[Security.AccessControl.FileSystemRights]::Traverse -bor" in text
+    assert "[Security.AccessControl.InheritanceFlags]::None" in text

@@ -155,3 +155,24 @@ def test_pg_binding_real_consumer_passes_exact_legacy_source_and_bootstrap(
         ("open", "postgresql://test/no-effect", svc.config.ledger, fresh_bootstrap),
         ("sealed", svc.config.ledger, fresh_bootstrap),
     ]
+
+
+def test_pg_binding_module_import_keeps_legacy_sqlite_reader_unloaded() -> None:
+    """Live PostgreSQL contract import must not load legacy SQLite Store."""
+    import subprocess
+    import sys
+
+    scripts = Path(__file__).resolve().parents[1] / "scripts"
+    expression = (
+        "import sys; "
+        "sys.path.insert(0, sys.argv[1]); "
+        "import postgres_conversation_binding; "
+        "assert 'sqlite_conversation_binding' not in sys.modules; "
+        "assert 'scripts.sqlite_conversation_binding' not in sys.modules"
+    )
+    subprocess.run(
+        [sys.executable, "-c", expression, str(scripts)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )

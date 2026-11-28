@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import re
 import sqlite3
 import time
 import uuid
@@ -13,32 +12,10 @@ from typing import Any, Callable
 
 try:
     from standard_identifiers import require_uuid7
+    from wake_turn_contract import WakeTurnConflict, _digest, _text
 except ModuleNotFoundError:
     from scripts.standard_identifiers import require_uuid7
-
-_DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
-
-
-class WakeTurnConflict(RuntimeError):
-    pass
-
-
-def _text(value: str, label: str, *, max_bytes: int = 4096) -> str:
-    if (
-        not isinstance(value, str)
-        or not value
-        or value != value.strip()
-        or len(value.encode("utf-8")) > max_bytes
-    ):
-        raise ValueError(f"{label} must be non-empty, trimmed, and <= {max_bytes} UTF-8 bytes")
-    return value
-
-
-def _digest(value: str, label: str) -> str:
-    if not isinstance(value, str) or _DIGEST_RE.fullmatch(value) is None:
-        raise ValueError(f"{label} must be canonical sha256:<lowercase-hex>")
-    return value
-
+    from scripts.wake_turn_contract import WakeTurnConflict, _digest, _text
 
 def _uuid7() -> str:
     return str(uuid.uuid7())

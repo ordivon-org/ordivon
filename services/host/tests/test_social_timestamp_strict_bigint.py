@@ -1,4 +1,4 @@
-"""Host Social Graph input admission must preserve exact SQL bigint semantics.
+"""Host Social Graph input admission must preserve exact interoperable JSON integer semantics.
 
 Existing Pydantic and PostgreSQL owners: no new validator/parser dependency.
 CEGAR rejection covers values that Pydantic would otherwise coerce to int.
@@ -12,9 +12,10 @@ from fractions import Fraction
 import pytest
 from pydantic import ValidationError
 
-from ordivon_host_v2.social_graph import CoordinationIntentInput, MessageInput
+from ordivon_host_v2.collaboration_inputs import MessageInput
+from ordivon_host_v2.coordination_inputs import CoordinationIntentInput
 
-BIGINT_MAX = (1 << 63) - 1
+SAFE_MAX = (1 << 53) - 1
 VALID_INPUTS = (
     (MessageInput, "recorded_at_ms", {
         "message_ref": "message:k03-test",
@@ -46,17 +47,17 @@ VALID_INPUTS = (
 
 @pytest.mark.parametrize("input_value", (
     True, False, 1.0, Decimal("1"), Fraction(1, 1), "1", float("nan"),
-    float("inf"), BIGINT_MAX + 1,
+    float("inf"), SAFE_MAX + 1,
 ))
 @pytest.mark.parametrize("model,field,payload", VALID_INPUTS)
-def test_timestamp_rejects_type_aliases_and_sql_bigint_overflow(
+def test_timestamp_rejects_type_aliases_and_wire_safe_integer_overflow(
     model, field: str, payload: dict[str, object], input_value: object,
 ) -> None:
     with pytest.raises(ValidationError):
         model.model_validate({**payload, field: input_value})
 
 
-@pytest.mark.parametrize("json_value", ("true", "false", "1.0", '"1"', str(BIGINT_MAX + 1)))
+@pytest.mark.parametrize("json_value", ("true", "false", "1.0", '"1"', str(SAFE_MAX + 1)))
 @pytest.mark.parametrize("model,field,payload", VALID_INPUTS)
 def test_timestamp_json_cannot_coerce_types_or_overflow(
     model, field: str, payload: dict[str, object], json_value: str,
@@ -70,9 +71,9 @@ def test_timestamp_json_cannot_coerce_types_or_overflow(
         model.model_validate_json(body)
 
 
-@pytest.mark.parametrize("timestamp", (0, 1, BIGINT_MAX))
+@pytest.mark.parametrize("timestamp", (0, 1, SAFE_MAX))
 @pytest.mark.parametrize("model,field,payload", VALID_INPUTS)
-def test_timestamp_accepts_full_exact_postgresql_bigint_domain(
+def test_timestamp_accepts_full_exact_json_safe_integer_domain(
     model, field: str, payload: dict[str, object], timestamp: int,
 ) -> None:
     result = model.model_validate({**payload, field: timestamp})

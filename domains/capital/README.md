@@ -1,18 +1,241 @@
-# Ordivon Capital — Composition First
+# Ordivon Capital — Finance investment and research owner
+
+**Cross-Owner Finance outcome work:** when a task must deliver a Finance economic result or retire a historical implementation chain, use [Finance Contractual Execution R1](../../packages/composition/docs/FINANCE_CONTRACTUAL_EXECUTION_SPEC_R1.md) for the task-local consumer, evidence and verification obligations. This SPEC is not a financial authority or second execution platform.
+
+
+**Directory/Owner audit:** [Finance directory and LEGO boundary audit](docs/FINANCE_DIRECTORY_OWNER_AUDIT_R1.md) records consumer-backed retirement decisions and separate Human/Agent operating paths. It is source evidence, not a current market or broker authority.
+
+## Start here — Human / Agent (2026-11-06)
+
+**Human**: [Finance operating guide](docs/FINANCE_HUMAN_GUIDE_R1.md)
+provides an actually runnable contribution-only demo, a responsibility map
+covering all seven existing Owners, reproducible historical Paper replay
+instructions, a bounded PostgreSQL Paper close path, and explicit limits on
+market data, return comparison and broker authority.
+
+**Agent**: use the canonical
+[Finance Paper Investment Skill](../../.agents/skills/finance-paper-investment/SKILL.md)
+for Investment Mode and Paper Lab; use
+[Finance Experiment Review](../../.agents/skills/finance-experiment-review/SKILL.md)
+for hypothesis freeze and prospective falsification. Both are standard
+Agent Skills text, not independent execution runtimes, broker adapters or
+financial permission sources.
+
+The smallest fully runnable dry example, from the repository root:
+
+```sh
+domains/capital/scripts/run-strategic-contribution-brief \
+  < domains/capital/examples/strategic_contribution_r1.json
+```
+
+Expect exactly `allocationsMinor.BOND_CORE=10000` cents,
+`allocationsMinor.INDEX_CORE=0` and `executionAuthorized=false`.
+Inputs are caller-supplied and neither risk suitability nor provider
+pricing is thereby verified.
+
+**Fund NAV total-return comparison R2:** the existing passive benchmark
+accepts schemaVersion 2 for matched USD fund NAV total returns already
+including distributions and net of fund expenses. Only external investor
+costs may be declared separately; see
+[Fund NAV benchmark R2](docs/FINANCE_FUND_NAV_BENCHMARK_R2.md).
+The September 2026 SHY/SPY example transcribes issuer-reported rounded
+monthly data and remains retrospective, not authenticated PIT or fills.
+
+For dated outstanding cash needs, use the same read-only entry:
+```sh
+domains/capital/scripts/run-strategic-contribution-brief \
+  < domains/capital/examples/goal_funded_contribution_r1.json
+```
+The synthetic example reserves $400 ($100 emergency + $300 tuition),
+caps a requested $200 contribution at $100, and separately reports
+$800 outside the explicit reserve horizon. It never assumes future income,
+investment returns or asset sales. A reserve shortfall produces no allocation
+plan; an outside-horizon obligation is **not** certified as funded. This is
+not an account observation, suitability assessment or execution grant.
+See [dated liability reserve](docs/FINANCE_GOAL_RESERVE_R1.md).
+
+
+**Finance multi-frequency as-of state (2026-11-20):** [Liquidity As-of R2](docs/FINANCE_LIQUIDITY_ASOF_R2.md) composes official dated Fed H.4.1, Treasury DTS and NY Fed SOFR at an explicit research time, with cross-source TGA accounting reconciliation, not a fabricated daily global-liquidity index.
+
+**Finance liquidity science (2026-11-20):** The direct, negative-results SOFR-to-SPX price-index ablation in [Finance Liquidity Research R1](docs/FINANCE_LIQUIDITY_RESEARCH_R1.md) is a Research-only experiment, not a market-wide liquidity proxy, qualified historical PIT test, investable SPY benchmark or broker policy. No new Owner, native executor, ledger or trading authority was added.
+
+**Canonical sources remain `domains/capital` / `ordivon_capital`.**
+Finance is the investment-management program rather than a second
+source/package/Agent owner. Its current capabilities include the existing
+Investment-first contribution consumer, cash-flow-matched passive benchmark
+and frozen-candidate economic evidence evaluator. The *additional* R4
+`experiment_protocol.py` freezes experiment intentions and classifies
+declared prospective evidence prior to independent candidate evaluation.
+It does not duplicate the existing investment engines.
+
+The Agent interface is `scripts/run-finance-lego` (freeze-experiment,
+assess-holdout); the direct benchmark and allocation consumers remain in
+`portfolio.passive_benchmark` and `scripts/run-strategic-contribution-brief`.
+Current owner mapping is in `config/capital_domain_taxonomy.json`,
+source-only LEGO identity in `planning/lego-plan-r1.json` (CA10),
+source architecture in `docs/ARCHITECTURE.md`, native acceptance via
+`mise run //domains/capital:verify`. Research and stateless Portfolio
+analysis are read-only; dedicated Accounting Paper closes write **only
+simulated** PostgreSQL ledger state. Neither path gives broker trading
+authority.
+
+### Risk gross/net formal algebra
+
+`mise run //domains/capital:verify:formal:risk-exposure` checks an
+all-finite-position Lean model of `|net| <= gross` and compositional
+exposure arithmetic. Implementation refinement to the actual Python Decimal
+ledger remains **UNKNOWN**; read
+`formal/RiskExposureBound.md` and retain the native source consumer test.
+
+### Paper Accounting verification
+
+From the repository root, run
+`mise run //domains/capital:verify:paper-amounts` with the Lean tool already
+pinned under `tools/formal`. The integer model checks signed-int64 Risk consumer
+fields under the reserve and nonnegative component assumptions, and shows
+that settling booked payables and receivables preserves NAV at fixed marks; it also proves the exact integer funding identity that excludes same-day settled sale proceeds from new-buy capacity, plus nonnegative residual liabilities under bounded settlement.
+It does not verify Python, PostgreSQL, time-bound market admission or a
+positive-equity Risk review. Use `mise run //domains/capital:verify` for the
+implementation, and a disposable `ORDIVON_CAPITAL_PAPER_PG_TEST_DSN` for
+committed receipt and Risk CLI read-back.
+
+### Read-only Paper period performance
+
+Human: use the Paper 日报 section of the [operating guide](docs/FINANCE_HUMAN_GUIDE_R1.md)
+to separate external funding from investment gain. Agent: compose native
+Accounting receipts and an admitted Markets snapshot through
+`portfolio.paper_close_performance.summarize_paper_period`; its CLI can read
+committed PostgreSQL closes. Risk retains valuation checks. This projection
+adds no ledger, scheduler, broker effects or new third-party dependency.
+
+## Historical Capital qualifications
+
+The remaining portions of this README include frozen prior technology
+candidate/validation evidence and must not be interpreted as independent
+current installed/admitted provider truth. See `docs/ARCHITECTURE.md`
+for current source-owner boundaries.
 
 Ordivon Capital is the capital composition and control plane of Ordivon. It does not define a new accounting, risk, trading, settlement, identity, observability, lineage, or cloud-cost framework. It composes authoritative standards, mature implementations, provider reality, and the minimum Ordivon glue required to bind evidence, authority, execution, and reconciliation.
 
+**Finance R2 (investment research)**: the bounded, read-only frozen-candidate evidence consumer and its R2.1 contract live in [FINANCE_R2_RESEARCH_BOUNDARY](docs/FINANCE_R2_RESEARCH_BOUNDARY.md). Research evidence never grants execution or capital authority.
+
 **Market Capital is one implemented domain inside Ordivon Capital, not the parent system.** The current repository contains the Market domain plus a cross-domain TigerBeetle accounting integration. Treasury, Compute, Enterprise, Human, Distribution, and other capital domains are not instantiated until a real use case requires them and an external-owner census has been completed.
 
-Current Market-domain business backbone: CFA investment-management process.
-Trading semantics: FIX.
-Trading runtime: pinned QuantConnect LEAN (installed and admitted for bounded non-live Wave B execution).
-Post-trade reference semantics: PFMI + ISO 20022; broker/custodian infrastructure remains authoritative.
-Research/data persistence: Pandera + Parquet/PyArrow + DuckDB + MLflow, with MLflow tracking configuration owned by the caller/environment.
-Historical issuer/reference inputs (GLEIF/SEC/Arelle) belong to the retired Wave-A generation slice and are not active Capital capabilities.
-Capital accounting mechanics: TigerBeetle `0.17.9`; venue/custody/settlement systems remain authoritative for their own external state.
+Historical technology reference (not a current deployed-provider inventory):
+CFA investment process; FIX order semantics; PFMI and ISO 20022 as
+post-trade references. The bounded old Wave-B LEAN experiment and
+NautilusTrader comparisons are qualification/candidate evidence, not an
+automatic current trading engine. Pandera, Parquet/PyArrow, DuckDB and MLflow
+are research/data mechanics **only where an active consumer has qualified
+them**; do not infer that all are installed together. TigerBeetle 0.17.9
+has passed specific substrate/replay qualifications; it does not thereby
+replace the active PostgreSQL accounting owner or external custodian.
+GLEIF/SEC/Arelle Wave-A generation is retired. Always prefer the current
+owner's source, deployed state and latest evidence over this historical
+summary.
+
+## Investment-first Finance modernization (2026-11-06)
+
+The canonical Finance program now includes a **contribution-only long-horizon
+allocation consumer**, separately from historical trading/backtest experiments.
+Caller-defined target weights and explicitly protected cash are projected
+using integer-cent arithmetic; no asset is sold, no forecast or market
+valuation is inferred, and no order is submitted. This extends the existing
+Portfolio source owner without creating another trading engine or an Agent
+registry.
+
+For the current source, actual CLI and invariants, see
+[Investment-first Finance R1](docs/FINANCE_INVESTMENT_FIRST_R1.md) and
+`scripts/run-strategic-contribution-brief`. The source path remains
+`domains/capital` until a separate cross-owner relocation is verified;
+`Finance` names the investment program, not a second package.
+
+## Paper investment accounting
+
+The Accounting owner can close one supplied USD simulation session with
+`ordivon_capital.accounting.postgres_paper_close`. It carries whole-share
+long positions and settles due buy payables and sale receivables. Inputs must already bind the consecutive exchange session, admitted fills and raw
+closing marks. This entry point is for an offline paper run.
+
+Use a dedicated PostgreSQL database named `ordivon_paper` and a role
+restricted to that database. Set `ORDIVON_CAPITAL_PAPER_PG_DSN` for the runner.
+
+```sh
+scripts/run-capability-python -m ordivon_capital.accounting.postgres_paper_close \
+  --account cash --input session.json
+```
+
+A funding-only opening request for `session.json`:
+
+```json
+{
+  "session": "2026-01-08",
+  "previous_session": null,
+  "contribution_minor": 1000000,
+  "reserve_contribution_minor": 0,
+  "marks": {},
+  "buys": []
+}
+```
+
+Subsequent requests name the preceding session. Buy rows contain
+`fill_id`, `symbol`, `shares`, `price_minor`, `fee_minor`,
+`decided_at` and `filled_at`. Timestamps carry offsets. For a
+calendar-qualified run, supply each buy's `settlement_date` from the
+clearing calendar. The cash transfer is posted at the first valuation
+on or after that date, and earlier valuations carry the payable. Older
+fixture requests that omit it still settle at the next valuation.
+A session can include a `sells` array with the same fill fields and a
+required clearing date. Sales can only use shares carried into that
+session. The close values sale proceeds as a receivable until clearing,
+and a buy can use the proceeds starting with the session after the close
+that posts the cash. The receipt exposes sale amounts while a sale is
+pending or settles. Mark values and money fields are USD cents. Inline marks are caller-supplied.
+For operator-bound marks, pass `--market-snapshot snapshot.json` and
+`--market-binding binding.json` together with empty inline `marks`. The
+binding object supplies the keyword arguments documented in
+[the ETF snapshot contract](docs/PAPER_ETF_EOD_SNAPSHOT_R1.md). Its snapshot
+identity, source, evidence references, bound session times and valuation
+as-of time are preserved in the paper receipt. A retrospective capture
+only establishes availability at that as-of time. The cash ledger, input snapshot and
+valuation receipt commit together. Exact replay returns the original
+receipt and changed inputs for a closed session are rejected. The runner
+requires a session with no corporate actions. Calendar
+qualification, corporate-action postings and execution admission belong
+to their upstream contracts. The PostgreSQL acceptance test uses
+`ORDIVON_CAPITAL_PAPER_PG_TEST_DSN` against a disposable paper database.
+In GitHub Actions the existing required `root-verification` job provisions a
+job-scoped PostgreSQL 18.6 service and binds its disposable DSN **only** to
+the selected Capital `verify` task. Both
+`ORDIVON_CAPITAL_PAPER_PG_TEST_DSN` and `ORDIVON_CAPITAL_PG_TEST_DSN`
+share the disposable database, exercising separate `ordivon_paper` and
+`ordivon_capital` schemas, the real Paper and general Accounting
+trace-refinement consumers, rather than installing an additional harness. A
+missing or failing connection must fail the owner task, never silently skip.
+Local runs without a disposable DSN continue to report database tests as
+skipped; they cannot claim a PostgreSQL readback.
+
 
 ## Current standing
+
+**Finance operating interfaces (CA01–CA10):**
+[Human operating guide](docs/FINANCE_HUMAN_GUIDE_R1.md) is the single
+human-facing Finance entry. Agent instructions are scoped to the existing
+[Investment/Paper Skill](../../.agents/skills/finance-paper-investment/SKILL.md),
+[Research Skill](../../.agents/skills/finance-experiment-review/SKILL.md)
+and [Paper Risk Skill](../../.agents/skills/finance-paper-risk-review/SKILL.md).
+The authoritative CA01–CA10 source mapping remains
+`planning/lego-plan-r1.json`, not another duplicated guide.
+
+
+**Finance Paper Risk consumer (CA03)**: read-only
+`ordivon_capital.risk.paper_close_risk` composes Markets-admitted
+ETF marks, existing PostgreSQL paper Accounting receipts, and native
+Risk/Governance; the principal risk budget is still UNSET. See
+`docs/FINANCE_PAPER_INVESTMENT_R1.md`.
+
+**Finance Investment Mode R2**: [cash-flow-matched passive baseline](docs/FINANCE_INVESTMENT_MODE_R2.md) is available as a read-only portfolio comparison. It does not grant trade authority.
+
 
 The historical Wave-A generation pipeline is retired. Its frozen `wave_b/fixtures/wave_a_target_portfolio.json` remains an immutable regression/execution-mechanics input for Wave B; Capital no longer carries the GLEIF/SEC/Cboe/equal-weight generator that produced it.
 
@@ -72,16 +295,12 @@ Clock timing qualification now passes: Windows w32time is synchronized to qualif
 Composition policy: prefer authoritative standards, mature implementations, and provider-native truth over local mechanisms. ISO/FIX/ISO 20022 and workload-applicable external identity/reporting standards define semantics where needed; LEAN/Nautilus/venue APIs/TigerBeetle/OPA/MLflow/Pandera/Parquet/DuckDB/OpenLineage/OTel/Prometheus own their respective mechanics. Ordivon Capital retains only narrow composition, policy-input/enforcement, evidence, data-quality, and reconciliation seams that no natural owner can establish alone. Custom mechanisms require a demonstrated substitution failure. Machine-readable ownership is tracked in `config/external_owner_census.json`; see `docs/COMPOSITION_FIRST_2026-09-14.md`.
 
 **CAP-DB-TYPE-01 — PostgreSQL-first type/representation contract.**
-The database-neutral Accounting Substrate owns exactly one identity for
-LedgerApplyStatus, AccountState and TransferState, consumed by the
-PostgreSQL-first ledger and by legacy historical import tests. The PostgreSQL
-runtime must import successfully when importing sqlite_ledger is forbidden.
-The existing native negative test
-tests/test_accounting_substrate_type_authority.py proves both this isolation
-and identical enum/data type identities across consumers. These types are
-an existing Thought LEGO (domain law) used by a Capability LEGO (native
-PostgreSQL accounting). The old SQLite data path gains no new features and
-remains a retirement target once real migration/replay consumers are qualified.
+The database-neutral Accounting Substrate defines the only LedgerApplyStatus,
+AccountState and TransferState identities, consumed by the native PostgreSQL
+Accounting ledger. The old SQLite code and test-only oracle have been retired;
+no SQLite reader, writer or migration path remains in Capital Accounting.
+tests/test_accounting_substrate_type_authority.py checks the single owner
+of these types and the absence of the retired import path.
 
 **Typed accounting-operation LEGO** (capital.accounting.typed-operation): existing
 AccountingInstruction and resolution_instruction own the enum boundary.
@@ -93,45 +312,15 @@ This is a local accounting contract, not a live financial-write authority.
 
 TigerBeetle Capital Substrate R1 passes the base mechanical integration and R3.1 composes Reservation -> PENDING, RETAIN -> no mutation, RELEASE -> VOID_PENDING_TRANSFER, and CONSUME -> POST_PENDING_TRANSFER. R3.2 now passes durable restart/reconciliation on one intact data file: a pending reservation survived the first process restart, a consumed reservation survived the second, exact replay returned `EXISTS` without reopening pending state, and exact terminal semantic history reconciled `MATCH`. If provider terminal history is missing or stale, the result is retain/recovery (`PROVIDER_INCOMPLETE_RETAIN` / `CONTRADICTION_RETAIN`) with provider repair forbidden; terminal Capital accounting history is never resurrected from provider state. The bounded harness deletes its data file afterward, so no long-running canonical ledger or external financial write is admitted.
 
-**CAP-PG-SOURCE-TYPE-01 — PostgreSQL migration source fidelity:** SQLite
-INTEGER affinity is not a proof that stored source cells are integers. Before
-producing a migration digest or admitting a PostgreSQL write, the PG importer
-requires an exact integer type for every account balance and transfer amount,
-and an exact {0,1} integer for the overdraft flag; it rejects REAL, TEXT,
-boolean aliases and out-of-range values rather than silently truncating or
-coercing them. Consumer acceptance is a real PostgreSQL 18 native negative
-test with malformed disposable source rows and an empty PG target after
-failure. This is a PostgreSQL-import contract, not a new SQLite repair or a
-claim that source-writer retirement has been completed.
-
-**CAP-DB-MW-01 (TYPE + NATURAL_KEY + SERIALIZATION):** before the
-PostgreSQL-first accounting cutover, two independent SQLite callers must not
-treat an absent-ID read as exclusive admission. The narrow interim ledger
-uses SQL INSERT ON CONFLICT DO NOTHING RETURNING for Account admission,
-and places Transfer replay/readback inside BEGIN IMMEDIATE together with
-the only permitted balance effects. Native two-connection interleaving
-tests force same-ID replay and conflicting amounts and assert typed
-CREATED/EXISTS/ID_CONFLICT with a single balance mutation; the original
-implementation failed with a raw sqlite3.IntegrityError for both Account
-and Transfer creation. This protects existing non-live consumers, not
-a justification for retaining SQLite after PostgreSQL achieves parity.
-The PostgreSQL cutover still requires exact u128 account identity,
-atomic concurrent no-overdraft / pending POST or VOID, restart/replay
-equivalence, live data inventory and an independently verified migration
-and rollback SourceCut. No external funds or trading authority is implied.
-
-**SQLite accounting smoke verification LEGO**: the existing disposable
-SQLite scripts run-sqlite-accounting-durable-restart-smoke-r1 and
-run-nonlive-capital-effect-matrix own one responsibility: prove local
-state transitions, durable reopen, reconciliation and exact replay before
-issuing a PASS receipt. Inputs are synthetic accounting instructions and
-a disposable SQLite file; outputs are the existing JSON receipts.
-Consumers are scripts/run-r0-r5-closure and
-scripts/run-capital-trading-fullpath-closure respectively.
-Necessary writes and checks execute identically with ordinary Python
-and python -O. The native tests/test_accounting_smoke_optimizer_contract.py
-verifies actual entrypoint equivalence and distinct pending/consume
-observables. No live funds or provider write authority is used.
+**CAP-PG-NATIVE-01 - PostgreSQL-only Accounting authority:**
+An explicit PostgreSQL DSN is mandatory. Source ownership is
+accounting/postgres_ledger.py plus the pure accounting/substrate.py
+operation and result contracts. Native PostgreSQL SERIALIZABLE transactions,
+schema admission, restart/replay and 36 two-action cash/reservation traces are
+validated against the current Accounting contract using disposable PG only.
+No SQLite fallback, legacy migration, old R0-R5 closure or extra ledger remains.
+The consumer is scripts/run-nonlive-capital-effect-matrix; its effects do not
+authorize external funds or brokerage actions.
 
 Crypto FIX Projection R4 now passes: the four already-qualified Nautilus mechanics-only Spot orders project through sessionless QuickFIX/n FIX 4.4 `NewOrderSingle` semantics with ClientOrderId→ClOrdID identity continuity, venue `ExDestination`, Market order type and IOC TIF. No credential, FIX session, private account read or external financial write is admitted.
 
@@ -196,8 +385,8 @@ The existing Capital policy-checker LEGO uses these three Owner scripts:
 - scripts/check-nonlive-credential-provisioning
 - scripts/check-private-reality-readonly-preflight
 
-Their actual consumers are scripts/run-capital-trading-fullpath-closure
-and scripts/run-r0-r5-closure. Their contracts are unchanged: no
+The current consumer is scripts/run-capital-trading-fullpath-closure.
+Its contracts are unchanged: no
 live/external writes, unauthorized demo/testnet order submission or
 private-account access, and no group/world-readable credential files.
 An invalid policy or file permission must produce a nonzero exit under
@@ -234,30 +423,17 @@ prevents local credentials, /root candidate environments, or /opt provider binar
 from becoming hidden prerequisites of repository CI.
 
 
-**PostgreSQL-first accounting capability (native consumer transition)**.
-The bounded accounting API can now use PostgresAccountingLedger with an
-explicit PostgreSQL DSN; no SQLite fallback is permitted if a PG DSN was
-selected. scripts/run-nonlive-capital-effect-matrix now requires
-ORDIVON_CAPITAL_PG_DSN without any SQLite fallback or offline opt-in.
-Historical disposable SQLite regression evidence remains in a separate
-legacy-only smoke script, never inside the PG consumer. The PG implementation
-uses a transaction-scoped schema-admission lock, PostgreSQL SERIALIZABLE
-transactions with whole-transaction retry, unique account/transfer identities,
-atomic no-overdraft and pending POST/VOID effects, and native restart/replay
-readback. Physical PostgreSQL consumer tests are in tests/test_postgres_ledger.py;
-they require ORDIVON_CAPITAL_PG_TEST_DSN pointing at a disposable
-database, with no production-credential defaults. Existing SQLite is an
-historical migration-source/debt item and must not be extended.
-
-PostgresAccountingLedger.import_quiesced_sqlite performs a read-only
-snapshot and pre-commit exact PG readback into an empty target. It refuses to
-start without explicit independent legacy-producer quiescence; it never edits,
-locks out, or silently deletes the old authority. The receipt says
-VERIFIED_COPY_NOT_CONSUMER_CUTOVER. Installed worker shutdown, deployed PG
-DSN, rollback and final retirement are separate unsatisfied gates; passing
-a disposable test is not production migration. No external financial write
-authority follows from PG accounting.
-
+**PostgreSQL Accounting (single persistent implementation).**
+PostgresAccountingLedger requires an explicit PostgreSQL DSN; its native
+SERIALIZABLE transactions include whole-transaction retry, unique u128
+account/transfer identity, no-overdraft, reservation POST/VOID and exact
+committed readback. The run-nonlive-capital-effect-matrix binds the PG
+consumer. Physical qualification uses ORDIVON_CAPITAL_PG_TEST_DSN pointing
+at a disposable DB; tests are tests/test_postgres_ledger.py,
+tests/test_postgres_accounting_traces.py (36 independent two-action contract
+checks) and the provider-gated nonlive effect-matrix test.
+The SQLite importer, engine, differential oracle, smoke and unconsumed
+historical R0-R5 closure are retired; no old-row migration is required.
 
 **PG catalog admission guard (CEGAR, physical PostgreSQL 18.6)**.
 PostgresAccountingLedger now refuses a same-name counterfeit accounting
@@ -273,3 +449,18 @@ independently. The strict PG deparser comparison deliberately fails closed
 after a server upgrade until the actual installed version is requalified.
 These checks do not amount to a proof of arbitrary SQL equivalence or a
 production deployment certificate.
+
+## Agent tool selection and local execution
+
+Select the financial consumer first: `markets/` for market observations,
+`research/` for hypotheses/experiments, `portfolio/` for decisions,
+`risk/` for exposure, `accounting/` for simulated ledger effects, and
+`trading/` for execution adapters. The
+[Finance Paper Investment Skill](../../.agents/skills/finance-paper-investment/SKILL.md)
+and [Finance Experiment Review Skill](../../.agents/skills/finance-experiment-review/SKILL.md)
+give methods, **not** market-data credentials or broker authority.
+Executable entrypoints remain the source-backed `scripts/run-finance-lego`,
+`scripts/run-strategic-contribution-brief` and Owner-native `mise tasks ls`.
+Probe chosen provider/tool in the exact node/identity via
+[Workstation inventory](../../platform/workstation/inventory/README.md);
+read back actual financial consumer evidence before claiming completion.

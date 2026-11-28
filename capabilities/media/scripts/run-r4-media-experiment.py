@@ -7,9 +7,9 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+from ordivon_studio.perception_profiles import canonical_digest
 from ordivon_studio.rich_perception import (
     audio_structure_features,
-    canonical_digest,
     crossmodal_circular_shift_null,
     crossmodal_profile_coupling,
     cue_boundary_silence_score,

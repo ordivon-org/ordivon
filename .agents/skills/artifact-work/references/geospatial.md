@@ -23,4 +23,4 @@ Valid SQLite != conforming GeoPackage. Conforming GeoPackage != object-contract 
 
 ## Source evidence
 
-`/root/projects/ordivon/capabilities/artifact/docs/ARTIFACT_FAMILY_GEOSPATIAL_R1.md`
+[Historical family evidence](../../../../capabilities/artifact/docs/ARTIFACT_FAMILY_GEOSPATIAL_R1.md)

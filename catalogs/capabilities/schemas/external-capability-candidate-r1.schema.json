@@ -1,0 +1,205 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.dev/catalogs/capabilities/evidence/external-capability-candidate-r1.schema.json",
+  "title": "External executable capability candidate evidence R1 (not formal LEGO admission)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "schemaVersion",
+    "candidateId",
+    "standing",
+    "decision",
+    "productionActivated",
+    "source",
+    "capability",
+    "references",
+    "unknowns"
+  ],
+  "properties": {
+    "kind": {
+      "const": "ordivon.external-capability-candidate"
+    },
+    "schemaVersion": {
+      "const": "r1"
+    },
+    "candidateId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "standing": {
+      "const": "CANDIDATE_ONLY"
+    },
+    "decision": {
+      "enum": [
+        "HOLD",
+        "REFERENCE_ONLY",
+        "KEEP_NATIVE",
+        "REJECT"
+      ]
+    },
+    "productionActivated": {
+      "const": false
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ordivonSourceCut",
+        "upstream",
+        "consumerSourceBlobSha1"
+      ],
+      "properties": {
+        "ordivonSourceCut": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "upstream": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "repository",
+            "observedHeadCommit",
+            "releaseTag",
+            "releaseArchiveSha256",
+            "releaseBinarySha256",
+            "licenseExpression",
+            "licenseEvidence",
+            "observationTime"
+          ],
+          "properties": {
+            "repository": {
+              "type": "string",
+              "pattern": "^https://github.com/[^/ ]+/[^/ ]+$"
+            },
+            "observedHeadCommit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "releaseTag": {
+              "type": "string",
+              "minLength": 1
+            },
+            "releaseArchiveSha256": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "releaseBinarySha256": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "licenseExpression": {
+              "type": "string",
+              "minLength": 1
+            },
+            "licenseEvidence": {
+              "type": "string",
+              "minLength": 1
+            },
+            "observationTime": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        "consumerSourceBlobSha1": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40}$"
+          }
+        }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "kind",
+        "goal",
+        "r21Standing"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "capability",
+            "method",
+            "mixed"
+          ]
+        },
+        "goal": {
+          "type": "string",
+          "minLength": 1
+        },
+        "r21Standing": {
+          "const": "NOT_FORMALLY_DECLARED"
+        }
+      }
+    },
+    "references": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "knowledge",
+        "skills",
+        "research",
+        "composition",
+        "experiment",
+        "consumerSources"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "knowledge": {
+          "type": "string",
+          "minLength": 1
+        },
+        "skills": {
+          "type": "string",
+          "minLength": 1
+        },
+        "research": {
+          "type": "string",
+          "minLength": 1
+        },
+        "composition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "experiment": {
+          "type": "string",
+          "minLength": 1
+        },
+        "consumerSources": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "summary": {
+      "type": "string"
+    }
+  }
+}

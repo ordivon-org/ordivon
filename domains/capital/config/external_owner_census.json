@@ -301,7 +301,8 @@
         "src/ordivon_capital/accounting/substrate.py",
         "src/ordivon_capital/accounting/durable.py",
         "src/ordivon_capital/accounting/postgres_ledger.py",
-        "src/ordivon_capital/accounting/sqlite_ledger.py"
+        "src/ordivon_capital/accounting/paper_close.py",
+        "src/ordivon_capital/accounting/postgres_paper_close.py"
       ],
       "ownerClasses": [
         "IMPLEMENTATION_OWNER",
@@ -309,11 +310,11 @@
       ],
       "externalOwners": [
         "PostgreSQL 18.6 native SERIALIZABLE, uniqueness, transactional DDL and advisory locks",
-        "SQLite historical read-only migration source and legacy offline CI only",
+        "SQLite disposable historical differential oracle and offline CI only",
         "TigerBeetle 0.17.9 historical/future distributed challenger"
       ],
       "localStanding": "PG_NATIVE_ACCOUNTING_CONSUMER_QUALIFIED_LEGACY_SOURCE_RETIRED_PENDING_INSTALLED_CUTOVER",
-      "localResponsibility": "Bind capital reservation/post/void/idempotency onto native PostgreSQL SERIALIZABLE transactions with 40001 whole-transaction retries, exact U128 source identity and pre-commit migration readback. Nonlive matrix selects PostgreSQL only on explicit DSN. Legacy SQLite remains historical/offline test input, not a new production authority. No external fund movement or installed PG cutover is entailed.",
+      "localResponsibility": "Bind capital reservation/post/void/idempotency onto native PostgreSQL SERIALIZABLE transactions with 40001 whole-transaction retries, exact U128 accounting identity and canonical PostgreSQL transaction readback. Nonlive matrix selects PostgreSQL only on explicit DSN. PostgreSQL alone owns durable writes; no alternate SQLite backend, historical importer or differential oracle is retained. No external fund movement or installed PG cutover is entailed.",
       "admittedMechanicsOwners": [
         "PostgreSQL 18.6 physically tested disposable cluster: native PG SERIALIZABLE with advisory transaction admission",
         "SQLite 3.54 historical/offline regression only, not an expansion target"
@@ -499,7 +500,7 @@
     {
       "id": "governance-execution-policy",
       "sourcePatterns": [
-        "src/ordivon_capital/governance/policy_decision.py"
+        "src/ordivon_capital/governance/*.py"
       ],
       "ownerClasses": [
         "ORDIVON_GLUE"
@@ -508,7 +509,7 @@
         "Open Policy Agent 1.20.2 historical challenger only"
       ],
       "localStanding": "BOUNDED_LOCAL_DETERMINISTIC_IMPLEMENTATION_PREFERRED",
-      "localResponsibility": "evaluate the frozen bounded execution/live-test/risk-budget/counterfactual policy rules directly in canonical Python; fail closed; do not grow a generic policy framework"
+      "localResponsibility": "execute bounded NON_LIVE/external-write authorization and LIVE test-account qualification; Risk owns numeric limits, Portfolio owns scenario evidence completeness; fail closed for actual effects"
     },
     {
       "id": "trading-execution-reconciliation",
@@ -575,6 +576,22 @@
       "authorityBoundary": "OKX live-trade credential audit is separate from private-Reality observer admission; config/private_reality_policy.json remains authoritative for observer admission"
     },
     {
+      "id": "markets-paper-etf-snapshot-admission",
+      "sourcePatterns": [
+        "src/ordivon_capital/markets/etf_eod_snapshot.py"
+      ],
+      "ownerClasses": [
+        "PROVIDER_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "operator-authorized market-data source and action source",
+        "listing exchange session calendar"
+      ],
+      "localStanding": "RETAINED_IRREDUCIBLE_READONLY_GLUE",
+      "localResponsibility": "bind independently committed ETF closing-mark bytes to a paper decision and fail closed on incomplete marks, temporal leakage, or corporate actions outside R1; no provider or trading admission"
+    },
+    {
       "id": "trading-private-reality",
       "sourcePatterns": [
         "src/ordivon_capital/trading/okx_readonly_client.py",
@@ -611,7 +628,13 @@
       "id": "risk-portfolio-observation-and-statistics",
       "sourcePatterns": [
         "src/ordivon_capital/risk/portfolio_risk.py",
-        "src/ordivon_capital/risk/risk_budget_validation.py"
+        "src/ordivon_capital/risk/broker_margin.py",
+        "src/ordivon_capital/risk/dependence_analysis.py",
+        "src/ordivon_capital/risk/tail_risk.py",
+        "src/ordivon_capital/risk/tail_report.py",
+        "src/ordivon_capital/risk/risk_values.py",
+        "src/ordivon_capital/risk/risk_budget_validation.py",
+        "src/ordivon_capital/risk/paper_close_risk.py"
       ],
       "ownerClasses": [
         "IMPLEMENTATION_OWNER",
@@ -628,7 +651,7 @@
         "SR 26-2 reference for model governance"
       ],
       "localStanding": "THIN_GLUE_AFTER_OWNER_AUDIT",
-      "localResponsibility": "normalize observed exposure and bind descriptive/model-validation evidence; library-owned estimators remain external. Current bounded risk-limit decisions are local deterministic rules. Future portfolio optimization requires a real contract and comparative qualification before any external optimizer is admitted. Exact portfolio-risk-budget document validation is a domain-local fail-closed contract bound to the active schema digest; it is not a general JSON Schema engine.",
+      "localResponsibility": "normalize observed exposure and bind descriptive/model-validation evidence; library-owned estimators remain external. Current bounded risk-limit decisions are local deterministic rules. Future portfolio optimization requires a real contract and comparative qualification before any external optimizer is admitted. Exact portfolio-risk-budget document validation is a domain-local fail-closed contract bound to the active schema digest; it is not a general JSON Schema engine. The paper-account Risk consumer reconciles Accounting close receipt NAV, unsettled payables and operator-admitted Markets marks before delegating exposures and registered Governance risk limits; it never creates a second risk engine or supplies missing owner tolerance.",
       "admittedMechanicsOwners": [
         "NumPy 2.5.3 for vector arithmetic, sample variance, quantile, mean, correlation and array mechanics",
         "SciPy 1.18.1 for linregress",
@@ -648,6 +671,61 @@
         "scikit-learn": "walk-forward splitting and primary/robust estimator mechanics",
         "Ordivon": "sample alignment, time-boundary enforcement, evidence composition, limitations, governance standing and no automatic decision"
       }
+    },
+    {
+      "id": "portfolio-cashflow-matched-benchmark-replay",
+      "sourcePatterns": [
+        "src/ordivon_capital/portfolio/passive_benchmark.py",
+        "src/ordivon_capital/portfolio/paper_close_performance.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Authoritative benchmark/index providers own historical total-return facts",
+        "Asset custodian/broker and Capital Accounting own actual balances and cash flows"
+      ],
+      "localStanding": "RETAINED_BOUNDED_READONLY_CASHFLOW_COMPARISON",
+      "localResponsibility": "Compare caller-supplied strategy and passive benchmark terminal wealth under identical contributed capital and exact cost timing. No source truth, broker effects, generic optimizer, performance forecasting, time-weighted return, tax engine, or ledger implementation. Project existing Accounting close NAV and external contributions into a start-funded period summary, reusing admitted Markets snapshots and native Risk review; do not create a second valuation ledger or confuse cash inflows with investment profit.",
+      "admittedMechanicsOwners": [
+        "Python 3.15.1 standard-library Decimal for exact currency/fractional arithmetic"
+      ],
+      "candidateMechanics": [
+        "PyPortfolioOpt or Riskfolio-Lib only if future allocation optimization is actually consumed"
+      ],
+      "localDependencies": [
+        "Caller-supplied ordered period total returns, deposits and expense conventions"
+      ]
+    },
+    {
+      "id": "portfolio-algebraic-crra-scenario-optimization",
+      "sourcePatterns": [
+        "src/ordivon_capital/portfolio/algebraic_policy.py",
+        "src/ordivon_capital/portfolio/information_tree.py",
+        "src/ordivon_capital/portfolio/multistage_policy.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Human investor owns economic utility and actual investment horizon",
+        "Market-data and econometric owners supply conditional joint scenario probabilities",
+        "Broker/provider owns initial and maintenance margin, cash yield and actual borrowing quote"
+      ],
+      "localStanding": "CONDITIONAL_READONLY_ALGEBRAIC_SCENARIO_BINDING_NOT_BROKER_OR_PROSPECTIVE",
+      "localResponsibility": "Map caller-supplied utility, price-scenario distribution, contract financing and brokerage rules onto established SciPy numerical convex optimization; retain only domain algebra and evidence distinctions, not an Ordivon generic solver or second execution platform. No arbitrarily fixed drawdown, leverage or risk floor. Solves a caller-defined finite-scenario monthly 1r multistage terminal-CRRA subproblem with shared information-history decisions; this does not solve an unknown infinite-state real-world Bellman recursion or authenticate scenario probabilities. Uses an independent LP tangent upper bound to measure numerical concave optimization gap. No live trading or Paper booking.",
+      "admittedMechanicsOwners": [
+        "NumPy 2.5.3 numerical arrays",
+        "SciPy 1.18.1 HiGHS LP feasible point and SLSQP numerical optimizer",
+        "Upstream Merton CRRA stochastic-control mathematics"
+      ],
+      "candidateMechanics": [
+        "Cvxportfolio / Boyd multi-period convex trading only after actual predictive distribution and multi-period consumers are qualified"
+      ],
+      "localDependencies": [
+        "Caller-supplied normalized pretrade equity of 1r, distribution probabilities, positive CRRA gamma and asset maintenance contracts",
+        "Caller-supplied finite market information tree, observable state branches, period-wise financing/cost conditions, monthly contributions of exactly 1r and terminal wealth utility"
+      ]
     },
     {
       "id": "portfolio-counterfactual-projection",
@@ -676,13 +754,19 @@
     {
       "id": "research-model-governance",
       "sourcePatterns": [
+        "src/ordivon_capital/research/investment_candidate.py",
         "src/ordivon_capital/research/model_monitoring.py",
         "src/ordivon_capital/research/monitoring_persistence.py",
         "src/ordivon_capital/research/monitoring_persistence_cli.py",
         "src/ordivon_capital/research/okx_factor_observer.py",
         "src/ordivon_capital/research/prospective_validation.py",
         "src/ordivon_capital/research/quantitative_inventory_validation.py",
-        "src/ordivon_capital/research/standards_inventory.py"
+        "src/ordivon_capital/research/standards_inventory.py",
+        "src/ordivon_capital/research/experiment_protocol.py",
+        "src/ordivon_capital/research/unit_r_dca.py",
+        "src/ordivon_capital/research/pit_joint_forecast.py",
+        "src/ordivon_capital/research/independent_policy_replay.py",
+        "src/ordivon_capital/research/etf_distribution_label_audit.py"
       ],
       "ownerClasses": [
         "IMPLEMENTATION_OWNER",
@@ -700,7 +784,7 @@
         "OpenLineage for any future actual lineage-event surface"
       ],
       "localStanding": "THIN_RESEARCH_BINDING_AFTER_MLFLOW_PANDERA_PANDAS_SUBTRACTION",
-      "localResponsibility": "retain only bounded Capital research evidence validation, manifest/hash binding, and model-monitoring composition. No local experiment platform, dataframe framework, lineage graph, generic Research/Data platform, optimizer, or agent R&D framework. Exact quantitative-component-inventory document validation is a domain-local fail-closed contract bound to the active schema digest; jsonschema is not a current owner.",
+      "localResponsibility": "retain only bounded Capital research evidence validation, manifest/hash binding, and model-monitoring composition. No local experiment platform, dataframe framework, lineage graph, generic Research/Data platform, optimizer, or agent R&D framework. Exact quantitative-component-inventory document validation is a domain-local fail-closed contract bound to the active schema digest; jsonschema is not a current owner. Precommitted experiment protocol supplies pure timeline and input-identity checks, not independent economic candidate evaluation, which remains investment_candidate.py.",
       "admittedMechanicsOwners": [
         "jsonschema 4.26.0 for Draft 2020-12 schema validation",
         "PyArrow 25.0.1 / Apache Parquet for typed columnar materialization",
@@ -716,7 +800,8 @@
       ],
       "localDependencies": [
         "bounded explicit monitoring-row validation",
-        "content-addressed manifest construction"
+        "content-addressed manifest construction",
+        "Frozen 6-ETF daily OHLCV manifest / monthly 1r cashflow / native Capital Risk expected-shortfall component (read-only historical proof-of-concept, never execution or accounting)"
       ]
     },
     {
@@ -733,6 +818,21 @@
       ],
       "localStanding": "LOCAL_BOUNDED_US_EQUITY_SIZER_ADMITTED",
       "localResponsibility": "size only the exact admitted empty-portfolio USD long US-equity whole-share validation contract with explicit free-portfolio buffer and frozen IB-style fee mechanics; fail closed outside that contract; do not grow a general buying-power/backtest engine"
+    },
+    {
+      "id": "trading-paper-fill-calendar",
+      "sourcePatterns": [
+        "src/ordivon_capital/accounting/paper_fill_calendar.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Exchange session notices",
+        "DTC settlement notices"
+      ],
+      "localStanding": "OPERATOR_BOUND_PAPER_CALENDAR",
+      "localResponsibility": "Validate bounded paper open fills and clearing dates against digest-bound operator evidence."
     },
     {
       "id": "trading-fix44-projection",
@@ -754,6 +854,177 @@
       ],
       "localStanding": "LOCAL_BOUNDED_SESSIONLESS_TAGVALUE_PROJECTOR_PREFERRED",
       "localResponsibility": "project only the qualified FIX 4.4 NewOrderSingle field sequence for mechanics evidence; no session, transport, BodyLength, CheckSum, resend, sequence recovery, dictionary negotiation, or broader FIX engine"
+    },
+    {
+      "id": "portfolio-strategic-contribution-only",
+      "sourcePatterns": [
+        "src/ordivon_capital/portfolio/strategic_contribution.py",
+        "src/ordivon_capital/portfolio/paper_contribution_plan.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Python standard-library exact integer arithmetic and bounded Hamilton apportionment",
+        "QuantConnect or NautilusTrader only if an actual future execution contract is qualified"
+      ],
+      "localStanding": "RETAINED_IRREDUCIBLE_READONLY_GLUE",
+      "localResponsibility": "Conserve caller-specified contribution cents while preserving an explicit cash reserve; allocate without sale, prediction, advice or execution effects. The actual Paper account consumer obtains a committed Accounting head, applies an operator-bound Markets snapshot and reuses Risk available cash before the same no-sell Portfolio projection; unsettled receivables and existing payables are not investable. Own only the exact cross-asset caller mandate composition, not optimization or a broker."
+    },
+    {
+      "id": "markets-github-historical-close-byte-admission",
+      "sourcePatterns": [
+        "src/ordivon_capital/markets/historical_close_snapshot.py"
+      ],
+      "ownerClasses": [
+        "IMPLEMENTATION_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Original market-data publisher owns historical close and adjustment validity (currently not independently attested)",
+        "GitHub owns mirrored commit and Git blob bytes, not original market-time truth",
+        "Python standard-library csv/hashlib/decimal own parsing and arithmetic mechanics"
+      ],
+      "localStanding": "RETAINED_BOUNDED_DATA_BYTE_ADMISSION",
+      "localResponsibility": "Validate an explicitly identified immutable GitHub-derived adjusted-close CSV for offline virtual research, reject false digest/missing partial prices/duplicate dates, and report all-no-quote days; no network data service, market-data ownership, or claim that upstream publication existed at historical time.",
+      "admittedMechanicsOwners": [
+        "Python 3.15 standard-library csv, hashlib, Decimal"
+      ],
+      "localDependencies": [
+        "Caller-supplied SHA-256 of separately fetched pinned GitHub blob; original provider licensing and history remain unverified"
+      ]
+    },
+    {
+      "id": "markets-xnys-public-equity-session-grid",
+      "sourcePatterns": [
+        "src/ordivon_capital/markets/equity_session_calendar.py"
+      ],
+      "ownerClasses": [
+        "IMPLEMENTATION_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "exchange_calendars 4.13.2 historical XNYS session rules; original listing exchange remains authoritative"
+      ],
+      "localStanding": "RETAINED_BOUNDED_READONLY_CALENDAR_ADAPTER",
+      "localResponsibility": "Reject invented, missing, duplicate, unordered and non-midnight session dates in caller-captured US stock and ETF historical research, before source data enters Qlib/TimeAdjuster or Riskfolio; alignment proves only the exchange calendar shape, never price, historical PIT, source rights, total return or trading authority.",
+      "admittedMechanicsOwners": [
+        "exchange_calendars 4.13.2 XNYS; pandas 3.1.1 explicit datetime/date indexing"
+      ],
+      "localDependencies": [
+        "Client-supplied provider-captured date labels, no publisher authentication or market-time vintage proof"
+      ]
+    },
+    {
+      "id": "markets-equity-ohlcv-bar-shape-before-hilo",
+      "sourcePatterns": [
+        "src/ordivon_capital/markets/equity_ohlcv_shape.py"
+      ],
+      "ownerClasses": [
+        "PROVIDER_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "OpenBB Cboe and primary original market venues remain the publishers of historical price fields; pandas and numpy own columnar comparison semantics"
+      ],
+      "localStanding": "RETAINED_BOUNDED_READONLY_SOURCE_QUALITY_GATE",
+      "localResponsibility": "Reject internally impossible OHLCV prices before high-low-derived native Qlib features enter historical training or evaluation; do not auto-repair any vendor bar, certify source price accuracy/adjustment/PIT, or duplicate training, risk, or portfolio logic.",
+      "admittedMechanicsOwners": [
+        "pandas 3.1.1 and numpy 2.5.3, both already pinned for native Qlib Research and Capital"
+      ],
+      "localDependencies": [
+        "Existing exact-hash source replay + Markets XNYS session date qualification + existing native Qlib HILO feature"
+      ]
+    },
+    {
+      "id": "portfolio-offline-virtual-capital-daily-mark",
+      "sourcePatterns": [
+        "src/ordivon_capital/portfolio/paper_investment.py",
+        "src/ordivon_capital/portfolio/paper_vintage.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Capital Portfolio existing cash-flow-matched passive benchmark comparison owns compound-return oracle",
+        "LEAN/NautilusTrader would own any future exchange fills or real paper brokerage effects",
+        "Original historical market-data provider owns the actual price and adjustment truth"
+      ],
+      "localStanding": "RETAINED_BOUNDED_SIMULATION_ONLY",
+      "localResponsibility": "Compose validated external historical price bytes and caller-frozen virtual allocation into daily descriptive NAV with passive index and cash comparisons. No broker trades, cash transfer, independent profit claim, optimizer, scheduler, alternative accounting registry or live authority. Compare two precisely byte-bound retrospective source vintages under one exact policy, refusing wealth deltas when priced session coverage differs; without provider point-in-time attestation or predictive inference.",
+      "admittedMechanicsOwners": [
+        "Existing Capital passive_benchmark replay and Python Decimal"
+      ],
+      "localDependencies": [
+        "Markets historical CSV admission and caller-frozen capital/weights/cost convention"
+      ]
+    },
+    {
+      "id": "trading-okx-demo-provider-wire",
+      "sourcePatterns": [
+        "src/ordivon_capital/trading/okx_demo_execution.py",
+        "scripts/run-okx-demo-execution"
+      ],
+      "ownerClasses": [
+        "PROVIDER_OWNER",
+        "ORDIVON_GLUE",
+        "IMPLEMENTATION_CANDIDATE"
+      ],
+      "externalOwners": [
+        "OKX API v5 Demo provider order/account/fill authoritative reports",
+        "Existing Runtime CredentialAuthority for Demo-only encrypted credentials"
+      ],
+      "localStanding": "LOCAL_DEMO_WIRE_CANDIDATE_NOT_PROVIDER_ADMITTED",
+      "localResponsibility": "Provide bounded OKX SPOT cash Demo-only source effects and exact observed order/fill identity; leave external POST gating to current Governance admission and durable intent/effect to existing Trading/Accounting PostgreSQL. No proprietary OMS, no generic provider SDK, no live authority and no provider-real receipt yet.",
+      "candidateMechanics": [
+        "NautilusTrader OKXExecutionClient latest-stable candidate, requires exact-version owner qualification"
+      ],
+      "admittedMechanicsOwners": []
+    },
+    {
+      "id": "trading-postgres-demo-intent",
+      "sourcePatterns": [
+        "src/ordivon_capital/trading/postgres_demo_intent.py"
+      ],
+      "ownerClasses": [
+        "IMPLEMENTATION_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "PostgreSQL 18.6 native transactional and uniqueness authority",
+        "OKX authoritative provider account/order/fill reports"
+      ],
+      "localStanding": "NATIVE_PG_DEMO_INTENT_QUALIFIED_PROVIDER_EFFECT_UNVERIFIED",
+      "localResponsibility": "Trading owner precommits one exact immutable Demo order with PostgreSQL compare-and-set effect claim, separate cancel claim, and restart readback. At-most-one claim after durable reservation. No second Accounting Ledger. Provider remains sole order/fill authority and external effects are unverified.",
+      "admittedMechanicsOwners": [
+        "PostgreSQL 18.6 via psycopg3"
+      ]
+    },
+    {
+      "id": "trading-okx-official-cli-v1p5",
+      "sourcePatterns": [
+        "src/ordivon_capital/trading/okx_official_cli.py",
+        "tools/okx_official_cli/package.json",
+        "tools/okx_official_cli/pnpm-lock.yaml"
+      ],
+      "ownerClasses": [
+        "PROVIDER_OWNER",
+        "IMPLEMENTATION_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Official OKX Agent Trade Kit @okx_ai/okx-trade-cli 1.5.0 (MIT)",
+        "OKX API v5 authoritative Demo order/account/fill events",
+        "Node.js and pnpm upstream execution mechanics"
+      ],
+      "localStanding": "QUALIFIED_OFFICIAL_DEMO_PROTOCOL_MECHANICS_PROVIDER_ACCOUNT_EFFECT_PENDING",
+      "localResponsibility": "Delegate OKX SPOT Demo-only signed REST and CLI event parsing to pinned upstream executable; Ordivon retains route/identity/UNKNOWN effect glue plus precommitted PostgreSQL Trading intent. Physical localhost proof is not exchange evidence. Python REST remains differential fallback pending actual Demo account effect.",
+      "admittedMechanicsOwners": [
+        "Official OKX Agent Trade Kit 1.5.0, bounded Demo protocol only"
+      ],
+      "candidateMechanics": [
+        "Future version upgrade requires exact pinned differential qualification"
+      ]
     }
   ],
   "notInstantiatedDomains": [
@@ -801,7 +1072,7 @@
       "surface": "market-capital:tigerbeetle:* and market-capital:nonlive-effect:* stable ID seeds",
       "standing": "HISTORICAL_EVIDENCE_IDENTITY_ONLY",
       "owner": "historical TigerBeetle qualification evidence",
-      "reason": "old TigerBeetle-specific ID seeds remain frozen only inside historical qualification artifacts; current SQLite accounting uses provider-neutral ordivon-capital:accounting:* identities"
+      "reason": "old TigerBeetle-specific ID seeds remain frozen only inside historical qualification artifacts; current PostgreSQL Accounting uses provider-neutral ordivon-capital:accounting:* identities"
     },
     {
       "id": "wave-a-frozen-target-fixture",
@@ -903,7 +1174,7 @@
       "contractId": "historical-expected-shortfall",
       "scope": "descriptive empirical one-period VaR/expected-shortfall statistic from an explicit return sequence",
       "localBaseline": {
-        "implementation": "src/ordivon_capital/risk/portfolio_risk.py::historical_expected_shortfall",
+        "implementation": "src/ordivon_capital/risk/tail_risk.py::historical_expected_shortfall",
         "primitiveOwner": "NumPy",
         "character": "thin deterministic calculation"
       },
@@ -995,74 +1266,6 @@
       "standing": "LOCAL_DETERMINISTIC_POLICY_PREFERRED",
       "externalOwnerAdmitted": false,
       "decision": "Remove OPA from the current core policy decision path. Retain OPA 1.20.2 Rego only as historical differential evidence and a future challenger if the contract grows into a true independent policy-distribution boundary."
-    },
-    {
-      "contractId": "bounded-capital-accounting-substrate",
-      "scope": "single-host mechanical accounting: atomic funding, no-overdraft scarcity, pending reservation, post/void, exact idempotent replay, intact database restart",
-      "localBaseline": {
-        "primitiveOwner": "SQLite",
-        "primitiveVersion": "3.53.1 bundled with canonical Python 3.14.7",
-        "implementation": [
-          "src/ordivon_capital/accounting/substrate.py",
-          "src/ordivon_capital/accounting/sqlite_ledger.py",
-          "src/ordivon_capital/accounting/durable.py"
-        ],
-        "temporaryMinimalBaselineSourceLines": 175,
-        "productionBindingSourceLines": 744
-      },
-      "externalCandidate": {
-        "name": "TigerBeetle",
-        "version": "0.17.9",
-        "latestStableObserved": true,
-        "python3147ClientQualification": "PASS",
-        "historicalTools": "tools/tigerbeetle_0_17_9/"
-      },
-      "evidence": {
-        "tigerBeetleSmoke": [
-          "PASS_EPHEMERAL_MECHANICAL_ONLY",
-          "PASS_RESERVATION_RESOLUTION_MECHANICAL_COMPOSITION",
-          "PASS_DURABLE_RESTART_RECONCILIATION"
-        ],
-        "sqliteBaseline": "PASS_SQLITE_BOUNDED_LEDGER_BASELINE",
-        "sqliteRestartSmoke": "PASS_SQLITE_DURABLE_RESTART_RECONCILIATION",
-        "randomizedDifferentialSteps": 400,
-        "randomizedStatusMismatches": 0,
-        "randomizedBalanceMismatches": 0,
-        "sqliteExtraFault": "transaction rollback fault passed",
-        "tigerBeetleAdvantages": [
-          "distributed replication and cluster recovery design",
-          "purpose-built high-throughput financial transaction engine",
-          "larger production state space for multi-node accounting"
-        ],
-        "currentContractDoesNotRequire": [
-          "distributed replication",
-          "multi-host consensus",
-          "high-throughput OLTP",
-          "cluster recovery"
-        ]
-      },
-      "standing": "HISTORICAL_SQLITE_VS_TIGERBEETLE_ONLY_PG_NATIVE_CUTOVER_PENDING",
-      "tigerBeetleOwnerAdmitted": false,
-      "decision": "Original 400-step SQLite-vs-TigerBeetle comparison remains historical evidence, not a current SQLite preference. Native PostgreSQL ledger qualified on ephemeral PostgreSQL 18: account/transfer identity, whole SERIALIZABLE retry, no-overdraft concurrency, exact pending/POST/VOID, restart, read-only SQLite import before COMMIT with mismatch rollback, and non-live effect-matrix consumer on explicit PG DSN. Installed PG cutover, legacy producer shutdown, rollback and retirement are NOT proved.",
-      "nativePostgresQualification": {
-        "consumer": "src/ordivon_capital/accounting/postgres_ledger.py",
-        "tests": "tests/test_postgres_ledger.py",
-        "operations": [
-          "unique-account",
-          "replay",
-          "reserve-post-void",
-          "serializable-scarcity",
-          "cold-schema-lock",
-          "quiesced-import",
-          "negative-readback-rollback",
-          "native-pg-catalog-structure-and-constraint-admission",
-          "reject-counterfeit-account-columns",
-          "reject-weakened-balance-check",
-          "reject-unlogged-non-durable-table"
-        ],
-        "standing": "QUALIFIED_DISPOSABLE_PG18_NO_INSTALLED_CUTOVER",
-        "schemaAdmissionProofBoundary": "PostgreSQL 18.6 pg_catalog names/types, permanent relation persistence, required primary/foreign keys and exact PG18-deparsed CHECK expressions are validated inside the schema-admission transaction under native advisory lock. Real PG counterfeit-table and weakened-check tests were RED before the change and GREEN afterward. This is not a universal SQL-expression proof and cannot certify installed production state."
-      }
     },
     {
       "contractId": "bounded-us-equity-execution-feasibility",

@@ -34,8 +34,106 @@
       ],
       "acceptance": [
         "Projection names its source/observer boundary.",
-        "RichPerception Pearson coupling requires finite samples and a finite result; its canonical JSON digest rejects NaN/Infinity before recording source identity."
-      ]
+        "RichPerception Pearson coupling requires finite samples and a finite result; its canonical JSON digest rejects NaN/Infinity before recording source identity.",
+        "R2.1 source/consumer 11-coordinate contract declared; not a universal formal proof or external domain acceptance."
+      ],
+      "r21": {
+        "I": {
+          "type": "MediaProjectionInput",
+          "fields": [
+            "media root",
+            "optional Artifact and Creative Library source roots",
+            "caller-selected versioned record inputs"
+          ],
+          "consumers": [
+            "creative_index.build_creative_index",
+            "creative_index.query_creative_index"
+          ]
+        },
+        "O": {
+          "type": "MediaProjectionResult",
+          "fields": [
+            "bounded source-annotated creative graph nodes",
+            "typed relations and evidence",
+            "revision-labelled sources"
+          ],
+          "consumers": [
+            "creative_index.build_creative_index",
+            "creative_index.query_creative_index"
+          ]
+        },
+        "S": {
+          "type": "OwnerScopedState",
+          "description": "Disposable derived Creative Index; source owners retain currentness and mutation authority"
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "named source root exists",
+            "no assumption that multiple Productions yield one current Production"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "projected nodes/edges retain source path and owner revision",
+            "node ID collision with different facts is rejected"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "projection does not become source truth",
+            "historical Creative Library acceptance needs both known exact matching semantic and file digests for current standing",
+            "external owner source is not silently rewritten",
+            "physical source availability alone does not establish semantic truth"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "read source JSON and Git revisions",
+            "derive in-memory navigation graph"
+          ],
+          "excluded": [
+            "mutate original Production/Artifact records",
+            "publish/distribute media"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "selected source count, nodes, edges, read latency",
+          "reason": "No representative cross-owner runtime cost benchmark is supplied",
+          "obligation": "Measure from selected real consumer traces before claiming a cost bound"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "interpretive loss and currentness of external sources",
+          "reason": "Source correctness and existing model tests do not imply external domain or human acceptance",
+          "obligation": "Obtain independent consumer/host or reader evidence before elevating acceptance"
+        },
+        "prov": {
+          "type": "source_and_consumer_contract",
+          "sourcePaths": [
+            "src/ordivon_studio/creative_index.py",
+            "src/ordivon_studio/creative_index_artifact.py",
+            "src/ordivon_studio/creative_index_library.py",
+            "formal/CreativeLibraryAcceptance.lean",
+            "tests/test_creative_index.py"
+          ],
+          "consumerEvidence": "Lean kernel checked the bounded Creative Library two-digest model; 625 equality/presence quotient cases witness the actual Python decision; current Catalog R1/R2 readback shows historical acceptance. Other Media outputs and effects remain UNKNOWN.",
+          "standing": "SOURCE_CONTRACT_DECLARED__NATIVE_DOMAIN_EFFECT_UNKNOWN"
+        },
+        "unfold": {
+          "type": "native_owner_implementation",
+          "sourcePaths": [
+            "src/ordivon_studio/creative_index.py",
+            "src/ordivon_studio/creative_index_artifact.py",
+            "src/ordivon_studio/creative_index_library.py",
+            "tests/test_creative_index.py"
+          ]
+        }
+      }
     },
     {
       "id": "V02",
@@ -54,8 +152,104 @@
         "current source truth"
       ],
       "acceptance": [
-        "Later source change does not silently float historical expression."
-      ]
+        "Later source change does not silently float historical expression.",
+        "R2.1 source/consumer 11-coordinate contract declared; not a universal formal proof or external domain acceptance."
+      ],
+      "r21": {
+        "I": {
+          "type": "ClaimBindingInput",
+          "fields": [
+            "Production sourceBindings",
+            "Claim binding ID, path and scope",
+            "declared local historical Git revision"
+          ],
+          "consumers": [
+            "production_validation._validate_production_semantics",
+            "models.validate_repository"
+          ]
+        },
+        "O": {
+          "type": "ClaimBindingResult",
+          "fields": [
+            "scoped Claim consistency findings",
+            "local Git commit/blob witness or explicit error"
+          ],
+          "consumers": [
+            "production_validation._validate_production_semantics",
+            "models.validate_repository"
+          ]
+        },
+        "S": {
+          "type": "OwnerScopedState",
+          "description": "Git-versioned Production and claims documents; no copy of owner source truth"
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "Claim binding references a declared identity",
+            "only ordivon-local Git objects are qualified by local Git"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "missing source revisions/blobs are rejected",
+            "invalid or escaped source paths are rejected",
+            "duplicate Claim and binding IDs are rejected"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "later source changes cannot rewrite a frozen historical claim",
+            "local Git PASS does not verify remote/external source truth",
+            "original chat bytes must not be inferred from reconstructed narrative"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "read declared claims and source bindings",
+            "query local Git commit/blob identities"
+          ],
+          "excluded": [
+            "rewrite historical Git source",
+            "silently promote an unverified external claim"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "historical Git lookups per bound Claim",
+          "reason": "No representative cross-owner runtime cost benchmark is supplied",
+          "obligation": "Measure from selected real consumer traces before claiming a cost bound"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "truth and external referent quality of bound Claim",
+          "reason": "Source correctness and existing model tests do not imply external domain or human acceptance",
+          "obligation": "Obtain independent consumer/host or reader evidence before elevating acceptance"
+        },
+        "prov": {
+          "type": "source_and_consumer_contract",
+          "sourcePaths": [
+            "src/ordivon_studio/production_validation.py",
+            "src/ordivon_studio/models.py",
+            "schemas/claims.schema.json",
+            "tests/test_models.py"
+          ],
+          "consumerEvidence": "Existing owner-native test and implementation source, not an independent machine-checked universal proof",
+          "standing": "SOURCE_CONTRACT_DECLARED__NATIVE_DOMAIN_EFFECT_UNKNOWN"
+        },
+        "unfold": {
+          "type": "native_owner_implementation",
+          "sourcePaths": [
+            "src/ordivon_studio/production_validation.py",
+            "src/ordivon_studio/models.py",
+            "schemas/claims.schema.json",
+            "tests/test_models.py"
+          ]
+        }
+      }
     },
     {
       "id": "V03",
@@ -74,8 +268,103 @@
         "generic representation"
       ],
       "acceptance": [
-        "Multiple valid productions do not imply a unique current one."
-      ]
+        "Multiple valid productions do not imply a unique current one.",
+        "R2.1 source/consumer 11-coordinate contract declared; not a universal formal proof or external domain acceptance."
+      ],
+      "r21": {
+        "I": {
+          "type": "ProductionStateInput",
+          "fields": [
+            "selected production.json",
+            "claims.json",
+            "optional asset, cognition and receipt documents"
+          ],
+          "consumers": [
+            "models.validate_repository",
+            "production_validation._validate_production_semantics"
+          ]
+        },
+        "O": {
+          "type": "ProductionStateResult",
+          "fields": [
+            "structural and semantic admission errors",
+            "versioned authoring/rendering Production state"
+          ],
+          "consumers": [
+            "models.validate_repository",
+            "production_validation._validate_production_semantics"
+          ]
+        },
+        "S": {
+          "type": "OwnerScopedState",
+          "description": "Studio-owned editable Production manifest, not Host Work or observer projection authority"
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "actual authoring or rendering Production selected",
+            "Production files satisfy declared JSON Schema"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "declared source/carrier paths are validated",
+            "invalid identity/cognition/state references are rejected",
+            "multiple records never imply one unique current Production"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "Studio owns authored state, not source owner currentness",
+            "rendered != published and model PASS != human approval",
+            "sourceCarrier requires exact selected bytes only when opted in"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "read and validate owner-native Production/Claim/Asset/Receipt files"
+          ],
+          "excluded": [
+            "create universal status registry",
+            "start Runtime jobs or publish output during validation"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "number and size of Production documents and Git queries",
+          "reason": "No representative cross-owner runtime cost benchmark is supplied",
+          "obligation": "Measure from selected real consumer traces before claiming a cost bound"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "editorial quality and actual recipient acceptance",
+          "reason": "Source correctness and existing model tests do not imply external domain or human acceptance",
+          "obligation": "Obtain independent consumer/host or reader evidence before elevating acceptance"
+        },
+        "prov": {
+          "type": "source_and_consumer_contract",
+          "sourcePaths": [
+            "src/ordivon_studio/models.py",
+            "src/ordivon_studio/production_validation.py",
+            "schemas/production.schema.json",
+            "tests/test_models.py"
+          ],
+          "consumerEvidence": "Existing owner-native test and implementation source, not an independent machine-checked universal proof",
+          "standing": "SOURCE_CONTRACT_DECLARED__NATIVE_DOMAIN_EFFECT_UNKNOWN"
+        },
+        "unfold": {
+          "type": "native_owner_implementation",
+          "sourcePaths": [
+            "src/ordivon_studio/models.py",
+            "src/ordivon_studio/production_validation.py",
+            "schemas/production.schema.json",
+            "tests/test_models.py"
+          ]
+        }
+      }
     },
     {
       "id": "V04",
@@ -99,8 +388,124 @@
       ],
       "acceptance": [
         "Mechanical/factual pass is distinguishable from craft/human-response claims.",
-        "Media owner preflight rejects a different pinned @remotion/cli version from remotion before render verification."
-      ]
+        "Media owner preflight rejects a different pinned @remotion/cli version from remotion before render verification.",
+        "R2.1 source/consumer 11-coordinate contract declared; not a universal formal proof or external domain acceptance."
+      ],
+      "r21": {
+        "I": {
+          "type": "RenderQCInput",
+          "fields": [
+            "exact selected media path",
+            "ffprobe stream/timebase data",
+            "video/audio mechanical constraints"
+          ],
+          "consumers": [
+            "qc.validate_video_probe",
+            "qc.validate_loudness",
+            "review.build_video_review_packet"
+          ]
+        },
+        "O": {
+          "type": "RenderQCResult",
+          "fields": [
+            "technical QC evidence and typed failures",
+            "source-bound review packet"
+          ],
+          "consumers": [
+            "qc.validate_video_probe",
+            "qc.validate_loudness",
+            "review.build_video_review_packet"
+          ]
+        },
+        "S": {
+          "type": "OwnerScopedState",
+          "description": "Per-invocation technical evidence; review owner does not replace human editorial judgment"
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "source media readable",
+            "installed ffprobe/ffmpeg providers available when invoked",
+            "requested limits are well-formed"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "technical probe/loudness violations are explicit",
+            "selected sampled video change peaks preserve source-frame index and native FFmpeg PTS instead of FPS-rounded index",
+            "SRT/WebVTT delivery rejects selected source cues whose exact millisecond timestamps collapse",
+            "measurements remain attached to selected media identity"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "a mechanical PASS never implies artistic approval",
+            "nonfinite/invalid numeric evidence is not silently admitted",
+            "estimated video timing never claims to be native source PTS",
+            "no source TimedText cue is silently stretched to force target millisecond precision",
+            "no native Resolve edit is claimed without a matched host receipt"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "read/probe media via ffprobe",
+            "run ffmpeg loudness analysis for selected consumer",
+            "optionally construct review report"
+          ],
+          "excluded": [
+            "mutate source Production as a probe side effect",
+            "claim human craft acceptance",
+            "publish media"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "media duration, decode workload and probe IO",
+          "reason": "No representative cross-owner runtime cost benchmark is supplied",
+          "obligation": "Measure from selected real consumer traces before claiming a cost bound"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "human aesthetic response and current external native edit state",
+          "reason": "Source correctness and existing model tests do not imply external domain or human acceptance",
+          "obligation": "Obtain independent consumer/host or reader evidence before elevating acceptance"
+        },
+        "prov": {
+          "type": "source_and_consumer_contract",
+          "sourcePaths": [
+            "src/ordivon_studio/qc.py",
+            "src/ordivon_studio/review.py",
+            "src/ordivon_studio/assets.py",
+            "tests/test_qc.py",
+            "src/ordivon_studio/perception_timing.py",
+            "src/ordivon_studio/perception_video_io.py",
+            "tests/test_perception.py",
+            "src/ordivon_studio/timed_text.py",
+            "formal/TimedTextDeliveryPrecision.lean",
+            "tests/test_timed_text.py"
+          ],
+          "consumerEvidence": "Lean kernel model of millisecond interval representability, bounded Python implementation-refinement witness and native FFprobe/ttconv Runtime Introduction caption replay; general external and human standing remain UNKNOWN",
+          "standing": "SOURCE_CONTRACT_DECLARED__NATIVE_DOMAIN_EFFECT_UNKNOWN"
+        },
+        "unfold": {
+          "type": "native_owner_implementation",
+          "sourcePaths": [
+            "src/ordivon_studio/qc.py",
+            "src/ordivon_studio/review.py",
+            "src/ordivon_studio/assets.py",
+            "tests/test_qc.py",
+            "src/ordivon_studio/perception_timing.py",
+            "src/ordivon_studio/perception_video_io.py",
+            "tests/test_perception.py",
+            "src/ordivon_studio/timed_text.py",
+            "formal/TimedTextDeliveryPrecision.lean",
+            "tests/test_timed_text.py"
+          ]
+        }
+      }
     },
     {
       "id": "V05",
@@ -121,23 +526,128 @@
         "Distribution publication effect"
       ],
       "acceptance": [
-        "Output identity remains stable independently of publication."
-      ]
+        "Output identity remains stable independently of publication.",
+        "R2.1 source/consumer 11-coordinate contract declared; not a universal formal proof or external domain acceptance."
+      ],
+      "r21": {
+        "I": {
+          "type": "OutputIdentityInput",
+          "fields": [
+            "selected output bytes",
+            "declared sourceCarrier only for exact-byte output",
+            "optional caller-owned local Blob cache"
+          ],
+          "consumers": [
+            "assets.hash_file",
+            "assets.archive_blob",
+            "assets.materialize_blob",
+            "production_validation._validate_production_semantics"
+          ]
+        },
+        "O": {
+          "type": "OutputIdentityResult",
+          "fields": [
+            "sha256 byte digest and size",
+            "verified content-addressed cache object and selected output identity"
+          ],
+          "consumers": [
+            "assets.hash_file",
+            "assets.archive_blob",
+            "assets.materialize_blob",
+            "production_validation._validate_production_semantics"
+          ]
+        },
+        "S": {
+          "type": "OwnerScopedState",
+          "description": "Exact content-hash identity; Artifact publication authority remains outside Media Blob cache"
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "source file readable",
+            "supported SHA-256 address",
+            "optional carrier is a declared actual source"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "digest computed from actual bytes",
+            "reported size comes from the same observed stream that determines the SHA-256 digest",
+            "existing object reused only after hash and size check",
+            "new cache object checked before admission",
+            "forged sourceCarrier digest rejected"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "byte identity independent of downstream publication",
+            "derived transformations not forced equal to unrelated carriers",
+            "conflicting digest address is never overwritten",
+            "an observable change of the opened source file descriptor rejects identity admission"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "hash selected bytes",
+            "optionally archive/materialize a verified local cache object"
+          ],
+          "excluded": [
+            "publish to Artifact/R2",
+            "claim recipient accepted the bytes",
+            "rewrite selected source content"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "output byte count and content-addressed cache IO",
+          "reason": "No representative cross-owner runtime cost benchmark is supplied",
+          "obligation": "Measure from selected real consumer traces before claiming a cost bound"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "downstream distribution truth, human meaning and external acceptance",
+          "reason": "Source correctness and existing model tests do not imply external domain or human acceptance",
+          "obligation": "Obtain independent consumer/host or reader evidence before elevating acceptance"
+        },
+        "prov": {
+          "type": "source_and_consumer_contract",
+          "sourcePaths": [
+            "src/ordivon_studio/assets.py",
+            "src/ordivon_studio/production_validation.py",
+            "schemas/production.schema.json",
+            "tests/test_models.py",
+            "tests/test_assets.py"
+          ],
+          "consumerEvidence": "Selected 16,481,768-byte Live Relay source archived and materialized through independent local CAS with matching SHA-256 and FFprobe streams; exact temporary source descriptor observations, not universal concurrent-writer snapshot proof",
+          "standing": "SOURCE_CONTRACT_DECLARED__NATIVE_DOMAIN_EFFECT_UNKNOWN"
+        },
+        "unfold": {
+          "type": "native_owner_implementation",
+          "sourcePaths": [
+            "src/ordivon_studio/assets.py",
+            "src/ordivon_studio/production_validation.py",
+            "schemas/production.schema.json",
+            "tests/test_models.py",
+            "tests/test_assets.py"
+          ]
+        }
+      }
     },
     {
       "id": "V06",
       "label": "ExperimentTrialHistory",
       "kind": "state_authority",
-      "responsibility": "Hold the R6 experiment's append-only, identity-bound event history in PostgreSQL; local SQLite is legacy import evidence, not a second active ledger.",
+      "responsibility": "Hold R6 experiment append-only identity-bound event history only in PostgreSQL; legacy SQLite import executable is retired.",
       "authority": "Media R6 experimental consumer",
       "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
-        "src/ordivon_studio/research_validity.py",
+        "src/ordivon_studio/research/trial_ledger.py",
         "scripts/run-r6-creative-validity.py",
-        "scripts/migrate-r6-trials.py",
-        "tests/test_research_validity.py::ResearchValidityTest.test_parallel_trial_appends_commit_one_complete_hash_chain",
-        "tests/test_research_validity.py::ResearchValidityTest.test_legacy_sqlite_event_chain_migrates_once_to_pg_without_mutating_source"
+        "tests/test_research_validity.py::ResearchValidityTest.test_parallel_trial_appends_commit_one_complete_hash_chain"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -148,13 +658,819 @@
       "acceptance": [
         "R6 consumer refuses a local SQLite path as the active ledger.",
         "Concurrent PostgreSQL event writes retain one complete hash chain with source-defined event identity.",
-        "Legacy SQLite migration verifies every source event and commits exact equivalent PostgreSQL history or does not proceed.",
+        "Legacy SQLite import is retired from the current executable surface; Git history retains old source provenance.",
         "Real PostgreSQL tests run with disposable DSN; an absent DSN does not authorize PostgreSQL acceptance.",
-        "Legacy trial-history migration is not automatic retention: require a current consumer purpose, exact experiment search identity and independently attested writer-stop before source reads or PG writes; no demonstrated consumer implies no import. The old source remains outside importer deletion authority and requires independent post-cutover retirement."
-      ]
+        "An altered selected winner with stale digest is rejected by replay and holdout; a forged rehashed winner is rejected against the PG trial.selected source row and cannot append a reveal.",
+        "R6 final score rejects semantically altered holdout/calibration proof artifacts even when the original digest field is copied unchanged."
+      ],
+      "r21": {
+        "I": {
+          "type": "TrialLedgerRequest",
+          "fields": [
+            "PostgreSQL DSN",
+            "exact searchId",
+            "attemptId",
+            "candidateId",
+            "registered eventType",
+            "JSON payload"
+          ],
+          "consumer": "R6 registered experiment and sealed holdout"
+        },
+        "O": {
+          "type": "TrialLedgerObservation",
+          "fields": [
+            "content-derived eventId",
+            "event summary and counts",
+            "full search hash-chain verification"
+          ],
+          "error": "invalid input or PostgreSQL transaction/database failure"
+        },
+        "S": {
+          "type": "PostgreSQLSearchEventSequence",
+          "partition": "search_id",
+          "order": "server-side generated seq",
+          "mutation": "append-only with UPDATE/DELETE rejection and per-search advisory transaction lock"
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "a real PostgreSQL DSN, not a local SQLite path",
+            "valid canonical search/attempt/candidate/event identifiers",
+            "the current PostgreSQL catalog satisfies expected table, unique keys and mutation trigger",
+            "if a frozen winner declares a PG trialLedger witness, holdout must use the matching real PG search history"
+          ],
+          "externalAssumptions": [
+            "the PostgreSQL instance and its current administrator policy remain trustworthy for the execution"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "successful append yields an identity derived from the exact committed event payload and previous event hash",
+            "failed transaction is not a successful event append",
+            "summary is derived from exact search-scoped PG rows; verify recomputes the chain",
+            "holdout verifies the declared frozen winner digest and selected candidate against source PG rows before one recorded reveal"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "serialized, per-search hash predecessor relation",
+            "PG event identity uniqueness",
+            "base table UPDATE/DELETE rejected under the active trigger",
+            "R6 registration and holdout seed authority remains separate",
+            "no local SQLite active writer or shadow ledger",
+            "selected winner verification and sealed holdout reveal share one PostgreSQL per-search advisory-locked transaction; replay of already-revealed source is rejected",
+            "final R6 scoring refuses mismatched correction, holdout or calibration source digest, not just a shared registration ID"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "open PostgreSQL connection",
+            "create/verify private trial ledger schema/table/index/trigger",
+            "append serialized PG events",
+            "read back PG rows and integrity"
+          ],
+          "excluded": [
+            "write legacy SQLite source",
+            "delete historical files",
+            "mutate Host or Runtime journals",
+            "infer external physical cutover completion"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "real workload database latency, lock contention and storage growth",
+          "reason": "disposable PostgreSQL contract fixture is not a representative production benchmark",
+          "obligation": "measure on a named production consumer only if required"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "deployment-bound PostgreSQL writer identity and frozen selection-to-holdout continuity",
+          "reason": "disposable PG behavior proves contracts but not the actual deployed writer/reader source",
+          "obligation": "observe active PostgreSQL writer, current consumer and read-back receipts before domain cutover acceptance"
+        },
+        "prov": {
+          "type": "source_and_execution_evidence",
+          "sourcePaths": [
+            "src/ordivon_studio/research/trial_ledger.py",
+            "src/ordivon_studio/research/trial_registration.py",
+            "tests/test_research_validity.py"
+          ],
+          "sourceCut": "d9df40e1d8156a18bca1b31b5ef2640731d47acc",
+          "execution": "Disposable local PostgreSQL 18.6, 14/14 R6 native tests, 211/211 Media tests; ephemeral fixture removed",
+          "standing": "CODE_TESTED_PG_DISPOSABLE__FROZEN_WINNER_SOURCE_FENCE__NOT_LIVE_CUTOVER"
+        },
+        "unfold": {
+          "type": "owner_native_code",
+          "sourcePaths": [
+            "src/ordivon_studio/research/trial_ledger.py",
+            "src/ordivon_studio/research/trial_registration.py",
+            "src/ordivon_studio/research/search_calibration.py",
+            "tests/test_research_validity.py"
+          ],
+          "provider": "PostgreSQL 18 built-in transactions/advisory locks/catalog/trigger"
+        }
+      }
+    },
+    {
+      "id": "V07",
+      "label": "ResolveEditorialConform",
+      "kind": "capability_adapter",
+      "responsibility": "RETIRED: legacy version-specific Resolve menu Runner and operation-bound test code; Resolve native API and existing OTIO interchange are natural providers.",
+      "authority": "No active authority: historical compatibility evidence only",
+      "state": "RETIRED",
+      "sharedRefs": [],
+      "evidence": [
+        "docs/resolve-native.md",
+        "docs/resolve-compatibility/resolve-free-21.0.3.7.md",
+        "processing/bin/probe-otio.sh"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "general-purpose OTIO schema/parsers",
+        "codec or audio DSP",
+        "Resolve embedded Python runtime",
+        "source Production or Blob truth",
+        "unobserved Windows Resolve acceptance"
+      ],
+      "acceptance": [
+        "Legacy menu Runner, staging CLI and dedicated operation modules are absent from current source and CLI.",
+        "Independent native OTIO probe and remaining Media owner checks pass.",
+        "Historical Free 21.0.3.7 acceptance remains explicitly historical; a future Studio consumer must produce new native execution and read-back evidence."
+      ],
+      "r21": {
+        "I": {
+          "type": "RetirementInput",
+          "fields": [
+            "previous source Git identity",
+            "legacy native acceptance profile",
+            "current consumer reachability"
+          ]
+        },
+        "O": {
+          "type": "RetirementEvidence",
+          "fields": [
+            "obsolete adapter sources absent",
+            "native API guide",
+            "independent OTIO and Media tests"
+          ]
+        },
+        "S": {
+          "type": "Unit",
+          "justification": "retired LEGO has no active persisted state, operation channel or mutable registry"
+        },
+        "pre": {
+          "type": "predicate",
+          "claims": [
+            "current Git SourceCut reviewed",
+            "no active Production depends on legacy Runner",
+            "historical Free edition evidence retained"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "claims": [
+            "legacy CLI and Runner are unavailable in current source",
+            "current editing remains with the official Resolve API",
+            "current native result is UNKNOWN until a real consumer checks it"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "claims": [
+            "no custom editor or script installer",
+            "historical compatibility evidence remains untouched",
+            "no promotion of source-only or Free-version evidence to live Studio acceptance"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "remove stale repository source and test facade",
+            "update owner projection and human/agent guide"
+          ],
+          "excluded": [
+            "modify Windows program installation",
+            "delete Production/Asset/media bytes",
+            "mutate Resolve project"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "future native Resolve API integration cost",
+          "reason": "no current edit consumer requesting a benchmark"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "Studio edit and render semantics for a future target session",
+          "reason": "Resolve was not running for live acceptance"
+        },
+        "prov": {
+          "type": "historical_git_and_current_guide",
+          "paths": [
+            "docs/resolve-native.md",
+            "docs/resolve-compatibility/resolve-free-21.0.3.7.md",
+            "processing/tests/otio-smoke.sh"
+          ]
+        },
+        "unfold": {
+          "type": "terminal_retired",
+          "reason": "do not unfold retired Runner into a new adapter without real consumer evidence"
+        }
+      },
+      "retirement": {
+        "date": "2026-11-07",
+        "reason": "DELETE_CUSTOM_BY_DEFAULT; no active Production consumer identified; built-in Resolve scripting API and OTIO replace custom embedded Runner",
+        "currentGuide": "docs/resolve-native.md"
+      }
+    },
+    {
+      "id": "V08",
+      "label": "GroundedEvidenceExperiment",
+      "kind": "method_contract",
+      "responsibility": "Compose bounded R5 Agent-observer text, time-coded video/narration and crossmodal evidence tasks from source-grounded claims; expose counterexample, paraphrase and omission variants without claiming real-world model understanding.",
+      "authority": "Media experimental research method; source and model providers retain their own truth",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_studio/research/grounded_contracts.py",
+        "src/ordivon_studio/research/grounded_evidence.py",
+        "src/ordivon_studio/research/grounded_text_tasks.py",
+        "src/ordivon_studio/research/grounded_av_tasks.py",
+        "src/ordivon_studio/research/grounded_provider.py",
+        "src/ordivon_studio/research/grounded_scoring.py",
+        "scripts/run-r5-grounded-meaning.py",
+        "tests/test_grounded_meaning.py"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "provider network/model runtime",
+        "raw pixel/audio inference",
+        "unobserved semantic Task completion",
+        "Media Production source revisions",
+        "independent publication or editorial selection"
+      ],
+      "acceptance": [
+        "Exact R5 14-task provider bundle remains byte-equivalent under the source cut.",
+        "The R5 scored receipt consumer still accepts the refactored task/provider boundary.",
+        "Grounding is limited to supplied evidence identities and exact source/timing; negative omissions and meaning-changing perturbations remain representable.",
+        "Provider model or domain acceptance is not inferred from source-level test success."
+      ],
+      "r21": {
+        "I": {
+          "type": "GroundedR5ExperimentInput",
+          "fields": [
+            "source composition TSX",
+            "timecoded narration JSON",
+            "experimental fictitious text/crossmodal fixtures",
+            "replicate count 1..8"
+          ],
+          "consumer": "scripts/run-r5-grounded-meaning.py build"
+        },
+        "O": {
+          "type": "GroundedR5ProviderBundle",
+          "fields": [
+            "14 typed tasks across 5 task families",
+            "source-scoped evidenceIds",
+            "provider-visible schemas",
+            "separate private oracle values",
+            "canonical bundleDigest"
+          ],
+          "consumer": "R5 independent scoring via grounded_scoring.score_provider_receipt"
+        },
+        "S": {
+          "type": "Unit",
+          "justification": "Task building is a pure deterministic representation; no durable writes or model execution within the method."
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "caller supplies exact accessible source-composition and timed narration fixtures",
+            "narration has a supported timeBase and cues",
+            "all evidenceIDs and locators satisfy grounded contracts",
+            "valid positive bounded replicate count at CLI admission"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "14 source-bound tasks with stable canonical digest for fixed inputs",
+            "task userPayload does not expose oracle answers",
+            "meaning-changing and omission fixtures remain available as independent counterexamples"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "evidence identity and locator are validated before use",
+            "semantic truth is never invented from missing source evidence",
+            "source and provider currentness remain external",
+            "task score is evaluated independently from provider bundle assembly"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "read exact caller-specified local source/timed text files during bundle build"
+          ],
+          "excluded": [
+            "invoke AI provider",
+            "write source Production",
+            "publish media",
+            "mutate Host messages or Task truth",
+            "persist hidden state"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "actual provider inference expense and latency",
+          "reason": "the bounded source experiment does not execute or benchmark an external LLM",
+          "obligation": "measure provider cost only for a real selected consumer and exact provider run"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "human comprehension, live grounded semantics, visual/audio-world accuracy",
+          "reason": "synthetic labels and source-semantic fixtures cannot establish human or pixel-level outcomes",
+          "obligation": "real provider receipts and source-specific independent evaluator before domain acceptance"
+        },
+        "prov": {
+          "type": "source_and_consumer",
+          "sourcePaths": [
+            "src/ordivon_studio/research/grounded_evidence.py",
+            "src/ordivon_studio/research/grounded_text_tasks.py",
+            "src/ordivon_studio/research/grounded_av_tasks.py",
+            "src/ordivon_studio/research/grounded_provider.py"
+          ],
+          "consumerProof": "identical 14-task R5 provider-bundle digest sha256:90857cc48766c837b81f226b5abd2c6731a8276679b307d7602d196887c255a4 before/after at source cut",
+          "standing": "implementation-equivalence, NOT external provider/domain acceptance"
+        },
+        "unfold": {
+          "type": "owner_native_code",
+          "sourcePaths": [
+            "src/ordivon_studio/research/grounded_evidence.py",
+            "src/ordivon_studio/research/grounded_text_tasks.py",
+            "src/ordivon_studio/research/grounded_av_tasks.py",
+            "src/ordivon_studio/research/grounded_provider.py"
+          ],
+          "reusedMethods": [
+            "grounded_contracts canonical_digest/RELATION_LABELS",
+            "grounded_scoring.score_provider_receipt"
+          ]
+        }
+      }
+    },
+    {
+      "id": "V09",
+      "label": "ResolveOperationBridge",
+      "kind": "capability_adapter",
+      "responsibility": "RETIRED: legacy version-specific Resolve menu Runner and operation-bound test code; Resolve native API and existing OTIO interchange are natural providers.",
+      "authority": "No active authority: historical compatibility evidence only",
+      "state": "RETIRED",
+      "sharedRefs": [],
+      "evidence": [
+        "docs/resolve-native.md",
+        "docs/resolve-compatibility/resolve-free-21.0.3.7.md",
+        "processing/bin/probe-otio.sh"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "DaVinci Resolve native project or timeline authority",
+        "general purpose OTIO parsing and media decoding",
+        "new cross-Owner state registry or result database",
+        "media Production/Asset truth",
+        "unobserved proof of native Windows Resolve 21 effects"
+      ],
+      "acceptance": [
+        "Legacy menu Runner, staging CLI and dedicated operation modules are absent from current source and CLI.",
+        "Independent native OTIO probe and remaining Media owner checks pass.",
+        "Historical Free 21.0.3.7 acceptance remains explicitly historical; a future Studio consumer must produce new native execution and read-back evidence."
+      ],
+      "r21": {
+        "I": {
+          "type": "RetirementInput",
+          "fields": [
+            "previous source Git identity",
+            "legacy native acceptance profile",
+            "current consumer reachability"
+          ]
+        },
+        "O": {
+          "type": "RetirementEvidence",
+          "fields": [
+            "obsolete adapter sources absent",
+            "native API guide",
+            "independent OTIO and Media tests"
+          ]
+        },
+        "S": {
+          "type": "Unit",
+          "justification": "retired LEGO has no active persisted state, operation channel or mutable registry"
+        },
+        "pre": {
+          "type": "predicate",
+          "claims": [
+            "current Git SourceCut reviewed",
+            "no active Production depends on legacy Runner",
+            "historical Free edition evidence retained"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "claims": [
+            "legacy CLI and Runner are unavailable in current source",
+            "current editing remains with the official Resolve API",
+            "current native result is UNKNOWN until a real consumer checks it"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "claims": [
+            "no custom editor or script installer",
+            "historical compatibility evidence remains untouched",
+            "no promotion of source-only or Free-version evidence to live Studio acceptance"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "remove stale repository source and test facade",
+            "update owner projection and human/agent guide"
+          ],
+          "excluded": [
+            "modify Windows program installation",
+            "delete Production/Asset/media bytes",
+            "mutate Resolve project"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "future native Resolve API integration cost",
+          "reason": "no current edit consumer requesting a benchmark"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "Studio edit and render semantics for a future target session",
+          "reason": "Resolve was not running for live acceptance"
+        },
+        "prov": {
+          "type": "historical_git_and_current_guide",
+          "paths": [
+            "docs/resolve-native.md",
+            "docs/resolve-compatibility/resolve-free-21.0.3.7.md",
+            "processing/tests/otio-smoke.sh"
+          ]
+        },
+        "unfold": {
+          "type": "terminal_retired",
+          "reason": "do not unfold retired Runner into a new adapter without real consumer evidence"
+        }
+      },
+      "retirement": {
+        "date": "2026-11-07",
+        "reason": "DELETE_CUSTOM_BY_DEFAULT; no active Production consumer identified; built-in Resolve scripting API and OTIO replace custom embedded Runner",
+        "currentGuide": "docs/resolve-native.md"
+      }
+    },
+    {
+      "id": "V10",
+      "label": "CulturalReferenceObservation",
+      "kind": "capability_adapter",
+      "responsibility": "Collect bounded public official platform metadata as source-bound observations, preserving ranked winners vs contemporary/control/curated selection mechanisms and composing a replaceable non-Studio cultural snapshot.",
+      "authority": "Media observer metadata projection only; external Hacker News, Apple Music, and Guardian platforms retain source and rights/currentness authority",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_studio/observatory_source.py",
+        "src/ordivon_studio/observatory_hacker_news.py",
+        "src/ordivon_studio/observatory_apple_music.py",
+        "src/ordivon_studio/observatory_guardian.py",
+        "src/ordivon_studio/observatory.py",
+        "src/ordivon_studio/observatory_analysis.py",
+        "src/ordivon_studio/research/guardian_article.py",
+        "tests/test_observatory.py",
+        "tests/test_rich_perception.py",
+        "research/expression/cultural-observatory.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "external platform truth, source material bytes and source currentness",
+        "generic social scraping, protected/private API access and provider credentials",
+        "universal content quality ranking or causal conclusion",
+        "Media Production state, publication, Human editorial approval or Agent model execution"
+      ],
+      "acceptance": [
+        "The three original native provider functions and seven-observation combined snapshot are byte/structure-equivalent before and after source refactoring for fixed provider responses and timestamps.",
+        "Observation acquisition mode stays metadata-reference with bytesOwned=false; winner, new-control and editor-selection labels remain distinct.",
+        "The CLI parser four help surfaces are unchanged, existing R4 Guardian article consumer imports its natural provider owner, and official Media unit suite plus wheel pass.",
+        "Provider current live access, legal acquisition and human cultural response are not inferred from source-level test equivalence.",
+        "Real 2026-11-05 bounded native provider probe: Hacker News 2 and Apple Music 1 metadata observations; unauthenticated Guardian was HTTP 401 and must not be promoted to live acceptance.",
+        "Configured Guardian API key is used only in the request URL; persisted provenance never contains the key."
+      ],
+      "r21": {
+        "I": {
+          "type": "BoundedCulturalProviderObservationRequest",
+          "fields": [
+            "admitted public provider surfaces and bounded section/rank limits",
+            "public official JSON responses",
+            "request timeout and observation timestamp",
+            "optional snapshot file output"
+          ],
+          "consumers": [
+            "observatory.collect_snapshot",
+            "research.guardian_article.run_guardian_article_experiment"
+          ]
+        },
+        "O": {
+          "type": "MetadataReferenceSnapshot",
+          "fields": [
+            "provider",
+            "surface",
+            "external artifact identity and title",
+            "selection basis including top-ranked/new-control/most-viewed/editors-pick/chart-ranked",
+            "signals and context",
+            "acquisition mode metadata-reference and bytesOwned=false",
+            "per-provider counts and failures",
+            "canonical snapshotDigest"
+          ],
+          "consumers": [
+            "observatory_analysis.analyze_snapshot",
+            "research.guardian_article",
+            "Media cultural observation experiments"
+          ]
+        },
+        "S": {
+          "type": "EphemeralCollectorState",
+          "fields": [
+            "bounded in-memory public JSON response and observations",
+            "per-provider failure list"
+          ],
+          "owner": "caller invocation",
+          "note": "No persistent authoritative provider record; optional snapshot file is caller-owned output"
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "caller chooses admitted official public provider and explicit bounds",
+            "responses are interpreted as metadata, never full audiovisual/text ownership",
+            "time and source URLs recorded with each observation",
+            "unsupported private provider APIs remain capability-only rather than fabricated live acceptance",
+            "Guardian requires a caller-authorized GUARDIAN_API_KEY or an explicit per-call key; no anonymous test key fallback"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "each successfully parsed observation is source-labelled with selection basis and bytesOwned=false",
+            "source output failures are explicit and do not overwrite successful observations from independent providers",
+            "snapshot canonical digest is stable for a fixed source response set and observation timestamp",
+            "CLI public command identity and options stay unchanged",
+            "unconfigured Guardian is recorded as an independent provider failure while other public collectors still succeed"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "not a universal quality/winner oracle: rankings, control sampling and editor picks remain distinct",
+            "no raw third-party media byte ownership or provider source truth is claimed",
+            "cross-provider collection errors remain representable and non-successful rather than silently promoted",
+            "cultural observations do not mutate Media Production, research trial history or publish assets",
+            "Guardian API key is never included in shareable sourceUrl or the persisted observation/snapshot"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "HTTP GET official public API JSON for configured Hacker News, Apple Music and Guardian metadata",
+            "bounded concurrent Hacker News fetch with Python ThreadPoolExecutor",
+            "optional write of caller-selected snapshot/analysis JSON"
+          ],
+          "excluded": [
+            "download media bytes or private API bypass",
+            "write provider-owned source records",
+            "post to third-party platform",
+            "publish Media content",
+            "claim audience comprehension or real-world causality",
+            "persist or publish API query credentials in sourceUrl"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "actual provider latency, quota, API service currentness and real-time request cost",
+          "reason": "offline native provider fixture parity does not benchmark current external API or changing usage/quota",
+          "obligation": "record exact official provider response, source timestamp and actual timings only when real admitted consumer requests them"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "public attention proxy bias, selection effects, editorial/artistic utility, actual audience consequences",
+          "reason": "provider rank/metadata and mocked source responses do not establish cross-cultural causal validity or ownership of source media bytes",
+          "obligation": "independent selection-aware human/outcome studies and source provenance when a downstream claim requires domain acceptance"
+        },
+        "prov": {
+          "type": "source_and_real_consumer_contract",
+          "sourcePaths": [
+            "src/ordivon_studio/observatory_source.py",
+            "src/ordivon_studio/observatory_hacker_news.py",
+            "src/ordivon_studio/observatory_apple_music.py",
+            "src/ordivon_studio/observatory_guardian.py",
+            "src/ordivon_studio/observatory.py",
+            "src/ordivon_studio/research/guardian_article.py"
+          ],
+          "evidence": "before/after canonical provider outputs and seven-observation snapshot digest sha256:d590f97a0c6a4fdf4d9801bf492d09059f66ed86b8dd3e36174786d37d539775; exact CLI parser parity; 212 Media owner tests run",
+          "standing": "SOURCE_CONSUMER_TESTED__PARTIAL_LIVE_HN_APPLE__GUARDIAN_CREDENTIAL_REQUIRED__HUMAN_OUTCOMES_UNKNOWN",
+          "liveProbe20261105": {
+            "hackerNews": 2,
+            "appleMusic": 1,
+            "guardian": "HTTP 401 unauthorized with previous public test key",
+            "standing": "PARTIAL_LIVE; registered Guardian credential required for future live proof"
+          }
+        },
+        "unfold": {
+          "type": "owner_native_code",
+          "sourcePaths": [
+            "src/ordivon_studio/observatory_source.py",
+            "src/ordivon_studio/observatory_hacker_news.py",
+            "src/ordivon_studio/observatory_apple_music.py",
+            "src/ordivon_studio/observatory_guardian.py",
+            "src/ordivon_studio/observatory.py"
+          ],
+          "reusedProviders": [
+            "official Hacker News Firebase API",
+            "official Apple Music Marketing Tools RSS API",
+            "official Guardian Open Platform",
+            "Python stdlib urllib and concurrent.futures",
+            "existing observatory_contracts and observatory_analysis"
+          ]
+        }
+      }
+    },
+    {
+      "id": "V11",
+      "label": "NativeProcessingProbePlan",
+      "kind": "capability_adapter",
+      "responsibility": "Select one existing source-owned media processing profile and native adapter by exact content digests; compile a replaceable Runtime execution proposal without creating a media engine, event store or workflow scheduler.",
+      "authority": "Media Studio owns processing selection/plan semantics; Runtime owns physical execution; upstream native tools own decoding/interchange/measuring",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "src/ordivon_studio/agent_processing.py",
+        "src/ordivon_studio/agent_surface.py",
+        "src/ordivon_studio/agent_surface_contracts.py",
+        "processing/bin/probe-av.sh",
+        "processing/bin/probe-audio.sh",
+        "processing/bin/probe-otio.sh",
+        "processing/bin/probe-timed-text.sh",
+        "tests/test_agent_processing.py",
+        "formal/MediaNativeProcessingAdmission.lean",
+        "formal/README.md",
+        "scripts/studio-agent-surface.py"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "new media parser, codec or audio DSP implementation",
+        "external runtime/Workstation tool installation and physical execution",
+        "selected Production or Artifact byte authority",
+        "a second media registry, persistent workflow scheduler or result ledger",
+        "implicit artistic, rights or publication acceptance"
+      ],
+      "acceptance": [
+        "Studio Agent discovery exposes four existing source-owned profiles with exact profile and adapter SHA-256.",
+        "Plan compiler accepts only one known profile and the exact discovered profile and adapter digests; changed digest cannot silently compile.",
+        "Plan delegates unchanged to the existing Linux Runtime/native Bash adapter, with explicit cwd and positional arguments.",
+        "Real Linux Runtime executed one generated 1920x1080p30 FFprobe plan and returned actual technicalQc.ok=true with source/profile/raw probe digests.",
+        "Owner verification and AV/audio/OTIO/timed-text native smoke passed; technical QC does not confer semantic/aesthetic/publication approval.",
+        "The source-owned studio_processing_profiles action is accessible through system Python with an exact empty-object schema, before optional third-party Studio dependencies are materialized; other actions retain JSON Schema validation.",
+        "The existing native processing probe-plan action continues to validate selected profile/adapter digests and returns a nonexecuting Runtime proposal.",
+        "Lean kernel checks the abstract native admission/digest-staleness and technical-QC-not-publication model. Source-to-Python implementation refinement remains UNKNOWN; selected Runtime OTIO consumer Job job-01a1b3da-8935-74a6-a65a-4fee61f281b4 supplies independent physical evidence."
+      ],
+      "r21": {
+        "I": {
+          "type": "NativeProcessingProbeSelection",
+          "fields": [
+            "existing processing profile ID",
+            "expected exact SHA-256 of profile and native adapter",
+            "caller-selected media input path",
+            "caller-selected evidence output directory"
+          ],
+          "consumers": [
+            "agent_surface.studio_processing_profiles",
+            "agent_surface.studio_processing_probe_plan"
+          ]
+        },
+        "O": {
+          "type": "RuntimeExecutionProposal",
+          "fields": [
+            "exact selected profile and adapter source digests",
+            "local_linux /usr/bin/bash process proposal with cwdRelative and positional args",
+            "expected native evidence receipt path",
+            "explicit execution and result-meaning limitations"
+          ],
+          "consumers": [
+            "Runtime.workspace_exec (selected native process)",
+            "Media technical QC/review only after actual Runtime readback"
+          ]
+        },
+        "S": {
+          "type": "Unit",
+          "justification": "Discovery and compilation re-read exact source-owned files; no persistent private registry or mutable workflow state."
+        },
+        "pre": {
+          "type": "predicate",
+          "requirements": [
+            "profile is present and unique in existing processing/profiles source",
+            "profile kind maps to one available native processing adapter",
+            "supplied SHA-256 values equal the current selected profile and adapter bytes",
+            "input path and evidence directory are nonempty caller-selected strings"
+          ]
+        },
+        "post": {
+          "type": "predicate",
+          "guarantees": [
+            "returns only a concrete native Runtime proposal without invoking any tool",
+            "plan identifies source-owned profile, adapter and exact checked digests",
+            "unknown profile, unavailable adapter or digest drift is rejected before execution",
+            "no technical QC result is invented during compilation"
+          ]
+        },
+        "inv": {
+          "type": "predicate",
+          "guarantees": [
+            "no duplicate FFmpeg/OTIO/timed-text implementation or state authority",
+            "pure plan compilation is not an executed effect or source-byte immutability witness",
+            "Studio Production is optional; ordinary technical profile check alone need not create Production",
+            "a mechanical PASS does not entail artistic, rights, human or publication acceptance"
+          ]
+        },
+        "eff": {
+          "type": "effect_set",
+          "declared": [
+            "read source-owned JSON profile and native Bash adapter bytes to calculate content hashes",
+            "emit a pure JSON-like execution plan for downstream Runtime admission"
+          ],
+          "excluded": [
+            "start a media process, acquire providers or alter sources at planning time",
+            "write a second profile registry or execution log",
+            "claim an external native effect before a Runtime attempt and receipt"
+          ]
+        },
+        "c": {
+          "type": "UNKNOWN",
+          "scope": "profile catalog scan plus adapter byte hashing and downstream external media workload",
+          "reason": "one successful 1080p real trace and existing smoke do not establish general cost bounds",
+          "obligation": "measure representative selected workflows only when execution cost affects a real consumer"
+        },
+        "epsilon": {
+          "type": "UNKNOWN",
+          "scope": "external decoder conformance, source temporal semantics, human quality, rights and publication",
+          "reason": "native FFprobe receipts prove only requested mechanical predicates on selected bytes",
+          "obligation": "use existing independent Artifact/consumer readback and actual audience evidence only if claimed"
+        },
+        "prov": {
+          "type": "source_and_runtime_consumer_evidence",
+          "sourcePaths": [
+            "src/ordivon_studio/agent_processing.py",
+            "src/ordivon_studio/agent_surface.py",
+            "src/ordivon_studio/agent_surface_contracts.py",
+            "tests/test_agent_processing.py",
+            "processing/profiles/av-sdr-web-1080p30-noaudio.json",
+            "processing/bin/probe-av.sh"
+          ],
+          "runtimeJobId": "job-01a1af1a-7fbb-777b-a902-696542e0c645",
+          "runtimeWitness": "FFprobe n9.0 returned technicalQc.ok=true on a generated 1920x1080p30 H.264 source with source/profile/raw-probe evidence digests. This is one bounded execution episode, not a universal proof.",
+          "standing": "OWNER_TESTED_AND_NATIVE_RUNTIME_ACCEPTED_FOR_ONE_PROFILE__OTHER_SEMANTICS_UNKNOWN"
+        },
+        "unfold": {
+          "type": "owner_native_code_and_external_tools",
+          "sourcePaths": [
+            "src/ordivon_studio/agent_processing.py",
+            "src/ordivon_studio/agent_surface.py",
+            "src/ordivon_studio/agent_surface_contracts.py",
+            "tests/test_agent_processing.py"
+          ],
+          "nativeAdapterPaths": [
+            "processing/bin/probe-av.sh",
+            "processing/bin/probe-audio.sh",
+            "processing/bin/probe-otio.sh",
+            "processing/bin/probe-timed-text.sh"
+          ],
+          "externalImplementations": [
+            "FFprobe",
+            "FFmpeg loudnorm",
+            "OpenTimelineIO otiotool",
+            "TTML ttconv"
+          ]
+        }
+      }
     }
   ],
   "edges": [
+    {
+      "from": "V10",
+      "to": "V01",
+      "type": "DATA",
+      "label": "bounded external source reference and selection basis as Media observer projection, not source truth"
+    },
     {
       "from": "V01",
       "to": "V02",
@@ -178,23 +1494,40 @@
       "to": "V05",
       "type": "EVIDENCE",
       "label": "selected output standing"
+    },
+    {
+      "from": "V11",
+      "to": "V04",
+      "type": "DATA",
+      "label": "Optional digest-bound native probe plan; Runtime execution and actual tool receipt are required before the existing QC consumer can claim technical evidence"
     }
   ],
   "slices": [
     {
       "id": "VS1",
       "objective": "Pressure-test Media-owner projection paths that do not require Studio Production, preserving Studio as optional lowering.",
-      "status": "PROPOSED",
+      "status": "IMPLEMENTED",
       "nodeIds": [
         "V01",
-        "V03"
+        "V03",
+        "V10"
       ],
       "acceptance": [
-        "At least one non-Studio observer projection is produced/verified without creating unnecessary Production state."
+        "At least one non-Studio observer projection is produced/verified without creating unnecessary Production state.",
+        "Official public metadata provider outputs are equivalent and combined into a bounded non-Studio observer snapshot; Guardian R4 experimental consumer and pinned CLI paths remain live consumers.",
+        "Live Guardian provider status stays credential-required after HTTP 401; Media observer projection remains non-Studio with independent source failures."
       ],
-      "evidence": [],
+      "evidence": [
+        "src/ordivon_studio/observatory_source.py",
+        "src/ordivon_studio/observatory_hacker_news.py",
+        "src/ordivon_studio/observatory_apple_music.py",
+        "src/ordivon_studio/observatory_guardian.py",
+        "src/ordivon_studio/observatory.py",
+        "tests/test_observatory.py",
+        "tests/test_rich_perception.py"
+      ],
       "blockers": [],
-      "nextAction": "Use an existing status/tool-result representation as the first bounded case."
+      "nextAction": "Only expand live provider input or study results when a current source-bound research consumer needs them; never elevate rank to aesthetic or causal truth."
     },
     {
       "id": "VS2",
@@ -231,22 +1564,110 @@
     },
     {
       "id": "VS3",
-      "objective": "Qualify R6 Trial History as one PG-native capability LEGO, with a one-time verified SQLite importer instead of dual store authorities.",
+      "objective": "Qualify R6 Trial History as a PG-native LEGO and retire the unconsumed legacy SQLite importer.",
       "status": "IN_PROGRESS",
       "nodeIds": [
         "V06"
       ],
       "acceptance": [
-        "Media pg:verify runs against disposable PostgreSQL 18 and proves append, concurrent identity, history immutability and migration without implicit skips.",
-        "GitHub protected Owner CI admits the exact source change, and actual historical writers are quiesced before physical cutover."
+        "Media pg:verify runs against disposable PostgreSQL 18 and proves append, concurrent identity, history immutability without implicit skips.",
+        "GitHub protected Owner CI admits the exact source change, and actual PostgreSQL writer/reader bindings are observed before physical cutover.",
+        "A persisted winner cannot silently reveal holdout without its original PG source, and a changed/rehashed winner cannot pass the exact committed trial.selected evidence."
       ],
       "evidence": [
-        "src/ordivon_studio/research_validity.py",
+        "src/ordivon_studio/research/trial_ledger.py",
         "tests/test_research_validity.py",
-        "mise.toml"
+        "mise.toml",
+        "src/ordivon_studio/research/search_calibration.py"
       ],
       "blockers": [],
-      "nextAction": "Publish the scoped PG change through GitHub required CI; do not remove live SQLite historical files until their read/write consumers and source snapshot hashes are reconciled."
+      "nextAction": "PG-native ledger and frozen-winner source binding are code-tested; observe a selected deployed PostgreSQL consumer and real readback before claiming physical cutover. Legacy SQLite import is retired rather than kept for speculative history."
+    },
+    {
+      "id": "VS4",
+      "objective": "Retired unused Resolve embedded menu Runner and dedicated staging/compatibility bridge; use native Resolve Scripting API and existing OTIO pipeline instead.",
+      "status": "RETIRED",
+      "nodeIds": [
+        "V07"
+      ],
+      "acceptance": [
+        "Retired custom sources and CLI are absent; current Media and native OTIO checks pass.",
+        "Historical Free 21.0.3.7 profiles are preserved; no current Studio edition or editing effect is inferred."
+      ],
+      "evidence": [
+        "docs/resolve-native.md",
+        "docs/resolve-compatibility/resolve-free-21.0.3.7.md",
+        "processing/tests/otio-smoke.sh"
+      ],
+      "blockers": [],
+      "nextAction": "Only when a real Production requires native effects, invoke official Resolve API in the authorized Windows session, then observe project/timeline readback and binding."
+    },
+    {
+      "id": "VS5",
+      "objective": "Replace a monolithic R5 Grounded Meaning source with independently replaceable evidence contract, text and AV task families and source-bound provider assembly; preserve complete real consumer bundle semantics.",
+      "status": "IMPLEMENTED",
+      "nodeIds": [
+        "V08"
+      ],
+      "acceptance": [
+        "No extra engine, provider facade or missing-source truth claim.",
+        "Exact 14 task bundle digest before/after, all Media Owner regression tests and root native governance CI."
+      ],
+      "evidence": [
+        "src/ordivon_studio/research/grounded_provider.py",
+        "tests/test_grounded_meaning.py",
+        "scripts/run-r5-grounded-meaning.py"
+      ],
+      "blockers": [],
+      "nextAction": "Only invoke/scoring actual provider when a named research consumer needs inference; never promote synthetic source fixtures to real model or human comprehension evidence."
+    },
+    {
+      "id": "VS6",
+      "objective": "Retired unused Resolve embedded menu Runner and dedicated staging/compatibility bridge; use native Resolve Scripting API and existing OTIO pipeline instead.",
+      "status": "RETIRED",
+      "nodeIds": [
+        "V07",
+        "V09"
+      ],
+      "acceptance": [
+        "Retired custom sources and CLI are absent; current Media and native OTIO checks pass.",
+        "Historical Free 21.0.3.7 profiles are preserved; no current Studio edition or editing effect is inferred."
+      ],
+      "evidence": [
+        "docs/resolve-native.md",
+        "docs/resolve-compatibility/resolve-free-21.0.3.7.md",
+        "processing/tests/otio-smoke.sh"
+      ],
+      "blockers": [],
+      "nextAction": "Only when a real Production requires native effects, invoke official Resolve API in the authorized Windows session, then observe project/timeline readback and binding."
+    },
+    {
+      "id": "VS7",
+      "objective": "Use the existing Studio Agent surface to discover source-owned native processing profiles and compile exact Runtime commands while deleting any need for a separate profile registry or media processing engine.",
+      "status": "IMPLEMENTED",
+      "nodeIds": [
+        "V11",
+        "V04"
+      ],
+      "acceptance": [
+        "Four native AV, audio loudness, timed-text and OTIO profile smoke paths pass with positive/negative cases.",
+        "Exact profile/adapter digest selection is checked before plan compilation.",
+        "One compiled plan was executed by Linux Runtime and yielded real FFprobe technicalQC evidence.",
+        "Source Media Production, Archive and optional Studio state are untouched by planning.",
+        "Selected Studio action imports only its natural implementation after Schema validation; source-only tool discovery and unrelated Equipment/Creative Index/Production consumers remain unaffected."
+      ],
+      "evidence": [
+        "src/ordivon_studio/agent_processing.py",
+        "src/ordivon_studio/agent_surface.py",
+        "src/ordivon_studio/agent_surface_contracts.py",
+        "tests/test_agent_processing.py",
+        "processing/tests/smoke.sh",
+        "processing/tests/audio-smoke.sh",
+        "processing/tests/timedtext-smoke.sh",
+        "processing/tests/otio-smoke.sh"
+      ],
+      "blockers": [],
+      "nextAction": "Activate only for an actual selected consumer; no speculative tool acquisition, duplicate QC rewrite or private media workflow scheduler."
     }
   ],
   "gaps": [
@@ -259,8 +1680,8 @@
   ],
   "review": {
     "sourceRevision": "757c7e4b08879e386f683f56674763f544984be3",
-    "updatedAt": "2026-09-18",
-    "standing": "INITIAL",
-    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence."
+    "updatedAt": "2026-11-06",
+    "standing": "NATIVE_RUNTIME_ACCEPTED_BOUNDARIES_DECLARED",
+    "notes": "Uses one already-integrated V11 native processing LEGO (including source catalog and Runtime probe-plan) rather than registering duplicate V11/V12. Bootstrap-free read-only discovery was independently tested; existing exact 1080p FFprobe Runtime receipt is preserved. Historical sourceRevision remains historical."
   }
 }

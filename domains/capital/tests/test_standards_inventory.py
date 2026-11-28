@@ -58,6 +58,7 @@ def test_active_analytical_component_ids_are_registered():
         ROOT / "src/ordivon_capital/research/prospective_validation.py",
         ROOT / "src/ordivon_capital/markets/crypto_public_shadow.py",
         ROOT / "src/ordivon_capital/research/model_monitoring.py",
+        ROOT / "src/ordivon_capital/risk/tail_report.py",
         ROOT / "src/ordivon_capital/research/monitoring_persistence.py",
     ]
     import re

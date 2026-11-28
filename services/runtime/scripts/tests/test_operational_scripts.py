@@ -304,14 +304,37 @@ class OperationalScriptTests(unittest.TestCase):
         self.assertIn("lifecycle inner-loop: non-qualifying", result.stdout.lower())
 
     def test_runtime_verify_runs_reference_model_only_via_extended_surface(self) -> None:
-        mise = (REPO / "mise.toml").read_text(encoding="utf-8")
-        verify = mise.split("[tasks.verify]", 1)[1]
+        import shlex
+        import tomllib
+
+        with (REPO / "mise.toml").open("rb") as stream:
+            verify = tomllib.load(stream)["tasks"]["verify"]["run"]
         property_name = "request_identity_and_terminal_winner_match_reference_model"
-        transactional = next(
-            line for line in verify.splitlines() if "cargo test --locked -p ordivon-runtime-core" in line
-        )
-        self.assertIn(f"--skip {property_name}", transactional)
-        self.assertEqual(verify.count("scripts/owner-environment extended"), 1)
+        # The business requirement is a distinct Legacy/PG invocation and
+        # exactly one extended property execution, not which command is first.
+        commands = [shlex.split(line, comments=True) for line in verify.splitlines()]
+        core_tests = [
+            args for args in commands
+            if args[:2] == ["cargo", "test"]
+            and "-p" in args and args[args.index("-p") + 1] == "ordivon-runtime-core"
+        ]
+        def profile(feature: str) -> list[list[str]]:
+            return [
+                args for args in core_tests
+                if "--features" in args and args[args.index("--features") + 1] == feature
+            ]
+        transactional = profile("transactional-runtime")
+        postgres = profile("postgres-registry-admission")
+        self.assertEqual(len(transactional), 1, core_tests)
+        self.assertEqual(len(postgres), 1, core_tests)
+        for args in (transactional[0], postgres[0]):
+            self.assertIn("--no-default-features", args)
+        legacy_args = transactional[0]
+        self.assertIn("--skip", legacy_args)
+        self.assertEqual(legacy_args[legacy_args.index("--skip") + 1], property_name)
+        self.assertIn("--lib", postgres[0])
+        self.assertNotIn(property_name, postgres[0])
+        self.assertEqual(commands.count(["scripts/owner-environment", "extended"]), 1)
         owner = (REPO / "scripts/owner-environment").read_text(encoding="utf-8")
         extended = owner.split("run_extended() {", 1)[1].split("\n}", 1)[0]
         self.assertIn(
@@ -327,9 +350,17 @@ class OperationalScriptTests(unittest.TestCase):
         owner = (REPO / "scripts/owner-environment").read_text(encoding="utf-8")
         self.assertIn("environment_is_materialized()", owner)
         self.assertIn("ensure_materialized_environment()", owner)
-        self.assertIn('uv_bin" pip sync --offline --python "$python_bin" "$tooling_lock"', owner)
+        self.assertIn(
+            'uv_bin" pip sync --require-hashes --offline --python "$python_bin" "$tooling_lock" "$operator_lock"',
+            owner,
+        )
         self.assertIn('cargo_bin" fetch --locked --offline', owner)
-        self.assertIn('uv_bin" pip sync --python "$python_bin" "$tooling_lock"', owner)
+        self.assertIn(
+            'uv_bin" pip sync --require-hashes --python "$python_bin" "$tooling_lock" "$operator_lock"',
+            owner,
+        )
+        self.assertIn('operator_lock="$repo/requirements-runtime-pg-operator.lock.txt"', owner)
+        self.assertIn('actual_psycopg = md.version("psycopg")', owner)
         self.assertIn('cargo_bin" fetch --locked)', owner)
         run_extended = owner.split("run_extended() {", 1)[1].split("\n}", 1)[0]
         self.assertIn("ensure_materialized_environment", run_extended)

@@ -32,18 +32,18 @@ This closes a representation gap. It does **not** add an Agent Service, workflow
 planner, scheduler, Task database, capability registry, retry controller, semantic verifier,
 or domain verdict owner.
 
-## Why the owner is Ordivon Next rather than Harness
+## Why task-local composition is not a Harness responsibility
 
-`meta/next` already owns task-local mappings from problems to mature methods, capabilities,
-providers, evidence and validators. Harness begins at one exact caller-authored
+Catalogs/Knowledge provides task-local mappings to mature methods, capabilities,
+providers, evidence and validators; Composition owns mechanical binding checks. Harness begins at one exact caller-authored
 `HarnessRunContract` and deliberately does not own cross-Run strategy selection or generic
 capability discovery.
 
 Therefore:
 
 ```text
-Ordivon Next R1
-  owns: task-local composition description + mechanical binding checks
+Composition and task-local catalogs
+  own: task-local composition description + mechanical binding checks
 
 Harness
   owns: one bounded durable Agent Run once exact execution authority is supplied
@@ -118,8 +118,9 @@ A `composition-gate-result-v1` record is owned by the named verifier and may be:
 evidence-empty.
 
 The gate evaluator binds every result to the exact manifest digest and verifier owner.
-Required gates close mechanically only when every required result is `SATISFIED` and the
-manifest has no unresolved assumptions.
+Required gate reports are structurally complete only when every required caller-supplied
+result says `SATISFIED` and the manifest has no unresolved assumptions. The
+evaluator does not execute an Owner verifier or authenticate its receipt.
 
 A circuit with **zero required composition gates** has no observed owner
 boundary and MUST remain mechanically OPEN: the mathematical truth of an empty
@@ -129,7 +130,9 @@ source-bound verification obligation, not a new schema or global policy owner.
 Even then:
 
 ```text
-mechanicalClosure = true
+reportedGateClosure = true
+evidenceVerificationStanding = "UNKNOWN"
+mechanicalClosure = false
 domainAcceptanceEstablished = false
 ```
 
@@ -146,10 +149,12 @@ stage-input permutations without recreating a second graph implementation.
 
 The gate evaluator uses a non-vacuity constraint:
 
-    mechanicalClosure =
+    reportedGateClosure =
         (at least one REQUIRED composition gate)
-        AND (all required gates have verifier-owned SATISFIED results)
+        AND (all required gates carry caller-reported SATISFIED status)
         AND (there are no unresolved assumptions)
+
+    mechanicalClosure = false  # no native verifier/receipt checking here
 
 Zero required gates produces COMPOSITION_GATES_OPEN, not a successful composition
 proof. UNKNOWN, missing evidence and UNSATISFIED remain distinct. Neither compilation

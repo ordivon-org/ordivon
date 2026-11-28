@@ -1,0 +1,283 @@
+"""External source evidence, owner consumer and GitHub candidate behavior."""
+import json
+from pathlib import Path
+import sys
+import tempfile
+import unittest
+
+ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "catalogs/capabilities/scripts"))
+from check_external_candidate_references import check
+from github_radar_incremental import normalize, previous_repositories, parse_trending
+
+
+class EvidenceTests(unittest.TestCase):
+    def test_current_bounded_worktrunk_chain(self):
+        packet = ROOT / "catalogs/capabilities/evidence/worktrunk-candidate-20261106.json"
+        self.assertEqual(check(ROOT, packet), [])
+
+    def test_missing_consumer_blob_mapping_rejected(self):
+        original = json.loads((ROOT / "catalogs/capabilities/evidence/worktrunk-candidate-20261106.json").read_text())
+        removed = original["references"]["consumerSources"][0]
+        del original["source"]["consumerSourceBlobSha1"][removed]
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "missing.json"
+            path.write_text(json.dumps(original), encoding="utf-8")
+            errors = check(ROOT, path)
+        self.assertTrue(any("witness paths" in e for e in errors), errors)
+
+    def test_negative_wrong_source_blob_and_reference(self):
+        original = json.loads((ROOT / "catalogs/capabilities/evidence/worktrunk-candidate-20261106.json").read_text())
+        with tempfile.TemporaryDirectory() as temp:
+            packet = Path(temp) / "invalid.json"
+            original["references"]["provider"] = "../../etc/passwd"
+            first = original["references"]["consumerSources"][0]
+            original["source"]["consumerSourceBlobSha1"][first] = "0" * 40
+            packet.write_text(json.dumps(original), encoding="utf-8")
+            issues = check(ROOT, packet)
+        self.assertTrue(any("missing/escaping" in issue for issue in issues))
+        self.assertTrue(any("blob" in issue for issue in issues))
+
+
+class WorktrunkConsumerProjectionTests(unittest.TestCase):
+    def test_exact_porcelain_projection(self):
+        from compare_worktrunk_owner_consumer import projected_porcelain
+        snapshot = {"items": [
+            {"branch": "main", "head": {"sha": "1" * 40},
+             "worktree": {"path": "/tmp/example-main", "detached": False}},
+            {"branch": None, "head": {"sha": "2" * 40},
+             "worktree": {"path": "/tmp/example-linked", "detached": True}},
+        ]}
+        expected = ("worktree /tmp/example-main\nHEAD " + "1" * 40 +
+                    "\nbranch refs/heads/main\n\n" +
+                    "worktree /tmp/example-linked\nHEAD " + "2" * 40 +
+                    "\ndetached\n\n").encode()
+        self.assertEqual(projected_porcelain(snapshot, native_metadata=b""), expected)
+
+    def test_prunable_metadata_fails_closed(self):
+        from compare_worktrunk_owner_consumer import projected_porcelain
+        snapshot = {"items": [{"branch": "main", "head": {"sha": "1" * 40},
+                               "worktree": {"path": "/tmp/main", "detached": False}}]}
+        with self.assertRaisesRegex(ValueError, "prunable"):
+            projected_porcelain(snapshot, native_metadata=b"prunable gitdir missing\n")
+
+    def test_ambiguous_candidate_denied(self):
+        from compare_worktrunk_owner_consumer import projected_porcelain
+        entry = {"branch": "main", "head": {"sha": "1" * 40},
+                 "worktree": {"path": "/tmp/main", "detached": False}}
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            projected_porcelain({"items": [entry, entry]}, native_metadata=b"")
+        with self.assertRaisesRegex(ValueError, "HEAD"):
+            projected_porcelain({"items": [{"branch": "main", "head": {"sha": "x"},
+                                            "worktree": {"path": "/tmp/main", "detached": False}}]},
+                                native_metadata=b"")
+
+
+class CrossOwnerSourceObservationTests(unittest.TestCase):
+    def test_frozen_sources_do_not_imply_adoption(self):
+        import re
+        source = ROOT / "catalogs/capabilities/evidence/cross-owner-source-observations-20261106.json"
+        record = json.loads(source.read_text())
+        self.assertEqual(record["standing"], "DISCOVERY_ONLY")
+        self.assertEqual(len(record["observations"]), 3)
+        for entry in record["observations"]:
+            self.assertRegex(entry["upstream"]["commit"], r"^[0-9a-f]{40}$")
+            self.assertRegex(entry["upstream"]["licenseFileGitBlob"], r"^[0-9a-f]{40}$")
+            self.assertTrue((ROOT / entry["existingConsumerReference"]).is_file())
+            self.assertIn(entry["disposition"], ("RESEARCH_ONLY", "REFERENCE_ONLY"))
+            self.assertNotIn("ADMITTED", entry["consumerRelation"])
+        self.assertFalse(record["outcomes"]["autoInstall"])
+        self.assertFalse(record["outcomes"]["autoAdopt"])
+        self.assertEqual(record["outcomes"]["customLinesRetiredVerified"], 0)
+
+
+class RadarTests(unittest.TestCase):
+    def example(self):
+        return {"kind": "ordivon.github-trending-observation-r1", "snapshotDay": "2026-11-06",
+                "observedAt": "2026-11-06T05:00:00Z", "origin": "github-official-trending-pages",
+                "windows": [
+                    {"window": w, "sourceUrl": "https://github.com/trending?since=" + w,
+                     "retrievedAt": "2026-11-06T05:00:00Z",
+                     "entries": [{"repo": "max-sixty/worktrunk", "newStars": n,
+                                  "sourceWindowLabel": lab}]}
+                    for w, n, lab in [("daily",546,"today"),("weekly",1802,"this week"),("monthly",4300,"this month")]],
+                "repositories": {"max-sixty/worktrunk": {"totalStars":11604, "apiStatus":"OK",
+                                                         "licenseMetadata":"NOASSERTION"}}}
+
+    def test_window_counts_and_total_are_separate(self):
+        output = normalize(self.example(), set())
+        item = output["candidates"][0]
+        self.assertEqual(item["totalStars"], 11604)
+        self.assertEqual([x["stars"] for x in item["officialTrending"]],[546,1802,4300])
+        self.assertEqual(item["adoptionStanding"],"DISCOVERY_ONLY")
+
+    def test_transient_github_api_failure_remains_explainable(self):
+        data = self.example()
+        data["repositories"]["max-sixty/worktrunk"] = {
+            "apiStatus": "FAILED", "note": "temporary upstream API error", "totalStars": None,
+        }
+        item = normalize(data, set())["candidates"][0]
+        self.assertEqual(item["apiStatus"], "FAILED")
+        self.assertEqual(item["apiFailureNote"], "temporary upstream API error")
+        self.assertEqual(item["adoptionStanding"], "DISCOVERY_ONLY")
+        self.assertIsNone(item["totalStarsSource"])
+
+    def test_wrong_window_rejected(self):
+        data = self.example()
+        data["windows"][0]["entries"][0]["sourceWindowLabel"]="this week"
+        with self.assertRaises(ValueError):
+            normalize(data,set())
+
+    def test_seven_day_repeat_not_auto_adopt(self):
+        data=self.example()
+        result=normalize(data,{"max-sixty/worktrunk"})
+        self.assertTrue(result["candidates"][0]["repeatedWithin7Days"])
+        self.assertEqual(result["candidates"][0]["recommendationDisposition"],"REVIEW_CHANGE_BEFORE_REPEAT")
+
+    def test_official_markup_parser(self):
+        h='<article class="Box-row"><h2><a href="/max-sixty/worktrunk">Worktrunk</a></h2><span>546 stars today</span></article>'
+        self.assertEqual(parse_trending(h,"daily")[0]["newStars"],546)
+
+
+    def test_partial_official_pages_keep_verified_candidates_and_failures(self):
+        # Simulate a real reachable official source on two windows and one failed window.
+        # A failed weekly page must not erase verified daily/monthly candidates.
+        import subprocess
+        from unittest.mock import patch
+        from github_radar_incremental import live_observation
+
+        labels = {"daily": "today", "monthly": "this month"}
+
+        def official_curl(args, **_kwargs):
+            window = args[-1].split("=")[-1]
+            if window == "weekly":
+                return subprocess.CompletedProcess(args, 7, stdout=b"", stderr=b"origin timeout")
+            html = ('<article class="Box-row"><h2><a href="/example/' + window +
+                    '">Project</a></h2><span>7 stars ' + labels[window] +
+                    '</span></article>').encode() + b" " * 1500
+            return subprocess.CompletedProcess(args, 0, stdout=html, stderr=b"")
+
+        with patch("github_radar_incremental.subprocess.run", side_effect=official_curl), patch(
+                "github_radar_incremental.fetch_json",
+                return_value={"apiStatus": "OK", "totalStars": 42, "licenseMetadata": "MIT"}):
+            observed = live_observation(1)
+        self.assertEqual([w["window"] for w in observed["windows"]], ["daily", "monthly"])
+        self.assertIn("weekly", observed["windowFailures"])
+        result = normalize(observed, set())
+        self.assertEqual(result["sourceCoverage"]["observedWindows"], ["daily", "monthly"])
+        self.assertEqual(result["sourceCoverage"]["failedWindows"], ["weekly"])
+        self.assertEqual(result["sourceCoverage"]["unobservedWindows"], [])
+        self.assertFalse(result["sourceCoverage"]["complete"])
+        self.assertEqual(len(result["candidates"]), 2)
+        self.assertTrue(all(c["adoptionStanding"] == "DISCOVERY_ONLY" for c in result["candidates"]))
+
+    def test_no_empty_pinned_page_can_claim_official_coverage(self):
+        empty = self.example()
+        empty["windows"] = []
+        with self.assertRaisesRegex(ValueError, "no official Trending window observation"):
+            normalize(empty, set())
+        partial = self.example()
+        partial["windows"][0]["entries"] = []
+        with self.assertRaisesRegex(ValueError, "empty official Trending window observation"):
+            normalize(partial, set())
+
+    def test_unobserved_window_is_not_falsely_reported_as_failed(self):
+        raw = self.example()
+        raw["windows"] = raw["windows"][:1]
+        result = normalize(raw, set())
+        self.assertEqual(result["sourceCoverage"]["observedWindows"], ["daily"])
+        self.assertEqual(result["sourceCoverage"]["failedWindows"], [])
+        self.assertEqual(result["sourceCoverage"]["unobservedWindows"], ["weekly", "monthly"])
+
+    def test_all_official_pages_fail_without_fake_snapshot(self):
+        import subprocess
+        from unittest.mock import patch
+        from github_radar_incremental import live_observation
+        failed = subprocess.CompletedProcess([], 7, stdout=b"", stderr=b"origin offline")
+        with patch("github_radar_incremental.subprocess.run", return_value=failed):
+            with self.assertRaisesRegex(RuntimeError, "all official GitHub Trending windows failed"):
+                live_observation(2)
+
+    def test_trending_html_void_elements_do_not_silently_drop_cards(self):
+        first = ('<article class="Box-row"><img src="placeholder.png">'
+                 '<h2><a href="/example/first">First</a></h2>'
+                 '<span>41 stars today</span></article>')
+        second = ('<article class="Box-row"><h2><a href="/example/second">'
+                  'Second</a></h2><wbr><span>32 stars today</span></article>')
+        cards = parse_trending(first + second, "daily")
+        self.assertEqual([c["repo"] for c in cards], ["example/first", "example/second"])
+        self.assertEqual([c["newStars"] for c in cards], [41, 32])
+
+    def test_trending_cards_without_repo_and_unterminated_cards_fail_closed(self):
+        good = ('<article class="Box-row"><h2><a href="/example/valid">'
+                'Valid</a></h2><span>9 stars today</span></article>')
+        wrong = '<article class="Box-row"><h2>Missing repo</h2></article>'
+        with self.assertRaisesRegex(ValueError, "unparseable"):
+            parse_trending(good + wrong, "daily")
+        with self.assertRaisesRegex(ValueError, "unterminated"):
+            parse_trending(good + '<article class="Box-row"><h2>Incomplete', "daily")
+
+    def test_live_three_windows_keep_all_cards_with_void_elements(self):
+        from unittest.mock import patch
+        from github_radar_incremental import live_observation
+        import subprocess
+
+        label = {"daily": "today", "weekly": "this week", "monthly": "this month"}
+        def official_curl(args, **_kwargs):
+            win = args[-1].split("=")[-1]
+            first = (f'<article class="Box-row"><img src="x">'
+                     f'<h2><a href="/audit/first-{win}">First</a></h2>'
+                     f'<span>8 stars {label[win]}</span></article>')
+            second = (f'<article class="Box-row"><h2><a href="/audit/second-{win}">'
+                      f'Second</a></h2><wbr><span>5 stars {label[win]}</span></article>')
+            return subprocess.CompletedProcess(
+                args, 0, stdout=(first + second + " " * 1500).encode(), stderr=b"")
+
+        with patch("github_radar_incremental.subprocess.run", side_effect=official_curl), patch(
+                "github_radar_incremental.fetch_json",
+                return_value={"apiStatus": "OK", "totalStars": 100}):
+            raw = live_observation(10)
+        result = normalize(raw, set())
+        self.assertEqual(len(result["candidates"]), 6)
+        self.assertEqual(len(result["sourceCoverage"]["observedWindows"]), 3)
+        self.assertTrue(result["sourceCoverage"]["complete"])
+
+    def test_live_one_unparseable_window_is_not_full_coverage(self):
+        from unittest.mock import patch
+        from github_radar_incremental import live_observation
+        import subprocess
+
+        def official_curl(args, **_kwargs):
+            win = args[-1].split("=")[-1]
+            if win == "weekly":
+                page = ('<article class="Box-row"><h2><a href="/audit/valid">'
+                        'Valid</a></h2><span>2 stars this week</span></article>'
+                        '<article class="Box-row"><h2>No repository</h2></article>')
+            else:
+                label = {"daily": "today", "monthly": "this month"}[win]
+                page = (f'<article class="Box-row"><h2><a href="/audit/{win}">'
+                        f'{win}</a></h2><span>2 stars {label}</span></article>')
+            return subprocess.CompletedProcess(
+                args, 0, stdout=(page + " " * 1500).encode(), stderr=b"")
+        with patch("github_radar_incremental.subprocess.run", side_effect=official_curl), patch(
+                "github_radar_incremental.fetch_json",
+                return_value={"apiStatus": "OK", "totalStars": 10}):
+            raw = live_observation(10)
+        coverage = normalize(raw, set())["sourceCoverage"]
+        self.assertEqual(coverage["observedWindows"], ["daily", "monthly"])
+        self.assertEqual(coverage["failedWindows"], ["weekly"])
+        self.assertFalse(coverage["complete"])
+
+    def test_history_has_horizon_and_ignores_untrusted_json(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            d=Path(tmp)
+            content={"kind":"ordivon.github-radar-candidates-r1","snapshotDay":"2026-11-03",
+                     "candidates":[{"repo":"max-sixty/worktrunk"}]}
+            (d/"first.json").write_text(json.dumps(content))
+            (d/"invalid.json").write_text("{")
+            self.assertEqual(previous_repositories(d,__import__("datetime").date(2026,11,6),d/"out.json"),
+                             {"max-sixty/worktrunk"})
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -4,6 +4,7 @@
   "bindings": [
     {
       "profileId": "audio-flac-pcm16-r1",
+      "requireClaimResults": true,
       "operation": "verify",
       "capabilityId": "artifact.audio.flac.verify",
       "entrypoint": {
@@ -12,7 +13,8 @@
       },
       "objectContractRequired": true,
       "standingRef": "artifact-delivery/shadow-bindings/audio-flac-pcm16-local-r1.json",
-      "requiredStanding": "LOCAL_LIVE_PROVEN"
+      "requiredStanding": "LOCAL_LIVE_PROVEN",
+      "snapshotInputs": true
     },
     {
       "profileId": "audio-ogg-vorbis-r1",
@@ -24,10 +26,12 @@
       },
       "objectContractRequired": true,
       "standingRef": "artifact-delivery/shadow-bindings/audio-ogg-vorbis-local-r1.json",
-      "requiredStanding": "LOCAL_LIVE_PROVEN"
+      "requiredStanding": "LOCAL_LIVE_PROVEN",
+      "snapshotInputs": true
     },
     {
       "profileId": "audio-wave-pcm16-r1",
+      "requireClaimResults": true,
       "operation": "verify",
       "capabilityId": "artifact.verify.audio-wave-pcm16-r1",
       "entrypoint": {
@@ -36,7 +40,8 @@
       },
       "objectContractRequired": true,
       "standingRef": "artifact-delivery/shadow-bindings/audio-wave-pcm16-local-r1.json",
-      "requiredStanding": "LOCAL_LIVE_PROVEN"
+      "requiredStanding": "LOCAL_LIVE_PROVEN",
+      "snapshotInputs": true
     },
     {
       "profileId": "dataset-parquet-flat-r1",
@@ -48,7 +53,8 @@
       },
       "objectContractRequired": true,
       "standingRef": "artifact-delivery/shadow-bindings/dataset-parquet-flat-local-r1.json",
-      "requiredStanding": "LOCAL_LIVE_PROVEN"
+      "requiredStanding": "LOCAL_LIVE_PROVEN",
+      "snapshotInputs": true
     },
     {
       "profileId": "design-2d-aseprite-horizontal-sheet-r1",
@@ -72,7 +78,8 @@
       },
       "objectContractRequired": true,
       "standingRef": "artifact-delivery/shadow-bindings/design-2d-tiled-tmj-local-r1.json",
-      "requiredStanding": "LOCAL_LIVE_PROVEN"
+      "requiredStanding": "LOCAL_LIVE_PROVEN",
+      "snapshotInputs": true
     },
     {
       "profileId": "design-3d-glb-material-scene-r1",
@@ -108,7 +115,8 @@
       },
       "objectContractRequired": true,
       "standingRef": "artifact-delivery/shadow-bindings/design-3d-glb-static-mesh-local-r1.json",
-      "requiredStanding": "LOCAL_LIVE_PROVEN"
+      "requiredStanding": "LOCAL_LIVE_PROVEN",
+      "snapshotInputs": true
     },
     {
       "profileId": "design-3d-step-solid-r1",
@@ -180,7 +188,8 @@
       },
       "objectContractRequired": true,
       "standingRef": "artifact-delivery/shadow-bindings/moving-image-matroska-ffv1-local-r1.json",
-      "requiredStanding": "LOCAL_LIVE_PROVEN"
+      "requiredStanding": "LOCAL_LIVE_PROVEN",
+      "snapshotInputs": true
     },
     {
       "profileId": "software-release-linux-elf-executable-r1",
@@ -196,6 +205,7 @@
     },
     {
       "profileId": "still-image-png-srgb-r1",
+      "requireClaimResults": true,
       "operation": "verify",
       "capabilityId": "artifact.verify.still-image-png-srgb-r1",
       "entrypoint": {
@@ -204,7 +214,8 @@
       },
       "objectContractRequired": false,
       "standingRef": "artifact-delivery/shadow-bindings/still-image-png-srgb-local-r1.json",
-      "requiredStanding": "LOCAL_LIVE_PROVEN"
+      "requiredStanding": "LOCAL_LIVE_PROVEN",
+      "snapshotInputs": true
     },
     {
       "profileId": "still-image-svg-static-r1",
@@ -216,7 +227,8 @@
       },
       "objectContractRequired": false,
       "standingRef": "artifact-delivery/shadow-bindings/still-image-svg-static-local-r1.json",
-      "requiredStanding": "LOCAL_LIVE_PROVEN"
+      "requiredStanding": "LOCAL_LIVE_PROVEN",
+      "snapshotInputs": true
     },
     {
       "profileId": "web-archive-warc-response-r1",

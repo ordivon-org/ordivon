@@ -182,7 +182,6 @@
       ],
       "consumerEvidence": [
         "contracts/agent-admission-v1/evaluate.py",
-        "contracts/gateway-capability-authz-v1/evaluate.py",
         "tests/test_agent_admission_contract.py"
       ],
       "dependencies": [
@@ -197,7 +196,7 @@
       ],
       "acceptance": [
         "Original Security Agent Admission tests verify ALLOW/STEP_UP/DENY and that non-ALLOW returns no effect admission; input schema negative tests fail closed.",
-        "The stand-alone Gateway capability AuthZ v1 reference calls this contract, but cannot be assumed compatible with the current Gateway v2/v3 middleware."
+        "The retired Security Gateway capability AuthZ v1 reference is not a Gateway production consumer. The current Gateway has an independent AuthZEN v3 adapter; installed enforcement remains a separate acceptance obligation."
       ]
     },
     {
@@ -239,7 +238,7 @@
       ],
       "acceptance": [
         "Security native positive and negative admission tests establish no effect result on DENY/STEP_UP and exact effect request identity on ALLOW.",
-        "Gateway Security v1 evaluator may consume this source decision as a reference, not as a current deployed v2/v3 authorization binding."
+        "The Agent Admission/Effect Admission source contract is independent of the retired Gateway v1 evaluator; it does not establish a deployed Gateway capability authorization binding."
       ]
     }
   ],
@@ -332,7 +331,7 @@
   "gaps": [
     "Selected P0/P1 providers are not automatically active/admitted capabilities.",
     "2026-10-24 audit: empirical transitive authority coverage for selected real Agent consumers is UNKNOWN, not proof of a missing control; see docs/architecture/evidence/FORMAL_LEGO_ISSUE_CENSUS_20261024_R1.json.",
-    "2026-10-27 bounded cross-Owner source falsifier: platform/security/contracts/gateway-capability-authz-v1/evaluate.py emits schemaVersion=1 and omits requestedResource, while services/gateway/src/ordivon_gateway/capability_authz.py requires schemaVersion in {2,3} and exact requestedResource==server-derived resource; direct v1 response cannot satisfy current Gateway PEP, even if local Security v1 policy unit tests PASS. The current Gateway also supports a separate standard AuthZEN schemaVersion=3 adapter; no evidence shows retired v1 reference is installed as that adapter. This is source/schema mismatch, NOT evidence of a deployed authorization bypass.",
+    "2026-11-07 source retirement: Security Gateway capability AuthZ v1 used schemaVersion=1 and did not bind requestedResource, while current Gateway requires resource-bound v2/v3 decisions. The retired source evaluator had no tracked direct consumer outside Security and its self-tests were removed. Gateway supplies an independent AuthZEN v3 adapter; live production enforcement, full capability coverage and Agent/Grant integration remain unverified by this source audit. Historical contract evidence: docs/architecture/GATEWAY_CAPABILITY_AUTHZ_CONTRACT_R1.md.",
     "S06/S07 model and native owner tests do not establish Gateway v2/v3 live policy PDP wiring, dynamic external principal currentness, or verification of effect occurrence."
   ],
   "doNotOwn": [
@@ -341,9 +340,9 @@
     "generic policy engine"
   ],
   "review": {
-    "sourceRevision": "24564910f5ab18fd298df7ece85c4fdd709469fa",
-    "updatedAt": "2026-09-18",
-    "standing": "INITIAL",
-    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence."
+    "sourceRevision": "f52091fb1c8f920b7114c813142d1e7795ae8664",
+    "updatedAt": "2026-11-07",
+    "standing": "SOURCE_AUDITED",
+    "notes": "Current source-consumer audit; formal complete transitive reachability and deployed qualification remain open. See docs/security-owner-guide.md."
   }
 }

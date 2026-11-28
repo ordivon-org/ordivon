@@ -88,7 +88,9 @@
         "README.md",
         "docs/ACCEPTANCE_MATRIX.md",
         "evidence/current-capabilities.json",
-        "tests/test_prometheus_singbox_witness.py"
+        "tests/test_prometheus_singbox_witness.py",
+        "substrates/shared-egress/carrier-ready.sh",
+        "tests/test_shared_provider_carrier.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -132,13 +134,22 @@
         "README.md",
         "consumers/developer-egress/profile.sh",
         "tests/test_developer_egress_profile.py",
-        "Historical consumer selection, source-bound: local 83fb2956e051ad9c27c091e96631a842f8eebcc7 (legacy consumers/model-provider/ready.sh TLS/proxy readiness) versus protected Main 7b51fd3e033f964db551c127e2e910ae3bc88ef8. The legacy script is absent; tools/repo/workspace-ready consumes consumers/developer-egress/profile.sh instead. tests/test_developer_egress_profile.py exercises proxy routing/fail-closed behavior; legacy TLS readiness semantic parity and live provider reachability remain UNPROVED. No legacy daemon may be resurrected based on commit uniqueness alone.",
-        "Historical merge consumer selection: local Main merge 77c36033da05586dbd965d407f35bf2fece578ef (parents 7b2603ebbfcf5513ea2f015a6f50f3f2407d6969, 628029537f4201847599bd187e2985fdd1e2a329) was a Discord user-read Provider resolution, with 10 result paths distinct from both parents under Network/Workstation; observed against protected main a56afcf30aafd8d5bcd0f41adb950504f5724267. NO_CURRENT_CONSUMER: platform/network/consumers/discord/systemd/network-v2-discord-egress.service and platform/workstation/workstation/discord_user_provider.py are absent; the selected Network owner profiles remain existing active consumers (developer-egress/browserless/etc). Do not cherry-pick the merged historical daemon solely due SHA/merge path uniqueness. Discord user-read parity, archived data, live authentication and egress are UNPROVED; preserve source Git ancestry pending explicit Owner consumer admission.",
         "consumers/claude/ready.sh",
         "tests/test_claude_egress_readiness_consumer.py",
         "consumers/browserless/provider-switch.sh",
         "tests/test_shared_provider_carrier.py::test_legacy_provider_switch_rejects_m4_before_any_mutation",
-        "tests/test_shared_provider_carrier.py::test_legacy_carrier_materialization_rejects_m4_before_file_writes"
+        "tests/test_shared_provider_carrier.py::test_legacy_carrier_materialization_rejects_m4_before_file_writes",
+        "consumers/discord/ready.sh",
+        "consumers/model-provider/ready.sh",
+        "consumers/windows-real-chrome/ready.sh",
+        "providers/gluetun/quadlet/network-v2-gluetun-owned.container",
+        "consumers/codex/ready.sh",
+        "consumers/mobile-tailnet-exit/ready.py",
+        "substrates/shared-egress/carrier-ready.sh",
+        "Taskfile.yml",
+        "providers/gluetun/native_profile.py",
+        "providers/gluetun/Taskfile.yml",
+        "tests/test_gluetun_native_provider.py"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -174,7 +185,10 @@
         "consumers/supply-chain/config/egress.json",
         "tests/test_egress_routing_behavior.py",
         "tests/test_x_reality_consumer.py",
-        "Taskfile.yml"
+        "Taskfile.yml",
+        "consumers/model-provider/config/egress.json",
+        "consumers/discord/config/egress.json",
+        "consumers/codex/config/sing-box.json"
       ],
       "consumerEvidence": [
         "consumers/x-reality/ready.sh",
@@ -265,8 +279,8 @@
         "A source-local readiness verdict; nonzero/UNKNOWN when necessary observation is missing, failed or expired."
       ],
       "behavioralContract": [
-        "All declared consumers share one readiness deadline. Allowed-origin probes must report the expected status, CONNECT=200 and positive TLS completion. Supply-Chain and Claude unknown-destination probes require an explicit HTTPS CONNECT=403 denial from the selected proxy: DNS/transport failure (CONNECT=000), proxy auth (CONNECT=407), a failed TLS handshake after CONNECT=200, an origin HTTP 403 after CONNECT=200, malformed receipts, and expired budgets never establish policy denial. Chat-ingress rejection and live provider reachability remain separately qualified.",
-        "A conservative CONNECT403 signature can yield false-negative readiness for some actual sing-box reject policies; live provider/domain success is not entailed."
+        "All declared consumers share one readiness deadline. Allowed-origin probes must report the expected status, CONNECT=200 and positive TLS completion. Supply-Chain fast readiness admits only positive OCI HTTPS transport and marks unknown-destination/direct-fallback as NOT_EVALUATED. Full verification requires independent installed-SourceCut/PID-fenced upstream no-forward evidence, not a CONNECT response-code oracle. Claude's transport readiness requires allowed-origin TLS completion, no direct client default route and no successful TLS to the forbidden destination, but reports upstream non-forwarding as UNKNOWN. A separate source/installed/PID-fenced native Carrier observer must see permitted forwarding and zero unknown-domain/wrong-port forwarding before the Claude full consumer verification can pass. CONNECT=200 followed by a closed TLS stream alone never proves non-forwarding. Chat-ingress independent real Carrier acceptance is similarly required; expired budgets, origin HTTP403, proxy auth (CONNECT=407), and malformed receipts never establish non-forwarding.",
+        "A positive transport READY does not imply unknown-destination rejection or absence of direct fallback; real native Carrier observer evidence is mandatory for full consumer verification."
       ],
       "sharedRefs": [],
       "evidence": [
@@ -274,7 +288,10 @@
         "consumers/claude/ready.sh",
         "consumers/chat-ingress/ready.sh",
         "tests/test_readiness_shared_budget.py",
-        "tests/test_claude_egress_readiness_consumer.py"
+        "tests/test_claude_egress_readiness_consumer.py",
+        "consumers/model-provider/ready.sh",
+        "consumers/discord/ready.sh",
+        "consumers/mobile-tailnet-exit/ready.py"
       ],
       "consumerEvidence": [
         "consumers/supply-chain/ready.sh",
@@ -291,7 +308,7 @@
       ],
       "acceptance": [
         "Native isolated Bash fake-time test demonstrates a common failure consumes one shared deadline and cannot yield READY.",
-        "Existing consumer tests reject malformed or failed allowed-origin observations. Supply-Chain and Claude fake-provider tests distinguish CONNECT=403 from transport/proxy-auth failure and from origin HTTP 403 after a permitted CONNECT tunnel; the exact Claude source contract is consumed by Taskfile materialization and tests. This is a source-bounded negative/positive witness, not evidence that a running proxy loaded the policy."
+        "Existing consumer tests reject malformed or failed allowed-origin observations. Supply-Chain fake-provider tests check only allowed-origin transport and explicitly require NOT_EVALUATED for untested denial; the full verification task adds the independent live carrier observer. Claude fast readiness reports TRANSPORT_READY with upstreamNonforwarding=UNKNOWN when TLS is closed after CONNECT, never mistaking that for complete policy proof. Native sing-box source and installed upstream spy tests plus a same-attempt real Carrier observer independently distinguish allowed forwarding from unknown-domain/wrong-port zero forwarding. The Owner verify task composes these proof layers and checks installed bytes and PIDs."
       ],
       "formalObligations": [
         "For a finite shared readiness deadline, any required failing consumer probe must prevent a READY verdict after its shared budget is exhausted.",
@@ -486,7 +503,7 @@
         "Every sampled path states its DNS resolver, proxy/tunnel, actual egress destination and independent observation.",
         "A precompromised inner execution layer still cannot access an undeclared external endpoint through metrics/auth/package services.",
         "VPN reachability is not accepted as network policy enforcement; failure and recovery are consumer-tested.",
-        "Current supply-chain/ready.sh only emits READY when same-attempt proxy CONNECT=403 is observed. That is a conservative source-path sufficient check, NOT a necessary/provider-general meaning of policy rejection: installed sing-box can reject after CONNECT=200 and TLS reset without forwarding. Arbitrary curl failure, 407, 000, or origin HTTP403 remains insufficient.",
+        "Current supply-chain/ready.sh emits a scope-qualified positive transport READY only; unknown-destination/direct-fallback are NOT_EVALUATED there. Full consumer verification separately requires installed policy parity and independent live Carrier no-forward evidence, because sing-box can reject after CONNECT=200 without forwarding. Arbitrary curl failure, 407, 000, or origin HTTP403 cannot establish rejection.",
         "Before admitting another native denial signature to READY, bind the exact loaded proxy policy and an independent upstream no-forwarding witness to the same source, destination and attempt. No generic curl35/HTTP000 or HTTP CONNECT alone is an allowed authority."
       ],
       "evidence": [
@@ -516,9 +533,9 @@
     "custom network stack"
   ],
   "review": {
-    "sourceRevision": "299ee0449a1b98468d7954df53b20138ee4771ee",
-    "updatedAt": "2026-10-25",
+    "sourceRevision": "6e6e8872fde9dd31b79dd27b1cbe025d9d1e6f7d",
+    "updatedAt": "2026-11-05",
     "standing": "NS1_UNCONSUMED_RETIRED_NS2_RETAINED",
-    "notes": "Zero-base consumer trace: NS1 was an unregistered proposed future profile slice with no tracked code, test, issue registration or independent outcome consumer. Its optionality constraint is already enforced by retained N05 ProviderConsumerProfiles. Retire only the redundant NS1 projection; preserve N01 and N05 actual responsibilities and NS2 registered Network egress falsification. No runtime policy, route, DNS or readiness effect changed."
+    "notes": "Observed active Network consumers (Discord, Model Provider, Windows Chrome, Codex, Mobile Exit) reattached to their source and native readiness contracts. Generic core remains provider-independent. Source/installed/consumer truth are independent. Earlier archived merge-only non-consumer allegations are superseded by the 2026-11-05 live consumer census. 2026-11-05: repaired current Gluetun-owned Browserless SourceCut drift; installed source parity plus selected-mode immutable legacy units and real origin CONNECT 200 are qualified independently. Remote iPad client use remains UNKNOWN. 2026-11-05: selected native Surfshark WireGuard via existing single Gluetun Quadlet; Podman Secret materialization replaces fixed peer endpoint. Bounded countries Singapore/Japan satisfy 12 observed Network consumer readiness checks; native broad Asia Pacific choice falsified by Claude installer redirect. This is an empirical consumer qualification, not a mathematical proof, long-duration reliability proof, or remote iOS selection proof."
   }
 }

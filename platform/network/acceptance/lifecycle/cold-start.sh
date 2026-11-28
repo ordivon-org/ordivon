@@ -9,11 +9,13 @@ recover_r0(){
 trap recover_r0 EXIT
 
 control_plane_guard(){
-  for u in ordivon-runtime.service ordivon-cloudflare-production-a.service ordivon-cloudflare-production-b.service ordivon-cloudflare-canary.service ordivon-cloudflare-direct-route.service; do
+  # Workstation retired the WSL canary. Production A/B and the
+  # direct-route service are the actual independent management consumers.
+  for u in ordivon-runtime.service ordivon-cloudflare-production-a.service ordivon-cloudflare-production-b.service ordivon-cloudflare-direct-route.service; do
     test "$(systemctl is-active "$u")" = active
   done
   ss -ltn | grep -q '127.0.0.1:8897'
-  for p in 20243 20244 20245; do
+  for p in 20243 20244; do
     ha=$(curl -fsS --connect-timeout 2 --max-time 4 "http://127.0.0.1:$p/metrics" | awk '$1=="cloudflared_tunnel_ha_connections"{v=$2}END{print v}')
     test "$ha" = 4
   done

@@ -7,7 +7,7 @@ PLAN = ROOT / "platform/network/planning/lego-plan-r1.json"
 TARGETS = {"N06", "N07", "N08"}
 ACTUAL_WITNESSES = {
     "N06": (
-        "platform/network/Taskfile.yml",
+        "platform/network/consumers/x-reality/Taskfile.yml",
         "consumers/x-reality/config/egress.json",
     ),
     "N07": (

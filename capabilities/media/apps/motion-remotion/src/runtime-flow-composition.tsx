@@ -2,7 +2,20 @@ import {AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig} from
 import {RuntimeFlow, runtimeStages} from '@ordivon/visuals';
 import '@ordivon/identity/tokens.css';
 
-export function RuntimeFlowComposition() {
+export type RuntimeFlowProps = {
+  eyebrow?: string;
+  headline?: string;
+};
+
+export const runtimeFlowDefaultProps = {
+  eyebrow: 'Ordivon Runtime',
+  headline: 'Durable execution,\nvisible as a system.',
+};
+
+export function RuntimeFlowComposition({
+  eyebrow = runtimeFlowDefaultProps.eyebrow,
+  headline = runtimeFlowDefaultProps.headline,
+}: RuntimeFlowProps) {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const stageIndex = Math.min(runtimeStages.length - 1, Math.floor(frame / 30));
@@ -21,10 +34,10 @@ export function RuntimeFlowComposition() {
     >
       <div style={{opacity: titleOpacity}}>
         <p style={{margin: 0, color: 'var(--ordivon-color-accent)', fontFamily: 'var(--ordivon-font-mono)', fontSize: 20, letterSpacing: '0.12em', textTransform: 'uppercase'}}>
-          Ordivon Runtime
+          {eyebrow}
         </p>
-        <h1 style={{margin: '18px 0 52px', fontSize: 78, fontWeight: 520, letterSpacing: '-0.055em', lineHeight: 0.96}}>
-          Durable execution,<br />visible as a system.
+        <h1 style={{margin: '18px 0 52px', fontSize: 78, fontWeight: 520, letterSpacing: '-0.055em', lineHeight: 0.96, whiteSpace: 'pre-line'}}>
+          {headline}
         </h1>
       </div>
       <RuntimeFlow activeStage={runtimeStages[stageIndex]?.id ?? 'recovery'} progress={progress} />

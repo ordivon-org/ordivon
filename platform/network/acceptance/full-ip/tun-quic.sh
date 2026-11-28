@@ -52,13 +52,15 @@ for _ in $(seq 1 80); do
 done
 test "$ready" = 1
 
+# A developer shell can export an HTTP VPN proxy. Bypass it explicitly:
+# this proof must observe traffic from the isolated TUN, not inherited CONNECT.
 # Process/unit state is not functional readiness. Require a real TCP request through
 # the isolated TUN before the destructive UDP/QUIC proof.
 tcp_ip=$(dig +short example.com A | head -n1)
 test -n "$tcp_ip"
 tcp=''
 for _ in $(seq 1 20); do
-  if tcp=$(ip netns exec "$NS" curl --resolve "example.com:443:$tcp_ip" \
+  if tcp=$(ip netns exec "$NS" curl -q --noproxy '*' --resolve "example.com:443:$tcp_ip" \
       --fail --silent --show-error --connect-timeout 3 --max-time 10 -o "$TMP/tcp" \
       -w 'rc=%{exitcode} http=%{http_code} httpver=%{http_version} bytes=%{size_download} time=%{time_total}' \
       https://example.com/ 2>/dev/null) && grep -qi 'Example Domain' "$TMP/tcp"; then
@@ -77,7 +79,7 @@ quic_ip=''
 while IFS= read -r candidate; do
   test -n "$candidate" || continue
   for _ in 1 2 3; do
-    if attempt=$(ip netns exec "$NS" curl --http3-only --resolve "cloudflare-quic.com:443:$candidate" \
+    if attempt=$(ip netns exec "$NS" curl -q --noproxy '*' --http3-only --resolve "cloudflare-quic.com:443:$candidate" \
         --fail --silent --show-error --connect-timeout 4 --max-time 15 -o "$TMP/quic" \
         -w 'rc=%{exitcode} http=%{http_code} httpver=%{http_version} bytes=%{size_download} time=%{time_total}' \
         https://cloudflare-quic.com/ 2>/dev/null); then

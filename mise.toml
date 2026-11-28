@@ -6,14 +6,15 @@ shell = "bash -c"
 
 [monorepo]
 config_roots = [
-  "meta/next",
   "tools/formal",
-  "meta/next/experimental/episode-store-r1",
+  "studies/experimental-episodes/episode-store",
   "packages/composition",
+  "packages/data",
+  "catalogs/authorities",
   "services/runtime",
   "services/host",
   "services/harness",
-  "platform/skills",
+  "extensions/chatgpt-skills-mcp",
   "platform/security",
   "platform/workstation",
   "platform/network",
@@ -66,26 +67,35 @@ uv run --with pglast==8.6 python tools/repo/check_sql_dialects.py
 [tasks."repo:ci"]
 run = """
 set -euo pipefail
+mise run repo:retirement:verify
 python3 -m unittest tools/repo/test_tracked_secrets.py
 python3 -m unittest tools/repo/test_check_large_files.py
 python3 tools/repo/check_large_files.py
+python3 -m unittest tools/repo/test_install_verified_cargo_deny.py
 python3 -m unittest tools/repo/test_source_history_legos.py
+python3 -m unittest tools.repo.test_exhaustive_coverage.ExactGitCrossFormatReferenceTests tools.repo.test_exhaustive_coverage.CrossScopeLexicalHintsTests
+python3 -m unittest discover -s catalogs/capabilities/tests -p 'test_external_capability_evaluation.py'
+uv run --with check-jsonschema==0.38.0 check-jsonschema --schemafile catalogs/capabilities/schemas/external-capability-candidate-r1.schema.json catalogs/capabilities/evidence/worktrunk-candidate-20261106.json
+python3 catalogs/capabilities/scripts/check_external_candidate_references.py catalogs/capabilities/evidence/worktrunk-candidate-20261106.json
 python3 -m unittest tools/repo/test_formal_source_contract.py
 python3 -m unittest tools/repo/test_workspace_ready.py
 uv run --with pyyaml==6.0.3 python -m unittest tools/repo/test_dependency_update_ownership.py
 python3 -m unittest tools/repo/test_sql_dialects.py
+mise run chaoxing:verify
 uv run --with pglast==8.6 python tools/repo/check_sql_dialects.py
 python3 tools/repo/test_affected_owners.py
+python3 tools/repo/test_ci_owner_shards.py
 python3 tools/repo/test_convergence_plan.py
 python3 tools/repo/test_owner_boundaries.py
 python3 tools/repo/check_owner_boundaries.py
 python3 tools/repo/check_composition_architecture.py
 python3 tools/repo/check_structure_r2.py
 python3 tools/repo/check_architecture_docs.py
-uv run --with pytest==9.1.1 --with jsonschema==4.26.0 python -m pytest -q tools/repo/test_composition_architecture.py tools/repo/test_structure_r2.py tools/repo/test_architecture_docs.py tools/repo/test_issue_owner_registration.py tools/repo/test_lego_graph_laws.py tests/catalogs/test_research_tool_and_mechanical_component_contracts.py
+env -u PYTEST_ADDOPTS -u PYTEST_PLUGINS -u PYTEST_DISABLE_PLUGIN_AUTOLOAD uv run --with pytest==9.1.1 --with jsonschema==4.26.0 --with "hypothesis>=6,<7" python -m pytest --disable-plugin-autoload -p hypothesispytest -o addopts= -q tools/repo/test_verification_properties.py tools/repo/test_composition_architecture.py tools/repo/test_structure_r2.py tools/repo/test_architecture_docs.py tools/repo/test_issue_owner_registration.py tools/repo/test_lego_graph_laws.py tools/repo/test_evidence_validity.py tests/catalogs/test_research_tool_and_mechanical_component_contracts.py studies/data-lifecycle/tests
 tools/repo/migration/test-integrate-main.sh
 tools/repo/migration/test-check-publication-main.sh
-uv run --with pyyaml==6.0.3 python -m unittest tools/repo/test_github_governance.py
+tools/repo/migration/test-git-pack-preservation.sh
+uv run --with pyyaml==6.0.3 python -m unittest tools/repo/test_github_governance.py tools/repo/test_github_governance_modules.py
 uv run --with pyyaml==6.0.3 python tools/repo/check_github_governance.py
 actionlint .github/workflows/*.yml
 git diff --check
@@ -96,6 +106,7 @@ run = """
 set -euo pipefail
 tools/repo/migration/test-integrate-main.sh
 tools/repo/migration/test-check-publication-main.sh
+tools/repo/migration/test-git-pack-preservation.sh
 """
 
 [tasks."repo:primary:verify"]
@@ -111,13 +122,21 @@ set -euo pipefail
 tools/repo/migration/check-publication-main.sh /root/projects/ordivon
 """
 
-[tasks."next:verify"]
+[tasks."authority-catalog:verify"]
+run = "cd catalogs/authorities && mise run verify"
+
+[tasks."capability-catalog:verify"]
 run = """
 set -euo pipefail
-cd meta/next
-mise install
-mise run verify
-cd experimental/episode-store-r1
+uv run --project catalogs/capabilities --locked python -m pytest -q catalogs/capabilities/tests
+cd packages/composition
+uv run --locked --group reasoning python ../../catalogs/capabilities/scripts/verify_reasoning_providers.py
+"""
+
+[tasks."experimental-episodes:verify"]
+run = """
+set -euo pipefail
+cd studies/experimental-episodes/episode-store
 mise install
 mise run verify
 """
@@ -130,17 +149,30 @@ mise install
 mise run verify
 """
 
+[tasks."data:verify"]
+run = """
+set -euo pipefail
+cd packages/data
+mise run verify
+"""
+
+[tasks."data:formal:verify"]
+run = """
+set -euo pipefail
+cd packages/data
+mise run verify:formal
+"""
+
 [tasks."control-plugin:verify"]
 run = """
 set -euo pipefail
-cd meta/next
-mise install
-mise exec -- uv sync --locked
-mise exec -- uv run --locked python -m pytest -q tests/test_agent_plugin_materialization.py
-mise exec -- uv run --locked python - <<'PY'
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+python3 -m unittest discover -s tools/repo/agent_plugin -p test_materialize.py
+python3 - <<'PY'
 import json
 from pathlib import Path
-root = Path('../..') / 'extensions' / 'ordivon-control-plane'
+root = Path('extensions') / 'ordivon-control-plane'
 names = {p.name for p in root.iterdir()}
 assert names == {'plugin.json', 'mcp.json'}, names
 plugin = json.loads((root / 'plugin.json').read_text())
@@ -189,7 +221,7 @@ mise run verify
 [tasks."skills:verify"]
 run = """
 set -euo pipefail
-cd platform/skills
+cd extensions/chatgpt-skills-mcp
 mise install
 mise run verify
 """
@@ -299,8 +331,105 @@ uv sync --locked
 uv run ruff check .
 uv run ruff format --check .
 uv run python -m pytest -q
+uv run python formal/check_routing_conformance.py
+uv run python formal/check_owner_status_contract.py
 """
 
+
+# Optional owner-scoped TLC model checking. Reuse Runtime's pinned upstream
+# tla2tools JAR as a tool input; Gateway retains authority over its model.
+[tasks."gateway:formal:verify"]
+run = """
+set -euo pipefail
+jar="${ORDIVON_TLA_TOOLS_JAR:-$PWD/services/runtime/target/formal-tools/tla2tools-v1.7.4.jar}"
+if [[ "$jar" != /* || ! -f "$jar" || -L "$jar" ]]; then
+  echo "Gateway TLC needs a pinned absolute, regular TLA+ JAR" >&2
+  exit 2
+fi
+expected=$(python3 -c 'import json;print(json.load(open("services/runtime/formal/toolchain.lock.json"))["sha256"])')
+observed=$(sha256sum -- "$jar" | cut -d' ' -f1)
+test "$observed" = "$expected" || { echo "Unqualified TLA+ JAR digest" >&2; exit 2; }
+cd services/gateway/formal
+java -cp "$jar" tla2sany.SANY GatewayRoutingR1.tla
+routing_positive=$(java -cp "$jar" tlc2.TLC -workers 1 -config GatewayRoutingR1.cfg GatewayRoutingR1.tla)
+printf '%s\n' "$routing_positive" | grep -F 'Model checking completed. No error has been found.'
+for check in 'GatewayRoutingR1.reachability.cfg:NeverForward' 'GatewayRoutingR1.unsafe.cfg:ForwardedImpliesExactRoute'; do
+  config=$(printf '%s' "$check" | cut -d: -f1)
+  invariant=$(printf '%s' "$check" | cut -d: -f2)
+  set +e
+  output=$(java -cp "$jar" tlc2.TLC -workers 1 -config "$config" GatewayRoutingR1.tla 2>&1)
+  result=$?
+  set -e
+  [[ $result -eq 12 ]] || { printf '%s\n' "$output" | tail -30; exit 1; }
+  printf '%s\n' "$output" | grep -Fx "Error: Invariant $invariant is violated."
+done
+java -cp "$jar" tla2sany.SANY GatewayOwnerObservationR1.tla
+owner_positive=$(java -cp "$jar" tlc2.TLC -workers 1 -config GatewayOwnerObservationR1.cfg GatewayOwnerObservationR1.tla)
+printf '%s\n' "$owner_positive" | grep -F 'Model checking completed. No error has been found.'
+for check in 'GatewayOwnerObservationR1.reachability.cfg:NeverAvailable' 'GatewayOwnerObservationR1.unsafe.cfg:NoFalsePositive'; do
+  config=$(printf '%s' "$check" | cut -d: -f1)
+  invariant=$(printf '%s' "$check" | cut -d: -f2)
+  set +e
+  output=$(java -cp "$jar" tlc2.TLC -workers 1 -config "$config" GatewayOwnerObservationR1.tla 2>&1)
+  result=$?
+  set -e
+  [[ $result -eq 12 ]] || { printf '%s\n' "$output" | tail -30; exit 1; }
+  printf '%s\n' "$output" | grep -Fx "Error: Invariant $invariant is violated."
+done
+java -cp "$jar" tla2sany.SANY GatewayCapabilityAuthzR1.tla
+positive=$(java -cp "$jar" tlc2.TLC -workers 1   -config GatewayCapabilityAuthzR1.cfg GatewayCapabilityAuthzR1.tla)
+printf '%s\n' "$positive" | grep -F 'Model checking completed. No error has been found.'
+printf '%s\n' "$positive" | grep -E '^[0-9]+ states generated, [0-9]+ distinct states found, 0 states left on queue'
+for check in 'GatewayCapabilityAuthzR1.reachability.cfg:ForwardUnreachable'              'GatewayCapabilityAuthzR1.unsafe.cfg:ForwardImpliesBinding'              'GatewayCapabilityAuthzR1.unsafe-obligation.cfg:NoUnfulfilledV3Obligations'; do
+  config="${check%%:*}"
+  invariant="${check#*:}"
+  set +e
+  output=$(java -cp "$jar" tlc2.TLC -workers 1 -config "$config" GatewayCapabilityAuthzR1.tla 2>&1)
+  result=$?
+  set -e
+  [[ $result -eq 12 ]] || { printf '%s\n' "$output" | tail -30; exit 1; }
+  printf '%s\n' "$output" | grep -Fx "Error: Invariant $invariant is violated."
+  printf '%s\n' "$output" | grep -Eq '^State [1-9][0-9]*:'
+done
+
+# Bounded Host/Gateway authentication cutover order; live consumers still
+# require independent Security and physical network acceptance.
+java -cp "$jar" tla2sany.SANY GatewayHostCutoverR1.tla
+cutover_positive=$(java -cp "$jar" tlc2.TLC -workers 1 -config GatewayHostCutoverR1.cfg GatewayHostCutoverR1.tla)
+printf '%s\n' "$cutover_positive" | grep -F 'Model checking completed. No error has been found.'
+for check in 'GatewayHostCutoverR1.reachability.cfg:NeverFinished' 'GatewayHostCutoverR1.unsafe.cfg:HostProtectedNeedsQualifiedConsumers' 'GatewayHostCutoverR1.bearer-unsafe.cfg:GatewayPepNeedsVerifiedOwnerBearer'; do
+  config=$(printf '%s' "$check" | cut -d: -f1)
+  invariant=$(printf '%s' "$check" | cut -d: -f2)
+  set +e
+  output=$(java -cp "$jar" tlc2.TLC -workers 1 -config "$config" GatewayHostCutoverR1.tla 2>&1)
+  result=$?
+  set -e
+  test "$result" -ne 0
+  printf '%s\n' "$output" | grep -Fx "Error: Invariant $invariant is violated."
+done
+
+# One bounded Agent consumer boundary, distinct from physical Runtime close.
+java -cp "$jar" tla2sany.SANY GatewayAgentWorkspaceBindingR1.tla
+workspace_positive=$(java -cp "$jar" tlc2.TLC -workers 1 -config GatewayAgentWorkspaceBindingR1.cfg GatewayAgentWorkspaceBindingR1.tla)
+printf '%s\n' "$workspace_positive" | grep -F 'Model checking completed. No error has been found.'
+for check in 'GatewayAgentWorkspaceBindingR1.reachability.cfg:NeverAccepted' 'GatewayAgentWorkspaceBindingR1.unsafe.cfg:AcceptedRequiresExactOwnerWorkspace'; do
+  config=$(printf '%s' "$check" | cut -d: -f1)
+  invariant=$(printf '%s' "$check" | cut -d: -f2)
+  set +e
+  output=$(java -cp "$jar" tlc2.TLC -workers 1 -config "$config" GatewayAgentWorkspaceBindingR1.tla 2>&1)
+  result=$?
+  set -e
+  [[ $result -eq 12 ]] || { printf '%s\n' "$output" | tail -30; exit 1; }
+  printf '%s\n' "$output" | grep -Fx "Error: Invariant $invariant is violated."
+  printf '%s\n' "$output" | grep -Eq '^State [1-9][0-9]*:'
+done
+"""
+
+[tasks."chaoxing:verify"]
+run = """
+set -euo pipefail
+python3 -m unittest discover -s apps/chaoxing-autosign/tests -p "test_*.py"
+"""
 
 [tasks."web:verify"]
 run = """
@@ -319,3 +448,89 @@ uv run --with pyyaml==6.0.3 python capabilities/preservation/scripts/verify_sour
 
 [tasks."formal:verify"]
 run = "cd tools/formal && mise run verify"
+
+# Host owns the model; repo root composes Runtime-owned pinned TLC toolchain.
+[tasks."host:formal:attention-reentry"]
+description = "TLC: coherent re-entry, exact cursor receipts and negative controls"
+run = """
+set -euo pipefail
+repo_root="$(git rev-parse --show-toplevel)"
+jar="${ORDIVON_TLA_TOOLS_JAR:-$repo_root/services/runtime/target/formal-tools/tla2tools-v1.7.4.jar}"
+if [[ "$jar" != /* || ! -f "$jar" || -L "$jar" ]]; then
+  echo "Host Attention TLC requires the existing pinned absolute TLA+ JAR" >&2
+  exit 2
+fi
+expected="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sha256"])' "$repo_root/services/runtime/formal/toolchain.lock.json")"
+observed="$(sha256sum -- "$jar" | cut -d' ' -f1)"
+test "$observed" = "$expected" || { echo "Host Attention TLA+ toolchain digest mismatch" >&2; exit 2; }
+scratch="$(mktemp -d)"
+trap 'rm -rf "$scratch"' EXIT
+cp "$repo_root/services/host/formal/"HostAttentionReentryR1.* "$scratch/"
+cp "$repo_root/services/host/formal/"HostCursorReceiptR1.* "$scratch/"
+cd "$scratch"
+for model in HostAttentionReentryR1 HostCursorReceiptR1; do
+  java -cp "$jar" tla2sany.SANY "$model.tla" >/dev/null
+  positive="$(java -Xmx512m -cp "$jar" tlc2.TLC -workers 1 -config "$model.cfg" "$model.tla")"
+  printf '%s\\n' "$positive" | grep -F 'Model checking completed. No error has been found.'
+  printf '%s\\n' "$positive" | grep -F 'distinct states found'
+done
+for case in 'HostAttentionReentryR1:unsafe:ReturnedCursorFromSameCut' 'HostAttentionReentryR1:unsafe-page:NoSkippedEligiblePageEvent' 'HostCursorReceiptR1:unsafe-predecessor:ReceiptChain' 'HostCursorReceiptR1:unsafe-replay:ReplayExact'; do
+  IFS=: read -r model variant invariant <<< "$case"
+  set +e
+  negative="$(java -Xmx512m -cp "$jar" tlc2.TLC -workers 1 -config "$model.$variant.cfg" "$model.tla" 2>&1)"
+  status=$?
+  set -e
+  if [[ "$status" -ne 12 ]]; then
+    printf '%s\\n' "$negative" | tail -30
+    exit 1
+  fi
+  printf '%s\\n' "$negative" | grep -Fx "Error: Invariant $invariant is violated."
+done
+"""
+
+# Source-scoped response protocol proof. Reuses the pinned Runtime TLC JAR;
+# no separate toolchain or unconditional gate on machines without it.
+[tasks."web:formal:effect-response"]
+run = """
+set -euo pipefail
+repo_root="$(git rev-parse --show-toplevel)"
+jar="${ORDIVON_TLA_TOOLS_JAR:-$repo_root/services/runtime/target/formal-tools/tla2tools-v1.7.4.jar}"
+if [[ "$jar" != /* || ! -f "$jar" || -L "$jar" ]]; then
+  echo "Web effect response TLC requires the existing pinned absolute TLA+ JAR" >&2
+  exit 2
+fi
+expected="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sha256"])' "$repo_root/services/runtime/formal/toolchain.lock.json")"
+observed="$(sha256sum -- "$jar" | cut -d' ' -f1)"
+test "$observed" = "$expected" || { echo "TLA+ toolchain digest mismatch" >&2; exit 2; }
+cd "$repo_root/apps/web/formal"
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+java -cp "$jar" tla2sany.SANY AgentEffectResponseR1.tla
+java -cp "$jar" tlc2.TLC -workers 1 -metadir "$tmp/safe" -config AgentEffectResponseR1.cfg AgentEffectResponseR1.tla > "$tmp/safe.log"
+grep -F 'Model checking completed. No error has been found.' "$tmp/safe.log"
+grep -F 'distinct states found' "$tmp/safe.log"
+for pair in legacy-revoke:NoStaleApproval legacy-replay:ExactCommitWins legacy-ambiguity:NoAmbiguousCommit reach-step-up:NeverStepUp reach-replay:NeverReplay; do
+  name="${pair%:*}"
+  invariant="${pair#*:}"
+  set +e
+  java -cp "$jar" tlc2.TLC -workers 1 -metadir "$tmp/$name" -config "AgentEffectResponseR1.$name.cfg" AgentEffectResponseR1.tla > "$tmp/$name.log" 2>&1
+  status=$?
+  set -e
+  test "$status" = 12 || { cat "$tmp/$name.log"; exit 1; }
+  grep -F "Invariant $invariant is violated" "$tmp/$name.log"
+done
+java -cp "$jar" tla2sany.SANY EffectApprovalRecordR1.tla
+java -cp "$jar" tlc2.TLC -workers 1 -metadir "$tmp/approval-safe" -config EffectApprovalRecordR1.cfg EffectApprovalRecordR1.tla > "$tmp/approval-safe.log"
+grep -F 'Model checking completed. No error has been found.' "$tmp/approval-safe.log"
+grep -F 'distinct states found' "$tmp/approval-safe.log"
+for pair in legacy-terminal:TerminalConsumed legacy-binding:BindingImmutable legacy-pending:NoPendingAfterCommit reach-commit:NeverCommitted reach-renew:NeverRenewed; do
+  name="${pair%:*}"
+  invariant="${pair#*:}"
+  set +e
+  java -cp "$jar" tlc2.TLC -workers 1 -metadir "$tmp/approval-$name" -config "EffectApprovalRecordR1.$name.cfg" EffectApprovalRecordR1.tla > "$tmp/approval-$name.log" 2>&1
+  status=$?
+  set -e
+  test "$status" = 12 || { cat "$tmp/approval-$name.log"; exit 1; }
+  grep -F "Invariant $invariant is violated" "$tmp/approval-$name.log"
+done
+"""

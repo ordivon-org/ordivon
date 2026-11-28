@@ -14,11 +14,11 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use super::{
-    canonical_directory, now_unix_ms, sha256_file, workspace_source_state_digest_at,
-    write_json_atomic, write_resource_receipt_from_cgroup_root, CapturedOutput,
-    RunnerExecutionStep, RunnerProgress, RunnerRequest, RunnerResult, RunnerStartEvidence,
-    RunnerStepResult, RunnerTerminalStatus, UniversalExecError, UniversalExecErrorCode,
-    UNIVERSAL_EXEC_SCHEMA_VERSION,
+    canonical_directory, lock_attempt_spawn_fence, now_unix_ms, sha256_file,
+    workspace_source_readset_digest_at, workspace_source_state_digest_at, write_json_atomic,
+    write_resource_receipt_from_cgroup_root, CapturedOutput, RunnerExecutionStep, RunnerProgress,
+    RunnerRequest, RunnerResult, RunnerStartEvidence, RunnerStepResult, RunnerTerminalStatus,
+    UniversalExecError, UniversalExecErrorCode, UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
 
 const REQUEST_FILE: &str = "request.json";
@@ -47,7 +47,8 @@ struct WorkspaceSourceObservationEvidence<'a> {
     observation_error_code: Option<&'a str>,
     observed_unix_ms: u128,
 }
-const TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/proc/self/fd/198";
+const TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/run/ordivon/cargo-target";
+const LEGACY_TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/proc/self/fd/198";
 const TRUSTED_BUILD_TARGET_PRESENTATION_FD: libc::c_int = 198;
 
 pub fn run_job_runner(task_dir: &Path) -> Result<(), UniversalExecError> {
@@ -55,7 +56,7 @@ pub fn run_job_runner(task_dir: &Path) -> Result<(), UniversalExecError> {
         return Err(runner_error("task directory must be absolute"));
     }
     let task_dir = canonical_directory(task_dir, "taskDir")?;
-    let request = load_request(&task_dir)?;
+    let (request, bundle_digest) = load_request(&task_dir)?;
     let started_unix_ms = now_unix_ms()?;
     let execution = validate_request_identity(&request).and_then(|()| {
         write_runner_start(&task_dir, &request, None, started_unix_ms)?;
@@ -95,6 +96,7 @@ pub fn run_job_runner(task_dir: &Path) -> Result<(), UniversalExecError> {
         execute_request(
             &task_dir,
             &request,
+            &bundle_digest,
             started_unix_ms,
             host_dependency_watch.as_mut(),
         )
@@ -154,7 +156,11 @@ fn observe_workspace_source(request: &RunnerRequest) -> Result<Option<String>, U
         ),
         "workspacePath",
     )?;
-    workspace_source_state_digest_at(&workspace).map(Some)
+    if let Some(paths) = request.workspace_read_paths.as_deref() {
+        workspace_source_readset_digest_at(&workspace, paths).map(Some)
+    } else {
+        workspace_source_state_digest_at(&workspace).map(Some)
+    }
 }
 
 fn write_workspace_source_observation(
@@ -468,6 +474,7 @@ fn validate_input_commitments(request: &RunnerRequest) -> Result<(), UniversalEx
 fn execute_request(
     task_dir: &Path,
     request: &RunnerRequest,
+    bundle_digest: &str,
     started_unix_ms: u128,
     mut host_dependency_watch: Option<&mut PathDriftWatch>,
 ) -> Result<RunnerResult, UniversalExecError> {
@@ -555,6 +562,7 @@ fn execute_request(
             request,
             &workspace,
             step,
+            bundle_digest,
             StepExecutionContext {
                 overall_deadline,
                 stdout_retained_before: stdout_retained,
@@ -562,6 +570,12 @@ fn execute_request(
                 host_dependency_watch: host_dependency_watch.as_deref_mut(),
             },
         )?;
+        // A stop committed during Step preparation won the final native
+        // spawn fence: do not manufacture a failed child that never existed.
+        let Some(outcome) = outcome else {
+            cancelled = true;
+            break;
+        };
         stdout_retained = stdout_retained.saturating_add(outcome.stdout_retained);
         stderr_retained = stderr_retained.saturating_add(outcome.stderr_retained);
         stdout_dropped = stdout_dropped.saturating_add(outcome.stdout_dropped);
@@ -719,13 +733,64 @@ pub(super) fn apply_systemd_credential_environment(
     }
 }
 
+/// Native payload receiver, not a second northbound admission or retry path.
+fn spawn_at_issuer_cut(
+    request: &RunnerRequest,
+    bundle_digest: &str,
+    command: &mut Command,
+) -> Result<std::io::Result<std::process::Child>, UniversalExecError> {
+    let Some(fence) = &request.issuer_spawn_fence else {
+        return Ok(command.spawn());
+    };
+    #[cfg(not(all(feature = "postgres-registry-admission", target_os = "linux")))]
+    {
+        let _ = (fence, bundle_digest, command);
+        Err(runner_error(
+            "issuer-fenced payload requires PG-capable native Runner",
+        ))
+    }
+    #[cfg(all(feature = "postgres-registry-admission", target_os = "linux"))]
+    {
+        use crate::pg_admission::{
+            read_private_spawn_dsn, PgAdmissionError, PgAdmissionStore, PgIssuedHarnessSpawn,
+        };
+        let denied = || runner_error("native Harness issuer receiver not qualified");
+        let dsn = read_private_spawn_dsn(Path::new(&fence.dsn_file)).map_err(|_| denied())?;
+        let mut store =
+            PgAdmissionStore::connect(&dsn, &fence.runtime_schema).map_err(|_| denied())?;
+        let job = request.job_id.as_deref().ok_or_else(denied)?;
+        let attempt = request.attempt_id.as_deref().ok_or_else(denied)?;
+        let token = request.launch_token.as_deref().ok_or_else(denied)?;
+        store
+            .with_current_issued_harness_spawn(
+                PgIssuedHarnessSpawn {
+                    job_id: job,
+                    attempt_id: attempt,
+                    principal: &fence.principal,
+                    bundle_digest,
+                    launch_token_digest: &sha256_text(token),
+                    source_sha256: &fence.source_sha256,
+                    issuer_schema: &fence.issuer_schema,
+                },
+                || command.spawn(),
+            )
+            .map_err(|error| match error {
+                PgAdmissionError::IssuerNotCurrent => {
+                    runner_error("Harness issuer revoked before native payload spawn")
+                }
+                _ => denied(),
+            })
+    }
+}
+
 fn execute_step(
     task_dir: &Path,
     request: &RunnerRequest,
     workspace: &Path,
     step: &RunnerExecutionStep,
+    bundle_digest: &str,
     mut context: StepExecutionContext<'_>,
-) -> Result<StepOutcome, UniversalExecError> {
+) -> Result<Option<StepOutcome>, UniversalExecError> {
     let cwd_text = if let Some(payload) = &request.payload {
         let relative = Path::new(&step.cwd)
             .strip_prefix(&request.workspace_path)
@@ -755,8 +820,16 @@ fn execute_step(
     command.envs(&step.env);
     let credentials_directory = std::env::var_os(SYSTEMD_CREDENTIALS_DIRECTORY_ENV);
     apply_systemd_credential_environment(&mut command, credentials_directory.as_deref());
-    let _build_target_backing = if step.env.get("CARGO_TARGET_DIR").map(String::as_str)
+    if step.env.get("CARGO_TARGET_DIR").map(String::as_str)
         == Some(TRUSTED_BUILD_TARGET_PRESENTATION)
+        && !Path::new(TRUSTED_BUILD_TARGET_PRESENTATION).is_dir()
+    {
+        return Err(runner_error(
+            "trusted Cargo target requires the native per-Unit Workspace bind mount",
+        ));
+    }
+    let _build_target_backing = if step.env.get("CARGO_TARGET_DIR").map(String::as_str)
+        == Some(LEGACY_TRUSTED_BUILD_TARGET_PRESENTATION)
     {
         let backing = request.build_target_backing.as_deref().ok_or_else(|| {
             runner_error("stable Cargo target presentation has no private backing")
@@ -785,14 +858,37 @@ fn execute_step(
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    let mut child = command.spawn().map_err(|error| {
-        UniversalExecError::new(
-            UniversalExecErrorCode::ToolFailed,
-            format!("cannot start step {}: {error}", step.id),
-            Some("steps.executable"),
-            false,
-        )
-    })?;
+    // The per-Attempt lock serializes the final cancellation marker read
+    // and spawn. For an issuer-fenced Job the same-PG source row lock is
+    // additionally held through spawn; cancellation commits PG intent
+    // before acquiring this filesystem lock, never holds PG while waiting.
+    let spawn_guard = if request.job_id.is_some() {
+        Some(lock_attempt_spawn_fence(task_dir)?)
+    } else {
+        None
+    };
+    if spawn_guard.is_some() {
+        match fs::symlink_metadata(task_dir.join(CANCEL_FILE)) {
+            Ok(metadata) if metadata.is_file() => return Ok(None),
+            Ok(_) => return Err(runner_error("PG cancellation marker is not a regular file")),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => {
+                return Err(runner_error(format!(
+                    "cannot check PG cancellation marker before spawn: {error}"
+                )))
+            }
+        }
+    }
+    let mut child =
+        spawn_at_issuer_cut(request, bundle_digest, &mut command)?.map_err(|error| {
+            UniversalExecError::new(
+                UniversalExecErrorCode::ToolFailed,
+                format!("cannot start step {}: {error}", step.id),
+                Some("steps.executable"),
+                false,
+            )
+        })?;
+    drop(spawn_guard);
     let stdout = child
         .stdout
         .take()
@@ -904,14 +1000,14 @@ fn execute_step(
     if let Some(error) = runtime_drift {
         return Err(error);
     }
-    Ok(StepOutcome {
+    Ok(Some(StepOutcome {
         status,
         timed_out,
         stdout_retained,
         stderr_retained,
         stdout_dropped,
         stderr_dropped,
-    })
+    }))
 }
 
 fn terminate_process_group(pid: u32, step_id: &str) -> Result<(), UniversalExecError> {
@@ -1432,7 +1528,7 @@ fn path_runtime_drift(kind: PathDriftKind, path: &Path, mask: u32) -> UniversalE
     )
 }
 
-fn load_request(task_dir: &Path) -> Result<RunnerRequest, UniversalExecError> {
+fn load_request(task_dir: &Path) -> Result<(RunnerRequest, String), UniversalExecError> {
     let path = task_dir.join(REQUEST_FILE);
     let bytes = fs::read(&path).map_err(|error| {
         UniversalExecError::new(
@@ -1442,14 +1538,15 @@ fn load_request(task_dir: &Path) -> Result<RunnerRequest, UniversalExecError> {
             false,
         )
     })?;
-    serde_json::from_slice(&bytes).map_err(|error| {
+    let request = serde_json::from_slice(&bytes).map_err(|error| {
         UniversalExecError::new(
             UniversalExecErrorCode::MetadataCorrupt,
             format!("invalid runner request: {error}"),
             None,
             false,
         )
-    })
+    })?;
+    Ok((request, super::sha256_bytes(&bytes)))
 }
 
 fn validate_request_identity(request: &RunnerRequest) -> Result<(), UniversalExecError> {
@@ -1471,11 +1568,18 @@ fn validate_request_identity(request: &RunnerRequest) -> Result<(), UniversalExe
             ));
         }
     }
-    let uses_stable_build_target = request.env.get("CARGO_TARGET_DIR").map(String::as_str)
-        == Some(TRUSTED_BUILD_TARGET_PRESENTATION)
+    let is_native_build_target = |value: &str| {
+        value == TRUSTED_BUILD_TARGET_PRESENTATION
+            || value == LEGACY_TRUSTED_BUILD_TARGET_PRESENTATION
+    };
+    let uses_stable_build_target = request
+        .env
+        .get("CARGO_TARGET_DIR")
+        .is_some_and(|value| is_native_build_target(value))
         || request.steps.iter().any(|step| {
-            step.env.get("CARGO_TARGET_DIR").map(String::as_str)
-                == Some(TRUSTED_BUILD_TARGET_PRESENTATION)
+            step.env
+                .get("CARGO_TARGET_DIR")
+                .is_some_and(|value| is_native_build_target(value))
         });
     match request.build_target_backing.as_deref() {
         None if !uses_stable_build_target => {}

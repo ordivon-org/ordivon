@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -16,8 +17,27 @@ def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _reject_non_json_constant(token: str) -> Any:
+    raise ValueError(f"non-JSON numeric constant: {token}")
+
+
+def decode_json(text: str) -> Any:
+    return json.loads(
+        text,
+        object_pairs_hook=_unique_json_object,
+        parse_constant=_reject_non_json_constant,
+    )
+
+
 def load_json(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_unique_json_object)
+    return decode_json(path.read_text(encoding="utf-8"))
+
+
+def load_json_with_digest(path: Path) -> tuple[Any, str]:
+    """Decode and hash the same opened file bytes, rejecting duplicate keys."""
+    content = path.read_bytes()
+    value = decode_json(content.decode("utf-8"))
+    return value, hashlib.sha256(content).hexdigest()
 
 
 def validate_json_document(

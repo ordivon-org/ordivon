@@ -13,7 +13,7 @@ audience:
   - operator
   - builder
   - agent
-updated: 2026-08-08
+updated: 2026-11-09
 summary: Canonical operational contract for Harness Run execution, concurrent worker fencing, targeted reopen validation, Doctor, recovery, and escalation.
 evidence_status: verified
 readiness: READY
@@ -28,34 +28,71 @@ related:
 
 ## Authority
 
-One state root means one independent Harness Journal/CAS. There is no Host-backed writer and no cutover mode.
+The first-party Harness CLI uses a caller-provisioned PostgreSQL database
+and selected Harness schema. Set `HARNESS_PG_DSN` (and optionally
+`HARNESS_PG_SCHEMA`, default `harness`) before invoking CLI operations.
+There is no SQLite CLI fallback, Host-backed writer or cutover selector.
+The supported public Python Run API requires PostgreSQL and does not accept a state-root SQLite fallback.
 
 ```bash
-ordivon-harness --state-root /path/to/harness-state doctor
-ordivon-harness --state-root /path/to/harness-state status HARNESS_RUN_ID
-ordivon-harness --state-root /path/to/harness-state inspect HARNESS_RUN_ID
+ordivon-harness doctor
+ordivon-harness status HARNESS_RUN_ID
+ordivon-harness inspect HARNESS_RUN_ID
 ```
 
 ## Store administration
 
 ```bash
-ordivon-harness --state-root /path/to/harness-state store-init
-ordivon-harness --state-root /path/to/harness-state store-doctor
-ordivon-harness --state-root /path/to/harness-state store-events HARNESS_RUN_ID
-ordivon-harness --state-root /path/to/harness-state store-backup /path/to/backup
-ordivon-harness store-verify-backup /path/to/backup
-ordivon-harness store-restore /path/to/backup /new/state/root
+ordivon-harness store-init
+ordivon-harness store-doctor
+ordivon-harness store-events HARNESS_RUN_ID
 ```
 
-Only `store-init` creates an authority root. Backup/restore refuse unsafe destination reuse and verification checks both database and retained CAS object truth.
+`store-init` creates the selected Harness schema/tables in an existing
+operator-provisioned PostgreSQL database, not a new database authority.
+Backup/restore belong to the PostgreSQL owner through its native tooling
+(e.g. `pg_dump` and `pg_restore`) with exact database and schema selection.
+The CLI exposes no old SQLite backup, verify-backup or restore subcommand.
 
-Ordinary Store open performs global schema/SQLite/CAS validation. It deliberately does not replay every Run history. A Run is semantically replay-validated when its Continuity Store is opened, before Provider or Tool execution can resume. `doctor` / `store-doctor` remains the explicit authority-wide check that replays all Run histories.
+Opening a PostgreSQL Store validates its schema and retained Run authority.
+It deliberately does not replay every Run history. A Run is semantically replay-validated when its Continuity Store is opened, before Provider or Tool execution can resume. `doctor` / `store-doctor` remains the explicit authority-wide check that replays all Run histories.
 
 ## Run handling
 
 A CREATED Run is executed with `run`. A PAUSED Run requires `resume`. A terminal Run is inspected rather than executed again. Contract digest conflicts fail closed.
 
-Multiple workers may open the same authority root, but execution leases and Provider claim holders are instance-unique. Competing workers must lose before physical Provider/Runtime delivery; deterministic event identity is for replay/idempotency, not permission for multiple workers to execute the same dispatch.
+Multiple workers may open the same PostgreSQL Harness schema, but execution leases and Provider claim holders are instance-unique. Competing workers must lose before physical Provider/Runtime delivery; deterministic event identity is for replay/idempotency, not permission for multiple workers to execute the same dispatch.
+
+### Workspace retention while a Tool-enabled Run can resume (open P0)
+
+**Operator safety notice, 2026-11-16:** Native Runtime `workspace.close`
+currently trusts an explicit `consumerReleased=true` caller assertion in
+a way that does not certify a PAUSED or ACTIVE Harness Run in another
+PostgreSQL database has released its frozen Workspace. The real disposable
+counterexample is Runtime Job
+`job-01a1e41a-ca97-775b-ab8d-48c231b6455a`
+(see the exact authoritative evidence ID in `VERIFICATION.md`);
+the normal caller claim, inactive Job list or four-hour idle age is
+**not** sufficient evidence for reclaiming a live Harness consumer.
+
+Before closing a Workspace referenced by a nonterminal original Run,
+inspect its original Run/Grant, all unresolved Provider/Tool effects,
+the native Workspace/Job projection, uncommitted source and outstanding
+Git/Artifact/domain recipients. Until the native Runtime PG Claim and
+certified release are installed and physically qualified, keep such a
+Workspace held; do not use force or an unverified release assertion to
+make cleanup appear successful. Source edits change the current close-CAS
+digest but not the Run's frozen Workspace identity. Successful terminal
+delivery permits a *qualified* per-Run finalizer, not immediate deletion
+of another Run's Workspace. Missing or uncertain evidence is a HOLD and
+should be reported to the natural Harness/Runtime owners.
+
+**Finalizer rule:** Before certifying release, inspect the full
+Harness PostgreSQL ordered Run event chain, not merely `terminal=true`
+or the latest Tool head; verify every uncertain external effect is
+settled. A hidden QA PASS without a persisted candidate and downstream
+byte-level acceptance is not a delivery certificate. Other PAUSED
+Runs sharing this Workspace may still have their own HELD claims.
 
 ## Provider recovery
 
@@ -117,6 +154,65 @@ admission: reconcile and retry until source sealing is proven. Do not resume
 old SQLite writes. Native tests use an isolated disposable PostgreSQL and
 temporary SQLite fixtures, never deployed data.
 
+
+### Fresh PostgreSQL Wake/Turn identities (no historical SQLite import)
+
+When the operator explicitly discards **all prior wake/turn runtime identities**,
+the existing PostgreSQL Wake Owner can admit an empty epoch without copying
+SQLite. This is **not** permission to replay or resend an ambiguous external
+effect: stop and reconcile old Browserless/Temporal workers and unfinished
+Provider sends *before* selecting fresh identity, then prove the exact legacy
+wake ledger is absent. Merely deleting an open SQLite path is not process
+quiescence. Coordinate the deployed consumer atomically with the PG authority.
+
+After provisioning an isolated PostgreSQL database, invoke the already
+installed PG Owner in an operator-only process (not on a Provider effect path):
+
+    export ORDIVON_WAKE_TURN_POSTGRES_DSN='postgresql://...'
+    python -c 'import os; from pathlib import Path; from scripts.postgres_wake_turn_map import PostgresWakeTurnMap; print(PostgresWakeTurnMap(os.environ["ORDIVON_WAKE_TURN_POSTGRES_DSN"]).activate_empty_fresh(Path("/exact/absent/old-turn-ledger.sqlite")))'
+
+This commits only the existing PG `wake_cutover=ACTIVE` marker after proving
+zero destination rows; it rejects a present old source, a pending historical
+migration, or a pre-populated destination. It cannot independently prove no
+old process will recreate SQLite. Once old writers are stopped, enable the
+consumer with **both**:
+
+    ORDIVON_WAKE_TURN_POSTGRES_DSN=...
+    ORDIVON_WAKE_TURN_FRESH_BOOTSTRAP=1
+
+The consumer checks the absent legacy path at each wake and sends all new
+wake identities to PostgreSQL. With the fresh flag set but no PG DSN, the
+consumer **fails closed** rather than writing an SQLite identity. Without the
+explicit fresh flag the prior sealed-source migration requirement remains.
+This Wake cutover does not by itself switch Harness Run/CAS, conversation
+materialization, conversation role-binding, or Turn Effect send receipts.
+Do not mark those separate Owners as cut over.
+
+### PG-only Browserless identity/effect consumer selection
+
+The deployed Browserless owner has **three independent identity/effect seams**:
+conversation role binding, wake-to-turn mapping, and external turn-send effect
+receipts. To prevent a partially configured release from quietly writing a
+different SQLite authority, set
+`ORDIVON_BROWSERLESS_PG_IDENTITIES_EFFECTS_REQUIRED=1` **only after** all
+three existing PG authorities have been independently activated, all old
+Browserless/Temporal effect senders quiesced, and a coherent installed release
+prepared. The following three existing DSNs are then **mandatory**:
+
+- `ORDIVON_CONVERSATION_BINDING_POSTGRES_DSN` — affinity read/adopt
+- `ORDIVON_WAKE_TURN_POSTGRES_DSN` — wake-to-turn identity allocation
+- `ORDIVON_TURN_EFFECT_POSTGRES_DSN` — effect read / Provider send
+
+In this mode, a missing DSN fails closed *before* any legacy SQLite call at
+each corresponding consumer, including the separate Playwright send process.
+No new registry, shared credentials file, or alternate provider transport is
+introduced. Fresh wake identities additionally require
+`ORDIVON_WAKE_TURN_FRESH_BOOTSTRAP=1` with an absent old wake file.
+Conversation binding and turn effects retain their own established PG
+activation obligations: this selection switch does **not** grant authority
+to initialize them automatically and does not override the live SQLite
+materialization ledger. This is a **scoped** PG-only cutover: general Harness
+Run/CAS and Browserless materialization remain separate owners.
 
 ### PG-first Turn Effects: retire legacy effect writer (explicit operator cutover)
 

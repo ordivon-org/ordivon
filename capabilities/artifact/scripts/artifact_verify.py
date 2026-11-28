@@ -13,6 +13,7 @@ import hashlib
 import importlib.util
 import json
 import sys
+import tempfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -24,8 +25,15 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from artifact_core.bindings import CapabilityBindingRegistry
-from artifact_core.contracts import sha256_file
+from artifact_core.json_validation import load_json
 from artifact_core.profiles import ProfileRegistry
+from artifact_verification.claim_coverage import (
+    assess_required_evidence,
+    assess_required_statuses,
+)
+from artifact_verification.native_identity import assess_native_identity
+from artifact_verification.request_inputs import bind_request_inputs, resolve_request_path
+from artifact_verification.tool_identity import assess_native_tool_paths
 
 ART = ROOT / "artifact-delivery"
 REQUEST_SCHEMA = ART / "verification/request-v1.schema.json"
@@ -37,10 +45,6 @@ BINDING_REGISTRY = CapabilityBindingRegistry(ART)
 def canonical_sha256(value: Any) -> str:
     raw = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
     return hashlib.sha256(raw).hexdigest()
-
-
-def load_json(path: Path) -> Any:
-    return json.loads(path.read_text())
 
 
 def request_fail(request_id: str | None, failures: list[str], *, request_digest: str | None = None) -> dict[str, Any]:
@@ -61,24 +65,29 @@ def validate_request(value: Any) -> list[str]:
     return [e.message for e in sorted(validator.iter_errors(value), key=lambda e: list(e.path))]
 
 
-def resolve_request_path(raw: str) -> Path:
-    path = Path(raw).expanduser()
-    if not path.is_absolute():
-        path = Path.cwd() / path
-    return path.resolve()
-
-
 def load_function(relative: str, name: str) -> tuple[Callable[..., dict[str, Any]], str]:
-    path = ROOT / relative
+    """Bind the executed Python entrypoint to one exact source-byte observation.
+
+    Do not hash the pathname *after* import: replacement between import and
+    hashing would falsely attribute executed code to different source bytes.
+    This binds this module only, not imports, native subprocesses or the host.
+    """
+    path = (ROOT / relative).resolve()
+    if ROOT not in path.parents or path.suffix != ".py":
+        raise RuntimeError(f"verifier module is outside Artifact Python source: {relative}")
     spec = importlib.util.spec_from_file_location("artifact_verify_delegate_" + path.stem, path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"cannot load verifier module: {relative}")
+    source = path.read_bytes()
+    observed_sha256 = hashlib.sha256(source).hexdigest()
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # Compile exactly the bytes hashed above, avoiding a second file read and
+    # the import loader's possible stale pyc optimization.
+    exec(compile(source, str(path), "exec"), module.__dict__)
     fn = getattr(module, name, None)
     if not callable(fn):
         raise RuntimeError(f"verifier function missing: {relative}:{name}")
-    return fn, sha256_file(path)
+    return fn, observed_sha256
 
 
 def verify_request(request_path: Path) -> dict[str, Any]:
@@ -98,78 +107,207 @@ def verify_request(request_path: Path) -> dict[str, Any]:
         binding = BINDING_REGISTRY.resolve(profile_id, "verify")
     except KeyError:
         return request_fail(request_id, [f"profile is not on the Artifact verification R1 service surface: {profile_id}"], request_digest=request_digest)
-    except RuntimeError as error:
+    except (RuntimeError, ValueError, OSError) as error:
         return request_fail(request_id, [f"profile capability binding unavailable: {error}"], request_digest=request_digest)
 
     try:
         profile_record = PROFILE_REGISTRY.resolve(profile_id)
-    except (KeyError, RuntimeError) as error:
+    except (KeyError, RuntimeError, ValueError, OSError) as error:
         return request_fail(request_id, [f"registered profile unavailable: {error}"], request_digest=request_digest)
 
-    profile_path = resolve_request_path(profile_ref["path"])
-    expected_profile_root = PROFILE_ROOT.resolve()
-    if expected_profile_root not in profile_path.parents:
-        return request_fail(request_id, ["profile path is outside the normalized Artifact profile authority"], request_digest=request_digest)
-    if not profile_path.is_file():
-        return request_fail(request_id, ["profile file is unavailable"], request_digest=request_digest)
-    if sha256_file(profile_path) != profile_ref["sha256"]:
-        return request_fail(request_id, ["profile bytes differ from request digest"], request_digest=request_digest)
-    profile = load_json(profile_path)
-    if profile.get("profileVersion") != 2 or profile.get("id") != profile_id:
-        return request_fail(request_id, ["profile identity/version differs from request"], request_digest=request_digest)
-    if profile_path != profile_record.canonical_path:
-        return request_fail(request_id, ["profile path does not match the registered canonical profile"], request_digest=request_digest)
+    with tempfile.TemporaryDirectory(prefix="artifact-verify-input-") as temporary:
+        scratch = Path(temporary)
+        try:
+            inputs = bind_request_inputs(request, binding, profile_record, PROFILE_ROOT, scratch)
+        except (OSError, RuntimeError, ValueError) as error:
+            return request_fail(request_id, [str(error)], request_digest=request_digest)
+        profile = inputs.profile
+        profile_path = inputs.profile_path
+        subject_path = inputs.subject.original
+        subject_sha = inputs.subject.sha256
+        subject_size = inputs.subject.size
+        delegated_subject = inputs.subject.delegated
+        pinned = binding.snapshot_inputs
+        contract_path = inputs.contract.original if inputs.contract else None
+        contract_fact = (
+            {"path": str(inputs.contract.original), "sha256": inputs.contract.sha256}
+            if inputs.contract else None
+        )
+        delegated_contract = inputs.contract.delegated if inputs.contract else None
 
-    subject_path = resolve_request_path(request["subject"]["path"])
-    if not subject_path.is_file():
-        return request_fail(request_id, ["subject is not a regular file"], request_digest=request_digest)
-    subject_sha = sha256_file(subject_path)
-    if subject_sha != request["subject"]["sha256"]:
-        return request_fail(request_id, ["subject bytes differ from request digest"], request_digest=request_digest)
+        evidence_dir = resolve_request_path(request["evidenceDirectory"])
+        evidence_dir.mkdir(parents=True, exist_ok=True)
+        verifier_relative = binding.entrypoint.module
+        verifier_name = binding.entrypoint.callable
+        try:
+            verifier, verifier_sha = load_function(verifier_relative, verifier_name)
+            precheck_issues = inputs.recheck_legacy()
+            if precheck_issues:
+                return request_fail(request_id, precheck_issues, request_digest=request_digest)
+            if binding.object_contract_required:
+                assert delegated_contract is not None
+                delegated = verifier(delegated_subject, delegated_contract, evidence_dir)
+            else:
+                delegated = verifier(delegated_subject, evidence_dir)
+        except Exception as error:
+            return request_fail(
+                request_id,
+                [f"native verifier execution failed: {type(error).__name__}: {error}"],
+                request_digest=request_digest,
+            )
+        if not isinstance(delegated, dict):
+            return request_fail(
+                request_id,
+                ["native verifier did not return an evidence object"],
+                request_digest=request_digest,
+            )
 
-    contract_path: Path | None = None
-    contract_fact: dict[str, Any] | None = None
-    if request.get("objectContract"):
-        contract_path = resolve_request_path(request["objectContract"]["path"])
-        if not contract_path.is_file():
-            return request_fail(request_id, ["object contract is not a regular file"], request_digest=request_digest)
-        contract_sha = sha256_file(contract_path)
-        if contract_sha != request["objectContract"]["sha256"]:
-            return request_fail(request_id, ["object contract bytes differ from request digest"], request_digest=request_digest)
-        contract_fact = {"path": str(contract_path), "sha256": contract_sha}
-    elif binding.object_contract_required:
-        return request_fail(request_id, [f"profile requires an object contract: {profile_id}"], request_digest=request_digest)
-
-    evidence_dir = resolve_request_path(request["evidenceDirectory"])
-    evidence_dir.mkdir(parents=True, exist_ok=True)
-    verifier_relative = binding.entrypoint.module
-    verifier_name = binding.entrypoint.callable
-    verifier, verifier_sha = load_function(verifier_relative, verifier_name)
-    if binding.object_contract_required:
-        assert contract_path is not None
-        delegated = verifier(subject_path, contract_path, evidence_dir)
-    else:
-        delegated = verifier(subject_path, evidence_dir)
-
-    delegated_status = delegated.get("status")
-    result = {
-        "schemaVersion": 1,
-        "kind": "artifact-verification-result",
-        "requestId": request_id,
-        "requestDigest": request_digest,
-        "status": "PASS" if delegated_status == "PASS" else "FAIL",
-        "profile": {"id": profile_id, "path": str(profile_path), "sha256": profile_ref["sha256"], "standing": "SHADOW_PROFILE_LIVE_VERIFIER"},
-        "subject": {"path": str(subject_path), "sha256": subject_sha, "size": subject_path.stat().st_size},
-        "objectContract": contract_fact,
-        "capabilityBinding": {"path": str(binding.standing_path), "sha256": binding.standing_sha256, "standing": binding.standing},
-        "verifier": {"path": verifier_relative, "sha256": verifier_sha, "function": verifier_name, "capabilityId": binding.capability_id},
-        "consumer": request.get("consumer"),
-        "verification": delegated,
-        "failures": list(delegated.get("failures") or []),
-        "boundary": "PASS means the exact requested bytes passed the selected Artifact profile through its existing live-proven family verifier. It does not promote a shadow profile to production, prove caller-domain suitability, define transport/workflow semantics, or upgrade the verifier's declared nonClaims."
-    }
-    (evidence_dir / "service-result.json").write_text(json.dumps(result, indent=2, sort_keys=True, ensure_ascii=False) + "\n")
-    return result
+        path_issues = inputs.recheck_legacy()
+        delegated_status = delegated.get("status")
+        assessment = assess_required_evidence(profile, delegated)
+        claim_failure = binding.require_claim_results and not assessment["complete"]
+        native_identity = assess_native_identity(
+            delegated,
+            profile_id=profile_id,
+            subject_sha256=subject_sha,
+            subject_size=subject_size,
+            contract_sha256=contract_fact["sha256"] if contract_fact else None,
+            require_complete=binding.require_claim_results,
+        )
+        tool_identity = assess_native_tool_paths(delegated)
+        raw_failures = delegated.get("failures", [])
+        failures_shape_valid = isinstance(raw_failures, list) and all(
+            isinstance(item, str) for item in raw_failures
+        )
+        service_failures = list(raw_failures) if failures_shape_valid else [
+            "native verifier failures field is not a list of strings"
+        ]
+        service_failures.extend(path_issues)
+        # A native PASS with explicit failure observations is contradictory:
+        # it must never be promoted, even if the claim/identity projections pass.
+        verified = (
+            delegated_status == "PASS"
+            and not service_failures
+            and not claim_failure
+            and not native_identity["rejected"]
+            and not tool_identity["rejected"]
+        )
+        if native_identity["rejected"]:
+            service_failures.extend(native_identity["mismatches"])
+            service_failures.extend(
+                f"native evidence identity not evaluated: {field}"
+                for field in native_identity["notEvaluated"]
+            )
+        if tool_identity["rejected"]:
+            service_failures.extend(tool_identity["issues"])
+        if claim_failure:
+            service_failures.append(
+                "profile requiredEvidence is not fully verified by explicit native claimResults"
+            )
+            service_failures.extend(assessment["issues"])
+        # A native claim with a matching FAIL witness is evidence of scoped
+        # falsification, not an integrity defect. Separately retain every
+        # missing/malformed/unwitnessed claim as an UNKNOWN-causing issue.
+        supported_required_failures = {
+            name for name, status in assessment["claimStatuses"].items()
+            if status == "FAIL"
+        }
+        failure_diagnostics = {
+            f"required claim not verified PASS: {name}=FAIL"
+            for name in supported_required_failures
+        }
+        standing_issues = [
+            issue for issue in assessment["issues"]
+            if issue not in failure_diagnostics
+        ]
+        standing_issues.extend(path_issues)
+        if not failures_shape_valid:
+            standing_issues.append("native failures report is malformed")
+        if not native_identity["complete"]:
+            standing_issues.append("native identity evidence not complete")
+        if native_identity["rejected"]:
+            standing_issues.extend(native_identity["mismatches"])
+        if tool_identity["rejected"]:
+            standing_issues.extend(tool_identity["issues"])
+        if delegated_status == "PASS" and (
+            raw_failures or supported_required_failures
+        ):
+            standing_issues.append(
+                "native aggregate PASS contradicts failure evidence"
+            )
+        elif delegated_status == "FAIL" and not supported_required_failures:
+            standing_issues.append(
+                "native aggregate FAIL lacks a witnessed required claim failure"
+            )
+        elif delegated_status not in {"PASS", "FAIL"}:
+            standing_issues.append("native overall status is not evaluated")
+        standing_coverage = assess_required_statuses(
+            assessment["expectedClaims"],
+            assessment["claimStatuses"],
+            issues=standing_issues,
+        )
+        result = {
+            "schemaVersion": 1,
+            "kind": "artifact-verification-result",
+            "requestId": request_id,
+            "requestDigest": request_digest,
+            "status": "PASS" if verified else "FAIL",
+            "profile": {"id": profile_id, "path": str(profile_path), "sha256": profile_ref["sha256"], "standing": "SHADOW_PROFILE_LIVE_VERIFIER"},
+            "subject": {"path": str(subject_path), "sha256": subject_sha, "size": subject_size},
+            "objectContract": contract_fact,
+            "capabilityBinding": {"path": str(binding.standing_path), "sha256": binding.standing_sha256, "standing": binding.standing},
+            "verifier": {
+                "path": verifier_relative, "sha256": verifier_sha,
+                "function": verifier_name, "capabilityId": binding.capability_id,
+                "sourceIdentityScope": "EXACT_PYTHON_MODULE_BYTES_EXECUTED",
+                "nativeToolchainIdentity": "NOT_ATTESTED_BY_SERVICE",
+            },
+            "consumer": request.get("consumer"),
+            "verification": delegated,
+            "inputIdentity": {
+                "profile": "EXACT_BYTES_SNAPSHOT",
+                "subject": "EXACT_BYTES_SNAPSHOT" if pinned else "ADMISSION_DIGEST_ONLY",
+                "objectContract": (
+                    "EXACT_BYTES_SNAPSHOT" if pinned else "ADMISSION_DIGEST_ONLY"
+                ) if contract_path is not None else "NOT_APPLICABLE",
+                "snapshotLifetime": "this verification invocation only",
+                "sourcePathContinuity": "NOT_CLAIMED",
+                "legacyPathRecheck": (
+                    "NOT_APPLICABLE" if pinned else
+                    "DRIFT_OR_UNAVAILABLE" if path_issues else "CONSISTENT_AT_CHECKS"
+                ),
+            },
+            "requiredEvidenceAssessment": assessment,
+            "standingCoverage": standing_coverage,
+            "nativeIdentityAssessment": native_identity,
+            "toolIdentityAssessment": tool_identity,
+            "profileVerificationComplete": bool(
+                standing_coverage["complete"] and verified
+            ),
+            "failures": service_failures,
+            "boundary": (
+                "For requireClaimResults bindings, service PASS requires every required "
+                "Profile claim to be independently present, PASS, and linked to a "
+                "matching native-status evidence node. Other bindings retain legacy "
+                "native-verifier PASS without claiming complete Profile evidence. "
+                "For claim-complete single-file bindings, native tools verify a "
+                "private snapshot whose bytes matched the request commitment; "
+                "input snapshot qualification is independent of claim completeness. "
+                "the original source path can change after admission. Legacy "
+                "formats retain admission-time identity with before/after digest rechecks, "
+                "not ABA prevention or sidecar closure. Native reports "
+                "with contradictory Profile/subject/contract identity are "
+                "never promoted; missing fields are NOT_EVALUATED on legacy "
+                "bindings. No service result establishes consuming-application "
+                "acceptance, publication, "
+                "deployment, or Profile-v2 production promotion. The reported verifier "
+                "source digest binds executed entrypoint module bytes only; imported Python "
+                "dependencies and native subprocess toolchain identities are not attested "
+                "by this service. Historic LOCAL_LIVE_PROVEN bindings are not live tool inventory."
+            ),
+        }
+        (evidence_dir / "service-result.json").write_text(json.dumps(result, indent=2, sort_keys=True, ensure_ascii=False) + "\n")
+        return result
 
 
 def main() -> int:

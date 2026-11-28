@@ -1,8 +1,23 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
+
+
+@dataclass(frozen=True)
+class CapabilityRoute:
+    capability: str
+    owner_id: str
+    category: str
+    owner_tool: str | None
+    context_mode: str
+    truth_boundary: str
+    description: str
+    tags: tuple[str, ...] = ()
+    execution_target: str | None = None
+    default_context: str | None = None
 
 
 class StrictModel(BaseModel):
@@ -13,6 +28,44 @@ class OwnerDescriptor(StrictModel):
     owner_id: str
     role: str
     configured: bool
+
+
+class ReadinessFact(StrictModel):
+    owner_id: str
+    predicate: str
+    state: Literal["supported", "refuted", "unobserved", "invalid", "contradictory"]
+    source: str
+
+
+class ReadinessCheck(StrictModel):
+    direction: Literal["forward", "reverse"]
+    owner_id: str
+    action: str
+    expected_evidence: str
+    effect: Literal["read_only", "requires_authorized_context"] = "read_only"
+    execution_state: Literal["proposed_not_executed"] = "proposed_not_executed"
+    request: dict[str, Any] | None = None
+
+
+class ReadinessOwnerStatusWitness(StrictModel):
+    """Digest of actual Owner status JSON; not Owner-signed truth."""
+
+    owner_id: str
+    tool_name: Literal["runtime.describe", "host.status"]
+    disposition: Literal["response_received", "no_result", "skipped_unconfigured"]
+    payload_digest: str | None = None
+    payload_bytes: int | None = None
+
+
+class ReadinessInquiry(StrictModel):
+    """Evidence and falsifiable checks, not permission to perform a side effect."""
+
+    scope: Literal["owner_status", "multi_owner_status", "route_metadata"]
+    observations: list[ReadinessOwnerStatusWitness] = Field(default_factory=list)
+    facts: list[ReadinessFact] = Field(default_factory=list)
+    unresolved_questions: list[str] = Field(default_factory=list)
+    possible_explanations: list[str] = Field(default_factory=list)
+    next_checks: list[ReadinessCheck] = Field(default_factory=list)
 
 
 class CapabilityDescriptor(StrictModel):
@@ -30,6 +83,81 @@ class CapabilityDescriptor(StrictModel):
     description: str = ""
     tags: list[str] = Field(default_factory=list)
 
+    readiness_state: Literal["ready", "not_ready", "unknown"] = "unknown"
+    _readiness_inquiry: ReadinessInquiry | None = PrivateAttr(default=None)
+
+    @model_validator(mode="after")
+    def derive_readiness_state(self) -> CapabilityDescriptor:
+        """Single truth rule, represented as a normal MCP-schema field.
+
+        MCP's tool response validation uses the validation-mode JSON Schema.
+        Pydantic computed fields appear only in the serialization schema and
+        would be rejected by MCP as extra output: derive a declared field here.
+        """
+        if self.available:
+            self.readiness_state = "ready"
+        elif self.observation_error is not None:
+            # Configuration is a distinct fact. A failed observation does not
+            # establish the natural Owner's operational readiness either way.
+            self.readiness_state = "unknown"
+        else:
+            self.readiness_state = "not_ready"
+        return self
+
+
+class ReadinessFactChange(StrictModel):
+    owner_id: str
+    predicate: str
+    source: str
+    previous_states: list[str]
+    current_states: list[str]
+
+
+class ReadinessProbeReceipt(StrictModel):
+    owner_id: str
+    action: Literal["runtime.describe", "host.status"]
+    request: dict[str, Any]
+    outcome: Literal["result_observed", "no_result", "invalid_result", "skipped_unconfigured"]
+    execution_state: Literal["attempted_read_only", "not_executed"]
+    evidence_source: Literal["same_owner_status_second_observation"]
+    first_payload_digest: str | None = None
+    latest_payload_digest: str | None = None
+
+
+class ReadinessVerification(StrictModel):
+    """A second status observation, not a cryptographic Owner attestation."""
+
+    method: Literal["one_explicit_bounded_reobservation"]
+    initial_readiness_state: Literal["ready", "not_ready", "unknown"]
+    initial_projection_digest: str
+    latest_projection_digest: str
+    initial_inquiry: ReadinessInquiry
+    receipts: list[ReadinessProbeReceipt]
+    fact_changes: list[ReadinessFactChange]
+    verdict: Literal[
+        "same_owner_observation_stable",
+        "changed_observation",
+        "still_unresolved",
+        "no_qualified_probe",
+    ]
+
+
+class CapabilityInquiryProjection(StrictModel):
+    """Explicit investigation endpoint, keeping capability.describe ABI unchanged."""
+
+    schema_version: Literal[1] = 1
+    kind: Literal["ordivon.gateway-capability-inquiry"] = "ordivon.gateway-capability-inquiry"
+    truth_role: Literal["read-only-owner-evidence-not-authority"] = (
+        "read-only-owner-evidence-not-authority"
+    )
+    capability: str
+    owner_id: str
+    readiness_state: Literal["ready", "not_ready", "unknown"]
+    route_digest: str | None = None
+    projection_digest: str
+    inquiry: ReadinessInquiry
+    verification: ReadinessVerification | None = None
+
 
 class CapabilitySearchMatch(StrictModel):
     match_kind: Literal["exact", "prefix", "token", "substring"]
@@ -44,6 +172,7 @@ class CapabilitySearchProjection(StrictModel):
     )
     query: str
     projection_digest: str
+    route_digest: str | None = None
     total_matches: int
     matches: list[CapabilitySearchMatch]
 
@@ -52,6 +181,7 @@ class SystemDescription(StrictModel):
     schema_version: Literal[1] = 1
     kind: Literal["ordivon.gateway-system-description"] = "ordivon.gateway-system-description"
     gateway_version: str
+    route_digest: str | None = None
     truth_role: Literal["non-authoritative-routing-projection"] = (
         "non-authoritative-routing-projection"
     )
@@ -66,7 +196,49 @@ class CapabilityProjection(StrictModel):
         "rebuildable-non-authoritative-projection"
     )
     projection_digest: str
+    route_digest: str | None = None
     capabilities: list[CapabilityDescriptor]
+
+
+class RuntimeReleaseProjection(StrictModel):
+    """Natural Runtime receipt projection, not Gateway effect authority."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+    contract: Literal["runtime_release_v1"]
+    effect_id: str = Field(alias="effectId")
+    client_request_id: str = Field(alias="clientRequestId")
+    job_id: str = Field(alias="jobId")
+    workspace_id: str = Field(alias="workspaceId")
+    commit: str
+    candidate_manifest_digest: str = Field(alias="candidateManifestDigest")
+    expected_tool_count: int = Field(alias="expectedToolCount", ge=1, le=2**32 - 1)
+    effect_disposition: Literal[
+        "admitted",
+        "in_progress",
+        "deployed",
+        "not_committed",
+        "rolled_back",
+        "reconciliation_required",
+    ] = Field(alias="effectDisposition")
+    effect_terminal: bool = Field(alias="effectTerminal")
+    receipt_available: bool = Field(alias="receiptAvailable")
+    receipt_digest: str | None = Field(default=None, alias="receiptDigest")
+    deployed_tool_count: int | None = Field(default=None, alias="deployedToolCount")
+    tool_catalog_digest: str | None = Field(default=None, alias="toolCatalogDigest")
+    rollback_status: str | None = Field(default=None, alias="rollbackStatus")
+    reconciliation_issue: str | None = Field(default=None, alias="reconciliationIssue")
+    attempt_state: str | None = Field(default=None, alias="attemptState")
+    execution_terminal: bool = Field(alias="executionTerminal")
+    execution_disposition: str | None = Field(default=None, alias="executionDisposition")
+    delivery_disposition: str = Field(alias="deliveryDisposition")
+    recovery_required: bool = Field(alias="recoveryRequired")
+    semantic_completion_evaluated: Literal[False] = Field(alias="semanticCompletionEvaluated")
+
+
+class RuntimeReleaseAdmission(StrictModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    replayed: bool
+    release: RuntimeReleaseProjection
 
 
 class ExecutionReceipt(StrictModel):
@@ -118,127 +290,6 @@ class ArtifactChunk(StrictModel):
     eof: bool
     digest: str
     content: str
-
-
-class ContinuityItem(StrictModel):
-    task_id: str
-    goal_id: str | None = None
-    revision: int
-    state: str
-    checkpoint_digest: str | None = None
-    created_at: str | None = None
-    updated_at: str | None = None
-
-
-class ContinuityObservation(ContinuityItem):
-    schema_version: Literal[1] = 1
-    kind: Literal["ordivon.gateway-continuity-observation"] = (
-        "ordivon.gateway-continuity-observation"
-    )
-    truth_role: Literal["host-continuity-projection"] = "host-continuity-projection"
-    checkpoint: dict[str, Any]
-    truth_boundary: str | None = None
-
-
-class ContinuityPage(StrictModel):
-    schema_version: Literal[1] = 1
-    kind: Literal["ordivon.gateway-continuity-page"] = "ordivon.gateway-continuity-page"
-    truth_role: Literal["host-continuity-projection"] = "host-continuity-projection"
-    items: list[ContinuityItem]
-    has_more: bool
-    next_cursor: str | None = None
-    sort_key: Literal["created", "updated"] = "created"
-
-
-class ContinuityEvent(StrictModel):
-    revision: int
-    event_type: str
-    state: str
-    created_at: str
-
-
-class ContinuityObserved(ContinuityObservation):
-    kind: Literal["ordivon.gateway-continuity-observed"] = "ordivon.gateway-continuity-observed"
-    recent_events: list[ContinuityEvent] = Field(default_factory=list)
-
-
-class ContinuityMutationReceipt(ContinuityObservation):
-    kind: Literal["ordivon.gateway-continuity-mutation"] = "ordivon.gateway-continuity-mutation"
-    admission: str
-    writer_label: str | None = None
-
-
-class ContinuityAttention(StrictModel):
-    schema_version: Literal[1] = 1
-    kind: Literal["ordivon.gateway-continuity-attention"] = "ordivon.gateway-continuity-attention"
-    truth_role: Literal["host-navigation-projection"] = "host-navigation-projection"
-    board_fence: dict[str, Any]
-    summary: dict[str, Any]
-    routed_tasks: list[dict[str, Any]]
-    unrouted_messages: list[dict[str, Any]]
-    truth_boundary: str | None = None
-
-
-class ContinuityChanges(StrictModel):
-    schema_version: Literal[1] = 1
-    kind: Literal["ordivon.gateway-continuity-changes"] = "ordivon.gateway-continuity-changes"
-    truth_role: Literal["host-navigation-projection"] = "host-navigation-projection"
-    board_fence: dict[str, Any]
-    summary: dict[str, Any]
-    routed_tasks: list[dict[str, Any]]
-    unrouted_messages: list[dict[str, Any]]
-    truth_boundary: str | None = None
-
-
-class CollaborationMessage(StrictModel):
-    sequence: int
-    client_message_id: str
-    author_label: str
-    author_identity_role: str
-    message_kind: str
-    topic: str | None = None
-    message: str
-    reply_to_client_message_id: str | None = None
-    task_id: str | None = None
-    recorded_at_ms: int
-    message_digest: str
-    truth_role: str
-
-
-class CollaborationPostReceipt(StrictModel):
-    schema_version: Literal[1] = 1
-    kind: Literal["ordivon.gateway-collaboration-post"] = "ordivon.gateway-collaboration-post"
-    truth_role: Literal["host-collaboration-projection"] = "host-collaboration-projection"
-    admission: str
-    message: CollaborationMessage
-    truth_boundary: str | None = None
-
-
-class CollaborationPage(StrictModel):
-    schema_version: Literal[1] = 1
-    kind: Literal["ordivon.gateway-collaboration-page"] = "ordivon.gateway-collaboration-page"
-    truth_role: Literal["host-collaboration-projection"] = "host-collaboration-projection"
-    messages: list[CollaborationMessage]
-    last_sequence: int
-    next_after_sequence: int
-    has_more: bool
-    truth_boundary: str | None = None
-
-
-class CollaborationSearchHit(StrictModel):
-    sequence: int
-    client_message_id: str
-
-
-class CollaborationSearch(StrictModel):
-    schema_version: Literal[1] = 1
-    kind: Literal["ordivon.gateway-collaboration-search"] = "ordivon.gateway-collaboration-search"
-    truth_role: Literal["host-navigation-projection"] = "host-navigation-projection"
-    source_snapshot_high_water: int
-    live_high_water: int
-    negative_result_authoritative: bool
-    requires_exact_source_reentry: bool
-    results: list[CollaborationSearchHit]
 
 
 class CapabilityInvocationRecipe(StrictModel):

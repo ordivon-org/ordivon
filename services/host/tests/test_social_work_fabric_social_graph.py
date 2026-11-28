@@ -2,13 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from ordivon_host_v2.social_graph import (
-    CoordinationIntentInput,
+from ordivon_host_v2.collaboration_inputs import (
     MessageInput,
     MessageKind,
     MessageRelationKind,
     SpaceInput,
 )
+from ordivon_host_v2.coordination_inputs import CoordinationIntentInput
 
 ROOT = Path(__file__).parents[1]
 

@@ -1,0 +1,22 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://encounter_view.tscn" id="1_base"]
+
+[node name="Hud" instance=ExtResource("1_base")]
+dynamic_mode_title = false
+modulate = Color(0.58, 0.95, 0.74, 1)
+
+[node name="Title" parent="." index="0"]
+text = "ALTERNATE PLAYER PRESENTATION"
+
+[node name="Attack" parent="Actions" index="0"]
+text = "Strike"
+
+[node name="Guard" parent="Actions" index="1"]
+text = "Defend"
+
+[node name="Next" parent="Actions" index="2"]
+text = "Door"
+
+[node name="Restart" parent="Actions" index="3"]
+text = "Reset"

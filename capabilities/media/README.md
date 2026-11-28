@@ -4,6 +4,12 @@ Ordivon Media is an **optional media-domain capability** for intentional, reusab
 
 The project Constitution is [`MEDIA.md`](MEDIA.md); canonical Media research starts at [`research/media/`](research/media/README.md). **Ordivon Studio is retained inside this project as the authoring and production capability plane.** Existing `ordivon-studio` CLI/package/tool identities remain Studio capability names rather than repository-owner names.
 
+## Choose your entry point
+
+- **Human:** [Use Ordivon Media](docs/human-guide.md) — what the system can do, choose an existing work, commission a deliverable and review real outputs.
+- **Agent:** [Media Agent entry](AGENTS.md) — source/consumer selection, current Agent Surface, LEGO composition and real acceptance boundaries. The [media-studio-navigation Skill](../../.agents/skills/media-studio-navigation/SKILL.md) is its progressive-disclosure entry point.
+- **Technical reference:** [MEDIA.md](MEDIA.md), [STUDIO.md](STUDIO.md), [Media model](docs/media-model.md), [existing LEGO capability reference](docs/capability-reference.md), and live `studio-agent-surface.py` schemas. None is replaced by a duplicate registry.
+
 ## Activation boundary
 
 The default representation remains with its natural source/client owner. A tool result, status card, metric, ordinary UI projection, browser view, repository view, or provider-native response does **not** enter Media merely because a human or Agent can observe it.
@@ -24,27 +30,88 @@ Use [`OMPC-v0`](research/media/engineering-consumption/OMPC-v0.md) as an optiona
 ### R6 Trial Ledger — PostgreSQL transition
 
 The R6 search-history ledger now uses PostgreSQL instead of creating new
-SQLite files. Set ORDIVON_MEDIA_TRIAL_PG_DSN for search and optional holdout.
-The one-time SQLite importer now **defaults to no historical import**.
-Only import a stopped legacy experiment when a current registered-search replay
-or sealed-holdout audit actually consumes its history. Bind the exact consumer
-search ID, selected purpose, and an independently established writer-stop
-condition:
-
-    uv run --project capabilities/media python capabilities/media/scripts/migrate-r6-trials.py \
-      --sqlite /path/to/old-trials.sqlite \
-      --expected-search-id experiment:required-current-search \
-      --retention-consumer registered_search_replay --source-writers-stopped
-
-The stop flag is an **operator assertion**, not automatic proof of all writers'
-quiescence. The importer reads but never deletes the old source, and checks
-identity, full event hashes, count, and PostgreSQL readback. The old file is
-eligible for a *separate* consumer-based retirement decision after verified
-cutover; neither an old file's existence nor hypothetical future usefulness
-is a reason to migrate or retain it indefinitely. If no real consumer needs
-the experiment, do not copy the event chain into PostgreSQL.
+SQLite files. Set ORDIVON_MEDIA_TRIAL_PG_DSN for search. When the frozen
+winner contains a PostgreSQL trial-ledger witness, the sealed holdout **must**
+reuse the same search ledger: the native per-search transaction verifies the
+exact frozen source/selected candidate before appending one reveal event.
+Pure in-memory reasoning without a ledger remains available for independently
+constructed research fixtures, but it cannot silently upgrade to a recorded
+search or drop a recorded search's history.
+The historical SQLite Trial Ledger importer is retired. No active R6
+Production or registered search is demonstrated to consume its old source
+events, so the one-off migration executable and its dedicated test fixtures
+are not a current capability. New R6 research uses only PostgreSQL, exact
+registered-search identity, and sealed-holdout readback. Historical importer
+source remains available through the prior Git revision if an independently
+grounded consumer later requires examination, not as an active CLI.
 Run the PG acceptance via mise run pg:verify using a disposable
 ORDIVON_MEDIA_TRIAL_TEST_DSN. Skipped tests do not prove the PG boundary.
+
+## Source responsibility layout
+
+The published `ordivon_studio` package keeps production, equipment, asset,
+review and presentation capabilities at its root. Experimental validity,
+creative-alpha, grounded-meaning and article/foundational studies live in
+`ordivon_studio.research`. Research scripts import that subpackage directly;
+there are no redundant compatibility shims or separate research truth store.
+
+The R6 Creative Alpha method separates `research/creative_protocol.py`
+(sealed protocol and mechanism construction), `research/creative_observer.py`
+(browser-receipt-to-task projection), and `research/creative_analysis.py`
+(independent visible, holdout, uncertainty and portfolio scoring).
+The R6 experiment CLI consumes these owners directly. The former
+`research/creative_alpha.py` monolith is retired without an adapter facade.
+
+Equipment follows a three-stage, source-readable contract:
+`equipment_discovery.py` observes physical Workstation/tool candidates;
+`equipment_capabilities.py` projects selectable actions and verification;
+`equipment_plan.py` compiles exact native-tool arguments without execution.
+`equipment.py` remains the stable Studio/Agent entry point. Selection, planning,
+process execution (Runtime), and output acceptance (the source/Artifact owner)
+are **distinct**; no new equipment engine or parallel asset authority is admitted.
+
+Creative navigation follows the same source-of-truth rule:
+`creative_index.py` orchestrates a rebuildable projection over Media's native
+equipment, productions and collections. `creative_index_artifact.py` reads
+Artifact delivery evidence, and `creative_index_library.py` reads source-owned
+Creative Library catalogs and generated evidence. `creative_index_source_utils.py`
+retains only shared JSON reads and nonrecursive metadata traversal. All nodes
+and relations remain derived navigation; queries do not mutate owner records.
+
+The Agent entry point follows the existing ports-and-adapters boundary:
+`agent_surface_contracts.py` owns the one stable source-only JSON Schema/tool-definition contract;
+`scripts/studio-agent-surface.py` exposes that schema without loading concrete provider code;
+`agent_surface.py` validates selected inputs and imports only the selected Studio action's implementation after validation, without preloading unrelated equipment, research or creative-index modules;
+`agent_dependencies.py` observes exact Python/pnpm materialization and emits
+explicit acquisition **plans** without installing anything;
+`agent_productions.py` reads owner-native Production identity and does not
+guess the Agent's currently intended Production. The runtime/tool-execution
+authority and production/source truth remain outside the Agent adapter.
+
+DaVinci Resolve editing stays with Blackmagic's native application and official
+Python/Lua Scripting API, not a copied Ordivon menu Runner. The former staged
+operation/receipt bridge and fixed-version Free compatibility experiment have
+been retired after tracing their consumers. Use [native Resolve integration](docs/resolve-native.md)
+when a current Production requires a real NLE effect. The native OpenTimelineIO
+probe and Media Blob hashing remain owned by their existing components.
+Historical Resolve 21 Free acceptance records remain in `docs/resolve-compatibility/`.
+
+Native FFprobe observation now belongs to `ordivon_studio.qc.probe_media`,
+beside existing FFmpeg loudness and technical validators; `assets.py` owns
+only Blob identity, verified CAS admission, and materialization. Studio CLI,
+Review, Rich Perception and SAPI narration all consume the existing QC reader
+directly. This is a source-only owner move; no compatibility facade or
+second probe implementation is retained.
+
+Video perception follows the same native-tool composition:
+`perception_video_io.py` invokes FFmpeg's built-in `select`, `tblend`,
+`signalstats` and `xstack` filters to observe frames and assemble a real
+contact sheet; `perception_selection.py` purely selects a bounded set of
+diagnostic frames using coverage, user requests and observed change peaks.
+`perception.py` composes the review bundle, and `rich_perception.py` consumes
+the native observer directly. Neither module claims to infer visual meaning,
+scene importance or creative approval. The source video and exact frame bytes
+remain with their natural asset/production owner.
 
 ## Studio capability plane
 
@@ -137,18 +204,27 @@ For ordinary Agent work, start from the dependency-independent Studio semantic s
 python3 scripts/studio-agent-surface.py
 ```
 
+The source-only `surface`, `studio_production_standing`, and
+`studio_processing_profiles` actions run before dependency materialization.
+**Parameterized** actions use the pinned JSON Schema environment; from Media
+run `mise exec -- python3 scripts/materialize-python.py` first, then the
+`.venv/bin/python` commands below. No renderer dependencies are required
+for these read-only queries.
+
 | Need | Read / invoke |
 | --- | --- |
 | design or inspect a generic observer-facing Media projection without assuming Studio production | [`research/media/engineering-consumption/OMPC-v0.md`](research/media/engineering-consumption/OMPC-v0.md) |
 | discover the bounded Studio Agent surface without `.venv` or `node_modules` | `python3 scripts/studio-agent-surface.py` |
+| discover existing FFprobe/FFmpeg/OTIO/timed-text processing LEGO with exact profile + adapter hashes, without materializing Studio dependencies | `python3 scripts/studio-agent-surface.py studio_processing_profiles --arguments '{}'` |
+| compile one selected processing profile into a digest-pinned, nonexecuting Runtime command | Use the existing Studio action: studio_processing_probe_plan, with digests from studio_processing_profiles |
 | inspect Production standing before selecting current work | `python3 scripts/studio-agent-surface.py studio_production_standing --arguments '{}'` |
-| after caller/owner intent identifies one Production, inspect its bounded context | `python3 scripts/studio-agent-surface.py studio_production_context --arguments '{"productionId":"<id>"}'` |
+| after caller/owner intent identifies one Production, inspect its bounded context | `.venv/bin/python scripts/studio-agent-surface.py studio_production_context --arguments '{"productionId":"<id>"}'` |
 | inspect one Production, its Claims/Outputs, and optional source-binding Git relation through the lower-level CLI | `uv run ordivon-studio production-context <production-root> [--source-repo BINDING_ID=PATH]` |
-| hydrate scoped retained learning for the selected Production | `python3 scripts/studio-agent-surface.py studio_learning_context --arguments '{"currentProductionId":"<id>"}'` |
-| compile a truthful equipment proposal only when one exact capability is needed | `python3 scripts/studio-agent-surface.py studio_equipment_propose --arguments '{"capability":"<capability>","parameters":{}}'` |
+| hydrate scoped retained learning for the selected Production | `.venv/bin/python scripts/studio-agent-surface.py studio_learning_context --arguments '{"currentProductionId":"<id>"}'` |
+| compile a truthful equipment proposal only when one exact capability is needed | `.venv/bin/python scripts/studio-agent-surface.py studio_equipment_propose --arguments '{"capability":"<capability>","parameters":{}}'` |
 | use lower-level media inspection/render/QC/recovery operations after dependencies are materialized | `uv run ordivon-studio --help` |
 | understand the Media owner contract | [`MEDIA.md`](MEDIA.md) |
-| inspect Phase-1 closure / freeze / reopen posture | [`docs/media-phase1-construction-audit.md`](docs/media-phase1-construction-audit.md) |
+| understand which consumer evidence can reopen the Media baseline | [`MEDIA.md`](MEDIA.md) |
 | understand why Studio exists | this README |
 | determine document/fact/evidence authority | [`docs/authority.md`](docs/authority.md) |
 | first-principles architecture and technical choices | [`STUDIO.md`](STUDIO.md) |
@@ -169,12 +245,37 @@ scripts/owner-environment test
 
 The owner entrypoint consumes the existing pinned `mise.toml`, `pnpm-lock.yaml`, `uv.lock`, and Python materialization receipt. `cold-start` proves the same default check surface from a copied source fence with neither `node_modules` nor `.venv`.
 
-Resolve is optional equipment:
-
-```bash
-scripts/owner-environment test-resolve
-```
+Resolve remains optional equipment. Its native scripting API is invoked from a
+supported Windows Resolve session rather than installed through Studio's former
+menu Runner. [Human and Agent guide](docs/resolve-native.md) records the exact
+manual script environment, read-only probe and production acceptance boundary.
 
 ## License
 
 Apache-2.0. Production assets may carry their own rights and usage records in Asset metadata.
+
+Studio CLI command processing is organized by domain under
+`src/ordivon_studio/cli_handlers/` (media, ecology, equipment).
+The public `ordivon-studio` console entry, `argparse` grammar and result
+exit codes remain owned by `cli.py`; this source-only split adds neither
+another command registry nor another operational authority.
+
+The R6 experiment core has four source/consumer boundaries under
+`src/ordivon_studio/research/`: `trial_registration.py` (typed registration,
+seed seal), `trial_ledger.py` (PostgreSQL-native append-only history),
+`search_sampling.py` (single deterministic trial stream), and
+`search_calibration.py` (registered candidate/ledger projection, replay,
+holdout and null calibration). Null replay consumes only the maximum statistic;
+it never materializes candidate identities or history. Calibration reuses
+one sorted empirical reference with inclusive-tail binary search.
+No legacy `research_validity.py` facade or second database authority is
+retained. The research CLIs and test consumers import the natural boundary.
+
+The R5 Grounded Meaning research method is implemented by
+`research/grounded_evidence.py` (evidence and result contracts),
+`research/grounded_text_tasks.py` (controlled writing and comprehension tasks),
+`research/grounded_av_tasks.py` (source-semantic video, timed transcript,
+speech and crossmodal tasks), and `research/grounded_provider.py` (the
+existing bundled experiment entry point). `grounded_scoring.py` independently
+scores provider receipts. The former `grounded_meaning.py` is retired rather
+than retained as a forwarding module.

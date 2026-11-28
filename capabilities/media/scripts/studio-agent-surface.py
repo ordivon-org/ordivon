@@ -9,10 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from ordivon_studio.agent_surface import (
-    execute_surface_action,
-    surface_projection,
-)
+from ordivon_studio.agent_surface_contracts import surface_projection
 
 
 def main() -> int:
@@ -23,6 +20,8 @@ def main() -> int:
     if args.action == "surface":
         value = surface_projection()
     else:
+        from ordivon_studio.agent_surface import execute_surface_action
+
         raw = json.loads(args.arguments)
         if not isinstance(raw, dict):
             raise SystemExit("--arguments must decode to an object")

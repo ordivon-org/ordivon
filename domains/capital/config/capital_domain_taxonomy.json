@@ -1,30 +1,30 @@
 {
   "schemaVersion": 1,
   "kind": "ordivon.capital.domain-taxonomy",
-  "asOfDate": "2026-09-21",
+  "asOfDate": "2026-11-06",
   "standing": "ACTIVE_SOURCE_OWNER_TAXONOMY",
-  "principle": "Capital is the umbrella. Markets owns observable market/reference facts; Trading owns orders, provider effect boundaries, execution and reconciliation; Portfolio owns scenario projection; Risk owns exposure and risk measurement; Research owns model/evidence validation; Governance owns mandate and authorization policy; Accounting owns durable ledger mechanics.",
+  "principle": "Capital is the umbrella. Markets owns observable market/reference facts; Trading owns orders, provider effect boundaries, execution and reconciliation; Portfolio owns caller-mandated allocation and scenario projection; Risk owns exposure and risk measurement; Research owns model/evidence validation; Governance owns mandate and authorization policy; Accounting owns durable ledger mechanics and the canonical paper-close NAV. The moduleMap is exact over actively importable owner modules, not an aspirational catalog. Finance denotes the investment program, not a duplicate Capital package. Harness owns Agent orchestration. The applications/ package is a non-owner use-case composition layer; pure owner modules may not import it.",
   "domains": {
     "markets": {
-      "role": "public market/reference data, microstructure observations, streaming and market transport qualification"
+      "role": "point-in-time public market/reference observations, provider-qualified ETF closes, historical price vintages, streaming and market transport qualification; never investment permission"
     },
     "trading": {
       "role": "provider/private reality, order intent, FIX projection, execution feasibility and execution reconciliation"
     },
     "portfolio": {
-      "role": "portfolio state transformations and caller-supplied counterfactual projections"
+      "role": "caller-directed strategic contributions, passive benchmarks, paper investment and evidence-completeness of explicit counterfactuals; no broker rights"
     },
     "risk": {
-      "role": "exposure, factor/dependence statistics, expected shortfall and risk-budget measurement"
+      "role": "exposure, dependence, expected shortfall and explicit numeric risk-limit evaluations; no external-write authorization"
     },
     "research": {
-      "role": "model monitoring, prospective validation, standards inventory and evidence persistence"
+      "role": "hypothesis and frozen experiment protocol, candidate economic evidence, prospective holdout validation and model monitoring; no independent Agent runtime or capital authority"
     },
     "governance": {
-      "role": "execution authorization, live-test admission, risk-budget and pre-trade policy gates"
+      "role": "authorization for external effects and provider account qualification; never portfolio risk mathematics or scenario evidence completeness"
     },
     "accounting": {
-      "role": "durable reservation/post/void/idempotency and ledger bindings"
+      "role": "PG reservation/post/void/idempotency, ledger and Paper close; simulation orchestration lives in application composition"
     }
   },
   "moduleMap": {
@@ -37,7 +37,12 @@
       "crypto_stream_resilience.py",
       "market_sensors.py",
       "okx_sensor_capture.py",
-      "websocket_proxy_lifecycle.py"
+      "websocket_proxy_lifecycle.py",
+      "etf_eod_snapshot.py",
+      "historical_close_snapshot.py",
+      "rtdsm_real_output.py",
+      "equity_session_calendar.py",
+      "equity_ohlcv_shape.py"
     ],
     "trading": [
       "binance_usdm_private_capture.py",
@@ -46,14 +51,36 @@
       "execution_reconciliation.py",
       "fix44_projection.py",
       "okx_readonly_client.py",
-      "private_reality.py"
+      "private_reality.py",
+      "okx_demo_execution.py",
+      "postgres_demo_intent.py",
+      "okx_official_cli.py"
     ],
     "portfolio": [
-      "portfolio_counterfactuals.py"
+      "portfolio_counterfactuals.py",
+      "strategic_contribution.py",
+      "liability_reserve.py",
+      "paper_contribution_plan.py",
+      "paper_investment.py",
+      "passive_benchmark.py",
+      "fund_return_inputs.py",
+      "paper_vintage.py",
+      "paper_close_performance.py",
+      "algebraic_policy.py",
+      "information_tree.py",
+      "multistage_policy.py",
+      "scenario_evidence.py"
     ],
     "risk": [
       "portfolio_risk.py",
-      "risk_budget_validation.py"
+      "broker_margin.py",
+      "dependence_analysis.py",
+      "tail_risk.py",
+      "tail_report.py",
+      "risk_values.py",
+      "risk_budget_validation.py",
+      "paper_close_risk.py",
+      "risk_limit_evaluation.py"
     ],
     "research": [
       "model_monitoring.py",
@@ -62,16 +89,26 @@
       "okx_factor_observer.py",
       "prospective_validation.py",
       "quantitative_inventory_validation.py",
-      "standards_inventory.py"
+      "standards_inventory.py",
+      "experiment_protocol.py",
+      "investment_candidate.py",
+      "unit_r_dca.py",
+      "pit_joint_forecast.py",
+      "independent_policy_replay.py",
+      "etf_distribution_label_audit.py"
     ],
     "governance": [
-      "policy_decision.py"
+      "policy_decision.py",
+      "live_test_account.py",
+      "decision_inputs.py"
     ],
     "accounting": [
       "durable.py",
       "postgres_ledger.py",
-      "sqlite_ledger.py",
-      "substrate.py"
+      "substrate.py",
+      "paper_close.py",
+      "postgres_paper_close.py",
+      "paper_fill_calendar.py"
     ]
   },
   "dependencyRules": [

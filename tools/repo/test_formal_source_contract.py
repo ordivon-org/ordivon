@@ -140,6 +140,33 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "alloyJvm"):
                 formal.qualified_alloy_runtime_resources(str(exe))
 
+    def test_alloy_sat_requires_a_real_instance_not_a_field_name(self) -> None:
+        """A zero-instance UNSAT report must never be called a SAT witness.
+
+        The old root Formal gate accepted any rc=0 text containing
+        '"instances"', including an empty array or a quoted string.
+        """
+        import json
+
+        positive = json.dumps({
+            "instances": [{"state": 0, "values": {"Node$1": {}}}],
+            "duration": 30,
+        })
+        self.assertEqual(formal.qualify_alloy_sat_witness(positive), 1)
+        for output in (
+            "",  # Native Alloy UNSAT output is empty with exit status 0.
+            '{"instances":[]}',
+            '{"instances":null}',
+            '{"instances":{}}',
+            '{"instances":[null]}',
+            '{"instances":[{"state":0}]}',
+            '{"instances":[{"state":"0","values":{}}]}',
+            '{"message":"\\\"instances\\\""}',
+            "not-json \"instances\"",
+        ):
+            with self.subTest(output=output), self.assertRaisesRegex(ValueError, "Alloy"):
+                formal.qualify_alloy_sat_witness(output)
+
     def test_independently_callable_qualifiers_reject_preloaded_parent(self) -> None:
         """A source or tool receipt cannot trust a Python process already preloaded.
 
@@ -353,6 +380,30 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         self.assertLess(step.index(admission), step.index("mise run formal:verify"))
         self.assertIn("KANI_HOME:", step)
 
+    def test_formal_kani_proxy_prepared_before_time_bounded_proofs(self) -> None:
+        """Kani 0.68.0 cold-start setup cannot consume a proof's 90s budget."""
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        step = workflow.split(
+            "      - name: Verify changed core Formal source\n", 1
+        )[1].split("      - name: Runtime supply-chain policy\n", 1)[0]
+        pinned_prewarm = "mise -C tools/formal exec -- kani --version"
+        self.assertEqual(step.count(pinned_prewarm), 1)
+        self.assertLess(step.index("mise install"), step.index(pinned_prewarm))
+        runtime = tomllib.loads(
+            (ROOT / "services/runtime/mise.toml").read_text(encoding="utf-8")
+        )
+        pinned_rust = runtime["tools"]["rust"]["version"]
+        self.assertLess(
+            step.index(f"rustup toolchain install {pinned_rust} --profile minimal"),
+            step.index(pinned_prewarm),
+        )
+        self.assertLess(step.index(pinned_prewarm), step.index("mise run formal:verify"))
+        self.assertIn("KANI_HOME:", step)
+        # The pinned Kani mathematical proof and negative falsifier MUST remain.
+        formal_source = (ROOT / "tools/formal/verify.py").read_text(encoding="utf-8")
+        self.assertIn('must_contain="VERIFICATION:- SUCCESSFUL", timeout=90', formal_source)
+        self.assertIn('str(bad_kani)', formal_source)
+
     def test_timeout_source_anchor_reader_rejects_changed_explicit_syntax(self) -> None:
         """Anchor observation rejects changed syntax without proving code semantics."""
         qualified = formal.qualified_timeout_adapter_fragment()
@@ -401,10 +452,13 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         """A remaining pre-projection rebind keeps source refinement UNKNOWN."""
         baseline = formal.qualified_timeout_adapter_fragment()
         self.assertIs(baseline["sourceAstAnchorsObserved"], True)
-        self.assertEqual(
-            baseline["effectFrameObserved"],
-            "exact_post_projection_return_and_immediate_gateway_dispatch",
+        actual_gateway_source = (ROOT / "services/harness/src/ordivon_harness/plugin_gateway_effect.py").read_text(encoding="utf-8")
+        expected_frame = (
+            "exact_post_projection_native_claim_guard_then_gateway_dispatch"
+            if "require_effect_ready(" in actual_gateway_source
+            else "exact_post_projection_return_and_immediate_gateway_dispatch"
         )
+        self.assertEqual(baseline["effectFrameObserved"], expected_frame)
         self.assertIs(baseline["codeFragmentRefined"], False)
         self.assertEqual(baseline["sourceRefinementStanding"], "UNKNOWN")
 
@@ -476,6 +530,45 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, "timeout|frame|effect|projection"):
                         formal.qualified_timeout_adapter_fragment()
 
+    def test_exact_native_claim_guard_source_frame_rejects_mutation(self) -> None:
+        """Only the whole native-Claim barrier, not a caller-authored token, is observed."""
+        target = ROOT / "services/harness/src/ordivon_harness/plugin_gateway_effect.py"
+        original = target.read_text(encoding="utf-8")
+        if "require_effect_ready(" not in original:
+            self.skipTest("The historical source has no native Workspace Claim frame")
+        baseline = formal.qualified_timeout_adapter_fragment()
+        self.assertEqual(
+            baseline["effectFrameObserved"],
+            "exact_post_projection_native_claim_guard_then_gateway_dispatch",
+        )
+        variants = (
+            ("missing-claim", "self._workspace_admission.require_effect_ready(",
+             "self._workspace_admission.accept_without_proof("),
+            ("optional-claim", "self._workspace_admission_required and self._workspace_admission is None",
+             "False and self._workspace_admission is None"),
+            ("false-evidence", "if admitted is not None:",
+             "if False:"),
+            ("mutation-after-projection",
+             '        if self._workspace_admission_required and self._workspace_admission is None:',
+             '        gateway_args["timeoutMs"] = 900000\n'
+             '        if self._workspace_admission_required and self._workspace_admission is None:'),
+        )
+        actual_read = Path.read_text
+        for label, before, after in variants:
+            with self.subTest(label=label):
+                self.assertIn(before, original)
+                mutant = original.replace(before, after, 1)
+                compile(mutant, str(target), "exec")
+
+                def read_with_mutant(path, *args, **kwargs):
+                    if path == target:
+                        return mutant
+                    return actual_read(path, *args, **kwargs)
+
+                with patch.object(Path, "read_text", read_with_mutant):
+                    with self.assertRaisesRegex(ValueError, "timeout|frame|effect"):
+                        formal.qualified_timeout_adapter_fragment()
+
     def test_exact_git_source_readset_is_qualified(self) -> None:
         current = formal.qualified_source_cut()
         self.assertEqual(
@@ -487,8 +580,8 @@ class FormalSourceConsumerContractTests(unittest.TestCase):
         )
         self.assertEqual(set(current["sourceBlobs"]), set(formal.SOURCE_FILES))
         # The source-scoped Formal proof now binds the actual Harness
-        # execution adapter as well as ten existing proof/toolchain inputs.
-        self.assertEqual(len(current["sourceBlobs"]), 11)
+        # execution adapter and the selected Media producer/model, in the
+        # same exact Git source-bound proof readset.
         for relative, oid in current["sourceBlobs"].items():
             self.assertEqual(
                 oid,

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from anc_canonical import canonical_digest
+from anc_canonical import canonical_bytes, canonical_digest
 
 from ordivon_harness.domain_tools import (
     AgentToolDefinition, DomainToolCatalog, DomainToolLoopPlan, DomainToolLoopRunner, RunBudget,
@@ -66,6 +66,46 @@ class ToolObservationEvidenceSealTests(unittest.TestCase):
         original["result"]["payload"] = "tampered"
         self.assertEqual(item.digest, digest)
         self.assertEqual(bounded.structured_content["originalContentDigest"], canonical_digest({"result": {"payload": "x" * 10_000}}))
+
+    def test_bounded_gateway_text_is_not_erased_by_metadata(self) -> None:
+        """A short verified stdout survives a slightly over-budget wrapper."""
+        original = {
+            "artifactMetadataStatus": "unqualified_ids_only",
+            "deliveryDisposition": "committed",
+            "status": "succeeded",
+            "outputPreviews": {
+                "stdout": {
+                    "artifactId": "stdout:verified",
+                    "text": "HELLO_MODEL",
+                    "eof": True,
+                    "nextOffset": 11,
+                    "truncated": False,
+                    "digest": "sha256:" + "a" * 64,
+                }
+            },
+        }
+        item = observation(original)
+        self.assertGreater(len(canonical_bytes(item.to_dict())), 512)
+        bounded = item.bounded(512)
+        self.assertLessEqual(len(canonical_bytes(bounded.to_dict())), 512)
+        self.assertEqual(
+            bounded.to_model_message()["observation"]["content"]["outputPreviews"]["stdout"]["text"],
+            "HELLO_MODEL",
+        )
+        self.assertIs(bounded.structured_content["outputPreviews"]["stdout"]["truncated"], True)
+        self.assertEqual(bounded.structured_content["originalContentDigest"], canonical_digest(original))
+        self.assertEqual(item.structured_content, original)
+
+    def test_bounded_gateway_utf8_preview_prefix_respects_bytes(self) -> None:
+        original = {"outputPreviews": {"stdout": {"text": "界" * 10000}}}
+        item = observation(original)
+        bounded = item.bounded(512)
+        self.assertLessEqual(len(canonical_bytes(bounded.to_dict())), 512)
+        text = bounded.structured_content["outputPreviews"]["stdout"]["text"]
+        self.assertTrue(text)
+        self.assertTrue(original["outputPreviews"]["stdout"]["text"].startswith(text))
+        self.assertLess(len(text), 10000)
+        self.assertIs(bounded.structured_content["outputPreviews"]["stdout"]["truncated"], True)
 
     def test_post_admission_alias_does_not_change_equality(self) -> None:
         raw = {"result": {"status": "unknown"}}

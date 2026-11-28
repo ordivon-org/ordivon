@@ -1,0 +1,212 @@
+extends SceneTree
+
+const Rules = preload("res://relay_rules.gd")
+
+var count: int = 0
+var moves: int = 0
+var failed: bool = false
+
+func check(ok: bool, description: String) -> void:
+    if not ok:
+        failed = true
+        push_error("GAME_BEACON_RELAY_FAIL: " + description)
+        quit(1)
+        return
+    count += 1
+
+func _initialize() -> void:
+    call_deferred("_run")
+
+func _release_actions() -> void:
+    for action in ["move_up", "move_down", "move_left", "move_right"]:
+        Input.action_release(action)
+
+# Walk using the real upstream Player._process input path. No direct state
+# substitution is used in the success trajectory.
+func _walk_to(player: Area2D, dest: Vector2) -> bool:
+    for attempt in range(250):
+        var d: Vector2 = dest - player.position
+        if d.length() <= 18.0:
+            _release_actions()
+            return true
+        _release_actions()
+        if d.x > 11.0:
+            Input.action_press("move_right")
+        elif d.x < -11.0:
+            Input.action_press("move_left")
+        if d.y > 11.0:
+            Input.action_press("move_down")
+        elif d.y < -11.0:
+            Input.action_press("move_up")
+        await process_frame
+        moves += 1
+    _release_actions()
+    return false
+
+# Pure rule checks use the same implementation consumed by the real scene.
+func _check_rules() -> void:
+    var rules = Rules.new()
+    var plan = RelayPlan.new()
+    plan.pickup_sites = PackedVector2Array([Vector2(100, 0), Vector2(200, 0), Vector2(300, 0)])
+    plan.depot = Vector2.ZERO
+    plan.initial_enemy_interval = 0.7
+    check(rules.start(plan), "valid authored plan starts pure rules")
+    check(rules.step_position(Vector2(65.9, 0)) == Rules.Event.NONE, "outside pickup boundary rejected")
+    check(rules.step_position(Vector2(66, 0)) == Rules.Event.PICKED_UP, "inclusive pickup boundary")
+    check(rules.step_position(Vector2(34.1, 0)) == Rules.Event.NONE, "outside depot boundary rejected")
+    check(rules.step_position(Vector2(34, 0)) == Rules.Event.DELIVERED, "inclusive depot boundary")
+    check(rules.delivered == 1 and not rules.carrying, "delivery changes state exactly once")
+    check(is_equal_approx(rules.enemy_interval(), 0.54), "difficulty follows delivery count")
+    check(rules.step_position(Vector2.ZERO) == Rules.Event.NONE, "depot without core does not score")
+    check(rules.tick() and rules.elapsed_seconds == 1, "playing timer advances")
+    var invalid = RelayPlan.new()
+    invalid.pickup_sites = PackedVector2Array()
+    check(not rules.start(invalid) and rules.delivered == 1 and rules.elapsed_seconds == 1, "invalid restart preserves active rule state")
+    plan.pickup_sites[1] = Vector2.ZERO
+    plan.initial_enemy_interval = 8
+    check(not rules.configure(plan) and rules.next_pickup() == Vector2(200, 0), "active route cannot be replaced")
+    check(rules.step_position(Vector2.ZERO) == Rules.Event.NONE, "escaped authoring plan does not affect active route")
+    check(rules.step_position(Vector2(200, 0)) == Rules.Event.PICKED_UP, "original second pickup remains active")
+    check(rules.step_position(Vector2.ZERO) == Rules.Event.DELIVERED, "second delivery accepted")
+    check(rules.step_position(Vector2(300, 0)) == Rules.Event.PICKED_UP, "last pickup accepted")
+    check(rules.step_position(Vector2.ZERO) == Rules.Event.WON, "last delivery enters terminal phase")
+    check(rules.phase == "won" and rules.delivered == 3 and not rules.carrying, "winning state is consistent")
+    check(rules.step_position(Vector2.ZERO) == Rules.Event.NONE and not rules.lose() and not rules.tick(), "terminal state rejects further effects")
+    check(rules.start(plan) and rules.delivered == 0 and rules.elapsed_seconds == 0, "new run captures authored plan and resets state")
+    check(rules.lose() and rules.phase == "lost" and not rules.tick(), "loss rejects timer advances")
+
+# The game contract is the closed radius-34 disk around each represented
+# coordinate. Near-boundary cases deliberately target native Vector2 rounding.
+func _check_contact_geometry() -> void:
+    var rules = Rules.new()
+    var plan = RelayPlan.new()
+    plan.pickup_sites = PackedVector2Array([Vector2.ZERO, Vector2(100, 100), Vector2(200, 200)])
+    plan.depot = Vector2(240, 448)
+    for degree in range(360):
+        for offset in range(-4, 5):
+            var radius = 34.0 + offset * 0.000001
+            var angle = deg_to_rad(float(degree))
+            var point = Vector2(radius * cos(angle), radius * sin(angle))
+            # GDScript scalar float is double precision; independently use
+            # the Euclidean norm, not Vector2's rounded squared-distance op.
+            var expected = sqrt(pow(point.x, 2.0) + pow(point.y, 2.0)) <= 34.0
+            if not rules.start(plan):
+                check(false, "contact fixture starts")
+                return
+            var actual = rules.step_position(point) == Rules.Event.PICKED_UP
+            if actual != expected:
+                check(false, "contact disk mismatch degree=%d offset=%d" % [degree, offset])
+                return
+    check(true, "3240 near-boundary native pickup contacts match scalar norm")
+    plan.pickup_sites = PackedVector2Array([Vector2(100, 0), Vector2(200, 0), Vector2(300, 0)])
+    plan.depot = Vector2.ZERO
+    check(rules.start(plan), "depot contact fixture starts")
+    check(rules.step_position(Vector2(100, 0)) == Rules.Event.PICKED_UP, "depot fixture carries core")
+    var just_outside = Vector2(33.917179107666016, 2.3717200756073)
+    check(rules.step_position(just_outside) == Rules.Event.NONE, "rounded false positive must not deliver")
+    check(rules.carrying and rules.delivered == 0, "outside contact preserves carried state")
+    check(rules.step_position(Vector2(34, 0)) == Rules.Event.DELIVERED, "exact closed-disk depot boundary delivers")
+
+func _run() -> void:
+    _check_rules()
+    if failed:
+        return
+    _check_contact_geometry()
+    if failed:
+        return
+    var game: Node = load("res://main.tscn").instantiate()
+    root.add_child(game)
+    await process_frame
+    var player: Area2D = game.get_node("Player")
+    var hud: CanvasLayer = game.get_node("HUD")
+    check(game.phase == "ready" and not player.visible, "initial native title state")
+    check(hud.get_node("StartButton").visible, "playable launch button visible")
+    check(game.relay_plan.pickup_sites.size() == 4, "resource-driven four-stage content")
+    check(game.mob_scene != null, "official PackedScene mob supplier present")
+    hud.get_node("StartButton").pressed.emit()
+    check(game.phase == "playing" and player.visible, "native UI StartButton launches actual Player")
+    # Pause only hazard/time suppliers for deterministic input-driven acceptance;
+    # separately test native Mob instancing and physical collision below.
+    game.get_node("StartTimer").stop()
+    game.get_node("MobTimer").stop()
+    game.get_node("ScoreTimer").stop()
+    check(not game.carrying and game.delivered == 0, "nothing automatically delivered at start")
+    await process_frame
+    check(game.delivered == 0, "standing at home without a core does not score")
+    # Regression of an actual live-scene configuration escape: the authored
+    # Resource remains editable, but cannot change the active route.
+    var original_pickup: Vector2 = game.relay_plan.pickup_sites[0]
+    var original_position: Vector2 = player.position
+    game.relay_plan.pickup_sites[0] = game.relay_plan.depot
+    player.position = game.relay_plan.depot
+    game._physics_process(0.0)
+    check(not game.carrying and game.delivered == 0, "live authored plan mutation cannot fabricate a pickup")
+    check(game.get_node("RelaySites").pickup == original_pickup, "presentation retains captured route")
+    game.relay_plan.pickup_sites[0] = original_pickup
+    player.position = original_position
+    for n in range(4):
+        check(await _walk_to(player, game.relay_plan.pickup_sites[n]),
+            "actual upstream movement reaches pickup %d" % (n+1))
+        await physics_frame
+        check(game.carrying, "native scene picks up core after input movement %d" % (n+1))
+        check(player.speed == 330, "carrying slows actual native Player %d" % (n+1))
+        check(hud.get_node("StatusLabel").text.contains("CARRYING"),
+            "native HUD displays carried stage %d" % (n+1))
+        check(await _walk_to(player, game.relay_plan.depot),
+            "actual upstream movement returns to hub %d" % (n+1))
+        await physics_frame
+        check(game.delivered == n+1, "delivery %d credited once at depot" % (n+1))
+        check(hud.get_node("ScoreLabel").text.contains("%d / 4" % (n+1)),
+            "actual HUD records delivery %d" % (n+1))
+        if n < 3:
+            check(not game.carrying and player.speed == 400,
+                "next-stage pickup required and original speed restored")
+    check(game.phase == "won", "finite whole product complete")
+    check(not player.visible and hud.get_node("StartButton").visible,
+        "win screen supports real replay")
+    check(hud.get_node("MessageLabel").text.contains("RELAY RESTORED"),
+        "native visible completion endpoint")
+    hud.get_node("StartButton").pressed.emit()
+    check(game.phase == "playing" and game.delivered == 0 and player.visible,
+        "native UI retry resets actual world and progression")
+    game.get_node("StartTimer").stop()
+    game.get_node("MobTimer").stop()
+    game.get_node("ScoreTimer").stop()
+    game._on_MobTimer_timeout()
+    var mobs: Array[Node] = get_nodes_in_group("mobs")
+    check(mobs.size() == 1, "original official Mob PackedScene instantiates and joins mobs group")
+    check(mobs[0] is RigidBody2D and mobs[0].get_node("CollisionShape2D") != null,
+        "real upstream physics body and collision shape present")
+    # Use the existing upstream Area2D-vs-RigidBody collision (NOT a
+    # fabricated hit signal), and allow real physics frames to process it.
+    mobs[0].position = player.position
+    mobs[0].linear_velocity = Vector2.ZERO
+    for frame in range(12):
+        await physics_frame
+        if game.phase == "lost":
+            break
+    check(game.phase == "lost", "actual upstream Player body_entered loses game")
+    check(hud.get_node("StartButton").visible and
+        hud.get_node("MessageLabel").text.contains("SIGNAL LOST"),
+        "loss has complete replay UI")
+    hud.get_node("StartButton").pressed.emit()
+    check(game.phase == "playing" and game.delivered == 0 and not game.carrying,
+        "after loss, next production-game run starts clean")
+    await process_frame
+    check(get_nodes_in_group("mobs").is_empty(),
+        "restart cleans upstream enemy group without retained world state")
+    _release_actions()
+    if failed:
+        quit(1)
+        return
+    print("GAME_BEACON_RELAY_PASS assertions=%d keyboard_frames=%d delivery_cycles=4 endpoints=win,loss,retry upstream_physics=yes" % [count, moves])
+    # The game uses real Ogg/WAV AudioStreamPlayer nodes during victory/loss.
+    # Stop and unbind the streams before freeing the scene; otherwise the
+    # AudioServer can retain playback/resource references at process exit.
+    for name in ["Music", "DeathSound"]:
+        var player_audio: AudioStreamPlayer = game.get_node(name)
+        player_audio.stop()
+        player_audio.stream = null
+    game.free()
+    await create_timer(0.15).timeout
+    quit()

@@ -1,18 +1,21 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { buildMechanismRelationshipGraphFromSources } from "../src/mechanism-relationship-graph.ts";
+import { queryMechanismRelationships } from "../scripts/mechanism-relationship-query.ts";
 
-const library = JSON.parse(readFileSync(new URL("../standards/game_mechanism_experience_library_r1.json", import.meta.url), "utf8")) as any;
-const graph = JSON.parse(readFileSync(new URL("../standards/game_mechanism_relationship_graph_r1.json", import.meta.url), "utf8")) as any;
-const spec = JSON.parse(readFileSync(new URL("../standards/game_mechanism_relationship_spec_r1.json", import.meta.url), "utf8")) as any;
-const doc = readFileSync(new URL("../docs/GAME_MECHANISM_RELATIONSHIP_GRAPH_R1.md", import.meta.url), "utf8");
+const libraryRaw = readFileSync(new URL("../knowledge/game_mechanism_experience_library_r1.json", import.meta.url), "utf8");
+const specRaw = readFileSync(new URL("../knowledge/game_mechanism_relationship_spec_r1.json", import.meta.url), "utf8");
+const library = JSON.parse(libraryRaw) as any;
+const spec = JSON.parse(specRaw) as any;
+const graph = buildMechanismRelationshipGraphFromSources({ raw: libraryRaw, value: library }, { raw: specRaw, value: spec });
 
 const unique = (items: string[]) => new Set(items).size === items.length;
 
 test("relationship graph is a derived memory projection rather than a mechanic ontology", () => {
   assert.equal(graph.schemaVersion, 1);
   assert.equal(graph.graphId, "ordivon-game-mechanism-relationship-graph-r1");
-  assert.equal(graph.sourceLibrary.path, "standards/game_mechanism_experience_library_r1.json");
+  assert.equal(graph.sourceLibrary.path, "knowledge/game_mechanism_experience_library_r1.json");
   assert.equal(graph.policy.closedOntology, false);
   assert.equal(graph.policy.canBlockNovelCombination, false);
   assert.equal(graph.policy.recommendationAuthority, "NONE");
@@ -38,7 +41,7 @@ test("mechanism nodes and within-experience edges are mechanically closed over t
 });
 
 test("cross-game retrieval facets are broad aliases, not exhaustive categories", () => {
-  assert.ok(graph.retrievalFacets.length >= 14);
+  assert.ok(graph.retrievalFacets.length > 0, "query must preserve at least one authored retrieval facet");
   assert.ok(unique(graph.retrievalFacets.map((facet: any) => facet.id)));
   const experienceIds = new Set(library.experiences.map((experience: any) => experience.id));
   for (const facet of graph.retrievalFacets) {
@@ -53,7 +56,7 @@ test("cross-game retrieval facets are broad aliases, not exhaustive categories",
 });
 
 test("conditionalities preserve apparent conflicts as conditions rather than universal verdicts", () => {
-  assert.ok(graph.conditionalities.length >= 12);
+  assert.ok(graph.conditionalities.length > 0, "query must preserve at least one falsifiable conditionality");
   assert.ok(unique(graph.conditionalities.map((item: any) => item.id)));
   const experienceIds = new Set(library.experiences.map((experience: any) => experience.id));
   for (const item of graph.conditionalities) {
@@ -87,20 +90,56 @@ test("relationship spec is the authored semantic layer and graph preserves its i
   assert.deepEqual(graph.conditionalities.map((item: any) => item.id), spec.conditionalities.map((item: any) => item.id));
 });
 
-test("human guide explains co-occurrence, facet and conditionality without turning correlation into causality", () => {
-  assert.match(doc, /co-occurrence/i);
-  assert.match(doc, /retrieval facet/i);
-  assert.match(doc, /conditionality/i);
-  assert.match(doc, /not.*caus/i);
-  assert.match(doc, /not.*ontology/i);
-  assert.match(doc, /apparent conflict/i);
-  assert.match(doc, /cheap.*discriminator/i);
+
+test("one source-grounded facet is derivable without a minimum catalog quota", () => {
+  const oneFacet = spec.retrievalFacets[0];
+  assert.ok(oneFacet);
+  const referenced = new Set(oneFacet.experienceRefs);
+  const smallLibrary = {
+    ...library,
+    experiences: library.experiences.filter((experience: any) => referenced.has(experience.id)),
+  };
+  const smallSpec = { ...spec, retrievalFacets: [oneFacet], conditionalities: [] };
+  const reduced = buildMechanismRelationshipGraphFromSources(
+    {raw: JSON.stringify(smallLibrary), value: smallLibrary},
+    {raw: JSON.stringify(smallSpec), value: smallSpec},
+  );
+  assert.deepEqual(reduced.retrievalFacets.map((item: any) => item.id), [oneFacet.id]);
+  assert.equal(reduced.conditionalities.length, 0);
+  assert.equal(reduced.policy.recommendationAuthority, "NONE");
+  assert.equal(reduced.policy.closedOntology, false);
+  assert.equal(reduced.sourceLibrary.libraryId, library.libraryId);
 });
 
+test("on-demand CLI consumes the source-derived relationship graph", () => {
+  for (const [type, items] of Object.entries({
+    mechanisms: graph.mechanismNodes, edges: graph.withinExperienceEdges,
+    facets: graph.retrievalFacets, conditionalities: graph.conditionalities,
+  })) {
+    const result = queryMechanismRelationships({ type: type as "mechanisms" | "edges" | "facets" | "conditionalities", limit: 200 });
+    assert.equal(result.totalMatched, (items as any[]).length);
+    assert.deepEqual(result.items, (items as any[]).slice(0, 200));
+  }
+});
 
-test("generated relationship graph exactly rebuilds from spec plus Experience Library", async () => {
-  const { buildMechanismRelationshipGraph } = await import("../scripts/build-mechanism-relationship-graph.ts");
-  assert.deepEqual(buildMechanismRelationshipGraph(), graph);
+test("pure relationship projection takes source bytes without filesystem or CLI access", async () => {
+  assert.deepEqual(
+    buildMechanismRelationshipGraphFromSources(
+      { raw: libraryRaw, value: JSON.parse(libraryRaw) },
+      { raw: specRaw, value: JSON.parse(specRaw) },
+    ),
+    graph,
+  );
+
+  const corruptedSpec = structuredClone(spec);
+  corruptedSpec.retrievalFacets[0].experienceRefs[0] = "nonexistent-experience-ref";
+  assert.throws(
+    () => buildMechanismRelationshipGraphFromSources(
+      { raw: libraryRaw, value: library },
+      { raw: JSON.stringify(corruptedSpec), value: corruptedSpec },
+    ),
+    /references unknown experience nonexistent-experience-ref/,
+  );
 });
 
 test("derived relationship graph is linked from owner-native LEGO registration", () => {
@@ -111,12 +150,11 @@ test("derived relationship graph is linked from owner-native LEGO registration",
   assert.ok(node);
   assert.match(readme, /knowledge:relationships/);
   for (const path of [
-    "docs/GAME_MECHANISM_RELATIONSHIP_GRAPH_R1.md",
-    "standards/game_mechanism_relationship_spec_r1.json",
-    "standards/game_mechanism_relationship_graph_r1.json",
-    "scripts/build-mechanism-relationship-graph.ts",
+    "knowledge/game_mechanism_relationship_spec_r1.json",
+    "src/mechanism-relationship-graph.ts",
+    "knowledge/game_mechanism_experience_library_r1.json",
     "scripts/mechanism-relationship-query.ts",
   ]) assert.match(project, new RegExp(path.replaceAll("/", "\\/")));
-  assert.ok(node.evidence.includes("standards/game_mechanism_relationship_graph_r1.json"));
+  assert.ok(node.evidence.includes("src/mechanism-relationship-graph.ts"));
   assert.match(node.behavioralContract, /never a closed game ontology/i);
 });

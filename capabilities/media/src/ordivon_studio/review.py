@@ -5,16 +5,11 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-from .assets import hash_file, probe_media
+from .assets import BlobInfo, hash_file
 from .perception import build_video_perception_bundle
-from .qc import validate_video_probe
-
-
-def _load_object(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(value, dict):
-        raise ValueError(f"{path}: root must be an object")
-    return value
+from .production_source_io import read_bound_bytes
+from .qc import probe_media, validate_video_probe
+from .strict_json import decode_object
 
 
 def _repository_relative(path: Path, root: Path) -> str:
@@ -65,7 +60,9 @@ def build_video_review_packet(
     repository_root: Path | None = None,
 ) -> dict[str, Any]:
     production_path = production_root / "production.json"
-    production = _load_object(production_path)
+    production_bytes, production_digest = read_bound_bytes(production_path)
+    production = decode_object(production_bytes)
+    production_blob = BlobInfo(production_digest, len(production_bytes), "application/json")
     production_id = production.get("id")
     if not isinstance(production_id, str) or not production_id:
         raise ValueError("Production id is missing")
@@ -123,7 +120,7 @@ def build_video_review_packet(
         {
             "role": "production",
             "path": _repository_relative(production_path, repo),
-            "blob": hash_file(production_path).as_dict(),
+            "blob": production_blob.as_dict(),
         }
     ]
     for role, relative in (("cognition", cognition), ("claims", claims)):

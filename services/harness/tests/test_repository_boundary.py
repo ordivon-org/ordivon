@@ -65,8 +65,8 @@ class RepositoryBoundaryTests(unittest.TestCase):
         self.assertEqual(set(slices["HS2"]["nodeIds"]), {"H03", "H04"})
         self.assertFalse(any("alternate-harness adapter" in gap for gap in plan["gaps"]))
 
-    def test_portable_workflows_consume_only_locked_runtime_audit_closure(self) -> None:
-        """No optional extracted-repo Workflow may reference a retired requirements snapshot."""
+    def test_active_owner_tasks_and_release_source_use_locked_audit_closure(self) -> None:
+        """Native merge/verify tasks replace historical, undiscovered nested CI."""
         audit_export = (
             "uv export --locked --no-default-groups --no-emit-project "
             "--format requirements-txt"
@@ -75,15 +75,23 @@ class RepositoryBoundaryTests(unittest.TestCase):
             'uvx pip-audit --disable-pip --require-hashes '
             '-r "$tmp/runtime-requirements.txt" --strict --progress-spinner off'
         )
-        for name in ("ci.yml", "release-acceptance.yml"):
-            with self.subTest(workflow=name):
-                workflow = (ROOT / ".github" / "workflows" / name).read_text()
-                self.assertNotIn("requirements-audit.txt", workflow)
-                self.assertIn(audit_export, workflow)
-                self.assertIn(audit_action, workflow)
-                self.assertIn("uv run --locked ruff check src tests scripts", workflow)
-                self.assertNotIn("uvx ruff==", workflow)
-                self.assertFalse((ROOT / "requirements-audit.txt").exists())
+        native_tasks = tomllib.loads((ROOT / "mise.toml").read_text())["tasks"]
+        sources = {
+            "queue": native_tasks["queue"]["run"],
+            "verify": native_tasks["verify"]["run"],
+            "release-acceptance.yml": (
+                ROOT / ".github/workflows/release-acceptance.yml"
+            ).read_text(),
+        }
+        self.assertFalse((ROOT / ".github/workflows/ci.yml").exists())
+        for name, source in sources.items():
+            with self.subTest(consumer=name):
+                self.assertNotIn("requirements-audit.txt", source)
+                self.assertIn(audit_export, source)
+                self.assertIn(audit_action, source)
+                self.assertIn("uv run --locked ruff check src tests scripts", source)
+                self.assertNotIn("uvx ruff==", source)
+        self.assertFalse((ROOT / "requirements-audit.txt").exists())
 
     def test_source_tree_contains_no_ordivon_host_imports(self) -> None:
         source_root = ROOT / "src" / "ordivon_harness"

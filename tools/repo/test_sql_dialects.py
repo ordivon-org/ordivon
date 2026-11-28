@@ -4,20 +4,26 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 from tools.repo.check_sql_dialects import (
     OSQUERY_DEFAULT_TIMEOUT_SECONDS,
     OSQUERY_TIMEOUT_SECONDS,
+    POSTGRESQL_RUNTIME_EPOCH,
+    POSTGRESQL_RUNTIME_ARTIFACT_INDEX,
+    POSTGRESQL_RUNTIME_CLAIMS,
+    POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER,
+    ROOT,
+    SQLITE_LEGACY_SOURCE_CALLS,
     classify,
-    tracked_sql,
-    sqlite_direct_calls,
+    host_postgres_only_sources,
+    pg_runtime_ddl_structure_issues,
     sqlite_debt_issues,
+    sqlite_direct_calls,
     tracked_owner_sqlite_calls,
+    tracked_sql,
     tracked_unsafe_sqlite_file_uris,
     unsafe_sqlite_file_uri_interpolations,
-    SQLITE_LEGACY_SOURCE_CALLS,
-    ROOT,
-    host_postgres_only_sources,
 )
 
 
@@ -69,20 +75,25 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         current = tracked_owner_sqlite_calls(ROOT)
         self.assertEqual(current, SQLITE_LEGACY_SOURCE_CALLS)
         self.assertFalse(sqlite_debt_issues(current))
+        # The retired Finance importer must not reappear as direct SQLite debt.
+        self.assertNotIn(
+            "domains/capital/src/ordivon_capital/accounting/postgres_ledger.py",
+            current,
+        )
+        self.assertNotIn("domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py", current)
         self.assertGreater(len(current), 10)
+        # The retired Gateway transport is not a surviving SQLite authority.
+        retired = "services/gateway/src/ordivon_gateway/external_worker.py"
+        self.assertNotIn(retired, current)
+        self.assertNotIn(retired, SQLITE_LEGACY_SOURCE_CALLS)
 
     def test_legacy_debt_includes_unfenced_domain_gateway_and_workstation_owners(self):
         current = tracked_owner_sqlite_calls(ROOT)
         # Each is a real tracked and currently differently qualified consumer.
         for name in (
-            "services/gateway/src/ordivon_gateway/external_worker.py",
-            "domains/capital/src/ordivon_capital/accounting/sqlite_ledger.py",
-            "domains/capital/src/ordivon_capital/accounting/postgres_ledger.py",
-            "capabilities/media/scripts/migrate-r6-trials.py",
             "platform/workstation/scripts/host_historical_projection.py",
-            "platform/workstation/scripts/host_retirement_snapshot.py",
-            "meta/next/experiments/browser-security-r4/cf07_metadata_snapshot.py",
-            "meta/next/experiments/chaoxing-autosign-mvp/chaoxing_mvp/ledger.py",
+            "services/harness/research/experiments/browser-security-r4/cf07_metadata_snapshot.py",
+            "apps/chaoxing-autosign/chaoxing_mvp/ledger.py",
         ):
             with self.subTest(path=name):
                 self.assertIn(name, current)
@@ -123,14 +134,15 @@ class SQLDialectBoundaryTests(unittest.TestCase):
             [],
         )
 
-    def test_pg_media_retires_ledger_sqlite_but_keeps_verified_importer(self):
+    def test_pg_media_retires_ledger_sqlite_and_legacy_importer(self):
         observed = tracked_owner_sqlite_calls(ROOT)
-        retired = "capabilities/media/src/ordivon_studio/research_validity.py"
+        ledger = "capabilities/media/src/ordivon_studio/research/trial_ledger.py"
         importer = "capabilities/media/scripts/migrate-r6-trials.py"
-        self.assertNotIn(retired, observed)
-        self.assertNotIn(retired, SQLITE_LEGACY_SOURCE_CALLS)
-        self.assertEqual(observed.get(importer), 1)
-        self.assertEqual(SQLITE_LEGACY_SOURCE_CALLS[importer], 1)
+        self.assertTrue((ROOT / ledger).is_file())
+        self.assertFalse((ROOT / importer).exists())
+        for path in (ledger, importer):
+            self.assertNotIn(path, observed)
+            self.assertNotIn(path, SQLITE_LEGACY_SOURCE_CALLS)
 
     def test_new_sqlite_owner_outside_old_runtime_harness_scope_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -266,8 +278,167 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         self.assertEqual(classify("services/runtime/crates/ordivon-runtime-core/migrations/runtime/0001_runtime.sql"), "sqlite")
         self.assertEqual(classify("services/runtime/crates/ordivon-runtime-core/src/runtime/attempt_supervisor_owner_storage.sql"), "sqlite")
         self.assertEqual(classify("platform/workstation/inventory/queries/uptime.sql"), "osquery")
-        self.assertEqual(classify("meta/next/scripts/experimental_episode_r5c_source_r1.sql"), "postgresql")
+        self.assertEqual(classify("studies/experimental-episodes/episode-store/sql/runtime_r5c_export.sql"), "postgresql")
         self.assertEqual(classify("services/runtime/crates/ordivon-runtime-core/sql/pg_fresh_epoch.sql"), "postgresql")
+        self.assertEqual(classify(POSTGRESQL_RUNTIME_ARTIFACT_INDEX), "postgresql")
+        self.assertEqual(classify("services/runtime/crates/ordivon-runtime-core/sql/pg_workspace_claim_r1.sql"), "postgresql")
+        self.assertEqual(classify("services/runtime/sql/pg_resource_scheduler_v1.sql"), "postgresql")
+        self.assertEqual(classify("catalogs/capabilities/ele/schema.sql"), "postgresql")
+
+    @staticmethod
+    def _pg_ast_statement(kind: str, relation: str | None = None,
+                          index: str | None = None,
+                          transaction_kind: int | None = None):
+        """Small typed AST doubles: native pglast parse remains in the SQL gate."""
+        stmt = type(kind, (), {})()
+        if relation is not None:
+            stmt.relation = SimpleNamespace(relname=relation)
+        if index is not None:
+            stmt.idxname = index
+        if transaction_kind is not None:
+            stmt.kind = transaction_kind
+        return SimpleNamespace(stmt=stmt)
+
+    def test_pg_runtime_epoch_full_ast_rejects_semantic_mutations(self):
+        row = self._pg_ast_statement
+        epoch = [
+            row("TransactionStmt", transaction_kind=0),
+            row("DoStmt"),
+            *[row("CreateStmt", name) for name in
+              ("jobs", "attempts", "idempotency_keys",
+               "concurrency_reservations", "job_allocations")],
+            row("IndexStmt", "job_allocations", "idx_job_allocations_active"),
+            row("CreateStmt", "workspace_consumer_claims"),
+            row("IndexStmt", "workspace_consumer_claims", "idx_workspace_consumer_claims_held"),
+            row("CreateStmt", "job_events"),
+            row("CreateStmt", "job_runtime_release_effects"),
+            row("IndexStmt", "job_runtime_release_effects",
+                "idx_runtime_release_effect_request"),
+            row("CreateStmt", "artifacts"),
+            row("IndexStmt", "artifacts", "idx_artifacts_job"),
+            row("CreateStmt", "_stage_control"),
+            row("TransactionStmt", transaction_kind=2),
+        ]
+        self.assertEqual(pg_runtime_ddl_structure_issues(
+            POSTGRESQL_RUNTIME_EPOCH, epoch), [])
+        from copy import deepcopy
+        for mutant in ("bad_table", "drop", "begin", "commit", "empty", "extra"):
+            statements = deepcopy(epoch)
+            if mutant == "bad_table":
+                statements[2].stmt.relation.relname = "unapproved_table"
+            elif mutant == "drop":
+                statements[3] = row("DropStmt")
+            elif mutant == "begin":
+                statements[0].stmt.kind = 1
+            elif mutant == "commit":
+                statements[-1].stmt.kind = 1
+            elif mutant == "empty":
+                statements = []
+            elif mutant == "extra":
+                statements.insert(-1, row("GrantStmt"))
+            with self.subTest(mutant=mutant):
+                self.assertTrue(pg_runtime_ddl_structure_issues(
+                    POSTGRESQL_RUNTIME_EPOCH, statements))
+
+    def test_pg_runtime_artifact_index_online_ast_rejects_mutations(self):
+        row = self._pg_ast_statement
+        online = [row("DoStmt"), row("IndexStmt", "artifacts", "idx_artifacts_job"),
+                  row("DoStmt"), row("DoStmt")]
+        index = online[1].stmt
+        index.concurrent = True
+        index.if_not_exists = True
+        index.unique = False
+        index.whereClause = None
+        index.accessMethod = "btree"
+        index.indexIncludingParams = None
+        index.indexParams = [SimpleNamespace(name="job_id", expr=None, opclass=None, collation=None)]
+        self.assertEqual(pg_runtime_ddl_structure_issues(POSTGRESQL_RUNTIME_ARTIFACT_INDEX, online), [])
+        from copy import deepcopy
+        for mutant in ("missing_postflight", "blocking", "wrong_column", "wrong_table",
+                       "partial", "included", "unique", "extra_drop"):
+            rows = deepcopy(online)
+            item = rows[1].stmt
+            if mutant == "missing_postflight":
+                rows.pop(2)
+            elif mutant == "blocking":
+                item.concurrent = False
+            elif mutant == "wrong_column":
+                item.indexParams[0].name = "kind"
+            elif mutant == "wrong_table":
+                item.relation.relname = "jobs"
+            elif mutant == "partial":
+                item.whereClause = object()
+            elif mutant == "included":
+                item.indexIncludingParams = [object()]
+            elif mutant == "unique":
+                item.unique = True
+            elif mutant == "extra_drop":
+                rows.append(row("DropStmt"))
+            with self.subTest(mutant=mutant):
+                self.assertTrue(pg_runtime_ddl_structure_issues(POSTGRESQL_RUNTIME_ARTIFACT_INDEX, rows))
+
+    def test_pg_runtime_claim_additive_migration_ast_rejects_mutations(self):
+        row = self._pg_ast_statement
+        migration = [
+            row("TransactionStmt", transaction_kind=0),
+            row("DoStmt"),
+            row("CreateStmt", "workspace_consumer_claims"),
+            row("IndexStmt", "workspace_consumer_claims",
+                "idx_workspace_consumer_claims_held"),
+            row("TransactionStmt", transaction_kind=2),
+        ]
+        self.assertEqual(
+            pg_runtime_ddl_structure_issues(POSTGRESQL_RUNTIME_CLAIMS, migration), []
+        )
+        from copy import deepcopy
+        for mutant in ("rename_table", "wrong_index", "drop", "extra",
+                       "missing_guard", "wrong_commit", "empty"):
+            statements = deepcopy(migration)
+            if mutant == "rename_table":
+                statements[2].stmt.relation.relname = "unowned_claims"
+            elif mutant == "wrong_index":
+                statements[3].stmt.idxname = "unapproved_index"
+            elif mutant == "drop":
+                statements[2] = row("DropStmt")
+            elif mutant == "extra":
+                statements.insert(-1, row("GrantStmt"))
+            elif mutant == "missing_guard":
+                statements.pop(1)
+            elif mutant == "wrong_commit":
+                statements[-1].stmt.kind = 1
+            elif mutant == "empty":
+                statements.clear()
+            with self.subTest(mutant=mutant):
+                self.assertTrue(pg_runtime_ddl_structure_issues(
+                    POSTGRESQL_RUNTIME_CLAIMS, statements))
+
+    def test_pg_resource_scheduler_full_ast_rejects_mutations(self):
+        row = self._pg_ast_statement
+        scheduler = [
+            row("TransactionStmt", transaction_kind=0),
+            row("DoStmt"),
+            row("CreateStmt", "job_allocations"),
+            row("IndexStmt", "job_allocations", "idx_job_allocations_active"),
+            row("TransactionStmt", transaction_kind=2),
+        ]
+        self.assertEqual(pg_runtime_ddl_structure_issues(
+            POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER, scheduler), [])
+        from copy import deepcopy
+        for mutant in ("bad_table", "bad_index", "drop", "commit", "empty"):
+            statements = deepcopy(scheduler)
+            if mutant == "bad_table":
+                statements[2].stmt.relation.relname = "unapproved_table"
+            elif mutant == "bad_index":
+                statements[3].stmt.idxname = "unapproved_index"
+            elif mutant == "drop":
+                statements[2] = row("DropStmt")
+            elif mutant == "commit":
+                statements[-1].stmt.kind = 1
+            elif mutant == "empty":
+                statements = []
+            with self.subTest(mutant=mutant):
+                self.assertTrue(pg_runtime_ddl_structure_issues(
+                    POSTGRESQL_RUNTIME_RESOURCE_SCHEDULER, statements))
 
     def test_full_host_package_queries_are_bounded_and_not_downgraded(self):
         self.assertEqual(OSQUERY_TIMEOUT_SECONDS["python_packages.sql"], 120)
@@ -387,6 +558,28 @@ class SQLDialectBoundaryTests(unittest.TestCase):
         for name in ("domains/game/later.sql", "services/runtime/crates/ordivon-runtime-core/src/runtime/bad.sql"):
             with self.subTest(name=name):
                 self.assertIsNone(classify(name))
+
+
+    def test_pg_minor_maintenance_versions_without_major_downgrade(self):
+        """A supported minor update is not a new SQL dialect authority."""
+        from tools.repo.check_sql_dialects import supported_postgres_client_version
+
+        for version, supported in (
+            ("18.5", False),
+            ("18.6", True),
+            ("18.7", True),
+            ("18.99", True),
+            ("19.0", False),
+            ("17.12", False),
+            ("UNAVAILABLE", False),
+            ("18.7.1", False),
+            ("18.7oops", False),
+            ("18.07", False),
+            ("18.-1", False),
+            ("", False),
+        ):
+            with self.subTest(version=version):
+                self.assertIs(supported_postgres_client_version(version), supported)
 
 
 if __name__ == "__main__":

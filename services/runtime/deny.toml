@@ -6,7 +6,17 @@ version = 2
 # PKCS#1 v1.5 decryption, so the attack path is unreachable. Upstream offers no
 # safe upgrade: PKCS#1 v1.5 decryption is inherently vulnerable and the
 # mitigation is OAEP, which Runtime does not use.
-ignore = ["RUSTSEC-2023-0071"]
+# A newly issued INFO/Unmaintained notice (2026-11-17), NOT a known
+# exploitable vulnerability. No patched chrono exists. Current users are
+# transitive through the pinned MCP SDK and schema generator only; do not
+# disable the other advisory checks or accept new chrono dependents.
+# Pinned cargo-deny 0.20.2 only accepts id/reason here (not expiry/allow).
+# Remove this single advisory ignore by 2026-12-31 after upstream review.
+# This is a deliberately bounded manual review debt, NOT an enforced expiry.
+ignore = [
+  "RUSTSEC-2023-0071",
+  { id = "RUSTSEC-2026-0543", reason = "2026-11-18: chrono is transitively required by rmcp 3.9.0 and schemars 1.2.3 with no fixed version; review upstream migration before 2026-12-31" },
+]
 
 [licenses]
 version = 2

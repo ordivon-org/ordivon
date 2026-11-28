@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import fcntl
 import hashlib
+import importlib.util
 import io
 import json
 import os
@@ -14,6 +15,7 @@ import stat
 import subprocess
 import tarfile
 import tempfile
+import tomllib
 import re
 from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
@@ -25,8 +27,11 @@ CURRENT = Path("/opt/ordivon/agent-automation/current")
 TEMPORAL = Path("/opt/ordivon/external/temporal-cli/1.8.3/temporal")
 TEMPORAL_ADDRESS = "127.0.0.1:17233"
 MCP_PY = Path("/root/.local/share/ordivon-workstation/agent-automation-mcp-v1/.venv/bin/python")
+# Consume the release-owned Temporal worker interpreter, not the retired
+# standalone .venv. This path must match the native worker source unit and
+# temporal_agent_automation_deploy.VENV_PY; the source test enforces that seam.
 WORKER_PY = Path(
-    "/root/.local/share/ordivon-workstation/temporal-agent-automation/.venv/bin/python"
+    "/root/.local/share/ordivon-workstation/temporal-agent-automation/py315-sqlite354-r19-release/bin/python"
 )
 BROWSER_SECURITY_PY = Path(
     "/root/.local/share/ordivon-workstation/conversation-relay-playwright-r4/.venv/bin/python"
@@ -56,6 +61,7 @@ RELEASE_PATHS = (
     "scripts/agent_automation_mcp_deploy.py",
     "scripts/agent_automation_registry.py",
     "scripts/agent_automation_release.py",
+    "evals/automation-mcp-surface-005/verify.py",
     "scripts/browser_use_browserless.py",
     "scripts/browser_security_witness_source.py",
     "scripts/browser_security_pool_runner.py",
@@ -93,7 +99,9 @@ RELEASE_PATHS = (
     "scripts/sqlite_conversation_materializer.py",
     "scripts/materialization_reconciliation_archive.py",
     "scripts/sqlite_conversation_binding.py",
+    "scripts/conversation_binding_contract.py",
     "scripts/sqlite_wake_turn_map.py",
+    "scripts/wake_turn_contract.py",
     "scripts/postgres_wake_turn_map.py",
     "scripts/postgres_conversation_binding.py",
     "scripts/postgres_turn_effects.py",
@@ -1022,6 +1030,136 @@ def candidate_fast_forwards_closed_gate(
     return p.returncode == 0
 
 
+def require_live_mcp_surface_compatibility(candidate_release: Path) -> dict[str, object]:
+    """Read real authenticated MCP Tool names before stopping a live release.
+
+    Reuse the existing installed OfficialMcpClient and the operator-owned
+    evaluation script. Never import/execute the untrusted candidate MCP source.
+    A no-subtraction result is necessary only, NOT approval to activate.
+    """
+    try:
+        installed = CURRENT.resolve(strict=True)
+        settings = tomllib.loads(
+            (installed / "config/agent-automation.toml").read_text(encoding="utf-8")
+        )["agent_automation"]
+        if settings.get("mcp_bind") != "127.0.0.1":
+            raise ValueError("installed MCP endpoint is not explicit loopback")
+        port = settings["mcp_port"]
+        if type(port) is not int or not 1 <= port <= 65535:
+            raise ValueError("installed MCP port is invalid")
+        token_file = Path(settings["mcp_token_file"])
+        runtime_python = Path(settings["mcp_runtime_python"])
+        if (
+            not token_file.is_absolute()
+            or not runtime_python.is_absolute()
+            or not runtime_python.is_file()
+        ):
+            raise ValueError("installed MCP credential/runtime identity is invalid")
+        installed_source = installed / "scripts/agent_automation_mcp.py"
+        candidate_source = candidate_release / "scripts/agent_automation_mcp.py"
+        # The verifier belongs to the running operator's own source, not the
+        # candidate. The next materialized release carries this exact evaluator.
+        verifier_path = (
+            Path(__file__).resolve().parents[1]
+            / "evals/automation-mcp-surface-005/verify.py"
+        )
+        if not verifier_path.is_file() or verifier_path.is_symlink():
+            raise ValueError("operator-owned MCP surface verifier is unavailable")
+
+        # The token never appears in argv or stdout: only the protected file
+        # path reaches the existing read-only official MCP client.
+        code = (
+            "import json,sys;from pathlib import Path;"
+            "from ordivon_harness.mcp_http_client import OfficialMcpClient,LoopbackMcpEndpoint;"
+            "client=OfficialMcpClient(LoopbackMcpEndpoint(sys.argv[1]),"
+            "bearer_token_file=Path(sys.argv[2]),timeout_seconds=15.0);"
+            "print(json.dumps([{'name':row['name']} for row in client.list_tools()]))"
+        )
+        # Privileged read-only probe must not inherit loader or proxy controls.
+        env = {
+            "PYTHONPATH": str(installed / "src"),
+            "NO_PROXY": "127.0.0.1",
+            "PATH": "/usr/bin:/bin",
+            "LANG": "C.UTF-8",
+        }
+        result = run(
+            [
+                str(runtime_python), "-c", code,
+                f"http://127.0.0.1:{port}/mcp", str(token_file),
+            ],
+            check=False,
+            timeout=30,
+            env=env,
+        )
+        # On failure, never include stderr or request headers/token in logs.
+        if result.returncode != 0 or len(result.stdout) > 65_536:
+            raise ValueError("authenticated MCP tools/list unavailable")
+        spec = importlib.util.spec_from_file_location(
+            "_ordivon_release_mcp_surface_verifier", verifier_path
+        )
+        if spec is None or spec.loader is None:
+            raise ValueError("operator verifier loader unavailable")
+        verifier = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(verifier)
+        names = verifier.capture_live_names(json.loads(result.stdout))
+        installed_text = installed_source.read_text(encoding="utf-8")
+        candidate_text = candidate_source.read_text(encoding="utf-8")
+        if len(installed_text) > 1_048_576 or len(candidate_text) > 1_048_576:
+            raise ValueError("MCP source exceeds bounded inspection")
+        evidence = verifier.compare(names, installed_text, candidate_text)
+        if evidence["status"] != "NO_NAME_OR_FIELD_SUBTRACTION_DETECTED_NOT_RELEASE_APPROVED":
+            raise ReleaseError("MCP installed/live/candidate ABI is breaking or UNKNOWN; "
+                               "retain current MCP and Temporal worker")
+        evidence["verifiedInstalledRelease"] = str(installed)
+        evidence["verifiedInstalledSourceSha256"] = hashlib.sha256(
+            installed_source.read_bytes()
+        ).hexdigest()
+        evidence["verifiedCandidateSourcePath"] = str(candidate_source.resolve(strict=True))
+        evidence["verifiedCandidateSourceSha256"] = hashlib.sha256(
+            candidate_source.read_bytes()
+        ).hexdigest()
+        return evidence
+    except ReleaseError:
+        raise
+    except Exception as error:
+        raise ReleaseError(
+            "MCP ABI pre-stop verification is unavailable; current services unchanged "
+            f"({type(error).__name__})"
+        ) from error
+
+
+def require_same_mcp_source_before_stop(preflight: dict[str, object]) -> None:
+    """Reject Current/source drift after live tools/list and before stopping MCP."""
+    try:
+        original = preflight["verifiedInstalledRelease"]
+        source_digest = preflight["verifiedInstalledSourceSha256"]
+        candidate_path = preflight["verifiedCandidateSourcePath"]
+        candidate_digest = preflight["verifiedCandidateSourceSha256"]
+        if any(
+            not isinstance(value, str)
+            for value in (original, source_digest, candidate_path, candidate_digest)
+        ):
+            raise ValueError("MCP preflight source identity is absent")
+        current = CURRENT.resolve(strict=True)
+        installed_source = current / "scripts/agent_automation_mcp.py"
+        candidate_source = Path(candidate_path)
+        if installed_source.is_symlink() or candidate_source.is_symlink():
+            raise ValueError("MCP source must not be a symbolic link")
+        actual = hashlib.sha256(installed_source.read_bytes()).hexdigest()
+        candidate_actual = hashlib.sha256(candidate_source.read_bytes()).hexdigest()
+        if (
+            str(current) != original
+            or actual != source_digest
+            or candidate_actual != candidate_digest
+        ):
+            raise ValueError("MCP installed/candidate source changed after qualified live read")
+    except (OSError, KeyError, ValueError) as error:
+        raise ReleaseError(
+            "MCP Current/source drift after pre-stop ABI check; "
+            "retain current MCP and Temporal worker"
+        ) from error
+
+
 @contextmanager
 def release_admission_fence(commit: str, repo: Path | None = None):
     repo = SOURCE_REPO if repo is None else Path(repo)
@@ -1066,7 +1204,14 @@ def activate(repo: Path, revision: str) -> dict:
     require_mcp_runtime_importable(release)
     require_worker_runtime_importable(release)
     require_playwright_runtime_importable(release)
+    mcp_preflight = require_live_mcp_surface_compatibility(release)
+    require_same_mcp_source_before_stop(mcp_preflight)
     with release_admission_fence(commit, repo) as admission_was_closed:
+        try:
+            require_same_mcp_source_before_stop(mcp_preflight)
+        except ReleaseError:
+            _restore_admission_gate(admission_was_closed)
+            raise
         # Snapshot every rollback-relevant pre-state before the first service/file mutation. Early
         # failures (including quiescence observation or worker stop) must restore the same state.
         mcp_was = active(MCP_UNIT)

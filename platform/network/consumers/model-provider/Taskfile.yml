@@ -1,0 +1,20 @@
+version: '3'
+
+tasks:
+  consumer:model-provider:validate:
+    desc: Validate shared Model Provider egress authority without reading credentials
+    cmds:
+      - sing-box check -c consumers/model-provider/config/egress.json
+      - bash -n consumers/model-provider/ready.sh
+      - systemd-analyze verify consumers/model-provider/systemd/network-v2-model-provider-egress.service consumers/model-provider/systemd/network-v2-model-provider.target
+
+  consumer:model-provider:verify:
+    desc: Verify installed Model Provider source and exact provider HTTPS admission
+    deps: [consumer:model-provider:validate]
+    cmds:
+      - cmp -s consumers/model-provider/config/egress.json /etc/network-v2/model-provider/egress.json
+      - cmp -s consumers/model-provider/config/authority.json /etc/network-v2/model-provider/authority.json
+      - cmp -s consumers/model-provider/systemd/network-v2-model-provider-egress.service /etc/systemd/system/network-v2-model-provider-egress.service
+      - cmp -s consumers/model-provider/systemd/network-v2-model-provider.target /etc/systemd/system/network-v2-model-provider.target
+      - cmp -s consumers/model-provider/ready.sh /usr/local/libexec/network-v2/model-provider-ready
+      - /usr/local/libexec/network-v2/model-provider-ready

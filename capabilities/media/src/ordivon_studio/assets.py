@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import mimetypes
 import os
 import shutil
-import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+
+
+class UnstableBlobError(RuntimeError):
+    """The observed file descriptor changed while its bytes were read."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,14 +30,28 @@ class BlobInfo:
 def hash_file(path: Path, chunk_size: int = 1024 * 1024) -> BlobInfo:
     if not path.is_file():
         raise FileNotFoundError(path)
+    if type(chunk_size) is not int or chunk_size <= 0:
+        raise ValueError("hash chunk size must be a positive integer")
     digest = hashlib.sha256()
+    bytes_read = 0
     with path.open("rb") as handle:
+        before = os.fstat(handle.fileno())
         while chunk := handle.read(chunk_size):
             digest.update(chunk)
+            bytes_read += len(chunk)
+        after = os.fstat(handle.fileno())
+    # Digest and size must describe the SAME observed stream. A separate
+    # path.stat() after the read can report a newer file length. fstat on the
+    # opened descriptor also detects common concurrent source mutations.
+    identity = lambda stat: (
+        stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns
+    )
+    if identity(before) != identity(after) or bytes_read != after.st_size:
+        raise UnstableBlobError(f"source file changed during hashing: {path}")
     media_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
     return BlobInfo(
         digest=f"sha256:{digest.hexdigest()}",
-        size_bytes=path.stat().st_size,
+        size_bytes=bytes_read,
         media_type=media_type,
     )
 
@@ -173,26 +188,3 @@ def materialize_blob(digest: str, cache_root: Path, destination: Path) -> dict[s
     finally:
         if temporary_path is not None:
             temporary_path.unlink(missing_ok=True)
-
-
-def probe_media(path: Path, ffprobe: str = "/usr/bin/ffprobe") -> dict[str, Any]:
-    if not path.is_file():
-        raise FileNotFoundError(path)
-    result = subprocess.run(
-        [
-            ffprobe,
-            "-v",
-            "error",
-            "-show_format",
-            "-show_streams",
-            "-of",
-            "json",
-            str(path),
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr.strip() or f"ffprobe exited {result.returncode}")
-    return json.loads(result.stdout)

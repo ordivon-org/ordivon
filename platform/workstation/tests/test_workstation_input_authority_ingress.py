@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import errno
 import hashlib
+import json
 import os
+import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -40,7 +44,12 @@ class InputAuthorityIngressTests(unittest.TestCase):
             "schemaVersion": 1,
             "stateDir": str(self.state),
             "maxBytes": 1024,
-            "carriers": {"artifact-drive": {"kind": "rclone", "sourcePrefix": "drive:Ordivon Artifact Ingress/golden-r1/"}},
+            "carriers": {
+                "artifact-drive": {
+                    "kind": "rclone",
+                    "sourcePrefix": "drive:Ordivon Artifact Ingress/golden-r1/",
+                }
+            },
             "authorities": {"artifact-golden-r1": {"root": str(self.authority)}},
         }
         self.request = {
@@ -68,7 +77,6 @@ class InputAuthorityIngressTests(unittest.TestCase):
     def destination(self) -> Path:
         return self.authority / "pdu-sdu/34x10/slide-01.jpeg"
 
-
     def local_stage_config(self, source_root: Path) -> dict:
         return {
             **self.config,
@@ -78,6 +86,52 @@ class InputAuthorityIngressTests(unittest.TestCase):
     def local_stage_request(self) -> dict:
         return {**self.request, "requestId": "local-stage-slide-01", "carrier": "runtime-stage"}
 
+    def test_installed_node_carrier_uses_sibling_contract_not_repository_imports(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        playbook = (root / "ansible/workstation-node-carriers.yml").read_text()
+        self.assertLess(
+            playbook.index("Install input-authority ingress contract"),
+            playbook.index("Install input-authority ingress carrier"),
+        )
+        self.assertIn("src: ../workstation/input_authority_contract.py", playbook)
+        self.assertIn("dest: /root/tools/bin/input_authority_contract.py", playbook)
+
+        installed = self.root / "tools/bin"
+        installed.mkdir(parents=True)
+        shutil.copy2(
+            root / "workstation/input_authority_ingress.py", installed / "input-authority-ingress"
+        )
+        shutil.copy2(
+            root / "workstation/input_authority_contract.py",
+            installed / "input_authority_contract.py",
+        )
+        source_root = self.root / "stage"
+        source_path = source_root / "pdu-sdu/34x10/slide-01.jpeg"
+        source_path.parent.mkdir(parents=True)
+        source_path.write_bytes(self.payload)
+        config_path = self.root / "config.json"
+        request_path = self.root / "request.json"
+        config_path.write_text(json.dumps(self.local_stage_config(source_root), default=str))
+        request_path.write_text(json.dumps(self.local_stage_request()))
+        env = {key: value for key, value in os.environ.items() if key != "PYTHONPATH"}
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(installed / "input-authority-ingress"),
+                "--config",
+                str(config_path),
+                "--request",
+                str(request_path),
+            ],
+            cwd=self.root,
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertEqual(json.loads(result.stdout)["commitStanding"], "COMMITTED_NEW")
+        self.assertEqual(self.destination().read_bytes(), self.payload)
 
     def test_reconcile_only_freezes_intent_without_fetching_source(self) -> None:
         class ForbiddenFetcher:
@@ -91,9 +145,13 @@ class InputAuthorityIngressTests(unittest.TestCase):
             reconcile_only=True,
         )
         self.assertEqual(result["standing"], "SOURCE_REQUIRED")
-        self.assertEqual(result["truthRole"], "source-fetch-admission-only-not-byte-materialization")
+        self.assertEqual(
+            result["truthRole"], "source-fetch-admission-only-not-byte-materialization"
+        )
         self.assertFalse(self.destination().exists())
-        intent_path, receipt_path, staging_path = _state_paths(self.state, self.request["requestId"])
+        intent_path, receipt_path, staging_path = _state_paths(
+            self.state, self.request["requestId"]
+        )
         self.assertTrue(intent_path.is_file())
         self.assertFalse(receipt_path.exists())
         self.assertFalse(staging_path.exists())
@@ -151,7 +209,10 @@ class InputAuthorityIngressTests(unittest.TestCase):
         self.assertFalse(self.destination().exists())
 
     def test_local_stage_root_must_be_absolute_and_real_at_fetch(self) -> None:
-        bad = {**self.config, "carriers": {"runtime-stage": {"kind": "local-stage", "sourceRoot": "relative/stage"}}}
+        bad = {
+            **self.config,
+            "carriers": {"runtime-stage": {"kind": "local-stage", "sourceRoot": "relative/stage"}},
+        }
         with self.assertRaises(IngressError):
             ingest(bad, self.local_stage_request())
         real = self.root / "real-stage"
@@ -194,7 +255,11 @@ class InputAuthorityIngressTests(unittest.TestCase):
 
     def test_traversal_and_absolute_destination_are_rejected_before_intent(self) -> None:
         for value in ("../escape", "/tmp/escape", "a/../../escape"):
-            request = {**self.request, "requestId": "bad-" + hashlib.sha256(value.encode()).hexdigest()[:8], "relativeObject": value}
+            request = {
+                **self.request,
+                "requestId": "bad-" + hashlib.sha256(value.encode()).hexdigest()[:8],
+                "relativeObject": value,
+            }
             with self.assertRaises(IngressError):
                 ingest(self.config, request, fetcher=FakeFetcher(self.payload))
         self.assertFalse((self.root / "escape").exists())
@@ -225,7 +290,14 @@ class InputAuthorityIngressTests(unittest.TestCase):
             ingest(self.config, changed, fetcher=fetcher)
 
     def test_source_version_drift_with_changed_bytes_is_rejected(self) -> None:
-        drifted = {**self.request, "requestId": "drift-v2", "sourceProvenance": {**self.request["sourceProvenance"], "providerVersion": "modified-at-v2"}}
+        drifted = {
+            **self.request,
+            "requestId": "drift-v2",
+            "sourceProvenance": {
+                **self.request["sourceProvenance"],
+                "providerVersion": "modified-at-v2",
+            },
+        }
         receipt = ingest(self.config, drifted, fetcher=FakeFetcher(b"new-provider-version"))
         self.assertEqual(receipt["commitStanding"], "REJECTED_SOURCE_DIGEST")
 
@@ -261,7 +333,10 @@ class InputAuthorityIngressTests(unittest.TestCase):
 
     def test_partial_local_commit_interruption_can_retry_without_overwrite(self) -> None:
         fetcher = FakeFetcher(self.payload)
-        with mock.patch("workstation.input_authority_ingress.os.link", side_effect=OSError(errno.EIO, "simulated interruption")):
+        with mock.patch(
+            "workstation.input_authority_ingress.os.link",
+            side_effect=OSError(errno.EIO, "simulated interruption"),
+        ):
             with self.assertRaises(OSError):
                 ingest(self.config, self.request, fetcher=fetcher)
         self.assertFalse(self.destination().exists())
@@ -270,10 +345,18 @@ class InputAuthorityIngressTests(unittest.TestCase):
         self.assertEqual(self.destination().read_bytes(), self.payload)
 
     def test_secretish_provenance_fields_are_rejected_and_not_persisted(self) -> None:
-        request = {**self.request, "requestId": "secret-reject", "sourceProvenance": {**self.request["sourceProvenance"], "accessToken": "TOP-SECRET"}}
+        request = {
+            **self.request,
+            "requestId": "secret-reject",
+            "sourceProvenance": {**self.request["sourceProvenance"], "accessToken": "TOP-SECRET"},
+        }
         with self.assertRaises(IngressError):
             ingest(self.config, request, fetcher=FakeFetcher(self.payload))
-        persisted = "".join(path.read_text(errors="ignore") for path in self.state.rglob("*.json")) if self.state.exists() else ""
+        persisted = (
+            "".join(path.read_text(errors="ignore") for path in self.state.rglob("*.json"))
+            if self.state.exists()
+            else ""
+        )
         self.assertNotIn("TOP-SECRET", persisted)
 
     def test_fetcher_error_text_is_not_persisted(self) -> None:
@@ -297,7 +380,9 @@ class InputAuthorityIngressTests(unittest.TestCase):
             self.destination().write_bytes(self.payload)
             raise FileExistsError(errno.EEXIST, "simulated exact concurrent commit")
 
-        with mock.patch("workstation.input_authority_ingress.os.link", side_effect=concurrent_exact):
+        with mock.patch(
+            "workstation.input_authority_ingress.os.link", side_effect=concurrent_exact
+        ):
             receipt = ingest(self.config, self.request, fetcher=fetcher)
         self.assertEqual(receipt["commitStanding"], "COMMITTED_EXISTING")
         self.assertEqual(self.destination().read_bytes(), self.payload)

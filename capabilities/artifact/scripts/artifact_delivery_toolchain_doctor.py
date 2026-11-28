@@ -9,6 +9,7 @@ visual quality, PDF/UA conformance of arbitrary files, or delivery completion.
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import os
 import re
@@ -36,6 +37,7 @@ GLOBAL_COSIGN = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "cosign/3.1.3/bin/cosign"
 GLOBAL_NODE_PACKAGE_ROOT = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "node/1.63.0"
 LOCK = json.loads((ROOT / "artifact-delivery/toolchain-v1.lock.json").read_text())
 OPENXML_LOCK = json.loads((ROOT / "artifact-delivery/openxml-runtime-v1.lock.json").read_text())
+PYTHON_LOCK = json.loads((ROOT / "artifact-delivery/artifact-python-runtime-v1.lock.json").read_text())
 
 
 def run(
@@ -97,10 +99,10 @@ def main() -> int:
     if proc.returncode == 0:
         observed = json.loads(proc.stdout)
         expected = {
-            "jsonschema": LOCK["python"]["jsonschema"],
-            "python-pptx": LOCK["python"]["python-pptx"],
-            "XlsxWriter": LOCK["python"]["XlsxWriter"],
-            "opentelemetry-sdk": LOCK["python"]["opentelemetry-sdk"],
+            "jsonschema": PYTHON_LOCK["pythonPackages"]["jsonschema"],
+            "python-pptx": PYTHON_LOCK["pythonPackages"]["python-pptx"],
+            "XlsxWriter": PYTHON_LOCK["pythonPackages"]["XlsxWriter"],
+            "opentelemetry-sdk": PYTHON_LOCK["pythonPackages"]["opentelemetry-sdk"],
         }
         record(checks, "python-packages", observed == expected, observed=observed, expected=expected)
     else:
@@ -352,7 +354,8 @@ def main() -> int:
         observed_digest = hashlib.sha256(Path(cosign).read_bytes()).hexdigest()
         expected_cosign = LOCK["cosign"]
         standard_floor = tuple(int(item) for item in expected_cosign["standardizedBundleMinimumVersion"].split("."))
-        source_text = (ROOT / "artifact_trust/vsa.py").read_text()
+        bundle_source = inspect.getsource(artifact_trust_vsa.verify_sigstore_vsa_bundle_shape)
+        verifier_source = inspect.getsource(artifact_trust_vsa.verify_signed_verification_summary)
         standard_bundle_policy_ok = (
             proc.returncode == 0
             and bool(version_tuple)
@@ -360,9 +363,9 @@ def main() -> int:
             and observed_version == expected_cosign["observedVersion"]
             and observed_digest == expected_cosign["binarySha256"]
             and expected_cosign.get("legacyBundlePolicy") == "REJECT"
-            and "media_type != SIGSTORE_BUNDLE_V03" in source_text
-            and '"--check-claims=true"' in source_text
-            and "COSIGN_STANDARD_BUNDLE_MIN_VERSION = (3, 0, 6)" in source_text
+            and "media_type != SIGSTORE_BUNDLE_V03" in bundle_source
+            and '"--check-claims=true"' in verifier_source
+            and artifact_trust_vsa.COSIGN_STANDARD_BUNDLE_MIN_VERSION == standard_floor
         )
         record(
             checks,
@@ -389,9 +392,9 @@ def main() -> int:
         keyless_policy_ok = (
             standard_bundle_policy_ok
             and expected_cosign.get("keylessStandardBundleStanding") == "NOT_EXERCISED_IDENTITY_ISSUER_TLOG_REQUIRED"
-            and "certificateIdentity" in source_text
-            and "certificateOidcIssuer" in source_text
-            and "requireTransparencyLog" in source_text
+            and "certificateIdentity" in verifier_source
+            and "certificateOidcIssuer" in verifier_source
+            and "requireTransparencyLog" in verifier_source
         )
         record(
             checks,

@@ -41,16 +41,22 @@ printf '%s\n' "$*" >> "$CLAUDE_CURL_RECORD"
 joined=" $* "
 if [[ "$joined" == *"https://example.com/"* ]];then
   case "$MOCK_CLAUDE_SCENARIO" in
-    valid|unknown_connect_denied)
-      # The proxy explicitly refused HTTPS CONNECT. Curl may exit 56
-      # but still emits its documented per-attempt CONNECT receipt.
-      printf '000|403'
+    valid|unknown_origin_forbidden|unknown_http_forbidden)
+      # HTTP 403 is an allowed origin authentication response when TLS is real.
+      if [[ "$MOCK_CLAUDE_SCENARIO" == valid ]];then
+        printf '200|200|0.6'
+      else
+        printf '403|200|0.6'
+      fi
+      exit 0;;
+    unknown_connect_denied)
+      printf '000|403|0'
       exit 56;;
     unknown_transport_failure)
       printf '000|000'
       exit 56;;
     unknown_proxy_auth_failure)
-      printf '000|407'
+      printf '000|407|0'
       exit 56;;
     unknown_trailing_delimiter)
       printf '000|403|'
@@ -59,22 +65,16 @@ if [[ "$joined" == *"https://example.com/"* ]];then
       printf '000|403\n000|000'
       exit 56;;
     unknown_tls_handshake_failure)
-      # Independently observed live probe: CONNECT=200, TLS handshake failed
-      # (curl exit35). Transport failure does not authenticate policy reject.
-      printf '000|200'
+      printf '000|200|0'
       exit 35;;
-    unknown_origin_forbidden|unknown_http_forbidden)
-      # The origin replied 403 through an ACCEPTED CONNECT tunnel.
-      printf '403|200'
-      exit 0;;
     unknown_malformed)
       printf 'malformed'
       exit 56;;
     unknown_bad_http)
-      printf '500|403'
+      printf '500|403|0.6'
       exit 56;;
     unknown_extra_receipt)
-      printf '000|403|extra'
+      printf '000|403|0|extra'
       exit 56;;
     *) exit 22;;
   esac
@@ -147,7 +147,9 @@ exit 88
 def test_live_transport_shape_and_isolated_proxy_contract(tmp_path):
     outcome, calls = _readiness(tmp_path, "valid")
     assert outcome.returncode == 0, (outcome.stdout, outcome.stderr)
-    assert '"standing":"READY"' in outcome.stdout
+    assert '"standing":"TRANSPORT_READY"' in outcome.stdout
+    assert '"unknownDestination":"ORIGIN_PROVED"' in outcome.stdout
+    assert '"openHttp":200' in outcome.stdout
     assert '"directFallback":false' in outcome.stdout
     assert '"apiHttpStatus":404' in outcome.stdout
     api = [s for s in calls if "https://api.anthropic.com/" in s and " -x " in " "+s]
@@ -196,29 +198,33 @@ def test_real_consumer_readiness_fails_closed_for_upstream_faults(tmp_path, faul
         "unknown_proxy_auth_failure",
         "unknown_trailing_delimiter",
         "unknown_multiline_receipt",
-        "unknown_tls_handshake_failure",
-        "unknown_origin_forbidden",
-        "unknown_http_forbidden",
         "unknown_malformed",
         "unknown_bad_http",
         "unknown_extra_receipt",
     ),
 )
-def test_unknown_destination_requires_explicit_connect_policy_rejection(
+def test_unknown_destination_rejects_unqualified_transport_receipts(
     tmp_path: Path, scenario: str
 ) -> None:
-    """A curl failure is not policy proof; status 403 from origin is not denial."""
+    """Malformed, unauthenticated or origin-success receipts are not transport proof."""
     outcome, calls = _readiness(tmp_path, scenario)
     assert outcome.returncode != 0, (scenario, outcome.stdout, outcome.stderr)
     assert '"standing":"READY"' not in outcome.stdout
     attempts = [s for s in calls if "https://example.com/" in s]
-    assert len(attempts) == 1
+    assert 1 <= len(attempts) <= 3
     assert "-x http://10.252.247.1:19482" in attempts[0]
     assert "--noproxy" in attempts[0]
     assert "--insecure" not in attempts[0]
 
 
-@pytest.mark.parametrize("scenario", ["direct_http_forbidden", "unknown_http_forbidden"])
+def test_connect200_without_tls_never_passes_open_origin_gate(tmp_path):
+    outcome, calls = _readiness(tmp_path, "unknown_tls_handshake_failure")
+    assert outcome.returncode != 0, (outcome.stdout, outcome.stderr)
+    assert '"standing":"TRANSPORT_READY"' not in outcome.stdout
+    assert any(c.split()[-1] == "https://example.com/" for c in calls)
+
+
+@pytest.mark.parametrize("scenario", ["direct_http_forbidden"])
 def test_http_denial_is_not_an_isolation_or_allowlist_witness(tmp_path, scenario):
     # A completed TLS exchange with HTTP 403 is a reachable endpoint,
     # even when curl -f turns the 403 into an exit-22 status.
@@ -227,6 +233,15 @@ def test_http_denial_is_not_an_isolation_or_allowlist_witness(tmp_path, scenario
     assert '"standing":"READY"' not in outcome.stdout
     assert calls
 
+
+
+@pytest.mark.parametrize("scenario", ["unknown_origin_forbidden", "unknown_http_forbidden"])
+def test_origin_403_after_real_tls_is_proof_of_open_transport(tmp_path, scenario):
+    outcome, calls = _readiness(tmp_path, scenario)
+    assert outcome.returncode == 0, (outcome.stdout, outcome.stderr)
+    assert '"unknownDestination":"ORIGIN_PROVED"' in outcome.stdout
+    assert '"openHttp":403' in outcome.stdout
+    assert any("https://example.com/" in line for line in calls)
 
 def test_existing_production_components_and_authority_remain_unchanged():
     script = SCRIPT.read_text()
@@ -255,7 +270,7 @@ def test_n08_source_consumer_contract_matches_install_and_proxy_policy() -> None
     plan = json.loads((ROOT / "planning/lego-plan-r1.json").read_text())
     n08 = next(row for row in plan["nodes"] if row["id"] == "N08")
     consumers = "/".join(n08["consumers"])
-    taskfile = (ROOT / "Taskfile.yml").read_text()
+    taskfile = (ROOT / "consumers/claude/Taskfile.yml").read_text()
     readiness = SCRIPT.read_text()
     assert "consumer:claude:materialize" in taskfile
     assert (
@@ -264,9 +279,10 @@ def test_n08_source_consumer_contract_matches_install_and_proxy_policy() -> None
     ) in taskfile
     assert "consumer:claude:materialize" in consumers
     assert "test_claude_egress_readiness_consumer.py" in consumers
-    assert "CONNECT=403" in n08["behavioralContract"][0]
+    assert "NOT_EVALUATED" in n08["behavioralContract"][0]
     assert "CONNECT=407" in n08["behavioralContract"][0]
     assert "CONNECT=200" in n08["behavioralContract"][0]
     assert "%{http_code}|%{http_connect}" in readiness
-    assert '[[ ! "$deny_receipt" =~ ^(000|403)\\|403$ ]]' in readiness
+    assert 'open_code=$(proxy_head_code https://example.com/)' in readiness
+    assert '"unknownDestination":"ORIGIN_PROVED"' in readiness
     assert all("live" not in x.lower() for x in n08["consumers"])

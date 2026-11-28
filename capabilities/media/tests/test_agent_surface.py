@@ -3,18 +3,16 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
-from ordivon_studio.agent_surface import (
-    dependency_proposal,
-    dependency_status,
-    execute_surface_action,
-    production_standing,
-    surface_projection,
-)
+from ordivon_studio.agent_dependencies import dependency_proposal, dependency_status
+from ordivon_studio.agent_productions import production_standing
+from ordivon_studio.agent_surface import execute_surface_action, surface_projection
 
 
 class AgentSurfaceTests(unittest.TestCase):
@@ -40,13 +38,71 @@ class AgentSurfaceTests(unittest.TestCase):
                 "schemaVersion": 1,
                 "kind": "ordivon.studio-python-materialization-receipt",
                 "inputs": inputs,
-                "extras": ["resolve"],
                 "python": "Python 3.12.13",
                 "uv": "uv test",
             }),
             encoding="utf-8",
         )
+        (root / "scripts").mkdir()
+        (root / "scripts/require-python-deps.py").write_text("# fixture; gate mocked in unit tests\n")
+        (root / "scripts/require-js-deps.mjs").write_text("// fixture; gate mocked in unit tests\n")
         return root
+
+    def test_discovery_imports_contract_without_concrete_studio_providers(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        source = root / "src"
+        code = (
+            "import sys; "
+            f"sys.path.insert(0, {str(source)!r}); "
+            "from ordivon_studio.agent_surface_contracts import surface_projection; "
+            "assert len(surface_projection()['tools']) == 10; "
+            "assert not any(name.startswith(('ordivon_studio.equipment', "
+            "'ordivon_studio.creative_index', 'ordivon_studio.production_context', "
+            "'ordivon_studio.learning_context')) for name in sys.modules)"
+        )
+        result = subprocess.run(
+            [sys.executable, "-S", "-c", code],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        script = root / "scripts" / "studio-agent-surface.py"
+        discovered = subprocess.run(
+            [sys.executable, "-S", str(script)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(discovered.returncode, 0, discovered.stderr)
+        self.assertEqual(
+            [item["name"] for item in json.loads(discovered.stdout)["tools"]],
+            [item["name"] for item in surface_projection()["tools"]],
+        )
+
+    def test_dependency_proposal_bootstraps_without_jsonschema(self) -> None:
+        """The missing-dependency recovery action must not require that dependency."""
+        root = Path(__file__).resolve().parents[1]
+        source = root / "src"
+        code = (
+            "import sys; "
+            "from pathlib import Path; "
+            f"sys.path.insert(0, {str(source)!r}); "
+            "from ordivon_studio.agent_surface import execute_surface_action; "
+            "assert 'jsonschema' not in sys.modules; "
+            "python = execute_surface_action('studio_dependencies_propose', {'target': 'python'}, root=Path(sys.argv[1])); "
+            "assert python['kind'] == 'ordivon.studio-dependency-acquisition-proposal'; "
+            "assert python['effectRequired'] and python['plan']['args'] == ['scripts/materialize-python.py']; "
+            "js = execute_surface_action('studio_dependencies_propose', {'target': 'js'}, root=Path(sys.argv[1])); "
+            "assert js['effectRequired'] and js['plan']['args'] == ['install', '--frozen-lockfile']; "
+            "assert 'jsonschema' not in sys.modules"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            result = subprocess.run(
+                [sys.executable, "-S", "-c", code, directory],
+                capture_output=True, text=True, check=False,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_surface_is_small_domain_owned_and_transport_neutral(self) -> None:
         value = surface_projection()
@@ -62,6 +118,9 @@ class AgentSurfaceTests(unittest.TestCase):
                 "studio_production_context",
                 "studio_learning_context",
                 "studio_creative_index_query",
+                "studio_processing_profiles",
+                "studio_processing_probe_plan",
+                "studio_processing_receipt_qualify",
                 "studio_equipment_propose",
             ],
         )
@@ -71,7 +130,7 @@ class AgentSurfaceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = self._root(directory)
             with mock.patch(
-                "ordivon_studio.agent_surface.production_standing"
+                "ordivon_studio.agent_productions.production_standing"
             ) as observe:
                 with self.assertRaisesRegex(ValueError, "invalid arguments"):
                     execute_surface_action(
@@ -82,7 +141,7 @@ class AgentSurfaceTests(unittest.TestCase):
                 observe.assert_not_called()
 
             with mock.patch(
-                "ordivon_studio.agent_surface.dependency_proposal"
+                "ordivon_studio.agent_dependencies.dependency_proposal"
             ) as propose:
                 with self.assertRaisesRegex(ValueError, "invalid arguments"):
                     execute_surface_action(
@@ -91,7 +150,7 @@ class AgentSurfaceTests(unittest.TestCase):
                 propose.assert_not_called()
 
             with mock.patch(
-                "ordivon_studio.agent_surface.load_equipment_world"
+                "ordivon_studio.equipment.load_equipment_world"
             ) as equipment:
                 with self.assertRaisesRegex(ValueError, "invalid arguments"):
                     execute_surface_action(
@@ -108,6 +167,30 @@ class AgentSurfaceTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "unsupported Studio Agent surface action"):
                 execute_surface_action("studio_not_declared", {}, root=root)
 
+    def test_selected_action_imports_only_its_natural_implementation(self) -> None:
+        """Independent Python process witnesses the real selected-action import boundary."""
+        root = Path(__file__).resolve().parents[1]
+        source = root / "src"
+        code = (
+            "import sys; "
+            f"sys.path.insert(0, {str(source)!r}); "
+            "from ordivon_studio.agent_surface import execute_surface_action; "
+            "assert not any(name.startswith(('ordivon_studio.equipment', "
+            "'ordivon_studio.creative_index', 'ordivon_studio.agent_processing', "
+            "'ordivon_studio.production_context')) for name in sys.modules); "
+            f"result=execute_surface_action('studio_production_standing', {{}}, root=__import__('pathlib').Path({str(root)!r})); "
+            "assert result['kind'] == 'ordivon.studio-production-standing'; "
+            "assert 'ordivon_studio.agent_productions' in sys.modules; "
+            "assert not any(name.startswith(('ordivon_studio.equipment', "
+            "'ordivon_studio.creative_index', 'ordivon_studio.agent_processing', "
+            "'ordivon_studio.production_context')) for name in sys.modules)"
+        )
+        result = subprocess.run(
+            [sys.executable, "-S", "-c", code],
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_media_activation_boundary_precedes_studio_lowering(self) -> None:
         root = Path(__file__).resolve().parents[1]
         readme = (root / "README.md").read_text(encoding="utf-8")
@@ -121,14 +204,8 @@ class AgentSurfaceTests(unittest.TestCase):
     def test_current_media_navigation_does_not_reuse_historical_operational_state(self) -> None:
         root = Path(__file__).resolve().parents[1]
         bridges = (root / "research/media/bridges/README.md").read_text(encoding="utf-8")
-        phase1 = (root / "docs/media-phase1-construction-audit.md").read_text(encoding="utf-8")
         self.assertIn("Interlocus (historical owner identity/name: `research-owner:network` / Network)", bridges)
         self.assertNotIn("- Network — transport, routing and reachability substrate.", bridges)
-        self.assertIn("Post-audit currentness — 2026-08-28", phase1)
-        self.assertIn("Web PR #62", phase1)
-        self.assertIn("merged on 2026-08-22", phase1)
-        self.assertIn("origin=https://github.com/zycxfyh/ordivon-media.git", phase1)
-        self.assertIn("not a current outstanding-work queue", phase1)
         authority = (root / "docs/authority.md").read_text(encoding="utf-8")
         self.assertIn("Repository source-integration currentness", authority)
         self.assertIn("canonical upstream repository `main`", authority)
@@ -140,12 +217,13 @@ class AgentSurfaceTests(unittest.TestCase):
     def test_dependency_observation_never_acquires_and_detects_exact_receipt(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = self._root(directory)
-            with mock.patch("ordivon_studio.agent_surface.subprocess.run", return_value=mock.Mock(returncode=0)):
+            with mock.patch("ordivon_studio.agent_dependencies.subprocess.run", return_value=mock.Mock(returncode=0, stdout="studio_js_dependencies=ready\n")):
                 state = dependency_status(root)
                 self.assertTrue(state["js"]["ready"])
                 self.assertTrue(state["js"]["resolverChecked"])
                 self.assertTrue(state["python"]["ready"])
-                self.assertTrue(state["resolve"]["ready"])
+                self.assertTrue(state["python"]["environmentChecked"])
+                self.assertNotIn("resolve", state)
                 (root / "uv.lock").write_text("changed\n", encoding="utf-8")
                 stale = dependency_status(root)
             self.assertEqual(stale["python"]["reason"], "PYTHON_RECEIPT_STALE")
@@ -154,12 +232,110 @@ class AgentSurfaceTests(unittest.TestCase):
     def test_js_status_delegates_currentness_to_project_pinned_pnpm_resolver(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = self._root(directory)
-            with mock.patch("ordivon_studio.agent_surface.subprocess.run", return_value=mock.Mock(returncode=2)) as probe:
+            with mock.patch("ordivon_studio.agent_dependencies.subprocess.run", return_value=mock.Mock(returncode=2, stdout="studio_js_dependencies=not-ready\n")) as probe:
                 state = dependency_status(root)
             self.assertFalse(state["js"]["ready"])
             self.assertEqual(state["js"]["reason"], "JS_DEPENDENCIES_STALE_OR_UNAVAILABLE")
             self.assertTrue(state["js"]["resolverChecked"])
-            self.assertEqual(probe.call_args.args[0][:3], [shutil.which("pnpm"), "exec", "node"])
+            self.assertEqual(probe.call_args_list[0].args[0][:3], [shutil.which("pnpm"), "exec", "node"])
+
+    def test_js_gate_requires_typed_observation_and_never_acquires_for_invalid_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._root(directory)
+            cases = (
+                (0, "", "unknown", "JS_GATE_UNOBSERVED", None),
+                (2, "resolver error", "unknown", "JS_GATE_UNOBSERVED", None),
+                (3, "studio_js_dependencies=contract-invalid", "not-ready", "JS_CONTRACT_INVALID", None),
+                (4, "studio_js_dependencies=unobserved", "unknown", "JS_GATE_UNOBSERVED", None),
+                (0, "studio_js_dependencies=ready", "ready", "READY", False),
+                (2, "studio_js_dependencies=not-ready", "not-ready", "JS_DEPENDENCIES_STALE_OR_UNAVAILABLE", True),
+            )
+            for code, stdout, standing, reason, effect in cases:
+                with self.subTest(code=code, stdout=stdout):
+                    with mock.patch("ordivon_studio.agent_dependencies.subprocess.run",
+                                    return_value=mock.Mock(returncode=code, stdout=stdout)) as probe:
+                        state = dependency_proposal("js", root)
+                    self.assertEqual(state["status"]["standing"], standing)
+                    self.assertEqual(state["status"]["reason"], reason)
+                    self.assertIs(state["effectRequired"], effect)
+                    self.assertEqual(bool(state["plan"]), effect is True)
+                    self.assertTrue(probe.call_args.args[0][-1].endswith("require-js-deps.mjs"))
+
+    @unittest.skipUnless(shutil.which("node"), "native Node gate requires the JS toolchain")
+    def test_native_js_gate_observes_installed_identity_not_only_metadata(self) -> None:
+        real_root = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._root(directory)
+            gate = root / "scripts/require-js-deps.mjs"
+            shutil.copyfile(real_root / "scripts/require-js-deps.mjs", gate)
+            motion = root / "apps/motion-remotion"
+            motion.mkdir(parents=True)
+            manifest = motion / "package.json"
+            declared = {"dependencies": {"remotion": "4.0.1"}, "devDependencies": {"@remotion/cli": "4.0.1"}}
+            manifest.write_text(json.dumps(declared))
+            for name in ("remotion", "@remotion/cli"):
+                package = motion / "node_modules" / name / "package.json"
+                package.parent.mkdir(parents=True)
+                package.write_text(json.dumps({"name": name, "version": "4.0.1"}))
+
+            def observe(code: int, standing: str) -> None:
+                result = subprocess.run([shutil.which("node"), str(gate)], cwd=root,
+                                        capture_output=True, text=True, check=False, timeout=10)
+                self.assertEqual(result.returncode, code, result.stderr)
+                self.assertEqual(result.stdout.strip(), f"studio_js_dependencies={standing}")
+
+            observe(0, "ready")
+            runtime = motion / "node_modules/remotion/package.json"
+            runtime.unlink()
+            observe(2, "not-ready")
+            runtime.write_text(json.dumps({"name": "remotion", "version": "4.0.2"}))
+            observe(2, "not-ready")
+            runtime.write_text(json.dumps({"name": "remotion", "version": "4.0.1"}))
+            declared["devDependencies"]["@remotion/cli"] = "^4.0.1"
+            manifest.write_text(json.dumps(declared))
+            observe(3, "contract-invalid")
+            manifest.unlink()
+            observe(4, "unobserved")
+
+    def test_python_receipt_does_not_establish_current_environment(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._root(directory)
+            with mock.patch("ordivon_studio.agent_dependencies.subprocess.run", return_value=mock.Mock(returncode=2)) as probe:
+                state = dependency_proposal("python", root)
+            self.assertFalse(state["ready"])
+            self.assertTrue(state["effectRequired"])
+            self.assertEqual(state["status"]["reason"], "PYTHON_ENV_STALE_OR_UNAVAILABLE")
+            self.assertEqual(probe.call_count, 1)
+            self.assertTrue(probe.call_args.args[0][-1].endswith("require-python-deps.py"))
+            with mock.patch("ordivon_studio.agent_dependencies.subprocess.run", side_effect=subprocess.TimeoutExpired("gate", 45)):
+                state = dependency_proposal("python", root)
+            self.assertEqual(state["status"]["reason"], "PYTHON_GATE_UNOBSERVED")
+            self.assertFalse(state["status"]["environmentChecked"])
+            self.assertEqual(state["status"]["standing"], "unknown")
+            self.assertIsNone(state["effectRequired"])
+            self.assertIsNone(state["plan"])
+
+    def test_malformed_receipt_and_missing_gate_do_not_admit(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._root(directory)
+            (root / "scripts/require-python-deps.py").unlink()
+            unavailable = dependency_proposal("python", root)
+            self.assertEqual(unavailable["status"]["reason"], "PYTHON_GATE_UNAVAILABLE")
+            self.assertEqual(unavailable["status"]["standing"], "unknown")
+            self.assertIsNone(unavailable["effectRequired"])
+            self.assertIsNone(unavailable["plan"])
+            (root / ".venv/.ordivon-materialization.json").write_text("[]")
+            self.assertEqual(dependency_proposal("python", root)["status"]["reason"], "PYTHON_RECEIPT_INVALID")
+
+    def test_js_unobserved_resolver_does_not_compile_acquisition(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._root(directory)
+            with mock.patch("ordivon_studio.agent_dependencies.subprocess.run", side_effect=subprocess.TimeoutExpired("pnpm", 10)):
+                state = dependency_proposal("js", root)
+            self.assertEqual(state["status"]["standing"], "unknown")
+            self.assertEqual(state["status"]["reason"], "JS_RESOLVER_UNOBSERVED")
+            self.assertIsNone(state["effectRequired"])
+            self.assertIsNone(state["plan"])
 
     def test_missing_dependencies_compile_explicit_acquisition_only(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -168,12 +344,13 @@ class AgentSurfaceTests(unittest.TestCase):
                 (root / name).write_text("x\n", encoding="utf-8")
             js = dependency_proposal("js", root)
             python = dependency_proposal("python", root)
-            resolve = dependency_proposal("resolve", root)
             self.assertTrue(js["effectRequired"])
             self.assertEqual(js["plan"]["executable"], shutil.which("pnpm"))
             self.assertEqual(js["plan"]["args"], ["install", "--frozen-lockfile"])
             self.assertEqual(python["plan"]["executable"], "/usr/bin/python3")
-            self.assertEqual(resolve["plan"]["args"], ["scripts/materialize-python.py", "--extra", "resolve"])
+            self.assertEqual(python["plan"]["args"], ["scripts/materialize-python.py"])
+            with self.assertRaisesRegex(ValueError, "dependency target must be js or python"):
+                dependency_proposal("resolve", root)
 
     def test_production_standing_enumerates_identity_without_inventing_current_intent(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -241,15 +418,56 @@ class AgentSurfaceTests(unittest.TestCase):
         self.assertEqual(learning["currentProductionId"], "p1")
         self.assertIn("Retain exact evidence", learning["retainedLearning"][0]["learning"] )
 
+    def test_production_context_agent_explicit_output_bytes_use_advertised_schema(self) -> None:
+        real_root = Path(__file__).resolve().parents[1]
+        production = real_root / "productions/browser-perception-note"
+        source_file = production / "story.mdx"
+        result = execute_surface_action(
+            "studio_production_context",
+            {
+                "productionId": "browser-perception-note",
+                "outputFiles": {"browser-perception-article-en": str(source_file)},
+            },
+            root=real_root,
+        )
+        observed = result["outputByteIdentity"]["observations"][0]
+        self.assertEqual(observed["relation"], "MATCHES_DECLARED_DIGEST")
+        self.assertEqual(observed["sourceSelection"], "explicit-consumer-file")
+        self.assertEqual(result["outputByteIdentity"]["publicationAuthorization"], "not-evaluated")
+        for invalid_files in ({"browser-perception-article-en": 2}, {"browser-perception-article-en": ""}):
+            with self.subTest(invalid=invalid_files):
+                with self.assertRaisesRegex(ValueError, "invalid arguments"):
+                    execute_surface_action(
+                        "studio_production_context",
+                        {"productionId": "browser-perception-note", "outputFiles": invalid_files},
+                        root=real_root,
+                    )
+
+    def test_agent_context_consumes_bounded_real_sonic_impact_without_cache_claim(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        selected = execute_surface_action(
+            "studio_production_context",
+            {"productionId": "convergence-sonic-ident"},
+            root=root,
+        )
+        self.assertEqual(selected["production"]["id"], "convergence-sonic-ident")
+        lineage = selected["operationLineage"]
+        self.assertEqual(lineage["productionId"], "convergence-sonic-ident")
+        self.assertEqual(len(lineage["steps"]), 5)
+        self.assertFalse(lineage["cacheReuseAuthorized"])
+        self.assertFalse(lineage["executionOrPublicationAuthorized"])
+        self.assertEqual(lineage["revalidateStepIds"], [])
+        self.assertTrue(all(step["actionKey"] is None for step in lineage["steps"]))
+
     def test_creative_index_query_defaults_to_media_hosted_creative_library(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             fake_index = {"nodes": [], "relations": []}
             expected = {"nodes": []}
             with mock.patch.dict("ordivon_studio.agent_surface.os.environ", {}, clear=True), mock.patch(
-                "ordivon_studio.agent_surface.build_creative_index", return_value=fake_index
+                "ordivon_studio.creative_index.build_creative_index", return_value=fake_index
             ) as build, mock.patch(
-                "ordivon_studio.agent_surface.query_creative_index", return_value=expected
+                "ordivon_studio.creative_index.query_creative_index", return_value=expected
             ):
                 result = execute_surface_action(
                     "studio_creative_index_query", {"term": "needle"}, root=root
@@ -260,8 +478,8 @@ class AgentSurfaceTests(unittest.TestCase):
 
     def test_equipment_surface_reuses_truthful_proposal_not_a_second_registry(self) -> None:
         fake = {"ready": False, "blockers": ["AUTH_REQUIRED"]}
-        with mock.patch("ordivon_studio.agent_surface.load_equipment_world", return_value={"equipment": []}), mock.patch(
-            "ordivon_studio.agent_surface.propose_operation", return_value=fake
+        with mock.patch("ordivon_studio.equipment.load_equipment_world", return_value={"equipment": []}), mock.patch(
+            "ordivon_studio.equipment.propose_operation", return_value=fake
         ) as propose:
             result = execute_surface_action(
                 "studio_equipment_propose",

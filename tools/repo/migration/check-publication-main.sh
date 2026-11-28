@@ -4,6 +4,9 @@ set -euo pipefail
 [ "$#" -eq 1 ] || { echo "usage: $0 PRIMARY_REPOSITORY" >&2; exit 64; }
 repo="$1"
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$script_dir/primary-git-context.sh"
+qualify_primary_git_context "$repo"
+export GIT_OPTIONAL_LOCKS=0 GIT_NO_LAZY_FETCH=1
 "$script_dir/check-primary-main.sh" "$repo" >/dev/null
 local_head="$(git -C "$repo" rev-parse refs/heads/main)"
 tracking="$(git -C "$repo" rev-parse --verify refs/remotes/origin/main 2>/dev/null)" || {

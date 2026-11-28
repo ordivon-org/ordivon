@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
 import pytest
 
-from ordivon_gateway.research_routes import research_capabilities
+from ordivon_gateway.capabilities.research import resolve_research_capability
+from ordivon_gateway.logic.research_routes import research_capabilities
+from ordivon_gateway.logic.routing import default_routes
 from ordivon_gateway.service import GatewayError, GatewayService
 
 
@@ -58,13 +62,36 @@ def test_research_projection_is_discoverable_without_becoming_an_execution_owner
     assert item.owner_id == "research.composition"
     assert item.category == "research"
     assert item.configured is True
-    assert item.available is True
+    assert item.available is False  # no real provider readiness observation
+    assert "UNKNOWN" in (item.observation_error or "")
     assert "scientific truth" in item.truth_boundary
     assert caller.calls == []
 
     result = asyncio.run(service.capability_search(query="statistical analysis"))
     assert result.total_matches == 1
     assert result.matches[0].capability.capability == "research.statistical.analysis"
+    # UNKNOWN entries remain discoverable even with an availability filter;
+    only_ready = asyncio.run(
+        service.capability_search(query="statistical analysis", include_unavailable=False)
+    )
+    assert only_ready.total_matches == 1
+    assert only_ready.matches[0].capability.available is False
+    assert "UNKNOWN" in (only_ready.matches[0].capability.observation_error or "")
+    assert caller.calls == []
+
+
+def test_research_metadata_catalog_never_claims_live_provider_readiness() -> None:
+    # Finite source-cut invariant over every declared research composition route.
+    caller = ResolverCaller()
+    projection = asyncio.run(GatewayService(caller).capability_describe())
+    research = [item for item in projection.capabilities if item.category == "research"]
+    assert {item.capability for item in research} == set(research_capabilities())
+    assert research
+    for item in research:
+        assert item.configured is True  # native metadata resolver exists
+        assert item.available is False  # no provider readiness observation
+        assert "UNKNOWN" in (item.observation_error or "")
+        assert "scientific truth" in item.truth_boundary
     assert caller.calls == []
 
 
@@ -108,6 +135,27 @@ def test_research_resolve_binds_exact_current_skill_without_executing_it() -> No
     ]
 
 
+def test_research_resolution_owner_seam_matches_public_gateway_contract() -> None:
+    """Composition may move out of the catalog, but exact Skill bytes and digest do not."""
+    owner_responses = {("skills", "skills.resolve"): skill_resolution("paper-lookup")}
+    facade_caller = ResolverCaller(owner_responses, {"skills"})
+    adapter_caller = ResolverCaller(owner_responses, {"skills"})
+    arguments = {
+        "capability": "research.literature.discovery",
+        "workspace_id": "workspace-source-cut",
+        "agent_id": "agent-research-owner",
+    }
+
+    via_gateway = asyncio.run(GatewayService(facade_caller).capability_resolve(**arguments))
+    via_adapter = asyncio.run(
+        resolve_research_capability(adapter_caller, default_routes(), **arguments)
+    )
+    assert via_gateway.model_dump(mode="json") == via_adapter.model_dump(mode="json")
+    assert via_gateway.resolution_digest == via_adapter.resolution_digest
+    assert facade_caller.calls == adapter_caller.calls
+    assert len(facade_caller.calls) == 1
+
+
 def test_research_resolve_preserves_unknown_skills_owner_as_observation_gap() -> None:
     caller = ResolverCaller(
         configured=set(),
@@ -123,19 +171,46 @@ def test_research_resolve_preserves_unknown_skills_owner_as_observation_gap() ->
     assert caller.calls == []
 
 
-def test_recipe_only_resolution_exposes_canonical_invocation_without_running_it() -> None:
+@pytest.mark.parametrize("capability", ("research.study.verify", "research.scholarly.intelligence"))
+def test_unqualified_mise_recipe_is_not_advertised_as_agent_execution(
+    capability: str,
+) -> None:
     caller = ResolverCaller()
-    service = GatewayService(caller)
-
-    resolved = asyncio.run(service.capability_resolve(capability="research.study.verify"))
+    resolved = asyncio.run(GatewayService(caller).capability_resolve(capability=capability))
+    assert resolved.semantic_owner
+    assert resolved.completion_owner == "study"
+    assert resolved.execution_capability is None
+    assert resolved.invocation_recipes == []
     assert resolved.selected_skill is None
-    assert resolved.execution_capability == "execution.linux"
-    assert len(resolved.invocation_recipes) == 1
-    recipe = resolved.invocation_recipes[0]
-    assert recipe.kind == "mise-task"
-    assert recipe.command == ["mise", "run", "research-study:verify"]
-    assert "ad-hoc system Python" in recipe.note
+    assert any("No source-qualified invocation recipe" in text for text in resolved.non_claims)
+    assert all("research-study:verify" not in str(recipe) for recipe in resolved.invocation_recipes)
     assert caller.calls == []
+
+
+def test_all_advertised_mise_recipes_resolve_in_native_mise_task_directory() -> None:
+    """A frozen string is not a runnable consumer: ask the existing native task owner."""
+    mise = shutil.which("mise")
+    if mise is None:
+        pytest.skip("native Mise is not installed in this environment")
+    root = Path(__file__).resolve().parents[3]
+    for name, spec in research_capabilities().items():
+        for recipe in spec.invocation_recipes:
+            if recipe.kind != "mise-task":
+                continue
+            assert recipe.command[:2] == ("mise", "run"), (name, recipe.command)
+            assert len(recipe.command) == 3, (name, recipe.command)
+            probe = subprocess.run(
+                [mise, "tasks", "info", recipe.command[2]],
+                cwd=root,
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+            assert probe.returncode == 0, (
+                f"Gateway advertised an unregistered native Mise task for {name}: "
+                f"{recipe.command}; {probe.stderr[-500:]}"
+            )
 
 
 def test_capability_resolve_does_not_pretend_generic_execution_has_composition_semantics() -> None:
@@ -204,3 +279,41 @@ def test_three_study_route_dogfood_preserves_axis_and_authority_separation() -> 
         assert resolved.observation_errors == ["skills: owner endpoint is not configured"]
         assert any("not authorization" in item for item in resolved.non_claims)
         assert any("Runtime execution success" in item for item in resolved.non_claims)
+
+
+def test_research_study_birth_source_refs_preserve_external_repository_authority() -> None:
+    """Public resolution must not describe research-v2 references as monorepo-only."""
+    caller = ResolverCaller()
+    resolved = asyncio.run(
+        GatewayService(caller).capability_resolve(capability="research.study.birth")
+    )
+    assert caller.calls == []  # no unobserved owner execution or availability claim
+    assert {ref for ref in resolved.source_refs if ref.startswith("research-v2:")} == {
+        "research-v2:profiles/research_birth_policy.toml",
+        "research-v2:src/ordivon_research/study_birth.py",
+    }
+    source_claims = [claim for claim in resolved.non_claims if "sourceRefs" in claim]
+    assert len(source_claims) == 1
+    assert "unprefixed" in source_claims[0]
+    assert "repository-prefixed" in source_claims[0]
+    assert "source authority" in source_claims[0]
+    assert "revision" in source_claims[0]
+    assert resolved.selected_skill is None
+    assert resolved.observation_errors == []
+
+
+@pytest.mark.parametrize(
+    ("capability", "expected_scope"),
+    (
+        ("research.study.verify", "No full profile/currentness verifier is exposed"),
+        ("research.scholarly.intelligence", "no cross-axis executable scholarly qualifier"),
+    ),
+)
+def test_unqualified_research_descriptions_do_not_promise_execution(
+    capability: str,
+    expected_scope: str,
+) -> None:
+    """A research agent sees its actual executable scope before choosing a recipe."""
+    result = asyncio.run(GatewayService(ResolverCaller()).capability_describe(capability))
+    assert len(result.capabilities) == 1
+    assert expected_scope in result.capabilities[0].description

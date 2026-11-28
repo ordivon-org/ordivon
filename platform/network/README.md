@@ -1,5 +1,7 @@
 # Ordivon Network E2E
 
+**Entry points:** [Human guide](docs/HUMAN_GUIDE.md) · [Agent contract](docs/AGENT_GUIDE.md) · [Native Task interface](Taskfile.yml). These are two audience views of the same Network Owner, not new registries.
+
 Network E2E composes mature networking mechanisms and proves that the resulting path satisfies a workload requirement. It is not a custom network stack or a universal network controller.
 
 ## Model
@@ -25,21 +27,69 @@ network-v2-r0.target
 
 `network-v2-r0.target` is the stable live unit name. The historical `r0` token is retained only to avoid an unnecessary service-identity migration.
 
+## Long-horizon execution
+
+The source-bound 49-obligation DAG and acceptance catalog is
+[planning/execution-program-r1.md](planning/execution-program-r1.md).
+Host Work owns mutable task state; this is not a second status registry.
+The first NS2 source-only spy extension covers Codex, Discord and Model
+Provider, but cannot itself certify deployed no-bypass or process behavior.
+
 ## Repository boundaries
 
 ```text
-config/        generic live configuration
+config/        generic live configuration; native Prometheus consumer scrape fragments
 systemd/       generic live lifecycle
+substrates/    shared netns/forward/carrier (stable installed identifiers)
 acceptance/    generic capability acceptance
 capabilities/  optional reusable mechanisms such as WireGuard/failover
 providers/     provider-specific profiles and evidence
 consumers/     consumer-specific policy and migration artifacts
-history/       archived evolution/round evidence
 docs/          current architecture, decisions and acceptance matrix
 evidence/      current capability standing
 ```
 
+## Native task composition
+
+The root `Taskfile.yml` is the public orchestration surface, not a dumping
+ground for provider and application scripts. Native Go Task `includes` with
+`flatten: true` bind each submodule's own `Taskfile.yml` into exactly the same
+public `provider:*`, `consumer:*`, `substrate:*`, `capability:*` and `reference:*` task names.
+The included Taskfiles deliberately inherit the repository-root working
+directory; executing one as a standalone Taskfile is not the supported
+deployment entrypoint.
+
+Examples of natural Owner files:
+
+- `providers/gluetun/Taskfile.yml` — physical Provider source and acceptance
+- `providers/surfshark/Taskfile.yml` — provider catalog and profiles
+- `substrates/shared-egress/Taskfile.yml` — shared namespace/carrier source
+- `consumers/browserless/Taskfile.yml` — inactive legacy provider recovery
+- `consumers/codex/Taskfile.yml` — Codex scoped proxy
+- `consumers/mobile-tailnet-exit/Taskfile.yml` — Tailscale exit
+- `consumers/finance/Taskfile.yml` — separate Finance destination authority
+- `capabilities/wireguard/Taskfile.yml` — reusable WireGuard capability
+- `reference/linux/Taskfile.yml` — external Linux reference fidelity
+
+Other application consumers use the same convention. The root retains generic
+platform lifecycle, cross-module acceptance and evidence operations. There is
+no additional task router or custom registry. Run `task --list-all`,
+`task all:validate` and `mise run ci` from `platform/network/` before release.
+Validation proves declared source/config contracts; `task ...:verify` checks
+deployed SourceCut and real consumer consequences separately.
+
 Generic core tasks do not depend on provider or consumer profiles.
+Old round evidence is recoverable in Git and is not retained as current documentation.
+The selected Gluetun Quadlet owns the single physical provider session.
+The physical mode uses one native Surfshark WireGuard session, a Podman Secret
+and Gluetun's own health recovery. The current provider selector admits the
+catalog's non-Hong-Kong countries (with no region override), rather than the
+historical Singapore-only policy. Multiple eligible endpoints are NOT
+independent physical underlays or proven healthy exits. The Gluetun provider
+owns this selector; consumer-specific exit constraints and actual public
+geography need separate evidence. See `providers/gluetun/README.md` for the
+physical SourceCut.
+Codex and mobile Tailscale Exit Node keep separate readiness contracts.
 
 ## Public workflow
 
@@ -49,6 +99,9 @@ task core:validate
 
 # Verify the currently installed live generation
 task core:verify
+
+# Converge config using byte-identical SourceCut; validate live health separately
+task core:converge
 
 # Isolated generic tests without live convergence
 task accept:source
@@ -60,11 +113,11 @@ task accept:live
 task accept:local
 ```
 
-Optional provider and consumer surfaces use their own namespaces, for example `provider:surfshark:*` and `consumer:finance:*`. They are not generic Network graduation prerequisites.
+Optional provider and consumer surfaces use their own namespaces, for example `provider:gluetun:*, provider:surfshark:*` and `consumer:finance:*, consumer:codex:* and consumer:mobile-tailnet-exit:*`. They are not generic Network graduation prerequisites.
 
 ## Current standing
 
-Current WSL platform standing: **LOCAL_WSL_GRADUATED**.
+The checked-in WSL acceptance record reports **LOCAL_WSL_GRADUATED** at **2026-09-12T15:23:44Z**, for its exact recorded source and platform fingerprints. It is a historical acceptance witness, **not** a claim that the current WSL installation has passed a fresh full graduation since later reconfiguration and outages.
 
 Proven locally:
 
@@ -105,7 +158,10 @@ Cross-platform kernel fidelity is expressed separately under `reference/linux/`.
 ### Owner-native test selection
 
 The source-local `mise run ci` runs upstream ShellCheck **and** the Network
-Owner's checked-in Python pytest suite using Python 3.15 and pytest 9.1.1.
+Owner's checked-in Python pytest suite using the mise-selected Python 3.15
+patch release and the owner-local locked uv environment (pytest and Z3).
+The uv executable tracks upstream stable; update dependencies through the
+existing native uv lock and qualify the exact resolved toolchain.
 It must fail when either native tool fails. These tests protect the exact
 source currently present in this repository; their PASS does **not** certify
 real-network/provider behavior, a full external Gluetun cutover, or additional

@@ -8,9 +8,16 @@
     "sourceEvidence": [
       "README.md",
       "src/ordivon_gateway/service.py",
-      "src/ordivon_gateway/routes.py",
+      "src/ordivon_gateway/logic/routing.py",
       "src/ordivon_gateway/mcp_server.py",
-      "tests/test_gateway_service.py"
+      "tests/test_gateway_service.py",
+      "src/ordivon_gateway/capabilities/discovery.py",
+      "tests/test_execution_explicit_composition.py",
+      "src/ordivon_gateway/capabilities/execution/commands.py",
+      "src/ordivon_gateway/capabilities/execution/observations.py",
+      "src/ordivon_gateway/logic/execution_refs.py",
+      "src/ordivon_gateway/logic/capability_projection.py",
+      "src/ordivon_gateway/logic/owner_protocol.py"
     ],
     "consumerLeadExternalSource": "extensions/ordivon-control-plane/mcp.json"
   },
@@ -41,7 +48,11 @@
         "src/ordivon_gateway/mcp_server.py",
         "src/ordivon_gateway/service.py",
         "tests/test_gateway_service.py",
-        "extensions/ordivon-control-plane/mcp.json"
+        "extensions/ordivon-control-plane/mcp.json",
+        "src/ordivon_gateway/capabilities/discovery.py",
+        "tests/test_execution_explicit_composition.py",
+        "src/ordivon_gateway/capabilities/execution/commands.py",
+        "src/ordivon_gateway/capabilities/execution/observations.py"
       ],
       "consumerEvidence": [
         "extensions/ordivon-control-plane/mcp.json",
@@ -77,10 +88,11 @@
         "test_explicit_empty_routes_do_not_expand_gateway_capabilities and test_gateway_rejects_mismatched_route_and_capability_identity pass."
       ],
       "evidence": [
-        "src/ordivon_gateway/routes.py",
+        "src/ordivon_gateway/logic/routing.py",
         "src/ordivon_gateway/service.py",
         "tests/test_gateway_service.py",
-        "tests/test_research_capability_resolution.py"
+        "tests/test_research_capability_resolution.py",
+        "src/ordivon_gateway/capabilities/discovery.py"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/service.py",
@@ -117,7 +129,10 @@
         "src/ordivon_gateway/service.py",
         "src/ordivon_gateway/contracts.py",
         "tests/test_capability_projection.py",
-        "tests/test_projection_concurrency.py"
+        "tests/test_projection_concurrency.py",
+        "src/ordivon_gateway/capabilities/discovery.py",
+        "src/ordivon_gateway/logic/capability_projection.py",
+        "src/ordivon_gateway/logic/owner_protocol.py"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/mcp_server.py",
@@ -156,7 +171,16 @@
         "src/ordivon_gateway/service.py",
         "src/ordivon_gateway/contracts.py",
         "tests/test_gateway_service.py",
-        "tests/test_execution_principal_request_namespace.py"
+        "tests/test_execution_principal_request_namespace.py",
+        "tests/test_execution_explicit_composition.py",
+        "src/ordivon_gateway/capabilities/execution/commands.py",
+        "src/ordivon_gateway/capabilities/execution/observations.py",
+        "src/ordivon_gateway/logic/execution_refs.py",
+        "src/ordivon_gateway/logic/owner_protocol.py",
+        "formal/GatewayAgentWorkspaceBindingR1.tla",
+        "formal/GatewayAgentWorkspaceBindingR1.cfg",
+        "formal/GatewayAgentWorkspaceBindingR1.reachability.cfg",
+        "formal/GatewayAgentWorkspaceBindingR1.unsafe.cfg"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/mcp_server.py",
@@ -197,7 +221,7 @@
       ],
       "behavioralContract": [
         "Artifact bytes must be read through the Runtime owner specified by the operation reference; absence of artifact source identity cannot be filled with fabricated IDs.",
-        "Read results do not imply domain validation or release currentness; external.pull artifact semantics are distinct from Runtime artifacts."
+        "Read results do not imply domain validation or release currentness; retired external.pull operation references are rejected, not treated as Runtime artifacts."
       ],
       "acceptance": [
         "Native artifact owner binding and incomplete artifact projection checks pass; no live artifact durability inference."
@@ -206,11 +230,14 @@
         "src/ordivon_gateway/service.py",
         "src/ordivon_gateway/contracts.py",
         "tests/test_gateway_service.py",
-        "tests/test_capability_authz_middleware.py"
+        "tests/test_capability_authz_middleware.py",
+        "tests/test_execution_explicit_composition.py",
+        "src/ordivon_gateway/capabilities/execution/observations.py",
+        "src/ordivon_gateway/logic/execution_refs.py"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/mcp_server.py",
-        "src/ordivon_gateway/capability_authz.py"
+        "src/ordivon_gateway/security/capability_authz.py"
       ],
       "dependencies": [
         "G03"
@@ -218,7 +245,7 @@
       "sharedRefs": [],
       "mustNotOwn": [
         "Artifact bytes authority",
-        "external.pull artifact policy",
+        "retired external-worker artifact policy",
         "release/domain acceptance"
       ]
     },
@@ -281,10 +308,11 @@
         "Native Security PEP tests cover server-derived resource identity, malformed/foreign references, principal mismatch, denial and unavailable authorizer."
       ],
       "evidence": [
-        "src/ordivon_gateway/capability_authz.py",
-        "src/ordivon_gateway/authzen_authorizer.py",
+        "src/ordivon_gateway/security/capability_authz.py",
+        "src/ordivon_gateway/security/authzen_authorizer.py",
         "tests/test_capability_authz_middleware.py",
-        "tests/test_authzen_authorizer.py"
+        "tests/test_authzen_authorizer.py",
+        "src/ordivon_gateway/logic/execution_refs.py"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/mcp_server.py",
@@ -329,14 +357,15 @@
         "Native ingress tests reject bad claims, enforce loopback-only service bearer and preserve separate remote Cloudflare verification."
       ],
       "evidence": [
-        "src/ordivon_gateway/access_auth.py",
-        "src/ordivon_gateway/upstream.py",
+        "src/ordivon_gateway/security/access_auth.py",
+        "src/ordivon_gateway/transport/upstream.py",
+        "src/ordivon_gateway/security/owner_identity.py",
         "tests/test_access_auth.py",
         "tests/test_upstream_identity.py"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/mcp_server.py",
-        "src/ordivon_gateway/capability_authz.py"
+        "src/ordivon_gateway/security/capability_authz.py"
       ],
       "dependencies": [],
       "sharedRefs": [],
@@ -347,7 +376,7 @@
       ],
       "consumerBindings": [
         {
-          "path": "src/ordivon_gateway/capability_authz.py",
+          "path": "src/ordivon_gateway/security/capability_authz.py",
           "operation": "GatewayCapabilityAuthorizationMiddleware consumes ingress-verified request state principal and issuer; malformed/absent identity fails before Security/owner forwarding",
           "standing": "SOURCE_REQUEST_STATE_CONSUMER_NATIVE_TESTED_NOT_INSTALLED; DYNAMIC_AUTHORITY_AND_FORMAL_REFINEMENT_UNKNOWN"
         }
@@ -376,10 +405,11 @@
         "test_research_resolve_preserves_unknown_skills_owner_as_observation_gap must not invent availability."
       ],
       "evidence": [
-        "src/ordivon_gateway/research_routes.py",
+        "src/ordivon_gateway/logic/research_routes.py",
         "src/ordivon_gateway/service.py",
         "src/ordivon_gateway/mcp_server.py",
-        "tests/test_research_capability_resolution.py"
+        "tests/test_research_capability_resolution.py",
+        "src/ordivon_gateway/capabilities/discovery.py"
       ],
       "consumerEvidence": [
         "src/ordivon_gateway/mcp_server.py",
@@ -398,62 +428,6 @@
       "formalObligations": [
         "Bind concrete Skill source digest, caller visibility, effective installed gateway/skill versions before asserting active ability.",
         "Abstract discovery/resolution does not imply actual Tool/Harness realization."
-      ],
-      "environmentQualification": {
-        "source": "EXACT_SOURCE_CONSUMER_REFERENCES",
-        "configured": "UNKNOWN",
-        "installed": "UNKNOWN",
-        "executed": "SOURCE_TEST_ONLY",
-        "formal": "NOT_ESTABLISHED",
-        "currentness": "SOURCE_CUT_ONLY"
-      }
-    },
-    {
-      "id": "G09",
-      "label": "OptionalExternalPullLeaseAndReplay",
-      "kind": "conditional_attempt_state",
-      "responsibility": "If the optional external.pull worker is configured, own the local operation/request replay and bounded worker lease/generation/attempt transitions separately from Runtime native Job truth.",
-      "authority": "Gateway delegated interface/optional local worker; natural downstream owner retains facts",
-      "state": "IMPLEMENTED",
-      "inputs": [
-        "Exact capability/requestId and parcel; qualified Worker enrollment and generation",
-        "Exact lease/attempt/start/completion/artifact readback"
-      ],
-      "outputs": [
-        "ExternalOperation/attempt/lease/artifact receipt or explicit typed conflict/UNKNOWN"
-      ],
-      "behavioralContract": [
-        "Same request with altered parcel fails, expired/revoked generation cannot commit, and a started/ambiguous effect is not auto-dispatched again.",
-        "The current SQLite local ledger is optional historical state, not evidence of installed Postgres cutover or actual external provider success."
-      ],
-      "acceptance": [
-        "test_expired_attempt_cannot_commit_and_operation_is_reclaimed fences expired worker attempts.",
-        "test_duplicate_completion_is_idempotent_but_changed_completion_conflicts distinguishes replay from conflicting effects."
-      ],
-      "evidence": [
-        "src/ordivon_gateway/external_worker.py",
-        "src/ordivon_gateway/worker_http.py",
-        "src/ordivon_gateway/mcp_server.py",
-        "tests/test_external_pull_worker.py",
-        "tests/test_external_worker_precommit_readback.py"
-      ],
-      "consumerEvidence": [
-        "src/ordivon_gateway/service.py",
-        "tests/test_external_pull_worker.py"
-      ],
-      "dependencies": [],
-      "sharedRefs": [],
-      "mustNotOwn": [
-        "Runtime/Host/Skills semantic truth",
-        "Universal Agent approval or execution authority",
-        "Undeclared installed/currentness guarantees"
-      ],
-      "replacementConditions": [
-        "Retirement/reuse review first: if no real configured consumer then remove the optional legacy carrier; if needed prefer external mature Worker provider or PG and prove migration/lease/replay equivalence."
-      ],
-      "formalObligations": [
-        "Actual configured worker/Provider consumption UNKNOWN.",
-        "Persistent legacy SQLite -> PG cutover equivalence and model-to-installed physical effect proof UNKNOWN."
       ],
       "environmentQualification": {
         "source": "EXACT_SOURCE_CONSUMER_REFERENCES",
@@ -549,29 +523,16 @@
       "to": "G08",
       "type": "COMPOSITION",
       "label": "Native bounded research resolver; discovery projection does not authorize Skill execution"
-    },
-    {
-      "from": "G00",
-      "to": "G09",
-      "type": "COMPOSITION",
-      "label": "Conditional external pull transport, only if configured; no mandatory scheduler or PG claim"
-    },
-    {
-      "from": "G09",
-      "to": "G03",
-      "type": "ADAPTATION",
-      "label": "Optional external.pull branch; not a substitute for the selected Runtime owner operation identity"
     }
   ],
   "slices": [],
   "gaps": [
     "All G00..G07 identities are source-side qualified only. Static plugin MCP configuration is a declared external consumer path; it does not establish live connected client invocation or loaded deployment currentness.",
     "Gateway Windows R2 is a separate historical deployment carrier. Its GW* task-planning labels, sourceVersion and historical installed observations are not general Gateway LEGO identity or CURRENTNESS authority.",
-    "External.pull worker is optional transport with separate authority and SQLite historical mechanics; do not infer a universal Gateway job store, production authorizer, or mandatory lifecycle.",
+    "Gateway external.pull was retired with its SQLite carrier; it is no longer an admitted Owner or alternate Runtime Job store. Live installed SourceCut and provider effects remain separate qualification.",
     "Cross-owner dynamic callers and qualified runtime effects remain UNKNOWN until exact installed Gateway, Runtime, Host, Security, external principal and source-cut receipts are bound.",
     "Proof obligations: G06 cannot access G04 without trusted G07 principal and exact resource, G03 cannot substitute Runtime Job identity, G02 observation never grants G03 execution; abstract positive examples are not an implementation-wide proof.",
-    "G08 Skills resolution uses a source-side recipe and optional natural Skills owner: current verified binding/version and dynamic Agent consumers UNKNOWN.",
-    "G09 bounded native pull attempt is an optional legacy SQLite writer: before any keep/delete/PG cutover, verify actual installed workers and no lost unique records; SOURCE and installed truth are separate."
+    "G08 Skills resolution uses a source-side recipe and optional natural Skills owner: current verified binding/version and dynamic Agent consumers UNKNOWN."
   ],
   "doNotOwn": [
     "Runtime Job/Attempt/Artifact physical authority",

@@ -4,8 +4,10 @@ These are classification mechanics tests, not mathematical implementation
 refinement or proof of semantic consumers.
 """
 import importlib.util
+import json
 import pathlib
 import subprocess
+import sys
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -107,8 +109,8 @@ class FullCoverageTests(unittest.TestCase):
             if line.strip() and not line.lstrip().startswith("#")
         ]
         self.assertTrue(executable_lines)
-        self.assertEqual(executable_lines[-1], "python3 verify.py")
-        self.assertEqual(executable_lines.count("python3 verify.py"), 1)
+        self.assertEqual(executable_lines[-1], "python3 -I verify.py")
+        self.assertEqual(executable_lines.count("python3 -I verify.py"), 1)
         self.assertEqual(M.source_partition("tools/unknown_script.py", policy)
                          ["standing"], "UNASSIGNED")
 
@@ -279,7 +281,7 @@ class LiveRecursiveCellsTests(unittest.TestCase):
         inventory = M.classification(ROOT, sha)
         queries = [
             "extensions/ordivon-control-plane/plugin.json",
-            "meta/next/authorities/records/iso/",
+            "catalogs/authorities/records/iso/",
             "tools/formal/LatentInputReachability.lean",
             "/etc/ordivon/secret",
             "meta/next/../tools/repo/exhaustive_coverage.py",
@@ -508,6 +510,166 @@ class ExactGitCrossFormatReferenceTests(unittest.TestCase):
         self.assertNotIn("plugin.json", result["queries"][1]["patternsUsed"])
         self.assertFalse(result["queries"][0]["zeroTextualHitsProvesNoConsumers"])
 
+    def test_inverse_witness_census_uses_untruncated_distinct_carriers(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = pathlib.Path(tmp)
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True).strip()
+            git("init", "-q")
+            git("config", "user.name", "Inverse witness fixture")
+            git("config", "user.email", "inverse@example.invalid")
+            for name, content in {
+                "target-resource.md": "target-resource.md self reference\n",
+                "unreferenced-resource.md": "historical design intent\n",
+                "only-document.md": "normative prose\n",
+                "a.md": "target-resource.md\ntarget-resource.md\nonly-document.md\n",
+                "z.py": "# target-resource.md lexical hint, not a call\n",
+                "dynamic.py": 'name = "unreferenced" + "-resource.md"\n',
+            }.items():
+                (repo / name).write_text(content)
+            git("add", "-A")
+            git("commit", "-qm", "fixture")
+            cut = git("rev-parse", "HEAD")
+            queries = M.exact_git_reference_hints(
+                repo, cut, ["target-resource.md", "unreferenced-resource.md",
+                            "only-document.md", "missing-resource.md"],
+                per_path_limit=1)["queries"]
+            target, missing_witness, docs_only, absent = queries
+            self.assertEqual(target["totalTextualHits"], 3)
+            self.assertEqual(target["distinctExternalTextualCarriers"], 2)
+            self.assertEqual(target["externalCarrierRoleCounts"], {
+                "DOCUMENT_LITERAL_REFERENCE": 1,
+                "PYTHON_SOURCE_LITERAL_REFERENCE": 1})
+            self.assertEqual(target["inverseWitnessStanding"],
+                             "NON_DOCUMENT_TEXTUAL_HINTS")
+            self.assertTrue(target["truncated"])
+            self.assertEqual(len(target["textualHits"]), 1)
+            self.assertEqual(missing_witness["inverseWitnessStanding"],
+                             "NO_EXTERNAL_TEXTUAL_WITNESS")
+            self.assertEqual(docs_only["inverseWitnessStanding"],
+                             "DOCUMENT_ONLY_TEXTUAL_HINTS")
+            self.assertEqual(absent["inverseWitnessStanding"],
+                             "NOT_EVALUATED_ABSENT_SOURCE")
+            for query in queries:
+                self.assertEqual(query["runtimeConsumerStanding"], "UNKNOWN")
+                self.assertFalse(query["zeroTextualHitsProvesNoConsumers"])
+                self.assertFalse(query["retirementAdmissible"])
+
+    def test_inverse_reference_preserves_native_newline_consumer_identity(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = pathlib.Path(tmp)
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True).strip()
+            git("init", "-q")
+            git("config", "user.name", "Inverse witness fixture")
+            git("config", "user.email", "inverse@example.invalid")
+            (repo / "target-resource.md").write_text("target content\n")
+            name = "native\nconsumer.py"
+            (repo / name).write_text("# target-resource.md\n# target-resource.md\n")
+            git("add", "-A")
+            git("commit", "-qm", "fixture")
+            query = M.exact_git_reference_hints(
+                repo, git("rev-parse", "HEAD"), ["target-resource.md"])["queries"][0]
+            self.assertEqual(query["distinctExternalTextualCarriers"], 1)
+            self.assertEqual([x["candidateConsumerPath"] for x in query["textualHits"]],
+                             [name, name])
+            self.assertEqual([x["sourceLine"] for x in query["textualHits"]], [1, 2])
+            self.assertFalse(query["retirementAdmissible"])
+
+    def test_inverse_scan_missing_local_blob_never_means_no_consumers(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = pathlib.Path(tmp)
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True).strip()
+            git("init", "-q")
+            git("config", "user.name", "Missing witness fixture")
+            git("config", "user.email", "inverse@example.invalid")
+            (repo / "target-resource.md").write_text("design purpose\n")
+            (repo / "missing-consumer.py").write_text("# target-resource.md\n")
+            git("add", "-A")
+            git("commit", "-qm", "fixture")
+            cut = git("rev-parse", "HEAD")
+            missing = git("rev-parse", "HEAD:missing-consumer.py")
+            (repo / ".git" / "objects" / missing[:2] / missing[2:]).unlink()
+            git("config", "remote.origin.promisor", "true")
+            git("config", "remote.origin.partialclonefilter", "blob:none")
+            git("config", "remote.origin.url", str(repo / "unavailable-remote"))
+            with self.assertRaisesRegex(ValueError, "incomplete references"):
+                M.exact_git_reference_hints(repo, cut, ["target-resource.md"])
+
+    def test_inverse_multiline_locator_is_explicitly_unqualified(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = pathlib.Path(tmp)
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True).strip()
+            git("init", "-q")
+            git("config", "user.name", "Multiline locator fixture")
+            git("config", "user.email", "inverse@example.invalid")
+            name = "target\nresource.md"
+            (repo / name).write_text("design purpose\n")
+            (repo / "other.md").write_text("target\nresource.md\n")
+            git("add", "-A")
+            git("commit", "-qm", "fixture")
+            q = M.exact_git_reference_hints(repo, git("rev-parse", "HEAD"), [name])["queries"][0]
+            self.assertEqual(q["inverseWitnessStanding"], "NOT_EVALUATED_MULTILINE_LOCATOR")
+            self.assertIsNone(q["distinctExternalTextualCarriers"])
+            self.assertFalse(q["retirementAdmissible"])
+
+    def test_inverse_document_frontier_cli_pages_exact_native_membership(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = pathlib.Path(tmp)
+            def git(*args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True).strip()
+            git("init", "-q")
+            git("config", "user.name", "Inverse frontier fixture")
+            git("config", "user.email", "inverse@example.invalid")
+            (repo / "docs").mkdir()
+            (repo / "docs" / "a-design.md").write_text("independent design\n")
+            (repo / "docs" / "b-live.md").write_text("b-live source\n")
+            (repo / "docs" / "c-history.md").write_text("historical evidence\n")
+            (repo / "docs" / "data.json").write_text("{}")
+            (repo / "consumer.py").write_text("# docs/b-live.md\n")
+            git("add", "-A")
+            git("commit", "-qm", "fixture")
+            cut = git("rev-parse", "HEAD")
+            # Change the checkout after fixing SourceCut; do not count it.
+            (repo / "docs" / "later.md").write_text("not part of cut\n")
+            command = [sys.executable, str(ROOT / "tools/repo/exhaustive_coverage.py"),
+                       "--repo", str(repo), "--source-cut", cut,
+                       "--inverse-doc-prefix", "docs/", "--inverse-doc-limit", "2",
+                       "--summary"]
+            first = json.loads(subprocess.check_output(command, text=True))
+            self.assertEqual(first["sourceCut"], cut)
+            self.assertEqual(first["documentPathsAtSourceCut"], 3)
+            self.assertEqual(first["pageCount"], 2)
+            self.assertEqual(first["remainingAfterPage"], 1)
+            self.assertEqual(first["nextAfter"], "docs/b-live.md")
+            self.assertEqual([x["queryPath"] for x in first["queries"]],
+                             ["docs/a-design.md", "docs/b-live.md"])
+            self.assertEqual(first["inverseWitnessCounts"], {
+                "NO_EXTERNAL_TEXTUAL_WITNESS": 1, "NON_DOCUMENT_TEXTUAL_HINTS": 1})
+            self.assertTrue(all("textualHits" not in x for x in first["queries"]))
+            self.assertFalse(first["retirementAdmissible"])
+            second = json.loads(subprocess.check_output(
+                [*command, "--inverse-doc-after", first["nextAfter"]], text=True))
+            self.assertEqual([x["queryPath"] for x in second["queries"]],
+                             ["docs/c-history.md"])
+            self.assertEqual(second["remainingAfterPage"], 0)
+            self.assertIsNone(second["nextAfter"])
+            self.assertFalse(second["retirementAdmissible"])
+            with self.assertRaises(ValueError):
+                M.inverse_document_frontier(repo, cut, "docs/", after="docs/later.md")
+
     def test_bad_cut_invalid_relative_path_and_bounds_fail_closed(self) -> None:
         target = "capabilities/artifact/scripts/artifact_audio.py"
         with self.assertRaises(ValueError):
@@ -631,7 +793,7 @@ class DerivedProblemLegoFrontierTests(unittest.TestCase):
         self.assertEqual(counts["DECLARED_MOVE_CONSUMER_QUALIFICATION_REQUIRED"],
                          expected["PHYSICAL_MOVE_NOT_REALIZED_OR_CONSUMER_NOT_CUT_OVER"])
         self.assertEqual(counts["DECLARED_SPLIT_CONSUMER_QUALIFICATION_REQUIRED"],
-                         expected["STRUCTURE_SPLIT_REQUIRES_CONSUMER_WITNESS"])
+                         expected.get("STRUCTURE_SPLIT_REQUIRES_CONSUMER_WITNESS", 0))
 
     def test_cross_plan_repeated_short_ids_are_not_identified_as_same_lego(self) -> None:
         rows = self.result["crossPlanIdentityScopeReviews"]
@@ -1324,6 +1486,36 @@ class CrossScopeLexicalHintsTests(unittest.TestCase):
                 hints,
                 M.cross_scope_exact_locator_hints(main, source),
             )
+
+    def test_missing_local_cross_scope_blob_cannot_trigger_implicit_fetch(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp).resolve()
+            target = root / "external"
+            producer = root / "producer"
+            main = root / "main"
+            sub_cut = self._git_cut(target, "info.txt", "data")
+            cut = self._git_cut(producer, "consumer.txt", str(target) + "\n")
+            def native(repo, *args):
+                return subprocess.check_output(
+                    ["git", "-C", str(repo), *args], text=True).strip()
+            native(producer, "config", "uploadpack.allowFilter", "true")
+            native(producer, "config", "uploadpack.allowAnySHA1InWant", "true")
+            subprocess.run(["git", "clone", "-q", "--no-checkout", "--filter=blob:none",
+                            producer.as_uri(), str(main)], check=True)
+            oid = native(producer, "rev-parse", cut + ":consumer.txt")
+            census = M.independent_scope_frontier(
+                main, cut, external_git=[f"external={target}@{sub_cut}"], non_git_data=[])
+            before = {x.name for x in (main / ".git" / "objects" / "pack").iterdir()}
+            with self.assertRaisesRegex(ValueError, "lexical survey failed closed"):
+                M.cross_scope_exact_locator_hints(main, census)
+            after = {x.name for x in (main / ".git" / "objects" / "pack").iterdir()}
+            self.assertEqual(after, before)
+            import os
+            check = subprocess.run(["git", "-C", str(main), "cat-file", "--batch-check"],
+                                   input=oid + "\n", text=True, capture_output=True,
+                                   env={**os.environ, "GIT_NO_LAZY_FETCH": "1"})
+            self.assertEqual(check.stdout.strip(), oid + " missing")
 
     def test_syntax_generated_path_does_not_prove_missing_consumers(self) -> None:
         import tempfile

@@ -1,17 +1,14 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-from ordivon_studio.creative_index import (
-    _first_string,
-    _walk_values,
-    build_creative_index,
-    query_creative_index,
-)
+from ordivon_studio.creative_index import build_creative_index, query_creative_index
+from ordivon_studio.creative_index_source_utils import _first_string, _walk_values
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -95,6 +92,31 @@ class CreativeIndexTests(unittest.TestCase):
         self.assertIn(("equipment:blender", "provides", "capability:asset.export.gltf"), relations)
         self.assertIn("work:media:runtime-introduction", nodes)
         self.assertIn("work:media:gesture-orrery", nodes)
+
+    def test_declared_output_digest_finds_source_work_without_claiming_storage(self) -> None:
+        # Real consumers need to navigate a digest to its declaring Work even
+        # when the bytes live in external CAS/R2 rather than this Git tree.
+        index = build_creative_index(ROOT)
+        current_runtime = json.loads(
+            (ROOT / "productions/runtime-introduction/production.json").read_text(encoding="utf-8")
+        )
+        runtime_output = next(
+            item for item in current_runtime["outputs"] if item["id"] == "runtime-film-en-landscape"
+        )
+        examples = {
+            runtime_output["blobDigest"].removeprefix("sha256:"): "runtime-introduction",
+            "22ba47ac9c66514dcd0c20520db9fa6b4d377d912dd1cc5aa3c90306ad70f3a9": "ordivon-book-v0",
+            "174654d531bf75459d9627f73ac6daab1a13a212f09d36e1a17a328dda84a5f7": "ordivon-book-v0",
+        }
+        for digest_hex, production_id in examples.items():
+            expected_id = f"work:media:{production_id}"
+            result = query_creative_index(index, "sha256:" + digest_hex)
+            nodes = {node["id"]: node for node in result["nodes"]}
+            self.assertIn(expected_id, nodes)
+            self.assertIn("sha256:" + digest_hex, nodes[expected_id]["declaredOutputDigests"])
+            self.assertEqual(nodes[expected_id]["sourcePath"], f"productions/{production_id}/production.json")
+            # This projection binds an owner *declaration*, not blob availability.
+            self.assertEqual(result["truthRole"], "rebuildable-derived-navigation-not-source-authority")
 
     def test_zero_to_one_delivery_bridges_are_declared(self) -> None:
         bridges=json.loads((ROOT / "research/media/creative-delivery-bridges.json").read_text())
@@ -223,6 +245,104 @@ class CreativeIndexTests(unittest.TestCase):
             evidence = "evidence:artifact:accept-a"
             self.assertIn(("equipment:aseprite", "evidencedBy", evidence), relations)
             self.assertIn(("delivery-profile:design-2d-aseprite-horizontal-sheet-r1", "evidencedBy", evidence), relations)
+
+    def test_acceptance_identity_relation_finite_quotient_refinement(self) -> None:
+        """Complete equality/presence quotient for four opaque digest identities.
+
+        This is a bounded implementation-refinement witness, not a proof
+        of Python's runtime, SHA-256, or external bytes. Every branch of the
+        equality-only decision has a canonical input in the quotient.
+        """
+        from itertools import product
+
+        from ordivon_studio.creative_index_library import _catalog_acceptance_relation
+
+        classes = (None, "sha256:" + "0" * 64, "sha256:" + "1" * 64,
+                   "sha256:" + "2" * 64, "sha256:" + "3" * 64)
+        cases = 0
+        for selected_semantic, accepted_semantic, selected_file, accepted_file in product(classes, repeat=4):
+            if selected_semantic is None:
+                expected = "UNKNOWN_NO_SELECTED_CATALOG"
+            elif accepted_semantic is None:
+                expected = "UNKNOWN_UNBOUND_ACCEPTANCE"
+            elif selected_semantic != accepted_semantic:
+                expected = "HISTORICAL_DIFFERENT_CATALOG"
+            elif selected_file is None or accepted_file is None:
+                expected = "UNKNOWN_UNBOUND_CATALOG_FILE"
+            elif selected_file != accepted_file:
+                expected = "HISTORICAL_DIFFERENT_CATALOG"
+            else:
+                expected = "MATCHES_SELECTED_CATALOG"
+            observed = _catalog_acceptance_relation(
+                selected_semantic, accepted_semantic, selected_file, accepted_file)
+            self.assertEqual(observed, expected)
+            cases += 1
+        self.assertEqual(cases, 625)
+
+    def test_historical_library_acceptance_cannot_certify_changed_catalog(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            library = Path(directory)
+            catalog = library / "artifacts/creative-library/catalog-v1.json"
+            acceptance = library / "artifacts/creative-library/evidence/acceptance-r2.json"
+            acceptance.parent.mkdir(parents=True)
+            catalog.write_text(json.dumps({
+                "schemaVersion": 1,
+                "catalogDigest": "sha256:" + "a" * 64,
+                "summary": {"workCount": 0},
+                "works": [],
+            }), encoding="utf-8")
+            acceptance.write_text(json.dumps({
+                "schemaVersion": 1,
+                "kind": "ordivon.creative-library.acceptance",
+                "standing": "R2_DERIVED_PREVIEW_LAYER_ACCEPTED",
+                "catalogDigest": "sha256:" + "b" * 64,
+            }), encoding="utf-8")
+            result = build_creative_index(ROOT, creative_library_root=library)
+            evidence = next(
+                row for row in result["nodes"]
+                if row["id"] == "evidence:creative-library:acceptance-r2"
+            )
+            self.assertEqual(evidence["standing"], "HISTORICAL_ACCEPTANCE_NOT_CURRENT")
+            self.assertEqual(evidence["declaredStanding"], "R2_DERIVED_PREVIEW_LAYER_ACCEPTED")
+            self.assertEqual(
+                evidence["selectedCatalogRelation"]["relation"],
+                "HISTORICAL_DIFFERENT_CATALOG",
+            )
+
+            acceptance.write_text(json.dumps({
+                "schemaVersion": 1,
+                "kind": "ordivon.creative-library.acceptance",
+                "standing": "R2_DERIVED_PREVIEW_LAYER_ACCEPTED",
+                "catalogDigest": "sha256:" + "a" * 64,
+            }), encoding="utf-8")
+            unbound_file = build_creative_index(ROOT, creative_library_root=library)
+            evidence0 = next(
+                row for row in unbound_file["nodes"]
+                if row["id"] == "evidence:creative-library:acceptance-r2"
+            )
+            self.assertEqual(evidence0["standing"], "HISTORICAL_ACCEPTANCE_NOT_CURRENT")
+            self.assertEqual(
+                evidence0["selectedCatalogRelation"]["relation"],
+                "UNKNOWN_UNBOUND_CATALOG_FILE",
+            )
+
+            acceptance.write_text(json.dumps({
+                "schemaVersion": 1,
+                "kind": "ordivon.creative-library.acceptance",
+                "standing": "R2_DERIVED_PREVIEW_LAYER_ACCEPTED",
+                "catalogDigest": "sha256:" + "a" * 64,
+                "catalogFileSha256": "sha256:" + hashlib.sha256(catalog.read_bytes()).hexdigest(),
+            }), encoding="utf-8")
+            matching = build_creative_index(ROOT, creative_library_root=library)
+            evidence3 = next(
+                row for row in matching["nodes"]
+                if row["id"] == "evidence:creative-library:acceptance-r2"
+            )
+            self.assertEqual(evidence3["standing"], "R2_DERIVED_PREVIEW_LAYER_ACCEPTED")
+            self.assertEqual(
+                evidence3["selectedCatalogRelation"]["relation"],
+                "MATCHES_SELECTED_CATALOG",
+            )
 
     def test_agent_surface_builds_fresh_query_projection(self) -> None:
         from ordivon_studio.agent_surface import execute_surface_action
@@ -432,6 +552,37 @@ class CreativeIndexTests(unittest.TestCase):
         ids = {row["id"] for row in result["nodes"]}
         self.assertIn("source:x", ids)
         self.assertNotIn("evidence:unrelated", ids)
+
+    def test_query_is_bounded_and_endpoint_closed(self) -> None:
+        for kind in ("Work", "Source"):
+            with self.subTest(kind=kind):
+                index = {
+                    "nodes": [{"id": "hub", "kind": "Work", "name": "needle"}] + [
+                        {"id": f"leaf:{i:03}", "kind": kind} for i in range(260)
+                    ],
+                    "relations": [
+                        {"from": "hub", "to": f"leaf:{i:03}", "type": "related", "evidence": "x"}
+                        for i in range(260)
+                    ],
+                }
+                result = query_creative_index(index, "needle")
+                ids = {node["id"] for node in result["nodes"]}
+                self.assertEqual(len(ids), 250)
+                self.assertTrue(result["truncated"])
+                self.assertTrue(all(r["from"] in ids and r["to"] in ids for r in result["relations"]))
+                self.assertEqual(len(result["relations"]), 249)
+
+    def test_query_caps_initial_matches_and_relation_budget(self) -> None:
+        nodes = [{"id": f"n:{i:03}", "kind": "Work", "name": "needle"} for i in range(260)]
+        relations = [
+            {"from": "n:000", "to": "n:001", "type": "related", "evidence": str(i)}
+            for i in range(501)
+        ]
+        result = query_creative_index({"nodes": nodes, "relations": relations}, "needle")
+        self.assertEqual(len(result["nodes"]), 250)
+        self.assertLessEqual(len(result["relations"]), 500)
+        self.assertTrue(result["truncated"])
+        self.assertEqual(result, query_creative_index({"nodes": nodes, "relations": relations}, "needle"))
 
     def test_query_returns_matching_nodes_and_bounded_neighbors(self) -> None:
         index = build_creative_index(ROOT)

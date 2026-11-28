@@ -94,3 +94,74 @@ def test_public_shadow_verified_receipt_is_equivalent_under_optimized_python(tmp
         ))
     assert result[0] == result[1]
     assert result[0][1]["externalFinancialWriteAttempted"] is False
+
+@pytest.mark.parametrize("case", (
+    "prepend", "append", "missing", "duplicate", "wrong-name", "wrong-version",
+    "wrong-contract", "wrong-type", "wrong-product", "alias-only", "duplicate-alias",
+))
+def test_public_shadow_consumer_selects_exact_frozen_port_not_array_position(tmp_path, case):
+    """Independent consumer identity, not a producer's list order or success."""
+    import shutil
+
+    owner = tmp_path / "capital"
+    scripts = owner / "scripts"
+    product_dir = owner / "data-products" / "crypto-public-shadow-r2"
+    evidence_dir = owner / "evidence"
+    scripts.mkdir(parents=True)
+    product_dir.mkdir(parents=True)
+    evidence_dir.mkdir(parents=True)
+    script = scripts / "consume_crypto_public_shadow_product_r1.py"
+    shutil.copyfile(ROOT / "scripts" / script.name, script)
+    for name in ("odps.json", "acceptance.json", "governance-policy.odrl.jsonld"):
+        shutil.copyfile(ROOT / "data-products" / "crypto-public-shadow-r2" / name, product_dir / name)
+    evidence = "crypto-public-shadow-r2-20260914.json"
+    shutil.copyfile(ROOT / "evidence" / evidence, evidence_dir / evidence)
+    product_path = product_dir / "odps.json"
+    product = json.loads(product_path.read_text())
+    original = product["outputPorts"][0]
+    expected = "358e57ff-d416-5dd6-a90c-f62b4bc94ff0"
+    assert original["id"] == expected
+    unrelated = {**original, "id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", "name": "unrelated"}
+    if case == "prepend":
+        product["outputPorts"] = [unrelated, original]
+    elif case == "append":
+        product["outputPorts"] = [original, unrelated]
+    elif case == "missing":
+        product["outputPorts"] = [unrelated]
+    elif case == "duplicate":
+        product["outputPorts"] = [original, {**original, "name": "conflicting"}]
+    elif case == "wrong-name":
+        original["name"] = "wrong"
+    elif case == "wrong-version":
+        original["version"] = "2026.09.15"
+    elif case == "wrong-contract":
+        original["contractId"] = unrelated["id"]
+    elif case == "wrong-type":
+        original["type"] = "file/csv"
+    elif case == "wrong-product":
+        product["id"] = unrelated["id"]
+        acceptance_path = product_dir / "acceptance.json"
+        acceptance = json.loads(acceptance_path.read_text())
+        acceptance["productId"] = product["id"]
+        acceptance_path.write_text(json.dumps(acceptance))
+    elif case == "alias-only":
+        original["id"] = original["id"].upper()
+    else:
+        product["outputPorts"].append({**original, "id": original["id"].upper()})
+    product_path.write_text(json.dumps(product))
+    output = tmp_path / "consumer"
+    run = subprocess.run(
+        [sys.executable, "-O", str(script), "--output-dir", str(output)],
+        capture_output=True, text=True, check=False,
+    )
+    if case not in {"prepend", "append"}:
+        assert run.returncode != 0, "unqualified exact port identity accepted"
+        assert not output.exists()
+        return
+    assert run.returncode == 0, run.stderr
+    receipt = json.loads((output / "receipt.json").read_text())
+    decision = json.loads((output / "decision-outcome-feedback.json").read_text())
+    lineage = json.loads((output / "openlineage.json").read_text())
+    assert receipt["outputPortId"] == decision["product"]["outputPortId"] == expected
+    assert all(f"#{expected}@" in row["inputs"][0]["name"] for row in lineage)
+    assert receipt["externalFinancialWriteAttempted"] is False

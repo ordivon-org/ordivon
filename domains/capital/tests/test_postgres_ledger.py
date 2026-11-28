@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import os
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import closing
 from threading import Barrier
 
 import pytest
@@ -14,10 +13,10 @@ from ordivon_capital.accounting.durable import (
     binding_for_namespace,
 )
 from ordivon_capital.accounting.postgres_ledger import PostgresAccountingLedger
-from ordivon_capital.accounting.sqlite_ledger import LedgerApplyStatus
 from ordivon_capital.accounting.substrate import (
     AccountingAccount,
     AccountingOperation,
+    LedgerApplyStatus,
     reservation_instruction,
     resolution_instruction,
     stable_accounting_id,
@@ -129,41 +128,8 @@ def test_pg_concurrent_account_identity():
     with PostgresAccountingLedger(DSN) as ledger:
         assert ledger.create_account(AccountingAccount(505, False)) == LedgerApplyStatus.ID_CONFLICT
 
-def test_pg_migrates_only_quiesced_real_sqlite_source_and_rejects_duplicate(tmp_path):
-    from ordivon_capital.accounting.sqlite_ledger import SQLiteAccountingLedger
-    assert DSN
-    source = tmp_path / "capital#snapshot.sqlite3"
-    with SQLiteAccountingLedger(source) as legacy:
-        assert legacy.create_account(AccountingAccount(101)) == LedgerApplyStatus.CREATED
-        assert legacy.create_account(AccountingAccount(202)) == LedgerApplyStatus.CREATED
-        assert legacy.apply_immediate_transfer(
-            transfer_id=303, debit_account_id=101, credit_account_id=202, amount=42
-        ) == LedgerApplyStatus.CREATED
-    before = source.read_bytes()
-    with PostgresAccountingLedger(DSN) as pg:
-        with pytest.raises(RuntimeError, match="quiescence"):
-            pg.import_quiesced_sqlite(source)
-        witness = pg.import_quiesced_sqlite(source, confirmed_quiesced=True)
-        assert witness["standing"] == "VERIFIED_COPY_NOT_CONSUMER_CUTOVER"
-        assert witness["sourceAccounts"] == witness["postgresAccounts"] == 2
-        assert witness["sourceTransfers"] == witness["postgresTransfers"] == 1
-        assert pg.transfer(303).amount == 42
-        assert pg.account(101).debits_posted == 42
-        with pytest.raises(RuntimeError, match="empty"):
-            pg.import_quiesced_sqlite(source, confirmed_quiesced=True)
-    assert source.read_bytes() == before
 
 
-def test_pg_import_rejects_broken_sqlite_source_without_admitting_rows(tmp_path):
-    assert DSN
-    bad = tmp_path / "corrupt#source.sqlite3"
-    bad.write_bytes(b"not a database")
-    with PostgresAccountingLedger(DSN) as pg:
-        with pytest.raises(Exception):
-            pg.import_quiesced_sqlite(bad, confirmed_quiesced=True)
-        import psycopg
-        with psycopg.connect(DSN) as db:
-            assert db.execute("SELECT count(*) FROM ordivon_capital.accounts").fetchone()[0] == 0
 
 def test_pg_concurrent_scarcity_is_one_serializable_balance():
     assert DSN
@@ -211,124 +177,10 @@ def test_pg_twelve_concurrent_cold_schema_admissions_have_one_authority():
         ).fetchone()[0]==2
 
 
-def test_pg_import_readback_corruption_rolls_back_all_rows(tmp_path):
-    assert DSN
-    import psycopg
-
-    from ordivon_capital.accounting.sqlite_ledger import SQLiteAccountingLedger
-
-    source=tmp_path/"ledger#tamper.sqlite3"
-    with SQLiteAccountingLedger(source) as legacy:
-        assert legacy.create_account(AccountingAccount(801)) == LedgerApplyStatus.CREATED
-        assert legacy.create_account(AccountingAccount(802)) == LedgerApplyStatus.CREATED
-        assert legacy.apply_immediate_transfer(
-            transfer_id=803, debit_account_id=801,
-            credit_account_id=802, amount=25,
-        ) == LedgerApplyStatus.CREATED
-    pg=PostgresAccountingLedger(DSN)
-    with psycopg.connect(DSN) as db:
-        db.execute("""CREATE FUNCTION ordivon_capital.corrupt_import()
-            RETURNS trigger LANGUAGE plpgsql AS $$
-            BEGIN
-                UPDATE ordivon_capital.transfers
-                SET status='VOIDED' WHERE id=NEW.id;
-                RETURN NEW;
-            END $$""")
-        db.execute("""CREATE TRIGGER corrupt_import_after_insert
-            AFTER INSERT ON ordivon_capital.transfers
-            FOR EACH ROW EXECUTE FUNCTION ordivon_capital.corrupt_import()""")
-    try:
-        with pytest.raises(RuntimeError, match="readback"):
-            pg.import_quiesced_sqlite(source, confirmed_quiesced=True)
-        with psycopg.connect(DSN) as db:
-            for table in ("accounts", "transfers"):
-                assert db.execute(
-                    f"SELECT count(*) FROM ordivon_capital.{table}"
-                ).fetchone()[0] == 0
-    finally:
-        with psycopg.connect(DSN) as db:
-            db.execute(
-                "DROP TRIGGER IF EXISTS corrupt_import_after_insert "
-                "ON ordivon_capital.transfers"
-            )
-            db.execute("DROP FUNCTION IF EXISTS ordivon_capital.corrupt_import()")
 
 
-@pytest.mark.parametrize(
-    ("column", "malformed", "sqlite_storage"),
-    [
-        ("credits_posted", 1.75, "real"),
-        ("no_overdraft", "false", "text"),
-    ],
-)
-def test_pg_import_rejects_noncanonical_legacy_integer_cells(
-    tmp_path, column, malformed, sqlite_storage,
-):
-    """The source must be typed before its PG equality proof or digest."""
-    assert DSN
-    import sqlite3
-
-    import psycopg
-
-    from ordivon_capital.accounting.sqlite_ledger import SQLiteAccountingLedger
-
-    source = tmp_path / "typed#legacy.sqlite3"
-    with SQLiteAccountingLedger(source) as legacy:
-        assert legacy.create_account(AccountingAccount(101)) == LedgerApplyStatus.CREATED
-    with closing(sqlite3.connect(source)) as db, db:
-        db.execute(f"UPDATE accounts SET {column}=? WHERE id=?", (malformed, "101"))
-        observed = db.execute(
-            f"SELECT typeof({column}),{column} FROM accounts WHERE id='101'"
-        ).fetchone()
-    assert observed == (sqlite_storage, malformed)
-    with PostgresAccountingLedger(DSN) as pg:
-        with pytest.raises(ValueError, match="noncanonical"):
-            pg.import_quiesced_sqlite(source, confirmed_quiesced=True)
-    with psycopg.connect(DSN) as pg:
-        for table in ("accounts", "transfers"):
-            assert pg.execute(
-                f"SELECT count(*) FROM ordivon_capital.{table}"
-            ).fetchone()[0] == 0
 
 
-def test_pg_import_rejects_noncanonical_legacy_transfer_amount(tmp_path):
-    """A silent REAL-to-int conversion must never pass the source parity gate."""
-    assert DSN
-    import sqlite3
-
-    import psycopg
-
-    from ordivon_capital.accounting.sqlite_ledger import SQLiteAccountingLedger
-
-    source = tmp_path / "typed#transfer.sqlite3"
-    with SQLiteAccountingLedger(source) as legacy:
-        for account_id in (101, 202):
-            assert (
-                legacy.create_account(AccountingAccount(account_id))
-                == LedgerApplyStatus.CREATED
-            )
-        assert (
-            legacy.apply_immediate_transfer(
-                transfer_id=303,
-                debit_account_id=101,
-                credit_account_id=202,
-                amount=42,
-            )
-            == LedgerApplyStatus.CREATED
-        )
-    with closing(sqlite3.connect(source)) as db, db:
-        db.execute("UPDATE transfers SET amount=1.75 WHERE id='303'")
-        assert db.execute(
-            "SELECT typeof(amount), amount FROM transfers WHERE id='303'"
-        ).fetchone() == ("real", 1.75)
-    with PostgresAccountingLedger(DSN) as pg:
-        with pytest.raises(ValueError, match="noncanonical"):
-            pg.import_quiesced_sqlite(source, confirmed_quiesced=True)
-    with psycopg.connect(DSN) as pg:
-        for table in ("accounts", "transfers"):
-            assert pg.execute(
-                f"SELECT count(*) FROM ordivon_capital.{table}"
-            ).fetchone()[0] == 0
 
 def test_pg_rejects_counterfeit_existing_accounts_schema():
     """A same-name table is not proof of the authoritative accounting contract."""
@@ -386,3 +238,198 @@ def test_pg_rejects_unlogged_accounting_authority():
         with psycopg.connect(DSN, autocommit=True) as db:
             db.execute("DROP SCHEMA IF EXISTS ordivon_capital CASCADE")
         PostgresAccountingLedger(DSN)
+
+
+def test_pg_partial_post_is_one_atomic_resolution_and_releases_remainder():
+    assert DSN
+    ns = CapitalAccountNamespace("owner:partial", "parcel:usd:partial")
+    fund = AccountingAccount(stable_accounting_id("test-partial", "fund"))
+    b = binding_for_namespace(namespace=ns, reservation_ref="partial:700", amount=700)
+    with PostgresAccountingLedger(DSN) as ledger:
+        for account in (fund, ns.account(CapitalAccountRole.AVAILABLE),
+                        ns.account(CapitalAccountRole.ENCUMBRANCE)):
+            assert ledger.create_account(account) is LedgerApplyStatus.CREATED
+        assert ledger.apply_immediate_transfer(
+            transfer_id=stable_accounting_id("test-partial", "funding"),
+            debit_account_id=fund.account_id, credit_account_id=ns.available_account_id,
+            amount=1000,
+        ) is LedgerApplyStatus.CREATED
+        assert ledger.apply_instruction(reservation_instruction(b)) is LedgerApplyStatus.CREATED
+        consumed = resolution_instruction(
+            binding=b, operation=AccountingOperation.POST_PENDING_TRANSFER,
+            resolution_ref="effect:partial-terminal", posted_amount=240,
+        )
+        assert consumed is not None
+        assert ledger.apply_instruction(consumed) is LedgerApplyStatus.CREATED
+    with PostgresAccountingLedger(DSN) as ledger:
+        assert ledger.apply_instruction(consumed) is LedgerApplyStatus.EXISTS
+        available = ledger.account(ns.available_account_id)
+        encumbrance = ledger.account(ns.encumbrance_account_id)
+        assert available.debits_pending == 0
+        assert available.debits_posted == 240
+        assert available.credits_posted == 1000
+        assert encumbrance.credits_pending == 0
+        assert encumbrance.credits_posted == 240
+        assert ledger.transfer(b.pending_transfer_id).status == "POSTED"
+        assert ledger.transfer(consumed.transfer_id).amount == 240
+        assert ledger.apply_instruction(
+            resolution_instruction(
+                binding=b, operation=AccountingOperation.POST_PENDING_TRANSFER,
+                resolution_ref="effect:another-post", posted_amount=100,
+            )
+        ) is LedgerApplyStatus.PENDING_TRANSFER_ALREADY_POSTED
+        later = binding_for_namespace(
+            namespace=ns, reservation_ref="partial:remaining-available", amount=760,
+        )
+        assert ledger.apply_instruction(reservation_instruction(later)) is LedgerApplyStatus.CREATED
+
+
+def test_pg_rejects_overposting_without_mutating_pending_balance():
+    assert DSN
+    ns = CapitalAccountNamespace("owner:partial", "parcel:usd:bounds")
+    b = binding_for_namespace(namespace=ns, reservation_ref="partial:300", amount=300)
+    with PostgresAccountingLedger(DSN) as ledger:
+        for acct in (ns.account(CapitalAccountRole.AVAILABLE),
+                     ns.account(CapitalAccountRole.ENCUMBRANCE)):
+            assert ledger.create_account(acct) is LedgerApplyStatus.CREATED
+        ledger.apply_immediate_transfer(
+            transfer_id=stable_accounting_id("test-partial", "seed"),
+            debit_account_id=ns.encumbrance_account_id,
+            credit_account_id=ns.available_account_id, amount=300,
+        )
+        assert ledger.apply_instruction(reservation_instruction(b)) is LedgerApplyStatus.CREATED
+        from ordivon_capital.accounting.substrate import AccountingInstruction
+        over = AccountingInstruction(
+            operation=AccountingOperation.POST_PENDING_TRANSFER,
+            transfer_id=stable_accounting_id("test-partial", "over"),
+            debit_account_id=b.source_account_id,
+            credit_account_id=b.encumbrance_account_id,
+            amount=301, pending_id=b.pending_transfer_id,
+        )
+        assert ledger.apply_instruction(over) is LedgerApplyStatus.PENDING_TRANSFER_AMOUNT_MISMATCH
+        assert ledger.account(b.source_account_id).debits_pending == 300
+        assert ledger.account(b.encumbrance_account_id).credits_pending == 300
+        assert ledger.transfer(over.transfer_id) is None
+
+
+
+@pytest.mark.parametrize("posted", [1, 77, 699, 700])
+def test_pg_partial_post_accounting_identity_at_boundary_values(posted: int):
+    assert DSN
+    ns = CapitalAccountNamespace("owner:partial", "parcel:usd:boundary")
+    fund = AccountingAccount(stable_accounting_id("test-partial-bound", "fund"))
+    b = binding_for_namespace(namespace=ns, reservation_ref="partial:bound", amount=700)
+    with PostgresAccountingLedger(DSN) as ledger:
+        for account in (fund, ns.account(CapitalAccountRole.AVAILABLE),
+                        ns.account(CapitalAccountRole.ENCUMBRANCE)):
+            assert ledger.create_account(account) == LedgerApplyStatus.CREATED
+        assert ledger.apply_immediate_transfer(
+            transfer_id=stable_accounting_id("test-partial-bound", "funding"),
+            debit_account_id=fund.account_id, credit_account_id=ns.available_account_id,
+            amount=1000,
+        ) == LedgerApplyStatus.CREATED
+        assert ledger.apply_instruction(reservation_instruction(b)) == LedgerApplyStatus.CREATED
+        resolution = resolution_instruction(
+            binding=b, operation=AccountingOperation.POST_PENDING_TRANSFER,
+            resolution_ref="partial:bound:effect", posted_amount=posted,
+        )
+        assert ledger.apply_instruction(resolution) == LedgerApplyStatus.CREATED
+        available = ledger.account(ns.available_account_id)
+        held = ledger.account(ns.encumbrance_account_id)
+        assert available.debits_pending == 0
+        assert available.debits_posted == posted
+        assert available.credits_posted - available.debits_posted == 1000 - posted
+        assert held.credits_pending == 0
+        assert held.credits_posted == posted
+        assert ledger.transfer(resolution.transfer_id).amount == posted
+
+
+def test_pg_partial_resolve_competing_once():
+    assert DSN
+    ns = CapitalAccountNamespace("owner:partial", "parcel:usd:race")
+    fund = AccountingAccount(stable_accounting_id("partial-race", "fund"))
+    b = binding_for_namespace(namespace=ns, reservation_ref="partial:race", amount=700)
+    with PostgresAccountingLedger(DSN) as ledger:
+        for account in (fund, ns.account(CapitalAccountRole.AVAILABLE),
+                        ns.account(CapitalAccountRole.ENCUMBRANCE)):
+            assert ledger.create_account(account) == LedgerApplyStatus.CREATED
+        assert ledger.apply_immediate_transfer(
+            transfer_id=stable_accounting_id("partial-race", "funding"),
+            debit_account_id=fund.account_id, credit_account_id=ns.available_account_id,
+            amount=1000,
+        ) == LedgerApplyStatus.CREATED
+        assert ledger.apply_instruction(reservation_instruction(b)) == LedgerApplyStatus.CREATED
+    gate = Barrier(2)
+    def resolve(value: int):
+        resolution = resolution_instruction(
+            binding=b, operation=AccountingOperation.POST_PENDING_TRANSFER,
+            resolution_ref=f"partial:race:{value}", posted_amount=value,
+        )
+        gate.wait(timeout=15)
+        with PostgresAccountingLedger(DSN) as ledger:
+            return ledger.apply_instruction(resolution)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(resolve, (240, 310)))
+    assert results.count(LedgerApplyStatus.CREATED) == 1
+    assert results.count(LedgerApplyStatus.PENDING_TRANSFER_ALREADY_POSTED) == 1
+    with PostgresAccountingLedger(DSN) as ledger:
+        actual = ledger.account(ns.available_account_id)
+        assert actual.debits_pending == 0
+        assert actual.debits_posted in (240, 310)
+        assert ledger.account(ns.encumbrance_account_id).credits_posted == actual.debits_posted
+
+
+
+def test_pg_partial_post_readback_refines_history_including_status():
+    assert DSN
+    from ordivon_capital.accounting.durable import (
+        DurableReservationHistory,
+        LedgerReconciliationStanding,
+        LedgerTransferObservation,
+        ReservationStanding,
+        reconcile_durable_history,
+    )
+    ns = CapitalAccountNamespace("owner:partial", "parcel:usd:durable-refinement")
+    fund = AccountingAccount(stable_accounting_id("partial-refinement", "fund"))
+    b = binding_for_namespace(namespace=ns, reservation_ref="partial:refinement", amount=700)
+    resolution = resolution_instruction(
+        binding=b, operation=AccountingOperation.POST_PENDING_TRANSFER,
+        resolution_ref="partial:refinement:post", posted_amount=240,
+    )
+    assert resolution is not None
+    with PostgresAccountingLedger(DSN) as ledger:
+        for account in (fund, ns.account(CapitalAccountRole.AVAILABLE),
+                        ns.account(CapitalAccountRole.ENCUMBRANCE)):
+            assert ledger.create_account(account) is LedgerApplyStatus.CREATED
+        assert ledger.apply_immediate_transfer(
+            transfer_id=stable_accounting_id("partial-refinement", "funding"),
+            debit_account_id=fund.account_id, credit_account_id=ns.available_account_id,
+            amount=1000,
+        ) is LedgerApplyStatus.CREATED
+        assert ledger.apply_instruction(reservation_instruction(b)) is LedgerApplyStatus.CREATED
+        assert ledger.apply_instruction(resolution) is LedgerApplyStatus.CREATED
+    with PostgresAccountingLedger(DSN) as ledger:
+        p = ledger.transfer(b.pending_transfer_id)
+        r = ledger.transfer(resolution.transfer_id)
+        assert p is not None and r is not None
+        assert p.status == "POSTED" and r.status == "POSTED"
+        pending = LedgerTransferObservation(
+            p.transfer_id, AccountingOperation.PENDING, p.amount, 0, status=p.status
+        )
+        terminal = LedgerTransferObservation(
+            r.transfer_id, AccountingOperation.POST_PENDING_TRANSFER,
+            r.amount, r.pending_id, status=r.status,
+        )
+        history = DurableReservationHistory(
+            b, ReservationStanding.CONSUMED, "partial:refinement:post", posted_amount=240
+        )
+        verified = reconcile_durable_history(
+            history=history, pending=pending, resolution=terminal
+        )
+        assert verified.standing is LedgerReconciliationStanding.MATCH
+        forged = LedgerTransferObservation(
+            p.transfer_id, AccountingOperation.PENDING, p.amount, 0, status="PENDING"
+        )
+        assert reconcile_durable_history(
+            history=history, pending=forged, resolution=terminal
+        ).standing is LedgerReconciliationStanding.CONTRADICTION_NO_REPAIR

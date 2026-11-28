@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.finance.passive-benchmark-input",
+  "openingBalance": "1000",
+  "currency": "USD",
+  "periods": [
+    {
+      "periodEndAt": "2026-10-01T20:00:00Z",
+      "depositAtStart": "100",
+      "strategyGrossReturn": "0.05",
+      "benchmarkGrossReturn": "0.04",
+      "strategyExpenseFractionAtStart": "0.01",
+      "benchmarkExpenseFractionAtStart": "0.002",
+      "strategyFixedFeeAtStart": "1",
+      "benchmarkFixedFeeAtStart": "0"
+    },
+    {
+      "periodEndAt": "2026-11-01T20:00:00Z",
+      "depositAtStart": "100",
+      "strategyGrossReturn": "-0.03",
+      "benchmarkGrossReturn": "-0.02",
+      "strategyExpenseFractionAtStart": "0.01",
+      "benchmarkExpenseFractionAtStart": "0.002",
+      "strategyFixedFeeAtStart": "1",
+      "benchmarkFixedFeeAtStart": "0"
+    }
+  ]
+}

@@ -43,7 +43,7 @@ def tracked_sizes(root: Path) -> dict[str, int]:
 def load_allowlist(path: Path) -> tuple[int, dict[str, int]]:
     data = tomllib.loads(path.read_text(encoding="utf-8"))
     limit = data.get("limit_bytes")
-    if not isinstance(limit, int) or limit <= 0:
+    if type(limit) is not int or limit <= 0:
         raise AllowlistError("limit_bytes must be a positive integer")
     allowed: dict[str, int] = {}
     for row in data.get("file", []):
@@ -52,7 +52,7 @@ def load_allowlist(path: Path) -> tuple[int, dict[str, int]]:
         reason = row.get("reason")
         if not isinstance(name, str) or not name:
             raise AllowlistError("every [[file]] needs a path")
-        if not isinstance(max_bytes, int) or max_bytes <= 0:
+        if type(max_bytes) is not int or max_bytes <= 0:
             raise AllowlistError(f"{name}: max_bytes must be a positive integer")
         if not isinstance(reason, str) or not reason.strip():
             raise AllowlistError(f"{name}: reason is required")

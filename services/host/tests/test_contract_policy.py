@@ -59,9 +59,7 @@ def test_legacy_task_board_runtime_modules_are_physically_retired() -> None:
 
 def test_unclaimed_work_standing_ontology_is_retired_from_active_source() -> None:
     root = Path(__file__).parents[1] / "src" / "ordivon_host_v2"
-    text = "\n".join(
-        source.read_text() for source in root.glob("*.py") if source.name != "legacy_cutover.py"
-    )
+    text = "\n".join(source.read_text() for source in root.glob("*.py"))
     for retired in (
         "workStanding",
         "WorkingCheckpointStanding",
@@ -90,15 +88,19 @@ def test_release_python_and_uv_are_owned_by_immutable_mise_pin() -> None:
     assert "python find" not in install
 
 
-def test_python_pin_matches_project_requirement() -> None:
+def test_release_python_identity_is_separate_from_project_compatibility() -> None:
+    """The package accepts the qualified minor line; a release still binds exact bytes."""
     import tomllib
 
     root = Path(__file__).parents[1]
     pinned = (root / ".python-version").read_text().strip()
     project = tomllib.loads((root / "pyproject.toml").read_text())
-    assert project["project"]["requires-python"] == f"=={pinned}"
+    # PEP 440's bounded minor range admits patch updates without admitting another minor.
+    assert project["project"]["requires-python"] == ">=3.15,<3.16"
+    assert re.fullmatch(r"3\.15\.[0-9]+", pinned)
     mise = tomllib.loads((root / "mise.toml").read_text())
     assert mise["tools"]["python"] == pinned
+    # uv lock --check owns semantic lock compatibility (uv normalizes to ==3.15.*).
 
 
 def test_host_status_does_not_duplicate_foreign_or_mcp_authorities() -> None:
@@ -121,7 +123,13 @@ def test_psycopg_owns_jsonb_adaptation_in_active_stores() -> None:
     root = Path(__file__).parents[1] / "src" / "ordivon_host_v2"
     text = "\n".join(
         (root / name).read_text()
-        for name in ("work_store.py", "social_store.py", "social_attention.py")
+        for name in (
+            "work_store.py",
+            "social_store.py",
+            "social_message_commands.py",
+            "coordination_intent_commands.py",
+            "attention_store.py",
+        )
     )
     assert "Jsonb(" in text
     assert "%s::jsonb" not in text
@@ -129,7 +137,7 @@ def test_psycopg_owns_jsonb_adaptation_in_active_stores() -> None:
 
 def test_one_shot_legacy_reader_is_not_registered_as_active_mcp_surface() -> None:
     root = Path(__file__).parents[1] / "src" / "ordivon_host_v2"
-    mcp = (root / "mcp_server.py").read_text() + (root / "social_work_mcp.py").read_text()
+    mcp = (root / "mcp_server.py").read_text() + (root / "mcp_tool_registration.py").read_text()
     assert "legacy_cutover" not in mcp
     assert 'name="task.' not in mcp
     assert 'name="board.' not in mcp

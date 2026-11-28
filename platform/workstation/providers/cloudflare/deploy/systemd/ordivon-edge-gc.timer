@@ -1,5 +1,5 @@
 [Unit]
-Description=Run Ordivon Edge deferred Artifact garbage collection daily
+Description=Run Ordivon Edge deferred Artifact cleanup audit daily
 
 [Timer]
 OnBootSec=10min

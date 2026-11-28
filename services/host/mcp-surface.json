@@ -2,14 +2,15 @@
   "schemaVersion": 1,
   "kind": "ordivon.mcp-tool-surface",
   "service": "ordivon-host-v2",
-  "packageVersion": "0.6.0",
-  "surfaceEpoch": 4,
+  "packageVersion": "0.10.0",
+  "surfaceEpoch": 8,
   "tools": [
     "actor.declare",
     "attention.ack",
     "attention.delta",
     "attention.get",
     "attention.reentry",
+    "host.pool.stats",
     "host.status",
     "message.get",
     "message.post",
@@ -30,9 +31,11 @@
     "topic.cursor.get",
     "topic.list",
     "topic.resume",
+    "topic.state.set",
     "work.create",
     "work.get",
     "work.list",
     "work.snapshot.commit"
-  ]
+  ],
+  "contractDigest": "sha256:f77b8b945a55dcc52440d6eb6a74f45a549d5d4bf8e432030cee13fe0a823da3"
 }

@@ -61,7 +61,8 @@ Runtime does **not** automatically redact command arguments, environment values 
 
 | Data | Typical location | Purpose | Default lifecycle |
 | --- | --- | --- | --- |
-| Registry database | `/var/lib/ordivon/registry/registry.sqlite3` | Job, Attempt, reservation, event, Artifact metadata, recovery truth | retained while the instance remains authoritative |
+| Legacy SQLite Registry (Linux historical state) | `/var/lib/ordivon/registry/registry.sqlite3` was removed on 2026-11-07 after consumer checks | Former Job, Attempt, reservation, event, Artifact metadata and recovery state | Linux file retired; Windows has a separately observed still-growing SQLite Registry and must be cut over independently |
+| PostgreSQL Registry (PG-native Runtime) | operator-configured PG server/schema, not a hard-coded SQLite file | PG Job/Attempt admission, lifecycle/readback and recovery truth | bounded by the actual active writer epoch and its consumers; never delete PG data as a filesystem cache |
 | Attempt bundles and Artifacts | `/var/lib/ordivon/registry/attempts/` | request, plan, progress, output, result, terminal evidence | retained with Registry history unless the instance is retired or an explicit future archival policy applies |
 | Workspace records and worktrees | `/var/lib/ordivon/runtime/` | isolated source state and lifecycle identity | policy classes: ephemeral, review, or pinned; dirty/active/unknown state is never removed automatically |
 | execution caches | `/var/lib/ordivon/runtime/cache/` | reusable package and build state | Workspace-scoped state is protected while referenced; legacy source-build state is reconstructible and capacity-reclaimable; shared package-cache semantics remain package-manager-owned |
@@ -109,7 +110,7 @@ These controls protect against ordinary local disclosure. They do not protect da
 
 ## Retention
 
-Workspace retention is policy-driven and implemented through `ordivon-runtime-lifecycle`. The packaged disposable policy may close clean carriers after 24 hours of inactivity and dirty carriers after 48 hours, using the same Runtime `workspace.close` fences; active or held Jobs and pinned Workspaces remain protected, while unknown and orphan-directory identities are never blindly deleted automatically.
+Workspace retention is policy-driven through `ordivon-runtime-lifecycle`. In the **packaged source policy**, clean disposable Workspaces become eligible after a 4-hour minimum idle period; 48 hours is a **dirty review threshold, not permission for automatic dirty closure** (`forceCloseDirtyAfterRetention=false`). Only the existing Runtime `workspace.close` fences can remove qualified carriers. Active/held Jobs and pinned Workspaces remain protected; clean-but-unintegrated source requires native preservation before eligible closure, and absence of other consumers cannot be inferred from a completed Job. Unknown and orphan directories are never automatically bulk-deleted. The installed timer cadence and policy are operator-configured: inspect the live configuration and `workspace.open` retention notice rather than treating packaged values as installation evidence.
 `dirty-checkpoint` may explicitly convert one owner-selected dirty Workspace's Git-relevant state into an immutable recovery ref in that Workspace's source repository. The checkpoint preserves physical state without changing semantic ownership or permitting automatic deletion; later release still uses the exact Runtime `workspace.close` fence.
 
 Job, Attempt, event, Artifact, and terminal-evidence history is currently append-oriented and has no automatic per-record deletion path. This preserves idempotency, reconciliation, and recovery evidence. Operators who require bounded historical retention must use one of two explicit models:
@@ -144,7 +145,7 @@ Use `workspace.close` or the receipted lifecycle/reclaim tools. Never delete a w
 
 ### Cache deletion
 
-Use `ordivon-runtime-cache prune`. It protects current Workspace-scoped caches associated with open or active Workspaces, treats legacy source-scoped build caches as reconstructible reclaimable state because current execution never consumes them, and does not interpret package-manager global caches it does not own.
+For the current **Linux PostgreSQL Runtime**, do **not** invoke the SQLite Registry-backed `ordivon-runtime-cache prune`; it does not consume the live PostgreSQL Workspace/Job authority. The installed `ordivon-runtime-pg-reclaim` uses the native `workspace.get` / `workspace.close` contract to close only consumer-released Workspaces. If a Workspace must be retained but its rebuildable build cache is eligible for separate removal, use the existing **bounded, explicitly source-qualified** `ordivon-runtime-pg-buildcache-evict` operator only after verifying installed source, PG activity, native consumers and exact Workspace identity. Its default invocation is observational, not an authorization to sweep all Workspaces. The Linux lifecycle timer was observed disabled/inactive on 2026-11-19; do not infer automatic GC from this document. `ordivon-runtime-cache prune` remains a **legacy SQLite-only** operator that protects open/active Workspace-scoped caches and does not touch package-manager-owned shared caches.
 
 ### Instance retirement
 

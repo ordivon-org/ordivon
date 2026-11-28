@@ -1,12 +1,274 @@
 [tools]
 node = "26.12.1"
-pnpm = "12.16.1"
+pnpm = "12.23.0"
 godot = "4.7.2-stable"
 
 [tasks.verify]
-run = "pnpm install --frozen-lockfile && pnpm check && mise run test:native"
+run = "mise run test:consumer-contracts && pnpm install --frozen-lockfile && pnpm check && mise run verify:room-smt && mise run test:native && mise run test:native-receipt-selftest && mise run test:human-playtest-protocol && mise run test:beacon && mise run test:encounter && mise run test:agent-episode && mise run test:visual-native && mise run test:dialogue-native && mise run test:autonomous-study"
 
 
 [tasks."test:native"]
 description = "Run source-bound native Godot composition acceptance (requires installed Godot)"
-run = "godot --headless --path test/fixtures/native-godot-assembly --script res://assert.gd"
+run = "python3 scripts/native_scene_acceptance.py --suite composition"
+
+[tasks."test:encounter"]
+description = "Fail-closed native Godot battle and process-restart acceptance; script errors fail even if Godot exits 0"
+run = "python3 scripts/native_scene_acceptance.py --suite encounter && mise run test:native-trace"
+
+[tasks."test:native-trace"]
+description = "Shrinkable real native Rule state and observer traces in both modes"
+run = "uv run --no-project --with hypothesis python scripts/test_native_trace_properties.py"
+
+[tasks."test:native-receipt-selftest"]
+description = "Falsify deceptive Godot exit-0+PASS receipts containing SCRIPT ERROR"
+run = "python3 scripts/native_scene_acceptance.py --suite selftest"
+
+[tasks."test:visual-native"]
+description = "Import a real CC0 sprite pack and verify Godot PackedScene appearance substitution"
+run = "python3 scripts/native_scene_acceptance.py --suite visual"
+
+[tasks."test:dialogue-native"]
+description = "Fail-closed real Dialogue Manager integration and native project launch"
+run = "python3 scripts/native_scene_acceptance.py --suite dialogue"
+
+
+[tasks."test:autonomous-study"]
+description = "Native R7 study evaluator/selftest from Game owner"
+run = "uv run --with check-jsonschema==0.39.0 python research/autonomous-interest-r7/protocol_selftest.py"
+
+[tasks."test:human-playtest-protocol"]
+description = "Falsify offline Human-study CSV consent, release digest and UNKNOWN semantics with synthetic temporary fixtures"
+run = "python3 -m unittest discover -s research -p 'test_room_encounter_playtest.py' -v"
+
+[tasks."test:agent-episode"]
+description = "Import then exercise the native Godot room scene and bounded Agent action/observation JSON, including clean checkouts"
+run = "python3 scripts/native_scene_acceptance.py --suite agent"
+
+
+[tasks."export:room-linux"]
+description = "Use official matching Godot export templates to export, smoke and package the actual Linux room game"
+run = """
+set -eu
+export_dir="${GAME_EXPORT_DIR:-$PWD/dist/room-encounter/linux-x86_64}"
+mkdir -p "$export_dir"
+python3 scripts/native_process.py -- godot --headless --path examples/room-encounter --editor --import
+python3 scripts/native_process.py -- godot --headless --path examples/room-encounter --export-release "Linux x86_64" "$export_dir/room-encounter.x86_64"
+test -s "$export_dir/room-encounter.x86_64"
+chmod +x "$export_dir/room-encounter.x86_64"
+cp examples/room-encounter/addons/dialogue_manager/LICENSE "$export_dir/DIALOGUE_MANAGER_LICENSE.txt"
+cp examples/room-encounter/assets/LICENSE.txt "$export_dir/KENNEY_ASSETS_LICENSE.txt"
+python3 scripts/native_process.py -- "$export_dir/room-encounter.x86_64" --headless --quit-after 3
+tar -czf "$export_dir/../room-encounter-linux-x86_64.tar.gz" -C "$export_dir" room-encounter.x86_64 DIALOGUE_MANAGER_LICENSE.txt KENNEY_ASSETS_LICENSE.txt
+sha256sum "$export_dir/room-encounter.x86_64" "$export_dir/../room-encounter-linux-x86_64.tar.gz"
+"""
+
+
+[tasks."export:room-windows"]
+description = "Use official version-matched Godot native templates to export and package Windows x86_64 Room Encounter"
+run = """
+set -eu
+export_dir="${GAME_EXPORT_DIR:-$PWD/dist/room-encounter/windows-x86_64}"
+mkdir -p "$export_dir"
+python3 scripts/native_process.py -- godot --headless --path examples/room-encounter --editor --import
+python3 scripts/native_process.py -- godot --headless --path examples/room-encounter --export-release "Windows x86_64" "$export_dir/room-encounter.exe"
+test -s "$export_dir/room-encounter.exe"
+cp examples/room-encounter/addons/dialogue_manager/LICENSE "$export_dir/DIALOGUE_MANAGER_LICENSE.txt"
+cp examples/room-encounter/assets/LICENSE.txt "$export_dir/KENNEY_ASSETS_LICENSE.txt"
+(cd "$export_dir" && python3 -m zipfile -c "../room-encounter-windows-x86_64.zip" room-encounter.exe DIALOGUE_MANAGER_LICENSE.txt KENNEY_ASSETS_LICENSE.txt)
+sha256sum "$export_dir/room-encounter.exe" "$export_dir/../room-encounter-windows-x86_64.zip"
+"""
+
+
+[tasks."verify:room-smt"]
+description = "Prove signed i64 Godot Room arithmetic model with upstream Z3; native source acceptance is separate"
+run = "uv run --no-project --with z3-solver==5.4.1.0 python3 formal/verify_room_arithmetic.py"
+
+# Thin compositions of existing native tasks, not a second execution engine.
+[tasks."factory:validate:godot"]
+description = "Native Godot factory gate: actual scenes, dialogue, Agent and bounded math model"
+run = """
+set -euo pipefail
+mise run test:native
+mise run test:native-receipt-selftest
+mise run test:encounter
+mise run test:agent-episode
+mise run test:visual-native
+mise run test:dialogue-native
+mise run verify:room-smt
+echo GAME_FACTORY_GODOT_VALIDATED
+"""
+
+[tasks."factory:package:room"]
+description = "Source-qualified pair of Linux/Windows Room previews, atomically published as one verified bundle"
+run = """
+set -euo pipefail
+target="$PWD/dist/room-encounter"
+mkdir -p "$target"
+head_before="$(git rev-parse HEAD)"
+tree_before="$(git rev-parse 'HEAD^{tree}')"
+if [[ -n "$(git status --porcelain --untracked-files=normal)" ]]; then
+  echo "GAME_FACTORY_DIRTY_SOURCE_NOT_RELEASABLE" >&2
+  exit 42
+fi
+stage="$(mktemp -d "$target/.factory-package.XXXXXXXX")"
+trap 'rm -rf -- "$stage"' EXIT
+python3 scripts/native_export_identity.py examples/room-encounter > "$stage/export-inputs.before"
+mise run factory:validate:godot
+GAME_EXPORT_DIR="$stage/linux-x86_64" mise run export:room-linux
+GAME_EXPORT_DIR="$stage/windows-x86_64" mise run export:room-windows
+test -s "$stage/room-encounter-linux-x86_64.tar.gz"
+test -s "$stage/room-encounter-windows-x86_64.zip"
+mkdir -p "$stage/ready"
+mv -- "$stage/room-encounter-linux-x86_64.tar.gz" "$stage/ready/"
+mv -- "$stage/room-encounter-windows-x86_64.zip" "$stage/ready/"
+{
+  echo "BUILD_SCHEMA=1"
+  echo "PRODUCT=room-encounter"
+  echo "SOURCE_COMMIT=$head_before"
+  echo "SOURCE_TREE=$tree_before"
+  echo "SOURCE_WORKTREE=clean"
+  cat "$stage/export-inputs.before"
+  echo "QUALIFICATION=native_headless_preview"
+  echo "LINUX_SCOPE=native_headless_smoke"
+  echo "WINDOWS_SCOPE=export_only"
+  echo "RELEASE_PUBLISHED=false"
+} > "$stage/ready/BUILD_SOURCE.txt"
+(
+  cd "$stage/ready"
+  sha256sum room-encounter-linux-x86_64.tar.gz room-encounter-windows-x86_64.zip BUILD_SOURCE.txt > SHA256SUMS
+  sha256sum -c SHA256SUMS
+)
+if [[ "$(git rev-parse HEAD)" != "$head_before" || "$(git rev-parse 'HEAD^{tree}')" != "$tree_before" || -n "$(git status --porcelain --untracked-files=normal)" ]]; then
+  echo "GAME_FACTORY_SOURCE_CHANGED_DURING_BUILD" >&2
+  exit 43
+fi
+python3 scripts/native_export_identity.py examples/room-encounter > "$stage/export-inputs.after"
+if ! cmp -s "$stage/export-inputs.before" "$stage/export-inputs.after"; then
+  echo "GAME_FACTORY_EXPORT_INPUT_CHANGED_DURING_BUILD" >&2
+  exit 44
+fi
+printf 'COMPLETE_SOURCE_COMMIT=%s\\n' "$head_before" > "$stage/ready/READY"
+bundle="$target/bundle-${head_before:0:12}-${stage##*.}"
+test ! -e "$bundle"
+mv -T -- "$stage/ready" "$bundle"
+echo "GAME_FACTORY_BUNDLE_PATH=$bundle"
+echo "GAME_FACTORY_ROOM_PACKAGES_READY_NATIVE_PREVIEW_NOT_STORE_RELEASE"
+"""
+
+[tasks."test:beacon"]
+description = "Fail-closed native Godot game with keyboard movement, four deliveries and upstream collision loss"
+run = "python3 scripts/native_scene_acceptance.py --suite beacon"
+
+[tasks."factory:package:beacon"]
+description = "Source-qualified pair of native Beacon previews, atomically published with licenses and digests"
+run = """
+set -euo pipefail
+target="${GAME_EXPORT_DIR:-$PWD/dist/beacon-relay}"
+mkdir -p "$target"
+head_before="$(git rev-parse HEAD)"
+tree_before="$(git rev-parse 'HEAD^{tree}')"
+if [[ -n "$(git status --porcelain --untracked-files=normal)" ]]; then
+  echo "GAME_FACTORY_DIRTY_SOURCE_NOT_RELEASABLE" >&2
+  exit 42
+fi
+stage="$(mktemp -d "$target/.factory-package.XXXXXXXX")"
+trap 'rm -rf -- "$stage"' EXIT
+python3 scripts/native_export_identity.py examples/beacon-relay > "$stage/export-inputs.before"
+mise run test:beacon
+mkdir -p "$stage/linux-x86_64" "$stage/windows-x86_64"
+python3 scripts/native_process.py -- godot --headless --path examples/beacon-relay --export-release "Linux x86_64" "$stage/linux-x86_64/beacon-relay.x86_64"
+python3 scripts/native_process.py -- godot --headless --path examples/beacon-relay --export-release "Windows x86_64" "$stage/windows-x86_64/beacon-relay.exe"
+test -s "$stage/linux-x86_64/beacon-relay.x86_64"
+test -s "$stage/windows-x86_64/beacon-relay.exe"
+chmod +x "$stage/linux-x86_64/beacon-relay.x86_64"
+cp examples/beacon-relay/LICENSE "$stage/linux-x86_64/UPSTREAM_MIT_LICENSE.txt"
+cp examples/beacon-relay/fonts/LICENSE.txt "$stage/linux-x86_64/FONT_OFL_LICENSE.txt"
+cp examples/beacon-relay/CREDITS.txt "$stage/linux-x86_64/CREDITS.txt"
+cp "$stage/linux-x86_64/"*.txt "$stage/windows-x86_64/"
+python3 scripts/native_process.py -- "$stage/linux-x86_64/beacon-relay.x86_64" --headless --quit-after 4
+mkdir -p "$stage/ready"
+tar -czf "$stage/ready/beacon-relay-linux-x86_64.tar.gz" -C "$stage/linux-x86_64" beacon-relay.x86_64 UPSTREAM_MIT_LICENSE.txt FONT_OFL_LICENSE.txt CREDITS.txt
+(cd "$stage/windows-x86_64" && python3 -m zipfile -c "$stage/ready/beacon-relay-windows-x86_64.zip" beacon-relay.exe UPSTREAM_MIT_LICENSE.txt FONT_OFL_LICENSE.txt CREDITS.txt)
+test -s "$stage/ready/beacon-relay-linux-x86_64.tar.gz"
+test -s "$stage/ready/beacon-relay-windows-x86_64.zip"
+{
+  echo "BUILD_SCHEMA=1"
+  echo "PRODUCT=beacon-relay"
+  echo "SOURCE_COMMIT=$head_before"
+  echo "SOURCE_TREE=$tree_before"
+  echo "SOURCE_WORKTREE=clean"
+  cat "$stage/export-inputs.before"
+  echo "QUALIFICATION=native_headless_preview"
+  echo "LINUX_SCOPE=native_headless_smoke"
+  echo "WINDOWS_SCOPE=export_only"
+  echo "RELEASE_PUBLISHED=false"
+} > "$stage/ready/BUILD_SOURCE.txt"
+(
+  cd "$stage/ready"
+  sha256sum beacon-relay-linux-x86_64.tar.gz beacon-relay-windows-x86_64.zip BUILD_SOURCE.txt > SHA256SUMS
+  sha256sum -c SHA256SUMS
+)
+if [[ "$(git rev-parse HEAD)" != "$head_before" || "$(git rev-parse 'HEAD^{tree}')" != "$tree_before" || -n "$(git status --porcelain --untracked-files=normal)" ]]; then
+  echo "GAME_FACTORY_SOURCE_CHANGED_DURING_BUILD" >&2
+  exit 43
+fi
+python3 scripts/native_export_identity.py examples/beacon-relay > "$stage/export-inputs.after"
+if ! cmp -s "$stage/export-inputs.before" "$stage/export-inputs.after"; then
+  echo "GAME_FACTORY_EXPORT_INPUT_CHANGED_DURING_BUILD" >&2
+  exit 44
+fi
+printf 'COMPLETE_SOURCE_COMMIT=%s\\n' "$head_before" > "$stage/ready/READY"
+bundle="$target/bundle-${head_before:0:12}-${stage##*.}"
+test ! -e "$bundle"
+mv -T -- "$stage/ready" "$bundle"
+echo "GAME_FACTORY_BUNDLE_PATH=$bundle"
+echo "GAME_FACTORY_BEACON_PACKAGES_READY_NATIVE_PREVIEW_NOT_STORE_RELEASE"
+"""
+
+[tasks."test:rendered-product-contract"]
+description = "Validate the independent FFmpeg raster consumer using real decoder fixtures (requires FFmpeg)"
+run = "python3 scripts/test_rendered_product_acceptance.py RasterContract"
+
+[tasks."test:rendered-product-native-counterexample"]
+description = "Export a real blank Godot product and reject its uniform raster (requires native templates, Xvfb and FFmpeg)"
+run = "python3 scripts/test_rendered_product_acceptance.py NativeBlankContract"
+
+[tasks."test:x11-interaction-contract"]
+description = "Metamorphic Room window raster contract; actual product input witness is separate"
+run = "python3 scripts/test_x11_interaction_acceptance.py"
+
+[tasks."test:mixed-audio-contract"]
+description = "Mixed PCM consequence and silence negative controls"
+run = "python3 scripts/test_mixed_audio_acceptance.py"
+
+[tasks."test:hosted-product-contract"]
+description = "Source-bound immutable preview identity and archive rejection"
+run = "python3 scripts/test_hosted_product_acceptance.py"
+
+
+[tasks."test:consumer-contracts"]
+description = "Fast independent consumer contracts and shrinkable archive properties; no display or export"
+run = """
+set -euo pipefail
+cd scripts
+python3 -m unittest -v test_hosted_product_acceptance test_x11_interaction_acceptance test_mixed_audio_acceptance test_windows_render_acceptance test_hosted_runner_acceptance
+uv run --no-project --with hypothesis python test_consumer_properties.py
+"""
+
+[tasks."experiment:mechanic-search"]
+description = "Explore bounded native Room mechanic alternatives and validate actual receipt; not a player-quality gate"
+run = """
+set -eu
+receipt="$(mktemp)"
+trap 'rm -f -- "$receipt"' EXIT
+python3 research/mechanic-search/run.py > "$receipt"
+python3 research/mechanic-search/test_receipt.py "$receipt"
+cat "$receipt"
+"""
+
+[tasks."factory:study:room-pair"]
+description = "Build a private source-bound Room A/B study pair, distinct from READY and production release"
+run = """
+set -eu
+python3 research/mechanic-search/build_pair.py --output "${GAME_STUDY_OUTPUT:?set absolute fresh output directory}"
+"""

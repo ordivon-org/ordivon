@@ -7,12 +7,13 @@ rust = { version = "1.99.1", components = "clippy,rustfmt" }
 # Upstream prebuilt Nextest, fetched directly from its official GitHub release.
 # Do not make root CI depend on an extra third-party release proxy.
 # Keep the official release SHA-256 and byte-size verification.
-# Only linux-x64 is admitted until the other platforms' exact assets are qualified.
+# Admit only the verified official Linux and Windows x64 release assets.
 [tools."http:cargo-nextest"]
-version = "0.9.149"
+version = "0.9.152"
 
 [tools."http:cargo-nextest".platforms]
-linux-x64 = { url = "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.149/cargo-nextest-0.9.149-x86_64-unknown-linux-gnu.tar.gz", checksum = "sha256:32d1d8c0567b7a80bee2bad8bb09125c846da96bc009b2de11ec08557290c770", size = 12121096 }
+linux-x64 = { url = "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.152/cargo-nextest-0.9.152-x86_64-unknown-linux-gnu.tar.gz", checksum = "sha256:d039b43c3e0958441b6ad0a39c8884d018b3d2e8fb9928f209074b1100b5e17a", size = 12393262 }
+windows-x64 = { url = "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.152/cargo-nextest-0.9.152-x86_64-pc-windows-msvc.zip", checksum = "sha256:cc6bf4b6a7ac18e462cd6c9bae67e26921b888249c2988c6acabf3df387ed9d6", size = 7966280 }
 
 [tasks."formal:kani:verify"]
 description = "Verify actual Rust PostgreSQL terminal and Attempt lifecycle properties with upstream Kani"
@@ -61,6 +62,8 @@ set -euo pipefail
 cargo fmt --check
 scripts/owner-environment test
 cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+# Match the deployed Linux feature boundary, separately from all-features and legacy.
+cargo test --locked -p ordivon-runtime-core --no-default-features --features postgres-registry-admission --lib
 cargo test --locked -p ordivon-runtime-core --no-default-features --features transactional-runtime -- --skip request_identity_and_terminal_winner_match_reference_model
 python3 scripts/tests/test_focused_verification_contract.py -v
 python3 scripts/tests/test_pg_physical_verification_contract.py -v
@@ -71,9 +74,31 @@ mise run formal:verify
 """
 
 [tasks."test:focused"]
-description = "Optional upstream cargo-nextest focused suite with native JUnit (RUNTIME_TEST_EXPR)"
+description = "Focused cargo-nextest, PG by default; explicit legacy and archive profiles (RUNTIME_TEST_EXPR)"
 run = """
 set -euo pipefail
+case "${RUNTIME_TEST_PROFILE:-pg}" in
+  pg)
+    feature=postgres-registry-admission
+    target=(--lib)
+    default_selector='test(nonterminal_native_transition_requires_reconciliation)'
+    ;;
+  legacy)
+    feature=transactional-runtime
+    target=(--lib)
+    default_selector='test(public_requests_reject_unknown_fields_and_path_escape)'
+    ;;
+  archive)
+    feature=operator-tools
+    target=(--test archive_migration_properties)
+    default_selector='all()'
+    ;;
+  *)
+    echo "Invalid RUNTIME_TEST_PROFILE: expected pg, legacy or archive" >&2
+    exit 2
+    ;;
+esac
+echo "Runtime focused feature: $feature"
 # A declared pin alone is not execution evidence: missing mise once
 # resolved an older PATH cargo-nextest while a focused test still passed.
 mise install http:cargo-nextest
@@ -90,7 +115,29 @@ if [[ "$actual_nextest" != "$expected_nextest" ]]; then
   exit 1
 fi
 echo "qualified cargo-nextest $actual_nextest"
-mise exec -- cargo nextest run --locked --lib -p ordivon-runtime-core --no-default-features --features transactional-runtime --status-level pass -P ci -E "${RUNTIME_TEST_EXPR:-test(public_requests_reject_unknown_fields_and_path_escape)}"
+# Native Nextest owns both discovery and execution. Use a fresh per-run store,
+# not the shared ci/junit.xml, and list ignored tests without executing them.
+evidence=$(mktemp -d)
+trap 'rm -rf "$evidence"' EXIT
+python3 - "$evidence" <<'PY_NEXTTEST_STORE'
+import json
+from pathlib import Path
+import sys
+root = Path(sys.argv[1]).resolve()
+(root / "store.toml").write_text("[store]\\ndir = " + json.dumps((root / "store").as_posix()) + "\\n", encoding="utf-8")
+PY_NEXTTEST_STORE
+build=(--locked "${target[@]}" -p ordivon-runtime-core --no-default-features --features "$feature")
+configuration=(-P ci --user-config-file none --tool-config-file "ordivon-evidence:$evidence/store.toml")
+# Archive once using Nextest itself. Discovery and execution consume the
+# same private build carrier even if a later Cargo build replaces a binary.
+archive="$evidence/tests.tar.zst"
+mise exec -- cargo nextest archive "${build[@]}" "${configuration[@]}" --archive-file "$archive" --zstd-level -3
+archive_sha=$(python3 scripts/qualify_focused_evidence.py --digest "$archive")
+selection=(--archive-file "$archive" "${configuration[@]}" -E "${RUNTIME_TEST_EXPR:-$default_selector}")
+mise exec -- cargo nextest list "${selection[@]}" --message-format json --run-ignored all > "$evidence/list.json"
+python3 scripts/qualify_focused_evidence.py "$evidence/list.json"
+mise exec -- cargo nextest run "${selection[@]}" --no-tests fail --retries 0 --status-level pass
+python3 scripts/qualify_focused_evidence.py "$evidence/list.json" "$evidence/store/ci/junit.xml" "$archive" "$archive_sha"
 """
 
 
@@ -102,6 +149,7 @@ description = "Validate Runtime dispatch contract trace and model-check pinned T
 run = """
 set -euo pipefail
 python scripts/verify_formal_trace.py
+python scripts/verify_formal_trace.py --native-profile pg
 # Read the cache path from the existing upstream-locked toolchain contract.
 local_jar=$(python -c 'import json; print(json.load(open("formal/toolchain.lock.json", encoding="utf-8"))["cacheRelativePath"])')
 if [[ "${ORDIVON_TLA_TOOLS_JAR+x}" != x && ! -f "$local_jar" ]]; then
@@ -114,16 +162,9 @@ scripts/tla-formal falsify
 
 
 [tasks."test:postgres-registry:physical"]
-description = "Run explicitly ignored native PostgreSQL 18 Registry challenger tests; missing DSN is a failure, never PASS"
-run = """
-set -euo pipefail
-if ! printenv ORDIVON_PG_TEST_DSN >/dev/null; then
-  echo "ORDIVON_PG_TEST_DSN is required for physical PostgreSQL qualification" >&2
-  exit 2
-fi
-cargo test --locked -p ordivon-runtime-core --no-default-features \
-  --features postgres-registry-admission pg18_ -- --ignored --nocapture --test-threads=1
-"""
+description = "Run ignored native PG18 challengers; require explicit test DSN and exact nonempty test evidence"
+run = "python3 scripts/pg_disposable_physical.py --physical"
+
 
 [tasks."test:postgres-registry:disposable"]
 description = "Run native PG18 challenger tests in an isolated PostgreSQL instance; never inherit production DSN"
@@ -131,14 +172,5 @@ run = "python scripts/pg_disposable_physical.py"
 
 
 [tasks."test:postgres-registry:stage"]
-description = "Verify the historical PostgreSQL stage remains non-authoritative; separate from fresh scratch PG tests"
-run = """
-set -euo pipefail
-if ! printenv ORDIVON_PG_STAGE_TEST_DSN >/dev/null; then
-  echo "ORDIVON_PG_STAGE_TEST_DSN is required for historical-stage qualification" >&2
-  exit 2
-fi
-cargo test --locked -p ordivon-runtime-core --no-default-features \
-  --features postgres-registry-admission historical_pg_stage_is_not_an_admission_authority \
-  -- --ignored --nocapture --test-threads=1
-"""
+description = "Verify historical stage remains non-authoritative; require explicit stage DSN and exact witness"
+run = "python3 scripts/pg_disposable_physical.py --stage"

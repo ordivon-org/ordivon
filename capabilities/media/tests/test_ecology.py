@@ -7,18 +7,22 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from ordivon_studio.ecology import (
+from ordivon_studio.ecology.board import (
     BOARD_THREAD_TRUTH_ROLE,
-    COLLECTION_TRUTH_ROLE,
-    FEED_TRUTH_ROLE,
-    collection_feed_item,
     compose_board_source_set,
     compose_board_sources,
-    derive_activity_feed,
     derive_board_threads,
     normalize_board_source,
-    thread_feed_items,
+)
+from ordivon_studio.ecology.collection import (
+    COLLECTION_TRUTH_ROLE,
+    collection_feed_item,
     validate_collection,
+)
+from ordivon_studio.ecology.feed import (
+    FEED_TRUTH_ROLE,
+    derive_activity_feed,
+    thread_feed_items,
 )
 
 

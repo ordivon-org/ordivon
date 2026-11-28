@@ -15,11 +15,8 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from ordivon_studio.equipment import (  # noqa: E402
-    discover_equipment,
-    load_equipment_world,
-    summarize_trial,
-)
+from ordivon_studio.equipment import discover_equipment, load_equipment_world  # noqa: E402
+from ordivon_studio.equipment_evaluation import summarize_trial  # noqa: E402
 
 OUT = ROOT / "out" / "equipment" / "e7"
 E6 = ROOT / "out" / "equipment" / "e6"

@@ -1,8 +1,11 @@
 * @zycxfyh
 
-/meta/next/ @zycxfyh
+/catalogs/authorities/ @zycxfyh
+/catalogs/capabilities/ @zycxfyh
+/catalogs/knowledge/ @zycxfyh
 
 /packages/composition/ @zycxfyh
+/packages/data/ @zycxfyh
 /extensions/ordivon-control-plane/ @zycxfyh
 
 /services/runtime/ @zycxfyh
@@ -10,7 +13,7 @@
 /services/harness/ @zycxfyh
 /services/gateway/ @zycxfyh
 
-/platform/skills/ @zycxfyh
+/extensions/chatgpt-skills-mcp/ @zycxfyh
 /platform/security/ @zycxfyh
 /platform/network/ @zycxfyh
 /platform/workstation/ @zycxfyh
@@ -24,6 +27,7 @@
 /domains/capital/ @zycxfyh
 
 /apps/web/ @zycxfyh
+/apps/chaoxing-autosign/ @zycxfyh
 
 /tools/repo/ @zycxfyh
 /.github/ @zycxfyh

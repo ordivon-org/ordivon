@@ -1,0 +1,223 @@
+# Data — Cross-owner data-product interoperability
+
+**Natural responsibility:** inspect, compose and verify reproducible data-product
+interoperability without taking custody of Research, Finance, Runtime, Artifact,
+Preservation or external-provider truth. This is a source package, **not** a
+second warehouse, scheduler, data registry, or universal data-product ontology.
+
+## Outcome-first business acceptance: one live consumer, no new platform
+
+Data supplies verified information requested by an Outcome Owner, not
+standalone success indicators. A human specifies the business goal; Research
+decides the science and Data selects/verifies the source without asking humans
+to run its CLIs. The current task-local Research implementation is
+studies/experimental-episodes/experiments/evidence-consumer-pilot-r1/deliver_research.py.
+It consumes the existing source-owned Episode manifest through the Data
+projector, binding and file inspector, then independently checks the Research
+analysis receipt before issuing a concrete HOLD promotion decision. A missing,
+tampered or contradictory required source returns DATA_NOT_DELIVERED.
+Research requires the `episode-corpus-manifest-json` output port at contract
+version `1.0.0` separately from the product version; adding another
+same-name port at `2.0.0` does not veto the selected input. This is qualified
+by current producer metadata, exact source bytes and Research's own receipt,
+not by the separate inspection CLI.
+
+This is only one demonstrably closed consumer information handoff; it does
+not verify the unmaterialized Parquet port, create a universal autonomous Data
+service, or establish Agent learning success. Research owns the decision;
+Runtime, Artifact, Preservation and source Owners retain their natural
+authorities. Consumer acceptance and counterexamples are exercised by
+the normal data:verify CI task, which invokes the task-local Research tests.
+
+## Existing production and evidence
+
+- Research owns scientific dataset definitions, estimands and study outputs.
+- Capital/Finance owns financial market observations and business inferences.
+- Artifact owns dataset file bytes, integrity and bounded Parquet conformance.
+- Experimental Episode Study owns its reproducible data analysis projection.
+- Runtime owns Job/Attempt/Workspace/physical execution evidence.
+- Preservation owns archival/fixity effects; Security owns credential/policy enforcement.
+- The existing DCAT 3 federation is a **read-only discovery projection** over
+  domain-owned ODPS/ODCS products. Neither this package nor DCAT changes authority.
+
+## Bounded modules — no empty symmetry directories
+
+| Semantic LEGO candidate | Natural owner / actual binding | Current standing |
+| --- | --- | --- |
+| Source acquisition | Domain API/REST/WebSocket, Research scholarly clients | existing domain-specific implementations |
+| Immutable file capture | Artifact WARC and Runtime input/artifact receipt | existing bounded implementations |
+| Dataset interoperability | Artifact Dataset Contract + independent DuckDB/PyArrow readers | existing bounded implementation |
+| Product contract | Domain-owned ODCS 3.2 / consumed ODPS 1.1 | existing products and tests |
+| Catalog discovery | DCAT 3 projection in the Data Lifecycle study | read-only CLI in this package |
+| Provenance and lineage | W3C PROV / OpenLineage in existing product evidence | selected cross-domain consumers |
+| Validation and modeling | Domain-native Pandera/statistics/SQL, Artifact readers | do not promote a generic checker to domain truth |
+| Materialization | DuckDB/Parquet/PG/domain store | domain-specific, workload-bound |
+| Outcome and feedback | Research/Finance consumers | selected bounded evidence; general loop partial |
+| Retention and retirement | Preservation + domain record/consumer authority | no autonomous deletion of owner evidence |
+
+Do **not** implement a generic ETL engine, a second SQL interface, data ontology,
+source registry, scheduler, or opaque custom verification scheme.
+
+## Executable read-only seam
+
+```sh
+python3 packages/data/scripts/inspect_federation.py
+python3 packages/data/scripts/inspect_federation.py --verify-local
+# Optional artifact-integrity admission gate: rejects UNKNOWN and zero observations.
+# The frozen historical catalog currently cannot pass this gate without corrected source-owned URIs.
+python3 packages/data/scripts/inspect_federation.py --verify-local --require-verified
+# Read a specific externally owned path only after confirming it and its owner:
+python3 packages/data/scripts/inspect_federation.py --verify-local --allow-root /absolute/approved/data/root
+mise run data:verify
+```
+
+Start with the final business question, source owner, observation time, allowed
+uses and exact product/port version. Separate event time, observation time,
+ingestion time, source revision and known-as-of vintage. Discovery is not
+publication or a license grant. For whole-catalog admission, exit 0 means
+all required distributions were verified, exit 2 denotes a digest conflict
+or invalid structure, and exit 3 denotes insufficient evidence (including
+an empty catalog). Discovery-mode exit 0 alone is not integrity admission.
+
+The CLI reads the existing compact DCAT JSON-LD projection; it does **not**
+implement RDF/JSON-LD schema validation, register data, or materialize data.
+Only exact SHA-256-bound, readable local file distributions inside explicitly
+allowed roots can become VERIFIED. A digest mismatch becomes FALSIFIED.
+Missing data, malformed file URI authority, missing accessURL, and files
+outside the explicit scope remain UNKNOWN rather than FALSE.
+
+Producer binding and consumer inspection share one descriptor-relative
+regular-file reader on supported POSIX hosts. It refuses symlink traversal,
+hashes the opened descriptor, and distinguishes missing, unreadable, and failed
+I/O from an observed digest mismatch. Malformed access URIs remain scoped
+UNKNOWN; strict producer admission retains typed I/O errors. Unsupported
+descriptor operations or observed in-place changes do not establish evidence.
+The observation does not freeze a mutable file or guarantee later retention.
+
+Historical federated catalog uses `file://studies/...`, whose authority
+component is `studies`. The CLI deliberately treats that as an unsupported
+file URI rather than silently rewriting the frozen evidence. The source owner
+should emit canonical URIs in a **new** versioned DCAT projection, preserving
+the historical R2 acceptance.
+
+## Committed metadata SourceCut
+
+For a reproducible discovery view, run:
+
+```sh
+python3 packages/data/scripts/project_owned_products.py --at-commit HEAD
+```
+
+The reader resolves the revision once and consumes regular ODPS blobs from
+that committed tree, not the mutable index or working directory. The Git
+reader is bound to the explicit checkout root and ignores inherited Git
+repository overrides from other Agent workspaces. The exact
+commit is emitted on stderr; the DCAT projection is still bound to the
+individual metadata byte digests. `--product` is a separate explicit live
+input mode. A committed metadata SourceCut does not freeze independently
+bound local data bytes or establish their retention, quality or rights.
+
+## Current producer-owned ODPS discovery (no new registry)
+
+`python3 packages/data/scripts/project_owned_products.py` projects the
+currently **Git-tracked** producer-owned ODPS v1.1 records into a deterministic
+DCAT 3 JSON-LD view. The two presently tracked documents belong to Capital
+and Experimental Episode; the frozen three-product September federation still
+contains Research's external product. The generated view is **not** a claim
+that all three current products are accessible, installed, or publishable.
+
+```sh
+python3 packages/data/scripts/project_owned_products.py > /tmp/owner-products.jsonld
+python3 packages/data/scripts/inspect_federation.py --catalog /tmp/owner-products.jsonld --verify-local
+# To project a specific external owner's qualified ODPS 1.1 document:
+python3 packages/data/scripts/project_owned_products.py --product /approved/path/odps.json
+```
+
+The projection consumes upstream ODPS product IDs, versions, output ports and
+declared ODRL policy IDs without rewriting the owners' files. Output-port IDs
+and versions are **optional** under ODPS 1.1; a port version may differ from
+its containing product version. Missing port IDs never acquire invented
+stable IDs. A generated Distribution has no physical `dcat:accessURL` or
+file digest without an explicit owner binding, so the verifier returns
+`UNKNOWN`, not false `VERIFIED`. Producer source bytes are SHA-256 bound
+into the content-derived catalog identity. No central catalog daemon, new
+database or persisted product state is added.
+
+## Optional qualified owner-file binding
+
+The default projection does NOT infer physical availability. For an actual local
+file, use explicit producer ODPS `customProperties` as the authority for the
+relative source path and SHA-256. The operator selects the exact product, port,
+property names and owner root; the adapter hashes the opened regular file and
+rejects any mismatch or escape from the explicit root. Only then does it emit
+a local file URI and W3C DCAT 3 `spdx:checksum`, retaining `dct:identifier`
+for the producer's port identity. Legacy `sha256:` identifiers remain
+readable for the historical frozen catalog. That local URI is **not portable** to other
+workspaces or an implicit redistribution permission.
+
+```sh
+repo="$(git rev-parse --show-toplevel)"
+python3 packages/data/scripts/project_owned_products.py \
+  --bind-local d14d7457-c9aa-59e0-8bf5-7783cea39c1c \
+    public-shadow-json sourceRelativePath sourceSha256 "$repo/domains/capital" \
+  --bind-local 4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b \
+    episode-corpus-manifest-json corpusManifestRelativePath corpusManifestSha256 "$repo" \
+  > /tmp/ordivon-qualified-products.jsonld
+
+python3 packages/data/scripts/inspect_federation.py \
+  --catalog /tmp/ordivon-qualified-products.jsonld --verify-local
+```
+
+For this source cut, the producer-owned Finance JSON and Episode manifest are
+both Git-tracked with matching SHA-256 declarations and can be VERIFIED.
+The rebuildable Episode Parquet file is **not** present in Git, so remains
+UNKNOWN. The strict `--require-verified` gate appropriately refuses to
+declare the *whole* catalog publishable with that unbound port.
+
+For a consumer that reads **only one** verified product output, use a
+version-bound port-specific gate; the full catalog still reports
+`NOT_ESTABLISHED` when another port is unbound:
+
+```sh
+python3 packages/data/scripts/inspect_federation.py \
+  --catalog /tmp/ordivon-qualified-products.jsonld \
+  --verify-local \
+  --require-port 4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b 1.0.0 \
+    urn:uuid:4664e208-2cdc-5d4f-a83d-e70e187b046a
+```
+
+`selectedPortIntegrityGate=PASS` means the exact selected product,
+version and distribution passed the current scoped digest check; it is
+**not** full product publication or proof about other output ports, rights,
+freshness or scientific quality. Unknown/wrong-version port selections
+exit 3; a mismatch on the *selected* port exits 2. An unrelated
+FALSIFIED port remains visible in the full inspection report but does not
+veto a consumer's exact selected-port gate. Whole-catalog admission and
+ungated inspection still exit 2 when any distribution is FALSIFIED.
+
+The optional binding is a current observation: consumers must read back the file against
+its declared digest before using it, since mutable pathnames can change.
+Never persist this ephemeral local URI as the canonical cross-host identity.
+
+## Verification and user instructions
+
+- Human/operator workflow: this README; begin at the actual final consumer.
+- Agent workflow: [AGENTS.md](AGENTS.md), the closest scoped instructions.
+- Native: `mise run data:verify` (Owner CLI and actual study consumers).
+- [Formal contract and implementation/consumer boundary](docs/FORMAL_VERIFICATION.md).
+- Formal: `mise run data:formal:verify` (Lean models and bounded CrossHair/Z3).
+
+The capability table is a bounded observed/candidate inventory, not a registry
+or a claim that every named tool is installed. Skills are advisory methods,
+not executable deployment or permission evidence. Separate data quality and
+domain truth from format validity; measure actual usefulness to the consumer.
+
+**Retention and recovery:** a same-machine archival master and replica do
+not establish independent disaster protection. A committed database version
+or a valid hash cannot prove that a separate physical Artifact is recoverable.
+See the formal map for the two-generation reader and retirement invariants;
+never authorize physical deletion from a model or a timestamp alone.
+
+**Standard compatibility:** current producer contracts use Bitol ODPS 1.1.
+A different version or schema family is not an automatic compatible upgrade.
+Require a new qualified producer version and actual consumer parity.

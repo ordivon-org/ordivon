@@ -1,0 +1,96 @@
+from __future__ import annotations
+
+from enum import StrEnum
+
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator
+
+# PostgreSQL owner schema uses non-negative signed bigint millisecond columns.
+from .postgres_bounds import HOST_WIRE_INT_MAX
+
+
+class ParticipationStanding(StrEnum):
+    JOINED = "joined"
+    LEFT = "left"
+    OBSERVER = "observer"
+
+
+class TopicState(StrEnum):
+    OPEN = "open"
+    CLOSED = "closed"
+
+
+class MessageKind(StrEnum):
+    NOTE = "note"
+    QUESTION = "question"
+    PROPOSAL = "proposal"
+    WARNING = "warning"
+    FINDING = "finding"
+    HANDOFF = "handoff"
+
+
+class MessageRelationKind(StrEnum):
+    REPLY_TO = "reply_to"
+    MENTIONS = "mentions"
+    REFERENCES = "references"
+    ACKNOWLEDGES = "acknowledges"
+    SUPERSEDES = "supersedes"
+    ABOUT = "about"
+
+
+class SpaceInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    space_ref: str = Field(min_length=3, max_length=1024)
+    purpose: str = Field(min_length=1, max_length=4096)
+    actor_ref: str = Field(min_length=3, max_length=512)
+    subject_refs: list[str] = Field(default_factory=list, max_length=256)
+
+    @field_validator("space_ref", "purpose", "actor_ref")
+    @classmethod
+    def validate_trimmed(cls, value: str) -> str:
+        if value != value.strip() or any(ord(ch) < 0x20 for ch in value):
+            raise ValueError("space fields must be trimmed printable text")
+        return value
+
+    @field_validator("subject_refs")
+    @classmethod
+    def validate_subject_refs(cls, values: list[str]) -> list[str]:
+        if len(values) != len(set(values)):
+            raise ValueError("subject_refs must be unique")
+        for value in values:
+            if not value or value != value.strip():
+                raise ValueError("subject refs must be non-empty trimmed text")
+            if len(value) > 2048:
+                raise ValueError("subject refs must be at most 2048 characters")
+        return values
+
+
+class TopicInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    topic_ref: str = Field(min_length=3, max_length=1024)
+    space_ref: str = Field(min_length=3, max_length=1024)
+    title: str = Field(min_length=1, max_length=512)
+    actor_ref: str = Field(min_length=3, max_length=512)
+
+
+class MessageInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    message_ref: str = Field(min_length=3, max_length=1024)
+    client_request_id: str = Field(min_length=1, max_length=1024)
+    space_ref: str = Field(min_length=3, max_length=1024)
+    topic_ref: str = Field(min_length=3, max_length=1024)
+    author_actor_ref: str = Field(min_length=3, max_length=512)
+    message_kind: MessageKind = MessageKind.NOTE
+    body: str = Field(min_length=1, max_length=65536)
+    recorded_at_ms: StrictInt = Field(ge=0, le=HOST_WIRE_INT_MAX)
+
+
+class MessageRelationInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    source_message_ref: str = Field(min_length=3, max_length=1024)
+    relation: MessageRelationKind
+    target_ref: str = Field(min_length=1, max_length=2048)
+    actor_ref: str = Field(min_length=3, max_length=512)

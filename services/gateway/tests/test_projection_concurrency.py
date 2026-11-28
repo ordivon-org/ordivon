@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import Counter
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -44,7 +45,11 @@ def test_independent_owner_observations_start_without_waiting_for_each_other() -
                 if len(started) == 3:
                     ready.set()
                 await asyncio.wait_for(ready.wait(), timeout=0.2)
-                return {"schemaVersion": 3} if owner == "host" else runtime_payload(owner)
+                return (
+                    {"schemaVersion": 3, "kind": "ordivon.host-status"}
+                    if owner == "host"
+                    else runtime_payload(owner)
+                )
 
         projection = await GatewayService(Caller()).capability_describe()
         by_id = {item.capability: item for item in projection.capabilities}
@@ -76,7 +81,11 @@ def test_slow_owner_becomes_unknown_without_hiding_healthy_owner() -> None:
                         await asyncio.Event().wait()
                     finally:
                         cancelled.set()
-                return {"schemaVersion": 3} if owner == "host" else runtime_payload(owner)
+                return (
+                    {"schemaVersion": 3, "kind": "ordivon.host-status"}
+                    if owner == "host"
+                    else runtime_payload(owner)
+                )
 
         service = GatewayService(Caller(), projection_timeout_seconds=0.02)
         projection = await asyncio.wait_for(service.capability_describe(), timeout=0.5)
@@ -84,13 +93,19 @@ def test_slow_owner_becomes_unknown_without_hiding_healthy_owner() -> None:
         assert not by_id["execution.linux"].available
         assert by_id["execution.linux"].configured
         assert "TimeoutError" in (by_id["execution.linux"].observation_error or "")
+        assert "Owner readiness UNKNOWN" in (by_id["execution.linux"].observation_error or "")
+        assert "budget=0.02s" in (by_id["execution.linux"].observation_error or "")
         assert by_id["execution.windows"].available
         assert by_id["continuity.external"].available
         assert by_id["artifact.runtime"].available
         assert cancelled.is_set()
         result = await service.capability_search(query="linux", include_unavailable=False)
-        assert result.total_matches == 1
-        assert result.matches[0].capability.observation_error
+        assert result.total_matches == 2
+        assert {match.capability.capability for match in result.matches} == {
+            "execution.linux",
+            "runtime.release.linux",
+        }
+        assert all(match.capability.observation_error for match in result.matches)
 
     asyncio.run(scenario())
 
@@ -161,13 +176,16 @@ def test_invalid_observation_budget_is_rejected(timeout: float) -> None:
 
 @pytest.mark.parametrize("cancel_explicitly", [False, True])
 def test_real_sdk_legacy_cleanup_is_awaited_without_task_leaks(
-    monkeypatch: pytest.MonkeyPatch, cancel_explicitly: bool
+    monkeypatch: pytest.MonkeyPatch,
+    cancel_explicitly: bool,
+    caplog: pytest.LogCaptureFixture,
+    tmp_path: Path,
 ) -> None:
     import json
 
     import httpx2
 
-    import ordivon_gateway.upstream as upstream
+    import ordivon_gateway.transport.upstream as upstream
 
     async def scenario() -> None:
         call_started = asyncio.Event()
@@ -221,8 +239,17 @@ def test_real_sdk_legacy_cleanup_is_awaited_without_task_leaks(
             "create_mcp_http_client",
             lambda **kwargs: httpx2.AsyncClient(transport=httpx2.MockTransport(handler)),
         )
+        bearer = tmp_path / "host-bearer"
+        bearer.write_text("s" * 48, encoding="utf-8")
+        bearer.chmod(0o600)
         service = GatewayService(
-            upstream.McpOwnerCaller({"host": "http://owner.test/mcp"}),
+            upstream.McpOwnerCaller(
+                {
+                    "host": upstream.OwnerEndpoint(
+                        "http://owner.test/mcp", bearer_token_file=str(bearer)
+                    )
+                }
+            ),
             projection_timeout_seconds=2 if cancel_explicitly else 0.2,
         )
         task = asyncio.create_task(service.capability_describe("continuity.external"))
@@ -248,3 +275,87 @@ def test_real_sdk_legacy_cleanup_is_awaited_without_task_leaks(
         assert asyncio.all_tasks() == {asyncio.current_task()}
 
     asyncio.run(scenario())
+    if cancel_explicitly:
+        assert any(
+            "gateway_owner_rpc_cancelled" in record.message
+            and "phase=sdk_client_call_cancelled" in record.message
+            and "phase_before_cleanup_ms=" in record.message
+            for record in caplog.records
+        )
+
+
+def test_completed_owner_tool_call_cancelled_during_sdk_close_reports_session_close(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    tmp_path: Path,
+) -> None:
+    """A finished tools/call and cancellation during cleanup are distinguishable."""
+    from types import SimpleNamespace
+
+    from ordivon_gateway.transport import upstream
+
+    async def scenario() -> None:
+        close_started = asyncio.Event()
+        release = asyncio.Event()
+
+        class FakeHttpPool:
+            async def aclose(self) -> None:
+                pass
+
+        class FakeClient:
+            def __init__(self, transport, *, mode, raise_exceptions):
+                assert mode == "auto"
+                assert raise_exceptions is False
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                close_started.set()
+                await release.wait()
+                return False
+
+            async def call_tool(self, name, arguments, *, meta=None):
+                return SimpleNamespace(
+                    is_error=False,
+                    structured_content={"status": "ok"},
+                    content=[],
+                )
+
+        monkeypatch.setattr(
+            upstream,
+            "create_mcp_http_client",
+            lambda **kwargs: FakeHttpPool(),
+        )
+        monkeypatch.setattr(
+            upstream,
+            "streamable_http_client",
+            lambda url, http_client=None: object(),
+        )
+        monkeypatch.setattr(upstream, "Client", FakeClient)
+        token = tmp_path / "host-owner-test.token"
+        token.write_text("a" * 48, encoding="utf-8")
+        token.chmod(0o600)
+        caller = upstream.McpOwnerCaller(
+            {
+                "host": upstream.OwnerEndpoint(
+                    "http://owner.test/mcp",
+                    bearer_token_file=str(token),
+                )
+            }
+        )
+        task = asyncio.create_task(caller.call_tool("host", "host.status", {}))
+        await asyncio.wait_for(close_started.wait(), timeout=1)
+        task.cancel()
+        release.set()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        await caller.aclose()
+
+    asyncio.run(scenario())
+    assert any(
+        "gateway_owner_rpc_cancelled" in record.message
+        and "phase=session_close" in record.message
+        and "phase_before_cleanup_ms=" in record.message
+        for record in caplog.records
+    )

@@ -8,8 +8,8 @@ import unittest
 from ordivon_harness.core_contracts import HarnessPrivacyPolicy
 from ordivon_harness.ordivon.loop import OrdivonAgentLoop, RunStopCode
 from ordivon_harness.ordivon.model import ScriptedTurnAdapter
-from ordivon_harness.ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
-from ordivon_harness.ordivon.sqlite_runtime_bridge import SQLiteHarnessRuntimeBridge
+from ordivon_harness.ordivon.run_continuity import EventSourcedRunContinuity
+from ordivon_harness.ordivon.runtime_bridge import HarnessRuntimeBridge
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 from ordivon_harness.working_view import (
     AgentWorkingSetTransitionProposal,
@@ -34,7 +34,7 @@ class ProcessLost(BaseException):
     pass
 
 
-class CrashAfterFirstDurableObservationBridge(SQLiteHarnessRuntimeBridge):
+class CrashAfterFirstDurableObservationBridge(HarnessRuntimeBridge):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.completed_runtime_calls = 0
@@ -64,7 +64,7 @@ class CrossProcessToolExchangeTests(unittest.TestCase):
             )
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(
+            continuity = EventSourcedRunContinuity(
                 store,
                 run_contract,
                 clock_ms=clock,
@@ -134,14 +134,14 @@ class CrossProcessToolExchangeTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
                 )
                 retained = reopened.load_current_snapshot()
                 second_runtime = FakeRuntime("direct")
-                replay_bridge = SQLiteHarnessRuntimeBridge(
+                replay_bridge = HarnessRuntimeBridge(
                     run_contract,
                     reopened,
                     execution_binding(run_contract, reopened),
@@ -205,7 +205,7 @@ class CrossProcessToolExchangeTests(unittest.TestCase):
             )
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(
+            continuity = EventSourcedRunContinuity(
                 store,
                 run_contract,
                 clock_ms=clock,
@@ -273,7 +273,7 @@ class CrossProcessToolExchangeTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as store_b:
-                continuity_b = SQLiteHarnessRunContinuityStore.open(
+                continuity_b = EventSourcedRunContinuity.open(
                     store_b,
                     run_contract.harness_run_id,
                     clock_ms=clock,
@@ -331,7 +331,7 @@ class CrossProcessToolExchangeTests(unittest.TestCase):
                 )
 
             with SQLiteHarnessStore(root) as store_c:
-                continuity_c = SQLiteHarnessRunContinuityStore.open(
+                continuity_c = EventSourcedRunContinuity.open(
                     store_c,
                     run_contract.harness_run_id,
                     clock_ms=clock,
@@ -339,7 +339,7 @@ class CrossProcessToolExchangeTests(unittest.TestCase):
                 retained_b = continuity_c.load_current_snapshot()
                 self.assertEqual(retained_b.snapshot.digest, snapshot_b.snapshot.digest)
                 runtime_c = FakeRuntime("direct")
-                bridge_c = SQLiteHarnessRuntimeBridge(
+                bridge_c = HarnessRuntimeBridge(
                     run_contract,
                     continuity_c,
                     execution_binding(run_contract, continuity_c),
@@ -399,7 +399,7 @@ class CrossProcessToolExchangeTests(unittest.TestCase):
             )
             store = SQLiteHarnessStore.initialize(root)
             store.create_run(run_contract)
-            continuity = SQLiteHarnessRunContinuityStore(
+            continuity = EventSourcedRunContinuity(
                 store,
                 run_contract,
                 clock_ms=clock,
@@ -457,14 +457,14 @@ class CrossProcessToolExchangeTests(unittest.TestCase):
             store.close()
 
             with SQLiteHarnessStore(root) as reopened_store:
-                reopened = SQLiteHarnessRunContinuityStore.open(
+                reopened = EventSourcedRunContinuity.open(
                     reopened_store,
                     run_contract.harness_run_id,
                     clock_ms=clock,
                 )
                 retained = reopened.load_current_snapshot()
                 second_runtime = FakeRuntime("direct")
-                replay_bridge = SQLiteHarnessRuntimeBridge(
+                replay_bridge = HarnessRuntimeBridge(
                     run_contract,
                     reopened,
                     execution_binding(run_contract, reopened),

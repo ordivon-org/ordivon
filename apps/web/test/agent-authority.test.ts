@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { test } from "node:test";
 
 import { createWebApp } from "../src/app.ts";
-import type { AgentRequestVerifier } from "../src/agent-authority.ts";
+import { SecurityContractAdmissionEvaluator, type AgentAdmissionEvaluator, type AgentRequestVerifier } from "../src/agent-authority.ts";
 import type { WebConfig } from "../src/config.ts";
 import type { VerifiedAgent } from "../src/model.ts";
 import { WebStore } from "../src/store.ts";
@@ -36,7 +36,7 @@ class FixedAgentVerifier implements AgentRequestVerifier {
   }
 }
 
-async function fixture() {
+async function fixture(agentAdmission?: AgentAdmissionEvaluator) {
   let currentTime = 1_800_000_000;
   const now = () => currentTime;
   const store = new WebStore(":memory:");
@@ -77,6 +77,7 @@ async function fixture() {
     store,
     now,
     agentVerifier: new FixedAgentVerifier(agent),
+    ...(agentAdmission === undefined ? {} : { agentAdmission }),
   });
   return {
     app,
@@ -279,4 +280,343 @@ test("Agent routes fail closed when Security-owned Agent verification is absent"
   assert.equal(response.json().title, "Agent verification unavailable");
   await app.close();
   store.close();
+});
+
+
+for (const kind of ["create", "publish"] as const) {
+  test("WebStore " + kind + " effect commit preserves exact replay identity and one-write fence", async () => {
+    const f = await fixture();
+    const note = kind === "publish"
+      ? f.store.createCanaryNote("principal:test", "draft for replay", f.now())
+      : null;
+    const effect = {
+      effectId: effectId("store-" + kind + "-replay"),
+      effectDigest: effectId("store-" + kind + "-content"),
+      action: kind === "create" ? "canary.note.create" : "canary.note.publish",
+      resource: note === null ? "/canary/notes" : "/canary/notes/" + note.noteId,
+      audience: config.origin,
+      riskClass: "R2" as const,
+      effectType: kind === "create"
+        ? "website.canary.note.create"
+        : "website.canary.note.publish",
+    };
+    if (kind === "publish") {
+      f.store.putEffectApproval(
+        "principal:test", "credential:test", effect.effectId, effect.effectDigest, f.now(),
+      );
+    }
+    const commit = (agentId: string, proposal: typeof effect) => kind === "create"
+      ? f.store.commitAgentCanaryCreate(f.grant, agentId, proposal, "immutable draft", f.now())
+      : f.store.commitAgentCanaryPublish(f.grant, agentId, proposal, note!.noteId, f.now());
+
+    const first = commit(f.agent.agentId, effect);
+    assert.equal(first.replayed, false);
+    const second = commit(f.agent.agentId, effect);
+    assert.equal(second.replayed, true);
+    assert.deepEqual(second.receipt, first.receipt);
+
+    for (const [agentId, proposal, code, status] of [
+      ["oauth-client:other", effect, "effect-actor-mismatch", 403],
+      [f.agent.agentId, { ...effect, effectDigest: effectId("forged-content") }, "effect-conflict", 409],
+    ] as const) {
+      assert.throws(() => commit(agentId, proposal), (error: unknown) =>
+        error instanceof Error &&
+        (error as Error & { code?: string; status?: number }).code === code &&
+        (error as Error & { code?: string; status?: number }).status === status,
+      );
+    }
+
+    const grant = f.store.getAgentGrant(f.grant.grantId);
+    assert.equal(grant.remainingEffects, f.grant.remainingEffects - 1);
+    assert.equal(grant.revision, f.grant.revision + 1);
+    const effectRows = f.store.db.prepare(
+      "SELECT COUNT(*) AS n FROM agent_effects WHERE effect_id = ?",
+    ).get(effect.effectId) as { n: number };
+    assert.equal(effectRows.n, 1);
+
+    await f.app.close();
+    f.store.close();
+  });
+}
+
+test("Grant resource matching preserves path-component boundaries", async () => {
+  const f = await fixture();
+  assert.equal(
+    f.store.resolveAgentGrant(f.agent.agentId, config.origin, "canary.note.create", "/canary/notes", f.now()).grantId,
+    "grant:test",
+  );
+  assert.equal(
+    f.store.resolveAgentGrant(f.agent.agentId, config.origin, "canary.note.create", "/canary/notes/child", f.now()).grantId,
+    "grant:test",
+  );
+  assert.throws(
+    () => f.store.resolveAgentGrant(f.agent.agentId, config.origin, "canary.note.create", "/canary/notes-private", f.now()),
+    /No active Agent Grant/,
+  );
+  await f.app.close();
+  f.store.close();
+});
+
+
+test("Grant scopes reject normalization aliases in both issuance and lookup", async () => {
+  const f = await fixture();
+  for (const resource of [
+    "/canary/notes/../account", "/canary/notes/%2e%2e/account",
+    "/canary/notes//child", "/canary/notes/./child",
+    "/canary/notes/child?privileged=1", "/canary/notes/child#private",
+    "/canary/notes\\..\\account", "/canary/notes/\nadmin",
+  ]) {
+    assert.throws(() =>
+      f.store.resolveAgentGrant(f.agent.agentId, config.origin,
+        "canary.note.create", resource, f.now()), /No active Agent Grant/, resource);
+  }
+  for (const prefix of ["/canary/notes//", "/canary/notes/../", "/canary%2fnotes", "canary/notes"]) {
+    assert.throws(() => f.store.createAgentGrant({
+      grantId: "invalid:" + prefix, principalId: "principal:test",
+      agentId: f.agent.agentId, audience: config.origin,
+      allowedActions: ["canary.note.create"], resourcePrefixes: [prefix],
+      expiresAtEpochSeconds: f.now() + 300, maxRiskClass: "R2",
+      stepUpAtOrAbove: "R4", remainingEffects: 1,
+    }, f.now()), (error: unknown) =>
+      error instanceof Error && "code" in error && error.code === "invalid-agent-grant-scope",
+    );
+  }
+  await f.app.close();
+  f.store.close();
+});
+
+
+test("Web commit PEP binds actual create target, action, Agent and replay coordinate", async () => {
+  const f = await fixture();
+  const effect = {
+    effectId: effectId("commit-pep"), effectDigest: effectId("commit-pep-content"),
+    action: "canary.note.create", resource: "/canary/notes", audience: config.origin,
+    riskClass: "R2" as const, effectType: "website.canary.note.create",
+  };
+  const commit = (proposal: typeof effect, agentId = f.agent.agentId, grant = f.grant) =>
+    f.store.commitAgentCanaryCreate(grant, agentId, proposal, "draft", f.now());
+  for (const candidate of [
+    { ...effect, resource: "/canary/notes/../account" },
+    { ...effect, resource: "/canary/notes-private" },
+    { ...effect, resource: "/canary/notes/another" },
+    { ...effect, action: "canary.note.publish" },
+    { ...effect, audience: "https://other.example" },
+    { ...effect, effectType: "website.canary.note.publish" },
+  ]) {
+    assert.throws(() => commit(candidate), (error: unknown) =>
+      error instanceof Error && "code" in error && error.code === "agent-effect-not-authorized");
+  }
+  assert.throws(() => commit(effect, f.agent.agentId, { ...f.grant, principalId: "principal:other" }),
+    (error: unknown) => error instanceof Error && "code" in error && error.code === "agent-effect-not-authorized");
+  assert.equal(f.store.getAgentGrant(f.grant.grantId).remainingEffects, f.grant.remainingEffects);
+  const first = commit(effect);
+  assert.equal(first.replayed, false);
+  for (const candidate of [
+    { ...effect, resource: "/canary/notes/other" },
+    { ...effect, action: "canary.note.publish" },
+  ]) {
+    assert.throws(() => commit(candidate), (error: unknown) =>
+      error instanceof Error && "code" in error && error.code === "effect-conflict");
+  }
+  assert.equal(commit(effect).replayed, true);
+  await f.app.close();
+  f.store.close();
+});
+
+test("Web publish PEP cannot consume approval on a switched materialized target", async () => {
+  const f = await fixture();
+  const note = f.store.createCanaryNote("principal:test", "ready", f.now());
+  const effect = {
+    effectId: effectId("publish-pep"), effectDigest: effectId("publish-pep-content"),
+    action: "canary.note.publish", resource: "/canary/notes/" + note.noteId,
+    audience: config.origin, riskClass: "R4" as const,
+    effectType: "website.canary.note.publish",
+  };
+  f.store.putEffectApproval("principal:test", "credential:test",
+    effect.effectId, effect.effectDigest, f.now());
+  const commit = (candidate: typeof effect, target: string) =>
+    f.store.commitAgentCanaryPublish(f.grant, f.agent.agentId, candidate, target, f.now());
+  for (const [candidate, target] of [
+    [effect, "not-the-approved-note"],
+    [{ ...effect, action: "canary.note.create" }, note.noteId],
+    [{ ...effect, audience: "https://other.example" }, note.noteId],
+  ] as const) {
+    assert.throws(() => commit(candidate, target),
+      (error: unknown) => error instanceof Error && "code" in error && error.code === "agent-effect-not-authorized");
+  }
+  const approval = f.store.db.prepare(
+    "SELECT consumed_at FROM effect_approvals WHERE effect_id = ?",
+  ).get(effect.effectId) as { consumed_at: number | null };
+  assert.equal(approval.consumed_at, null);
+  assert.equal(f.store.getAgentGrant(f.grant.grantId).remainingEffects, f.grant.remainingEffects);
+  assert.equal(commit(effect, note.noteId).replayed, false);
+  await f.app.close();
+  f.store.close();
+});
+
+// Pause the real Security evaluator after one decision, before the HTTP route
+// consumes it. This creates the actual asynchronous authority-change window.
+function pauseFirstDecision(outcome: "ALLOW" | "STEP_UP") {
+  const native = new SecurityContractAdmissionEvaluator();
+  let signalReached!: () => void;
+  let release!: () => void;
+  const reached = new Promise<void>((resolve) => { signalReached = resolve; });
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  let paused = false;
+  const evaluator: AgentAdmissionEvaluator = {
+    async evaluate(input) {
+      const decision = await native.evaluate(input);
+      if (!paused && decision.agent.outcome === outcome) {
+        paused = true;
+        signalReached();
+        await gate;
+      }
+      return decision;
+    },
+  };
+  return { evaluator, reached, release };
+}
+
+test("revoked grant cannot create a stale pending approval after asynchronous admission", { timeout: 10000 }, async () => {
+  const gate = pauseFirstDecision("STEP_UP");
+  const f = await fixture(gate.evaluator);
+  try {
+    const create = await f.app.inject({
+      method: "POST", url: "/api/agent/canary/notes",
+      headers: { "x-ordivon-effect-id": effectId("revoke-stepup-draft") },
+      payload: { content: "draft" },
+    });
+    assert.equal(create.statusCode, 201);
+    const noteId = create.json().receipt.result.note.noteId;
+    const publishId = effectId("revoke-stepup");
+    const response = Promise.resolve(f.app.inject({
+      method: "POST", url: "/api/agent/canary/notes/" + noteId + "/publish",
+      headers: { "x-ordivon-effect-id": publishId },
+    }));
+    await gate.reached;
+    const grant = f.store.getAgentGrant("grant:test");
+    f.store.revokeAgentGrant("principal:test", grant.grantId, grant.grantDigest, f.now());
+    gate.release();
+    const result = await response;
+    assert.equal(result.statusCode, 403);
+    assert.equal(f.store.getAgentEffect(publishId), null);
+    assert.equal(f.store.db.prepare("SELECT COUNT(*) AS n FROM pending_effect_approvals WHERE effect_id = ?").get(publishId)?.n, 0);
+  } finally {
+    gate.release();
+    await f.app.close();
+    f.store.close();
+  }
+});
+
+test("a committed concurrent exact effect wins over a late step-up decision", { timeout: 10000 }, async () => {
+  const gate = pauseFirstDecision("STEP_UP");
+  const f = await fixture(gate.evaluator);
+  try {
+    const create = await f.app.inject({
+      method: "POST", url: "/api/agent/canary/notes",
+      headers: { "x-ordivon-effect-id": effectId("late-stepup-draft") },
+      payload: { content: "draft" },
+    });
+    assert.equal(create.statusCode, 201);
+    const noteId = create.json().receipt.result.note.noteId;
+    const publishId = effectId("late-stepup");
+    const request = { method: "POST" as const, url: "/api/agent/canary/notes/" + noteId + "/publish",
+      headers: { "x-ordivon-effect-id": publishId } };
+    const late = Promise.resolve(f.app.inject(request));
+    await gate.reached;
+    const pending = await f.app.inject(request);
+    assert.equal(pending.statusCode, 428);
+    const approval = f.store.requirePendingEffectApproval("principal:test", publishId, f.now());
+    f.store.putEffectApproval("principal:test", "credential:test", publishId, approval.effectDigest, f.now());
+    const committed = await f.app.inject(request);
+    assert.equal(committed.statusCode, 200);
+    assert.equal(committed.json().replayed, false);
+    gate.release();
+    const result = await late;
+    assert.equal(result.statusCode, 200);
+    assert.equal(result.json().replayed, true);
+    assert.deepEqual(result.json().receipt, committed.json().receipt);
+    assert.equal(f.store.getAgentGrant("grant:test").remainingEffects, 4);
+  } finally {
+    gate.release();
+    await f.app.close();
+    f.store.close();
+  }
+});
+
+test("a newly ambiguous grant cannot authorize an effect after asynchronous ALLOW", { timeout: 10000 }, async () => {
+  const gate = pauseFirstDecision("ALLOW");
+  const f = await fixture(gate.evaluator);
+  try {
+    const id = effectId("late-ambiguity");
+    const response = Promise.resolve(f.app.inject({
+      method: "POST", url: "/api/agent/canary/notes",
+      headers: { "x-ordivon-effect-id": id }, payload: { content: "must not commit" },
+    }));
+    await gate.reached;
+    f.store.createAgentGrant({
+      grantId: "grant:concurrent-duplicate",
+      principalId: "principal:test",
+      agentId: f.agent.agentId,
+      audience: config.origin,
+      allowedActions: ["canary.note.create"],
+      resourcePrefixes: ["/canary/notes"],
+      expiresAtEpochSeconds: f.now() + 3600,
+      maxRiskClass: "R2",
+      stepUpAtOrAbove: "R4",
+      remainingEffects: 2,
+    }, f.now());
+    gate.release();
+    const result = await response;
+    assert.equal(result.statusCode, 409);
+    assert.equal(result.json().title, "Agent authority ambiguous");
+    assert.equal(f.store.getAgentEffect(id), null);
+    assert.equal(f.store.getAgentGrant("grant:test").remainingEffects, 6);
+  } finally {
+    gate.release();
+    await f.app.close();
+    f.store.close();
+  }
+});
+
+test("committed approval evidence is terminal and remains consumed", async () => {
+  const f = await fixture();
+  try {
+    const note = f.store.createCanaryNote("principal:test", "approval evidence fixture", f.now());
+    const effect = {
+      effectId: effectId("terminal-approval-record"), effectDigest: effectId("terminal-approval-content"),
+      action: "canary.note.publish", resource: "/canary/notes/" + note.noteId,
+      audience: config.origin, riskClass: "R4" as const,
+      effectType: "website.canary.note.publish",
+    };
+    f.store.registerPendingEffectApproval("principal:test", effect, f.now());
+    f.store.putEffectApproval("principal:test", "credential:test", effect.effectId, effect.effectDigest, f.now());
+    const getApproval = () => f.store.db.prepare(
+      "SELECT * FROM effect_approvals WHERE effect_id = ?",
+    ).get(effect.effectId);
+    const original = getApproval();
+    assert.equal(original?.consumed_at, null);
+    assert.throws(() => f.store.putEffectApproval(
+      "principal:test", "credential:test", effect.effectId, effectId("different-approval-binding"), f.now(),
+    ), (error: unknown) => error instanceof Error && "status" in error && error.status === 409);
+    assert.deepEqual(getApproval(), original);
+    // The live, exact binding may still be refreshed before consumption.
+    f.store.putEffectApproval("principal:test", "credential:test", effect.effectId, effect.effectDigest, f.now(), 240);
+    assert.equal(getApproval()?.expires_at, f.now() + 240);
+    const committed = f.store.commitAgentCanaryPublish(f.grant, f.agent.agentId, effect, note.noteId, f.now());
+    const before = getApproval();
+    assert.equal(before?.consumed_at, f.now());
+    // A terminal owner record must not accept another approval.
+    assert.throws(() => f.store.putEffectApproval(
+      "principal:test", "credential:test", effect.effectId, effect.effectDigest, f.now(),
+    ), (error: unknown) => error instanceof Error && "status" in error && error.status === 409);
+    assert.deepEqual(getApproval(), before);
+    assert.throws(() => f.store.requirePendingEffectApproval("principal:test", effect.effectId, f.now()),
+      (error: unknown) => error instanceof Error && "status" in error && error.status === 404);
+    assert.deepEqual(f.store.resolveAgentEffectReplay(f.agent.agentId, effect), committed.receipt);
+    assert.equal(f.store.getAgentGrant(f.grant.grantId).remainingEffects, f.grant.remainingEffects - 1);
+  } finally {
+    await f.app.close();
+    f.store.close();
+  }
 });

@@ -7,10 +7,13 @@ GITLEAKS_CONFIG="${3:-$ROOT/profiles/product/gitleaks.toml}"
 mkdir -p "$OUT"
 rm -f "$OUT"/{gitleaks.sarif,semgrep.sarif,trivy.sarif,sbom.cdx.json,osv.json,provider-status.json}
 
-observed_subject_revision="$(git -C "$TARGET" rev-parse HEAD 2>/dev/null || printf 'UNKNOWN')"
+# Failed Git observation is UNKNOWN, not an empty (clean) status.
+if ! observed_subject_revision="$(bash "$ROOT/scripts/observe_subject_revision.sh" "$TARGET")"; then
+  observed_subject_revision="UNKNOWN"
+fi
 gitleaks_config_sha256="$(sha256sum "$GITLEAKS_CONFIG" | awk '{print $1}')"
 
-/usr/bin/gitleaks detect --no-git --source "$TARGET" --config "$GITLEAKS_CONFIG" --report-format sarif --report-path "$OUT/gitleaks.sarif" --no-banner
+/usr/bin/gitleaks detect --no-git --source "$TARGET" --config "$GITLEAKS_CONFIG" --exit-code 10 --report-format sarif --report-path "$OUT/gitleaks.sarif" --no-banner
 gitleaks_rc=$?
 
 uvx --from semgrep==1.177.0 semgrep scan --config p/python --error --sarif --output "$OUT/semgrep.sarif" \
@@ -39,11 +42,25 @@ classify_detection() {
   elif [ "$rc" -eq 1 ]; then printf 'true true';
   else printf 'false false'; fi
 }
-read -r gitleaks_mech gitleaks_block <<<"$(classify_detection "$gitleaks_rc")"
+if [ "$gitleaks_rc" -eq 0 ]; then
+  gitleaks_mech=true; gitleaks_block=false
+elif [ "$gitleaks_rc" -eq 10 ]; then
+  gitleaks_mech=true; gitleaks_block=true
+else
+  gitleaks_mech=false; gitleaks_block=false
+fi
 read -r semgrep_mech semgrep_block <<<"$(classify_detection "$semgrep_rc")"
 read -r trivy_mech trivy_block <<<"$(classify_detection "$trivy_rc")"
 read -r osv_mech osv_block <<<"$(classify_detection "$osv_rc")"
 if [ "$syft_rc" -eq 0 ]; then syft_mech=true; else syft_mech=false; fi
+
+# A source checkout can also change while native providers are running.
+if [[ "$observed_subject_revision" != "UNKNOWN" ]]; then
+  if ! final_subject_revision="$(bash "$ROOT/scripts/observe_subject_revision.sh" "$TARGET")" ||
+     [[ "$final_subject_revision" != "$observed_subject_revision" ]]; then
+    observed_subject_revision="UNKNOWN"
+  fi
+fi
 
 cat > "$OUT/provider-status.json" <<EOF
 {

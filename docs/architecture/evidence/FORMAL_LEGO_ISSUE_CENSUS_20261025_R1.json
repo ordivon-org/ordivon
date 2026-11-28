@@ -377,17 +377,17 @@
         "mode": "read-only-census-and-cutover-obligation-not-live-migration"
       },
       "latestRequalification": {
-        "observedAt": "2026-10-26T03:34:00+08:00",
-        "sourceCut": "cb80b5017f3ca861f63bf0aa7c0802a958614f62",
-        "standing": "PG_NATIVE_IMPL_AND_BOUNDED_TESTS_MERGED_CUTOVER_NOT_PROVEN",
+        "observedAt": "2026-11-08T12:56:33+08:00",
+        "sourceCut": "60565a94f4d8e85898dc89ee70375ea3f50e02aa",
+        "standing": "PG_ONLY_SOURCE_AND_DISPOSABLE_TESTS_VERIFIED_LIVE_CUTOVER_UNKNOWN",
         "cutoverAdmission": "NOT_ADMITTED",
         "nativeConsumerEvidence": [
           "domains/capital/src/ordivon_capital/accounting/postgres_ledger.py",
           "domains/capital/tests/test_postgres_ledger.py",
-          "domains/capital/tests/test_postgres_trace_refinement.py"
+          "domains/capital/tests/test_postgres_accounting_traces.py"
         ],
-        "remainingUnknown": "Live writer quiescence, source-state mapping, production consumer switch and rollback admission not evidenced by merged PR755 or 36 bounded sequential traces.",
-        "proofScope": "Source presence and already reported Owner-native tests; not live PostgreSQL writer/consumer cutover."
+        "remainingUnknown": "Production installed PG source identity, actual live reader/writer cutover, historical data state and external broker effects are not attested by an offline test.",
+        "proofScope": "Capital source at stated commit; existing AccountingReservationR1 Z3 model (7 UNSAT, 2 SAT); 12 real disposable PostgreSQL 18.6 tests including 36 ordered trace combinations; not universal SQL refinement or live production evidence."
       }
     },
     {
@@ -418,15 +418,15 @@
         "mode": "read-only-census-and-cutover-obligation-not-live-migration"
       },
       "latestRequalification": {
-        "observedAt": "2026-10-26T03:34:00+08:00",
-        "sourceCut": "cb80b5017f3ca861f63bf0aa7c0802a958614f62",
-        "standing": "PG_PR_OPEN_SQLITE_SOURCE_CONSUMED_CUTOVER_UNVERIFIED",
+        "observedAt": "2026-11-05T13:47:32+08:00",
+        "sourceCut": "d9df40e1d8156a18bca1b31b5ef2640731d47acc",
+        "standing": "PG_NATIVE_IMPLEMENTATION_PRESENT_LIVE_CUTOVER_NOT_AUDITED",
         "cutoverAdmission": "NOT_ADMITTED",
         "nativeConsumerEvidence": [
-          "capabilities/media/src/ordivon_studio/research_validity.py"
+          "capabilities/media/src/ordivon_studio/research/trial_ledger.py"
         ],
-        "remainingUnknown": "Open PR744 trial ledger requires protected merge, source digest/import reconciliation, append-only/concurrent head proofs and Media consumer switchover.",
-        "proofScope": "Source presence and already reported Owner-native tests; not live PostgreSQL writer/consumer cutover."
+        "remainingUnknown": "Current cutover state of any active external TrialLedger writer/reader, historical SQLite retention consumer, rollback/recovery and deployed process source revision remains unverified.",
+        "proofScope": "SourceCut presence of the isolated PostgreSQL TrialLedger and actual disposable PostgreSQL 18.6 R6 tests (14/14), plus Media Owner tests (211/211); does not establish active external writer cutover, historical-import need or live production acceptance."
       }
     },
     {

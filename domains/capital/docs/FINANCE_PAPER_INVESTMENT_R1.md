@@ -1,0 +1,314 @@
+# Finance Paper Investment R1 — historical data, virtual capital, daily settlement
+
+Decision: an Agent may compute, compare and select a **SIMULATION_ONLY**
+allocation. It may not create a broker account, spend real funds or infer
+economic skill from a retrospective experiment. Existing Ordivon Harness
+and Runtime execute the work; Capital Markets validates external bytes,
+Portfolio computes NAV, and the already-qualified passive benchmark owns
+the end-to-end return comparison. No new OMS, risk engine or scheduler.
+
+## Evidence from real local/GitHub source inventory (2026-11-06)
+
+- Capital's tracked Git tree and a bounded /root/projects pathname search
+  contained no ready-to-use ETF adjusted-close dataset.
+- Candidate GitHub source: https://github.com/manisahni/marketdata,
+  at full commit 65a079329e379e104495f459e12e76a8f995585a
+  (GitHub committer timestamp 2026-08-20T21:41:22Z).
+  File daily_adjclose.csv: SHA-256
+  361efb287116fc8200582c15fcd315bcce2e218fa1e50b416bacc5acebff37b9;
+  Git blob SHA-1 29175a3fd8700cab31762bd72ced772ea5d1c807.
+  Actually fetched and verified locally: 1,511,995 bytes, 5,688 data rows,
+  original row range 2004-01-02 to 2026-08-11.
+- SPY and SHY have no price at 2026-05-25 and 2026-08-11. The former is
+  explicitly excluded from daily trading sessions; the latter is NOT a valid
+  price for the last session. Last complete pair: 2026-08-10.
+- GitHub provenance stops at the *mirror file at this commit*. The
+  upstream yfinance data source, its adjustment algorithms, licensing,
+  timestamp availability at the historical trade date and publication
+  history are not independently established. The repository has no GitHub
+  license declaration. Keep the raw CSV locally private, Git-ignored,
+  and do not redistribute it in a PR or an artifact.
+
+Other candidates examined: plotly/datasets is MIT and contains an older
+AAPL finance example but not the matching ETF portfolio; Setooooo/etf-insight
+contains a dated SPY extract and raw-data description; Pubmarks/datasets
+has current public market stock CSV samples but no verified licence.
+Do not conflate Git repository time with original market as-of time.
+
+## Native reproducible historical simulation
+
+Fetch data by its immutable commit (only for local evaluation):
+
+    cd domains/capital
+    curl --fail --location --retry 3 --output data/raw/etf-daily-65a07932.csv \
+      https://raw.githubusercontent.com/manisahni/marketdata/65a079329e379e104495f459e12e76a8f995585a/daily_adjclose.csv
+    sha256sum data/raw/etf-daily-65a07932.csv
+    git hash-object data/raw/etf-daily-65a07932.csv
+
+Compare the digests against the example manifest, then run:
+
+    scripts/run-paper-etf-replay-r1 \
+      --request examples/paper_fixed_mix_etf_20261106.json \
+      --source data/raw/etf-daily-65a07932.csv \
+      --output data/derived/paper-fixed-mix-spy-shy-20261106.json
+
+The example fixes virtual opening wealth at USD 100,000 and an **arbitrary
+preselected 60% SPY + 40% SHY, rebalanced daily at adjusted-close-based
+hypothetical marks**, against 100% SPY and an idle USD cash balance.
+It is not a portfolio optimized on the data. Illustrative hypothetical
+annual expense fractions are 0.002 and 0.001 respectively, spread over
+252 priced sessions; these are neither issuer-verified ETF fees nor a
+brokerage commission/slippage model. No taxes, FX, margin, liquidity or
+cash interest are included.
+
+The first session close defines the virtual starting NAV; it is not a
+realistic executable first fill. Each subsequent priced session creates
+a daily NAV receipt; an all-blank source row is visibly excluded, a
+partially priced session is rejected, and a requested unpriced final
+date is rejected instead of silently using the previous day's price.
+Virtual constant-mix accounting is a deterministic descriptive
+projection; it cannot establish an executable strategy or fill quality.
+
+The report is committed to an explicitly requested output path, using
+a same-directory temporary file and atomic replacement; a re-run with
+different content at the same path is rejected. Git-ignored raw/derived
+data are local materializations, not Git branches or new databases.
+No real funds are used. No broker credentials are needed.
+
+## Scientific interpretation / R2.1 contract
+
+- I: immutable source CSV bytes, full Git and SHA-256 identity,
+  declared virtual-capital PolicyV1 with frozen dates and weights.
+- O: immutable DailySettlementReplayV1, cash and SPY benchmarks,
+  missing-price evidence, plus typed REJECTED on bad input.
+- S: Unit in the pure projection; the optional CLI output file is an
+  explicit effect separated from computation.
+- pre: selected start/end dates must be exactly priced, ordered,
+  instrument columns valid, and all financial calculations Decimal-based.
+- post: the final daily virtual NAV equals the existing Portfolio passive
+  benchmark terminal NAV under exactly the same return and expense
+  conventions.
+- inv: no real-money order, no leverage and no authority escalation;
+  every dated mark has observed input prices and source-byte identity.
+- eff: optionally write one simulation receipt; no broker operations.
+- c: O(n*k) over n source dates and k selected instruments.
+- epsilon: Python Decimal context arithmetic; true financial/market
+  cost error is UNKNOWN and never equated with 0.
+- prov: Git blob/SHA bytes verified; original publisher and real
+  historical point-in-time data NOT VERIFIED.
+- unfold: existing Capital Python runner, Markets CSV admission,
+  Portfolio passive benchmark and native pytest/CI.
+
+The 2025-2026 window is retrospective: the mirror commit was published
+in August 2026. It cannot be called a precommitted, untouched historical
+holdout. One declared trial does not independently prove the absence of
+other trials. Virtual NAV differences are an observation about this
+specific simulation policy, not evidence of reliable investment alpha.
+
+## Next consumer boundaries
+
+1. To settle **today** or any future day, admit a newer source cut with
+   an actual priced session and its Git/source receipt. No stale-data
+   rollover. Existing current Market providers can serve this boundary
+   when data licences and adjusted-close semantics match.
+2. A future calendar-driven Agent run may produce new simulation receipts
+   using existing Runtime/Host/Harness scheduling, never a bespoke
+   Finance daemon or state store.
+3. Only when real portfolio orders become the question should LEAN or
+   NautilusTrader's qualified paper brokerage/fill model be used. This
+   bounded mark-to-market projection must not grow into a new broker.
+
+## R4 — source revision sensitivity, with no new backtest engine
+
+A provider may retroactively change a historical bar, including historical
+split/dividend-adjusted closes. The existing Finance fixed-policy simulation
+can now compare the same policy against two separately SHA-256- and Git-blob-
+bound CSV vintages through a thin Portfolio consumer:
+
+    scripts/run-paper-etf-vintage-compare-r1 \
+      --reference-request REFERENCE.json --reference-source REFERENCE.csv \
+      --candidate-request CANDIDATE.json --candidate-source CANDIDATE.csv
+
+Both inputs reuse the existing Markets adjusted-close CSV admission, Portfolio
+paper NAV engine, and passive benchmark assertion. The comparison requires the
+same policy and source repository/path. It lists dates where strategy NAV
+changes and computes terminal strategy/benchmark changes **only when priced
+session dates agree exactly**. Different session coverage produces
+`INCOMPARABLE_SESSION_COVERAGE` without a misleading wealth delta. It writes
+no database, downloads nothing, and cannot place orders.
+
+This is a *retrospective data-revision sensitivity* LEGO, not two proven
+as-known-at-the-time market vintages. Git commit time is only a declared
+mirror timestamp; both provider authenticity and historical point-in-time
+publication remain unverified. In particular, EODHD documents that its
+split/dividend-adjusted close history may be recalculated with later actions,
+and that it does **not** expose point-in-time vintages:
+https://eodhd.com/help/methodology . Strictly separate mechanical comparison
+from ex-ante strategy evidence.
+
+The native tests exercise equal bytes, modified priced closes, changed session
+coverage, changed policy and provenance lineage, forged digests, and the exact
+subprocess CLI. At least two genuine, separately timestamped and independently committed
+provider snapshots are needed to investigate an observed vendor correction.
+The existing GitHub example contains only one documented source vintage. A
+real 1,511,995-byte pinned GitHub snapshot was re-fetched with both SHA-256
+and Git blob identity verified and compared to itself across 401 priced
+sessions; it correctly produced zero NAV changes. No vendor correction was
+claimed, and the unlicensed raw CSV was removed after this smoke replay.
+
+## Native paper Account-to-Risk consumer (CA03)
+
+Historical adjusted-close NAV replay differs from PostgreSQL simulated
+brokerage-account ledger. Markets admits operator-bound raw ETF marks;
+Accounting records simulated buys, sells, unsettled payables and sale
+receivables. Risk must not infer fills from adjusted historical bars.
+
+Prefer the read-only PostgreSQL Account source readback:
+risk.paper_close_risk --account ACCOUNT --session ISO_DATE with
+ORDIVON_CAPITAL_PAPER_PG_DSN bound to the dedicated paper database.
+The alternative --receipt FILE is offline and cannot attest persistence.
+Both require independent operator market --snapshot and --binding.
+
+NAV = cash - purchase_payables + sale_receivables +
+      sum(held_shares times session_raw_close).
+Sale receivables increase NAV but not unencumbered cash. Risk delegates
+to existing Governance; currently UNSET budget remains INCOMPLETE.
+Real broker orders and independent price/source licence proof remain
+outside this capability. For human use, see `FINANCE_HUMAN_GUIDE_R1.md`; for the exact
+Risk CLI, consult the existing
+`.agents/skills/finance-paper-risk-review/SKILL.md`.
+CA01–CA10 identities remain in `planning/lego-plan-r1.json`.
+
+## Formal Accounting cash invariants (Z3)
+
+The existing [Paper cash/settlement model](../formal/README.md) uses a
+pinned upstream SMT solver to prove the abstract NAV settlement identity,
+pure-settlement neutrality and protected-reserve implication over
+**mathematical integers**, with two deliberately SAT invalid-economics
+witnesses. Run `cd domains/capital && mise run formal:paper`.
+Its implementation refinement is **PARTIAL**: it is not a proof of all
+Python branches, database serializability or real-market settlement.
+Preserve the existing native PostgreSQL/Markets/Risk consumer checks.
+
+## Native Accounting identity refinement: pure Paper to PostgreSQL
+
+The pure `accounting.paper_close.value_session` is a deterministic Paper
+valuation transition; the durable `accounting.postgres_paper_close` adds
+transactional identity history and committed receipts. They are **not two
+interchangeable ledgers**.
+
+For current day buys (B_t), sells (S_t), still-open purchase payables
+(P_{t-1}), and still-open sale receivables (R_{t-1}), an accepted
+transition now explicitly requires:
+
+```text
+IDs(B_t) ∩ (IDs(S_t) ∪ IDs(R_open)) = ∅
+IDs(S_t) ∩ IDs(P_open) = ∅
+```
+
+Here (P_open) and (R_open) are the **unsettled** sets after settlement
+of amounts due that day. This simple disjointness condition prevents a
+single economic fill from being both debit-side and credit-side in the
+same or overlapping sessions. It is a necessary state-transition
+refinement already enforced by PostgreSQL's identity-indexed transfer
+ledger for its **full historical** lifetime. It is not a replacement for
+that persistent anti-replay history: the pure state cannot detect a
+reused fill ID after an earlier transfer has settled and fallen out of
+its bounded daily state.
+
+The native source test exercises a simultaneous buy/sell ID collision
+and a sell reusing a still-open buy payable. Consumer proof is the
+Accounting state transition plus the existing PostgreSQL close tests,
+rather than another mirror ledger, approval system or exhaustive
+mutation harness.
+
+## R3 Q1 reusable Qlib-native Paper batch consumer (simulation only, 2026-11-13)
+
+The applications.paper_simulation_run module composes existing
+PostgresPaperClose.close_session and read_committed_paper_close, NOT a new
+OMS, valuation model, account database, order router, or scheduler.
+It consumes an independently executed Qlib OOS study and Nautilus backtest.
+The existing nonlive producer writes both native_holding_result.json and
+paper_sessions.json. Its native result binds the exact serialized session
+bytes through paper_sessions_sha256, checked before the PG session writer.
+
+Using private previously produced study and native output paths:
+
+    export ORDIVON_CAPITAL_PAPER_PG_DSN='host=127.0.0.1 ... dbname=ordivon_paper'
+    cd domains/capital
+    scripts/run-capability-python \
+      -m ordivon_capital.applications.paper_simulation_run \
+      --study /private/research/native_study_result.json \
+      --predictions /private/research/qlib_test_predictions.csv \
+      --native /private/nonlive/native_holding_result.json \
+      --sessions /private/nonlive/paper_sessions.json
+
+The consumer checks Qlib output/model co-artifact consistency, unchanged
+native-exported Paper session bytes, model-score/selected instrument agreement,
+correct H5/H20 next-open dates, non-intervened terminal native outcome,
+matching buys/sells/canceled entry and Paper economics, initial $10k fiction,
+and protected $9k reserve. Source admission is intentionally
+SIMULATION_ONLY_CALLER_DECLARED; historical vendor PIT, redistribution rights,
+native code signing, alpha, live trades and real funding authorization
+remain UNKNOWN or NOT_ADMITTED.
+
+The account is automatically derived as r3sim_ plus a bounded SHA-256
+from this exact study, Qlib predictions, Native outcome and session bytes.
+No caller-provided broker/customer account is mapped to it. The shared
+simulation_evidence is stored in the original per-day durable PG request
+digest AND receipt and checked in independent read-only account consumers.
+The Qlib/native source bytes are co-produced evidence, not a third-party
+cryptographic signature.
+
+The original Nautilus BacktestNode fill report is now a separate direct
+producer of the narrow native_fill_claims inside the same native outcome.
+The consumer checks each raw native trade ID, side, instrument, integer
+quantity, exact minor-unit execution price and USD fee, and UTC execution
+instant against the corresponding PaperFill. It reuses the pre-existing
+nautilus_paper_bridge account scope mapping:
+native trade_id T-... => Paper fill_id nautilus-paper:SIM-001:T-...
+The native total fee, cash delta, buy and sell prices and order count
+must also agree. This closes the RED example where both Paper prices can
+be increased by $1, or fees redistributed between legs, without changing
+terminal cash or the co-produced PaperSession hash. Changing the Native
+claim and the Paper session together remains caller-coordination risk,
+not independently signed market truth.
+
+This is an ordered sequence of EXISTING per-day PostgreSQL serializable
+transactions, NOT an atomic multi-day transaction. A crash can leave a
+committed prefix; rerun the EXACT same four inputs to safely replay and
+finish it. Changed bytes create a distinct simulation-only account rather
+than rewriting the previous account. The consumer independently reads back
+each daily receipt and verifies the latest account head after completion.
+For standalone read-only inspection use the existing
+accounting.postgres_paper_close --account ACCOUNT --read-latest.
+
+Measured in an isolated PostgreSQL cluster: real Qlib H5/SPY, H20/IWM
+and canceled-entry H5 native Nautilus event outputs; 8/23/8 daily rows,
+physical stop/restart and exact readback for all three; partial four-day
+H5 prefix resumed to eight days; native cash / selected-instrument and
+co-produced intermediate-mark tamper negative cases. This is NOT a
+production broker deployment or prospective market-return demonstration.
+
+
+## Q1 Portfolio / Governance Paper-only scoped binding (2026-11-13)
+
+The current applications.paper_simulation_run optionally consumes a private
+--mandate JSON. The existing Portfolio strategic_contribution component
+checks the model-selected asset allocation, its $1,000 maximum investment
+sleeve and $9,000 protected reserve. The original Governance
+enforce_non_live function evaluates the *installed* execution policy; no
+caller-supplied policy path, external financial write grant or live
+PortfolioIntent is allowed. The mandate digest and caller-declared virtual
+portfolio label are included in the existing PG request/receipt's
+simulation_evidence; different labels and source bytes create separate
+run-specific r3sim_... simulation accounts. No new PG schema is required.
+
+Unbound four-artifact legacy calls stay qualified as simulation-only but
+lack portfolio scope. The new label is NOT an authenticated user identity
+or canonical multi-run portfolio aggregate. Wrong funds/assets/lanes are
+rejected before PG; exact inputs replay existing per-day serializable
+commits after physical PostgreSQL restarts.
+
+See [FINANCE_GOLDEN_ROAD_R1.md](FINANCE_GOLDEN_ROAD_R1.md) for the complete
+no-money workflow, sample mandate, actual commands and PIT/Risk limitations.

@@ -1,0 +1,11 @@
+{
+  "authorityId": "openlineage-spec",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "2026-11-06 source-currentness correction: former officialSource /docs/spec/ returned HTTP 404, while the official GitHub spec source and OpenLineage /docs/spec/object-model/ each returned HTTP 200. The object-model page identified documentation version 1.55.0; versionObserved is the documentation-site version, not an independently inferred normative schema edition. No actual lineage consumer/adoption is claimed.",
+  "observedDate": "2026-11-06",
+  "officialSource": "https://github.com/OpenLineage/OpenLineage/blob/main/spec/OpenLineage.md",
+  "schemaVersion": 1,
+  "versionObserved": "1.55.0"
+}

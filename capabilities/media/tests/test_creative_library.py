@@ -97,6 +97,70 @@ class CreativeLibraryUnitTests(unittest.TestCase):
             body = creative_library._run_git(str(repo), ["cat-file", "blob", f"{rev1}:work/index.html"], binary=True)
             self.assertEqual(body, b"v1")
 
+    def test_current_archive_reuses_only_exact_unavailable_historical_source(self):
+        import copy
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            old_repo = root / "past-source"
+            recent_repo = root / "recent-source"
+            for repo, work_id in ((old_repo, "game:historical"), (recent_repo, "media:new")):
+                repo.mkdir()
+                subprocess.check_call(["git", "-C", str(repo), "init", "-q"])
+                subprocess.check_call(["git", "-C", str(repo), "config", "user.email", "test@example.invalid"])
+                subprocess.check_call(["git", "-C", str(repo), "config", "user.name", "Catalog Test"])
+                (repo / "work").mkdir()
+                (repo / "work" / "index.html").write_text(work_id, encoding="utf-8")
+                subprocess.check_call(["git", "-C", str(repo), "add", "."])
+                subprocess.check_call(["git", "-C", str(repo), "commit", "-qm", "source"])
+            def row(repo, work_id):
+                rev = subprocess.check_output(
+                    ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+                ).strip()
+                return {
+                    "work_id": work_id, "title": work_id,
+                    "owner": work_id.partition(":")[0].title(),
+                    "source_repo": str(repo), "source_revision": rev,
+                    "source_path": "work",
+                }
+
+            historical = row(old_repo, "game:historical")
+            new = row(recent_repo, "media:new")
+            source_manifest = {
+                "standing": "SOURCE_COMPLETE_DECLARED_SCOPE_R1",
+                "workCount": 1, "workRelationCount": 0,
+            }
+            frozen = creative_library.build_catalog({
+                "manifest": source_manifest, "works": [historical], "relations": [],
+            })
+            old_repo.rename(root / "removed-repository")
+            current = creative_library.build_catalog({
+                "manifest": source_manifest,
+                "works": [historical, new], "relations": [],
+            }, historical_catalog=frozen)
+            # Order depends on owner sort; assert by identity, not position.
+            lookup = {w["workId"]: w for w in current["works"]}
+            self.assertEqual(lookup["game:historical"]["carriers"], frozen["works"][0]["carriers"])
+            self.assertEqual(lookup["game:historical"]["sourceTreeStanding"], "HISTORICAL_INDEX_GIT_UNAVAILABLE")
+            self.assertEqual(lookup["media:new"]["sourceTreeStanding"], "EXACT_GIT_TREE")
+            self.assertEqual(current["summary"]["historicalIndexOnlyWorks"], 1)
+            self.assertEqual(current["archiveStanding"], "PG_SOURCE_EXTENDED_BEYOND_FROZEN_CENSUS")
+
+            mismatched = copy.deepcopy(historical)
+            mismatched["source_revision"] = "0" * 40
+            with self.assertRaisesRegex(RuntimeError, "no exact historical carrier source"):
+                creative_library.build_catalog({
+                    "manifest": source_manifest,
+                    "works": [mismatched], "relations": [],
+                }, historical_catalog=frozen)
+            tampered = copy.deepcopy(frozen)
+            tampered["works"][0]["sourceTreeDigest"] = "sha256:" + "0" * 64
+            with self.assertRaisesRegex(RuntimeError, "historical source tree digest mismatch"):
+                creative_library.build_catalog({
+                    "manifest": source_manifest,
+                    "works": [historical], "relations": [],
+                }, historical_catalog=tampered)
+
     def test_catalog_digest_recomputes(self):
         payload = {"a": 1, "b": [2, 3]}
         self.assertEqual(creative_library.canonical_digest(payload), creative_library.canonical_digest(json.loads(json.dumps(payload))))
@@ -178,6 +242,23 @@ class CreativeLibraryHttpTests(unittest.TestCase):
                 res = conn.getresponse()
                 self.assertEqual(res.status, 400)
                 res.read()
+                conn.close()
+
+                # Real frozen Game/Web sources can disappear from the local
+                # checkout while the catalog is still a valid archive.
+                work["sourceRepo"] = str(repo / "unavailable-historical-git")
+                conn = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+                conn.request("GET", f"/raw/{wid}/artifact.txt")
+                res = conn.getresponse()
+                self.assertEqual(res.status, 503)
+                self.assertEqual(res.read(), b"source revision unavailable\n")
+                conn.close()
+
+                conn = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+                conn.request("GET", "/api/health")
+                res = conn.getresponse()
+                self.assertEqual(res.status, 200)
+                self.assertEqual(__import__("json").loads(res.read())["workCount"], 1)
                 conn.close()
             finally:
                 server.shutdown()

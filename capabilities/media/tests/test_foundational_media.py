@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from ordivon_studio.foundational_media import (
+from ordivon_studio.research.foundational_media import (
     ProfileArm,
     RegisteredCase,
     haptic_challenger_report,

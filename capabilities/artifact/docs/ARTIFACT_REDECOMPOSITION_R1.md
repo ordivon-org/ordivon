@@ -1,5 +1,8 @@
 # Artifact Redecomposition R1 — From Delivery Pipeline to Standing Kernel
 
+> **Historical source-cut study, not current implementation authority (2026-11-07 audit).** References to the old `artifact_delivery.py` CLI and its line count reflect an earlier tree; it is absent from the audited source. Present module routing and live-state facts must be read from `../README.md`, current code/bindings and node observations.
+
+
 ## Standing
 
 EVIDENCE_GROUNDED_REDECOMPOSITION_PLANNING_ONLY
@@ -200,7 +203,7 @@ artifact_delivery.py, Toolchain Doctor, and Agent Surface belong here.
 
 Move exact bytes or grant bounded transport capabilities.
 
-Artifact repository currently contains scripts/artifact_r2_mailbox.py, but the existing donor document explicitly classifies the R2 mailbox transport implementation as DO_NOT_PROMOTE.
+At this historical planning SourceCut, Artifact contained scripts/artifact_r2_mailbox.py, and the donor document classified it DO_NOT_PROMOTE. The later 2026-11-10 stock audit retired the unused custom transport source; its exact former bytes remain in Git history.
 
 This is not a kernel component.
 
@@ -286,7 +289,7 @@ Do not promote OCI-specific layout semantics into Artifact Kernel.
 
 ### D5 — Transport implementation is present despite explicit non-ownership
 
-scripts/artifact_r2_mailbox.py owns Cloudflare R2 credentials, SigV4 presigning, provider inventory, and transfer-effect reconciliation.
+At the historical planning SourceCut, scripts/artifact_r2_mailbox.py implemented Cloudflare R2 credential handling, SigV4 presigning, provider inventory and transfer-effect reconciliation. It is not current source after the 2026-11-10 stock cleanup.
 
 Existing donor evidence already says this belongs to delivery infrastructure rather than Artifact classification/validation knowledge.
 

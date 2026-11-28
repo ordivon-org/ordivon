@@ -167,106 +167,6 @@ def test_verified_principals_cannot_reattach_each_others_request_id() -> None:
     asyncio.run(scenario())
 
 
-def test_verified_external_execution_preserves_owner_capability_and_identity() -> None:
-    from ordivon_gateway.contracts import (
-        ArtifactChunk,
-        ExecutionObservation,
-        ExecutionReceipt,
-        ExecutionResolution,
-    )
-    from ordivon_gateway.mcp_server import _verified_execution_request_id
-
-    capability = "muse.shell.echo"
-    public_request = "same-original-external-request"
-    operation_ref = "ordivon-exec:v1:external.pull:op-01"
-
-    class ExternalCapability:
-        def __init__(self) -> None:
-            self.operations: dict[str, str] = {}
-            self.observe_count = 0
-            self.cancel_count = 0
-            self.artifact_count = 0
-
-        async def execution_resolve(self, *, capability: str, request_id: str):
-            matched = self.operations.get(request_id)
-            return ExecutionResolution(
-                request_id=request_id,
-                capability=capability,
-                owner_id="external.pull",
-                resolution="found" if matched else "absent",
-                operation_ref=matched,
-                native_id="op-01" if matched else None,
-                workspace_id="ws-external" if matched else None,
-            )
-
-        async def execution_get(self, operation_ref: str, *, event_limit=10, wait_ms=0):
-            self.observe_count += 1
-            return ExecutionObservation(
-                operation_ref=operation_ref,
-                capability=capability,
-                owner_id="external.pull",
-                native_id="op-01",
-                state="working",
-                terminal=False,
-            )
-
-        async def execution_cancel(self, operation_ref: str):
-            self.cancel_count += 1
-            return ExecutionReceipt(
-                operation_ref=operation_ref,
-                capability=capability,
-                owner_id="external.pull",
-                native_id="op-01",
-                state="cancelled",
-                terminal=True,
-            )
-
-        async def artifact_read(
-            self, operation_ref: str, artifact_id: str, *, offset=0, max_bytes=1_048_576
-        ):
-            self.artifact_count += 1
-            return ArtifactChunk(
-                operation_ref=operation_ref,
-                owner_id="external.pull",
-                native_id="op-01",
-                artifact_id=artifact_id,
-                offset=offset,
-                next_offset=offset + 3,
-                eof=True,
-                digest="sha256:external-test-byte-witness",
-                content="abc",
-            )
-
-    owner = ExternalCapability()
-    server = build_server(owner)  # type: ignore[arg-type]
-    a = _context(server, "principal:cf-access:A")
-    b = _context(server, "principal:cf-access:B")
-    owner.operations[_verified_execution_request_id(public_request, capability, a)] = operation_ref
-    arguments = {
-        "operationRef": operation_ref,
-        "capability": capability,
-        "requestId": public_request,
-    }
-
-    async def run():
-        assert not (await server.call_tool("execution.get", arguments, a)).is_error
-        assert not (await server.call_tool("execution.cancel", arguments, a)).is_error
-        for action in ("execution.get", "execution.cancel"):
-            with pytest.raises(ToolError, match="cannot be qualified"):
-                await server.call_tool(action, arguments, b)
-        read_args = {**arguments, "artifactId": "stdout"}
-        own_bytes = await server.call_tool("artifact.read", read_args, a)
-        assert not own_bytes.is_error
-        assert own_bytes.structured_content["content"] == "abc"
-        with pytest.raises(ToolError, match="cannot be qualified"):
-            await server.call_tool("artifact.read", read_args, b)
-        assert owner.observe_count == 1
-        assert owner.cancel_count == 1
-        assert owner.artifact_count == 1
-
-    asyncio.run(run())
-
-
 def test_different_capability_namespace_and_unqualified_legacy() -> None:
     from ordivon_gateway.mcp_server import _verified_execution_request_id
 
@@ -350,3 +250,156 @@ def test_verified_http_artifact_read_requires_original_owner_request_identity() 
         assert owner.calls[-1][1] == "artifact.read"
 
     asyncio.run(scenario())
+
+
+@pytest.mark.parametrize(
+    "tool_name, arguments",
+    [
+        (
+            "execution.submit",
+            {
+                "capability": "execution.linux",
+                "requestId": "request:unqualified",
+                "workspaceId": "ws-test",
+                "executable": "/usr/bin/true",
+                "args": [],
+            },
+        ),
+        (
+            "execution.resolve",
+            {"capability": "execution.linux", "requestId": "request:unqualified"},
+        ),
+        (
+            "execution.get",
+            {"operationRef": "ordivon-exec:v1:runtime.linux:job-1"},
+        ),
+        (
+            "execution.cancel",
+            {"operationRef": "ordivon-exec:v1:runtime.linux:job-1"},
+        ),
+        (
+            "artifact.read",
+            {"operationRef": "ordivon-exec:v1:runtime.linux:job-1", "artifactId": "stdout"},
+        ),
+    ],
+)
+def test_http_missing_verified_execution_identity_cannot_reach_runtime(
+    tool_name: str,
+    arguments: dict[str, Any],
+) -> None:
+    """Prevent missing MCP context from downgrading to unscoped STDIO authority."""
+    owner = PrincipalScopedOwner()
+    server = build_server(GatewayService(owner), require_http_execution_identity=True)
+    unverified = Context(
+        request_context=SimpleNamespace(request=SimpleNamespace(scope={"state": {}})),
+        mcp_server=server,
+    )
+    before = len(owner.calls)
+    with pytest.raises(ToolError, match="verified ingress Principal"):
+        asyncio.run(server.call_tool(tool_name, arguments, unverified))
+    assert len(owner.calls) == before
+
+
+def test_http_execution_identity_requirement_preserves_verified_and_stdio_paths() -> None:
+    """HTTP verified identity is required; local STDIO compatibility remains explicit."""
+
+    async def run() -> None:
+        owner = PrincipalScopedOwner()
+        protected = build_server(GatewayService(owner), require_http_execution_identity=True)
+        verified = _context(protected, "principal:cf-access:A")
+        command = {
+            "capability": "execution.linux",
+            "requestId": "request:bound",
+            "workspaceId": "ws-test",
+            "executable": "/usr/bin/true",
+            "args": [],
+        }
+        receipt = await protected.call_tool("execution.submit", command, verified)
+        assert not receipt.is_error
+        assert owner.calls[-1][2]["clientRequestId"].startswith("request:gw-principal:")
+
+        local_owner = PrincipalScopedOwner()
+        stdio = build_server(GatewayService(local_owner))
+        unverified = Context(
+            request_context=SimpleNamespace(request=SimpleNamespace(scope={})),
+            mcp_server=stdio,
+        )
+        local_result = await stdio.call_tool("execution.submit", command, unverified)
+        assert not local_result.is_error
+        assert local_owner.calls[-1][2]["clientRequestId"] == "request:bound"
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize(
+    "name,extra",
+    [
+        ("execution.get", {"waitMs": -1}),
+        ("execution.get", {"waitMs": 30001}),
+        ("artifact.read", {"artifactId": "stdout", "offset": -1}),
+        ("artifact.read", {"artifactId": "stdout", "maxBytes": 0}),
+        ("artifact.read", {"artifactId": "stdout", "maxBytes": 1048577}),
+    ],
+)
+def test_verified_invalid_local_range_needs_no_owner_read(name, extra):
+    owner = PrincipalScopedOwner()
+    server = build_server(GatewayService(owner), require_http_execution_identity=True)
+    verified = _context(server, "principal:cf-access:A")
+
+    async def scenario():
+        await server.call_tool(
+            "execution.submit",
+            {
+                "capability": "execution.linux",
+                "requestId": "req-local-range",
+                "workspaceId": "ws-test",
+                "executable": "/usr/bin/true",
+                "args": [],
+            },
+            verified,
+        )
+        before = len(owner.calls)
+        with pytest.raises(ToolError):
+            await server.call_tool(
+                name,
+                {
+                    "operationRef": "ordivon-exec:v1:runtime.linux:job-namespace-1",
+                    "requestId": "req-local-range",
+                    "capability": "execution.linux",
+                    **extra,
+                },
+                verified,
+            )
+        assert owner.calls[before:] == []
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize(
+    "name,extra",
+    [
+        ("execution.get", {"waitMs": -1}),
+        ("artifact.read", {"artifactId": "stdout", "maxBytes": 0}),
+    ],
+)
+def test_invalid_range_does_not_weaken_missing_ingress_identity(name, extra):
+    owner = PrincipalScopedOwner()
+    server = build_server(GatewayService(owner), require_http_execution_identity=True)
+    unverified = Context(
+        request_context=SimpleNamespace(request=SimpleNamespace(scope={"state": {}})),
+        mcp_server=server,
+    )
+    with pytest.raises(ToolError, match="verified ingress Principal"):
+        asyncio.run(
+            server.call_tool(
+                name,
+                {
+                    "operationRef": "ordivon-exec:v1:runtime.linux:job-namespace-1",
+                    "requestId": "req-local-range",
+                    "capability": "execution.linux",
+                    **extra,
+                },
+                unverified,
+            )
+        )
+    assert owner.calls == []

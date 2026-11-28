@@ -39,6 +39,7 @@ export interface VerifiedApproval {
   readonly verified: boolean;
   readonly principalId: string | null;
   readonly effectId: string | null;
+  readonly effectDigest: string | null;
   readonly method: "webauthn" | null;
 }
 
@@ -98,7 +99,9 @@ export interface AgentAdmissionDecision {
 
 export interface EffectAdmissionDecision {
   readonly schemaVersion: 1;
-  readonly kind: "ordivon.security.range-effect-admission";
+  readonly inputContractVersion?: 2;
+  readonly authorityDigestBound?: boolean;
+  readonly kind: "ordivon.security.effect-admission";
   readonly requestId: string;
   readonly requestDigest: string;
   readonly actorId: string;

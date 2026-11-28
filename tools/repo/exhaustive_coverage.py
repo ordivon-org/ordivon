@@ -21,34 +21,40 @@ import tomllib
 from pathlib import Path
 
 
-def _source_git_env() -> dict[str, str]:
+def _source_git_env(*, local_only: bool = False) -> dict[str, str]:
     # Repo/SourceCut identity comes from the explicit -C repository, never
     # inherited Agent/CI Git namespace, object DB, config, or graft overlays.
     env = {key: value for key, value in os.environ.items()
            if not key.startswith("GIT_")}
     env["GIT_GRAFT_FILE"] = os.devnull
+    if local_only:
+        env.update(GIT_NO_LAZY_FETCH="1", GIT_OPTIONAL_LOCKS="0")
     return env
 
 
-def git(repo: Path, *args: str) -> bytes:
-    p = subprocess.run(["git", "--no-replace-objects", "-C", str(repo), *args],
-                       capture_output=True, env=_source_git_env())
-    if p.returncode:
+def git(repo: Path, *args: str, local_only: bool = False) -> bytes:
+    command = ["git", "--no-replace-objects"]
+    if local_only:
+        command.extend(("-c", "advice.graftFileDeprecated=false"))
+    p = subprocess.run([*command, "-C", str(repo), *args],
+                       capture_output=True, env=_source_git_env(local_only=local_only))
+    if p.returncode or (local_only and p.stderr):
         raise ValueError(f"git {args[0]} failed: {p.stderr[:400]!r}")
     return p.stdout
 
 
-def exact_commit(repo: Path, oid: str) -> str:
+def exact_commit(repo: Path, oid: str, *, local_only: bool = False) -> str:
     if not re.fullmatch(r"[0-9a-f]{40}", oid):
         raise ValueError("source cut must be an exact 40-hex commit")
-    got = git(repo, "rev-parse", "--verify", f"{oid}^{{commit}}").decode().strip()
+    got = git(repo, "rev-parse", "--verify", f"{oid}^{{commit}}",
+              local_only=local_only).decode().strip()
     if got != oid:
         raise ValueError("source cut does not refer to requested commit")
     return oid
 
 
-def tree(repo: Path, commit: str) -> list[dict]:
-    raw = git(repo, "ls-tree", "-r", "-z", commit)
+def tree(repo: Path, commit: str, *, local_only: bool = False) -> list[dict]:
+    raw = git(repo, "ls-tree", "-r", "-z", commit, local_only=local_only)
     entries = []
     for item in raw.split(b"\0"):
         if not item:
@@ -482,14 +488,17 @@ def derived_problem_legos(
     hierarchy = []
     all_cells = []
     for cell in cells:
-        parent_candidates = [
-            other for other in cells if other["sourceZone"] == cell["sourceZone"]
-            and other is not cell
-            and cell["physicalPrefix"].startswith(other["physicalPrefix"])
-            and len(other["physicalPrefix"]) < len(cell["physicalPrefix"])
-        ]
-        parent = max(parent_candidates, key=lambda x: len(x["physicalPrefix"]),
-                     default=None)
+        # Reuse the validated exact-key index instead of comparing all pairs.
+        # Test *all* proper string prefixes (including ""), preserving the
+        # original startswith semantics rather than assuming path segments.
+        zone = cell["sourceZone"]
+        prefix = cell["physicalPrefix"]
+        parent = next(
+            (cell_by_key[(zone, prefix[:length])]
+             for length in range(len(prefix) - 1, -1, -1)
+             if (zone, prefix[:length]) in cell_by_key),
+            None,
+        )
         if parent is not None:
             hierarchy.append({
                 "relation": "PHYSICAL_PREFIX_CONTAINS_NOT_SEMANTIC_CALL",
@@ -1379,18 +1388,42 @@ def static_python_import_frontier(repo: Path, source: str,
 
 
 
+def _local_git_lexical_grep(repo: Path, source: str, flags: tuple[str, ...],
+                            tokens: list[str]) -> bytes:
+    """One source-observation primitive; no implicit acquisition of blobs."""
+    if not tokens or any(not token or "\n" in token or "\x00" in token for token in tokens):
+        raise ValueError("lexical survey failed closed: unsupported line locator")
+    args = ["git", "--no-replace-objects", "-c", "advice.graftFileDeprecated=false",
+            "-C", str(repo), "grep", "-I", "-F", "--no-textconv",
+            "--no-recurse-submodules", "--no-color", *flags]
+    for token in dict.fromkeys(tokens):
+        args.extend(("-e", token))
+    args.extend((source, "--"))
+    proc = subprocess.run(args, capture_output=True, env=_source_git_env(local_only=True))
+    # Native grep may return 0/1 despite reporting a missing promised blob.
+    if proc.returncode not in (0, 1) or proc.stderr:
+        raise ValueError("Git grep lexical survey failed closed: cannot project incomplete references")
+    if len(proc.stdout) > 8 * 1024 * 1024:
+        raise ValueError("reference scan exceeds bounded Git output budget")
+    return proc.stdout
+
+
 def exact_git_reference_hints(
     repo: Path, source: str, paths: list[str], *, per_path_limit: int = 48,
 ) -> dict:
     """Bounded textual cross-format references from immutable Git source only.
 
-    All hits are lexical observations, NOT fully resolved consumers. Unknown
-    or omitted references cannot justify move/retirement/proof acceptance.
+    Inverse discovery contract: count distinct external carriers and their
+    lexical roles over all native matches before truncating presentation.
+    A source with no external textual witness is a question, not garbage.
+    This query does not resolve dynamic, installed, or human consumers;
+    no outcome grants retirement or proof reuse. Preserve native Git path
+    bytes and fail rather than turn a failed scan into negative evidence.
     """
-    exact_commit(repo, source)
+    exact_commit(repo, source, local_only=True)
     if not paths or len(paths) > 8 or not 1 <= per_path_limit <= 256:
         raise ValueError("reference query requires 1..8 paths, limit 1..256")
-    source_files = tree(repo, source)
+    source_files = tree(repo, source, local_only=True)
     by_path = {item["path"]: item for item in source_files}
     basename_count = collections.Counter(item["path"].rsplit("/", 1)[-1]
                                          for item in source_files)
@@ -1404,7 +1437,11 @@ def exact_git_reference_hints(
             results.append({
                 "queryPath": target, "standing": "NOT_IN_EXACT_GIT_SOURCE",
                 "textualHits": [], "totalTextualHits": 0,
+                "distinctExternalTextualCarriers": None,
+                "externalCarrierRoleCounts": {},
+                "inverseWitnessStanding": "NOT_EVALUATED_ABSENT_SOURCE",
                 "runtimeConsumerStanding": "UNKNOWN",
+                "retirementAdmissible": False,
                 "zeroTextualHitsProvesNoConsumers": False})
             continue
         if not source_item["sourceIdentity"].startswith(("100644:blob:", "100755:blob:")):
@@ -1412,7 +1449,25 @@ def exact_git_reference_hints(
                 "queryPath": target, "standing": "NONREGULAR_SOURCE_CARRIER",
                 "sourceIdentity": source_item["sourceIdentity"],
                 "textualHits": [], "totalTextualHits": 0,
+                "distinctExternalTextualCarriers": None,
+                "externalCarrierRoleCounts": {},
+                "inverseWitnessStanding": "NOT_EVALUATED_NONREGULAR_SOURCE",
                 "runtimeConsumerStanding": "UNKNOWN",
+                "retirementAdmissible": False,
+                "zeroTextualHitsProvesNoConsumers": False})
+            continue
+        if "\n" in target:
+            # Git grep is a line query: a multiline -e argument is multiple
+            # patterns, not an exact locator for the requested Git path.
+            results.append({
+                "queryPath": target, "standing": "MULTILINE_LOCATOR_UNQUALIFIED",
+                "sourceIdentity": source_item["sourceIdentity"],
+                "textualHits": [], "totalTextualHits": 0,
+                "distinctExternalTextualCarriers": None,
+                "externalCarrierRoleCounts": {},
+                "inverseWitnessStanding": "NOT_EVALUATED_MULTILINE_LOCATOR",
+                "runtimeConsumerStanding": "UNKNOWN",
+                "retirementAdmissible": False,
                 "zeroTextualHitsProvesNoConsumers": False})
             continue
         base = target.rsplit("/", 1)[-1]
@@ -1423,25 +1478,20 @@ def exact_git_reference_hints(
         basename_unique = basename_count[base] == 1
         if basename_unique and len(base) >= 9:
             patterns.append(base)
-        args = [
-            "git", "--no-replace-objects", "-C", str(repo),
-            "grep", "--null", "-n", "-I", "-F",
-        ]
-        for pattern in dict.fromkeys(patterns):
-            args.extend(("-e", pattern))
-        args.extend((source, "--"))
-        proc = subprocess.run(args, capture_output=True, env=_source_git_env())
-        if proc.returncode not in (0, 1):
-            raise ValueError("source Git grep failed; cannot project incomplete references")
-        if len(proc.stdout) > 8 * 1024 * 1024:
-            raise ValueError("reference scan exceeds bounded Git output budget")
+        raw = _local_git_lexical_grep(repo, source, ("--null", "-n"), patterns)
         matches = []
-        for line in proc.stdout.split(b"\n"):
-            if not line:
-                continue
-            columns = line.split(b"\0", 2)
-            if len(columns) != 3:
+        # With --null, a path itself may contain a newline; only the
+        # third field is line-delimited. Use offsets, not repeated slicing.
+        cursor = 0
+        while cursor < len(raw):
+            first = raw.find(b"\0", cursor)
+            second = raw.find(b"\0", first + 1) if first >= 0 else -1
+            endline = raw.find(b"\n", second + 1) if second >= 0 else -1
+            if min(first, second, endline) < 0:
                 raise ValueError("unexpected Git null-delimited lexical witness")
+            columns = (raw[cursor:first], raw[first + 1:second],
+                       raw[second + 1:endline])
+            cursor = endline + 1
             locus = columns[0].decode("utf-8", "surrogateescape")
             if not locus.startswith(source + ":"):
                 raise ValueError("Git grep witness from a different SourceCut")
@@ -1454,7 +1504,7 @@ def exact_git_reference_hints(
                 raise ValueError("invalid source line reference") from exc
             if line_no <= 0:
                 raise ValueError("nonpositive source witness line")
-            content = columns[2].decode("utf-8", "replace")
+            content = columns[2].decode("utf-8", "surrogateescape")
             matched = next((p for p in patterns if p in content), None)
             if matched is None:
                 raise ValueError("Git grep result does not contain query token")
@@ -1481,6 +1531,14 @@ def exact_git_reference_hints(
                 "installedConsumerStanding": "UNKNOWN",
             })
         matches.sort(key=lambda r: (r["candidateConsumerPath"], r["sourceLine"]))
+        carriers = {r["candidateConsumerPath"]: r["candidateConsumerCarrierRole"]
+                    for r in matches}
+        roles = collections.Counter(carriers.values())
+        inverse_standing = (
+            "NO_EXTERNAL_TEXTUAL_WITNESS" if not carriers
+            else "DOCUMENT_ONLY_TEXTUAL_HINTS" if set(roles) == {"DOCUMENT_LITERAL_REFERENCE"}
+            else "NON_DOCUMENT_TEXTUAL_HINTS"
+        )
         results.append({
             "queryPath": target,
             "standing": "EXACT_GIT_FILE_LEXICAL_REFERENCE_SCAN",
@@ -1488,6 +1546,10 @@ def exact_git_reference_hints(
             "basenameUniqueInSource": basename_unique,
             "patternsUsed": list(dict.fromkeys(patterns)),
             "totalTextualHits": len(matches),
+            "distinctExternalTextualCarriers": len(carriers),
+            "externalCarrierRoleCounts": dict(sorted(roles.items())),
+            "inverseWitnessStanding": inverse_standing,
+            "retirementAdmissible": False,
             "truncated": len(matches) > per_path_limit,
             "textualHits": matches[:per_path_limit],
             "runtimeConsumerStanding": "UNKNOWN",
@@ -1496,13 +1558,69 @@ def exact_git_reference_hints(
     return {
         "kind": "ordivon.phase1.cross-format-lexical-reference-candidates",
         "sourceCut": source,
-        "sourceTree": git(repo, "rev-parse", f"{source}^{{tree}}").decode().strip(),
+        "sourceTree": git(repo, "rev-parse", f"{source}^{{tree}}",
+                          local_only=True).decode().strip(),
         "truthBoundary": "EXACT_GIT_TEXT_REFERENCE_ONLY; import/use/installed/semantic resolution UNKNOWN",
         "proofReuseAdmissible": False,
         "pathCount": len(results),
         "queries": results,
     }
 
+
+
+
+def inverse_document_frontier(
+    repo: Path, source: str, prefix: str, *, limit: int = 48,
+    after: str | None = None, per_path_limit: int = 48,
+) -> dict:
+    """Enumerate a bounded exact-cut page of documents needing consumer review.
+
+    Membership and ordering are derived from Git, never from a mutable
+    checkout or a manually maintained document registry. A cursor merely
+    selects a page; it does not attest that earlier pages were scanned.
+    Every result remains a lexical investigation hint, never retirement.
+    """
+    exact_commit(repo, source, local_only=True)
+    if (not prefix or not prefix.endswith("/") or prefix.startswith("/")
+            or chr(92) in prefix
+            or any(part in {"", ".", ".."} for part in prefix[:-1].split("/"))):
+        raise ValueError("inverse document prefix must be canonical relative directory")
+    if not 1 <= limit <= 64 or not 1 <= per_path_limit <= 256:
+        raise ValueError("inverse document page limit 1..64; reference limit 1..256")
+    paths = [item["path"] for item in tree(repo, source, local_only=True)
+             if item["path"].startswith(prefix)
+             and item["path"].lower().endswith(".md")]
+    start = 0
+    if after is not None:
+        if after not in paths:
+            raise ValueError("inverse cursor must name an exact document at SourceCut")
+        start = paths.index(after) + 1
+    page = paths[start:start + limit]
+    queries = []
+    for offset in range(0, len(page), 8):
+        batch = exact_git_reference_hints(
+            repo, source, page[offset:offset + 8], per_path_limit=per_path_limit)
+        queries.extend(batch["queries"])
+    remaining = len(paths) - start - len(page)
+    counts = collections.Counter(q["inverseWitnessStanding"] for q in queries)
+    return {
+        "kind": "ordivon.source.inverse-document-witness-frontier",
+        "sourceCut": source,
+        "sourceTree": git(repo, "rev-parse", f"{source}^{{tree}}",
+                          local_only=True).decode().strip(),
+        "prefix": prefix,
+        "documentPathsAtSourceCut": len(paths),
+        "omittedBeforePage": start,
+        "pageCount": len(page),
+        "remainingAfterPage": remaining,
+        "nextAfter": page[-1] if remaining and page else None,
+        "inverseWitnessCounts": dict(sorted(counts.items())),
+        "queries": queries,
+        "runtimeConsumerStanding": "UNKNOWN",
+        "retirementAdmissible": False,
+        "proofReuseAdmissible": False,
+        "truthBoundary": "EXACT_GIT_DOCUMENT_MEMBERSHIP_AND_LEXICAL_HINTS_ONLY",
+    }
 
 
 def independent_scope_frontier(
@@ -1785,34 +1903,30 @@ def cross_scope_exact_locator_hints(
         for x in scopes
     ]
     subject = scope_frontier["sourceCut"]
-    exact_commit(main_repo, subject)
+    exact_commit(main_repo, subject, local_only=True)
     all_sources = [("git-scope:subject@" + subject, main_repo, subject)]
     for scope in scopes:
         if scope["scopeKind"] == "INDEPENDENT_GIT_SOURCE_CUT":
             root = Path(scope["observedLocalLocator"])
-            exact_commit(root, scope["sourceCut"])
+            exact_commit(root, scope["sourceCut"], local_only=True)
             all_sources.append((scope["scopeRef"], root, scope["sourceCut"]))
     hits = []
     scanned = []
     for reader_ref, root, cut in all_sources:
         # Binding each hint to its real blob makes the result source-qualified;
         # no uncommitted worktree data can be included accidentally.
-        blobs = {x["path"]: x["sourceIdentity"] for x in tree(root, cut)}
+        blobs = {x["path"]: x["sourceIdentity"] for x in tree(root, cut, local_only=True)}
         scanned.append({"readerScopeRef": reader_ref, "sourceCut": cut,
-                        "sourceTree": git(root, "rev-parse", f"{cut}^{{tree}}").decode().strip(),
+                        "sourceTree": git(root, "rev-parse", f"{cut}^{{tree}}", local_only=True).decode().strip(),
                         "trackedPaths": len(blobs)})
         for target_ref, token in targets:
             if target_ref == reader_ref:
                 continue
-            cmd = ["git", "--no-replace-objects", "-C", str(root),
-                   "grep", "-l", "-z", "-I", "-F", "-e",
-                   token.decode("utf-8"), cut, "--"]
-            proc = subprocess.run(cmd, capture_output=True, env=_source_git_env())
-            if proc.returncode not in (0, 1):
-                raise ValueError("Git grep lexical survey failed closed")
+            raw = _local_git_lexical_grep(root, cut, ("-l", "-z"),
+                                          [token.decode("utf-8")])
             prefix = (cut + ":").encode("ascii")
             paths = []
-            for item in proc.stdout.split(b"\0"):
+            for item in raw.split(b"\0"):
                 if not item:
                     continue
                 if not item.startswith(prefix):
@@ -1896,6 +2010,12 @@ def main() -> int:
                         help="cross-format Git textual reference witness for exact file path")
     parser.add_argument("--reference-limit", type=int, default=48,
                         help="maximum witness lines per source path, 1..256")
+    parser.add_argument("--inverse-doc-prefix",
+                        help="enumerate exact-cut Markdown reverse reference candidates")
+    parser.add_argument("--inverse-doc-limit", type=int, default=48,
+                        help="bounded document page size, 1..64")
+    parser.add_argument("--inverse-doc-after",
+                        help="resume after exact document path at same SourceCut")
     parser.add_argument("--static-python-consumers", action="store_true",
                         help="exact Git AST import candidate references; not live consumers")
     parser.add_argument("--imports-prefix",
@@ -1910,7 +2030,9 @@ def main() -> int:
                         help="small exact-Git source/path query; repeat for multiple files")
     args = parser.parse_args()
     if args.scope_census:
-        if (args.problem_legos or args.reference_path or args.lookup_path
+        if (args.problem_legos or args.reference_path or args.inverse_doc_prefix
+                or args.inverse_doc_after is not None or args.inverse_doc_limit != 48
+                or args.lookup_path
                 or args.static_python_consumers or args.live_cells or args.proposal_cut
                 or args.use_proposal_cells or args.only_problems or args.imports_prefix
                 or args.reference_limit != 48
@@ -1947,6 +2069,23 @@ def main() -> int:
         parser.error("--relation-evidence requires --problem-legos")
     if args.relation_evidence and (args.proposal_cut or args.use_proposal_cells):
         parser.error("source relation evidence must use current native source cells")
+    if args.inverse_doc_prefix is not None:
+        if (args.reference_path or args.lookup_path or args.static_python_consumers
+                or args.live_cells or args.proposal_cut or args.use_proposal_cells
+                or args.only_problems or args.imports_prefix or args.problem_legos):
+            parser.error("inverse document mode is separate from other projections")
+        result = inverse_document_frontier(
+            args.repo, args.source_cut, args.inverse_doc_prefix,
+            limit=args.inverse_doc_limit, after=args.inverse_doc_after,
+            per_path_limit=args.reference_limit)
+        if args.summary:
+            for query in result["queries"]:
+                query.pop("textualHits")
+        # Native paths may contain surrogateescaped filesystem bytes.
+        print(json.dumps(result, ensure_ascii=True, sort_keys=True, indent=2))
+        return 0
+    if args.inverse_doc_after is not None or args.inverse_doc_limit != 48:
+        parser.error("inverse document paging requires inverse-doc-prefix")
     if args.reference_path:
         if (args.lookup_path or args.static_python_consumers or args.live_cells
                 or args.proposal_cut or args.use_proposal_cells or args.only_problems
@@ -1955,10 +2094,10 @@ def main() -> int:
         result = exact_git_reference_hints(
             args.repo, args.source_cut, args.reference_path,
             per_path_limit=args.reference_limit)
-        print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
+        print(json.dumps(result, ensure_ascii=True, sort_keys=True, indent=2))
         return 0
     if args.reference_limit != 48:
-        parser.error("reference-limit requires reference-path")
+        parser.error("reference-limit requires reference-path or inverse-doc-prefix")
     if args.problem_legos and (
         args.lookup_path or args.static_python_consumers or args.imports_prefix
         or args.only_problems or args.live_cells

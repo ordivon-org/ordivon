@@ -167,6 +167,16 @@ def main() -> int:
     p.add_argument("--ledger", type=Path, required=True)
     p.add_argument("--receipt-out", type=Path, required=True)
     a = p.parse_args()
+    # No token, filesystem or Provider interaction before the backend is selected.
+    pg_dsn = os.environ.get("ORDIVON_TURN_EFFECT_POSTGRES_DSN")
+    if (
+        os.environ.get("ORDIVON_BROWSERLESS_PG_IDENTITIES_EFFECTS_REQUIRED") == "1"
+        and not pg_dsn
+    ):
+        raise SystemExit(
+            "ORDIVON_TURN_EFFECT_POSTGRES_DSN required for PG effect send; "
+            "SQLite fallback prohibited"
+        )
     connector = connector_spec(a)
 
     raw = a.prompt_file.read_bytes()
@@ -177,7 +187,6 @@ def main() -> int:
     target_resource = canonical_chatgpt_resource(a.target_resource)
     target_url = target_resource
     pg_effects = None
-    pg_dsn = os.environ.get("ORDIVON_TURN_EFFECT_POSTGRES_DSN")
     if pg_dsn:
         from postgres_turn_effects import PostgresTurnEffects
 

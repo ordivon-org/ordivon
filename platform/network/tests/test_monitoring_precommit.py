@@ -1,27 +1,20 @@
 """Consumer contract: prevent an old repo Network source from erasing live monitors."""
 from __future__ import annotations
 
-import importlib.util
 from pathlib import Path
 
 import pytest
 
+from monitoring_test_support import _load, _native_target_fixture
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/monitoring-sourcecut-preflight.py"
-CONFIGS = ("blackbox/blackbox.yml", "prometheus/prometheus.yml")
+CONFIGS = ("blackbox/blackbox.yml", "prometheus/prometheus.yml", "prometheus/consumer.rules.yml")
 
 
-def _load():
-    spec = importlib.util.spec_from_file_location("network_monitor_preflight", SCRIPT)
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-def _files(root: Path, *, blackbox: bytes = b"modules: {}\\n", prometheus: bytes = b"scrape_configs: []\\n"):
-    for name, data in zip(CONFIGS, (blackbox, prometheus), strict=True):
+def _files(root: Path, *, blackbox: bytes = b"modules: {}\n", prometheus: bytes = b"scrape_configs: []\n", rules: bytes = b"groups: []\n"):
+    for name, data in zip(CONFIGS, (blackbox, prometheus, rules), strict=True):
         destination = root / name
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_bytes(data)
@@ -29,7 +22,7 @@ def _files(root: Path, *, blackbox: bytes = b"modules: {}\\n", prometheus: bytes
 
 @pytest.mark.parametrize("root_link", ["source", "live", "dangling-live"])
 def test_monitoring_preflight_rejects_root_symlink_before_install(tmp_path, root_link):
-    """A symlink at the root escapes the two declared monitoring Owner trees."""
+    """A symlink at the root escapes the declared monitoring Owner tree."""
     owner = _load()
     source, live = tmp_path / "source", tmp_path / "live"
     if root_link == "source":
@@ -56,26 +49,26 @@ def test_first_install_and_idempotent_sourcecut(tmp_path):
     assert owner.verify(source, live) == "IDENTICAL_SOURCECUT"
 
 
-@pytest.mark.parametrize("which", ["blackbox", "prometheus"])
+@pytest.mark.parametrize("which", ["blackbox", "prometheus", "rules"])
 def test_missing_or_partial_live_sourcecut_fails_closed(tmp_path, which):
     owner = _load()
     source, live = tmp_path / "source", tmp_path / "live"
     _files(source)
-    path = live / CONFIGS[0 if which == "blackbox" else 1]
+    path = live / CONFIGS[0 if which == "blackbox" else 1 if which == "prometheus" else 2]
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes((source / CONFIGS[0 if which == "blackbox" else 1]).read_bytes())
+    path.write_bytes((source / CONFIGS[0 if which == "blackbox" else 1 if which == "prometheus" else 2]).read_bytes())
     with pytest.raises(ValueError, match="incomplete"):
         owner.verify(source, live)
 
 
-@pytest.mark.parametrize("which", ["blackbox", "prometheus"])
+@pytest.mark.parametrize("which", ["blackbox", "prometheus", "rules"])
 def test_live_consumer_drift_refuses_overwrite(tmp_path, which):
     owner = _load()
     source, live = tmp_path / "source", tmp_path / "live"
     _files(source)
     _files(live)
-    drifted = live / CONFIGS[0 if which == "blackbox" else 1]
-    drifted.write_bytes(drifted.read_bytes() + b"# live extra consumer\\n")
+    drifted = live / CONFIGS[0 if which == "blackbox" else 1 if which == "prometheus" else 2]
+    drifted.write_bytes(drifted.read_bytes() + b"# live extra consumer\n")
     before = drifted.read_bytes()
     with pytest.raises(ValueError, match="differs"):
         owner.verify(source, live)
@@ -85,7 +78,7 @@ def test_live_consumer_drift_refuses_overwrite(tmp_path, which):
 
 @pytest.mark.parametrize("area", ["source", "live"])
 @pytest.mark.parametrize("name", [
-    "prometheus/consumer.rules.yml",
+    "prometheus/unowned.rules.yml",
     "blackbox/scoped-consumer.yaml",
 ])
 def test_unlisted_monitoring_configs_are_not_accepted(tmp_path, area, name):
@@ -105,7 +98,7 @@ def test_first_install_does_not_ignore_preexisting_monitoring_rules(tmp_path):
     owner = _load()
     source, live = tmp_path / "source", tmp_path / "live"
     _files(source)
-    extra = live / "prometheus/consumer.rules.yml"
+    extra = live / "prometheus/unowned.rules.yml"
     extra.parent.mkdir(parents=True, exist_ok=True)
     extra.write_text("groups: []\n")
     with pytest.raises(ValueError, match="unmanaged monitoring"):
@@ -199,7 +192,7 @@ def test_cross_config_monitoring_consumer_counterexamples_fail_closed(
 
 def test_core_validation_invokes_cross_config_consumer_gate():
     taskfile = (ROOT / "Taskfile.yml").read_text()
-    native = taskfile.split("  core:validate:", 1)[1].split("  provider:surfshark:validate:", 1)[0]
+    native = taskfile.split("  core:validate:", 1)[1].split("  all:validate:", 1)[0]
     assert "monitoring-sourcecut-preflight.py --source config --check-edges" in native
 
 @pytest.mark.parametrize(
@@ -242,6 +235,11 @@ def test_duplicate_yaml_keys_cannot_launder_a_consumer_edge(tmp_path, which):
         ("wrong-exporter", "loaded Prometheus consumer graph differs"),
         ("missing-rule", "loaded Prometheus consumer graph differs"),
         ("duplicate-job", "duplicate Prometheus job name"),
+        ("timestamp-trust", "loaded Prometheus consumer graph differs"),
+        ("label-trust", "loaded Prometheus consumer graph differs"),
+        ("metric-relabel", "loaded Prometheus consumer graph differs"),
+        ("environment-proxy", "loaded Prometheus consumer graph differs"),
+        ("redirect", "loaded Prometheus consumer graph differs"),
     ],
 )
 def test_loaded_prometheus_binding_rejects_divergence(tmp_path, mutation, expected):
@@ -274,6 +272,15 @@ def test_loaded_prometheus_binding_rejects_divergence(tmp_path, mutation, expect
         source["rule_files"] = []
     elif mutation == "duplicate-job":
         source["scrape_configs"].append(copy.deepcopy(source["scrape_configs"][0]))
+    else:
+        field, value = {
+            "timestamp-trust": ("honor_timestamps", False),
+            "label-trust": ("honor_labels", True),
+            "metric-relabel": ("metric_relabel_configs", [{"action": "drop", "regex": ".*"}]),
+            "environment-proxy": ("proxy_from_environment", True),
+            "redirect": ("follow_redirects", False),
+        }[mutation]
+        source["scrape_configs"][0][field] = value
     with pytest.raises(ValueError, match=expected):
         owner.verify_loaded_prometheus(src, source)
 
@@ -306,3 +313,135 @@ def test_live_core_verify_checks_loaded_process_not_only_disk():
     content = (ROOT / "Taskfile.yml").read_text()
     current = content.split("  core:verify:", 1)[1].split("  core:converge:", 1)[0]
     assert "monitoring-sourcecut-preflight.py --live /etc/network-v2 --check-loaded-prometheus" in current
+
+
+def test_native_prometheus_fragments_preserve_complete_owner_job_graph() -> None:
+    """Native fragments, not a custom registry, are the remaining consumer owners."""
+    owner = _load()
+    jobs = owner._all_scrape_jobs(ROOT / "config")
+    by_name = {job["job_name"]: job for job in jobs}
+    assert len(jobs) == len(by_name) == 19
+    systemd = by_name["network-node-systemd"]
+    assert systemd["static_configs"] == [{"targets": ["127.0.0.1:29100"]}]
+    assert systemd["scrape_interval"] == "15s"
+    assert systemd["scrape_timeout"] == "5s"
+    assert systemd.get("params") is None
+
+    direct = by_name["blackbox-http-ipv4"]
+    carrier = by_name["blackbox-path-reference-carrier"]
+    alternate = by_name["blackbox-http-ipv4-alternate"]
+    assert direct["static_configs"] == carrier["static_configs"]
+    assert alternate["static_configs"] != direct["static_configs"]
+    assert alternate["params"] == direct["params"] == {"module": ["http_2xx_ipv4"]}
+    assert carrier["params"] == {"module": ["http_vpn_2xx_ipv4"]}
+    paths = owner._fragment_paths(ROOT / "config")
+    assert {path.stem for path in paths} == {
+        "claude", "codex", "finance", "model-provider", "supply-chain", "systemd-targets"
+    }
+
+
+def test_native_fragment_sourcecut_rejects_missing_or_altered_consumer(tmp_path) -> None:
+    import shutil
+    owner = _load()
+    source, live = tmp_path / "source", tmp_path / "live"
+    for dst in (source, live):
+        shutil.copytree(ROOT / "config/blackbox", dst / "blackbox")
+        shutil.copytree(ROOT / "config/prometheus", dst / "prometheus")
+    assert owner.verify(source, live) == "IDENTICAL_SOURCECUT"
+    selected = live / "prometheus/consumers/finance.yml"
+    selected.write_bytes(selected.read_bytes() + b"\n# divergent live Finance consumer\n")
+    with pytest.raises(ValueError, match="differs"):
+        owner.verify(source, live)
+    selected.unlink()
+    with pytest.raises(ValueError, match="incomplete"):
+        owner.verify(source, live)
+
+
+@pytest.mark.parametrize(
+    "mutation", ["missing-pool", "missing-target", "wrong-module", "wrong-exporter", "wrong-scheme", "wrong-instance", "wrong-discovered-address", "extra-query", "duplicate-query", "wrong-direct-scheme"]
+)
+def test_native_prometheus_loaded_target_oracle_detects_counterexamples(
+    mutation: str,
+) -> None:
+    """A native config check cannot certify that a running process loaded it."""
+    import copy
+
+    owner, declared, pool_data, target_data = _native_target_fixture()
+    assert owner.verify_loaded_active_targets(ROOT / "config", pool_data, target_data) == len(declared)
+    pool_data = copy.deepcopy(pool_data)
+    target_data = copy.deepcopy(target_data)
+    if mutation == "missing-pool":
+        pool_data["data"]["scrapePools"].pop()
+    elif mutation == "missing-target":
+        target_data["data"]["activeTargets"].pop()
+    elif mutation == "wrong-module":
+        target_data["data"]["activeTargets"][0]["discoveredLabels"]["__param_module"] = "foreign"
+    elif mutation == "wrong-exporter":
+        target_data["data"]["activeTargets"][0]["scrapeUrl"] = "http://127.0.0.1:9999/probe?module=http_2xx_ipv4&target=https%3A%2F%2Fexample.com%2F"
+    else:
+        target = target_data["data"]["activeTargets"][0]
+        if mutation == "wrong-scheme":
+            target["scrapeUrl"] = target["scrapeUrl"].replace("http:", "https:", 1)
+        elif mutation == "wrong-instance":
+            target["labels"]["instance"] = "foreign"
+        elif mutation == "wrong-discovered-address":
+            target["discoveredLabels"]["__address__"] = "foreign"
+        elif mutation == "extra-query":
+            target["scrapeUrl"] += "&debug=true"
+        elif mutation == "duplicate-query":
+            target["scrapeUrl"] += "&target=foreign"
+        elif mutation == "wrong-direct-scheme":
+            direct = next(t for t in target_data["data"]["activeTargets"] if "/metrics" in t["scrapeUrl"])
+            direct["scrapeUrl"] = direct["scrapeUrl"].replace("http:", "https:", 1)
+    with pytest.raises(ValueError, match="loaded|active target"):
+        owner.verify_loaded_active_targets(ROOT / "config", pool_data, target_data)
+
+
+def test_loaded_graph_permutation_and_all_role_identity_properties():
+    """Finite metamorphic check across every source-declared role, no network effects."""
+    import copy
+    from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
+    owner, declared, pools, targets = _native_target_fixture()
+    actual = targets["data"]["activeTargets"]
+    # Relation order and URL parameter order are immaterial.
+    for order in (actual, list(reversed(actual)), actual[1:] + actual[:1]):
+        reordered = copy.deepcopy(order)
+        for t in reordered:
+            url = urlsplit(t["scrapeUrl"])
+            t["scrapeUrl"] = urlunsplit(url._replace(query=urlencode(
+                list(reversed(parse_qsl(url.query, keep_blank_values=True))))))
+        assert owner.verify_active_targets(list(reversed(declared)),
+            {"data": {"scrapePools": list(reversed(pools["data"]["scrapePools"]))}},
+            {"data": {"activeTargets": reordered}}) == len(declared)
+    # Every role must be independently observed; no missing identity,
+    # duplicated role, mislabeled target or undeclared request parameter.
+    for i in range(len(actual)):
+        for mutation in ("omit", "duplicate", "instance", "address", "scheme", "extra"):
+            changed = copy.deepcopy(actual)
+            t = changed[i]
+            if mutation == "omit":
+                changed.pop(i)
+            elif mutation == "duplicate":
+                changed.append(copy.deepcopy(t))
+            elif mutation == "instance":
+                t["labels"]["instance"] = "foreign"
+            elif mutation == "address":
+                t["discoveredLabels"]["__address__"] = "foreign"
+            elif mutation == "scheme":
+                t["scrapeUrl"] = t["scrapeUrl"].replace("http:", "https:", 1)
+            else:
+                t["scrapeUrl"] += ("&" if "?" in t["scrapeUrl"] else "?") + "foreign="
+            with pytest.raises(ValueError):
+                owner.verify_active_targets(declared, pools, {"data": {"activeTargets": changed}})
+
+
+@pytest.mark.parametrize("pools, targets", [
+    ({"data": None}, {"data": {}}),
+    ({"data": {"scrapePools": [[]]}}, {"data": {}}),
+    ({"data": {"scrapePools": ["only"]}}, {"data": {"activeTargets": [None]}}),
+])
+def test_loaded_graph_malformed_api_is_typed_rejection(pools, targets):
+    owner = _load()
+    with pytest.raises(ValueError):
+        owner.verify_active_targets([{"job_name": "only"}], pools, targets)

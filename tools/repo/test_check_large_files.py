@@ -69,6 +69,16 @@ class AllowlistTests(unittest.TestCase):
         with self.assertRaises(module.AllowlistError):
             module.load_allowlist(path)
 
+    def test_boolean_limit_is_rejected(self) -> None:
+        path = self.write("limit_bytes = true\n")
+        with self.assertRaises(module.AllowlistError):
+            module.load_allowlist(path)
+
+    def test_boolean_max_bytes_is_rejected(self) -> None:
+        path = self.write('limit_bytes = 10\n[[file]]\npath = "a"\nmax_bytes = true\nreason = "why"\n')
+        with self.assertRaises(module.AllowlistError):
+            module.load_allowlist(path)
+
     def test_limit_must_be_positive(self) -> None:
         path = self.write("limit_bytes = 0\n")
         with self.assertRaises(module.AllowlistError):

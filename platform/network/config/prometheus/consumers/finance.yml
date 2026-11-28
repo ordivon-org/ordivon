@@ -1,0 +1,40 @@
+# Native Prometheus scrape definitions for the finance consumer.
+scrape_configs:
+  - job_name: blackbox-vpn-finance-okx
+    scrape_interval: 1m
+    scrape_timeout: 12s
+    metrics_path: /probe
+    params:
+      module:
+        - http_finance_okx_business
+    static_configs:
+      - targets:
+          - https://openapi.okx.com/api/v5/public/time
+    relabel_configs:
+      - source_labels:
+          - __address__
+        target_label: __param_target
+      - source_labels:
+          - __param_target
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:29115
+  - job_name: blackbox-vpn-finance-binance-usdm
+    scrape_interval: 1m
+    scrape_timeout: 12s
+    metrics_path: /probe
+    params:
+      module:
+        - http_finance_binance-usdm_business
+    static_configs:
+      - targets:
+          - https://fapi.binance.com/fapi/v1/time
+    relabel_configs:
+      - source_labels:
+          - __address__
+        target_label: __param_target
+      - source_labels:
+          - __param_target
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:29115

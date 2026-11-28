@@ -12,6 +12,8 @@ The external evidence chain is represented using existing attestation standards:
 
 `verifiedLevels` uses the custom value `SECURITY_PRODUCT_POLICY` for a passed Security policy result. This is deliberately **not** a claim that the subject satisfies a SLSA Build or Source level. Failed policy results use `FAILED`.
 
-## Current trust boundary
+## Current trust boundary (2026-11-07 source audit)
 
-The current R1 emitter produces unsigned in-toto Statements. They provide exact structural/provenance binding but **do not yet authenticate the verifier identity**. A later release/admission step must use a standard signing/envelope mechanism (for example DSSE/Sigstore) before these Statements can serve as independently authenticated external attestations.
+The original R1 emitter produces unsigned in-toto Statements. An unsigned Statement remains a content claim only; it does not authenticate a producer or a verifier. The subsequent Signed-VSA R2 integration uses mature Cosign/Sigstore for the DSSE cryptographic envelope and Security's verify_vsa_bundle.py for exact VSA semantic binding. See docs/SIGNED-VSA.md for the tested local pinned-key profile. That integration is **not** evidence of production KMS/keyless identity admission.
+
+Build provenance is distinct from a Security VSA. The legacy standalone Python wheel producer was retired because its Python 3.12 claim and repository layout no longer matched this owner. Build owners should issue signed provenance with their native provider (for example GitHub actions/attest); verify signature and issuer with gh attestation verify before interpreting Security's content-only PROVENANCE_CONTENT_BOUND output. Neither parsing unsigned provenance nor a historical local example qualifies a production release.

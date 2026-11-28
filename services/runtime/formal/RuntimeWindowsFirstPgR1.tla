@@ -1,6 +1,9 @@
 -------------------- MODULE RuntimeWindowsFirstPgR1 --------------------
 EXTENDS Naturals
 
+\* HISTORICAL / SUPERSEDED AS ROLLOUT ORDER AUTHORITY (2026-11-07).
+\* Linux is already PG-native and Windows remains a separate PG cutover.
+\* The original Windows-first ordering is not a current release prerequisite.
 \* Two-node *design* model. "Qualified" represents an externally supplied,
 \* exact source/consumer/installed-writer receipt; TLC cannot manufacture
 \* or authenticate that receipt from production Windows/PG observations.
