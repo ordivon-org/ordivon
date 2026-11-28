@@ -25,7 +25,7 @@ def _observation_evidence_signature(observation: HarnessToolObservation) -> str:
         {
             "toolName": observation.tool_name,
             "status": observation.status,
-            "structuredContent": observation.structured_content,
+            "structuredContent": observation.committed_content(),
             "artifactRefs": [item.to_dict() for item in observation.artifact_refs],
         }
     )
@@ -301,8 +301,9 @@ def _search_evidence(
     relative_path = call.arguments.get("relativePath", ".")
     if not isinstance(relative_path, str):
         return (((call.digest, "."), {_observation_evidence_signature(observation)}),)
+    content = observation.committed_content()
     if isinstance(query, str) and raw_queries is None:
-        raw_matches = observation.structured_content.get("matches")
+        raw_matches = content.get("matches")
         matches = (
             {
                 canonical_digest(match)
@@ -317,8 +318,8 @@ def _search_evidence(
             # may emit the same partial matches as a successful search.
             matches.add(
                 _search_outcome_evidence(
-                    observation.structured_content.get("exitCode"),
-                    observation.structured_content.get("executionDisposition"),
+                    content.get("exitCode"),
+                    content.get("executionDisposition"),
                 )
             )
         return (((query, relative_path), matches),)
@@ -327,7 +328,7 @@ def _search_evidence(
         and raw_queries
         and all(isinstance(item, str) for item in raw_queries)
     ):
-        raw_results = observation.structured_content.get("queryResults")
+        raw_results = content.get("queryResults")
         if isinstance(raw_results, list) and len(raw_results) == len(raw_queries):
             units: list[tuple[tuple[str, str], set[str]]] = []
             for expected_query, result in zip(raw_queries, raw_results):
