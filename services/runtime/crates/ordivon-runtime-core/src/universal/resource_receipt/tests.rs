@@ -57,3 +57,23 @@ fn valid_cpu_and_memory_counters_keep_exact_kernel_values() {
     assert_eq!(mem.oom_kill, 5);
     assert_eq!(mem.max, 3);
 }
+
+#[test]
+fn extension_counters_preserve_values_and_duplicate_diagnostics() {
+    let cpu =
+        parse_cgroup_cpu_stat("usage_usec 20\nuser_usec 14\nsystem_usec 6\n扩展 9\n").unwrap();
+    assert_eq!(cpu.usage_usec, 20);
+    let cpu_error =
+        parse_cgroup_cpu_stat("usage_usec 20\nuser_usec 14\nsystem_usec 6\n扩展 9\n扩展 10\n")
+            .unwrap_err();
+    assert_eq!(cpu_error.message, "cpu.stat counter 扩展 is duplicated");
+    let io_error =
+        parse_cgroup_io_stat("8:0 rbytes=1 wbytes=2 rios=3 wios=4 extra=5 extra=6").unwrap_err();
+    assert_eq!(
+        io_error.message,
+        "io.stat counter extra is duplicated for 8:0"
+    );
+    let io = parse_cgroup_io_stat("8:0 rbytes=1 wbytes=2 rios=3 wios=4 extra=5").unwrap();
+    assert_eq!(io.read_bytes, 1);
+    assert_eq!(io.discard_bytes, 0);
+}
