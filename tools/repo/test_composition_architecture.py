@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import itertools
 import json
 from pathlib import Path
 
@@ -161,3 +162,76 @@ def test_lego21_critical_path_rejects_transitive_noncritical_prerequisite() -> N
     critical[a], critical[b] = critical[b], critical[a]
     with pytest.raises(module.CompositionArchitectureError, match="criticalPath dependency order"):
         module.validate_graph(value)
+
+
+@pytest.mark.parametrize("version", [True, 1.0, "1"])
+def test_schema_version_is_exact_integer(version: object) -> None:
+    value = load_graph()
+    value["schemaVersion"] = version
+    with pytest.raises(module.CompositionArchitectureError, match="schemaVersion"):
+        module.validate_graph(value)
+
+
+@pytest.mark.parametrize("field", ["criticalPath", "initialParallelSet"])
+@pytest.mark.parametrize("bad", [{}, [], True, 1, "", " G01 "])
+def test_plan_reference_has_canonical_identity(field: str, bad: object) -> None:
+    value = load_graph()
+    value[field][0] = bad
+    with pytest.raises(module.CompositionArchitectureError, match=field):
+        module.validate_graph(value)
+
+
+def test_node_identity_is_not_silently_normalized() -> None:
+    value = load_graph()
+    value["nodes"][0]["id"] = " " + value["nodes"][0]["id"] + " "
+    with pytest.raises(module.CompositionArchitectureError, match="id"):
+        module.validate_graph(value)
+
+def test_topological_propagation_matches_small_exhaustive_reachability_oracle() -> None:
+    # Enumerate all forward-edge DAGs on four named vertices. Floyd-Warshall
+    # is an independent Boolean relation oracle, not the production algorithm.
+    names = ("A", "B", "C", "D")
+    edges = tuple((i, j) for i in range(4) for j in range(i))
+    base = load_graph()
+    exemplar = base["nodes"][0]
+    for mask in range(1 << len(edges)):
+        direct = [[False] * 4 for _ in names]
+        for bit, (i, j) in enumerate(edges):
+            direct[i][j] = bool(mask & (1 << bit))
+        reach = [row.copy() for row in direct]
+        for k, i, j in itertools.product(range(4), repeat=3):
+            reach[i][j] |= reach[i][k] and reach[k][j]
+        base["nodes"] = [
+            {
+                **exemplar,
+                "id": name,
+                "owner": "runtime",
+                "wave": "W1",
+                "dependsOn": [names[j] for j in range(4) if direct[i][j]],
+            }
+            for i, name in enumerate(names)
+        ]
+        # Every nonempty ordered critical subset, including hidden ancestors.
+        base["initialParallelSet"] = [names[0]]
+        for size in range(1, 5):
+            for order in itertools.permutations(range(4), size):
+                base["criticalPath"] = [names[i] for i in order]
+                invalid = any(
+                    reach[i][j] for i, j in itertools.combinations(order, 2)
+                )
+                # i before j is legal when j depends on i, not the reverse.
+                if invalid:
+                    with pytest.raises(module.CompositionArchitectureError, match="criticalPath"):
+                        module.validate_graph(base)
+                else:
+                    module.validate_graph(base)
+        base["criticalPath"] = list(names)
+        for size in range(1, 5):
+            for subset in itertools.combinations(range(4), size):
+                base["initialParallelSet"] = [names[i] for i in subset]
+                invalid = any(reach[i][j] or reach[j][i] for i, j in itertools.combinations(subset, 2))
+                if invalid:
+                    with pytest.raises(module.CompositionArchitectureError, match="parallel dependency"):
+                        module.validate_graph(base)
+                else:
+                    module.validate_graph(base)
