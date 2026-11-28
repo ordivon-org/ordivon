@@ -32,6 +32,10 @@ mcp_e2e = load_script("mcp_e2e")
 
 
 class OperationalScriptTests(unittest.TestCase):
+    def test_snapshot_digest_has_one_shared_implementation(self) -> None:
+        self.assertIs(backup.sha256_file, restore.sha256_file)
+        self.assertEqual(backup.sha256_file.__module__, "snapshot_fds")
+
     def test_sqlite_backup_uri_preserves_exact_filename_with_reserved_chars(self) -> None:
         for name in ("registry#history.sqlite3", "registry?select.sqlite3", "registry%3Fraw.sqlite3"):
             with self.subTest(filename=name), tempfile.TemporaryDirectory() as temporary:

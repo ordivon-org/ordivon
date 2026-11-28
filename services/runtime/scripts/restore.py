@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import ctypes
-import hashlib
 import json
 import os
 import errno
@@ -17,15 +16,7 @@ from contextlib import closing
 from pathlib import Path
 from typing import Any
 
-from snapshot_fds import pinned_source_entry
-
-
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return f"sha256:{digest.hexdigest()}"
+from snapshot_fds import pinned_source_entry, sha256_file as sha256_file
 
 
 def safe_relative_path(value: object) -> Path:

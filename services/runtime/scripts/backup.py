@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import shutil
@@ -15,15 +14,7 @@ from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 
-from snapshot_fds import pinned_source_entry
-
-
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return f"sha256:{digest.hexdigest()}"
+from snapshot_fds import pinned_source_entry, sha256_file as sha256_file
 
 
 def copy_regular_tree(source: Path, target: Path, excluded: set[Path]) -> list[dict[str, object]]:
