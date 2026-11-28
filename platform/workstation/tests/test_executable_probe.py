@@ -85,3 +85,95 @@ def test_windows_native_probe_reports_identity_and_rejects_command_expression() 
         timeout=15,
     )
     assert bad.returncode != 0
+
+
+def test_scoped_mise_recovers_path_miss_without_changing_path_observation(tmp_path) -> None:
+    from subprocess import CompletedProcess
+
+    binary = tmp_path / "pnpm"
+    binary.write_text("fixture")
+    binary.chmod(0o755)
+    with patch.object(probe.shutil, "which", side_effect=lambda name, path: (
+        "/usr/bin/mise" if name == "mise" else None
+    )), patch.object(probe.subprocess, "run", return_value=CompletedProcess(
+        [], 0, str(binary) + "\n", ""
+    )) as run:
+        result = probe.observe(["pnpm"], path="service", mise_scope=True)
+    row = result["commands"][0]
+    assert row["resolution"] == "not_on_path"
+    assert row["executablePath"] is None
+    assert row["mise"] == {"resolution": "resolved", "executablePath": str(binary)}
+    assert run.call_args.args[0] == ["/usr/bin/mise", "which", "pnpm"]
+    assert run.call_args.kwargs["cwd"] == Path.cwd()
+    assert run.call_args.kwargs["env"]["PATH"] == "service"
+    assert run.call_args.kwargs["env"]["MISE_OFFLINE"] == "1"
+    assert run.call_args.kwargs["env"]["MISE_AUTO_INSTALL"] == "false"
+    assert result["miseScope"]["verificationBoundary"].startswith("mise_which_resolution_only")
+
+
+def test_scoped_mise_failure_is_not_a_missing_installation_verdict() -> None:
+    from subprocess import CompletedProcess, TimeoutExpired
+
+    with patch.object(probe.shutil, "which", return_value=None):
+        result = probe.observe(["z3"], mise_scope=True)
+    assert result["commands"][0]["mise"]["resolution"] == "resolver_unavailable"
+    with patch.object(probe.shutil, "which", return_value="/usr/bin/mise"):
+        with patch.object(probe.subprocess, "run", return_value=CompletedProcess([], 1, "", "untrusted")):
+            assert probe.observe(["z3"], mise_scope=True)["commands"][0]["mise"]["resolution"] == "unresolved"
+        with patch.object(probe.subprocess, "run", side_effect=TimeoutExpired("mise", 5)):
+            assert probe.observe(["z3"], mise_scope=True)["commands"][0]["mise"]["resolution"] == "resolver_error"
+    with patch.object(probe.shutil, "which", return_value=None):
+        rows = probe.observe(["z3"] * 17, mise_scope=True)["commands"]
+    assert rows[-1]["mise"]["resolution"] == "lookup_budget_exhausted"
+
+
+def test_mise_inventory_distinguishes_off_path_installation() -> None:
+    from subprocess import CompletedProcess
+
+    with (
+        patch.object(probe.shutil, "which", return_value="/usr/bin/mise"),
+        patch.object(probe.subprocess, "run", side_effect=[
+            CompletedProcess([], 0, '{"pnpm":[{"version":"12.16.1","installed":true}],'
+                '"github:leanprover/lean4":[{"version":"4.35.0","installed":true}]}', ""),
+            CompletedProcess([], 0, "github:leanprover/lean4\n", ""),
+            CompletedProcess([], 1, "", "unresolved"),
+        ]) as run,
+    ):
+        report = probe.observe_mise_installed(["pnpm", "lean", "unlikely-tool"])
+    assert report == {
+        "state": "observed",
+        "installedVersions": {"pnpm": ["12.16.1"], "lean": ["4.35.0"]},
+        "unmatchedNames": ["unlikely-tool"],
+        "providerKeys": {"pnpm": "pnpm", "lean": "github:leanprover/lean4"},
+    }
+    assert run.call_args_list[0].args[0] == [
+        "/usr/bin/mise", "ls", "--installed", "--json",
+    ]
+    assert run.call_args_list[1].args[0] == ["/usr/bin/mise", "which", "lean", "--plugin"]
+    for call in run.call_args_list:
+        assert call.kwargs["env"]["MISE_OFFLINE"] == "1"
+        assert call.kwargs["env"]["MISE_AUTO_INSTALL"] == "false"
+
+
+def test_mise_inventory_failure_is_unknown_not_absence() -> None:
+    with patch.object(probe.shutil, "which", return_value=None):
+        assert probe.observe_mise_installed(["pnpm"])["state"] == "unknown"
+    with (
+        patch.object(probe.shutil, "which", return_value="/usr/bin/mise"),
+        patch.object(probe.subprocess, "run", side_effect=OSError("unavailable")),
+    ):
+        assert probe.observe_mise_installed(["pnpm"])["state"] == "unknown"
+
+
+def test_mise_scope_resolves_even_when_system_tool_is_on_path(tmp_path) -> None:
+    from subprocess import CompletedProcess
+
+    binary = tmp_path / "python"
+    binary.write_text("fixture")
+    binary.chmod(0o755)
+    with patch.object(probe.shutil, "which", side_effect=lambda name, path: "/usr/bin/" + name), patch.object(
+        probe.subprocess, "run", return_value=CompletedProcess([], 0, str(binary), "")
+    ):
+        row = probe.observe(["python"], mise_scope=True)["commands"][0]
+    assert row["executablePath"] == "/usr/bin/python"
+    assert row["mise"]["executablePath"] == str(binary)

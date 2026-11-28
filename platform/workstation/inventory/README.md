@@ -85,6 +85,32 @@ from that **same** identity. When Python is available, the script works for both
 Windows and Linux. Do not run the inventory under an interactive account and
 apply the result to a service account or vice versa.
 
+For a project-owned tool, resolve **from the intended owner's directory**,
+even when the system PATH contains a tool of the same name:
+
+```bash
+cd tools/formal
+/usr/bin/python3 ../../platform/workstation/inventory/probe_executables.py --mise z3 lean
+```
+
+The optional `--mise` view invokes the existing `mise which` in that directory
+(up to 16 names, five seconds per lookup). It does not install tools, change
+trust, or replace the PATH observation. A resolved path is a candidate for
+the actual invocation, not evidence of task success. If unresolved, check
+the owner's native provider and intended target; a resolver error or trust
+refusal is not absence. For Python dependencies, check the owner interpreter
+and locked `uv run` environment, not imports in system Python. If the lock
+is not materialized, use the owner's locked sync and verify the intended
+consumer; distinguish an offline cache miss from a missing installation.
+The optional `--mise-installed` view reports existing supplier records, even
+when a tool is not selected in the current project. Missing exact inventory
+keys are resolved using native `mise which NAME --plugin` in the owner scope
+(up to 16 additional lookups, five seconds each). `providerKeys` records the
+supplier key, for example `github:leanprover/lean4` for Lean and Lake.
+`unmatchedNames` still identifies unresolved names, not missing installations.
+Use scoped `mise which` for the executable; a supplier error is UNKNOWN.
+Do not install duplicate tools merely because PATH or Gateway discovery fails.
+
 An `on_path` result is only command resolution; `not_on_path` is **not**
 an installation verdict. Windows installed applications are separately observed
 from WinGet/uninstall registry, Linux packages from the actual package manager,
