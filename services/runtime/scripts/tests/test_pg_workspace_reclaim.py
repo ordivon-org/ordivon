@@ -61,8 +61,6 @@ class PgWorkspaceReclaimTests(unittest.TestCase):
         self.assertFalse(mod.eligible(**{**self.params, "created_ms": 6_000_000}))
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class PgReleaseActivityProjectionTests(unittest.TestCase):
@@ -919,3 +917,6 @@ class PgOperatorRetentionPolicyTests(unittest.TestCase):
         )
         self.assertEqual(self.git("show", f"{self.head}:new-work"),
                          "valuable isolated research work")
+
+if __name__ == "__main__":
+    unittest.main()
