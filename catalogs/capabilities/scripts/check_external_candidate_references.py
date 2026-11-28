@@ -8,13 +8,23 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import subprocess
 
 
 def git(repo: Path, *args: str) -> str | None:
-    process = subprocess.run(["git", "-C", str(repo), *args],
-                             capture_output=True, text=True, timeout=12)
+    git_env = {
+        key: value for key, value in os.environ.items() if not key.startswith("GIT_")
+    }
+    git_env["GIT_GRAFT_FILE"] = os.devnull
+    process = subprocess.run(
+        ["git", "--no-replace-objects", "-C", str(repo), *args],
+        capture_output=True,
+        text=True,
+        timeout=12,
+        env=git_env,
+    )
     return process.stdout.strip() if process.returncode == 0 else None
 
 
