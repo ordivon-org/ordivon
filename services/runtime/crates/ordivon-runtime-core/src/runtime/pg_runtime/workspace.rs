@@ -522,6 +522,25 @@ mod workspace_active_consumer_tests {
             )
             .unwrap()
             .get(0);
+        for (workspace, expected) in [("ws-contract", true), ("ws-other", true), ("absent", false)]
+        {
+            let count: i64 = pg
+                .query_one(
+                    &workspace_consumer_sql("count(*)", "j.workspace_id=$1", ""),
+                    &[&workspace],
+                )
+                .unwrap()
+                .get(0);
+            let exists = pg
+                .query_opt(
+                    &workspace_consumer_sql("1", "j.workspace_id=$1", " LIMIT 1"),
+                    &[&workspace],
+                )
+                .unwrap()
+                .is_some();
+            assert_eq!(exists, count != 0);
+            assert_eq!(exists, expected);
+        }
         let plans = pg
             .query(
                 &workspace_consumer_sql("j.execution_plan_json", "j.workspace_id=$1", ""),

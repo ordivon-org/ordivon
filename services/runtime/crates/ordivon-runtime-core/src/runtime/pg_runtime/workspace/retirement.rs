@@ -63,14 +63,14 @@ impl PgRuntime {
     ) -> RuntimeResult<WorkspaceCloseResult> {
         let mut db = self.store()?;
         let mut tx = self.begin_workspace_effect_tx(&mut db)?;
-        let active: i64 = tx
-            .query_one(
-                &workspace_consumer_sql("count(*)", "j.workspace_id=$1", ""),
+        let active = tx
+            .query_opt(
+                &workspace_consumer_sql("1", "j.workspace_id=$1", " LIMIT 1"),
                 &[&request.workspace_id],
             )
             .map_err(io)?
-            .get(0);
-        if active != 0 {
+            .is_some();
+        if active {
             return Err(RuntimeError::new(
                 RuntimeErrorCode::ConcurrencyLimit,
                 "Workspace has PG-owned active, held or unsettled Jobs",
@@ -81,10 +81,10 @@ impl PgRuntime {
         // A Harness Run may be paused between Jobs for an arbitrary duration.
         // Its physical claim lives here, in this Runtime DB and lock domain.
         // This guard is NEVER bypassed by a caller's consumerReleased=true.
-        let claimed: i64 = tx
-            .query_one(
-                "SELECT count(*) FROM workspace_consumer_claims
-             WHERE store_root=$1 AND workspace_id=$2 AND state='held'",
+        let claimed = tx
+            .query_opt(
+                "SELECT 1 FROM workspace_consumer_claims
+             WHERE store_root=$1 AND workspace_id=$2 AND state='held' LIMIT 1",
                 &[
                     &self
                         .config
@@ -97,8 +97,8 @@ impl PgRuntime {
                 ],
             )
             .map_err(io)?
-            .get(0);
-        if claimed != 0 {
+            .is_some();
+        if claimed {
             return Err(RuntimeError::new(
                 RuntimeErrorCode::ConcurrencyLimit,
                 "Workspace has Runtime-owned long-lived consumer Claims",
