@@ -3475,6 +3475,8 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         }
     }
     let attempt = &inspection["structuredContent"]["attempts"][0];
+    assert_eq!(attempt["exitCode"], 0);
+    assert_eq!(exec["structuredContent"]["exitCode"], attempt["exitCode"]);
     assert_eq!(attempt["startedAtMs"], started);
     assert_eq!(attempt["finishedAtMs"], finished);
     assert!(

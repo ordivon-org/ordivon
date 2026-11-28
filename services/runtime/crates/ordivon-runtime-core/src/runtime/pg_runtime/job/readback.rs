@@ -20,7 +20,7 @@ impl PgRuntime {
             PgJobReadback::Observed(s) => s,
             _ => return Err(error("inconclusive PG lifecycle")),
         };
-        let (a, p, operation) = self.readback_attempt(&mut db, &snapshot)?;
+        let (a, p, operation, exit) = self.readback_attempt(&mut db, &snapshot)?;
         let j = db
             .client
             .query_one(
@@ -33,14 +33,6 @@ impl PgRuntime {
         let (episodes, timeline, events_truncated) =
             event_projection::read_job_events(&mut db.client, job, created, event_limit)?;
         let terminal = snapshot.resolution.is_some();
-        let exit = db
-            .client
-            .query_one(
-                "SELECT exit_code FROM attempts WHERE attempt_id=$1",
-                &[&a.attempt_id],
-            )
-            .map_err(pg_read_error)?
-            .get(0);
         Ok(RuntimeJobInspection {
             schema_version: 2,
             generated_at_ms: now()? as u64,
