@@ -131,6 +131,16 @@ def parse_args() -> argparse.Namespace:
     root_stage.add_argument("--git", type=absolute_path, default=Path("/usr/bin/git"))
     root_stage.add_argument("--pretty", action="store_true")
 
+    inspect_retention = subparsers.add_parser(
+        "candidate-retention-inspect",
+        help="project bounded release retirement obligations without authorizing deletion",
+    )
+    inspect_retention.add_argument("--candidate-dir", type=absolute_path, required=True)
+    inspect_retention.add_argument("--commit", type=exact_commit, required=True)
+    inspect_retention.add_argument("--receipt-root", type=absolute_path, required=True)
+    inspect_retention.add_argument("--limit", type=int, default=25)
+    inspect_retention.add_argument("--after", default=None)
+
     prepare = subparsers.add_parser(
         "prepare", help="build one exact clean commit and write a digest-bound candidate manifest"
     )
@@ -1502,12 +1512,42 @@ def prepare_candidate(args: argparse.Namespace) -> dict[str, object]:
     write_json_atomic(args.candidate_manifest, manifest)
     return {**manifest, "candidateManifest": str(args.candidate_manifest.resolve())}
 
+def decode_release_record(raw: str | bytes) -> object:
+    """Decode without collapsing duplicate members or accepting nonfinite numbers."""
+    def unique_object(pairs: list[tuple[str, object]]) -> dict:
+        value = {}
+        for name, item in pairs:
+            if name in value:
+                raise ValueError("duplicate_record_member")
+            value[name] = item
+        return value
+
+    def reject_constant(value: str) -> object:
+        raise ValueError("nonfinite_record_number")
+
+    def finite_float(value: str) -> float:
+        import math
+        result = float(value)
+        if not math.isfinite(result):
+            raise ValueError("nonfinite_record_number")
+        return result
+
+    return json.loads(raw, object_pairs_hook=unique_object,
+                      parse_constant=reject_constant, parse_float=finite_float)
+
+
 def validate_candidate_manifest(
     args: argparse.Namespace, candidate: list[dict[str, object]]
 ) -> tuple[dict[str, object], list[str]]:
-    manifest = json.loads(args.candidate_manifest.read_text(encoding="utf-8"))
+    manifest_bytes = args.candidate_manifest.read_bytes()
+    try:
+        manifest = decode_release_record(manifest_bytes.decode("utf-8"))
+    except ValueError as error:
+        raise RuntimeError(f"invalid candidate manifest representation: {error}") from error
+    if not isinstance(manifest, dict):
+        raise RuntimeError("invalid candidate manifest representation: expected object")
     blockers: list[str] = []
-    if manifest.get("schemaVersion") != SCHEMA_VERSION:
+    if type(manifest.get("schemaVersion")) is not int or manifest["schemaVersion"] != SCHEMA_VERSION:
         blockers.append("candidate manifest schemaVersion is unsupported")
     if manifest.get("commit") != args.commit:
         blockers.append("candidate manifest commit does not match requested commit")
@@ -1540,11 +1580,25 @@ def validate_candidate_manifest(
                 blockers.append(f"candidate manifest has invalid {name} identity")
         if not isinstance(toolchain.get("host"), str) or not toolchain.get("host"):
             blockers.append("candidate manifest lacks Rust host target")
-    manifest_by_name = {
-        str(item.get("name")): item
-        for item in manifest.get("artifacts", [])
-        if isinstance(item, dict)
-    }
+    def unique_records(field: str) -> dict[str, dict[str, object]]:
+        records = manifest.get(field)
+        indexed: dict[str, dict[str, object]] = {}
+        if not isinstance(records, list):
+            blockers.append(f"candidate manifest {field} must be a list")
+            return indexed
+        for item in records:
+            if (not isinstance(item, dict) or
+                    not isinstance(item.get("name"), str) or not item["name"]):
+                blockers.append(f"candidate manifest {field} contains an invalid record")
+                continue
+            name = item["name"]
+            if name in indexed:
+                blockers.append(f"candidate manifest {field} contains duplicate name: {name}")
+                continue
+            indexed[name] = item
+        return indexed
+
+    manifest_by_name = unique_records("artifacts")
     for item in candidate:
         name = str(item["name"])
         recorded = manifest_by_name.get(name)
@@ -1552,22 +1606,29 @@ def validate_candidate_manifest(
             blockers.append(f"candidate manifest lacks release artifact {name}")
             continue
         for field in ("digest", "bytes", "mode", "kind"):
-            if recorded.get(field) != item.get(field):
+            if (type(recorded.get(field)) is not type(item.get(field))
+                    or recorded.get(field) != item.get(field)):
                 blockers.append(f"candidate release artifact does not match manifest: {name}")
                 break
     candidate_names = {str(item["name"]) for item in candidate}
     if set(manifest_by_name) != candidate_names:
         blockers.append("candidate manifest artifact set does not match requested release set")
-    manifest_binary_names = {
-        str(item.get("name"))
-        for item in manifest.get("binaries", [])
-        if isinstance(item, dict)
-    }
+    manifest_binaries = unique_records("binaries")
+    manifest_binary_names = set(manifest_binaries)
     expected_binary_names = {
         str(item["name"]) for item in candidate if item.get("kind") == "binary"
     }
     if manifest_binary_names != expected_binary_names:
         blockers.append("candidate manifest binary subset does not match release artifacts")
+    for name in manifest_binary_names & expected_binary_names:
+        artifact = manifest_by_name.get(name)
+        binary = manifest_binaries[name]
+        if artifact is None or any(
+            type(binary.get(field)) is not type(artifact.get(field))
+            or binary.get(field) != artifact.get(field)
+            for field in ("digest", "bytes", "mode", "kind")
+        ):
+            blockers.append(f"candidate manifest binary record conflicts with artifact: {name}")
     runtime_policy = None
     if args.binaries is None:
         try:
@@ -1581,7 +1642,7 @@ def validate_candidate_manifest(
             blockers.append(str(error))
     elif manifest.get("runtimePolicy") is not None:
         blockers.append("binary-subset candidate manifest must not carry Runtime policy")
-    observed_manifest_digest = sha256(args.candidate_manifest)
+    observed_manifest_digest = "sha256:" + hashlib.sha256(manifest_bytes).hexdigest()
     expected_manifest_digest = getattr(args, "candidate_manifest_digest", None)
     if expected_manifest_digest is not None and observed_manifest_digest != expected_manifest_digest:
         blockers.append("candidate manifest digest does not match structured release request")
@@ -2101,6 +2162,92 @@ def restore_previous(
             result["releaseAuthority"] = restored_environment["releaseAuthority"]
     return result
 
+def read_retention_record(path: Path) -> tuple[bytes, object]:
+    """Bound one observation to the opened regular file, not its pathname alone.
+
+    Duplicate keys and non-finite values are ambiguous evidence, even when
+    unrelated fields appear valid. This is not a namespace or effect-time lock.
+    """
+    def identity(info: os.stat_result) -> tuple:
+        return (info.st_dev, info.st_ino, info.st_mode, info.st_size,
+                info.st_mtime_ns, info.st_ctime_ns)
+
+    limit = 2 * 1024 * 1024
+    if path.resolve() != path:
+        raise ValueError("noncanonical_record")
+    before = path.lstat()
+    if not stat.S_ISREG(before.st_mode) or before.st_size > limit:
+        raise ValueError("record_not_bounded_regular_file")
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        if identity(os.fstat(fd)) != identity(before):
+            raise ValueError("record_changed_before_read")
+        with os.fdopen(fd, "rb", closefd=False) as handle:
+            raw = handle.read(limit + 1)
+        if (len(raw) > limit or identity(os.fstat(fd)) != identity(before)
+                or identity(path.lstat()) != identity(before)
+                or path.resolve() != path):
+            raise ValueError("record_changed_during_read")
+    finally:
+        os.close(fd)
+    return raw, decode_release_record(raw)
+
+
+def retention_history(deployment_root: Path, current_commit: str, keep: int) -> dict:
+    """Positive deployment observations only; malformed/missing history is explicit."""
+    deployed = []
+    issues: dict[str, int] = {}
+    checked = 0
+    def issue(name: str) -> None:
+        issues[name] = issues.get(name, 0) + 1
+    try:
+        if deployment_root.resolve() != deployment_root or not deployment_root.is_dir():
+            raise ValueError("receipt_root_unknown")
+        with os.scandir(deployment_root) as listing:
+            for child in listing:
+                checked += 1
+                if checked > 4096:
+                    issue("history_budget_exceeded")
+                    break
+                if not child.is_dir(follow_symlinks=False):
+                    if child.is_symlink():
+                        issue("noncanonical_receipt_directory")
+                    continue
+                result_path = Path(child.path) / "result.json"
+                try:
+                    _, value = read_retention_record(result_path)
+                    if not isinstance(value, dict):
+                        raise ValueError("invalid_receipt")
+                    if "status" not in value:
+                        # The shared directory also holds receipts from
+                        # other release protocols. Do not assert corruption
+                        # or interpret their state as this schema's status.
+                        issue("unclassified_receipt_schema")
+                        continue
+                    if not isinstance(value["status"], str):
+                        raise ValueError("invalid_receipt")
+                    if value["status"] != "deployed":
+                        continue
+                    commit, finished = value.get("commit"), value.get("finishedAtMs")
+                    if (not isinstance(commit, str) or not COMMIT_PATTERN.fullmatch(commit)
+                            or type(finished) is not int or finished < 0):
+                        raise ValueError("invalid_receipt")
+                    deployed.append((finished, commit))
+                except FileNotFoundError:
+                    issue("missing_result")
+                except (OSError, ValueError, TypeError):
+                    issue("invalid_receipt")
+    except (OSError, ValueError):
+        issue("receipt_root_unknown")
+    protected = {current_commit}
+    for _, commit in sorted(deployed, reverse=True):
+        if len(protected) >= keep:
+            break
+        protected.add(commit)
+    return {"protected": protected, "historyStanding": "UNKNOWN" if issues else "OBSERVED",
+            "historyIssues": issues, "historyEntriesChecked": checked}
+
+
 def prune_candidate_artifacts(
     candidate_dir: Path,
     deployment_root: Path,
@@ -2108,6 +2255,17 @@ def prune_candidate_artifacts(
     *,
     keep: int = 2,
 ) -> dict[str, object]:
+    """Project the historical retention preference without deleting release values.
+
+    A deployed receipt proves that one release succeeded at a past time; it
+    neither releases another exact candidate's consumer nor proves a retained
+    equivalent copy. The current and previous successful commits are protected,
+    and all other commit-shaped directories remain deferred until the release
+    owner supplies independent retirement evidence. Never infer deletion
+    authority from age, a missing receipt, or chronological rank. This projection
+    deliberately performs no filesystem mutation; build-cache reclamation has
+    a separate reconstructibility and native-lock contract.
+    """
     candidate_commit_dir = candidate_dir.resolve().parent
     candidate_root = candidate_commit_dir.parent
     if (
@@ -2116,42 +2274,176 @@ def prune_candidate_artifacts(
         or not candidate_root.is_dir()
     ):
         return {"status": "skipped", "reason": "nonstandard_candidate_layout", "actions": [], "failures": []}
-    deployed: list[tuple[int, str]] = []
-    for result_path in deployment_root.glob("*/result.json"):
-        try:
-            value = json.loads(result_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            continue
-        commit = value.get("commit")
-        finished = value.get("finishedAtMs")
-        if value.get("status") == "deployed" and isinstance(commit, str) and COMMIT_PATTERN.fullmatch(commit) and isinstance(finished, int):
-            deployed.append((finished, commit))
-    preserved = {current_commit}
-    for _, commit in sorted(deployed, reverse=True):
-        preserved.add(commit)
-        if len(preserved) >= keep:
-            break
-    actions: list[dict[str, object]] = []
-    failures: list[dict[str, object]] = []
-    for child in sorted(candidate_root.iterdir()):
-        if not child.is_dir() or child.is_symlink() or not COMMIT_PATTERN.fullmatch(child.name) or child.name in preserved:
-            continue
-        try:
-            byte_length = sum(
-                item.lstat().st_size
-                for item in child.rglob("*")
-                if item.is_file() and not item.is_symlink()
-            )
-            shutil.rmtree(child)
-            actions.append({"commit": child.name, "bytes": byte_length, "action": "candidate_removed"})
-        except OSError as error:
-            failures.append({"commit": child.name, "error": str(error)})
+    history = retention_history(deployment_root, current_commit, keep)
+    preserved = history["protected"]
+    deferred = [
+        child.name for child in sorted(candidate_root.iterdir())
+        if child.is_dir() and not child.is_symlink()
+        and COMMIT_PATTERN.fullmatch(child.name) and child.name not in preserved
+    ]
     return {
-        "status": "completed" if not failures else "partial",
+        "status": "deferred" if deferred else "completed",
         "candidateRoot": str(candidate_root),
         "preservedCommits": sorted(preserved),
-        "actions": actions,
-        "failures": failures,
+        "deferredCommits": deferred,
+        "historyStanding": history["historyStanding"],
+        "historyIssues": history["historyIssues"],
+        "reason": "independent_candidate_retirement_not_established" if deferred else None,
+        "actions": [],
+        "failures": [],
+    }
+
+
+def retention_manifest(child: Path) -> tuple[str, list[str]]:
+    """Observe two known manifest filenames without preferring conflicting bytes.
+
+    Historical prepare accepted an explicit --candidate-manifest path. These
+    are the two observed conventions, not proof of complete manifest coverage.
+    A missing modern name may have a qualified historical representation;
+    a present but invalid modern record must never be shadowed by another.
+    """
+    observed = []
+    for name in ("ordivon-deployment-manifest.json", "manifest.json"):
+        path = child / "release" / name
+        try:
+            path.lstat()
+        except FileNotFoundError:
+            continue
+        raw, value = read_retention_record(path)
+        if (not isinstance(value, dict) or value.get("commit") != child.name
+                or value.get("candidateDir") != str(child / "release")):
+            raise ValueError("manifest_subject_mismatch")
+        if (
+            type(value.get("schemaVersion")) is not int
+            or value["schemaVersion"] != SCHEMA_VERSION
+            or value.get("sourceMaterialization") != "detached_git_checkout"
+        ):
+            raise ValueError("manifest_schema_unqualified")
+        observed.append((path, raw))
+    if not observed:
+        raise ValueError("manifest_not_observed")
+    if any(raw != observed[0][1] for _, raw in observed):
+        raise ValueError("conflicting_manifest_representations")
+    return "sha256:" + hashlib.sha256(observed[0][1]).hexdigest(), [
+        str(path) for path, _ in observed
+    ]
+
+
+def retention_subject(child: Path, protected: set[str], *, max_entries: int = 20000) -> dict:
+    """Reverse projection: explain observed retention cost and missing evidence.
+
+    Directory/manifest identity is an observation, not a generation lease.
+    Allocation is per-subject distinct inode blocks, not exclusive free bytes.
+    Any unreadable, foreign, nonregular, symlink or over-budget subtree makes
+    the allocation UNKNOWN. No filesystem effects or consumer certification.
+    """
+    subject = {
+        "name": child.name, "path": str(child), "disposition": "UNKNOWN",
+        "allocationStanding": "UNKNOWN", "allocatedBytes": None,
+        "duplicateInodeEntries": 0, "manifestDigest": None, "manifestPaths": [],
+        "identity": None, "missingEvidence": [], "observations": [],
+    }
+    try:
+        entry = child.lstat()
+        if not stat.S_ISDIR(entry.st_mode) or child.resolve() != child:
+            subject["observations"].append("noncanonical_candidate_path")
+            subject["missingEvidence"].append("EXACT_RESOURCE_IDENTITY")
+            return subject
+        subject["identity"] = {"device": entry.st_dev, "inode": entry.st_ino,
+                               "mtimeNs": entry.st_mtime_ns}
+        standard = COMMIT_PATTERN.fullmatch(child.name) is not None
+        if standard:
+            subject["disposition"] = "PROTECTED" if child.name in protected else "DEFERRED"
+            if child.name not in protected:
+                subject["missingEvidence"] = [
+                    "EXACT_CONSUMER_RELEASE", "INDEPENDENT_PRESERVATION",
+                    "EFFECT_TIME_NATIVE_FENCE",
+                ]
+        else:
+            subject["missingEvidence"] = ["EXACT_RESOURCE_CLASSIFICATION"]
+        try:
+            subject["manifestDigest"], subject["manifestPaths"] = retention_manifest(child)
+        except (OSError, ValueError, TypeError):
+            subject["observations"].append("manifest_identity_unqualified")
+            subject["missingEvidence"].append("EXACT_MANIFEST_IDENTITY")
+        seen = set()
+        pending = [child]
+        blocks = 0
+        visited = 0
+        while pending:
+            item = pending.pop()
+            info = item.lstat()
+            visited += 1
+            if visited > max_entries:
+                raise ValueError("entry_budget_exceeded")
+            if (info.st_dev != entry.st_dev or os.path.ismount(item)
+                    or not (stat.S_ISREG(info.st_mode) or stat.S_ISDIR(info.st_mode))):
+                raise ValueError("foreign_or_nonregular_entry")
+            key = (info.st_dev, info.st_ino)
+            if key in seen:
+                subject["duplicateInodeEntries"] += 1
+                continue
+            seen.add(key)
+            blocks += info.st_blocks * 512
+            if stat.S_ISDIR(info.st_mode):
+                with os.scandir(item) as listing:
+                    for sub in listing:
+                        if visited + len(pending) >= max_entries:
+                            raise ValueError("entry_budget_exceeded")
+                        pending.append(Path(sub.path))
+        end = child.lstat()
+        if (end.st_dev, end.st_ino, end.st_mtime_ns) != (
+                entry.st_dev, entry.st_ino, entry.st_mtime_ns):
+            raise ValueError("candidate_changed_during_scan")
+        subject.update(allocationStanding="OBSERVED", allocatedBytes=blocks)
+    except (OSError, ValueError) as error:
+        subject["missingEvidence"].append("COMPLETE_ALLOCATION_OBSERVATION")
+        subject["observations"].append(
+            str(error) if isinstance(error, ValueError) else type(error).__name__
+        )
+    return subject
+
+
+def inspect_candidate_retention(args: argparse.Namespace) -> dict:
+    """Bounded read-only projection; cursor is lexical, not a stable snapshot."""
+    if not 1 <= args.limit <= 100:
+        raise ValueError("limit must be 1..100")
+    if args.after is not None and (not args.after or Path(args.after).name != args.after):
+        raise ValueError("after must be an exact child name")
+    candidate = args.candidate_dir
+    root = candidate.parent.parent
+    if (candidate.resolve() != candidate or candidate.name != "release"
+            or candidate.parent.name != args.commit or not candidate.is_dir()
+            or not root.is_dir() or root.resolve() != root):
+        raise ValueError("noncanonical candidate layout")
+    history = retention_history(args.receipt_root, args.commit, 2)
+    protected = history["protected"]
+    names = []
+    with os.scandir(root) as listing:
+        for child in listing:
+            names.append(child.name)
+            if len(names) > 4096:
+                raise ValueError("candidate root census budget exceeded")
+    remaining = sorted(n for n in names if args.after is None or n > args.after)
+    chosen = remaining[:args.limit]
+    subjects = [retention_subject(root / n, protected) for n in chosen]
+    if history["historyStanding"] == "UNKNOWN":
+        for subject in subjects:
+            if subject["disposition"] != "PROTECTED":
+                subject["missingEvidence"].append("COMPLETE_RETENTION_HISTORY")
+    return {
+        "schemaVersion": 1, "kind": "ordivon.release-retention-observation",
+        "observedAtMs": int(time.time() * 1000), "effect": "none",
+        "candidateRoot": str(root), "referenceCommit": args.commit,
+        "referenceAuthority": "caller_supplied_not_installed_state",
+        "censusCount": len(names), "subjects": subjects, "actions": [],
+        "historyStanding": history["historyStanding"],
+        "historyIssues": history["historyIssues"],
+        "historyEntriesChecked": history["historyEntriesChecked"],
+        "nextAfter": chosen[-1] if len(remaining) > len(chosen) else None,
+        "snapshotStanding": "bounded_observation_not_atomic",
+        "allocationMeaning": "distinct inode blocks per subject; not exclusive reclaim bytes",
+        "authority": "observation_only",
     }
 
 
@@ -2743,6 +3035,9 @@ def main() -> int:
         if args.command == "root-bundle-stage":
             value = stage_root_operator_bundle(args)
             print(json.dumps(value, indent=2 if args.pretty else None, sort_keys=args.pretty))
+            return 0
+        if args.command == "candidate-retention-inspect":
+            print(json.dumps(inspect_candidate_retention(args), sort_keys=True))
             return 0
         if args.command == "prepare":
             value = prepare_candidate(args)

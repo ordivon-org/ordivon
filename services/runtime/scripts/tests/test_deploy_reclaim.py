@@ -4782,6 +4782,237 @@ else:
                     conflict.stderr,
                 )
 
+    def test_candidate_retention_recovers_old_manifest_filename_without_shadowing(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            current, old = "c" * 40, "a" * 40
+            for revision in (current, old):
+                (root / "candidates" / revision / "release").mkdir(parents=True)
+            release = root / "candidates" / old / "release"
+            legacy = release / "manifest.json"
+            normal = release / "ordivon-deployment-manifest.json"
+            record = {"schemaVersion": 2, "commit": old, "candidateDir": str(release),
+                      "sourceMaterialization": "detached_git_checkout"}
+            legacy.write_text(json.dumps(record))
+            receipts = root / "receipts"
+            receipts.mkdir()
+            command = [sys.executable, "scripts/ordivon-runtime-deploy",
+                       "candidate-retention-inspect", "--candidate-dir",
+                       str(root / "candidates" / current / "release"), "--commit", current,
+                       "--receipt-root", str(receipts)]
+            def observe():
+                report = json.loads(subprocess.run(command, cwd=REPO, check=True,
+                                                  capture_output=True, text=True).stdout)
+                self.assertEqual(report["actions"], [])
+                return next(x for x in report["subjects"] if x["name"] == old)
+            subject = observe()
+            self.assertEqual(subject["manifestDigest"],
+                             "sha256:" + __import__("hashlib").sha256(legacy.read_bytes()).hexdigest())
+            self.assertEqual(subject["manifestPaths"], [str(legacy)])
+            self.assertEqual(subject["disposition"], "DEFERRED")
+            normal.write_bytes(legacy.read_bytes())
+            self.assertEqual(set(observe()["manifestPaths"]), {str(normal), str(legacy)})
+            normal.write_text(json.dumps({**record, "other": 1}))
+            subject = observe()
+            self.assertIsNone(subject["manifestDigest"])
+            self.assertIn("EXACT_MANIFEST_IDENTITY", subject["missingEvidence"])
+            normal.unlink()
+            normal.symlink_to(legacy)
+            self.assertIsNone(observe()["manifestDigest"])
+            normal.unlink()
+            legacy.write_text(json.dumps({**record, "schemaVersion": 99}))
+            self.assertIsNone(observe()["manifestDigest"])
+            legacy.unlink()
+            normal.write_text(json.dumps({**record, "schemaVersion": 99}))
+            self.assertIsNone(observe()["manifestDigest"])
+            normal.write_text(json.dumps({**record, "sourceMaterialization": "mutable_checkout"}))
+            self.assertIsNone(observe()["manifestDigest"])
+            normal.write_text(json.dumps(record))
+            self.assertEqual(observe()["manifestPaths"], [str(normal)])
+
+    def test_candidate_retention_deep_invalid_receipt_does_not_abort_census(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            current = "c" * 40
+            release = root / "candidates" / current / "release"
+            release.mkdir(parents=True)
+            receipt = root / "receipts" / "deep"
+            receipt.mkdir(parents=True)
+            (receipt / "result.json").write_text("[" * 20000 + "0" + "]" * 20000)
+            result = subprocess.run([
+                sys.executable, "scripts/ordivon-runtime-deploy",
+                "candidate-retention-inspect", "--candidate-dir", str(release),
+                "--commit", current, "--receipt-root", str(root / "receipts"),
+            ], cwd=REPO, check=True, capture_output=True, text=True)
+            report = json.loads(result.stdout)
+            self.assertEqual(report["historyStanding"], "UNKNOWN")
+            self.assertEqual(report["historyIssues"]["invalid_receipt"], 1)
+            self.assertEqual(report["actions"], [])
+
+    def test_candidate_retention_opened_record_identity_matches_observed_path(self) -> None:
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            record = root / "record.json"
+            replacement = root / "replacement.json"
+            record.write_text('{"status":"deployed"}')
+            replacement.write_text('{"status":"deployed"}')
+            scripts_path = str(REPO / "scripts")
+            sys.path.insert(0, scripts_path)
+            try:
+                namespace = runpy.run_path(str(REPO / "scripts/ordivon-runtime-deploy"))
+            finally:
+                sys.path.remove(scripts_path)
+            native_open = os.open
+            def replace_at_open(path, flags, *args, **kwargs):
+                if Path(path) == record:
+                    os.replace(replacement, record)
+                return native_open(path, flags, *args, **kwargs)
+            with patch("os.open", side_effect=replace_at_open):
+                with self.assertRaisesRegex(ValueError, "record_changed_before_read"):
+                    namespace["read_retention_record"](record)
+            self.assertTrue(record.is_file())
+
+    def test_candidate_retention_ambiguous_record_cannot_protect_or_bind(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            current, other = "c" * 40, "a" * 40
+            for revision in (current, other):
+                (root / "candidates" / revision / "release").mkdir(parents=True)
+            release = root / "candidates" / other / "release"
+            manifest = release / "ordivon-deployment-manifest.json"
+            manifest.write_text('{"commit":"wrong","commit":"' + other
+                                + '","candidateDir":' + json.dumps(str(release)) + '}')
+            for name, raw in (
+                ("duplicate", '{"status":"not_committed","status":"deployed","commit":"'
+                 + other + '","finishedAtMs":10}'),
+                ("nonfinite", '{"status":"deployed","commit":"' + other
+                 + '","finishedAtMs":11,"other":NaN}'),
+            ):
+                receipt = root / "receipts" / name
+                receipt.mkdir(parents=True)
+                (receipt / "result.json").write_text(raw)
+            report = json.loads(subprocess.run([
+                sys.executable, "scripts/ordivon-runtime-deploy",
+                "candidate-retention-inspect", "--candidate-dir",
+                str(root / "candidates" / current / "release"), "--commit", current,
+                "--receipt-root", str(root / "receipts"),
+            ], cwd=REPO, check=True, capture_output=True, text=True).stdout)
+            subject = next(x for x in report["subjects"] if x["name"] == other)
+            self.assertEqual(subject["disposition"], "DEFERRED")
+            self.assertIsNone(subject["manifestDigest"])
+            self.assertIn("EXACT_MANIFEST_IDENTITY", subject["missingEvidence"])
+            self.assertEqual(report["historyStanding"], "UNKNOWN")
+            self.assertEqual(report["historyIssues"]["invalid_receipt"], 2)
+            self.assertEqual(report["actions"], [])
+
+    def test_candidate_retention_history_corruption_is_reported_not_silenced(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            current, other = "c" * 40, "a" * 40
+            for revision in (current, other):
+                (root / "candidates" / revision / "release").mkdir(parents=True)
+            receipt = root / "receipts" / "malformed"
+            receipt.mkdir(parents=True)
+            (receipt / "result.json").write_text("[]")
+            foreign = root / "receipts" / "foreign"
+            foreign.mkdir()
+            (foreign / "result.json").write_text(json.dumps({
+                "state": "INSTALLED_CURRENT", "sourceCommit": other,
+                "sourceOwnerTree": "f" * 40, "mainPIDPreserved": True,
+            }))
+            command = [sys.executable, "scripts/ordivon-runtime-deploy",
+                       "candidate-retention-inspect", "--candidate-dir",
+                       str(root / "candidates" / current / "release"), "--commit", current,
+                       "--receipt-root", str(root / "receipts")]
+            result = subprocess.run(command, cwd=REPO, check=True, capture_output=True, text=True)
+            report = json.loads(result.stdout)
+            self.assertEqual(report["historyStanding"], "UNKNOWN")
+            self.assertEqual(report["historyIssues"]["invalid_receipt"], 1)
+            self.assertEqual(report["historyIssues"]["unclassified_receipt_schema"], 1)
+            self.assertEqual(report["actions"], [])
+            subject = next(item for item in report["subjects"] if item["name"] == other)
+            self.assertIn("COMPLETE_RETENTION_HISTORY", subject["missingEvidence"])
+            self.assertTrue((root / "candidates" / other).is_dir())
+
+    def test_candidate_retention_inspection_exposes_gaps_without_authorizing_delete(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            candidates = root / "candidates"
+            current, pending, unknown = "c" * 40, "a" * 40, "b" * 40
+            for revision in (current, pending, unknown):
+                release = candidates / revision / "release"
+                release.mkdir(parents=True)
+                (release / "runtime").write_bytes(revision.encode())
+            pending_release = candidates / pending / "release"
+            manifest = pending_release / "ordivon-deployment-manifest.json"
+            manifest.write_text(json.dumps({"schemaVersion": 2, "commit": pending,
+                                           "candidateDir": str(pending_release),
+                                           "sourceMaterialization": "detached_git_checkout"}))
+            os.link(pending_release / "runtime", pending_release / "runtime-copy")
+            (candidates / unknown / "release" / "foreign").symlink_to(root)
+            (candidates / "legacy-name").mkdir()
+            receipts = root / "receipts"
+            receipts.mkdir()
+            command = [sys.executable, "scripts/ordivon-runtime-deploy",
+                       "candidate-retention-inspect", "--candidate-dir",
+                       str(candidates / current / "release"), "--commit", current,
+                       "--receipt-root", str(receipts), "--limit", "10"]
+            result = subprocess.run(command, cwd=REPO, check=True, capture_output=True, text=True)
+            report = json.loads(result.stdout)
+            by_name = {item["name"]: item for item in report["subjects"]}
+            self.assertEqual(report["effect"], "none")
+            self.assertEqual(report["actions"], [])
+            self.assertEqual(by_name[pending]["disposition"], "DEFERRED")
+            self.assertEqual(by_name[pending]["manifestDigest"], "sha256:" + __import__("hashlib").sha256(manifest.read_bytes()).hexdigest())
+            self.assertIn("EXACT_CONSUMER_RELEASE", by_name[pending]["missingEvidence"])
+            self.assertIn("INDEPENDENT_PRESERVATION", by_name[pending]["missingEvidence"])
+            self.assertEqual(by_name[pending]["duplicateInodeEntries"], 1)
+            self.assertEqual(by_name[unknown]["allocationStanding"], "UNKNOWN")
+            self.assertEqual(by_name["legacy-name"]["disposition"], "UNKNOWN")
+            self.assertEqual(by_name[current]["disposition"], "PROTECTED")
+            self.assertTrue((pending_release / "runtime").is_file())
+            command[-1] = "1"
+            first = json.loads(subprocess.run(command, cwd=REPO, check=True, capture_output=True, text=True).stdout)
+            self.assertEqual(len(first["subjects"]), 1)
+            self.assertIsNotNone(first["nextAfter"])
+            second = json.loads(subprocess.run(command + ["--after", first["nextAfter"]], cwd=REPO, check=True, capture_output=True, text=True).stdout)
+            self.assertNotEqual(first["subjects"][0]["name"], second["subjects"][0]["name"])
+
+    def test_candidate_prune_preserves_unqualified_unique_release_bytes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            current = "c" * 40
+            prior = "b" * 40
+            pending = "a" * 40
+            candidates = root / "candidates"
+            for revision in (current, prior, pending):
+                release = candidates / revision / "release"
+                release.mkdir(parents=True)
+                (release / "runtime").write_bytes(revision.encode())
+            receipt_root = root / "deployments"
+            receipt_root.mkdir()
+            old = receipt_root / "old"
+            old.mkdir()
+            (old / "result.json").write_text(json.dumps({
+                "status": "deployed", "commit": prior, "finishedAtMs": 10
+            }))
+            scripts_path = str(REPO / "scripts")
+            sys.path.insert(0, scripts_path)
+            try:
+                namespace = runpy.run_path(str(REPO / "scripts/ordivon-runtime-deploy"))
+            finally:
+                sys.path.remove(scripts_path)
+            result = namespace["prune_candidate_artifacts"](
+                candidates / current / "release", receipt_root, current, keep=2,
+            )
+            self.assertTrue((candidates / pending / "release" / "runtime").is_file(),
+                            "deployment chronology is not a release-consumer disposition")
+            self.assertEqual((candidates / pending / "release" / "runtime").read_bytes(),
+                             pending.encode())
+            self.assertEqual(result["actions"], [])
+            self.assertIn(pending, result["deferredCommits"])
+
     def test_candidate_prune_keeps_current_and_previous_deployments(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -4822,12 +5053,16 @@ else:
                 current,
                 keep=2,
             )
-            self.assertEqual(result["status"], "completed")
+            self.assertEqual(result["status"], "deferred")
             self.assertTrue((candidate_root / current).is_dir())
             self.assertTrue((candidate_root / previous).is_dir())
-            self.assertFalse((candidate_root / obsolete).exists())
+            self.assertTrue((candidate_root / obsolete).exists())
             self.assertTrue((candidate_root / "notes").is_dir())
-            self.assertEqual(result["actions"][0]["commit"], obsolete)
+            self.assertEqual(result["preservedCommits"], [previous, current])
+            self.assertEqual(result["deferredCommits"], [obsolete])
+            self.assertEqual(result["actions"], [])
+            self.assertEqual((candidate_root / obsolete / "release" / "runtime").read_text(),
+                             obsolete)
 
     def test_explicit_rollback_rejects_tampered_previous_binary(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
