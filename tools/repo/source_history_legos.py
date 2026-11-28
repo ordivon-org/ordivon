@@ -32,6 +32,9 @@ def _source_git_env() -> dict[str, str]:
     env = {key: value for key, value in os.environ.items()
            if not key.startswith("GIT_")}
     env["GIT_GRAFT_FILE"] = os.devnull
+    # A source-history projection is observational: a promisor/partial clone
+    # must fail closed on missing objects instead of fetching them implicitly.
+    env["GIT_NO_LAZY_FETCH"] = "1"
     return env
 
 
