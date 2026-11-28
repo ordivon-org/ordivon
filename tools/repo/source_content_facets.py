@@ -98,7 +98,7 @@ def content_probe(path: str, mode: str, size: int, content: bytes | None) -> dic
         return {"contentForm":"OPAQUE_BINARY_BYTES","readStanding":"OPAQUE_ENCODING"}
     if ext in (".json",".jsonl"):
         try:
-            doc=json.loads(text if ext==".json" else text.splitlines()[0])
+            doc=json.loads(content if ext==".json" else text.splitlines()[0])
         except (ValueError,IndexError) as e:
             return {"contentForm":"JSON_SYNTAX_UNQUALIFIED","readStanding":"PARSE_FAILURE",
                     "errorClass":type(e).__name__}
