@@ -14,11 +14,106 @@ from ordivon_harness.ordivon.turn_projection import (
 from ordivon_harness.working_view import (
     HarnessWorkingSetPin,
     HarnessWorkingSetSourceRef,
+    HarnessWorkingSetSpec,
     HarnessWorkingView,
+    HarnessWorkingViewSource,
+    compile_working_view,
+    compile_working_view_with_refs,
 )
 
 
+class WorkingViewSourceIdentityTests(unittest.TestCase):
+    def test_source_identity_survives_detached_message_mutations(self) -> None:
+        message = {"role": "user", "content": {"sections": ["original"]}}
+        source = HarnessWorkingViewSource("source://identity", "g1", (message,))
+        original = source.to_dict()
+        digest = source.digest
+        self.assertEqual(original, {
+            "schemaVersion": 1,
+            "kind": "ordivon.harness-working-view-source",
+            "logicalRef": "source://identity",
+            "logicalGeneration": "g1",
+            "messages": [{"role": "user", "content": {"sections": ["original"]}}],
+        })
+        self.assertEqual(digest, canonical_digest(original))
+        message["content"]["sections"].append("caller-change")
+        source.messages[0]["content"]["sections"].append("read-change")
+        exported = source.to_dict()
+        exported["messages"][0]["content"]["sections"].append("export-change")
+        self.assertEqual(source.digest, digest)
+        self.assertEqual(source.to_dict(), original)
+        self.assertEqual(source.messages[0]["content"], {"sections": ["original"]})
+
+    def test_exact_source_roundtrip_preserves_projection_and_detaches_wire_input(self) -> None:
+        original = HarnessWorkingViewSource(
+            "source://identity", "g1", ({"role": "user", "content": {"items": [1]}},)
+        )
+        wire = original.to_dict()
+        restored = HarnessWorkingViewSource.from_dict(wire)
+        digest = restored.digest
+        wire["messages"][0]["content"]["items"].append(2)
+        pin = HarnessWorkingSetPin("task", restored.logical_ref, restored.logical_generation, digest)
+        spec = HarnessWorkingSetSpec.initial("attempt:identity", pins=(pin,)).commit("test")
+
+        class Objects:
+            def get_object(self, object_digest, *, expected_kind=None):
+                if object_digest != restored.digest or expected_kind != "harness-working-view-source":
+                    raise ValueError("source identity differs")
+                return restored.to_dict()
+
+        view = compile_working_view(spec, Objects())
+        self.assertEqual(view.messages, original.messages)
+        self.assertEqual(restored.digest, original.digest)
+        self.assertEqual(restored.to_dict(), original.to_dict())
+
+
 class R2TurnProjectionKernelTests(unittest.TestCase):
+    def test_equal_message_projection_does_not_identify_working_set_selection(self) -> None:
+        source = HarnessWorkingViewSource(
+            logical_ref="source://r2/shared",
+            logical_generation="g1",
+            messages=({"role": "user", "content": "same selected bytes"},),
+        )
+
+        class Objects:
+            def get_object(self, digest, *, expected_kind=None):
+                if (
+                    digest != source.digest
+                    or expected_kind != "harness-working-view-source"
+                ):
+                    raise KeyError(digest)
+                return source.to_dict()
+
+        def selection(slot):
+            return HarnessWorkingSetSpec.initial(
+                "working-attempt:r2-selection",
+                pins=(
+                    HarnessWorkingSetPin(
+                        slot=slot,
+                        logical_ref=source.logical_ref,
+                        logical_generation=source.logical_generation,
+                        resolved_digest=source.digest,
+                    ),
+                ),
+            )
+
+        a, b = selection("a"), selection("b")
+        a_view, a_refs = compile_working_view_with_refs(a.commit("select"), Objects())
+        b_view, b_refs = compile_working_view_with_refs(b.commit("select"), Objects())
+        self.assertEqual(a_view.messages, b_view.messages)
+        self.assertNotEqual(a_view.digest, b_view.digest)
+        self.assertNotEqual(a_refs, b_refs)
+        # A legal mutation of the mutable selections also separates their future
+        # committed message projections. Current bytes are not a congruence.
+        a_next, _ = compile_working_view_with_refs(
+            a.remove_pin("a").commit("select"), Objects()
+        )
+        b_next, _ = compile_working_view_with_refs(
+            b.remove_pin("a").commit("select"), Objects()
+        )
+        self.assertEqual(a_next.messages, ())
+        self.assertEqual(b_next.messages, source.messages)
+
     def test_nonprojected_turn_preserves_canonical_request_shape_and_runtime_tools(self) -> None:
         canonical = ({"role": "user", "content": "canonical"},)
         tool = AgentToolDefinition(

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Protocol
+from dataclasses import dataclass, field
+from typing import Any, Protocol, cast
 
-from anc_canonical import JsonValue, canonical_digest, validate_json_value, validate_digest
+from anc_canonical import (
+    JsonValue, canonical_bytes, canonical_digest, digest_bytes, loads_strict, validate_json_value, validate_digest,
+)
 
 WORKING_SET_HISTORY_CONTROL_NAME = "inspect_working_set_history"
 
@@ -33,7 +35,7 @@ def _text(value: Any, label: str, *, max_bytes: int = 500) -> str:
     return value
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, init=False)
 class HarnessWorkingViewSource:
     """Exact model-visible source material addressable by one logical reference.
 
@@ -44,28 +46,44 @@ class HarnessWorkingViewSource:
 
     logical_ref: str
     logical_generation: str
-    messages: tuple[dict[str, JsonValue], ...]
+    _source_bytes: bytes = field(repr=False)
 
-    def __post_init__(self) -> None:
-        _text(self.logical_ref, "Working View source logical reference")
-        _text(self.logical_generation, "Working View source logical generation")
-        if not self.messages:
+    def __init__(
+        self,
+        logical_ref: str,
+        logical_generation: str,
+        messages: tuple[dict[str, JsonValue], ...],
+    ) -> None:
+        _text(logical_ref, "Working View source logical reference")
+        _text(logical_generation, "Working View source logical generation")
+        if not messages:
             raise ValueError("Working View source requires at least one message")
-        for message in self.messages:
-            validate_json_value(message)
+        # Reuse the sealed canonical snapshot pattern from AgentStructuredResult.
+        # The admitted source identity must not depend on mutable caller/read views.
+        object.__setattr__(self, "logical_ref", logical_ref)
+        object.__setattr__(self, "logical_generation", logical_generation)
+        object.__setattr__(
+            self,
+            "_source_bytes",
+            canonical_bytes({
+                "schemaVersion": 1,
+                "kind": "ordivon.harness-working-view-source",
+                "logicalRef": logical_ref,
+                "logicalGeneration": logical_generation,
+                "messages": list(messages),
+            }),
+        )
+
+    @property
+    def messages(self) -> tuple[dict[str, JsonValue], ...]:
+        return tuple(cast(list[dict[str, JsonValue]], self.to_dict()["messages"]))
 
     @property
     def digest(self) -> str:
-        return canonical_digest(self.to_dict())
+        return digest_bytes(self._source_bytes)
 
     def to_dict(self) -> dict[str, JsonValue]:
-        return {
-            "schemaVersion": 1,
-            "kind": "ordivon.harness-working-view-source",
-            "logicalRef": self.logical_ref,
-            "logicalGeneration": self.logical_generation,
-            "messages": list(self.messages),
-        }
+        return cast(dict[str, JsonValue], loads_strict(self._source_bytes))
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> HarnessWorkingViewSource:
@@ -89,7 +107,7 @@ class HarnessWorkingViewSource:
         return cls(
             logical_ref=value["logicalRef"],
             logical_generation=value["logicalGeneration"],
-            messages=tuple(dict(item) for item in raw_messages),
+            messages=tuple(raw_messages),
         )
 
 
@@ -617,7 +635,7 @@ def compile_working_view_with_refs(
         ):
             raise ValueError("Working Set pin differs from its exact source object")
         start = len(messages)
-        messages.extend(dict(message) for message in source.messages)
+        messages.extend(source.messages)
         refs.append(
             HarnessWorkingSetSourceRef(
                 pin=pin,
