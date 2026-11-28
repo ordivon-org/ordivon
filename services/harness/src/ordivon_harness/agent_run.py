@@ -450,13 +450,6 @@ class HarnessAgentRun:
             and self.contract.tool_grant_digest == NO_TOOL_AGENT_GRANT_DIGEST
         )
 
-    @property
-    def _runtime_search_surface(self) -> bool:
-        return (
-            self.contract.tool_catalog_digest == INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST
-            and self.contract.tool_grant_digest == INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST
-        )
-
     @staticmethod
     def _resolve_adapter(
         contract: HarnessRunContract,
