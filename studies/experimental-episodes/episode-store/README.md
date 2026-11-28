@@ -43,14 +43,23 @@ No raw owner payload, prompt, workspace snapshot, execution plan, event payload,
   normalization stay at their respective boundaries. Independent explicit SQL
   fixtures verify stored fields, optional values and JSON null without using
   the shared mapping; this is intentional test-oracle independence.
-- Progress: digest consolidation and projection mapping consolidation are
-  source-complete; disposable PostgreSQL 18.7 qualification and the
-  independent swapped-anchor negative control passed. No database migration,
-  deployment, or new runtime dependency was introduced.
-- Next candidates: compare receipt identity construction/replay/readback
-  field mappings for semantic duplication; evaluate repeated analysis
-  aggregation only against a real consumer. Preserve the independent SQL
-  oracle and do not replace it with shared implementation assertions.
+- Receipt identity binds the six wire fields to PostgreSQL columns once.
+  Admission and replay reuse the same expected receipt fields; readback
+  reconstructs the canonical identity from that binding. The independent
+  explicit SQL test checks persisted fields, and eight receipt mutations
+  cover all identity fields, standing and Episode count. Existing identity,
+  receipt shape and PostgreSQL transaction semantics remain unchanged.
+- Progress: all three source consolidations are committed; disposable
+  PostgreSQL 18.7 qualification now passes 72 tests with no skips. No database
+  migration, deployment or new runtime dependency was introduced.
+- Verification caveat: the prior swap-and-restore mutation experiment left
+  stale Python bytecode in the Runtime's workspace cache despite correct
+  source bytes. A fresh `PYTHONPYCACHEPREFIX` independently restored correct
+  execution and passed the full baseline and candidate. Use distinct caches
+  for temporary source mutations and their subsequent verification.
+- Next candidates: evaluate repeated analysis aggregation only against a
+  real consumer; review runtime cache invalidation with its natural owner.
+  Preserve independent SQL oracles; do not substitute shared assertions.
 
 ## Migration law
 

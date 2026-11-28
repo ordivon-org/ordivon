@@ -119,6 +119,19 @@ def _load_episodes(path: Path, profile_id: str) -> list[dict[str, Any]]:
         return _load_episodes_from_lines(handle, profile_id, path)
 
 
+# The six identity fields have a single wire-to-storage binding. The
+# existing public function signature and canonical JSON identity stay stable.
+_INGEST_IDENTITY_COLUMNS = {
+    "corpus_id": "corpusId",
+    "profile_id": "profileId",
+    "source_file_digest": "sourceFileDigest",
+    "projection_set_digest": "projectionSetDigest",
+    "schema_digest": "schemaDigest",
+    "adapter_digest": "adapterDigest",
+}
+_INGEST_ACCEPTED = "PASS_IDEMPOTENT_PROJECTION_INGEST"
+
+
 def build_ingest_identity(
     *,
     corpus_id: str,
@@ -128,15 +141,18 @@ def build_ingest_identity(
     schema_digest: str,
     adapter_digest: str,
 ) -> tuple[str, dict[str, str]]:
-    material = {
-        "corpusId": corpus_id,
-        "profileId": profile_id,
-        "sourceFileDigest": _require_sha256(source_file_digest, "source_file_digest"),
-        "projectionSetDigest": _require_sha256(
+    fields = {
+        "corpus_id": corpus_id,
+        "profile_id": profile_id,
+        "source_file_digest": _require_sha256(source_file_digest, "source_file_digest"),
+        "projection_set_digest": _require_sha256(
             projection_set_digest, "projection_set_digest"
         ),
-        "schemaDigest": _require_sha256(schema_digest, "schema_digest"),
-        "adapterDigest": _require_sha256(adapter_digest, "adapter_digest"),
+        "schema_digest": _require_sha256(schema_digest, "schema_digest"),
+        "adapter_digest": _require_sha256(adapter_digest, "adapter_digest"),
+    }
+    material = {
+        wire: fields[column] for column, wire in _INGEST_IDENTITY_COLUMNS.items()
     }
     return "ingest:" + canonical_digest(material), material
 
@@ -350,18 +366,14 @@ def ingest_file(
         adapter_digest=adapter_digest,
     )
 
+    expected = {
+        "ingest_id": ingest_id,
+        **{column: identity[wire] for column, wire in _INGEST_IDENTITY_COLUMNS.items()},
+        "episode_count": len(episodes),
+        "standing": _INGEST_ACCEPTED,
+    }
+
     def replay(existing: dict[str, Any]) -> dict[str, Any]:
-        expected = {
-            "ingest_id": ingest_id,
-            "corpus_id": corpus_id,
-            "profile_id": profile_id,
-            "source_file_digest": source_digest,
-            "projection_set_digest": identity["projectionSetDigest"],
-            "schema_digest": identity["schemaDigest"],
-            "adapter_digest": identity["adapterDigest"],
-            "episode_count": len(episodes),
-            "standing": "PASS_IDEMPOTENT_PROJECTION_INGEST",
-        }
         if any(existing[key] != value for key, value in expected.items()):
             raise EpisodeStoreError(
                 "existing ingest receipt conflicts with source identity"
@@ -390,30 +402,16 @@ def ingest_file(
 
         inserted = sum(_insert_episode(conn, episode) for episode in episodes)
         _check_stored_projection_rows(conn, episodes)
-        standing = "PASS_IDEMPOTENT_PROJECTION_INGEST"
+        receipt = {**expected, "inserted_projection_count": inserted}
         admitted = conn.execute(
-            """
-            INSERT INTO projection_ingests(
-              ingest_id, corpus_id, profile_id, source_file_digest,
-              projection_set_digest, schema_digest, adapter_digest,
-              episode_count, inserted_projection_count, standing
-            )
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            ON CONFLICT (ingest_id) DO NOTHING
-            RETURNING ingest_id
-            """,
-            (
-                ingest_id,
-                corpus_id,
-                profile_id,
-                source_digest,
-                identity["projectionSetDigest"],
-                identity["schemaDigest"],
-                identity["adapterDigest"],
-                len(episodes),
-                inserted,
-                standing,
+            sql.SQL(
+                "INSERT INTO projection_ingests ({}) VALUES ({}) "
+                "ON CONFLICT (ingest_id) DO NOTHING RETURNING ingest_id"
+            ).format(
+                sql.SQL(", ").join(map(sql.Identifier, receipt)),
+                sql.SQL(", ").join(sql.Placeholder(column) for column in receipt),
             ),
+            receipt,
         ).fetchone()
         if admitted is None:
             # Two writers observed no receipt concurrently. The unique index
@@ -438,7 +436,7 @@ def ingest_file(
         "insertedProjectionCountThisRun": inserted,
         "retainedOriginalInsertedProjectionCount": inserted,
         "replayExistingIngest": False,
-        "standing": standing,
+        "standing": _INGEST_ACCEPTED,
     }
 
 
@@ -468,16 +466,11 @@ def read_committed_ingest_source(
         if row is None:
             raise EpisodeStoreError("no committed projection ingest for identity")
         calculated, _ = build_ingest_identity(
-            corpus_id=row["corpus_id"],
-            profile_id=row["profile_id"],
-            source_file_digest=row["source_file_digest"],
-            projection_set_digest=row["projection_set_digest"],
-            schema_digest=row["schema_digest"],
-            adapter_digest=row["adapter_digest"],
+            **{column: row[column] for column in _INGEST_IDENTITY_COLUMNS}
         )
         if (
             calculated != ingest_id
-            or row["standing"] != "PASS_IDEMPOTENT_PROJECTION_INGEST"
+            or row["standing"] != _INGEST_ACCEPTED
             or row["episode_count"] < 0
         ):
             raise EpisodeStoreError(
