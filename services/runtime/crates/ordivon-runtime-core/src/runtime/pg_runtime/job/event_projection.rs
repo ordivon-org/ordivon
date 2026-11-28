@@ -3,7 +3,7 @@ use super::*;
 // The aggregate and bounded timeline must observe the SAME PostgreSQL
 // statement snapshot. A timeline limit is not an episode-count limit.
 pub(super) fn read_job_events(
-    client: &mut postgres::Client,
+    client: &mut impl postgres::GenericClient,
     job: &str,
     created: u64,
     limit: u32,

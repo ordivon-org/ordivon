@@ -13,25 +13,32 @@ impl PgRuntime {
         }
         let mut db = self.store()?;
         self.authorize(&mut db, job, principal)?;
-        let snapshot = match db
-            .observe_job_readonly(job, &self.config.source_sha256)
-            .map_err(pg)?
-        {
-            PgJobReadback::Observed(s) => s,
-            _ => return Err(error("inconclusive PG lifecycle")),
-        };
-        let (a, p, operation, exit) = self.readback_attempt(&mut db, &snapshot)?;
-        let j = db
+        let mut tx = db
             .client
+            .build_transaction()
+            .isolation_level(postgres::IsolationLevel::RepeatableRead)
+            .read_only(true)
+            .start()
+            .map_err(pg_read_error)?;
+        let snapshot =
+            match PgAdmissionStore::observe_job_snapshot(&mut tx, job, &self.config.source_sha256)
+                .map_err(pg)?
+            {
+                PgJobReadback::Observed(s) => s,
+                _ => return Err(error("inconclusive PG lifecycle")),
+            };
+        let (a, p, operation, exit) = self.readback_attempt(&mut tx, &snapshot)?;
+        let j = tx
             .query_one(
                 "SELECT client_request_id,created_at_ms FROM jobs WHERE job_id=$1",
                 &[&job],
             )
             .map_err(pg_read_error)?;
-        let artifacts = read_artifact_summary(&mut db.client, job)?;
+        let artifacts = read_artifact_summary(&mut tx, job)?;
         let created = j.get::<_, i64>(1) as u64;
         let (episodes, timeline, events_truncated) =
-            event_projection::read_job_events(&mut db.client, job, created, event_limit)?;
+            event_projection::read_job_events(&mut tx, job, created, event_limit)?;
+        tx.commit().map_err(pg_read_error)?;
         let terminal = snapshot.resolution.is_some();
         Ok(RuntimeJobInspection {
             schema_version: 2,
@@ -91,7 +98,7 @@ impl PgRuntime {
 // Count and classification are observations of the same statement snapshot.
 // The empty grouping set guarantees a zero total even without any artifacts.
 fn read_artifact_summary(
-    client: &mut postgres::Client,
+    client: &mut impl postgres::GenericClient,
     job: &str,
 ) -> RuntimeResult<RuntimeInspectionArtifactSummary> {
     let rows = client
