@@ -8,6 +8,7 @@ flow and is qualified only with an explicitly supplied real test DSN.
 from __future__ import annotations
 
 from dataclasses import replace
+from itertools import product
 from pathlib import Path
 import unittest
 
@@ -195,19 +196,25 @@ class ProviderTokenCounterCoveragePgTests(PostgresAgentRunCase, unittest.TestCas
                 )
                 self.assertTrue(run.doctor()["healthy"])
 
-    def test_cancelled_return_preserves_privacy_and_no_tool_effect(self) -> None:
-        for allow_model, allow_tool, paused_first in (
+    def test_stopped_return_preserves_privacy_and_no_tool_effect(self) -> None:
+        cases = (
             (True, True, False),
             (True, False, False),
             (False, True, False),
+            (False, False, False),
             (True, True, True),
+        )
+        for stop, (allow_model, allow_tool, paused_first) in product(
+            ("cancelled", "budget_exhausted"), cases
         ):
             with self.subTest(
-                allow_model=allow_model, allow_tool=allow_tool, paused_first=paused_first
+                stop=stop, allow_model=allow_model, allow_tool=allow_tool,
+                paused_first=paused_first,
             ):
-                tag = f"k8-privacy-{int(allow_model)}{int(allow_tool)}{int(paused_first)}"
+                tag = f"k8-privacy-{stop}-{int(allow_model)}{int(allow_tool)}{int(paused_first)}"
                 clock = FixedClock()
-                cancellation = CancellationToken(monotonic_ms=clock)
+                monotonic = FixedClock()
+                cancellation = CancellationToken(monotonic_ms=monotonic)
                 value = contract(
                     tag, tools=True, allow_model_content=allow_model,
                     allow_tool_content=allow_tool,
@@ -235,13 +242,16 @@ class ProviderTokenCounterCoveragePgTests(PostgresAgentRunCase, unittest.TestCas
                 class StopOnReturnAdapter(ScriptedTurnAdapter):
                     def invoke(self, request):
                         result = super().invoke(request)
-                        cancellation.cancel()
+                        if stop == "cancelled":
+                            cancellation.cancel()
+                        else:
+                            monotonic.value += 10_001
                         return result
 
                 runtime = NoEffectRuntime()
                 adapter = StopOnReturnAdapter((turn,))
                 kwargs = dict(
-                    clock_ms=clock, monotonic_ms=clock,
+                    clock_ms=clock, monotonic_ms=monotonic,
                     execution_binding=execution_binding(value), runtime=runtime,
                 )
                 if paused_first:
@@ -274,7 +284,7 @@ class ProviderTokenCounterCoveragePgTests(PostgresAgentRunCase, unittest.TestCas
                 completed_trace = [
                     event for event in terminal.trace.events if event.kind == "model_call_completed"
                 ]
-                self.assertEqual(result.stop_code.value, "cancelled")
+                self.assertEqual(result.stop_code.value, stop)
                 self.assertIsNone(result.conclusion)
                 self.assertEqual(result.tool_calls, 0)
                 self.assertEqual(runtime.calls, [])
