@@ -253,7 +253,8 @@ class HarnessProviderCallRecordV3(_HarnessProviderCallRecordBase):
     def from_dict(cls, value: dict[str, Any]) -> HarnessProviderCallRecordV3:
         _exact(value, _PROVIDER_RECORD_FIELDS_WITH_REQUEST_OBJECT, "HarnessProviderCallRecordV3")
         if (
-            value["schemaVersion"] != 3
+            type(value["schemaVersion"]) is not int
+            or value["schemaVersion"] != 3
             or value["kind"] != "ordivon.harness-provider-call-record"
         ):
             raise HarnessProtocolError(
@@ -295,7 +296,8 @@ class HarnessProviderCallRecordV4(_HarnessProviderCallRecordBase):
     def from_dict(cls, value: dict[str, Any]) -> HarnessProviderCallRecordV4:
         _exact(value, _PROVIDER_RECORD_FIELDS_WITH_REQUEST_OBJECT, "HarnessProviderCallRecordV4")
         if (
-            value["schemaVersion"] != 4
+            type(value["schemaVersion"]) is not int
+            or value["schemaVersion"] != 4
             or value["kind"] != "ordivon.harness-provider-call-record"
         ):
             raise HarnessProtocolError(
@@ -391,7 +393,11 @@ class HarnessDispatchFenceV2:
             },
             "HarnessDispatchFenceV2",
         )
-        if value["schemaVersion"] != 2 or value["kind"] != "ordivon.harness-dispatch-fence":
+        if (
+            type(value["schemaVersion"]) is not int
+            or value["schemaVersion"] != 2
+            or value["kind"] != "ordivon.harness-dispatch-fence"
+        ):
             raise HarnessProtocolError("HarnessDispatchFenceV2 version or kind is invalid")
         return cls(
             fence_id=value["fenceId"],

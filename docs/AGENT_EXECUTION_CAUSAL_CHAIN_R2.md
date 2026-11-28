@@ -30,7 +30,7 @@ Gateway `ExecutionObservation.delivery_disposition` passes through the Runtime o
 | `reconciliation_required` | regardless of terminal or `recovery_required` flag | `RECONCILE_ORIGINAL_OPERATION` | unknown; no auto-retry |
 | `committed` | terminal, conclusive resolution and verified Runner result | `VERIFY_DOMAIN_EFFECT_WITH_OWNER` | process/delivery result only; provider effect not established |
 
-`recovery_required=true` and owner state `reconcile_required` separately force `RECONCILE_ORIGINAL_OPERATION`. Inconsistent/malformed or foreign operation identities fail closed, but a valid fourth delivery value must not become an unknown protocol failure. C06 still accepts a synthetic historical `external.pull` operation as caller-provided data; only `runtime.linux`, `runtime.windows`, and `runtime.harness` are recognized by Gateway's current native `execution_refs.py`. Keep those separate until actual legacy consumer retirement is proved.
+`recovery_required=true` and owner state `reconcile_required` separately force `RECONCILE_ORIGINAL_OPERATION`. Inconsistent/malformed or foreign operation identities fail closed, but a valid fourth delivery value must not become an unknown protocol failure. Current C06 source admission rejects the retired `external.pull` operation and matches the three owner identities recognized by Gateway's native `execution_refs.py`: `runtime.linux`, `runtime.windows`, and `runtime.harness`. Historical records remain historical; this source migration does not establish installed or archive-consumer closure.
 
 ## Source → formal model → implementation → real consumer
 

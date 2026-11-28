@@ -60,3 +60,30 @@ def test_ol_foundations_are_retrieved_by_real_skill_consumer() -> None:
         assert result.next_offset is None
         assert result.instruction_digest == record.instruction_digest
         assert result.package_revision == record.package_revision
+
+
+def test_topic_retirement_contract_reaches_qualified_skill_consumer() -> None:
+    repo = Path(__file__).resolve().parents[3]
+    catalog = SkillCatalog.scan([
+        SkillSource(
+            "project-ordivon-next", repo / ".agents" / "skills",
+            "project", 900, TrustState.TRUSTED,
+        )
+    ])
+    context = SkillContext(workspace_path=repo)
+    resolution = catalog.resolve("recursive-lego-calculus", context=context)
+    guide = catalog.read_text(
+        resolution.resolved.skill_id,
+        relative_path="references/owner-provider-human-agent.md",
+        context=context,
+        expected_snapshot_revision=resolution.snapshot_revision,
+        projection="raw",
+    ).content
+    for obligation in (
+        "explicit supersession",
+        "expectedHighSequence",
+        "NOT_FOUND",
+        "UNKNOWN",
+        "read back",
+    ):
+        assert obligation in guide, obligation

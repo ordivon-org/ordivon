@@ -177,3 +177,30 @@ def test_cli_usage_exists_without_credentials(capsys):
         main(["--help"])
     assert exc.value.code == 0
     assert "--request" in capsys.readouterr().out
+
+
+def test_cli_rejects_boolean_schema_version_before_governance(tmp_path):
+    from ordivon_capital.trading.okx_demo_execution import main
+
+    policy = tmp_path / "policy.json"
+    policy.write_text(json.dumps({
+        "standing": "PREPARED_NOT_ADMITTED",
+        "demoWriteAdmission": "NOT_ADMITTED",
+        "liveWriteAdmission": "NOT_ADMITTED",
+        "externalFinancialWritesAllowed": False,
+        "venues": {"OKX": {"environment": "DEMO", "orderSubmissionAllowed": False}},
+    }))
+    request = tmp_path / "request.json"
+    request.write_text(json.dumps({
+        "schemaVersion": True,
+        "operation": "PLACE_LIMIT",
+        "parameters": {
+            "instrument_id": "BTC-USDT",
+            "side": "buy",
+            "size": "0.001",
+            "limit_price": "40000",
+            "client_order_id": "Ordivon20261107Bool",
+        },
+    }))
+    with pytest.raises(ValueError, match="request must be versioned exact object"):
+        main(["--request", str(request), "--policy", str(policy)])

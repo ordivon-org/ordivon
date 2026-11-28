@@ -315,7 +315,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--transport", choices=("official", "reference"), default="official")
     args = parser.parse_args(argv)
     request = json.loads(args.request.read_text(encoding="utf-8"))
-    if not isinstance(request, dict) or request.get("schemaVersion") != 1:
+    if (
+        not isinstance(request, dict)
+        or type(request.get("schemaVersion")) is not int
+        or request["schemaVersion"] != 1
+    ):
         raise ValueError("request must be versioned exact object")
     operation = request.get("operation")
     parameters = request.get("parameters", {})

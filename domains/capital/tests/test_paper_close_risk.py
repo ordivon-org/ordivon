@@ -356,3 +356,11 @@ def test_accounting_readback_rejects_a_tampered_committed_request():
         )
     with pytest.raises(ValueError, match="stored request disagree"):
         read_committed_paper_close(dsn, account, day1.session)
+
+
+def test_boolean_schema_version_does_not_refine_paper_receipt_v1() -> None:
+    _, _, snapshot, day0, day1 = _evidence()
+    receipt = _receipt(snapshot, day0, day1)
+    receipt["schema_version"] = True
+    with pytest.raises(PaperRiskEvidenceError, match="native paper Accounting receipt"):
+        review_paper_close_risk(receipt=receipt, snapshot=snapshot)

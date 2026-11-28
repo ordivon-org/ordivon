@@ -182,6 +182,63 @@ class StructuredResultConformanceTests(unittest.TestCase):
                 },
             )
 
+    def test_standard_dialect_requires_local_reference_closure_at_admission(self) -> None:
+        cases = (
+            (
+                "missing-local-ref",
+                {
+                    "type": "object",
+                    "properties": {"choice": {"$ref": "#/$defs/missing"}},
+                },
+            ),
+            (
+                "unbound-external-ref",
+                {
+                    "type": "object",
+                    "properties": {
+                        "choice": {"$ref": "https://example.invalid/unbound-schema"}
+                    },
+                },
+            ),
+        )
+        for suffix, schema in cases:
+            with self.subTest(suffix=suffix):
+                with self.assertRaisesRegex(ValueError, "unresolvable local"):
+                    contract(suffix, completion(schema))
+
+    def test_standard_dialect_local_registry_respects_ids_without_remote_retrieval(self) -> None:
+        schema = {
+            "$id": "https://schemas.example/structured/root",
+            "$defs": {
+                "choice": {
+                    "$id": "choice",
+                    "type": "string",
+                    "enum": ["observe"],
+                }
+            },
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"choice": {"$ref": "choice"}},
+            "required": ["choice"],
+        }
+        completion_contract = completion(schema)
+        run_contract = contract("bound-absolute-local-resource", completion_contract)
+        conclusion = turn(
+            "bound-absolute-local-resource",
+            completion_contract,
+            {"choice": "observe"},
+        ).conclusion
+        assert conclusion is not None
+        self.assertEqual(
+            decode_structured_completion_result(run_contract, conclusion),
+            {"choice": "observe"},
+        )
+
+    def test_reference_closure_does_not_claim_recursive_termination(self) -> None:
+        # Local reference closure is intentionally distinct from recursion/termination policy.
+        run_contract = contract("self-reference-admission", completion({"$ref": "#"}))
+        self.assertIsInstance(run_contract, HarnessRunContract)
+
     def test_policy_decode_rejects_f1_style_nested_objects_and_length_overflow(self) -> None:
         f1_schema = {
             "type": "object",

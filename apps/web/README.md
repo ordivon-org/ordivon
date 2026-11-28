@@ -104,11 +104,9 @@ evidence/HUMAN-RAIL-BROWSER-E2E-R1.json
 
 ## Toolchain
 
-Accepted owner toolchain:
-
-- Node 26.12.1;
-- pnpm 12.16.1;
-- TypeScript 7.0.2.
+The accepted toolchain pins are the native [mise configuration](mise.toml)
+and [package manifest](package.json); use those rather than a second
+hand-maintained version table.
 
 `skipLibCheck` is enabled because the current
 Fastify/Pino/`thread-stream@4.2.0` declaration graph references the removed

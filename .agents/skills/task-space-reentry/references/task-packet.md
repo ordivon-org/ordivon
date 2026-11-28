@@ -4,18 +4,22 @@ General task intake Space: `space:ordivon-task-control-r1:20261101` (canonical c
 Specialist proof/capability execution Space: `space:ordivon-capability-task-forum-r1:20261101`.
 Hard-kernel task normal form discussion: `message:ordivon-hardkernel:task-lego-normal-form-r1:20261101`.
 Do not treat the two Spaces as competing task managers or assign tasks from their presence.
-Coordination root: `work:ordivon:capability-program-root-r1:20261101`.
-Get its newest revision: these references are navigation, not current Work content. **No task is assigned by Space participation.**
+**No task is assigned by Space participation.**
 
-## Existing execution anchors to reuse
-- Linux PG actual production gate: `work:ordivon:linux-runtime-pg-cutover-p0:20261031`.
-- Windows PG actual production gate: `work:ordivon:windows-pg-first-native-runtime-cutover-r1:20261026`.
-- Formal kernel: `work:ordivon:systemwide-formal-lego-audit-r1:20261026`.
-- Source/consumer proof graph: `work:ordivon:capability-program:proof-graph-r1:20261101`.
-- Release truth and rollback: `work:ordivon:capability-program:release-currentness-r1:20261101`.
-- R2.1 domain decomposition: `work:ordivon:capability-program:domain-lego-r1:20261101`.
-- Safe cleanup: `work:ordivon:capability-program:cleanup-r1:20261101`.
-- Problem LEGO case library: `work:ordivon:capability-program:problem-legos-r1:20261101`.
+## Discover the current execution anchor
+
+Use an explicit current WorkRef from the caller or a verified handoff when available.
+Otherwise use the existing Host `work.list` (open state, bounded pages; follow
+its returned cursor when necessary), and compare objectives with the actual
+consumer and task. Read the selected candidate's exact current `work.get`
+snapshot; the list is a locator, not priority or assignment. For historical
+evidence, query the named terminal Work or exact revision separately. A native `NOT_FOUND` is
+`HISTORICAL_REFERENCE_ONLY` for the missing pointer, not proof of absent
+successors. An incomplete discovery or transport error remains `UNKNOWN`.
+If no unique, relevant Work can be verified, keep the task coordinate UNKNOWN
+and ask the natural owner via the existing Task Control Topic. Do not recreate
+a missing Work, substitute a similarly named Work, infer authority from
+participation, or silently skip an unresolved obligation.
 
 ## Receiver handoff packet: use the current Work and owner facts
 
@@ -46,6 +50,29 @@ Negative: no matching work, unavailable Skills, stale Skill digest, changed Sour
 
 Do not batch read every Topic or every Skill; use bounded Host pagination and native Skill progressive disclosure.
 
+## Cross-Agent Spec composition (on shared source or physical resource)
+
+Use the existing Work revision and Topic, not a second registry. Publish a
+bounded advisory claim with the property/subject, exact SourceCut and Spec
+identity, semantic read/write/effect sets (including offline/recovery roots),
+real consumer, assumptions, verifier and next action. Overlapping writes or
+effects, or a write invalidating another readset, require coordination;
+a message is neither an exclusive lease nor effect authorization.
+
+A donor handoff references its exact base/head/tree, changed property,
+native positive and negative evidence (Job/receipt refs), limits and
+unresolved obligations. The receiving Agent independently re-reads that
+subject and records acknowledgement or rejection against that exact message;
+use existing message relations to reference or supersede old candidates.
+Keep one agreed integration head per overlapping effect and recheck affected
+assumptions if the cut changes. Preserve independent tests, do not promote
+isolated green results as composed acceptance. Native merge, installation
+and real consumer acceptance are distinct. Advance Work with revision CAS,
+never overwrite intervening findings; a processed Topic cursor is not
+acceptance. Release the physical carrier only after its unique source and
+artifacts are durable and the native owner confirms release. Unknown
+readsets or consumers remain UNKNOWN; do not infer them absent from silence.
+
 ## Terminal Work obligation transport (only when closing or superseding Work)
 
 Do **not** treat `completed` or `abandoned` as a proof that all entries of
@@ -62,6 +89,18 @@ object on stdin:
 ```json
 {"source":{"workRef":"work:old","revision":2,"state":"completed","unresolved":["verify consumer"]},"successors":[{"workRef":"work:new","revision":4,"state":"open","unresolved":["verify consumer end-to-end"]}],"links":[{"sourceObligation":"verify consumer","sourceRevision":2,"successorRef":"work:new","successorRevision":4,"successorObligation":"verify consumer end-to-end"}]}
 ```
+
+The wire input has unique JSON object members at every depth, rejects
+non-JSON numeric constants and uses positive Host bigint revisions (at most
+9223372036854775807). Duplicate member names, even identical values, are
+ambiguous before typed navigation assessment; never silently select a winner.
+
+The helper accepts UTF-8 JSON without BOM. Work references and obligation
+strings must be representable in the native Host Work input/PG text domain:
+3–1024 trimmed identifier characters without C0 controls, at most 128
+nonempty trimmed obligations, no NUL or unpaired surrogate in snapshot text.
+Keep exact Unicode scalar text (do not normalize distinct strings).
+Successful navigation still does not attest the existence of either Work.
 
 Helper success means only **NAVIGATION_COVERED** for the caller-supplied versions.
 It **does not verify semantic equivalence** between the strings, current

@@ -14,9 +14,17 @@ Chromium executable:
     mise exec -- pnpm install --frozen-lockfile --ignore-scripts
     mise exec -- pnpm typecheck
     mise exec -- pnpm compiler:witness
+    mise exec -- pnpm test:lifecycle
     ORDIVON_WEB_CHROMIUM_EXECUTABLE=/absolute/path/to/chromium mise exec -- pnpm benchmark
 
-No lifecycle scripts or package Agent skills were approved. The package/lock
+Build output is disposable. Browser and Vite preview owners (including
+native close hooks) must release before scratch removal and result
+publication. Unknown release retains the recovery coordinate; external
+termination is outside this contract.
+
+Offline installation requires the exact lockfile dependency closure in the
+selected store, not merely an unreferenced-cache policy. No lifecycle
+scripts or package Agent skills were approved. The package/lock
 are isolated from the production Web package. This is a research candidate,
 not an unconditional production gate.
 

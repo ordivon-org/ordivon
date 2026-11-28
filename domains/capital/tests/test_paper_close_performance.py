@@ -24,6 +24,7 @@ from ordivon_capital.accounting.paper_close import (
 from ordivon_capital.markets.etf_eod_snapshot import admit_etf_eod_snapshot
 from ordivon_capital.portfolio.paper_close_performance import (
     PaperPerformanceError,
+    render_paper_daily_markdown,
     summarize_paper_period,
 )
 
@@ -424,3 +425,27 @@ def test_superseded_previous_market_vintage_cannot_publish_period_gain():
             current_receipt=current, previous_receipt=previous,
             snapshot=new_snapshot,
         )
+
+
+def test_boolean_schema_version_does_not_refine_performance_receipt_v1() -> None:
+    _, _, snapshot, previous, current, _, _ = _case()
+    malformed = copy.deepcopy(current)
+    malformed["schema_version"] = True
+    with pytest.raises(PaperPerformanceError, match="Accounting Paper receipt"):
+        summarize_paper_period(
+            current_receipt=malformed,
+            previous_receipt=previous,
+            snapshot=snapshot,
+        )
+
+
+def test_boolean_schema_version_does_not_refine_daily_summary_v1() -> None:
+    _, _, snapshot, previous, current, _, _ = _case()
+    summary = summarize_paper_period(
+        current_receipt=current,
+        previous_receipt=previous,
+        snapshot=snapshot,
+    )
+    summary["schemaVersion"] = True
+    with pytest.raises(PaperPerformanceError, match="daily brief requires"):
+        render_paper_daily_markdown(summary)
