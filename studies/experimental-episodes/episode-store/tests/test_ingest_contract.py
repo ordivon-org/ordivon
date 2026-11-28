@@ -56,6 +56,15 @@ def test_ingest_identity_is_deterministic_and_profile_bound() -> None:
     assert build_ingest_identity(**changed)[0] != first[0]
 
 
+def test_load_rejects_schema_invalid_extra_field(tmp_path) -> None:
+    path = tmp_path / "episodes.jsonl"
+    value = episode()
+    value["undeclared"] = "must-not-be-silently-projected-away"
+    path.write_text(json.dumps(value) + "\n", encoding="utf-8")
+    with pytest.raises(EpisodeStoreError, match="episode schema violation"):
+        _load_episodes(path, "runtime-r5c-v1")
+
+
 def test_load_rejects_profile_mismatch(tmp_path) -> None:
     path = tmp_path / "episodes.jsonl"
     path.write_text(json.dumps(episode("wrong")) + "\n", encoding="utf-8")
@@ -83,3 +92,17 @@ def test_ingest_identity_rejects_fake_digest() -> None:
             schema_digest=sha("3"),
             adapter_digest=sha("4"),
         )
+
+
+def test_ingest_identity_preserves_historical_unicode_digest() -> None:
+    identity, _ = build_ingest_identity(
+        corpus_id="研究-corpus",
+        profile_id="runtime-r5c-v1",
+        source_file_digest=sha("1"),
+        projection_set_digest=sha("2"),
+        schema_digest=sha("3"),
+        adapter_digest=sha("4"),
+    )
+    assert identity == (
+        "ingest:sha256:88014e65af8767f845850623d7f1318b70b409ea69b62b2ecc8527d0a4c282d3"
+    )

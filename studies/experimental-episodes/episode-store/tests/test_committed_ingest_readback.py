@@ -18,9 +18,10 @@ from uuid import uuid4
 
 import psycopg
 import pytest
+from psycopg import sql
 from test_ingest_contract import episode, sha
 
-from ordivon_experimental_episode_store import ingest
+from ordivon_experimental_episode_store import analysis, ingest
 from ordivon_experimental_episode_store.ingest import (
     EpisodeStoreError,
     _frozen_source,
@@ -104,6 +105,26 @@ def test_pg_ingest_replay_and_committed_file_tampering(
     accepted = admit(pg_dsn, path, corpus=tmp_path.name)
     assert accepted["episodeCount"] == 1
     assert accepted["replayExistingIngest"] is False
+    with psycopg.connect(pg_dsn) as db:
+        assert db.execute(
+            """
+            SELECT corpus_id, profile_id, source_file_digest,
+                   projection_set_digest, schema_digest, adapter_digest,
+                   episode_count, inserted_projection_count, standing
+            FROM projection_ingests WHERE ingest_id = %s
+            """,
+            (accepted["ingestId"],),
+        ).fetchone() == (
+            tmp_path.name,
+            "runtime-r5c-v1",
+            "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest(),
+            sha("1"),
+            sha("2"),
+            sha("3"),
+            1,
+            1,
+            "PASS_IDEMPOTENT_PROJECTION_INGEST",
+        )
     observed = readback(pg_dsn, accepted, path)
     assert observed["standing"] == "PASS_COMMITTED_INGEST_SOURCE_READBACK"
     assert observed["sourceFileDigest"] == accepted["sourceFileDigest"]
@@ -250,19 +271,37 @@ def test_pg_writer_abort_before_commit_cannot_publish_partial_ingest(
     assert readback(pg_dsn, receipt, path)["episodeCount"] == 1
 
 
-def test_readback_rejects_counterfeit_pg_row_identity(
-    pg_dsn: str, tmp_path: Path
+@pytest.mark.parametrize(
+    ("column", "value", "readback_error"),
+    [
+        ("corpus_id", "other-corpus", "identity is inconsistent"),
+        ("profile_id", "other-profile", "identity is inconsistent"),
+        ("source_file_digest", sha("0"), "identity is inconsistent"),
+        ("projection_set_digest", sha("0"), "identity is inconsistent"),
+        ("schema_digest", sha("0"), "identity is inconsistent"),
+        ("adapter_digest", sha("0"), "identity is inconsistent"),
+        ("standing", "UNKNOWN", "identity is inconsistent"),
+        ("episode_count", 2, "episode count disagrees"),
+    ],
+)
+def test_readback_and_replay_reject_counterfeit_pg_receipt(
+    pg_dsn: str, tmp_path: Path, column: str, value: str | int, readback_error: str
 ) -> None:
     path = input_file(tmp_path, "tamper.jsonl")
-    receipt = admit(pg_dsn, path, corpus=tmp_path.name + "-tamper")
+    corpus = tmp_path.name + "-tamper"
+    receipt = admit(pg_dsn, path, corpus=corpus)
     with psycopg.connect(pg_dsn) as conn:
-        conn.execute(
-            "UPDATE projection_ingests SET source_file_digest = %s "
-            "WHERE ingest_id = %s",
-            (sha("0"), receipt["ingestId"]),
+        changed = conn.execute(
+            sql.SQL(
+                "UPDATE projection_ingests SET {} = %s WHERE ingest_id = %s"
+            ).format(sql.Identifier(column)),
+            (value, receipt["ingestId"]),
         )
-    with pytest.raises(EpisodeStoreError, match="identity is inconsistent"):
+        assert changed.rowcount == 1
+    with pytest.raises(EpisodeStoreError, match=readback_error):
         readback(pg_dsn, receipt, path)
+    with pytest.raises(EpisodeStoreError, match="existing ingest receipt conflicts"):
+        admit(pg_dsn, path, corpus=corpus)
 
 
 def test_two_writers_same_immutable_ingest_share_one_durable_receipt(
@@ -301,22 +340,6 @@ def test_readback_without_exact_ingest_identity_does_not_open_database() -> None
             ingest_id="ingest:sha256:not-an-object",
             path=Path("/unavailable"),
         )
-
-
-def test_pg_replay_rejects_counterfeit_existing_receipt(
-    pg_dsn: str, tmp_path: Path
-) -> None:
-    path = input_file(tmp_path, "counterfeit.jsonl")
-    corpus = tmp_path.name + "-counterfeit-replay"
-    receipt = admit(pg_dsn, path, corpus=corpus)
-    with psycopg.connect(pg_dsn) as db:
-        db.execute(
-            "UPDATE projection_ingests SET projection_set_digest = %s "
-            "WHERE ingest_id = %s",
-            (sha("0"), receipt["ingestId"]),
-        )
-    with pytest.raises(EpisodeStoreError, match="existing ingest receipt conflicts"):
-        admit(pg_dsn, path, corpus=corpus)
 
 
 def test_distinct_committed_byte_versions_coexist_without_replacing_prior_reader(
@@ -371,10 +394,98 @@ def populated_input(tmp_path: Path, name: str) -> Path:
             "truncatedCount": 0,
         }
     ]
-    item["dimensions"] = [{"name": "settings", "value": {"list": [1, "two"]}}]
+    item["dimensions"] = [{"name": "settings", "value": "strict"}]
     item["measures"] = [{"name": "cost", "value": 2.5, "unit": "seconds"}]
     source.write_text(json.dumps(item, sort_keys=True) + "\n", encoding="utf-8")
     return source
+
+
+def test_pg_projection_columns_match_independent_sql_contract(
+    pg_dsn: str, tmp_path: Path
+) -> None:
+    """An independent SQL oracle must not reuse the producer's row mapping."""
+    source = populated_input(tmp_path, "independent-columns.jsonl")
+    record = json.loads(source.read_text(encoding="utf-8"))
+    record["ownerRefs"].append(
+        {
+            "ownerId": "host",
+            "objectKind": "work",
+            "objectId": "work:test",
+            "relation": "observed",
+        }
+    )
+    record["evidenceBindings"].append(
+        {"kind": "event", "count": 7, "setDigest": sha("d")}
+    )
+    record["dimensions"].append({"name": "nullable", "value": None})
+    record["measures"].append({"name": "count", "value": 3})
+    source.write_text(json.dumps(record, sort_keys=True) + "\n", encoding="utf-8")
+    receipt = admit(pg_dsn, source, corpus=tmp_path.name)
+    key = (record["episodeId"], record["projectionDigest"])
+
+    with psycopg.connect(pg_dsn) as db:
+        assert db.execute(
+            """
+            SELECT profile_id, data_class, anchor_owner_id, anchor_object_kind,
+                   anchor_object_id, source_record_digest
+            FROM episode_projections
+            WHERE episode_id = %s AND projection_digest = %s
+            """,
+            key,
+        ).fetchone() == (
+            "runtime-r5c-v1",
+            "EXPERIENCE",
+            "runtime",
+            "execution",
+            "execution:1",
+            sha("a"),
+        )
+        assert db.execute(
+            """
+            SELECT owner_id, object_kind, object_id, relation, digest
+            FROM episode_owner_refs
+            WHERE episode_id = %s AND projection_digest = %s
+            ORDER BY owner_id
+            """,
+            key,
+        ).fetchall() == [
+            ("host", "work", "work:test", "observed", None),
+            ("runtime", "event", "event:test", "produced-by", sha("e")),
+        ]
+        assert db.execute(
+            """
+            SELECT kind, evidence_count, set_digest, total_bytes, truncated_count
+            FROM episode_evidence_bindings
+            WHERE episode_id = %s AND projection_digest = %s
+            ORDER BY kind
+            """,
+            key,
+        ).fetchall() == [
+            ("artifact", 3, sha("c"), 91, 0),
+            ("event", 7, sha("d"), None, None),
+        ]
+        assert db.execute(
+            """
+            SELECT name, value, value IS NULL
+            FROM episode_dimensions
+            WHERE episode_id = %s AND projection_digest = %s
+            ORDER BY name
+            """,
+            key,
+        ).fetchall() == [
+            ("nullable", None, False),
+            ("settings", "strict", False),
+        ]
+        assert db.execute(
+            """
+            SELECT name, value, unit
+            FROM episode_measures
+            WHERE episode_id = %s AND projection_digest = %s
+            ORDER BY name
+            """,
+            key,
+        ).fetchall() == [("cost", 2.5, "seconds"), ("count", 3.0, None)]
+    assert readback(pg_dsn, receipt, source)["episodeCount"] == 1
 
 
 @pytest.mark.parametrize(
@@ -537,3 +648,34 @@ def test_pg_source_readback_rejects_missing_or_extra_projected_rows(
         readback(pg_dsn, receipt, file)
     with pytest.raises(EpisodeStoreError, match=expected_table):
         admit(pg_dsn, file, corpus=tmp_path.name)
+
+
+def test_analysis_observes_one_snapshot_during_concurrent_ingest(
+    pg_dsn: str, tmp_path: Path
+) -> None:
+    source = populated_input(tmp_path, "analysis-snapshot.jsonl")
+    record = json.loads(source.read_text(encoding="utf-8"))
+    record["dimensions"].append({"name": "runtime.execution_state", "value": "failed"})
+    source.write_text(json.dumps(record, sort_keys=True) + "\n", encoding="utf-8")
+    before = analysis.analyze_store(pg_dsn)
+    original_fetch = analysis._fetch_dimensions
+    admitted = False
+
+    def ingest_after_population_read(db, profile_id):
+        nonlocal admitted
+        if not admitted:
+            admit(pg_dsn, source, corpus=tmp_path.name)
+            admitted = True
+        return original_fetch(db, profile_id)
+
+    with patch.object(analysis, "_fetch_dimensions", ingest_after_population_read):
+        during = analysis.analyze_store(pg_dsn)
+
+    assert admitted
+    assert during == before
+    after = analysis.analyze_store(pg_dsn)
+    assert after["population"]["episodes"] == before["population"]["episodes"] + 1
+    assert after["failure"]["terminalUnsuccessfulEpisodes"] == (
+        before["failure"]["terminalUnsuccessfulEpisodes"] + 1
+    )
+    assert after["analysisDigest"] != before["analysisDigest"]

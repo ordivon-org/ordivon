@@ -31,13 +31,51 @@ A later enrichment of the same Episode creates another projection version. It ne
 
 No raw owner payload, prompt, workspace snapshot, execution plan, event payload, artifact bytes, credential, or secret column exists.
 
+## Architecture convergence — 2026-11-28
+
+- Structured JSON identities (ingest, analysis and R5C) consume Composition's
+  public `canonical_digest`. Keep raw source byte SHA-256 separate. The
+  historical encoding for valid JSON is pinned by fixed receipt/analysis
+  digests; non-JSON values are not a supported digest input.
+- Ingest and committed readback use the same five-table projection mapping
+  and column definitions. Alembic remains the sole schema authority.
+  Driver-specific JSONB write adaptation and DOUBLE PRECISION readback
+  normalization stay at their respective boundaries. Independent explicit SQL
+  fixtures verify stored fields, optional values and JSON null without using
+  the shared mapping; this is intentional test-oracle independence.
+- Receipt identity binds the six wire fields to PostgreSQL columns once.
+  Admission and replay reuse the same expected receipt fields; readback
+  reconstructs the canonical identity from that binding. The independent
+  explicit SQL test checks persisted fields, and eight receipt mutations
+  cover all identity fields, standing and Episode count. Existing identity,
+  receipt shape and PostgreSQL transaction semantics remain unchanged.
+- Analysis uses a single PostgreSQL REPEATABLE READ READ ONLY snapshot
+  for every aggregate and evidence observation. An independently committed
+  ingest between the population and dimensions queries must not enter that
+  analysis; a new analysis observes it. Native deterministic RED/GREEN
+  regression preserves the historical empty analysis digest.
+- Progress: three source consolidations and one analysis snapshot repair;
+  disposable PostgreSQL 18.7 qualification passes 73 tests with no skips.
+  No database migration, deployment or new runtime dependency was introduced.
+- Verification caveat: the prior swap-and-restore mutation experiment left
+  stale Python bytecode in the Runtime's workspace cache despite correct
+  source bytes. A fresh `PYTHONPYCACHEPREFIX` independently restored correct
+  execution and passed the full baseline and candidate. Use distinct caches
+  for temporary source mutations and their subsequent verification.
+- Next candidates: determine the analysis population contract for multiple
+  projection digests under one episode ID. Existing SQL counts projections
+  while dimension/measure maps use episode ID alone; do not silently select
+  latest or change historical analytical units without a consumer decision.
+  Review Runtime cache invalidation with its natural owner. Preserve
+  independent SQL oracles; do not substitute shared assertions.
+
 ## Migration law
 
 Alembic is the sole schema authority. The ingest program never creates or migrates schema.
 
 ## Ingest law
 
-An ingest is bound to exact corpus ID, profile ID, source file SHA-256, projection-set digest, Episode schema digest, and adapter digest.
+An ingest is bound to exact corpus ID, profile ID, source file SHA-256, projection-set digest, Episode schema digest, and adapter digest. Before any PostgreSQL effect, every JSONL row is also validated against the installed Composition-owned Episode R1 JSON Schema, so schema-invalid fields cannot be silently projected away. The caller-supplied `schemaDigest` remains provenance included in the ingest identity; this local validation does not independently authenticate that digest as the historical schema version that produced the source.
 
 The deterministic ingest ID makes replay idempotent. Replaying an accepted ingest returns the retained receipt instead of writing a second ingest or mutating owner truth.
 

@@ -15,9 +15,12 @@ from pathlib import Path
 from typing import Any, BinaryIO, TextIO
 
 import psycopg
+from ordivon_composition import canonical_digest
 from psycopg import sql
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
+
+from .r5c_projection import VALIDATOR as EPISODE_SCHEMA_VALIDATOR
 
 SHA256_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
@@ -66,13 +69,6 @@ def _frozen_source(path: Path) -> Iterator[tuple[BinaryIO, str, int]]:
         yield frozen, "sha256:" + digest.hexdigest(), size
 
 
-def _canonical_digest(value: Any) -> str:
-    payload = json.dumps(
-        value, sort_keys=True, ensure_ascii=False, separators=(",", ":")
-    ).encode()
-    return "sha256:" + hashlib.sha256(payload).hexdigest()
-
-
 def _require_sha256(value: str, label: str) -> str:
     if not SHA256_RE.fullmatch(value):
         raise EpisodeStoreError(f"{label} must be sha256:<64 lowercase hex>")
@@ -96,19 +92,23 @@ def _load_episodes_from_lines(
         value = json.loads(line)
         if not isinstance(value, dict):
             raise EpisodeStoreError(f"{label}:{line_number}: root must be object")
-        if value.get("kind") != "ordivon.experimental-episode-binding":
-            raise EpisodeStoreError(f"{label}:{line_number}: unexpected kind")
-        if value.get("profileId") != profile_id:
+        errors = sorted(
+            EPISODE_SCHEMA_VALIDATOR.iter_errors(value),
+            key=lambda item: list(item.absolute_path),
+        )
+        if errors:
+            error = errors[0]
+            location = "/".join(str(part) for part in error.absolute_path) or "<root>"
+            raise EpisodeStoreError(
+                f"{label}:{line_number}: episode schema violation at "
+                f"{location}: {error.message}"
+            )
+        if value["profileId"] != profile_id:
             raise EpisodeStoreError(
                 f"{label}:{line_number}: profileId does not match {profile_id}"
             )
-        episode_id = value.get("episodeId")
-        projection_digest = value.get("projectionDigest")
-        if not isinstance(episode_id, str) or not episode_id:
-            raise EpisodeStoreError(f"{label}:{line_number}: invalid episodeId")
-        if not isinstance(projection_digest, str):
-            raise EpisodeStoreError(f"{label}:{line_number}: missing projectionDigest")
-        _require_sha256(projection_digest, "projectionDigest")
+        episode_id = value["episodeId"]
+        projection_digest = value["projectionDigest"]
         key = (episode_id, projection_digest)
         if key in seen:
             raise EpisodeStoreError(
@@ -125,6 +125,19 @@ def _load_episodes(path: Path, profile_id: str) -> list[dict[str, Any]]:
         return _load_episodes_from_lines(handle, profile_id, path)
 
 
+# The six identity fields have a single wire-to-storage binding. The
+# existing public function signature and canonical JSON identity stay stable.
+_INGEST_IDENTITY_COLUMNS = {
+    "corpus_id": "corpusId",
+    "profile_id": "profileId",
+    "source_file_digest": "sourceFileDigest",
+    "projection_set_digest": "projectionSetDigest",
+    "schema_digest": "schemaDigest",
+    "adapter_digest": "adapterDigest",
+}
+_INGEST_ACCEPTED = "PASS_IDEMPOTENT_PROJECTION_INGEST"
+
+
 def build_ingest_identity(
     *,
     corpus_id: str,
@@ -134,17 +147,20 @@ def build_ingest_identity(
     schema_digest: str,
     adapter_digest: str,
 ) -> tuple[str, dict[str, str]]:
-    material = {
-        "corpusId": corpus_id,
-        "profileId": profile_id,
-        "sourceFileDigest": _require_sha256(source_file_digest, "source_file_digest"),
-        "projectionSetDigest": _require_sha256(
+    fields = {
+        "corpus_id": corpus_id,
+        "profile_id": profile_id,
+        "source_file_digest": _require_sha256(source_file_digest, "source_file_digest"),
+        "projection_set_digest": _require_sha256(
             projection_set_digest, "projection_set_digest"
         ),
-        "schemaDigest": _require_sha256(schema_digest, "schema_digest"),
-        "adapterDigest": _require_sha256(adapter_digest, "adapter_digest"),
+        "schema_digest": _require_sha256(schema_digest, "schema_digest"),
+        "adapter_digest": _require_sha256(adapter_digest, "adapter_digest"),
     }
-    return "ingest:" + _canonical_digest(material), material
+    material = {
+        wire: fields[column] for column, wire in _INGEST_IDENTITY_COLUMNS.items()
+    }
+    return "ingest:" + canonical_digest(material), material
 
 
 def _set_role(conn: psycopg.Connection[Any], role: str | None) -> None:
@@ -152,114 +168,6 @@ def _set_role(conn: psycopg.Connection[Any], role: str | None) -> None:
         return
     safe = _simple_identifier(role, "database role")
     conn.execute(sql.SQL("SET ROLE {}").format(sql.Identifier(safe)))
-
-
-def _insert_episode(conn: psycopg.Connection[Any], episode: dict[str, Any]) -> bool:
-    anchor = episode["anchor"]
-    projection_digest = episode["projectionDigest"]
-    inserted = (
-        conn.execute(
-            """
-            INSERT INTO episode_projections(
-              episode_id, projection_digest, profile_id, data_class,
-              anchor_owner_id, anchor_object_kind, anchor_object_id,
-              source_record_digest
-            )
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-            ON CONFLICT DO NOTHING
-            RETURNING 1
-            """,
-            (
-                episode["episodeId"],
-                projection_digest,
-                episode["profileId"],
-                episode["dataClass"],
-                anchor["ownerId"],
-                anchor["objectKind"],
-                anchor["objectId"],
-                anchor["sourceRecordDigest"],
-            ),
-        ).fetchone()
-        is not None
-    )
-
-    for ref in episode["ownerRefs"]:
-        conn.execute(
-            """
-            INSERT INTO episode_owner_refs(
-              episode_id, projection_digest, owner_id, object_kind,
-              object_id, relation, digest
-            )
-            VALUES (%s,%s,%s,%s,%s,%s,%s)
-            ON CONFLICT DO NOTHING
-            """,
-            (
-                episode["episodeId"],
-                projection_digest,
-                ref["ownerId"],
-                ref["objectKind"],
-                ref["objectId"],
-                ref["relation"],
-                ref.get("digest"),
-            ),
-        )
-
-    for binding in episode["evidenceBindings"]:
-        conn.execute(
-            """
-            INSERT INTO episode_evidence_bindings(
-              episode_id, projection_digest, kind, evidence_count,
-              set_digest, total_bytes, truncated_count
-            )
-            VALUES (%s,%s,%s,%s,%s,%s,%s)
-            ON CONFLICT DO NOTHING
-            """,
-            (
-                episode["episodeId"],
-                projection_digest,
-                binding["kind"],
-                binding["count"],
-                binding["setDigest"],
-                binding.get("totalBytes"),
-                binding.get("truncatedCount"),
-            ),
-        )
-
-    for dimension in episode["dimensions"]:
-        conn.execute(
-            """
-            INSERT INTO episode_dimensions(
-              episode_id, projection_digest, name, value
-            )
-            VALUES (%s,%s,%s,%s)
-            ON CONFLICT DO NOTHING
-            """,
-            (
-                episode["episodeId"],
-                projection_digest,
-                dimension["name"],
-                Jsonb(dimension["value"]),
-            ),
-        )
-
-    for measure in episode["measures"]:
-        conn.execute(
-            """
-            INSERT INTO episode_measures(
-              episode_id, projection_digest, name, value, unit
-            )
-            VALUES (%s,%s,%s,%s,%s)
-            ON CONFLICT DO NOTHING
-            """,
-            (
-                episode["episodeId"],
-                projection_digest,
-                measure["name"],
-                measure["value"],
-                measure.get("unit"),
-            ),
-        )
-    return inserted
 
 
 # Columns are fixed by this Owner's existing Alembic schema. Reuse that
@@ -310,7 +218,7 @@ _PROJECTION_COLUMNS: dict[str, tuple[str, ...]] = {
 _PROJECTION_READ_BATCH = 256
 
 
-def _expected_projection_rows(
+def _projection_rows(
     episode: dict[str, Any],
 ) -> dict[str, list[tuple[Any, ...]]]:
     key = (episode["episodeId"], episode["projectionDigest"])
@@ -353,10 +261,34 @@ def _expected_projection_rows(
             key + (item["name"], item["value"]) for item in episode["dimensions"]
         ],
         "episode_measures": [
-            key + (item["name"], float(item["value"]), item.get("unit"))
+            key + (item["name"], item["value"], item.get("unit"))
             for item in episode["measures"]
         ],
     }
+
+
+def _insert_episode(conn: psycopg.Connection[Any], episode: dict[str, Any]) -> bool:
+    inserted = False
+    for table, rows in _projection_rows(episode).items():
+        columns = _PROJECTION_COLUMNS[table]
+        query = sql.SQL(
+            "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT DO NOTHING"
+        ).format(
+            sql.Identifier(table),
+            sql.SQL(", ").join(map(sql.Identifier, columns)),
+            sql.SQL(", ").join(sql.Placeholder() for _ in columns),
+        )
+        is_root = table == "episode_projections"
+        if is_root:
+            query += sql.SQL(" RETURNING 1")
+        for row in rows:
+            # Adapt JSON only at the SQL boundary; JSON null remains JSON null.
+            if table == "episode_dimensions":
+                row = (*row[:-1], Jsonb(row[-1]))
+            cursor = conn.execute(query, row)
+            if is_root:
+                inserted = cursor.fetchone() is not None
+    return inserted
 
 
 def _check_stored_projection_rows(
@@ -374,7 +306,15 @@ def _check_stored_projection_rows(
             table: Counter() for table in _PROJECTION_COLUMNS
         }
         for record in batch:
-            for table, rows in _expected_projection_rows(record).items():
+            for table, rows in _projection_rows(record).items():
+                # PostgreSQL reads DOUBLE PRECISION as float, even when the
+                # source JSON measure was an integer. Keep write adaptation
+                # native and normalize only the readback comparison.
+                if table == "episode_measures":
+                    rows = [
+                        (episode_id, digest, name, float(value), unit)
+                        for episode_id, digest, name, value, unit in rows
+                    ]
                 expected[table].update(
                     json.dumps(row, sort_keys=True, ensure_ascii=False, allow_nan=False)
                     for row in rows
@@ -432,18 +372,14 @@ def ingest_file(
         adapter_digest=adapter_digest,
     )
 
+    expected = {
+        "ingest_id": ingest_id,
+        **{column: identity[wire] for column, wire in _INGEST_IDENTITY_COLUMNS.items()},
+        "episode_count": len(episodes),
+        "standing": _INGEST_ACCEPTED,
+    }
+
     def replay(existing: dict[str, Any]) -> dict[str, Any]:
-        expected = {
-            "ingest_id": ingest_id,
-            "corpus_id": corpus_id,
-            "profile_id": profile_id,
-            "source_file_digest": source_digest,
-            "projection_set_digest": identity["projectionSetDigest"],
-            "schema_digest": identity["schemaDigest"],
-            "adapter_digest": identity["adapterDigest"],
-            "episode_count": len(episodes),
-            "standing": "PASS_IDEMPOTENT_PROJECTION_INGEST",
-        }
         if any(existing[key] != value for key, value in expected.items()):
             raise EpisodeStoreError(
                 "existing ingest receipt conflicts with source identity"
@@ -472,30 +408,16 @@ def ingest_file(
 
         inserted = sum(_insert_episode(conn, episode) for episode in episodes)
         _check_stored_projection_rows(conn, episodes)
-        standing = "PASS_IDEMPOTENT_PROJECTION_INGEST"
+        receipt = {**expected, "inserted_projection_count": inserted}
         admitted = conn.execute(
-            """
-            INSERT INTO projection_ingests(
-              ingest_id, corpus_id, profile_id, source_file_digest,
-              projection_set_digest, schema_digest, adapter_digest,
-              episode_count, inserted_projection_count, standing
-            )
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            ON CONFLICT (ingest_id) DO NOTHING
-            RETURNING ingest_id
-            """,
-            (
-                ingest_id,
-                corpus_id,
-                profile_id,
-                source_digest,
-                identity["projectionSetDigest"],
-                identity["schemaDigest"],
-                identity["adapterDigest"],
-                len(episodes),
-                inserted,
-                standing,
+            sql.SQL(
+                "INSERT INTO projection_ingests ({}) VALUES ({}) "
+                "ON CONFLICT (ingest_id) DO NOTHING RETURNING ingest_id"
+            ).format(
+                sql.SQL(", ").join(map(sql.Identifier, receipt)),
+                sql.SQL(", ").join(sql.Placeholder(column) for column in receipt),
             ),
+            receipt,
         ).fetchone()
         if admitted is None:
             # Two writers observed no receipt concurrently. The unique index
@@ -520,7 +442,7 @@ def ingest_file(
         "insertedProjectionCountThisRun": inserted,
         "retainedOriginalInsertedProjectionCount": inserted,
         "replayExistingIngest": False,
-        "standing": standing,
+        "standing": _INGEST_ACCEPTED,
     }
 
 
@@ -550,16 +472,11 @@ def read_committed_ingest_source(
         if row is None:
             raise EpisodeStoreError("no committed projection ingest for identity")
         calculated, _ = build_ingest_identity(
-            corpus_id=row["corpus_id"],
-            profile_id=row["profile_id"],
-            source_file_digest=row["source_file_digest"],
-            projection_set_digest=row["projection_set_digest"],
-            schema_digest=row["schema_digest"],
-            adapter_digest=row["adapter_digest"],
+            **{column: row[column] for column in _INGEST_IDENTITY_COLUMNS}
         )
         if (
             calculated != ingest_id
-            or row["standing"] != "PASS_IDEMPOTENT_PROJECTION_INGEST"
+            or row["standing"] != _INGEST_ACCEPTED
             or row["episode_count"] < 0
         ):
             raise EpisodeStoreError(
