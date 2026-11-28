@@ -104,19 +104,16 @@ def _read_receipt(path: Path) -> dict[str, object]:
     return receipt
 
 
-def _nearest_rank(values: list[int], percentile: int) -> int:
+def _percentiles(values: list[int]) -> dict[str, int]:
+    """Evaluate nearest-rank P50/P95/P99 from one sorted sample."""
     if not values:
         raise ValueError("percentile requires at least one value")
     ordered = sorted(values)
-    rank = max(1, math.ceil((percentile / 100) * len(ordered)))
-    return ordered[rank - 1]
-
-
-def _percentiles(values: list[int]) -> dict[str, int]:
     return {
-        "p50": _nearest_rank(values, 50),
-        "p95": _nearest_rank(values, 95),
-        "p99": _nearest_rank(values, 99),
+        f"p{percentile}": ordered[
+            max(1, math.ceil((percentile / 100) * len(ordered))) - 1
+        ]
+        for percentile in (50, 95, 99)
     }
 
 
