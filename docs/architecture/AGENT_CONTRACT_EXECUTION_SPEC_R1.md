@@ -113,7 +113,7 @@ Each slice has a native Owner, observable result, a negative example and a check
 ## 6. Small-step procedure for each slice
 
 1. **Select:** identify actual consumer, natural Owner, exact current Git main, live caller and one behavior it lacks. If the capability already works, do not create a ticket.
-2. **Specify:** define a thin vertical path from input through public Owner seam to observable acceptance; full typed R2.1 only for an independently declared LEGO. State assumptions, competing explanation, likely counterexample and what remains UNKNOWN.
+2. **Specify:** define a thin vertical path from input through public Owner seam to observable acceptance; choose a mathematical model when it materially clarifies the real obligation. State assumptions, competing explanation, likely counterexample and what remains UNKNOWN.
 3. **Red:** reproduce a real old error at the public seam; the failing condition must be able to distinguish broken and fixed behavior. No weak-model benchmarks or generic persona tests.
 4. **Green:** choose DELETE → REUSE local → mature upstream → COMPOSE → minimal adapter → custom only if necessary; change one owner-native implementation and any directly affected consumers.
 5. **Refine:** model-check or prove only an actual invariant requiring it; link assumptions, code refinement boundary and current source. A formal example without code binding is not a production fix.
@@ -127,7 +127,7 @@ Each slice has a native Owner, observable result, a negative example and a check
 | --- | --- | --- |
 | Valid Spec/readable Skill | current Git bytes, working references, Skills MCP path resolve/read when installed | Agent followed instructions; domain outcome |
 | Native RED→GREEN | bad counterexample rejected, good case accepted through Owner public seam | complete correctness across all inputs |
-| R2.1 model | complete typed contract, named theorem/model verdict, assumptions | implementation refinement or real effect |
+| Mathematical model | relevant property, named theorem/model verdict, assumptions | implementation refinement or real effect |
 | Code/consumer refinement | current implementation behavior checked against property at the target seam | semantics beyond exercised scope |
 | PR / CI | exact SHA, review, required job results, Merge Queue | deployed owner version |
 | Real usage | provider readback/effect receipt, consumer acceptance currentness | all possible future domain success |
@@ -138,7 +138,7 @@ Avoid arbitrary percentage scores, universal checklists and unjustified time est
 
 - **Verifier wrong target:** one positive and one true negative control for every material new gate; compare actual consumer semantics, not cosmetic scores.
 - **Method maximalism:** activate relevant upstream procedures only when a multi-step implementation needs them. One-line changes do not require a plan.
-- **Model/Owner semantic drift:** R2.1 model proof is not code refinement; source and tool identities must be pinned.
+- **Model/Owner semantic drift:** A mathematical model proof is not code refinement; source and tool identities must be pinned.
 - **Plan accumulation:** GitHub and Host are the canonical plan carriers; do not create issues for T2–T5 absent a confirmed actual caller. This Spec is a temporary architecture decision document; once active consumers and tests subsume it, merge into owner docs or retire it.
 - **Currentness and history:** historical provenance is not a live path, and stale reference is not proof a source is absent.
 - **Conservatism feedback:** progress is judged by actual new effects/evidence and qualified blockers, not reports written or steps counted.
@@ -149,25 +149,9 @@ This reform is not closed by committing this Spec. Its architecture-level exit r
 
 **Immediate frontier:** implement T0 in `method-router` and validate with existing Skills consumers; independently inspect T1/T2 callers and implement the first concrete failing native consumer rather than launching a broad redesign.
 
-## 10. First effective method profile, and precise next-file map
+## 10. Method-router behavior and precise next-file map
 
-The selected T0 `method-router` delivery route has an **effective R2.1 declaration**, with no assertion of automatic proof or installed capability:
-
-| Coordinate | Typed effective value |
-| --- | --- |
-| `I` | `EngineeringIntent(goal, consumer, naturalOwner, gitSourceCut, constraints, evidenceRefs)`; the intent comes from the caller, not invented by the Skill. |
-| `O` | `AdvisoryEngineeringRoute(specCandidate, testSeam, verticalSlices, evidenceRequirements, unresolvedUnknowns)`, not a permission or completed Task. |
-| `S` | `Unit` for the read-only procedure; durable Host Work or Git state belongs to the corresponding Owner. |
-| `pre` | Caller names the real consumer and an adequate source boundary; unknown scope leads to bounded inquiry, not an arbitrary gate. |
-| `post` | Advisory route points to qualified incumbent interfaces and native verification; application remains a caller decision. |
-| `inv` | No model result promoted to real consumer acceptance; historical witness and SourceCut identity not silently revised; UNKNOWN preserved. |
-| `eff` | `Empty` for Skill lookup/read. Git/Runtime/Owner actions are separate explicit effects. |
-| `c` | `UNKNOWN(cost-of-method-use, until measured for the named consumer)`, no assumed zero. |
-| `epsilon` | `UNKNOWN(semantic-approximation, advisory method has no universal accuracy bound)`. |
-| `prov` | Ordivon source baseline above; upstream Matt/ECC/Superpowers Git pins and project Skill file identity; current installed digest is `UNKNOWN` until read back. |
-| `unfold` | L0 discover `method-router`; L1 read SKILL; L2 optionally read `references/agent-engineering-delivery.md` and this Spec; L3 source/native verifier only as needed. |
-
-**Declaration standing:** scoped Method LEGO *definition*, with typed unknowns. `MODEL_PROVED`, `CODE_REFINED`, `INSTALLED_CURRENT` and `DOMAIN_ACCEPTED` are **not** claimed. Do not turn this table into a global LEGO schema or second router.
+T0 is a read-only advisory method. It maps caller-supplied engineering intent to a proposed route using existing Owner interfaces, source-bound observations and native verification. Missing scope calls for bounded inquiry; the route does not grant permissions, create durable state, establish consumer acceptance or assert a universal accuracy bound. Keep the caller's intent, exact source and evidence identities intact. Inspect current Skill instructions and references on demand and qualify installed behavior separately. Cost is measured only where relevant to a real consumer decision. No automatic proof or installed capability is claimed.
 
 Exact implementation readset for the first and following vertical slices:
 
