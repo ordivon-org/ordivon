@@ -19,6 +19,34 @@ from ordivon_studio.research.foundational_media import (
 
 
 class FoundationalMediaTest(unittest.TestCase):
+    def test_canonical_digest_uses_grounded_contract(self) -> None:
+        from ordivon_studio.research import foundational_media, grounded_contracts
+
+        # Preserve the existing research digest profile, including legacy
+        # non-finite serialization; strict perception digests are separate.
+        self.assertIs(foundational_media.canonical_digest, grounded_contracts.canonical_digest)
+        value = {"汉字": [1, False, None, "é"], "a": -0.0}
+        self.assertEqual(
+            grounded_contracts.canonical_digest(value),
+            "sha256:3cc22357e81cbfe971539a25704371358198efa60e5e2197c48e1e64b0e2bc40",
+        )
+        self.assertEqual(
+            grounded_contracts.canonical_digest({"x": float("nan")}),
+            "sha256:c238cb6e9ac5407491b0988102620ab9445290d2ed7713c516a2b28bd2388968",
+        )
+
+    def test_vector_distance_has_one_owner_and_preserves_contract(self) -> None:
+        from ordivon_studio.perception_profiles import vector_distance
+        from ordivon_studio.research.foundational_media import vector_distance as legacy_distance
+
+        self.assertIs(legacy_distance, vector_distance)
+        self.assertEqual(vector_distance([], []), 0.0)
+        self.assertEqual(vector_distance([1.0, 3.0], [1.0, 3.0]), 0.0)
+        self.assertEqual(vector_distance([1.0, 3.0], [3.0, 1.0]), 2.0)
+        self.assertAlmostEqual(vector_distance([0.0, 0.0], [3.0, 4.0]), (12.5) ** 0.5)
+        with self.assertRaisesRegex(ValueError, "vector lengths differ"):
+            vector_distance([0.0], [])
+
     def test_profile_distinction_exposes_target_specific_information(self) -> None:
         cases = [
             RegisteredCase("a", "crop-removes-qualifier", "still"),

@@ -16,7 +16,6 @@ from ordivon_studio.research.foundational_media import (  # noqa: E402
     M7_EVIDENCE_KIND,
     ProfileArm,
     RegisteredCase,
-    canonical_digest,
     haptic_challenger_report,
     live_realtime_experiment,
     profile_distinction_report,
@@ -25,6 +24,7 @@ from ordivon_studio.research.foundational_media import (  # noqa: E402
     still_intervention_report,
     still_visual_features,
 )
+from ordivon_studio.research.grounded_contracts import canonical_digest  # noqa: E402
 from ordivon_studio.rich_perception import (  # noqa: E402
     audio_structure_features,
     media_intervention_report,

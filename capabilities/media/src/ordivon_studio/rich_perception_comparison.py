@@ -18,12 +18,12 @@ from .perception_profiles import (
     _correlation,
     _mean,
     _resample_profile,
-    _vector_distance,
+    vector_distance,
 )
 
 
 def structural_distance(left: dict[str, Any], right: dict[str, Any]) -> float:
-    return _vector_distance(left["structuralVector"], right["structuralVector"])
+    return vector_distance(left["structuralVector"], right["structuralVector"])
 
 
 def technical_fingerprint(features: dict[str, Any]) -> dict[str, Any]:
