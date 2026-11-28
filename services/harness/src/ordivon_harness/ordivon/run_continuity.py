@@ -120,6 +120,25 @@ _PROVIDER_CLEAR_EVENT_KINDS = frozenset(
 )
 
 
+def _matches_source_model_view(
+    request: AgentTurnRequest,
+    base_view: HarnessWorkingView,
+    source_model_view_digest: str,
+) -> bool:
+    # Shared admission/replay predicate. A matching digest alone is insufficient:
+    # the exact committed base must remain the prefix of the Provider request.
+    effective_view = HarnessWorkingView(
+        attempt_id=base_view.attempt_id,
+        working_set_digest=base_view.working_set_digest,
+        messages=request.messages,
+    )
+    return (
+        request.context_digest == source_model_view_digest
+        and effective_view.digest == source_model_view_digest
+        and request.messages[: len(base_view.messages)] == base_view.messages
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class _Heads:
     provider: HarnessRunEventRecord | None
@@ -477,15 +496,8 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                     raise HarnessProviderCallRecoveryRequired(
                         "Agent Working Set transition requires retained exact Provider request/result evidence"
                     )
-                effective_view = HarnessWorkingView(
-                    attempt_id=current.attempt_id,
-                    working_set_digest=current.digest,
-                    messages=provider.request.messages,
-                )
-                if (
-                    provider.request.context_digest != source_model_view_digest
-                    or effective_view.digest != source_model_view_digest
-                    or provider.request.messages[: len(base_view.messages)] != base_view.messages
+                if not _matches_source_model_view(
+                    provider.request, base_view, source_model_view_digest
                 ):
                     raise HarnessProviderCallRequestMismatch(
                         "Agent Working Set transition source model view differs from the completed Provider request"
@@ -671,15 +683,8 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                 raise HarnessProviderCallRequestMismatch(
                     "completed Provider result differs from the caller ingress promotion proposal"
                 )
-            effective_view = HarnessWorkingView(
-                attempt_id=current.attempt_id,
-                working_set_digest=current.digest,
-                messages=provider.request.messages,
-            )
-            if (
-                provider.request.context_digest != source_model_view_digest
-                or effective_view.digest != source_model_view_digest
-                or provider.request.messages[: len(base_view.messages)] != base_view.messages
+            if not _matches_source_model_view(
+                provider.request, base_view, source_model_view_digest
             ):
                 raise HarnessProviderCallRequestMismatch(
                     "caller ingress promotion source model view differs from the completed Provider request"
@@ -1136,15 +1141,8 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                 }
                 if not set(proposal.caller_message_indexes).issubset(promotable_indexes):
                     continue
-                effective_view = HarnessWorkingView(
-                    attempt_id=previous_spec.attempt_id,
-                    working_set_digest=previous_spec.digest,
-                    messages=retained.request.messages,
-                )
-                if (
-                    retained.request.context_digest != source_model_view_digest
-                    or effective_view.digest != source_model_view_digest
-                    or retained.request.messages[: len(base_view.messages)] != base_view.messages
+                if not _matches_source_model_view(
+                    retained.request, base_view, source_model_view_digest
                 ):
                     continue
                 derived_pause, caller_messages = self._caller_cognition_ingress_for_messages(
@@ -1283,16 +1281,8 @@ class EventSourcedRunContinuity(_WorkingSetReadQueries):
                         continue
                     if retained.result.working_set_transition != proposal:
                         continue
-                    effective_view = HarnessWorkingView(
-                        attempt_id=previous_spec.attempt_id,
-                        working_set_digest=previous_spec.digest,
-                        messages=retained.request.messages,
-                    )
-                    if (
-                        retained.request.context_digest == source_model_view_digest
-                        and effective_view.digest == source_model_view_digest
-                        and retained.request.messages[: len(base_view.messages)]
-                        == base_view.messages
+                    if _matches_source_model_view(
+                        retained.request, base_view, source_model_view_digest
                     ):
                         matched_provider = True
                         break
