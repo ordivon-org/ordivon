@@ -122,6 +122,12 @@ name = "agent-method-content"
 paths = [".agents/skills/"]
 exclude = [".agents/skills/recursive-lego-calculus/"]
 
+# S5-deployed reusable knowledge source. Edited Git bytes and provenance remain
+# non-authoritative catalog material; current consumers keep their own authority.
+[[source_regions]]
+name = "knowledge-catalog-source"
+paths = ["catalogs/knowledge/"]
+
 # Mechanical source navigation only; not a semantic Owner or proof authority.
 [[source_regions]]
 name = "formal-verification-source"

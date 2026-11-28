@@ -161,6 +161,22 @@ class FullCoverageTests(unittest.TestCase):
             for owner in policy["owners"]
         ))
 
+    def test_knowledge_catalog_is_source_region_not_owner_authority(self):
+        import tomllib
+        policy = tomllib.loads(
+            (ROOT / "tools/repo/owners.toml").read_text(encoding="utf-8"))
+        classified = M.source_partition(
+            "catalogs/knowledge/lessons/temporal-durable-execution-kernel.md",
+            policy,
+        )
+        self.assertEqual(classified["standing"], "CLASSIFIED")
+        self.assertEqual(
+            classified["classification"], "REGION:knowledge-catalog-source")
+        self.assertFalse(any(
+            owner["root"].startswith("catalogs/knowledge/")
+            for owner in policy["owners"]
+        ))
+
     def test_unlisted_region_overlap_fails_to_classify(self):
         regions = [{"name": s, "paths": ["meta/research/"]} for s in ("one", "two")]
         self.assertEqual(M.source_partition("meta/research/foo", {
