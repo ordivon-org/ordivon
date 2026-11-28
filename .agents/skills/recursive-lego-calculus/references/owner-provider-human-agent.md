@@ -8,8 +8,7 @@ These repository paths are informative; they are not portable Skill dependencies
 
 ## Shared representation
 
-A LEGO is a goal-conditioned, independently replaceable responsibility with
-identity, inputs, outputs, behavioral contract and real consumer acceptance.
+A replaceable responsibility is one useful engineering interpretation of OL. Choose its mathematical representation and observations from the actual problem, not a prescribed definition.
 The method/capability distinction describes responsibilities, **not** an
 automatic Skill/Tool type system. A discovered file, paper or provider is only
 a candidate. Select the native mathematical contract that the decision needs; unknown relevant facts remain UNKNOWN.

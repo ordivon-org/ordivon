@@ -9,7 +9,7 @@ Reuse existing owner truth: AGENTS.md; services/harness/docs/authority.md; servi
 
 Distinguish dimensions, not brands. Formal-First states the behavioral obligations and evidence scope. LEGO-First discovers replaceable, goal-conditioned responsibilities without presuming a globally minimum or sufficient representation. Models, skills, tools, harnesses and runtimes are concrete mechanisms implementing or consuming these responsibilities, not additional universal top-level owners.
 
-A LEGO is NOT synonymous with a file, package, agent, tool, skill, runtime object or MCP server. For a needed responsibility name identity, responsibility, inputs, outputs, behavioral contract and acceptance. Only add authority/effects/state/provenance where they change the real decision.
+A file, package, Agent, Tool, Skill, runtime object or MCP server is a possible representation or implementation, not a mathematical definition. Select the observations, operations and properties needed for the problem.
 
 ## Minimal new-Agent decision boundary
 
@@ -214,22 +214,7 @@ not a new schema, all-Owner registry, proof kernel, default Workflow or source
 of runtime authority. This section is useful only when a *named current
 consumer* needs a contract that its natural Owner can actually verify.
 
-The *only* canonical LEGO identity remains the original six-part contract
-already specified above:
-
-\[
-L = (identity, responsibility, inputs, outputs, contract, acceptance).
-\]
-
-Here **identity** and **responsibility** belong to the existing natural Owner;
-**acceptance** is a named current consumer's observable predicate. Do not
-rename a consumer set, state machine or mathematical proof into a competing
-LEGO object. When a named consumer B and goal g require more precision,
-interpret—not replace—that LEGO with an **optional semantic view**:
-
-\[
-\mathrm{Semantics}(L)_{g,B}=(S,Init,Next,A,G,\pi_B).
-\]
+OL starts from the mathematical objects and operations suited to the actual problem. A transition system or trace contract is one local representation for a consumer and property, not a definition of OL.
 
 - \(S,Init,Next\) are existing Owner state and transition semantics; they are
   absent for a stateless LEGO. \(I,O\) retain their native interface types.
@@ -249,7 +234,7 @@ interpret—not replace—that LEGO with an **optional semantic view**:
   boundary. Feedback cycles need an independent inductive invariant;
   independent component PASS or circular assumptions are not enough.
 - Effects are **derived** from the existing Owner's effect-bearing transition
-  relation R, not a ninth LEGO role. Admission must establish
+  relation R. Admission must establish
   \(\mathrm{Effects}(R)\subseteq
   \mathrm{AuthorizedEffects}(owner,sourceCut)\); a verified DAG or type
   signature by itself never grants that authority.

@@ -39,8 +39,7 @@
       ],
       "acceptance": [
         "Projection names its source/observer boundary.",
-        "RichPerception Pearson coupling requires finite samples and a finite result; its canonical JSON digest rejects NaN/Infinity before recording source identity.",
-        "R2.1 source/consumer 11-coordinate contract declared; not a universal formal proof or external domain acceptance."
+        "RichPerception Pearson coupling requires finite samples and a finite result; its canonical JSON digest rejects NaN/Infinity before recording source identity."
       ],
       "inputs": [
         "media root",
@@ -75,8 +74,7 @@
         "current source truth"
       ],
       "acceptance": [
-        "Later source change does not silently float historical expression.",
-        "R2.1 source/consumer 11-coordinate contract declared; not a universal formal proof or external domain acceptance."
+        "Later source change does not silently float historical expression."
       ],
       "inputs": [
         "Production sourceBindings",
@@ -110,8 +108,7 @@
         "generic representation"
       ],
       "acceptance": [
-        "Multiple valid productions do not imply a unique current one.",
-        "R2.1 source/consumer 11-coordinate contract declared; not a universal formal proof or external domain acceptance."
+        "Multiple valid productions do not imply a unique current one."
       ],
       "inputs": [
         "selected production.json",
@@ -156,8 +153,7 @@
       ],
       "acceptance": [
         "Mechanical/factual pass is distinguishable from craft/human-response claims.",
-        "Media owner preflight rejects a different pinned @remotion/cli version from remotion before render verification.",
-        "R2.1 source/consumer 11-coordinate contract declared; not a universal formal proof or external domain acceptance."
+        "Media owner preflight rejects a different pinned @remotion/cli version from remotion before render verification."
       ],
       "inputs": [
         "exact selected media path",
@@ -194,8 +190,7 @@
         "Distribution publication effect"
       ],
       "acceptance": [
-        "Output identity remains stable independently of publication.",
-        "R2.1 source/consumer 11-coordinate contract declared; not a universal formal proof or external domain acceptance."
+        "Output identity remains stable independently of publication."
       ],
       "inputs": [
         "selected output bytes",

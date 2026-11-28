@@ -23,16 +23,14 @@ def load_graph() -> dict:
     return value
 
 
-def test_lego21_architecture_doc_has_one_canonical_sixpart_identity() -> None:
+def test_composition_architecture_references_semantic_foundations() -> None:
     architecture = (
         ROOT / "docs/architecture/ORDIVON_COMPOSITION_ARCHITECTURE_R1.md"
     ).read_text(encoding="utf-8")
     canonical = (
         ROOT / "docs/architecture/AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md"
     ).read_text(encoding="utf-8")
-    assert "L = (identity, responsibility, inputs, outputs, contract, acceptance)." in canonical
     assert "AGENT_CONCEPTS_FORMAL_LEGO_RESEARCH_20261024.md" in architecture
-    assert "LEGO_X =" not in architecture
 
 
 def test_current_composition_graph_is_valid() -> None:
