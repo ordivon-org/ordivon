@@ -11,7 +11,7 @@ Flags == {"true", "false", "string-false", "int-one", "missing"}
 BooleanFlags == {"true", "false"}
 InventoryShapes == {"list", "missing", "not-list"}
 TargetCounts == {"none", "one", "duplicate"}
-ContextShapes == {"missing", "list", "invalid"}
+ContextShapes == {"missing", "list", "canonical-empty", "canonical-nonempty", "invalid"}
 
 VARIABLES phase, observedConfigured, observedAvailable,
           inventoryShape, matchingTargets, contextShape,
@@ -51,7 +51,8 @@ ValidObservation ==
   /\ ~(observedConfigured = "false" /\ observedAvailable = "true")
   /\ inventoryShape = "list"
   /\ matchingTargets = "one"
-  /\ contextShape \in {"missing", "list"}
+  /\ contextShape # "invalid"
+  /\ ~(contextShape = "canonical-empty" /\ observedAvailable = "true")
 
 Project ==
   /\ phase = "observed"
@@ -93,18 +94,21 @@ MalformedObservationReported ==
 
 NoAmbiguousOrInvalidInventoryReady ==
   (phase = "projected" /\
-    (inventoryShape # "list" \/ matchingTargets # "one" \/ contextShape = "invalid")) =>
+    (inventoryShape # "list" \/ matchingTargets # "one" \/ contextShape = "invalid" \/
+     (contextShape = "canonical-empty" /\ observedAvailable = "true"))) =>
     /\ projectedAvailable = FALSE
     /\ observationError = TRUE
 
 NeverAvailable ==
   ~(phase = "projected" /\ projectedAvailable)
 
-\* Negative control: model accidental Python truthiness coercion of "false".
+\* Negative controls: truthiness coercion or legacy fallback over empty canonical inventory.
 UnsafeProject ==
   /\ phase = "observed"
   /\ observedConfigured = "true"
-  /\ observedAvailable = "string-false"
+  /\ (observedAvailable = "string-false" \/
+       (observedAvailable = "true" /\ inventoryShape = "list" /\
+        matchingTargets = "one" /\ contextShape = "canonical-empty"))
   /\ phase' = "projected"
   /\ projectedAvailable' = TRUE
   /\ observationError' = FALSE

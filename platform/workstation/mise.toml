@@ -45,3 +45,24 @@ test "$actual" = "codex-cli $version" || {
 }
 printf 'codex_pnpm_consumer_ready=%s\n' "$prefix"
 """
+
+# Explicit platform qualification: ordinary CI is intentionally portable.
+[tasks."backup:native-verify"]
+run = """
+set -euo pipefail
+unset PYTEST_ADDOPTS PYTEST_PLUGINS
+export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
+export ORDIVON_TEST_NATIVE_BACKUP_CHAIN=1
+export ORDIVON_TEST_NATIVE_BACKUP_RETENTION=1
+report_args=()
+if [[ -n "${ORDIVON_NATIVE_BACKUP_JUNIT:-}" ]]; then
+  if [[ -e "$ORDIVON_NATIVE_BACKUP_JUNIT" || -L "$ORDIVON_NATIVE_BACKUP_JUNIT" ]]; then
+    echo "BACKUP_QUALIFICATION_REPORT_EXISTS" >&2
+    exit 2
+  fi
+  report_args+=(--junitxml="$ORDIVON_NATIVE_BACKUP_JUNIT")
+fi
+uv run --locked python -m pytest -o addopts= -p workstation.backup_test_qualification "${report_args[@]}" \
+  tests/test_pgbackrest_native_recovery_contract.py \
+  tests/test_pgbackrest_native_retention_contract.py
+"""

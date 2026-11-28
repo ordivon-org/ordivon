@@ -167,7 +167,7 @@ class FormalTraceContractTests(unittest.TestCase):
         terminal = next(item for item in trace["provingTests"] if item["id"] == "RuntimeDispatch.terminalEvidence")
         self.assertEqual(
             terminal["path"],
-            "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
+            "crates/ordivon-runtime-core/src/runtime/job_attempt_state/lifecycle_tests.rs",
         )
         self.assertEqual(
             terminal["symbol"],

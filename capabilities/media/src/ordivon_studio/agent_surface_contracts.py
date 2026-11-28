@@ -91,6 +91,20 @@ def tool_definitions() -> list[dict[str, Any]]:
             },
         },
         {
+            "name": "studio_processing_receipt_qualify",
+            "description": "Qualify exact local native processing evidence against a caller-selected bound plan, observed exit code and receipt digest. Checks identity and retained bytes, not Runtime witness, signer or publication. Missing evidence remains UNKNOWN.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "plan": {"type": "object"},
+                    "exitCode": {"type": ["integer", "null"]},
+                    "expectedReceiptDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+                },
+                "required": ["plan", "exitCode", "expectedReceiptDigest"],
+                "additionalProperties": False,
+            },
+        },
+        {
             "name": "studio_equipment_propose",
             "description": "Select freshly observed equipment for one exact Studio capability and compile a truthful operation proposal with readiness, blockers, exact physical plan, and owner-specific verification contract. This does not execute the effect.",
             "inputSchema": {
@@ -113,7 +127,7 @@ def surface_projection() -> dict[str, Any]:
         "kind": "ordivon.studio-agent-tool-surface",
         "truthRole": "studio-domain-semantic-actions",
         "domainId": "domain:ordivon-studio",
-        "revision": "studio-agent-surface-processing-probe-plan-v1",
+        "revision": "studio-agent-surface-processing-receipt-v1",
         "tools": tool_definitions(),
         "runtimeOwnsPhysicalExecution": True,
         "harnessMayAdmitSubsetOnly": True,

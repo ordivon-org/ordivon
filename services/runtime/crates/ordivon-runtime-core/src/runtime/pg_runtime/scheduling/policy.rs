@@ -44,19 +44,11 @@ impl SchedulerPreflight {
         if !node.pressure_allows(&candidate.spec.resources) {
             return false;
         }
-        let memory_reserve = (node.memory_total_bytes / 20).max(64 * 1024 * 1024);
-        if !crate::resource_fit::fits(
+        if !node.fits(
             self.reserved_cpu,
-            u64::from(candidate.spec.resources.cpu_millis),
-            node.cpu_millis,
-            candidate.spec.resources.memory_bytes,
-            node.memory_available_bytes
-                .saturating_sub(memory_reserve)
-                .saturating_sub(self.newly_reserved_memory),
-            u64::from(candidate.spec.resources.pids),
-            node.pids_available
-                .saturating_sub(64)
-                .saturating_sub(self.newly_reserved_pids),
+            &candidate.spec.resources,
+            self.newly_reserved_memory,
+            self.newly_reserved_pids,
         ) {
             return false;
         }
@@ -110,7 +102,10 @@ fn dominant_share(
     let (cpu, memory, pids) = usage.get(owner).copied().unwrap_or_default();
     (cpu as f64 / node.cpu_millis.max(1) as f64)
         .max(memory as f64 / node.memory_total_bytes.max(1) as f64)
-        .max(pids as f64 / node.pid_capacity.max(1) as f64)
+        .max(
+            node.pid_capacity
+                .map_or(0.0, |cap| pids as f64 / cap.max(1) as f64),
+        )
 }
 
 /// Highest priority, then lowest live dominant share, then FIFO order.

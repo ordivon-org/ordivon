@@ -705,7 +705,9 @@ jobs:
       matrix: ${{ fromJSON(needs.root-preflight.outputs.shards) }}
     services:
       paper_postgres:
-        image: postgres:18.6
+        # Native GitHub service admission: only these explicit DSN consumers
+        # need this ephemeral service. Empty image means no container.
+        image: ${{ (contains(matrix.tasks, 'capital:verify') || contains(matrix.tasks, 'harness:queue')) && 'postgres:18.6' || '' }}
         env:
           POSTGRES_USER: postgres
           POSTGRES_DB: ordivon_paper
@@ -755,72 +757,16 @@ jobs:
           # Owner selection was admitted by the source-qualified preflight.
           # Only resolve native tool manifests for the exact selected tasks.
           selected_roots="$RUNNER_TEMP/ordivon-selected-owner-toolroots.txt"
-          python3 - "$selected_roots" <<'PYOWNERS'
-          import json
-          import os
-          import sys
-          import tomllib
-          from pathlib import Path
-
-          sys.path.insert(0, "tools/repo")
-          from affected_owners import OWNERS
-
-          tasks = json.loads(os.environ["OWNER_TASKS_JSON"])
-          if not isinstance(tasks, list) or not all(isinstance(t, str) for t in tasks):
-              raise SystemExit("invalid selected Owner task list")
-          if len(tasks) != len(set(tasks)):
-              raise SystemExit("duplicate selected Owner task")
-          by_task = {owner.queue_task: owner.root.rstrip("/") for owner in OWNERS}
-          if any(task not in by_task for task in tasks):
-              raise SystemExit("unregistered selected Owner task")
-          roots = []
-          for task in tasks:
-              root = by_task[task]
-              # Some Owners use a root-managed task rather than an adjacent
-              # native mise.toml. Those do not gain an invented manifest.
-              manifest = Path(root) / "mise.toml"
-              if not manifest.is_file():
-                  continue
-              if root not in roots:
-                  roots.append(root)
-              # Read existing native task commands, not an invented Owner
-              # graph: a selected task may invoke a second scoped Mise
-              # manifest. Capital invokes mise exec in tools/formal; that
-              # auto-installer caps release metadata timeouts to 3 seconds.
-              # An explicit native mise install here uses normal HTTP retry,
-              # exact pinned versions and this scoped read-only GH token.
-              native_tasks = tomllib.loads(manifest.read_text(encoding="utf-8")).get("tasks", {})
-              if any(
-                  isinstance(row, dict)
-                  and isinstance(row.get("run"), str)
-                  and "tools/formal" in row["run"]
-                  for row in native_tasks.values()
-              ):
-                  if not (Path("tools/formal") / "mise.toml").is_file():
-                      raise SystemExit("selected nested tools/formal source missing")
-                  if "tools/formal" not in roots:
-                      roots.append("tools/formal")
-          # The Gateway test suite has an existing, governed test-only seam
-          # to Security's OPA policy and exact version in platform/security/mise.toml.
-          # A Gateway-only merge group otherwise omits that Owner toolchain:
-          # "mise where opa@<Security pin>" fails though the test is valid.
-          # Preinstall the existing provider when that consumer is selected;
-          # never hard-code an alternate OPA pin or weaken the test.
-          if "gateway:verify" in tasks:
-              security_manifest = Path("platform/security/mise.toml")
-              if not security_manifest.is_file():
-                  raise SystemExit("Gateway OPA test needs Security Owner toolchain")
-              tools = tomllib.loads(
-                  security_manifest.read_text(encoding="utf-8")
-              ).get("tools", {})
-              if not isinstance(tools.get("opa"), str):
-                  raise SystemExit("Gateway OPA test needs Security-pinned OPA")
-              if "platform/security" not in roots:
-                  roots.append("platform/security")
-          Path(sys.argv[1]).write_text(
-              "".join(root + "\n" for root in roots), encoding="utf-8"
-          )
-          PYOWNERS
+          # Source-qualify the selector before using it for native installs.
+          for source in tools/repo/ci_owner_toolroots.py tools/repo/affected_owners.py tools/repo/owners.toml; do
+            if [[ ! -f "$source" || -L "$source" ]] ||
+               ! git --no-replace-objects ls-tree HEAD -- "$source" | grep -Eq '^100(644|755) blob [[:xdigit:]]{40,64}[[:space:]]' ||
+               ! git --no-replace-objects show "HEAD:$source" | cmp -s - "$source"; then
+              echo "ERROR: selected Owner toolroot source differs from exact Git HEAD: $source" >&2
+              exit 43
+            fi
+          done
+          python3 tools/repo/ci_owner_toolroots.py "$selected_roots"
           while IFS= read -r root || [[ -n "$root" ]]; do
             [[ -z "$root" ]] && continue
             # mise install is idempotent: a retry visits only missing pinned
@@ -842,6 +788,7 @@ jobs:
         shell: bash
         env:
           OWNER_TASKS_JSON: ${{ toJSON(matrix.tasks) }}
+          PAPER_PG_PORT: ${{ job.services.paper_postgres.ports['5432'] }}
         run: |
           set -euo pipefail
           # GitHub's matrix data is a JSON array from the verified preflight.
@@ -903,88 +850,25 @@ jobs:
           # Owner-root-only list that silently misses nested task scripts.
           # This protects stable source drift; it does not prove the full
           # executed shell/import readset or exclude transient mutations.
-          python3 - <<'PY'
-          import json
-          import os
-          import re
-          import subprocess
-          import sys
-          from pathlib import Path
-
-          def git_bytes(*args):
-              return subprocess.check_output(
-                  ["git", "--no-replace-objects", *args], stderr=subprocess.PIPE
-              )
-
-          try:
-              repo = Path.cwd().resolve()
-              tree = git_bytes("ls-tree", "-r", "-z", "--full-tree", "HEAD")
-              entries = {}
-              for entry in tree.split(b"\0"):
-                  if not entry:
-                      continue
-                  metadata, name = entry.split(b"\t", 1)
-                  entries[os.fsdecode(name)] = metadata
-
-              def qualified(relative):
-                  # No mutable index or local override may supply an executed config.
-                  record = entries.get(relative)
-                  fields = record.split() if record is not None else []
-                  if (
-                      len(fields) != 3
-                      or fields[0] not in (b"100644", b"100755")
-                      or fields[1] != b"blob"
-                      or re.fullmatch(rb"[0-9a-f]{40}|[0-9a-f]{64}", fields[2]) is None
-                  ):
-                      raise ValueError("untracked or nonregular native Mise config: " + relative)
-                  path = repo / relative
-                  if not path.is_file() or path.is_symlink():
-                      raise ValueError("nonregular actual native Mise config: " + relative)
-                  if path.read_bytes() != git_bytes("show", "HEAD:" + relative):
-                      raise ValueError("native Mise config differs from Git HEAD: " + relative)
-
-              # The Git tree supplies known task-directory roots. Mise itself supplies
-              # the currently effective config readset; e.g. an UNTRACKED higher
-              # precedence mise.local.toml must not silently override a tracked task.
-              roots = sorted(
-                  name for name in entries
-                  if name == "mise.toml" or name.endswith("/mise.toml")
-              )
-              if not roots:
-                  raise ValueError("no native Mise task manifests in Git HEAD")
-              for name in roots:
-                  qualified(name)
-              for name in roots:
-                  directory = (repo / name).parent
-                  native = subprocess.run(
-                      ["mise", "--cd", str(directory), "config", "ls", "--json"],
-                      capture_output=True, text=True, check=False, timeout=15,
-                  )
-                  if native.returncode != 0:
-                      raise ValueError("native Mise config resolver failed for " + name)
-                  loaded = json.loads(native.stdout)
-                  if not isinstance(loaded, list):
-                      raise ValueError("invalid native Mise config result")
-                  for item in loaded:
-                      if not isinstance(item, dict) or not isinstance(item.get("path"), str):
-                          raise ValueError("invalid native Mise config entry")
-                      path = Path(item["path"])
-                      if not path.is_absolute():
-                          raise ValueError("native Mise reported nonabsolute config")
-                      try:
-                          relative = path.relative_to(repo)
-                      except ValueError:
-                          # External global toolchain config remains an explicit
-                          # environment assumption, NOT Git SourceCut proof.
-                          continue
-                      if path.is_symlink() or not path.resolve().is_relative_to(repo):
-                          raise ValueError("unqualified native Mise config link")
-                      qualified(relative.as_posix())
-          except (OSError, ValueError, subprocess.SubprocessError) as exc:
-              print("ERROR: nested Mise task source differs from exact Git HEAD: "
-                    + str(exc), file=sys.stderr)
-              raise SystemExit(43) from exc
-          PY
+            # Qualify the extracted executable before handing it the readset.
+            witness=tools/repo/ci_mise_source_witness.py
+            if [[ ! -f "$witness" || -L "$witness" ]] ||
+               ! git --no-replace-objects ls-tree HEAD -- "$witness" | grep -Eq '^100(644|755) blob [[:xdigit:]]{40,64}[[:space:]]tools/repo/ci_mise_source_witness\.py$' ||
+               ! git --no-replace-objects show "HEAD:$witness" | cmp -s - "$witness"; then
+              echo "ERROR: nested Mise task source differs from exact Git HEAD: witness" >&2
+              exit 43
+            fi
+            python3 "$witness"
+            # A missing service port cannot fall back to libpq's default port.
+            case "$task" in
+              capital:verify|harness:queue)
+                if ! [[ "${PAPER_PG_PORT:-}" =~ ^[1-9][0-9]{0,4}$ ]] ||
+                   (( PAPER_PG_PORT > 65535 )); then
+                  echo "ERROR: selected Owner requires its native CI PostgreSQL service port" >&2
+                  exit 44
+                fi
+                ;;
+            esac
             # The selected task must not consume the following queue entries.
             if [[ "$task" == "capital:verify" ]]; then
               # A positive Paper DSN causes all database consumers to run;
@@ -992,21 +876,21 @@ jobs:
               # Container and credentials exist only in this GitHub job.
               # Separate Accounting schemas share this one ephemeral test DB.
               # Real Paper and general Ledger consumers were both verified.
-              ORDIVON_CAPITAL_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
-              ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
+              ORDIVON_CAPITAL_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=$PAPER_PG_PORT connect_timeout=10" \
+              ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=$PAPER_PG_PORT connect_timeout=10" \
               mise run "$task" </dev/null
               # Reuse this already-running native PG18 service for the pinned
               # Nautilus/Databento source-to-Paper subset. Ordinary provider
               # tests depend on external credentials; this bounded subset does
               # not. Fail if its physical PG consumer would be silently skipped.
-              ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
+              ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=$PAPER_PG_PORT connect_timeout=10" \
               ORDIVON_FINANCE_REQUIRE_PHYSICAL_PG=1 \
               mise --cd domains/capital run verify:nonlive:nautilus </dev/null
             elif [[ "$task" == "harness:queue" ]]; then
               # Reuse disposable CI PostgreSQL, admitting only isolated Harness
               # test schemas; no production state or SQLite migration.
               # The DSN makes the PG consumers actual tests, not skipped tests.
-              HARNESS_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
+              HARNESS_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=$PAPER_PG_PORT connect_timeout=10" \
               mise run "$task" </dev/null
             else
               mise run "$task" </dev/null

@@ -4,7 +4,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BROKER = ROOT / "platform" / "windows" / "Ordivon.WindowsPrivilegedBroker.cs"
 WINDOWS_RS = ROOT / "crates" / "ordivon-runtime-core" / "src" / "runtime" / "windows.rs"
 BROKER_RS = ROOT / "crates" / "ordivon-runtime-core" / "src" / "runtime" / "windows_broker.rs"
-TYPES_RS = ROOT / "crates" / "ordivon-runtime-core" / "src" / "runtime" / "types.rs"
+TYPES_RS = WINDOWS_RS.parent / "types" / "execution_target.rs"
 EXECUTION_RS = ROOT / "crates" / "ordivon-runtime-core" / "src" / "runtime" / "engine" / "execution.rs"
 PREPARATION_RS = ROOT / "crates" / "ordivon-runtime-core" / "src" / "runtime" / "engine" / "execution_preparation.rs"
 LAUNCH_IDENTITY_RS = ROOT / "crates" / "ordivon-runtime-core" / "src" / "runtime" / "engine" / "launch_identity.rs"
@@ -105,6 +105,9 @@ def test_elevated_windows_context_freezes_privileged_broker_digest_and_fails_clo
     assert "windows_privileged_broker_profile_allowlist_v1" in preparation
     assert "verify_digest(expected_broker_digest)" in launch_identity
     assert "LaunchIdentityMismatch" in broker
+    pg_dispatch = (WINDOWS_RS.parent / "pg_runtime" / "windows_native.rs").read_text(encoding="utf-8")
+    assert "payload_privilege: payload.privilege" in pg_dispatch
+    assert "expected_privileged_broker_digest: context.privileged_broker_digest.as_deref()" in pg_dispatch
 
 
 def test_current_main_preserves_one_native_launch_identity_contract_for_direct_and_broker_paths():

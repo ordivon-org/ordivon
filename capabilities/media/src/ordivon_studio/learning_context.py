@@ -3,24 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from .cognition_sections import extract_learning
 from .production_source_io import read_bound_bytes, read_bound_object, relative_child
-
-
-def _extract_learning(text: str) -> str | None:
-    lines = text.splitlines()
-    start: int | None = None
-    end = len(lines)
-    for index, line in enumerate(lines):
-        if line.strip().upper() == "## LEARNING":
-            start = index + 1
-            continue
-        if start is not None and line.startswith("## "):
-            end = index
-            break
-    if start is None:
-        return None
-    value = "\n".join(lines[start:end]).strip()
-    return value or None
 
 
 def _production_learning_records(root: Path) -> list[dict[str, Any]]:
@@ -39,7 +23,7 @@ def _production_learning_records(root: Path) -> list[dict[str, Any]]:
         if not cognition_path.is_file():
             continue
         cognition_bytes, cognition_digest = read_bound_bytes(cognition_path)
-        learning = _extract_learning(cognition_bytes.decode("utf-8"))
+        learning = extract_learning(cognition_bytes.decode("utf-8"))
         if learning is None:
             continue
         outputs = production.get("outputs")

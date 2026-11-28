@@ -1100,6 +1100,31 @@ class ConvergencePlanTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "unapproved original Harness"):
                 MODULE._original_harness_issuer_behavior_source(repo)
             nested.write_text(body, encoding="utf-8")
+            # A refactor may share the exact same-file fixture helper with
+            # another annotated receiver case. An unrelated later test or
+            # disconnected helper must never supply the original references.
+            delegated = body[:body.index("let x")] + (
+                "original_harness_store_issuer_revoke(false);\n}\n"
+                '#[test]\n#[ignore = "requires PG18"]\n'
+                "fn another_test() { original_harness_store_issuer_revoke(true); }\n"
+                "fn original_harness_store_issuer_revoke(receiver: bool) {\n"
+                + body[body.index("let x"):]
+            )
+            nested.write_text(delegated, encoding="utf-8")
+            self.assertEqual(
+                MODULE._original_harness_issuer_behavior_source(repo),
+                nested.relative_to(repo).as_posix(),
+            )
+            for invalid in (
+                delegated.replace("original_harness_store_issuer_revoke(false);", "other();"),
+                delegated.replace("original_harness_store_issuer_revoke(false);", "original_harness_store_issuer_revoke(true);"),
+                delegated + delegated[delegated.index("fn original_harness_store_issuer_revoke(receiver: bool)"):],
+                delegated.replace('root.join("services/harness/src")', '"unrelated"'),
+            ):
+                nested.write_text(invalid, encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "unapproved original Harness"):
+                    MODULE._original_harness_issuer_behavior_source(repo)
+            nested.write_text(body, encoding="utf-8")
             # A symlink to a foreign source is not an approved native consumer.
             nested.unlink()
             nested.symlink_to(Path(directory) / "other.rs")

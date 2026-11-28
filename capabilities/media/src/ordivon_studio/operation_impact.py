@@ -7,7 +7,6 @@ remain distinct from present file observations and from execution policy.
 
 from __future__ import annotations
 
-import hashlib
 import json
 from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
@@ -16,6 +15,7 @@ from typing import Any
 from jsonschema import Draft202012Validator
 
 from .assets import UnstableBlobError, hash_file
+from .production_source_io import read_bound_object
 
 _KIND = "ordivon.media.operation-lineage"
 _NAME = "operation-lineage.json"
@@ -106,8 +106,7 @@ def project_operation_impact(
     if _NAME not in source_documents:
         return None
     lineage_path = _read_production_file(root, _NAME)
-    source_bytes = lineage_path.read_bytes()
-    lineage = json.loads(source_bytes)
+    lineage, source_digest = read_bound_object(lineage_path)
     schema = json.loads(
         (Path(__file__).resolve().parents[2] / "schemas/operation-lineage.schema.json").read_text(
             encoding="utf-8"
@@ -218,7 +217,7 @@ def project_operation_impact(
         "schemaVersion": 1,
         "kind": "ordivon.media.operation-impact-projection",
         "productionId": production["id"],
-        "sourceManifestSha256": "sha256:" + hashlib.sha256(source_bytes).hexdigest(),
+        "sourceManifestSha256": source_digest,
         "truthRole": "bounded-point-in-time-local-dependency-observation",
         "actionCachePresent": False,
         "cacheReuseAuthorized": False,
