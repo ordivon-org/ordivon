@@ -4,12 +4,6 @@ use super::*;
 mod cancellation;
 mod event_projection;
 
-// Direct PostgreSQL Client reads must not erase SQLSTATE through io(Display).
-// Keep the one shared PgAdmissionError taxonomy used by Recovery and admission.
-fn pg_read_error(error: postgres::Error) -> RuntimeError {
-    pg(PgAdmissionError::Database(error))
-}
-
 // Once PG has durably admitted this Job (including an exact idempotent replay),
 // a later observation failure cannot retract the committed operation identity.
 // The existing MCP error projection uses this witness to demand reconciliation
