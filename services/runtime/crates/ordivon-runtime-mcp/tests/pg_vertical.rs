@@ -762,6 +762,7 @@ fn pg_release_effect_atomic_admission_and_generic_dispatch_fence() {
     }
 
     let mut fixture = Fixture::new();
+    fixture.host_visible_test_runner = true;
     let repo = fixture.repo();
     let commit = String::from_utf8(
         Command::new("git")
@@ -986,22 +987,76 @@ fn pg_release_effect_atomic_admission_and_generic_dispatch_fence() {
     assert_eq!(get["structuredContent"]["receiptAvailable"], false);
     assert_eq!(get["structuredContent"]["effectTerminal"], false);
 
+    // An admitted release is not a physical cutover. A normal, harmless
+    // Job must run and deliver its own bytes while the ReleaseEffect
+    // stays untouched. The post-dispatch admission fence is covered by
+    // the existing isolated PG admission contract test.
     let ordinary = call(
         &endpoint,
         "workspace.exec",
-        json!({"clientRequestId":"pg-release-fenced-ordinary-001","execution":{
-            "workspaceId":"ws-pg-release-native","executable":"/usr/bin/true",
-            "cwdRelative":".","timeoutMs":5000},"waitMs":0}),
+        json!({"clientRequestId":"pg-release-predispatch-ordinary-001","execution":{
+            "workspaceId":"ws-pg-release-native","executable":"/usr/bin/printf",
+            "args":["ORDINARY_BEFORE_RELEASE_DISPATCH"],
+            "cwdRelative":".","timeoutMs":20000},"waitMs":10000}),
     );
+    assert_ne!(ordinary["isError"], true, "{ordinary}");
+    let ordinary_id = ordinary["structuredContent"]["jobId"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let mut actual = ordinary;
+    let deadline = Instant::now() + Duration::from_secs(70);
+    while actual["structuredContent"]["executionTerminal"] != true {
+        actual = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":ordinary_id,"waitMs":7000,"waitUntil":"terminal"}),
+        );
+        assert_ne!(actual["isError"], true, "{actual}");
+        assert!(
+            Instant::now() < deadline,
+            "ordinary Job did not converge: {actual}"
+        );
+    }
     assert_eq!(
-        ordinary["isError"], true,
-        "new ordinary admission must be fenced: {ordinary}"
+        actual["structuredContent"]["executionDisposition"], "succeeded",
+        "{actual}"
     );
+    let stdout = actual["structuredContent"]["artifacts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|a| a["kind"] == "stdout")
+        .expect("ordinary stdout");
+    let readback = call(
+        &endpoint,
+        "artifact.read",
+        json!({"jobId":ordinary_id,"artifactId":stdout["artifactId"],"offset":0,"maxBytes":100}),
+    );
+    assert_ne!(readback["isError"], true, "{readback}");
+    assert_eq!(
+        readback["structuredContent"]["content"],
+        "ORDINARY_BEFORE_RELEASE_DISPATCH"
+    );
+    let pending = call(
+        &endpoint,
+        "release.get",
+        json!({"clientRequestId":request.client_request_id}),
+    );
+    assert_ne!(pending["isError"], true, "{pending}");
+    assert_eq!(
+        pending["structuredContent"]["effectDisposition"],
+        "admitted"
+    );
+    assert_eq!(pending["structuredContent"]["receiptAvailable"], false);
     assert_eq!(fixture.db.query_one(
-        "SELECT count(*) FROM jobs WHERE client_request_id='pg-release-fenced-ordinary-001'", &[]
+        "SELECT count(*) FROM job_events WHERE job_id=$1 AND event_type IN ('DISPATCH_ISSUED','RELEASE_OPERATOR_DISPATCH_ISSUED')",
+        &[&job],
     ).unwrap().get::<_,i64>(0),0);
-    // This fixture must NOT install any release. A durable pending ReleaseEffect
-    // is deliberately separated from qualified external installer authority.
+    assert_eq!(fixture.db.query_one(
+        "SELECT count(*) FROM jobs WHERE client_request_id='pg-release-predispatch-ordinary-001'", &[]
+    ).unwrap().get::<_,i64>(0),1);
+    eprintln!("PREDISPATCH_ORDINARY_NATIVE_ARTIFACT_PASS_RELEASE_UNCHANGED");
 }
 
 #[test]
