@@ -77,6 +77,8 @@ RELEASE_PATHS = (
     "scripts/playwright_browserless_binding_reconcile.py",
     "scripts/playwright_browserless_chatgpt_submit.py",
     "scripts/playwright_browserless_conversation_output.py",
+    "scripts/conversation_output_evidence.py",
+    "scripts/existing_browser_harness_output.py",
     "scripts/playwright_browserless_human_resume.py",
     "scripts/playwright_browserless_provider_preflight.py",
     "scripts/playwright_browserless_turn_once.py",
