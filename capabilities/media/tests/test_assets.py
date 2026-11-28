@@ -149,9 +149,49 @@ class AssetTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 materialize_blob(blob.digest, cache, root / "recovered.bin")
 
-    def test_rejects_non_sha256_key(self) -> None:
+    def test_local_cache_rejects_symlink_digest_address(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "selected.bin"
+            cache = root / "cache"
+            source.write_bytes(b"immutable cached bytes")
+            blob = hash_file(source)
+            cached = cache / r2_object_key(blob.digest)
+            cached.parent.mkdir(parents=True)
+            external = root / "external.bin"
+            external.write_bytes(source.read_bytes())
+            try:
+                cached.symlink_to(external)
+            except OSError as exc:
+                self.skipTest(f"symbolic links unavailable: {exc}")
+
+            with self.assertRaisesRegex(RuntimeError, "must not be a symbolic link"):
+                archive_blob(source, cache)
+            with self.assertRaisesRegex(RuntimeError, "must not be a symbolic link"):
+                materialize_blob(blob.digest, cache, root / "working.bin")
+
+    def test_materialize_rejects_destination_aliasing_cached_blob(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "selected.bin"
+            cache = root / "cache"
+            destination = root / "working.bin"
+            source.write_bytes(b"immutable cached bytes")
+            archived = archive_blob(source, cache)
+            cached = Path(str(archived["cachePath"]))
+            try:
+                os.link(cached, destination)
+            except OSError as exc:
+                self.skipTest(f"hard links unavailable: {exc}")
+
+            with self.assertRaisesRegex(RuntimeError, "must not alias"):
+                materialize_blob(str(archived["blob"]["digest"]), cache, destination)
+
+    def test_rejects_noncanonical_sha256_key(self) -> None:
         with self.assertRaises(ValueError):
             r2_object_key("md5:deadbeef")
+        with self.assertRaises(ValueError):
+            r2_object_key("sha256:" + "A" * 64)
 
 
 if __name__ == "__main__":
