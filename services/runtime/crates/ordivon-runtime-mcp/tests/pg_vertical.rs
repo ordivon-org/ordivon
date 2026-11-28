@@ -4067,22 +4067,56 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         dispatched, 0,
         "cancelled pre-dispatch Attempt was physically launched"
     );
-    // Restart only the MCP control process while its independent native Unit
-    // runs. Recovery must consume the existing result, never launch again.
+    // Restart only the disposable MCP control process after the payload has
+    // actually started. A submitted Job may still be queued; a payload-owned
+    // marker plus a test-owned gate establishes the in-flight cut.
+    let started_marker = fixture.root.join("restart-payload-started");
+    let finish_gate = fixture.root.join("restart-payload-finish");
     let running = call(
         &endpoint,
         "workspace.exec",
         json!({
-        "clientRequestId":"native-control-restart", "execution":{
-            "workspaceId":input.workspace_id,"executable":"/usr/bin/sleep",
-            "args":["2"],"cwdRelative":".","timeoutMs":15000},"waitMs":0}),
+            "clientRequestId":"native-control-restart", "execution":{
+                "workspaceId":input.workspace_id,"executable":"/usr/bin/sh",
+                "args":["-c","printf 'started\\n' >> \"$1\"; while [ ! -f \"$2\" ]; do sleep 0.1; done; printf 'native-restart-proof'","restart-fixture",started_marker,finish_gate],
+                "cwdRelative":".","timeoutMs":30000},"waitMs":0}),
     );
     assert_ne!(running["isError"], true, "{running}");
     let running_job = running["structuredContent"]["jobId"].as_str().unwrap();
+    let running_attempt = running["structuredContent"]["attemptId"].as_str().unwrap();
+    let started_deadline = Instant::now() + Duration::from_secs(12);
+    loop {
+        let observed = call(
+            &endpoint,
+            "job.observe",
+            json!({"jobId":running_job,"waitMs":0,"stdoutTailBytes":0,"stderrTailBytes":0}),
+        );
+        assert_ne!(observed["isError"], true, "{observed}");
+        if started_marker.is_file() && observed["structuredContent"]["attemptState"] == "running" {
+            break;
+        }
+        assert!(
+            Instant::now() < started_deadline,
+            "in-flight cut was not reached: {observed}"
+        );
+        thread::sleep(Duration::from_millis(50));
+    }
+    assert_eq!(fs::read_to_string(&started_marker).unwrap(), "started\n");
+    assert!(!finish_gate.exists());
     let old_control = fixture.endpoint.as_mut().unwrap();
     old_control.kill().unwrap();
     old_control.wait().unwrap();
     let restarted_endpoint = fixture.endpoint();
+    // The original payload is still gated across the restart. Do not issue
+    // any second execution request to recover the already committed Job.
+    let resumed = call(&restarted_endpoint, "job.get", json!({"jobId":running_job}));
+    assert_ne!(resumed["isError"], true, "{resumed}");
+    assert_eq!(
+        resumed["structuredContent"]["attempts"][0]["attemptId"],
+        running_attempt
+    );
+    assert_eq!(fs::read_to_string(&started_marker).unwrap(), "started\n");
+    fs::write(&finish_gate, b"finish").unwrap();
     let deadline = Instant::now() + Duration::from_secs(12);
     loop {
         let resolution: Option<String> = fixture
@@ -4107,6 +4141,11 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         after_restart["structuredContent"]["job"]["mechanicallyConverged"],
         true
     );
+    assert_eq!(
+        after_restart["structuredContent"]["attempts"][0]["attemptId"],
+        running_attempt
+    );
+    assert_eq!(fs::read_to_string(&started_marker).unwrap(), "started\n");
     let dispatches: i64 = fixture
         .db
         .query_one(
@@ -4119,6 +4158,32 @@ fn fresh_pg_mcp_native_runner_success_and_cancel() {
         dispatches, 1,
         "control-plane restart duplicated physical execution"
     );
+    let artifact_id: String = fixture
+        .db
+        .query_one(
+            "SELECT artifact_id FROM artifacts WHERE job_id=$1 AND attempt_id=$2 AND kind='stdout'",
+            &[&running_job, &running_attempt],
+        )
+        .unwrap()
+        .get(0);
+    let read = call(
+        &restarted_endpoint,
+        "artifact.read",
+        json!({"jobId":running_job,"artifactId":artifact_id,"offset":0,"maxBytes":100}),
+    );
+    assert_ne!(read["isError"], true, "{read}");
+    assert_eq!(read["structuredContent"]["content"], "native-restart-proof");
+    assert_eq!(read["structuredContent"]["eof"], true);
+    let reservation: String = fixture
+        .db
+        .query_one(
+            "SELECT state FROM concurrency_reservations WHERE attempt_id=$1",
+            &[&running_attempt],
+        )
+        .unwrap()
+        .get(0);
+    assert_eq!(reservation, "released");
+    eprintln!("native in-flight restart: original Attempt, single dispatch, exact stdout and released reservation");
 }
 
 // Source qualification must be checked at the time of each new effect.
