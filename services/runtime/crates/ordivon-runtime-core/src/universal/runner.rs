@@ -492,8 +492,9 @@ fn execute_request(
     initialize_output_file(&task_dir.join(STDOUT_FILE))?;
     initialize_output_file(&task_dir.join(STDERR_FILE))?;
 
+    let default_step;
     let steps = if request.steps.is_empty() {
-        vec![RunnerExecutionStep {
+        default_step = RunnerExecutionStep {
             id: "command".to_string(),
             executable: request.executable.clone(),
             executable_digest: request.executable_digest.clone(),
@@ -502,9 +503,10 @@ fn execute_request(
             env: request.env.clone(),
             timeout_ms: request.timeout_ms,
             continue_on_error: false,
-        }]
+        };
+        std::slice::from_ref(&default_step)
     } else {
-        request.steps.clone()
+        request.steps.as_slice()
     };
     let total_steps = u32::try_from(steps.len()).unwrap_or(u32::MAX);
     let overall_deadline = Instant::now()
@@ -633,7 +635,7 @@ fn execute_request(
             cancelled = true;
             break;
         }
-        if !succeeded && (!continued || outcome.timed_out) {
+        if !succeeded && !continued {
             break;
         }
         if Instant::now() >= overall_deadline {
