@@ -4,10 +4,10 @@ import os
 import shutil
 from pathlib import Path
 
+from artifact_core.external_toolchain import artifact_toolchain_root
+
 ROOT = Path(__file__).resolve().parents[2]
-GLOBAL_ARTIFACT_TOOLCHAIN_ROOT = Path(
-    os.environ.get("ARTIFACT_TOOLCHAIN_ROOT", "/opt/ordivon/external/artifact-toolchain")
-)
+GLOBAL_ARTIFACT_TOOLCHAIN_ROOT = artifact_toolchain_root()
 GLOBAL_VNU = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "vnu/26.9.7/vnu.jar"
 GLOBAL_NODE_PACKAGE_ROOT = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "node/1.63.0"
 WEB_VERIFIER_RUNNER = Path(__file__).resolve().parent / "node/verify_html.mjs"

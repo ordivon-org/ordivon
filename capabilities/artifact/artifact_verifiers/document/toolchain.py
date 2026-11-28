@@ -3,10 +3,10 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from artifact_core.external_toolchain import artifact_toolchain_root
+
 ROOT = Path(__file__).resolve().parents[2]
-GLOBAL_ARTIFACT_TOOLCHAIN_ROOT = Path(
-    os.environ.get("ARTIFACT_TOOLCHAIN_ROOT", "/opt/ordivon/external/artifact-toolchain")
-)
+GLOBAL_ARTIFACT_TOOLCHAIN_ROOT = artifact_toolchain_root()
 GLOBAL_PANDOC = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "pandoc/3.10.2/bin/pandoc"
 GLOBAL_PANDOC_ARCHIVE = (
     GLOBAL_ARTIFACT_TOOLCHAIN_ROOT

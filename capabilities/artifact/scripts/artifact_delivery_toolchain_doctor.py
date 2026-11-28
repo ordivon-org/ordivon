@@ -25,11 +25,12 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import artifact_trust.vsa as artifact_trust_vsa
+from artifact_core.external_toolchain import artifact_toolchain_root
 from artifact_core.profile_v1 import validate_profile_v1
 from artifact_operations.providers import DirectPythonOperationProvider
 from scripts.artifact_oci_package import execute_oci_package_stage
 
-GLOBAL_ARTIFACT_TOOLCHAIN_ROOT = Path(os.environ.get("ARTIFACT_TOOLCHAIN_ROOT", "/opt/ordivon/external/artifact-toolchain"))
+GLOBAL_ARTIFACT_TOOLCHAIN_ROOT = artifact_toolchain_root()
 GLOBAL_PANDOC = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "pandoc/3.10.2/bin/pandoc"
 GLOBAL_VERAPDF = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "verapdf/1.30.2/verapdf"
 GLOBAL_VNU = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "vnu/26.9.7/vnu.jar"
