@@ -137,6 +137,36 @@ def test_classify_uses_active_user_without_prompt_or_provider_effect():
     assert '-PromptDigest' not in req.args
 
 
+def test_new_classification_observation_has_new_identity_but_exact_replay_keeps_identity():
+    payload = {
+        'schemaVersion': 1, 'kind': 'ordivon.windows-user-browser-classification',
+        'standing': 'READY', 'detail': 'synthetic ready', 'providerEffectAttempted': False,
+    }
+    port = FakePort(payload)
+    controller = UserBrowserGatewayController(port, config())
+    controller.classify()
+    port.payload = {**payload, 'standing': 'BUSY'}
+    controller.classify()
+    first, second = port.requests
+    assert first.request_id != second.request_id
+    assert first.args == second.args
+
+    a = controller.classify(observation_id='observation-r5-1')
+    b = controller.classify(observation_id='observation-r5-1')
+    assert port.requests[-2].request_id == port.requests[-1].request_id
+    assert a['observationId'] == b['observationId'] == 'observation-r5-1'
+    assert a['executionRequestId'] == b['executionRequestId'] == port.requests[-1].request_id
+
+
+def test_invalid_classification_observation_id_never_dispatches():
+    port = FakePort({})
+    controller = UserBrowserGatewayController(port, config())
+    for observation_id in ('', ' whitespace', 'a' * 129, 'x|y'):
+        with pytest.raises(ValueError, match='observation'):
+            controller.classify(observation_id=observation_id)
+    assert port.requests == []
+
+
 def test_classify_driver_does_not_require_effect_identity_parameters():
     script = (Path(__file__).resolve().parents[1] / 'scripts' / 'windows_user_browser_chatgpt.ps1').read_text()
     assert '[Parameter(Mandatory=$true)][string]$EffectId' not in script
