@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cheap host-storage feedback controller for existing Runtime reclaim/cache actuators."""
+"""Host-storage pressure observation; effectful actuators remain legacy SQLite."""
 
 from __future__ import annotations
 
@@ -56,7 +56,7 @@ def _unique_json_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
     return result
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="ordivon-runtime-pressure-control")
     sub = parser.add_subparsers(dest="command", required=True)
     for name in ("observe", "cycle"):
@@ -73,7 +73,13 @@ def parse_args() -> argparse.Namespace:
         cmd.add_argument("--cache-lock-file", type=absolute_path, required=True)
         cmd.add_argument("--busy-timeout-ms", type=int, default=5_000)
         cmd.add_argument("--pretty", action="store_true")
-    return parser.parse_args()
+    pg = sub.add_parser("observe-pg", help="Read-only PostgreSQL pressure observation")
+    pg.add_argument("--env-file", type=absolute_path, required=True)
+    pg.add_argument("--env-overlay", type=absolute_path, action="append", default=[])
+    pg.add_argument("--policy-file", type=absolute_path, required=True)
+    pg.add_argument("--state-file", type=absolute_path, required=True)
+    pg.add_argument("--pretty", action="store_true")
+    return parser.parse_args(argv)
 
 
 def load_policy(path: Path) -> dict[str, object]:
@@ -142,6 +148,36 @@ def operator_program(name: str) -> Path:
     raise RuntimeError(f"{name} is unavailable")
 
 
+def require_legacy_runtime_authority() -> None:
+    """Refuse the SQLite actuator unless the packaged legacy service is running.
+
+    This is a point-in-time native preflight, not a cross-backend maintenance
+    fence. An operator must still quiesce the old carrier before PG cutover.
+    """
+
+    def main_pid() -> int:
+        result = subprocess.run(
+            ["/usr/bin/systemctl", "show", "--property=MainPID", "--value", "ordivon-runtime.service"],
+            check=False,
+            text=True,
+            capture_output=True,
+            timeout=5,
+        )
+        raw = result.stdout.strip()
+        if result.returncode or not raw.isascii() or not raw.isdecimal() or int(raw) <= 0:
+            raise ValueError("service MainPID is unavailable")
+        return int(raw)
+
+    expected = "/usr/local/libexec/ordivon/ordivon-runtime"
+    try:
+        pid = main_pid()
+        image = f"/proc/{pid}/exe"
+        if os.readlink(image) != expected or main_pid() != pid or os.readlink(image) != expected:
+            raise ValueError("running service is not the packaged legacy Runtime")
+    except (OSError, ValueError, subprocess.SubprocessError) as exc:
+        raise RuntimeError(f"legacy Runtime authority unavailable: {exc}") from exc
+
+
 def registry_signal(database: Path, busy_timeout_ms: int) -> dict[str, int]:
     cp = subprocess.run(
         [
@@ -176,15 +212,78 @@ def registry_signal(database: Path, busy_timeout_ms: int) -> dict[str, int]:
     return result
 
 
-def registry_activity_changed(previous: object, current: dict[str, int]) -> bool:
+def pg_registry_signal(env_file: Path, overlays: list[Path]) -> dict[str, object]:
+    """Read current PG activity; never grant the pressure controller effect authority.
+
+    Use the existing operator's source/schema and physical writer-epoch binding.
+    The observation is a single read-only snapshot, not a SQLite migration
+    projection or a Workspace release/candidate census.
+    """
+    try:
+        from mcp_probe import load_environment_file
+        from ordivon_runtime_pg_operator import (
+            EFFECT, pg_connection, qualified_physical_pg_epoch, qualify,
+        )
+        from psycopg.conninfo import make_conninfo
+
+        environment = load_environment_file(env_file)
+        for path in overlays:
+            environment.update(load_environment_file(path))
+        source = qualify(environment["ORDIVON_PG_SOURCE_SHA256"], EFFECT, "PG source")
+        dsn = make_conninfo(environment["ORDIVON_PG_DSN"], connect_timeout=8)
+        with pg_connection(dsn, environment["ORDIVON_PG_SCHEMA"]) as conn:
+            with conn.transaction():
+                conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+                conn.execute("SET LOCAL statement_timeout = '5000ms'")
+                writer = conn.execute(
+                    "SELECT state,source_sha256,promotion_allowed FROM _stage_control "
+                    "WHERE id='source'"
+                ).fetchone()
+                if (writer is None or writer["state"] != "QUALIFIED_WRITER"
+                        or writer["source_sha256"] != source or not writer["promotion_allowed"]):
+                    raise RuntimeError("PG writer not qualified")
+                qualified_physical_pg_epoch(conn, source)
+                epoch = conn.execute(
+                    "SELECT source_sha256 FROM _stage_control WHERE id='epoch'"
+                ).fetchone()["source_sha256"]
+                counts = conn.execute("""
+                    SELECT
+                      (SELECT COUNT(*) FROM jobs) AS "jobsTotal",
+                      (SELECT COUNT(*) FROM concurrency_reservations
+                        WHERE state='active') AS "activeReservations",
+                      (SELECT COUNT(*) FROM concurrency_reservations
+                        WHERE state='held_orphaned') AS "heldReservations",
+                      (SELECT COUNT(*) FROM attempts
+                        WHERE finished_at_ms IS NULL
+                          AND state IN ('starting','stopping','recovering'))
+                        AS "unfinishedTransitionAttempts"
+                """).fetchone()
+                return {"backend": "postgresql", "writerEpoch": epoch, **counts}
+    except Exception:
+        # PG drivers and configuration parsers can include connection details.
+        # Do not send arbitrary inner exception strings to pressure receipts.
+        raise RuntimeError("qualified PostgreSQL pressure observation unavailable") from None
+
+
+def registry_activity_changed(previous: object, current: dict[str, object]) -> bool:
     if not isinstance(previous, dict):
         return False
+    if current.get("backend") == "postgresql":
+        # An old SQLite count or another physical writer epoch is not a
+        # comparable counter. A change is an observation, not cleanup approval.
+        if (previous.get("backend") != "postgresql"
+                or previous.get("writerEpoch") != current.get("writerEpoch")):
+            return True
+        keys = ("heldReservations", "unfinishedTransitionAttempts")
+    else:
+        keys = ("heldReservations", "recoveryRequired", "migrationVersion")
     previous_jobs = previous.get("jobsTotal")
-    if isinstance(previous_jobs, int) and current["jobsTotal"] > previous_jobs:
+    jobs = current["jobsTotal"]
+    if type(previous_jobs) is int and type(jobs) is int and jobs > previous_jobs:
         return True
-    for key in ("heldReservations", "recoveryRequired", "migrationVersion"):
+    for key in keys:
         old = previous.get(key)
-        if isinstance(old, int) and current[key] != old:
+        if type(old) is int and current[key] != old:
             return True
     return False
 
@@ -275,7 +374,7 @@ def decide(
     *,
     now_ms: int,
     free_bytes: int,
-    registry: dict[str, int],
+    registry: dict[str, object],
     state: dict[str, object],
     policy: dict[str, object],
     samples: list[dict[str, int]],
@@ -357,6 +456,7 @@ def run_json(command: list[str], accepted_codes: tuple[int, ...]) -> dict[str, o
 
 
 def actuate(args: argparse.Namespace, policy: dict[str, object], receipt: Path, before_free: int) -> dict[str, object]:
+    require_legacy_runtime_authority()
     cache = run_json(
         [
             sys.executable,
@@ -383,6 +483,7 @@ def actuate(args: argparse.Namespace, policy: dict[str, object], receipt: Path, 
     after_cache_free = physical_free_bytes(host_path)
     reclaim: dict[str, object] | None = None
     if after_cache_free <= int(policy["softTriggerBytes"]):
+        require_legacy_runtime_authority()
         reclaim = run_json(
             [
                 sys.executable,
@@ -463,7 +564,11 @@ def observe(args: argparse.Namespace) -> dict[str, object]:
     free = physical_free_bytes(host_path)
     state = load_state(args.state_file)
     samples = normalized_samples(state, now_ms, free, int(policy["sampleWindowSeconds"]))
-    registry = registry_signal(args.database, args.busy_timeout_ms)
+    registry = (
+        pg_registry_signal(args.env_file, args.env_overlay)
+        if args.command == "observe-pg"
+        else registry_signal(args.database, args.busy_timeout_ms)
+    )
     decision = decide(
         now_ms=now_ms,
         free_bytes=free,
@@ -484,6 +589,7 @@ def observe(args: argparse.Namespace) -> dict[str, object]:
 
 
 def cycle(args: argparse.Namespace) -> dict[str, object]:
+    require_legacy_runtime_authority()
     with exclusive_lock(args.lock_file):
         policy = load_policy(args.policy_file)
         host_path = Path(str(policy["hostStoragePath"]))
@@ -540,7 +646,7 @@ def cycle(args: argparse.Namespace) -> dict[str, object]:
 def main() -> int:
     try:
         args = parse_args()
-        value = observe(args) if args.command == "observe" else cycle(args)
+        value = cycle(args) if args.command == "cycle" else observe(args)
         print(json.dumps(value, indent=2 if args.pretty else None, sort_keys=args.pretty))
         return 0 if value.get("status") != "partial" else 2
     except (OSError, RuntimeError, json.JSONDecodeError) as error:
