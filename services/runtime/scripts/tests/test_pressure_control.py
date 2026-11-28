@@ -253,6 +253,74 @@ class PressureControlTests(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertIn("ordivon-runtime-cache", " ".join(map(str, calls[0])))
 
+    def test_cycle_retains_partial_receipt_when_authority_drifts_after_cache(self):
+        cycle = self.module["cycle"]
+        calls = []
+        guards = []
+
+        def require_legacy():
+            guards.append(len(calls))
+            if calls:
+                raise RuntimeError("controlled post-cache authority drift")
+
+        def cache_fixture(command, _accepted):
+            calls.append(command)
+            self.assertIn("ordivon-runtime-cache", " ".join(command))
+            destination = Path(command[command.index("--receipt-root") + 1])
+            destination.mkdir(parents=True)
+            (destination / "result.json").write_text(
+                '{"fixture":"cache-receipt","status":"completed"}',
+                encoding="utf-8",
+            )
+            return {"status": "completed"}
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            policy_file = root / "policy.json"
+            policy_file.write_text(
+                json.dumps(dict(self.policy, hostStoragePath=str(root))), encoding="utf-8"
+            )
+            args = SimpleNamespace(
+                policy_file=policy_file,
+                state_file=root / "state.json",
+                lock_file=root / "cycle.lock",
+                database=root / "registry.sqlite3",
+                busy_timeout_ms=100,
+                receipt_root=root / "receipts",
+                registry_root=root,
+                runtime_store_root=root / "runtime",
+                env_file=root / "runtime.env",
+                cache_lock_file=root / "cache.lock",
+                reclaim_lock_file=root / "reclaim.lock",
+            )
+            registry = {
+                "jobsTotal": 100,
+                "activeReservations": 0,
+                "heldReservations": 0,
+                "recoveryRequired": 0,
+                "migrationVersion": 6,
+            }
+            with patch.dict(cycle.__globals__, {
+                "require_legacy_runtime_authority": require_legacy,
+                "physical_free_bytes": lambda _: 19 * 1024**3,
+                "registry_signal": lambda *_: registry,
+                "run_json": cache_fixture,
+                "operator_program": lambda name: Path("/fixture") / name,
+            }):
+                result = cycle(args)
+            receipt = Path(result["receipt"])
+            self.assertEqual(result["status"], "partial")
+            self.assertIsNone(result["action"])
+            self.assertEqual(result["failures"], ["controlled post-cache authority drift"])
+            self.assertEqual(guards, [0, 0, 1])
+            self.assertEqual(len(calls), 1)
+            self.assertTrue((receipt / "cache" / "result.json").is_file())
+            self.assertFalse((receipt / "reclaim").exists())
+            self.assertEqual(json.loads((receipt / "result.json").read_text()), result)
+            self.assertEqual(json.loads(args.state_file.read_text()), result["stateAfter"])
+            self.assertEqual(result["stateAfter"]["zeroYieldStreak"], 1)
+            self.assertEqual(result["stateAfter"]["lastYieldBytes"], 0)
+
     def test_actuator_tries_cache_before_semantic_reclaim_and_skips_reclaim_when_enough(self):
         actuate = self.module["actuate"]
         globals_ = actuate.__globals__
