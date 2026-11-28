@@ -178,3 +178,14 @@ def test_replay_rejects_existing_row_with_forged_provider_data(tmp_path: Path) -
         db.execute("UPDATE conversation_bindings SET session_id='FORGED' WHERE request_id='adoption:1'")
     with pytest.raises(ConversationBindingConflict, match="receipt"):
         adopt(s)
+
+
+def test_binding_and_wake_share_storage_neutral_value_validation() -> None:
+    import conversation_binding_contract as binding
+    import wake_turn_contract as wake
+
+    # These two contracts deliberately share the same text and digest
+    # semantics; the domain-specific conflict and receipt types stay separate.
+    assert binding._text is wake._text
+    assert binding._digest is wake._digest
+    assert binding.ConversationBindingConflict is not wake.WakeTurnConflict

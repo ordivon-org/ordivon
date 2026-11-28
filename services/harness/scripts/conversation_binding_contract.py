@@ -12,8 +12,6 @@ import hashlib
 
 import json
 
-import re
-
 from typing import Any
 
 
@@ -23,34 +21,19 @@ try:
     from chatgpt_provider_resource import normalize_provider_resource
 
     from standard_identifiers import require_uuid7
+    from wake_turn_contract import _digest, _text
 
 except ModuleNotFoundError:
 
     from scripts.chatgpt_provider_resource import normalize_provider_resource
 
     from scripts.standard_identifiers import require_uuid7
+    from scripts.wake_turn_contract import _digest, _text
 
 
-
-_DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 class ConversationBindingConflict(RuntimeError):
     pass
-
-def _text(value: str, label: str, *, max_bytes: int = 4096) -> str:
-    if (
-        not isinstance(value, str)
-        or not value
-        or value != value.strip()
-        or len(value.encode("utf-8")) > max_bytes
-    ):
-        raise ValueError(f"{label} must be non-empty, trimmed, and <= {max_bytes} UTF-8 bytes")
-    return value
-
-def _digest(value: str, label: str) -> str:
-    if not isinstance(value, str) or _DIGEST_RE.fullmatch(value) is None:
-        raise ValueError(f"{label} must be canonical sha256:<lowercase-hex>")
-    return value
 
 def _canonical_digest(value: object) -> str:
     raw = json.dumps(
