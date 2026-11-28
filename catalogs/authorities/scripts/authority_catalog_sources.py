@@ -90,61 +90,76 @@ def forbidden_fields(value: object, prefix: str = "") -> list[str]:
     return hits
 
 
-def validate_catalog_semantics(catalog: dict[str, tuple[Path, dict]]) -> None:
-    ids = set(catalog)
-    for authority_id, (path, value) in catalog.items():
-        if (
-            value.get("kind") != "ordivon.external-authority-record"
-            or value.get("schemaVersion") != 1
-        ):
-            raise SystemExit(f"wrong record kind/schema: {path}")
-        identity = value.get("identity", {})
-        mode = identity.get("identityMode")
-        version = identity.get("versionLabel")
-        if mode == "versioned" and not version:
-            raise SystemExit(
-                f"versioned authority must have versionLabel: {authority_id}"
-            )
-        if mode == "rolling-source" and version is not None:
-            raise SystemExit(
-                f"rolling-source authority must use null versionLabel: {authority_id}"
-            )
-        hits = forbidden_fields(value)
-        if hits:
-            raise SystemExit(
-                f"task-local semantics leaked into authority record {authority_id}: {hits}"
-            )
-        for relation in ("supersedes", "supersededBy", "related"):
-            for target in value.get("relations", {}).get(relation, []):
-                if target == authority_id:
-                    raise SystemExit(f"self relation {relation}: {authority_id}")
-                if target not in ids:
-                    raise SystemExit(
-                        f"unresolved relation {authority_id} {relation} {target}"
-                    )
-        previous_date = None
-        observed_paths = observation_paths(authority_id)
-        latest_path = observed_paths[-1] if observed_paths else None
-        for obs_path in observed_paths:
-            obs = read_json(obs_path)
-            if obs.get("authorityId") != authority_id:
-                raise SystemExit(f"observation mismatch: {obs_path}")
-            date = obs.get("observedDate")
-            if not isinstance(date, str):
-                raise SystemExit(f"observation has no date: {obs_path}")
-            if previous_date is not None and date < previous_date:
-                raise SystemExit(f"observation order regression: {obs_path}")
-            previous_date = date
-            observed_source = obs.get("officialSource")
-            if not isinstance(observed_source, str) or not observed_source:
-                raise SystemExit(f"observation lacks officialSource: {obs_path}")
-            # A versioned authority has immutable identity. A rolling authority
-            # can relocate its canonical source while historical observations
-            # retain the source which was actually checked at that date. Its
-            # latest observation must always match the currently bound source.
-            if (
-                mode == "versioned" or obs_path == latest_path
-            ) and observed_source != identity.get("officialSource"):
+def _validate_record_identity(
+    authority_id: str, path: Path, value: dict
+) -> tuple[dict, object]:
+    if (
+        value.get("kind") != "ordivon.external-authority-record"
+        or value.get("schemaVersion") != 1
+    ):
+        raise SystemExit(f"wrong record kind/schema: {path}")
+    identity = value.get("identity", {})
+    mode = identity.get("identityMode")
+    version = identity.get("versionLabel")
+    if mode == "versioned" and not version:
+        raise SystemExit(f"versioned authority must have versionLabel: {authority_id}")
+    if mode == "rolling-source" and version is not None:
+        raise SystemExit(
+            f"rolling-source authority must use null versionLabel: {authority_id}"
+        )
+    hits = forbidden_fields(value)
+    if hits:
+        raise SystemExit(
+            f"task-local semantics leaked into authority record {authority_id}: {hits}"
+        )
+    return identity, mode
+
+
+def _validate_record_relations(
+    authority_id: str, value: dict, authority_ids: set[str]
+) -> None:
+    for relation in ("supersedes", "supersededBy", "related"):
+        for target in value.get("relations", {}).get(relation, []):
+            if target == authority_id:
+                raise SystemExit(f"self relation {relation}: {authority_id}")
+            if target not in authority_ids:
                 raise SystemExit(
-                    f"observation source differs from record officialSource: {obs_path}"
+                    f"unresolved relation {authority_id} {relation} {target}"
                 )
+
+
+def _validate_observation_history(
+    authority_id: str, identity: dict, mode: object
+) -> None:
+    previous_date = None
+    observed_paths = observation_paths(authority_id)
+    latest_path = observed_paths[-1] if observed_paths else None
+    for obs_path in observed_paths:
+        obs = read_json(obs_path)
+        if obs.get("authorityId") != authority_id:
+            raise SystemExit(f"observation mismatch: {obs_path}")
+        date = obs.get("observedDate")
+        if not isinstance(date, str):
+            raise SystemExit(f"observation has no date: {obs_path}")
+        if previous_date is not None and date < previous_date:
+            raise SystemExit(f"observation order regression: {obs_path}")
+        previous_date = date
+        observed_source = obs.get("officialSource")
+        if not isinstance(observed_source, str) or not observed_source:
+            raise SystemExit(f"observation lacks officialSource: {obs_path}")
+        # Versioned authority identity is immutable. Rolling authorities may
+        # relocate, but their latest observation must match the current source.
+        if (
+            mode == "versioned" or obs_path == latest_path
+        ) and observed_source != identity.get("officialSource"):
+            raise SystemExit(
+                f"observation source differs from record officialSource: {obs_path}"
+            )
+
+
+def validate_catalog_semantics(catalog: dict[str, tuple[Path, dict]]) -> None:
+    authority_ids = set(catalog)
+    for authority_id, (path, value) in catalog.items():
+        identity, mode = _validate_record_identity(authority_id, path, value)
+        _validate_record_relations(authority_id, value, authority_ids)
+        _validate_observation_history(authority_id, identity, mode)
