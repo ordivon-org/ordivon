@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import math
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / "scripts/resource_workload_profile.py"
@@ -50,6 +52,25 @@ def write_receipt(path: Path, payload: dict[str, object]) -> None:
 
 
 class ResourceWorkloadProfileTests(unittest.TestCase):
+    def test_percentiles_share_one_sort_and_preserve_nearest_rank(self) -> None:
+        samples = (
+            [0], [9, 1, 9, 0], list(range(100, 0, -1)),
+            [2**64 - 1, 0, 2**64 - 1], [7] * 101,
+        )
+        for values in samples:
+            with self.subTest(size=len(values)):
+                expected = {
+                    f"p{p}": sorted(values)[max(1, math.ceil(p / 100 * len(values))) - 1]
+                    for p in (50, 95, 99)
+                }
+                original = values.copy()
+                with patch.object(MODULE, "sorted", wraps=sorted, create=True) as shared_sort:
+                    self.assertEqual(MODULE._percentiles(values), expected)
+                    shared_sort.assert_called_once_with(values)
+                self.assertEqual(values, original)
+        with self.assertRaisesRegex(ValueError, "percentile requires at least one value"):
+            MODULE._percentiles([])
+
     def test_profile_reports_nearest_rank_percentiles_and_external_coverage(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
