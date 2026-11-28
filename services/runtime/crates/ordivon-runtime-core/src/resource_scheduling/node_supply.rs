@@ -61,8 +61,8 @@ impl ResourceBounds {
         pids_max: &str,
         pids_current: &str,
     ) -> Result<(), String> {
-        let cpu = cpu_max.split_whitespace().collect::<Vec<_>>();
-        let [quota, period] = cpu.as_slice() else {
+        let mut cpu = cpu_max.split_whitespace();
+        let (Some(quota), Some(period), None) = (cpu.next(), cpu.next(), cpu.next()) else {
             return Err("invalid cgroup cpu.max".into());
         };
         let period: u64 = period
@@ -217,27 +217,23 @@ impl NodeResources {
             .memory_available_bytes
             .saturating_sub(reserve)
             .saturating_sub(unspent_memory);
-        match self.pids_available {
-            Some(pids) => crate::resource_fit::fits(
-                cpu,
-                u64::from(r.cpu_millis),
-                self.cpu_millis,
-                r.memory_bytes,
-                memory_free,
+        let (pids_request, pids_free) = match self.pids_available {
+            Some(pids) => (
                 u64::from(r.pids),
                 pids.saturating_sub(unspent_pids).saturating_sub(64),
             ),
-            None if self.kernel_low_memory.is_some() => crate::resource_fit::fits(
-                cpu,
-                u64::from(r.cpu_millis),
-                self.cpu_millis,
-                r.memory_bytes,
-                memory_free,
-                0,
-                0,
-            ),
-            None => false,
-        }
+            None if self.kernel_low_memory.is_some() => (0, 0),
+            None => return false,
+        };
+        crate::resource_fit::fits(
+            cpu,
+            u64::from(r.cpu_millis),
+            self.cpu_millis,
+            r.memory_bytes,
+            memory_free,
+            pids_request,
+            pids_free,
+        )
     }
 }
 
@@ -275,6 +271,84 @@ mod native_allocation_scope_tests {
         assert_eq!(resources.cpu_millis, 1500);
         assert_eq!(resources.memory_available_bytes, 124);
         assert_eq!(resources.pids_available, 16);
+    }
+
+    #[cfg(feature = "postgres-registry-admission")]
+    #[test]
+    fn platform_projection_preserves_exact_capacity_predicate() {
+        use super::{NodeResources, ResourceRequest};
+        for pids_available in [None, Some(0), Some(64), Some(65), Some(u64::MAX)] {
+            for kernel_low_memory in [None, Some(false), Some(true)] {
+                let node = NodeResources {
+                    cpu_millis: 1000,
+                    memory_total_bytes: 128 * 1024 * 1024,
+                    memory_available_bytes: 96 * 1024 * 1024,
+                    pid_capacity: pids_available,
+                    pids_available,
+                    cpu_pressure: None,
+                    memory_pressure: None,
+                    io_pressure: None,
+                    kernel_low_memory,
+                };
+                for cpu in [0, 999, 1000, u64::MAX] {
+                    for cpu_millis in [0, 1, 1000, u32::MAX] {
+                        for memory_bytes in [0, 1, 32 * 1024 * 1024, u64::MAX] {
+                            for pids in [0, 1, 2, u32::MAX] {
+                                for unspent_memory in [0, 1, u64::MAX] {
+                                    for unspent_pids in [0, 1, u64::MAX] {
+                                        let request = ResourceRequest {
+                                            cpu_millis,
+                                            memory_bytes,
+                                            pids,
+                                            io_intensive: false,
+                                        };
+                                        let memory_free =
+                                            (32_u64 * 1024 * 1024).saturating_sub(unspent_memory);
+                                        let pid_ok = match pids_available {
+                                            Some(available) => {
+                                                u128::from(pids)
+                                                    <= u128::from(available).saturating_sub(
+                                                        u128::from(unspent_pids) + 64,
+                                                    )
+                                            }
+                                            None => kernel_low_memory.is_some(),
+                                        };
+                                        let expected = u128::from(cpu) + u128::from(cpu_millis)
+                                            <= 1000
+                                            && memory_bytes <= memory_free
+                                            && pid_ok;
+                                        assert_eq!(
+                                            node.fits(cpu, &request, unspent_memory, unspent_pids),
+                                            expected,
+                                            "{node:?}, {request:?}, {cpu}, {unspent_memory}, {unspent_pids}"
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn cpu_max_parser_keeps_exact_two_token_contract() {
+        for raw in ["", "100", "100 100 1", "max 100 extra"] {
+            let mut resources = ResourceBounds {
+                cpu_millis: 1000,
+                memory_total_bytes: 100,
+                memory_available_bytes: 90,
+                pid_capacity: 100,
+                pids_available: 90,
+            };
+            let before = resources;
+            assert_eq!(
+                resources.constrain(raw, "max", "0", "max", "1"),
+                Err("invalid cgroup cpu.max".into())
+            );
+            assert_eq!(resources, before);
+        }
     }
 
     #[test]
