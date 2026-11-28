@@ -2,24 +2,37 @@ name: Game Factory native previews
 
 on:
   workflow_dispatch:
+    inputs:
+      consumer_run_id:
+        description: "Optional successful main Game factory run ID to consume (no rebuild)"
+        type: string
+        required: false
+        default: ""
   pull_request:
     paths:
-      - "domains/game/mise.toml"
-      - "domains/game/examples/room-encounter/**"
-      - "domains/game/AGENTS.md"
-      - "domains/game/docs/agent-execution-contract-spec.md"
-      - "domains/game/docs/agent-execution-implementation-plan.md"
+      # Root mise config cascades into the Game toolchain and native tasks.
+      - "mise.toml"
+      - "domains/game/**"
+      - "profiles/domains/game/**"
+      - "pnpm-lock.yaml"
       - ".github/workflows/game-factory.yml"
   push:
     branches: [main]
     paths:
+      - "mise.toml"
       - "domains/game/examples/room-encounter/**"
       - "domains/game/examples/beacon-relay/**"
       - "domains/game/examples/native-composition/**"
       - "domains/game/examples/kenney-visual-composition/**"
       - "domains/game/mise.toml"
+      - "domains/game/scripts/**"
+      - "domains/game/formal/**"
+      - "domains/game/test/**"
+      - "domains/game/src/**"
+      - "domains/game/package.json"
+      - "domains/game/pnpm-lock.yaml"
+      - "pnpm-lock.yaml"
       - ".github/workflows/game-factory.yml"
-
 permissions:
   contents: read
 
@@ -29,10 +42,10 @@ concurrency:
 
 jobs:
   native-g11-contract:
-    name: Godot G11 clean-checkout native acceptance
+    name: Godot clean-checkout native consumer acceptance
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - name: Checkout exact PR source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -40,7 +53,7 @@ jobs:
           persist-credentials: false
 
       - name: Install existing Mise task runner
-        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
         with:
           version: 2026.9.12
           install: false
@@ -53,15 +66,20 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: mise install
 
-      - name: Run real G11 acceptance without prior import cache
+      - name: Verify full native Godot factory qualification and Beacon gameplay coverage
         working-directory: domains/game
         run: |
           set -euo pipefail
           test ! -d examples/room-encounter/.godot
-          mise run test:agent-episode
+          mise run test:consumer-contracts
+          pnpm install --frozen-lockfile
+          pnpm check
+          mise run factory:validate:godot
+          mise run test:beacon
+          python3 scripts/test_godot_package_contract.py
 
   native-preview:
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.consumer_run_id == '')
     name: Godot ${{ matrix.game }} factory product
     runs-on: ubuntu-24.04
     strategy:
@@ -82,7 +100,7 @@ jobs:
           persist-credentials: false
 
       - name: Install existing Mise task runner
-        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
         with:
           version: 2026.9.12
           install: false
@@ -111,18 +129,76 @@ jobs:
           test -s "$target/linux_release.x86_64"
           test -s "$target/windows_release_x86_64.exe"
 
-      - name: Validate and export actual Linux and Windows previews
+      - name: Validate one complete source-bound native Linux/Windows bundle
+        id: package
         working-directory: domains/game
         run: |
           set -euo pipefail
-          mise run ${{ matrix.task }}
+          mise run ${{ matrix.task }} | tee "$RUNNER_TEMP/game-${{ matrix.game }}-package.log"
+          bundle="$(sed -n 's/^GAME_FACTORY_BUNDLE_PATH=//p' "$RUNNER_TEMP/game-${{ matrix.game }}-package.log" | tail -n 1)"
+          test -n "$bundle" && test -s "$bundle/READY" && test -s "$bundle/BUILD_SOURCE.txt"
+          grep -Fxq "SOURCE_COMMIT=${{ github.sha }}" "$bundle/BUILD_SOURCE.txt"
+          grep -Fxq "SOURCE_WORKTREE=clean" "$bundle/BUILD_SOURCE.txt"
+          grep -Fxq "RELEASE_PUBLISHED=false" "$bundle/BUILD_SOURCE.txt"
+          if grep -Fq "SHA256=UNKNOWN" "$bundle/BUILD_SOURCE.txt"; then
+            echo "Missing exact matching export template identity" >&2
+            exit 1
+          fi
+          (cd "$bundle" && sha256sum -c SHA256SUMS)
+          printf 'bundle_path=%s\n' "$bundle" >> "$GITHUB_OUTPUT"
 
-      - name: Publish source-bound technical previews
+      - name: Store validated short-lived technical preview bundle, not a GitHub Release
+        id: upload
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ordivon-game-${{ matrix.game }}-preview-${{ github.sha }}
           if-no-files-found: error
           retention-days: 14
-          path: |
-            domains/game/dist/${{ matrix.product }}/*linux*x86_64.tar.gz
-            domains/game/dist/${{ matrix.product }}/*windows*x86_64.zip
+          path: ${{ steps.package.outputs.bundle_path }}/
+
+  hosted-consumer:
+    name: Qualify hosted Linux consumer of existing previews
+    if: github.event_name == 'workflow_dispatch' && inputs.consumer_run_id != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    env:
+      QUALIFY_RUN_ID: ${{ inputs.consumer_run_id }}
+      LIBGL_ALWAYS_SOFTWARE: "1"
+    steps:
+      - name: Checkout exact consumer source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Qualify native runner capabilities
+        run: |
+          set -euo pipefail
+          [[ "$QUALIFY_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb xauth x11-utils libx11-6 libxtst6 libgl1-mesa-dri ffmpeg
+          command -v xvfb-run xprop ffmpeg ffprobe
+          python3 -c 'import ctypes, hashlib; ctypes.CDLL("libX11.so.6"); ctypes.CDLL("libXtst.so.6"); assert hasattr(hashlib, "file_digest")'
+          xvfb-run -a -s "-screen 0 1280x800x24 -nolisten tcp" xdpyinfo >/dev/null
+          ffmpeg -version
+      - name: Fetch exact successful main preview artifacts
+        working-directory: domains/game
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 scripts/hosted_runner_acceptance.py fetch --repository "$GITHUB_REPOSITORY" --run-id "$QUALIFY_RUN_ID" --stage "$RUNNER_TEMP/game-hosted-consumer"
+      - name: Consume original native previews without a rebuild
+        working-directory: domains/game
+        run: |
+          set -euo pipefail
+          python3 scripts/hosted_runner_acceptance.py qualify --repository "$GITHUB_REPOSITORY" --run-id "$QUALIFY_RUN_ID" --stage "$RUNNER_TEMP/game-hosted-consumer" | tee "$RUNNER_TEMP/game-hosted-consumer-receipt.json"
+      - name: Store scoped consumer receipt
+        if: success()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: game-hosted-consumer-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/game-hosted-consumer-receipt.json
+          if-no-files-found: error
+          retention-days: 14

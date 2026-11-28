@@ -1,0 +1,223 @@
+#!/usr/bin/env python3
+"""Install only a bounded upstream-Gluetun recovery consumer onto native systemd.
+
+Uses pre-existing native systemd timer, the single current Gluetun
+instance, live Prometheus, and official authenticated VPN Settings. It does
+not create a new WireGuard tunnel, daemon, proxy or source of credentials.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+from release_unit_evidence import (UNIT_PROPERTIES, require_calendar,
+                                   require_command, require_loaded_identity)
+
+SOURCE = Path(__file__).resolve().parent
+DEST = Path("/usr/local/libexec/network-v2/gluetun-native")
+SVC_NAME = "network-v2-gluetun-owned-reconcile.service"
+SOURCE_SVC = SOURCE / "systemd" / SVC_NAME
+INSTALLED_SVC = Path("/etc/systemd/system") / SVC_NAME
+TIMER_NAME = "network-v2-gluetun-owned-reconcile.timer"
+SOURCE_TIMER = SOURCE / "systemd" / TIMER_NAME
+INSTALLED_TIMER = Path("/etc/systemd/system") / TIMER_NAME
+FILES = (
+    "native_profile.py",
+    "observe_active.py",
+    "active_observation.py",
+    "quality_history.py",
+    "historical_observation.py",
+    "native_switch.py",
+    "native_selection.py",
+    "auth_profile.py",
+    "config/exit-allowlist.json",
+    "config/exit-selector.json",
+    "config/recovery-hints.json",
+)
+EFFECT = str(DEST / "native_switch.py")
+
+
+def run(*args: str, timeout: int = 25) -> str:
+    return subprocess.run(
+        list(args), check=True, capture_output=True, text=True, timeout=timeout,
+    ).stdout.strip()
+
+
+def read_unit_property(unit: str, interface: str, prop: str) -> object:
+    """Read an already-loaded unit through the native typed D-Bus interface."""
+    service = "org.freedesktop.systemd1"
+    base = ("/usr/bin/busctl", "--system", "--json=short")
+    result = json.loads(run(*base, "call", service, "/org/freedesktop/systemd1",
+                            service + ".Manager", "GetUnit", "s", unit))
+    if (not isinstance(result, dict) or set(result) != {"type", "data"}
+            or result["type"] != "o" or not isinstance(result["data"], list)
+            or len(result["data"]) != 1 or not isinstance(result["data"][0], str)
+            or not result["data"][0].startswith("/org/freedesktop/systemd1/unit/")):
+        raise ValueError("No unique native loaded unit identity")
+    return json.loads(run(*base, "get-property", service, result["data"][0],
+                          service + "." + interface, prop))
+
+
+def payload_file(root: Path, relative: str) -> Path:
+    """Check the declared tree, not a byte-identical external symlink.
+
+    This is a bounded readback precondition, not a concurrency or crash fence.
+    The generation owner must pin and protect the directory during activation.
+    """
+    path = Path(relative)
+    if path.is_absolute() or not path.parts or ".." in path.parts:
+        raise ValueError("Invalid native recovery relative path")
+    if root.is_symlink() or not root.is_dir():
+        raise ValueError("Unexpected native recovery bundle root")
+    current = root
+    for part in path.parts[:-1]:
+        current /= part
+        if current.is_symlink() or not current.is_dir():
+            raise ValueError(f"Native recovery directory mismatch: {relative}")
+    current /= path.parts[-1]
+    if current.is_symlink() or not current.is_file():
+        raise ValueError(f"Native recovery file mismatch: {relative}")
+    return current
+
+
+def require_equal_bytes(source: Path, installed: Path) -> None:
+    """No metadata-keyed comparison cache; read actual bytes on every call."""
+    if source.is_symlink() or installed.is_symlink():
+        raise ValueError("Native recovery source vs installed mismatch: symlink")
+    if not source.is_file() or not installed.is_file() or source.read_bytes() != installed.read_bytes():
+        raise ValueError(f"Native recovery source vs installed mismatch: {installed.name}")
+
+
+def validate_source() -> dict[str, object]:
+    content = SOURCE_SVC.read_text(encoding="utf-8")
+    clause = f"ExecStartPost=/usr/bin/python3 {EFFECT} --recover"
+    if content.splitlines().count(clause) != 1:
+        raise ValueError("Native reconcile does not invoke exactly one official-switch consumer")
+    if "TimeoutStartSec=4min" not in content:
+        raise ValueError("Native one-shot timeout cannot cover bounded recovery trial")
+    if content.count("ExecStart=/usr/bin/systemctl start network-v2-gluetun-owned.service network-v2-gluetun-owned-adapter.service") != 1:
+        raise ValueError("Original provider/adapter native start contract missing")
+    calendar = SOURCE_TIMER.read_text(encoding="utf-8")
+    if (SOURCE_TIMER.is_symlink() or
+        calendar.count("OnCalendar=*-*-* *:*:00") != 1 or
+        "RandomizedDelaySec=5s" not in calendar or
+        "AccuracySec=5s" not in calendar or
+        "Unit=" + SVC_NAME not in calendar):
+        raise ValueError("Existing native timer has unexpected recovery cadence")
+    for name in FILES:
+        payload_file(SOURCE, name)
+    # Source policy is also checked before production files are installed:
+    # a bad geographic hint must never get as far as a real API action.
+    import native_profile as profile
+    import quality_history as history
+    from datetime import datetime, timezone
+    allow = set(profile.read_selector_policy()["selectedCountries"])
+    history.source_trial_hints(datetime.now(timezone.utc), allow)
+    # Do not create a second custom VPN, cron or scheduler.
+    if any(word in content for word in ("podman run ", "wg-quick", "sleep ", "http://0.0.0.0")):
+        raise ValueError("Native recovery wrongly owns physical tunneling")
+    return {"standing": "NATIVE_BUNDLE_SOURCE_VALID", "nonsecretFileCount": len(FILES)}
+
+
+def copy_payload(dest: Path = DEST) -> None:
+    if dest.is_symlink() or (dest.exists() and not dest.is_dir()):
+        raise ValueError("Unexpected native recovery bundle directory")
+    for relative in FILES:
+        path = dest / relative
+        path.parent.mkdir(parents=True, mode=0o755, exist_ok=True)
+        subprocess.run(
+            ["/usr/bin/install", "-m", "0644", str(SOURCE / relative), str(path)],
+            check=True, capture_output=True, timeout=15,
+        )
+
+
+def verify(*, dest: Path = DEST, verify_systemd: bool = True) -> dict[str, object]:
+    validate_source()
+    for relative in FILES:
+        require_equal_bytes(payload_file(SOURCE, relative), payload_file(dest, relative))
+    if verify_systemd:
+        require_equal_bytes(SOURCE_SVC, INSTALLED_SVC)
+        require_equal_bytes(SOURCE_TIMER, INSTALLED_TIMER)
+        for unit, fragment in ((SVC_NAME, INSTALLED_SVC), (TIMER_NAME, INSTALLED_TIMER)):
+            args = ["/usr/bin/systemctl", "show", unit, "--all"]
+            for prop in UNIT_PROPERTIES:
+                args.extend(("-p", prop))
+            require_loaded_identity(run(*args), fragment)
+        require_command(read_unit_property(SVC_NAME, "Service", "ExecStartPost"),
+                        ["/usr/bin/python3", EFFECT, "--recover"])
+        require_calendar(read_unit_property(TIMER_NAME, "Timer", "TimersCalendar"),
+                         "*-*-* *:*:00")
+    return {"standing": "NATIVE_BUNDLE_INSTALLED_SOURCE_MATCH",
+            "nonsecretFileCount": len(FILES),
+            "loadedSystemd": verify_systemd,
+            "loadedIdentityChecked": verify_systemd,
+            "consumerExecutionProved": False}
+
+
+def install() -> dict[str, object]:
+    if os.geteuid() != 0:
+        raise ValueError("Native provider recovery installation requires root")
+    validate_source()
+    # An installed credential file is not enough: require the running
+    # official upstream process to actually accept authenticated GET.
+    run("/usr/bin/python3", str(SOURCE / "native_profile.py"), "--verify")
+    preflight = json.loads(run("/usr/bin/python3",
+                               str(SOURCE / "native_switch.py"), "--preflight", timeout=35))
+    if preflight.get("standing") != "NATIVE_API_AUTHORIZED_READONLY":
+        raise ValueError("Native Gluetun API is not loaded or source matched")
+    before = run("/usr/bin/systemctl", "show",
+                 "network-v2-gluetun-owned.service", "-p", "MainPID", "--value")
+    if not before.isdigit() or int(before) < 2:
+        raise ValueError("Provider main process not active")
+    if run("/usr/bin/systemctl", "show", TIMER_NAME, "-p", "ActiveState", "--value") != "active":
+        raise ValueError("Existing native recovery timer is not already active")
+    copy_payload()
+    # Change service bytes only after all script/config payload is installed.
+    subprocess.run(
+        ["/usr/bin/install", "-m", "0644", str(SOURCE_SVC), str(INSTALLED_SVC)],
+        check=True, capture_output=True, timeout=15,
+    )
+    subprocess.run(
+        ["/usr/bin/install", "-m", "0644", str(SOURCE_TIMER), str(INSTALLED_TIMER)],
+        check=True, capture_output=True, timeout=15,
+    )
+    run("/usr/bin/systemctl", "daemon-reload", timeout=25)
+    # Restart ONLY the native timer to recalculate the new calendar.
+    # Never restart the Gluetun, WireGuard or mobile Exit Node process.
+    run("/usr/bin/systemctl", "restart", TIMER_NAME, timeout=25)
+    receipt = verify()
+    after = run("/usr/bin/systemctl", "show",
+                "network-v2-gluetun-owned.service", "-p", "MainPID", "--value")
+    if before != after:
+        raise ValueError("Provider PID changed during source-only recovery activation")
+    return receipt | {
+        "standing": "EXISTING_NATIVE_TIMER_CONSUMER_INSTALLED_LOADED",
+        "providerRestarted": False,
+        "newTimerCreated": False,
+        "newVpnSessionCreated": False,
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    options = parser.add_mutually_exclusive_group(required=True)
+    options.add_argument("--validate", action="store_true")
+    options.add_argument("--verify", action="store_true")
+    options.add_argument("--install", action="store_true")
+    args = parser.parse_args()
+    try:
+        result = (validate_source() if args.validate else
+                  install() if args.install else verify())
+    except (OSError, ValueError, subprocess.SubprocessError) as exc:
+        result = {"standing": "NATIVE_BUNDLE_UNKNOWN", "reasonClass": type(exc).__name__,
+                  "effectConfirmed": False}
+    print(json.dumps(result, sort_keys=True))
+    return 0 if result["standing"] != "NATIVE_BUNDLE_UNKNOWN" else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

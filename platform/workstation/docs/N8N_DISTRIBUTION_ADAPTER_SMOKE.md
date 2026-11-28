@@ -24,6 +24,10 @@ This proves branching and provider reachability only. It does **not** implement 
 
 ## Sources
 
+Convergence and persisted-execution acceptance require explicit local libpq
+`PGHOST` (Unix socket directory) and `PGPORT`, matching the qualified server.
+See [N8N_SERVICE.md](N8N_SERVICE.md).
+
 - workflow: `n8n/workflows/ordivon-distribution-adapter-smoke-v1.json`
 - convergence: `scripts/converge-n8n-distribution-adapter-smoke.sh`
 - invocation: `scripts/invoke-n8n-distribution-adapter-smoke.py`

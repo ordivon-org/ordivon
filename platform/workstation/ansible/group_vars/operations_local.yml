@@ -1,0 +1,6 @@
+---
+# Expected endpoint of the existing operator-owned PostgreSQL cluster.
+# Changing this inventory does not itself migrate or reconfigure the server.
+operations_postgres_data_dir: /var/lib/postgres/ordivon-data-r5-pg-14550-v4
+operations_postgres_port: 14550
+operations_postgres_socket: "{{ operations_postgres_data_dir }}"

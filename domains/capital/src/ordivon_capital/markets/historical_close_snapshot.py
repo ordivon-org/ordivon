@@ -68,7 +68,9 @@ def admit_adjusted_close_csv(
         raise HistoricalCloseError("replay requires at least two dated sessions")
 
     try:
-        reader = csv.DictReader(io.StringIO(raw.decode("utf-8"), newline=""))
+        # DictReader fills absent fields with None; only explicitly empty
+        # fields in a rectangular record represent a no-quote observation.
+        reader = csv.DictReader(io.StringIO(raw.decode("utf-8"), newline=""), strict=True)
         columns = reader.fieldnames
         if (
             not columns
@@ -83,7 +85,7 @@ def admit_adjusted_close_csv(
         count = 0
         for row in reader:
             count += 1
-            if count > 80000 or None in row:
+            if count > 80000 or None in row or None in row.values():
                 raise HistoricalCloseError("malformed or unbounded daily CSV")
             session = _date(row["Date"])
             if last_date is not None and session <= last_date:

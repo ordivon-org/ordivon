@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "kind": "ordivon.mcp-tool-surface",
   "service": "ordivon-gateway",
-  "packageVersion": "0.10.8",
-  "surfaceEpoch": 9,
+  "packageVersion": "0.10.21",
+  "surfaceEpoch": 18,
   "tools": [
     "actor.declare",
     "artifact.read",
@@ -12,6 +12,7 @@
     "attention.get",
     "attention.reentry",
     "capability.describe",
+    "capability.inquire",
     "capability.resolve",
     "capability.search",
     "execution.cancel",
@@ -19,10 +20,13 @@
     "execution.resolve",
     "execution.submit",
     "host.status",
+    "message.get",
     "message.post",
     "message.relation.add",
     "message.relation.list",
     "message.search",
+    "runtime.release.apply",
+    "runtime.release.get",
     "space.create",
     "space.get",
     "space.list",
@@ -44,5 +48,5 @@
     "work.list",
     "work.snapshot.commit"
   ],
-  "contractDigest": "sha256:fcf0bd94a1e4db6e5c72ad0e825c57d9fcff2424d4275074af088982451055fa"
+  "contractDigest": "sha256:b4096912d4bfdef65077dfc279e906c731852f11795734dd8cfec2559876eec8"
 }

@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "sourceRevision": "dcd281a1f9a79f9e0d3e4bf28c7e7b25814454df",
+  "replaySourceCut": "516a3c4d6b189a59ebe5dd4f215f0e37ce688a59",
+  "replayTree": "f93ce0d8b228a8db19b6c4cf71e41fb34accb98a",
+  "runtimeJobId": "job-01a20ced-5c9d-7237-8d76-1d1db4c2f914",
+  "browser": "156.0.8078.4",
+  "node": "v26.12.1",
+  "host": {
+    "platform": "linux",
+    "arch": "x64",
+    "cpu": "AMD Ryzen 9 8940HX with Radeon Graphics",
+    "logicalCpus": 16,
+    "totalMemoryBytes": 10429001728
+  },
+  "metrics": "synchronous array update and DOM commit; excludes layout/paint, network and agent tokens; compiler configuration is not a proof of transform coverage",
+  "results": [
+    {
+      "name": "react-19",
+      "buildMs": 399,
+      "jsBytes": 220590,
+      "gzipBytes": 68231,
+      "loads": {
+        "1000": {
+          "mountMedianMs": 18.5,
+          "updateMedianMs": 2,
+          "updateP95Ms": 6.2,
+          "mountSamples": 5,
+          "updateSamples": 250
+        },
+        "5000": {
+          "mountMedianMs": 106.7,
+          "updateMedianMs": 14.6,
+          "updateP95Ms": 32.5,
+          "mountSamples": 5,
+          "updateSamples": 250
+        }
+      }
+    },
+    {
+      "name": "react-19-memo",
+      "buildMs": 239,
+      "jsBytes": 220602,
+      "gzipBytes": 68235,
+      "loads": {
+        "1000": {
+          "mountMedianMs": 21.5,
+          "updateMedianMs": 0.4,
+          "updateP95Ms": 1.8,
+          "mountSamples": 5,
+          "updateSamples": 250
+        },
+        "5000": {
+          "mountMedianMs": 95.5,
+          "updateMedianMs": 1.2,
+          "updateP95Ms": 3.1,
+          "mountSamples": 5,
+          "updateSamples": 250
+        }
+      }
+    },
+    {
+      "name": "react-19-native-compiler-configured",
+      "buildMs": 174,
+      "jsBytes": 221588,
+      "gzipBytes": 68678,
+      "loads": {
+        "1000": {
+          "mountMedianMs": 20.3,
+          "updateMedianMs": 0.7,
+          "updateP95Ms": 3.1,
+          "mountSamples": 5,
+          "updateSamples": 250
+        },
+        "5000": {
+          "mountMedianMs": 110.3,
+          "updateMedianMs": 4.9,
+          "updateP95Ms": 11,
+          "mountSamples": 5,
+          "updateSamples": 250
+        }
+      }
+    },
+    {
+      "name": "solid-2",
+      "buildMs": 209,
+      "jsBytes": 35098,
+      "gzipBytes": 14292,
+      "loads": {
+        "1000": {
+          "mountMedianMs": 20.7,
+          "updateMedianMs": 0.1,
+          "updateP95Ms": 0.3,
+          "mountSamples": 5,
+          "updateSamples": 250
+        },
+        "5000": {
+          "mountMedianMs": 75.1,
+          "updateMedianMs": 0.2,
+          "updateP95Ms": 1,
+          "mountSamples": 5,
+          "updateSamples": 250
+        }
+      }
+    }
+  ]
+}

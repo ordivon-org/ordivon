@@ -23,13 +23,18 @@ use windows_sys::Win32::Foundation::FILETIME;
 use windows_sys::Win32::System::Threading::GetProcessTimes;
 
 use super::supervisor::WindowsLauncherOwnerObservation;
+#[cfg(test)]
+use super::windows_authorization::{
+    validate_windows_elevated_principals, WINDOWS_PRIVILEGED_PROFILE_NAMESPACE,
+    WINDOWS_PRIVILEGED_PROFILE_TYPE,
+};
 #[cfg(windows)]
 use super::windows_broker;
 use super::windows_broker::WindowsPrivilegedBrokerConfig;
-use super::{
-    ExecutionBudget, ForeignReference, JobRunProposal, RuntimeError, RuntimeErrorCode,
-    RuntimeResult, WindowsAuthority, WindowsPayloadPrivilege,
-};
+#[cfg(test)]
+use super::{ForeignReference, WindowsElevatedCommandProfile, WindowsElevatedExecutionProfile};
+
+use super::{ExecutionBudget, RuntimeError, RuntimeErrorCode, RuntimeResult, WindowsAuthority};
 
 const WINDOWS_BASELINE_ENVIRONMENT_NAMES: &[&str] = &[
     "APPDATA",
@@ -90,42 +95,11 @@ pub struct WindowsExecutionConfig {
     /// Agent-authored foreignReferences may select one profile by id, but cannot create or widen
     /// a profile.  The profile binds both principal authority and the exact executable/argument
     /// surface allowed to receive an elevated token.
-    pub elevated_profiles: Vec<WindowsElevatedExecutionProfile>,
+    pub elevated_profiles: Vec<super::windows_authorization::WindowsElevatedExecutionProfile>,
     /// Operator-owned owner-native maintenance lease. While one valid unexpired lease exists,
     /// Runtime rejects every new Windows execution admission; exact Job replay is resolved before
     /// this policy so an already-admitted maintenance owner can reconnect safely.
     pub maintenance_lease_path: Option<PathBuf>,
-}
-
-const WINDOWS_PRIVILEGED_PROFILE_NAMESPACE: &str = "ordivon.windows";
-const WINDOWS_PRIVILEGED_PROFILE_TYPE: &str = "privileged_profile";
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct WindowsElevatedCommandProfile {
-    pub executable: String,
-    #[serde(default)]
-    pub argument_prefix: Vec<String>,
-    #[serde(default)]
-    pub allow_additional_arguments: bool,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct WindowsElevatedExecutionProfile {
-    pub id: String,
-    pub principals: Vec<String>,
-    pub commands: Vec<WindowsElevatedCommandProfile>,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
-#[serde(rename_all = "camelCase")]
-struct WindowsMaintenanceLease {
-    schema_version: u32,
-    kind: String,
-    maintenance_id: String,
-    expires_at_utc: String,
-    expires_at_unix_ms: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -164,115 +138,9 @@ pub fn materialize_windows_credential_binding(
     }
 }
 
-fn valid_privileged_profile_id(value: &str) -> bool {
-    !value.is_empty()
-        && value.len() <= 128
-        && value.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-' | b':' | b'/')
-        })
-}
-
-fn normalized_windows_command_path(value: &str) -> String {
-    let mut value = value.replace('/', "\\");
-    if let Some(stripped) = value.strip_prefix("\\\\?\\") {
-        value = stripped.to_string();
-    }
-    value.make_ascii_lowercase();
-    value
-}
-
-fn command_matches_profile(
-    executable: &str,
-    args: &[String],
-    profile: &WindowsElevatedCommandProfile,
-) -> bool {
-    if normalized_windows_command_path(executable)
-        != normalized_windows_command_path(&profile.executable)
-    {
-        return false;
-    }
-    if args.len() < profile.argument_prefix.len()
-        || args[..profile.argument_prefix.len()] != profile.argument_prefix
-    {
-        return false;
-    }
-    profile.allow_additional_arguments || args.len() == profile.argument_prefix.len()
-}
-
-fn requested_privileged_profile(
-    references: &[ForeignReference],
-) -> RuntimeResult<Option<&ForeignReference>> {
-    let selected = references
-        .iter()
-        .filter(|reference| {
-            reference.namespace == WINDOWS_PRIVILEGED_PROFILE_NAMESPACE
-                && reference.reference_type == WINDOWS_PRIVILEGED_PROFILE_TYPE
-        })
-        .collect::<Vec<_>>();
-    if selected.len() > 1 {
-        return Err(RuntimeError::new(
-            RuntimeErrorCode::AuthorizationDenied,
-            "elevated Windows execution may select exactly one privileged profile",
-            Some("execution.foreignReferences"),
-            false,
-        ));
-    }
-    Ok(selected.into_iter().next())
-}
-
-fn validate_windows_elevated_principals(principals: &[String]) -> RuntimeResult<()> {
-    let mut seen = std::collections::BTreeSet::new();
-    for principal in principals {
-        if principal.is_empty()
-            || principal.len() > 256
-            || principal.chars().any(char::is_whitespace)
-            || !seen.insert(principal.as_str())
-        {
-            return Err(RuntimeError::invalid(
-                "Windows elevated principals must be unique, non-empty, whitespace-free, and at most 256 characters",
-                "windows.elevatedPrincipals",
-            ));
-        }
-    }
-    Ok(())
-}
-
 impl WindowsExecutionConfig {
     pub(crate) fn validate(&self) -> RuntimeResult<()> {
-        validate_windows_elevated_principals(&self.elevated_principals)?;
-        let mut profile_ids = std::collections::BTreeSet::new();
-        for profile in &self.elevated_profiles {
-            if !valid_privileged_profile_id(&profile.id) || !profile_ids.insert(profile.id.as_str())
-            {
-                return Err(RuntimeError::invalid(
-                    "Windows elevated profile ids must be unique stable logical ids",
-                    "windows.elevatedProfiles",
-                ));
-            }
-            validate_windows_elevated_principals(&profile.principals)?;
-            if profile.principals.is_empty() || profile.commands.is_empty() {
-                return Err(RuntimeError::invalid(
-                    "Windows elevated profiles require at least one principal and command",
-                    "windows.elevatedProfiles",
-                ));
-            }
-            for command in &profile.commands {
-                if command.executable.is_empty() || command.executable.chars().any(|c| c == '\0') {
-                    return Err(RuntimeError::invalid(
-                        "Windows elevated profile commands require a non-empty NUL-free executable",
-                        "windows.elevatedProfiles",
-                    ));
-                }
-            }
-        }
-        if let Some(path) = &self.maintenance_lease_path {
-            if cfg!(windows) && !path.is_absolute() {
-                return Err(RuntimeError::invalid(
-                    "Windows maintenance lease path must be absolute",
-                    "windows.maintenanceLeasePath",
-                ));
-            }
-        }
+        super::windows_authorization::validate_configuration(self)?;
         if !self.launcher_path.is_absolute() {
             return Err(RuntimeError::invalid(
                 "Windows launcher path must be absolute",
@@ -309,181 +177,6 @@ impl WindowsExecutionConfig {
             {
                 let _ = broker.executable_digest()?;
             }
-        }
-        Ok(())
-    }
-
-    pub(crate) fn authorize_new_proposal(&self, proposal: &JobRunProposal) -> RuntimeResult<()> {
-        if proposal.execution.execution_target != super::ExecutionTarget::WindowsNative {
-            return Ok(());
-        }
-        self.authorize_maintenance_fence()?;
-        self.authorize_elevated_proposal(proposal)
-    }
-
-    fn authorize_maintenance_fence(&self) -> RuntimeResult<()> {
-        let Some(path) = self.maintenance_lease_path.as_ref() else {
-            return Ok(());
-        };
-        let metadata = match fs::symlink_metadata(path) {
-            Ok(metadata) => metadata,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
-            Err(error) => {
-                return Err(RuntimeError::new(
-                    RuntimeErrorCode::AuthorizationDenied,
-                    format!("cannot inspect Windows maintenance lease: {error}"),
-                    Some("windows.maintenanceLeasePath"),
-                    false,
-                ))
-            }
-        };
-        if metadata.file_type().is_symlink() || !metadata.is_file() {
-            return Err(RuntimeError::new(
-                RuntimeErrorCode::AuthorizationDenied,
-                "Windows maintenance lease must be a regular non-symlink file",
-                Some("windows.maintenanceLeasePath"),
-                false,
-            ));
-        }
-        let bytes = fs::read(path).map_err(|error| {
-            RuntimeError::new(
-                RuntimeErrorCode::AuthorizationDenied,
-                format!("cannot read Windows maintenance lease: {error}"),
-                Some("windows.maintenanceLeasePath"),
-                false,
-            )
-        })?;
-        let lease: WindowsMaintenanceLease = serde_json::from_slice(&bytes).map_err(|error| {
-            RuntimeError::new(
-                RuntimeErrorCode::AuthorizationDenied,
-                format!("invalid Windows maintenance lease JSON: {error}"),
-                Some("windows.maintenanceLeasePath"),
-                false,
-            )
-        })?;
-        if lease.schema_version != 3
-            || lease.kind != "ordivon.d-drive-compact-request"
-            || !valid_privileged_profile_id(&lease.maintenance_id)
-        {
-            return Err(RuntimeError::new(
-                RuntimeErrorCode::AuthorizationDenied,
-                "Windows maintenance lease identity is invalid",
-                Some("windows.maintenanceLeasePath"),
-                false,
-            ));
-        }
-        let now_ms = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map_err(|error| {
-                RuntimeError::new(
-                    RuntimeErrorCode::AuthorizationDenied,
-                    format!("cannot determine current time for Windows maintenance lease: {error}"),
-                    Some("windows.maintenanceLeasePath"),
-                    false,
-                )
-            })?
-            .as_millis() as u64;
-        if lease.expires_at_unix_ms <= now_ms {
-            return Ok(());
-        }
-        Err(RuntimeError::new(
-            RuntimeErrorCode::AuthorizationDenied,
-            format!(
-                "Windows execution admission is fenced by active maintenance lease {} until {}",
-                lease.maintenance_id, lease.expires_at_utc
-            ),
-            Some("execution.executionTarget"),
-            false,
-        ))
-    }
-
-    pub(crate) fn authorize_elevated_proposal(
-        &self,
-        proposal: &JobRunProposal,
-    ) -> RuntimeResult<()> {
-        if proposal.execution.execution_target != super::ExecutionTarget::WindowsNative {
-            return Ok(());
-        }
-        let context = proposal
-            .execution
-            .windows_context
-            .unwrap_or_else(|| proposal.execution.windows_authority.canonical_context());
-        let selected = requested_privileged_profile(&proposal.execution.foreign_references)?;
-        if context.privilege != WindowsPayloadPrivilege::Elevated {
-            if selected.is_some() {
-                return Err(RuntimeError::new(
-                    RuntimeErrorCode::AuthorizationDenied,
-                    "a privileged Windows profile may be selected only by elevated execution",
-                    Some("execution.foreignReferences"),
-                    false,
-                ));
-            }
-            return Ok(());
-        }
-        let selected = selected.ok_or_else(|| {
-            RuntimeError::new(
-                RuntimeErrorCode::AuthorizationDenied,
-                "elevated Windows execution requires one operator-configured privileged profile",
-                Some("execution.foreignReferences"),
-                false,
-            )
-        })?;
-        if selected.generation.is_some() || selected.digest.is_some() {
-            return Err(RuntimeError::new(
-                RuntimeErrorCode::AuthorizationDenied,
-                "privileged profile references are operator policy selectors and must not carry caller generation or digest claims",
-                Some("execution.foreignReferences"),
-                false,
-            ));
-        }
-        let profile = self
-            .elevated_profiles
-            .iter()
-            .find(|profile| profile.id == selected.id)
-            .ok_or_else(|| {
-                RuntimeError::new(
-                    RuntimeErrorCode::AuthorizationDenied,
-                    "requested Windows privileged profile is not configured",
-                    Some("execution.foreignReferences"),
-                    false,
-                )
-            })?;
-        if !profile
-            .principals
-            .iter()
-            .any(|principal| principal == &proposal.principal)
-        {
-            return Err(RuntimeError::new(
-                RuntimeErrorCode::AuthorizationDenied,
-                "authenticated principal is not authorized for the requested Windows privileged profile",
-                Some("execution.foreignReferences"),
-                false,
-            ));
-        }
-        let mut commands = Vec::with_capacity(1 + proposal.execution.steps.len());
-        commands.push((
-            proposal.execution.executable.as_str(),
-            proposal.execution.args.as_slice(),
-        ));
-        commands.extend(
-            proposal
-                .execution
-                .steps
-                .iter()
-                .map(|step| (step.executable.as_str(), step.args.as_slice())),
-        );
-        if commands.iter().any(|(executable, args)| {
-            !profile
-                .commands
-                .iter()
-                .any(|rule| command_matches_profile(executable, args, rule))
-        }) {
-            return Err(RuntimeError::new(
-                RuntimeErrorCode::AuthorizationDenied,
-                "elevated Windows command is outside the selected privileged profile",
-                Some("execution.executable"),
-                false,
-            ));
         }
         Ok(())
     }
@@ -927,6 +620,9 @@ pub(crate) struct WindowsNativeRunSpec<'a> {
     pub timeout_ms: u64,
     pub stdout_limit_bytes: u64,
     pub stderr_limit_bytes: u64,
+    /// PG-only original Runtime process identity. Ordinary legacy jobs leave None.
+    #[cfg(windows)]
+    pub pg_terminal_peer_pid: Option<u32>,
 }
 
 /// Windows-native launcher contract after all control-plane path projection has completed.
@@ -958,7 +654,105 @@ pub(crate) struct WindowsLauncherInvocationSpec<'a> {
     pub timeout_ms: u64,
     pub stdout_limit_bytes: u64,
     pub stderr_limit_bytes: u64,
+    pub pg_terminal_peer_pid: Option<u32>,
     pub emit_launcher_start: bool,
+}
+
+/// PG consumer affordance projection. Only the configured original launcher
+/// and contexts supported by the selected product may be advertised. It is
+/// not a dispatch authorization or a physical terminal witness.
+#[cfg(windows)]
+pub(crate) fn windows_pg_execution_target(
+    config: &WindowsExecutionConfig,
+    configured_runner: &Path,
+    supported_contexts: &[super::WindowsExecutionContextRequest],
+) -> RuntimeResult<serde_json::Value> {
+    config.validate()?;
+    let io = |err: std::io::Error| {
+        RuntimeError::new(
+            RuntimeErrorCode::IoError,
+            format!("inspect Windows PG launcher: {err}"),
+            Some("executionProvider"),
+            false,
+        )
+    };
+    let launcher = fs::canonicalize(&config.launcher_path).map_err(io)?;
+    if fs::canonicalize(configured_runner).map_err(io)? != launcher {
+        return Err(RuntimeError::invalid(
+            "Windows PG launcher and configured runner differ",
+            "executionProvider",
+        ));
+    }
+    let digest = crate::universal::sha256_file(&launcher).map_err(|err| {
+        RuntimeError::new(
+            RuntimeErrorCode::IoError,
+            err.to_string(),
+            Some("executionProvider"),
+            false,
+        )
+    })?;
+    Ok(windows_pg_target_projection(
+        digest,
+        supported_contexts,
+        config.maintenance_lease_path.is_some(),
+    ))
+}
+
+#[cfg(any(windows, test))]
+fn windows_pg_target_projection(
+    digest: String,
+    contexts: &[super::WindowsExecutionContextRequest],
+    maintenance_fence_configured: bool,
+) -> serde_json::Value {
+    let authorities = contexts
+        .iter()
+        .filter_map(|context| context.legacy_authority())
+        .collect::<Vec<_>>();
+    serde_json::json!({
+        "target": "windows_native",
+        "configured": true,
+        "available": !contexts.is_empty(),
+        "executionProfiles": ["trusted_local"],
+        "structuredPlan": false,
+        "immutableInputs": false,
+        "hostDependencyCommitments": false,
+        "windowsContexts": contexts,
+        "windowsAuthorities": authorities,
+        "windowsMaintenanceFenceConfigured": maintenance_fence_configured,
+        "executionProvider": {"contract":"windows_native_launcher_v1","executableDigest":digest},
+        "availabilityIssue": if contexts.is_empty() {Some("WINDOWS_CONTEXT_UNAVAILABLE")} else {None}
+    })
+}
+
+#[cfg(test)]
+mod windows_pg_projection_tests {
+    use super::*;
+    #[test]
+    fn native_pg_projection_does_not_invent_contexts_or_linux_capability() {
+        use crate::runtime::{
+            WindowsExecutionContextRequest, WindowsExecutionIdentity, WindowsPayloadPrivilege,
+        };
+        let digest = format!("sha256:{}", "a".repeat(64));
+        let unavailable = windows_pg_target_projection(digest.clone(), &[], false);
+        assert_eq!(unavailable["available"], false);
+        assert_eq!(
+            unavailable["availabilityIssue"],
+            "WINDOWS_CONTEXT_UNAVAILABLE"
+        );
+        assert_eq!(unavailable["windowsContexts"], serde_json::json!([]));
+        let context = WindowsExecutionContextRequest::new(
+            WindowsExecutionIdentity::ActiveUser,
+            WindowsPayloadPrivilege::Limited,
+        );
+        let available = windows_pg_target_projection(digest.clone(), &[context], true);
+        assert_eq!(available["available"], true);
+        assert_eq!(available["target"], "windows_native");
+        assert_eq!(available["windowsContexts"], serde_json::json!([context]));
+        assert_eq!(available["executionProvider"]["executableDigest"], digest);
+        assert_eq!(available["immutableInputs"], false);
+        assert_eq!(available["structuredPlan"], false);
+        assert_eq!(available["hostDependencyCommitments"], false);
+    }
 }
 
 pub(crate) fn snapshot_windows_runtime_context_for(
@@ -1263,6 +1057,117 @@ pub(crate) fn validate_windows_exec_payload(
 /// this exact worktree in the Job, so only its active-user consumer may opt in
 /// to the existing Git command-scope safe.directory primitive. No gitconfig
 /// is written, no wildcard trust is granted, and service jobs are unaffected.
+#[cfg(all(windows, feature = "postgres-registry-admission"))]
+pub(crate) fn bind_pg_execution_context(
+    config: &WindowsExecutionConfig,
+    proposal: &super::JobRunProposal,
+    plan: &mut super::RuntimeExecutionPlan,
+) -> RuntimeResult<()> {
+    use super::types::{WindowsExecutionContext, WindowsTokenClass};
+    use super::{WindowsExecutionIdentity, WindowsPayloadPrivilege};
+    super::authority_contract::AuthorityContract::ordinary(proposal)?
+        .authorize_windows_elevation(&config.elevated_principals)?;
+    config.authorize_new_proposal(proposal)?;
+    let explicit = proposal.execution.windows_context;
+    let context =
+        explicit.unwrap_or_else(|| proposal.execution.windows_authority.canonical_context());
+    if explicit.is_some() && !context.compatible_with_legacy(proposal.execution.windows_authority) {
+        return Err(RuntimeError::invalid(
+            "windowsContext conflicts with windowsAuthority",
+            "execution.windowsContext",
+        ));
+    }
+    let snapshot = snapshot_windows_runtime_context_for(config, context)?;
+    let authority = context.transport_authority();
+    let privileged_broker_digest = if authority == WindowsAuthority::Limited {
+        None
+    } else {
+        config
+            .privileged_broker
+            .as_ref()
+            .map(|broker| broker.executable_digest())
+            .transpose()?
+    };
+    let (token_class, environment_source) = match (context.identity, context.privilege) {
+        (WindowsExecutionIdentity::ActiveUser, _) => (
+            WindowsTokenClass::ActiveUser,
+            "windows_active_user_profile_allowlist_v1",
+        ),
+        (WindowsExecutionIdentity::Service, WindowsPayloadPrivilege::Elevated) => (
+            WindowsTokenClass::Elevated,
+            "windows_privileged_broker_profile_allowlist_v1",
+        ),
+        _ => (
+            WindowsTokenClass::Limited,
+            "windows_user_machine_profile_allowlist_v1",
+        ),
+    };
+    plan.env = merge_windows_workspace_environment(
+        &snapshot.environment,
+        &proposal.execution.env,
+        context.identity == WindowsExecutionIdentity::ActiveUser,
+        Path::new(&plan.workspace_path),
+    )?;
+    plan.windows_authority = authority;
+    plan.windows_context = explicit;
+    plan.windows_execution_context = Some(WindowsExecutionContext {
+        token_class,
+        payload_identity: explicit.map(|context| context.identity),
+        payload_privilege: explicit.map(|context| context.privilege),
+        token_user_sid: snapshot.token_user_sid,
+        session_id: snapshot.session_id,
+        environment_source: environment_source.into(),
+        privileged_broker_digest,
+    });
+    Ok(())
+}
+
+/// Bind the already prepared independent Git carrier to a normal PG Job.
+/// The paths have been qualified by the native provider, not supplied by
+/// the caller. This is execution identity, not a filesystem ACL or sandbox.
+#[cfg(any(windows, test))]
+pub(crate) fn bind_pg_private_git_environment(
+    environment: &mut BTreeMap<String, String>,
+    git_dir: &str,
+    work_tree: &str,
+) -> RuntimeResult<()> {
+    // These redirects would replace the repository, index or object set
+    // whose lifetime the existing Workspace open/close contract owns.
+    const REDIRECTS: &[&str] = &[
+        "GIT_COMMON_DIR",
+        "GIT_INDEX_FILE",
+        "GIT_OBJECT_DIRECTORY",
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+        "GIT_NAMESPACE",
+        "GIT_QUARANTINE_PATH",
+    ];
+    if environment
+        .keys()
+        .any(|key| REDIRECTS.iter().any(|name| key.eq_ignore_ascii_case(name)))
+    {
+        return Err(RuntimeError::invalid(
+            "Windows PG Git cannot redirect the prepared private repository",
+            "execution.env",
+        ));
+    }
+    for (key, expected) in [("GIT_DIR", git_dir), ("GIT_WORK_TREE", work_tree)] {
+        if environment
+            .iter()
+            .any(|(name, actual)| name.eq_ignore_ascii_case(key) && actual != expected)
+        {
+            return Err(RuntimeError::invalid(
+                format!("Windows PG {key} must match the prepared Workspace Git carrier"),
+                "execution.env",
+            ));
+        }
+    }
+    for (key, expected) in [("GIT_DIR", git_dir), ("GIT_WORK_TREE", work_tree)] {
+        environment.retain(|name, _| !name.eq_ignore_ascii_case(key));
+        environment.insert(key.to_owned(), expected.to_owned());
+    }
+    Ok(())
+}
+
 pub(crate) fn merge_windows_workspace_environment(
     baseline: &BTreeMap<String, String>,
     overlay: &BTreeMap<String, String>,
@@ -1521,6 +1426,7 @@ pub(crate) fn spawn_windows_native(
         // It records launcher identity from that OS handle immediately after spawn, so the
         // launcher must not race the parent by self-publishing the same first-stage evidence.
         emit_launcher_start: false,
+        pg_terminal_peer_pid: spec.pg_terminal_peer_pid,
     };
     let launcher_stderr_path = spec.bundle_path.join("launcher-stderr.log");
     let mut command = Command::new(&launcher);
@@ -1729,6 +1635,17 @@ pub(crate) fn append_windows_launcher_arguments(
     if spec.emit_launcher_start {
         command.arg("--emit-launcher-start");
     }
+    if let Some(peer) = spec.pg_terminal_peer_pid {
+        if peer == 0 {
+            return Err(RuntimeError::invalid(
+                "PG terminal peer process ID must be nonzero",
+                "windows.pgTerminalPeerProcessId",
+            ));
+        }
+        command
+            .arg("--pg-terminal-peer-process-id")
+            .arg(peer.to_string());
+    }
 
     match (
         spec.input_source_root,
@@ -1912,6 +1829,37 @@ mod tests {
             let error = validate_windows_elevated_principals(&principals).unwrap_err();
             assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
             assert_eq!(error.field.as_deref(), Some("windows.elevatedPrincipals"));
+        }
+    }
+
+    #[test]
+    fn windows_pg_private_git_binding_preserves_only_exact_case_insensitive_identity() {
+        let work_tree = r"C:\Ordivon\workspaces\ws-one";
+        let git_dir = r"C:\Ordivon\workspaces\.ws-one.agent-git";
+        let mut environment = BTreeMap::from([
+            ("git_dir".to_owned(), git_dir.to_owned()),
+            ("Git_Work_Tree".to_owned(), work_tree.to_owned()),
+            ("PATH".to_owned(), r"C:\Windows".to_owned()),
+        ]);
+        bind_pg_private_git_environment(&mut environment, git_dir, work_tree).unwrap();
+        assert_eq!(environment["GIT_DIR"], git_dir);
+        assert_eq!(environment["GIT_WORK_TREE"], work_tree);
+        assert_eq!(environment.len(), 3);
+        assert_eq!(environment["PATH"], r"C:\Windows");
+        for key in [
+            "git_dir",
+            "Git_Work_Tree",
+            "GIT_COMMON_DIR",
+            "git_index_file",
+            "GIT_OBJECT_DIRECTORY",
+            "git_alternate_object_directories",
+            "GIT_NAMESPACE",
+            "GIT_QUARANTINE_PATH",
+        ] {
+            let mut conflicting = BTreeMap::from([(key.to_owned(), r"C:\other".to_owned())]);
+            let before = conflicting.clone();
+            assert!(bind_pg_private_git_environment(&mut conflicting, git_dir, work_tree).is_err());
+            assert_eq!(conflicting, before);
         }
     }
 
@@ -2349,6 +2297,7 @@ mod tests {
             stdout_limit_bytes: 4096,
             stderr_limit_bytes: 4096,
             emit_launcher_start: false,
+            pg_terminal_peer_pid: None,
         };
         let mut command = Command::new("/native/Ordivon.WindowsJobLauncher.exe");
         append_windows_launcher_arguments(&mut command, &spec).unwrap();
@@ -2458,6 +2407,7 @@ mod tests {
             stdout_limit_bytes: 4096,
             stderr_limit_bytes: 4096,
             emit_launcher_start: false,
+            pg_terminal_peer_pid: None,
         };
         let mut command = Command::new("/native/Ordivon.WindowsJobLauncher.exe");
         append_windows_launcher_arguments(&mut command, &spec).unwrap();
@@ -2555,7 +2505,7 @@ mod tests {
         let args = Vec::<String>::new();
         let environment = BTreeMap::new();
         let budget = ExecutionBudget::default();
-        let spec = WindowsLauncherInvocationSpec {
+        let mut spec = WindowsLauncherInvocationSpec {
             bundle: "C:\\ProgramData\\Ordivon\\attempts\\attempt-2",
             job_id: "job-2",
             attempt_id: "attempt-2",
@@ -2581,6 +2531,7 @@ mod tests {
             stdout_limit_bytes: 1024,
             stderr_limit_bytes: 1024,
             emit_launcher_start: true,
+            pg_terminal_peer_pid: None,
         };
         let mut command = Command::new("/native/Ordivon.WindowsJobLauncher.exe");
         append_windows_launcher_arguments(&mut command, &spec).unwrap();
@@ -2594,6 +2545,30 @@ mod tests {
                 .filter(|arg| arg.as_str() == "--emit-launcher-start")
                 .count(),
             1
+        );
+        // The actual PG parent holds the original process handle and writes
+        // windows-launcher-start.json. It MUST NOT enable the competing
+        // Launcher self-writer merely to obtain the native drain gate.
+        spec.emit_launcher_start = false;
+        spec.pg_terminal_peer_pid = Some(12345);
+        let mut pg_command = Command::new("/native/Ordivon.WindowsJobLauncher.exe");
+        append_windows_launcher_arguments(&mut pg_command, &spec).unwrap();
+        let pg_arguments = pg_command
+            .get_args()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+        assert!(!pg_arguments
+            .iter()
+            .any(|arg| arg == "--emit-launcher-start"));
+        assert!(pg_arguments
+            .windows(2)
+            .any(|pair| pair[0] == "--pg-terminal-peer-process-id" && pair[1] == "12345"));
+        spec.pg_terminal_peer_pid = Some(0);
+        assert_eq!(
+            append_windows_launcher_arguments(&mut Command::new("launcher"), &spec)
+                .unwrap_err()
+                .code,
+            RuntimeErrorCode::InvalidRequest
         );
     }
 
@@ -2767,6 +2742,29 @@ mod privileged_profile_tests {
             ))
             .unwrap_err();
         assert_eq!(error.code, RuntimeErrorCode::AuthorizationDenied);
+    }
+
+    #[test]
+    fn matching_elevated_profile_rejects_caller_environment() {
+        let mut request = proposal(
+            r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+            &[
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                r"D:\OrdivonStudio\d-drive-compact-run-r3.ps1",
+            ],
+            vec![profile_ref("workstation.d-drive-compact-r3")],
+        );
+        request
+            .execution
+            .env
+            .insert("Path".into(), r"C:\workspace".into());
+        let error = config().authorize_elevated_proposal(&request).unwrap_err();
+        assert_eq!(error.code, RuntimeErrorCode::AuthorizationDenied);
+        assert_eq!(error.field.as_deref(), Some("execution.env"));
     }
 
     #[test]

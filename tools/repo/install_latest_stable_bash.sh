@@ -10,11 +10,6 @@ manifest="$repo/tools/repo/bash-5.3.20.sha256"
 [[ -f "$manifest" ]] || { echo "Missing pinned upstream SHA-256 manifest" >&2; exit 2; }
 [[ "$(wc -l < "$manifest")" -eq 21 ]] || { echo "Expected 1 source + 20 patches" >&2; exit 2; }
 
-if [[ -x "$target/bin/bash" ]] && "$target/bin/bash" -c '[[ "$BASH_VERSION" == "5.3.20(1)-release" ]]'; then
-  echo "Bash 5.3.20 already verified in isolated target"
-  exit 0
-fi
-
 scratch="$(mktemp -d "${RUNNER_TEMP:-/tmp}/ordivon-gnu-bash5320.XXXXXXXX")"
 trap 'rm -rf -- "$scratch"' EXIT
 mkdir -p "$scratch/dist" "$scratch/src" "$scratch/prefix"
@@ -44,14 +39,67 @@ download_one() {
   return 1
 }
 
-download_one bash-5.3.tar.gz bash-5.3.tar.gz
+dist_files=(bash-5.3.tar.gz)
 for number in $(seq -f '%03g' 1 20); do
-  download_one "bash53-$number" "bash-5.3-patches/bash53-$number"
+  dist_files+=("bash53-$number")
 done
-(
-  cd "$scratch/dist"
-  sha256sum --status --check "$manifest"
-) || { echo "FAIL: upstream Bash 5.3 + 20 patches do not match pinned SHA-256" >&2; exit 7; }
+
+verify_distribution() {
+  (cd "$scratch/dist" && sha256sum --status --check "$manifest")
+}
+
+restore_distribution() {
+  local name
+  for name in "${dist_files[@]}"; do
+    [[ -f "$cache/$name" && ! -L "$cache/$name" ]] || return 1
+    cp -- "$cache/$name" "$scratch/dist/$name" || return 1
+  done
+  verify_distribution
+}
+
+# A cache is an acquisition optimization, not build provenance. Never execute
+# an existing target binary to establish its own identity.
+cache="${ORDIVON_BASH_DIST_CACHE_DIR:-}"
+if [[ -n "${ORDIVON_BASH_DIST_DIR:-}" || "$cache" != /* || -L "$cache" ]]; then
+  cache=""
+fi
+cache_hit=false
+if [[ -n "$cache" ]] && restore_distribution; then
+  cache_hit=true
+  echo "Bash source distribution cache verified"
+else
+  download_one bash-5.3.tar.gz bash-5.3.tar.gz
+  for number in $(seq -f '%03g' 1 20); do
+    download_one "bash53-$number" "bash-5.3-patches/bash53-$number"
+  done
+fi
+verify_distribution || {
+  echo "FAIL: upstream Bash 5.3 + 20 patches do not match pinned SHA-256" >&2
+  exit 7
+}
+
+# Store the verified source inputs only. Each atomic file replacement is
+# independent; a partial cache is a miss at the next full manifest check.
+if [[ -n "$cache" && "$cache_hit" == false ]]; then
+  if mkdir -p -- "$cache" && staged="$(mktemp -d "$cache/.bash-dist.XXXXXXXX")"; then
+    if (
+      for name in "${dist_files[@]}"; do
+        cp -- "$scratch/dist/$name" "$staged/$name" || exit 1
+      done
+      (cd "$staged" && sha256sum --status --check "$manifest") || exit 1
+      for name in "${dist_files[@]}"; do
+        mv -T -- "$staged/$name" "$cache/$name" || exit 1
+      done
+    ); then
+      echo "Bash source distribution cache populated"
+    else
+      echo "Bash source distribution cache write unavailable" >&2
+    fi
+    rm -rf -- "$staged"
+  else
+    echo "Bash source distribution cache unavailable" >&2
+  fi
+fi
 
 tar -xzf "$scratch/dist/bash-5.3.tar.gz" -C "$scratch/src"
 for number in $(seq -f '%03g' 1 20); do
@@ -65,6 +113,8 @@ done
   make install >/dev/null
 )
 [[ -x "$scratch/prefix/bin/bash" ]] || { echo "Bash binary missing" >&2; exit 8; }
+# The version variable must expand in the newly built child shell.
+# shellcheck disable=SC2016
 "$scratch/prefix/bin/bash" -c '[[ "$BASH_VERSION" == "5.3.20(1)-release" ]]' ||
   { echo "Wrong Bash patchlevel" >&2; exit 9; }
 

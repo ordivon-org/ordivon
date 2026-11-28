@@ -3,17 +3,39 @@ import {readFileSync,existsSync} from 'node:fs';
 import test from 'node:test';
 import {queryExternalKnowledge} from '../scripts/external-knowledge-query.ts';
 import {queryMechanismExperiences} from '../scripts/mechanism-experience-query.ts';
+import {queryMechanismRelationships} from '../scripts/mechanism-relationship-query.ts';
+import {queryDesignCounterexamples} from '../scripts/design-counterexample-query.ts';
+import {queryCounterexampleSynthesis} from '../scripts/counterexample-synthesis-query.ts';
 
 const load=(p:string)=>JSON.parse(readFileSync(new URL('../'+p,import.meta.url),'utf8'));
+const consumerStage: Record<string,string> = {
+  G01: 'SOURCE_QUERY', G02: 'SOURCE_QUERY', G03: 'SOURCE_QUERY',
+  G04: 'SOURCE_QUERY', G05: 'SOURCE_QUERY',
+  G06: 'NATIVE_COMPOSITION_FIXTURE', G08: 'NATIVE_COMPOSITION_FIXTURE',
+  G09: 'ROOM_NATIVE_CONSUMER', G10: 'ROOM_NATIVE_CONSUMER',
+  G11: 'ROOM_NATIVE_CONSUMER',
+};
+function verifyConsumerQualifications(plan: any): void {
+  assert.equal(plan.consumerEvidenceSemantics?.truthRole, 'DECLARED_SOURCE_PATHS_NOT_RUNTIME_ADOPTION');
+  assert.equal(plan.consumerEvidenceSemantics?.knowledgeToProductImport, 'NOT_OBSERVED_IN_ROOM_OR_BEACON');
+  assert.equal(plan.consumerEvidenceSemantics?.dynamicExternalAgentUse, 'UNKNOWN');
+  assert.equal(plan.consumerEvidenceSemantics?.humanExperience, 'UNKNOWN');
+  assert.equal(plan.consumerEvidenceSemantics?.releaseConsumption, 'NOT_EVALUATED_BY_THIS_PLAN');
+  for (const node of plan.nodes) {
+    assert.ok(Object.hasOwn(consumerStage, node.id), 'unqualified node ' + node.id);
+    assert.equal(node.consumerEvidenceStage, consumerStage[node.id], node.id + ': consumer evidence stage');
+  }
+}
 test('Game registers source-bound knowledge, native composition and effect responsibilities',()=>{
   const plan=load('planning/lego-plan-r1.json');
   assert.equal(plan.project.id,'ordivon-game');
+  verifyConsumerQualifications(plan);
   assert.equal(new Set(plan.nodes.map((n: any) => n.id)).size, plan.nodes.length);
-  for (const id of ['G01','G02','G03','G04','G05','G06','G07','G08','G09'])
+  for (const id of ['G01','G02','G03','G04','G05','G06','G08','G09'])
     assert.ok(plan.nodes.some((n: any) => n.id === id), 'missing observed responsibility '+id);
   assert.ok(plan.nodes.some((n: any) => n.id === 'G05' && n.kind === 'interface_adapter'));
   assert.ok(plan.nodes.some((n: any) => n.id === 'G06' && n.kind === 'verifier'));
-  assert.ok(plan.nodes.some((n: any) => n.id === 'G07' && n.kind === 'native_composition_capability'));
+  assert.ok(!plan.nodes.some((n: any) => n.id === 'G07'), 'archived Orbit must not remain an active Game capability');
   assert.ok(plan.nodes.some((n: any) => n.id === 'G08' && n.kind === 'native_effect_adapter'));
   assert.ok(plan.nodes.some((n: any) => n.id === 'G09' && n.kind === 'native_narrative_adapter'));
   for(const n of plan.nodes) {
@@ -33,12 +55,25 @@ test('mature sources and mechanic LEGO are immediately consumable',()=>{
   assert.equal(mechanics.semanticAuthorityClaimed,false);
   assert.equal(mechanics.recommendationClaimed,false);
   assert.ok(mechanics.items.length>0);
+
+  // Execute the real on-demand readers over existing JSON, not just a source
+  // substring test. Their output remains advisory, never product adoption.
+  const relationships = queryMechanismRelationships({type:'conditionalities', limit:1});
+  const counterexamples = queryDesignCounterexamples({limit:1});
+  const themes = queryCounterexampleSynthesis({limit:1});
+  for (const result of [relationships,counterexamples,themes]) {
+    assert.equal(result.semanticAuthorityClaimed,false);
+    assert.equal(result.recommendationClaimed,false);
+    assert.equal(result.returned,1);
+    assert.equal(result.items.length,1);
+  }
 });
 
-// Real consumer closure for the Game owner's admitted capabilities.
-// This binds source-facing CLI/tests to their consumers; it does not qualify
-// installed game effects, dynamic consumers, or Formal proof obligations.
-function validateNativeGameConsumerClaims(plan: any): void {
+// Declared-path closure only: a source locator, runnable query test, or CLI
+// command is not evidence that an external Agent or native product consumes it.
+// Native scene tests still provide separately bounded Game execution evidence.
+function validateDeclaredGameConsumerPaths(plan: any): void {
+  verifyConsumerQualifications(plan);
   const required: Record<string, string[]> = {
     G01: ['scripts/external-knowledge-query.ts', 'test/game-external-knowledge-query.test.ts'],
     G02: ['scripts/mechanism-experience-query.ts', 'test/game-lego-catalog.test.ts'],
@@ -46,11 +81,10 @@ function validateNativeGameConsumerClaims(plan: any): void {
     G04: ['scripts/design-counterexample-query.ts', 'test/game-design-counterexample-memory.test.ts'],
     G05: ['package.json', 'scripts/mechanism-relationship-query.ts', 'scripts/counterexample-synthesis-query.ts'],
     G06: ['mise.toml', 'examples/native-composition/assert.gd', 'examples/native-composition/main.tscn'],
-    G07: ['examples/orbit-collector/src/main.rs', 'examples/orbit-collector/src/gameplay.rs', 'examples/orbit-collector/Cargo.toml'],
     G08: ['examples/native-composition/composition_root.gd', 'examples/native-composition/main.tscn', 'examples/native-composition/assert_audio.gd'],
     G09: ['examples/room-encounter/narrative/encounter_dialogue.gd', 'examples/room-encounter/narrative/gate_state.gd', 'examples/room-encounter/main.tscn', 'examples/room-encounter/narrative/acceptance.gd', 'mise.toml'],
     G10: ['examples/room-encounter/encounter_save_slot.gd', 'examples/room-encounter/assert.gd'],
-    G11: ['examples/room-encounter/agent_episode.gd', 'examples/room-encounter/agent_episode_acceptance.py', 'mise.toml'],
+    G11: ['examples/room-encounter/agent_episode.gd', 'scripts/agent_episode_acceptance.py', 'mise.toml'],
   };
   for (const id of Object.keys(required))
     assert.ok(plan.nodes.some((n: any) => n.id === id), id + ': known native consumer missing');
@@ -104,27 +138,31 @@ function validateNativeGameConsumerClaims(plan: any): void {
   assert.ok(nativeMise.includes('&& mise run test:native'),
     'Game Owner verify must execute the native Godot consumer');
   assert.ok(nativeMise.includes('[tasks."test:native"]'));
-  assert.ok(nativeMise.includes('godot --headless --path examples/native-composition --script res://assert.gd'));
-  const godotTest = readFileSync(new URL('../examples/native-composition/assert.gd', import.meta.url), 'utf8');
-  assert.ok(godotTest.includes('load("res://main.tscn")'));
+  // Do not freeze the physical command spelling or test implementation.
+  // The independent native task and its missing/invalid receipt controls
+  // establish execution; this catalog test only checks declared locators.
 }
 
-test('Game registered consumers resolve to native CLI, Godot and Bevy source ports', () => {
+test('Game declared paths resolve to source queries and bounded Godot fixture ports', () => {
   const plan = load('planning/lego-plan-r1.json');
-  validateNativeGameConsumerClaims(plan);
+  validateDeclaredGameConsumerPaths(plan);
 });
 
-test('missing, fabricated or duplicate Game consumer claims fail closed', () => {
+test('missing, fabricated, duplicated or overstated declared Game consumers fail closed', () => {
   const current = load('planning/lego-plan-r1.json');
   const none = structuredClone(current);
   delete none.nodes[0].consumerEvidence;
-  assert.throws(() => validateNativeGameConsumerClaims(none), /missing consumer declaration/);
+  assert.throws(() => validateDeclaredGameConsumerPaths(none), /missing consumer declaration/);
 
   const wrong = structuredClone(current);
   wrong.nodes[2].consumerEvidence = ['test/fabricated-not-existing.test.ts'];
-  assert.throws(() => validateNativeGameConsumerClaims(wrong), /missing actual consumer/);
+  assert.throws(() => validateDeclaredGameConsumerPaths(wrong), /missing actual consumer/);
 
   const duplicate = structuredClone(current);
   duplicate.nodes[3].consumerEvidence.push(duplicate.nodes[3].consumerEvidence[0]);
-  assert.throws(() => validateNativeGameConsumerClaims(duplicate), /duplicate declaration/);
+  assert.throws(() => validateDeclaredGameConsumerPaths(duplicate), /duplicate declaration/);
+
+  const exaggerated = structuredClone(current);
+  exaggerated.nodes[0].consumerEvidenceStage = 'ROOM_NATIVE_CONSUMER';
+  assert.throws(() => validateDeclaredGameConsumerPaths(exaggerated), /G01: consumer evidence stage/);
 });

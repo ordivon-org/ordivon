@@ -51,74 +51,10 @@ jobs:
           PUSH_BEFORE: ${{ github.event.before }}
           PUSH_HEAD: ${{ github.sha }}
         run: |
-          set -euo pipefail
-          case "$EVENT_NAME" in
-            pull_request) base="$PR_BASE"; head="$PR_HEAD" ;;
-            merge_group) base="$GROUP_BASE"; head="$GROUP_HEAD" ;;
-            push) base="$PUSH_BEFORE"; head="$PUSH_HEAD" ;;
-          esac
-          if [[ -n "$base" && ! "$base" =~ ^0+$ ]]; then
-            python3 catalogs/authorities/scripts/check_historical_registration.py --base "$base" --head "$head"
-          fi
+          bash tools/repo/verify_authority_history.sh
 
-      - name: Network - acquire verified Python via official GitHub API
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 platform/network/consumers/developer-egress/github_release_mise.py --python
-
-      - name: Network - acquire verified mise via official GitHub API
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 platform/network/consumers/developer-egress/github_release_mise.py
-
-      - name: Install monorepo toolchain
-        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
-        with:
-          version: 2026.9.12
-          sha256: e79ae57945034903aee8aa2ea66b4c7ca9cd4f4edd5a8a78a589cbae6d0f428a
-          # Avoid eager --monorepo tool installation: Owner queue tasks already
-          # install their own toolchain only when the consumer selects them.
-          install: false
-          cache: true
-
-      - name: Install root verification tools
-        # mise-action's GitHub token is scoped to its action. This separate
-        # native install otherwise uses anonymous GitHub Releases API calls.
-        env:
-          MISE_GITHUB_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          # Network acquisition resilience: native mise remains the owner of
-          # tool installation/checksums. Re-run only missing pinned tools.
-          # Bounded retries avoid treating transient GitHub Release 502/504
-          # as a toolchain or repository failure.
-          for attempt in 1 2 3; do
-            if MISE_JOBS=2 MISE_HTTP_TIMEOUT=30 mise install; then
-              break
-            fi
-            if [ "$attempt" -eq 3 ]; then
-              echo "NETWORK_UPSTREAM_TOOL_DOWNLOAD_UNAVAILABLE: 3 native attempts" >&2
-              exit 1
-            fi
-            sleep $((attempt * 3))
-          done
-
-      - name: Install verified GNU Bash 5.3.20
-        shell: bash
-        run: |
-          set -euo pipefail
-          tools/repo/install_latest_stable_bash.sh "$RUNNER_TEMP/ordivon-bash-5.3.20"
-          echo "$RUNNER_TEMP/ordivon-bash-5.3.20/bin" >> "$GITHUB_PATH"
-
-      - name: Install pinned SQL validation CLIs
-        shell: bash
-        run: |
-          set -euo pipefail
-          tools/repo/install_sql_verifiers.sh "$RUNNER_TEMP/ordivon-sql-verifiers"
-          echo "$RUNNER_TEMP/ordivon-sql-verifiers/bin" >> "$GITHUB_PATH"
+      - name: Setup root verification
+        uses: ./.github/actions/setup-root-verification
 
       - name: Select affected owners
         id: affected
@@ -142,7 +78,7 @@ jobs:
                [[ "$(git --no-replace-objects rev-parse HEAD)" != "$GITHUB_SHA" ]]; then
               return 1
             fi
-            for rel in .github/workflows/ci.yml tools/repo/ci_owner_shards.py tools/repo/convergence_plan.py tools/repo/affected_owners.py tools/repo/owners.toml tools/repo/dependency_contracts.toml mise.toml; do
+            for rel in .github/workflows/ci.yml tools/repo/ci_owner_shards.py tools/repo/convergence_plan.py tools/repo/affected_owners.py tools/repo/pg_issuer_consumer.py tools/repo/owners.toml tools/repo/dependency_contracts.toml tools/formal/verify.py docs/architecture/structure-r2-transition-r1.json mise.toml; do
               [[ -f "$rel" && ! -L "$rel" ]] || return 1
               entry="$(git --no-replace-objects ls-tree HEAD -- "$rel")" || return 1
               [[ "$entry" =~ ^100(644|755)\ blob\ [[:xdigit:]]{40,64}[[:space:]] ]] || return 1
@@ -412,8 +348,10 @@ jobs:
               "Lean kernel qualified variation frame and countermodels": 0,
               "Lean kernel Media processing admission model": 0,
               "Lean kernel Media Creative Library Catalog acceptance": 0,
+              "Lean kernel Media TimedText delivery precision": 0,
               "Lean kernel Media Output byte identity": 0,
               "Lean kernel Media dependency impact model": 0,
+              "Lean kernel Media archive visual relation conservation": 0,
               "Z3 IEEE-754 Media loudness profile model": 0,
               "Lean rejects false theorem": 1,
               "Z3: sat": 0,
@@ -441,8 +379,17 @@ jobs:
               "tools/formal/RecursiveLegoVariationFrame.lean",
               "capabilities/media/formal/MediaNativeProcessingAdmission.lean",
               "capabilities/media/formal/CreativeLibraryAcceptance.lean",
+              "capabilities/media/formal/TimedTextDeliveryPrecision.lean",
+              "capabilities/media/src/ordivon_studio/timed_text.py",
+              "capabilities/media/tests/test_timed_text.py",
               "capabilities/media/formal/ProductionOutputByteIdentity.lean",
               "capabilities/media/formal/ProductionDependencyImpact.lean",
+              "capabilities/media/formal/ArchiveVisualSourcePreservation.lean",
+              "capabilities/media/productions/archive-archipelago-001/archive_source.py",
+              "capabilities/media/productions/archive-archipelago-001/generate.py",
+              "capabilities/media/productions/archive-archipelago-001/generate_owner_summary_vegalite.py",
+              "capabilities/media/tests/test_archive_graphics_source_truth.py",
+              "capabilities/media/tests/test_archive_vegalite_spec.py",
               "capabilities/media/schemas/operation-lineage.schema.json",
               "capabilities/media/src/ordivon_studio/operation_impact.py",
               "capabilities/media/tests/test_operation_impact.py",
@@ -504,12 +451,20 @@ jobs:
                   and report.get("toolQualification")
                       == "MISE_RESOLVED_EXECUTABLE_SHA256_PRE_AND_POST"
                   and report.get("proofReuseAdmissible") is False
-                  and report.get("sourceFragmentRefinement") == {
+                  and isinstance(report.get("sourceFragmentRefinement"), dict)
+                  and report["sourceFragmentRefinement"].get("effectFrameObserved") in {
+                      "exact_post_projection_return_and_immediate_gateway_dispatch",
+                      "exact_post_projection_native_claim_guard_then_gateway_dispatch",
+                  }
+                  and {
+                      key: value
+                      for key, value in report["sourceFragmentRefinement"].items()
+                      if key != "effectFrameObserved"
+                  } == {
                       "scope": "source_ast_python_option_timeout_and_gateway_projection_only",
                       "producerPath": "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
                       "model": "OrdivonR21.TimeoutConnection.modeledBehavior",
                       "sourceAstAnchorsObserved": True,
-                      "effectFrameObserved": "exact_post_projection_return_and_immediate_gateway_dispatch",
                       "codeFragmentRefined": False,
                       "sourceRefinementStanding": "UNKNOWN",
                       "runtimeRustRefined": False,
@@ -627,6 +582,17 @@ jobs:
           print("Native Formal scoped verifier PASS; proof reuse remains unadmitted")
           PY
 
+      # Preserve the ALREADY VERIFIED native Formal producer receipt for
+      # later Agent/source consumers; do not re-run any solvers to recover it.
+      # This artifact is historical evidence, not current proof reuse.
+      - name: Publish scoped native Formal evidence receipt
+        if: steps.affected.outputs.formal == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ordivon-core-formal-${{ github.sha }}
+          path: ${{ runner.temp }}/ordivon-core-formal-report.json
+          if-no-files-found: error
+          retention-days: 30
 
       # Cache untrusted archive bytes, never install authority. The helper
       # rehashes every hit before extraction; non-Runtime jobs skip download.
@@ -659,8 +625,11 @@ jobs:
           set -euo pipefail
           # Existing Runtime Owner controls its exact Rust 1.99.1 toolchain.
           # Preserve the existing policy and manifest; no pass-through skip.
+          # Explicitly select Rust: a bare mise exec also cold-installs the
+          # unrelated PowerShell/nextest tools from Runtime mise.toml.
+          # Those GitHub API fetches must not gate Rust supply-chain verification.
           # cargo-deny common flags precede the "check" subcommand.
-          mise -C services/runtime exec -- cargo deny \
+          mise -C services/runtime exec rust@1.99.1 -- cargo deny \
             --manifest-path Cargo.toml \
             --config deny.toml check
 
@@ -700,74 +669,10 @@ jobs:
           PUSH_BEFORE: ${{ github.event.before }}
           PUSH_HEAD: ${{ github.sha }}
         run: |
-          set -euo pipefail
-          case "$EVENT_NAME" in
-            pull_request) base="$PR_BASE"; head="$PR_HEAD" ;;
-            merge_group) base="$GROUP_BASE"; head="$GROUP_HEAD" ;;
-            push) base="$PUSH_BEFORE"; head="$PUSH_HEAD" ;;
-          esac
-          if [[ -n "$base" && ! "$base" =~ ^0+$ ]]; then
-            python3 catalogs/authorities/scripts/check_historical_registration.py --base "$base" --head "$head"
-          fi
+          bash tools/repo/verify_authority_history.sh
 
-      - name: Network - acquire verified Python via official GitHub API
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 platform/network/consumers/developer-egress/github_release_mise.py --python
-
-      - name: Network - acquire verified mise via official GitHub API
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 platform/network/consumers/developer-egress/github_release_mise.py
-
-      - name: Install monorepo toolchain
-        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
-        with:
-          version: 2026.9.12
-          sha256: e79ae57945034903aee8aa2ea66b4c7ca9cd4f4edd5a8a78a589cbae6d0f428a
-          # Avoid eager --monorepo tool installation: Owner queue tasks already
-          # install their own toolchain only when the consumer selects them.
-          install: false
-          cache: true
-
-      - name: Install root verification tools
-        # mise-action's GitHub token is scoped to its action. This separate
-        # native install otherwise uses anonymous GitHub Releases API calls.
-        env:
-          MISE_GITHUB_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          # Network acquisition resilience: native mise remains the owner of
-          # tool installation/checksums. Re-run only missing pinned tools.
-          # Bounded retries avoid treating transient GitHub Release 502/504
-          # as a toolchain or repository failure.
-          for attempt in 1 2 3; do
-            if MISE_JOBS=2 MISE_HTTP_TIMEOUT=30 mise install; then
-              break
-            fi
-            if [ "$attempt" -eq 3 ]; then
-              echo "NETWORK_UPSTREAM_TOOL_DOWNLOAD_UNAVAILABLE: 3 native attempts" >&2
-              exit 1
-            fi
-            sleep $((attempt * 3))
-          done
-
-      - name: Install verified GNU Bash 5.3.20
-        shell: bash
-        run: |
-          set -euo pipefail
-          tools/repo/install_latest_stable_bash.sh "$RUNNER_TEMP/ordivon-bash-5.3.20"
-          echo "$RUNNER_TEMP/ordivon-bash-5.3.20/bin" >> "$GITHUB_PATH"
-
-      - name: Install pinned SQL validation CLIs
-        shell: bash
-        run: |
-          set -euo pipefail
-          tools/repo/install_sql_verifiers.sh "$RUNNER_TEMP/ordivon-sql-verifiers"
-          echo "$RUNNER_TEMP/ordivon-sql-verifiers/bin" >> "$GITHUB_PATH"
+      - name: Setup root verification
+        uses: ./.github/actions/setup-root-verification
 
       - name: Repository mechanics
         run: |
@@ -800,7 +705,9 @@ jobs:
       matrix: ${{ fromJSON(needs.root-preflight.outputs.shards) }}
     services:
       paper_postgres:
-        image: postgres:18.6
+        # Native GitHub service admission: only these explicit DSN consumers
+        # need this ephemeral service. Empty image means no container.
+        image: ${{ (contains(matrix.tasks, 'capital:verify') || contains(matrix.tasks, 'harness:queue')) && 'postgres:18.6' || '' }}
         env:
           POSTGRES_USER: postgres
           POSTGRES_DB: ordivon_paper
@@ -833,72 +740,10 @@ jobs:
           PUSH_BEFORE: ${{ github.event.before }}
           PUSH_HEAD: ${{ github.sha }}
         run: |
-          set -euo pipefail
-          case "$EVENT_NAME" in
-            pull_request) base="$PR_BASE"; head="$PR_HEAD" ;;
-            merge_group) base="$GROUP_BASE"; head="$GROUP_HEAD" ;;
-            push) base="$PUSH_BEFORE"; head="$PUSH_HEAD" ;;
-          esac
-          if [[ -n "$base" && ! "$base" =~ ^0+$ ]]; then
-            python3 catalogs/authorities/scripts/check_historical_registration.py --base "$base" --head "$head"
-          fi
+          bash tools/repo/verify_authority_history.sh
 
-      - name: Network - acquire verified Python via official GitHub API
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 platform/network/consumers/developer-egress/github_release_mise.py --python
-
-      - name: Network - acquire verified mise via official GitHub API
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 platform/network/consumers/developer-egress/github_release_mise.py
-
-      - name: Install monorepo toolchain
-        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
-        with:
-          version: 2026.9.12
-          sha256: e79ae57945034903aee8aa2ea66b4c7ca9cd4f4edd5a8a78a589cbae6d0f428a
-          install: false
-          cache: true
-
-      - name: Install root verification tools
-        # mise-action's GitHub token is scoped to its action. This separate
-        # native install otherwise uses anonymous GitHub Releases API calls.
-        env:
-          MISE_GITHUB_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          # Network acquisition resilience: native mise remains the owner of
-          # tool installation/checksums. Re-run only missing pinned tools.
-          # Bounded retries avoid treating transient GitHub Release 502/504
-          # as a toolchain or repository failure.
-          for attempt in 1 2 3; do
-            if MISE_JOBS=2 MISE_HTTP_TIMEOUT=30 mise install; then
-              break
-            fi
-            if [ "$attempt" -eq 3 ]; then
-              echo "NETWORK_UPSTREAM_TOOL_DOWNLOAD_UNAVAILABLE: 3 native attempts" >&2
-              exit 1
-            fi
-            sleep $((attempt * 3))
-          done
-
-      - name: Install verified GNU Bash 5.3.20
-        shell: bash
-        run: |
-          set -euo pipefail
-          tools/repo/install_latest_stable_bash.sh "$RUNNER_TEMP/ordivon-bash-5.3.20"
-          echo "$RUNNER_TEMP/ordivon-bash-5.3.20/bin" >> "$GITHUB_PATH"
-
-      - name: Install pinned SQL validation CLIs
-        shell: bash
-        run: |
-          set -euo pipefail
-          tools/repo/install_sql_verifiers.sh "$RUNNER_TEMP/ordivon-sql-verifiers"
-          echo "$RUNNER_TEMP/ordivon-sql-verifiers/bin" >> "$GITHUB_PATH"
+      - name: Setup root verification
+        uses: ./.github/actions/setup-root-verification
 
       - name: Preinstall selected Owner tools with native mise
         shell: bash
@@ -912,55 +757,16 @@ jobs:
           # Owner selection was admitted by the source-qualified preflight.
           # Only resolve native tool manifests for the exact selected tasks.
           selected_roots="$RUNNER_TEMP/ordivon-selected-owner-toolroots.txt"
-          python3 - "$selected_roots" <<'PYOWNERS'
-          import json
-          import os
-          import sys
-          import tomllib
-          from pathlib import Path
-
-          sys.path.insert(0, "tools/repo")
-          from affected_owners import OWNERS
-
-          tasks = json.loads(os.environ["OWNER_TASKS_JSON"])
-          if not isinstance(tasks, list) or not all(isinstance(t, str) for t in tasks):
-              raise SystemExit("invalid selected Owner task list")
-          if len(tasks) != len(set(tasks)):
-              raise SystemExit("duplicate selected Owner task")
-          by_task = {owner.queue_task: owner.root.rstrip("/") for owner in OWNERS}
-          if any(task not in by_task for task in tasks):
-              raise SystemExit("unregistered selected Owner task")
-          roots = []
-          for task in tasks:
-              root = by_task[task]
-              # Some Owners use a root-managed task rather than an adjacent
-              # native mise.toml. Those do not gain an invented manifest.
-              manifest = Path(root) / "mise.toml"
-              if not manifest.is_file():
-                  continue
-              if root not in roots:
-                  roots.append(root)
-              # Read existing native task commands, not an invented Owner
-              # graph: a selected task may invoke a second scoped Mise
-              # manifest. Capital invokes mise exec in tools/formal; that
-              # auto-installer caps release metadata timeouts to 3 seconds.
-              # An explicit native mise install here uses normal HTTP retry,
-              # exact pinned versions and this scoped read-only GH token.
-              native_tasks = tomllib.loads(manifest.read_text(encoding="utf-8")).get("tasks", {})
-              if any(
-                  isinstance(row, dict)
-                  and isinstance(row.get("run"), str)
-                  and "tools/formal" in row["run"]
-                  for row in native_tasks.values()
-              ):
-                  if not (Path("tools/formal") / "mise.toml").is_file():
-                      raise SystemExit("selected nested tools/formal source missing")
-                  if "tools/formal" not in roots:
-                      roots.append("tools/formal")
-          Path(sys.argv[1]).write_text(
-              "".join(root + "\n" for root in roots), encoding="utf-8"
-          )
-          PYOWNERS
+          # Source-qualify the selector before using it for native installs.
+          for source in tools/repo/ci_owner_toolroots.py tools/repo/affected_owners.py tools/repo/owners.toml; do
+            if [[ ! -f "$source" || -L "$source" ]] ||
+               ! git --no-replace-objects ls-tree HEAD -- "$source" | grep -Eq '^100(644|755) blob [[:xdigit:]]{40,64}[[:space:]]' ||
+               ! git --no-replace-objects show "HEAD:$source" | cmp -s - "$source"; then
+              echo "ERROR: selected Owner toolroot source differs from exact Git HEAD: $source" >&2
+              exit 43
+            fi
+          done
+          python3 tools/repo/ci_owner_toolroots.py "$selected_roots"
           while IFS= read -r root || [[ -n "$root" ]]; do
             [[ -z "$root" ]] && continue
             # mise install is idempotent: a retry visits only missing pinned
@@ -982,6 +788,7 @@ jobs:
         shell: bash
         env:
           OWNER_TASKS_JSON: ${{ toJSON(matrix.tasks) }}
+          PAPER_PG_PORT: ${{ job.services.paper_postgres.ports['5432'] }}
         run: |
           set -euo pipefail
           # GitHub's matrix data is a JSON array from the verified preflight.
@@ -1043,88 +850,25 @@ jobs:
           # Owner-root-only list that silently misses nested task scripts.
           # This protects stable source drift; it does not prove the full
           # executed shell/import readset or exclude transient mutations.
-          python3 - <<'PY'
-          import json
-          import os
-          import re
-          import subprocess
-          import sys
-          from pathlib import Path
-
-          def git_bytes(*args):
-              return subprocess.check_output(
-                  ["git", "--no-replace-objects", *args], stderr=subprocess.PIPE
-              )
-
-          try:
-              repo = Path.cwd().resolve()
-              tree = git_bytes("ls-tree", "-r", "-z", "--full-tree", "HEAD")
-              entries = {}
-              for entry in tree.split(b"\0"):
-                  if not entry:
-                      continue
-                  metadata, name = entry.split(b"\t", 1)
-                  entries[os.fsdecode(name)] = metadata
-
-              def qualified(relative):
-                  # No mutable index or local override may supply an executed config.
-                  record = entries.get(relative)
-                  fields = record.split() if record is not None else []
-                  if (
-                      len(fields) != 3
-                      or fields[0] not in (b"100644", b"100755")
-                      or fields[1] != b"blob"
-                      or re.fullmatch(rb"[0-9a-f]{40}|[0-9a-f]{64}", fields[2]) is None
-                  ):
-                      raise ValueError("untracked or nonregular native Mise config: " + relative)
-                  path = repo / relative
-                  if not path.is_file() or path.is_symlink():
-                      raise ValueError("nonregular actual native Mise config: " + relative)
-                  if path.read_bytes() != git_bytes("show", "HEAD:" + relative):
-                      raise ValueError("native Mise config differs from Git HEAD: " + relative)
-
-              # The Git tree supplies known task-directory roots. Mise itself supplies
-              # the currently effective config readset; e.g. an UNTRACKED higher
-              # precedence mise.local.toml must not silently override a tracked task.
-              roots = sorted(
-                  name for name in entries
-                  if name == "mise.toml" or name.endswith("/mise.toml")
-              )
-              if not roots:
-                  raise ValueError("no native Mise task manifests in Git HEAD")
-              for name in roots:
-                  qualified(name)
-              for name in roots:
-                  directory = (repo / name).parent
-                  native = subprocess.run(
-                      ["mise", "--cd", str(directory), "config", "ls", "--json"],
-                      capture_output=True, text=True, check=False, timeout=15,
-                  )
-                  if native.returncode != 0:
-                      raise ValueError("native Mise config resolver failed for " + name)
-                  loaded = json.loads(native.stdout)
-                  if not isinstance(loaded, list):
-                      raise ValueError("invalid native Mise config result")
-                  for item in loaded:
-                      if not isinstance(item, dict) or not isinstance(item.get("path"), str):
-                          raise ValueError("invalid native Mise config entry")
-                      path = Path(item["path"])
-                      if not path.is_absolute():
-                          raise ValueError("native Mise reported nonabsolute config")
-                      try:
-                          relative = path.relative_to(repo)
-                      except ValueError:
-                          # External global toolchain config remains an explicit
-                          # environment assumption, NOT Git SourceCut proof.
-                          continue
-                      if path.is_symlink() or not path.resolve().is_relative_to(repo):
-                          raise ValueError("unqualified native Mise config link")
-                      qualified(relative.as_posix())
-          except (OSError, ValueError, subprocess.SubprocessError) as exc:
-              print("ERROR: nested Mise task source differs from exact Git HEAD: "
-                    + str(exc), file=sys.stderr)
-              raise SystemExit(43) from exc
-          PY
+            # Qualify the extracted executable before handing it the readset.
+            witness=tools/repo/ci_mise_source_witness.py
+            if [[ ! -f "$witness" || -L "$witness" ]] ||
+               ! git --no-replace-objects ls-tree HEAD -- "$witness" | grep -Eq '^100(644|755) blob [[:xdigit:]]{40,64}[[:space:]]tools/repo/ci_mise_source_witness\.py$' ||
+               ! git --no-replace-objects show "HEAD:$witness" | cmp -s - "$witness"; then
+              echo "ERROR: nested Mise task source differs from exact Git HEAD: witness" >&2
+              exit 43
+            fi
+            python3 "$witness"
+            # A missing service port cannot fall back to libpq's default port.
+            case "$task" in
+              capital:verify|harness:queue)
+                if ! [[ "${PAPER_PG_PORT:-}" =~ ^[1-9][0-9]{0,4}$ ]] ||
+                   (( PAPER_PG_PORT > 65535 )); then
+                  echo "ERROR: selected Owner requires its native CI PostgreSQL service port" >&2
+                  exit 44
+                fi
+                ;;
+            esac
             # The selected task must not consume the following queue entries.
             if [[ "$task" == "capital:verify" ]]; then
               # A positive Paper DSN causes all database consumers to run;
@@ -1132,14 +876,21 @@ jobs:
               # Container and credentials exist only in this GitHub job.
               # Separate Accounting schemas share this one ephemeral test DB.
               # Real Paper and general Ledger consumers were both verified.
-              ORDIVON_CAPITAL_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
-              ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
+              ORDIVON_CAPITAL_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=$PAPER_PG_PORT connect_timeout=10" \
+              ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=$PAPER_PG_PORT connect_timeout=10" \
               mise run "$task" </dev/null
+              # Reuse this already-running native PG18 service for the pinned
+              # Nautilus/Databento source-to-Paper subset. Ordinary provider
+              # tests depend on external credentials; this bounded subset does
+              # not. Fail if its physical PG consumer would be silently skipped.
+              ORDIVON_CAPITAL_PAPER_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=$PAPER_PG_PORT connect_timeout=10" \
+              ORDIVON_FINANCE_REQUIRE_PHYSICAL_PG=1 \
+              mise --cd domains/capital run verify:nonlive:nautilus </dev/null
             elif [[ "$task" == "harness:queue" ]]; then
               # Reuse disposable CI PostgreSQL, admitting only isolated Harness
               # test schemas; no production state or SQLite migration.
               # The DSN makes the PG consumers actual tests, not skipped tests.
-              HARNESS_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=${{ job.services.paper_postgres.ports['5432'] }} connect_timeout=10" \
+              HARNESS_PG_TEST_DSN="dbname=ordivon_paper user=postgres password=${{ github.run_id }} host=127.0.0.1 port=$PAPER_PG_PORT connect_timeout=10" \
               mise run "$task" </dev/null
             else
               mise run "$task" </dev/null

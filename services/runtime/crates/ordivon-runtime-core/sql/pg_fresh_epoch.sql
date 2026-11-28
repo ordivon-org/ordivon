@@ -49,6 +49,19 @@ CREATE TABLE job_allocations(
  state text NOT NULL CHECK(state IN ('active','released')),
  acquired_at_ms bigint NOT NULL,released_at_ms bigint);
 CREATE INDEX idx_job_allocations_active ON job_allocations(state,attempt_id);
+-- A logical Run can outlive all of its terminal PG Jobs.
+-- The physical pin lives in the Runtime DB, not a separate Harness database:
+-- identical numeric advisory keys in two databases do not mutually exclude.
+CREATE TABLE workspace_consumer_claims(
+ claim_id text PRIMARY KEY, principal text NOT NULL,
+ client_request_id text NOT NULL, store_root text NOT NULL, workspace_id text NOT NULL,
+ run_ref text NOT NULL, source_repo text NOT NULL, source_revision text NOT NULL,
+ source_state_digest text NOT NULL,
+ state text NOT NULL CHECK(state IN ('held','released')),
+ created_at_ms bigint NOT NULL, updated_at_ms bigint NOT NULL,
+ UNIQUE(principal,client_request_id));
+CREATE INDEX idx_workspace_consumer_claims_held
+ ON workspace_consumer_claims(store_root,workspace_id) WHERE state='held';
 CREATE TABLE job_events(
  event_id text PRIMARY KEY,job_id text NOT NULL REFERENCES jobs(job_id),
  attempt_id text REFERENCES attempts(attempt_id),
@@ -80,6 +93,8 @@ CREATE TABLE artifacts(
  truncated boolean NOT NULL DEFAULT false,
  created_at_ms bigint NOT NULL DEFAULT 0 CHECK(created_at_ms>=0),
  UNIQUE(attempt_id,kind,relative_path));
+-- Independent forward Job lookup; the unique Attempt key covers reverse lookup.
+CREATE INDEX idx_artifacts_job ON artifacts(job_id);
 CREATE TABLE _stage_control(
  id text PRIMARY KEY, state text NOT NULL, source_sha256 text NOT NULL,
  promotion_allowed boolean NOT NULL);

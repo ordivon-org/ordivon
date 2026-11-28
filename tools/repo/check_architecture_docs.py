@@ -7,20 +7,34 @@ import json
 import math
 import re
 from decimal import Decimal
-from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote
 
 import tomllib
+
+if __package__:
+    from .owner_lego_graph_contract import (
+        ArchitectureDocsError, LEGO_RELATION_KINDS, _canonical_owner_lego_id,
+        _require_exact_schema_one, _validated_owner_lego_edges,
+        validate_owner_lego_dependencies, validate_owner_lego_graph,
+    )
+else:
+    from owner_lego_graph_contract import (
+        ArchitectureDocsError, LEGO_RELATION_KINDS, _canonical_owner_lego_id,
+        _require_exact_schema_one, _validated_owner_lego_edges,
+        validate_owner_lego_dependencies, validate_owner_lego_graph,
+    )
+
 
 ROOT = Path(__file__).resolve().parents[2]
 CURRENT = ROOT / "docs" / "architecture" / "CURRENT_ARCHITECTURE.md"
 DEPLOYED = ROOT / "docs" / "architecture" / "deployed-architecture-r1.json"
 PLUGIN = ROOT / "extensions" / "ordivon-control-plane" / "mcp.json"
-ROUTES = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "routing.py"
+ROUTES = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "logic" / "routing.py"
 GATEWAY_MCP = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "mcp_server.py"
 GATEWAY_HOST_TOOL_SOURCES = tuple(
-    ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / f"host_{owner}_tools.py"
+    ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "capabilities" / "host" / f"{owner}.py"
     for owner in ("work", "social", "attention")
 )
 GATEWAY_SURFACE_MANIFEST = ROOT / "services" / "gateway" / "mcp-surface.json"
@@ -44,12 +58,17 @@ HISTORICAL = {
         "Historical standing: SUPERSEDED BY C02/D01 FOR CURRENT ENDPOINT TOPOLOGY",
 }
 
+# An immutable September 2026 historical deployment snapshot must not be
+# silently rewritten when current source introduces an uninstalled capability.
 EXPECTED_CAPABILITIES = {
     "artifact.runtime",
     "continuity.external",
     "execution.linux",
     "execution.windows",
 }
+# Current source routing exposes an opt-in issuer-fenced Runtime profile. It is
+# still not production availability: the owner endpoint and bearer must qualify.
+EXPECTED_SOURCE_CAPABILITIES = EXPECTED_CAPABILITIES | {"execution.harness", "runtime.release.linux"}
 
 EXPECTED_HOST_NORTHBOUND_TOOLS = {
     'actor.declare',
@@ -76,8 +95,14 @@ EXPECTED_HOST_NORTHBOUND_TOOLS = {
 }
 
 
-class ArchitectureDocsError(ValueError):
-    pass
+# Use the same repository-bound environment as the native source-history
+# reader. Explicit -C does not override inherited GIT_DIR/GIT_OBJECT_DIRECTORY.
+if __package__:
+    from .source_history_legos import _source_git_env
+else:
+    from source_history_legos import _source_git_env
+
+
 
 
 # The existing GIT-01 typed decision relation is shared by the read-only
@@ -200,28 +225,6 @@ FORMAL_ISSUE_REPRESENTATION_TYPES = frozenset({
 # no new registry, executable DSL, scheduler or Owner truth.
 # Finite R2.1 relation types already consumed by the natural Owners.
 # graphlib, not this vocabulary, owns dependency DAG math.
-LEGO_RELATION_KINDS = frozenset({
-    "ADAPTATION",
-    "AUTHORITY",
-    "COMPATIBILITY",
-    "COMPOSITION",
-    "CONTROL",
-    "DATA",
-    "DELETION",
-    "DEPENDENCY",
-    "EFFECT",
-    "EVIDENCE",
-    "FALSIFICATION",
-    "IDENTITY",
-    "OBSERVATION",
-    "POLICY",
-    "REALIZATION",
-    "SPECIALIZATION",
-    "STATE",
-    "STORAGE",
-    "TRANSACTION",
-    "VERIFICATION",
-})
 
 OWNER_LEGO_PLANS = (
     "apps/web/planning/lego-plan-r1.json",
@@ -376,148 +379,12 @@ def validate_owner_plan_projection_carriers(root: Path) -> None:
             validate_host_r3_semantic_alignment(root, projection)
 
 
-def _validated_owner_lego_edges(
-    edges: Any, vertices: set[str],
-) -> list[tuple[str, str, str]]:
-    """One total typed relation check; scheduling semantics remain separate."""
-    if not isinstance(edges, list):
-        raise ArchitectureDocsError("owner LEGO edges must be a list")
-    observed: set[tuple[str, str, str]] = set()
-    for edge in edges:
-        if not isinstance(edge, dict):
-            raise ArchitectureDocsError("LEGO edge must be an object")
-        kind = edge.get("type")
-        if not isinstance(kind, str) or not kind.strip() or kind != kind.strip():
-            raise ArchitectureDocsError("LEGO edge requires a type")
-        if kind not in LEGO_RELATION_KINDS:
-            raise ArchitectureDocsError("unknown LEGO edge type")
-        source, target = edge.get("from"), edge.get("to")
-        if (
-            not isinstance(source, str)
-            or not isinstance(target, str)
-            or source not in vertices
-            or target not in vertices
-        ):
-            raise ArchitectureDocsError("unknown LEGO edge endpoint")
-        triple = (source, kind, target)
-        if triple in observed:
-            raise ArchitectureDocsError(f"duplicate LEGO edge: {triple}")
-        observed.add(triple)
-    return sorted(observed)
 
 
-def _canonical_owner_lego_id(identity: str) -> bool:
-    """One unambiguous machine key, distinct from localized LEGO labels."""
-    return re.fullmatch(r"[A-Za-z][A-Za-z0-9._-]*", identity) is not None
 
 
-def _require_exact_schema_one(value: dict[str, Any], label: str) -> None:
-    """Schema version is an exact integer, not a Python numeric equality.
-
-    `True == 1` and `1.0 == 1` must not grant admission to old R1
-    contracts or historical issue evidence.
-    """
-    observed = value.get("schemaVersion")
-    if type(observed) is not int or observed != 1:
-        raise ArchitectureDocsError(f"{label} schemaVersion must be exact integer 1")
 
 
-def validate_owner_lego_graph(plan: dict[str, Any]) -> None:
-    """Check all Owner slices reference typed vertices, including unregistered ones.
-
-    Registered dependency DAGs and typed edges have separate existing laws.
-    This does not assert behavioral currentness or execution authority.
-    """
-    _require_exact_schema_one(plan, "owner LEGO graph")
-    if plan.get("kind") != "ordivon.project-lego-plan":
-        raise ArchitectureDocsError("owner LEGO graph has unexpected kind")
-    if plan.get("truthRole") != "planning-projection-not-project-truth":
-        raise ArchitectureDocsError("owner LEGO graph must remain non-authoritative")
-
-    nodes = plan.get("nodes")
-    if not isinstance(nodes, list) or not nodes:
-        raise ArchitectureDocsError("owner LEGO graph needs nodes")
-    identities: set[str] = set()
-    for node in nodes:
-        if not isinstance(node, dict):
-            raise ArchitectureDocsError("LEGO node must be an object")
-        identity = node.get("id")
-        if not isinstance(identity, str) or not identity.strip():
-            raise ArchitectureDocsError("LEGO node requires non-empty identity")
-        if not _canonical_owner_lego_id(identity):
-            raise ArchitectureDocsError("non-canonical LEGO node identity")
-        if identity in identities:
-            raise ArchitectureDocsError(f"duplicate LEGO node: {identity}")
-        if not isinstance(node.get("kind"), str) or not node["kind"].strip():
-            raise ArchitectureDocsError(f"LEGO node {identity} requires a type")
-        identities.add(identity)
-
-    slices = plan.get("slices", [])
-    if not isinstance(slices, list):
-        raise ArchitectureDocsError("LEGO slices must be a list")
-    slice_ids: set[str] = set()
-    for slice_ in slices:
-        if not isinstance(slice_, dict):
-            raise ArchitectureDocsError("LEGO slice must be an object")
-        identity = slice_.get("id")
-        if not isinstance(identity, str) or not identity.strip():
-            raise ArchitectureDocsError("LEGO slice needs non-empty identity")
-        if not _canonical_owner_lego_id(identity):
-            raise ArchitectureDocsError("non-canonical LEGO slice identity")
-        if identity in slice_ids:
-            raise ArchitectureDocsError(f"duplicate LEGO slice: {identity}")
-        slice_ids.add(identity)
-        refs = slice_.get("nodeIds")
-        if not isinstance(refs, list) or not refs:
-            raise ArchitectureDocsError(f"LEGO slice {identity} needs node references")
-        if any(not isinstance(ref, str) or ref not in identities for ref in refs):
-            raise ArchitectureDocsError(f"unknown LEGO slice node in {identity}")
-        if len(refs) != len(set(refs)):
-            raise ArchitectureDocsError(f"duplicate LEGO slice node in {identity}")
-
-    # A blocked slice is a derived claim over the *current* declared
-    # prerequisite graph, not a historical reason to keep work blocked.
-    # Do not infer completion from released blockers; the slice stays
-    # PROPOSED until its own acceptance evidence exists.
-    slice_states = {row["id"]: row.get("status") for row in slices}
-    # Reuse the stdlib DAG checker; these are planning prerequisites, not
-    # executable workflows, and no new scheduler or registry is admitted.
-    slice_prerequisites: dict[str, set[str]] = {name: set() for name in slice_states}
-    # Finite planning states are types, not descriptive free text. Unknown
-    # states must not silently bypass blocker/progress admission.
-    lifecycle_states = {
-        "PROPOSED", "IN_PROGRESS", "IMPLEMENTED", "VERIFIED",
-        "COMPLETE", "RETIRED",
-    }
-    for row in slices:
-        state = row.get("status")
-        if (
-            not isinstance(state, str)
-            or (state not in lifecycle_states and not state.startswith("BLOCKED_ON_"))
-        ):
-            raise ArchitectureDocsError(f"invalid LEGO slice status: {row['id']}")
-        if not state.startswith("BLOCKED_ON_"):
-            continue
-        blockers = row.get("blockers")
-        if (
-            not isinstance(blockers, list)
-            or not blockers
-            or any(not isinstance(ref, str) or ref not in slice_states for ref in blockers)
-            or len(blockers) != len(set(blockers))
-            or state != "BLOCKED_ON_" + "_".join(blockers)
-            or any(slice_states[ref] in {"COMPLETE", "RETIRED"} for ref in blockers)
-        ):
-            raise ArchitectureDocsError(
-                f"invalid LEGO blocking prerequisites: {row['id']}"
-            )
-        slice_prerequisites[row["id"]].update(blockers)
-    try:
-        TopologicalSorter(slice_prerequisites).prepare()
-    except CycleError as error:
-        raise ArchitectureDocsError("cyclic LEGO slice blockers") from error
-
-    # Typed relations are structural; OBSERVATION/STATE cycles are allowed.
-    _validated_owner_lego_edges(plan.get("edges", []), identities)
 
 
 
@@ -607,7 +474,7 @@ def project_owner_lego_source_graph(
         try:
             actual = subprocess.check_output(
                 ["git", "--no-replace-objects", "-C", str(root), "rev-parse", "--verify", source_revision + "^{commit}"],
-                stderr=subprocess.PIPE,
+                stderr=subprocess.PIPE, env=_source_git_env(),
             ).decode("ascii").strip()
             if actual != source_revision:
                 raise ArchitectureDocsError("Git commit source identity mismatch")
@@ -638,7 +505,7 @@ def project_owner_lego_source_graph(
         try:
             registration_source = subprocess.check_output(
                 ["git", "--no-replace-objects", "-C", str(root),
-                 "cat-file", "blob", oid], stderr=subprocess.PIPE,
+                 "cat-file", "blob", oid], stderr=subprocess.PIPE, env=_source_git_env(),
             )
             historical_tree = ast.parse(registration_source, filename=registry_path)
             declarations = [
@@ -683,7 +550,7 @@ def project_owner_lego_source_graph(
                 raise ArchitectureDocsError(f"Owner plan absent/nonregular in Git SourceCut: {relative}")
             try:
                 before = subprocess.check_output(
-                    ["git", "--no-replace-objects", "-C", str(root), "cat-file", "blob", oid], stderr=subprocess.PIPE,
+                    ["git", "--no-replace-objects", "-C", str(root), "cat-file", "blob", oid], stderr=subprocess.PIPE, env=_source_git_env(),
                 )
             except subprocess.CalledProcessError as exc:
                 raise ArchitectureDocsError(f"cannot read Git SourceCut plan: {relative}") from exc
@@ -804,7 +671,7 @@ def inspect_owner_lego_contract(
         source_bytes = subprocess.check_output(
             ["git", "--no-replace-objects", "-C", str(root),
              "show", f"{source_revision}:{plan_path}"],
-            stderr=subprocess.PIPE,
+            stderr=subprocess.PIPE, env=_source_git_env(),
         )
     except subprocess.CalledProcessError as exc:
         raise ArchitectureDocsError("node plan Git source cannot be read") from exc
@@ -885,7 +752,7 @@ def _project_native_json_schema_source(
             return subprocess.check_output(
                 ["git", "--no-replace-objects", "-C", str(root),
                  "cat-file", *args],
-                stderr=subprocess.PIPE,
+                stderr=subprocess.PIPE, env=_source_git_env(),
             )
         except (OSError, subprocess.CalledProcessError) as exc:
             raise ArchitectureDocsError(
@@ -1042,9 +909,14 @@ def project_owner_lego_source_change(
     raw = subprocess.check_output(
         ["git", "--no-replace-objects", "-C", str(root), "diff", "--no-renames",
          "--name-only", "-z", before_revision, after_revision, "--"],
-        stderr=subprocess.PIPE,
+        stderr=subprocess.PIPE, env=_source_git_env(),
     )
-    changed_paths = {path.decode("utf-8") for path in raw.split(b"\x00") if path}
+    # Match current_tree's reversible native Git byte-path representation.
+    # An unindexed non-UTF-8 path is still a change, never a dropped path.
+    changed_paths = {
+        path.decode("utf-8", errors="surrogateescape")
+        for path in raw.split(b"\x00") if path
+    }
     old_nodes = {row["ref"]: row for row in before["vertices"]}
     new_nodes = {row["ref"]: row for row in after["vertices"]}
     old_edges = {
@@ -1198,7 +1070,7 @@ def project_node_python_import_syntax(
             raise ArchitectureDocsError("nonregular Git Python importer")
         return subprocess.check_output(
             ["git", "--no-replace-objects", "-C", str(root), "cat-file", "blob", oid],
-            stderr=subprocess.PIPE,
+            stderr=subprocess.PIPE, env=_source_git_env(),
         ).decode("utf-8")
 
     # Finite, task-local static upstream SOURCE overapproximation.
@@ -1754,59 +1626,6 @@ def validate_owner_lego_source_evidence(
     return seen
 
 
-def validate_owner_lego_dependencies(
-    plan: dict[str, Any], owner: str,
-) -> tuple[set[str], tuple[tuple[str, ...], ...]]:
-    """Well-founded *declared prerequisites*, not a workflow/execution graph.
-
-    Node.dependencies and typed DEPENDENCY edges are equivalent prerequisite
-    syntax in different existing natural-Owner LEGO plans.  DATA, CONTROL,
-    EFFECT and OBSERVATION edges are not prerequisite claims.
-    """
-    _require_exact_schema_one(plan, "owner LEGO prerequisites")
-    nodes = plan.get("nodes")
-    if not isinstance(nodes, list):
-        raise ArchitectureDocsError("owner-local LEGO nodes missing")
-    if not nodes:
-        raise ArchitectureDocsError(f"{owner}: empty LEGO owner graph")
-    graph: dict[str, set[str]] = {}
-    for node in nodes:
-        if not isinstance(node, dict) or not isinstance(node.get("id"), str) or not node["id"]:
-            raise ArchitectureDocsError("untyped LEGO node identity")
-        identity = node["id"]
-        if not _canonical_owner_lego_id(identity):
-            raise ArchitectureDocsError("non-canonical LEGO node identity")
-        if identity in graph:
-            raise ArchitectureDocsError("duplicate LEGO node identity")
-        depends = node.get("dependencies")
-        if not isinstance(depends, list) or any(
-            not isinstance(value, str) or not value for value in depends
-        ):
-            raise ArchitectureDocsError("untyped LEGO dependencies")
-        if len(depends) != len(set(depends)):
-            raise ArchitectureDocsError("duplicate LEGO dependency")
-        graph[identity] = set(depends)
-    node_ids = set(graph)
-    if any(d not in node_ids for deps in graph.values() for d in deps):
-        raise ArchitectureDocsError("unknown LEGO dependency")
-    # Reuse the same total typed relation check without altering the
-    # existing node/dependency/slice error precedence.
-    for source, kind, target in _validated_owner_lego_edges(
-        plan.get("edges", []), node_ids,
-    ):
-        if kind == "DEPENDENCY":
-            graph[target].add(source)
-    sorter = TopologicalSorter(graph)
-    try:
-        sorter.prepare()
-    except CycleError as error:
-        raise ArchitectureDocsError("cyclic LEGO dependencies") from error
-    frontiers: list[tuple[str, ...]] = []
-    while sorter.is_active():
-        ready = tuple(sorted(sorter.get_ready()))
-        frontiers.append(ready)
-        sorter.done(*ready)
-    return node_ids, tuple(frontiers)
 
 
 def validate_formal_issue_census(
@@ -2297,6 +2116,112 @@ def validate_r21_lego_vocabulary(document: str, *, root: Path = ROOT) -> None:
             )
 
 
+
+# Validate only current task-entry documents. Owner-native docs and live status
+# retain their own authority; this is a source-locator check, not proof that
+# the described capability is installed or the linked heading is still correct.
+NAVIGATION_LINK_PATTERN = re.compile(r"(?<!!)\[[^\]\n]+\]\(([^)\n]+)\)")
+
+
+def validate_entrypoint_links(
+    root: Path, *, entrypoints: tuple[Path, ...] | None = None
+) -> None:
+    if entrypoints is None:
+        entrypoints = (
+            Path("README.md"),
+            Path("AGENTS.md"),
+            Path("docs/architecture/DECISIONS.md"),
+        )
+        # pathlib glob must be rooted at the checkout, not the caller's cwd.
+        entrypoints += tuple(
+            path.relative_to(root)
+            for path in sorted((root / "docs/start").glob("*.md"))
+        )
+        manifest = tomllib.loads((root / "tools/repo/owners.toml").read_text(encoding="utf-8"))
+        entrypoints += tuple(
+            Path(owner["root"]) / name
+            for owner in manifest["owners"]
+            for name in ("README.md", "AGENTS.md")
+        )
+    root_path = root.resolve()
+    for relative in dict.fromkeys(entrypoints):
+        path = root / relative
+        if not path.is_file():
+            continue
+        for raw in NAVIGATION_LINK_PATTERN.findall(path.read_text(encoding="utf-8")):
+            target_url = raw.strip().split(maxsplit=1)[0].strip("<>")
+            if not target_url or target_url.startswith(("#", "/")):
+                continue
+            # These are external references, not links to tracked repo files.
+            if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", target_url):
+                continue
+            target_name = unquote(target_url.split("#", 1)[0].split("?", 1)[0])
+            if not target_name:
+                continue
+            target = (path.parent / target_name).resolve()
+            if not target.is_relative_to(root_path):
+                raise ArchitectureDocsError(
+                    f"entrypoint navigation escapes repository: {relative} -> {raw}"
+                )
+            if not target.exists():
+                raise ArchitectureDocsError(
+                    f"entrypoint navigation target missing: {relative} -> {raw}"
+                )
+
+
+def validate_owner_navigation(
+    root: Path, *, readme_text: str | None = None
+) -> None:
+    """Check README's task routing against the existing Repo Owner source.
+
+    This is source navigation coverage, not proof of Owner deployment, effect
+    authorization, or external consumer acceptance. No parallel Owner map.
+    """
+    manifest = tomllib.loads(
+        (root / "tools/repo/owners.toml").read_text(encoding="utf-8")
+    )
+    expected = {
+        Path(owner["root"]).as_posix(): owner["name"]
+        for owner in manifest["owners"]
+    }
+    text = (
+        (root / "README.md").read_text(encoding="utf-8")
+        if readme_text is None else readme_text
+    )
+    marker = "## Where to start\n"
+    if text.count(marker) != 1:
+        raise ArchitectureDocsError("README natural Owner navigation table missing")
+    section = text.split(marker, 1)[1].split("\n### For Humans:", 1)[0]
+    observed: list[str] = []
+    for line in section.splitlines():
+        if not line.startswith("| "):
+            continue
+        cells = line.split("|")
+        if len(cells) < 4:
+            raise ArchitectureDocsError("malformed README natural Owner navigation row")
+        label = cells[1].strip()
+        if label == "Real consumer problem" or set(label) <= {"-", " ", ":"}:
+            continue
+        match = NAVIGATION_LINK_PATTERN.search(cells[2])
+        if match is None:
+            raise ArchitectureDocsError(
+                f"README Owner navigation row lacks a route: {label}"
+            )
+        route = unquote(match.group(1).strip().split("#", 1)[0])
+        route_path = Path(route)
+        if route_path.name == "README.md":
+            route_path = route_path.parent
+        observed.append(route_path.as_posix())
+    missing = sorted(set(expected) - set(observed))
+    unexpected = sorted(set(observed) - set(expected))
+    repeated = sorted({route for route in observed if observed.count(route) != 1})
+    if missing or unexpected or repeated:
+        raise ArchitectureDocsError(
+            "README Owner navigation differs from owners.toml: "
+            f"missing={missing}, unexpected={unexpected}, repeated={repeated}"
+        )
+
+
 def validate_repository(root: Path = ROOT) -> None:
     current = root / CURRENT.relative_to(ROOT)
     deployed = root / DEPLOYED.relative_to(ROOT)
@@ -2306,7 +2231,6 @@ def validate_repository(root: Path = ROOT) -> None:
     gateway_host_tool_sources = [root / path.relative_to(ROOT) for path in GATEWAY_HOST_TOOL_SOURCES]
     host_northbound_acceptance = root / HOST_NORTHBOUND_ACCEPTANCE.relative_to(ROOT)
     method_router = root / METHOD_ROUTER.relative_to(ROOT)
-    readme = root / README.relative_to(ROOT)
 
     validate_architecture_snapshot_document(current.read_text(encoding="utf-8"))
     validate_r21_lego_vocabulary(
@@ -2320,13 +2244,19 @@ def validate_repository(root: Path = ROOT) -> None:
     validate_plugin(_load_json(plugin))
 
     observed = route_capabilities(routes.read_text(encoding="utf-8"))
-    if observed != EXPECTED_CAPABILITIES:
+    if observed != EXPECTED_SOURCE_CAPABILITIES:
         raise ArchitectureDocsError(
-            f"Gateway route source differs from deployed graph: {sorted(observed)}"
+            f"Gateway route source differs from current source contract: {sorted(observed)}"
         )
 
     gateway_source = gateway_mcp.read_text(encoding="utf-8")
-    if "register_host_tools(server, gateway, _owner_boundary)" not in gateway_source:
+    host_registry_calls = (
+        "register_host_tools(server, gateway, _owner_boundary)",
+        "register_host_tools(server, gateway, _owner_boundary, _owner_error_result)",
+    )
+    # MCP error rendering is injected into Host abilities rather than imported
+    # from a concrete transport (or smuggled through the Security namespace).
+    if not any(signature in gateway_source for signature in host_registry_calls):
         raise ArchitectureDocsError("Gateway Host tool registry is not composed by build_server")
     observed_tools = gateway_tools(
         gateway_source + "\n" + "\n".join(path.read_text(encoding="utf-8") for path in gateway_host_tool_sources)
@@ -2346,8 +2276,10 @@ def validate_repository(root: Path = ROOT) -> None:
 
     if not method_router.is_file():
         raise ArchitectureDocsError("canonical Method Router Skill is missing")
-    if "docs/architecture/CURRENT_ARCHITECTURE.md" not in readme.read_text(encoding="utf-8"):
-        raise ArchitectureDocsError("root README must point to canonical current architecture")
+    # The dated snapshot remains explicitly historical. Real task routing
+    # must match the mechanical Owner source, not a September deployed graph.
+    validate_owner_navigation(root)
+    validate_entrypoint_links(root)
 
     tempo = (root / TEMPO_CONFIG.relative_to(ROOT)).read_text(encoding="utf-8")
     vector = (root / VECTOR_CONFIG.relative_to(ROOT)).read_text(encoding="utf-8")

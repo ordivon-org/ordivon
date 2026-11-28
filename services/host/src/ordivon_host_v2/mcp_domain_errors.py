@@ -4,11 +4,18 @@ import json
 from functools import wraps
 
 from mcp.server.mcpserver.exceptions import ToolError
+from psycopg.errors import CheckViolation, SequenceGeneratorLimitExceeded
 from psycopg_pool import PoolTimeout, TooManyRequests
 from pydantic import ValidationError
 
-from .errors import ActorRefNotFound, ConflictError, WorkNotFound
-from .social_errors import MessageNotFound, SpaceNotFound, TopicNotFound
+from .errors import (
+    ActorRefNotFound,
+    ConflictError,
+    InvalidArgumentError,
+    WorkNotFound,
+    WorkRevisionUnavailable,
+)
+from .social_errors import MessageNotFound, SpaceNotFound, TopicNotFound, TopicResumeCursorAhead
 
 
 def _domain_error_payload(exc: Exception) -> dict[str, object]:
@@ -52,6 +59,41 @@ def _domain_error_payload(exc: Exception) -> dict[str, object]:
             resourceRef=str(exc),
             suggestedAction="inspect-owner-inventory",
         )
+    elif isinstance(exc, WorkRevisionUnavailable):
+        # CONFLICT and its original detail text remain compatible. Reason,
+        # exact observed Work revision and differentiated recovery action
+        # come from one PG transaction, not guessed history or foreign effects.
+        action = {
+            "revision_ahead_of_current": "reread-current-work-before-waiting-for-revision",
+            "historical_snapshot_absent": "inspect-retention-and-archive-before-recovery",
+            "current_snapshot_missing": "stop-current-work-consumption-and-check-host-integrity",
+        }[exc.reason]
+        payload.update(
+            code="CONFLICT",
+            detail=str(exc),
+            reason=exc.reason,
+            resourceKind="work",
+            resourceRef=exc.work_ref,
+            requestedRevision=exc.requested_revision,
+            observedCurrentRevision=exc.current_revision,
+            evidenceBoundary="same-transaction-host-work-and-snapshot-read",
+            suggestedAction=action,
+        )
+    elif isinstance(exc, TopicResumeCursorAhead):
+        # Keep the established CONFLICT family. Unlike a successful empty
+        # Topic page, this observation disproves the supplied cursor's
+        # membership in this Topic's present committed horizon.
+        payload.update(
+            code="CONFLICT",
+            detail=str(exc),
+            reason="topic_resume_cursor_ahead",
+            resourceKind="topic",
+            resourceRef=exc.topic_ref,
+            requestedAfterSequence=exc.after_sequence,
+            observedTopicHighSequence=exc.topic_high,
+            evidenceBoundary="same-transaction-topic-message-horizon",
+            suggestedAction="reread-topic-horizon-and-check-cursor-domain",
+        )
     elif isinstance(exc, ConflictError):
         payload.update(
             code="CONFLICT",
@@ -79,7 +121,7 @@ def _domain_error_payload(exc: Exception) -> dict[str, object]:
             issues=exc.errors(include_url=False, include_input=False),
             suggestedAction="correct-request",
         )
-    elif isinstance(exc, ValueError):
+    elif isinstance(exc, InvalidArgumentError):
         payload.update(
             code="INVALID_ARGUMENT",
             detail=str(exc),
@@ -97,6 +139,22 @@ def _project_domain_errors(func):
     def wrapped(*args, **kwargs):
         try:
             return func(*args, **kwargs)
+        except (CheckViolation, SequenceGeneratorLimitExceeded) as exc:
+            # Do not turn unrelated SQL constraint failures into capacity errors.
+            if isinstance(exc, CheckViolation) and (
+                exc.diag.table_name != "swf_change_clock"
+                or exc.diag.constraint_name != "swf_exact_change_clock"
+            ):
+                raise
+            payload = {
+                "schemaVersion": 1,
+                "kind": "ordivon.host-domain-error",
+                "code": "RESOURCE_EXHAUSTED",
+                "retryable": False,
+                "reason": "generated_coordinate_exhausted",
+                "suggestedAction": "coordinate-owner-wire-version-migration",
+            }
+            raise ToolError(json.dumps(payload, sort_keys=True, separators=(",", ":"))) from None
         except (
             WorkNotFound,
             ActorRefNotFound,
@@ -107,7 +165,7 @@ def _project_domain_errors(func):
             PoolTimeout,
             TooManyRequests,
             ValidationError,
-            ValueError,
+            InvalidArgumentError,
         ) as exc:
             raise ToolError(
                 json.dumps(_domain_error_payload(exc), sort_keys=True, separators=(",", ":"))

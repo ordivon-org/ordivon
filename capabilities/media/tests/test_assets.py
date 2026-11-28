@@ -8,7 +8,13 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from ordivon_studio.assets import archive_blob, hash_file, materialize_blob, r2_object_key
+from ordivon_studio.assets import (
+    UnstableBlobError,
+    archive_blob,
+    hash_file,
+    materialize_blob,
+    r2_object_key,
+)
 
 
 class AssetTests(unittest.TestCase):
@@ -60,7 +66,7 @@ class AssetTests(unittest.TestCase):
                 )
 
             with patch("ordivon_studio.assets.os.fstat", side_effect=changed_on_second_observation):
-                with self.assertRaisesRegex(RuntimeError, "changed during hashing"):
+                with self.assertRaisesRegex(UnstableBlobError, "changed during hashing"):
                     hash_file(source)
             self.assertEqual(calls, 2)
             self.assertEqual(source.read_bytes(), payload)

@@ -80,6 +80,20 @@ implementation refinement or source-byte continuity after compilation.
 The existing Python drift consumer test and selected real native probes remain
 necessary. Do not delete them on the strength of model proof alone.
 
+## Timed-text delivery: source time and representability
+
+The source TimedText JSON retains positive integer ticks. Before exporting
+SRT/WebVTT, call `ordivon_studio.timed_text.validate_timed_text_delivery`
+with the real media duration. A positive source interval can collapse after
+millisecond quantization. The validated exporter rejects such a Cue
+instead of silently creating a zero-length cue or lengthening the source.
+Inspect actual exported subtitles with the selected FFprobe/ttconv adapter.
+The mathematical predicate is checked by existing Lean
+`capabilities/media/formal/TimedTextDeliveryPrecision.lean`; Python
+refinement and real native provider readback are separate evidence.
+The current nine-Cue Runtime Introduction narration produced nine
+positive-duration packets in both SRT and WebVTT.
+
 ## Verification and formal boundary
 
 The current four native profile families are AV structure (FFprobe), audio

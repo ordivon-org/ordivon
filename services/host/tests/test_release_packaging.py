@@ -45,6 +45,19 @@ if [ "$1" = "python" ] && [ "$2" = "find" ]; then
 fi
 if [ "$1" = "sync" ]; then
   if [ "${ORDIVON_TEST_UV_REJECT_LOCK:-}" = "1" ]; then exit 42; fi
+  project=""
+  for arg in "$@"; do project="$arg"; done
+  test -f "$project/packaging/verify_release.py"
+  mkdir -p "$project/.venv/bin"
+  cat > "$project/.venv/bin/python" <<'NATIVE_SDK_FAKE'
+#!/bin/sh
+set -eu
+test -f "$1"
+if [ "${ORDIVON_TEST_NATIVE_SDK_REJECT:-}" = "1" ]; then exit 73; fi
+grep -q contractDigest "${1%/packaging/verify_release.py}/mcp-surface.json"
+printf 'native-sdk-contract-checked\n' >> "$ORDIVON_TEST_SDK_CALL_LOG"
+NATIVE_SDK_FAKE
+  chmod +x "$project/.venv/bin/python"
   exit 0
 fi
 printf 'unexpected uv args: %s\\n' "$*" >&2
@@ -87,7 +100,13 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     )
     (host / "mcp-surface.json").write_text(
         '{"schemaVersion":1,"kind":"ordivon.mcp-tool-surface","service":"ordivon-host-v2",'
-        '"packageVersion":"0.1.0","surfaceEpoch":1,"tools":["host.status"]}\n',
+        '"packageVersion":"0.1.0","surfaceEpoch":1,"tools":["host.status"],'
+        '"contractDigest":"sha256:' + "0" * 64 + '"}\n',
+        encoding="utf-8",
+    )
+    (host / "packaging").mkdir()
+    (host / "packaging" / "verify_release.py").write_text(
+        "# disposable SDK-check fixture; fake uv supplies this entrypoint\\n",
         encoding="utf-8",
     )
     (package / "__init__.py").write_text('VALUE = "monorepo-host"\n', encoding="utf-8")
@@ -115,6 +134,8 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     env["ORDIVON_HOST_V2_PYTHON_INSTALL_DIR"] = str(tmp_path / "python")
     uv_call_log = tmp_path / "uv_calls.log"
     env["ORDIVON_TEST_UV_CALL_LOG"] = str(uv_call_log)
+    sdk_log = tmp_path / "native-sdk-checks.log"
+    env["ORDIVON_TEST_SDK_CALL_LOG"] = str(sdk_log)
 
     # Wrong Host source tree fails before files or toolchain side effects.
     expected_tree = _git(repo, "rev-parse", f"{commit}:services/host")
@@ -145,6 +166,7 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     calls = uv_call_log.read_text(encoding="utf-8").splitlines()
     assert len(calls) == 1
     assert calls[0].startswith("sync --locked ")
+    assert sdk_log.read_text(encoding="utf-8").splitlines() == ["native-sdk-contract-checked"]
     assert all(not call.startswith("python ") for call in calls)
     assert mise_log.read_text(encoding="utf-8").splitlines() == [
         "which uv",
@@ -178,7 +200,62 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     _git(repo, "commit", "--allow-empty", "-qm", "same tree, new release generation")
     next_commit = _git(repo, "rev-parse", "HEAD")
     staged_next = prefix / "releases" / next_commit
-    shutil.copytree(release, staged_next)
+    # A real candidate preparation qualifies the locked package and exact
+    # independently reviewed tree, while leaving the serving pointer intact.
+    before_current = (prefix / "current").resolve()
+    rejected_sdk = _run(
+        str(INSTALL),
+        str(repo),
+        next_commit,
+        str(prefix),
+        expected_tree,
+        "--prepare-only",
+        env={**env, "ORDIVON_TEST_NATIVE_SDK_REJECT": "1"},
+    )
+    assert rejected_sdk.returncode == 73, rejected_sdk.stderr
+    assert (prefix / "current").resolve() == before_current
+    staged = _run(
+        str(INSTALL), str(repo), next_commit, str(prefix), expected_tree, "--prepare-only", env=env
+    )
+    assert staged.returncode == 0, staged.stderr
+    assert staged_next.is_dir()
+    assert (prefix / "current").resolve() == before_current
+    assert f"prepared_release={next_commit}" in staged.stdout
+    assert f"prepared_host_tree={expected_tree}" in staged.stdout
+    assert "activation=NOT_PERFORMED" in staged.stdout
+    assert "installed_release=" not in staged.stdout
+    assert not (prefix / "current.next").exists()
+
+    # The ordinary path can later activate the same Git-reviewed candidate.
+    # Restore the old serving pointer immediately in this disposable fixture
+    # so the drift and wrong-tree negative cases retain their original scope.
+    activated = _run(str(INSTALL), str(repo), next_commit, str(prefix), expected_tree, env=env)
+    assert activated.returncode == 0, activated.stderr
+    assert f"installed_release={next_commit}" in activated.stdout
+    assert (prefix / "current").resolve() == staged_next
+    reverted = _run(str(INSTALL), str(repo), commit, str(prefix), expected_tree, env=env)
+    assert reverted.returncode == 0, reverted.stderr
+    assert (prefix / "current").resolve() == before_current
+
+    # Unsupported bypass forms never run the installer body.
+    call_log_before = uv_call_log.read_text(encoding="utf-8")
+    for invalid in ("--force", "--skip-preflight", "--activate-prepared", "garbage"):
+        denied = _run(
+            str(INSTALL), str(repo), next_commit, str(prefix), expected_tree, invalid, env=env
+        )
+        assert denied.returncode == 2, denied.stderr
+        assert (prefix / "current").resolve() == before_current
+        assert uv_call_log.read_text(encoding="utf-8") == call_log_before
+
+    # Pre-staging may never silently omit the independently pinned Git tree.
+    denied_unpinned = _run(
+        str(INSTALL), str(repo), next_commit, str(prefix), "--prepare-only", env=env
+    )
+    assert denied_unpinned.returncode == 2
+    assert (prefix / "current").resolve() == before_current
+
+    # Even an already-prepared release must be reverified against Git before
+    # activation, including a tampered lockfile.
     (staged_next / "uv.lock").write_text("modified after creation\n", encoding="utf-8")
     uv_before = uv_call_log.read_text(encoding="utf-8")
     blocked = _run(str(INSTALL), str(repo), next_commit, str(prefix), env=env)
@@ -186,6 +263,53 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     assert "release source drift" in blocked.stderr
     assert (prefix / "current").resolve() == release
     assert uv_call_log.read_text(encoding="utf-8") == uv_before
+
+    shutil.copyfile(release / "uv.lock", staged_next / "uv.lock")
+    # Native import precedence allows an untracked package to shadow a
+    # tracked Python file while all original Git blob checks remain green.
+    shadow = staged_next / "src" / "ordivon_host_v2" / "__init__"
+    shadow.mkdir()
+    (shadow / "__init__.py").write_text("SHADOW = True\n", encoding="utf-8")
+    blocked_extra = _run(
+        str(INSTALL), str(repo), next_commit, str(prefix), expected_tree, "--prepare-only", env=env
+    )
+    assert blocked_extra.returncode == 2, blocked_extra.stderr
+    assert "unexpected release entry" in blocked_extra.stderr
+    assert uv_call_log.read_text(encoding="utf-8") == uv_before
+    shutil.rmtree(shadow)
+
+    # An unchanged tracked leaf under a redirected parent is not the original
+    # physical source carrier.
+    parent = staged_next / "src" / "ordivon_host_v2"
+    external = tmp_path / "redirected-source"
+    parent.rename(external)
+    parent.symlink_to(external, target_is_directory=True)
+    redirected = _run(
+        str(INSTALL), str(repo), next_commit, str(prefix), expected_tree, "--prepare-only", env=env
+    )
+    assert redirected.returncode == 2, redirected.stderr
+    assert "not a real directory" in redirected.stderr
+    assert uv_call_log.read_text(encoding="utf-8") == uv_before
+    parent.unlink()
+    external.rename(parent)
+
+    cache = parent / "__pycache__"
+    cache.mkdir()
+    (cache / "__init__.cpython-315.pyc").write_bytes(b"generated fixture")
+    valid_cache = _run(
+        str(INSTALL), str(repo), next_commit, str(prefix), expected_tree, "--prepare-only", env=env
+    )
+    assert valid_cache.returncode == 0, valid_cache.stderr
+    uv_before = uv_call_log.read_text(encoding="utf-8")
+    (cache / "untracked.py").write_text("SHADOW = True", encoding="utf-8")
+    invalid_cache = _run(
+        str(INSTALL), str(repo), next_commit, str(prefix), expected_tree, "--prepare-only", env=env
+    )
+    assert invalid_cache.returncode == 2, invalid_cache.stderr
+    assert "unexpected cache filename" in invalid_cache.stderr
+    assert uv_call_log.read_text(encoding="utf-8") == uv_before
+    shutil.rmtree(cache)
+    assert (prefix / "current").resolve() == before_current
 
     # Git executable bits also belong to the immutable source contract.
     shutil.copyfile(release / "uv.lock", staged_next / "uv.lock")
@@ -203,9 +327,7 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
     _git(repo, "add", ".")
     _git(repo, "commit", "-qm", "different host tree after reviewed release")
     wrong_commit = _git(repo, "rev-parse", "HEAD")
-    blocked_tree = _run(
-        str(INSTALL), str(repo), wrong_commit, str(prefix), expected_tree, env=env
-    )
+    blocked_tree = _run(str(INSTALL), str(repo), wrong_commit, str(prefix), expected_tree, env=env)
     assert blocked_tree.returncode == 2, blocked_tree.stderr
     assert "differs from expected reviewed tree" in blocked_tree.stderr
     assert not (prefix / "releases" / wrong_commit).exists()

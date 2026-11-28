@@ -1,4 +1,4 @@
-"""History health must expose gaps even when the current Work pointer is valid."""
+"""Work continuity requires a sound current snapshot, not a complete archival timeline."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import psycopg
 import pytest
 
 from ordivon_host_v2.errors import ConflictError
+from ordivon_host_v2.references.actor_store import ActorReferenceStore
 from ordivon_host_v2.service import HostV2
 from ordivon_host_v2.work_inputs import (
     ActorKind,
@@ -25,17 +26,17 @@ pytestmark = [
 ]
 
 
-def test_history_hole_is_visible_to_both_history_and_integrity_doctor() -> None:
+def test_missing_historical_revisions_do_not_break_healthy_current_work() -> None:
     assert DSN is not None
     token = uuid4().hex
     actor_ref = f"actor:agent:history-diagnostic:{token}"
     work_ref = f"work:history-diagnostic:{token}"
     store = WorkStore(DSN)
-    store.declare_actor(
+    ActorReferenceStore(DSN).declare_actor(
         ActorRefInput(actor_ref=actor_ref, actor_kind=ActorKind.AGENT),
         client_request_id=f"actor:{token}",
     )
-    snapshot = WorkSnapshotInput(objective="verify retained history", frontier="current")
+    snapshot = WorkSnapshotInput(objective="verify current snapshot", frontier="current")
     try:
         store.create_work(
             WorkCreateInput(
@@ -49,7 +50,7 @@ def test_history_hole_is_visible_to_both_history_and_integrity_doctor() -> None:
         store.commit_snapshot(
             work_ref,
             expected_revision=1,
-            snapshot=WorkSnapshotInput(objective="verify retained history", frontier="r2"),
+            snapshot=WorkSnapshotInput(objective="verify current snapshot", frontier="r2"),
             actor_ref=actor_ref,
             client_request_id=f"commit:{token}",
         )
@@ -69,7 +70,47 @@ def test_history_hole_is_visible_to_both_history_and_integrity_doctor() -> None:
             assert doctor is not None
             checks = {item["name"]: item for item in doctor["checks"]}
             assert checks["work.current_snapshot"]["status"] == "ok"
-            assert checks["work.snapshot_history_contiguous"]["status"] == "error"
+            assert "work.snapshot_history_contiguous" not in checks
+            assert doctor["healthy"] is True
+    finally:
+        with psycopg.connect(DSN) as connection:
+            connection.execute("DELETE FROM work_snapshots WHERE work_ref=%s", (work_ref,))
+            connection.execute("DELETE FROM works WHERE work_ref=%s", (work_ref,))
+            connection.execute("DELETE FROM actor_refs WHERE actor_ref=%s", (actor_ref,))
+
+
+@pytest.mark.parametrize("corrupt_value", ['"changed-without-digest"', "9007199254740992"])
+def test_current_snapshot_payload_corruption_is_a_doctor_failure(corrupt_value) -> None:
+    assert DSN is not None
+    token = uuid4().hex
+    actor_ref = f"actor:agent:current-diagnostic:{token}"
+    work_ref = f"work:current-diagnostic:{token}"
+    store = WorkStore(DSN)
+    ActorReferenceStore(DSN).declare_actor(
+        ActorRefInput(actor_ref=actor_ref, actor_kind=ActorKind.AGENT),
+        client_request_id=f"actor:{token}",
+    )
+    try:
+        store.create_work(
+            WorkCreateInput(
+                work_ref=work_ref,
+                kind="diagnostic",
+                actor_ref=actor_ref,
+                initial_snapshot=WorkSnapshotInput(objective="current-digest", frontier="original"),
+            ),
+            client_request_id=f"create:{token}",
+        )
+        with psycopg.connect(DSN) as connection:
+            connection.execute(
+                "UPDATE work_snapshots SET payload=jsonb_set(payload,'{frontier}',"
+                "%s::jsonb) WHERE work_ref=%s AND revision=1",
+                (corrupt_value, work_ref),
+            )
+        for detail in ("integrity", "history"):
+            doctor = HostV2(DSN).status(detail=detail)["doctor"]
+            assert doctor is not None
+            checks = {item["name"]: item for item in doctor["checks"]}
+            assert checks["work.current_snapshot_payload_digest"]["status"] == "error"
             assert doctor["healthy"] is False
     finally:
         with psycopg.connect(DSN) as connection:

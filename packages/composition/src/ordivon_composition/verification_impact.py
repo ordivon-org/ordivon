@@ -8,60 +8,68 @@ retains the supported public/CLI entrypoints and imports this module.
 from __future__ import annotations
 
 import re
+from collections import defaultdict
 from typing import Any
 from urllib.parse import quote_from_bytes
 
 from .cognitive_circuit_r1 import CircuitContractError, canonical_digest, compile_manifest
 
 
-def _gate_scoped_source_digest(manifest: dict[str, Any], gate_id: str) -> str:
-    """Project a bounded Gate *source* readset; never qualify verifier evidence.
+class _GateSourceIndex:
+    """Task-local sparse projection of one validated manifest.
 
-    Include all upstream stage responsibilities and their declared method/tool
-    bindings, incoming typed edges, and the Gates that constrain that upstream
-    closure. This intentionally overapproximates proof dependencies: ambient
-    effects, outside-owner identities and dynamic reads remain unqualified.
+    Build indexes once; preserve the exact historical canonical scope bytes.
+    No persistent cache, proof acceptance, or cross-SourceCut identity.
     """
-    stage_by_id = {stage["id"]: stage for stage in manifest["stages"]}
-    gate_by_id = {gate["id"]: gate for gate in manifest["gateRequirements"]}
-    gate = gate_by_id[gate_id]
-    included: set[str] = set()
-    frontier = [gate["producerStageId"], gate["consumerStageId"]]
-    while frontier:
-        stage_id = frontier.pop()
-        if stage_id in included:
-            continue
-        included.add(stage_id)
-        frontier.extend(stage_by_id[stage_id]["dependsOn"])
-    stage_rows = [stage_by_id[key] for key in sorted(included)]
-    method_ids = {method for stage in stage_rows for method in stage["methodBindings"]}
-    capability_ids = {cap for stage in stage_rows for cap in stage["capabilityBindings"]}
-    scoped: dict[str, Any] = {
-        "schemaVersion": manifest["schemaVersion"],
-        "kind": manifest["kind"],
-        "circuitId": manifest["circuitId"],
-        "objectiveRef": manifest["objectiveRef"],
-        "unresolvedAssumptions": sorted(manifest["unresolvedAssumptions"]),
-        "nonClaims": manifest["nonClaims"],
-        "stages": stage_rows,
-        "methodBindings": sorted(
-            (row for row in manifest["methodBindings"] if row["id"] in method_ids),
-            key=lambda row: row["id"],
-        ),
-        "capabilityBindings": sorted(
-            (row for row in manifest["capabilityBindings"] if row["id"] in capability_ids),
-            key=lambda row: row["id"],
-        ),
-        "incomingEdges": sorted(
-            (edge for edge in manifest["edges"] if edge["to"]["stageId"] in included),
-            key=lambda edge: edge["id"],
-        ),
-        "upstreamGates": sorted(
-            (item for item in manifest["gateRequirements"] if item["consumerStageId"] in included),
-            key=lambda item: item["id"],
-        ),
-    }
-    return canonical_digest(scoped)
+
+    def __init__(self, manifest: dict[str, Any]) -> None:
+        self.manifest = manifest
+        self.stages = {row["id"]: row for row in manifest["stages"]}
+        self.gates = {row["id"]: row for row in manifest["gateRequirements"]}
+        self.methods = {row["id"]: row for row in manifest["methodBindings"]}
+        self.capabilities = {row["id"]: row for row in manifest["capabilityBindings"]}
+        self.edges_by_target: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        self.gates_by_consumer: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for edge in manifest["edges"]:
+            self.edges_by_target[edge["to"]["stageId"]].append(edge)
+        for gate in manifest["gateRequirements"]:
+            self.gates_by_consumer[gate["consumerStageId"]].append(gate)
+
+    def digest(self, gate_id: str) -> str:
+        """Bounded upstream source readset, not a qualified proof readset."""
+        gate = self.gates[gate_id]
+        included: set[str] = set()
+        frontier = [gate["producerStageId"], gate["consumerStageId"]]
+        while frontier:
+            stage_id = frontier.pop()
+            if stage_id in included:
+                continue
+            included.add(stage_id)
+            frontier.extend(self.stages[stage_id]["dependsOn"])
+        stage_rows = [self.stages[key] for key in sorted(included)]
+        method_ids = {method for stage in stage_rows for method in stage["methodBindings"]}
+        capability_ids = {cap for stage in stage_rows for cap in stage["capabilityBindings"]}
+        manifest = self.manifest
+        scoped: dict[str, Any] = {
+            "schemaVersion": manifest["schemaVersion"],
+            "kind": manifest["kind"],
+            "circuitId": manifest["circuitId"],
+            "objectiveRef": manifest["objectiveRef"],
+            "unresolvedAssumptions": sorted(manifest["unresolvedAssumptions"]),
+            "nonClaims": manifest["nonClaims"],
+            "stages": stage_rows,
+            "methodBindings": [self.methods[key] for key in sorted(method_ids)],
+            "capabilityBindings": [self.capabilities[key] for key in sorted(capability_ids)],
+            "incomingEdges": sorted(
+                (edge for key in included for edge in self.edges_by_target.get(key, ())),
+                key=lambda edge: edge["id"],
+            ),
+            "upstreamGates": sorted(
+                (item for key in included for item in self.gates_by_consumer.get(key, ())),
+                key=lambda item: item["id"],
+            ),
+        }
+        return canonical_digest(scoped)
 
 
 def compare_gate_source_scopes(
@@ -76,29 +84,44 @@ def compare_gate_source_scopes(
     """
     previous = compile_manifest(previous_manifest)
     current = compile_manifest(current_manifest)
+    return _compare_validated_gate_source_scopes(
+        previous_manifest,
+        current_manifest,
+        previous["manifestDigest"],
+        current["manifestDigest"],
+    )
+
+
+def _compare_validated_gate_source_scopes(
+    previous_manifest: dict[str, Any],
+    current_manifest: dict[str, Any],
+    previous_digest: str,
+    current_digest: str,
+) -> dict[str, Any]:
+    """Internal synchronous projection of cuts compiled by this caller.
+
+    Digests are obtained from compile_manifest in the same call, never
+    from a public caller or persisted validation/proof cache.
+    """
     if previous_manifest["circuitId"] != current_manifest["circuitId"]:
         raise CircuitContractError("gate source comparison requires the same circuitId")
     old_gates = {item["id"] for item in previous_manifest["gateRequirements"]}
     new_gates = {item["id"] for item in current_manifest["gateRequirements"]}
     common = old_gates & new_gates
-    previous_digests = {
-        identity: _gate_scoped_source_digest(previous_manifest, identity)
+    previous_index = _GateSourceIndex(previous_manifest)
+    current_index = _GateSourceIndex(current_manifest)
+    changed = [
+        identity
         for identity in sorted(common)
-    }
-    current_digests = {
-        identity: _gate_scoped_source_digest(current_manifest, identity)
-        for identity in sorted(common)
-    }
-    changed = sorted(
-        identity for identity in common if previous_digests[identity] != current_digests[identity]
-    )
+        if previous_index.digest(identity) != current_index.digest(identity)
+    ]
     unchanged = sorted(common - set(changed))
     added = sorted(new_gates - old_gates)
     removed = sorted(old_gates - new_gates)
     return {
         "kind": "ordivon.task-local-gate-source-delta",
-        "previousManifestDigest": previous["manifestDigest"],
-        "currentManifestDigest": current["manifestDigest"],
+        "previousManifestDigest": previous_digest,
+        "currentManifestDigest": current_digest,
         "changedGateIds": changed,
         "unchangedGateIds": unchanged,
         "addedGateIds": added,
@@ -219,12 +242,19 @@ def select_source_readset_impacts(
         raise CircuitContractError("source readset evidence must bind the exact current Git scope")
 
     authority = set(git_source_delta["authorityRefs"])
+    # An enumerating consumer depends on the *set* of source members, not
+    # merely the bytes of the files that happened to exist at the prior cut.
+    # Reuse the native Git delta's existing members: ref; no second graph.
+    membership_ref = git_source_delta.get("membershipRef")
     obligations: list[dict[str, Any]] = []
     seen_ids: set[str] = set()
     for item in evidence["items"]:
         if (
             not isinstance(item, dict)
-            or set(item) != {"id", "sourcePaths", "dependenciesComplete"}
+            or not {"id", "sourcePaths", "dependenciesComplete"} <= set(item)
+            or not set(item)
+            <= {"id", "sourcePaths", "dependenciesComplete", "dependsOnScopeMembership"}
+            or type(item.get("dependsOnScopeMembership", False)) is not bool
             or not isinstance(item["id"], str)
             or ":" not in item["id"]
             or not isinstance(item["sourcePaths"], list)
@@ -256,6 +286,15 @@ def select_source_readset_impacts(
                     "source readset path is absent from exact Git authority refs"
                 )
             refs.append(ref)
+        if item.get("dependsOnScopeMembership", False):
+            expected = (
+                f"{git_source_delta['sourceScopeRef']}:members:{git_source_delta['queryPrefix']}"
+            )
+            if membership_ref != expected or membership_ref not in authority:
+                raise CircuitContractError(
+                    "scope membership edge requires the exact native Git scope reference"
+                )
+            refs.append(membership_ref)
         obligations.append(
             {
                 "id": item["id"],
@@ -281,6 +320,7 @@ def select_source_readset_impacts(
         "proofAcceptanceEstablished": False,
         "nonClaims": [
             "Owner readset evidence supplies positive dependency edges, not proof of complete dynamic/build/environment closure.",
+            "dependsOnScopeMembership explicitly tracks additions/removals across the whole selected Git prefix; false never proves the consumer ignores newly discovered members.",
             "REUSE_CANDIDATE remains a scheduling candidate and is never verifier PASS.",
             "No implementation refinement, installed currentness, effect authority, or domain acceptance is established.",
         ],

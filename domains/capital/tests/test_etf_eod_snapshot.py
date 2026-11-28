@@ -100,6 +100,7 @@ def test_correction_is_admitted_only_with_a_new_committed_digest_and_decision_cu
         ("corporateActions", "coverage", "UNKNOWN", "corporate actions"),
         ("corporateActions", "evidenceRef", "unbound", "corporate actions"),
         ("corporateActions", "events", [{"type": "SPLIT"}], "corporate action events"),
+        ("corporateActions", "events", [{"type": "DIVIDEND", "amount": "0.75"}], "corporate action events"),
         ("marks", "priceMinor", True, "integer USD cents"),
         ("marks", "priceMinor", 10.5, "integer USD cents"),
         ("marks", "availableAt", "2026-04-02T19:59:59Z", "before session close"),
@@ -142,3 +143,41 @@ def test_rejects_duplicate_json_keys_even_when_the_digest_is_correct():
     raw = json.dumps(fixture()).replace('"USD"', '"EUR", "currency": "USD"').encode()
     with pytest.raises(SnapshotAdmissionError, match="duplicate JSON key"):
         admit(raw)
+
+
+@pytest.mark.parametrize(
+    ("session_day", "reported_close", "captured_at"),
+    [
+        ("2025-05-26", "2025-05-26T20:00:00Z", "2025-05-26T21:00:00Z"),
+        ("2026-07-03", "2026-07-03T20:00:00Z", "2026-07-03T21:00:00Z"),
+        ("2026-11-27", "2026-11-27T21:00:00Z", "2026-11-27T22:00:00Z"),
+        ("2026-04-02", "2026-04-02T21:00:00Z", "2026-04-02T22:00:00Z"),
+    ],
+)
+def test_exchange_session_and_exact_close_cannot_be_declared_by_vendor(
+    session_day, reported_close, captured_at
+):
+    payload = fixture()
+    payload["marks"][0]["sessionDate"] = session_day
+    payload["marks"][0]["availableAt"] = captured_at
+    payload["capturedAt"] = captured_at
+    with pytest.raises(SnapshotAdmissionError, match="XNYS"):
+        admit(
+            payload,
+            expected_session_closes={session_day: reported_close},
+            decision_at=captured_at,
+        )
+
+
+def test_early_close_uses_native_exchange_schedule_not_a_fixed_clock():
+    session_day = "2026-11-27"
+    payload = fixture()
+    payload["marks"][0]["sessionDate"] = session_day
+    payload["marks"][0]["availableAt"] = "2026-11-27T18:10:00Z"
+    payload["capturedAt"] = "2026-11-27T19:00:00Z"
+    admitted = admit(
+        payload,
+        expected_session_closes={session_day: "2026-11-27T18:00:00Z"},
+        decision_at=payload["capturedAt"],
+    )
+    assert admitted.marks[0].session_close_at.isoformat() == "2026-11-27T18:00:00+00:00"
