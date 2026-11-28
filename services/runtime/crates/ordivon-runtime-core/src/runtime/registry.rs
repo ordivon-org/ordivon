@@ -1,3 +1,4 @@
+use super::types::validate_bounded_text_id as validate_identifier;
 use rusqlite::{
     params, Connection, OpenFlags, OptionalExtension, Transaction, TransactionBehavior,
 };
@@ -1424,20 +1425,6 @@ fn validate_runner_identity(identity: &RunnerIdentity) -> RuntimeResult<()> {
         ));
     }
     validate_digest(&identity.runner_start_digest, "runnerStartDigest")
-}
-
-fn validate_identifier(value: &str, field: &str) -> RuntimeResult<()> {
-    if value.trim().is_empty()
-        || value.len() > 256
-        || value.as_bytes().contains(&0)
-        || value.chars().any(char::is_control)
-    {
-        return Err(RuntimeError::invalid(
-            format!("{field} must be non-empty, bounded, and control-free"),
-            field,
-        ));
-    }
-    Ok(())
 }
 
 fn validate_digest(value: &str, field: &str) -> RuntimeResult<()> {

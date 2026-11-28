@@ -1,18 +1,5 @@
 use super::super::{RuntimeError, RuntimeResult};
-
-pub(super) fn validate_identifier(value: &str, field: &str) -> RuntimeResult<()> {
-    if value.trim().is_empty()
-        || value.len() > 256
-        || value.as_bytes().contains(&0)
-        || value.chars().any(char::is_control)
-    {
-        return Err(RuntimeError::invalid(
-            format!("{field} must be non-empty, bounded, and control-free"),
-            field,
-        ));
-    }
-    Ok(())
-}
+pub(super) use crate::runtime::types::validate_bounded_text_id as validate_identifier;
 
 pub(super) fn validate_sha256(value: &str, field: &str) -> RuntimeResult<()> {
     let valid = value
