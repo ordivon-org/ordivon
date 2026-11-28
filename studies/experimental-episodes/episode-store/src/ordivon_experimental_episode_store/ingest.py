@@ -20,6 +20,8 @@ from psycopg import sql
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
+from .r5c_projection import VALIDATOR as EPISODE_SCHEMA_VALIDATOR
+
 SHA256_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 
@@ -90,19 +92,23 @@ def _load_episodes_from_lines(
         value = json.loads(line)
         if not isinstance(value, dict):
             raise EpisodeStoreError(f"{label}:{line_number}: root must be object")
-        if value.get("kind") != "ordivon.experimental-episode-binding":
-            raise EpisodeStoreError(f"{label}:{line_number}: unexpected kind")
-        if value.get("profileId") != profile_id:
+        errors = sorted(
+            EPISODE_SCHEMA_VALIDATOR.iter_errors(value),
+            key=lambda item: list(item.absolute_path),
+        )
+        if errors:
+            error = errors[0]
+            location = "/".join(str(part) for part in error.absolute_path) or "<root>"
+            raise EpisodeStoreError(
+                f"{label}:{line_number}: episode schema violation at "
+                f"{location}: {error.message}"
+            )
+        if value["profileId"] != profile_id:
             raise EpisodeStoreError(
                 f"{label}:{line_number}: profileId does not match {profile_id}"
             )
-        episode_id = value.get("episodeId")
-        projection_digest = value.get("projectionDigest")
-        if not isinstance(episode_id, str) or not episode_id:
-            raise EpisodeStoreError(f"{label}:{line_number}: invalid episodeId")
-        if not isinstance(projection_digest, str):
-            raise EpisodeStoreError(f"{label}:{line_number}: missing projectionDigest")
-        _require_sha256(projection_digest, "projectionDigest")
+        episode_id = value["episodeId"]
+        projection_digest = value["projectionDigest"]
         key = (episode_id, projection_digest)
         if key in seen:
             raise EpisodeStoreError(

@@ -56,6 +56,15 @@ def test_ingest_identity_is_deterministic_and_profile_bound() -> None:
     assert build_ingest_identity(**changed)[0] != first[0]
 
 
+def test_load_rejects_schema_invalid_extra_field(tmp_path) -> None:
+    path = tmp_path / "episodes.jsonl"
+    value = episode()
+    value["undeclared"] = "must-not-be-silently-projected-away"
+    path.write_text(json.dumps(value) + "\n", encoding="utf-8")
+    with pytest.raises(EpisodeStoreError, match="episode schema violation"):
+        _load_episodes(path, "runtime-r5c-v1")
+
+
 def test_load_rejects_profile_mismatch(tmp_path) -> None:
     path = tmp_path / "episodes.jsonl"
     path.write_text(json.dumps(episode("wrong")) + "\n", encoding="utf-8")
