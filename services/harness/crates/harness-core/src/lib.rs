@@ -6,7 +6,7 @@
 #![forbid(unsafe_code)]
 
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
+use std::collections::{btree_map::Entry, BTreeMap};
 use std::fmt;
 
 /// Integer decimal text is used instead of i64/u64 or f64 to preserve Python
@@ -63,9 +63,7 @@ impl CanonicalDocument {
     pub fn object(entries: Vec<(String, Self)>) -> Result<Self, CanonicalError> {
         let mut fields = BTreeMap::new();
         for (key, value) in entries {
-            if fields.insert(key.clone(), value.0).is_some() {
-                return Err(CanonicalError::DuplicateKey(key));
-            }
+            insert_unique(&mut fields, key, value.0)?;
         }
         let value = CanonicalValue::Object(fields);
         if nesting_depth(&value) > MAX_NESTING {
@@ -75,31 +73,33 @@ impl CanonicalDocument {
     }
 
     pub fn get(&self, key: &str) -> Option<Self> {
-        match &self.0 {
-            CanonicalValue::Object(fields) => fields.get(key).cloned().map(Self),
-            _ => None,
-        }
+        self.field(key).map(|value| Self(value.0.clone()))
     }
 
     pub fn as_integer_decimal(&self) -> Option<&str> {
-        match &self.0 {
-            CanonicalValue::Integer(text) => Some(text),
-            _ => None,
-        }
+        self.as_borrowed().integer_text()
     }
 
     pub fn as_string(&self) -> Option<&str> {
-        match &self.0 {
-            CanonicalValue::String(text) => Some(text),
-            _ => None,
-        }
+        self.as_borrowed().as_str()
     }
 
     pub fn as_bool(&self) -> Option<bool> {
-        match &self.0 {
-            CanonicalValue::Bool(value) => Some(*value),
-            _ => None,
+        self.as_borrowed().as_bool()
+    }
+}
+
+fn insert_unique(
+    fields: &mut BTreeMap<String, CanonicalValue>,
+    key: String,
+    value: CanonicalValue,
+) -> Result<(), CanonicalError> {
+    match fields.entry(key) {
+        Entry::Vacant(entry) => {
+            entry.insert(value);
+            Ok(())
         }
+        Entry::Occupied(entry) => Err(CanonicalError::DuplicateKey(entry.key().clone())),
     }
 }
 
@@ -281,9 +281,7 @@ impl<'a> Parser<'a> {
                         return Err(CanonicalError::InvalidJson);
                     }
                     let value = self.parse_value(depth + 1)?;
-                    if entries.insert(key.clone(), value).is_some() {
-                        return Err(CanonicalError::DuplicateKey(key));
-                    }
+                    insert_unique(&mut entries, key, value)?;
                     self.skip_whitespace();
                     if self.take(b'}') {
                         break;
@@ -352,9 +350,7 @@ fn write_canonical(value: &CanonicalValue, output: &mut String) {
 /// ensure_ascii=False, allow_nan=False), serialized as UTF-8 bytes.
 /// BTreeMap string order matches Unicode scalar order for valid UTF-8.
 pub fn canonical_bytes(value: &CanonicalDocument) -> Vec<u8> {
-    let mut output = String::new();
-    write_canonical(&value.0, &mut output);
-    output.into_bytes()
+    value.as_borrowed().canonical_bytes()
 }
 
 /// Read-only borrowed view into a validated Canonical Document.
@@ -385,14 +381,7 @@ impl CanonicalDocument {
 
     /// Keep object iteration read-only; the original sorted keys remain sealed.
     pub fn object_entries(&self) -> Option<impl Iterator<Item = (&str, CanonicalRef<'_>)>> {
-        match &self.0 {
-            CanonicalValue::Object(entries) => Some(
-                entries
-                    .iter()
-                    .map(|(key, value)| (key.as_str(), CanonicalRef(value))),
-            ),
-            _ => None,
-        }
+        self.as_borrowed().object_entries()
     }
 }
 
