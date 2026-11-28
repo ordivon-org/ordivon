@@ -79,7 +79,13 @@ raise SystemExit(module.main())
 
 _FORMAL_PROBE_ORACLES = (
     ("Lean kernel R2.1 relational composition", 0),
+    ("Leanchecker replays R2.1 core declarations", 0),
     ("Lean kernel qualified variation frame and countermodels", 0),
+    ("Lean kernel consumer-owned R2.1 retirement closure challenge", 0),
+    ("Leanchecker replays consumer-owned retirement challenge", 0),
+    ("Leanchecker replays R2.1 variation declarations", 0),
+    ("Lean compiler accepts forged axiom-free proof when kernel skipped", 0),
+    ("Leanchecker rejects forged false declaration", 1),
     ("Lean kernel Media processing admission model", 0),
     ("Lean kernel Media Creative Library Catalog acceptance", 0),
     ("Lean kernel Media TimedText delivery precision", 0),
@@ -98,7 +104,7 @@ _FORMAL_PROBE_ORACLES = (
     ("Quint rejects type error", 1),
     ("Alloy finite SAT model", 0),
 )
-_FORMAL_TOOLS = ("lean", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy")
+_FORMAL_TOOLS = ("lean", "leanchecker", "z3", "cvc5", "verus", "dafny", "kani", "quint", "alloy")
 
 def _qualified_formal_test_receipt(
     checkout: Path, source_cut: str, fake_bin_dir: Path
@@ -1015,6 +1021,11 @@ exit 0
             invalid_receipts["valid-digest-foreign-tool-identity"] = json.dumps(
                 wrong_tool_identity
             )
+            wrong_checker = copy.deepcopy(full_report)
+            wrong_checker["toolBinaries"]["leanchecker"] = copy.deepcopy(
+                wrong_checker["toolBinaries"]["z3"]
+            )
+            invalid_receipts["valid-digest-foreign-leanchecker"] = json.dumps(wrong_checker)
             stale_cut = copy.deepcopy(full_report)
             stale_cut["sourceCut"] = "0" * len(stale_cut["sourceCut"])
             invalid_receipts["stale-source-cut"] = json.dumps(stale_cut)
